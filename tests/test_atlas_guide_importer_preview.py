@@ -6,6 +6,7 @@ import json
 import tempfile
 import unittest
 from pathlib import Path
+from unittest.mock import patch
 
 from app.modules.encyclopedia.services.guide_shared_route_contract import GuideRouteContractError
 from tools.atlas_guide_importer import main, prepare_preview
@@ -310,6 +311,32 @@ class GuideImporterPreviewTests(unittest.TestCase):
         data["schema_version"] = True
         with self.assertRaisesRegex(GuideRouteContractError, "schema_version"):
             prepare_preview(data, expected_guides=1, expected_steps=1)
+
+    def test_cli_preview_output_rejects_source_and_parent_traversal(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            source = root / "synthetic.json"
+            document = valid_export()
+            document["complete"] = False
+            source.write_text(json.dumps(document), encoding="utf-8")
+            fake_module = root / "tools" / "atlas_guide_importer.py"
+            with patch("tools.atlas_guide_importer.__file__", str(fake_module)):
+                for output in (
+                    root / "app" / "preview.json",
+                    root / "artifacts" / ".." / "app" / "preview.json",
+                ):
+                    with self.subTest(path=str(output)), self.assertRaises(SystemExit) as raised:
+                        main([
+                            "--source", str(source), "--partial", "--output", str(output),
+                        ])
+                    self.assertEqual(raised.exception.code, 2)
+                    self.assertFalse((root / "app" / "preview.json").exists())
+                allowed = root / "artifacts" / "audit-1" / "preview.json"
+                self.assertEqual(main([
+                    "--source", str(source), "--partial", "--output", str(allowed),
+                ]), 0)
+                self.assertTrue(allowed.is_file())
+                self.assertFalse(json.loads(allowed.read_text())["certified"])
 
     def test_cli_rejects_case_variant_protected_output_directory(self):
         with tempfile.TemporaryDirectory() as temporary:

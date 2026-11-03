@@ -6,6 +6,7 @@ import json
 import tempfile
 import unittest
 from pathlib import Path
+from unittest.mock import patch
 
 from tools.atlas_guide_conformity import before_after, compare, main
 
@@ -906,6 +907,39 @@ class TestGuideConformity(unittest.TestCase):
                 {entry["issue_code"] for entry in delta["resolved"]},
                 {"MISSING_STEP", "MISSING_ACTION"},
             )
+
+    def test_cli_report_output_rejects_source_and_parent_traversal(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            for name, data in (
+                ("reference", self.reference), ("before", self.atlas),
+                ("after", self.atlas),
+            ):
+                (root / f"{name}.json").write_text(json.dumps(data), encoding="utf-8")
+            fake_module = root / "tools" / "atlas_guide_conformity.py"
+            def run(output: Path) -> int:
+                return main([
+                    "--reference", str(root / "reference.json"),
+                    "--before", str(root / "before.json"),
+                    "--after", str(root / "after.json"),
+                    "--output-dir", str(output),
+                ])
+            with patch("tools.atlas_guide_conformity.__file__", str(fake_module)):
+                for output in (
+                    root / "tools" / "report",
+                    root / "artifacts" / ".." / "app" / "report",
+                ):
+                    with self.subTest(path=str(output)), self.assertRaises(SystemExit) as raised:
+                        run(output)
+                    self.assertEqual(raised.exception.code, 2)
+                    self.assertFalse((root / "app" / "report").exists())
+                    self.assertFalse((root / "tools" / "report").exists())
+                allowed = root / "artifacts" / "audit-1" / "report"
+                self.assertEqual(run(allowed), 0)
+                self.assertEqual(
+                    {p.name for p in allowed.glob("*.json")},
+                    {"before.json", "after.json", "before_after.json"},
+                )
 
     def test_cli_rejects_case_variant_protected_report_directory(self) -> None:
         with tempfile.TemporaryDirectory() as directory:

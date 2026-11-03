@@ -249,6 +249,10 @@ def _validate_candidate(preview: dict[str, Any]) -> None:
 
 
 def _safe_root(root: Path) -> Path:
+    # Path.absolute() preserves '..': artifacts/../app would otherwise
+    # appear to be within the allowed staging directory.
+    if ".." in Path(root).parts:
+        raise GuideRouteContractError("parent traversal in candidate root")
     candidate = Path(root).absolute()
     if candidate.is_symlink() or any(part.casefold() in _FORBIDDEN_PARTS
                                     for part in candidate.parts):

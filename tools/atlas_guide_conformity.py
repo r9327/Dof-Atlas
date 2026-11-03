@@ -605,12 +605,24 @@ def main(argv: list[str] | None = None) -> int:
     delta = before_after(ref, old, new)
     # Reports must never overwrite any Atlas data, guide, user state or
     # prior audit evidence. A fresh output directory is mandatory.
+    if ".." in args.output_dir.parts:
+        parser.error("parent traversal in report output is forbidden")
     output = args.output_dir.absolute()
     if any(part.casefold() in {"data", ".git", "saves", "profiles", "user_data"}
            for part in output.parts):
         parser.error("output directory must be outside Atlas data and saves")
     if output.is_symlink() or any(parent.is_symlink() for parent in output.parents):
         parser.error("symlinked output directories are forbidden")
+    source_root = Path(__file__).resolve().parents[1]
+    try:
+        within_checkout = output.relative_to(source_root)
+    except ValueError:
+        within_checkout = None
+    if within_checkout is not None and (
+        len(within_checkout.parts) < 2
+        or within_checkout.parts[0].casefold() != "artifacts"
+    ):
+        parser.error("report output must be outside repository sources or under artifacts/")
     try:
         output.mkdir(parents=True, exist_ok=False)
     except OSError as exc:

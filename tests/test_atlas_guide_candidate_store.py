@@ -576,6 +576,20 @@ class CandidateStoreTests(unittest.TestCase):
                 publish_candidate(self.preview, root=candidate_root)
             self.assertFalse(candidate_root.exists())
 
+    def test_candidate_store_rejects_parent_traversal_before_write(self) -> None:
+        checkout = Path(__file__).resolve().parents[1]
+        destinations = (
+            checkout / "artifacts" / ".." / "app" / "__synthetic_stage_no_write__",
+            Path(self.temp.name) / "safe" / ".." / "other",
+        )
+        for destination in destinations:
+            with self.subTest(destination=str(destination)), self.assertRaisesRegex(
+                GuideRouteContractError, "parent traversal"
+            ):
+                publish_candidate(self.preview, root=destination)
+        self.assertFalse((checkout / "app" / "__synthetic_stage_no_write__").exists())
+        self.assertFalse((Path(self.temp.name) / "other").exists())
+
     def test_repo_artifacts_candidate_root_is_accepted_without_creating_it(self) -> None:
         from tools.atlas_guide_candidate_store import _safe_root
         checkout = Path(__file__).resolve().parents[1]

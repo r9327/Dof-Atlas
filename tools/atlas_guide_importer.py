@@ -168,6 +168,8 @@ def main(argv: list[str] | None = None) -> int:
             # Do not follow symlinks while interpreting the user-selected path:
             # a dangling preview alias or a linked parent must not redirect a
             # supposedly harmless dry-run export to an unrelated location.
+            if ".." in args.output.parts:
+                raise GuideRouteContractError("parent traversal in preview output")
             output = args.output.absolute()
             # This tool never publishes live routes or alters user progress.
             # Confine optional output to a new file under an explicit path.
@@ -178,6 +180,18 @@ def main(argv: list[str] | None = None) -> int:
                 raise GuideRouteContractError("output must not target app data/cache/git")
             if output.is_symlink() or any(parent.is_symlink() for parent in output.parents):
                 raise GuideRouteContractError("symlinked preview output is not supported")
+            source_root = Path(__file__).resolve().parents[1]
+            try:
+                within_checkout = output.relative_to(source_root)
+            except ValueError:
+                within_checkout = None
+            if within_checkout is not None and (
+                len(within_checkout.parts) < 2
+                or within_checkout.parts[0].casefold() != "artifacts"
+            ):
+                raise GuideRouteContractError(
+                    "preview output must be outside repository sources or under artifacts/"
+                )
             output.parent.mkdir(parents=True, exist_ok=True)
             with output.open("x", encoding="utf-8") as stream:
                 json.dump(result, stream, ensure_ascii=False, indent=2)
