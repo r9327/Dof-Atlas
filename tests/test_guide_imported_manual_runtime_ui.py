@@ -169,6 +169,35 @@ class ImportedSourceRouterQtTests(unittest.TestCase):
         self.assertEqual(reader.route_progress_label.text(), "0 %")
         self.assertFalse(self.service.page_checked("character:2", self.service.cards[0]))
 
+    def test_authorized_source_uses_atomic_shared_team_progress_and_undo(self):
+        self.approved = True
+        self.assertTrue(self.view.select_guide(self.service.guide_id))
+        self.view.guide_participant_service.save_selected_keys(
+            ("character:1", "character:2")
+        )
+        reader = self.view.stack.currentWidget()
+        reader.refresh(reset_to_active=True)
+        reader._show_index(0)
+        QApplication.processEvents()
+        reader.validation_layout.itemAt(0).widget().click()
+        QApplication.processEvents()
+        self.assertTrue(self.service.page_checked("character:1", self.service.cards[0]))
+        self.assertTrue(self.service.page_checked("character:2", self.service.cards[0]))
+        self.assertEqual(self.service.route_sheet_progress("character:1"), (1, 2))
+        self.assertEqual(self.service.route_sheet_progress("character:2"), (1, 2))
+        self.assertFalse(self.progress.manual_steps("character:1", "guide_ultime_v5"))
+        # Undo only the selected second participant, preserving first.
+        self.view.guide_participant_service.save_selected_keys(("character:2",))
+        reader.refresh(reset_to_active=True)
+        reader._show_index(0)
+        QApplication.processEvents()
+        undo = reader.validation_layout.itemAt(0).widget()
+        self.assertEqual(undo.text(), "Annuler validation")
+        undo.click()
+        QApplication.processEvents()
+        self.assertTrue(self.service.page_checked("character:1", self.service.cards[0]))
+        self.assertFalse(self.service.page_checked("character:2", self.service.cards[0]))
+
     def test_guide_specific_prerequisite_disables_validation_without_order_prompt(self):
         self.service.cards[0]["hard_runtime_gates"] = [
             {"kind": "alignment", "expected": "Bonta"}
