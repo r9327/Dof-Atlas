@@ -38,10 +38,11 @@ class ManualRouteGuidesView(_BaseGuidesView):
         # An imported route is never discovered from a candidate store, user
         # file or the old Quest catalogue. Future certified app composition
         # injects only explicit source services and an independent authorizer.
-        from app.modules.encyclopedia.services.guide_imported_manual_runtime_service import (
-            ImportedSourceManualRuntimeService,
-        )
         sources = dict(imported_source_services or {})
+        if sources:
+            from app.modules.encyclopedia.services.guide_imported_manual_runtime_service import (
+                ImportedSourceManualRuntimeService,
+            )
         if sources and not callable(imported_source_authorizer):
             raise ValueError("Source Guide activation requires an independent authorizer")
         for guide_id, service in sources.items():
@@ -237,6 +238,10 @@ class ManualRouteGuidesView(_BaseGuidesView):
             view = self.ensure_imported_source_manual_view(guide_id)
             service = self._imported_source_services.get(guide_id)
             if view is None or service is None or not self._imported_source_authorized(guide_id):
+                if self.current_guide_id == guide_id:
+                    self.current_guide_id = None
+                    self.state = self.CATALOG
+                    self.stack.setCurrentWidget(self.home_page)
                 self.status_callback(f"Parcours source non certifié ou indisponible : {guide_id}")
                 return False
             self.current_guide_id = guide_id
