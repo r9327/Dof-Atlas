@@ -347,9 +347,14 @@ def compare(reference: dict[str, Any], atlas: dict[str, Any]) -> dict[str, Any]:
                                 report("UNVERIFIABLE", f"{action_path}.{field}",
                                        "nonempty structured list", entries)
                             continue
-                        if not isinstance(entries, list) or not entries:
+                        required = (
+                            (field == "items" and kind in _ITEM_ACTION_KINDS)
+                            or (field == "monsters" and kind in {"fight", "combat"})
+                        )
+                        if not isinstance(entries, list) or (required and not entries):
                             report("UNVERIFIABLE", f"{action_path}.{field}",
-                                   "nonempty structured list", entries)
+                                   "nonempty structured list" if required else "structured list",
+                                   entries)
                             continue
                         for item_index, item in enumerate(entries):
                             item_path = f"{action_path}.{field}[{item_index}]"

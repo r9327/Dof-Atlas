@@ -1,9 +1,9 @@
 # Atlas Guide Conformity — clean candidate
 
 Status: prototype under development. No certification is claimed.
-Clean branch: feat/atlas-guide-importer-clean-20261102, created at main@060803282269098dfc6919e6e85f24309d2c485f.
-No commit, file, module or runtime code from abandoned PR #337 was imported.
-The original PR #363 has not yet been moved to this branch.
+PR #363 branch: feat/atlas-guide-importer-pr337-20261102, independently based on main@060803282269098dfc6919e6e85f24309d2c485f.
+The final PR diff is independent of abandoned PR #337; no #337 commit, file, module or runtime implementation was imported.
+PR #363 remains Draft. No real guide route is staged, activated, or certified.
 
 ## Scope
 
@@ -306,3 +306,20 @@ alphanumériques suivis de caractères alphanumériques, points, tirets ou
 soulignés, longueur maximale 120. Les IDs comportant espaces internes,
 segments de chemin, Unicode hors contrat, booléens ou entiers négatifs
 sont `UNVERIFIABLE`, même s'ils sont identiques dans les deux exports.
+
+## Correctifs du comparateur — inventaire et faux PASS (3 novembre 2026)
+
+- Lorsqu'un guide ou une étape disparaît entièrement, les rapports listent
+  aussi leurs étapes et actions enfants. Une clé de collection `guides`,
+  `steps` ou `actions` entièrement absente déclenche cet inventaire détaillé
+  des pertes ou ajouts, sans masquer les compteurs de chaque export.
+- Les champs et valeurs identiques ne suffisent pas à rendre valide une source
+  inexploitable. Le comparateur indépendant refuse les types d'action inconnus,
+  les déplacements sans coordonnées valides, les titres vides, les ressources
+  ou monstres sans nom/quantité positive et les combats sans monstres.
+- Les listes optionnelles `items: []` et `monsters: []` sont acceptées pour
+  les actions qui ne les exigent pas, conformément à l'adaptateur existant.
+  Une liste requise vide reste bloquante.
+- Tests adversariaux synthétiques ajoutés ; ils ne constituent pas encore une
+  preuve d'exécution sur le SHA final. Doctor, Graphify, Windows/DOFUS et la
+  certification des guides restent indépendants et `NOT_RUN`.
