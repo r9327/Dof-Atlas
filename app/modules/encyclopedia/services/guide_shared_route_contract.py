@@ -324,6 +324,9 @@ def project_authorized_guide(guide: dict[str, Any]) -> dict[str, Any]:
                 )
         for name in step.get("quest_names", []):
             _text(name, f"{prefix}.quest_names")
+        # Profession gates can be listed once at the guide header, without
+        # turning their required level into a countable resource.
+        profession_gates: list[dict[str, Any]] = []
         # Hard gates are structured, not rendered text. Retain every unknown
         # recognized field verbatim, but refuse missing/empty opaque entries.
         for gate in step.get("prerequisites", []):
@@ -331,6 +334,20 @@ def project_authorized_guide(guide: dict[str, Any]) -> dict[str, Any]:
                 raise GuideRouteContractError(
                     f"{prefix}.prerequisites: nonempty structured gate objects required"
                 )
+            if "profession_id" in gate:
+                profession_id = gate["profession_id"]
+                job_name, required_level = gate.get("profession_name"), gate.get("level")
+                if (type(profession_id) is not int or profession_id <= 0
+                        or not isinstance(job_name, str) or not job_name.strip()
+                        or type(required_level) is not int or not 1 <= required_level <= 200):
+                    raise GuideRouteContractError(
+                        f"{prefix}.prerequisites: unverified profession identity/level"
+                    )
+                profession_gates.append({
+                    "profession_id": profession_id,
+                    "name": job_name.strip(),
+                    "level": required_level,
+                })
         card = {
             "index": step_index + 1,
             "manual_source": True,
@@ -346,6 +363,7 @@ def project_authorized_guide(guide: dict[str, Any]) -> dict[str, Any]:
             "manual_quest_ids": copy.deepcopy(step.get("quest_ids", [])),
             "manual_quest_names": copy.deepcopy(step.get("quest_names", [])),
             "a_preparer": preparation,
+            "profession_gates": profession_gates,
             "hard_runtime_gates": copy.deepcopy(step.get("prerequisites", [])),
             "manual_runtime_metadata": {
                 "source_guide_id": guide_id,

@@ -371,5 +371,28 @@ class GuidePreparationQtFocusedTests(unittest.TestCase):
             rendered, {"items": [{"item_id": 123, "name": "Autre objet"}]}
         ), rendered)
 
+    def test_maximum_profession_level_displays_once_without_item_counter(self):
+        self.participants.save_selected_keys(("character:1",))
+        self.service.cards[0]["profession_gates"] = [
+            {"profession_id": 24, "name": "Alchimiste", "level": 40},
+        ]
+        self.service.cards.append({
+            "manual_stage_id": "profession-stage-2",
+            "profession_gates": [
+                {"profession_id": 24, "name": "Alchimiste", "level": 100},
+            ],
+        })
+        view = self._view()
+        rows = [r for r in view._preparation_needs if r.category == "Métiers"]
+        self.assertEqual(len(rows), 1)
+        self.assertEqual(rows[0].required_level, 100)
+        button = next(b for b in view.preparation_panel.findChildren(
+            QPushButton, "GuidePreparationItemCopy"
+        ) if "Alchimiste" in b.text())
+        self.assertIn("niveau 100", button.text())
+        self.assertEqual(
+            len(view.preparation_panel.findChildren(QSpinBox, "GuidePreparationQuantity")), 1
+        )
+
 if __name__ == "__main__":
     unittest.main()

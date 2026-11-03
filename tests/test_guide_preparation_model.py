@@ -472,5 +472,36 @@ class GuidePreparationModelTests(unittest.TestCase):
         self.assertEqual((need.scope, need.quantity, need.confidence),
                          ("unverified", None, "scope_unverified"))
 
+    def test_authored_profession_levels_aggregate_by_canonical_id_using_max(self):
+        stages = [
+            {"manual_stage_id": "a", "profession_gates": [
+                {"profession_id": 24, "name": "Alchimiste", "level": 40},
+            ]},
+            {"manual_stage_id": "b", "profession_gates": [
+                {"profession_id": 24, "name": "Alchimiste", "level": 100},
+            ]},
+            {"manual_stage_id": "c", "profession_gates": [
+                {"profession_id": 15, "name": "Bûcheron", "level": 80},
+            ]},
+        ]
+        grouped = aggregate_remaining((card, False) for card in stages)
+        by_identity = {need.identity: need for need in grouped}
+        self.assertEqual(by_identity["profession:24"].required_level, 100)
+        self.assertEqual(by_identity["profession:24"].claim_count, 2)
+        self.assertEqual(by_identity["profession:15"].required_level, 80)
+        self.assertIsNone(by_identity["profession:24"].quantity)
+        self.assertEqual(len(grouped), 2)
+        remaining = aggregate_remaining(((stages[0], False), (stages[1], True)))
+        self.assertEqual(remaining[0].required_level, 40)
+
+    def test_unknown_job_level_never_claims_verified_maximum(self):
+        card = {"manual_stage_id": "stage", "profession_gates": [
+            {"profession_id": 24, "name": "Alchimiste", "level": 80},
+            {"profession_id": 24, "name": "Alchimiste"},
+        ]}
+        row, = aggregate_remaining(((card, False),))
+        self.assertIsNone(row.required_level)
+        self.assertEqual(row.claim_count, 2)
+
 if __name__ == "__main__":
     unittest.main()

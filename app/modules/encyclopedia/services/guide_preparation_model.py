@@ -174,6 +174,8 @@ class PreparationClaim:
     stage_id: str
     occurrence: str
     scope: str = "per_character"
+    profession_id: int | None = None
+    required_level: int | None = None
 
 
 @dataclass(frozen=True, slots=True)
@@ -187,6 +189,8 @@ class PreparationNeed:
     claim_count: int
     sources: tuple[str, ...]
     scope: str = "per_character"
+    profession_id: int | None = None
+    required_level: int | None = None
 
 
 def card_claims(
@@ -296,12 +300,24 @@ def card_claims(
         ).strip()
         if not name:
             continue
-        identity = f"profession:{normalized_name(name)}"
-        if any(claim.identity == identity for claim in claims):
+        profession_id = (
+            _positive_int(raw.get("profession_id")) if isinstance(raw, dict) else None
+        )
+        required_level = (
+            _positive_int(raw.get("level") or raw.get("required_level"))
+            if isinstance(raw, dict) else None
+        )
+        identity = (
+            canonical_entity_key("profession", profession_id)
+            if profession_id is not None else f"profession:{normalized_name(name)}"
+        )
+        if any(claim.identity == identity and claim.required_level == required_level
+               for claim in claims):
             continue
         claims.append(PreparationClaim(
             identity, None, name, "Métiers", None, "reusable",
             "profession_gates", stage, f"profession:{index}",
+            profession_id=profession_id, required_level=required_level,
         ))
     seen_gates: set[str] = set()
     for index, name in enumerate(_gate_labels(card.get("hard_runtime_gates", ()) or ())):
@@ -367,11 +383,18 @@ def aggregate_remaining(
             quantity = None
             confidence = "multiple_uses_ambiguous"
         first = group[0]
+        # An authored job threshold is a gate, never a countable item.
+        # A partially known sequence must not invent a confirmed maximum.
+        job_levels = [claim.required_level for claim in group]
+        job_maximum = (
+            max(job_levels) if category == "Métiers"
+            and all(level is not None for level in job_levels) else None
+        )
         needs.append(PreparationNeed(
             identity, first.item_id, first.name, category, quantity,
             confidence, len(group),
             tuple(dict.fromkeys(f"{claim.stage_id}:{claim.source}" for claim in group)),
-            scope,
+            scope, first.profession_id, job_maximum,
         ))
     return tuple(needs)
 

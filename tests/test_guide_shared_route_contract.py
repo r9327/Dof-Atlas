@@ -709,5 +709,34 @@ class TestSharedRouteContract(unittest.TestCase):
             ):
                 project_authorized_guide(source)
 
+    def test_explicit_profession_prerequisites_project_to_shared_header(self):
+        source = sample()
+        source["steps"][0]["prerequisites"].append({
+            "profession_id": 24, "profession_name": "Alchimiste", "level": 80,
+        })
+        card = project_authorized_guide(source)["steps"][0]
+        self.assertEqual(card["profession_gates"], [
+            {"profession_id": 24, "name": "Alchimiste", "level": 80}
+        ])
+        self.assertIn(source["steps"][0]["prerequisites"][-1],
+                      card["hard_runtime_gates"])
+
+    def test_unverified_profession_prerequisite_is_rejected(self):
+        for invalid in (0, "24", True):
+            source = sample()
+            source["steps"][0]["prerequisites"].append({
+                "profession_id": invalid, "profession_name": "Alchimiste", "level": 80,
+            })
+            with self.subTest(invalid=invalid), self.assertRaisesRegex(
+                GuideRouteContractError, "unverified profession"
+            ):
+                project_authorized_guide(source)
+        source = sample()
+        source["steps"][0]["prerequisites"].append({
+            "profession_id": 24, "profession_name": "Alchimiste", "level": None,
+        })
+        with self.assertRaises(GuideRouteContractError):
+            project_authorized_guide(source)
+
 if __name__ == "__main__":
     unittest.main()

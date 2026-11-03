@@ -224,6 +224,8 @@ class _PreparationNeed:
     confidence_by_character: tuple[tuple[str, str], ...] = ()
     sources: tuple[str, ...] = ()
     scope: str = "per_character"
+    profession_id: int | None = None
+    required_level: int | None = None
 
     @property
     def required_total(self) -> int | None:
@@ -1843,18 +1845,30 @@ class SharedGuideManualView(GuideUltimeManualView):
                     )
                 ),
             ):
-                item_key = self._preparation_item_key(need.item_id, need.name)
+                item_key = (
+                    need.identity if need.category == "Métiers"
+                    else self._preparation_item_key(need.item_id, need.name)
+                )
                 row = aggregated.setdefault(
                     (item_key, need.category, need.scope),
                     {
                         "item_id": need.item_id, "name": need.name,
                         "category": need.category, "required": {},
                         "confidence": {}, "sources": set(),
+                        "profession_id": need.profession_id,
+                        "required_level": need.required_level,
                     },
                 )
                 row["required"][character_key] = need.quantity
                 row["confidence"][character_key] = need.confidence
                 row["sources"].update(need.sources)
+                # Different characters may be at different stages: show the
+                # highest verified job level needed across selected players.
+                levels = (row["required_level"], need.required_level)
+                row["required_level"] = (
+                    max(level for level in levels if level is not None)
+                    if all(level is not None for level in levels) else None
+                )
 
         self._preparation_needs = tuple(
             _PreparationNeed(
@@ -1866,6 +1880,8 @@ class SharedGuideManualView(GuideUltimeManualView):
                 confidence_by_character=tuple(sorted(row["confidence"].items())),
                 sources=tuple(sorted(row["sources"])),
                 scope=scope,
+                profession_id=row["profession_id"],
+                required_level=row["required_level"],
             )
             for (item_key, _category, scope), row in sorted(
                 aggregated.items(),
@@ -2141,7 +2157,8 @@ class SharedGuideManualView(GuideUltimeManualView):
         self.preparation_rows_layout.addStretch(1)
 
     def _copyable_preparation_item(self, name: str, display: str,
-                                   item_id: int | None) -> QPushButton:
+                                   item_id: int | None,
+                                   *, image_kind: str = "item") -> QPushButton:
         button = QPushButton(display)
         button.setObjectName("GuidePreparationItemCopy")
         button.setFlat(True)
@@ -2150,7 +2167,7 @@ class SharedGuideManualView(GuideUltimeManualView):
         button.setAccessibleName(f"Copier {name}")
         button.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
         if item_id is not None:
-            path = _preparation_icon_path(item_id)
+            path = _guide_entity_icon_path(image_kind, item_id)
             if path is not None:
                 pixmap = ENCYCLOPEDIA_IMAGE_SERVICE.load_scaled(path, QSize(24, 24))
                 if not pixmap.isNull():
@@ -2185,8 +2202,15 @@ class SharedGuideManualView(GuideUltimeManualView):
             else f"{quantity} × " if quantity is not None else "? × "
         )
         status = "Prêt" if ready else f"{confirmed}/{total} prêts"
+        label = (
+            f"{need.name} · métier niveau {need.required_level} requis"
+            if need.category == "Métiers" and need.required_level is not None
+            else f"{amount}{need.name}"
+        )
         item_button = self._copyable_preparation_item(
-            need.name, f"{amount}{need.name}", need.item_id,
+            need.name, label,
+            need.profession_id if need.category == "Métiers" else need.item_id,
+            image_kind="profession" if need.category == "Métiers" else "item",
         )
         item_button.setToolTip("Cliquer pour copier le nom · " +
                                (" ; ".join(need.sources[:8]) or "Provenance à confirmer"))
