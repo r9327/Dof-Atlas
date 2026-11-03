@@ -259,7 +259,12 @@ class MouseHook:
     def _log_blocked_event(self, w_param: int, x: int, y: int) -> None:
         # MouseMove floods the low-level hook. It must not hide a subsequent
         # user click from the throttled diagnostic, nor spam logs at 8 clients.
-        if w_param == WM_MOUSEMOVE:
+        if w_param in (
+            WM_MOUSEMOVE,
+            WM_LBUTTONUP, WM_RBUTTONUP, WM_MBUTTONUP, WM_XBUTTONUP,
+        ):
+            # A release cannot explain why a gesture was lost; it must not
+            # consume the only warning slot before the next physical DOWN.
             return
         now = time.monotonic()
         if now - self._last_block_log < BLOCK_LOG_INTERVAL_SECONDS:
@@ -285,6 +290,11 @@ class MouseHook:
             # is validated on Windows; never claim it was replayed.
             self.logger.warning(
                 "Clic physique non diffusé (macro occupée=%s): event=%s",
+                label or "macro", event_name,
+            )
+        elif w_param in (WM_MOUSEWHEEL, WM_MOUSEHWHEEL):
+            self.logger.warning(
+                "Molette physique non diffusée (macro occupée=%s): event=%s",
                 label or "macro", event_name,
             )
         else:
