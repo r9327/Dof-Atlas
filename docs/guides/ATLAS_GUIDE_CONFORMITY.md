@@ -458,3 +458,15 @@ le comparateur échoue sans produire de faux `PARITY_CHECK_PASS`.
 Aucun candidat ni fichier de rapports n'est écrit si ces frontières
 de sérialisation échouent. Quatre tests de régression purement fictifs
 couvrent ces cas.
+
+### Lecture sécurisée du magasin de candidats
+
+L'écriture refusait déjà les valeurs JSON non finies. Le lecteur interne
+`selected_candidate` et la vérification de génération/rollback contrôlent
+désormais aussi les fichiers **déjà présents sur disque** : clés
+dupliquées (y compris dans les objets imbriqués), `NaN`,
+`Infinity`, `-Infinity` et débordement `1e9999`. Un pointeur
+`selected.json` altéré est rejeté, même si ses champs obligatoires
+restent cohérents ; de même une génération dont le SHA-256 a été
+recalculé sur un JSON ambigu. Aucun contenu n'est promu, certifié
+ou chargé dans le lecteur pour contourner ces vérifications.

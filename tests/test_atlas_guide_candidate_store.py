@@ -141,6 +141,59 @@ class CandidateStoreTests(unittest.TestCase):
         with self.assertRaises(GuideRouteContractError):
             rollback_candidate(root=self.root, expected_selected=first["candidate_sha256"])
 
+    def test_selected_pointer_rejects_duplicate_keys_and_nonfinite_values(self) -> None:
+        first = publish_candidate(self.preview, root=self.root)
+        selected = self.root / "selected.json"
+        original = selected.read_text(encoding="utf-8")
+        for entry in (
+            f'"candidate_sha256": "{first["candidate_sha256"]}"',
+            '"extra": NaN',
+            '"extra": Infinity',
+            '"extra": -Infinity',
+            '"extra": 1e9999',
+        ):
+            with self.subTest(entry=entry):
+                malformed = original.rstrip()[:-1] + ", " + entry + "}\n"
+                selected.write_text(malformed, encoding="utf-8")
+                with self.assertRaisesRegex(
+                    GuideRouteContractError, "invalid store file"
+                ):
+                    selected_candidate(self.root)
+                selected.write_text(original, encoding="utf-8")
+                self.assertEqual(
+                    selected_candidate(self.root), first["candidate_sha256"]
+                )
+
+    def test_content_addressed_generation_rejects_ambiguous_json(self) -> None:
+        import hashlib
+
+        first = publish_candidate(self.preview, root=self.root)
+        generation = self.root / "generations" / (first["candidate_sha256"] + ".json")
+        original = generation.read_text(encoding="utf-8")
+        pointer = self.root / "selected.json"
+        for entry in (
+            '"guide_count": 1',
+            '"extra": NaN',
+            '"extra": 1e9999',
+        ):
+            with self.subTest(entry=entry):
+                # Even an attacker who recomputes the filename digest must
+                # not get a valid candidate from ambiguous JSON content.
+                malformed = original.rstrip()[:-1] + ", " + entry + "}\n"
+                digest = hashlib.sha256(malformed.encode("utf-8")).hexdigest()
+                (self.root / "generations" / (digest + ".json")).write_text(
+                    malformed, encoding="utf-8"
+                )
+                pointer.write_text(json.dumps({
+                    "format": "atlas-guide-candidate-store/v1",
+                    "candidate_sha256": digest,
+                    "runtime_activation": False,
+                }), encoding="utf-8")
+                with self.assertRaisesRegex(
+                    GuideRouteContractError, "invalid store file"
+                ):
+                    selected_candidate(self.root)
+
     def test_incomplete_or_fake_certificate_is_rejected(self) -> None:
         for field, value in (("certified", True), ("mode", "APPLY"),
                              ("guide_count", 123), ("status", "CERTIFIED")):

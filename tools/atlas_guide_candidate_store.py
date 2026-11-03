@@ -8,6 +8,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+import math
 import os
 import tempfile
 from contextlib import contextmanager
@@ -272,8 +273,31 @@ def _atomic_file(path: Path, content: bytes) -> None:
 def _read_json(path: Path) -> dict[str, Any]:
     if path.is_symlink():
         raise GuideRouteContractError(f"symlinked candidate metadata: {path.name}")
+
+    def no_duplicate_keys(pairs: list[tuple[str, Any]]) -> dict[str, Any]:
+        data: dict[str, Any] = {}
+        for key, value in pairs:
+            if key in data:
+                raise ValueError(f"duplicate JSON key {key!r}")
+            data[key] = value
+        return data
+
+    def no_nonfinite(value: str) -> Any:
+        raise ValueError(f"non-finite JSON constant {value!r}")
+
+    def finite_float(value: str) -> float:
+        parsed = float(value)
+        if not math.isfinite(parsed):
+            raise ValueError(f"out-of-range JSON float {value!r}")
+        return parsed
+
     try:
-        result = json.loads(path.read_text(encoding="utf-8"))
+        result = json.loads(
+            path.read_text(encoding="utf-8"),
+            object_pairs_hook=no_duplicate_keys,
+            parse_constant=no_nonfinite,
+            parse_float=finite_float,
+        )
     except (ValueError, OSError) as exc:
         raise GuideRouteContractError(f"invalid store file: {path.name}: {exc}") from exc
     if not isinstance(result, dict):
