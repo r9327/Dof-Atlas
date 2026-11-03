@@ -210,6 +210,10 @@ class TestGuideConformity(unittest.TestCase):
         action["kind"] = "prepare"
         action["section"] = "prepare"
         action["items"] = [{"name": "Ressource fictive", "quantity": 2}]
+        # A legitimate preparation is item-only, not a retyped NPC talk
+        # with invisible dialogue left attached.
+        action.pop("npc", None)
+        action.pop("dialogue_choice", None)
         action["quest_ids"] = [123]
         result = compare(source, imported(source))
         self.assertEqual(result["status"], "PARITY_CHECK_BLOCKED")
@@ -368,6 +372,8 @@ class TestGuideConformity(unittest.TestCase):
             action["kind"] = "prepare"
             action["section"] = "prepare"
             action["items"] = [{"name": "Objet fictif", "quantity": 1}]
+            action.pop("npc", None)
+            action.pop("dialogue_choice", None)
         result = compare(original, atlas)
         self.assertEqual(result["status"], "PARITY_CHECK_PASS")
         self.assertEqual(result["issue_count"], 0)
