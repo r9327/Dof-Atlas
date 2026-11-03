@@ -37,6 +37,37 @@ def sample() -> dict:
 
 
 class TestSharedRouteContract(unittest.TestCase):
+    def test_unrecognized_source_fields_must_get_explicit_ui_mapping(self):
+        for scope, field, value in (
+            ("action", "make_unexpected_decision", "Choose another route"),
+            ("action", "teleport_spell", {"location": [1, 2]}),
+            ("action", "custom_reward", [{"item": "fictitious"}]),
+            ("step", "hidden_branch_directive", {"step_id": "future"}),
+            ("step", "unmapped_puzzle", "press the third button"),
+        ):
+            with self.subTest(scope=scope, field=field):
+                source = sample()
+                if scope == "action":
+                    source["steps"][0]["actions"][1][field] = value
+                    path = f"actions[1].{field}: unrecognized authored action field"
+                else:
+                    source["steps"][0][field] = value
+                    path = f"steps[0].{field}: unrecognized authored step field"
+                with self.assertRaises(GuideRouteContractError) as blocked:
+                    project_authorized_guide(source)
+                self.assertIn(path, str(blocked.exception))
+        # Provenance is not a player instruction. Keep it byte-for-byte.
+        source = sample()
+        source["steps"][0]["source_revision"] = "fictional-rev-2"
+        source["steps"][0]["actions"][1]["evidence_ref"] = "approved:action"
+        source["steps"][0]["actions"][1]["source_hash"] = "sha-not-certificate"
+        source["steps"][0]["actions"][1]["metadata"] = {
+            "capture": "fictional provenance",
+        }
+        route = project_authorized_guide(source)
+        raw = route["steps"][0]["manual_runtime_metadata"]["source_step"]
+        self.assertEqual(raw, source["steps"][0])
+
     def test_semantic_action_fields_without_shared_reader_support_fail_closed(self):
         blocked = {
             "dialogue_options": [{"label": "Accepter", "target": "next"}],
