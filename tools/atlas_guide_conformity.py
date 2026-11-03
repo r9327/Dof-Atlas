@@ -72,6 +72,14 @@ _UNRENDERED_ACTION_FIELDS = frozenset({
     "alternative_routes", "subactions", "substeps", "interactions",
     "achievement_ids", "success_ids", "images", "image", "media",
     "attachments", "links", "commands",
+    "conditions", "validation", "validation_rule", "completion_rule",
+    "required_level", "required_class", "required_alignment", "required_order",
+    "prerequisites", "objectives", "dungeon_successes", "challenges",
+})
+_UNRENDERED_ENTRY_FIELDS = frozenset({
+    "choices", "condition", "conditions", "location", "equip", "consume",
+    "buy", "collect", "craft_recipe", "drop", "success_ids",
+    "achievement_ids", "challenges", "media", "links", "actions",
 })
 _UNRENDERED_STEP_FIELDS = frozenset({
     "choices", "branches", "branching", "alternative_routes",
@@ -607,6 +615,13 @@ def compare(reference: dict[str, Any], atlas: dict[str, Any]) -> dict[str, Any]:
                                 report("UNVERIFIABLE", item_path,
                                        "structured resource or monster", item)
                                 continue
+                            for field in sorted(_UNRENDERED_ENTRY_FIELDS & item.keys()):
+                                if item[field] not in (None, [], {}, ""):
+                                    report(
+                                        "UNVERIFIABLE", f"{item_path}.{field}",
+                                        "resource or monster detail not rendered by shared reader",
+                                        item[field],
+                                    )
                             name, quantity = item.get("name"), item.get("quantity")
                             if not isinstance(name, str) or not name.strip():
                                 report("UNVERIFIABLE", f"{item_path}.name",
