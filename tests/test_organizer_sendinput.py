@@ -566,6 +566,10 @@ class OrganizerSendInputTests(unittest.TestCase):
         with patch("app.input.mouse_hooks.stop_message_hook") as stop_hook:
             hook.stop()
         stop_hook.assert_called_once_with(hook)
+        logger.info.assert_any_call(
+            "Organizer hooks arrêtés: clics bloqués=%s molettes bloquées=%s",
+            1, 1,
+        )
         self.assertEqual((hook._blocked_click_count, hook._blocked_wheel_count),
                          (0, 0))
 
