@@ -158,21 +158,19 @@ class TestGuideConformity(unittest.TestCase):
         self.assertIn("UNVERIFIABLE", self._codes(self.atlas))
 
     def test_matching_empty_steps_and_actions_can_never_pass(self) -> None:
-        reference = reference()
-        atlas = imported(reference)
-        reference["guides"][0]["steps"] = []
-        atlas["guides"][0]["steps"] = []
-        report = compare(reference, atlas)
-        self.assertEqual(report["status"], "PARITY_CHECK_BLOCKED")
-        self.assertIn("UNVERIFIABLE", report["issue_codes"])
-
-        reference = reference()
-        atlas = imported(reference)
-        reference["guides"][0]["steps"][0]["actions"] = []
-        atlas["guides"][0]["steps"][0]["actions"] = []
-        report = compare(reference, atlas)
-        self.assertEqual(report["status"], "PARITY_CHECK_BLOCKED")
-        self.assertIn("UNVERIFIABLE", report["issue_codes"])
+        for field in ("steps", "actions"):
+            with self.subTest(missing_collection=field):
+                source = reference()
+                atlas = imported(source)
+                if field == "steps":
+                    source["guides"][0]["steps"] = []
+                    atlas["guides"][0]["steps"] = []
+                else:
+                    source["guides"][0]["steps"][0]["actions"] = []
+                    atlas["guides"][0]["steps"][0]["actions"] = []
+                report = compare(source, atlas)
+                self.assertEqual(report["status"], "PARITY_CHECK_BLOCKED")
+                self.assertIn("UNVERIFIABLE", report["issue_codes"])
 
     def test_inventory_counts_missing_guide_contents(self) -> None:
         self.atlas["guides"].pop()
@@ -186,11 +184,11 @@ class TestGuideConformity(unittest.TestCase):
         self.assertIn("MISSING_GUIDE", report["issue_codes"])
 
     def test_matching_invalid_action_kind_is_not_validated(self) -> None:
-        reference = reference()
-        atlas = imported(reference)
-        reference["guides"][0]["steps"][0]["actions"][0].pop("kind")
+        source = reference()
+        atlas = imported(source)
+        source["guides"][0]["steps"][0]["actions"][0].pop("kind")
         atlas["guides"][0]["steps"][0]["actions"][0].pop("kind")
-        report = compare(reference, atlas)
+        report = compare(source, atlas)
         self.assertEqual(report["status"], "PARITY_CHECK_BLOCKED")
         self.assertIn("UNVERIFIABLE", report["issue_codes"])
 
@@ -210,7 +208,13 @@ class TestGuideConformity(unittest.TestCase):
         new["guides"][0]["steps"][1]["actions"][0]["coordinates"] = [0, 0]
         delta = before_after(self.reference, old, new)
         self.assertEqual(len(delta["resolved"]), 1)
-        self.assertEqual(len(delta["introduced"]), 1)
+        self.assertEqual(
+            sorted(issue["field_path"] for issue in delta["introduced"]),
+            [
+                ".guides[2219].steps[B].actions[move].coordinates[0]",
+                ".guides[2219].steps[B].actions[move].coordinates[1]",
+            ],
+        )
         self.assertEqual(len(delta["persistent"]), 0)
         self.assertEqual(delta["status"], "PARITY_CHECK_BLOCKED")
         self.assertFalse(delta["certified"])

@@ -2,6 +2,8 @@
 from __future__ import annotations
 
 import copy
+import hashlib
+import json
 import tempfile
 import unittest
 from pathlib import Path
@@ -136,8 +138,24 @@ class PipelineSyntheticTests(unittest.TestCase):
     def test_independent_reference_difference_blocks(self):
         ref = copy.deepcopy(self.ref)
         ref["guides"][0]["steps"][0]["title"] = "Different source"
+        def digest(doc):
+            raw = json.dumps(doc, sort_keys=True, ensure_ascii=False,
+                             separators=(",", ":")).encode("utf-8")
+            return hashlib.sha256(raw).hexdigest()
+
+        source_sha = digest(self.source)
+        ref_sha = digest(ref)
+        self.assertNotEqual(ref_sha, source_sha)
+
+        def independently_attested(name, artifact_sha, head, source):
+            if name == "current.independent_reference":
+                return head == HEAD and source == source_sha and artifact_sha == ref_sha
+            return fake_trusted_host(name, artifact_sha, head, source)
+
+        # Both independent witnesses must be accepted before comparing the
+        # content; the comparator must still reject genuine source divergence.
         with self.assertRaisesRegex(GuidePipelineBlocked, "source differs"):
-            self._run(independent_reference=ref)
+            self._run(independent_reference=ref, verifier=independently_attested)
         self.assertFalse(self.folder.exists())
 
     def test_current_source_and_reference_need_separate_trusted_receipts(self):
