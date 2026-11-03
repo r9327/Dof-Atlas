@@ -14,7 +14,7 @@ from pathlib import Path
 from typing import Any
 
 from tools.atlas_guide_candidate_store import (
-    publish_candidate, read_selected_route,
+    publish_candidate, read_selected_route, read_selected_step,
 )
 from tools.atlas_guide_conformity import before_after, compare
 from tools.atlas_guide_importer import prepare_preview
@@ -30,7 +30,7 @@ TOOL_SPEC = {
     "capabilities": ["guide","validation"],
     "modes": [
         "readonly_sequence_cli", "trusted_host_stage_api",
-        "staged_readonly_preview_api",
+        "staged_readonly_preview_api", "staged_readonly_card_api",
     ],
     "cost_hint": "variable",
     "side_effects": "repo_mutation_explicit",
@@ -193,6 +193,30 @@ def preview_staged_guide(
         "status": "STAGED_PREVIEW_ONLY",
         "candidate_sha256": expected_selected,
         "route": route,
+        "certified": False,
+        "runtime_activation": False,
+    }
+
+
+def preview_staged_step(
+    *, candidate_root: Path, expected_selected: str,
+    route_id: str, stage_id: str,
+) -> dict[str, Any]:
+    """On-demand canonical card for the shared reader, by stable source ID.
+
+    The return value is detached and strictly non-active; no guide is added to
+    the live catalogue and no character progression can be written here.
+    """
+    card = read_selected_step(
+        root=candidate_root, expected_selected=expected_selected,
+        route_id=route_id, stage_id=stage_id,
+    )
+    return {
+        "status": "STAGED_PREVIEW_ONLY",
+        "candidate_sha256": expected_selected,
+        "route_id": route_id,
+        "stage_id": stage_id,
+        "card": card,
         "certified": False,
         "runtime_activation": False,
     }
