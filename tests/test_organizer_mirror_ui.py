@@ -594,6 +594,33 @@ class OrganizerMirrorIntegrationTests(unittest.TestCase):
             "Miroir Clavier incomplet : 0/2 fenêtres."
         )
 
+    def test_mirror_activation_exception_cannot_steal_favorite_back(self):
+        from app.macros.mirror_input import MirrorInputMacro
+
+        runtime = Mock()
+        runtime.settings.macro_mode = "mirror"
+        runtime.settings.primary_handle = 101
+        runtime.settings.clients = (
+            SimpleNamespace(handle=101), SimpleNamespace(handle=202),
+        )
+        runtime.macro_lock.should_stop.return_value = False
+        with (
+            patch("app.macros.mirror_input.is_dofus_unity_process",
+                  return_value=True),
+            patch("app.macros.mirror_input.activate_window",
+                  side_effect=RuntimeError("Win32 activation refused")),
+            patch("app.macros.mirror_input.foreground_window") as foreground,
+            patch("app.macros.input_tools.key_down") as key_down,
+        ):
+            MirrorInputMacro(runtime)._run("key", 65, 101, (101, 202))
+        foreground.assert_not_called()
+        key_down.assert_not_called()
+        runtime.switch_character.restore_preferred_client.assert_not_called()
+        runtime.input_state.end_mouse_block.assert_called_once()
+        runtime._emit_status.assert_called_once_with(
+            "Miroir Clavier incomplet : 0/2 fenêtres."
+        )
+
     def test_mirror_wheel_refuses_focus_stolen_after_cursor_move(self):
         from app.macros.mirror_input import MirrorInputMacro
 
