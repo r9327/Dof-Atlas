@@ -740,6 +740,79 @@ class OrganizerMirrorIntegrationTests(unittest.TestCase):
             self.assertEqual(hook._mouse_proc(0, WM_MOUSEWHEEL, ptr), 37)
             wheel.assert_called_once()
 
+    def test_mirror_keyboard_refused_down_never_sends_orphaned_up(self):
+        from app.macros.mirror_input import MirrorInputMacro
+
+        runtime = Mock()
+        runtime.settings.macro_mode = "mirror"
+        runtime.settings.primary_handle = 101
+        runtime.settings.clients = (
+            SimpleNamespace(handle=101), SimpleNamespace(handle=202),
+        )
+        timings = runtime.settings.timings
+        timings.switch_background_pre_click_ms = 0
+        timings.activate_attempts = 1
+        timings.activate_retry_ms = 0
+        timings.switch_click_down_ms = 10
+        timings.switch_client_settle_ms = 0
+        runtime.macro_lock.should_stop.return_value = False
+        with (
+            patch("app.macros.mirror_input.is_dofus_unity_process",
+                  return_value=True),
+            patch("app.macros.mirror_input.activate_window", return_value=True),
+            patch("app.macros.mirror_input.foreground_window", return_value=101),
+            patch("app.macros.input_tools.key_down",
+                  side_effect=OSError("SendInput refused")) as key_down,
+            patch("app.macros.input_tools.key_up") as key_up,
+        ):
+            MirrorInputMacro(runtime)._run("key", 65, 101, (101, 202))
+        key_down.assert_called_once_with(65)
+        key_up.assert_not_called()
+        runtime._emit_status.assert_called_once_with(
+            "Miroir Clavier incomplet : 0/2 fenêtres."
+        )
+        runtime.input_state.end_mouse_block.assert_called_once()
+
+    def test_mirror_keyboard_hold_interrupted_still_releases_successful_down(self):
+        from app.macros.mirror_input import MirrorInputMacro
+
+        runtime = Mock()
+        runtime.settings.macro_mode = "mirror"
+        runtime.settings.primary_handle = 101
+        runtime.settings.clients = (
+            SimpleNamespace(handle=101), SimpleNamespace(handle=202),
+        )
+        timings = runtime.settings.timings
+        timings.switch_background_pre_click_ms = 0
+        timings.activate_attempts = 1
+        timings.activate_retry_ms = 0
+        timings.switch_click_down_ms = 10
+        timings.switch_client_settle_ms = 0
+        stopped = False
+
+        def interrupt_hold(_ms):
+            nonlocal stopped
+            stopped = True
+            return True
+
+        runtime.macro_lock.should_stop.side_effect = lambda: stopped
+        runtime.macro_lock.wait.side_effect = interrupt_hold
+        with (
+            patch("app.macros.mirror_input.is_dofus_unity_process",
+                  return_value=True),
+            patch("app.macros.mirror_input.activate_window", return_value=True),
+            patch("app.macros.mirror_input.foreground_window", return_value=101),
+            patch("app.macros.input_tools.key_down") as key_down,
+            patch("app.macros.input_tools.key_up") as key_up,
+        ):
+            MirrorInputMacro(runtime)._run("key", 65, 101, (101, 202))
+        key_down.assert_called_once_with(65)
+        key_up.assert_called_once_with(65)
+        runtime._emit_status.assert_called_once_with(
+            "Miroir Clavier incomplet : 1/2 fenêtres."
+        )
+        runtime.switch_character.restore_preferred_client.assert_not_called()
+
     def test_sequential_mirror_keyboard_balances_down_up_on_each_client(self):
         from app.macros.mirror_input import MirrorInputMacro
 
