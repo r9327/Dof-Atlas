@@ -416,6 +416,66 @@ class ImportedSourceSharedManualUiTests(unittest.TestCase):
                 view.deleteLater()
                 QApplication.processEvents()
 
+    def test_reordered_staged_route_keeps_per_character_progress_identity(self) -> None:
+        from tools.atlas_guide_candidate_store import (
+            publish_candidate, read_selected_route,
+        )
+        from tools.atlas_guide_importer import prepare_preview
+
+        source_guide = self._source()
+        def wrap(guide):
+            return {
+                "schema_version": 1, "rights_verified": True,
+                "reference_verified": True, "complete": True,
+                "guides": [guide],
+            }
+
+        with tempfile.TemporaryDirectory() as temp:
+            base = Path(temp)
+            store = base / "staged"
+            progress = base / "character_progress.json"
+            first = prepare_preview(
+                wrap(source_guide), expected_guides=1, expected_steps=2,
+            )
+            old = publish_candidate(first, root=store)["candidate_sha256"]
+            old_route = read_selected_route(
+                root=store, expected_selected=old,
+                route_id="source_guide:fictional-cawotte",
+            )
+            old_service = self._service(progress, old_route)
+            stable_id = old_service.cards[1]["manual_stage_id"]
+            self.assertEqual(stable_id, "source:fictional-cawotte:ending-step")
+            old_service.guide_progress.set_manual_step_completed(
+                "character:1", old_service.progress_id, stable_id, True,
+            )
+            changed = self._source()
+            changed["steps"].insert(0, {
+                "source_step_id": "new-first", "title": "New before",
+                "actions": [{
+                    "action_id": "talk", "kind": "talk",
+                    "text": "Parler au PNJ supplémentaire fictif",
+                }],
+            })
+            new_preview = prepare_preview(
+                wrap(changed), expected_guides=1, expected_steps=3,
+            )
+            new = publish_candidate(
+                new_preview, root=store, expected_selected=old,
+            )["candidate_sha256"]
+            new_route = read_selected_route(
+                root=store, expected_selected=new,
+                route_id="source_guide:fictional-cawotte",
+            )
+            service = self._service(progress, new_route)
+            self.assertEqual(service.cards[2]["manual_stage_id"], stable_id)
+            self.assertTrue(service.page_checked("character:1", service.cards[2], 2))
+            self.assertFalse(service.page_checked("character:2", service.cards[2], 2))
+            self.assertFalse(service.page_checked("character:1", service.cards[0], 0))
+            self.assertFalse(service.page_checked("character:1", service.cards[1], 1))
+            self.assertEqual(service.route_sheet_progress("character:1"), (1, 3))
+            self.assertEqual(service.route_sheet_progress("character:2"), (0, 3))
+            self.assertEqual(new_route["source_compliance"], "NOT_CERTIFIED")
+
     def test_preview_preserves_source_sections_and_clickable_roles(self) -> None:
         with tempfile.TemporaryDirectory() as temp:
             route = project_authorized_guide(self._source())
