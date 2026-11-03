@@ -147,6 +147,30 @@ class OrganizerMirrorIntegrationTests(unittest.TestCase):
         runtime.switch_click.run_async.assert_not_called()
 
 
+    def test_classic_switch_dispatch_failure_leaves_native_click_unconsumed(self):
+        for result in (False, RuntimeError("spawn failed")):
+            with self.subTest(result=str(result)):
+                runtime = self._runtime()
+                runtime._running = True
+                runtime._admin_ok = True
+                runtime.settings.macro_mode = "macro"
+                runtime.registry.switch_action_for_pressed_keys.return_value = (
+                    SimpleNamespace(
+                        action_id="switch:click",
+                        payload={"click_count": 1, "label": "Switch clique"},
+                    )
+                )
+                if isinstance(result, Exception):
+                    runtime.switch_click.run_async.side_effect = result
+                else:
+                    runtime.switch_click.run_async.return_value = result
+                self.assertFalse(
+                    AtlasRuntime._handle_mouse_click(runtime, "Left", 15, 20)
+                )
+                runtime.switch_click.run_async.assert_called_once_with(
+                    "Left", 15, 20, 1, "Switch clique",
+                )
+
     def test_exact_source_guard_does_not_consume_another_window_or_fallback(self):
         from app.macros.switch_click import SwitchClickMacro, SwitchClickContext
         runtime = Mock()
