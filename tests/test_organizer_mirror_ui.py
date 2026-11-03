@@ -166,6 +166,60 @@ class OrganizerMirrorIntegrationTests(unittest.TestCase):
                     f"Miroir Clavier : {count}/{count} fenêtres."
                 )
 
+    def test_mirror_wheel_dispatch_from_last_favorite_two_to_eight(self):
+        from app.macros.mirror_input import MirrorInputMacro
+
+        for count in (2, 4, 6, 8):
+            with self.subTest(count=count):
+                slots = tuple(range(101, 101 + count))
+                favorite = slots[-1]
+                handles = (favorite, *slots[:-1])
+                runtime = self._runtime(primary=favorite, handles=slots)
+                timings = runtime.settings.timings
+                timings.switch_background_pre_click_ms = 0
+                timings.activate_attempts = 1
+                timings.activate_retry_ms = 0
+                timings.switch_client_settle_ms = 0
+                runtime.macro_lock.should_stop.return_value = False
+                runtime.macro_lock.wait.return_value = False
+                focus_sequence = [h for h in handles for _ in range(2)]
+                with (
+                    patch("app.macros.mirror_input.is_dofus_unity_process",
+                          return_value=True),
+                    patch("app.macros.mirror_input.current_cursor_pos",
+                          return_value=(12, 14)),
+                    patch("app.macros.mirror_input.activate_window",
+                          return_value=True) as activate,
+                    patch("app.macros.mirror_input.foreground_window",
+                          side_effect=focus_sequence),
+                    patch("app.macros.mirror_input.client_point_from_ratio",
+                          return_value=(8, 9)),
+                    patch("app.macros.mirror_input.client_to_screen",
+                          return_value=(80, 90)),
+                    patch("app.macros.mirror_input.set_cursor_pos") as move,
+                    patch("app.macros.mirror_input.send_screen_wheel",
+                          return_value=True) as sender,
+                ):
+                    MirrorInputMacro(runtime)._run(
+                        "wheel", (-120, False, 0.5, 0.5), favorite, handles,
+                    )
+                self.assertEqual(activate.call_count, count)
+                self.assertEqual(
+                    [call.args[0] for call in activate.call_args_list],
+                    list(handles),
+                )
+                self.assertEqual(sender.call_count, count)
+                self.assertTrue(
+                    all(call.args == (-120,) and
+                        call.kwargs == {"horizontal": False}
+                        for call in sender.call_args_list)
+                )
+                self.assertEqual(move.call_count, count + 1)
+                move.assert_any_call(12, 14)
+                runtime._emit_status.assert_called_once_with(
+                    f"Miroir Molette : {count}/{count} fenêtres."
+                )
+
     def test_favorite_click_reuses_existing_sender_once(self):
         runtime = self._runtime()
         with (
