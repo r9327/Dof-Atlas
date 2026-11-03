@@ -95,21 +95,25 @@ def stage_checked_candidate(
             ).encode("utf-8")
         except (TypeError, ValueError) as exc:
             raise GuidePipelineBlocked(
-                "source/reference contains non-JSON-compatible values"
+                "guide export contains non-JSON-compatible values"
             ) from exc
         return hashlib.sha256(raw).hexdigest()
 
     source_digest = _source_digest(authorized_source)
     reference_digest = _source_digest(independent_reference)
+    before_digest = _source_digest(atlas_before)
+    after_digest = _source_digest(atlas_after)
 
     def _require_pinned_sources() -> None:
-        # The external witness callback is trusted to check receipts, not to
-        # rewrite the documents it just attested. Check again before staging:
-        # a late mutation must not produce a candidate with stale provenance.
+        # A verifier may call external code. Never allow it to replace either
+        # attested source or the Atlas before/after observations between
+        # comparison and immutable staging.
         if (_source_digest(authorized_source) != source_digest
-                or _source_digest(independent_reference) != reference_digest):
+                or _source_digest(independent_reference) != reference_digest
+                or _source_digest(atlas_before) != before_digest
+                or _source_digest(atlas_after) != after_digest):
             raise GuidePipelineBlocked(
-                "source/reference changed after independent attestation"
+                "source/reference/Atlas snapshots changed during verification"
             )
 
     for label, digest in (("current.source_rights", source_digest),

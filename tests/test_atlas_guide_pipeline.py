@@ -97,10 +97,40 @@ class PipelineSyntheticTests(unittest.TestCase):
             return allowed
 
         with self.assertRaisesRegex(
-            GuidePipelineBlocked, "changed after independent attestation"
+            GuidePipelineBlocked, "snapshots changed during verification"
         ):
             self._run(verifier=mutating_host)
         self.assertFalse(self.folder.exists())
+
+    def test_witness_cannot_change_atlas_before_or_after_observations(self):
+        for name in ("before", "after"):
+            with self.subTest(name=name):
+                source = synthetic_source()
+                reference = copy.deepcopy(source)
+                before = copy.deepcopy(source)
+                before["guides"][0]["steps"][0]["actions"][0]["text"] = "Before mismatch"
+                after = copy.deepcopy(source)
+                target = before if name == "before" else after
+                with tempfile.TemporaryDirectory() as temp:
+                    root = Path(temp) / "staged"
+
+                    def mutating_host(witness, digest, head, source_sha):
+                        result = fake_trusted_host(witness, digest, head, source_sha)
+                        if witness == "current.independent_reference":
+                            target["guides"][0]["steps"][0]["actions"][0]["text"] = (
+                                "Unreviewed changed observation"
+                            )
+                        return result
+
+                    with self.assertRaisesRegex(
+                        GuidePipelineBlocked, "snapshots changed during verification"
+                    ):
+                        self._run(
+                            authorized_source=source, independent_reference=reference,
+                            atlas_before=before, atlas_after=after,
+                            verifier=mutating_host, candidate_root=root,
+                        )
+                    self.assertFalse(root.exists())
 
     def test_witness_cannot_retarget_guide_after_sequence_gate(self):
         request = synthetic_plan()
