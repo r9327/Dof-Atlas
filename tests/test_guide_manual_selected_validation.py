@@ -1,8 +1,10 @@
 from __future__ import annotations
 
 import os
+import re
 import tempfile
 import unittest
+from html import unescape
 from pathlib import Path
 from types import SimpleNamespace
 
@@ -371,7 +373,8 @@ class ImportedSourceSharedManualUiTests(unittest.TestCase):
                 from app.modules.encyclopedia.views.shared_manual_guide_view import SharedGuideManualCard
                 sheet = SharedGuideManualCard(service, "character:1", service.cards[0], 0)
                 QApplication.processEvents()
-                visible = "\n".join(label.text() for label in sheet.findChildren(QLabel))
+                rich = "\n".join(label.text() for label in sheet.findChildren(QLabel))
+                visible = unescape(re.sub(r"<[^>]+>", "", rich))
                 for expected in (
                     "Aller en [-5,2]", "PNJ fictif", "Monstre fictif",
                     "Conserver Ressource fictive", "Avant de partir",
@@ -379,8 +382,8 @@ class ImportedSourceSharedManualUiTests(unittest.TestCase):
                     "×2 Monstre fictif",
                 ):
                     self.assertIn(expected, visible)
-                self.assertIn("travel-copy:-5,2", visible)
-                self.assertIn("item-copy:Ressource%20fictive", visible)
+                self.assertIn("travel-copy:-5,2", rich)
+                self.assertIn("item-copy:Ressource%20fictive", rich)
                 self.assertNotIn("Préparer 2 Ressource fictive", visible)
                 self.assertIsNone(sheet.findChild(QFrame, "GuideManualWarningSection"))
                 self.assertIsNotNone(sheet.findChild(QFrame, "GuideManualResourceSection"))
@@ -438,6 +441,75 @@ class ImportedSourceSharedManualUiTests(unittest.TestCase):
             finally:
                 sheet.close()
                 sheet.deleteLater()
+                QApplication.processEvents()
+
+    def test_source_validation_fills_selected_characters_and_reverses_manual_only(self):
+        with tempfile.TemporaryDirectory() as temp:
+            path = Path(temp) / "progress.json"
+            route = project_authorized_guide(self._source())
+            service = self._service(path, route)
+            participants = _ThreeParticipants()
+            participants.save_selected_keys(("character:1", "character:2"))
+            # Automatic evidence for one character cannot be overwritten by
+            # a manual batch on the same source step.
+            service.automatic.add(("character:1", 0))
+            view = SharedGuideManualView(
+                service, character_key="character:1",
+                participant_service=participants,
+            )
+            try:
+                view.show()
+                view._show_index(0)
+                QApplication.processEvents()
+                view.validation_layout.itemAt(0).widget().click()
+                QApplication.processEvents()
+                stage_id = route["steps"][0]["manual_stage_id"]
+                self.assertFalse(service.guide_progress.is_manual_step_completed(
+                    "character:1", route["id"], stage_id,
+                ))
+                self.assertTrue(service.guide_progress.is_manual_step_completed(
+                    "character:2", route["id"], stage_id,
+                ))
+                self.assertFalse(service.guide_progress.is_manual_step_completed(
+                    "character:3", route["id"], stage_id,
+                ))
+                view._show_index(0)
+                QApplication.processEvents()
+                view.validation_layout.itemAt(0).widget().click()
+                QApplication.processEvents()
+                self.assertFalse(service.guide_progress.is_manual_step_completed(
+                    "character:2", route["id"], stage_id,
+                ))
+                self.assertTrue(service.card_auto_complete(
+                    "character:1", service.cards[0],
+                ))
+            finally:
+                view.close()
+                view.deleteLater()
+                QApplication.processEvents()
+
+    def test_source_without_selected_identity_never_writes_progress(self):
+        with tempfile.TemporaryDirectory() as temp:
+            path = Path(temp) / "progress.json"
+            route = project_authorized_guide(self._source())
+            service = self._service(path, route)
+            participants = _ThreeParticipants()
+            participants.save_selected_keys(())
+            view = SharedGuideManualView(
+                service, character_key="character:1",
+                participant_service=participants,
+            )
+            try:
+                view.show()
+                view._show_index(0)
+                QApplication.processEvents()
+                view.validation_layout.itemAt(0).widget().click()
+                QApplication.processEvents()
+                self.assertFalse(path.exists())
+                self.assertTrue(view.participants_button.isChecked())
+            finally:
+                view.close()
+                view.deleteLater()
                 QApplication.processEvents()
 
     def test_view_validation_uses_per_character_stable_source_step_identity(self) -> None:
