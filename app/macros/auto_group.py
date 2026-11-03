@@ -5,7 +5,7 @@ from typing import TYPE_CHECKING, Any
 from app.core.text import clean_auto_group_name, normalize_key
 from app.macros.input_tools import send_chat_command
 from app.windows.focus import activate_window
-from app.windows.unity_windows import is_unity_window
+from app.windows.unity_windows import foreground_window, is_unity_window
 
 if TYPE_CHECKING:
     from app.core.runtime_state import AtlasRuntime
@@ -42,38 +42,67 @@ class AutoGroupMacro:
         sender_name = clean_auto_group_name(sender.display_name)
         sender_key = normalize_key(sender_name)
         sent = 0
-        for entry in invite_entries:
-            if self.runtime.macro_lock.should_stop():
-                return
-            name = clean_auto_group_name(entry.get("name", ""))
-            if not name:
-                continue
-            try:
-                handle = int(entry.get("handle", 0) or 0)
-            except (TypeError, ValueError):
-                handle = 0
-            if handle > 0 and handle == sender.handle:
-                self.runtime.logger.debug("Auto groupe ignore lanceur: %s sender=%s", name, sender.handle)
-                continue
-            if normalize_key(name) == sender_key:
-                self.runtime.logger.debug("Auto groupe ignore lanceur: %s sender=%s", name, sender.handle)
-                continue
-            if not send_chat_command(
-                f"/invite {name}",
-                self.runtime.logger,
-                chat_open_ms=timings.auto_group_chat_open_ms,
-                key_step_ms=timings.auto_group_key_step_ms,
-                paste_settle_ms=timings.auto_group_paste_settle_ms,
-                should_stop=self.runtime.macro_lock.should_stop,
-            ):
+        eligible = 0
+        focus_lost = False
+        try:
+            for entry in invite_entries:
                 if self.runtime.macro_lock.should_stop():
                     return
-                continue
-            if self.runtime.macro_lock.should_stop():
-                return
-            sent += 1
-            if timings.auto_group_invite_gap_ms > 0:
-                if self.runtime.macro_lock.wait(timings.auto_group_invite_gap_ms):
+                name = clean_auto_group_name(entry.get("name", ""))
+                if not name:
+                    continue
+                try:
+                    handle = int(entry.get("handle", 0) or 0)
+                except (TypeError, ValueError):
+                    handle = 0
+                if handle > 0 and handle == sender.handle:
+                    self.runtime.logger.debug("Auto groupe ignore lanceur: %s sender=%s", name, sender.handle)
+                    continue
+                if normalize_key(name) == sender_key:
+                    self.runtime.logger.debug("Auto groupe ignore lanceur: %s sender=%s", name, sender.handle)
+                    continue
+                eligible += 1
+                # Every invitation is a distinct operation. Never type into
+                # another window if focus was stolen after activation.
+                if foreground_window() != int(sender.handle):
+                    focus_lost = True
+                    self.runtime.logger.warning(
+                        "Auto groupe interrompu: focus perdu avant invitation hwnd=%s",
+                        sender.handle,
+                    )
                     return
-        self.runtime.switch_character.restore_preferred_client("Auto groupe")
-        self.runtime.logger.info("Auto groupe termine: envoyes=%s/%s sender=%s", sent, len(invite_entries), sender.handle)
+                if not send_chat_command(
+                    f"/invite {name}",
+                    self.runtime.logger,
+                    chat_open_ms=timings.auto_group_chat_open_ms,
+                    key_step_ms=timings.auto_group_key_step_ms,
+                    paste_settle_ms=timings.auto_group_paste_settle_ms,
+                    should_stop=self.runtime.macro_lock.should_stop,
+                ):
+                    if self.runtime.macro_lock.should_stop():
+                        return
+                    continue
+                if self.runtime.macro_lock.should_stop():
+                    return
+                sent += 1
+                if timings.auto_group_invite_gap_ms > 0:
+                    if self.runtime.macro_lock.wait(timings.auto_group_invite_gap_ms):
+                        return
+        finally:
+            stopped = self.runtime.macro_lock.should_stop()
+            if not stopped and not focus_lost:
+                try:
+                    self.runtime.switch_character.restore_preferred_client("Auto groupe")
+                except Exception:
+                    self.runtime.logger.exception(
+                        "Auto groupe: retour au favori impossible."
+                    )
+            state = (
+                "interrompu" if stopped or focus_lost
+                else "termine" if sent == eligible
+                else "partiel"
+            )
+            self.runtime.logger.info(
+                "Auto groupe %s: envoyes=%s/%s candidats=%s sender=%s",
+                state, sent, eligible, len(invite_entries), sender.handle,
+            )
