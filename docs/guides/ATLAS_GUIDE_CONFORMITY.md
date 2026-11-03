@@ -278,3 +278,17 @@ obligatoires, et aucun guide réel n'est traité en phase 0.
   dans le dépôt ne constitue **pas** une exécution : Doctor, Graphify exact-SHA,
   tests Python, Windows/DOFUS et bench restent `NOT_RUN` tant qu'un vrai
   checkout vérifié ne les a pas exécutés. Aucun guide réel n'est préparé.
+
+### Sorties hors runtime et schémas déclarés
+
+Le dry-run de création refuse maintenant les destinations de prévisualisation
+par lien symbolique (fichier ou dossier parent), même lorsque le chemin lié
+n'existe pas encore. Les chemins `data` et `saves` restent exclus, et
+aucune donnée ne passe en production par ce CLI.
+
+Dans le comparateur, une version de schéma explicitement déclarée doit être
+l'entier `1` ; deux exports également falsifiés avec `true`, `null`,
+`"1"` ou `2` ne peuvent obtenir `PARITY_CHECK_PASS`. Une référence
+historique qui n'a pas ce champ conserve sa compatibilité, mais cette
+comparaison ne confère ni autorisation ni certificat. Tests ajoutés et
+exécution au SHA exact encore à prouver.

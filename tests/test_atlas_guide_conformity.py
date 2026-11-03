@@ -213,6 +213,21 @@ class TestGuideConformity(unittest.TestCase):
             for x in result["issues"]
         ))
 
+    def test_identical_invalid_declared_schema_version_never_passes(self) -> None:
+        for bad in (True, None, "1", 2):
+            with self.subTest(schema_version=bad):
+                ref = copy.deepcopy(self.reference)
+                atlas = copy.deepcopy(self.atlas)
+                ref["schema_version"] = bad
+                atlas["schema_version"] = bad
+                result = compare(ref, atlas)
+                self.assertEqual(result["status"], "PARITY_CHECK_BLOCKED")
+                self.assertIn("UNVERIFIABLE", result["issue_codes"])
+                self.assertTrue(any(
+                    issue["field_path"].endswith(".schema_version")
+                    for issue in result["issues"]
+                ))
+
     def test_root_metadata_and_schema_version_not_silently_ignored(self) -> None:
         self.reference["schema_version"] = 1
         self.atlas["schema_version"] = 2

@@ -176,6 +176,16 @@ def compare(reference: dict[str, Any], atlas: dict[str, Any]) -> dict[str, Any]:
                  f"{path}[{identifier}]", evidence)
             context[target] = previous
 
+    # A matching but invalid schema version is not valid parity. Historical
+    # comparator fixtures omit this optional field, but a declared version
+    # must be an integer v1 on both sides (bool is not an integer schema).
+    for side, document in (("reference", reference), ("atlas", atlas)):
+        if "schema_version" in document and (
+            type(document["schema_version"]) is not int
+            or document["schema_version"] != 1
+        ):
+            report("UNVERIFIABLE", f"{side}.schema_version",
+                   "integer schema_version=1", document["schema_version"])
     if reference.get("reference_verified") is not True or reference.get("rights_verified") is not True:
         report("UNVERIFIABLE", "reference.provenance",
                "independent source and rights evidence", "not verified")

@@ -112,7 +112,10 @@ def main(argv: list[str] | None = None) -> int:
             source, partial=args.partial,
         )
         if args.output is not None:
-            output = args.output.resolve()
+            # Do not follow symlinks while interpreting the user-selected path:
+            # a dangling preview alias or a linked parent must not redirect a
+            # supposedly harmless dry-run export to an unrelated location.
+            output = args.output.absolute()
             # This tool never publishes live routes or alters user progress.
             # Confine optional output to a new file under an explicit path.
             if output.exists() or output.suffix.lower() != ".json":
@@ -120,6 +123,8 @@ def main(argv: list[str] | None = None) -> int:
             if any(part.casefold() in {"data", ".git", ".cache", "saves", "profiles", "user_data"}
                    for part in output.parts):
                 raise GuideRouteContractError("output must not target app data/cache/git")
+            if output.is_symlink() or any(parent.is_symlink() for parent in output.parents):
+                raise GuideRouteContractError("symlinked preview output is not supported")
             output.parent.mkdir(parents=True, exist_ok=True)
             with output.open("x", encoding="utf-8") as stream:
                 json.dump(result, stream, ensure_ascii=False, indent=2)

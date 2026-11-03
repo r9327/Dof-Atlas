@@ -152,6 +152,45 @@ class GuideImporterPreviewTests(unittest.TestCase):
             with self.subTest(count=count), self.assertRaises(GuideRouteContractError):
                 prepare_preview(valid_export(), expected_guides=count)
 
+    def test_symlinked_preview_output_is_rejected_without_external_write(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            source = root / "synthetic.json"
+            document = valid_export()
+            document["complete"] = False
+            source.write_text(json.dumps(document), encoding="utf-8")
+            actual = root / "redirected.json"
+            alias = root / "preview.json"
+            try:
+                alias.symlink_to(actual)
+            except OSError:
+                self.skipTest("Windows symlinks unavailable to this test user")
+            with self.assertRaises(SystemExit) as raised:
+                main(["--source", str(source), "--partial", "--output", str(alias)])
+            self.assertEqual(raised.exception.code, 2)
+            self.assertFalse(actual.exists())
+            self.assertTrue(alias.is_symlink())
+
+    def test_symlinked_preview_parent_does_not_escape_selected_folder(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            source = root / "synthetic.json"
+            document = valid_export()
+            document["complete"] = False
+            source.write_text(json.dumps(document), encoding="utf-8")
+            outside = root / "outside"
+            outside.mkdir()
+            alias = root / "preview-alias"
+            try:
+                alias.symlink_to(outside, target_is_directory=True)
+            except OSError:
+                self.skipTest("Windows directory symlinks unavailable to this test user")
+            with self.assertRaises(SystemExit) as raised:
+                main(["--source", str(source), "--partial",
+                      "--output", str(alias / "preview.json")])
+            self.assertEqual(raised.exception.code, 2)
+            self.assertEqual(list(outside.iterdir()), [])
+
     def test_boolean_schema_version_never_counts_as_v1(self):
         data = valid_export()
         data["schema_version"] = True
