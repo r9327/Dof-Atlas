@@ -271,7 +271,7 @@ class CandidateStoreTests(unittest.TestCase):
             (["--list"], "routes", "source_guide:99"),
             (["--route-id", "source_guide:99"], "route", "source_guide:99"),
             (["--route-id", "source_guide:99",
-              "--stage-id", "source:99:a"], "stage", "source:99:a"),
+              "--stage-id", "source:99:a"], "card", "source:99:a"),
         )
         previous_names = sorted(str(p.relative_to(self.root))
                                 for p in self.root.rglob("*"))
