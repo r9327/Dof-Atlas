@@ -186,6 +186,7 @@ class OrganizerMirrorIntegrationTests(unittest.TestCase):
                     patch("app.macros.switch_click.is_unity_window", return_value=True),
                     patch("app.macros.switch_click.is_dofus_unity_process", return_value=True),
                     patch("app.macros.switch_click.activate_window", return_value=True),
+                    patch("app.macros.switch_click.foreground_window", side_effect=list(handles)),
                     patch("app.macros.switch_click.send_client_click", return_value=True) as sender,
                     patch.object(macro, "_target_point", return_value=(20, 30)),
                 ):
@@ -196,6 +197,87 @@ class OrganizerMirrorIntegrationTests(unittest.TestCase):
                 )
                 runtime.switch_character.restore_preferred_client.assert_called_once_with("Miroir")
 
+
+    def test_switch_click_aborts_when_focus_stolen_before_input(self):
+        from app.macros.switch_click import SwitchClickMacro, SwitchClickContext
+
+        handles = (101, 202, 303)
+        runtime = Mock()
+        runtime.settings.primary_handle = 101
+        runtime.settings.clients = [
+            SimpleNamespace(handle=handle) for handle in handles
+        ]
+        runtime.switch_character.ordered_clients_from_source.return_value = [
+            SimpleNamespace(handle=handle, display_name=str(handle))
+            for handle in handles
+        ]
+        runtime.macro_lock.should_stop.return_value = False
+        runtime.macro_lock.wait.return_value = False
+        runtime.settings.timings = SimpleNamespace(
+            switch_background_pre_click_ms=0,
+            activate_attempts=1, activate_retry_ms=0,
+            input_double_gap_ms=5, switch_click_down_ms=1,
+            switch_background_post_up_ms=0, switch_client_settle_ms=0,
+        )
+        macro = SwitchClickMacro(runtime)
+        context = SwitchClickContext(101, 20, 30, 0.5, 0.5, "cursor")
+        with (
+            patch("app.macros.switch_click.current_cursor_pos", return_value=(100, 200)),
+            patch("app.macros.switch_click.set_cursor_pos"),
+            patch("app.macros.switch_click.is_unity_window", return_value=True),
+            patch("app.macros.switch_click.is_dofus_unity_process", return_value=True),
+            patch("app.macros.switch_click.activate_window", return_value=True),
+            patch("app.macros.switch_click.foreground_window", side_effect=[101, 999]),
+            patch("app.macros.switch_click.send_client_click", return_value=True) as sender,
+            patch.object(macro, "_target_point", return_value=(20, 30)),
+        ):
+            macro._run(
+                "Left", 1, "Miroir", context,
+                exact_source_handle=101, mirror_target_handles=handles,
+            )
+        sender.assert_called_once()
+        self.assertEqual(sender.call_args.args[0], 101)
+        runtime.switch_character.restore_preferred_client.assert_not_called()
+        runtime.logger.warning.assert_any_call(
+            "%s interrompu: focus perdu avant clic hwnd=%s", "Miroir", 202,
+        )
+        runtime.input_state.end_mouse_block.assert_called_once()
+
+    def test_switch_click_never_sends_when_first_target_focus_unconfirmed(self):
+        from app.macros.switch_click import SwitchClickMacro, SwitchClickContext
+
+        handles = (101, 202)
+        runtime = Mock()
+        runtime.settings.primary_handle = 101
+        runtime.switch_character.ordered_clients_from_source.return_value = [
+            SimpleNamespace(handle=handle, display_name=str(handle))
+            for handle in handles
+        ]
+        runtime.macro_lock.should_stop.return_value = False
+        runtime.settings.timings = SimpleNamespace(
+            switch_background_pre_click_ms=0,
+            activate_attempts=1, activate_retry_ms=0,
+            input_double_gap_ms=5, switch_click_down_ms=1,
+            switch_background_post_up_ms=0, switch_client_settle_ms=0,
+        )
+        macro = SwitchClickMacro(runtime)
+        context = SwitchClickContext(101, 20, 30, 0.5, 0.5, "cursor")
+        with (
+            patch("app.macros.switch_click.current_cursor_pos", return_value=(100, 200)),
+            patch("app.macros.switch_click.set_cursor_pos"),
+            patch("app.macros.switch_click.is_unity_window", return_value=True),
+            patch("app.macros.switch_click.is_dofus_unity_process", return_value=True),
+            patch("app.macros.switch_click.activate_window", return_value=True),
+            patch("app.macros.switch_click.foreground_window", return_value=999),
+            patch("app.macros.switch_click.send_client_click") as sender,
+        ):
+            macro._run(
+                "Left", 1, "Miroir", context,
+                exact_source_handle=101, mirror_target_handles=handles,
+            )
+        sender.assert_not_called()
+        runtime.switch_character.restore_preferred_client.assert_not_called()
+        runtime.input_state.end_mouse_block.assert_called_once()
 
     def test_consumed_physical_down_swallows_matching_up_without_affecting_other_buttons(self):
         import ctypes
