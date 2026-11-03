@@ -189,6 +189,7 @@ class PipelineSyntheticTests(unittest.TestCase):
             ("action_validation", {"completion_rule": {"quest": 321}}),
             ("action_success", {"dungeon_successes": ["Premier", "Nomade"]}),
             ("action_media", {"media": [{"path": "fictional.png"}]}),
+            ("unrecognized_instruction", {"new_fictional_instruction": "Take an unseen path"}),
             ("nested_resource", {"items": [{
                 "name": "Ressource fictive", "quantity": 2,
                 "condition": {"alignment": "bonta"},
@@ -215,6 +216,22 @@ class PipelineSyntheticTests(unittest.TestCase):
                 )
         self.assertFalse((self.folder / "data").exists())
         self.assertFalse((self.folder / ".writer.lock").exists())
+
+    def test_unknown_step_field_stops_trusted_staging_without_write(self):
+        source = synthetic_source()
+        source["guides"][0]["steps"][0]["unmapped_trigger"] = {
+            "action": "fictitious turn"
+        }
+        with self.assertRaisesRegex(
+            GuidePipelineBlocked,
+            "source differs from independently reviewed reference",
+        ):
+            self._run(
+                authorized_source=source,
+                independent_reference=copy.deepcopy(source),
+                atlas_after=copy.deepcopy(source),
+            )
+        self.assertFalse(self.folder.exists())
 
     def test_95_sequential_synthetic_stagings_are_isolated_and_never_active(self):
         # Complete-capacity exercise: 95 entirely fabricated single-step
