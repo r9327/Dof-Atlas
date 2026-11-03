@@ -13,6 +13,7 @@ from app.modules.encyclopedia.services.guide_shared_route_contract import (
 )
 from tools.atlas_guide_candidate_store import (
     publish_candidate, rollback_candidate, selected_candidate,
+    read_selected_preview, read_selected_route,
 )
 from tools.atlas_guide_importer import prepare_preview
 
@@ -62,6 +63,63 @@ class CandidateStoreTests(unittest.TestCase):
         with self.assertRaisesRegex(GuideRouteContractError, "non-JSON-compatible"):
             publish_candidate(altered, root=self.root)
         self.assertFalse(self.root.exists())
+
+    def test_pinned_candidate_preview_is_read_only_and_exact(self) -> None:
+        published = publish_candidate(self.preview, root=self.root)
+        digest = published["candidate_sha256"]
+        before = sorted(str(path.relative_to(self.root))
+                        for path in self.root.rglob("*"))
+        preview = read_selected_preview(root=self.root, expected_selected=digest)
+        self.assertEqual(preview, self.preview)
+        self.assertFalse(preview["certified"])
+        self.assertEqual(preview["mode"], "DRY_RUN_ONLY")
+        self.assertEqual(
+            before, sorted(str(path.relative_to(self.root))
+                           for path in self.root.rglob("*"))
+        )
+        self.assertFalse((self.root / ".writer.lock").exists())
+        self.assertFalse((self.root / "data").exists())
+
+    def test_pinned_route_isolated_from_mutation_and_never_activates(self) -> None:
+        receipt = publish_candidate(self.preview, root=self.root)
+        digest = receipt["candidate_sha256"]
+        source_route = self.preview["routes"][0]
+        route = read_selected_route(
+            root=self.root, expected_selected=digest, route_id="source_guide:99",
+        )
+        self.assertEqual(route, source_route)
+        self.assertEqual(route["source_compliance"], "NOT_CERTIFIED")
+        self.assertFalse(route["manual_preview"])
+        route["steps"][0]["manual_title"] = "MUTATED BY CALLER"
+        route["steps"][0]["manual_sections"]["now"][0]["text"] = "MUTATED"
+        reread = read_selected_route(
+            root=self.root, expected_selected=digest, route_id="source_guide:99",
+        )
+        self.assertEqual(reread, source_route)
+        self.assertNotIn("MUTATED", str(reread))
+        self.assertEqual(selected_candidate(self.root), digest)
+
+    def test_missing_or_mismatched_preview_identity_never_falls_back(self) -> None:
+        self.assertFalse(self.root.exists())
+        with self.assertRaises(GuideRouteContractError):
+            read_selected_preview(root=self.root, expected_selected="1" * 64)
+        self.assertFalse(self.root.exists())
+        receipt = publish_candidate(self.preview, root=self.root)
+        digest = receipt["candidate_sha256"]
+        for expected in ("NONE", "0" * 64, "2" * 64, "", 5):
+            with self.subTest(expected=expected):
+                with self.assertRaises(GuideRouteContractError):
+                    read_selected_preview(
+                        root=self.root, expected_selected=expected
+                    )
+        for route_id in ("", "99", "source_guide:404", None, 99):
+            with self.subTest(route_id=route_id):
+                with self.assertRaises(GuideRouteContractError):
+                    read_selected_route(
+                        root=self.root, expected_selected=digest,
+                        route_id=route_id,
+                    )
+        self.assertEqual(selected_candidate(self.root), digest)
 
     def test_idempotent_same_selection(self) -> None:
         first = publish_candidate(self.preview, root=self.root)
