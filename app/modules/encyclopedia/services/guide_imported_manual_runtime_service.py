@@ -74,6 +74,10 @@ class ImportedSourceManualRuntimeService(GuideUltimeGeneratedService):
             self.route.get("source_guide_metadata", {}).get("title") or source_id
         )
         self._known_stage_ids = frozenset(known)
+        # References only: one opened guide, no extra route copy or preload.
+        self._canonical_cards = {
+            card["manual_stage_id"]: card for card in self.cards
+        }
         self._authorization_guard: Callable[[str, dict], bool] | None = None
         self._gate_evaluator = gate_evaluator
 
@@ -119,6 +123,15 @@ class ImportedSourceManualRuntimeService(GuideUltimeGeneratedService):
     def set_manual_checked(
         self, character_key: str, key: str, checked: bool,
     ) -> None:
+        ready_prefix = f"__ui:preparation_ready:{self.guide_id}:"
+        if not isinstance(key, str) or not (
+            key in self._known_stage_ids
+            or key == "__ui:shared_route_locked__"
+            or (key.startswith(ready_prefix) and len(key) > len(ready_prefix))
+        ):
+            # Header and preparation have scoped UI keys; other writes must
+            # target a canonical step of this exact imported source guide.
+            raise ValueError("Unknown or foreign source progress key")
         if not self.can_write_progress():
             return
         self.guide_progress.set_manual_step_completed(
@@ -134,11 +147,14 @@ class ImportedSourceManualRuntimeService(GuideUltimeGeneratedService):
         self, character_key: str, card: dict[str, Any],
         fallback_index: int, checked: bool,
     ) -> None:
-        if checked and self.manual_order_choice_blocking(character_key, card):
+        key = self.page_key(card, fallback_index)
+        # A copied card cannot remove its real prerequisite gates and then
+        # validate under the identity of the canonical source step.
+        if checked and self.manual_order_choice_blocking(
+            character_key, self._canonical_cards[key],
+        ):
             return
-        self.set_manual_checked(
-            character_key, self.page_key(card, fallback_index), checked,
-        )
+        self.set_manual_checked(character_key, key, checked)
 
     def card_automatic_values(
         self, character_key: str, card: dict[str, Any],
