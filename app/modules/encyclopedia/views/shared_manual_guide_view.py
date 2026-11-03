@@ -742,7 +742,7 @@ class SharedGuideManualCard(GuideUltimeManualCard):
                 )
                 zaap_button.clicked.connect(
                     lambda _checked=False, target=position_key:
-                    self._zaap_shortcut_clicked(target)
+                        self._zaap_shortcut_clicked(target)
                 )
                 row_layout.addWidget(zaap_button, 0, Qt.AlignTop)
             line = QLabel()
@@ -2748,8 +2748,10 @@ class SharedGuideManualView(GuideUltimeManualView):
                 and callable(available)):
             return False
         connected = {
-            row.key for row in (available() or ())
+            str(getattr(row, "key", "") or "")
+            for row in (available() or ())
             if bool(getattr(row, "connected", False))
+            and str(getattr(row, "key", "") or "")
         }
         selected = self.selected_participant_keys()
         # The command acts on a whole group: never quietly drop offline
@@ -2772,8 +2774,9 @@ class SharedGuideManualView(GuideUltimeManualView):
             or len(plan.participant_keys) != len(selected)
         ):
             return False
-        callback(plan.to_chat_command(), plan.participant_keys)
-        return True
+        # The macro may reject the command after route validation. Never
+        # report a dispatch as successful when it explicitly returns False.
+        return callback(plan.to_chat_command(), plan.participant_keys) is not False
 
     def _render_window(self, *, reset_scroll: bool = False) -> None:
         self._catalog_prefetch_timer.stop()
