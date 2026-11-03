@@ -19,6 +19,37 @@ def _runtime() -> Mock:
 
 
 class OrganizerMacroReliabilityTests(unittest.TestCase):
+    def test_switch_click_world_interactions_receive_hover_and_press_frames(self) -> None:
+        from app.macros.switch_click import SwitchClickContext, SwitchClickMacro
+
+        runtime = _runtime()
+        runtime.settings.timings.input_double_gap_ms = 5
+        runtime.settings.timings.switch_click_down_ms = 1
+        runtime.settings.timings.switch_background_pre_click_ms = 18
+        runtime.settings.timings.switch_background_post_up_ms = 5
+        runtime.settings.timings.switch_client_settle_ms = 0
+        macro = SwitchClickMacro(runtime)
+        context = SwitchClickContext(101, 32, 24, 0.5, 0.5, "cursor")
+
+        with (
+            patch.object(macro, "_validated_context", return_value=context),
+            patch.object(macro, "_target_point", return_value=(32, 24)),
+            patch("app.macros.switch_click.current_cursor_pos", return_value=(150, 170)),
+            patch("app.macros.switch_click.set_cursor_pos"),
+            patch("app.macros.switch_click.is_unity_window", return_value=True),
+            patch("app.macros.switch_click.activate_window", return_value=True),
+            patch("app.macros.switch_click.send_client_click", return_value=True) as send,
+        ):
+            macro._run("Left", 1, "Switch clique", context, mouse_block_started=True)
+
+        self.assertEqual(send.call_count, 2)
+        for sent in send.call_args_list:
+            self.assertGreaterEqual(sent.args[5], 35, "button held across Unity update")
+            self.assertGreaterEqual(sent.args[7], 50, "pointer settles before Unity click")
+            self.assertEqual(sent.args[4], 1)
+        runtime.input_state.end_mouse_block.assert_called_once()
+        runtime.switch_character.restore_preferred_client.assert_called_once_with("Switch clique")
+
     def test_invalid_zaap_does_not_start_or_reserve_macro(self) -> None:
         runtime = _runtime()
         self.assertFalse(ZaapMacro(runtime).run_async("/zaap fake"))
