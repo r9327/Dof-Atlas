@@ -495,3 +495,18 @@ guide** pour vérifier la détection exacte et l'inventaire intégral.
 Ce test prouve un comportement sur données fictives, pas l'extraction
 ou l'exactitude des 95 guides réels ; ce n'est pas non plus un benchmark
 Windows ou un certificat de RAM.
+
+### Destination du staging : protection du code source
+
+Une destination de candidat explicitement fournie ne doit pas pouvoir
+se trouver par accident dans `app/`, `tools/`, `tests/`,
+`docs/`, `.github/`, `local_dofus_data/` ou à la racine du
+checkout. Le magasin refuse désormais **tout emplacement situé à
+l'intérieur du dépôt**, sauf un sous-dossier explicitement choisi sous
+`artifacts/`. Les emplacements externes restent soumis aux protections
+existantes contre les segments `.git`/`data`/`saves`, les symlinks,
+les dossiers appartenant à des tiers et les écritures concurrentes.
+Ces chemins sont contrôlés **avant** toute création de dossier ; des
+tests fictifs vérifient le refus des sources et l'acceptation statique
+d'un chemin d'artefact sans l'ouvrir ni y écrire. L'activation réelle
+reste interdite par Phase 0.

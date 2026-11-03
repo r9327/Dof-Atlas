@@ -239,6 +239,22 @@ def _safe_root(root: Path) -> Path:
     if candidate.is_symlink() or any(part.casefold() in _FORBIDDEN_PARTS
                                     for part in candidate.parts):
         raise GuideRouteContractError("candidate root must not be an Atlas data/save/cache directory")
+    # An explicit staging root may be outside the checkout or inside its
+    # disposable artifacts/ directory. Never accept a source, CI-policy,
+    # user-data or UI directory merely because it was initially empty.
+    # The store cannot reliably know a Windows install path, so this is an
+    # additional source-tree guard, not a substitute for the forbidden parts.
+    source_root = Path(__file__).resolve().parents[1]
+    try:
+        within_checkout = candidate.relative_to(source_root)
+    except ValueError:
+        within_checkout = None
+    if within_checkout is not None and (
+        not within_checkout.parts or within_checkout.parts[0].casefold() != "artifacts"
+    ):
+        raise GuideRouteContractError(
+            "candidate root must be outside repository sources or under artifacts/"
+        )
     if candidate.is_file():
         raise GuideRouteContractError("candidate root is a file")
     for parent in candidate.parents:

@@ -473,6 +473,24 @@ class CandidateStoreTests(unittest.TestCase):
             publish_candidate(malformed, root=self.root)
         self.assertFalse(self.root.exists())
 
+    def test_candidate_store_rejects_source_tree_roots_before_any_write(self) -> None:
+        checkout = Path(__file__).resolve().parents[1]
+        for folder in ("app", "tools", "tests", "docs", "scripts",
+                       ".github", "local_dofus_data", "APP"):
+            candidate_root = checkout / folder / "__synthetic_stage_must_not_exist__"
+            with self.subTest(folder=folder), self.assertRaisesRegex(
+                GuideRouteContractError, "outside repository sources"
+            ):
+                publish_candidate(self.preview, root=candidate_root)
+            self.assertFalse(candidate_root.exists())
+
+    def test_repo_artifacts_candidate_root_is_accepted_without_creating_it(self) -> None:
+        from tools.atlas_guide_candidate_store import _safe_root
+        checkout = Path(__file__).resolve().parents[1]
+        permitted = checkout / "artifacts" / "__synthetic_stage_not_written__"
+        self.assertEqual(_safe_root(permitted), permitted.absolute())
+        self.assertFalse(permitted.exists())
+
     def test_case_variant_protected_store_root_does_not_write(self) -> None:
         forbidden = Path(self.temp.name) / "DATA" / "candidates"
         with self.assertRaisesRegex(GuideRouteContractError, "data/save/cache"):
