@@ -627,7 +627,22 @@ class SharedGuideManualCard(GuideUltimeManualCard):
             else:
                 line.setObjectName(self._line_object_name(kind, text))
             line.setWordWrap(True)
-            related_quest_ids = self._quest_ids_for_row(row)
+            # Imported actions may identify their own Quest precisely.
+            # An explicit empty list means no shortcut on this action; never
+            # guess from the step's other quests or from matching text.
+            source_action = (
+                row.get("source_action")
+                if self.card.get("manual_source") is True
+                and "source_step_id" in self.card
+                else None
+            )
+            if isinstance(source_action, dict) and "quest_ids" in source_action:
+                related_quest_ids = [
+                    quest_id for quest_id in source_action["quest_ids"]
+                    if quest_id in quest_names
+                ]
+            else:
+                related_quest_ids = self._quest_ids_for_row(row)
             related_names = [
                 quest_names[quest_id]
                 for quest_id in related_quest_ids
