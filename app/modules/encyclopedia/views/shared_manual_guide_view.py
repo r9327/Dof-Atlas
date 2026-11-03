@@ -2360,7 +2360,11 @@ class SharedGuideManualView(GuideUltimeManualView):
         if not statuses:
             label, hint = "Valider", "Choisissez d'abord un personnage avec le bouton portrait ; ce clic ouvre le sélecteur."
         elif blocked:
-            label, hint = "Choisir l’ordre", "Une fiche de la sélection est bloquée : terminez le choix d’ordre avant de valider."
+            source_reason = getattr(self.service, "manual_validation_block_reason", None)
+            if callable(source_reason):
+                label, hint = "Prérequis à vérifier", str(source_reason())
+            else:
+                label, hint = "Choisir l’ordre", "Une fiche de la sélection est bloquée : terminez le choix d’ordre avant de valider."
         elif all_done and reversible:
             label, hint = "Annuler validation", "Retirer uniquement les coches manuelles ; les preuves automatiques sont conservées."
         elif all_done:
