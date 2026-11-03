@@ -139,47 +139,80 @@ class GuideProgressService:
         self, character_key: str, guide_id: str, resource_key: str,
         quantity: int, *, required: int, expected_quantity: int | None = None,
     ) -> bool:
-        """Bound a user's manual count with CAS and a coordinated atomic write.
-
-        The caller supplies the current per-character requirement; this is
-        manual preparation, never a claim to know the DOFUS inventory.
-        """
+        """Persist one character's manual amount via the shared atomic batch."""
         key = require_character_key(character_key)
+        expected = {key: expected_quantity} if expected_quantity is not None else None
+        return self.set_preparation_quantities_for_characters(
+            guide_id, resource_key, {key: quantity}, {key: required},
+            expected_quantities=expected,
+        )
+
+    def set_preparation_quantities_for_characters(
+        self, guide_id: str, resource_key: str,
+        quantities: dict[str, int], required_by_character: dict[str, int],
+        *, expected_quantities: dict[str, int] | None = None,
+    ) -> bool:
+        """One compare-and-swap disk transaction for a selected Guide team.
+
+        Caller verifies source authorization. Never deduce actual stock from
+        a character's network session or from another character's inventory.
+        """
         guide = _preparation_guide_id(guide_id)
         resource = _preparation_resource_key(resource_key)
-        if type(required) is not int or required < 0:
-            raise ValueError("required preparation quantity must be nonnegative")
-        if type(quantity) is not int or not 0 <= quantity <= required:
-            raise ValueError("preparation quantity must be between zero and required")
-        if expected_quantity is not None and (
-            type(expected_quantity) is not int or expected_quantity < 0
+        if not isinstance(quantities, dict) or not quantities:
+            return False
+        if not isinstance(required_by_character, dict):
+            raise ValueError("required preparation amounts must be a character map")
+        keys = tuple(require_character_key(value) for value in quantities)
+        if (len(set(keys)) != len(keys) or
+                set(keys) != set(required_by_character)):
+            raise ValueError("preparation character set does not match requirements")
+        if expected_quantities is not None and (
+            not isinstance(expected_quantities, dict)
+            or set(expected_quantities) != set(keys)
         ):
-            raise ValueError("expected preparation quantity must be nonnegative")
+            raise ValueError("expected preparation states must match participants")
+        for key in keys:
+            amount = quantities[key]
+            maximum = required_by_character[key]
+            if (type(maximum) is not int or maximum < 0 or
+                    type(amount) is not int or not 0 <= amount <= maximum):
+                raise ValueError("preparation quantity outside required bounds")
+            if expected_quantities is not None and (
+                type(expected_quantities[key]) is not int
+                or expected_quantities[key] < 0
+            ):
+                raise ValueError("invalid expected preparation quantity")
         with self._coordinator.lock:
             self.progress = self._load()
-            old = self._read_preparation_counts_map(key).get(guide, {}).get(resource, 0)
-            if expected_quantity is not None and old != expected_quantity:
+            current = {
+                key: self._read_preparation_counts_map(key).get(guide, {}).get(resource, 0)
+                for key in keys
+            }
+            if expected_quantities is not None and current != expected_quantities:
                 self._seen_generation = self._coordinator.generation
                 self._disk_signature = self._current_disk_signature()
                 self._clear_manual_steps_cache()
                 raise RuntimeError("Preparation changed since reading; reload before editing")
-            if old == quantity:
+            if all(current[key] == quantities[key] for key in keys):
                 self._seen_generation = self._coordinator.generation
                 self._disk_signature = self._current_disk_signature()
                 self._clear_manual_steps_cache()
                 return False
             characters = self.progress.setdefault("characters", {})
-            character = characters.setdefault(key, {})
-            counts = character.setdefault("preparation_counts", {})
-            by_guide = counts.setdefault(guide, {})
-            if quantity:
-                by_guide[resource] = quantity
-            else:
-                by_guide.pop(resource, None)
-                if not by_guide:
-                    counts.pop(guide, None)
-                if not counts:
-                    character.pop("preparation_counts", None)
+            for key in keys:
+                character = characters.setdefault(key, {})
+                counts = character.setdefault("preparation_counts", {})
+                by_guide = counts.setdefault(guide, {})
+                amount = quantities[key]
+                if amount:
+                    by_guide[resource] = amount
+                else:
+                    by_guide.pop(resource, None)
+                    if not by_guide:
+                        counts.pop(guide, None)
+                    if not counts:
+                        character.pop("preparation_counts", None)
             self._save_unlocked()
             self._seen_generation = self._coordinator.mark_changed()
             self._disk_signature = self._current_disk_signature()

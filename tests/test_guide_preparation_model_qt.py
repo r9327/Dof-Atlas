@@ -7,7 +7,7 @@ from pathlib import Path
 
 os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
 
-from PySide6.QtWidgets import QApplication, QLabel, QPushButton, QToolButton
+from PySide6.QtWidgets import QApplication, QLabel, QPushButton, QSpinBox, QToolButton
 
 from app.modules.encyclopedia.services.guide_progress_service import GuideProgressService
 from app.modules.encyclopedia.views.shared_manual_guide_view import SharedGuideManualView
@@ -236,6 +236,26 @@ class GuidePreparationQtFocusedTests(unittest.TestCase):
         self.assertEqual(need.scope, "party_shared")
         self.assertEqual(len(need.required_by_character), 3)
         self.assertEqual(need.required_total, 2)
+
+    def test_editable_preparation_total_multiplies_and_persists_by_character(self):
+        self.participants.save_selected_keys(
+            ("character:1", "character:2", "character:3"),
+        )
+        view = self._view()
+        editor = view.preparation_panel.findChild(QSpinBox, "GuidePreparationQuantity")
+        self.assertIsNotNone(editor)
+        self.assertEqual((editor.value(), editor.maximum()), (0, 6))
+        editor.setValue(5)
+        editor.editingFinished.emit()
+        QApplication.processEvents()
+        fresh = GuideProgressService(self.path)
+        values = [fresh.preparation_quantity(
+            f"character:{index}", self.service.progress_id, "item:123"
+        ) for index in (1, 2, 3)]
+        self.assertEqual(sum(values), 5)
+        self.assertTrue(all(0 <= value <= 2 for value in values))
+        updated = view.preparation_panel.findChild(QSpinBox, "GuidePreparationQuantity")
+        self.assertEqual((updated.value(), updated.maximum()), (5, 6))
 
 if __name__ == "__main__":
     unittest.main()

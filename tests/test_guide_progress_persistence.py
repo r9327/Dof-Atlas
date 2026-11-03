@@ -210,5 +210,35 @@ class GuideProgressPersistenceTests(unittest.TestCase):
         with self.assertRaises(InvalidPersistentJsonError):
             GuideProgressService(self.path)
 
+    def test_team_preparation_quantity_transaction_is_atomic(self) -> None:
+        service = GuideProgressService(self.path)
+        keys = {f"character:{index}": 8 for index in range(1, 7)}
+        assigned = {key: 3 for key in keys}
+        self.assertTrue(service.set_preparation_quantities_for_characters(
+            "guide_a", "item:123", assigned, keys,
+            expected_quantities={key: 0 for key in keys},
+        ))
+        for key in keys:
+            self.assertEqual(service.preparation_quantity(
+                key, "guide_a", "item:123",
+            ), 3)
+        with self.assertRaisesRegex(RuntimeError, "changed since reading"):
+            service.set_preparation_quantities_for_characters(
+                "guide_a", "item:123", {key: 5 for key in keys}, keys,
+                expected_quantities={key: 0 for key in keys},
+            )
+        fresh = GuideProgressService(self.path)
+        self.assertTrue(all(fresh.preparation_quantity(
+            key, "guide_a", "item:123"
+        ) == 3 for key in keys))
+        with self.assertRaises(ValueError):
+            service.set_preparation_quantities_for_characters(
+                "guide_a", "item:123",
+                {**assigned, "character:7": 1}, keys,
+            )
+        self.assertTrue(all(fresh.preparation_quantity(
+            key, "guide_a", "item:123"
+        ) == 3 for key in keys))
+
 if __name__ == "__main__":
     unittest.main()

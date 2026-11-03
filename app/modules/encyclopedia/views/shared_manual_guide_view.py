@@ -1891,6 +1891,63 @@ class SharedGuideManualView(GuideUltimeManualView):
         self._render_preparation(current_filter)
         self._update_preparation_progress()
 
+    def _set_preparation_total(
+        self, need: _PreparationNeed, target: int,
+    ) -> None:
+        """Allocate a team total deterministically without losing individual stock."""
+        if need.scope != "per_character" or need.required_total is None:
+            return
+        authorized = getattr(self.service, "can_write_progress", None)
+        if callable(authorized) and not authorized():
+            self._render_preparation("Tout")
+            return
+        progress = getattr(self.service, "guide_progress", None)
+        getter = getattr(progress, "preparation_quantity", None)
+        batcher = getattr(progress, "set_preparation_quantities_for_characters", None)
+        if not callable(getter) or not callable(batcher):
+            return
+        guide = str(getattr(self.service, "progress_id", "") or "")
+        expected = {
+            key: getter(key, guide, need.item_key)
+            for key, _required in need.required_by_character
+        }
+        quantities = {
+            key: min(expected[key], required)
+            for key, required in need.required_by_character
+        }
+        current = sum(quantities.values())
+        difference = max(0, min(int(target), need.required_total)) - current
+        if difference > 0:
+            for key, required in need.required_by_character:
+                increase = min(difference, required - quantities[key])
+                quantities[key] += increase
+                difference -= increase
+                if not difference:
+                    break
+        elif difference < 0:
+            for key, _required in reversed(need.required_by_character):
+                decrease = min(-difference, quantities[key])
+                quantities[key] -= decrease
+                difference += decrease
+                if not difference:
+                    break
+        try:
+            batcher(
+                guide, need.item_key, quantities,
+                dict(need.required_by_character), expected_quantities=expected,
+            )
+        except (RuntimeError, ValueError):
+            self.service.reload_progress()
+            self.validation_host.setToolTip(
+                "Préparation modifiée ailleurs ; quantités actualisées."
+            )
+        filter_button = self.preparation_filter_group.checkedButton()
+        selected_filter = str(
+            filter_button.property("filterKey") if filter_button else "Tout"
+        )
+        self._render_preparation(selected_filter)
+        self._update_preparation_progress()
+
     def _clear_preparation_rows(self) -> None:
         while self.preparation_rows_layout.count():
             item = self.preparation_rows_layout.takeAt(0)
@@ -2053,6 +2110,36 @@ class SharedGuideManualView(GuideUltimeManualView):
         top.addWidget(item_button, 1)
         status_label = QLabel(status)
         status_label.setObjectName("GuidePreparationRowStatus")
+        progress = getattr(self.service, "guide_progress", None)
+        getter = getattr(progress, "preparation_quantity", None)
+        batcher = getattr(progress, "set_preparation_quantities_for_characters", None)
+        if (need.scope == "per_character" and quantity is not None
+                and callable(getter) and callable(batcher)):
+            guide = str(getattr(self.service, "progress_id", "") or "")
+            acquired = sum(
+                min(getter(key, guide, need.item_key), required)
+                for key, required in need.required_by_character
+            )
+            editor = QSpinBox(frame)
+            editor.setObjectName("GuidePreparationQuantity")
+            editor.setRange(0, quantity)
+            editor.setValue(acquired)
+            editor.setSuffix(f" / {quantity}")
+            editor.setToolTip("Quantité préparée pour les personnages sélectionnés")
+            authorized = getattr(self.service, "can_write_progress", None)
+            if callable(authorized) and not authorized():
+                editor.setEnabled(False)
+                editor.setToolTip("Parcours non autorisé : quantités en lecture seule.")
+            else:
+                editor.editingFinished.connect(
+                    lambda row=need, spin=editor: self._set_preparation_total(
+                        row, spin.value()
+                    )
+                )
+            if acquired == quantity:
+                status_label.setText("Complet")
+                status_label.setStyleSheet(f"color: {PALETTE['GREEN']};")
+            top.addWidget(editor)
         top.addWidget(status_label)
         ready_button = QToolButton()
         ready_button.setObjectName("GuidePreparationReady")
