@@ -505,6 +505,17 @@ def compare(reference: dict[str, Any], atlas: dict[str, Any]) -> dict[str, Any]:
                             "nonempty structured preparation items",
                             action.get("items"),
                         )
+                    if section == "prepare":
+                        # This is independent parity: do not allow two
+                        # identical documents to PASS when the shared global
+                        # preparation UI cannot show authored instructions.
+                        for field in ("npc", "dialogue_choice", "monsters", "coordinates"):
+                            if action.get(field) not in (None, []):
+                                report(
+                                    "UNVERIFIABLE", f"{action_path}.{field}",
+                                    "no hidden instruction in preparation panel",
+                                    action[field],
+                                )
                     text = action.get("text")
                     if not isinstance(text, str) or not text.strip():
                         report("UNVERIFIABLE", f"{action_path}.text",
