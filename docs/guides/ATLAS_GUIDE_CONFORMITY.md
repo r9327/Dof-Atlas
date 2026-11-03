@@ -361,3 +361,17 @@ si une fonction témoin renvoie un booléen positif. La sentinelle interne
 `source_sha=00…00` reste autorisée **uniquement comme contexte de preuve
 de Phase 0** et de preuve d'indisponibilité Cawotte, où il n'existe
 volontairement aucun export de guide réel. Cela ne certifie rien par soi-même.
+
+### Reconnaissance stricte des collections de parcours (3 novembre 2026)
+
+- Seuls `guides` à la racine, `steps` sous un guide identifié et
+  `actions` sous une étape identifiée déclenchent la comparaison
+  par ID/ordre. Des champs `steps`/`actions`/`guides` contenus dans
+  des métadonnées, captures ou actions restent des **champs génériques
+  à préserver** et ne sont pas interprétés comme de nouveaux parcours.
+- Si une vraie collection de parcours change de type (liste remplacée
+  par un objet, texte, etc.), un `TYPE_MISMATCH` demeure bloquant et
+  le comparateur énumère aussi les guides/étapes/actions identifiables
+  du côté resté valide. Les pertes ne sont pas masquées par l'erreur de type.
+- Tests de non-régression fictifs ajoutés. Le schéma du lecteur Qt et
+  les sauvegardes existantes ne sont pas modifiés.

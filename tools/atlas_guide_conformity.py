@@ -24,6 +24,13 @@ _ID_KEYS = {"guide": "guide_id", "step": "source_step_id", "action": "action_id"
 _COLLECTIONS = {"guides": "guide", "steps": "step", "actions": "action"}
 # Match the Qt-free adapter identity grammar independently at the diff boundary.
 _STABLE_ID = re.compile(r"[A-Za-z0-9][A-Za-z0-9._-]{0,119}\Z")
+# Structural collection names are meaningful only at canonical route paths.
+# Generic source metadata may also contain "guides", "steps" or "actions".
+_GUIDE_NODE = re.compile(r"\.guides\[[A-Za-z0-9][A-Za-z0-9._-]{0,119}\]\Z")
+_STEP_NODE = re.compile(
+    r"\.guides\[[A-Za-z0-9][A-Za-z0-9._-]{0,119}\]"
+    r"\.steps\[[A-Za-z0-9][A-Za-z0-9._-]{0,119}\]\Z"
+)
 
 
 # Independent format validation: a pair of equally malformed exports must
@@ -114,6 +121,15 @@ def compare(reference: dict[str, Any], atlas: dict[str, Any]) -> dict[str, Any]:
         # the whole hierarchy into a second redundant issue.
         return {"collection": field, "count": len(values), "sha256": _digest(values)}
 
+    def route_collection_kind(parent_path: str, field: str) -> str | None:
+        if field == "guides" and parent_path == "":
+            return "guide"
+        if field == "steps" and _GUIDE_NODE.fullmatch(parent_path):
+            return "step"
+        if field == "actions" and _STEP_NODE.fullmatch(parent_path):
+            return "action"
+        return None
+
     def walk(expected: Any, actual: Any, path: str, evidence: str | None) -> None:
         inspected["fields"] += 1
         if type(expected) is not type(actual):
@@ -123,26 +139,27 @@ def compare(reference: dict[str, Any], atlas: dict[str, Any]) -> dict[str, Any]:
             ref_fields = set(expected) - _IGNORED_REFERENCE_KEYS
             atlas_fields = set(actual) - _IGNORED_REFERENCE_KEYS
             for key in sorted(ref_fields - atlas_fields):
-                is_collection = key in _COLLECTIONS and isinstance(expected[key], list)
+                kind = route_collection_kind(path, key)
+                is_collection = kind is not None and isinstance(expected[key], list)
                 original = (collection_witness(key, expected[key])
                             if is_collection else expected[key])
                 report("MISSING_FIELD", f"{path}.{key}", original, None, evidence)
-                # Explicit descendants preserve complete granular coverage.
+                # Expand only real route collections, not arbitrary metadata.
                 if is_collection:
-                    collection(expected[key], [], f"{path}.{key}",
-                               _COLLECTIONS[key], evidence)
+                    collection(expected[key], [], f"{path}.{key}", kind, evidence)
             for key in sorted(atlas_fields - ref_fields):
-                is_collection = key in _COLLECTIONS and isinstance(actual[key], list)
+                kind = route_collection_kind(path, key)
+                is_collection = kind is not None and isinstance(actual[key], list)
                 original = (collection_witness(key, actual[key])
                             if is_collection else actual[key])
                 report("EXTRA_FIELD", f"{path}.{key}", None, original, evidence)
                 if is_collection:
-                    collection([], actual[key], f"{path}.{key}",
-                               _COLLECTIONS[key], evidence)
+                    collection([], actual[key], f"{path}.{key}", kind, evidence)
             for key in sorted(ref_fields & atlas_fields):
-                if key in _COLLECTIONS:
-                    collection(expected[key], actual[key], f"{path}.{key}",
-                               _COLLECTIONS[key], evidence)
+                kind = route_collection_kind(path, key)
+                if kind is not None:
+                    collection(expected[key], actual[key], f"{path}.{key}", kind,
+                               evidence)
                 else:
                     walk(expected[key], actual[key], f"{path}.{key}", evidence)
             return
@@ -162,6 +179,12 @@ def compare(reference: dict[str, Any], atlas: dict[str, Any]) -> dict[str, Any]:
                    parent_evidence: str | None) -> None:
         if not isinstance(expected, list) or not isinstance(actual, list):
             report("TYPE_MISMATCH", path, "list", type(actual).__name__, parent_evidence)
+            # A malformed replacement must not hide all original actions.
+            # Only recurse with two actual lists to avoid type-error loops.
+            if isinstance(expected, list):
+                collection(expected, [], path, kind, parent_evidence)
+            if isinstance(actual, list):
+                collection([], actual, path, kind, parent_evidence)
             return
         key = _ID_KEYS[kind]
         def index(items: list[Any], side: str) -> tuple[dict[str, dict], list[str]]:

@@ -424,6 +424,70 @@ class TestGuideConformity(unittest.TestCase):
         self.assertNotIn("AMBIGUOUS", report["issue_codes"])
         self.assertEqual(report["status"], "PARITY_CHECK_BLOCKED")
 
+    def test_nested_metadata_named_like_route_collections_is_not_a_route(self) -> None:
+        for document in (self.reference, self.atlas):
+            document["guides"][0]["steps"][0]["actions"][0]["capture"] = {
+                "actions": [{"event": "example", "steps": ["first", "second"]}],
+                "steps": [{"note": "not an authored route step"}],
+                "guides": [{"note": "not a guide"}],
+            }
+        report = compare(self.reference, self.atlas)
+        self.assertEqual(report["status"], "PARITY_CHECK_PASS")
+        self.assertEqual(report["issue_count"], 0)
+
+    def test_loss_of_nested_metadata_actions_is_a_field_not_a_route_action(self) -> None:
+        for document in (self.reference, self.atlas):
+            document["guides"][0]["steps"][0]["actions"][0]["capture"] = {
+                "actions": [{"event": "example"}]
+            }
+        self.atlas["guides"][0]["steps"][0]["actions"][0]["capture"].pop("actions")
+        report = compare(self.reference, self.atlas)
+        self.assertEqual(report["status"], "PARITY_CHECK_BLOCKED")
+        self.assertTrue(any(
+            x["issue_code"] == "MISSING_FIELD" and
+            x["field_path"].endswith(".capture.actions")
+            for x in report["issues"]
+        ))
+        self.assertNotIn("MISSING_ACTION", report["issue_codes"])
+
+    def test_wrong_type_of_actions_collection_reports_all_missing_actions(self) -> None:
+        self.atlas["guides"][0]["steps"][0]["actions"] = {
+            "not": "an action list"
+        }
+        report = compare(self.reference, self.atlas)
+        self.assertIn("TYPE_MISMATCH", report["issue_codes"])
+        self.assertEqual(
+            {x["action_id"] for x in report["issues"]
+             if x["issue_code"] == "MISSING_ACTION"},
+            {"talk", "get"},
+        )
+
+    def test_wrong_type_of_root_guide_collection_reports_all_descendants(self) -> None:
+        self.atlas["guides"] = "invalid source replacement"
+        report = compare(self.reference, self.atlas)
+        self.assertIn("TYPE_MISMATCH", report["issue_codes"])
+        self.assertEqual(len([
+            x for x in report["issues"] if x["issue_code"] == "MISSING_GUIDE"
+        ]), 2)
+        self.assertEqual(len([
+            x for x in report["issues"] if x["issue_code"] == "MISSING_STEP"
+        ]), 3)
+        self.assertEqual(len([
+            x for x in report["issues"] if x["issue_code"] == "MISSING_ACTION"
+        ]), 4)
+
+    def test_wrong_type_on_reference_side_reports_extra_actions(self) -> None:
+        self.reference["guides"][0]["steps"][0]["actions"] = {
+            "malformed": True
+        }
+        report = compare(self.reference, self.atlas)
+        self.assertEqual(
+            {x["action_id"] for x in report["issues"]
+             if x["issue_code"] == "EXTRA_ACTION"},
+            {"talk", "get"},
+        )
+        self.assertEqual(report["status"], "PARITY_CHECK_BLOCKED")
+
     def test_empty_optional_lists_match_adapter_contract(self) -> None:
         original = reference()
         atlas = imported(original)
