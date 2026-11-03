@@ -96,16 +96,19 @@ Compatibilité Windows/Dofus réelle NOT_RUN (issue #322).
   de focus / arrêt / gestes partiels. Ils restent **non exécutés** tant
   qu'aucun checkout Python complet n'a permis Doctor et le runner ciblé.
 
-### Transfert de code depuis la PR #365 : encore en attente
+### Transfert de code depuis la PR #365 : fichiers déplacés, essais manquants
 
-Les 25 critères Organizer/Macro/Zaap et les améliorations complémentaires
-sont transférés dans le contrat #321 et cette PR #325. Les correctifs
-Switch clic de la #365 (clic physique natif DOWN/UP sur la source,
-réplication uniquement aux autres fenêtres) et leurs tests restent
-**dans le diff #365**. Ils exigent une intégration explicite avec les
-hooks Miroir (molette / clavier) et une analyse Graphify **au SHA exact**
-avant la suppression des morceaux concurrents. Aucun des sept fichiers
-partagés n'est considéré comme transféré aujourd'hui.
+Les 25 critères Organizer/Macro/Zaap et les cinq améliorations transversales
+sont dans le contrat #321 et la PR #325. Les modifications du Switch clic
+physique classique (DOWN/UP natif sur le favori, réémission uniquement sur les
+autres fenêtres), les hooks de relâchement, les contrôles de molette et les
+tests ont été regroupés dans la branche #325. Le diff de #365 contient
+désormais **seulement six fichiers UI globale**.
+
+La séparation des sources est réalisée ; **elle n'est pas une certification**.
+Les correctifs du clic natif et de l'architecture des hooks doivent encore
+passer Graphify au SHA exact, Doctor/tests ciblés, audit d'intégration et
+recette réelle Windows/DOFUS Unity.
 
 Le critère utilisateur est un **ressenti proche entre 2 et 8 comptes**,
 à établir par comparaison sur le même PC et les mêmes gestes, avec
@@ -139,11 +142,9 @@ garantir une latence strictement identique pour 2 et 8 clients.
   l'ordre du roster, les cibles étrangères, l'échec d'activation, la
   perte de focus avant molette et les exceptions Win32.
 
-**Limites non levées :** les deux branches comportent encore le
-Switch clic physique DOWN/UP propre à #365 et les hooks molette/clavier
-propres à #325. La migration des fichiers liés aux macros **n'est pas
-terminée**, et aucune suppression du diff #365 n'est effectuée ici.
-Graphify exact-SHA et Doctor local non exécutés ; tests Python, rendu
+**Limites non levées :** les hooks et le clic physique sont regroupés
+dans #325 et retirés du diff de #365, mais leur comportement combiné reste
+non testé sous Windows. Graphify exact-SHA, Doctor/tests Python, rendu
 DOFUS réel et ressenti 2 à 8 : **NOT_RUN**.
 
 ## Instrumentation focus et recettes multi-comptes (03/11/2026)
@@ -165,5 +166,18 @@ DOFUS réel et ressenti 2 à 8 : **NOT_RUN**.
 
 **Preuves manquantes** : tests Python réellement exécutés, benchmark CPU/RAM
 et p50/p95/p99 sous Windows sur la même machine avec 2/4/6/8 comptes,
-réactions observées dans Unity, transfert complet puis retrait des
-7 fichiers de la PR #365, Graphify exact-SHA, audit final et certification.
+réactions observées dans Unity, validation d'intégration des
+hooks transférés, Graphify exact-SHA, audit final et certification.
+
+## Favori placé hors du premier slot (03/11/2026)
+
+- La capture clavier/molette ordonne maintenant les destinataires à partir
+  du personnage **étoilé**, quelle que soit sa position dans Organizer ;
+  les autres suivent leur ordre relatif d'origine.
+- La vérification rapide du roster compare cet ordre normalisé avec les
+  slots réels sans scanner tous les processus Windows à chaque destinataire.
+  Les validations natives des processus et du focus avant chaque envoi
+  restent inchangées.
+- Tests simulés 2/4/6/8 fenêtres : favori situé en dernier slot, pas de
+  doublon, ordre des émissions et rejet des changements de composition
+  de l'équipe. **Aucun test Windows/Unity réel n'a été exécuté.**
