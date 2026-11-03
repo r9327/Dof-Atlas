@@ -546,7 +546,7 @@ class OrganizerMirrorIntegrationTests(unittest.TestCase):
                 events = []
                 with (
                     patch("app.macros.mirror_input.is_dofus_unity_process",
-                          return_value=True),
+                          return_value=True) as process_probe,
                     patch("app.macros.mirror_input.activate_window",
                           return_value=True) as activate,
                     patch("app.macros.mirror_input.foreground_window",
@@ -559,6 +559,9 @@ class OrganizerMirrorIntegrationTests(unittest.TestCase):
                     MirrorInputMacro(runtime)._run("key", 65, handles[0], handles)
                 self.assertEqual(events, [("down", 65), ("up", 65)] * count)
                 self.assertEqual(activate.call_count, count)
+                # Full roster once + one probe per destination + one source
+                # check before restoring the favorite: linear, not n².
+                self.assertEqual(process_probe.call_count, 2 * count + 1)
                 # One hold for each key and one gap BETWEEN clients, never
                 # an unnecessary gap after the final recipient.
                 self.assertEqual(runtime.macro_lock.wait.call_count, 2 * count - 1)
@@ -767,7 +770,9 @@ class OrganizerMirrorIntegrationTests(unittest.TestCase):
         ):
             mirror._run("key", 65, 101, (101, 202))
         activate.assert_not_called()
-        probe.assert_not_called()
+        # Preflight validates the roster exactly once; its later in-memory
+        # drift check prevents any activation or sending.
+        self.assertEqual(probe.call_count, 2)
         runtime.switch_character.restore_preferred_client.assert_not_called()
         runtime.input_state.end_mouse_block.assert_called_once()
 
@@ -815,6 +820,10 @@ class OrganizerMirrorIntegrationTests(unittest.TestCase):
                 with self.subTest(handles=handles):
                     self.assertFalse(mirror._still_current(101, handles))
             self.assertTrue(mirror._still_current(101, (101, 202)))
+            runtime.settings.clients = (
+                SimpleNamespace(handle=202), SimpleNamespace(handle=101),
+            )
+            self.assertFalse(mirror._still_current(101, (101, 202)))
 
 
 
