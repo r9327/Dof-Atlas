@@ -514,6 +514,39 @@ def read_selected_preview(
     return preview
 
 
+def list_selected_preview_routes(
+    *, root: Path, expected_selected: str,
+) -> dict[str, Any]:
+    """Explicit metadata-only catalogue snapshot for staged, non-live routes.
+
+    One inspection returns only route identities/titles/counts, never full
+    action bodies. This is not an application startup dependency and does
+    not expose an uncertified candidate through the live Guide catalogue.
+    """
+    preview = read_selected_preview(root=root, expected_selected=expected_selected)
+    routes = []
+    for route in preview["routes"]:
+        steps = route["steps"]
+        routes.append({
+            "id": route["id"],
+            "title": route["source_guide_metadata"]["title"],
+            "step_count": len(steps),
+            "action_count": sum(
+                len(card["manual_runtime_metadata"]["source_step"]["actions"])
+                for card in steps
+            ),
+        })
+    return {
+        "status": "STAGED_PREVIEW_ONLY",
+        "candidate_sha256": expected_selected,
+        "source_sha256": preview["source_sha256"],
+        "route_count": len(routes),
+        "routes": routes,
+        "certified": False,
+        "runtime_activation": False,
+    }
+
+
 def read_selected_route(
     *, root: Path, expected_selected: str, route_id: str,
 ) -> dict[str, Any]:
@@ -566,4 +599,5 @@ def rollback_candidate(
 __all__ = [
     "publish_candidate", "selected_candidate", "rollback_candidate",
     "read_selected_preview", "read_selected_route",
+    "list_selected_preview_routes",
 ]
