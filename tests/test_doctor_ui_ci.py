@@ -151,6 +151,11 @@ class DoctorUiSelectionTests(unittest.TestCase):
             "tests.test_guide_manual_selected_validation."
             "ImportedSourceSharedManualUiTests", selected
         )
+        self.assertIn(
+            "tests.test_guide_imported_manual_runtime_ui.ImportedSourceRouterQtTests",
+            selected,
+        )
+        self.assertIn("tests.test_guide_imported_manual_runtime_service", selected)
         # Resolve the class and methods from source using stdlib AST; do not
         # import Qt in the lightweight Doctor CI planning job.
         tree = ast.parse((root / "tests/test_guide_manual_selected_validation.py")
