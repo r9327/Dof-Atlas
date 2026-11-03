@@ -3,6 +3,8 @@ from __future__ import annotations
 
 import copy
 import json
+from contextlib import redirect_stderr, redirect_stdout
+from io import StringIO
 import tempfile
 import unittest
 from pathlib import Path
@@ -14,7 +16,7 @@ from app.modules.encyclopedia.services.guide_shared_route_contract import (
 from tools.atlas_guide_candidate_store import (
     publish_candidate, rollback_candidate, selected_candidate,
     read_selected_preview, read_selected_route, list_selected_preview_routes,
-    read_selected_step,
+    read_selected_step, main,
 )
 from tools.atlas_guide_importer import prepare_preview
 
@@ -260,6 +262,72 @@ class CandidateStoreTests(unittest.TestCase):
         )
         self.assertNotIn("CHANGED", str(again))
         self.assertEqual(selected_candidate(self.root), digest)
+
+    def test_cli_preview_list_route_and_step_are_read_only(self):
+        staged = publish_candidate(self.preview, root=self.root)
+        digest = staged["candidate_sha256"]
+        cases = (
+            (["--list"], "routes", "source_guide:99"),
+            (["--route-id", "source_guide:99"], "route", "source_guide:99"),
+            (["--route-id", "source_guide:99",
+              "--stage-id", "source:99:a"], "stage", "source:99:a"),
+        )
+        previous_names = sorted(str(p.relative_to(self.root))
+                                for p in self.root.rglob("*"))
+        for args, key, expected_id in cases:
+            with self.subTest(args=args):
+                buffer = StringIO()
+                with redirect_stdout(buffer):
+                    code = main([
+                        "--root", str(self.root),
+                        "--expected-selected", digest,
+                        *args,
+                    ])
+                self.assertEqual(code, 0)
+                result = json.loads(buffer.getvalue())
+                self.assertEqual(result["status"], "STAGED_PREVIEW_ONLY")
+                self.assertFalse(result["certified"])
+                self.assertFalse(result["runtime_activation"])
+                if key == "routes":
+                    self.assertEqual(result[key][0]["id"], expected_id)
+                    self.assertNotIn("manual_sections", buffer.getvalue())
+                elif key == "route":
+                    self.assertEqual(result[key]["id"], expected_id)
+                else:
+                    self.assertEqual(result[key]["manual_stage_id"], expected_id)
+        self.assertEqual(
+            sorted(str(p.relative_to(self.root)) for p in self.root.rglob("*")),
+            previous_names,
+        )
+        self.assertEqual(selected_candidate(self.root), digest)
+
+    def test_cli_refuses_stale_ambiguous_and_missing_preview_without_writes(self):
+        buffer = StringIO()
+        with redirect_stdout(StringIO()), redirect_stderr(buffer):
+            code = main([
+                "--root", str(self.root),
+                "--expected-selected", "a" * 64, "--list",
+            ])
+        self.assertEqual(code, 2)
+        self.assertEqual(json.loads(buffer.getvalue())["status"], "PREVIEW_BLOCKED")
+        self.assertFalse(self.root.exists())
+        staged = publish_candidate(self.preview, root=self.root)
+        digest = staged["candidate_sha256"]
+        for options in (
+            ["--expected-selected", "b" * 64, "--list"],
+            ["--expected-selected", digest,
+             "--route-id", "source_guide:missing"],
+            ["--expected-selected", digest, "--route-id", "source_guide:99",
+             "--stage-id", "source:99:missing"],
+        ):
+            with self.subTest(options=options):
+                output, error = StringIO(), StringIO()
+                with redirect_stdout(output), redirect_stderr(error):
+                    code = main(["--root", str(self.root), *options])
+                self.assertEqual(code, 2)
+                self.assertFalse(output.getvalue())
+                self.assertFalse(json.loads(error.getvalue())["certified"])
+                self.assertEqual(selected_candidate(self.root), digest)
 
     def test_idempotent_same_selection(self) -> None:
         first = publish_candidate(self.preview, root=self.root)
