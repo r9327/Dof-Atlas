@@ -360,6 +360,62 @@ class ImportedSourceSharedManualUiTests(unittest.TestCase):
         service.page_key = lambda card, index=0: card["manual_stage_id"]
         return service
 
+    def test_staged_candidate_previews_through_existing_shared_reader(self) -> None:
+        """The immutable candidate store feeds the real Qt reader, not a fork."""
+        from tools.atlas_guide_candidate_store import (
+            publish_candidate, read_selected_route, selected_candidate,
+        )
+        from tools.atlas_guide_importer import prepare_preview
+
+        source = {
+            "schema_version": 1, "rights_verified": True,
+            "reference_verified": True, "complete": True,
+            "guides": [self._source()],
+        }
+        with tempfile.TemporaryDirectory() as temp:
+            base = Path(temp)
+            store = base / "staged"
+            progress = base / "not_created_progress.json"
+            prepared = prepare_preview(
+                source, expected_guides=1, expected_steps=2,
+            )
+            published = publish_candidate(prepared, root=store)
+            sha = published["candidate_sha256"]
+            self.assertEqual(selected_candidate(store), sha)
+            route = read_selected_route(
+                root=store, expected_selected=sha,
+                route_id="source_guide:fictional-cawotte",
+            )
+            service = self._service(progress, route)
+            service.manual_sections_for_card = (
+                lambda *_args: self.fail("preview must not call legacy provider")
+            )
+            view = SharedGuideManualView(
+                service, character_key="character:1",
+                participant_service=_ThreeParticipants(),
+            )
+            try:
+                view._show_index(0)
+                QApplication.processEvents()
+                sheet = view.findChild(QFrame, "GuideManualSheet")
+                self.assertIsNotNone(sheet)
+                rich = "\\n".join(label.text() for label in sheet.findChildren(QLabel))
+                visible = unescape(re.sub(r"<[^>]+>", "", rich))
+                for label in (
+                    "PNJ fictif", "Réponse B fictive", "Monstre fictif",
+                    "Avant de partir", "Conserver Ressource fictive",
+                ):
+                    self.assertIn(label, visible)
+                self.assertIn("travel-copy:-5,2", rich)
+                self.assertIn("item-copy:Ressource%20fictive", rich)
+                self.assertEqual(route["source_compliance"], "NOT_CERTIFIED")
+                self.assertFalse(progress.exists())
+                self.assertEqual(selected_candidate(store), sha)
+            finally:
+                view.close()
+                view.deleteLater()
+                QApplication.processEvents()
+
     def test_preview_preserves_source_sections_and_clickable_roles(self) -> None:
         with tempfile.TemporaryDirectory() as temp:
             route = project_authorized_guide(self._source())
