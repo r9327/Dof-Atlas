@@ -238,6 +238,17 @@ class SwitchClickMacro:
                     action_label,
                 )
                 return
+            if physical_source_delivered and len(targets) == 1:
+                # The only client has already received native DOWN/UP. A
+                # synthetic replay or favorite restoration would do nothing
+                # useful and may steal focus from the user.
+                should_restore_preferred = False
+                sent_count = 1
+                self.runtime.logger.debug(
+                    "%s: aucun destinataire secondaire, clic natif conservé.",
+                    action_label,
+                )
+                return
 
             settings = self.runtime.settings
             timings = settings.timings
