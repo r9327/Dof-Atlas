@@ -251,9 +251,10 @@ class ImportedSourceRouterQtTests(unittest.TestCase):
             category="Ressources",
             required_by_character=(("character:1", 1), ("character:2", 1)),
         )
-        ready = reader._preparation_row(need).findChild(
-            QToolButton, "GuidePreparationReady"
-        )
+        # Hold the Python owner: Qt destroys child widgets if the temporary
+        # parent frame goes out of scope before the assertions.
+        row = reader._preparation_row(need)
+        ready = row.findChild(QToolButton, "GuidePreparationReady")
         self.assertIsNotNone(ready)
         self.assertTrue(ready.isEnabled())
         # Approval can disappear AFTER this checkbox was rendered.
@@ -261,9 +262,8 @@ class ImportedSourceRouterQtTests(unittest.TestCase):
         ready.click()
         QApplication.processEvents()
         self.assertFalse(self.progress_path.exists())
-        disabled = reader._preparation_row(need).findChild(
-            QToolButton, "GuidePreparationReady"
-        )
+        denied_row = reader._preparation_row(need)
+        disabled = denied_row.findChild(QToolButton, "GuidePreparationReady")
         self.assertIsNotNone(disabled)
         self.assertFalse(disabled.isEnabled())
         self.assertIn("non autorisé", disabled.toolTip())
