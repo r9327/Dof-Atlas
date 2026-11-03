@@ -57,6 +57,42 @@ class TestGuideConformity(unittest.TestCase):
     def _codes(self, actual: dict) -> list[str]:
         return [x["issue_code"] for x in compare(self.reference, actual)["issues"]]
 
+    def test_unknown_authored_step_or_action_keys_never_launder_into_parity(self):
+        for scope, field, value, wanted in (
+            ("action", "make_unexpected_decision", "choose route B",
+             ".actions[0].make_unexpected_decision"),
+            ("action", "custom_reward", [{"item": "fictitious"}],
+             ".actions[0].custom_reward"),
+            ("step", "hidden_branch_directive", {"step": "future"},
+             ".steps[0].hidden_branch_directive"),
+            ("step", "unmapped_puzzle", "press third lever",
+             ".steps[0].unmapped_puzzle"),
+        ):
+            with self.subTest(scope=scope, field=field):
+                source = reference()
+                if scope == "action":
+                    source["guides"][0]["steps"][0]["actions"][0][field] = value
+                else:
+                    source["guides"][0]["steps"][0][field] = value
+                report = compare(source, imported(source))
+                self.assertEqual(report["status"], "PARITY_CHECK_BLOCKED")
+                self.assertFalse(report["certified"])
+                self.assertTrue(any(
+                    issue["issue_code"] == "UNVERIFIABLE"
+                    and issue["field_path"].endswith(wanted)
+                    and issue["actual"] == value
+                    for issue in report["issues"]
+                ))
+        source = reference()
+        action = source["guides"][0]["steps"][0]["actions"][0]
+        action["metadata"] = {"capture": "fictitious provenance"}
+        action["source_revision"] = "fixture-rev"
+        action["evidence_ref"] = "approved:action"
+        self.assertEqual(
+            compare(source, imported(source))["status"],
+            "PARITY_CHECK_PASS",
+        )
+
     def test_identical_unrenderable_action_branches_and_media_never_pass_parity(self):
         unrenderable = {
             "dialogue_options": ["Accepter", "Refuser"],
