@@ -215,6 +215,10 @@ def project_authorized_guide(guide: dict[str, Any]) -> dict[str, Any]:
                 raise GuideRouteContractError(
                     f"{label}: quest ID must be declared in step.quest_ids"
                 )
+            if linked and action.get("kind") == "prepare":
+                raise GuideRouteContractError(
+                    f"{label}: preparation panel cannot render Quest shortcuts"
+                )
         for name in step.get("quest_names", []):
             _text(name, f"{prefix}.quest_names")
         # Hard gates are structured, not rendered text. Retain every unknown
