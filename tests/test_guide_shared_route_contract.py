@@ -738,5 +738,17 @@ class TestSharedRouteContract(unittest.TestCase):
         with self.assertRaises(GuideRouteContractError):
             project_authorized_guide(source)
 
+    def test_wrong_quest_or_success_gate_id_rejected_before_candidate(self):
+        for field in ("quest_id", "achievement_id"):
+            for bad in (0, -1, "123", True):
+                source = sample()
+                source["steps"][0]["prerequisites"].append({
+                    field: bad, "label": "Condition fictive",
+                })
+                with self.subTest(field=field, bad=bad), self.assertRaisesRegex(
+                    GuideRouteContractError, "invalid .*identity"
+                ):
+                    project_authorized_guide(source)
+
 if __name__ == "__main__":
     unittest.main()

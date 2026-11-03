@@ -320,15 +320,39 @@ def card_claims(
             profession_id=profession_id, required_level=required_level,
         ))
     seen_gates: set[str] = set()
-    for index, name in enumerate(_gate_labels(card.get("hard_runtime_gates", ()) or ())):
-        identity = f"gate:{normalized_name(name)}"
-        if identity in seen_gates or identity == "gate:":
-            continue
-        seen_gates.add(identity)
-        claims.append(PreparationClaim(
-            identity, None, name, "Prérequis", None, "reusable",
-            "hard_runtime_gates", stage, f"gate:{index}",
-        ))
+    gates = card.get("hard_runtime_gates", ()) or ()
+    # Source data may encode one object or a list; never treat dict keys as
+    # separate prose gates. Typed quest/success identities trump display names.
+    if not isinstance(gates, (list, tuple)):
+        gates = (gates,)
+    for index, raw in enumerate(gates):
+        typed: list[tuple[str, str]] = []
+        if isinstance(raw, dict):
+            for field, kind, label in (
+                ("quest_id", "quest", "Quête"),
+                ("achievement_id", "achievement", "Succès"),
+            ):
+                game_id = _positive_int(raw.get(field))
+                if game_id is not None:
+                    title = next(iter(_gate_labels(raw)), "")
+                    typed.append((
+                        canonical_entity_key(kind, game_id),
+                        f"{label} : {title}" if title
+                        else f"{label} #{game_id} (nom à vérifier)",
+                    ))
+        if typed:
+            entries = typed
+        else:
+            entries = [(f"gate:{normalized_name(label)}", label)
+                       for label in _gate_labels(raw)]
+        for identity, name in entries:
+            if identity in seen_gates or identity == "gate:":
+                continue
+            seen_gates.add(identity)
+            claims.append(PreparationClaim(
+                identity, None, name, "Prérequis", None, "reusable",
+                "hard_runtime_gates", stage, f"gate:{index}",
+            ))
     return tuple(claims)
 
 

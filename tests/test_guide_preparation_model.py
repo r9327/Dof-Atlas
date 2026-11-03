@@ -288,7 +288,9 @@ class GuidePreparationModelTests(unittest.TestCase):
             ["Avoir terminé la quête d'accès", "Niveau 100 requis"],
         )
         self.assertTrue(all(row.quantity is None for row in prereqs))
-        self.assertTrue(all(row.identity.startswith("gate:") for row in prereqs))
+        self.assertEqual({row.identity for row in prereqs}, {
+            "quest:123", "gate:niveau 100 requis",
+        })
         self.assertEqual(len([c for c in claims if c.name == "Potion"]), 1)
 
     def test_compact_non_material_gates_stay_unhydrated(self):
@@ -502,6 +504,32 @@ class GuidePreparationModelTests(unittest.TestCase):
         row, = aggregate_remaining(((card, False),))
         self.assertIsNone(row.required_level)
         self.assertEqual(row.claim_count, 2)
+
+    def test_quest_and_success_prerequisites_are_typed_and_deduplicated(self):
+        first = {"manual_stage_id": "one", "hard_runtime_gates": [
+            {"quest_id": 123, "label": "Terminer une quête fictive"},
+            {"achievement_id": 123, "name": "Obtenir un succès fictif"},
+        ]}
+        second = {"manual_stage_id": "two", "hard_runtime_gates": [
+            {"quest_id": 123, "label": "Terminer une quête fictive"},
+            {"quest_id": 456},
+        ]}
+        rows = aggregate_remaining(((first, False), (second, False)))
+        keyed = {row.identity: row for row in rows}
+        self.assertEqual(set(keyed), {"quest:123", "achievement:123", "quest:456"})
+        self.assertEqual(keyed["quest:123"].claim_count, 2)
+        self.assertTrue(keyed["quest:456"].name.startswith("Quête #456"))
+        self.assertTrue(all(row.quantity is None for row in rows))
+        self.assertFalse(any(row.identity.startswith("item:") for row in rows))
+
+    def test_unverified_source_only_gate_id_never_certifies_a_requirement(self):
+        card = {"manual_stage_id": "gate", "hard_runtime_gates": [
+            {"quest_id": "not-a-game-id", "label": "Condition inconnue"},
+            {"achievement_id": True, "label": "Condition mal formée"},
+        ]}
+        rows = card_claims(card)
+        self.assertEqual({row.identity for row in rows},
+                         {"gate:condition inconnue", "gate:condition mal formee"})
 
 if __name__ == "__main__":
     unittest.main()

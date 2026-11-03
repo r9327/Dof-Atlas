@@ -334,6 +334,13 @@ def project_authorized_guide(guide: dict[str, Any]) -> dict[str, Any]:
                 raise GuideRouteContractError(
                     f"{prefix}.prerequisites: nonempty structured gate objects required"
                 )
+            for typed_gate in ("quest_id", "achievement_id"):
+                if typed_gate in gate and (
+                    type(gate[typed_gate]) is not int or gate[typed_gate] <= 0
+                ):
+                    raise GuideRouteContractError(
+                        f"{prefix}.prerequisites: invalid {typed_gate} identity"
+                    )
             if "profession_id" in gate:
                 profession_id = gate["profession_id"]
                 job_name, required_level = gate.get("profession_name"), gate.get("level")

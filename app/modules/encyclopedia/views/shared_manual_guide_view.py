@@ -1846,7 +1846,11 @@ class SharedGuideManualView(GuideUltimeManualView):
                 ),
             ):
                 item_key = (
-                    need.identity if need.category == "Métiers"
+                    need.identity
+                    if need.category == "Métiers" or (
+                        need.category == "Prérequis"
+                        and need.identity.startswith(("quest:", "achievement:"))
+                    )
                     else self._preparation_item_key(need.item_id, need.name)
                 )
                 row = aggregated.setdefault(
@@ -2207,10 +2211,14 @@ class SharedGuideManualView(GuideUltimeManualView):
             if need.category == "Métiers" and need.required_level is not None
             else f"{amount}{need.name}"
         )
+        image_kind = "profession" if need.category == "Métiers" else "item"
+        image_id = need.profession_id if need.category == "Métiers" else need.item_id
+        if need.category == "Prérequis":
+            kind, _, raw_id = need.item_key.partition(":")
+            if kind in {"quest", "achievement"} and raw_id.isascii() and raw_id.isdigit():
+                image_kind, image_id = kind, int(raw_id)
         item_button = self._copyable_preparation_item(
-            need.name, label,
-            need.profession_id if need.category == "Métiers" else need.item_id,
-            image_kind="profession" if need.category == "Métiers" else "item",
+            need.name, label, image_id, image_kind=image_kind,
         )
         item_button.setToolTip("Cliquer pour copier le nom · " +
                                (" ; ".join(need.sources[:8]) or "Provenance à confirmer"))
