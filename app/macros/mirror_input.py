@@ -105,12 +105,20 @@ class MirrorInputMacro:
                 if not is_dofus_unity_process(hwnd):
                     runtime.logger.warning("Miroir %s: HWND non DOFUS, annulation.", kind)
                     break
-                if not activate_window(
-                    hwnd, timings.switch_background_pre_click_ms,
-                    timings.activate_attempts, timings.activate_retry_ms,
-                    runtime.logger, "Miroir " + kind,
-                    should_stop=runtime.macro_lock.should_stop,
-                ):
+                try:
+                    activated = activate_window(
+                        hwnd, timings.switch_background_pre_click_ms,
+                        timings.activate_attempts, timings.activate_retry_ms,
+                        runtime.logger, "Miroir " + kind,
+                        should_stop=runtime.macro_lock.should_stop,
+                    )
+                except Exception:
+                    focus_lost = True
+                    runtime.logger.exception(
+                        "Miroir %s: exception pendant activation hwnd=%s.", kind, hwnd,
+                    )
+                    break
+                if not activated:
                     # Do not force the previous favorite back when the user
                     # may have intentionally switched to another application.
                     focus_lost = True
