@@ -199,6 +199,22 @@ class PipelineSyntheticTests(unittest.TestCase):
             self.assertNotEqual(result["candidate_sha256"], selection)
             selection = result["candidate_sha256"]
             self.assertEqual(selected_candidate(self.folder), selection)
+            # Every staged candidate, not just the first or last, is now
+            # independently readable by the canonical shared-card bridge.
+            # The 48th forged candidate above remains blocked before this.
+            preview_read = preview_staged_guide(
+                candidate_root=self.folder, expected_selected=selection,
+                route_id=f"source_guide:{guide_id}",
+            )
+            self.assertEqual(preview_read["status"], "STAGED_PREVIEW_ONLY")
+            self.assertFalse(preview_read["runtime_activation"])
+            projected = preview_read["route"]
+            self.assertEqual(projected["id"], f"source_guide:{guide_id}")
+            self.assertEqual(projected["source_compliance"], "NOT_CERTIFIED")
+            self.assertEqual(
+                projected["steps"][0]["manual_sections"]["now"][0]["source_action"],
+                source["guides"][0]["steps"][0]["actions"][0],
+            )
             sha = result["source_sha256"]
             attested_sources.add(sha)
             history.append({
