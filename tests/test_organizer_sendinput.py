@@ -425,6 +425,40 @@ class OrganizerSendInputTests(unittest.TestCase):
                 click.assert_not_called()
                 released.assert_not_called()
 
+    def test_emergency_clear_keeps_blocked_physical_pair_balanced(self) -> None:
+        import logging
+        from app.input.input_state import InputState, SyntheticInputGuard
+        from app.input.mouse_hooks import (
+            MSLLHOOKSTRUCT, MouseHook, WM_LBUTTONDOWN, WM_LBUTTONUP,
+        )
+
+        logger = logging.getLogger("test_blocked_stop_pairs")
+        state = InputState()
+        click = Mock(return_value=False)
+        hook = MouseHook(
+            state, SyntheticInputGuard(logger), logger, click,
+        )
+        event = MSLLHOOKSTRUCT()
+        user32 = Mock()
+        user32.CallNextHookEx.return_value = 51
+        with patch.object(
+            ctypes, "windll", SimpleNamespace(user32=user32), create=True,
+        ):
+            addr = ctypes.addressof(event)
+            state.begin_mouse_block("Miroir")
+            self.assertEqual(hook._mouse_proc(0, WM_LBUTTONDOWN, addr), 1)
+            self.assertEqual(hook._consumed_releases, {WM_LBUTTONUP})
+            # Emergency stop clears the mouse block asynchronously.
+            state.clear_mouse_block()
+            self.assertFalse(state.is_mouse_blocked())
+            # The native UP is still paired with the swallowed DOWN.
+            self.assertEqual(hook._mouse_proc(0, WM_LBUTTONUP, addr), 1)
+            self.assertEqual(hook._consumed_releases, set())
+            # A NEW native click after Stop remains untouched.
+            self.assertEqual(hook._mouse_proc(0, WM_LBUTTONDOWN, addr), 51)
+            self.assertEqual(hook._mouse_proc(0, WM_LBUTTONUP, addr), 51)
+        click.assert_called_once_with("Left", 0, 0)
+
     def test_synthetic_up_cannot_unlock_busy_physical_down(self) -> None:
         import logging
         from app.input.input_state import InputState, SyntheticInputGuard
