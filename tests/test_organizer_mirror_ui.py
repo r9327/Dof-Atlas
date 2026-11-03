@@ -223,6 +223,12 @@ class OrganizerMirrorIntegrationTests(unittest.TestCase):
                 runtime._emit_status.assert_called_once_with(
                     f"Miroir : {count}/{count} fenêtres."
                 )
+                focus_logs = [
+                    call for call in runtime.logger.info.call_args_list
+                    if call.args and "focus_activation_ms" in str(call.args[0])
+                ]
+                self.assertEqual(len(focus_logs), 1)
+                self.assertEqual(focus_logs[0].args[1]["n"], count)
 
 
     def test_switch_click_aborts_when_focus_stolen_before_input(self):
