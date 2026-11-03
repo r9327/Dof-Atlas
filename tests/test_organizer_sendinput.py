@@ -261,6 +261,41 @@ class OrganizerSendInputTests(unittest.TestCase):
         release.assert_called_once_with("Left", 0, 0)
         self.assertEqual(hook._consumed_releases, set())
 
+    def test_native_release_and_mirror_wheel_callbacks_coexist(self) -> None:
+        import logging
+        from app.input.input_state import InputState, SyntheticInputGuard
+        from app.input.mouse_hooks import (
+            MSLLHOOKSTRUCT, MouseHook,
+            WM_LBUTTONDOWN, WM_LBUTTONUP, WM_MOUSEWHEEL,
+        )
+
+        logger = logging.getLogger("test_organizer_combined_mouse_callbacks")
+        click = Mock(return_value=False)
+        wheel = Mock(return_value=True)
+        release = Mock(return_value=True)
+        hook = MouseHook(
+            InputState(), SyntheticInputGuard(logger), logger, click,
+            wheel_callback=wheel, release_callback=release,
+        )
+        mouse = MSLLHOOKSTRUCT()
+        mouse.pt.x = 30
+        mouse.pt.y = 40
+        mouse.mouseData = 120 << 16
+        user32 = Mock()
+        user32.CallNextHookEx.return_value = 51
+        with patch.object(
+            ctypes, "windll", SimpleNamespace(user32=user32), create=True,
+        ):
+            addr = ctypes.addressof(mouse)
+            self.assertEqual(hook._mouse_proc(0, WM_MOUSEWHEEL, addr), 1)
+            self.assertEqual(hook._mouse_proc(0, WM_LBUTTONDOWN, addr), 51)
+            self.assertEqual(hook._mouse_proc(0, WM_LBUTTONUP, addr), 51)
+        wheel.assert_called_once_with(120, 30, 40, False)
+        click.assert_called_once_with("Left", 30, 40)
+        release.assert_called_once_with("Left", 30, 40)
+        self.assertEqual(hook._consumed_releases, set())
+
+
 
 if __name__ == "__main__":
     unittest.main()
