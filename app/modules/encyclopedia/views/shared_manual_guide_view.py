@@ -671,9 +671,18 @@ class SharedGuideManualCard(GuideUltimeManualCard):
             if related_names:
                 line.setToolTip("Quête : " + " · ".join(related_names))
             row_layout.addWidget(line, 1)
-            if section_key == "now":
+            # An imported guide may own a shortcut in any visible source
+            # section. Keep every explicit action-level link on its own row;
+            # legacy cards retain their original "now"/once-per-page policy.
+            explicit_source_link = (
+                isinstance(source_action, dict)
+                and self._source_quest_links_explicit
+                and "quest_ids" in source_action
+            )
+            if section_key == "now" or (explicit_source_link and related_quest_ids):
                 self._add_inline_quest_links(
-                    row_layout, row, quest_ids=related_quest_ids
+                    row_layout, row, quest_ids=related_quest_ids,
+                    allow_repeat=explicit_source_link,
                 )
 
             current_key = group_keys[row_index]
