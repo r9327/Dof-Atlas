@@ -91,6 +91,7 @@ class MirrorInputMacro:
         focus_samples_ms: list[float] = []
         cursor = None
         focus_lost = False
+        delivery_failed = False
         roster_verified = False
         if kind == "wheel":
             try:
@@ -179,6 +180,7 @@ class MirrorInputMacro:
                                 )
                                 break
                             if not send_screen_wheel(delta, horizontal=horizontal):
+                                delivery_failed = True
                                 runtime.logger.warning("Miroir molette: SendInput refusé.")
                                 break
                         finally:
@@ -186,6 +188,7 @@ class MirrorInputMacro:
                     delivered += 1
                     send_samples_ms.append((perf_counter() - sent_at) * 1000.0)
                 except Exception:
+                    delivery_failed = True
                     runtime.logger.exception("Miroir %s: échec SendInput.", kind)
                     break
                 # The final recipient does not need a client-switch gap.
@@ -201,7 +204,7 @@ class MirrorInputMacro:
                     runtime.logger.exception("Miroir molette: restauration curseur impossible.")
             # A changed favorite must not be activated as a side effect of
             # aborting the original gesture (same policy as mouse clicks).
-            if (roster_verified and not focus_lost
+            if (roster_verified and not focus_lost and not delivery_failed
                     and not runtime.macro_lock.should_stop()
                     and self._still_current(source, handles)
                     and is_dofus_unity_process(source)):
