@@ -164,13 +164,8 @@ class GuideUltimeManualCard(QFrame):
         )
         layout.addWidget(details)
 
-        travel_action = (
-            "déplace les participants sélectionnés"
-            if callable(getattr(self, "travel_command_callback", None))
-            else "copie la commande /travel x,y"
-        )
         rows = (
-            f"Coordonnée en gras : cliquer {travel_action}.",
+            "Coordonnée en gras : cliquer copie /travel x,y. Icône Zaap : trajet optimisé facultatif.",
             "Objet en vert : cliquer copie son nom. PNJ en jaune : interlocuteur à trouver.",
             "Case de combat : objectif partagé avec l’onglet Quêtes, avec monstre et quantité.",
             "Validation : automatique quand Atlas dispose de la preuve, manuelle seulement en secours.",
@@ -536,16 +531,8 @@ class GuideUltimeManualCard(QFrame):
         value = self._copy_text_for_link(href)
         if not value:
             return
-        travel_callback = getattr(self, "travel_command_callback", None)
-        if value.startswith("/travel ") and callable(travel_callback):
-            launched = bool(travel_callback(value))
-            QToolTip.showText(
-                QCursor.pos(),
-                "Déplacement demandé" if launched else "Commande copiée",
-                self,
-            )
-            QTimer.singleShot(800, QToolTip.hideText)
-            return
+        # A classic coordinate is ALWAYS a clipboard shortcut. Macro dispatch
+        # belongs to the separate explicit Zaap button, never to this link.
         QApplication.clipboard().setText(value)
         QToolTip.showText(QCursor.pos(), "Copié", self)
         QTimer.singleShot(800, QToolTip.hideText)
