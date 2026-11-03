@@ -7,7 +7,7 @@ from pathlib import Path
 
 os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
 
-from PySide6.QtWidgets import QApplication
+from PySide6.QtWidgets import QApplication, QToolButton
 
 from app.modules.encyclopedia.providers import (
     AchievementProvider, GuideProvider, QuestProvider,
@@ -25,7 +25,7 @@ from app.modules.encyclopedia.views.manual_route_guides_view import (
     ManualRouteGuidesView,
 )
 from app.modules.encyclopedia.views.shared_manual_guide_view import (
-    SharedGuideManualView,
+    SharedGuideManualView, _PreparationNeed,
 )
 from tests.test_guide_imported_manual_runtime_service import _source_route
 from tests.test_guide_ultime_manual_ui_navigation import _FakeParticipantService
@@ -235,6 +235,57 @@ class ImportedSourceRouterQtTests(unittest.TestCase):
         self.assertIn("non autorisé", refreshed.toolTip())
         self.service.set_page_checked("character:1", self.service.cards[0], 0, True)
         self.assertFalse(self.progress_path.exists())
+
+    def test_source_preparation_ready_respects_revocation_and_atomic_team_progress(self):
+        self.approved = True
+        self.assertTrue(self.view.select_guide(self.service.guide_id))
+        self.view.guide_participant_service.save_selected_keys(
+            ("character:1", "character:2")
+        )
+        reader = self.view.stack.currentWidget()
+        reader.refresh(reset_to_active=True)
+        need = _PreparationNeed(
+            item_key="fictional-preparation-item",
+            item_id=None,
+            name="Ressource fictive",
+            category="Ressources",
+            required_by_character=(("character:1", 1), ("character:2", 1)),
+        )
+        ready = reader._preparation_row(need).findChild(
+            QToolButton, "GuidePreparationReady"
+        )
+        self.assertIsNotNone(ready)
+        self.assertTrue(ready.isEnabled())
+        # Approval can disappear AFTER this checkbox was rendered.
+        self.approved = False
+        ready.click()
+        QApplication.processEvents()
+        self.assertFalse(self.progress_path.exists())
+        disabled = reader._preparation_row(need).findChild(
+            QToolButton, "GuidePreparationReady"
+        )
+        self.assertIsNotNone(disabled)
+        self.assertFalse(disabled.isEnabled())
+        self.assertIn("non autorisé", disabled.toolTip())
+
+        self.approved = True
+        reader._set_need_ready(need, True)
+        key = reader._ready_progress_key(need)
+        for character in ("character:1", "character:2"):
+            self.assertTrue(self.progress.is_manual_step_completed(
+                character, self.service.progress_id, key,
+            ))
+        self.assertFalse(self.progress.manual_steps(
+            "character:1", "guide_ultime_v5"
+        ))
+
+        # Revocation must also block the undo path, preserving both entries.
+        self.approved = False
+        reader._set_need_ready(need, False)
+        for character in ("character:1", "character:2"):
+            self.assertTrue(self.progress.is_manual_step_completed(
+                character, self.service.progress_id, key,
+            ))
 
     def test_revoked_authorization_blocks_reopen_and_exits_on_refresh(self):
         self.approved = True
