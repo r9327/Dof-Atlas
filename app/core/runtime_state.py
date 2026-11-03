@@ -734,11 +734,13 @@ class AtlasRuntime:
                 "Déclenchement switch clique impossible: action=%s",
                 action_label,
             )
-            return True
+            # No worker owns this DOWN: let the native event reach Unity.
+            return False
 
         if not started:
             self.logger.debug(
-                "Clic switch consommé sans lancement: action=%s",
+                "Clic switch non intercepté: lancement refusé action=%s",
                 action_label,
             )
+            return False
         return True
