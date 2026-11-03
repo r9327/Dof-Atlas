@@ -52,7 +52,7 @@ class TestSharedRouteContract(unittest.TestCase):
             observed = [
                 row["source_action_id"]
                 for section in ("prepare", "now", "opportunity", "keep", "boss", "before_leave")
-                for row in sections[section]
+                for row in sections.get(section, [])
             ]
             self.assertEqual(observed, [item["action_id"] for item in actions])
             self.assertEqual(len(set(observed)), len(actions))
