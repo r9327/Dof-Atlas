@@ -131,6 +131,30 @@ class TestGuideConformity(unittest.TestCase):
         self.assertTrue(any("steps[B]" in x["field_path"] for x in result["issues"]))
         self.assertTrue(any("actions[talk]" in x["field_path"] for x in result["issues"]))
 
+    def test_matching_invalid_item_ids_never_pass_conformity(self) -> None:
+        for item_id in (True, -1, 0, "123", "unknown", 1.5):
+            original = reference()
+            atlas = imported(original)
+            for document in (original, atlas):
+                document["guides"][0]["steps"][0]["actions"][1]["items"][0][
+                    "item_id"
+                ] = item_id
+            with self.subTest(item_id=item_id):
+                result = compare(original, atlas)
+                self.assertEqual(result["status"], "PARITY_CHECK_BLOCKED")
+                self.assertTrue(any(
+                    entry["issue_code"] == "UNVERIFIABLE"
+                    and entry["field_path"].endswith(".items[0].item_id")
+                    for entry in result["issues"]
+                ))
+        original = reference()
+        atlas = imported(original)
+        for document in (original, atlas):
+            document["guides"][0]["steps"][0]["actions"][1]["items"][0][
+                "item_id"
+            ] = 123
+        self.assertEqual(compare(original, atlas)["status"], "PARITY_CHECK_PASS")
+
     def test_wrong_quantity_with_precise_expected_actual(self) -> None:
         self.atlas["guides"][0]["steps"][0]["actions"][1]["items"][0]["quantity"] = 8
         result = compare(self.reference, self.atlas)

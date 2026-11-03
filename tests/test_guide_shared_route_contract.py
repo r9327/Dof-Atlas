@@ -159,6 +159,22 @@ class TestSharedRouteContract(unittest.TestCase):
         with self.assertRaisesRegex(GuideRouteContractError, "unsafe"):
             project_authorized_guide(bad)
 
+    def test_invalid_item_id_never_enters_preparation_projection(self):
+        for invalid in (True, False, -1, 0, "123", "invalid", 1.5):
+            source = sample()
+            source["steps"][0]["actions"][2]["items"][0]["item_id"] = invalid
+            with self.subTest(item_id=invalid), self.assertRaisesRegex(
+                GuideRouteContractError, "item_id"
+            ):
+                project_authorized_guide(source)
+        source = sample()
+        source["steps"][0]["actions"][2]["items"][0]["item_id"] = 123
+        route = project_authorized_guide(source)
+        self.assertEqual(
+            route["steps"][0]["manual_sections"]["now"][2]["source_action"]
+            ["items"][0]["item_id"], 123
+        )
+
     def test_invalid_quantity_and_missing_text(self):
         for quantity in (0, -2, True, 1.5, "2", None):
             bad = sample()

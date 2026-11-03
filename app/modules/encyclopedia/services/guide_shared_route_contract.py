@@ -65,6 +65,12 @@ def _items(raw: Any, label: str) -> tuple[str, ...]:
         quantity = value.get("quantity")
         if type(quantity) is not int or quantity <= 0:
             raise GuideRouteContractError(f"{label}[{index}].quantity: positive integer required")
+        if "item_id" in value and value["item_id"] is not None and (
+            type(value["item_id"]) is not int or value["item_id"] <= 0
+        ):
+            raise GuideRouteContractError(
+                f"{label}[{index}].item_id: positive integer required when present"
+            )
         names.append(name)
     return tuple(names)
 

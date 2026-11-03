@@ -505,6 +505,13 @@ def compare(reference: dict[str, Any], atlas: dict[str, Any]) -> dict[str, Any]:
                             if type(quantity) is not int or quantity <= 0:
                                 report("UNVERIFIABLE", f"{item_path}.quantity",
                                        "positive integer", quantity)
+                            if field == "items" and item.get("item_id") is not None:
+                                item_id = item["item_id"]
+                                if type(item_id) is not int or item_id <= 0:
+                                    report(
+                                        "UNVERIFIABLE", f"{item_path}.item_id",
+                                        "positive integer item ID", item_id,
+                                    )
 
     inventory(reference, "reference")
     inventory(atlas, "atlas")
