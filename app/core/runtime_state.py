@@ -782,7 +782,8 @@ class AtlasRuntime:
         replay begins blocking later gestures. It does not claim replay worked.
         """
         pending = getattr(self, "_pending_physical_switch", None)
-        if pending is None or str(pending[0]).casefold() != str(button).casefold():
+        if (not isinstance(pending, tuple) or len(pending) != 7
+                or str(pending[0]).casefold() != str(button).casefold()):
             return False
         self._pending_physical_switch = None
         (_button, down_x, down_y, count, label, context, captured_at) = pending
