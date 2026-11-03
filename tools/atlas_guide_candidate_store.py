@@ -268,7 +268,8 @@ def _safe_root(root: Path) -> Path:
     except ValueError:
         within_checkout = None
     if within_checkout is not None and (
-        not within_checkout.parts or within_checkout.parts[0].casefold() != "artifacts"
+        len(within_checkout.parts) < 2
+        or within_checkout.parts[0].casefold() != "artifacts"
     ):
         raise GuideRouteContractError(
             "candidate root must be outside repository sources or under artifacts/"

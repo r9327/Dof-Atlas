@@ -597,6 +597,19 @@ class CandidateStoreTests(unittest.TestCase):
         self.assertEqual(_safe_root(permitted), permitted.absolute())
         self.assertFalse(permitted.exists())
 
+    def test_artifacts_root_itself_is_not_a_candidate_store(self) -> None:
+        checkout = Path(__file__).resolve().parents[1]
+        root = checkout / "artifacts"
+        from tools.atlas_guide_candidate_store import _safe_root
+        with self.assertRaisesRegex(
+            GuideRouteContractError, "outside repository sources"
+        ):
+            _safe_root(root)
+        # A managed root is allowed only below artifacts/<dedicated-dir>.
+        dedicated = root / "__synthetic_stage_no_write__"
+        self.assertEqual(_safe_root(dedicated), dedicated.absolute())
+        self.assertFalse(dedicated.exists())
+
     def test_case_variant_protected_store_root_does_not_write(self) -> None:
         forbidden = Path(self.temp.name) / "DATA" / "candidates"
         with self.assertRaisesRegex(GuideRouteContractError, "data/save/cache"):

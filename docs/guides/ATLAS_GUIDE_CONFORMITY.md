@@ -510,3 +510,18 @@ Ces chemins sont contrôlés **avant** toute création de dossier ; des
 tests fictifs vérifient le refus des sources et l'acceptation statique
 d'un chemin d'artefact sans l'ouvrir ni y écrire. L'activation réelle
 reste interdite par Phase 0.
+
+### Protection homogène des sorties hors runtime (3 novembre 2026)
+
+Les trois outils hors runtime (importeur, comparateur, magasin de candidats)
+refusent les chemins contenant un segment `..` **avant toute création** :
+`Path.absolute()` ne supprime pas ces segments et un chemin
+`artifacts/../app/` pouvait autrement être interprété comme autorisé.
+Les fichiers et rapports sont refusés sous le code source du dépôt
+(`app/`, `tools/`, `docs/`, etc.). À l'intérieur du checkout,
+seul un **sous-dossier dédié** de `artifacts/` est autorisé ;
+le dossier `artifacts/` directement ne devient jamais un magasin.
+Les sorties explicites hors du dépôt restent autorisées sous réserve des
+contrôles existants (dossiers sensibles, symlinks, existence et conflits).
+Les tests de sécurité utilisent uniquement des parcours synthétiques et
+ne prouvent pas une activation ni une certification Windows/DOFUS.
