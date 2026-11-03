@@ -181,3 +181,46 @@ hooks transférés, Graphify exact-SHA, audit final et certification.
 - Tests simulés 2/4/6/8 fenêtres : favori situé en dernier slot, pas de
   doublon, ordre des émissions et rejet des changements de composition
   de l'équipe. **Aucun test Windows/Unity réel n'a été exécuté.**
+
+## Fiabilité ciblée des entrées, nouvelle série de commits — 03/11/2026
+
+- Le hook souris donne priorité au couple physique déjà **consommé**
+  DOWN/UP, avant tout callback de relâchement du clic natif : impossible
+  de transmettre à Unity un UP d'une paire dont le DOWN a été avalé.
+  Un UP synthétique ne décharge jamais cette paire physique.
+- `send_client_click` vérifie toujours la fenêtre au premier plan
+  pendant l'attente de survol Unity, avant DOWN et avant le second
+  DOWN d'un double-clic. Un vol de focus ou un Stop annule l'envoi,
+  avec libération de l'entrée déjà tenue dans le `finally` canonique.
+- Les callbacks Miroir clavier/molette consultent désormais uniquement
+  la fenêtre connue et authentifiée au premier plan si une macro est
+  déjà occupée. Les entrées reçues hors du personnage favori avant
+  démarrage sont rejetées avant le scan des processus Windows.
+  Les clics provenant d'applications étrangères suivent le même chemin
+  rapide et ne déclenchent aucun scan du roster complet.
+- Le diagnostic des événements physiques **effectivement bloqués**
+  signale un DOWN avec un warning borné (0,4 s). Les nombreux MOVE ne
+  peuvent plus masquer ces warnings. Ce warning est la preuve d'une
+  entrée non diffusée, **pas** une solution à la saturation.
+- Un clic natif déjà transmis à un unique personnage contourne
+  désormais totalement la création d'un worker Switch clic et le
+  blocage temporaire de la souris ; aucune injection ni modification
+  du curseur n'est nécessaire.
+- En cas d'échec d'activation de tous les clients, le Switch clic
+  n'impose plus de retour au favori : aucune cible activée ne justifie
+  de reprendre le focus utilisateur.
+- Tests mock ajoutés : ordre et appariement du DOWN/UP, arrêt et perte
+  de focus pendant survol/double-clic, entrées étrangères sous
+  2/4/6/8 comptes, clic natif unique, saturation signalée et absence
+  de restauration du focus sans cible.
+
+**Reste P0 — non résolu :** un clic reçu pendant un worker Miroir actif
+peut encore être bloqué globalement avant d'atteindre le gestionnaire.
+Ne pas annoncer zéro perte, diffusion immédiate, ni une file de replay
+testée. L'éventuelle file bornée de gestes, avec contrôle du destinataire,
+expiration, dédoublonnage et annulation au Stop, exige une analyse
+Graphify exacte et des tests Windows/Unity avant changement de structure.
+
+**Preuves :** commits GitHub et code relu, mais Doctor
+`agent plan/check/validate`, Graphify, tests Python et essais sur PC
+DOFUS 2/4/6/8 **NOT_RUN** faute de checkout complet. PR Draft.
