@@ -437,6 +437,29 @@ def compare(reference: dict[str, Any], atlas: dict[str, Any]) -> dict[str, Any]:
                     if not isinstance(action, dict):
                         report("UNVERIFIABLE", action_path, "action object", action)
                         continue
+                    # Compare independently against the same exact source
+                    # action/step Quest identity contract used by the UI
+                    # adapter. Identical but fictitious links cannot be PASS.
+                    if "quest_ids" in action:
+                        linked = action["quest_ids"]
+                        if not isinstance(linked, list):
+                            report("UNVERIFIABLE", f"{action_path}.quest_ids",
+                                   "ordered list of source-step Quest IDs", linked)
+                        else:
+                            seen_action_ids: set[int] = set()
+                            for qi, qid in enumerate(linked):
+                                qpath = f"{action_path}.quest_ids[{qi}]"
+                                if type(qid) is not int or qid <= 0:
+                                    report("UNVERIFIABLE", qpath,
+                                           "positive integer Quest ID", qid)
+                                elif qid not in seen_quest_ids:
+                                    report("UNVERIFIABLE", qpath,
+                                           "Quest ID declared on this source step", qid)
+                                elif qid in seen_action_ids:
+                                    report("UNVERIFIABLE", qpath,
+                                           "unique Quest ID per source action", qid)
+                                else:
+                                    seen_action_ids.add(qid)
                     kind = action.get("kind")
                     if not isinstance(kind, str) or kind not in _KNOWN_ACTION_KINDS:
                         report("UNVERIFIABLE", f"{action_path}.kind",
