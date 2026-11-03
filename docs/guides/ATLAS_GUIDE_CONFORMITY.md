@@ -546,3 +546,21 @@ contre les mutations involontaires, **pas** des certificats de source.
 Tests ciblés : uniquement fixtures fictives, jamais de guide réel.
 Le contrôle Graphify exact-SHA, la boucle `doctor agent plan/check/validate`,
 la recette UI/Windows/DOFUS et la certification de Phase restent à faire.
+
+### Test de bout en bout : 95 transactions synthétiques isolées (3 novembre 2026)
+
+Le test de `tests.test_atlas_guide_pipeline` exerce désormais une chaîne
+**entièrement fictive** de 95 transactions unitaires, avec sélection CAS,
+empreintes de génération distinctes, attestations simulées par une fonction
+explicitement marquée `test-only`, ordre du pilote et chaînage des
+prédécesseurs. Il injecte une action fausse au 48e passage, confirme le
+refus et l'absence de création/remplacement de génération, puis valide le
+passage après correction de la fixture. La 96e demande reste bloquée.
+La sélection de candidats n'active jamais de route dans le runtime et
+ne modifie pas de progression de personnage.
+
+**À ne pas confondre avec une preuve de certification :** ces 95 parcours,
+leurs attestations et leurs étapes sont fabriqués par le test. Aucun des
+95 guides réels n'a été extrait, comparé, certifié ni publié. La Phase 0,
+Doctor agent/Graphify exact-SHA, l'UI Qt et la recette Windows/DOFUS
+restent des contrôles distincts obligatoires.

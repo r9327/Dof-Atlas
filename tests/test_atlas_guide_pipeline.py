@@ -10,7 +10,7 @@ from pathlib import Path
 
 from tools.atlas_guide_candidate_store import selected_candidate
 from tools.atlas_guide_pipeline import GuidePipelineBlocked, main, stage_checked_candidate
-from tools.atlas_guide_sequence_gate import _PHASE0
+from tools.atlas_guide_sequence_gate import _PER_GUIDE, _PHASE0, assess_next
 
 HEAD = "a" * 40
 SOURCE = "b" * 64
@@ -82,6 +82,109 @@ class PipelineSyntheticTests(unittest.TestCase):
         }
         args.update(kw)
         return stage_checked_candidate(**args)
+
+    def test_95_sequential_synthetic_stagings_are_isolated_and_never_active(self):
+        # Complete-capacity exercise: 95 entirely fabricated single-step
+        # routes, not a copy of or a certificate for the 95 real guide routes.
+        history = []
+        attested_sources: set[str] = set()
+        selection = "NONE"
+        for index in range(95):
+            guide_id = PILOT if index == 0 else f"synthetic-{index:03d}"
+            source = synthetic_source()
+            source["guides"][0]["guide_id"] = guide_id
+            source["guides"][0]["steps"][0]["actions"][0]["text"] = (
+                f"Independent fictional action {index}"
+            )
+            reference = copy.deepcopy(source)
+            after = copy.deepcopy(source)
+            before = copy.deepcopy(source)
+            before["guides"][0]["steps"][0]["actions"][0]["text"] = (
+                f"Broken fictional snapshot {index}"
+            )
+            request = synthetic_plan()
+            request["next_guide_id"] = guide_id
+            request["completed"] = copy.deepcopy(history)
+
+            def host(name, digest, head, source_sha):
+                if name.startswith("current."):
+                    return (head == HEAD and digest == source_sha
+                            and isinstance(digest, str) and len(digest) == 64)
+                return (
+                    head == HEAD and digest == ARTIFACT
+                    and (source_sha == "0" * 64 or source_sha in attested_sources)
+                )
+
+            # One wrong action in the 48th staged candidate must not write
+            # any new generation, replace the selection, or unlock the next.
+            if index == 47:
+                invalid_after = copy.deepcopy(after)
+                invalid_after["guides"][0]["steps"][0]["actions"][0]["text"] = (
+                    "An unaudited fictional action"
+                )
+                with self.assertRaisesRegex(GuidePipelineBlocked, "Atlas route differs"):
+                    stage_checked_candidate(
+                        plan=request, head_sha=HEAD, verifier=host,
+                        authorized_source=source,
+                        independent_reference=reference,
+                        atlas_before=before, atlas_after=invalid_after,
+                        candidate_root=self.folder, expected_selected=selection,
+                    )
+                self.assertEqual(selected_candidate(self.folder), selection)
+                self.assertEqual(
+                    len(list((self.folder / "generations").glob("*.json"))), index
+                )
+
+            result = stage_checked_candidate(
+                plan=request, head_sha=HEAD, verifier=host,
+                authorized_source=source,
+                independent_reference=reference,
+                atlas_before=before, atlas_after=after,
+                candidate_root=self.folder, expected_selected=selection,
+            )
+            self.assertEqual(result["guide_id"], guide_id)
+            self.assertEqual(result["status"], "STAGED_NOT_ACTIVE_NOT_CERTIFIED")
+            self.assertFalse(result["certified"])
+            self.assertFalse(result["runtime_activation"])
+            self.assertEqual(result["resolved_issue_count"], 1)
+            self.assertNotEqual(result["candidate_sha256"], selection)
+            selection = result["candidate_sha256"]
+            self.assertEqual(selected_candidate(self.folder), selection)
+            sha = result["source_sha256"]
+            attested_sources.add(sha)
+            history.append({
+                "guide_id": guide_id,
+                "predecessor_id": (
+                    history[-1]["guide_id"] if history else ""
+                ),
+                "head_sha": HEAD, "source_sha": sha,
+                "total_steps": 1, "certified_steps": 1,
+                "total_actions": 1, "certified_actions": 1,
+                "blocking_issues": 0, "unverified_issues": 0,
+                "certification_status": "CERTIFIED",
+                # Test-only synthetic witnesses: not real proof.
+                "receipts": {
+                    name: {
+                        "status": "PASS", "head_sha": HEAD,
+                        "source_sha": sha, "artifact_sha256": ARTIFACT,
+                    }
+                    for name in _PER_GUIDE
+                },
+            })
+        self.assertEqual(len(history), 95)
+        self.assertEqual(
+            len(list((self.folder / "generations").glob("*.json"))), 95
+        )
+        self.assertEqual(selected_candidate(self.folder), selection)
+        request = synthetic_plan()
+        request["completed"] = copy.deepcopy(history)
+        request["next_guide_id"] = "synthetic-096"
+        blocked = assess_next(request, head_sha=HEAD, verifier=host)
+        self.assertFalse(blocked["may_prepare_next"])
+        self.assertIn("sequence.inventory_already_complete", blocked["missing_proofs"])
+        self.assertFalse(blocked["certified"])
+        self.assertFalse((self.folder / "installed").exists())
+        self.assertFalse((self.folder / "character_progress.json").exists())
 
     def test_witness_cannot_change_attested_content_before_staging(self):
         def mutating_host(name, digest, head, source):
