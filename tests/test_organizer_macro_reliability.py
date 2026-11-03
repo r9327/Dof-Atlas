@@ -495,9 +495,9 @@ class OrganizerMacroReliabilityTests(unittest.TestCase):
         runtime.macro_lock.wait.assert_not_called()
         runtime.switch_character.restore_preferred_client.assert_not_called()
         runtime.input_state.end_mouse_block.assert_called_once()
-        # Worker still owns a cursor snapshot in this test; restoration is
-        # the existing cleanup contract, not an injected click.
-        move.assert_called_once_with(1, 2)
+        # A purely physical single-client click must not move the user's
+        # cursor even for a harmless-looking redundant restoration.
+        move.assert_not_called()
 
     def test_native_source_rejects_implicit_fallback_context(self) -> None:
         from app.macros.switch_click import SwitchClickContext, SwitchClickMacro
