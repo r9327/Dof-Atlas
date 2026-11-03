@@ -68,16 +68,18 @@ requires the explicit `-Install` switch. Follow #346 for real-PC proof.
 
 ## Staged Guide previews (Phase 0, explicit and non-active)
 
-The canonical `atlas-guide-candidate-store` tool exposes an exact-SHA,
-read-only inspection surface. Query its current `TOOL_SPEC` from
-`tools.tool_catalog` before use. On-demand inspection uses the immutable
-candidate store: no scan at application startup and no automatic route import.
+The canonical `atlas-guide-pipeline` entry point exposes the exact-SHA
+read-only CLI, while `atlas-guide-candidate-store` remains a mutation-capable
+**library only** (no standalone CLI or automatic agent execution). Query the
+pipeline's current `TOOL_SPEC` from `tools.tool_catalog` before use.
+On-demand inspection uses the immutable candidate store: no scan at
+application startup and no automatic route import.
 
 ```powershell
-py -3.13 -m tools.tool_catalog --tool tools/atlas_guide_candidate_store.py --json
-py -3.13 -m tools.atlas_guide_candidate_store --root artifacts/guide-candidates --expected-selected <64-character-sha256> --list
-py -3.13 -m tools.atlas_guide_candidate_store --root artifacts/guide-candidates --expected-selected <64-character-sha256> --route-id source_guide:fictional-example
-py -3.13 -m tools.atlas_guide_candidate_store --root artifacts/guide-candidates --expected-selected <64-character-sha256> --route-id source_guide:fictional-example --stage-id source:fictional-example:step-1
+py -3.13 -m tools.tool_catalog --tool tools/atlas_guide_pipeline.py --json
+py -3.13 -m tools.atlas_guide_pipeline --preview-root artifacts/guide-candidates --expected-selected <64-character-sha256> --list
+py -3.13 -m tools.atlas_guide_pipeline --preview-root artifacts/guide-candidates --expected-selected <64-character-sha256> --route-id source_guide:fictional-example
+py -3.13 -m tools.atlas_guide_pipeline --preview-root artifacts/guide-candidates --expected-selected <64-character-sha256> --route-id source_guide:fictional-example --stage-id source:fictional-example:step-1
 ```
 
 An explicit pinned selection is mandatory. Unknown IDs, stale pointers,
