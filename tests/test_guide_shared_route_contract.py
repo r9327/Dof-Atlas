@@ -660,5 +660,54 @@ class TestSharedRouteContract(unittest.TestCase):
         self.assertEqual(first["manual_resource_names"], ["Ressource"])
 
 
+    def test_preparation_quantity_scope_and_consumption_survive_projection(self):
+        source = sample()
+        source["steps"][0]["actions"].insert(0, {
+            "action_id": "prepare-1",
+            "kind": "prepare",
+            "text": "Préparer deux poudres",
+            "items": [{"item_id": 123, "name": "Poudre fictive",
+                       "quantity": 2, "consumption": "consumable",
+                       "quantity_scope": "party_shared"}],
+        })
+        source["steps"][0]["actions"].insert(1, {
+            "action_id": "prepare-2",
+            "kind": "prepare",
+            "text": "Préparer trois poudres",
+            "items": [{"item_id": 123, "name": "Poudre fictive",
+                       "quantity": 3, "consumption": "consumable",
+                       "quantity_scope": "party_shared"}],
+        })
+        card = project_authorized_guide(source)["steps"][0]
+        items = card["a_preparer"]
+        self.assertEqual([row["occurrence_id"] for row in items],
+                         ["prepare-1:0", "prepare-2:0"])
+        self.assertEqual([row["quantity"] for row in items], [2, 3])
+        from app.modules.encyclopedia.services.guide_preparation_model import (
+            aggregate_remaining,
+        )
+        needs = aggregate_remaining(((card, False),))
+        self.assertEqual(len(needs), 1)
+        self.assertEqual((needs[0].quantity, needs[0].scope),
+                         (5, "party_shared"))
+
+    def test_invalid_source_scope_or_consumption_blocks_projection(self):
+        for field, value in (
+            ("quantity_scope", "ambiguous"),
+            ("consumption", "unproven_reuse"),
+        ):
+            source = sample()
+            source["steps"][0]["actions"].insert(0, {
+                "action_id": "pre",
+                "kind": "prepare",
+                "text": "Préparer un objet fictif",
+                "items": [{"name": "Objet", "item_id": 10, "quantity": 1,
+                           field: value}],
+            })
+            with self.subTest(field=field), self.assertRaisesRegex(
+                GuideRouteContractError, field
+            ):
+                project_authorized_guide(source)
+
 if __name__ == "__main__":
     unittest.main()

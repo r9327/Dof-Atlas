@@ -113,6 +113,18 @@ def _items(raw: Any, label: str) -> tuple[str, ...]:
             raise GuideRouteContractError(
                 f"{label}[{index}].item_id: positive integer required when present"
             )
+        scope = value.get("quantity_scope")
+        if scope is not None and scope not in ("per_character", "party_shared"):
+            raise GuideRouteContractError(
+                f"{label}[{index}].quantity_scope: unsupported quantity scope"
+            )
+        consumption = value.get("consumption")
+        if consumption is not None and consumption not in (
+            "consumable", "consumed", "reusable", "unknown"
+        ):
+            raise GuideRouteContractError(
+                f"{label}[{index}].consumption: unsupported consumption rule"
+            )
         names.append(name)
     return tuple(names)
 
@@ -258,13 +270,19 @@ def project_authorized_guide(guide: dict[str, Any]) -> dict[str, Any]:
                     raise GuideRouteContractError(
                         f"{label}: preparation needs explicit item names and quantities"
                     )
-                for item in action["items"]:
-                    preparation.append({
+                for item_index, item in enumerate(action["items"]):
+                    entry = {
                         "name": item["name"],
                         "quantity": item["quantity"],
                         "item_id": item.get("item_id"),
                         "source_action_id": action_id,
-                    })
+                        # Distinct source uses inside a card must not collapse.
+                        "occurrence_id": f"{action_id}:{item_index}",
+                    }
+                    for optional_field in ("consumption", "quantity_scope"):
+                        if optional_field in item:
+                            entry[optional_field] = item[optional_field]
+                    preparation.append(entry)
                 sections.setdefault("prepare", []).append(row)
             else:
                 sections[section].append(row)
