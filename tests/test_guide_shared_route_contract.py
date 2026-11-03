@@ -147,6 +147,40 @@ class TestSharedRouteContract(unittest.TestCase):
                 ):
                     project_authorized_guide(source)
 
+    def test_preparation_cannot_swallow_authored_npc_dialogue_combat_or_travel(self):
+        template = {
+            "action_id": "prep", "kind": "prepare",
+            "text": "Préparer les ressources fictives",
+            "items": [{"name": "Ressource fictive", "quantity": 2}],
+        }
+        extras = {
+            "npc": "PNJ fictif",
+            "dialogue_choice": "Réponse exacte fictive",
+            "monsters": [{"name": "Monstre fictif", "quantity": 3}],
+            "coordinates": [7, -2],
+        }
+        for field, value in extras.items():
+            with self.subTest(field=field):
+                source = sample()
+                source["steps"][0]["actions"].insert(0, {
+                    **template, field: copy.deepcopy(value),
+                })
+                with self.assertRaisesRegex(
+                    GuideRouteContractError,
+                    field + ": not renderable in preparation panel",
+                ):
+                    project_authorized_guide(source)
+        # Explicit empty optional monsters do not carry an instruction.
+        source = sample()
+        source["steps"][0]["actions"].insert(0, {
+            **template, "monsters": [],
+        })
+        card = project_authorized_guide(source)["steps"][0]
+        self.assertEqual(card["a_preparer"][0]["name"], "Ressource fictive")
+        self.assertEqual(
+            card["manual_sections"]["prepare"][0]["source_action"]["monsters"], [],
+        )
+
     def test_preparation_action_cannot_hide_an_explicit_quest_shortcut(self):
         source = sample()
         source["steps"][0]["actions"].insert(0, {
