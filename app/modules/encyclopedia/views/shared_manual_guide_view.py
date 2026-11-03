@@ -335,7 +335,10 @@ class SharedGuideManualCard(GuideUltimeManualCard):
         # flattened lines through a legacy service loses section semantics,
         # and can quietly hide before-leaving or optional source actions.
         # Existing Guide Succès/catalogue cards keep their provider path.
-        source_card = card.get("manual_source") is True
+        # Both existing optimized routes also declare manual_source=True.
+        # Only the authorized importer adds source_step_id: do not bypass the
+        # legacy section provider for Guide Succès or Dofus Sylvestre.
+        source_card = card.get("manual_source") is True and "source_step_id" in card
         if source_card:
             sections = card.get("manual_sections")
             manual_lines = []
@@ -588,7 +591,7 @@ class SharedGuideManualCard(GuideUltimeManualCard):
             # or dialogue phrasing; source identity must win for these cards.
             source_action = (
                 row.get("source_action")
-                if self.card.get("manual_source") is True else None
+                if self.card.get("manual_source") is True and "source_step_id" in self.card else None
             )
             source_npc = (
                 source_action.get("npc")
@@ -667,7 +670,7 @@ class SharedGuideManualCard(GuideUltimeManualCard):
             # the free-text instruction. These labels are informational only:
             # no invented quest completion/monster objective is written.
             # Legacy Guide Succès and catalogue rows are untouched.
-            if self.card.get("manual_source") is True:
+            if self.card.get("manual_source") is True and "source_step_id" in self.card:
                 source_action = row.get("source_action")
                 if isinstance(source_action, dict):
                     details: list[str] = []
@@ -1663,7 +1666,7 @@ class SharedGuideManualView(GuideUltimeManualView):
         # Source cards are complete projections: an absent preparation section
         # means no preparations, not permission to ask a legacy provider to
         # reconstruct/invent entries (or eagerly hydrate a catalogue).
-        if not rows and card.get("manual_source") is not True:
+        if not rows and not (card.get("manual_source") is True and "source_step_id" in card):
             sections_for_card = getattr(service, "manual_sections_for_card", None)
             sections = sections_for_card(character_key, card) if callable(sections_for_card) else {}
             for raw in sections.get("prepare", ()) if isinstance(sections, dict) else ():

@@ -420,7 +420,8 @@ class ImportedSourceSharedManualUiTests(unittest.TestCase):
 
             # Existing optimized routes still have their historical fallback.
             legacy_card = dict(source_card)
-            legacy_card.pop("manual_source")
+            legacy_card.pop("source_step_id")
+            self.assertIs(legacy_card["manual_source"], True)
             service.manual_sections_for_card = lambda *_args: {
                 "prepare": [{"text": "Prépare 2 x Composant fictif"}]
             }
@@ -449,7 +450,8 @@ class ImportedSourceSharedManualUiTests(unittest.TestCase):
 
         # Non-source guides still enrich their names from Quest evidence.
         legacy = dict(card)
-        legacy.pop("manual_source")
+        legacy.pop("source_step_id")
+        self.assertIs(legacy["manual_source"], True)
         service.quest_provider.guide_evidence = lambda _quest_id: {
             "items": [{"name": "Objet historique fictif"}]
         }
@@ -514,7 +516,11 @@ class ImportedSourceSharedManualUiTests(unittest.TestCase):
             route = project_authorized_guide(self._source())
             service = self._service(Path(temp) / "progress.json", route)
             ordinary = dict(service.cards[0])
-            ordinary.pop("manual_source", None)
+            # Real Guide Succès / Sylvestre cards also have manual_source=True,
+            # but are not authorized imports and may have no manual_sections.
+            ordinary.pop("source_step_id")
+            ordinary.pop("manual_sections")
+            self.assertIs(ordinary["manual_source"], True)
             called = []
             def original_provider(_key, _card):
                 called.append(True)

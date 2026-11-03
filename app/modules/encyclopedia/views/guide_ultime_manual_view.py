@@ -484,7 +484,9 @@ class GuideUltimeManualCard(QFrame):
         evidence = getattr(provider, "guide_evidence", None)
         # Imported source resources are exhaustive; do not hydrate unrelated
         # legacy Quest evidence or add items absent from the source route.
-        if callable(evidence) and card.get("manual_source") is not True:
+        if callable(evidence) and not (
+            card.get("manual_source") is True and "source_step_id" in card
+        ):
             for raw in card.get("manual_quest_ids", []) or []:
                 try:
                     payload = evidence(int(raw))

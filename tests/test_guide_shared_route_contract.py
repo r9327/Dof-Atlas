@@ -98,7 +98,10 @@ class TestSharedRouteContract(unittest.TestCase):
         # Parse the actual renderer, not an invented parallel UI. This test
         # supports the separate Qt integration tests on Windows/DOFUS.
         rendered = ast.get_source_segment(file.read_text(encoding="utf-8"), initializer)
-        self.assertIn('source_card = card.get("manual_source") is True', rendered)
+        self.assertIn(
+            'source_card = card.get("manual_source") is True and "source_step_id" in card',
+            rendered,
+        )
         self.assertIn('sections = card.get("manual_sections")', rendered)
         self.assertIn("if source_card:", rendered)
         self.assertIn("section_provider(character_key, card)", rendered)
