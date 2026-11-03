@@ -25,6 +25,7 @@ class ImportedSourceManualRuntimeService(GuideUltimeGeneratedService):
         guide_progress: Any,
         *,
         route: dict[str, Any],
+        gate_evaluator: Callable[[str, dict[str, Any]], bool] | None = None,
     ) -> None:
         # Never call the generated V5 loader: its artifact paths and progress
         # identity belong to the two pre-existing optimized routes.
@@ -74,6 +75,7 @@ class ImportedSourceManualRuntimeService(GuideUltimeGeneratedService):
         )
         self._known_stage_ids = frozenset(known)
         self._authorization_guard: Callable[[str, dict], bool] | None = None
+        self._gate_evaluator = gate_evaluator
 
     def set_authorization_guard(
         self, guard: Callable[[str, dict], bool],
@@ -132,6 +134,8 @@ class ImportedSourceManualRuntimeService(GuideUltimeGeneratedService):
         self, character_key: str, card: dict[str, Any],
         fallback_index: int, checked: bool,
     ) -> None:
+        if checked and self.manual_order_choice_blocking(character_key, card):
+            return
         self.set_manual_checked(
             character_key, self.page_key(card, fallback_index), checked,
         )
@@ -176,8 +180,24 @@ class ImportedSourceManualRuntimeService(GuideUltimeGeneratedService):
     def manual_order_choice_blocking(
         self, character_key: str, card: dict[str, Any],
     ) -> bool:
-        # The source contract rejects unimplemented per-guide/order gates.
-        return False
+        # Hard prerequisites are preserved as structured source evidence.
+        # Never treat them as satisfied merely because the universal reader
+        # lacks a corresponding validator. Every guide can inject its own
+        # independently qualified evaluator; unknown/failing means blocked.
+        if not card.get("hard_runtime_gates"):
+            return False
+        if not callable(self._gate_evaluator):
+            return True
+        try:
+            return not bool(self._gate_evaluator(character_key, card))
+        except Exception:
+            return True
+
+    def manual_validation_block_reason(self) -> str:
+        return (
+            "Les prérequis de cette étape n'ont pas été validés par "
+            "le contrôle propre au parcours."
+        )
 
     def progress(self, character_key: str) -> GuideUltimeProgress:
         # Never borrow the optimized guide's Quest/Success progress indicator.
