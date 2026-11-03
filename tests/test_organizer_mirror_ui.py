@@ -488,6 +488,40 @@ class OrganizerMirrorIntegrationTests(unittest.TestCase):
         runtime.switch_character.restore_preferred_client.assert_not_called()
         runtime.input_state.end_mouse_block.assert_called_once()
 
+    def test_switch_click_without_confirmed_target_never_steals_focus(self):
+        from app.macros.switch_click import SwitchClickContext, SwitchClickMacro
+
+        for visible, activated in ((False, False), (True, False)):
+            with self.subTest(visible=visible, activated=activated):
+                runtime = Mock()
+                runtime.macro_lock.should_stop.return_value = False
+                runtime.switch_character.ordered_clients_from_source.return_value = [
+                    SimpleNamespace(handle=101, display_name="source"),
+                    SimpleNamespace(handle=202, display_name="target"),
+                ]
+                macro = SwitchClickMacro(runtime)
+                context = SwitchClickContext(101, 20, 30, 0.5, 0.5, "cursor")
+                with (
+                    patch.object(macro, "_validated_context", return_value=context),
+                    patch("app.macros.switch_click.current_cursor_pos",
+                          return_value=(15, 20)),
+                    patch("app.macros.switch_click.set_cursor_pos"),
+                    patch("app.macros.switch_click.is_unity_window",
+                          return_value=visible),
+                    patch("app.macros.switch_click.activate_window",
+                          return_value=activated) as focus,
+                    patch("app.macros.switch_click.send_client_click") as send,
+                ):
+                    macro._run("Left", 1, "Miroir", context)
+                send.assert_not_called()
+                if not visible:
+                    focus.assert_not_called()
+                runtime.switch_character.restore_preferred_client.assert_not_called()
+                runtime.input_state.end_mouse_block.assert_called_once()
+                runtime._emit_status.assert_called_once_with(
+                    "Miroir incomplet : 0/2 fenêtres."
+                )
+
     def test_switch_click_focus_exception_preserves_user_cursor_and_focus(self):
         from app.macros.switch_click import SwitchClickMacro, SwitchClickContext
 
