@@ -342,10 +342,31 @@ class TestGuideConformity(unittest.TestCase):
             [issue["issue_code"] for issue in delta["resolved"]],
             ["TYPE_MISMATCH"],
         )
+        # Field-level comparison additionally detects the missing second
+        # value, the first value mismatch and the changed list length.
+        introduced = {
+            (issue["issue_code"], issue["field_path"])
+            for issue in delta["introduced"]
+        }
+        self.assertIn(
+            ("MISSING_FIELD", ".guides[2219].steps[B].actions[move].coordinates[1]"),
+            introduced,
+        )
+        self.assertIn(
+            ("VALUE_MISMATCH", ".guides[2219].steps[B].actions[move].coordinates[0]"),
+            introduced,
+        )
+        self.assertIn(
+            ("VALUE_MISMATCH", ".guides[2219].steps[B].actions[move].coordinates.length"),
+            introduced,
+        )
         self.assertEqual(
-            [(issue["issue_code"], issue["field_path"])
-             for issue in delta["introduced"]],
-            [("MISSING_FIELD", ".guides[2219].steps[B].actions[move].coordinates[1]")],
+            len(delta["resolved"]) + len(delta["persistent"]),
+            compare(reference(), before)["issue_count"],
+        )
+        self.assertEqual(
+            len(delta["introduced"]) + len(delta["persistent"]),
+            compare(reference(), after)["issue_count"],
         )
 
     def test_long_values_are_not_truncated_in_machine_evidence(self) -> None:
