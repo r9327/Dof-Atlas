@@ -99,12 +99,20 @@ def compare(reference: dict[str, Any], atlas: dict[str, Any]) -> dict[str, Any]:
                 "TYPE_MISMATCH": "Corriger le type selon le schéma source",
                 "ORDER_CHANGED": "Rétablir l'ordre confirmé par la source",
                 "DUPLICATE": "Résoudre les identifiants en double",
+                "AMBIGUOUS": "Examiner les deux enregistrements avec preuve source indépendante",
                 "UNVERIFIABLE": "Obtenir une preuve indépendante vérifiable",
             }.get(code, "Examiner la référence et corriger"), "review_required": True,
         })
 
     if not isinstance(reference, dict) or not isinstance(atlas, dict):
         raise ValueError("Reference and Atlas exports must be JSON objects")
+
+    def collection_witness(field: str, values: list[Any]) -> dict[str, Any]:
+        # A missing key in a full export can hold thousands of complete
+        # actions. Keep a precise SHA and count on the parent, while each
+        # guide/step/action is reported individually below. Never deepcopy
+        # the whole hierarchy into a second redundant issue.
+        return {"collection": field, "count": len(values), "sha256": _digest(values)}
 
     def walk(expected: Any, actual: Any, path: str, evidence: str | None) -> None:
         inspected["fields"] += 1
@@ -115,15 +123,20 @@ def compare(reference: dict[str, Any], atlas: dict[str, Any]) -> dict[str, Any]:
             ref_fields = set(expected) - _IGNORED_REFERENCE_KEYS
             atlas_fields = set(actual) - _IGNORED_REFERENCE_KEYS
             for key in sorted(ref_fields - atlas_fields):
-                report("MISSING_FIELD", f"{path}.{key}", expected[key], None, evidence)
-                # Missing collection keys must expand to every missing guide,
-                # step and action; reporting only the parent hides coverage.
-                if key in _COLLECTIONS and isinstance(expected[key], list):
+                is_collection = key in _COLLECTIONS and isinstance(expected[key], list)
+                original = (collection_witness(key, expected[key])
+                            if is_collection else expected[key])
+                report("MISSING_FIELD", f"{path}.{key}", original, None, evidence)
+                # Explicit descendants preserve complete granular coverage.
+                if is_collection:
                     collection(expected[key], [], f"{path}.{key}",
                                _COLLECTIONS[key], evidence)
             for key in sorted(atlas_fields - ref_fields):
-                report("EXTRA_FIELD", f"{path}.{key}", None, actual[key], evidence)
-                if key in _COLLECTIONS and isinstance(actual[key], list):
+                is_collection = key in _COLLECTIONS and isinstance(actual[key], list)
+                original = (collection_witness(key, actual[key])
+                            if is_collection else actual[key])
+                report("EXTRA_FIELD", f"{path}.{key}", None, original, evidence)
+                if is_collection:
                     collection([], actual[key], f"{path}.{key}",
                                _COLLECTIONS[key], evidence)
             for key in sorted(ref_fields & atlas_fields):
@@ -157,12 +170,26 @@ def compare(reference: dict[str, Any], atlas: dict[str, Any]) -> dict[str, Any]:
             for i, item in enumerate(items):
                 identifier = _identifier(item.get(key)) if isinstance(item, dict) else None
                 if identifier is None:
+                    # The actual malformed value is essential to diagnosis:
+                    # unlike None, 0/False, a Unicode or a path-like ID can
+                    # be distinguished and corrected at the exact location.
+                    raw = item.get(key) if isinstance(item, dict) else item
                     report("UNVERIFIABLE", f"{path}.{side}[{i}].{key}",
-                           f"nonempty {key}", None, parent_evidence)
+                           f"canonical {key}", raw, parent_evidence)
                     continue
                 if identifier in unique:
                     report("DUPLICATE", f"{path}.{side}[{i}].{key}",
                            identifier, identifier, parent_evidence)
+                    if unique[identifier] != item:
+                        # Identical collisions are duplicates; two distinct
+                        # records competing for the same stable identity are
+                        # also ambiguous and require independent adjudication.
+                        def summary(value: dict[str, Any]) -> dict[str, Any]:
+                            return {k: v for k, v in value.items()
+                                    if k not in {"steps", "actions"}}
+                        report("AMBIGUOUS", f"{path}.{side}[{i}].{key}",
+                               summary(unique[identifier]), summary(item),
+                               parent_evidence)
                     continue
                 unique[identifier] = item
                 order.append(identifier)

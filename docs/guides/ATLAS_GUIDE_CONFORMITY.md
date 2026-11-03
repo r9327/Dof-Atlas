@@ -335,3 +335,20 @@ de quête non entiers sont **bloqués** avant leur présentation comme parité.
 Le contrôle Draft utilise les tests des modules Guide (stdlib, sans Qt)
 uniquement lorsque leurs chemins changent ; une réussite certifie leur
 exécution à un SHA donné, **pas** un guide réel ou la conformité Windows.
+
+### Diagnostic complet sans copies géantes de collections (3 novembre 2026)
+
+- Une clé entière `guides`, `steps` ou `actions` absente/ajoutée
+  reçoit une preuve racine bornée `{collection, count, sha256}` au lieu
+  de dupliquer une énorme liste source dans un seul `MISSING_FIELD`.
+  Chaque guide, étape et action reste signalé individuellement, avec son
+  identité, ses champs utiles, son emplacement et la preuve référencée ;
+  l'empreinte permet de vérifier la collection complète sans l'afficher
+  une deuxième fois. Il ne s'agit ni d'un raccourci de couverture ni
+  d'une autorisation/certification.
+- Les IDs invalides conservent la vraie valeur brute dans `actual` ;
+  deux contenus différents partageant le même ID provoquent à la fois
+  `DUPLICATE` et `AMBIGUOUS`. Des doublons strictement identiques
+  restent `DUPLICATE` et sont bloquants.
+- Ces cas sont couverts par des tests synthétiques. Aucune donnée de
+  guide réel, progression, route ou lecteur Windows n'est modifiée.

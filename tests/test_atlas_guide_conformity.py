@@ -340,6 +340,74 @@ class TestGuideConformity(unittest.TestCase):
         )
         self.assertEqual(report["status"], "PARITY_CHECK_BLOCKED")
 
+    def test_missing_collection_root_uses_bounded_exact_witness(self) -> None:
+        import hashlib
+        original = copy.deepcopy(self.reference["guides"])
+        self.atlas.pop("guides")
+        report = compare(self.reference, self.atlas)
+        issue = next(x for x in report["issues"]
+                     if x["issue_code"] == "MISSING_FIELD"
+                     and x["field_path"] == ".guides")
+        canonical = json.dumps(original, sort_keys=True, separators=(",", ":"),
+                               ensure_ascii=False).encode("utf-8")
+        self.assertEqual(issue["expected"], {
+            "collection": "guides", "count": 2,
+            "sha256": hashlib.sha256(canonical).hexdigest(),
+        })
+        self.assertEqual(len([
+            x for x in report["issues"] if x["issue_code"] == "MISSING_ACTION"
+        ]), 4)
+
+    def test_extra_actions_collection_uses_exact_bounded_witness(self) -> None:
+        self.reference["guides"][0]["steps"][0].pop("actions")
+        report = compare(self.reference, self.atlas)
+        issue = next(x for x in report["issues"]
+                     if x["issue_code"] == "EXTRA_FIELD"
+                     and x["field_path"].endswith(".actions"))
+        self.assertEqual(issue["actual"]["collection"], "actions")
+        self.assertEqual(issue["actual"]["count"], 2)
+        self.assertEqual(len(issue["actual"]["sha256"]), 64)
+        self.assertEqual(len([
+            x for x in report["issues"] if x["issue_code"] == "EXTRA_ACTION"
+        ]), 2)
+
+    def test_invalid_ids_preserve_the_exact_source_value(self) -> None:
+        for raw in ("../unexpected", "bad id", True, -1, None):
+            with self.subTest(raw=raw):
+                changed = imported(reference())
+                changed["guides"][0]["steps"][0]["actions"][0]["action_id"] = raw
+                report = compare(reference(), changed)
+                error = next(x for x in report["issues"]
+                             if x["issue_code"] == "UNVERIFIABLE"
+                             and x["field_path"].endswith(".action_id"))
+                self.assertEqual(error["actual"], raw)
+                self.assertEqual(report["status"], "PARITY_CHECK_BLOCKED")
+
+    def test_conflicting_duplicate_identity_reports_ambiguity(self) -> None:
+        self.atlas["guides"][0]["steps"].append({
+            "source_step_id": "A", "title": "Another conflicting step",
+            "actions": [{"action_id": "other", "kind": "talk",
+                         "text": "Different fictional action"}],
+        })
+        report = compare(self.reference, self.atlas)
+        ambiguous = [issue for issue in report["issues"]
+                     if issue["issue_code"] == "AMBIGUOUS"]
+        self.assertEqual(len(ambiguous), 1)
+        self.assertEqual(ambiguous[0]["expected"]["title"], "Étape A")
+        self.assertEqual(ambiguous[0]["actual"]["title"],
+                         "Another conflicting step")
+        self.assertIn("DUPLICATE", report["issue_codes"])
+        self.assertFalse(report["certified"])
+
+    def test_identical_duplicate_remains_duplicate_without_ambiguity(self) -> None:
+        self.atlas["guides"][0]["steps"].append(
+            copy.deepcopy(self.atlas["guides"][0]["steps"][0])
+        )
+        report = compare(self.reference, self.atlas)
+        self.assertIn("DUPLICATE", report["issue_codes"])
+        self.assertNotIn("AMBIGUOUS", report["issue_codes"])
+        self.assertEqual(report["status"], "PARITY_CHECK_BLOCKED")
+
     def test_empty_optional_lists_match_adapter_contract(self) -> None:
         original = reference()
         atlas = imported(original)
