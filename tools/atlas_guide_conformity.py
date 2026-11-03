@@ -63,6 +63,20 @@ _ITEM_ACTION_KINDS = frozenset({"item", "collect", "craft", "keep", "prepare"})
 _RENDER_ORDER = ("now", "opportunity", "keep", "boss", "before_leave")
 _VALID_SECTIONS = frozenset((*_RENDER_ORDER, "prepare"))
 _DEFAULT_SECTION = {"warning": "before_leave", "keep": "keep", "prepare": "prepare"}
+# Independently require that authored gameplay data can actually be rendered.
+# Source metadata is preserved by the projector, but nonempty fields below
+# have no corresponding shared-card interaction yet. A matching copy cannot
+# be certified merely because both sides silently hide that instruction.
+_UNRENDERED_ACTION_FIELDS = frozenset({
+    "dialogue_options", "choices", "branches", "branching",
+    "alternative_routes", "subactions", "substeps", "interactions",
+    "achievement_ids", "success_ids", "images", "image", "media",
+    "attachments", "links", "commands",
+})
+_UNRENDERED_STEP_FIELDS = frozenset({
+    "choices", "branches", "branching", "alternative_routes",
+    "images", "image", "media", "attachments", "links",
+})
 _TRAVEL_COORDINATE = re.compile(r"\[\s*(-?\d+)\s*,\s*(-?\d+)\s*\]")
 
 
@@ -388,6 +402,11 @@ def compare(reference: dict[str, Any], atlas: dict[str, Any]) -> dict[str, Any]:
                            "step object", step)
                     continue
                 prefix = f"{side}.guides[{gi}].steps[{si}]"
+                for field in sorted(_UNRENDERED_STEP_FIELDS & step.keys()):
+                    if step[field] not in (None, [], {}, ""):
+                        report("UNVERIFIABLE", f"{prefix}.{field}",
+                               "authored step content must be displayed by shared reader",
+                               step[field])
                 if not isinstance(step.get("title"), str) or not step["title"].strip():
                     report("UNVERIFIABLE", f"{prefix}.title",
                            "nonempty step title", step.get("title"))
@@ -468,6 +487,11 @@ def compare(reference: dict[str, Any], atlas: dict[str, Any]) -> dict[str, Any]:
                     if not isinstance(kind, str) or kind not in _KNOWN_ACTION_KINDS:
                         report("UNVERIFIABLE", f"{action_path}.kind",
                                "supported action kind", kind)
+                    for field in sorted(_UNRENDERED_ACTION_FIELDS & action.keys()):
+                        if action[field] not in (None, [], {}, ""):
+                            report("UNVERIFIABLE", f"{action_path}.{field}",
+                                   "authored action must be displayed by shared reader",
+                                   action[field])
                     section = action.get("section", _DEFAULT_SECTION.get(kind, "now"))
                     if not isinstance(section, str) or section not in _VALID_SECTIONS:
                         report("UNVERIFIABLE", f"{action_path}.section",
