@@ -2369,6 +2369,13 @@ class SharedGuideManualView(GuideUltimeManualView):
             label, hint = "Valider", "Valider la fiche pour les personnages sélectionnés qui en ont besoin."
         if statuses and (not callable(batcher) or not callable(page_key)):
             hint = "Sauvegarde multi-personnages indisponible : aucune écriture autorisée."
+        source_authorized = getattr(self.service, "can_write_progress", None)
+        if callable(source_authorized) and not source_authorized():
+            # The shared renderer also serves staged source previews. A route
+            # that was never certified or was revoked must not write through
+            # the direct GuideProgressService multi-character batch method.
+            enabled = False
+            hint = "Parcours source non autorisé : validation désactivée."
         button.blockSignals(True)
         try:
             button.setChecked(all_done)
@@ -2381,6 +2388,10 @@ class SharedGuideManualView(GuideUltimeManualView):
     def _page_toggled_for_participants(self, card: dict[str, Any], index: int, checked: bool) -> None:
         # Ignore deferred signals from an old card after navigation.
         if index != self.view_index or index >= len(self.service.cards) or self.service.cards[index] is not card:
+            return
+        source_authorized = getattr(self.service, "can_write_progress", None)
+        if callable(source_authorized) and not source_authorized():
+            self._render_window()
             return
         self.service.reload_progress()
         statuses = self._validation_status(card, index)
