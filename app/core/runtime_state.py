@@ -107,16 +107,12 @@ class AtlasRuntime:
         self._macro_init_lock = threading.RLock()
         self._switch_character = None
         self._switch_click = None
-        self._pending_physical_switch = None
         self._direction = None
         self._travel = None
         self._zaap = None
         self._auto_group = None
         self.registry = ManagedHotkeyRegistry(self.input_state, self.logger, self._handle_hotkey)
-        self.mouse_hook = ManagedMouseHook(
-            self.input_state, self.synthetic_guard, self.logger,
-            self._handle_mouse_click, release_callback=self._handle_mouse_release,
-        )
+        self.mouse_hook = ManagedMouseHook(self.input_state, self.synthetic_guard, self.logger, self._handle_mouse_click)
         self.last_client_point = LastClientPoint()
         self.active_client_handle = 0
         self._running = False
@@ -478,7 +474,6 @@ class AtlasRuntime:
 
     def emergency_stop(self, reason: str = "stop urgence") -> None:
         self.macro_lock.request_stop(reason)
-        self._pending_physical_switch = None
         self.input_state.reset_armed()
         self.input_state.clear_mouse_block()
         self.synthetic_guard.reset()
@@ -588,37 +583,6 @@ class AtlasRuntime:
             self.logger.debug("Payload switch invalide: action=%s payload=%s", action.action_id, action.payload)
             click_count = 1
         action_label = str(action.payload.get("label", "Switch clique"))
-        # Keep the physical DOWN and UP on an actual foreground DOFUS client.
-        # Unity world interactions can need that real click; replay only the
-        # other clients once the original UP has passed through the hook.
-        # Double-click macros retain their existing single-trigger semantics.
-        if click_count == 1:
-            from app.windows.unity_windows import (
-                find_known_client_from_point, foreground_window,
-            )
-
-            source = find_known_client_from_point(
-                screen_x, screen_y,
-                (client.handle for client in self.settings.clients),
-            )
-            if source and foreground_window() == source:
-                context = self.switch_click._capture_trigger_context(
-                    screen_x, screen_y, action_label,
-                )
-                if (
-                    context is not None
-                    and context.reason == "cursor"
-                    and context.source_hwnd == source
-                ):
-                    self._pending_physical_switch = (
-                        button, screen_x, screen_y, click_count, action_label, context,
-                    )
-                    self.logger.debug(
-                        "%s source Unity: clic physique conserve hwnd=%s",
-                        action_label, source,
-                    )
-                    return False
-
         try:
             started = self.switch_click.run_async(
                 button,
@@ -639,43 +603,4 @@ class AtlasRuntime:
                 "Clic switch consommé sans lancement: action=%s",
                 action_label,
             )
-        return True
-
-        return True
-
-    def _handle_mouse_release(self, button: str, screen_x: int, screen_y: int) -> bool:
-        """Finish a real source click before asynchronously replaying other clients.
-
-        Returning True means the hook must *forward* this native button UP,
-        even if the new worker has already enabled mouse blocking.
-        """
-        pending = self._pending_physical_switch
-        if pending is None or str(pending[0]).casefold() != str(button).casefold():
-            return False
-        self._pending_physical_switch = None
-        _button, down_x, down_y, click_count, action_label, context = pending
-        # A drag or a moved/stolen source is not an ordinary click to mirror.
-        # Preserve its physical release but never replay it elsewhere.
-        try:
-            from app.windows.unity_windows import foreground_window
-
-            if (
-                not self._running
-                or not self._admin_ok
-                or self.macro_lock.should_stop()
-                or foreground_window() != context.source_hwnd
-                or (int(screen_x) - down_x) ** 2 + (int(screen_y) - down_y) ** 2 > 24 ** 2
-            ):
-                return True
-            self.switch_click.run_async(
-                button,
-                down_x,
-                down_y,
-                click_count,
-                action_label,
-                captured_context=context,
-                physical_source_delivered=True,
-            )
-        except Exception:
-            self.logger.exception("%s: duplication apres clic physique impossible.", action_label)
         return True
