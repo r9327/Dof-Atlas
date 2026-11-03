@@ -134,6 +134,7 @@ class OrganizerMirrorIntegrationTests(unittest.TestCase):
                 favorite = slots[-1]
                 handles = (favorite, *slots[:-1])
                 runtime = self._runtime(primary=favorite, handles=slots)
+                runtime.settings.timings = SimpleNamespace()
                 timings = runtime.settings.timings
                 timings.switch_background_pre_click_ms = 0
                 timings.activate_attempts = 1
@@ -175,6 +176,7 @@ class OrganizerMirrorIntegrationTests(unittest.TestCase):
                 favorite = slots[-1]
                 handles = (favorite, *slots[:-1])
                 runtime = self._runtime(primary=favorite, handles=slots)
+                runtime.settings.timings = SimpleNamespace()
                 timings = runtime.settings.timings
                 timings.switch_background_pre_click_ms = 0
                 timings.activate_attempts = 1
