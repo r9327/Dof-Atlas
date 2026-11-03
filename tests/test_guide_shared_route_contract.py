@@ -106,6 +106,29 @@ class TestSharedRouteContract(unittest.TestCase):
         self.assertIn("if source_card:", rendered)
         self.assertIn("section_provider(character_key, card)", rendered)
 
+    def test_source_action_quest_link_is_explicit_and_lossless(self):
+        source = sample()
+        source["steps"][0]["quest_ids"] = [100, 200]
+        source["steps"][0]["actions"][1]["quest_ids"] = [200]
+        source["steps"][0]["actions"][2]["quest_ids"] = []
+        route = project_authorized_guide(source)
+        rows = route["steps"][0]["manual_sections"]["now"]
+        self.assertEqual(rows[1]["source_action"]["quest_ids"], [200])
+        self.assertEqual(rows[2]["source_action"]["quest_ids"], [])
+        self.assertEqual(route["steps"][0]["manual_quest_ids"], [100, 200])
+        self.assertNotIn("quest_ids", rows[0]["source_action"])
+
+    def test_source_action_quest_link_rejects_unproven_or_ambiguous_ids(self):
+        for invalid in ([101], [True], [0], [-1], [100, 100], "100", None):
+            with self.subTest(invalid=invalid):
+                source = sample()
+                source["steps"][0]["actions"][1]["quest_ids"] = invalid
+                with self.assertRaisesRegex(
+                    GuideRouteContractError,
+                    "actions\\[1\\]\\.quest_ids",
+                ):
+                    project_authorized_guide(source)
+
     def test_uses_existing_shared_card_schema_no_ui_fork(self):
         source = sample()
         before = copy.deepcopy(source)
