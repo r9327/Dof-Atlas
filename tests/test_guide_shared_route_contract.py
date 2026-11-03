@@ -60,11 +60,12 @@ class TestSharedRouteContract(unittest.TestCase):
             with self.subTest(field=field):
                 source = sample()
                 source["steps"][0]["actions"][1][field] = value
-                with self.assertRaisesRegex(
-                    GuideRouteContractError,
-                    r"actions\\[1\\]\\." + field + ": unsupported authored UI content",
-                ):
+                with self.assertRaises(GuideRouteContractError) as error:
                     project_authorized_guide(source)
+                self.assertIn(
+                    f"actions[1].{field}: unsupported authored UI content",
+                    str(error.exception),
+                )
         # Empty optional placeholders have no lost action to display.
         source = sample()
         source["steps"][0]["actions"][1]["links"] = []
@@ -87,11 +88,12 @@ class TestSharedRouteContract(unittest.TestCase):
             with self.subTest(field=field):
                 source = sample()
                 source["steps"][0][field] = value
-                with self.assertRaisesRegex(
-                    GuideRouteContractError,
-                    r"steps\\[0\\]\\." + field + ": unsupported authored UI content",
-                ):
+                with self.assertRaises(GuideRouteContractError) as error:
                     project_authorized_guide(source)
+                self.assertIn(
+                    f"steps[0].{field}: unsupported authored UI content",
+                    str(error.exception),
+                )
         source = sample()
         source["steps"][0]["media"] = []
         source["steps"][0]["evidence_ref"] = "independent:step-A"
