@@ -305,7 +305,7 @@ def _atomic_file(path: Path, content: bytes) -> None:
             os.unlink(name)
 
 
-def _read_json(path: Path) -> dict[str, Any]:
+def _read_json(path: Path, *, verified_payload: bytes | None = None) -> dict[str, Any]:
     if path.is_symlink():
         raise GuideRouteContractError(f"symlinked candidate metadata: {path.name}")
 
@@ -327,8 +327,15 @@ def _read_json(path: Path) -> dict[str, Any]:
         return parsed
 
     try:
+        # A content-addressed generation is verified from exact bytes.
+        # Reopening its path after hashing would allow a second, different
+        # document to be parsed if the generation changed between reads.
+        text = (
+            path.read_text(encoding="utf-8")
+            if verified_payload is None else verified_payload.decode("utf-8")
+        )
         result = json.loads(
-            path.read_text(encoding="utf-8"),
+            text,
             object_pairs_hook=no_duplicate_keys,
             parse_constant=no_nonfinite,
             parse_float=finite_float,
@@ -408,7 +415,7 @@ def _verify_generation(root: Path, digest: str) -> None:
         raise GuideRouteContractError(f"missing candidate generation: {digest}") from exc
     if _digest(payload) != digest:
         raise GuideRouteContractError(f"candidate generation SHA mismatch: {digest}")
-    _validate_candidate(_read_json(path))
+    _validate_candidate(_read_json(path, verified_payload=payload))
 
 
 def publish_candidate(

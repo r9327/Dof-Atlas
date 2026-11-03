@@ -132,6 +132,31 @@ class CandidateStoreTests(unittest.TestCase):
         )
         self.assertNotEqual(result["candidate_sha256"], first["candidate_sha256"])
 
+    def test_generation_validation_parses_the_exact_hashed_bytes(self) -> None:
+        first = publish_candidate(self.preview, root=self.root)
+        digest = first["candidate_sha256"]
+        generation = self.root / "generations" / (digest + ".json")
+        original_read_text = Path.read_text
+
+        def forbid_reopening_generation(path, *args, **kwargs):
+            if path == generation:
+                self.fail("generation re-opened after SHA-256 validation")
+            return original_read_text(path, *args, **kwargs)
+
+        with patch.object(Path, "read_text", forbid_reopening_generation):
+            self.assertEqual(selected_candidate(self.root), digest)
+            self.assertEqual(
+                publish_candidate(
+                    self.preview, root=self.root, expected_selected=digest
+                )["candidate_sha256"], digest
+            )
+            self.assertEqual(
+                rollback_candidate(
+                    root=self.root, expected_selected=digest,
+                    restore_sha256=digest,
+                )["candidate_sha256"], digest
+            )
+
     def test_tampered_immutable_generation_is_rejected(self) -> None:
         first = publish_candidate(self.preview, root=self.root)
         path = self.root / "generations" / (first["candidate_sha256"] + ".json")

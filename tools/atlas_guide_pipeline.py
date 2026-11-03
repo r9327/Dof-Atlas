@@ -17,7 +17,7 @@ from tools.atlas_guide_candidate_store import publish_candidate
 from tools.atlas_guide_conformity import before_after, compare
 from tools.atlas_guide_importer import prepare_preview
 from tools.atlas_guide_sequence_gate import (
-    WitnessVerifier, assess_next,
+    WitnessVerifier, _load_strict_plan, _plan_snapshot, assess_next,
 )
 
 # Static contract for Atlas Doctor's derived AI tool catalog; no import side effects.
@@ -59,6 +59,8 @@ def stage_checked_candidate(
     validate its witness receipts separately, including real Windows evidence.
     """
     policy = assess_next(plan, head_sha=head_sha, verifier=verifier)
+    if "sequence.plan_mutated_during_attestation" in policy["missing_proofs"]:
+        raise GuidePipelineBlocked("sequencing plan changed during verification")
     if not policy["may_prepare_next"]:
         raise GuidePipelineBlocked("pilot/sequence gate: missing trusted evidence")
     next_id = policy["next_guide_id"]
@@ -99,6 +101,7 @@ def stage_checked_candidate(
             ) from exc
         return hashlib.sha256(raw).hexdigest()
 
+    plan_snapshot = _plan_snapshot(plan)
     source_digest = _source_digest(authorized_source)
     reference_digest = _source_digest(independent_reference)
     before_digest = _source_digest(atlas_before)
@@ -108,7 +111,8 @@ def stage_checked_candidate(
         # A verifier may call external code. Never allow it to replace either
         # attested source or the Atlas before/after observations between
         # comparison and immutable staging.
-        if (_source_digest(authorized_source) != source_digest
+        if (_plan_snapshot(plan) != plan_snapshot
+                or _source_digest(authorized_source) != source_digest
                 or _source_digest(independent_reference) != reference_digest
                 or _source_digest(atlas_before) != before_digest
                 or _source_digest(atlas_after) != after_digest):
@@ -175,7 +179,7 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--head-sha", required=True)
     args = parser.parse_args(argv)
     try:
-        doc = json.loads(args.plan.read_text(encoding="utf-8"))
+        doc = _load_strict_plan(args.plan)
         # Deliberately no --apply, --publish, --trust, --skip-checks or
         # --synthetic-pass flags. The CLI has no independent trust root.
         result = assess_next(doc, head_sha=args.head_sha)

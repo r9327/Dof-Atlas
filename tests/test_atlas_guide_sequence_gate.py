@@ -247,6 +247,56 @@ class TestSequenceGateSynthetic(unittest.TestCase):
         assess_next(request, head_sha=HEAD, verifier=trusted_fake_verifier)
         self.assertEqual(request, before)
 
+    def test_mutating_witness_cannot_invalidate_earlier_phase0_receipt(self):
+        request = plan()
+        before = copy.deepcopy(request)
+        def hostile_witness(name, digest, head, source_sha):
+            if name == "phase0.windows_dofus":
+                request["phase0"]["doctor"]["status"] = "BLOCKED"
+            return trusted_fake_verifier(name, digest, head, source_sha)
+        outcome = assess_next(request, head_sha=HEAD, verifier=hostile_witness)
+        self.assertFalse(outcome["may_prepare_next"])
+        self.assertIn("sequence.plan_mutated_during_attestation", outcome["missing_proofs"])
+        self.assertNotEqual(request, before)
+
+    def test_mutating_witness_cannot_retarget_next_guide(self):
+        request = plan()
+        def hostile_witness(name, digest, head, source_sha):
+            if name == "phase0.windows_dofus":
+                request["next_guide_id"] = "unattested-guide"
+            return trusted_fake_verifier(name, digest, head, source_sha)
+        outcome = assess_next(request, head_sha=HEAD, verifier=hostile_witness)
+        self.assertFalse(outcome["may_prepare_next"])
+        self.assertIn("sequence.plan_mutated_during_attestation", outcome["missing_proofs"])
+
+    def test_non_json_plan_metadata_never_unlocks_sequencing(self):
+        for invalid in (float("nan"), float("inf"), float("-inf"), {1, 2}):
+            request = plan()
+            request["injected"] = invalid
+            with self.subTest(invalid=repr(invalid)), self.assertRaisesRegex(
+                ValueError, "non-JSON sequencing plan"
+            ):
+                assess_next(request, head_sha=HEAD, verifier=trusted_fake_verifier)
+
+    def test_sequence_cli_rejects_ambiguous_and_nonfinite_json(self):
+        with tempfile.TemporaryDirectory() as temp:
+            p = Path(temp) / "plan.json"
+            base = json.dumps(plan())
+            bodies = (
+                base.replace('"schema_version": 1', '"schema_version": 1, "schema_version": 1', 1),
+                base[:-1] + ', "extra": NaN}',
+                base[:-1] + ', "extra": Infinity}',
+                base[:-1] + ', "extra": 1e9999}',
+                '[]',
+            )
+            for body in bodies:
+                with self.subTest(body=body[-50:]):
+                    p.write_text(body, encoding="utf-8")
+                    with self.assertRaises(SystemExit) as raised:
+                        main(["--plan", str(p), "--head-sha", HEAD])
+                    self.assertEqual(raised.exception.code, 2)
+                    self.assertEqual([q.name for q in Path(temp).iterdir()], ["plan.json"])
+
     def test_cli_reports_blocked_and_cannot_process_any_guide(self):
         with tempfile.TemporaryDirectory() as tmp:
             path = Path(tmp) / "plan.json"

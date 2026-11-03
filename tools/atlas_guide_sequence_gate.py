@@ -9,6 +9,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import math
 import re
 from collections.abc import Callable, Mapping
 from pathlib import Path
@@ -52,6 +53,46 @@ _PER_GUIDE = (
 # The callback is supplied exclusively by a trusted test/CI/certification host.
 # User-edited JSON claims alone can NEVER satisfy a required witness.
 WitnessVerifier = Callable[[str, str, str, str], bool]
+
+
+def _plan_snapshot(plan: Mapping[str, Any]) -> str:
+    """Canonical immutable observation around external witness callbacks."""
+    try:
+        return json.dumps(
+            plan, ensure_ascii=False, sort_keys=True,
+            separators=(",", ":"), allow_nan=False,
+        )
+    except (TypeError, ValueError) as exc:
+        raise ValueError("invalid/non-JSON sequencing plan metadata") from exc
+
+
+def _load_strict_plan(path: Path) -> dict[str, Any]:
+    """The two read-only Guide CLIs share one fail-closed JSON boundary."""
+    def unique_pairs(pairs: list[tuple[str, Any]]) -> dict[str, Any]:
+        doc: dict[str, Any] = {}
+        for key, value in pairs:
+            if key in doc:
+                raise ValueError(f"duplicate JSON key {key!r}")
+            doc[key] = value
+        return doc
+
+    def finite_float(raw: str) -> float:
+        result = float(raw)
+        if not math.isfinite(result):
+            raise ValueError(f"out-of-range JSON float {raw!r}")
+        return result
+
+    def reject_constant(value: str) -> Any:
+        raise ValueError(f"non-finite JSON constant {value!r}")
+
+    result = json.loads(
+        path.read_text(encoding="utf-8"),
+        object_pairs_hook=unique_pairs, parse_float=finite_float,
+        parse_constant=reject_constant,
+    )
+    if not isinstance(result, dict):
+        raise ValueError("sequencing plan root must be a JSON object")
+    return result
 
 
 def _sha(value: Any) -> bool:
@@ -114,6 +155,7 @@ def assess_next(
     if (not isinstance(plan, Mapping) or type(plan.get("schema_version")) is not int
             or plan["schema_version"] != 1):
         raise ValueError("unsupported sequencing plan")
+    original_plan = _plan_snapshot(plan)
     failures: list[str] = []
     next_id = plan.get("next_guide_id")
     completed = plan.get("completed", [])
@@ -192,6 +234,8 @@ def assess_next(
             failures.append("sequence.inventory_already_complete")
         if next_id in {_PILOT, _FALLBACK} and next_id not in seen:
             failures.append("sequence.cannot_restart_pilot")
+    if _plan_snapshot(plan) != original_plan:
+        failures.append("sequence.plan_mutated_during_attestation")
     allowed = not failures
     return {
         "schema_version": 1,
@@ -216,7 +260,7 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--head-sha", required=True)
     args = parser.parse_args(argv)
     try:
-        data = json.loads(args.plan.read_text(encoding="utf-8"))
+        data = _load_strict_plan(args.plan)
         # The standalone CLI does not possess a trusted verification authority.
         result = assess_next(data, head_sha=args.head_sha)
     except (OSError, ValueError, TypeError) as exc:

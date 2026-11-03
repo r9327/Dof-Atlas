@@ -9,7 +9,7 @@ import unittest
 from pathlib import Path
 
 from tools.atlas_guide_candidate_store import selected_candidate
-from tools.atlas_guide_pipeline import GuidePipelineBlocked, stage_checked_candidate
+from tools.atlas_guide_pipeline import GuidePipelineBlocked, main, stage_checked_candidate
 from tools.atlas_guide_sequence_gate import _PHASE0
 
 HEAD = "a" * 40
@@ -131,6 +131,43 @@ class PipelineSyntheticTests(unittest.TestCase):
                             verifier=mutating_host, candidate_root=root,
                         )
                     self.assertFalse(root.exists())
+
+    def test_witness_cannot_revoke_prior_phase0_receipt(self):
+        request = synthetic_plan()
+        def mutating_host(name, digest, head, source):
+            if name == "phase0.windows_dofus":
+                request["phase0"]["doctor"]["status"] = "BLOCKED"
+            return fake_trusted_host(name, digest, head, source)
+        with self.assertRaisesRegex(GuidePipelineBlocked, "sequencing plan changed"):
+            self._run(plan=request, verifier=mutating_host)
+        self.assertFalse(self.folder.exists())
+
+    def test_witness_cannot_change_sequencing_plan_after_initial_gate(self):
+        request = synthetic_plan()
+        def mutating_host(name, digest, head, source):
+            if name == "current.independent_reference":
+                request["phase0"]["doctor"]["status"] = "BLOCKED"
+            return fake_trusted_host(name, digest, head, source)
+        with self.assertRaisesRegex(GuidePipelineBlocked, "snapshots changed"):
+            self._run(plan=request, verifier=mutating_host)
+        self.assertFalse(self.folder.exists())
+
+    def test_read_only_cli_rejects_ambiguous_plans_without_writes(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            path = Path(tmp) / "plan.json"
+            base = json.dumps(synthetic_plan())
+            for contents in (
+                base.replace('"schema_version": 1', '"schema_version": 1, "schema_version": 1', 1),
+                base[:-1] + ', "meta": NaN}',
+                base[:-1] + ', "meta": 1e9999}',
+                '[]',
+            ):
+                with self.subTest(contents=contents[-40:]):
+                    path.write_text(contents, encoding="utf-8")
+                    with self.assertRaises(SystemExit) as exc:
+                        main(["--plan", str(path), "--head-sha", HEAD])
+                    self.assertEqual(exc.exception.code, 2)
+                    self.assertEqual([p.name for p in Path(tmp).iterdir()], ["plan.json"])
 
     def test_witness_cannot_retarget_guide_after_sequence_gate(self):
         request = synthetic_plan()
