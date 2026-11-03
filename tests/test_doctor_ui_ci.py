@@ -130,6 +130,40 @@ class DoctorUiSelectionTests(unittest.TestCase):
                         )
                         self.assertEqual(plan["status"], "REVIEW_REQUIRED")
 
+    def test_draft_doctor_windows_reuses_one_runner_for_synthetic_source_qt(self):
+        """Guide Phase 0 Qt evidence is executed, not only test names listed."""
+        root = Path(__file__).resolve().parents[1]
+        doctor = (root / ".github/workflows/doctor-ui.yml").read_text(
+            encoding="utf-8"
+        )
+        focused = (root / ".github/workflows/guides-focused-proof.yml").read_text(
+            encoding="utf-8"
+        )
+        name = "Verify staged source cards in canonical Qt reader (synthetic only)"
+        self.assertEqual(doctor.count(name), 1)
+        window = doctor.split("  windows:", 1)[1].split("  verdict:", 1)[0]
+        selected = window.split("      - name: " + name, 1)[1].split(
+            "      - name: Run one session", 1
+        )[0]
+        self.assertIn("python -X faulthandler -m unittest -v", selected)
+        for required in (
+            "test_staged_candidate_previews_through_existing_shared_reader",
+            "test_reordered_staged_route_keeps_per_character_progress_identity",
+            "test_source_action_quest_shortcut_is_exact_not_guessed",
+            "test_imported_quest_shortcuts_follow_actions_across_sections",
+            "test_source_choice_and_dungeon_keep_shared_semantic_styles",
+            "test_imported_source_preparation_uses_own_sections_with_selected_character",
+            "test_view_validation_uses_per_character_stable_source_step_identity",
+        ):
+            self.assertIn(required, selected)
+        self.assertNotIn("--apply", selected)
+        self.assertNotIn("--publish", selected)
+        self.assertNotIn("requirements-pyside.txt", selected)
+        self.assertIn("uses: ./.github/workflows/doctor-ui.yml", focused)
+        self.assertIn("complete_campaign: true", focused)
+        self.assertIn("- '.github/workflows/doctor-ui.yml'", focused)
+        self.assertIn("if: ${{ github.event.pull_request.draft == false }}", focused)
+
     def test_both_real_renderers_selected_for_shared_view(self):
         plan = self.plan("app/modules/encyclopedia/views/shared_manual_guide_view.py")
         self.assertEqual(set(plan["selected_scenarios"]), set(ALL_GUIDES))
