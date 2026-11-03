@@ -25,8 +25,11 @@ class DirectionMacro:
             return
         timings = self.runtime.settings.timings
         focus_lost = False
+        targets = []
+        sent = 0
         try:
-            for client in self.runtime.switch_character.ordered_clients_from_source(source):
+            targets = self.runtime.switch_character.ordered_clients_from_source(source)
+            for client in targets:
                 if self.runtime.macro_lock.should_stop():
                     return
                 if not is_unity_window(client.handle):
@@ -51,12 +54,28 @@ class DirectionMacro:
                     press_key(key_name, timings.movement_key_hold_ms)
                     if self.runtime.macro_lock.should_stop():
                         return
+                    sent += 1
+                else:
+                    self.runtime.logger.info(
+                        "Switch deplacement: activation echec hwnd=%s",
+                        client.handle,
+                    )
         finally:
             if not self.runtime.macro_lock.should_stop() and not focus_lost:
                 try:
                     self.runtime.switch_character.restore_preferred_client("Switch deplacement")
                 except Exception:
                     self.runtime.logger.exception("Switch deplacement: retour au favori impossible.")
+            stopped = self.runtime.macro_lock.should_stop()
+            state = (
+                "interrompu" if stopped or focus_lost
+                else "termine" if sent == len(targets)
+                else "partiel"
+            )
+            self.runtime.logger.info(
+                "Switch deplacement %s: envoyes=%s/%s",
+                state, sent, len(targets),
+            )
 
     def release_virtual_inputs(self) -> None:
         for key_name in ("HOME", "DELETE", "END", "PAGEDOWN"):
