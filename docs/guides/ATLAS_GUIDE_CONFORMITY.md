@@ -470,3 +470,15 @@ dupliquées (y compris dans les objets imbriqués), `NaN`,
 restent cohérents ; de même une génération dont le SHA-256 a été
 recalculé sur un JSON ambigu. Aucun contenu n'est promu, certifié
 ou chargé dans le lecteur pour contourner ces vérifications.
+
+### AVANT/APRÈS : identité d'anomalie liée au motif (3 novembre 2026)
+
+Deux diagnostics différents peuvent partager `issue_code` et `field_path` :
+par exemple « coordonnées malformées » et « position requise absente ».
+Le rapport rapproche désormais les anomalies en incluant leur
+`expected` (motif indépendant de la valeur observée), en plus de
+l'identité guide/étape/action et du champ. Corriger un seul des deux
+motifs ne peut plus marquer le mauvais diagnostic comme persistant.
+Une quantité fautive qui passe de 8 à 9 garde son statut **persistant** :
+le référentiel attendu reste 10. Deux tests synthétiques vérifient ces
+cas sans intégrer ni certifier de guide réel.

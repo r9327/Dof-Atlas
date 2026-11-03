@@ -286,6 +286,57 @@ class TestGuideConformity(unittest.TestCase):
             current["issue_count"],
         )
 
+    def test_before_after_persists_correct_semantic_reason_after_partial_fix(self) -> None:
+        before = imported(reference())
+        after = imported(reference())
+        before["guides"][0]["steps"][1]["actions"][0]["coordinates"] = "invalid"
+        after["guides"][0]["steps"][1]["actions"][0]["coordinates"] = None
+        delta = before_after(reference(), before, after)
+        wrong_shape = "[integer x, integer y] in verified bounds"
+        missing_position = "verified travel position"
+        self.assertEqual(
+            sum(issue["expected"] == wrong_shape for issue in delta["resolved"]),
+            1,
+        )
+        self.assertEqual(
+            sum(issue["expected"] == missing_position for issue in delta["resolved"]),
+            0,
+        )
+        persistent = [
+            change for change in delta["persistent"]
+            if change["before"]["issue_code"] == "UNVERIFIABLE"
+            and change["before"]["field_path"].endswith(".actions[0].coordinates")
+        ]
+        self.assertEqual(len(persistent), 1)
+        self.assertEqual(persistent[0]["before"]["expected"], missing_position)
+        self.assertEqual(persistent[0]["after"]["expected"], missing_position)
+        self.assertTrue(persistent[0]["changed"])
+        self.assertEqual(persistent[0]["before"]["actual"], "invalid")
+        self.assertIsNone(persistent[0]["after"]["actual"])
+
+    def test_before_after_same_reason_with_new_wrong_value_remains_persistent(self) -> None:
+        before = imported(reference())
+        after = imported(reference())
+        before["guides"][0]["steps"][1]["actions"][0]["coordinates"] = "invalid"
+        after["guides"][0]["steps"][1]["actions"][0]["coordinates"] = [1]
+        delta = before_after(reference(), before, after)
+        positions = [
+            change for change in delta["persistent"]
+            if change["before"]["issue_code"] == "UNVERIFIABLE"
+            and change["before"]["field_path"].endswith(".actions[0].coordinates")
+        ]
+        self.assertEqual(len(positions), 2)
+        self.assertEqual(
+            {x["before"]["expected"] for x in positions},
+            {
+                "verified travel position",
+                "[integer x, integer y] in verified bounds",
+            },
+        )
+        self.assertTrue(all(x["changed"] for x in positions))
+        self.assertFalse(delta["resolved"])
+        self.assertFalse(delta["introduced"])
+
     def test_long_values_are_not_truncated_in_machine_evidence(self) -> None:
         old = copy.deepcopy(self.atlas)
         original = "x" * 1000

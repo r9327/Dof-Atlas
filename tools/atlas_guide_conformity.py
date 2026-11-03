@@ -521,10 +521,14 @@ def before_after(reference: dict[str, Any], before: dict[str, Any],
             identity = _digest([
                 issue["issue_code"], issue["field_path"], issue["guide_id"],
                 issue["source_step_id"], issue["action_id"],
+                issue["expected"],
             ])
-            # A single field can have multiple independent failures, such as
-            # malformed coordinates AND missing required travel coordinates.
-            # An identity->object dict silently erased all but the last.
+            # Include the independent *reason* for each finding. A malformed
+            # coordinate and a missing travel position share the same code
+            # and path but have different expected contracts. Pairing them by
+            # arrival order would mark the wrong defect as persistent. The
+            # expected value stays pinned to the one reference; actual
+            # observations may change without falsely resolving an issue.
             result.setdefault(identity, []).append(issue)
         return result
 
