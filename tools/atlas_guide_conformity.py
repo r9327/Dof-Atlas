@@ -63,6 +63,7 @@ _ITEM_ACTION_KINDS = frozenset({"item", "collect", "craft", "keep", "prepare"})
 _RENDER_ORDER = ("now", "opportunity", "keep", "boss", "before_leave")
 _VALID_SECTIONS = frozenset((*_RENDER_ORDER, "prepare"))
 _DEFAULT_SECTION = {"warning": "before_leave", "keep": "keep", "prepare": "prepare"}
+_TRAVEL_COORDINATE = re.compile(r"\[\s*(-?\d+)\s*,\s*(-?\d+)\s*\]")
 
 
 def _valid_position(value: Any) -> bool:
@@ -543,6 +544,21 @@ def compare(reference: dict[str, Any], atlas: dict[str, Any]) -> dict[str, Any]:
                     ):
                         report("UNVERIFIABLE", f"{action_path}.coordinates",
                                "verified travel position", action.get("coordinates"))
+                    if kind == "travel" and isinstance(text, str):
+                        destination = (
+                            action.get("coordinates")
+                            if _valid_position(action.get("coordinates"))
+                            else step.get("coordinates")
+                        )
+                        if _valid_position(destination):
+                            for x_text, y_text in _TRAVEL_COORDINATE.findall(text):
+                                if (len(x_text) > 6 or len(y_text) > 6
+                                        or [int(x_text), int(y_text)] != list(destination)):
+                                    report(
+                                        "UNVERIFIABLE", f"{action_path}.coordinates",
+                                        "authored travel text agrees with verified destination",
+                                        [x_text, y_text],
+                                    )
                     for field in ("items", "monsters"):
                         entries = action.get(field)
                         if entries is None:
