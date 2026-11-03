@@ -26,6 +26,13 @@ WM_MOUSEHWHEEL = 0x020E
 LLMHF_INJECTED = 0x00000001
 HOOK_START_TIMEOUT_SECONDS = 2.0
 BLOCK_LOG_INTERVAL_SECONDS = 0.4
+# Static: WM_MOUSEMOVE can flood the busy hook, never allocate a new map per event.
+BLOCKED_DOWN_TO_UP = {
+    WM_LBUTTONDOWN: WM_LBUTTONUP,
+    WM_RBUTTONDOWN: WM_RBUTTONUP,
+    WM_MBUTTONDOWN: WM_MBUTTONUP,
+    WM_XBUTTONDOWN: WM_XBUTTONUP,
+}
 
 MouseCallback = Callable[[str, int, int], bool]
 WheelCallback = Callable[[int, int, int, bool], bool]
@@ -221,12 +228,7 @@ class MouseHook:
                     # its matching UP even if the worker ends before the user
                     # releases the button. Otherwise an orphaned physical UP
                     # could be delivered to Unity or another application.
-                    paired_up = {
-                        WM_LBUTTONDOWN: WM_LBUTTONUP,
-                        WM_RBUTTONDOWN: WM_RBUTTONUP,
-                        WM_MBUTTONDOWN: WM_MBUTTONUP,
-                        WM_XBUTTONDOWN: WM_XBUTTONUP,
-                    }.get(w_param)
+                    paired_up = BLOCKED_DOWN_TO_UP.get(w_param)
                     if paired_up is not None:
                         self._consumed_releases.add(paired_up)
                     self._log_blocked_event(w_param, x, y)
