@@ -399,6 +399,22 @@ class TestGuideConformity(unittest.TestCase):
         self.assertIn("DUPLICATE", report["issue_codes"])
         self.assertFalse(report["certified"])
 
+    def test_conflicting_actions_with_same_title_expose_both_hashes(self) -> None:
+        duplicate = copy.deepcopy(self.atlas["guides"][0]["steps"][0])
+        duplicate["actions"][0]["text"] = "Autre texte fictif"
+        self.atlas["guides"][0]["steps"].append(duplicate)
+        report = compare(self.reference, self.atlas)
+        ambiguous = next(x for x in report["issues"]
+                         if x["issue_code"] == "AMBIGUOUS")
+        before = ambiguous["expected"]
+        after = ambiguous["actual"]
+        self.assertEqual(before["title"], after["title"])
+        self.assertEqual(before["actions"]["count"], 2)
+        self.assertEqual(after["actions"]["count"], 2)
+        self.assertNotEqual(before["actions"]["sha256"],
+                            after["actions"]["sha256"])
+        self.assertEqual(report["status"], "PARITY_CHECK_BLOCKED")
+
     def test_identical_duplicate_remains_duplicate_without_ambiguity(self) -> None:
         self.atlas["guides"][0]["steps"].append(
             copy.deepcopy(self.atlas["guides"][0]["steps"][0])

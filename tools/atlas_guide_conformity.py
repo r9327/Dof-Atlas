@@ -185,8 +185,15 @@ def compare(reference: dict[str, Any], atlas: dict[str, Any]) -> dict[str, Any]:
                         # records competing for the same stable identity are
                         # also ambiguous and require independent adjudication.
                         def summary(value: dict[str, Any]) -> dict[str, Any]:
-                            return {k: v for k, v in value.items()
-                                    if k not in {"steps", "actions"}}
+                            # Keep the full underlying difference auditable
+                            # even when two records have an identical title
+                            # but distinct nested actions/steps.
+                            return {
+                                k: (collection_witness(k, v)
+                                    if k in _COLLECTIONS and isinstance(v, list)
+                                    else v)
+                                for k, v in value.items()
+                            }
                         report("AMBIGUOUS", f"{path}.{side}[{i}].{key}",
                                summary(unique[identifier]), summary(item),
                                parent_evidence)
