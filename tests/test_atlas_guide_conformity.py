@@ -98,6 +98,69 @@ class TestGuideConformity(unittest.TestCase):
             compare(source, imported(source))["status"], "PARITY_CHECK_PASS"
         )
 
+    def test_identical_hidden_per_guide_validation_rules_never_pass_parity(self):
+        cases = {
+            "conditions": [{"alignment": "bonta"}],
+            "validation": {"quest": "example"},
+            "validation_rule": {"npc": "reply-b"},
+            "completion_rule": {"combat": "boss"},
+            "required_level": 200,
+            "required_class": "feca",
+            "required_alignment": "bonta",
+            "required_order": "ordre_2",
+            "prerequisites": [{"quest_id": 123}],
+            "objectives": [{"monster": "Fictitious"}],
+            "dungeon_successes": ["Premier", "Nomade"],
+            "challenges": ["Premier"],
+        }
+        for field, value in cases.items():
+            with self.subTest(field=field):
+                source = reference()
+                source["guides"][0]["steps"][0]["actions"][0][field] = value
+                report = compare(source, imported(source))
+                self.assertEqual(report["status"], "PARITY_CHECK_BLOCKED")
+                self.assertFalse(report["certified"])
+                self.assertTrue(any(
+                    entry["issue_code"] == "UNVERIFIABLE"
+                    and entry["field_path"].endswith(f".actions[0].{field}")
+                    for entry in report["issues"]
+                ))
+
+    def test_identical_nested_item_or_monster_semantics_never_pass_parity(self):
+        for action_index, field, content in (
+            (1, "location", [-5, 2]),
+            (1, "consume", True),
+            (1, "craft_recipe", {"materials": ["fictitious"]}),
+            (1, "buy", True),
+            (1, "drop", {"chance": 0.5}),
+            (1, "links", ["https://example.invalid"]),
+            (1, "actions", [{"kind": "talk"}]),
+            (0, "choices", ["A"]),
+        ):
+            with self.subTest(action_index=action_index, field=field):
+                source = reference()
+                if action_index == 0:
+                    source["guides"][0]["steps"][0]["actions"][0]["monsters"] = [
+                        {"name": "Monstre fictif", "quantity": 1, field: content}
+                    ]
+                    target_collection = "monsters"
+                else:
+                    source["guides"][0]["steps"][0]["actions"][1]["items"][0][field] = content
+                    target_collection = "items"
+                report = compare(source, imported(source))
+                self.assertEqual(report["status"], "PARITY_CHECK_BLOCKED")
+                self.assertTrue(any(
+                    entry["issue_code"] == "UNVERIFIABLE"
+                    and entry["field_path"].endswith(
+                        f".actions[{action_index}].{target_collection}[0].{field}"
+                    )
+                    for entry in report["issues"]
+                ))
+        source = reference()
+        source["guides"][0]["steps"][0]["actions"][1]["items"][0]["links"] = []
+        self.assertEqual(compare(source, imported(source))["status"],
+                         "PARITY_CHECK_PASS")
+
     def test_identical_unrenderable_step_branches_or_media_never_pass_parity(self):
         for field, content in (
             ("branches", [{"target": "hidden"}]),
