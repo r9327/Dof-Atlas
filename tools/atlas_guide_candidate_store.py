@@ -6,6 +6,7 @@ It preserves multiple immutable candidates and an atomic local selection pointer
 """
 from __future__ import annotations
 
+import copy
 import hashlib
 import json
 import math
@@ -479,6 +480,57 @@ def selected_candidate(root: Path) -> str:
     return value
 
 
+def read_selected_preview(
+    *, root: Path, expected_selected: str,
+) -> dict[str, Any]:
+    """Explicit read-only inspection of ONE pinned staged generation.
+
+    This never grants installation, certification or character progress. The
+    caller must provide the exact SHA from its earlier selected_candidate()
+    observation; neither a missing store nor a stale selection is accepted.
+    The returned document is detached JSON, not a live mutable store handle.
+    """
+    digest = _checked_pointer(expected_selected, "expected_selected")
+    if digest == _NO_SELECTION:
+        raise GuideRouteContractError("no staged candidate selected for preview")
+    root = _safe_root(root)
+    marker = _read_json(root / _ROOT_MARKER)
+    if marker != {"format": _FORMAT, "runtime_activation": False}:
+        raise GuideRouteContractError("not a candidate store")
+    if _selection(root) != digest:
+        raise GuideRouteContractError("stale candidate preview selection")
+    # This returns the exact parsed bytes whose SHA was verified. Never
+    # re-open the candidate after hashing or reconstruct the source route.
+    preview = _verify_generation(root, digest)
+    if preview is None:
+        raise GuideRouteContractError("missing candidate for preview")
+    # A publisher can atomically change selected.json while the generation
+    # is being read. Reject the outdated snapshot instead of displaying it.
+    if _selection(root) != digest:
+        raise GuideRouteContractError("candidate selection changed during preview")
+    return preview
+
+
+def read_selected_route(
+    *, root: Path, expected_selected: str, route_id: str,
+) -> dict[str, Any]:
+    """Return a detached canonical source card route for an explicit preview.
+
+    Preview routing is not an application catalog, publishing operation or
+    authorization to mutate character progress. No default or first-guide
+    fallback: the caller must name exactly one projected route identity.
+    """
+    if not isinstance(route_id, str) or not route_id.startswith("source_guide:"):
+        raise GuideRouteContractError("explicit canonical source route ID required")
+    preview = read_selected_preview(root=root, expected_selected=expected_selected)
+    matches = [
+        route for route in preview["routes"] if route.get("id") == route_id
+    ]
+    if len(matches) != 1:
+        raise GuideRouteContractError("unknown or ambiguous staged preview route")
+    return copy.deepcopy(matches[0])
+
+
 def rollback_candidate(
     *,
     root: Path,
@@ -508,4 +560,7 @@ def rollback_candidate(
             "candidate_sha256": restore_sha256, "certified": False}
 
 
-__all__ = ["publish_candidate", "selected_candidate", "rollback_candidate"]
+__all__ = [
+    "publish_candidate", "selected_candidate", "rollback_candidate",
+    "read_selected_preview", "read_selected_route",
+]
