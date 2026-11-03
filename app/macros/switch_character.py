@@ -38,6 +38,16 @@ class SwitchCharacterMacro:
                 "Activation client",
                 should_stop=self.runtime.macro_lock.should_stop,
             ):
+                # Activation success is not enough: focus can be stolen between
+                # the Win32 request and the actual game input.
+                if self.runtime.macro_lock.should_stop():
+                    return
+                if foreground_window() != int(target.handle):
+                    self.runtime.logger.warning(
+                        "Activation client ignoree: focus non confirme hwnd=%s",
+                        target.handle,
+                    )
+                    return
                 self.runtime.active_client_handle = target.handle
                 self.runtime.logger.info(
                     "Activation par raccourci client: label=%s hwnd=%s",
