@@ -53,9 +53,15 @@ class ImportedSourceRuntimeTests(unittest.TestCase):
         self.others = SimpleNamespace(reload=lambda: None)
 
     def _runtime(self, route: dict) -> ImportedSourceManualRuntimeService:
-        return ImportedSourceManualRuntimeService(
+        service = ImportedSourceManualRuntimeService(
             self.others, self.others, self.guide_progress, route=route,
         )
+        # Fixture-only explicit authorizer. Production injection requires an
+        # independent certified-route witness before the same guard is set.
+        service.set_authorization_guard(
+            lambda guide_id, projected: projected["id"] == guide_id,
+        )
+        return service
 
     def test_selected_source_never_loads_the_generated_v5_or_optimized_route(self):
         route = _source_route()
@@ -95,6 +101,32 @@ class ImportedSourceRuntimeTests(unittest.TestCase):
         ))
         left.set_page_checked("character:1", left.cards[0], 0, False)
         self.assertEqual(left.route_sheet_progress("character:1"), (0, 2))
+
+    def test_missing_revoked_or_failing_authorization_never_writes_progress(self):
+        service = ImportedSourceManualRuntimeService(
+            self.others, self.others, self.guide_progress,
+            route=_source_route(),
+        )
+        card = service.cards[0]
+        self.assertFalse(service.can_write_progress())
+        service.set_page_checked("character:1", card, 0, True)
+        self.assertFalse(self.progress_path.exists())
+        allow = {"ok": True}
+        service.set_authorization_guard(
+            lambda _route, _document: allow["ok"],
+        )
+        self.assertTrue(service.can_write_progress())
+        service.set_page_checked("character:1", card, 0, True)
+        self.assertTrue(service.page_checked("character:1", card))
+        allow["ok"] = False
+        service.set_page_checked("character:1", card, 0, False)
+        self.assertTrue(service.page_checked("character:1", card))
+        service.set_authorization_guard(
+            lambda _route, _document: (_ for _ in ()).throw(RuntimeError("revoked")),
+        )
+        self.assertFalse(service.can_write_progress())
+        service.set_page_checked("character:2", card, 0, True)
+        self.assertFalse(service.page_checked("character:2", card))
 
     def test_source_quest_name_never_auto_completes_uncertified_action(self):
         route = _source_route()
