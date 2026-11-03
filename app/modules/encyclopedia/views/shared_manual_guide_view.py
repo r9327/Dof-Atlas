@@ -1641,7 +1641,10 @@ class SharedGuideManualView(GuideUltimeManualView):
                 item_id = None
             if name:
                 rows.append((item_id, name, quantity, cls._preparation_category(name)))
-        if not rows:
+        # Source cards are complete projections: an absent preparation section
+        # means no preparations, not permission to ask a legacy provider to
+        # reconstruct/invent entries (or eagerly hydrate a catalogue).
+        if not rows and card.get("manual_source") is not True:
             sections_for_card = getattr(service, "manual_sections_for_card", None)
             sections = sections_for_card(character_key, card) if callable(sections_for_card) else {}
             for raw in sections.get("prepare", ()) if isinstance(sections, dict) else ():

@@ -399,6 +399,38 @@ class ImportedSourceSharedManualUiTests(unittest.TestCase):
                     sheet.deleteLater()
                     QApplication.processEvents()
 
+    def test_source_without_preparation_never_calls_legacy_provider(self) -> None:
+        # A source step with no prepare actions is a valid empty inventory.
+        # Opening the shared preparation panel must not ask a legacy service
+        # to invent rows or hydrate all Quest content.
+        with tempfile.TemporaryDirectory() as temp:
+            route = project_authorized_guide(self._source())
+            service = self._service(Path(temp) / "progress.json", route)
+            source_card = service.cards[1]
+            self.assertEqual(source_card["a_preparer"], [])
+
+            def forbidden_provider(*_args):
+                raise AssertionError("source preparation must not fall back to legacy")
+
+            service.manual_sections_for_card = forbidden_provider
+            requirements = SharedGuideManualView._requirements_from_card(
+                service, "character:1", source_card
+            )
+            self.assertEqual(requirements, ())
+
+            # Existing optimized routes still have their historical fallback.
+            legacy_card = dict(source_card)
+            legacy_card.pop("manual_source")
+            service.manual_sections_for_card = lambda *_args: {
+                "prepare": [{"text": "Prépare 2 x Composant fictif"}]
+            }
+            legacy_requirements = SharedGuideManualView._requirements_from_card(
+                service, "character:1", legacy_card
+            )
+            self.assertEqual(
+                legacy_requirements[0][:3], (None, "Composant fictif", 2)
+            )
+
     def test_empty_source_sections_never_fall_back_to_legacy_lines(self) -> None:
         with tempfile.TemporaryDirectory() as temp:
             route = project_authorized_guide(self._source())
