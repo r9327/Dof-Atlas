@@ -686,6 +686,39 @@ class TestGuideConformity(unittest.TestCase):
         self.assertEqual(a, self.reference)
         self.assertEqual(b, self.atlas)
 
+    def test_cli_rejects_ambiguous_duplicate_and_nonfinite_json_before_writing(self) -> None:
+        for malformed in ("duplicate_root", "duplicate_action", "nan", "infinity"):
+            with self.subTest(malformed=malformed), tempfile.TemporaryDirectory() as temp:
+                root = Path(temp)
+                reference_path = root / "ref.json"
+                before_path = root / "before.json"
+                after_path = root / "after.json"
+                output = root / "reports"
+                reference_path.write_text(json.dumps(reference()), encoding="utf-8")
+                before_path.write_text(json.dumps(imported(reference())), encoding="utf-8")
+                raw = json.dumps(imported(reference()))
+                if malformed == "duplicate_root":
+                    raw = raw.replace('"guides": ', '"guides": [], "guides": ', 1)
+                elif malformed == "duplicate_action":
+                    raw = raw.replace('"action_id": "talk"',
+                                      '"action_id": "talk", "action_id": "shadow"', 1)
+                elif malformed == "nan":
+                    raw = raw.replace('"text": "Parler au PNJ A"',
+                                      '"text": "Parler au PNJ A", "capture": NaN', 1)
+                else:
+                    raw = raw.replace('"text": "Parler au PNJ A"',
+                                      '"text": "Parler au PNJ A", "capture": Infinity', 1)
+                after_path.write_text(raw, encoding="utf-8")
+                with self.assertRaises(SystemExit) as raised:
+                    main([
+                        "--reference", str(reference_path),
+                        "--before", str(before_path),
+                        "--after", str(after_path),
+                        "--output-dir", str(output),
+                    ])
+                self.assertEqual(raised.exception.code, 2)
+                self.assertFalse(output.exists())
+
     def test_cli_never_overwrites_existing_audit_reports(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)

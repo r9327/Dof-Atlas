@@ -375,3 +375,16 @@ volontairement aucun export de guide réel. Cela ne certifie rien par soi-même.
   du côté resté valide. Les pertes ne sont pas masquées par l'erreur de type.
 - Tests de non-régression fictifs ajoutés. Le schéma du lecteur Qt et
   les sauvegardes existantes ne sont pas modifiés.
+
+### Contrôle des fichiers JSON entrants (3 novembre 2026)
+
+- Les CLI indépendantes de comparaison AVANT/APRÈS et de prévisualisation
+  rejettent maintenant les clés JSON dupliquées à **tous les niveaux**
+  (`object_pairs_hook`), ainsi que `NaN`, `Infinity` et `-Infinity`.
+  Une paire de clés `actions` conflictuelles n'est plus écrasée
+  silencieusement par le parseur Python.
+- Un export ambigu est refusé **avant** la création du dossier de
+  rapports ou du fichier de prévisualisation (code de sortie 2).
+- La lecture des JSON par des API Python recevant déjà des dictionnaires
+  impose toujours au producteur de valider l'authenticité/provenance ;
+  ces contrôles CLI ne constituent pas une certification ni une extraction.

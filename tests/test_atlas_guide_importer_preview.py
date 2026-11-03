@@ -119,6 +119,32 @@ class GuideImporterPreviewTests(unittest.TestCase):
             self.assertEqual(raised.exception.code, 2)
             self.assertFalse((root / "installed_route.json").exists())
 
+    def test_cli_refuses_duplicate_and_nonfinite_json_without_preview_write(self):
+        for malformed in ("duplicate_root", "duplicate_action", "nan", "infinity"):
+            with self.subTest(malformed=malformed), tempfile.TemporaryDirectory() as temp:
+                root = Path(temp)
+                source = root / "authorized.json"
+                output = root / "preview.json"
+                document = valid_export()
+                document["complete"] = False
+                raw = json.dumps(document)
+                if malformed == "duplicate_root":
+                    raw = raw.replace('"guides": ', '"guides": [], "guides": ', 1)
+                elif malformed == "duplicate_action":
+                    raw = raw.replace('"action_id": "talk"',
+                                      '"action_id": "talk", "action_id": "shadow"', 1)
+                elif malformed == "nan":
+                    raw = raw.replace('"text": "Parler au PNJ X"',
+                                      '"text": "Parler au PNJ X", "capture": NaN', 1)
+                else:
+                    raw = raw.replace('"text": "Parler au PNJ X"',
+                                      '"text": "Parler au PNJ X", "capture": Infinity', 1)
+                source.write_text(raw, encoding="utf-8")
+                with self.assertRaises(SystemExit) as raised:
+                    main(["--source", str(source), "--partial", "--output", str(output)])
+                self.assertEqual(raised.exception.code, 2)
+                self.assertFalse(output.exists())
+
     def test_cli_rejects_custom_full_inventory_counts(self):
         # The standalone CLI must never redefine "full" as 1/1. Internal
         # test/pipeline APIs may project a single synthetic guide.

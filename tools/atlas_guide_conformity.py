@@ -519,6 +519,29 @@ def before_after(reference: dict[str, Any], before: dict[str, Any],
     }
 
 
+def _load_strict_json(path: Path) -> dict[str, Any]:
+    """Parse only unambiguous, RFC-compatible JSON exports at the CLI boundary."""
+    def unique_pairs(pairs: list[tuple[str, Any]]) -> dict[str, Any]:
+        result: dict[str, Any] = {}
+        for key, value in pairs:
+            if key in result:
+                raise ValueError(f"duplicate JSON key {key!r}")
+            result[key] = value
+        return result
+
+    def reject_nonfinite(value: str) -> Any:
+        raise ValueError(f"non-finite JSON constant {value!r}")
+
+    document = json.loads(
+        path.read_text(encoding="utf-8"),
+        object_pairs_hook=unique_pairs,
+        parse_constant=reject_nonfinite,
+    )
+    if not isinstance(document, dict):
+        raise ValueError("JSON root must be an object")
+    return document
+
+
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description="Offline independent guide conformity reports")
     parser.add_argument("--reference", type=Path, required=True)
@@ -526,9 +549,14 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--after", type=Path, required=True)
     parser.add_argument("--output-dir", type=Path, required=True)
     args = parser.parse_args(argv)
-    def read(path: Path) -> dict[str, Any]:
-        return json.loads(path.read_text(encoding="utf-8"))
-    ref, old, new = read(args.reference), read(args.before), read(args.after)
+    try:
+        ref, old, new = (
+            _load_strict_json(args.reference),
+            _load_strict_json(args.before),
+            _load_strict_json(args.after),
+        )
+    except (OSError, ValueError) as exc:
+        parser.error(f"invalid or ambiguous source JSON: {exc}")
     prior, current = compare(ref, old), compare(ref, new)
     delta = before_after(ref, old, new)
     # Reports must never overwrite any Atlas data, guide, user state or

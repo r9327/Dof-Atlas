@@ -97,6 +97,29 @@ def prepare_preview(
     }
 
 
+def _load_strict_json(path: Path) -> dict[str, Any]:
+    """Parse only unambiguous, RFC-compatible JSON exports at the CLI boundary."""
+    def unique_pairs(pairs: list[tuple[str, Any]]) -> dict[str, Any]:
+        result: dict[str, Any] = {}
+        for key, value in pairs:
+            if key in result:
+                raise ValueError(f"duplicate JSON key {key!r}")
+            result[key] = value
+        return result
+
+    def reject_nonfinite(value: str) -> Any:
+        raise ValueError(f"non-finite JSON constant {value!r}")
+
+    document = json.loads(
+        path.read_text(encoding="utf-8"),
+        object_pairs_hook=unique_pairs,
+        parse_constant=reject_nonfinite,
+    )
+    if not isinstance(document, dict):
+        raise ValueError("JSON root must be an object")
+    return document
+
+
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(
         description="Authorized guide source -> Atlas shared cards, dry-run only"
@@ -107,7 +130,7 @@ def main(argv: list[str] | None = None) -> int:
                         help="Explicitly plan a non-certified subset only")
     args = parser.parse_args(argv)
     try:
-        source = json.loads(args.source.read_text(encoding="utf-8"))
+        source = _load_strict_json(args.source)
         result = prepare_preview(
             source, partial=args.partial,
         )
