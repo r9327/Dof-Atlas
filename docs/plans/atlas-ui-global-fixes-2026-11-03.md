@@ -31,7 +31,7 @@ L'architecture existante est la source de vérité : `app/ui/unity_skin.py` (pal
 
 ## Migration Organizer/Macro/Zaap vers #325 — décision du 03/11/2026
 
-Le correctif Switch clic Unity ATMC-003 et les 24 autres critères Organizer/Macro/Zaap/recette multi-fenêtres ont été **transférés** de #364 vers #321. Les correctifs des événements souris ont été commités historiquement sur #365 mais **leur code y est encore présent** ; la migration technique doit préserver le clic physique source et les hooks Miroir/molette existants dans #325. Ne retirer les modifications natives de #365 qu'après transfert vérifié et contrôle Graphify exact-SHA des consommateurs, sans perte des tests. Pas de certification Unity implicite.
+Le correctif Switch clic Unity ATMC-003 et les 24 autres critères Organizer/Macro/Zaap/recette multi-fenêtres sont dans #321/#325. **Transfert des fichiers effectué** : le diff actuel de #365 ne conserve que les changements UI globale (`encyclopedia_page.py`, `theme.py`, `unity_skin.py`, ce plan et deux tests visuels). Le clic physique source DOWN/UP, les hooks molette/clavier, les corrections du clic synthétique et leurs tests sont portés dans #325. **La validation reste à faire** : Graphify exact-SHA, Doctor/tests ciblés, audit d'intégration et recette DOFUS Unity 2/4/6/8. Aucun PASS ni certification n'est déduit du transfert.
 
 ## Ordre de lots de développement conseillé
 
