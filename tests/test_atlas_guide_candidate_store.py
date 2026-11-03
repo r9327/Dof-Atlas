@@ -136,6 +136,96 @@ class CandidateStoreTests(unittest.TestCase):
             publish_candidate(changed, root=self.root)
         self.assertEqual(selected_candidate(self.root), first["candidate_sha256"])
 
+    def test_preview_rejects_stale_selection_after_publish_or_rollback(self) -> None:
+        first = publish_candidate(self.preview, root=self.root)
+        old_digest = first["candidate_sha256"]
+        second = publish_candidate(
+            candidate(step_title="Nouvelle version"),
+            root=self.root, expected_selected=old_digest,
+        )
+        new_digest = second["candidate_sha256"]
+        with self.assertRaisesRegex(GuideRouteContractError, "stale"):
+            read_selected_preview(root=self.root, expected_selected=old_digest)
+        self.assertEqual(
+            read_selected_route(root=self.root, expected_selected=new_digest,
+                                route_id="source_guide:99")["steps"][0]["manual_title"],
+            "Nouvelle version",
+        )
+        rollback_candidate(root=self.root, expected_selected=new_digest,
+                           restore_sha256=old_digest)
+        with self.assertRaisesRegex(GuideRouteContractError, "stale"):
+            read_selected_route(root=self.root, expected_selected=new_digest,
+                                route_id="source_guide:99")
+        self.assertEqual(
+            read_selected_route(root=self.root, expected_selected=old_digest,
+                                route_id="source_guide:99")["steps"][0]["manual_title"],
+            "Départ",
+        )
+
+    def test_preview_checks_hash_and_rejects_tampering(self) -> None:
+        result = publish_candidate(self.preview, root=self.root)
+        digest = result["candidate_sha256"]
+        generation = self.root / "generations" / (digest + ".json")
+        generation.write_text("{}", encoding="utf-8")
+        with self.assertRaisesRegex(GuideRouteContractError, "SHA mismatch"):
+            read_selected_preview(root=self.root, expected_selected=digest)
+        with self.assertRaisesRegex(GuideRouteContractError, "SHA mismatch"):
+            read_selected_route(
+                root=self.root, expected_selected=digest,
+                route_id="source_guide:99",
+            )
+
+    def test_preview_reuses_hash_verified_bytes_without_reopen(self) -> None:
+        result = publish_candidate(self.preview, root=self.root)
+        digest = result["candidate_sha256"]
+        generation = self.root / "generations" / (digest + ".json")
+        original_read_text = Path.read_text
+
+        def reject_generation_text_read(path, *args, **kwargs):
+            if path == generation:
+                self.fail("selected preview reopened the candidate after hashing")
+            return original_read_text(path, *args, **kwargs)
+
+        with patch.object(Path, "read_text", reject_generation_text_read):
+            self.assertEqual(
+                read_selected_preview(root=self.root, expected_selected=digest),
+                self.preview,
+            )
+            self.assertEqual(
+                read_selected_route(
+                    root=self.root, expected_selected=digest,
+                    route_id="source_guide:99",
+                )["steps"][0]["manual_title"],
+                "Départ",
+            )
+
+    def test_preview_detects_pointer_change_during_generation_read(self) -> None:
+        first = publish_candidate(self.preview, root=self.root)
+        old_digest = first["candidate_sha256"]
+        second = publish_candidate(
+            candidate(step_title="Autre génération"),
+            root=self.root, expected_selected=old_digest,
+        )
+        new_digest = second["candidate_sha256"]
+        rollback_candidate(root=self.root, expected_selected=new_digest,
+                           restore_sha256=old_digest)
+        from tools import atlas_guide_candidate_store as store
+
+        original = store._verify_generation
+        def switch_during_read(root, digest):
+            parsed = original(root, digest)
+            (self.root / "selected.json").write_text(json.dumps({
+                "format": "atlas-guide-candidate-store/v1",
+                "candidate_sha256": new_digest,
+                "runtime_activation": False,
+            }), encoding="utf-8")
+            return parsed
+
+        with patch.object(store, "_verify_generation", side_effect=switch_during_read):
+            with self.assertRaisesRegex(GuideRouteContractError, "changed during preview"):
+                read_selected_preview(root=self.root, expected_selected=old_digest)
+        self.assertEqual(selected_candidate(self.root), new_digest)
+
     def test_rollback_previous_generation_with_cas(self) -> None:
         first = publish_candidate(self.preview, root=self.root)
         next_preview = candidate(step_title="Modifié")
