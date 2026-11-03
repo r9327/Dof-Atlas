@@ -476,6 +476,102 @@ class ImportedSourceSharedManualUiTests(unittest.TestCase):
             self.assertEqual(service.route_sheet_progress("character:2"), (0, 3))
             self.assertEqual(new_route["source_compliance"], "NOT_CERTIFIED")
 
+    def test_classic_coordinate_copies_even_with_macro_callback(self) -> None:
+        from PySide6.QtWidgets import QToolButton
+        from app.modules.encyclopedia.views.shared_manual_guide_view import (
+            SharedGuideManualCard,
+        )
+
+        with tempfile.TemporaryDirectory() as temp:
+            route = project_authorized_guide(self._source())
+            service = self._service(Path(temp) / "progress.json", route)
+            launches = []
+            sheet = SharedGuideManualCard(
+                service, "character:1", service.cards[0], 0,
+                travel_command_callback=launches.append,
+            )
+            try:
+                coordinate = sheet.findChild(QLabel, "GuideManualPositionCopy")
+                zaap = sheet.findChild(QToolButton, "GuideManualZaapShortcut")
+                self.assertIsNotNone(coordinate)
+                self.assertIsNotNone(zaap)
+                self.assertIn("travel-copy:-5,2", coordinate.text())
+                self.assertEqual(zaap.toolTip(), "Trajet optimisé via Zaap")
+                QApplication.clipboard().setText("before")
+                coordinate.linkActivated.emit("travel-copy:-5,2")
+                self.assertEqual(QApplication.clipboard().text(), "/travel -5,2")
+                self.assertEqual(launches, [])
+                QApplication.clipboard().setText("before")
+                zaap.click()
+                self.assertEqual(QApplication.clipboard().text(), "/travel -5,2")
+                self.assertEqual(launches, [])
+            finally:
+                sheet.close()
+                sheet.deleteLater()
+                QApplication.processEvents()
+
+    def test_zaap_shortcut_uses_only_verified_matching_plan_when_clicked(self) -> None:
+        from PySide6.QtWidgets import QToolButton
+        from app.modules.encyclopedia.services.adventure_route_engine import RouteLocation
+        from app.modules.encyclopedia.services.guide_route_planner import (
+            GuideTravelPlan, TravelMode,
+        )
+
+        with tempfile.TemporaryDirectory() as temp:
+            route = project_authorized_guide(self._source())
+            service = self._service(Path(temp) / "progress.json", route)
+            participants = _ThreeParticipants()
+            participants.save_selected_keys(("character:1",))
+            planned, launched = [], []
+
+            def verified_plan(destination, keys):
+                planned.append((destination, keys))
+                return GuideTravelPlan(
+                    mode=TravelMode.ZAAP_THEN_TRAVEL,
+                    destination=RouteLocation(x=-5, y=2),
+                    participant_keys=keys,
+                    world="fictional-world",
+                    zaap=RouteLocation(x=1, y=1),
+                    evidence="fictional-independent-zaap-proof",
+                )
+
+            service.plan_verified_zaap_travel = verified_plan
+            view = SharedGuideManualView(
+                service, character_key="character:1",
+                participant_service=participants,
+                travel_callback=lambda command, keys: launched.append(
+                    (command, keys)
+                ),
+            )
+            try:
+                view._show_index(0)
+                QApplication.processEvents()
+                self.assertEqual(planned, [])  # Zero route work during rendering.
+                button = view.findChild(QToolButton, "GuideManualZaapShortcut")
+                self.assertIsNotNone(button)
+                button.click()
+                self.assertEqual(planned, [((-5, 2), ("character:1",))])
+                self.assertEqual(launched, [(
+                    "/zaap 1,1 ; /travel -5,2", ("character:1",),
+                )])
+
+                # Wrong destination, even if returned as a typed travel plan,
+                # cannot be sent to the selected character.
+                service.plan_verified_zaap_travel = lambda _xy, keys: GuideTravelPlan(
+                    mode=TravelMode.ZAAP_THEN_TRAVEL,
+                    destination=RouteLocation(x=-4, y=2),
+                    participant_keys=keys, world="fictional-world",
+                    zaap=RouteLocation(x=1, y=1), evidence="fictional",
+                )
+                QApplication.clipboard().setText("before")
+                button.click()
+                self.assertEqual(QApplication.clipboard().text(), "/travel -5,2")
+                self.assertEqual(len(launched), 1)
+            finally:
+                view.close()
+                view.deleteLater()
+                QApplication.processEvents()
+
     def test_preview_preserves_source_sections_and_clickable_roles(self) -> None:
         with tempfile.TemporaryDirectory() as temp:
             route = project_authorized_guide(self._source())
