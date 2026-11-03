@@ -493,6 +493,7 @@ class ModularDomainRoutingTests(unittest.TestCase):
             "app/modules/encyclopedia/views/guide_ultime_manual_view.py",
             "app/modules/encyclopedia/views/guide_ultime_universal_view.py",
             "app/modules/encyclopedia/views/shared_manual_guide_view.py",
+            "app/modules/encyclopedia/views/manual_route_guides_view.py",
         ]
         for path in paths:
             self.assertEqual(owners_for(path), frozenset({"guides", "ui"}))
