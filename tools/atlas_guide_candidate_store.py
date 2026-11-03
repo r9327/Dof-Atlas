@@ -42,7 +42,14 @@ _NO_SELECTION = "NONE"
 
 
 def _json_bytes(value: Any) -> bytes:
-    return (json.dumps(value, ensure_ascii=False, sort_keys=True, separators=(",", ":")) + "\n").encode("utf-8")
+    try:
+        payload = json.dumps(
+            value, ensure_ascii=False, sort_keys=True, separators=(",", ":"),
+            allow_nan=False,
+        )
+    except (TypeError, ValueError) as exc:
+        raise GuideRouteContractError("candidate contains non-JSON-compatible values") from exc
+    return (payload + "\n").encode("utf-8")
 
 
 def _digest(payload: bytes) -> str:

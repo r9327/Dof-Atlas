@@ -73,7 +73,10 @@ def _valid_position(value: Any) -> bool:
 
 
 def _digest(payload: Any) -> str:
-    raw = json.dumps(payload, sort_keys=True, separators=(",", ":"), ensure_ascii=False)
+    raw = json.dumps(
+        payload, sort_keys=True, separators=(",", ":"), ensure_ascii=False,
+        allow_nan=False,
+    )
     return hashlib.sha256(raw.encode("utf-8")).hexdigest()
 
 

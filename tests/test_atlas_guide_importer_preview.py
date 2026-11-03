@@ -47,6 +47,16 @@ class GuideImporterPreviewTests(unittest.TestCase):
         self.assertEqual(actual["action_count"], 2)
         self.assertEqual(actual["routes"][0]["steps"][0]["manual_stage_id"], "source:1:first")
 
+    def test_library_rejects_nonfinite_metadata_before_preview(self):
+        for invalid in (float("nan"), float("inf"), float("-inf")):
+            with self.subTest(value=repr(invalid)):
+                data = valid_export()
+                data["guides"][0]["untrusted_extra"] = {"priority": invalid}
+                with self.assertRaisesRegex(
+                    GuideRouteContractError, "non-JSON-compatible"
+                ):
+                    prepare_preview(data, expected_guides=1, expected_steps=1)
+
     def test_default_95_guides_7705_steps_blocks_incomplete_export(self):
         with self.assertRaisesRegex(GuideRouteContractError, "expected 95"):
             prepare_preview(valid_export())

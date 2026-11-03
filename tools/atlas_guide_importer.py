@@ -37,7 +37,14 @@ EXPECTED_STEPS = 7705
 
 
 def _canonical_bytes(data: Any) -> bytes:
-    return json.dumps(data, ensure_ascii=False, sort_keys=True, separators=(",", ":")).encode("utf-8")
+    try:
+        encoded = json.dumps(
+            data, ensure_ascii=False, sort_keys=True, separators=(",", ":"),
+            allow_nan=False,
+        )
+    except (TypeError, ValueError) as exc:
+        raise GuideRouteContractError("source export contains non-JSON-compatible values") from exc
+    return encoded.encode("utf-8")
 
 
 def prepare_preview(

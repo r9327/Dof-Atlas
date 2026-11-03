@@ -56,6 +56,13 @@ class CandidateStoreTests(unittest.TestCase):
                          [".atlas-guide-candidates-v1.json", "generations", "selected.json"])
         self.assertFalse((self.root / "data").exists())
 
+    def test_nonfinite_candidate_metadata_cannot_create_store(self) -> None:
+        altered = copy.deepcopy(self.preview)
+        altered["routes"][0]["source_guide_metadata"]["priority"] = float("inf")
+        with self.assertRaisesRegex(GuideRouteContractError, "non-JSON-compatible"):
+            publish_candidate(altered, root=self.root)
+        self.assertFalse(self.root.exists())
+
     def test_idempotent_same_selection(self) -> None:
         first = publish_candidate(self.preview, root=self.root)
         second = publish_candidate(

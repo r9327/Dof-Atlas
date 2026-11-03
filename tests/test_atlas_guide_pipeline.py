@@ -191,6 +191,13 @@ class PipelineSyntheticTests(unittest.TestCase):
                 by_path["tools/atlas_guide_candidate_store.py"]["automation_ready"]
             )
 
+    def test_nonfinite_source_is_rejected_before_any_candidate_write(self):
+        source = copy.deepcopy(self.source)
+        source["guides"][0]["extra_metadata"] = float("inf")
+        with self.assertRaisesRegex(GuidePipelineBlocked, "non-JSON-compatible"):
+            self._run(authorized_source=source)
+        self.assertFalse(self.folder.exists())
+
     def test_missing_trusted_host_blocks_before_filesystem_writes(self):
         with self.assertRaisesRegex(GuidePipelineBlocked, "missing trusted evidence"):
             self._run(verifier=None)

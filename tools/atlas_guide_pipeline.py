@@ -86,8 +86,15 @@ def stage_checked_candidate(
     # might submit the same export as both 'source' and 'reference'. Demand
     # two independent, exact-SHA attestations before the first side effect.
     def _source_digest(document: dict[str, Any]) -> str:
-        raw = json.dumps(document, ensure_ascii=False, sort_keys=True,
-                         separators=(",", ":")).encode("utf-8")
+        try:
+            raw = json.dumps(
+                document, ensure_ascii=False, sort_keys=True,
+                separators=(",", ":"), allow_nan=False,
+            ).encode("utf-8")
+        except (TypeError, ValueError) as exc:
+            raise GuidePipelineBlocked(
+                "source/reference contains non-JSON-compatible values"
+            ) from exc
         return hashlib.sha256(raw).hexdigest()
 
     source_digest = _source_digest(authorized_source)

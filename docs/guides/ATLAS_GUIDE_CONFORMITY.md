@@ -444,3 +444,17 @@ API d'écriture (pipeline et magasin) ne deviennent pas
 `automation_ready` du seul fait de leur déclaration.
 Ce test n'autorise aucune action d'écriture et ne parcourt pas tout le
 dépôt à chaque exécution ciblée.
+
+### Protection des API Python contre les nombres non JSON
+
+Les CLI contrôlent déjà le JSON entrant. Les interfaces **Python**
+`prepare_preview`, `compare`, `stage_checked_candidate` et
+`publish_candidate` peuvent aussi recevoir directement des dictionnaires
+fournis par un appelant, sans passer par le parseur CLI. Leurs points
+de sérialisation canonique interdisent désormais `NaN`, `+/-Infinity`
+et les objets non sérialisables avec `allow_nan=False`. L'importeur,
+le pipeline et le magasin remontent leur erreur métier explicite ;
+le comparateur échoue sans produire de faux `PARITY_CHECK_PASS`.
+Aucun candidat ni fichier de rapports n'est écrit si ces frontières
+de sérialisation échouent. Quatre tests de régression purement fictifs
+couvrent ces cas.

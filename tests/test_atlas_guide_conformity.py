@@ -56,6 +56,16 @@ class TestGuideConformity(unittest.TestCase):
     def _codes(self, actual: dict) -> list[str]:
         return [x["issue_code"] for x in compare(self.reference, actual)["issues"]]
 
+    def test_library_matching_nonfinite_metadata_is_never_parity(self) -> None:
+        for invalid in (float("nan"), float("inf"), float("-inf")):
+            with self.subTest(value=repr(invalid)):
+                original = reference()
+                actual = imported(original)
+                original["guides"][0]["extra"] = {"priority": invalid}
+                actual["guides"][0]["extra"] = {"priority": invalid}
+                with self.assertRaisesRegex(ValueError, "Out of range float"):
+                    compare(original, actual)
+
     def test_exact_match_does_not_claim_gameplay_certificate(self) -> None:
         result = compare(self.reference, self.atlas)
         self.assertEqual(result["status"], "PARITY_CHECK_PASS")
