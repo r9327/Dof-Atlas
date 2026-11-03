@@ -195,6 +195,41 @@ class OrganizerSendInputTests(unittest.TestCase):
         guard.end.assert_called_once_with(120)
 
 
+    def test_refused_mouse_down_does_not_send_unpaired_up(self) -> None:
+        sent = []
+        with (
+            patch.object(clicks.os, "name", "nt"),
+            patch.object(clicks, "set_cursor_pos"),
+            patch.object(clicks, "_send_mouse_flag",
+                         side_effect=lambda flag: sent.append(flag) or False),
+        ):
+            result = clicks.send_screen_click(
+                300, 200, "Left", 1, 0, 0, 0, 0, Mock(), Mock(),
+            )
+        self.assertFalse(result)
+        self.assertEqual(sent, [clicks.MOUSEEVENTF_LEFTDOWN])
+
+    def test_second_mouse_down_refusal_does_not_emit_second_up(self) -> None:
+        sent = []
+        def sender(flag):
+            sent.append(flag)
+            return flag != clicks.MOUSEEVENTF_LEFTDOWN or len(sent) == 1
+
+        with (
+            patch.object(clicks.os, "name", "nt"),
+            patch.object(clicks, "set_cursor_pos"),
+            patch.object(clicks, "_send_mouse_flag", side_effect=sender),
+        ):
+            result = clicks.send_screen_click(
+                300, 200, "Left", 2, 0, 0, 0, 0, Mock(), Mock(),
+            )
+        self.assertFalse(result)
+        self.assertEqual(sent, [
+            clicks.MOUSEEVENTF_LEFTDOWN,
+            clicks.MOUSEEVENTF_LEFTUP,
+            clicks.MOUSEEVENTF_LEFTDOWN,
+        ])
+
     def test_client_click_aborts_on_focus_theft_during_hover(self) -> None:
         focused = [202]
         guard = Mock()
