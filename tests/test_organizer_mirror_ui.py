@@ -909,6 +909,74 @@ class OrganizerMirrorIntegrationTests(unittest.TestCase):
             -120, False, 0.2, 0.5, 101, (101, 202, 303),
         )
 
+    def test_busy_keyboard_uses_only_current_tracked_foreground(self):
+        for foreground, trusted, consumed in (
+            (101, True, True),
+            (202, True, True),
+            (777, False, False),
+            (101, False, False),
+        ):
+            with self.subTest(foreground=foreground, trusted=trusted):
+                runtime = self._runtime()
+                runtime._running = True
+                runtime._admin_ok = True
+                runtime.macro_lock.active_label = "Miroir"
+                with (
+                    patch("app.windows.unity_windows.foreground_window",
+                          return_value=foreground),
+                    patch("app.macros.mirror_plan.is_dofus_unity_process",
+                          return_value=trusted) as probe,
+                ):
+                    self.assertEqual(
+                        AtlasRuntime._handle_mirror_key(runtime, 65, True),
+                        consumed,
+                    )
+                runtime._mirror_gesture_targets.assert_not_called()
+                runtime.mirror_input.run_key.assert_not_called()
+                self.assertEqual(probe.call_count, int(foreground in (101, 202, 303)))
+
+    def test_busy_wheel_avoids_full_roster_and_never_touches_foreign_app(self):
+        for foreground, trusted, consumed in (
+            (101, True, True),
+            (303, True, True),
+            (888, False, False),
+            (303, False, False),
+        ):
+            with self.subTest(foreground=foreground, trusted=trusted):
+                runtime = self._runtime()
+                runtime._running = True
+                runtime._admin_ok = True
+                runtime.macro_lock.active_label = "Miroir"
+                with (
+                    patch("app.windows.unity_windows.foreground_window",
+                          return_value=foreground),
+                    patch("app.macros.mirror_plan.is_dofus_unity_process",
+                          return_value=trusted) as probe,
+                ):
+                    self.assertEqual(
+                        AtlasRuntime._handle_mirror_wheel(
+                            runtime, -120, 20, 25, False,
+                        ),
+                        consumed,
+                    )
+                runtime._mirror_gesture_targets.assert_not_called()
+                runtime.mirror_input.run_wheel.assert_not_called()
+                self.assertEqual(probe.call_count, int(foreground in (101, 202, 303)))
+
+    def test_busy_gestures_pass_when_mirror_mode_is_not_active(self):
+        runtime = self._runtime()
+        runtime._running = True
+        runtime._admin_ok = True
+        runtime.settings.macro_mode = "macro"
+        runtime.macro_lock.active_label = "Miroir"
+        with patch("app.windows.unity_windows.foreground_window") as foreground:
+            self.assertFalse(AtlasRuntime._handle_mirror_key(runtime, 65, True))
+            self.assertFalse(
+                AtlasRuntime._handle_mirror_wheel(runtime, 120, 20, 25, False)
+            )
+        foreground.assert_not_called()
+        runtime._mirror_gesture_targets.assert_not_called()
+
     def test_keyboard_and_wheel_leave_other_apps_untouched(self):
         runtime = self._runtime()
         runtime._running = True
