@@ -300,6 +300,11 @@ class CharacterHotkeyMappingTests(unittest.TestCase):
                             "activate_window",
                             return_value=True,
                         ) as activate_window,
+                        patch.object(
+                            switch_character_module,
+                            "foreground_window",
+                            return_value=202,
+                        ),
                     ):
                         self.assertTrue(
                             macro.activate_by_index(
