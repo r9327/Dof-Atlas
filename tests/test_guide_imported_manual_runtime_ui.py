@@ -142,6 +142,24 @@ class ImportedSourceRouterQtTests(unittest.TestCase):
         self.assertEqual(reader.route_progress_label.text(), "0 %")
         self.assertFalse(self.service.page_checked("character:2", self.service.cards[0]))
 
+    def test_guide_specific_prerequisite_disables_validation_without_order_prompt(self):
+        self.service.cards[0]["hard_runtime_gates"] = [
+            {"kind": "alignment", "expected": "Bonta"}
+        ]
+        self.approved = True
+        self.assertTrue(self.view.select_guide(self.service.guide_id))
+        reader = self.view.stack.currentWidget()
+        reader._show_index(0)
+        QApplication.processEvents()
+        button = reader.validation_layout.itemAt(0).widget()
+        self.assertFalse(button.isEnabled())
+        self.assertEqual(button.text(), "Prérequis à vérifier")
+        self.assertIn("prérequis", button.toolTip())
+        self.assertFalse(self.progress_path.exists())
+        self.assertFalse(self.service.manual_order_choice_blocking(
+            "character:1", self.service.cards[1],
+        ))
+
     def test_revocation_between_render_and_click_blocks_atomic_team_write(self):
         self.approved = True
         self.assertTrue(self.view.select_guide(self.service.guide_id))
