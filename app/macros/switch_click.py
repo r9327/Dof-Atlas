@@ -243,6 +243,7 @@ class SwitchClickMacro:
                 # synthetic replay or favorite restoration would do nothing
                 # useful and may steal focus from the user.
                 should_restore_preferred = False
+                original_cursor = None  # never reposition a cursor we did not move
                 sent_count = 1
                 self.runtime.logger.debug(
                     "%s: aucun destinataire secondaire, clic natif conservé.",
