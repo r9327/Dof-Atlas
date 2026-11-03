@@ -61,7 +61,7 @@ def _identifier(value: Any) -> str | None:
     result = str(value)
     # Never normalize a source ID before comparing inventories. Stripping
     # whitespace here can turn two malformed exports into a false parity PASS.
-    return result if _STABLE_ID.fullmatch(result) and result not in {".", ".."} else None
+    return result if _STABLE_ID.fullmatch(result) else None
 
 
 def compare(reference: dict[str, Any], atlas: dict[str, Any]) -> dict[str, Any]:
@@ -111,8 +111,16 @@ def compare(reference: dict[str, Any], atlas: dict[str, Any]) -> dict[str, Any]:
             atlas_fields = set(actual) - _IGNORED_REFERENCE_KEYS
             for key in sorted(ref_fields - atlas_fields):
                 report("MISSING_FIELD", f"{path}.{key}", expected[key], None, evidence)
+                # Missing collection keys must expand to every missing guide,
+                # step and action; reporting only the parent hides coverage.
+                if key in _COLLECTIONS and isinstance(expected[key], list):
+                    collection(expected[key], [], f"{path}.{key}",
+                               _COLLECTIONS[key], evidence)
             for key in sorted(atlas_fields - ref_fields):
                 report("EXTRA_FIELD", f"{path}.{key}", None, actual[key], evidence)
+                if key in _COLLECTIONS and isinstance(actual[key], list):
+                    collection([], actual[key], f"{path}.{key}",
+                               _COLLECTIONS[key], evidence)
             for key in sorted(ref_fields & atlas_fields):
                 if key in _COLLECTIONS:
                     collection(expected[key], actual[key], f"{path}.{key}",

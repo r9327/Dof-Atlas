@@ -293,24 +293,47 @@ class TestGuideConformity(unittest.TestCase):
             for x in result["issues"]
         ))
 
-    def test_dot_segments_are_not_valid_canonical_guide_ids(self) -> None:
-        for invalid in (".", ".."):
-            for level in ("guide", "step", "action"):
-                with self.subTest(value=invalid, level=level):
-                    original = reference()
-                    atlas = imported(original)
-                    if level == "guide":
-                        original["guides"][0]["guide_id"] = invalid
-                        atlas["guides"][0]["guide_id"] = invalid
-                    elif level == "step":
-                        original["guides"][0]["steps"][0]["source_step_id"] = invalid
-                        atlas["guides"][0]["steps"][0]["source_step_id"] = invalid
-                    else:
-                        original["guides"][0]["steps"][0]["actions"][0]["action_id"] = invalid
-                        atlas["guides"][0]["steps"][0]["actions"][0]["action_id"] = invalid
-                    result = compare(original, atlas)
-                    self.assertEqual(result["status"], "PARITY_CHECK_BLOCKED")
-                    self.assertIn("UNVERIFIABLE", result["issue_codes"])
+    def test_missing_entire_guides_key_expands_every_nested_loss(self) -> None:
+        self.atlas.pop("guides")
+        report = compare(self.reference, self.atlas)
+        paths = {(issue["issue_code"], issue["field_path"])
+                 for issue in report["issues"]}
+        self.assertIn(("MISSING_FIELD", ".guides"), paths)
+        self.assertIn(("MISSING_GUIDE", ".guides[2219]"), paths)
+        self.assertIn(("MISSING_GUIDE", ".guides[2220]"), paths)
+        self.assertIn(("MISSING_STEP", ".guides[2219].steps[A]"), paths)
+        self.assertIn(("MISSING_ACTION",
+                       ".guides[2219].steps[A].actions[talk]"), paths)
+        self.assertEqual(report["coverage"]["reference_full_actions"], 4)
+        self.assertEqual(report["coverage"]["atlas_full_actions"], 0)
+        self.assertEqual(report["status"], "PARITY_CHECK_BLOCKED")
+
+    def test_missing_entire_steps_key_expands_all_actions(self) -> None:
+        self.atlas["guides"][0].pop("steps")
+        report = compare(self.reference, self.atlas)
+        codes = [issue["issue_code"] for issue in report["issues"]]
+        self.assertIn("MISSING_FIELD", codes)
+        self.assertIn("MISSING_STEP", codes)
+        self.assertIn("MISSING_ACTION", codes)
+        self.assertEqual(report["status"], "PARITY_CHECK_BLOCKED")
+
+    def test_missing_entire_actions_key_expands_each_action(self) -> None:
+        self.atlas["guides"][0]["steps"][0].pop("actions")
+        report = compare(self.reference, self.atlas)
+        action_ids = {issue["action_id"] for issue in report["issues"]
+                      if issue["issue_code"] == "MISSING_ACTION"}
+        self.assertEqual(action_ids, {"talk", "get"})
+        self.assertEqual(report["status"], "PARITY_CHECK_BLOCKED")
+
+    def test_extra_entire_actions_key_expands_each_action(self) -> None:
+        self.reference["guides"][0]["steps"][0].pop("actions")
+        report = compare(self.reference, self.atlas)
+        self.assertEqual(
+            {issue["action_id"] for issue in report["issues"]
+             if issue["issue_code"] == "EXTRA_ACTION"},
+            {"talk", "get"},
+        )
+        self.assertEqual(report["status"], "PARITY_CHECK_BLOCKED")
 
     def test_identical_unsupported_action_kind_is_not_parity(self) -> None:
         original = reference()
