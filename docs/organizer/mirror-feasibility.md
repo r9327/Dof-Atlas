@@ -293,6 +293,10 @@ cibles, expiration et preuve que l'action a encore un sens.
 - Le mapping des paires `DOWN/UP` est statique : le hook ne recrée
   pas de dictionnaire par événement `WM_MOUSEMOVE`, important lorsque
   la souris se déplace pendant une diffusion à plusieurs clients.
+- À l'arrêt du hook Windows, les paires physiques réservées restent
+  protégées jusqu'à la désinstallation effective du hook ; elles ne sont
+  nettoyées qu'après. Le premier avertissement du prochain démarrage
+  n'est pas supprimé par un ancien délai de throttling.
 - Le hook compte **tous** les `DOWN` et crans de molette physiquement
   bloqués, y compris ceux qui n'ont pas produit d'avertissement à cause
   du seuil de 400 ms. Un relevé cumulatif apparaît dans les logs à
