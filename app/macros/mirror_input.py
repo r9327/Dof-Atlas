@@ -78,6 +78,7 @@ class MirrorInputMacro:
         start = perf_counter()
         delivered = 0
         send_samples_ms: list[float] = []
+        focus_samples_ms: list[float] = []
         cursor = None
         focus_lost = False
         roster_verified = False
@@ -105,6 +106,7 @@ class MirrorInputMacro:
                 if not is_dofus_unity_process(hwnd):
                     runtime.logger.warning("Miroir %s: HWND non DOFUS, annulation.", kind)
                     break
+                focus_started_at = perf_counter()
                 try:
                     activated = activate_window(
                         hwnd, timings.switch_background_pre_click_ms,
@@ -118,6 +120,8 @@ class MirrorInputMacro:
                         "Miroir %s: exception pendant activation hwnd=%s.", kind, hwnd,
                     )
                     break
+                finally:
+                    focus_samples_ms.append((perf_counter() - focus_started_at) * 1000.0)
                 if not activated:
                     # Do not force the previous favorite back when the user
                     # may have intentionally switched to another application.
@@ -194,10 +198,13 @@ class MirrorInputMacro:
             from app.macros.mirror_plan import mirror_latency_percentiles_ms
 
             latency = mirror_latency_percentiles_ms(send_samples_ms)
+            focus_latency = mirror_latency_percentiles_ms(focus_samples_ms)
             runtime.logger.info(
-                "Miroir %s: envoyés=%s/%s total_ms=%.2f delivery_step_ms=%s",
+                "Miroir %s: envoyés=%s/%s worker_total_ms=%.2f "
+                "delivery_step_ms=%s focus_activation_ms=%s",
                 kind, delivered, len(handles), (perf_counter() - start) * 1000.0,
                 latency if latency is not None else "NOT_MEASURED",
+                focus_latency if focus_latency is not None else "NOT_MEASURED",
             )
             label = "Clavier" if kind == "key" else "Molette"
             if delivered != len(handles) or runtime.macro_lock.should_stop():
