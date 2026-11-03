@@ -252,6 +252,40 @@ class CandidateStoreTests(unittest.TestCase):
         selection.write_text(prior, encoding="utf-8")
         self.assertEqual(selected_candidate(self.root), digest)
 
+    def test_staging_rejects_undeclared_preview_metadata(self) -> None:
+        # A forged flag must never travel inside a v1 immutable candidate.
+        for field, value in (
+            ("runtime_activation", True),
+            ("certification_status", "CERTIFIED"),
+            ("trusted_source", True),
+        ):
+            bad = copy.deepcopy(self.preview)
+            bad[field] = value
+            with self.subTest(field=field), self.assertRaisesRegex(
+                GuideRouteContractError, "unexpected/missing candidate preview fields"
+            ):
+                publish_candidate(bad, root=self.root)
+            self.assertFalse(self.root.exists())
+
+    def test_selected_metadata_cannot_claim_extra_status(self) -> None:
+        record = publish_candidate(self.preview, root=self.root)
+        selected = self.root / "selected.json"
+        original = json.loads(selected.read_text(encoding="utf-8"))
+        for field, value in (
+            ("certified", True),
+            ("runtime_activation_claim", True),
+            ("source_rights_verified", True),
+        ):
+            forged = dict(original)
+            forged[field] = value
+            selected.write_text(json.dumps(forged), encoding="utf-8")
+            with self.subTest(field=field), self.assertRaisesRegex(
+                GuideRouteContractError, "invalid selection marker"
+            ):
+                selected_candidate(self.root)
+        selected.write_text(json.dumps(original), encoding="utf-8")
+        self.assertEqual(selected_candidate(self.root), record["candidate_sha256"])
+
     def test_incomplete_or_fake_certificate_is_rejected(self) -> None:
         for field, value in (("certified", True), ("mode", "APPLY"),
                              ("guide_count", 123), ("status", "CERTIFIED")):

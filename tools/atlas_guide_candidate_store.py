@@ -40,6 +40,11 @@ _ROOT_MARKER = ".atlas-guide-candidates-v1.json"
 _SELECTED = "selected.json"
 _FORBIDDEN_PARTS = frozenset({".git", ".cache", "data", "saves", "profiles", "user_data"})
 _NO_SELECTION = "NONE"
+_PREVIEW_FIELDS = frozenset({
+    "schema_version", "mode", "status", "certified", "source_sha256",
+    "guide_count", "step_count", "action_count", "expected_guide_count",
+    "expected_step_count", "is_partial", "routes",
+})
 
 
 def _json_bytes(value: Any) -> bytes:
@@ -69,6 +74,8 @@ def _source_coordinates(value: Any) -> str:
 def _validate_candidate(preview: dict[str, Any]) -> None:
     if not isinstance(preview, dict):
         raise GuideRouteContractError("preview must be a JSON object")
+    if set(preview) != _PREVIEW_FIELDS:
+        raise GuideRouteContractError("unexpected/missing candidate preview fields")
     if (type(preview.get("schema_version")) is not int
             or preview["schema_version"] != 1
             or preview.get("mode") != "DRY_RUN_ONLY"):
@@ -373,7 +380,9 @@ def _selection(root: Path) -> str:
         return _NO_SELECTION
     doc = _read_json(path)
     value = doc.get("candidate_sha256")
-    if doc.get("format") != _FORMAT or doc.get("runtime_activation") is not False:
+    if (set(doc) != {"format", "candidate_sha256", "runtime_activation"}
+            or doc.get("format") != _FORMAT
+            or doc.get("runtime_activation") is not False):
         raise GuideRouteContractError("invalid selection marker")
     return _checked_pointer(value, "selection")
 
