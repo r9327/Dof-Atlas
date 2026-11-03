@@ -844,6 +844,29 @@ class TestGuideConformity(unittest.TestCase):
                     for issue in result["issues"]
                 ))
 
+    def test_identical_malformed_dialogue_choice_cannot_pass_parity(self):
+        for invalid in (None, "", "  ", 0, False, [], {}):
+            reference_doc = reference()
+            reference_doc["guides"][0]["steps"][0]["actions"][0][
+                "dialogue_choice"
+            ] = invalid
+            with self.subTest(invalid=invalid):
+                result = compare(reference_doc, imported(reference_doc))
+                self.assertEqual(result["status"], "PARITY_CHECK_BLOCKED")
+                self.assertFalse(result["certified"])
+                self.assertTrue(any(
+                    issue["issue_code"] == "UNVERIFIABLE"
+                    and issue["field_path"].endswith(".actions[0].dialogue_choice")
+                    for issue in result["issues"]
+                ))
+        doc = reference()
+        doc["guides"][0]["steps"][0]["actions"][0]["dialogue_choice"] = (
+            "Choisir « l'option B » exactement"
+        )
+        result = compare(doc, imported(doc))
+        self.assertEqual(result["status"], "PARITY_CHECK_PASS")
+        self.assertFalse(result["certified"])
+
     def test_identical_invalid_npc_name_cannot_pass(self) -> None:
         original = reference()
         atlas = imported(original)
