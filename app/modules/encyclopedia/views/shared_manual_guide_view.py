@@ -302,6 +302,19 @@ class SharedGuideManualCard(GuideUltimeManualCard):
         self.travel_command_callback = travel_command_callback
         self._quest_rows = self._canonical_quest_rows()
         self._quest_row_names_by_id = dict(self._quest_rows)
+        # On an imported step, explicit per-action Quest attribution owns
+        # ALL shortcuts. Earlier untagged rows must not steal one through
+        # a name match or the legacy single-Quest heuristic.
+        source_step = card.get("manual_runtime_metadata", {}).get("source_step")
+        self._source_quest_links_explicit = (
+            card.get("manual_source") is True
+            and "source_step_id" in card
+            and isinstance(source_step, dict)
+            and any(
+                isinstance(action, dict) and "quest_ids" in action
+                for action in source_step.get("actions", ())
+            )
+        )
         self._quest_normalized_rows = tuple(
             (quest_id, self._quest_name_key(name))
             for quest_id, name in self._quest_rows if name
@@ -641,6 +654,8 @@ class SharedGuideManualCard(GuideUltimeManualCard):
                     quest_id for quest_id in source_action["quest_ids"]
                     if quest_id in quest_names
                 ]
+            elif self._source_quest_links_explicit:
+                related_quest_ids = []
             else:
                 related_quest_ids = self._quest_ids_for_row(row)
             related_names = [
