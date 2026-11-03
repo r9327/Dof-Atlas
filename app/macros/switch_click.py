@@ -385,6 +385,16 @@ class SwitchClickMacro:
                     mirror_send_samples.append((perf_counter() - send_started_at) * 1000.0)
                 if delivered:
                     sent_count += 1
+                elif foreground_window() != int(client.handle):
+                    # The sender may refuse a click after Unity's hover
+                    # delay because another app stole focus. Do not force
+                    # the favorite back or continue to another client.
+                    focus_lost = True
+                    self.runtime.logger.warning(
+                        "%s interrompu: focus perdu pendant clic hwnd=%s",
+                        action_label, client.handle,
+                    )
+                    return
 
                 if (
                     index < len(targets) - 1
