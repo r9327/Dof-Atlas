@@ -168,6 +168,40 @@ class TestGuideConformity(unittest.TestCase):
         self.assertEqual(result["status"], "PARITY_CHECK_PASS")
         self.assertFalse(result["certified"])
 
+    def test_identical_hidden_preparation_semantics_never_pass_independent_parity(self):
+        preparation = {
+            "action_id": "prep", "kind": "prepare",
+            "text": "Préparer le matériel fictif",
+            "items": [{"name": "Ressource fictive", "quantity": 2}],
+        }
+        hidden = {
+            "npc": "Personnage fictif",
+            "dialogue_choice": "Choisir B",
+            "monsters": [{"name": "Monstre fictif", "quantity": 2}],
+            "coordinates": [4, 8],
+        }
+        for field, value in hidden.items():
+            with self.subTest(field=field):
+                doc = reference()
+                doc["guides"][0]["steps"][0]["actions"].insert(0, {
+                    **preparation, field: copy.deepcopy(value),
+                })
+                result = compare(doc, imported(doc))
+                self.assertEqual(result["status"], "PARITY_CHECK_BLOCKED")
+                self.assertFalse(result["certified"])
+                self.assertTrue(any(
+                    issue["issue_code"] == "UNVERIFIABLE"
+                    and issue["field_path"].endswith(f".actions[0].{field}")
+                    for issue in result["issues"]
+                ))
+        doc = reference()
+        doc["guides"][0]["steps"][0]["actions"].insert(0, {
+            **preparation, "monsters": [],
+        })
+        result = compare(doc, imported(doc))
+        self.assertEqual(result["status"], "PARITY_CHECK_PASS")
+        self.assertFalse(result["certified"])
+
     def test_preparation_quest_shortcut_is_unverifiable_even_if_both_exports_match(self):
         source = reference()
         step = source["guides"][0]["steps"][0]
