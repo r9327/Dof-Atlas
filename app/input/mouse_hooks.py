@@ -210,8 +210,10 @@ class MouseHook:
                     return 1
 
                 if w_param in (WM_MOUSEWHEEL, WM_MOUSEHWHEEL):
-                    if (not atlas_synthetic and not self.synthetic_guard.is_synthetic_window()
-                            and self.wheel_callback is not None):
+                    # Win32 marks injected mouse events explicitly. A time
+                    # window after an earlier SendInput is not evidence that
+                    # the NEXT physical wheel tick is synthetic.
+                    if not atlas_synthetic and self.wheel_callback is not None:
                         delta = ctypes.c_short((int(event.mouseData) >> 16) & 0xFFFF).value
                         if delta and self.wheel_callback(
                             delta, x, y, w_param == WM_MOUSEHWHEEL,
@@ -220,7 +222,7 @@ class MouseHook:
 
                 if w_param in (WM_LBUTTONDOWN, WM_RBUTTONDOWN):
                     button = "Left" if w_param == WM_LBUTTONDOWN else "Right"
-                    if atlas_synthetic or self.synthetic_guard.is_synthetic_window():
+                    if atlas_synthetic:
                         self.logger.debug(
                             "Clic synthétique ignoré: button=%s injected=%s",
                             button,
