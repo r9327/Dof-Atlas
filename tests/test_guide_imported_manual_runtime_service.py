@@ -196,6 +196,51 @@ class ImportedSourceRuntimeTests(unittest.TestCase):
             service.page_key({"manual_stage_id": "source:fictional-right:first"})
         self.assertFalse(self.progress_path.exists())
 
+    def test_manual_source_progress_keys_cannot_target_another_route(self):
+        service = self._runtime(_source_route())
+        invalid_keys = (
+            "source:another-route:first",
+            "source:fictional-route:unknown",
+            "__ui:preparation_ready:source_guide:another-route:item",
+            "__ui:preparation_ready:source_guide:fictional-route:",
+            "__ui:unrecognized",
+            None,
+        )
+        for key in invalid_keys:
+            with self.subTest(key=key):
+                with self.assertRaisesRegex(ValueError, "Unknown or foreign"):
+                    service.set_manual_checked("character:1", key, True)
+        self.assertFalse(self.progress_path.exists())
+        # Keep the two existing shared-header and preparation UI controls.
+        lock_key = "__ui:shared_route_locked__"
+        ready_key = f"__ui:preparation_ready:{service.guide_id}:fictional-item"
+        service.set_manual_checked("character:1", lock_key, True)
+        service.set_manual_checked("character:1", ready_key, True)
+        self.assertTrue(service.manual_checked("character:1", lock_key))
+        self.assertTrue(service.manual_checked("character:1", ready_key))
+        self.assertEqual(
+            self.guide_progress.manual_steps("character:1", service.progress_id),
+            {lock_key, ready_key},
+        )
+        self.assertFalse(self.guide_progress.manual_steps(
+            "character:1", "guide_ultime_v5"
+        ))
+
+    def test_forged_copy_cannot_bypass_guide_specific_runtime_gates(self):
+        route = _source_route()
+        route["steps"][0]["hard_runtime_gates"] = [
+            {"kind": "alignment", "expected": "Bonta"},
+        ]
+        service = self._runtime(route)
+        forged = copy.deepcopy(service.cards[0])
+        forged["hard_runtime_gates"] = []
+        # The stable key is still valid, but a copied card is not the
+        # authority for its prerequisites.
+        self.assertEqual(service.page_key(forged), service.page_key(service.cards[0]))
+        service.set_page_checked("character:1", forged, 0, True)
+        self.assertFalse(self.progress_path.exists())
+        self.assertFalse(service.page_checked("character:1", service.cards[0]))
+
     def test_reordering_or_inserting_steps_preserves_stable_progress(self):
         old = _source_route()
         service = self._runtime(old)
