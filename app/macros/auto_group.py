@@ -73,13 +73,22 @@ class AutoGroupMacro:
             if not name:
                 excluded_empty += 1
                 continue
-            try:
-                raw_handle = entry.get("handle", 0)
-                handle = int(raw_handle or 0)
-            except (TypeError, ValueError, OverflowError):
-                # A corrupt Organizer HWND must not drop an otherwise
-                # valid named recipient. Names, not HWNDs, identify /invite.
-                handle = 0
+            # Organizer HWNDs are integers (legacy decimal strings are
+            # accepted). Never truncate 101.9 to 101 and accidentally discard
+            # a different named invitee as if it were the sender.
+            raw_handle = entry.get("handle", 0)
+            handle = 0
+            if type(raw_handle) is int:
+                candidate = raw_handle
+            elif type(raw_handle) is str and raw_handle.strip().isdecimal():
+                try:
+                    candidate = int(raw_handle.strip())
+                except ValueError:
+                    candidate = 0
+            else:
+                candidate = 0
+            if 0 < candidate <= (2**64 - 1):
+                handle = candidate
             key = normalize_key(name)
             if (handle > 0 and handle == sender.handle) or key == sender_key:
                 excluded_sender += 1

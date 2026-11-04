@@ -507,6 +507,51 @@ class OrganizerMacroReliabilityTests(unittest.TestCase):
                     "termine", count - 1, count - 1, len(entries), 101,
                 )
 
+
+    def test_auto_group_never_truncates_corrupt_hwnd_into_sender_2_to_8(self):
+        for count in (2, 4, 6, 8):
+            with self.subTest(clients=count):
+                runtime = _runtime()
+                runtime.macro_lock.wait.return_value = False
+                runtime.settings.timings.auto_group_invite_gap_ms = 0
+                runtime.switch_character.logical_active_client.return_value = (
+                    SimpleNamespace(handle=101, display_name="Leader")
+                )
+                invalid_hwnds = [
+                    101.9, 101.0, True, False, float("nan"), float("inf"),
+                    2**64, -1, object(),
+                ]
+                entries = [
+                    {"name": "Leader", "handle": 101},
+                    *(
+                        {"name": f"Friend{i}", "handle": invalid_hwnds[i]}
+                        for i in range(count - 1)
+                    ),
+                    # A valid old textual HWND must still identify the sender
+                    # even when a corrupted name differs from the leader's.
+                    {"name": "FakeLeader", "handle": " 101 "},
+                ]
+                with (
+                    patch("app.macros.auto_group.is_unity_window", return_value=True),
+                    patch("app.macros.auto_group.is_dofus_unity_process",
+                          return_value=True),
+                    patch("app.macros.auto_group.activate_window",
+                          return_value=True) as activate,
+                    patch("app.macros.auto_group.foreground_window", return_value=101),
+                    patch("app.macros.auto_group.send_chat_command",
+                          return_value=True) as send,
+                ):
+                    AutoGroupMacro(runtime)._run(entries)
+                activate.assert_called_once()
+                self.assertEqual(
+                    [c.args[0] for c in send.call_args_list],
+                    [f"/invite Friend{i}" for i in range(count - 1)],
+                )
+                runtime.logger.info.assert_any_call(
+                    "Auto groupe préparé: invitations=%s doublons=%s lanceur=%s vides=%s",
+                    count - 1, 0, 2, 0,
+                )
+
     def test_auto_group_one_client_does_not_activate_or_restore_window(self) -> None:
         runtime = _runtime()
         runtime.switch_character.logical_active_client.return_value = (
