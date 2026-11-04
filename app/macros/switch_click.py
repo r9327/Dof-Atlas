@@ -391,6 +391,27 @@ class SwitchClickMacro:
                         return
                     continue
 
+                if mirror_target_handles is not None:
+                    # Point conversion and the Unity hover target lookup may
+                    # race a changed favorite or a recycled HWND. Recheck
+                    # immediately before entering the canonical click sender.
+                    if not mirror_roster_is_current():
+                        delivery_failed = True
+                        self.runtime.logger.warning(
+                            "%s interrompu: roster changé après calcul du point hwnd=%s",
+                            action_label, client.handle,
+                        )
+                        return
+                    if not is_dofus_unity_process(client.handle):
+                        delivery_failed = True
+                        self.runtime.logger.warning(
+                            "%s interrompu: processus remplacé avant clic hwnd=%s",
+                            action_label, client.handle,
+                        )
+                        return
+                if self.runtime.macro_lock.should_stop():
+                    return
+
                 double_gap_ms = timings.input_double_gap_ms
                 if click_count == 2:
                     double_gap_ms = max(double_gap_ms, 60)
