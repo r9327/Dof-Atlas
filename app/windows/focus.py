@@ -103,7 +103,9 @@ def activate_window(
 
     try:
         hwnd = int(hwnd)
-        attempt_count = max(1, int(attempts))
+        # Both normal/fast Organizer profiles use at most eight retries.
+        # Bound corrupted/oversized values instead of looping indefinitely.
+        attempt_count = max(1, min(8, int(attempts)))
         settle_ms = max(0, int(settle_ms))
         retry_ms = max(0, int(retry_ms))
     except (TypeError, ValueError, OverflowError):
