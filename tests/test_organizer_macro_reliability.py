@@ -935,5 +935,58 @@ class OrganizerMacroReliabilityTests(unittest.TestCase):
         runtime.logger.info.assert_any_call("Auto zaap %s: envoyes=%s/%s", "partiel", 1, 2)
 
 
+    def test_switch_character_rejects_invalid_index_without_worker(self) -> None:
+        runtime = _runtime()
+        runtime.settings.clients = [
+            SimpleNamespace(index=1, handle=202, display_name="Friend"),
+        ]
+        macro = SwitchCharacterMacro(runtime)
+        for invalid in (None, "invalid", object(), True, float("inf")):
+            with self.subTest(value=repr(invalid)):
+                self.assertFalse(macro.activate_by_index(invalid))
+        runtime._spawn_macro.assert_not_called()
+
+    def test_switch_character_return_does_not_report_stolen_focus(self) -> None:
+        runtime = _runtime()
+        runtime.active_client_handle = 101
+        runtime.settings.preferred_client.return_value = SimpleNamespace(handle=202)
+        with (
+            patch("app.macros.switch_character.is_unity_window", return_value=True),
+            patch("app.macros.switch_character.activate_window", return_value=True),
+            patch("app.macros.switch_character.foreground_window", return_value=999),
+        ):
+            SwitchCharacterMacro(runtime).restore_preferred_client("Macro")
+        self.assertEqual(runtime.active_client_handle, 101)
+        runtime.logger.warning.assert_any_call(
+            "%s retour non confirmé: focus différent hwnd=%s", "Macro", 202,
+        )
+
+    def test_switch_character_return_does_not_mark_success_after_stop(self) -> None:
+        runtime = _runtime()
+        runtime.active_client_handle = 101
+        runtime.settings.preferred_client.return_value = SimpleNamespace(handle=202)
+        runtime.macro_lock.should_stop.side_effect = [False, True]
+        with (
+            patch("app.macros.switch_character.is_unity_window", return_value=True),
+            patch("app.macros.switch_character.activate_window", return_value=True),
+            patch("app.macros.switch_character.foreground_window") as foreground,
+        ):
+            SwitchCharacterMacro(runtime).restore_preferred_client("Macro")
+        foreground.assert_not_called()
+        self.assertEqual(runtime.active_client_handle, 101)
+
+    def test_switch_character_return_updates_active_only_after_confirmed_focus(self) -> None:
+        runtime = _runtime()
+        runtime.active_client_handle = 101
+        runtime.settings.preferred_client.return_value = SimpleNamespace(handle=202)
+        with (
+            patch("app.macros.switch_character.is_unity_window", return_value=True),
+            patch("app.macros.switch_character.activate_window", return_value=True),
+            patch("app.macros.switch_character.foreground_window", return_value=202),
+        ):
+            SwitchCharacterMacro(runtime).restore_preferred_client("Macro")
+        self.assertEqual(runtime.active_client_handle, 202)
+
+
 if __name__ == "__main__":
     unittest.main()
