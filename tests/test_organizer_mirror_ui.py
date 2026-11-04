@@ -3492,9 +3492,80 @@ class OrganizerMirrorIntegrationTests(unittest.TestCase):
             -120, False, 0.2, 0.5, 101, (101, 202, 303),
         )
 
+    def test_busy_favorite_key_and_wheel_remain_native_for_2_4_6_8(self):
+        for count in (2, 4, 6, 8):
+            with self.subTest(count=count):
+                handles = tuple(range(101, 101 + count))
+                runtime = self._runtime(primary=handles[-1], handles=handles)
+                runtime._running = True
+                runtime._admin_ok = True
+                runtime.macro_lock.active_label = "Miroir"
+                with (
+                    patch("app.windows.unity_windows.foreground_window",
+                          return_value=handles[-1]),
+                    patch("app.macros.mirror_plan.is_dofus_unity_process") as probe,
+                ):
+                    self.assertFalse(
+                        AtlasRuntime._handle_mirror_key(runtime, 65, True)
+                    )
+                    self.assertFalse(
+                        AtlasRuntime._handle_mirror_wheel(
+                            runtime, 120, 20, 25, False,
+                        )
+                    )
+                probe.assert_not_called()
+                runtime.mirror_input.run_key.assert_not_called()
+                runtime.mirror_input.run_wheel.assert_not_called()
+                runtime._mirror_gesture_targets.assert_not_called()
+                runtime._emit_status.assert_called_once_with(
+                    "Miroir desynchronise : geste non diffuse sur tous les comptes."
+                )
+
+    def test_busy_secondary_input_reports_loss_without_replay(self):
+        runtime = self._runtime(primary=101, handles=(101, 202))
+        runtime._running = True
+        runtime._admin_ok = True
+        runtime.macro_lock.active_label = "Miroir"
+        with (
+            patch("app.windows.unity_windows.foreground_window", return_value=202),
+            patch("app.macros.mirror_plan.is_dofus_unity_process", return_value=True),
+        ):
+            self.assertTrue(AtlasRuntime._handle_mirror_key(runtime, 65, True))
+            self.assertTrue(
+                AtlasRuntime._handle_mirror_wheel(runtime, -120, 20, 25, False)
+            )
+        runtime._emit_status.assert_called_once_with(
+            "Miroir desynchronise : geste non diffuse sur tous les comptes."
+        )
+        runtime.mirror_input.run_key.assert_not_called()
+        runtime.mirror_input.run_wheel.assert_not_called()
+
+    def test_queued_non_mouse_macro_preserves_native_click_without_probes(self):
+        from app.input.input_state import InputState
+
+        for busy in ("Auto groupe", "Auto zaap", "Miroir"):
+            with self.subTest(busy=busy):
+                runtime = self._runtime(primary=101, handles=(101, 202))
+                runtime.input_state = InputState()
+                runtime.macro_lock.active_label = busy
+                with (
+                    patch("app.windows.unity_windows.foreground_window") as focus,
+                    patch("app.windows.unity_windows.is_unity_window") as unity,
+                    patch("app.macros.mirror_plan.is_dofus_unity_process") as process,
+                ):
+                    self.assertFalse(
+                        AtlasRuntime._handle_mirror_click(
+                            runtime, "Left", 20, 25,
+                        )
+                    )
+                focus.assert_not_called()
+                unity.assert_not_called()
+                process.assert_not_called()
+                runtime.switch_click.run_async.assert_not_called()
+
     def test_busy_keyboard_uses_only_current_tracked_foreground(self):
         for foreground, trusted, consumed in (
-            (101, True, True),
+            (101, True, False),
             (202, True, True),
             (777, False, False),
             (101, False, False),
@@ -3516,11 +3587,14 @@ class OrganizerMirrorIntegrationTests(unittest.TestCase):
                     )
                 runtime._mirror_gesture_targets.assert_not_called()
                 runtime.mirror_input.run_key.assert_not_called()
-                self.assertEqual(probe.call_count, int(foreground in (101, 202, 303)))
+                self.assertEqual(
+                    probe.call_count,
+                    int(foreground in (101, 202, 303) and foreground != 101),
+                )
 
     def test_busy_wheel_avoids_full_roster_and_never_touches_foreign_app(self):
         for foreground, trusted, consumed in (
-            (101, True, True),
+            (101, True, False),
             (303, True, True),
             (888, False, False),
             (303, False, False),
@@ -3544,7 +3618,10 @@ class OrganizerMirrorIntegrationTests(unittest.TestCase):
                     )
                 runtime._mirror_gesture_targets.assert_not_called()
                 runtime.mirror_input.run_wheel.assert_not_called()
-                self.assertEqual(probe.call_count, int(foreground in (101, 202, 303)))
+                self.assertEqual(
+                    probe.call_count,
+                    int(foreground in (101, 202, 303) and foreground != 101),
+                )
 
     def test_busy_gestures_pass_when_mirror_mode_is_not_active(self):
         runtime = self._runtime()

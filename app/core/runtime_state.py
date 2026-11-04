@@ -622,6 +622,19 @@ class AtlasRuntime:
         ordered = (source, *(hwnd for hwnd in targets if hwnd != source))
         return source, ordered
 
+    def _report_mirror_busy_input(self, kind: str) -> None:
+        """Bounded non-sensitive warning when an input cannot join a busy fan-out."""
+        now = monotonic()
+        previous = getattr(self, "_last_mirror_busy_notice_at", 0.0)
+        if type(previous) not in (int, float) or now - previous >= 0.5:
+            self._last_mirror_busy_notice_at = now
+            self.logger.warning(
+                "Miroir occupe: entree physique %s non synchronisee, sans replay.", kind,
+            )
+            self._emit_status(
+                "Miroir desynchronise : geste non diffuse sur tous les comptes."
+            )
+
     def _handle_mirror_key(self, vk_code: int, pressed: bool) -> bool:
         """Forward only short standalone keystrokes; never modifier/OS chords."""
         from app.input.hotkeys import MIRROR_DISCRETE_KEYS
@@ -649,15 +662,23 @@ class AtlasRuntime:
                     return False
         foreground = foreground_window()
         if self.macro_lock.active_label:
-            # During a replay, avoid enumerating and probing EVERY Unity
-            # process on each physical key repeat. Only an authenticated
-            # tracked foreground client may have its event suppressed.
+            # The existing worker cannot accept a second gesture. Keep real
+            # input native if the favorite is still foreground; never enqueue
+            # an old key for replay after Stop, reload or focus changes.
+            if foreground == self.settings.primary_handle:
+                AtlasRuntime._report_mirror_busy_input(self, "clavier")
+                return False
+            # During sequential fan-out, the worker can focus a secondary
+            # client. Suppress that accidental action but report it explicitly.
             from app.macros.mirror_plan import is_dofus_unity_process
 
-            return (
+            trusted = (
                 foreground in (c.handle for c in self.settings.clients)
                 and is_dofus_unity_process(foreground)
             )
+            if trusted:
+                AtlasRuntime._report_mirror_busy_input(self, "clavier")
+            return trusted
         # Never probe the entire 8-client roster for a key typed into
         # another application or a non-favorite DOFUS window.
         if foreground != self.settings.primary_handle:
@@ -695,14 +716,21 @@ class AtlasRuntime:
             return False
         foreground = foreground_window()
         if self.macro_lock.active_label:
-            # Wheel ticks can arrive rapidly; do not run a full 2–8 HWND
-            # enumeration just to reject one busy native gesture.
+            # A wheel tick on the still-focused favorite stays physical.
+            # A busy worker cannot safely replay it to every client later.
+            if foreground == self.settings.primary_handle:
+                AtlasRuntime._report_mirror_busy_input(self, "molette")
+                return False
+            # Temporary secondary focus is protected against stray input.
             from app.macros.mirror_plan import is_dofus_unity_process
 
-            return (
+            trusted = (
                 foreground in (c.handle for c in self.settings.clients)
                 and is_dofus_unity_process(foreground)
             )
+            if trusted:
+                AtlasRuntime._report_mirror_busy_input(self, "molette")
+            return trusted
         # A wheel gesture outside the favorite should cost no roster scans.
         if foreground != self.settings.primary_handle:
             return False
@@ -751,9 +779,7 @@ class AtlasRuntime:
         # alone: do not perform 2–8 expensive process probes inside the
         # low-level mouse hook merely to decide to pass a click through.
         busy = self.macro_lock.active_label
-        if (busy == "Miroir clavier"
-                or (busy in {"Miroir molette", "Miroir"}
-                    and not self.input_state.is_mouse_blocked())):
+        if busy and not self.input_state.is_mouse_blocked():
             # A queued click worker is not yet moving the pointer. Preserve
             # ordinary native gestures until it actually acquires its mouse
             # block; do not run a full DOFUS roster probe from the hook.
@@ -797,7 +823,9 @@ class AtlasRuntime:
         if len(destinations) < 2:
             return False
         if busy:
-            self.logger.debug("Miroir: clic ignoré, macro déjà active.")
+            # Direct calls remain fail-safe while a worker owns the pointer.
+            # MouseHook suppresses these physical DOWNs before this callback.
+            AtlasRuntime._report_mirror_busy_input(self, "clic")
             return True
         try:
             return bool(self.switch_click.run_async(
@@ -844,9 +872,9 @@ class AtlasRuntime:
             )
             return False
         active_macro = self.macro_lock.active_label
-        if active_macro == "Switch clique" and not self.input_state.is_mouse_blocked():
-            # The queued or prevalidating SwitchClick worker has not moved
-            # focus or pointer yet. Another physical click must stay native.
+        if active_macro and not self.input_state.is_mouse_blocked():
+            # Any prevalidating macro that does not own the pointer must leave
+            # native DOWN/UP untouched, including Zaap and Auto-groupe.
             return False
         if active_macro:
             # The mouse hook is global. During the narrow interval between
