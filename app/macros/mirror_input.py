@@ -247,29 +247,34 @@ class MirrorInputMacro:
                         and runtime.macro_lock.wait(max(0, timings.switch_client_settle_ms))):
                     break
         finally:
-            runtime.input_state.end_mouse_block()
-            # Stop, failed SendInput or a stolen focus must not move the
-            # user's pointer after the macro has relinquished control.
-            if (
-                cursor is not None and roster_verified
-                and not focus_lost and not delivery_failed
-                and not runtime.macro_lock.should_stop()
-                and self._still_current(source, handles)
-            ):
-                try:
-                    set_cursor_pos(*cursor)
-                except Exception:
-                    runtime.logger.exception("Miroir molette: restauration curseur impossible.")
-            # A changed favorite must not be activated as a side effect of
-            # aborting the original gesture (same policy as mouse clicks).
-            if (roster_verified and not focus_lost and not delivery_failed
+            # Input must remain blocked while the worker moves the cursor
+            # and restores focus. Otherwise native clicks may leak to a
+            # different client during teardown. Release on EVERY path.
+            try:
+                # Stop, failed SendInput or a stolen focus must not move the
+                # user's pointer after the macro has relinquished control.
+                if (
+                    cursor is not None and roster_verified
+                    and not focus_lost and not delivery_failed
                     and not runtime.macro_lock.should_stop()
                     and self._still_current(source, handles)
-                    and is_dofus_unity_process(source)):
-                try:
-                    runtime.switch_character.restore_preferred_client("Miroir " + kind)
-                except Exception:
-                    runtime.logger.exception("Miroir %s: retour au favori impossible.", kind)
+                ):
+                    try:
+                        set_cursor_pos(*cursor)
+                    except Exception:
+                        runtime.logger.exception("Miroir molette: restauration curseur impossible.")
+                # A changed favorite must not be activated as a side effect of
+                # aborting the original gesture (same policy as mouse clicks).
+                if (roster_verified and not focus_lost and not delivery_failed
+                        and not runtime.macro_lock.should_stop()
+                        and self._still_current(source, handles)
+                        and is_dofus_unity_process(source)):
+                    try:
+                        runtime.switch_character.restore_preferred_client("Miroir " + kind)
+                    except Exception:
+                        runtime.logger.exception("Miroir %s: retour au favori impossible.", kind)
+            finally:
+                runtime.input_state.end_mouse_block()
             from app.macros.mirror_plan import mirror_latency_percentiles_ms
 
             latency = mirror_latency_percentiles_ms(send_samples_ms)
