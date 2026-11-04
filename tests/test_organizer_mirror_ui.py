@@ -1568,6 +1568,96 @@ class OrganizerMirrorIntegrationTests(unittest.TestCase):
                     "Miroir Molette incomplet : 0/2 fenêtres."
                 )
 
+    def test_mirror_mouse_block_stays_active_during_cursor_and_focus_restore(self):
+        from app.macros.mirror_input import MirrorInputMacro
+
+        runtime = self._runtime(primary=101, handles=(101, 202))
+        runtime.settings.timings = SimpleNamespace(
+            switch_background_pre_click_ms=0, activate_attempts=1,
+            activate_retry_ms=0, switch_client_settle_ms=0,
+        )
+        runtime.macro_lock.should_stop.return_value = False
+        runtime.macro_lock.wait.return_value = False
+        events = []
+        runtime.input_state.begin_mouse_block.side_effect = lambda _label: events.append("block")
+        runtime.input_state.end_mouse_block.side_effect = lambda: events.append("unblock")
+        runtime.switch_character.restore_preferred_client.side_effect = (
+            lambda _label: events.append("restore_focus")
+        )
+        with (
+            patch("app.macros.mirror_input.is_dofus_unity_process",
+                  return_value=True),
+            patch("app.macros.mirror_input.current_cursor_pos",
+                  return_value=(12, 14)),
+            patch("app.macros.mirror_input.activate_window",
+                  return_value=True),
+            patch("app.macros.mirror_input.foreground_window",
+                  side_effect=[101, 101, 202, 202]),
+            patch("app.macros.mirror_input.client_point_from_ratio",
+                  return_value=(8, 9)),
+            patch("app.macros.mirror_input.client_to_screen",
+                  return_value=(80, 90)),
+            patch("app.macros.mirror_input.set_cursor_pos",
+                  side_effect=lambda x, y: events.append(("move", x, y))),
+            patch("app.macros.mirror_input.send_screen_wheel",
+                  return_value=True) as wheel,
+        ):
+            MirrorInputMacro(runtime)._run(
+                "wheel", (120, False, 0.5, 0.5), 101, (101, 202),
+            )
+        self.assertEqual(wheel.call_count, 2)
+        self.assertEqual(events[0], "block")
+        self.assertEqual(
+            events[-3:], [("move", 12, 14), "restore_focus", "unblock"],
+        )
+        runtime._emit_status.assert_called_once_with(
+            "Miroir Molette : 2/2 fenêtres."
+        )
+
+    def test_mirror_mouse_block_is_released_if_restoration_check_raises(self):
+        from app.macros.mirror_input import MirrorInputMacro
+
+        runtime = self._runtime(primary=101, handles=(101, 202))
+        runtime.settings.timings = SimpleNamespace(
+            switch_background_pre_click_ms=0, activate_attempts=1,
+            activate_retry_ms=0, switch_client_settle_ms=0,
+        )
+        runtime.macro_lock.should_stop.return_value = False
+        runtime.macro_lock.wait.return_value = False
+        macro = MirrorInputMacro(runtime)
+        initial_check = macro._still_current
+        checks = [0]
+
+        def check_current(source, handles):
+            checks[0] += 1
+            if checks[0] == 8:
+                raise RuntimeError("runtime settings inaccessible during restore")
+            return initial_check(source, handles)
+
+        macro._still_current = check_current
+        with (
+            patch("app.macros.mirror_input.is_dofus_unity_process",
+                  return_value=True),
+            patch("app.macros.mirror_input.current_cursor_pos",
+                  return_value=(12, 14)),
+            patch("app.macros.mirror_input.activate_window",
+                  return_value=True),
+            patch("app.macros.mirror_input.foreground_window",
+                  side_effect=[101, 101, 202, 202]),
+            patch("app.macros.mirror_input.client_point_from_ratio",
+                  return_value=(8, 9)),
+            patch("app.macros.mirror_input.client_to_screen",
+                  return_value=(80, 90)),
+            patch("app.macros.mirror_input.set_cursor_pos"),
+            patch("app.macros.mirror_input.send_screen_wheel",
+                  return_value=True),
+        ):
+            with self.assertRaisesRegex(RuntimeError, "during restore"):
+                macro._run("wheel", (120, False, 0.5, 0.5), 101, (101, 202))
+        self.assertEqual(checks[0], 8)
+        runtime.input_state.end_mouse_block.assert_called_once()
+        runtime.switch_character.restore_preferred_client.assert_not_called()
+
     def test_mirror_does_not_steal_foreground_after_failed_activation(self):
         from app.macros.mirror_input import MirrorInputMacro
 
