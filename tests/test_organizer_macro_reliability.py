@@ -1191,5 +1191,26 @@ class OrganizerMacroReliabilityTests(unittest.TestCase):
         )
 
 
+
+    def test_zaap_stop_before_first_client_skips_process_probe_and_restore(self) -> None:
+        runtime = _runtime()
+        runtime.macro_lock.should_stop.return_value = True
+        with (
+            patch("app.macros.zaap.is_unity_window") as unity,
+            patch("app.macros.zaap.is_dofus_unity_process") as identity,
+            patch("app.macros.zaap.activate_window") as activate,
+            patch("app.macros.zaap.send_chat_command") as send,
+        ):
+            ZaapMacro(runtime)._run("/zaap 1,2")
+        unity.assert_not_called()
+        identity.assert_not_called()
+        activate.assert_not_called()
+        send.assert_not_called()
+        runtime.switch_character.restore_preferred_client.assert_not_called()
+        runtime.logger.info.assert_any_call(
+            "Auto zaap %s: envoyes=%s/%s", "interrompu", 0, 2,
+        )
+
+
 if __name__ == "__main__":
     unittest.main()
