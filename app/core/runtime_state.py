@@ -769,6 +769,23 @@ class AtlasRuntime:
             return False
         active_macro = self.macro_lock.active_label
         if active_macro:
+            # The mouse hook is global. During the narrow interval between
+            # MacroLock acquisition and the sender's input block, never eat a
+            # click in an unrelated app just because a switch hotkey is held.
+            from app.windows.unity_windows import (
+                find_known_client_from_point, foreground_window,
+            )
+            from app.macros.mirror_plan import is_dofus_unity_process
+
+            foreground = foreground_window()
+            if (
+                foreground not in (c.handle for c in self.settings.clients)
+                or find_known_client_from_point(
+                    screen_x, screen_y, (foreground,),
+                ) != foreground
+                or not is_dofus_unity_process(foreground)
+            ):
+                return False
             self.logger.debug(
                 "Clic switch consomme: macro deja active=%s button=%s x=%s y=%s",
                 active_macro,
