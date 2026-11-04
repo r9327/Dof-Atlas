@@ -75,14 +75,15 @@ class SwitchCharacterMacro:
         primary_handle, client marqué primary, puis premier client configuré.
         """
         preferred = self.runtime.settings.preferred_client()
-        if preferred is None or not is_unity_window(preferred.handle):
+        if (preferred is None or not is_unity_window(preferred.handle)
+                or not is_dofus_unity_process(preferred.handle)):
             return None
         return preferred
 
     def logical_active_client(self) -> "AtlasClient | None":
         settings = self.runtime.settings
         active = foreground_window()
-        if active and is_unity_window(active):
+        if active and is_unity_window(active) and is_dofus_unity_process(active):
             client = settings.client_by_handle(active)
             if client is not None:
                 self.runtime.active_client_handle = client.handle
@@ -90,7 +91,8 @@ class SwitchCharacterMacro:
 
         if self.runtime.active_client_handle:
             client = settings.client_by_handle(self.runtime.active_client_handle)
-            if client is not None and is_unity_window(client.handle):
+            if (client is not None and is_unity_window(client.handle)
+                    and is_dofus_unity_process(client.handle)):
                 return client
 
         preferred = self.preferred_client()
@@ -99,7 +101,7 @@ class SwitchCharacterMacro:
             return preferred
 
         for client in settings.clients:
-            if is_unity_window(client.handle):
+            if is_unity_window(client.handle) and is_dofus_unity_process(client.handle):
                 self.runtime.active_client_handle = client.handle
                 return client
         return None
@@ -120,7 +122,8 @@ class SwitchCharacterMacro:
                     client.index,
                 )
                 continue
-            if handle <= 0 or handle in seen_handles or not is_unity_window(handle):
+            if (handle <= 0 or handle in seen_handles or not is_unity_window(handle)
+                    or not is_dofus_unity_process(handle)):
                 continue
             seen_handles.add(handle)
             clients.append(client)
