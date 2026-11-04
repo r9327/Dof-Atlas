@@ -148,7 +148,17 @@ class MouseHook:
         # actually unhooks us. Clearing first can leak an orphaned UP during
         # the shutdown race while the hook callback is still active.
         stop_message_hook(self)
-        self._consumed_releases.clear()
+        # The shared lifecycle deliberately retains a live hook thread if
+        # Win32 teardown timed out. Keep ownership of intercepted DOWN/UP
+        # pairs until that thread's _run_hook finally block exits.
+        thread = self._thread
+        if thread is None or not thread.is_alive():
+            self._consumed_releases.clear()
+        else:
+            self.logger.warning(
+                "Hook souris toujours actif après stop: relâchements réservés=%s",
+                len(self._consumed_releases),
+            )
         if self._blocked_click_count or self._blocked_wheel_count:
             # Final totals include the suppressed events that did not survive
             # the 400ms warning throttle just before the hook stopped.
