@@ -105,7 +105,13 @@ class ZaapMacro:
                     chat_open_ms=timings.auto_group_chat_open_ms,
                     key_step_ms=timings.auto_group_key_step_ms,
                     paste_settle_ms=timings.auto_group_paste_settle_ms,
-                    should_stop=self.runtime.macro_lock.should_stop,
+                    # Abort a command at its next cancellable keyboard
+                    # boundary when the user switches to another window.
+                    # The existing sender checks this before each chat step.
+                    should_stop=lambda hwnd=client.handle: (
+                        self.runtime.macro_lock.should_stop()
+                        or foreground_window() != int(hwnd)
+                    ),
                 ):
                     if self.runtime.macro_lock.should_stop():
                         return
