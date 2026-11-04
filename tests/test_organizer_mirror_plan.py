@@ -33,6 +33,41 @@ class OrganizerMirrorPlanTests(unittest.TestCase):
             self.assertFalse(is_dofus_unity_process(101))
         self.assertFalse(is_dofus_unity_process(0))
 
+    def test_invalid_hwnds_cannot_reach_native_process_queries(self) -> None:
+        from unittest.mock import patch
+        import app.windows_embed as embed
+
+        for hwnd in (None, False, True, 0, -1, 101.0, 2**64, "101"):
+            with self.subTest(hwnd=repr(hwnd)):
+                with patch.object(embed, "window_class") as native_class:
+                    self.assertFalse(is_dofus_unity_process(hwnd))
+                native_class.assert_not_called()
+
+    def test_invalid_pids_cannot_be_queried_as_dofus_executables(self) -> None:
+        from unittest.mock import patch
+        import app.windows_embed as embed
+
+        for pid in (None, False, True, 0, -1, 42.0, "42", 2**32):
+            with self.subTest(pid=repr(pid)):
+                with (
+                    patch.object(embed, "window_class", return_value="UnityWndClass"),
+                    patch.object(embed, "window_process_id", return_value=pid),
+                    patch.object(embed, "process_image_path") as image,
+                ):
+                    self.assertFalse(is_dofus_unity_process(101))
+                image.assert_not_called()
+
+    def test_maximum_valid_win32_pid_keeps_existing_identity_contract(self) -> None:
+        from unittest.mock import patch
+        import app.windows_embed as embed
+
+        with (
+            patch.object(embed, "window_class", return_value="UnityWndClass"),
+            patch.object(embed, "window_process_id", return_value=(2**32 - 1)),
+            patch.object(embed, "process_image_path", return_value=r"C:\Games\Dofus.exe"),
+        ):
+            self.assertTrue(is_dofus_unity_process(2**64 - 1))
+
     def test_measured_mirror_percentiles_ignore_invalid_samples(self) -> None:
         self.assertEqual(
             mirror_latency_percentiles_ms([8, 12, 20, 17]),
