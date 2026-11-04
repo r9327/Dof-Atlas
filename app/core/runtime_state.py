@@ -152,6 +152,9 @@ class AtlasRuntime:
     @settings.setter
     def settings(self, value: AtlasSettings) -> None:
         with self._settings_lock:
+            # A native DOWN from the previous Organizer generation must not
+            # trigger replay when its physical UP arrives after reload.
+            self._pending_physical_switch = None
             self._settings = value
 
     @property
@@ -880,7 +883,7 @@ class AtlasRuntime:
         # buttons). Keep BOTH gestures native and cancel the pending replay:
         # never clone an action whose DOWN/UP can no longer be paired safely.
         pending = getattr(self, "_pending_physical_switch", None)
-        if isinstance(pending, tuple) and len(pending) == 7:
+        if isinstance(pending, tuple) and len(pending) in (7, 8):
             self._pending_physical_switch = None
             self.logger.debug(
                 "Clic natif non recopié: cause=overlapping_down button=%s",
@@ -939,6 +942,7 @@ class AtlasRuntime:
         # foreground source. Keep that pair intact for a simple click and
         # replay only the other clients after physical release.
         if click_count == 1 and str(button).casefold() in {"left", "right"}:
+            profile_at_press = self.settings
             from app.windows.unity_windows import (
                 find_known_client_from_point, foreground_window,
             )
@@ -954,10 +958,11 @@ class AtlasRuntime:
                     screen_x, screen_y, action_label,
                 )
                 if (context is not None and context.reason == "cursor"
-                        and context.source_hwnd == source):
+                        and context.source_hwnd == source
+                        and self.settings is profile_at_press):
                     self._pending_physical_switch = (
                         button, screen_x, screen_y, click_count,
-                        action_label, context, monotonic(),
+                        action_label, context, monotonic(), profile_at_press,
                     )
                     return False
         try:
@@ -991,11 +996,12 @@ class AtlasRuntime:
         replay begins blocking later gestures. It does not claim replay worked.
         """
         pending = getattr(self, "_pending_physical_switch", None)
-        if (not isinstance(pending, tuple) or len(pending) != 7
+        if (not isinstance(pending, tuple) or len(pending) not in (7, 8)
                 or str(pending[0]).casefold() != str(button).casefold()):
             return False
         self._pending_physical_switch = None
-        (_button, down_x, down_y, count, label, context, captured_at) = pending
+        (_button, down_x, down_y, count, label, context, captured_at) = pending[:7]
+        profile_at_press = pending[7] if len(pending) == 8 else None
         from app.windows.unity_windows import foreground_window
         from app.macros.mirror_plan import is_dofus_unity_process
 
@@ -1003,6 +1009,8 @@ class AtlasRuntime:
             reason = None
             if not self._running or not self._admin_ok:
                 reason = "runtime_unavailable"
+            elif profile_at_press is not None and self.settings is not profile_at_press:
+                reason = "profile_replaced"
             elif self.settings.macro_mode != "macro":
                 reason = "mode_changed"
             elif self.macro_lock.should_stop():

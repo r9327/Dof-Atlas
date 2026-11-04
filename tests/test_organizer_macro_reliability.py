@@ -1473,6 +1473,67 @@ class OrganizerMacroReliabilityTests(unittest.TestCase):
                 )
         runtime.switch_click.run_async.assert_not_called()
 
+
+    def test_native_source_release_never_replays_after_profile_replacement(self):
+        from app.core.runtime_state import AtlasRuntime
+        from app.macros.switch_click import SwitchClickContext
+
+        runtime = _runtime()
+        runtime._running = True
+        runtime._admin_ok = True
+        runtime.macro_lock.active_label = ""
+        runtime.settings.macro_mode = "macro"
+        runtime.settings.clients = [
+            SimpleNamespace(handle=101), SimpleNamespace(handle=202),
+        ]
+        runtime.registry.switch_action_for_pressed_keys.return_value = SimpleNamespace(
+            action_id="switch_click",
+            payload={"click_count": 1, "label": "Switch clique"},
+        )
+        runtime.switch_click._capture_trigger_context.return_value = (
+            SwitchClickContext(101, 25, 30, 0.2, 0.3, "cursor")
+        )
+        with (
+            patch("app.windows.unity_windows.find_known_client_from_point",
+                  return_value=101),
+            patch("app.windows.unity_windows.foreground_window",
+                  return_value=101),
+            patch("app.macros.mirror_plan.is_dofus_unity_process",
+                  return_value=True),
+        ):
+            self.assertFalse(AtlasRuntime._handle_mouse_click(
+                runtime, "Left", 150, 160,
+            ))
+            self.assertEqual(len(runtime._pending_physical_switch), 8)
+            # The new roster happens to retain the same HWNDs. Identity,
+            # not equality of the visible slots, must cancel this replay.
+            prior = runtime.settings
+            runtime.settings = Mock()
+            runtime.settings.macro_mode = prior.macro_mode
+            runtime.settings.clients = prior.clients
+            self.assertTrue(AtlasRuntime._handle_mouse_release(
+                runtime, "Left", 150, 160,
+            ))
+        runtime.switch_click.run_async.assert_not_called()
+        runtime.logger.debug.assert_any_call(
+            "Clic natif non recopié: cause=%s button=%s",
+            "profile_replaced", "Left",
+        )
+
+    def test_settings_replacement_clears_native_replay_before_release(self):
+        import threading
+        from app.core.runtime_state import AtlasRuntime
+
+        # The actual property setter owns the generation transition.
+        runtime = AtlasRuntime.__new__(AtlasRuntime)
+        runtime._settings_lock = threading.RLock()
+        runtime._settings = object()
+        runtime._pending_physical_switch = ("pending",)
+        replacement = object()
+        AtlasRuntime.settings.fset(runtime, replacement)
+        self.assertIs(runtime.settings, replacement)
+        self.assertIsNone(runtime._pending_physical_switch)
+
     def test_double_click_remains_existing_synthetic_sequence(self) -> None:
         from app.core.runtime_state import AtlasRuntime
 
