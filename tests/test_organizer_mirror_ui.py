@@ -326,6 +326,31 @@ class OrganizerMirrorIntegrationTests(unittest.TestCase):
         runtime._mirror_gesture_targets.assert_not_called()
         runtime.mirror_input.run_key.assert_not_called()
 
+    def test_invalid_wheel_callback_preserves_physical_event_without_probes(self):
+        runtime = self._runtime()
+        runtime._running = True
+        runtime._admin_ok = True
+        events = [
+            (0, 20, 25, False),
+            (32768, 20, 25, False),
+            (True, 20, 25, False),
+            ("120", 20, 25, False),
+            (120, float("inf"), 25, False),
+            (120, 20, True, False),
+            (120, -(2**31) - 1, 25, False),
+            (120, 20, 2**31, False),
+            (120, 20, 25, 1),
+        ]
+        for values in events:
+            with self.subTest(values=values):
+                with patch("app.windows.unity_windows.foreground_window") as foreground:
+                    self.assertFalse(
+                        AtlasRuntime._handle_mirror_wheel(runtime, *values)
+                    )
+                foreground.assert_not_called()
+        runtime._mirror_gesture_targets.assert_not_called()
+        runtime.mirror_input.run_wheel.assert_not_called()
+
     def test_foreign_input_never_scans_unrelated_unity_sessions(self):
         for count in (2, 4, 6, 8):
             with self.subTest(count=count):
