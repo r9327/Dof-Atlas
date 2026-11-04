@@ -54,7 +54,8 @@ class AutoGroupMacro:
                     continue
                 try:
                     handle = int(entry.get("handle", 0) or 0)
-                except (TypeError, ValueError):
+                except (TypeError, ValueError, OverflowError):
+                    # Corrupt/stale Organizer entries must never abort a group.
                     handle = 0
                 if handle > 0 and handle == sender.handle:
                     self.runtime.logger.debug("Auto groupe ignore lanceur: %s sender=%s", name, sender.handle)
