@@ -71,6 +71,52 @@ class OrganizerFocusPreflightTests(unittest.TestCase):
         self.assertEqual(current.call_count, 2)
         settle.assert_called_once_with(35, None)
 
+    def test_stop_after_native_foreground_success_never_reports_activation(self) -> None:
+        win32gui = SimpleNamespace(
+            IsWindow=Mock(return_value=True),
+            IsIconic=Mock(return_value=False),
+            GetForegroundWindow=Mock(return_value=999),
+            ShowWindow=Mock(),
+            BringWindowToTop=Mock(),
+            SetWindowPos=Mock(),
+            SetActiveWindow=Mock(),
+            SetForegroundWindow=Mock(),
+            SetFocus=Mock(),
+        )
+        con = SimpleNamespace(
+            SW_RESTORE=9, SW_SHOW=5, HWND_TOP=0,
+            SWP_NOMOVE=2, SWP_NOSIZE=1, SWP_SHOWWINDOW=0x40,
+        )
+        modules = {
+            "win32con": con,
+            "win32gui": win32gui,
+            "win32api": SimpleNamespace(GetCurrentThreadId=Mock(return_value=1)),
+            "win32process": SimpleNamespace(
+                GetWindowThreadProcessId=Mock(return_value=(2, 999)),
+                AttachThreadInput=Mock(return_value=True),
+            ),
+        }
+        stops = iter((False, False, True))
+        logger = Mock()
+        with (
+            patch.object(focus.os, "name", "nt"),
+            patch.dict("sys.modules", modules),
+            patch.object(focus, "is_unity_window", return_value=True),
+            patch.object(focus, "foreground_window",
+                         side_effect=[999, 101, 101]),
+        ):
+            self.assertFalse(focus.activate_window(
+                101, 0, 1, 0, logger, "Miroir",
+                should_stop=lambda: next(stops),
+            ))
+        win32gui.SetForegroundWindow.assert_called_once_with(101)
+        logger.info.assert_any_call(
+            "%s activation stoppee apres tentative hwnd=%s", "Miroir", 101,
+        )
+        self.assertEqual(
+            modules["win32process"].AttachThreadInput.call_count, 2,
+        )
+
     def test_already_foreground_unstolen_focus_remains_successful(self) -> None:
         with (
             patch.object(focus.os, "name", "nt"),
