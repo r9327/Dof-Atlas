@@ -172,8 +172,10 @@ class SwitchCharacterMacro:
             )
             return
 
+        # preferred_client() already checks DOFUS identity; keep a second
+        # independent check only AFTER activation, to catch HWND reuse.
         preferred = self.preferred_client()
-        if preferred is None or not is_dofus_unity_process(preferred.handle):
+        if preferred is None:
             self.runtime.logger.info(
                 "%s retour ignore: favori/premier indisponible.",
                 action_label,
