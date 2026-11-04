@@ -186,6 +186,15 @@ def activate_window(
                 | win32con.SWP_SHOWWINDOW,
             )
 
+            # ShowWindow/SetWindowPos can yield to an emergency Stop. Do not
+            # initiate a new foreground change once the owner cancelled.
+            if should_stop is not None and should_stop():
+                logger.info(
+                    "%s activation stoppee avant foreground hwnd=%s",
+                    action_label, hwnd,
+                )
+                return False
+
             try:
                 win32gui.SetActiveWindow(hwnd)
             except Exception as exc:
