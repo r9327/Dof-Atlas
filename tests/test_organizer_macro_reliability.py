@@ -329,6 +329,46 @@ class OrganizerMacroReliabilityTests(unittest.TestCase):
             "interrompu", 0, 1, 2, 101,
         )
 
+    def test_zaap_no_focus_steal_after_last_chat_on_2_4_6_8_clients(self) -> None:
+        for count in (2, 4, 6, 8):
+            with self.subTest(count=count):
+                runtime = _runtime()
+                runtime.switch_character.ordered_clients_from_source.return_value = [
+                    SimpleNamespace(handle=101 + index)
+                    for index in range(count)
+                ]
+                active = [101]
+                sent = [0]
+
+                def activate(hwnd, *_args, **_kwargs):
+                    active[0] = hwnd
+                    return True
+
+                def send(*_args, **_kwargs):
+                    sent[0] += 1
+                    if sent[0] == count:
+                        active[0] = 999
+                    return True
+
+                with (
+                    patch("app.macros.zaap.is_unity_window", return_value=True),
+                    patch("app.macros.zaap.is_dofus_unity_process", return_value=True),
+                    patch("app.macros.zaap.activate_window", side_effect=activate),
+                    patch("app.macros.zaap.foreground_window",
+                          side_effect=lambda: active[0]),
+                    patch("app.macros.zaap.send_chat_command",
+                          side_effect=send) as chat,
+                ):
+                    ZaapMacro(runtime)._run("/zaap 1,2")
+                self.assertEqual(chat.call_count, count)
+                runtime.switch_character.restore_preferred_client.assert_not_called()
+                runtime.logger.info.assert_any_call(
+                    "Auto zaap: retour favori ignoré, focus utilisateur changé."
+                )
+                runtime.logger.info.assert_any_call(
+                    "Auto zaap %s: envoyes=%s/%s", "interrompu", count, count,
+                )
+
     def test_zaap_mid_command_focus_loss_aborts_following_clients(self) -> None:
         runtime = _runtime()
         focus = [101]
