@@ -2004,6 +2004,73 @@ class OrganizerMirrorIntegrationTests(unittest.TestCase):
                         f"Miroir {label} : {count}/{count} fenêtres."
                     )
 
+    def test_mirror_wheel_does_not_restore_favorite_after_cursor_focus_change(self):
+        from app.macros.mirror_input import MirrorInputMacro
+
+        for count in (2, 4, 6, 8):
+            for effect in ("focus", "error"):
+                with self.subTest(count=count, effect=effect):
+                    handles = tuple(range(101, 101 + count))
+                    runtime = self._runtime(primary=handles[0], handles=handles)
+                    runtime.settings.timings = SimpleNamespace(
+                        switch_background_pre_click_ms=0,
+                        activate_attempts=1, activate_retry_ms=0,
+                        switch_client_settle_ms=0,
+                    )
+                    runtime.macro_lock.should_stop.return_value = False
+                    runtime.macro_lock.wait.return_value = False
+                    active = [handles[0]]
+
+                    def activate(hwnd, *_args, **_kwargs):
+                        active[0] = hwnd
+                        return True
+
+                    def move(x, y):
+                        if (x, y) == (12, 14):
+                            if effect == "error":
+                                raise OSError("pointer restore refused")
+                            active[0] = 999
+
+                    with (
+                        patch("app.macros.mirror_input.is_dofus_unity_process",
+                              return_value=True),
+                        patch("app.macros.mirror_input.current_cursor_pos",
+                              return_value=(12, 14)),
+                        patch("app.macros.mirror_input.activate_window",
+                              side_effect=activate),
+                        patch("app.macros.mirror_input.foreground_window",
+                              side_effect=lambda: active[0]),
+                        patch("app.macros.mirror_input.client_point_from_ratio",
+                              return_value=(8, 9)),
+                        patch("app.macros.mirror_input.client_to_screen",
+                              return_value=(80, 90)),
+                        patch("app.macros.mirror_input.set_cursor_pos",
+                              side_effect=move) as cursor,
+                        patch("app.macros.mirror_input.send_screen_wheel",
+                              return_value=True) as wheel,
+                    ):
+                        MirrorInputMacro(runtime)._run(
+                            "wheel", (120, False, 0.5, 0.5),
+                            handles[0], handles,
+                        )
+                    self.assertEqual(wheel.call_count, count)
+                    self.assertEqual(cursor.call_count, count + 1)
+                    cursor.assert_any_call(12, 14)
+                    runtime.switch_character.restore_preferred_client.assert_not_called()
+                    runtime.input_state.end_mouse_block.assert_called_once()
+                    if effect == "focus":
+                        runtime.logger.info.assert_any_call(
+                            "Miroir %s: retour au favori ignoré, focus changé après curseur.",
+                            "wheel",
+                        )
+                    else:
+                        runtime.logger.exception.assert_any_call(
+                            "Miroir molette: restauration curseur impossible."
+                        )
+                    runtime._emit_status.assert_called_once_with(
+                        f"Miroir Molette : {count}/{count} fenêtres."
+                    )
+
     def test_mirror_mouse_block_stays_active_during_cursor_and_focus_restore(self):
         from app.macros.mirror_input import MirrorInputMacro
 
