@@ -208,6 +208,18 @@ def clipboard_text(text: str, logger: Logger):
         try:
             win32clipboard.OpenClipboard()
             try:
+                # This owner only snapshots Unicode text. Refuse rich/media
+                # formats rather than irreversibly stripping them (Word,
+                # Excel, images, file drops, custom application formats).
+                fmt = 0
+                for _index in range(64):
+                    fmt = win32clipboard.EnumClipboardFormats(fmt)
+                    if not fmt:
+                        break
+                    if fmt not in (1, 7, 13, 16):  # CF_TEXT/OEMTEXT/UNICODETEXT/LOCALE
+                        raise ValueError("Clipboard contient des formats non restaurables")
+                else:
+                    raise ValueError("Clipboard contient trop de formats")
                 try:
                     previous = win32clipboard.GetClipboardData(win32con.CF_UNICODETEXT)
                     captured = True
@@ -231,6 +243,11 @@ def clipboard_text(text: str, logger: Logger):
                 win32clipboard.CloseClipboard()
             prepared = True
             break
+        except ValueError as exc:
+            # Unsupported formats cannot be recovered by retrying; report
+            # why the command was refused without modifying user clipboard.
+            logger.warning("Clipboard conservé: %s", exc)
+            raise OSError("Clipboard multi-format non restaure: commande annulee") from exc
         except Exception:
             time.sleep(0.03)
     if not prepared:
