@@ -611,3 +611,41 @@ recette DOFUS Unity et `git diff --check`. Les scénarios sont **ajoutés**,
 mais aucun PASS ne doit être revendiqué. Le blocage de MIRR-007 (gestes
 physiques avalés pendant le worker) demeure à résoudre sur carte Graphify
 exact-SHA, puis à vérifier sur Windows réel. **PR Draft, CHANGES REQUIRED**.
+
+## Audit complémentaire 04/11/2026 — restauration en cas de refus Win32
+
+- Une erreur `SetClipboardText` après `EmptyClipboard` déclenche une
+  restauration immédiate du texte utilisateur préalablement capturé, sous
+  le même verrou. Si cette restauration échoue, la préparation échoue
+  définitivement : ne pas relire le presse-papiers vidé comme une nouvelle
+  source de vérité et ne pas annoncer une commande envoyée.
+- La distinction entre formats explicitement interdits et exception
+  technique Win32 évite de réinterpréter un défaut d'écriture en presse-
+  papiers riche. Les tests simulent le premier échec, une réparation
+  réussie suivie d'une reprise, et la réparation définitivement refusée.
+- Les tests ajoutés et les gardes de focus intra-commande sont purement
+  localisés dans `input_tools`, `auto_group`, `zaap` et leurs suites.
+
+### MIRR-007 — plan de reprise structurelle (non implémenté)
+
+La suppression des pertes de clics **pendant un worker occupé** n'est pas
+résolue par les gardes ci-dessus. Avant de modifier le hook global :
+
+1. Construire la carte Graphify sur le **HEAD exact** ; faire `Doctor agent
+   plan --structural` pour `mouse_hooks`, `input_state`,
+   `runtime_state`, `switch_click`, `mirror_input` et les tests.
+2. Comparer la stratégie de repli non destructif et une file bornée
+   périssable. Une file éventuelle doit conserver les couples DOWN/UP
+   physiques, ordre, coordonnées/ratio et distinction source native déjà
+   livrée vs source consommée ; ne jamais inventer un second sender.
+3. Définir une limite stricte de taille/ancienneté et une invalidation
+   atomique sur Stop, bascule Macro/Miroir, favori, roster, HWND/processus ;
+   bannir toute réinjection tardive dans une autre application ou fenêtre.
+4. Tests déterministes : saturation et doubles clics, wheel, 2/4/6/8,
+   Stop pendant une pression, HWND recyclés, changement de focus, file
+   pleine, expiration, ordonnance et non-réentrance. Compléter par la
+   recette réelle DOFUS Unity et les métriques CPU/RAM/p50/p95/p99.
+
+**Statut:** ce document est une feuille de reprise, pas une preuve Graphify
+ni un certificat. Tous les tests de cette session restent **NOT_RUN**
+(plateforme GitHub seulement). **MIRR-007 reste PENDING.** Ne pas fusionner.
