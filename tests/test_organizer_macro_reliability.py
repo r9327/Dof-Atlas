@@ -623,6 +623,17 @@ class OrganizerMacroReliabilityTests(unittest.TestCase):
             "interrompu", 0, 1, 2, 101,
         )
 
+    def test_zaap_invalid_command_cannot_claim_worker_started(self) -> None:
+        runtime = _runtime()
+        self.assertFalse(ZaapMacro(runtime).run_async("/zaap not-allowed"))
+        runtime._spawn_macro.assert_not_called()
+
+    def test_zaap_busy_worker_rejection_is_propagated(self) -> None:
+        runtime = _runtime()
+        runtime._spawn_macro.return_value = False
+        self.assertFalse(ZaapMacro(runtime).run_async("/zaap 1,2"))
+        runtime._spawn_macro.assert_called_once()
+
     def test_zaap_no_focus_steal_after_last_chat_on_2_4_6_8_clients(self) -> None:
         for count in (2, 4, 6, 8):
             with self.subTest(count=count):
