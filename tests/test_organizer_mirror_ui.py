@@ -987,6 +987,56 @@ class OrganizerMirrorIntegrationTests(unittest.TestCase):
             "Miroir Molette incomplet : 1/2 fenêtres."
         )
 
+    def test_mirror_wheel_roster_change_never_moves_pointer_back(self):
+        from app.macros.mirror_input import MirrorInputMacro
+
+        runtime = Mock()
+        runtime.settings.macro_mode = "mirror"
+        runtime.settings.primary_handle = 101
+        runtime.settings.clients = (
+            SimpleNamespace(handle=101), SimpleNamespace(handle=202),
+        )
+        timings = runtime.settings.timings
+        timings.switch_background_pre_click_ms = 0
+        timings.activate_attempts = 1
+        timings.activate_retry_ms = 0
+        timings.switch_client_settle_ms = 0
+        runtime.macro_lock.should_stop.return_value = False
+
+        def reorder_after_wheel(*_args, **_kwargs):
+            runtime.settings.clients = (
+                SimpleNamespace(handle=202), SimpleNamespace(handle=101),
+            )
+            return True
+
+        with (
+            patch("app.macros.mirror_input.is_dofus_unity_process",
+                  return_value=True),
+            patch("app.macros.mirror_input.current_cursor_pos",
+                  return_value=(12, 14)),
+            patch("app.macros.mirror_input.activate_window",
+                  return_value=True) as activate,
+            patch("app.macros.mirror_input.foreground_window",
+                  side_effect=[101, 101]),
+            patch("app.macros.mirror_input.client_point_from_ratio",
+                  return_value=(8, 9)),
+            patch("app.macros.mirror_input.client_to_screen",
+                  return_value=(80, 90)),
+            patch("app.macros.mirror_input.set_cursor_pos") as move,
+            patch("app.macros.mirror_input.send_screen_wheel",
+                  side_effect=reorder_after_wheel) as send,
+        ):
+            MirrorInputMacro(runtime)._run(
+                "wheel", (120, False, 0.5, 0.5), 101, (101, 202),
+            )
+        activate.assert_called_once()
+        send.assert_called_once_with(120, horizontal=False)
+        move.assert_called_once_with(80, 90)
+        runtime.switch_character.restore_preferred_client.assert_not_called()
+        runtime._emit_status.assert_called_once_with(
+            "Miroir Molette incomplet : 1/2 fenêtres."
+        )
+
     def test_mirror_wheel_cursor_snapshot_failure_reports_incomplete(self):
         from app.macros.mirror_input import MirrorInputMacro
 
