@@ -204,6 +204,71 @@ class OrganizerSendInputTests(unittest.TestCase):
         )
         press.assert_called_once_with("ENTER")
 
+    def test_chat_cancels_before_ctrl_a_after_user_copy(self) -> None:
+        clipboard = Mock()
+        clipboard.GetClipboardData.return_value = "original"
+        clipboard.EnumClipboardFormats.side_effect = [13, 0]
+        clipboard.GetClipboardSequenceNumber.side_effect = [100, 100, 101, 101]
+        logger = Mock()
+        with (
+            patch.object(input_tools.os, "name", "nt"),
+            patch.dict("sys.modules", {
+                "win32clipboard": clipboard,
+                "win32con": SimpleNamespace(CF_UNICODETEXT=13),
+            }),
+            patch.object(input_tools, "press_key") as press,
+            patch.object(input_tools, "press_hotkey") as chord,
+        ):
+            self.assertFalse(input_tools.send_chat_command("/zaap 1,2", logger))
+        press.assert_called_once_with("SPACE")
+        chord.assert_not_called()
+        clipboard.SetClipboardText.assert_called_once_with("/zaap 1,2", 13)
+        logger.warning.assert_any_call("Clipboard modifie pendant le chat: envoi annule.")
+
+    def test_chat_never_enters_foreign_clipboard_after_paste(self) -> None:
+        clipboard = Mock()
+        clipboard.GetClipboardData.return_value = "original"
+        clipboard.EnumClipboardFormats.side_effect = [13, 0]
+        clipboard.GetClipboardSequenceNumber.side_effect = [100, 101, 101]
+        logger = Mock()
+        with (
+            patch.object(input_tools.os, "name", "nt"),
+            patch.dict("sys.modules", {
+                "win32clipboard": clipboard,
+                "win32con": SimpleNamespace(CF_UNICODETEXT=13),
+            }),
+            patch.object(input_tools, "replace_chat_text_with_clipboard",
+                         return_value=True) as paste,
+            patch.object(input_tools, "press_key") as press,
+        ):
+            self.assertFalse(input_tools.send_chat_command("/invite Friend", logger))
+        paste.assert_called_once()
+        press.assert_not_called()
+        clipboard.SetClipboardText.assert_called_once_with("/invite Friend", 13)
+        logger.warning.assert_any_call("Clipboard modifie pendant le chat: envoi annule.")
+
+    def test_chat_refuses_submission_without_clipboard_revision(self) -> None:
+        clipboard = Mock()
+        clipboard.GetClipboardData.return_value = "original"
+        clipboard.EnumClipboardFormats.side_effect = [13, 0]
+        clipboard.GetClipboardSequenceNumber.return_value = 0
+        logger = Mock()
+        with (
+            patch.object(input_tools.os, "name", "nt"),
+            patch.dict("sys.modules", {
+                "win32clipboard": clipboard,
+                "win32con": SimpleNamespace(CF_UNICODETEXT=13),
+            }),
+            patch.object(input_tools, "replace_chat_text_with_clipboard") as paste,
+            patch.object(input_tools, "press_key") as press,
+        ):
+            self.assertFalse(input_tools.send_chat_command("/invite Friend", logger))
+        paste.assert_called_once()
+        press.assert_not_called()
+        logger.warning.assert_any_call(
+            "Clipboard: revision Win32 indisponible, chat annule."
+        )
+
     def test_clipboard_user_copy_during_command_is_preserved(self) -> None:
         clipboard = Mock()
         clipboard.GetClipboardSequenceNumber.return_value = 100
