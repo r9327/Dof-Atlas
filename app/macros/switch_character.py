@@ -31,6 +31,20 @@ class SwitchCharacterMacro:
             return False
 
         def run() -> None:
+            # Hotkey callbacks are asynchronous: a slot can be reassigned
+            # before this worker receives its turn. Never activate a stale
+            # HWND merely because it still belongs to a DOFUS process.
+            def target_is_current() -> bool:
+                return any(
+                    client.index == target.index and client.handle == target.handle
+                    for client in self.runtime.settings.clients
+                )
+
+            if not target_is_current():
+                self.runtime.logger.info(
+                    "Activation client annulée: slot modifié index=%s", target.index,
+                )
+                return
             if not is_unity_window(target.handle) or not is_dofus_unity_process(target.handle):
                 self.runtime.logger.info(
                     "Activation client ignoree: cible non DOFUS Unity label=%s hwnd=%s",
@@ -47,9 +61,14 @@ class SwitchCharacterMacro:
                 "Activation client",
                 should_stop=self.runtime.macro_lock.should_stop,
             ):
-                # Activation success is not enough: focus can be stolen between
-                # the Win32 request and the actual game input.
+                # Activation success is not enough: the slot may have been
+                # reassigned, or Stop/focus theft may have arrived in the meantime.
                 if self.runtime.macro_lock.should_stop():
+                    return
+                if not target_is_current():
+                    self.runtime.logger.info(
+                        "Activation client non publiée: slot modifié index=%s", target.index,
+                    )
                     return
                 if (not is_dofus_unity_process(target.handle)
                         or foreground_window() != int(target.handle)):
