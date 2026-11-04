@@ -105,8 +105,25 @@ class AtlasSettings:
     macro_mode: str = "macro"
 
     def client_by_handle(self, hwnd: int) -> AtlasClient | None:
+        # The persisted compatibility roster can contain corrupt HWNDs.
+        # Reject ambiguous/overflowing values without losing other clients.
+        if isinstance(hwnd, (bool, float)):
+            return None
+        try:
+            sought = int(hwnd)
+        except (TypeError, ValueError, OverflowError):
+            return None
+        if not 0 < sought <= (2**64 - 1):
+            return None
         for client in self.clients:
-            if int(client.handle) == int(hwnd):
+            raw = client.handle
+            if isinstance(raw, (bool, float)):
+                continue
+            try:
+                handle = int(raw)
+            except (TypeError, ValueError, OverflowError):
+                continue
+            if handle == sought:
                 return client
         return None
 
