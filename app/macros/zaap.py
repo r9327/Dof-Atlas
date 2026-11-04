@@ -124,13 +124,15 @@ class ZaapMacro:
                 self.runtime.logger.warning(
                     "Auto zaap: identité DOFUS perdue avant restauration hwnd=%s", client.handle,
                 )
-            if not stopped and not focus_lost:
+            # Stop may arrive between the identity probe and the restore.
+            # Recheck the live lock state instead of using the earlier snapshot.
+            if not self.runtime.macro_lock.should_stop() and not focus_lost:
                 try:
                     self.runtime.switch_character.restore_preferred_client("Auto zaap")
                 except Exception:
                     self.runtime.logger.exception("Auto zaap: retour au favori impossible.")
             state = (
-                "interrompu" if stopped or focus_lost
+                "interrompu" if self.runtime.macro_lock.should_stop() or focus_lost
                 else "termine" if sent == len(clients)
                 else "partiel"
             )
