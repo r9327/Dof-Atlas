@@ -126,6 +126,21 @@ class AutoGroupMacro:
                 self.runtime.logger.warning(
                     "Auto groupe: identité DOFUS perdue avant restauration hwnd=%s", sender.handle,
                 )
+            # The user may focus another application AFTER the last
+            # invitation, or while clipboard restoration is finishing.
+            # A completed SendInput is not permission to steal focus back.
+            if not self.runtime.macro_lock.should_stop() and not focus_lost and eligible:
+                try:
+                    if foreground_window() != int(sender.handle):
+                        focus_lost = True
+                        self.runtime.logger.info(
+                            "Auto groupe: retour favori ignoré, focus utilisateur changé."
+                        )
+                except Exception:
+                    focus_lost = True
+                    self.runtime.logger.exception(
+                        "Auto groupe: focus illisible avant retour au favori."
+                    )
             # Stop may be requested while identity is being checked.
             # Never restore focus on a stale snapshot of the stop flag.
             if not self.runtime.macro_lock.should_stop() and not focus_lost:
