@@ -279,6 +279,23 @@ class OrganizerSendInputTests(unittest.TestCase):
         press.assert_not_called()
 
 
+    def test_stop_before_chat_never_opens_or_modifies_clipboard(self) -> None:
+        logger = Mock()
+        with (
+            patch.object(input_tools, "clipboard_text") as clipboard,
+            patch.object(input_tools, "replace_chat_text_with_clipboard") as paste,
+            patch.object(input_tools, "press_key") as press,
+        ):
+            self.assertFalse(input_tools.send_chat_command(
+                "/zaap 1,2", logger, should_stop=lambda: True,
+            ))
+        clipboard.assert_not_called()
+        paste.assert_not_called()
+        press.assert_not_called()
+        logger.info.assert_called_once_with(
+            "Commande chat stoppee avant preparation du clipboard."
+        )
+
     def test_chat_never_submits_after_stop_during_clipboard_paste(self) -> None:
         stopped = False
 
