@@ -138,6 +138,35 @@ class OrganizerMacroReliabilityTests(unittest.TestCase):
                     "interrompu", count - 1, count - 1, count - 1, 101,
                 )
 
+    def test_auto_group_cleanup_failure_to_read_foreground_never_refocuses(self) -> None:
+        runtime = _runtime()
+        runtime.settings.timings.auto_group_invite_gap_ms = 0
+        runtime.switch_character.logical_active_client.return_value = (
+            SimpleNamespace(handle=101, display_name="Leader")
+        )
+        checks = [0]
+
+        def foreground():
+            checks[0] += 1
+            if checks[0] > 1:
+                raise OSError("GetForegroundWindow refused")
+            return 101
+
+        with (
+            patch("app.macros.auto_group.is_unity_window", return_value=True),
+            patch("app.macros.auto_group.is_dofus_unity_process", return_value=True),
+            patch("app.macros.auto_group.activate_window", return_value=True),
+            patch("app.macros.auto_group.foreground_window", side_effect=foreground),
+            patch("app.macros.auto_group.send_chat_command",
+                  return_value=True) as chat,
+        ):
+            AutoGroupMacro(runtime)._run([{"name": "Friend", "handle": 202}])
+        chat.assert_called_once()
+        runtime.switch_character.restore_preferred_client.assert_not_called()
+        runtime.logger.exception.assert_any_call(
+            "Auto groupe: focus illisible avant retour au favori."
+        )
+
     def test_auto_group_aborts_when_focus_is_stolen_between_invitations(self) -> None:
         runtime = _runtime()
         runtime.settings.timings.auto_group_invite_gap_ms = 0
