@@ -126,10 +126,16 @@ def send_screen_click(
     except (TypeError, ValueError):
         requested_count = 1
     click_total = 2 if requested_count >= 2 else 1
-    down_ms = max(0, int(down_ms))
-    double_gap_ms = max(0, int(double_gap_ms))
-    pre_click_ms = max(0, int(pre_click_ms))
-    post_up_ms = max(0, int(post_up_ms))
+    try:
+        down_ms = max(0, int(down_ms))
+        double_gap_ms = max(0, int(double_gap_ms))
+        pre_click_ms = max(0, int(pre_click_ms))
+        post_up_ms = max(0, int(post_up_ms))
+    except (TypeError, ValueError, OverflowError):
+        # Corrupted profiles must not crash the mouse worker before the
+        # synthetic guard or accidentally emit a click using bad timings.
+        logger.warning("Clic synthetique refuse: temporisation invalide.")
+        return False
 
     down_flag = (
         MOUSEEVENTF_RIGHTDOWN
