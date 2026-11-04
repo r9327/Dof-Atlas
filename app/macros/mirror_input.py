@@ -206,6 +206,7 @@ class MirrorInputMacro:
                 cursor is not None and roster_verified
                 and not focus_lost and not delivery_failed
                 and not runtime.macro_lock.should_stop()
+                and self._still_current(source, handles)
             ):
                 try:
                     set_cursor_pos(*cursor)
