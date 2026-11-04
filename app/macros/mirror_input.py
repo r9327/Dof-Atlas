@@ -84,7 +84,11 @@ class MirrorInputMacro:
         self, kind: str, payload: object, source: int, handles: tuple[int, ...],
     ) -> None:
         runtime = self.runtime
-        timings = runtime.settings.timings
+        # A profile reload is an atomic replacement even when its visible
+        # favorite and 2–8 handles happen to remain identical. Never let an
+        # older gesture focus or send through a replacement generation.
+        profile_at_start = runtime.settings
+        timings = profile_at_start.timings
         start = perf_counter()
         delivered = 0
         send_samples_ms: list[float] = []
@@ -108,8 +112,9 @@ class MirrorInputMacro:
         # Wheel replay does move the pointer and needs the native guard.
         mouse_blocked = False
         try:
-            if not self._still_current(source, handles):
-                runtime.logger.warning("Miroir %s annulé: favori ou sessions modifiés.", kind)
+            if (runtime.settings is not profile_at_start
+                    or not self._still_current(source, handles)):
+                runtime.logger.warning("Miroir %s annulé: profil, favori ou sessions modifiés.", kind)
                 return
             # Fail closed before the first emission if ANY configured HWND
             # has become an unrelated process. Avoid partial delivery caused
@@ -118,13 +123,18 @@ class MirrorInputMacro:
                 runtime.logger.warning("Miroir %s annulé: roster non DOFUS.", kind)
                 return
             roster_verified = True
+            if runtime.settings is not profile_at_start:
+                runtime.logger.warning("Miroir %s annulé: profil remplacé pendant le contrôle des clients.", kind)
+                return
             # Authenticate the entire roster before taking a mouse block.
             # This keeps slow Win32 process probes outside the blocked interval.
             if kind == "wheel":
                 runtime.input_state.begin_mouse_block("Miroir molette")
                 mouse_blocked = True
             for index, hwnd in enumerate(handles):
-                if runtime.macro_lock.should_stop() or not self._still_current(source, handles):
+                if (runtime.macro_lock.should_stop()
+                        or runtime.settings is not profile_at_start
+                        or not self._still_current(source, handles)):
                     break
                 if not is_dofus_unity_process(hwnd):
                     # A validated roster can change identity during fan-out.
@@ -138,7 +148,11 @@ class MirrorInputMacro:
                         hwnd, timings.switch_background_pre_click_ms,
                         timings.activate_attempts, timings.activate_retry_ms,
                         runtime.logger, "Miroir " + kind,
-                        should_stop=runtime.macro_lock.should_stop,
+                        should_stop=lambda: (
+                            runtime.macro_lock.should_stop()
+                            or runtime.settings is not profile_at_start
+                            or not self._still_current(source, handles)
+                        ),
                     )
                 except Exception:
                     focus_lost = True
@@ -159,7 +173,8 @@ class MirrorInputMacro:
                 # Activation may run callbacks or release the GIL. Recheck the
                 # exact roster and Win32 process identity AFTER focus changes,
                 # not only before activating the target.
-                if not self._still_current(source, handles):
+                if (runtime.settings is not profile_at_start
+                        or not self._still_current(source, handles)):
                     delivery_failed = True
                     runtime.logger.warning(
                         "Miroir %s: favori ou roster changé après activation hwnd=%s.",
@@ -226,7 +241,8 @@ class MirrorInputMacro:
                             # favorite, changed roster or stopped worker.
                             if runtime.macro_lock.should_stop():
                                 break
-                            if not self._still_current(source, handles):
+                            if (runtime.settings is not profile_at_start
+                                    or not self._still_current(source, handles)):
                                 delivery_failed = True
                                 runtime.logger.warning(
                                     "Miroir molette: roster changé après déplacement hwnd=%s.", hwnd,
@@ -296,6 +312,7 @@ class MirrorInputMacro:
                     and not user_focus_changed
                     and not focus_lost and not delivery_failed
                     and not runtime.macro_lock.should_stop()
+                    and runtime.settings is profile_at_start
                     and self._still_current(source, handles)
                 ):
                     try:
@@ -319,8 +336,10 @@ class MirrorInputMacro:
                 if (roster_verified and not user_focus_changed
                         and not focus_lost and not delivery_failed
                         and not runtime.macro_lock.should_stop()
+                        and runtime.settings is profile_at_start
                         and self._still_current(source, handles)
-                        and is_dofus_unity_process(source)):
+                        and is_dofus_unity_process(source)
+                        and runtime.settings is profile_at_start):
                     try:
                         runtime.switch_character.restore_preferred_client("Miroir " + kind)
                     except Exception:
