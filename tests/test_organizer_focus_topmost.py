@@ -93,6 +93,10 @@ class OrganizerTopmostCleanupTests(unittest.TestCase):
         self.assertEqual(orders, [0, -1, -2, -2])
         self.assertEqual(modules["win32gui"].SetForegroundWindow.call_count, 1)
         logger.exception.assert_called_once()
+        logger.error.assert_called_once_with(
+            "%s: fenetre potentiellement bloquee topmost hwnd=%s.",
+            "Miroir", 101,
+        )
 
     def test_stop_after_unpin_does_not_force_a_second_foreground(self):
         stopped = [False]
