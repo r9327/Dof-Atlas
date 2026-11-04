@@ -152,6 +152,14 @@ class SwitchCharacterMacro:
         except (TypeError, ValueError, OverflowError):
             source_hwnd = 0
 
+        # A real, explicit source that disappeared from Organizer must not
+        # silently turn into the logical favorite: that can broadcast a
+        # physical gesture from an unregistered or replaced window.
+        if source_hwnd > 0 and source_hwnd not in seen_handles:
+            self.runtime.logger.warning(
+                "Switch: source explicite absente du roster hwnd=%s", source_hwnd,
+            )
+            return []
         if source_hwnd not in seen_handles:
             source = self.logical_active_client()
             source_hwnd = source.handle if source is not None else 0
