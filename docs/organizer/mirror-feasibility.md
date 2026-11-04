@@ -1099,3 +1099,11 @@ du SHA exact et préflight Doctor structurel. La PR reste Draft.
 ## Fast-path natif du callback pendant Miroir clavier/molette (04/11)
 
 Le callback souris laisse désormais immédiatement passer les clics physiques si un worker clavier est occupé ou si le worker molette n'a pas encore acquis son blocage protecteur. Ce chemin ne parcourt plus le roster ni n'interroge Win32 pour 2 à 8 comptes sur ces clics : il réduit la durée du callback low-level et évite de traiter comme un clic Miroir une action qui ne doit pas l'être. Le clic pendant le déplacement du curseur par la molette reste protégé. Tests ciblés 2/4/6/8 ajoutés ; exécution Python/Windows et Doctor non réalisée. MIRR-007 global reste ouvert, PR Draft.
+
+## Maxi-lot fonctionnel 04/11 — Switch clic sans blocage avant la diffusion
+
+**Cause racine :** `SwitchClickMacro.run_async` réservait le blocage souris depuis le callback Win32, avant que le worker n'examine la source, la composition 2/4/6/8 et les conditions d'arrêt. Une attente ou un refus de démarrage prolongeait ainsi inutilement la consommation de clics natifs.
+
+**Nouveau contrat :** le callback capture et lance uniquement le worker. Le worker lit la position originale, valide source/favori/roster et ne prend le blocage qu'après ce preflight, juste avant la phase d'activation et de déplacement du pointeur. Une source manquante, un roster incomplet, une demande Stop, une seule fenêtre source déjà servie n'acquièrent aucun blocage. Les cas où le worker déplace réellement le pointeur conservent le blocage jusqu'après restitution du curseur/favori. La durée réelle du blocage est maintenant journalisée en millisecondes (`blocage_souris_ms`), sans attribuer cette mesure à un rendu Unity.
+
+**Scénarios ajoutés :** 2/4/6/8 personnages, callback avec worker en attente, prévalidation sans blocage, protection lors de chaque émission, roster incomplet, Stop avant diffusion, refus de spawn et exception du runner. Tests écrits, **NOT_RUN** sur Python/Windows/DOFUS dans cette session. **MIRR-007 non clos** : les clics physiques pendant une diffusion où le curseur est activement déplacé restent bloqués par le hook partagé ; pas de replay ou refonte structurelle sans Doctor + Graphify exact-SHA. PR Draft.

@@ -798,8 +798,8 @@ class OrganizerMacroReliabilityTests(unittest.TestCase):
             captured_context=context,
         ))
         runtime._spawn_macro.assert_called_once()
-        runtime.input_state.begin_mouse_block.assert_called_once_with("Miroir")
-        runtime.input_state.end_mouse_block.assert_called_once()
+        runtime.input_state.begin_mouse_block.assert_not_called()
+        runtime.input_state.end_mouse_block.assert_not_called()
 
     def test_switch_click_preserves_native_down_up_on_source(self) -> None:
         from app.core.runtime_state import AtlasRuntime
@@ -1200,7 +1200,7 @@ class OrganizerMacroReliabilityTests(unittest.TestCase):
             captured_context=context, physical_source_delivered=True,
         ))
         runtime._spawn_macro.assert_called_once()
-        runtime.input_state.begin_mouse_block.assert_called_once_with("Switch clique")
+        runtime.input_state.begin_mouse_block.assert_not_called()
 
     def test_single_client_native_click_never_reinjects_or_steals_focus(self) -> None:
         from app.macros.switch_click import SwitchClickContext, SwitchClickMacro

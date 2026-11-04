@@ -126,28 +126,21 @@ class SwitchClickMacro:
                 )
                 return True
 
-        self.runtime.input_state.begin_mouse_block(action_label)
-        try:
-            started = self.runtime._spawn_macro(
+        # A low-level hook callback must never reserve the physical mouse
+        # while a worker is merely queued. The worker validates the source
+        # and exact roster before taking ownership of the pointer.
+        return self.runtime._spawn_macro(
+            action_label,
+            lambda: self._run(
+                button_name,
+                click_count,
                 action_label,
-                lambda: self._run(
-                    button_name,
-                    click_count,
-                    action_label,
-                    context,
-                    mouse_block_started=True,
-                    exact_source_handle=exact_source_handle,
-                    mirror_target_handles=mirror_target_handles,
-                    physical_source_delivered=physical_source_delivered,
-                ),
-            )
-        except Exception:
-            self.runtime.input_state.end_mouse_block()
-            raise
-
-        if not started:
-            self.runtime.input_state.end_mouse_block()
-        return started
+                context,
+                exact_source_handle=exact_source_handle,
+                mirror_target_handles=mirror_target_handles,
+                physical_source_delivered=physical_source_delivered,
+            ),
+        )
 
     def _run(
         self,
@@ -164,6 +157,7 @@ class SwitchClickMacro:
         sent_count = 0
         target_total = 0
         mouse_blocked = mouse_block_started
+        mouse_block_started_at: float | None = None
         should_restore_preferred = False
         last_activated_hwnd: int | None = None
         focus_lost = False
@@ -181,15 +175,9 @@ class SwitchClickMacro:
                     action_label,
                 )
 
-            if not mouse_blocked:
-                self.runtime.input_state.begin_mouse_block(action_label)
-                mouse_blocked = True
-
-            self.runtime.logger.debug(
-                "%s souris physique bloquée pendant la boucle.",
-                action_label,
-            )
-
+            # The original cursor can be read and roster checked without
+            # changing focus, moving the pointer or emitting mouse events.
+            # Keep actual physical clicks native through this preflight.
             context = self._validated_context(context, action_label)
             # Classic SwitchClick may recover another favorite; Mirror must
             # never silently change its source after a click was consumed.
@@ -287,6 +275,19 @@ class SwitchClickMacro:
                     action_label,
                 )
                 return
+
+            if self.runtime.macro_lock.should_stop():
+                return
+            if not mouse_blocked:
+                # Only the dispatch phase owns the pointer. A rejected
+                # source, a stale favorite, an empty roster, or a native
+                # one-client click will not block any physical gesture.
+                self.runtime.input_state.begin_mouse_block(action_label)
+                mouse_blocked = True
+                mouse_block_started_at = perf_counter()
+            self.runtime.logger.debug(
+                "%s souris physique bloquée pendant diffusion.", action_label,
+            )
 
             settings = self.runtime.settings
             timings = settings.timings
@@ -608,6 +609,13 @@ class SwitchClickMacro:
                     action_label,
                     remaining_blocks,
                 )
+                if mouse_block_started_at is not None:
+                    self.runtime.logger.info(
+                        "%s blocage_souris_ms=%.2f cibles=%s",
+                        action_label,
+                        (perf_counter() - mouse_block_started_at) * 1000.0,
+                        target_total,
+                    )
 
             if mirror_started_at is not None:
                 from app.macros.mirror_plan import mirror_latency_percentiles_ms
