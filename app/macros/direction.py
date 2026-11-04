@@ -19,15 +19,17 @@ class DirectionMacro:
         return self.runtime._spawn_macro("Switch deplacement", lambda: self._run(key_name))
 
     def _run(self, key_name: str) -> None:
+        settings_at_start = self.runtime.settings
         source = foreground_window()
         if (not source or not is_unity_window(source)
                 or not is_dofus_unity_process(source)
-                or self.runtime.settings.client_by_handle(source) is None):
+                or settings_at_start.client_by_handle(source) is None
+                or self.runtime.settings is not settings_at_start):
             self.runtime.logger.info("Switch deplacement ignore: fenetre active non Unity.")
             self.release_virtual_inputs()
             return
-        timings = self.runtime.settings.timings
-        favorite_at_start = self.runtime.settings.primary_handle
+        timings = settings_at_start.timings
+        favorite_at_start = settings_at_start.primary_handle
         focus_lost = False
         last_activated_hwnd: int | None = None
         targets = []
@@ -35,7 +37,8 @@ class DirectionMacro:
         try:
             targets = self.runtime.switch_character.ordered_clients_from_source(source)
             for client in targets:
-                if self.runtime.macro_lock.should_stop():
+                if (self.runtime.macro_lock.should_stop()
+                        or self.runtime.settings is not settings_at_start):
                     return
                 if not is_unity_window(client.handle) or not is_dofus_unity_process(client.handle):
                     focus_lost = True
@@ -50,11 +53,15 @@ class DirectionMacro:
                     timings.activate_retry_ms,
                     self.runtime.logger,
                     "Switch deplacement",
-                    should_stop=self.runtime.macro_lock.should_stop,
+                    should_stop=lambda: (
+                        self.runtime.macro_lock.should_stop()
+                        or self.runtime.settings is not settings_at_start
+                    ),
                 ):
                     # Validate native identity BEFORE the last focus check:
                     # a process probe may itself yield to a foreign window.
-                    if (not is_dofus_unity_process(client.handle)
+                    if (self.runtime.settings is not settings_at_start
+                            or not is_dofus_unity_process(client.handle)
                             or foreground_window() != int(client.handle)):
                         focus_lost = True
                         self.runtime.logger.warning(
@@ -62,13 +69,15 @@ class DirectionMacro:
                             client.handle,
                         )
                         return
-                    if self.runtime.macro_lock.should_stop():
+                    if (self.runtime.macro_lock.should_stop()
+                            or self.runtime.settings is not settings_at_start):
                         return
                     last_activated_hwnd = int(client.handle)
                     press_key(key_name, timings.movement_key_hold_ms)
                     # Count an input that completed before Stop was observed.
                     sent += 1
-                    if self.runtime.macro_lock.should_stop():
+                    if (self.runtime.macro_lock.should_stop()
+                            or self.runtime.settings is not settings_at_start):
                         return
                 else:
                     self.runtime.logger.info(
@@ -76,9 +85,11 @@ class DirectionMacro:
                         client.handle,
                     )
         finally:
-            restore_skipped = False
+            restore_skipped = self.runtime.settings is not settings_at_start
+            if restore_skipped:
+                self.runtime.logger.info("Switch deplacement: retour ignoré, profil remplacé.")
             if (not self.runtime.macro_lock.should_stop() and not focus_lost
-                    and not is_dofus_unity_process(source)):
+                    and not restore_skipped and not is_dofus_unity_process(source)):
                 focus_lost = True
                 self.runtime.logger.warning(
                     "Switch deplacement: identité DOFUS perdue avant restauration hwnd=%s", source,
@@ -111,14 +122,15 @@ class DirectionMacro:
                         "Switch deplacement: focus illisible avant retour au favori."
                     )
             if (not self.runtime.macro_lock.should_stop() and not focus_lost
-                    and not restore_skipped):
+                    and not restore_skipped
+                    and self.runtime.settings is settings_at_start):
                 try:
                     self.runtime.switch_character.restore_preferred_client("Switch deplacement")
                 except Exception:
                     self.runtime.logger.exception("Switch deplacement: retour au favori impossible.")
             stopped = self.runtime.macro_lock.should_stop()
             state = (
-                "interrompu" if stopped or focus_lost
+                "interrompu" if stopped or focus_lost or self.runtime.settings is not settings_at_start
                 else "ignore" if not targets
                 else "termine" if sent == len(targets)
                 else "partiel"

@@ -32,7 +32,12 @@ class AutoGroupMacro:
             self.runtime.logger.info("Auto groupe ignoré : Stop déjà demandé.")
             self.runtime._emit_status("Auto-groupe arrêté avant lancement.")
             return
+        settings_at_start = self.runtime.settings
         sender = self.runtime.switch_character.logical_active_client()
+        if self.runtime.settings is not settings_at_start:
+            self.runtime.logger.info("Auto groupe annulé: profil Organizer remplacé.")
+            self.runtime._emit_status("Auto-groupe interrompu : profil modifié.")
+            return
         if (sender is None or not is_unity_window(sender.handle)
                 or not is_dofus_unity_process(sender.handle)):
             self.runtime.logger.info("Auto groupe ignore: aucune fenetre Dofus valide.")
@@ -87,7 +92,10 @@ class AutoGroupMacro:
         if self.runtime.macro_lock.should_stop():
             self.runtime._emit_status("Auto-groupe arrêté avant envoi.")
             return
-        timings = self.runtime.settings.timings
+        timings = settings_at_start.timings
+        if self.runtime.settings is not settings_at_start:
+            self.runtime._emit_status("Auto-groupe interrompu : profil modifié.")
+            return
         if not activate_window(
             sender.handle,
             timings.travel_focus_settle_ms,
@@ -95,25 +103,30 @@ class AutoGroupMacro:
             timings.activate_retry_ms,
             self.runtime.logger,
             "Auto groupe",
-            should_stop=self.runtime.macro_lock.should_stop,
+            should_stop=lambda: (
+                self.runtime.macro_lock.should_stop()
+                or self.runtime.settings is not settings_at_start
+            ),
         ):
             self.runtime.logger.info("Auto groupe activation fenetre echec: hwnd=%s", sender.handle)
             self.runtime._emit_status("Auto-groupe non envoyé : activation DOFUS échouée.")
             return
-        favorite_at_start = self.runtime.settings.primary_handle
+        favorite_at_start = settings_at_start.primary_handle
         sent = 0
         eligible = 0
         focus_lost = False
         try:
             for index, name in enumerate(recipients):
-                if self.runtime.macro_lock.should_stop():
+                if (self.runtime.macro_lock.should_stop()
+                        or self.runtime.settings is not settings_at_start):
                     return
                 eligible += 1
                 # Every invitation is a distinct operation. Never type into
                 # another window if focus was stolen after activation.
                 # A native identity probe may yield focus to another app.
                 # Check the foreground last, then Stop before opening chat.
-                if (not is_dofus_unity_process(sender.handle)
+                if (self.runtime.settings is not settings_at_start
+                        or not is_dofus_unity_process(sender.handle)
                         or foreground_window() != int(sender.handle)):
                     focus_lost = True
                     self.runtime.logger.warning(
@@ -134,10 +147,12 @@ class AutoGroupMacro:
                     # of typing Ctrl+A/Delete/Enter into another program.
                     should_stop=lambda: (
                         self.runtime.macro_lock.should_stop()
+                        or self.runtime.settings is not settings_at_start
                         or foreground_window() != int(sender.handle)
                     ),
                 ):
-                    if self.runtime.macro_lock.should_stop():
+                    if (self.runtime.macro_lock.should_stop()
+                            or self.runtime.settings is not settings_at_start):
                         return
                     if (not is_dofus_unity_process(sender.handle)
                             or foreground_window() != int(sender.handle)):
@@ -151,7 +166,8 @@ class AutoGroupMacro:
                 # The command returned successful: retain this emission
                 # in telemetry even when Stop arrives immediately afterward.
                 sent += 1
-                if self.runtime.macro_lock.should_stop():
+                if (self.runtime.macro_lock.should_stop()
+                        or self.runtime.settings is not settings_at_start):
                     return
                 # There is no next /invite after the last recipient. Do
                 # not make two accounts feel slower for no functional reason.
@@ -160,8 +176,11 @@ class AutoGroupMacro:
                         return
         finally:
             stopped = self.runtime.macro_lock.should_stop()
-            restore_skipped = False
-            if not stopped and not focus_lost and not is_dofus_unity_process(sender.handle):
+            restore_skipped = self.runtime.settings is not settings_at_start
+            if restore_skipped:
+                self.runtime.logger.info("Auto groupe: retour ignoré, profil remplacé.")
+            if (not stopped and not focus_lost and not restore_skipped
+                    and not is_dofus_unity_process(sender.handle)):
                 focus_lost = True
                 self.runtime.logger.warning(
                     "Auto groupe: identité DOFUS perdue avant restauration hwnd=%s", sender.handle,
@@ -195,7 +214,8 @@ class AutoGroupMacro:
             # Stop may be requested while identity is being checked.
             # Never restore focus on a stale snapshot of the stop flag.
             if (not self.runtime.macro_lock.should_stop() and not focus_lost
-                    and not restore_skipped):
+                    and not restore_skipped
+                    and self.runtime.settings is settings_at_start):
                 try:
                     self.runtime.switch_character.restore_preferred_client("Auto groupe")
                 except Exception:
@@ -204,7 +224,7 @@ class AutoGroupMacro:
                     )
             stopped = self.runtime.macro_lock.should_stop()
             state = (
-                "interrompu" if stopped or focus_lost
+                "interrompu" if stopped or focus_lost or self.runtime.settings is not settings_at_start
                 else "ignore" if not eligible
                 else "termine" if sent == eligible
                 else "partiel"

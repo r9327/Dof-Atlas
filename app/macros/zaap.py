@@ -53,13 +53,18 @@ class ZaapMacro:
             self.runtime._emit_status("Auto zaap ignoré : commande invalide.")
             return
         command = zaap_command(*coords)
+        settings_at_start = self.runtime.settings
         clients = self.runtime.switch_character.ordered_clients_from_source()
+        if self.runtime.settings is not settings_at_start:
+            self.runtime.logger.info("Auto zaap annulé : profil Organizer remplacé.")
+            self.runtime._emit_status("Auto zaap interrompu : profil modifié.")
+            return
         if not clients:
             self.runtime.logger.info("Auto zaap ignore: aucune fenetre chargee.")
             self.runtime._emit_status("Auto zaap ignoré : aucune fenêtre DOFUS disponible.")
             return
-        timings = self.runtime.settings.timings
-        favorite_at_start = self.runtime.settings.primary_handle
+        timings = settings_at_start.timings
+        favorite_at_start = settings_at_start.primary_handle
         self.runtime.logger.info(
             "Auto zaap lance: clients=%s commande=%s",
             len(clients),
@@ -70,7 +75,8 @@ class ZaapMacro:
         last_activated_handle: int | None = None
         try:
             for client in clients:
-                if self.runtime.macro_lock.should_stop():
+                if (self.runtime.macro_lock.should_stop()
+                        or self.runtime.settings is not settings_at_start):
                     return
                 if not is_unity_window(client.handle) or not is_dofus_unity_process(client.handle):
                     focus_lost = True
@@ -85,7 +91,10 @@ class ZaapMacro:
                     timings.activate_retry_ms,
                     self.runtime.logger,
                     "Auto zaap",
-                    should_stop=self.runtime.macro_lock.should_stop,
+                    should_stop=lambda: (
+                        self.runtime.macro_lock.should_stop()
+                        or self.runtime.settings is not settings_at_start
+                    ),
                 ):
                     self.runtime.logger.info("Auto zaap activation echec: hwnd=%s", client.handle)
                     continue
@@ -93,7 +102,8 @@ class ZaapMacro:
                 # command to Organizer, another game window, or a browser.
                 # Make foreground the last native check. A process probe
                 # can yield focus during a multi-window Unity sequence.
-                if (not is_dofus_unity_process(client.handle)
+                if (self.runtime.settings is not settings_at_start
+                        or not is_dofus_unity_process(client.handle)
                         or foreground_window() != int(client.handle)):
                     focus_lost = True
                     self.runtime.logger.warning(
@@ -115,10 +125,12 @@ class ZaapMacro:
                     # The existing sender checks this before each chat step.
                     should_stop=lambda hwnd=client.handle: (
                         self.runtime.macro_lock.should_stop()
+                        or self.runtime.settings is not settings_at_start
                         or foreground_window() != int(hwnd)
                     ),
                 ):
-                    if self.runtime.macro_lock.should_stop():
+                    if (self.runtime.macro_lock.should_stop()
+                            or self.runtime.settings is not settings_at_start):
                         return
                     if (not is_dofus_unity_process(client.handle)
                             or foreground_window() != int(client.handle)):
@@ -130,12 +142,17 @@ class ZaapMacro:
                         return
                     continue
                 sent += 1
+                if self.runtime.settings is not settings_at_start:
+                    return
         finally:
             # Restituer le favori même si un client ou le chat échoue, mais ne
             # jamais réactiver une fenêtre après un stop d'urgence.
             stopped = self.runtime.macro_lock.should_stop()
-            restore_skipped = False
-            if not stopped and not focus_lost and not is_dofus_unity_process(client.handle):
+            restore_skipped = self.runtime.settings is not settings_at_start
+            if restore_skipped:
+                self.runtime.logger.info("Auto zaap: retour ignoré, profil remplacé.")
+            if (not stopped and not focus_lost and not restore_skipped
+                    and not is_dofus_unity_process(client.handle)):
                 focus_lost = True
                 self.runtime.logger.warning(
                     "Auto zaap: identité DOFUS perdue avant restauration hwnd=%s", client.handle,
@@ -170,13 +187,15 @@ class ZaapMacro:
             # Stop may arrive between the identity probe and the restore.
             # Recheck the live lock state instead of using the earlier snapshot.
             if (not self.runtime.macro_lock.should_stop() and not focus_lost
-                    and not restore_skipped):
+                    and not restore_skipped
+                    and self.runtime.settings is settings_at_start):
                 try:
                     self.runtime.switch_character.restore_preferred_client("Auto zaap")
                 except Exception:
                     self.runtime.logger.exception("Auto zaap: retour au favori impossible.")
             state = (
-                "interrompu" if self.runtime.macro_lock.should_stop() or focus_lost
+                "interrompu" if (self.runtime.macro_lock.should_stop() or focus_lost
+                                  or self.runtime.settings is not settings_at_start)
                 else "termine" if sent == len(clients)
                 else "partiel"
             )

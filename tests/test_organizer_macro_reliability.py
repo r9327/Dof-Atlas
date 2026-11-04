@@ -156,6 +156,117 @@ class OrganizerMacroReliabilityTests(unittest.TestCase):
             self.assertIsNone(SwitchCharacterMacro(runtime).logical_active_client())
         self.assertEqual(runtime.active_client_handle, 303)
 
+    def test_profile_reload_during_auto_group_chat_cancels_remaining_2_to_8(self) -> None:
+        for count in (2, 4, 6, 8):
+            with self.subTest(count=count):
+                runtime = _runtime()
+                runtime.settings.primary_handle = 101
+                runtime.settings.timings.auto_group_invite_gap_ms = 0
+                runtime.switch_character.logical_active_client.return_value = (
+                    SimpleNamespace(handle=101, display_name="Leader")
+                )
+                entries = [
+                    {"name": f"Friend{i}", "handle": 101 + i}
+                    for i in range(1, count)
+                ]
+
+                def replace_profile(_command, _logger, **kwargs):
+                    original = runtime.settings
+                    replacement = Mock()
+                    replacement.primary_handle = original.primary_handle
+                    replacement.timings = original.timings
+                    runtime.settings = replacement
+                    self.assertTrue(kwargs["should_stop"]())
+                    return False
+
+                with (
+                    patch("app.macros.auto_group.is_unity_window", return_value=True),
+                    patch("app.macros.auto_group.is_dofus_unity_process", return_value=True),
+                    patch("app.macros.auto_group.activate_window", return_value=True),
+                    patch("app.macros.auto_group.foreground_window", return_value=101),
+                    patch("app.macros.auto_group.send_chat_command",
+                          side_effect=replace_profile) as send,
+                ):
+                    AutoGroupMacro(runtime)._run(entries)
+                send.assert_called_once()
+                runtime.switch_character.restore_preferred_client.assert_not_called()
+                runtime._emit_status.assert_called_once_with(
+                    f"Auto-groupe interrompu : 0/{count - 1} commandes émises "
+                    "(réception DOFUS non vérifiée)."
+                )
+
+    def test_profile_reload_during_zaap_activation_cancels_chat_2_to_8(self) -> None:
+        for count in (2, 4, 6, 8):
+            with self.subTest(count=count):
+                runtime = _runtime()
+                runtime.settings.primary_handle = 101
+                runtime.switch_character.ordered_clients_from_source.return_value = [
+                    SimpleNamespace(handle=101 + i) for i in range(count)
+                ]
+
+                def activate_and_reload(_hwnd, *_args, **kwargs):
+                    original = runtime.settings
+                    replacement = Mock()
+                    replacement.primary_handle = original.primary_handle
+                    replacement.timings = original.timings
+                    runtime.settings = replacement
+                    self.assertTrue(kwargs["should_stop"]())
+                    return True
+
+                with (
+                    patch("app.macros.zaap.is_unity_window", return_value=True),
+                    patch("app.macros.zaap.is_dofus_unity_process", return_value=True),
+                    patch("app.macros.zaap.activate_window",
+                          side_effect=activate_and_reload) as activate,
+                    patch("app.macros.zaap.foreground_window") as foreground,
+                    patch("app.macros.zaap.send_chat_command") as send,
+                ):
+                    ZaapMacro(runtime)._run("/zaap 1,2")
+                activate.assert_called_once()
+                foreground.assert_not_called()
+                send.assert_not_called()
+                runtime.switch_character.restore_preferred_client.assert_not_called()
+                runtime._emit_status.assert_called_once_with(
+                    f"Auto zaap interrompu : 0/{count} commandes émises "
+                    "(réception DOFUS non vérifiée)."
+                )
+
+    def test_profile_reload_during_direction_activation_skips_keys_2_to_8(self) -> None:
+        for count in (2, 4, 6, 8):
+            with self.subTest(count=count):
+                runtime = _runtime()
+                runtime.settings.primary_handle = 101
+                runtime.settings.client_by_handle.return_value = object()
+                runtime.switch_character.ordered_clients_from_source.return_value = [
+                    SimpleNamespace(handle=101 + i) for i in range(count)
+                ]
+
+                def activate_and_reload(_hwnd, *_args, **kwargs):
+                    original = runtime.settings
+                    replacement = Mock()
+                    replacement.primary_handle = original.primary_handle
+                    replacement.timings = original.timings
+                    runtime.settings = replacement
+                    self.assertTrue(kwargs["should_stop"]())
+                    return True
+
+                with (
+                    patch("app.macros.direction.foreground_window", return_value=101),
+                    patch("app.macros.direction.is_unity_window", return_value=True),
+                    patch("app.macros.direction.is_dofus_unity_process", return_value=True),
+                    patch("app.macros.direction.activate_window",
+                          side_effect=activate_and_reload) as activate,
+                    patch("app.macros.direction.press_key") as send,
+                ):
+                    DirectionMacro(runtime)._run("HOME")
+                activate.assert_called_once()
+                send.assert_not_called()
+                runtime.switch_character.restore_preferred_client.assert_not_called()
+                runtime.logger.info.assert_any_call(
+                    "Switch deplacement %s: envoyes=%s/%s",
+                    "interrompu", 0, count,
+                )
+
     def test_auto_group_rejects_empty_queued_requests_before_spawning_worker(self) -> None:
         runtime = _runtime()
         macro = AutoGroupMacro(runtime)
