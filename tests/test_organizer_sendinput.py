@@ -378,6 +378,82 @@ class OrganizerSendInputTests(unittest.TestCase):
             self.assertEqual(hook._mouse_proc(0, WM_LBUTTONUP, addr), 51)
             self.assertEqual(len(calls), 1)
 
+    def test_native_up_from_press_before_busy_worker_is_not_swallowed(self) -> None:
+        import logging
+        from app.input.input_state import InputState, SyntheticInputGuard
+        from app.input.mouse_hooks import (
+            MSLLHOOKSTRUCT, MouseHook,
+            WM_LBUTTONDOWN, WM_LBUTTONUP,
+            WM_RBUTTONDOWN, WM_RBUTTONUP,
+            WM_MBUTTONDOWN, WM_MBUTTONUP,
+            WM_XBUTTONDOWN, WM_XBUTTONUP,
+        )
+
+        for down, up in (
+            (WM_LBUTTONDOWN, WM_LBUTTONUP),
+            (WM_RBUTTONDOWN, WM_RBUTTONUP),
+            (WM_MBUTTONDOWN, WM_MBUTTONUP),
+            (WM_XBUTTONDOWN, WM_XBUTTONUP),
+        ):
+            with self.subTest(down=down):
+                state = InputState()
+                logger = logging.getLogger("test_pressed_before_busy")
+                callback = Mock(return_value=False)
+                release = Mock(return_value=False)
+                hook = MouseHook(
+                    state, SyntheticInputGuard(logger), logger,
+                    callback, release_callback=release,
+                )
+                event = MSLLHOOKSTRUCT()
+                event.pt.x, event.pt.y = 10, 20
+                user32 = Mock()
+                user32.CallNextHookEx.return_value = 42
+                with patch.object(
+                    ctypes, "windll", SimpleNamespace(user32=user32),
+                    create=True,
+                ):
+                    addr = ctypes.addressof(event)
+                    # Physical press starts in the client before the worker.
+                    self.assertEqual(hook._mouse_proc(0, down, addr), 42)
+                    self.assertEqual(hook._consumed_releases, set())
+                    state.begin_mouse_block("Miroir")
+                    # This must pass; swallowing only UP can leave a held
+                    # button in the client that received the native DOWN.
+                    self.assertEqual(hook._mouse_proc(0, up, addr), 42)
+                    self.assertEqual(hook._consumed_releases, set())
+                    self.assertEqual(hook._blocked_click_count, 0)
+                    state.end_mouse_block()
+                if down in (WM_LBUTTONDOWN, WM_RBUTTONDOWN):
+                    callback.assert_called_once()
+                    release.assert_called_once()
+                else:
+                    callback.assert_not_called()
+                    release.assert_not_called()
+
+    def test_native_up_during_block_never_creates_a_false_drop_count(self) -> None:
+        import logging
+        from app.input.input_state import InputState, SyntheticInputGuard
+        from app.input.mouse_hooks import MSLLHOOKSTRUCT, MouseHook, WM_LBUTTONUP
+
+        state = InputState()
+        logger = logging.getLogger("test_busy_release_counts")
+        hook = MouseHook(state, SyntheticInputGuard(logger), logger, Mock())
+        event = MSLLHOOKSTRUCT()
+        user32 = Mock()
+        user32.CallNextHookEx.return_value = 99
+        with patch.object(
+            ctypes, "windll", SimpleNamespace(user32=user32),
+            create=True,
+        ):
+            state.begin_mouse_block("Miroir")
+            self.assertEqual(
+                hook._mouse_proc(0, WM_LBUTTONUP, ctypes.addressof(event)),
+                99,
+            )
+            state.end_mouse_block()
+        self.assertEqual(hook._blocked_click_count, 0)
+        self.assertEqual(hook._blocked_wheel_count, 0)
+
     def test_busy_down_keeps_matching_up_consumed_after_worker_finishes(self) -> None:
         import logging
         from app.input.input_state import InputState, SyntheticInputGuard
