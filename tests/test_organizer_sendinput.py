@@ -719,6 +719,31 @@ class OrganizerSendInputTests(unittest.TestCase):
         self.assertEqual(key.call_count, 3)
 
 
+    def test_cursor_move_win32_refusal_has_diagnostic_and_no_ghost_click(self) -> None:
+        user32 = SimpleNamespace(SetCursorPos=Mock(return_value=0))
+        kernel32 = SimpleNamespace(GetLastError=Mock(return_value=5))
+        windll = SimpleNamespace(user32=user32, kernel32=kernel32)
+        guard, logger = Mock(), Mock()
+        with (
+            patch.object(clicks.os, "name", "nt"),
+            patch.object(clicks.ctypes, "windll", windll, create=True),
+            patch.object(clicks, "_send_mouse_flag") as sender,
+        ):
+            with self.assertRaisesRegex(
+                OSError, r"SetCursorPos refused at \\(300,200\\).*win32_error=5",
+            ):
+                clicks.set_cursor_pos(300, 200)
+            self.assertFalse(clicks.send_screen_click(
+                300, 200, "Left", 2, 20, 20, 20, 20, guard, logger,
+            ))
+        user32.SetCursorPos.assert_called_with(300, 200)
+        sender.assert_not_called()
+        logger.exception.assert_called_once_with(
+            "Erreur pendant le clic synthetique: button=%s x=%s y=%s",
+            "Left", 300, 200,
+        )
+        guard.end.assert_called_once_with(120)
+
     def test_unity_hover_settle_follows_pointer_move_before_mouse_down(self) -> None:
         events = []
         guard = Mock()
