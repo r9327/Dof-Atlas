@@ -57,7 +57,11 @@ def current_cursor_pos() -> tuple[int, int]:
     if os.name != "nt":
         return 0, 0
     point = ctypes.wintypes.POINT()
-    ctypes.windll.user32.GetCursorPos(ctypes.byref(point))
+    if not ctypes.windll.user32.GetCursorPos(ctypes.byref(point)):
+        # The POINT buffer remains zero-initialized on a refused Win32 read.
+        # Treating it as the genuine old cursor would move the user's
+        # pointer to (0, 0) during cleanup after the macro finishes.
+        raise OSError("Windows GetCursorPos refused; position unavailable")
     return int(point.x), int(point.y)
 
 
