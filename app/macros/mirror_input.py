@@ -93,6 +93,7 @@ class MirrorInputMacro:
         focus_lost = False
         delivery_failed = False
         roster_verified = False
+        last_activated_hwnd: int | None = None
         if kind == "wheel":
             try:
                 cursor = current_cursor_pos()
@@ -170,6 +171,7 @@ class MirrorInputMacro:
                     focus_lost = True
                     runtime.logger.warning("Miroir %s: focus volé avant envoi hwnd=%s.", kind, hwnd)
                     break
+                last_activated_hwnd = hwnd
                 if runtime.macro_lock.should_stop():
                     break
                 try:
@@ -259,10 +261,32 @@ class MirrorInputMacro:
             # and restores focus. Otherwise native clicks may leak to a
             # different client during teardown. Release on EVERY path.
             try:
+                # A fully sent command does not authorize taking focus or
+                # moving the pointer after the user has switched apps.
+                # This is one O(1) native probe per completed worker.
+                user_focus_changed = False
+                if (
+                    roster_verified and not focus_lost and not delivery_failed
+                    and not runtime.macro_lock.should_stop()
+                    and last_activated_hwnd is not None
+                ):
+                    try:
+                        if foreground_window() != last_activated_hwnd:
+                            user_focus_changed = True
+                            runtime.logger.info(
+                                "Miroir %s: restauration ignorée, focus utilisateur changé.",
+                                kind,
+                            )
+                    except Exception:
+                        user_focus_changed = True
+                        runtime.logger.exception(
+                            "Miroir %s: focus non vérifiable avant restauration.", kind,
+                        )
                 # Stop, failed SendInput or a stolen focus must not move the
                 # user's pointer after the macro has relinquished control.
                 if (
                     cursor is not None and roster_verified
+                    and not user_focus_changed
                     and not focus_lost and not delivery_failed
                     and not runtime.macro_lock.should_stop()
                     and self._still_current(source, handles)
@@ -273,7 +297,8 @@ class MirrorInputMacro:
                         runtime.logger.exception("Miroir molette: restauration curseur impossible.")
                 # A changed favorite must not be activated as a side effect of
                 # aborting the original gesture (same policy as mouse clicks).
-                if (roster_verified and not focus_lost and not delivery_failed
+                if (roster_verified and not user_focus_changed
+                        and not focus_lost and not delivery_failed
                         and not runtime.macro_lock.should_stop()
                         and self._still_current(source, handles)
                         and is_dofus_unity_process(source)):
