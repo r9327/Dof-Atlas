@@ -690,3 +690,56 @@ Graphify exact-SHA, tests PySide6, mesures CPU/RAM/p50/p95/p99 ou
 recette DOFUS Unity 2/4/6/8. Ne pas affirmer une exécution PASS.
 **MIRR-007 reste PENDING** ; le correctif de chat ne traite pas les gestes
 physiques perdus sous worker occupé. PR toujours Draft / non certifiée.
+
+## Maxi-lot 04/11/2026 — garde Miroir en cours d'envoi et focus de fin
+
+### Corrections implémentées
+
+- Le Switch clic Miroir passe au sender natif existant un prédicat
+  d'annulation tenant compte du Stop **et** du roster courant (mode Miroir,
+  favori et ordre des destinataires), y compris durant le survol Unity,
+  entre les clics d'un double-clic et pendant les délais. Le contrôle reste
+  **en mémoire**, sans nouveau probe natif sur chaque tranche de 10 ms,
+  pour éviter une surcharge accrue avec 8 personnages. Si la liste change,
+  les destinataires restants ne reçoivent aucune nouvelle action.
+- Le refus du sender distingue maintenant Stop, roster modifié, focus perdu
+  et refus d'injection ; il ne présente pas une annulation de roster comme
+  un refus Win32 SendInput. Le sender historique et les macros classiques
+  restent réutilisés, sans API de dispatch supplémentaire.
+- Le Miroir clic, clavier et molette vérifie que l'ancien destinataire
+  activé est **encore au premier plan** à la fin de la diffusion, avant
+  de reprendre le curseur ou le favori. Une application nouvellement
+  sélectionnée conserve le focus, même si les émissions étaient complètes.
+- Le Miroir molette et le Switch clic refont aussi ce contrôle **après**
+  avoir remis le curseur à sa position initiale : une activation survenue
+  durant le déplacement du pointeur ne déclenche pas un retour forcé
+  au favori. Un échec du contrôle natif de focus ou de restauration du
+  curseur laisse les protections se nettoyer sans nouvel envoi.
+
+### Tests et preuve manquante
+
+- Simulations ciblées de roster/favori/mode/Stop changé pendant le survol
+  du clic sur **2/4/6/8 clients**, sans destinataires supplémentaires.
+- Simulations clavier, molette et clic de changement vers une autre
+  application **après** les émissions finales sur 2/4/6/8 clients ; aucun
+  retour au favori ni curseur déplacé si le focus appartient à l'utilisateur.
+- Scénarios de vol de focus et d'erreur native **pendant** le retour du
+  curseur ; les blocs souris doivent toujours être relâchés. Les mocks
+  de focus des parcours précédemment complets ont été adaptés aux nouveaux
+  contrôles finaux. Le cas de roster inversé sur deux clients, sans réel
+  changement du parcours favori-first, est remplacé par un HWND réellement
+  périmé afin de ne pas inventer une régression.
+
+**Portée** : modifications localisées dans `app/macros/switch_click.py`,
+`app/macros/mirror_input.py` et `tests/test_organizer_mirror_ui.py`,
+sans format persistant, nouvelle dépendance, hook ou système de file.
+
+**NOT_RUN** : Atlas Doctor `agent plan/check/validate`, Graphify SHA
+exact, `git diff --check`, tests Python/PySide6, métriques et recette
+DOFUS Unity Windows 2/4/6/8 indisponibles sur l'hôte GitHub-only.
+L'analyse statique du code et des tests n'est pas une exécution PASS.
+La finalisation du comportement global dépend toujours de **MIRR-007** :
+les gestes physiques arrivant pendant un worker occupé peuvent encore
+être consommés sans diffusion. Aucune nouvelle politique de replay ou
+modification structurelle de hook sans Graphify exact-SHA + Doctor.
+**PR Draft, certification manquante, verdict provisoire CHANGES REQUIRED.**
