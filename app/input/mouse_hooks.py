@@ -228,6 +228,18 @@ class MouseHook:
                         )
 
                 if self.input_state.is_mouse_blocked() and not atlas_synthetic:
+                    # An UP with no consumed DOWN can belong to a real press
+                    # that began BEFORE the worker blocked input. Swallowing
+                    # only that UP would leave the user's button held. The
+                    # consumed-release branch above already protects every
+                    # DOWN intercepted by this hook.
+                    if w_param in (
+                        WM_LBUTTONUP, WM_RBUTTONUP,
+                        WM_MBUTTONUP, WM_XBUTTONUP,
+                    ):
+                        return ctypes.windll.user32.CallNextHookEx(
+                            self._hook, n_code, w_param, l_param,
+                        )
                     # A DOWN blocked during replay must retain ownership of
                     # its matching UP even if the worker ends before the user
                     # releases the button. Otherwise an orphaned physical UP
