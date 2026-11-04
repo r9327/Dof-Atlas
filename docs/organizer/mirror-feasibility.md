@@ -469,3 +469,15 @@ sur 8 comptes ne sont pas mesurés ni certifiés ici.
 Les modifications de ce lot ne résolvent **pas** `MIRR-007` : pendant un blocage physique global, le hook peut encore consommer un nouveau DOWN sans le diffuser. La stratégie de conservation/rejeu borné (TTL, génération de roster, Stop, ordre DOWN/UP) est une évolution structurelle conditionnée à une carte Graphify au **SHA exact** et au plan Doctor. Pas d'ajout d'une file risquée pour simuler la correction.
 
 **Validation de ce lot : NOT_RUN** pour Python/unittest et Qt, Doctor `agent plan/check/validate`, Graphify exact SHA, `git diff --check` local, essais DOFUS Unity réels et mesures CPU/RAM/p50/p95/p99 de 2 à 8 comptes. La lecture du diff GitHub n'est pas une exécution de test. Garder la PR Draft, le Delivery Guard bloquant et les exigences de #321/#322 ouvertes ; aucun Ready, PASS ou fusion tant que les preuves ne sont pas établies.
+
+## Lot ciblé du 04/11/2026 — fiabilité macros et Zaap (non certifié)
+
+Correctifs locaux conservant le même moteur de macros et le mode séquentiel :
+
+- **Stop pendant une commande chat** : `send_chat_command` vérifie l'arrêt d'urgence immédiatement avant chaque validation ENTER, y compris après une copie réussie et avant le second ENTER du Zaap. Aucun ENTER supplémentaire ne doit partir quand Stop est déjà observé.
+- **Presse-papiers indisponible** : l'échec de l'import pywin32 ou des dix tentatives d'ouverture/remplacement du presse-papiers annule la macro par erreur explicite au lieu de coller un ancien contenu utilisateur. La restauration du presse-papiers sur réussite conserve le contrat existant ; les formats non texte et échecs de restauration demeurent une limitation à qualifier.
+- **Roster Organizer** : les handles de fenêtre absents, non finis ou malformés sont écartés sans faire échouer le reste du fan-out Auto-groupe ou le classement des clients. Les HWND Dofus restent vérifiés par les chemins Win32 existants.
+- **Sélection Zaap** : fermeture du popup avant le callback de mise à jour ou d'activation DOFUS, y compris en cas de destination invalide. Aucun panneau flottant ne devrait persister au-dessus du jeu pendant une activation.
+- Tests ajoutés pour les courses de Stop autour des ENTER, le refus du presse-papiers, les HWND invalides, et la fermeture Zaap avant lancement.
+
+**Statut de preuve :** correctifs enregistrés dans #325 et tests écrits ; exécution des tests Python, Doctor `agent plan/check/validate`, Graphify exact-SHA et essais Windows/Unity 2/4/6/8 : **NOT_RUN** depuis ce contexte sans checkout local. MIRR-007 (perte des gestes physiques pendant un worker occupé), MIRR-002 et MIRR-005 restent ouverts. La PR reste Draft ; ni validation réelle, ni latence identique 2→8, ni certification n'est revendiquée.
