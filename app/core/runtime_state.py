@@ -635,6 +635,16 @@ class AtlasRuntime:
         if (not self._running or not self._admin_ok
                 or self.settings.macro_mode != "mirror"):
             return False
+        settings = self.settings
+        if getattr(settings, "radial_enabled", False) is True:
+            radial_text = getattr(settings, "radial_hotkey", "")
+            if type(radial_text) is str and radial_text:
+                from app.input.hotkeys import parsed_hotkey_keys
+
+                if vk_code in parsed_hotkey_keys(radial_text):
+                    # The radial hold-controller owns this physical key.
+                    # Do not broadcast it as an extra mirrored tap.
+                    return False
         foreground = foreground_window()
         if self.macro_lock.active_label:
             # During a replay, avoid enumerating and probing EVERY Unity

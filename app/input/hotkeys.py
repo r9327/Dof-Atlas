@@ -6,6 +6,7 @@ import os
 import re
 import threading
 from dataclasses import dataclass, field
+from functools import lru_cache
 from logging import Logger
 from typing import Callable
 
@@ -249,6 +250,13 @@ def parse_hotkey(text: str) -> tuple[HotkeySpec | None, str]:
     ordered.extend(part for part in display_parts if part not in ordered)
     canonical = "+".join(ordered)
     return HotkeySpec(text=text, keys=frozenset(keys), canonical=canonical), ""
+
+
+@lru_cache(maxsize=32)
+def parsed_hotkey_keys(text: str) -> frozenset[int]:
+    """Bounded pure parser for reserved radial keys in the native hook."""
+    spec, error = parse_hotkey(text)
+    return spec.keys if spec is not None and not error else frozenset()
 
 
 def build_hotkey_actions(settings: AtlasSettings) -> list[HotkeyAction]:
