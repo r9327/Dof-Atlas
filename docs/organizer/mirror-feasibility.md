@@ -481,3 +481,27 @@ Correctifs locaux conservant le même moteur de macros et le mode séquentiel :
 - Tests ajoutés pour les courses de Stop autour des ENTER, le refus du presse-papiers, les HWND invalides, et la fermeture Zaap avant lancement.
 
 **Statut de preuve :** correctifs enregistrés dans #325 et tests écrits ; exécution des tests Python, Doctor `agent plan/check/validate`, Graphify exact-SHA et essais Windows/Unity 2/4/6/8 : **NOT_RUN** depuis ce contexte sans checkout local. MIRR-007 (perte des gestes physiques pendant un worker occupé), MIRR-002 et MIRR-005 restent ouverts. La PR reste Draft ; ni validation réelle, ni latence identique 2→8, ni certification n'est revendiquée.
+
+## Durcissement ciblé des macros historiques — 04/11/2026 (non certifié)
+
+Les commandes multi-fenêtres **Auto-groupe**, **Direction** et **/zaap**
+ne se contentent plus de vérifier `UnityWndClass` : elles utilisent le
+validateur DOFUS existant (`is_dofus_unity_process`) avant toute émission.
+Le contrôle est répété immédiatement avant la frappe ou la commande chat,
+y compris après une activation de fenêtre. Un HWND dont le processus a
+changé interrompt le parcours ; le favori n'est pas réactivé aveuglément.
+La validation reste **fail-closed**, sans nouveau moteur, hook ou file de
+rejeu, et sans modification des données persistantes.
+
+`tests/test_organizer_macro_reliability.py` adapte ses mocks de processus
+et ajoute quatre scénarios de refus (usurpation après activation et client
+remplacé en cours de diffusion). Les simulations existantes 2/4/6/8
+restent dans leur ordre canonique.
+
+**Preuves manquantes :** ces tests sont écrits mais **NOT_RUN**, faute de
+checkout complet Python/Windows dans cette passe. Atlas Doctor
+`agent plan/check/validate`, Graphify au SHA exact, `git diff --check`,
+tests PySide6, recette DOFUS Unity, p50/p95/p99, CPU et RAM ne sont pas
+déclarés PASS. Le travail de MIRR-007 (gestes absorbés quand le worker est
+occupé) reste ouvert ; pas de replay différé sans carte Graphify ni
+preuve Windows. Conserver la PR Draft et ne pas fusionner.
