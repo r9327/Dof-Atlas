@@ -138,7 +138,7 @@ class OrganizerFocusPreflightTests(unittest.TestCase):
                 AttachThreadInput=Mock(return_value=True),
             ),
         }
-        stops = iter((False, False, True))
+        stops = iter((False, False, False, True))
         logger = Mock()
         with (
             patch.object(focus.os, "name", "nt"),
