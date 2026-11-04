@@ -18,6 +18,7 @@ from app.constants import (
     KEY_SESSION_ORDER,
     KEY_STOP_SCRIPT_HOTKEY,
     KEY_RADIAL_HOTKEY,
+    KEY_NEXT_CHARACTER_HOTKEY,
     KEY_RADIAL_PARTICIPANTS,
     KEY_SWITCH_CHARACTER,
     KEY_SWITCH_CLICK,
@@ -258,6 +259,9 @@ class OrganizerPage(
         self.radial_select_button.clicked.connect(lambda: self.begin_capture("radial"))
         self.radial_hotkey_button.clicked.connect(lambda: self.begin_capture("radial"))
         self.radial_clear.clicked.connect(lambda: self.clear_global_hotkey(KEY_RADIAL_HOTKEY))
+        self.next_character.clicked.connect(lambda: self.begin_capture("next_character"))
+        self.next_character_hotkey_button.clicked.connect(lambda: self.begin_capture("next_character"))
+        self.next_character_clear.clicked.connect(lambda: self.clear_global_hotkey(KEY_NEXT_CHARACTER_HOTKEY))
         self.reload_runtime_button.clicked.connect(self.reload_runtime)
         self.debug_button.clicked.connect(self.toggle_debug_mode)
         self.sessions_refresh_button.clicked.connect(self.scan_sessions)

@@ -295,6 +295,13 @@ def build_hotkey_actions(settings: AtlasSettings) -> list[HotkeyAction]:
             )
         )
 
+    if settings.switch_character_enabled and getattr(settings, "next_character_hotkey", ""):
+        actions.append(HotkeyAction(
+            action_id="next_character",
+            label="Personnage suivant",
+            hotkey_text=settings.next_character_hotkey,
+            kind="press",
+        ))
     if settings.switch_character_enabled:
         for client in settings.clients:
             if not client.binding:

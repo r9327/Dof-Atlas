@@ -13,6 +13,7 @@ from app.constants import (
     KEY_PRIMARY_WINDOW,
     KEY_SCRIPT_SPEED,
     KEY_STOP_SCRIPT_HOTKEY,
+    KEY_NEXT_CHARACTER_HOTKEY,
     KEY_SWITCH_CHARACTER,
     KEY_SWITCH_CLICK,
     KEY_SWITCH_DOUBLE_CLICK,
@@ -103,6 +104,7 @@ class AtlasSettings:
     timings: MacroTimings
     zaap_timings: ZaapTimings
     macro_mode: str = "macro"
+    next_character_hotkey: str = ""
 
     def client_by_handle(self, hwnd: int) -> AtlasClient | None:
         # The persisted compatibility roster can contain corrupt HWNDs.
@@ -304,6 +306,9 @@ def load_settings() -> AtlasSettings:
         timings=timings_for_speed(speed),
         zaap_timings=ZaapTimings(),
         macro_mode="mirror" if profile.get(KEY_ORGANIZER_MACRO_MODE) == "mirror" else "macro",
+        next_character_hotkey=str(
+            global_hotkeys.get("next_character_hotkey") or profile.get(KEY_NEXT_CHARACTER_HOTKEY, "")
+        ).strip().upper(),
     )
 
 

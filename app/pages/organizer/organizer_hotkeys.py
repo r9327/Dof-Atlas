@@ -10,6 +10,7 @@ from app.constants import (
     KEY_DOUBLE_CLICK_HOTKEY,
     KEY_SCRIPT_SPEED,
     KEY_RADIAL_HOTKEY,
+    KEY_NEXT_CHARACTER_HOTKEY,
     KEY_STOP_SCRIPT_HOTKEY,
     KEY_SWITCH_CLICK,
     KEY_SWITCH_DOUBLE_CLICK,
@@ -96,6 +97,7 @@ class OrganizerHotkeysMixin:
             (KEY_DOUBLE_CLICK_HOTKEY, "Switch clic x2"),
             (KEY_STOP_SCRIPT_HOTKEY, "Stop script"),
             (KEY_RADIAL_HOTKEY, "Sélection personnage"),
+            (KEY_NEXT_CHARACTER_HOTKEY, "Personnage suivant"),
         ):
             if value == self.hotkey_label(key):
                 return label
@@ -190,6 +192,8 @@ class OrganizerHotkeysMixin:
             self.stop_script_hotkey_button.setText("...")
         elif kind == "radial":
             self.radial_hotkey_button.setText("...")
+        elif kind == "next_character":
+            self.next_character_hotkey_button.setText("...")
         self.setFocus(Qt.ShortcutFocusReason)
         self.status_callback("En attente d'une touche...")
 
@@ -235,6 +239,21 @@ class OrganizerHotkeysMixin:
                 self.render_sessions()
                 self.status_callback("Touche déjà utilisée par Switch Déplacement.")
                 return
+            if hotkey == self.hotkey_label(KEY_NEXT_CHARACTER_HOTKEY):
+                self.update_global_buttons()
+                self.render_sessions()
+                self.status_callback("Raccourci déjà utilisé par Personnage suivant.")
+                return
+            if hotkey == self.hotkey_label(KEY_NEXT_CHARACTER_HOTKEY):
+                self.update_global_buttons()
+                self.render_sessions()
+                self.status_callback("Raccourci déjà utilisé par Personnage suivant.")
+                return
+            if hotkey == self.hotkey_label(KEY_NEXT_CHARACTER_HOTKEY):
+                self.update_global_buttons()
+                self.render_sessions()
+                self.status_callback("Raccourci déjà utilisé par Personnage suivant.")
+                return
             owner = self.client_hotkey_owner(hotkey)
             existing_global = self.global_hotkey_owner(hotkey)
             if existing_global and existing_global != "Sélection personnage":
@@ -246,6 +265,26 @@ class OrganizerHotkeysMixin:
                 return
             self.ensure_radial_participants()
             self.profiles[KEY_RADIAL_HOTKEY] = hotkey
+        elif kind == "next_character":
+            if (hotkey in {"HOME", "DELETE", "END", "PAGEDOWN"}
+                    and profile_bool(self.profiles, KEY_SWITCH_MOVEMENT, False)):
+                self.update_global_buttons()
+                self.render_sessions()
+                self.status_callback("Touche déjà utilisée par Switch Déplacement.")
+                return
+            owner = self.global_hotkey_owner(hotkey)
+            if owner and owner != "Personnage suivant":
+                self.update_global_buttons()
+                self.render_sessions()
+                self.status_callback(f"Raccourci déjà utilisé par {owner}.")
+                return
+            owner = self.client_hotkey_owner(hotkey)
+            if owner:
+                self.update_global_buttons()
+                self.render_sessions()
+                self.status_callback(f"Raccourci déjà utilisé par {owner}.")
+                return
+            self.profiles[KEY_NEXT_CHARACTER_HOTKEY] = hotkey
         elif kind == "click":
             if hotkey == self.hotkey_label(KEY_DOUBLE_CLICK_HOTKEY):
                 self.update_global_buttons()

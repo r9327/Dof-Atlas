@@ -553,6 +553,10 @@ class AtlasRuntime:
             return
         if self.settings.macro_mode == "mirror":
             return
+        if action_id == "next_character":
+            if self.settings.switch_character_enabled:
+                self.switch_character.activate_next()
+            return
         if action_id.startswith("client:"):
             try:
                 client_index = int(payload.get("client_index", 0))

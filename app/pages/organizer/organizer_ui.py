@@ -23,6 +23,7 @@ from app.constants import (
     KEY_DOUBLE_CLICK_HOTKEY,
     KEY_PRIMARY_WINDOW,
     KEY_RADIAL_HOTKEY,
+    KEY_NEXT_CHARACTER_HOTKEY,
     KEY_STOP_SCRIPT_HOTKEY,
     KEY_SWITCH_CHARACTER,
     KEY_SWITCH_CLICK,
@@ -196,6 +197,7 @@ class OrganizerUiMixin:
         self.switch_click = AtlasButton("")
         self.switch_double_click = AtlasButton("")
         self.switch_movement = AtlasButton("")
+        self.next_character = AtlasButton("Perso suivant")
         self.switch_fake = AtlasButton("Auto-groupe")
         self.radial_select_button = AtlasButton("Sélection\npersonnage")
         self.radial_select_button.setAccessibleName("Sélection personnage")
@@ -204,6 +206,8 @@ class OrganizerUiMixin:
         self.double_click_clear = AtlasButton("x")
         self.radial_hotkey_button = AtlasButton("")
         self.radial_clear = AtlasButton("x")
+        self.next_character_hotkey_button = AtlasButton("")
+        self.next_character_clear = AtlasButton("x")
         self.reload_runtime_button = AtlasButton("Relancer scripts")
         self.debug_button = AtlasButton("Debug")
         self.script_speed_title = QLabel("Vitesse script")
@@ -215,7 +219,7 @@ class OrganizerUiMixin:
         self.click_clear = AtlasButton("x")
 
         control_size = QSize(138, BUTTON_HEIGHT)
-        controls_panel_height = 164
+        controls_panel_height = 206
         panel_inner_width = control_size.width() * 2 + 8
         panel_width = panel_inner_width + CARD_PADDING * 2
         stop_hotkey_size = QSize(52, STOP_BUTTON_HEIGHT)
@@ -229,6 +233,7 @@ class OrganizerUiMixin:
             self.switch_movement,
             self.switch_fake,
             self.radial_select_button,
+            self.next_character,
             self.reload_runtime_button,
             self.debug_button,
         ):
@@ -238,7 +243,7 @@ class OrganizerUiMixin:
         self.stop_script_button.setObjectName("dangerButton")
         self.stop_script_button.setFixedSize(stop_size)
         self.stop_script_button.setSizePolicy(QSizePolicy.Fixed, QSizePolicy.Fixed)
-        for button in (self.click_button, self.double_click_button, self.radial_hotkey_button):
+        for button in (self.click_button, self.double_click_button, self.radial_hotkey_button, self.next_character_hotkey_button):
             button.setObjectName("keyBadge")
             button.setFixedSize(shortcut_size)
             button.setSizePolicy(QSizePolicy.Fixed, QSizePolicy.Fixed)
@@ -252,6 +257,7 @@ class OrganizerUiMixin:
         self.radial_hotkey_button.setToolTip("Configurer la touche maintenue pour sélectionner un personnage")
         self.radial_hotkey_button.setAccessibleName("Raccourci du camembert")
         self.radial_clear.setAccessibleName("Supprimer le raccourci du camembert")
+        self.next_character_hotkey_button.setAccessibleName("Raccourci personnage suivant")
         self.script_speed_title.setObjectName("MutedLabel")
         self.script_speed_title.setFixedSize(stop_size.width(), 0)
         self.script_speed_title.setAlignment(Qt.AlignLeft | Qt.AlignVCenter)
@@ -267,8 +273,10 @@ class OrganizerUiMixin:
         self.debug_button.setToolTip("Activer les logs runtime detailles")
         self.script_speed_normal.setToolTip("Vitesse script normale")
         self.script_speed_fast.setToolTip("Vitesse script rapide")
+        self.next_character.setToolTip("Configurer le raccourci de personnage suivant")
+        self.next_character_hotkey_button.setToolTip("Raccourci personnage suivant")
         self.stop_script_button.setToolTip("Arreter immediatement les macros Python")
-        for button in (self.click_clear, self.double_click_clear, self.stop_script_clear, self.radial_clear):
+        for button in (self.click_clear, self.double_click_clear, self.stop_script_clear, self.radial_clear, self.next_character_clear):
             button.setObjectName("iconButtonDanger")
             button.setFixedSize(14, 14)
             button.setToolTip("Supprimer le raccourci")
@@ -327,10 +335,11 @@ class OrganizerUiMixin:
         controls_grid.addWidget(macro_cell(self.switch_click, self.click_button, self.click_clear), 0, 1)
         controls_grid.addWidget(macro_cell(self.switch_movement), 1, 0)
         controls_grid.addWidget(macro_cell(self.switch_double_click, self.double_click_button, self.double_click_clear), 1, 1)
+        controls_grid.addWidget(macro_cell(self.next_character, self.next_character_hotkey_button, self.next_character_clear), 2, 0)
         for column in range(2):
             controls_grid.setColumnMinimumWidth(column, control_size.width())
             controls_grid.setColumnStretch(column, 0)
-        for row in range(2):
+        for row in range(3):
             controls_grid.setRowMinimumHeight(row, BUTTON_HEIGHT)
 
         self.macro_panel = QFrame()
@@ -500,6 +509,7 @@ class OrganizerUiMixin:
         double_click = self.hotkey_label(KEY_DOUBLE_CLICK_HOTKEY)
         stop_script = self.hotkey_label(KEY_STOP_SCRIPT_HOTKEY)
         radial_hotkey = self.hotkey_label(KEY_RADIAL_HOTKEY)
+        next_hotkey = self.hotkey_label(KEY_NEXT_CHARACTER_HOTKEY)
         self.click_button.setText(short_label(click, 9) if click else "...")
         self.click_button.setToolTip(f"Switch Clique: {click}" if click else "Raccourci Switch Clique")
         self.click_clear.setVisible(bool(click))
@@ -515,6 +525,9 @@ class OrganizerUiMixin:
             else "Définir la touche maintenue pour le camembert"
         )
         self.radial_clear.setVisible(bool(radial_hotkey))
+        self.next_character_hotkey_button.setText(short_label(next_hotkey, 9) if next_hotkey else "...")
+        self.next_character_hotkey_button.setToolTip(f"Personnage suivant : {next_hotkey}" if next_hotkey else "Raccourci personnage suivant")
+        self.next_character_clear.setVisible(bool(next_hotkey))
 
     def update_script_speed_buttons(self) -> None:
         speed = self.script_speed()

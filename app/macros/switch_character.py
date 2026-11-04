@@ -86,6 +86,33 @@ class SwitchCharacterMacro:
 
         return self.runtime._spawn_macro("Activation client", run)
 
+    def activate_next(self) -> bool:
+        """Advance in live Organizer slot order, wrapping after the last.
+
+        Each target still uses the canonical activation worker with its
+        independent foreground, process and stale-slot checks.
+        """
+        if self.runtime.macro_lock.should_stop():
+            return False
+        clients = []
+        seen: set[int] = set()
+        for client in self.runtime.settings.clients:
+            hwnd = client.handle
+            if (type(hwnd) is not int or hwnd <= 0 or hwnd in seen
+                    or not is_unity_window(hwnd)
+                    or not is_dofus_unity_process(hwnd)):
+                continue
+            seen.add(hwnd)
+            clients.append(client)
+        if len(clients) < 2:
+            return False
+        current = self.logical_active_client()
+        current_hwnd = current.handle if current is not None else 0
+        position = next(
+            (i for i, item in enumerate(clients) if item.handle == current_hwnd), -1,
+        )
+        return self.activate_by_index(clients[(position + 1) % len(clients)].index)
+
     def preferred_client(self) -> "AtlasClient | None":
         """
         Renvoie le personnage principal défini dans l'Organizer.

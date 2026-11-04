@@ -14,6 +14,7 @@ from app.constants import (
     KEY_SCRIPT_SPEED,
     KEY_SESSION_ORDER,
     KEY_STOP_SCRIPT_HOTKEY,
+    KEY_NEXT_CHARACTER_HOTKEY,
     KEY_SWITCH_CHARACTER,
     KEY_SWITCH_CLICK,
     KEY_SWITCH_DOUBLE_CLICK,
@@ -612,6 +613,7 @@ class CharacterSessionsMixin:
         click_hotkey = str(self.profiles.get(KEY_CLICK_HOTKEY, "")).strip() if click_enabled else ""
         double_click_hotkey = str(self.profiles.get(KEY_DOUBLE_CLICK_HOTKEY, "")).strip() if double_click_enabled else ""
         stop_script_hotkey = str(self.profiles.get(KEY_STOP_SCRIPT_HOTKEY, "")).strip()
+        next_character_hotkey = str(self.profiles.get(KEY_NEXT_CHARACTER_HOTKEY, "")).strip()
         script_speed = self.script_speed()
         debug_enabled = profile_bool(self.profiles, KEY_DEBUG_MODE, False)
         if double_click_enabled and click_hotkey and double_click_hotkey and click_hotkey == double_click_hotkey:
@@ -637,7 +639,7 @@ class CharacterSessionsMixin:
             binding = self.resolve_client_binding(
                 slot_index,
                 used_client_bindings,
-                {click_hotkey, double_click_hotkey, stop_script_hotkey},
+                {click_hotkey, double_click_hotkey, stop_script_hotkey, next_character_hotkey},
             )
             clients.append(
                 {
@@ -671,6 +673,7 @@ class CharacterSessionsMixin:
                 "double_click_hotkey": double_click_hotkey,
                 "movement_enabled": profile_bool(self.profiles, KEY_SWITCH_MOVEMENT, False),
                 "stop_script_hotkey": stop_script_hotkey,
+                "next_character_hotkey": next_character_hotkey,
                 "script_speed": script_speed,
                 "debug_enabled": debug_enabled,
                 "zaap_click_x": read_zaap_click_position(self.profiles)[0],
@@ -701,6 +704,7 @@ class CharacterSessionsMixin:
             f"double_click_hotkey={double_click_hotkey}",
             f"movement_enabled={1 if profile_bool(self.profiles, KEY_SWITCH_MOVEMENT, False) else 0}",
             f"stop_script_hotkey={stop_script_hotkey}",
+            f"next_character_hotkey={next_character_hotkey}",
             f"script_speed={script_speed}",
             f"debug_enabled={1 if debug_enabled else 0}",
             f"zaap_click_x={read_zaap_click_position(self.profiles)[0]}",
