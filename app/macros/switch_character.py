@@ -16,7 +16,15 @@ class SwitchCharacterMacro:
 
     def activate_by_index(self, client_index: int) -> bool:
         settings = self.runtime.settings
-        target = next((client for client in settings.clients if client.index == int(client_index)), None)
+        try:
+            requested_index = int(client_index)
+        except (TypeError, ValueError, OverflowError):
+            self.runtime.logger.info("Activation client ignorée: index invalide=%r", client_index)
+            return False
+        if isinstance(client_index, bool):
+            self.runtime.logger.info("Activation client ignorée: index booléen=%r", client_index)
+            return False
+        target = next((client for client in settings.clients if client.index == requested_index), None)
         if target is None:
             self.runtime.logger.info("Activation client ignoree: index introuvable=%s", client_index)
             return False
@@ -151,4 +159,12 @@ class SwitchCharacterMacro:
             f"{action_label} retour",
             should_stop=self.runtime.macro_lock.should_stop,
         ):
+            if self.runtime.macro_lock.should_stop():
+                return
+            if foreground_window() != int(preferred.handle):
+                self.runtime.logger.warning(
+                    "%s retour non confirmé: focus différent hwnd=%s",
+                    action_label, preferred.handle,
+                )
+                return
             self.runtime.active_client_handle = preferred.handle
