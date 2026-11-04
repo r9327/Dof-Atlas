@@ -206,6 +206,7 @@ def clipboard_text(text: str, logger: Logger):
     prepared = False
     clipboard_seq = 0
     for _attempt in range(10):
+        unsupported_formats = False
         try:
             win32clipboard.OpenClipboard()
             try:
@@ -218,8 +219,10 @@ def clipboard_text(text: str, logger: Logger):
                     if not fmt:
                         break
                     if fmt not in (1, 7, 13, 16):  # CF_TEXT/OEMTEXT/UNICODETEXT/LOCALE
+                        unsupported_formats = True
                         raise ValueError("Clipboard contient des formats non restaurables")
                 else:
+                    unsupported_formats = True
                     raise ValueError("Clipboard contient trop de formats")
                 try:
                     previous = win32clipboard.GetClipboardData(win32con.CF_UNICODETEXT)
@@ -239,7 +242,22 @@ def clipboard_text(text: str, logger: Logger):
                     previous = ""
                     captured = False
                 win32clipboard.EmptyClipboard()
-                win32clipboard.SetClipboardText(str(text), win32con.CF_UNICODETEXT)
+                try:
+                    win32clipboard.SetClipboardText(str(text), win32con.CF_UNICODETEXT)
+                except Exception:
+                    # Failed preparation must not leave a previously captured
+                    # Unicode clipboard empty. Restore it under the SAME lock
+                    # before retrying the send or reporting an error.
+                    if captured:
+                        try:
+                            win32clipboard.SetClipboardText(
+                                previous, win32con.CF_UNICODETEXT,
+                            )
+                        except Exception:
+                            logger.exception(
+                                "Clipboard: reparation immediate apres echec SetClipboardText impossible."
+                            )
+                    raise
                 # Snapshot under the same OpenClipboard lease. Capturing the
                 # serial after closing would race a new user Copy.
                 try:
@@ -252,12 +270,11 @@ def clipboard_text(text: str, logger: Logger):
                 win32clipboard.CloseClipboard()
             prepared = True
             break
-        except ValueError as exc:
-            # Unsupported formats cannot be recovered by retrying; report
-            # why the command was refused without modifying user clipboard.
-            logger.warning("Clipboard conservé: %s", exc)
-            raise OSError("Clipboard multi-format non restaure: commande annulee") from exc
-        except Exception:
+        except Exception as exc:
+            if unsupported_formats:
+                # Unsupported formats cannot be recovered by retrying.
+                logger.warning("Clipboard conservé: %s", exc)
+                raise OSError("Clipboard multi-format non restaure: commande annulee") from exc
             time.sleep(0.03)
     if not prepared:
         logger.error("Clipboard: impossible de preparer la commande apres 10 tentatives.")
