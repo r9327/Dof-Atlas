@@ -98,6 +98,25 @@ class OrganizerTopmostCleanupTests(unittest.TestCase):
             "Miroir", 101,
         )
 
+    def test_stop_during_setforeground_does_not_call_setfocus(self):
+        stopped = [False]
+        modules = _topmost_modules(lambda *_: None)
+
+        def foreground(hwnd):
+            stopped[0] = True
+
+        modules["win32gui"].SetForegroundWindow.side_effect = foreground
+        logger = self._activate(modules, should_stop=lambda: stopped[0])
+        modules["win32gui"].SetForegroundWindow.assert_called_once_with(101)
+        modules["win32gui"].SetFocus.assert_not_called()
+        self.assertEqual(
+            [c.args[1] for c in modules["win32gui"].SetWindowPos.call_args_list],
+            [0],
+        )
+        logger.info.assert_any_call(
+            "%s activation stoppee avant SetFocus hwnd=%s", "Miroir", 101,
+        )
+
     def test_stop_after_unpin_does_not_force_a_second_foreground(self):
         stopped = [False]
 
