@@ -936,3 +936,41 @@ Windows 2/4/6/8 et mesures RAM/CPU/p50/p95/p99. Le P0 **MIRR-007**
 (gestes physiques perdus pendant worker occupé) demeure non résolu et
 ne doit pas être traité par une refonte structurelle des hooks sans
 Graphify+Doctor au SHA exact. PR Draft ; pas de fusion ni certification.
+
+## Lot 04/11 — surcharge numérique dans les callbacks et identités Organizer
+
+Cette reprise corrige des conversions numériques ponctuelles exposées
+à des données de profil, d'identité ou de raccourci malformées, **sans
+modifier la politique des hooks** ni ajouter de mécanisme de replay.
+
+- `app/core/runtime_state.py` : un `client_index` ou un `click_count`
+  égal à `inf`/`NaN` ne peut plus lever `OverflowError` hors de la
+  gestion de repli prévue. Les raccourcis de personnage invalides sont
+  refusés ; le compteur de clics malformé conserve son repli historique
+  sur un clic, sans geste supplémentaire.
+- `app/windows/unity_windows.py` : un HWND infini dans le roster
+  Organizer est ignoré lors du hit-test, et une fenêtre Unity authentique
+  parmi les autres clients reste sélectionnable.
+- `app/core/settings.py` : `int_value` applique aussi son défaut en
+  cas d'`OverflowError`, au lieu de faire planter le chargement des
+  profils.
+- `app/pages/organizer/character_sessions.py` : les IDs de personnage
+  ressemblant à des chiffres Unicode mais impossibles à convertir ne
+  bloquent plus le chargement des identités réseau vérifiées. Même garde
+  sur les PID et HWND des sessions et du favori.
+
+**Tests ajoutés :** `tests/test_organizer_numeric_hook_guards.py`
+(5 scénarios) et `tests/test_organizer_identity_overflow.py`
+(4 scénarios), avec cas d'identités réseau malformées, hit-tests
+physiques, hotkeys, favorite et PID invalide. Tests présents au HEAD,
+**non exécutés** faute de checkout complet avec dépendances.
+
+**Blocage non levé : MIRR-007**. Le hook souris consomme toujours les
+nouveaux `DOWN` physiques sous `is_mouse_blocked()` avant le callback
+Miroir. Rejouer ces gestes en différé sans identité/cible et timing
+fiables n'est pas autorisé ; aucune file n'a été ajoutée sans Graphify
+exact-SHA et Doctor `--structural`.
+
+**NOT_RUN :** Doctor `agent plan/check/validate`, Graphify exact-SHA,
+Python/PySide6, Windows réel, mesures CPU/RAM et latence 2/4/6/8, et
+certification CI. Verdict : **CHANGES REQUIRED**, Draft, non fusionnée.
