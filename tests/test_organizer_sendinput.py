@@ -247,6 +247,28 @@ class OrganizerSendInputTests(unittest.TestCase):
         clipboard.SetClipboardText.assert_called_once_with("/invite Friend", 13)
         logger.warning.assert_any_call("Clipboard modifie pendant le chat: envoi annule.")
 
+    def test_chat_accepts_negative_signed_win32_revision(self) -> None:
+        clipboard = Mock()
+        clipboard.GetClipboardData.return_value = "original"
+        clipboard.EnumClipboardFormats.side_effect = [13, 0]
+        clipboard.GetClipboardSequenceNumber.return_value = -2147483647
+        with (
+            patch.object(input_tools.os, "name", "nt"),
+            patch.dict("sys.modules", {
+                "win32clipboard": clipboard,
+                "win32con": SimpleNamespace(CF_UNICODETEXT=13),
+            }),
+            patch.object(input_tools, "replace_chat_text_with_clipboard",
+                         return_value=True),
+            patch.object(input_tools, "press_key") as press,
+        ):
+            self.assertTrue(input_tools.send_chat_command("/invite Friend", Mock()))
+        press.assert_called_once_with("ENTER")
+        self.assertEqual(
+            clipboard.SetClipboardText.call_args_list,
+            [call("/invite Friend", 13), call("original", 13)],
+        )
+
     def test_chat_refuses_submission_without_clipboard_revision(self) -> None:
         clipboard = Mock()
         clipboard.GetClipboardData.return_value = "original"
@@ -492,7 +514,9 @@ class OrganizerSendInputTests(unittest.TestCase):
         press.assert_not_called()
 
     def test_chat_stop_between_double_submissions_never_sends_second_enter(self) -> None:
-        checks = iter((False, True))
+        # First check is before clipboard preparation, second before first
+        # ENTER; third prevents the final ENTER after the inter-key delay.
+        checks = iter((False, False, True))
         with (
             patch.object(input_tools, "clipboard_text"),
             patch.object(input_tools, "replace_chat_text_with_clipboard", return_value=True),
