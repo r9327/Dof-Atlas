@@ -1155,3 +1155,52 @@ Tests ciblés rédigés pour Auto-groupe/Zaap en 2, 4, 6 et 8 comptes, succès e
 ### Arrêt de l'application entre le clic et le runtime (Auto-groupe et Zaap)
 
 Le chemin UI `AtlasWindow` vérifie `quit_requested` et `_background_services_stopped` **avant et après** le rechargement des sessions. Si la fermeture de l'application commence pendant celui-ci, le lancement Auto-groupe/Zaap retourne `False` et ne crée ni worker ni runtime. Tests ciblés sur les deux états de shutdown et sur le retour vrai/faux du runtime. Le Stop urgence actif continue de contrôler les travailleurs déjà lancés via `MacroLock.should_stop`. Tests non exécutés, PR Draft.
+
+
+## Suite fiabilité Organizer/Macro/Miroir — 04/11/2026 (PR #325)
+
+**Objectif :** ne jamais envoyer une action reçue pour une génération Organizer
+vers des fenêtres rechargées, même si les mêmes HWND restent visibles.
+
+- MirrorInputMacro garde le profil exact entre capture clavier/molette,
+  acceptation du worker et premier contrôle du worker. Les callbacks
+  natifs abandonnent le geste sans consommation si le profil change pendant
+  les vérifications Win32, y compris après calcul des ratios de molette.
+- SwitchClickMacro reçoit le profil capturé du Miroir ou du clic physique
+  natif classique. Le DOWN/UP qui n'a pas été avalé reste transmis au jeu ;
+  une duplication devient un refus explicite si le profil change pendant
+  le contrôle du processus avant émission.
+- Direction, Auto-groupe et Zaap transportent la génération d'acceptation
+  jusqu'au worker. Un worker différé ne peut pas reprendre une action
+  précédente sur un nouveau profil.
+- SwitchCharacterMacro refuse les index/handles altérés et protège
+  Personnage suivant, le roster, la découverte du personnage actif et
+  le retour au favori contre les rechargements pendant les sondes Win32.
+  Les sources HWND fractionnaires/booléennes/non finies ne sont plus
+  converties en une autre fenêtre ; seule une source 0 implicite déclenche
+  la recherche historique du personnage actif.
+- Auto-groupe n'arrondit plus les HWND des invitations : un destinataire
+  nommé ne peut être supprimé simplement parce que 101.9 avait été
+  interprété comme le HWND 101 du lanceur. Les anciennes chaînes
+  numériques entières restent reconnues.
+- Zaap : fermeture du sous-menu avant le rappel runtime déjà conservée.
+  Les callbacks Qt d'affichage planifiés **avant** la sélection ne peuvent
+  plus le rouvrir après clic. Une nouvelle recherche ou interaction explicite
+  réautorise le menu.
+- Instrumentation Miroir : dispatch_to_worker_ms mesure le délai entre
+  acceptation et démarrage du worker ; dispatch_to_last_emit_ms finit à la
+  **dernière émission SendInput réussie** ou vaut NOT_MEASURED s'il n'y en
+  a aucune. Ce n'est ni la latence du hook initial ni celle du rendu Unity ;
+  aucune équivalence mesurée 2→8 comptes n'est revendiquée.
+- Tests mock et Qt offscreen **ajoutés/actualisés**, en ciblant les rechargements
+  identiques, les courses Win32, le Stop, les sources corrompues et les
+  scénarios 2/4/6/8 ; attentes historiques activate_next mises en
+  cohérence avec expected_profile.
+
+**Preuves :** commits présents sur la branche, mais tests Python/PySide6,
+Doctor, Graphify exact-SHA, campagnes Windows/DOFUS Unity, mesures p50/p95/p99
+et CPU/RAM **NOT_RUN** dans cette session. Aucun critère manuel n'est validé
+par des mocks. Le P0 **MIRR-007** (clics consommés lors du blocage physique du
+Miroir molette / Switch clic) **n'est pas résolu** : le changement structurel
+du hook partagé attend Graphify au HEAD exact et une recette réelle. PR Draft,
+ne pas fusionner ; conflit de fusion GitHub avec main à traiter avant revue.
