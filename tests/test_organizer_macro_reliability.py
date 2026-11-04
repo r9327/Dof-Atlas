@@ -22,6 +22,38 @@ def _runtime() -> Mock:
 
 class OrganizerMacroReliabilityTests(unittest.TestCase):
 
+    def test_roster_skips_corrupt_handles_and_keeps_valid_client_order(self) -> None:
+        runtime = _runtime()
+        valid = [
+            SimpleNamespace(index=2, handle=202),
+            SimpleNamespace(index=3, handle=303),
+        ]
+        runtime.settings.clients = [
+            SimpleNamespace(index=1, handle=float("inf")),
+            valid[0],
+            SimpleNamespace(index=4, handle=None),
+            valid[1],
+        ]
+        with patch("app.macros.switch_character.is_unity_window", return_value=True):
+            ordered = SwitchCharacterMacro(runtime).ordered_clients_from_source(303)
+        self.assertEqual([c.handle for c in ordered], [303, 202])
+        self.assertEqual(runtime.logger.warning.call_count, 2)
+
+    def test_roster_handles_overflowing_source_without_fanning_to_invalid_windows(self) -> None:
+        runtime = _runtime()
+        runtime.settings.clients = [
+            SimpleNamespace(index=1, handle=101),
+            SimpleNamespace(index=2, handle=202),
+        ]
+        macro = SwitchCharacterMacro(runtime)
+        with (
+            patch("app.macros.switch_character.is_unity_window", return_value=True),
+            patch.object(macro, "logical_active_client", return_value=runtime.settings.clients[1]),
+        ):
+            ordered = macro.ordered_clients_from_source(float("inf"))
+        self.assertEqual([c.handle for c in ordered], [202, 101])
+
+
     def test_auto_group_overflowing_session_handles_do_not_abort_other_invites(self) -> None:
         runtime = _runtime()
         runtime.settings.timings.auto_group_invite_gap_ms = 0
