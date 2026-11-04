@@ -11,7 +11,7 @@ from PySide6.QtGui import QFocusEvent
 from PySide6.QtWidgets import QApplication, QWidget
 
 from app.pages.organizer.organizer_hotkeys import OrganizerHotkeysMixin
-from app.constants import KEY_CLICK_HOTKEY, KEY_RADIAL_HOTKEY
+from app.constants import KEY_CLICK_HOTKEY, KEY_RADIAL_HOTKEY, KEY_RADIAL_ENABLED
 
 
 class _CaptureWidget(OrganizerHotkeysMixin, QWidget):
@@ -54,6 +54,29 @@ class OrganizerHotkeyCaptureTests(unittest.TestCase):
                 widget.ensure_radial_participants.assert_called_once_with()
                 widget.save_profiles.assert_called_once()
                 widget.reload_runtime_callback.assert_called_once()
+        finally:
+            widget.close()
+            widget.deleteLater()
+
+    def test_radial_hotkey_remains_disabled_when_configured_while_off(self):
+        widget = _CaptureWidget()
+        widget.profiles[KEY_RADIAL_ENABLED] = False
+        widget._radial_controller = Mock()
+        try:
+            with (
+                patch("app.pages.organizer.organizer_hotkeys.QTimer"),
+                patch("app.pages.organizer.organizer_hotkeys.key_sequence_to_hotkey",
+                      return_value="F6"),
+            ):
+                widget.begin_capture("radial")
+                event = Mock()
+                event.key.return_value = Qt.Key_F6
+                event.modifiers.return_value = Qt.NoModifier
+                widget.keyPressEvent(event)
+            self.assertEqual(widget.profiles[KEY_RADIAL_HOTKEY], "F6")
+            self.assertFalse(widget.profiles[KEY_RADIAL_ENABLED])
+            widget._radial_controller.set_shortcut.assert_called_once_with("")
+            widget.save_profiles.assert_called_once()
         finally:
             widget.close()
             widget.deleteLater()

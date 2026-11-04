@@ -10,7 +10,12 @@ from PySide6.QtCore import Qt
 from PySide6.QtGui import QGuiApplication
 from PySide6.QtWidgets import QApplication, QWidget
 
-from app.constants import KEY_RADIAL_PARTICIPANTS
+from app.constants import (
+    KEY_RADIAL_ENABLED, KEY_RADIAL_EXCLUDED, KEY_RADIAL_HOTKEY,
+    KEY_RADIAL_PARTICIPANTS,
+)
+from app.pages.organizer.organizer_hotkeys import OrganizerHotkeysMixin
+from app.pages.organizer.character_sessions import CharacterSessionsMixin
 from app.pages.organizer_page import OrganizerPage
 from app.pages.organizer.radial_overlay import (
     OrganizerRadialHoldController,
@@ -366,6 +371,139 @@ class OrganizerRadialRosterTests(unittest.TestCase):
             patch("app.windows.unity_windows.foreground_window", return_value=101),
         ):
             self.assertTrue(OrganizerPage._radial_can_open(page))
+
+    def test_new_detected_client_syncs_without_manual_slot_selection(self):
+        page = Mock()
+        page.profiles = {
+            KEY_RADIAL_ENABLED: True,
+            KEY_RADIAL_PARTICIPANTS: ["unverified:panda:1001"],
+            KEY_RADIAL_EXCLUDED: [],
+        }
+        page.sessions = [
+            {"nom": "Panda", "hwnd": 101, "pid": 1001},
+            {"nom": "Enu", "hwnd": 202, "pid": 1002},
+        ]
+        self.assertTrue(OrganizerPage.sync_radial_participants(page))
+        self.assertEqual(
+            [row["hwnd"] for row in OrganizerPage._radial_participants(page)],
+            [101, 202],
+        )
+        page.save_profiles.assert_called_once()
+        self.assertFalse(OrganizerPage.sync_radial_participants(page))
+        page.save_profiles.assert_called_once()
+
+    def test_manual_radial_exclusion_survives_refresh_and_new_windows(self):
+        page = Mock()
+        page.profiles = {
+            KEY_RADIAL_ENABLED: True,
+            KEY_RADIAL_PARTICIPANTS: [
+                "unverified:panda:1001", "unverified:enu:1002",
+            ],
+        }
+        page.sessions = [
+            {"nom": "Panda", "hwnd": 101, "pid": 1001},
+            {"nom": "Enu", "hwnd": 202, "pid": 1002},
+        ]
+        page.ensure_radial_participants = lambda: OrganizerPage.ensure_radial_participants(page)
+        OrganizerPage.toggle_radial_session(page, page.sessions[1])
+        self.assertEqual(
+            page.profiles[KEY_RADIAL_EXCLUDED], ["unverified:enu:1002"],
+        )
+        page.sessions.append({"nom": "Éca", "hwnd": 303, "pid": 1003})
+        self.assertTrue(OrganizerPage.sync_radial_participants(page))
+        self.assertEqual(
+            [row["hwnd"] for row in OrganizerPage._radial_participants(page)],
+            [101, 303],
+        )
+        self.assertFalse(OrganizerPage.sync_radial_participants(page))
+        OrganizerPage.toggle_radial_session(page, page.sessions[1])
+        self.assertEqual(page.profiles[KEY_RADIAL_EXCLUDED], [])
+        self.assertEqual(
+            [row["hwnd"] for row in OrganizerPage._radial_participants(page)],
+            [101, 202, 303],
+        )
+
+    def test_radial_sync_is_suspended_while_disabled_and_resumes_on_enable(self):
+        page = Mock()
+        page.profiles = {
+            KEY_RADIAL_ENABLED: False,
+            KEY_RADIAL_PARTICIPANTS: ["unverified:panda:1001"],
+        }
+        page.sessions = [
+            {"nom": "Panda", "hwnd": 101, "pid": 1001},
+            {"nom": "Éca", "hwnd": 303, "pid": 1003},
+        ]
+        self.assertFalse(OrganizerPage.sync_radial_participants(page))
+        page.save_profiles.assert_not_called()
+        page.profiles[KEY_RADIAL_ENABLED] = True
+        self.assertTrue(OrganizerPage.sync_radial_participants(page))
+        self.assertEqual(
+            [row["hwnd"] for row in OrganizerPage._radial_participants(page)],
+            [101, 303],
+        )
+
+    def test_radial_sync_refuses_missing_or_corrupt_opt_in_profile(self):
+        page = Mock()
+        page.profiles = {KEY_RADIAL_ENABLED: True}
+        page.sessions = [{"nom": "Panda", "hwnd": 101, "pid": 1001}]
+        self.assertFalse(OrganizerPage.sync_radial_participants(page))
+        page.profiles[KEY_RADIAL_PARTICIPANTS] = None
+        self.assertFalse(OrganizerPage.sync_radial_participants(page))
+        page.save_profiles.assert_not_called()
+
+    def test_verified_radial_selection_follows_same_character_new_window(self):
+        page = Mock()
+        page.profiles = {
+            KEY_RADIAL_ENABLED: True,
+            KEY_RADIAL_PARTICIPANTS: ["character:42"],
+        }
+        page.sessions = [
+            {"nom": "Panda", "hwnd": 501, "pid": 1005,
+             "character_key": "character:42"},
+        ]
+        self.assertEqual(
+            [row["hwnd"] for row in OrganizerPage._radial_participants(page)],
+            [501],
+        )
+
+    def test_disabled_radial_does_not_even_query_foreground(self):
+        page = Mock()
+        page.profiles = {KEY_RADIAL_ENABLED: False}
+        page.capture_target = None
+        with patch("app.windows.unity_windows.foreground_window") as focus:
+            self.assertFalse(OrganizerPage._radial_can_open(page))
+        focus.assert_not_called()
+
+    def test_radial_enable_toggle_persists_and_does_not_restart_macros(self):
+        page = Mock()
+        page.profiles = {
+            KEY_RADIAL_ENABLED: True,
+            KEY_RADIAL_HOTKEY: "F6",
+            KEY_RADIAL_PARTICIPANTS: ["unverified:panda:1001"],
+        }
+        page.hotkey_label = lambda key: page.profiles.get(key, "")
+        page._radial_controller = Mock()
+        OrganizerHotkeysMixin.toggle_radial_enabled(page)
+        self.assertFalse(page.profiles[KEY_RADIAL_ENABLED])
+        page._radial_controller.cancel.assert_called_once()
+        page._radial_controller.set_shortcut.assert_called_once_with("")
+        page.reload_runtime_callback.assert_not_called()
+        OrganizerHotkeysMixin.toggle_radial_enabled(page)
+        self.assertTrue(page.profiles[KEY_RADIAL_ENABLED])
+        page._radial_controller.set_shortcut.assert_called_with("F6")
+        page.sync_radial_participants.assert_called_once_with(persist=False)
+        self.assertEqual(page.save_profiles.call_count, 2)
+        page.reload_runtime_callback.assert_not_called()
+
+    def test_session_change_notification_syncs_radial_only_when_changed(self):
+        page = Mock()
+        page._last_notified_session_signature = None
+        signature = ((1, "Panda", 101, 1001),)
+        page.session_identity_signature.return_value = signature
+        CharacterSessionsMixin.notify_sessions_changed(page)
+        CharacterSessionsMixin.notify_sessions_changed(page)
+        page.sync_radial_participants.assert_called_once()
+        page.sessions_changed_callback.assert_called_once()
 
     def test_character_can_be_removed_from_radial_and_reenabled(self):
         page = Mock()

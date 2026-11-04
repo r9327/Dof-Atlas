@@ -12,7 +12,7 @@ os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
 
 from PySide6.QtWidgets import QApplication
 
-from app.constants import KEY_ORGANIZER_MACRO_MODE
+from app.constants import KEY_ORGANIZER_MACRO_MODE, KEY_RADIAL_ENABLED
 from app.core.runtime_state import AtlasRuntime
 from app.input.hotkeys import build_hotkey_actions
 from app.pages.organizer_page import OrganizerPage
@@ -48,6 +48,14 @@ class OrganizerMirrorIntegrationTests(unittest.TestCase):
                 page = OrganizerPage(Mock(), on_reload, stop_runtime_callback=on_stop)
                 try:
                     self.assertIsNone(page.scan_unity_sessions_callback)
+                    self.assertTrue(page.profiles[KEY_RADIAL_ENABLED])
+                    self.assertEqual(page.radial_select_button.objectName(), "primaryButton")
+                    page.radial_select_button.click()
+                    self.assertFalse(page.profiles[KEY_RADIAL_ENABLED])
+                    self.assertEqual(page.radial_select_button.objectName(), "secondaryButton")
+                    page.radial_select_button.click()
+                    self.assertTrue(page.profiles[KEY_RADIAL_ENABLED])
+                    self.assertEqual(page.radial_select_button.objectName(), "primaryButton")
                     self.assertTrue(page.macro_panel.isAncestorOf(page.macro_mode_button))
                     self.assertTrue(page.macro_panel.isAncestorOf(page.mirror_mode_button))
                     self.assertTrue(page.macro_panel.isAncestorOf(page.switch_click))
