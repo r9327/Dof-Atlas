@@ -405,7 +405,14 @@ class SwitchClickMacro:
                 ):
                     return
         finally:
-            if original_cursor is not None and should_restore_preferred and not focus_lost:
+            # Emergency Stop must never be followed by a late cursor or
+            # favorite restoration from a worker that is winding down.
+            # The user may already have selected another application.
+            restore_after_worker = (
+                should_restore_preferred and not focus_lost
+                and not self.runtime.macro_lock.should_stop()
+            )
+            if original_cursor is not None and restore_after_worker:
                 try:
                     set_cursor_pos(*original_cursor)
                 except Exception:
@@ -416,7 +423,7 @@ class SwitchClickMacro:
 
             # The user may have deliberately changed foreground window.
             # Never steal it back during an aborted gesture.
-            if should_restore_preferred and not focus_lost:
+            if restore_after_worker:
                 try:
                     self.runtime.switch_character.restore_preferred_client(
                         action_label
