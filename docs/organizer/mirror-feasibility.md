@@ -830,3 +830,30 @@ non certifiée et non fusionnée.
 Python/Windows DOFUS Unity, Atlas Doctor, Graphify exact-SHA, p50/p95/p99
 et CPU/RAM **NOT_RUN**. **MIRR-007 PENDING** (gestes sous worker occupé).
 PR Draft, non certifiée et non fusionnée.
+
+## P0 04/11 — vérification du clipboard avant écriture et comptage post-UP
+
+- Une séquence presse-papiers Windows absente (0), non entière ou
+  illisible est maintenant un **refus précoce**, sous `OpenClipboard`
+  et **avant** `EmptyClipboard`. Aucun collage ni saisie ne démarre dans
+  cet état. Une valeur négative signée reste valide côté pywin32.
+- Si la séquence devient illisible juste **après** l'écriture temporaire,
+  l'ancien texte (ou l'état vide) est réparé **sous le même verrou**, puis
+  la commande est refusée. Un échec de réparation n'est pas suivi d'un
+  nouveau cycle destructif ; une exception diagnostique est conservée.
+- Tests ciblés ajoutés/ajustés : absence du compteur, exceptions natives,
+  séquences concurrentes, réparation texte/clipboard vide et erreur de
+  réparation, avec absence de touche synthétique lors du refus.
+- Un clic souris dont le dernier `UP` est confirmé reste marqué livré
+  quand un Stop ou un échec de temporisation survient pendant le délai
+  optionnel post-UP. Stop pendant l'appui déclenche toujours un relâchement
+  de secours ; Stop entre deux clics supprime le deuxième DOWN.
+- Tests gauche/droit, simple/double, Stop pendant l'appui, pendant le
+  double-gap et après UP ; vérification du nombre réel de DOWN/UP.
+
+**Validation technique toujours NOT_RUN** : aucun checkout exécutable pour
+Doctor `agent plan/check/validate`, tests Python/PySide6, Graphify au SHA
+exact, mesures CPU/RAM/p50/p95/p99 et recette DOFUS Unity Windows 2/4/6/8.
+Tests présents ne signifie pas PASS. **MIRR-007 PENDING** : gestes physiques
+sous worker occupé, modification structurelle à réserver à Graphify exact-SHA
+et Doctor `--structural`. PR Draft, non certifiée, ne pas fusionner.
