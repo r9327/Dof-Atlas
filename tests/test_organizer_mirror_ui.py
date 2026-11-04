@@ -550,6 +550,7 @@ class OrganizerMirrorIntegrationTests(unittest.TestCase):
         handles = (101, 202, 303)
         runtime = Mock()
         runtime.settings.primary_handle = 101
+        runtime.settings.macro_mode = "mirror"
         runtime.settings.clients = [
             SimpleNamespace(handle=handle) for handle in handles
         ]
@@ -598,6 +599,10 @@ class OrganizerMirrorIntegrationTests(unittest.TestCase):
         handles = (101, 202)
         runtime = Mock()
         runtime.settings.primary_handle = 101
+        runtime.settings.macro_mode = "mirror"
+        runtime.settings.clients = [
+            SimpleNamespace(handle=handle) for handle in handles
+        ]
         runtime.switch_character.ordered_clients_from_source.return_value = [
             SimpleNamespace(handle=handle, display_name=str(handle))
             for handle in handles
@@ -669,6 +674,10 @@ class OrganizerMirrorIntegrationTests(unittest.TestCase):
         handles = (101, 202)
         runtime = Mock()
         runtime.settings.primary_handle = 101
+        runtime.settings.macro_mode = "mirror"
+        runtime.settings.clients = [
+            SimpleNamespace(handle=handle) for handle in handles
+        ]
         runtime.switch_character.ordered_clients_from_source.return_value = [
             SimpleNamespace(handle=hwnd, display_name=str(hwnd))
             for hwnd in handles
@@ -707,6 +716,8 @@ class OrganizerMirrorIntegrationTests(unittest.TestCase):
             SimpleNamespace(handle=202, display_name="offline"),
         ]
         runtime.settings.primary_handle = 101
+        runtime.settings.macro_mode = "mirror"
+        runtime.settings.clients = clients
         runtime.settings.client_by_handle.return_value = clients[0]
         runtime.switch_character.ordered_clients_from_source.return_value = clients
         runtime.macro_lock.should_stop.return_value = False
