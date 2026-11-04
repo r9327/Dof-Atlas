@@ -560,8 +560,14 @@ class AtlasRuntime:
                 self.switch_character.activate_next()
             return
         if action_id.startswith("client:"):
+            raw_index = payload.get("client_index", 0)
+            # Do not truncate bool/float/fractional aliases before the
+            # strict slot check in SwitchCharacterMacro receives the value.
+            if type(raw_index) not in (int, str):
+                self.logger.debug("Payload invalide pour switch personnage: action=%s payload=%s", action_id, payload)
+                return
             try:
-                client_index = int(payload.get("client_index", 0))
+                client_index = int(raw_index)
             except (TypeError, ValueError, OverflowError):
                 self.logger.debug("Payload invalide pour switch personnage: action=%s payload=%s", action_id, payload)
                 return

@@ -23,6 +23,24 @@ class OrganizerNumericHookGuardsTests(unittest.TestCase):
         runtime.switch_character.activate_by_index.assert_not_called()
         self.assertEqual(runtime.logger.debug.call_count, 3)
 
+    def test_client_hotkey_rejects_fractional_and_bool_slot_aliases(self):
+        runtime = Mock()
+        runtime._running = True
+        runtime._admin_ok = True
+        runtime.settings.macro_mode = "macro"
+        for value in (True, False, 1.0, 1.75, -1.5):
+            with self.subTest(value=repr(value)):
+                AtlasRuntime._handle_hotkey(runtime, "client:1", {"client_index": value})
+        runtime.switch_character.activate_by_index.assert_not_called()
+        self.assertEqual(runtime.logger.debug.call_count, 5)
+        # Keep the persisted textual slot contract and legitimate int path.
+        AtlasRuntime._handle_hotkey(runtime, "client:1", {"client_index": "1"})
+        AtlasRuntime._handle_hotkey(runtime, "client:2", {"client_index": 2})
+        self.assertEqual(
+            [c.args[0] for c in runtime.switch_character.activate_by_index.call_args_list],
+            [1, 2],
+        )
+
     def test_infinite_click_binding_falls_back_to_single_native_click(self):
         for value in (float("inf"), -float("inf"), float("nan")):
             with self.subTest(value=str(value)):
