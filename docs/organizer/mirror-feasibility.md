@@ -813,3 +813,20 @@ un worker occupé reste un blocage P0 exigeant un graphe exact-SHA et le
 plan Doctor `--structural` avant tout changement de hook ; ni replay
 périssable ni politique non destructive ne sont revendiqués ici. PR Draft,
 non certifiée et non fusionnée.
+
+## Lot 04/11 — sûreté SendInput souris, pointeur et données numériques
+
+- Un `UP` refusé interrompt immédiatement le double-clic, avant le second
+  `DOWN` ; le `finally` tente un unique relâchement de secours.
+- `SetCursorPos` refusé, `GetCursorPos` illisible ou position effectivement
+  différente de la cible (notamment `ClipCursor`) empêchent toute injection.
+  La vérification ajoute une lecture Win32 par déplacement, sans polling.
+- Les valeurs NaN/inf, le HWND non fini et les temporisations invalides
+  ne font plus planter le worker ni cliquer avec des données incertaines.
+- Tests ajoutés : boutons gauche/droit, release échoué, écran secondaire à
+  coordonnées négatives, curseur contraint, panne native, valeurs invalides.
+
+**Preuves :** correctifs + tests GitHub, audit statique uniquement. Tests
+Python/Windows DOFUS Unity, Atlas Doctor, Graphify exact-SHA, p50/p95/p99
+et CPU/RAM **NOT_RUN**. **MIRR-007 PENDING** (gestes sous worker occupé).
+PR Draft, non certifiée et non fusionnée.
