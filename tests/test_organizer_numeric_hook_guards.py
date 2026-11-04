@@ -41,6 +41,65 @@ class OrganizerNumericHookGuardsTests(unittest.TestCase):
             [1, 2],
         )
 
+    def test_stale_slot_hotkey_cannot_activate_reassigned_client_2_to_8(self):
+        for count in (2, 4, 6, 8):
+            with self.subTest(clients=count):
+                runtime = Mock()
+                runtime._running = True
+                runtime._admin_ok = True
+                runtime.settings.macro_mode = "macro"
+                runtime.settings.switch_character_enabled = True
+                runtime.settings.clients = [
+                    SimpleNamespace(index=i + 1, handle=101 + i)
+                    for i in range(count)
+                ]
+                action = "client:1"
+                payload = {"client_index": 1, "handle": 101}
+                AtlasRuntime._handle_hotkey(runtime, action, payload)
+                runtime.switch_character.activate_by_index.assert_called_once_with(1)
+                runtime.settings.clients[0].handle = 901
+                AtlasRuntime._handle_hotkey(runtime, action, payload)
+                runtime.switch_character.activate_by_index.assert_called_once_with(1)
+                runtime.settings.switch_character_enabled = False
+                AtlasRuntime._handle_hotkey(
+                    runtime, action, {"client_index": 1, "handle": 901},
+                )
+                runtime.switch_character.activate_by_index.assert_called_once_with(1)
+
+    def test_hotkey_action_and_payload_must_agree(self):
+        runtime = Mock()
+        runtime._running = True
+        runtime._admin_ok = True
+        runtime.settings.macro_mode = "macro"
+        runtime.settings.switch_character_enabled = True
+        runtime.settings.movement_enabled = True
+        runtime.settings.clients = [SimpleNamespace(index=1, handle=101)]
+        # A corrupted or stale action may not target another slot.
+        AtlasRuntime._handle_hotkey(
+            runtime, "client:2", {"client_index": 1, "handle": 101},
+        )
+        AtlasRuntime._handle_hotkey(
+            runtime, "client:1", {"client_index": 1, "handle": True},
+        )
+        runtime.switch_character.activate_by_index.assert_not_called()
+        # Movement keys are owned by their canonical action and toggle.
+        for action, key in (
+            ("direction:HOME", "DELETE"),
+            ("direction:HOME", "F10"),
+            ("direction:HOME", 1),
+        ):
+            AtlasRuntime._handle_hotkey(runtime, action, {"key_name": key})
+        runtime.direction.run_async.assert_not_called()
+        AtlasRuntime._handle_hotkey(
+            runtime, "direction:HOME", {"key_name": "HOME"},
+        )
+        runtime.direction.run_async.assert_called_once_with("HOME")
+        runtime.settings.movement_enabled = False
+        AtlasRuntime._handle_hotkey(
+            runtime, "direction:DELETE", {"key_name": "DELETE"},
+        )
+        runtime.direction.run_async.assert_called_once_with("HOME")
+
     def test_infinite_click_binding_falls_back_to_single_native_click(self):
         for value in (float("inf"), -float("inf"), float("nan")):
             with self.subTest(value=str(value)):
