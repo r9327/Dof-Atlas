@@ -293,8 +293,20 @@ class MirrorInputMacro:
                 ):
                     try:
                         set_cursor_pos(*cursor)
+                        # A cursor restoration can itself dispatch a desktop
+                        # hook, so never restore favorite without checking
+                        # foreground once more after the pointer moves.
+                        if foreground_window() != last_activated_hwnd:
+                            user_focus_changed = True
+                            runtime.logger.info(
+                                "Miroir %s: retour au favori ignoré, focus changé après curseur.",
+                                kind,
+                            )
                     except Exception:
-                        runtime.logger.exception("Miroir molette: restauration curseur impossible.")
+                        user_focus_changed = True
+                        runtime.logger.exception(
+                            "Miroir molette: restauration curseur impossible."
+                        )
                 # A changed favorite must not be activated as a side effect of
                 # aborting the original gesture (same policy as mouse clicks).
                 if (roster_verified and not user_focus_changed
