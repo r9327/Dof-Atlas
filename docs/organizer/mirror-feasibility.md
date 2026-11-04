@@ -649,3 +649,44 @@ résolue par les gardes ci-dessus. Avant de modifier le hook global :
 **Statut:** ce document est une feuille de reprise, pas une preuve Graphify
 ni un certificat. Tous les tests de cette session restent **NOT_RUN**
 (plateforme GitHub seulement). **MIRR-007 reste PENDING.** Ne pas fusionner.
+
+## Lot 04/11/2026 — annulation immédiate si presse-papiers modifié pendant le chat
+
+### Constat et correction
+
+Avant ce lot, `clipboard_text` sauvegardait la révision native Windows
+pour **éviter d'écraser une nouvelle copie pendant la restauration**, mais
+`send_chat_command` ne la recontrôlait pas avant les étapes de saisie.
+Un Ctrl+C utilisateur pouvait donc remplacer la commande temporaire avant
+Ctrl+V ; le chat risquait alors de coller puis envoyer un autre texte.
+
+Le contexte existant `clipboard_text` expose désormais la révision dont
+il est propriétaire à `send_chat_command`. L'annulation combine le Stop
+fourni par le consommateur (qui inclut le focus dans Auto-groupe et /zaap)
+et un contrôle de révision Win32 à chaque frontière clavier cancellable,
+après collage et avant chaque Entrée. Si la révision a changé ou sa lecture
+échoue, le sender retourne `False` sans soumettre un texte devenu inconnu.
+La restauration continue de respecter une nouvelle copie utilisateur :
+elle ne remet pas l'ancien contenu lorsque la révision diffère.
+
+La valeur renvoyée par pywin32 est un `int` Win32 **signé** : les révisions
+négatives ne sont pas des erreurs ; seul zéro représente un suivi absent.
+Quand le numéro n'est pas disponible, le sender ne colle ni ne soumet
+la commande. Les contextes simulés non Windows gardent la logique Stop.
+
+### Régressions ajoutées / ajustées
+
+- Copie pendant la préparation (après Espace, avant Ctrl+A) : aucune frappe
+  destructive supplémentaire ni commande soumise.
+- Copie entre collage et Entrée : pas de soumission du contenu étranger.
+- Copie après le premier Entrée Zaap : pas de deuxième soumission.
+- Révision indisponible, lecture impossible et valeur signée négative.
+- Mocks existants munis d'une révision stable ; correction du scénario
+  Stop sur double Entrée et des contrôles de verrou / d'indentation.
+
+**Validation : tests ajoutés, mais NOT_RUN.** Aucun checkout exécutable sur
+l'hôte de cette session (DNS GitHub inaccessible), aucune exécution Doctor,
+Graphify exact-SHA, tests PySide6, mesures CPU/RAM/p50/p95/p99 ou
+recette DOFUS Unity 2/4/6/8. Ne pas affirmer une exécution PASS.
+**MIRR-007 reste PENDING** ; le correctif de chat ne traite pas les gestes
+physiques perdus sous worker occupé. PR toujours Draft / non certifiée.
