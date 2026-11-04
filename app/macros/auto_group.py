@@ -4,6 +4,7 @@ from typing import TYPE_CHECKING, Any
 
 from app.core.text import clean_auto_group_name, normalize_key
 from app.macros.input_tools import send_chat_command
+from app.macros.mirror_plan import is_dofus_unity_process
 from app.windows.focus import activate_window
 from app.windows.unity_windows import foreground_window, is_unity_window
 
@@ -24,7 +25,8 @@ class AutoGroupMacro:
             self.runtime.logger.info("Auto groupe ignore: aucune invitation.")
             return
         sender = self.runtime.switch_character.logical_active_client()
-        if sender is None or not is_unity_window(sender.handle):
+        if (sender is None or not is_unity_window(sender.handle)
+                or not is_dofus_unity_process(sender.handle)):
             self.runtime.logger.info("Auto groupe ignore: aucune fenetre Dofus valide.")
             return
         timings = self.runtime.settings.timings
@@ -72,10 +74,11 @@ class AutoGroupMacro:
                 eligible += 1
                 # Every invitation is a distinct operation. Never type into
                 # another window if focus was stolen after activation.
-                if foreground_window() != int(sender.handle):
+                if (foreground_window() != int(sender.handle)
+                        or not is_dofus_unity_process(sender.handle)):
                     focus_lost = True
                     self.runtime.logger.warning(
-                        "Auto groupe interrompu: focus perdu avant invitation hwnd=%s",
+                        "Auto groupe interrompu: focus ou identité DOFUS perdus avant invitation hwnd=%s",
                         sender.handle,
                     )
                     return
@@ -89,10 +92,11 @@ class AutoGroupMacro:
                 ):
                     if self.runtime.macro_lock.should_stop():
                         return
-                    if foreground_window() != int(sender.handle):
+                    if (foreground_window() != int(sender.handle)
+                            or not is_dofus_unity_process(sender.handle)):
                         focus_lost = True
                         self.runtime.logger.warning(
-                            "Auto groupe interrompu: focus perdu après échec du chat hwnd=%s",
+                            "Auto groupe interrompu: focus ou identité DOFUS perdus après échec du chat hwnd=%s",
                             sender.handle,
                         )
                         return
@@ -107,6 +111,11 @@ class AutoGroupMacro:
                         return
         finally:
             stopped = self.runtime.macro_lock.should_stop()
+            if not stopped and not focus_lost and not is_dofus_unity_process(sender.handle):
+                focus_lost = True
+                self.runtime.logger.warning(
+                    "Auto groupe: identité DOFUS perdue avant restauration hwnd=%s", sender.handle,
+                )
             if not stopped and not focus_lost:
                 try:
                     self.runtime.switch_character.restore_preferred_client("Auto groupe")
