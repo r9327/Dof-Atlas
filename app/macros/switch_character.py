@@ -167,9 +167,11 @@ class SwitchCharacterMacro:
         AtlasSettings.preferred_client() gère déjà l'ordre suivant :
         primary_handle, client marqué primary, puis premier client configuré.
         """
-        preferred = self.runtime.settings.preferred_client()
+        settings = self.runtime.settings
+        preferred = settings.preferred_client()
         if (preferred is None or not is_unity_window(preferred.handle)
-                or not is_dofus_unity_process(preferred.handle)):
+                or not is_dofus_unity_process(preferred.handle)
+                or self.runtime.settings is not settings):
             return None
         return preferred
 
@@ -177,8 +179,12 @@ class SwitchCharacterMacro:
         settings = self.runtime.settings
         active = foreground_window()
         if active and is_unity_window(active) and is_dofus_unity_process(active):
+            if self.runtime.settings is not settings:
+                return None
             client = settings.client_by_handle(active)
             if client is not None:
+                if self.runtime.settings is not settings:
+                    return None
                 self.runtime.active_client_handle = client.handle
                 return client
 
@@ -186,15 +192,23 @@ class SwitchCharacterMacro:
             client = settings.client_by_handle(self.runtime.active_client_handle)
             if (client is not None and is_unity_window(client.handle)
                     and is_dofus_unity_process(client.handle)):
+                if self.runtime.settings is not settings:
+                    return None
                 return client
 
+        if self.runtime.settings is not settings:
+            return None
         preferred = self.preferred_client()
+        if self.runtime.settings is not settings:
+            return None
         if preferred is not None:
             self.runtime.active_client_handle = preferred.handle
             return preferred
 
         for client in settings.clients:
             if is_unity_window(client.handle) and is_dofus_unity_process(client.handle):
+                if self.runtime.settings is not settings:
+                    return None
                 self.runtime.active_client_handle = client.handle
                 return client
         return None

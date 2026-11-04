@@ -332,6 +332,67 @@ class OrganizerMacroReliabilityTests(unittest.TestCase):
                     "Switch clique",
                 )
 
+
+    def test_logical_active_client_does_not_publish_stale_profile_after_win32_probe(self):
+        for count in (2, 4, 6, 8):
+            with self.subTest(clients=count):
+                runtime = _runtime()
+                clients = [
+                    SimpleNamespace(index=i + 1, handle=101 + i, display_name=str(i))
+                    for i in range(count)
+                ]
+                old = runtime.settings
+                old.clients = clients
+                old.client_by_handle.side_effect = (
+                    lambda h: next((c for c in clients if c.handle == h), None)
+                )
+                runtime.active_client_handle = 999
+
+                def reload_during_process_check(_hwnd):
+                    newer = Mock()
+                    newer.clients = clients
+                    newer.timings = old.timings
+                    runtime.settings = newer
+                    return True
+
+                with (
+                    patch("app.macros.switch_character.foreground_window",
+                          return_value=101),
+                    patch("app.macros.switch_character.is_unity_window",
+                          return_value=True),
+                    patch("app.macros.switch_character.is_dofus_unity_process",
+                          side_effect=reload_during_process_check),
+                ):
+                    self.assertIsNone(SwitchCharacterMacro(runtime).logical_active_client())
+                self.assertEqual(runtime.active_client_handle, 999)
+
+    def test_preferred_lookup_does_not_return_old_favorite_after_native_reload(self):
+        for count in (2, 4, 6, 8):
+            with self.subTest(clients=count):
+                runtime = _runtime()
+                original = runtime.settings
+                original.clients = [
+                    SimpleNamespace(index=i + 1, handle=101 + i, display_name=str(i))
+                    for i in range(count)
+                ]
+                original.preferred_client.return_value = original.clients[0]
+
+                def reload_during_process_check(_hwnd):
+                    newer = Mock()
+                    newer.clients = original.clients
+                    newer.preferred_client.return_value = original.clients[-1]
+                    runtime.settings = newer
+                    return True
+
+                with (
+                    patch("app.macros.switch_character.is_unity_window",
+                          return_value=True),
+                    patch("app.macros.switch_character.is_dofus_unity_process",
+                          side_effect=reload_during_process_check),
+                ):
+                    self.assertIsNone(SwitchCharacterMacro(runtime).preferred_client())
+                self.assertIsNot(runtime.settings, original)
+
     def test_character_hotkey_rejects_fractional_slot_without_spawning(self) -> None:
         runtime = _runtime()
         runtime.settings.clients = [
