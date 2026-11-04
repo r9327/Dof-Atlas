@@ -740,8 +740,11 @@ class AtlasRuntime:
         # low-level mouse hook merely to decide to pass a click through.
         busy = self.macro_lock.active_label
         if (busy == "Miroir clavier"
-                or (busy == "Miroir molette"
+                or (busy in {"Miroir molette", "Miroir"}
                     and not self.input_state.is_mouse_blocked())):
+            # A queued click worker is not yet moving the pointer. Preserve
+            # ordinary native gestures until it actually acquires its mouse
+            # block; do not run a full DOFUS roster probe from the hook.
             return False
         settings = self.settings
         if not settings.primary_handle:
@@ -829,6 +832,10 @@ class AtlasRuntime:
             )
             return False
         active_macro = self.macro_lock.active_label
+        if active_macro == "Switch clique" and not self.input_state.is_mouse_blocked():
+            # The queued or prevalidating SwitchClick worker has not moved
+            # focus or pointer yet. Another physical click must stay native.
+            return False
         if active_macro:
             # The mouse hook is global. During the narrow interval between
             # MacroLock acquisition and the sender's input block, never eat a

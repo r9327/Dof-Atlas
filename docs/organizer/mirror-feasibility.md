@@ -1111,3 +1111,7 @@ Le callback souris laisse désormais immédiatement passer les clics physiques s
 ### Contrat physique complété : paire native DOWN/UP et worker différé
 
 Des tests d'intégration simulée du vrai callback `MouseHook._mouse_proc` vérifient qu'un DOWN du favori est consommé une fois, que son UP reste réservé même avant l'acquisition du blocage physique par le worker, et que la diffusion suivante émet un clic par session pour 2, 4, 6 et 8 clients. En cas de roster rejeté avant envoi, le UP reste consommé (pas de libération orpheline) sans vol de focus ni blocage physique permanent. Tests écrits mais **non exécutés** sur Windows/PySide6 ; résultat réel DOFUS à mesurer. MIRR-007 reste ouvert pour les clics reçus pendant la phase de diffusion active.
+
+### Pas de clic perdu dans l'intervalle d'attente du worker (Macro et Miroir)
+
+Le callback souris avait un second point de consommation : quand `MacroLock` était déjà occupé par `Miroir` ou `Switch clique`, il avalait un nouveau clic même si le worker était encore en prévalidation **sans avoir acquis le blocage souris**. Les deux chemins (Macro classique et Miroir) laissent désormais passer l'événement physique sans appel Win32 supplémentaire pendant cet intervalle. Dès que le worker prend réellement le contrôle du pointeur, les protections existantes restent en vigueur. Tests 2/4/6/8 comptes et transition entre les deux phases ajoutés. MIRR-007 reste ouvert pendant la diffusion réelle, pas pendant le préflight. Tests et Doctor/Graphify/Windows réels NOT_RUN.

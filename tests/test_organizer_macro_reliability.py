@@ -833,6 +833,70 @@ class OrganizerMacroReliabilityTests(unittest.TestCase):
         )
         self.assertIsNone(runtime._pending_physical_switch)
 
+    def test_queued_classic_switch_keeps_mouse_native_until_pointer_ownership(self):
+        from app.core.runtime_state import AtlasRuntime
+        from app.input.input_state import InputState
+
+        for count in (2, 4, 6, 8):
+            with self.subTest(clients=count):
+                runtime = _runtime()
+                runtime.input_state = InputState()
+                runtime._running = True
+                runtime._admin_ok = True
+                runtime.settings.macro_mode = "macro"
+                runtime.settings.clients = [
+                    SimpleNamespace(handle=101 + i) for i in range(count)
+                ]
+                runtime.macro_lock.active_label = "Switch clique"
+                runtime.registry.switch_action_for_pressed_keys.return_value = (
+                    SimpleNamespace(
+                        action_id="switch_click",
+                        payload={"click_count": 1},
+                    )
+                )
+                with (
+                    patch("app.windows.unity_windows.foreground_window") as focus,
+                    patch("app.windows.unity_windows.find_known_client_from_point") as point,
+                    patch("app.macros.mirror_plan.is_dofus_unity_process") as process,
+                ):
+                    self.assertFalse(
+                        AtlasRuntime._handle_mouse_click(runtime, "Left", 20, 25)
+                    )
+                focus.assert_not_called()
+                point.assert_not_called()
+                process.assert_not_called()
+                runtime.switch_click.run_async.assert_not_called()
+
+    def test_active_classic_switch_still_blocks_extra_click_during_delivery(self):
+        from app.core.runtime_state import AtlasRuntime
+        from app.input.input_state import InputState
+
+        runtime = _runtime()
+        runtime.input_state = InputState()
+        runtime.input_state.begin_mouse_block("Switch clique")
+        runtime._running = True
+        runtime._admin_ok = True
+        runtime.settings.macro_mode = "macro"
+        runtime.settings.clients = [
+            SimpleNamespace(handle=101), SimpleNamespace(handle=202),
+        ]
+        runtime.macro_lock.active_label = "Switch clique"
+        runtime.registry.switch_action_for_pressed_keys.return_value = (
+            SimpleNamespace(action_id="switch_click", payload={"click_count": 1})
+        )
+        with (
+            patch("app.windows.unity_windows.foreground_window", return_value=101),
+            patch("app.windows.unity_windows.find_known_client_from_point",
+                  return_value=101),
+            patch("app.macros.mirror_plan.is_dofus_unity_process",
+                  return_value=True),
+        ):
+            self.assertTrue(AtlasRuntime._handle_mouse_click(
+                runtime, "Left", 20, 25,
+            ))
+        runtime.switch_click.run_async.assert_not_called()
+        runtime.input_state.end_mouse_block()
+
     def test_busy_switch_does_not_consume_foreign_application_click(self) -> None:
         from app.core.runtime_state import AtlasRuntime
 

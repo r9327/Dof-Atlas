@@ -756,6 +756,53 @@ class OrganizerMirrorIntegrationTests(unittest.TestCase):
                 self.assertEqual(next_hook.call_count, 2)
                 runtime.switch_click.run_async.assert_not_called()
 
+    def test_queued_mirror_click_keeps_physical_click_native_until_blocked(self):
+        from app.input.input_state import InputState
+
+        for count in (2, 4, 6, 8):
+            with self.subTest(clients=count):
+                handles = tuple(range(101, 101 + count))
+                runtime = self._runtime(primary=handles[0], handles=handles)
+                runtime.input_state = InputState()
+                runtime.macro_lock.active_label = "Miroir"
+                with (
+                    patch("app.windows.unity_windows.foreground_window") as focus,
+                    patch("app.windows.unity_windows.find_known_client_from_point") as point,
+                    patch("app.windows.unity_windows.is_unity_window") as unity,
+                    patch("app.macros.mirror_plan.is_dofus_unity_process") as identity,
+                ):
+                    self.assertFalse(AtlasRuntime._handle_mirror_click(
+                        runtime, "Left", 20, 25,
+                    ))
+                focus.assert_not_called()
+                point.assert_not_called()
+                unity.assert_not_called()
+                identity.assert_not_called()
+                runtime.switch_click.run_async.assert_not_called()
+
+    def test_active_mirror_click_keeps_second_worker_off_during_mouse_block(self):
+        from app.input.input_state import InputState
+
+        runtime = self._runtime(primary=101, handles=(101, 202))
+        runtime.input_state = InputState()
+        runtime.input_state.begin_mouse_block("Miroir")
+        runtime.macro_lock.active_label = "Miroir"
+        with (
+            patch("app.windows.unity_windows.foreground_window",
+                  return_value=101),
+            patch("app.windows.unity_windows.find_known_client_from_point",
+                  return_value=101),
+            patch("app.windows.unity_windows.is_unity_window",
+                  return_value=True),
+            patch("app.macros.mirror_plan.is_dofus_unity_process",
+                  return_value=True),
+        ):
+            self.assertTrue(AtlasRuntime._handle_mirror_click(
+                runtime, "Left", 20, 25,
+            ))
+        runtime.switch_click.run_async.assert_not_called()
+        runtime.input_state.end_mouse_block()
+
     def test_macro_busy_consumes_without_starting_a_second_delivery(self):
         runtime = self._runtime()
         runtime.macro_lock.active_label = "Miroir"
