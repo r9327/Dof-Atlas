@@ -1132,13 +1132,55 @@ class OrganizerMirrorIntegrationTests(unittest.TestCase):
         ):
             MirrorInputMacro(runtime)._run("key", 65, 101, (101, 202))
         down.assert_called_once_with(65)
-        up.assert_called_once_with(65)
+        self.assertEqual(up.call_count, 2)
+        up.assert_any_call(65)
+        runtime.logger.warning.assert_any_call(
+            "Miroir clavier: relâchement refusé, tentative de secours vk=%s", 65,
+        )
         runtime._emit_status.assert_called_once_with(
             "Miroir Clavier incomplet : 0/2 fenêtres."
         )
         runtime.switch_character.restore_preferred_client.assert_not_called()
         runtime.logger.exception.assert_any_call(
             "Miroir %s: échec SendInput.", "key",
+        )
+
+    def test_mirror_keyboard_keyup_retry_recovers_and_continues(self):
+        from app.macros.mirror_input import MirrorInputMacro
+
+        runtime = Mock()
+        runtime.settings.macro_mode = "mirror"
+        runtime.settings.primary_handle = 101
+        runtime.settings.clients = (
+            SimpleNamespace(handle=101), SimpleNamespace(handle=202),
+        )
+        timings = runtime.settings.timings
+        timings.switch_background_pre_click_ms = 0
+        timings.activate_attempts = 1
+        timings.activate_retry_ms = 0
+        timings.switch_click_down_ms = 10
+        timings.switch_client_settle_ms = 0
+        runtime.macro_lock.should_stop.return_value = False
+        runtime.macro_lock.wait.return_value = False
+        with (
+            patch("app.macros.mirror_input.is_dofus_unity_process",
+                  return_value=True),
+            patch("app.macros.mirror_input.activate_window", return_value=True),
+            patch("app.macros.mirror_input.foreground_window",
+                  side_effect=[101, 202]),
+            patch("app.macros.input_tools.key_down") as down,
+            patch("app.macros.input_tools.key_up",
+                  side_effect=[OSError("first KEYUP refused"), None, None]) as up,
+        ):
+            MirrorInputMacro(runtime)._run("key", 65, 101, (101, 202))
+        self.assertEqual(down.call_count, 2)
+        self.assertEqual(up.call_count, 3)
+        runtime.logger.warning.assert_any_call(
+            "Miroir clavier: relâchement refusé, tentative de secours vk=%s", 65,
+        )
+        runtime.switch_character.restore_preferred_client.assert_called_once()
+        runtime._emit_status.assert_called_once_with(
+            "Miroir Clavier : 2/2 fenêtres."
         )
 
     def test_mirror_wheel_send_failure_never_restores_favorite(self):
