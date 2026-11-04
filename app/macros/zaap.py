@@ -4,6 +4,7 @@ import re
 from typing import TYPE_CHECKING
 
 from app.macros.input_tools import send_chat_command
+from app.macros.mirror_plan import is_dofus_unity_process
 from app.windows.focus import activate_window
 from app.windows.unity_windows import foreground_window, is_unity_window
 
@@ -67,9 +68,12 @@ class ZaapMacro:
             for client in clients:
                 if self.runtime.macro_lock.should_stop():
                     return
-                if not is_unity_window(client.handle):
-                    self.runtime.logger.info("Auto zaap fenetre introuvable/non Unity: hwnd=%s", client.handle)
-                    continue
+                if not is_unity_window(client.handle) or not is_dofus_unity_process(client.handle):
+                    focus_lost = True
+                    self.runtime.logger.warning(
+                        "Auto zaap interrompu: cible non DOFUS Unity hwnd=%s", client.handle,
+                    )
+                    return
                 if not activate_window(
                     client.handle,
                     timings.travel_focus_settle_ms,
@@ -83,10 +87,11 @@ class ZaapMacro:
                     continue
                 # A focus change after activation must not send the chat
                 # command to Organizer, another game window, or a browser.
-                if foreground_window() != int(client.handle):
+                if (foreground_window() != int(client.handle)
+                        or not is_dofus_unity_process(client.handle)):
                     focus_lost = True
                     self.runtime.logger.warning(
-                        "Auto zaap interrompu: focus perdu avant commande hwnd=%s", client.handle
+                        "Auto zaap interrompu: focus ou identité DOFUS perdus avant commande hwnd=%s", client.handle
                     )
                     return
                 if not send_chat_command(
@@ -100,10 +105,11 @@ class ZaapMacro:
                 ):
                     if self.runtime.macro_lock.should_stop():
                         return
-                    if foreground_window() != int(client.handle):
+                    if (foreground_window() != int(client.handle)
+                            or not is_dofus_unity_process(client.handle)):
                         focus_lost = True
                         self.runtime.logger.warning(
-                            "Auto zaap interrompu: focus perdu après échec du chat hwnd=%s",
+                            "Auto zaap interrompu: focus ou identité DOFUS perdus après échec du chat hwnd=%s",
                             client.handle,
                         )
                         return
@@ -112,6 +118,11 @@ class ZaapMacro:
         finally:
             # Restituer le favori même si un client ou le chat échoue, mais ne
             # jamais réactiver une fenêtre après un stop d'urgence.
+            if not focus_lost and not is_dofus_unity_process(client.handle):
+                focus_lost = True
+                self.runtime.logger.warning(
+                    "Auto zaap: identité DOFUS perdue avant restauration hwnd=%s", client.handle,
+                )
             if not self.runtime.macro_lock.should_stop() and not focus_lost:
                 try:
                     self.runtime.switch_character.restore_preferred_client("Auto zaap")
