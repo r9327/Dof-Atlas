@@ -415,3 +415,41 @@ automatiquement redistribués. Ni la télémétrie ni ces protections
 locales ne constituent une solution complète. Carte Graphify exacte,
 Doctor, exécution des tests Python et recette Windows/Unity restent
 **NOT_RUN**. Aucun verdict de certification n'est implicite.
+
+
+## Lot P0 du 04/11/2026 — arrêt, sélection et refus d'envoi
+
+Le lot de 14 commits suivant `11ec726` améliore les chemins existants
+sans changer les hooks ni introduire de nouveau moteur :
+
+- **Stop urgence Switch clic** : la sortie du worker ne restaure
+  plus le favori ni le curseur après l'ordre d'arrêt, même si
+  un premier personnage avait déjà été activé.
+- **Miroir molette** : pas de retour du curseur après Stop, refus
+  `SendInput`, perte de focus ou modification des slots Organizer.
+  L'échec de lecture de `GetCursorPos` génère un état incomplet
+  explicite plutôt qu'un retour silencieux.
+- **Clic Miroir** : un `SendInput` refusé interrompt la diffusion
+  sans envoyer les mêmes gestes aux destinataires suivants.
+  L'application ne prétend ni succès ni restauration du favori.
+- **Liste de personnages figée** : le clic Miroir compare à nouveau
+  le favori, le mode et l'ordre des HWND avant chaque destinataire
+  et après son activation. Une sélection modifiée interrompt le
+  worker au lieu de cibler les anciennes fenêtres.
+- **Clavier Miroir** : si Windows refuse le premier `KEYUP`
+  synthétique, une seule tentative de secours est autorisée.
+  Si elle échoue encore, l'exécution est déclarée incomplète.
+
+Les tests simulés couvrent les interruptions, l'échec d'envoi dès
+le premier destinataire ou après livraison partielle, les modes
+`Macro`/`Miroir`, les changements de favori ou de liste en cours
+d'activation, ainsi que les favoris en dernier slot à **2/4/6/8**
+comptes. Ces tests sont **ajoutés mais non exécutés** sur un runner.
+
+**Limites P0** : la perte des gestes reçus pendant un
+`InputState.is_mouse_blocked()` actif n'est **pas résolue** par ce
+lot. MIRR-007 reste ouvert ; l'introduction d'une file de gestes
+différés est une modification structurelle qui exige une carte
+Graphify au SHA exact, Doctor et une recette Windows/Unity.
+Les temps de réponse, l'absence de doublons en jeu et la mémoire
+sur 8 comptes ne sont pas mesurés ni certifiés ici.
