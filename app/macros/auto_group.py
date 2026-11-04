@@ -26,14 +26,17 @@ class AutoGroupMacro:
     def _run(self, invite_entries: list[dict[str, Any]]) -> None:
         if not invite_entries:
             self.runtime.logger.info("Auto groupe ignore: aucune invitation.")
+            self.runtime._emit_status("Auto-groupe ignoré : aucun destinataire.")
             return
         if self.runtime.macro_lock.should_stop():
             self.runtime.logger.info("Auto groupe ignoré : Stop déjà demandé.")
+            self.runtime._emit_status("Auto-groupe arrêté avant lancement.")
             return
         sender = self.runtime.switch_character.logical_active_client()
         if (sender is None or not is_unity_window(sender.handle)
                 or not is_dofus_unity_process(sender.handle)):
             self.runtime.logger.info("Auto groupe ignore: aucune fenetre Dofus valide.")
+            self.runtime._emit_status("Auto-groupe ignoré : fenêtre DOFUS introuvable.")
             return
 
         sender_name = clean_auto_group_name(sender.display_name)
@@ -78,9 +81,11 @@ class AutoGroupMacro:
                 "Auto groupe %s: envoyes=%s/%s candidats=%s sender=%s",
                 "ignore", 0, 0, len(invite_entries), sender.handle,
             )
+            self.runtime._emit_status("Auto-groupe ignoré : aucun autre personnage à inviter.")
             return
 
         if self.runtime.macro_lock.should_stop():
+            self.runtime._emit_status("Auto-groupe arrêté avant envoi.")
             return
         timings = self.runtime.settings.timings
         if not activate_window(
@@ -93,6 +98,7 @@ class AutoGroupMacro:
             should_stop=self.runtime.macro_lock.should_stop,
         ):
             self.runtime.logger.info("Auto groupe activation fenetre echec: hwnd=%s", sender.handle)
+            self.runtime._emit_status("Auto-groupe non envoyé : activation DOFUS échouée.")
             return
         favorite_at_start = self.runtime.settings.primary_handle
         sent = 0
@@ -206,4 +212,8 @@ class AutoGroupMacro:
             self.runtime.logger.info(
                 "Auto groupe %s: envoyes=%s/%s candidats=%s sender=%s",
                 state, sent, eligible, len(invite_entries), sender.handle,
+            )
+            self.runtime._emit_status(
+                f"Auto-groupe {state} : {sent}/{len(recipients)} commandes émises "
+                "(réception DOFUS non vérifiée)."
             )

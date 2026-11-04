@@ -50,11 +50,13 @@ class ZaapMacro:
         coords = parse_zaap_command(command)
         if coords is None:
             self.runtime.logger.info("Auto zaap ignore: commande /zaap invalide.")
+            self.runtime._emit_status("Auto zaap ignoré : commande invalide.")
             return
         command = zaap_command(*coords)
         clients = self.runtime.switch_character.ordered_clients_from_source()
         if not clients:
             self.runtime.logger.info("Auto zaap ignore: aucune fenetre chargee.")
+            self.runtime._emit_status("Auto zaap ignoré : aucune fenêtre DOFUS disponible.")
             return
         timings = self.runtime.settings.timings
         favorite_at_start = self.runtime.settings.primary_handle
@@ -183,4 +185,8 @@ class ZaapMacro:
                 state,
                 sent,
                 len(clients),
+            )
+            self.runtime._emit_status(
+                f"Auto zaap {state} : {sent}/{len(clients)} commandes émises "
+                "(réception DOFUS non vérifiée)."
             )
