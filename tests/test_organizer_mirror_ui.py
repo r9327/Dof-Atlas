@@ -309,6 +309,23 @@ class OrganizerMirrorIntegrationTests(unittest.TestCase):
             mirror_target_handles=(101, 202, 303),
         )
 
+    def test_invalid_key_callback_never_scans_foreground_or_roster(self):
+        runtime = self._runtime()
+        runtime._running = True
+        runtime._admin_ok = True
+        for vk, pressed in (
+            (0, True), (0x5B, True), (0xA2, True), (65.0, True),
+            (True, True), ("65", True), (65, 1), (65, None),
+        ):
+            with self.subTest(vk=repr(vk), pressed=pressed):
+                with patch("app.windows.unity_windows.foreground_window") as foreground:
+                    self.assertFalse(
+                        AtlasRuntime._handle_mirror_key(runtime, vk, pressed)
+                    )
+                foreground.assert_not_called()
+        runtime._mirror_gesture_targets.assert_not_called()
+        runtime.mirror_input.run_key.assert_not_called()
+
     def test_foreign_input_never_scans_unrelated_unity_sessions(self):
         for count in (2, 4, 6, 8):
             with self.subTest(count=count):
