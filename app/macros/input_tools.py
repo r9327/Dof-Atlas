@@ -288,9 +288,16 @@ def send_chat_command(
         ):
             logger.info("Commande chat stoppee avant validation.")
             return False
+        # Stop can arrive after the final clipboard paste and before ENTER.
+        # Never submit a command after an emergency-stop request.
+        if should_stop is not None and should_stop():
+            logger.info("Commande chat stoppee avant validation.")
+            return False
         press_key("ENTER")
         if submit_twice:
             if _sleep_ms(key_step_ms, should_stop):
+                return False
+            if should_stop is not None and should_stop():
                 return False
             press_key("ENTER")
     return True
