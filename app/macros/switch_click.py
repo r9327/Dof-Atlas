@@ -516,6 +516,24 @@ class SwitchClickMacro:
                 and not delivery_failed
                 and not self.runtime.macro_lock.should_stop()
             )
+
+            def roster_allows_restore() -> bool:
+                if mirror_target_handles is None:
+                    return True
+                try:
+                    return mirror_roster_is_current()
+                except Exception:
+                    self.runtime.logger.exception(
+                        "%s: roster illisible avant restauration.", action_label,
+                    )
+                    return False
+
+            if restore_after_worker and not roster_allows_restore():
+                restore_after_worker = False
+                self.runtime.logger.info(
+                    "%s: restauration ignorée, favori ou roster changé.",
+                    action_label,
+                )
             if (
                 restore_after_worker
                 and mirror_target_handles is not None
@@ -559,6 +577,15 @@ class SwitchClickMacro:
                         "%s restauration curseur impossible.",
                         action_label,
                     )
+
+            # The cursor restore can yield to the Organizer profile reload
+            # on the UI thread. Do not activate a newly selected favorite.
+            if restore_after_worker and not roster_allows_restore():
+                restore_after_worker = False
+                self.runtime.logger.info(
+                    "%s: retour au favori ignoré, roster changé après curseur.",
+                    action_label,
+                )
 
             # The user may have deliberately changed foreground window.
             # Never steal it back during an aborted gesture.
