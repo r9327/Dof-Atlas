@@ -719,6 +719,34 @@ class OrganizerSendInputTests(unittest.TestCase):
         self.assertEqual(key.call_count, 3)
 
 
+    def test_cursor_read_refusal_never_returns_false_zero_origin(self) -> None:
+        user32 = SimpleNamespace(GetCursorPos=Mock(return_value=0))
+        with (
+            patch.object(clicks.os, "name", "nt"),
+            patch.object(clicks.ctypes, "windll",
+                         SimpleNamespace(user32=user32), create=True),
+        ):
+            with self.assertRaisesRegex(OSError, "GetCursorPos refused"):
+                clicks.current_cursor_pos()
+        user32.GetCursorPos.assert_called_once()
+
+    def test_cursor_read_preserves_negative_multimonitor_coordinates(self) -> None:
+        def get_pos(pointer):
+            point = ctypes.cast(
+                pointer, ctypes.POINTER(ctypes.wintypes.POINT),
+            ).contents
+            point.x, point.y = -1280, 540
+            return 1
+
+        user32 = SimpleNamespace(GetCursorPos=Mock(side_effect=get_pos))
+        with (
+            patch.object(clicks.os, "name", "nt"),
+            patch.object(clicks.ctypes, "windll",
+                         SimpleNamespace(user32=user32), create=True),
+        ):
+            self.assertEqual(clicks.current_cursor_pos(), (-1280, 540))
+        user32.GetCursorPos.assert_called_once()
+
     def test_cursor_move_win32_refusal_has_diagnostic_and_no_ghost_click(self) -> None:
         user32 = SimpleNamespace(SetCursorPos=Mock(return_value=0))
         kernel32 = SimpleNamespace(GetLastError=Mock(return_value=5))
