@@ -351,6 +351,21 @@ class OrganizerMirrorIntegrationTests(unittest.TestCase):
         runtime._mirror_gesture_targets.assert_not_called()
         runtime.mirror_input.run_wheel.assert_not_called()
 
+    def test_invalid_click_callback_never_consults_favorite_or_consumes(self):
+        runtime = self._runtime()
+        for values in (
+            ("Middle", 20, 25), (None, 20, 25),
+            ("Left", float("nan"), 25), ("Right", 20, "25"),
+            ("Left", True, 25), ("Left", 20, 2**31),
+        ):
+            with self.subTest(values=values):
+                with patch("app.windows.unity_windows.foreground_window") as foreground:
+                    self.assertFalse(
+                        AtlasRuntime._handle_mirror_click(runtime, *values)
+                    )
+                foreground.assert_not_called()
+        runtime.switch_click.run_async.assert_not_called()
+
     def test_foreign_input_never_scans_unrelated_unity_sessions(self):
         for count in (2, 4, 6, 8):
             with self.subTest(count=count):
