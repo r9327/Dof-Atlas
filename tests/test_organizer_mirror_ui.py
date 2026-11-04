@@ -1862,6 +1862,75 @@ class OrganizerMirrorIntegrationTests(unittest.TestCase):
             "Miroir Molette incomplet : 0/2 fenêtres."
         )
 
+    def test_mirror_key_and_wheel_preserve_user_focus_after_final_send(self):
+        from app.macros.mirror_input import MirrorInputMacro
+
+        for count in (2, 4, 6, 8):
+            for kind in ("key", "wheel"):
+                with self.subTest(count=count, kind=kind):
+                    handles = tuple(range(101, 101 + count))
+                    runtime = self._runtime(primary=handles[0], handles=handles)
+                    runtime.settings.timings = SimpleNamespace(
+                        switch_background_pre_click_ms=0, activate_attempts=1,
+                        activate_retry_ms=0, switch_click_down_ms=10,
+                        switch_client_settle_ms=0,
+                    )
+                    runtime.macro_lock.should_stop.return_value = False
+                    runtime.macro_lock.wait.return_value = False
+                    # A new browser or other app is focused AFTER all
+                    # synthetic deliveries but before the restoration.
+                    foregrounds = (
+                        [*handles, 999] if kind == "key"
+                        else [h for h in handles for _ in range(2)] + [999]
+                    )
+                    with (
+                        patch("app.macros.mirror_input.is_dofus_unity_process",
+                              return_value=True),
+                        patch("app.macros.mirror_input.activate_window",
+                              return_value=True),
+                        patch("app.macros.mirror_input.foreground_window",
+                              side_effect=foregrounds),
+                        patch("app.macros.mirror_input.current_cursor_pos",
+                              return_value=(12, 14)),
+                        patch("app.macros.mirror_input.client_point_from_ratio",
+                              return_value=(8, 9)),
+                        patch("app.macros.mirror_input.client_to_screen",
+                              return_value=(80, 90)),
+                        patch("app.macros.mirror_input.set_cursor_pos") as move,
+                        patch("app.macros.mirror_input.send_screen_wheel",
+                              return_value=True) as wheel,
+                        patch("app.macros.input_tools.key_down") as down,
+                        patch("app.macros.input_tools.key_up") as up,
+                    ):
+                        if kind == "key":
+                            MirrorInputMacro(runtime)._run(
+                                "key", 65, handles[0], handles,
+                            )
+                        else:
+                            MirrorInputMacro(runtime)._run(
+                                "wheel", (120, False, 0.5, 0.5),
+                                handles[0], handles,
+                            )
+                    if kind == "key":
+                        self.assertEqual(down.call_count, count)
+                        self.assertEqual(up.call_count, count)
+                        move.assert_not_called()
+                        label = "Clavier"
+                    else:
+                        self.assertEqual(wheel.call_count, count)
+                        self.assertEqual(move.call_count, count)
+                        move.assert_any_call(80, 90)
+                        label = "Molette"
+                    runtime.switch_character.restore_preferred_client.assert_not_called()
+                    runtime.input_state.end_mouse_block.assert_called_once()
+                    runtime.logger.info.assert_any_call(
+                        "Miroir %s: restauration ignorée, focus utilisateur changé.",
+                        kind,
+                    )
+                    runtime._emit_status.assert_called_once_with(
+                        f"Miroir {label} : {count}/{count} fenêtres."
+                    )
+
     def test_mirror_mouse_block_stays_active_during_cursor_and_focus_restore(self):
         from app.macros.mirror_input import MirrorInputMacro
 
