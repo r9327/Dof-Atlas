@@ -434,6 +434,18 @@ class SwitchClickMacro:
                     context.reason,
                 )
 
+                # The canonical click sender checks this predicate during
+                # hover, before each DOWN, between double-clicks and on UP.
+                # Keep it in-memory: native process probes on every 10 ms
+                # settle tick would scale poorly with eight Unity clients.
+                def send_interrupted() -> bool:
+                    if self.runtime.macro_lock.should_stop():
+                        return True
+                    return (
+                        mirror_target_handles is not None
+                        and not mirror_roster_is_current()
+                    )
+
                 send_started_at = perf_counter() if mirror_started_at is not None else None
                 delivered = send_client_click(
                     client.handle,
@@ -447,14 +459,28 @@ class SwitchClickMacro:
                     timings.switch_background_post_up_ms,
                     self.runtime.synthetic_guard,
                     self.runtime.logger,
-                    should_stop=self.runtime.macro_lock.should_stop,
+                    should_stop=send_interrupted,
                 )
                 if send_started_at is not None:
                     mirror_send_samples.append((perf_counter() - send_started_at) * 1000.0)
                 if delivered:
                     sent_count += 1
                 else:
-                    if foreground_window() != int(client.handle):
+                    if self.runtime.macro_lock.should_stop():
+                        self.runtime.logger.info(
+                            "%s clic interrompu par Stop hwnd=%s",
+                            action_label, client.handle,
+                        )
+                    elif (
+                        mirror_target_handles is not None
+                        and not mirror_roster_is_current()
+                    ):
+                        delivery_failed = True
+                        self.runtime.logger.warning(
+                            "%s interrompu: roster changé pendant clic hwnd=%s",
+                            action_label, client.handle,
+                        )
+                    elif foreground_window() != int(client.handle):
                         # A stolen focus may have caused the sender to refuse.
                         focus_lost = True
                         self.runtime.logger.warning(
