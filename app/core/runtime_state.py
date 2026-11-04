@@ -600,6 +600,11 @@ class AtlasRuntime:
             for hwnd in live if hwnd != source
         ):
             return None
+        # Profiles are replaced atomically on reload. Native process reads
+        # may release the GIL, so a previous snapshot must not authorize
+        # consumption of a gesture after settings have changed.
+        if self.settings is not settings:
+            return None
         targets = mirror_delivery_targets(
             live, live, source, source_was_consumed=True,
         )
