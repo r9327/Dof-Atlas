@@ -208,6 +208,36 @@ class OrganizerMirrorIntegrationTests(unittest.TestCase):
         runtime.mirror_input.run_key.assert_not_called()
         runtime.mirror_input.run_wheel.assert_not_called()
 
+    def test_click_stays_native_if_profile_reloads_during_identity_probe(self):
+        for count in (2, 4, 6, 8):
+            with self.subTest(count=count):
+                slots = tuple(range(101, 101 + count))
+                runtime = self._runtime(primary=slots[0], handles=slots)
+                original_settings = runtime.settings
+
+                def probe(hwnd):
+                    if hwnd == slots[1]:
+                        runtime.settings = self._runtime(
+                            primary=slots[-1], handles=slots,
+                        ).settings
+                    return True
+
+                with (
+                    patch("app.windows.unity_windows.foreground_window",
+                          return_value=slots[0]),
+                    patch("app.windows.unity_windows.find_known_client_from_point",
+                          return_value=slots[0]),
+                    patch("app.windows.unity_windows.is_unity_window",
+                          return_value=True),
+                    patch("app.macros.mirror_plan.is_dofus_unity_process",
+                          side_effect=probe),
+                ):
+                    self.assertFalse(AtlasRuntime._handle_mirror_click(
+                        runtime, "Left", 20, 25,
+                    ))
+                self.assertIsNot(runtime.settings, original_settings)
+                runtime.switch_click.run_async.assert_not_called()
+
     def test_mirror_worker_accepts_nonfirst_favorite_and_rejects_roster_drift(self):
         from app.macros.mirror_input import MirrorInputMacro
 
