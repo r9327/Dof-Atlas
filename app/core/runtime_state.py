@@ -656,6 +656,14 @@ class AtlasRuntime:
     def _handle_mirror_wheel(
         self, delta: int, screen_x: int, screen_y: int, horizontal: bool,
     ) -> bool:
+        # A malformed native callback must never trigger a full 8-client
+        # identity scan or consume a wheel tick. POINT is a signed LONG.
+        if (type(delta) is not int or delta == 0 or abs(delta) > 32767
+                or type(horizontal) is not bool
+                or type(screen_x) is not int or type(screen_y) is not int
+                or not -(2**31) <= screen_x < 2**31
+                or not -(2**31) <= screen_y < 2**31):
+            return False
         from app.windows.unity_windows import (
             client_point_ratio, find_known_client_from_point,
             foreground_window, screen_to_client,
