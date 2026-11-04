@@ -132,6 +132,7 @@ class ZaapMacro:
             # Restituer le favori même si un client ou le chat échoue, mais ne
             # jamais réactiver une fenêtre après un stop d'urgence.
             stopped = self.runtime.macro_lock.should_stop()
+            restore_skipped = False
             if not stopped and not focus_lost and not is_dofus_unity_process(client.handle):
                 focus_lost = True
                 self.runtime.logger.warning(
@@ -143,7 +144,7 @@ class ZaapMacro:
                 not self.runtime.macro_lock.should_stop() and not focus_lost
                 and self.runtime.settings.primary_handle != favorite_at_start
             ):
-                focus_lost = True
+                restore_skipped = True
                 self.runtime.logger.info(
                     "Auto zaap: retour favori ignoré, favori changé."
                 )
@@ -151,22 +152,23 @@ class ZaapMacro:
             # the user may focus a different app. Never force DOFUS back.
             if (
                 not self.runtime.macro_lock.should_stop() and not focus_lost
-                and last_activated_handle is not None
+                and not restore_skipped and last_activated_handle is not None
             ):
                 try:
                     if foreground_window() != last_activated_handle:
-                        focus_lost = True
+                        restore_skipped = True
                         self.runtime.logger.info(
                             "Auto zaap: retour favori ignoré, focus utilisateur changé."
                         )
                 except Exception:
-                    focus_lost = True
+                    restore_skipped = True
                     self.runtime.logger.exception(
                         "Auto zaap: focus illisible avant retour au favori."
                     )
             # Stop may arrive between the identity probe and the restore.
             # Recheck the live lock state instead of using the earlier snapshot.
-            if not self.runtime.macro_lock.should_stop() and not focus_lost:
+            if (not self.runtime.macro_lock.should_stop() and not focus_lost
+                    and not restore_skipped):
                 try:
                     self.runtime.switch_character.restore_preferred_client("Auto zaap")
                 except Exception:
