@@ -666,6 +666,36 @@ class OrganizerMacroReliabilityTests(unittest.TestCase):
         foreground.assert_not_called()
         self.assertEqual(runtime.active_client_handle, 101)
 
+    def test_switch_click_rejects_nonfinite_cursor_without_worker(self) -> None:
+        from app.macros.switch_click import SwitchClickMacro
+        for coord in (float("inf"), -float("inf"), float("nan")):
+            for axis in ("x", "y"):
+                with self.subTest(coord=coord, axis=axis):
+                    runtime = _runtime()
+                    macro = SwitchClickMacro(runtime)
+                    pos = (coord, 20) if axis == "x" else (20, coord)
+                    with patch.object(macro, "_capture_trigger_context") as capture:
+                        self.assertFalse(macro.run_async(
+                            "left", *pos, 2, "Miroir",
+                        ))
+                    capture.assert_not_called()
+                    runtime._spawn_macro.assert_not_called()
+                    runtime.input_state.begin_mouse_block.assert_not_called()
+
+    def test_switch_click_infinite_count_cannot_crash_busy_worker(self) -> None:
+        from app.macros.switch_click import SwitchClickMacro, SwitchClickContext
+        runtime = _runtime()
+        runtime._spawn_macro.return_value = False
+        macro = SwitchClickMacro(runtime)
+        context = SwitchClickContext(101, 10, 20, 0.2, 0.4, "cursor")
+        self.assertFalse(macro.run_async(
+            "left", 10, 20, float("inf"), "Miroir",
+            captured_context=context,
+        ))
+        runtime._spawn_macro.assert_called_once()
+        runtime.input_state.begin_mouse_block.assert_called_once_with("Miroir")
+        runtime.input_state.end_mouse_block.assert_called_once()
+
     def test_switch_click_preserves_native_down_up_on_source(self) -> None:
         from app.core.runtime_state import AtlasRuntime
         from app.macros.switch_click import SwitchClickContext
