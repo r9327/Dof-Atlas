@@ -586,10 +586,20 @@ class AtlasRuntime:
             return None
         if not is_dofus_unity_process(source):
             return None
-        live = tuple(
-            c.handle for c in settings.clients
-            if is_unity_window(c.handle) and is_dofus_unity_process(c.handle)
-        )
+        # Never silently drop a stale/foreign client. Consuming the physical
+        # key or wheel for a reduced roster would lose the source gesture
+        # when the worker rejects that snapshot against the live settings.
+        live = tuple(client.handle for client in settings.clients)
+        if (not 2 <= len(live) <= 8
+                or any(type(hwnd) is not int or hwnd <= 0 for hwnd in live)
+                or len(set(live)) != len(live)
+                or source not in live):
+            return None
+        if not all(
+            is_unity_window(hwnd) and is_dofus_unity_process(hwnd)
+            for hwnd in live if hwnd != source
+        ):
+            return None
         targets = mirror_delivery_targets(
             live, live, source, source_was_consumed=True,
         )
@@ -711,10 +721,20 @@ class AtlasRuntime:
         if (favorite is None or not is_unity_window(favorite.handle)
                 or not is_dofus_unity_process(favorite.handle)):
             return False
-        live_handles = tuple(
-            c.handle for c in settings.clients
-            if is_unity_window(c.handle) and is_dofus_unity_process(c.handle)
-        )
+        # The source click will be consumed only if *every* configured
+        # character is still valid. Filtering missing windows would create
+        # an unsafe partial mirror and silently drop the user's click.
+        live_handles = tuple(client.handle for client in settings.clients)
+        if (not 2 <= len(live_handles) <= 8
+                or any(type(hwnd) is not int or hwnd <= 0 for hwnd in live_handles)
+                or len(set(live_handles)) != len(live_handles)
+                or favorite.handle not in live_handles):
+            return False
+        if not all(
+            is_unity_window(hwnd) and is_dofus_unity_process(hwnd)
+            for hwnd in live_handles if hwnd != favorite.handle
+        ):
+            return False
         destinations = mirror_delivery_targets(
             live_handles, live_handles, favorite.handle, source_was_consumed=True,
         )
