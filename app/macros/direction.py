@@ -50,13 +50,17 @@ class DirectionMacro:
                     "Switch deplacement",
                     should_stop=self.runtime.macro_lock.should_stop,
                 ):
-                    if (foreground_window() != int(client.handle)
-                            or not is_dofus_unity_process(client.handle)):
+                    # Validate native identity BEFORE the last focus check:
+                    # a process probe may itself yield to a foreign window.
+                    if (not is_dofus_unity_process(client.handle)
+                            or foreground_window() != int(client.handle)):
                         focus_lost = True
                         self.runtime.logger.warning(
                             "Switch deplacement interrompu: focus ou identité DOFUS perdus avant frappe hwnd=%s",
                             client.handle,
                         )
+                        return
+                    if self.runtime.macro_lock.should_stop():
                         return
                     press_key(key_name, timings.movement_key_hold_ms)
                     # Count an input that completed before Stop was observed.
