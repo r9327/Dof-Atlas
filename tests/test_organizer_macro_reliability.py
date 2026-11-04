@@ -398,6 +398,35 @@ class OrganizerMacroReliabilityTests(unittest.TestCase):
                     "Auto zaap %s: envoyes=%s/%s", "interrompu", count, count,
                 )
 
+    def test_zaap_cleanup_foreground_error_never_forces_favorite(self) -> None:
+        runtime = _runtime()
+        runtime.switch_character.ordered_clients_from_source.return_value = [
+            SimpleNamespace(handle=101),
+        ]
+        active = [101]
+        calls = [0]
+
+        def foreground():
+            calls[0] += 1
+            if calls[0] > 1:
+                raise OSError("GetForegroundWindow failed")
+            return active[0]
+
+        with (
+            patch("app.macros.zaap.is_unity_window", return_value=True),
+            patch("app.macros.zaap.is_dofus_unity_process", return_value=True),
+            patch("app.macros.zaap.activate_window", return_value=True),
+            patch("app.macros.zaap.foreground_window", side_effect=foreground),
+            patch("app.macros.zaap.send_chat_command",
+                  return_value=True) as chat,
+        ):
+            ZaapMacro(runtime)._run("/zaap 1,2")
+        chat.assert_called_once()
+        runtime.switch_character.restore_preferred_client.assert_not_called()
+        runtime.logger.exception.assert_any_call(
+            "Auto zaap: focus illisible avant retour au favori."
+        )
+
     def test_zaap_mid_command_focus_loss_aborts_following_clients(self) -> None:
         runtime = _runtime()
         focus = [101]
