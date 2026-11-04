@@ -591,7 +591,7 @@ class AtlasRuntime:
         # when the worker rejects that snapshot against the live settings.
         live = tuple(client.handle for client in settings.clients)
         if (not 2 <= len(live) <= 8
-                or any(type(hwnd) is not int or hwnd <= 0 for hwnd in live)
+                or any(type(hwnd) is not int or not 0 < hwnd <= (2**64 - 1) for hwnd in live)
                 or len(set(live)) != len(live)
                 or source not in live):
             return None
@@ -726,7 +726,7 @@ class AtlasRuntime:
         # an unsafe partial mirror and silently drop the user's click.
         live_handles = tuple(client.handle for client in settings.clients)
         if (not 2 <= len(live_handles) <= 8
-                or any(type(hwnd) is not int or hwnd <= 0 for hwnd in live_handles)
+                or any(type(hwnd) is not int or not 0 < hwnd <= (2**64 - 1) for hwnd in live_handles)
                 or len(set(live_handles)) != len(live_handles)
                 or favorite.handle not in live_handles):
             return False
