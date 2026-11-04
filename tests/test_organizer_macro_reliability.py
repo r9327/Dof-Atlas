@@ -988,5 +988,33 @@ class OrganizerMacroReliabilityTests(unittest.TestCase):
         self.assertEqual(runtime.active_client_handle, 202)
 
 
+    def test_auto_group_failed_chat_with_stolen_focus_aborts_next_invite(self) -> None:
+        runtime = _runtime()
+        runtime.settings.timings.auto_group_invite_gap_ms = 0
+        runtime.switch_character.logical_active_client.return_value = SimpleNamespace(
+            handle=101, display_name="Leader"
+        )
+        with (
+            patch("app.macros.auto_group.is_unity_window", return_value=True),
+            patch("app.macros.auto_group.activate_window", return_value=True),
+            patch("app.macros.auto_group.foreground_window", side_effect=[101, 999]),
+            patch("app.macros.auto_group.send_chat_command", return_value=False) as send,
+        ):
+            AutoGroupMacro(runtime)._run([
+                {"name": "Friend1", "handle": 202},
+                {"name": "Friend2", "handle": 303},
+            ])
+        send.assert_called_once()
+        runtime.switch_character.restore_preferred_client.assert_not_called()
+        runtime.logger.warning.assert_any_call(
+            "Auto groupe interrompu: focus perdu après échec du chat hwnd=%s",
+            101,
+        )
+        runtime.logger.info.assert_any_call(
+            "Auto groupe %s: envoyes=%s/%s candidats=%s sender=%s",
+            "interrompu", 0, 1, 2, 101,
+        )
+
+
 if __name__ == "__main__":
     unittest.main()
