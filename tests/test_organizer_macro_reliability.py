@@ -1118,6 +1118,7 @@ class OrganizerMacroReliabilityTests(unittest.TestCase):
             patch("app.macros.switch_click.current_cursor_pos", return_value=(150, 170)),
             patch("app.macros.switch_click.set_cursor_pos"),
             patch("app.macros.switch_click.is_unity_window", return_value=True),
+            patch("app.macros.switch_click.is_dofus_unity_process", return_value=True),
             patch("app.macros.switch_click.activate_window", return_value=True),
             patch("app.macros.switch_click.foreground_window", return_value=202),
             patch("app.macros.switch_click.send_client_click", return_value=True) as send,
