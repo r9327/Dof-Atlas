@@ -118,18 +118,19 @@ class ZaapMacro:
         finally:
             # Restituer le favori même si un client ou le chat échoue, mais ne
             # jamais réactiver une fenêtre après un stop d'urgence.
-            if not focus_lost and not is_dofus_unity_process(client.handle):
+            stopped = self.runtime.macro_lock.should_stop()
+            if not stopped and not focus_lost and not is_dofus_unity_process(client.handle):
                 focus_lost = True
                 self.runtime.logger.warning(
                     "Auto zaap: identité DOFUS perdue avant restauration hwnd=%s", client.handle,
                 )
-            if not self.runtime.macro_lock.should_stop() and not focus_lost:
+            if not stopped and not focus_lost:
                 try:
                     self.runtime.switch_character.restore_preferred_client("Auto zaap")
                 except Exception:
                     self.runtime.logger.exception("Auto zaap: retour au favori impossible.")
             state = (
-                "interrompu" if self.runtime.macro_lock.should_stop() or focus_lost
+                "interrompu" if stopped or focus_lost
                 else "termine" if sent == len(clients)
                 else "partiel"
             )
