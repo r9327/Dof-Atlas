@@ -372,7 +372,9 @@ class OrganizerSendInputTests(unittest.TestCase):
             self.assertEqual(hook._mouse_proc(0, WM_LBUTTONUP, addr), 51)
             self.assertEqual(calls, [("Left", 300, 240)])
             self.assertTrue(state.is_mouse_blocked())
-            self.assertEqual(hook._mouse_proc(0, WM_RBUTTONUP, addr), 1)
+            # No right-button DOWN was intercepted by Atlas. Its UP must
+            # remain native even though the left-button replay just started.
+            self.assertEqual(hook._mouse_proc(0, WM_RBUTTONUP, addr), 51)
             # Synthesized releases never trigger physical replay.
             mouse.flags = LLMHF_INJECTED
             self.assertEqual(hook._mouse_proc(0, WM_LBUTTONUP, addr), 51)
