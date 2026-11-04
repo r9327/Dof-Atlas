@@ -236,24 +236,37 @@ def activate_window(
                     | win32con.SWP_NOSIZE
                     | win32con.SWP_SHOWWINDOW
                 )
-                win32gui.SetWindowPos(
-                    hwnd,
-                    win32con.HWND_TOPMOST,
-                    0,
-                    0,
-                    0,
-                    0,
-                    flags,
-                )
-                win32gui.SetWindowPos(
-                    hwnd,
-                    win32con.HWND_NOTOPMOST,
-                    0,
-                    0,
-                    0,
-                    0,
-                    flags,
-                )
+                try:
+                    win32gui.SetWindowPos(
+                        hwnd, win32con.HWND_TOPMOST,
+                        0, 0, 0, 0, flags,
+                    )
+                finally:
+                    # Even a raised SetWindowPos may have partially applied
+                    # TOPMOST. Always attempt NOTOPMOST before leaving the
+                    # worker, including on Stop or a native API exception.
+                    try:
+                        win32gui.SetWindowPos(
+                            hwnd, win32con.HWND_NOTOPMOST,
+                            0, 0, 0, 0, flags,
+                        )
+                    except Exception:
+                        logger.exception(
+                            "%s: retrait topmost echec hwnd=%s, nouvel essai.",
+                            action_label, hwnd,
+                        )
+                        # Exactly one bounded retry; if it fails too the
+                        # outer handler refuses the final foreground step.
+                        win32gui.SetWindowPos(
+                            hwnd, win32con.HWND_NOTOPMOST,
+                            0, 0, 0, 0, flags,
+                        )
+                if should_stop is not None and should_stop():
+                    logger.info(
+                        "%s activation stoppee apres topmost hwnd=%s",
+                        action_label, hwnd,
+                    )
+                    return False
                 win32gui.SetForegroundWindow(hwnd)
         except Exception as exc:
             logger.debug(
