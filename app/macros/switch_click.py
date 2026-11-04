@@ -315,8 +315,7 @@ class SwitchClickMacro:
                     return
 
                 if (not is_unity_window(client.handle)
-                        or (mirror_target_handles is not None
-                            and not is_dofus_unity_process(client.handle))):
+                        or not is_dofus_unity_process(client.handle)):
                     self.runtime.logger.info(
                         "%s fenêtre introuvable/non Unity: hwnd=%s",
                         action_label,
@@ -394,9 +393,8 @@ class SwitchClickMacro:
                     continue
 
                 if mirror_target_handles is not None:
-                    # Point conversion and the Unity hover target lookup may
-                    # race a changed favorite or a recycled HWND. Recheck
-                    # immediately before entering the canonical click sender.
+                    # A changed Miroir roster is a hard refusal: never send
+                    # to targets captured before a favorite/session change.
                     if not mirror_roster_is_current():
                         delivery_failed = True
                         self.runtime.logger.warning(
@@ -404,13 +402,16 @@ class SwitchClickMacro:
                             action_label, client.handle,
                         )
                         return
-                    if not is_dofus_unity_process(client.handle):
-                        delivery_failed = True
-                        self.runtime.logger.warning(
-                            "%s interrompu: processus remplacé avant clic hwnd=%s",
-                            action_label, client.handle,
-                        )
-                        return
+                # Classic SwitchClick needs the same late process guard as
+                # Miroir. A recycled HWND may still be a valid Unity window
+                # while belonging to another game or application.
+                if not is_dofus_unity_process(client.handle):
+                    delivery_failed = True
+                    self.runtime.logger.warning(
+                        "%s interrompu: processus remplacé avant clic hwnd=%s",
+                        action_label, client.handle,
+                    )
+                    return
                 if self.runtime.macro_lock.should_stop():
                     return
 
