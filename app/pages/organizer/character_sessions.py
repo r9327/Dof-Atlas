@@ -349,12 +349,27 @@ class CharacterSessionsMixin:
             self.status_callback("Auto-groupe ignoré: aucun personnage détecté.")
             return
         self.export_client_index()
-        if callable(self.launch_auto_group_callback):
-            self.launch_auto_group_callback(invite_names)
-        else:
-            self.status_callback("Runtime Python indisponible.")
+        callback = self.launch_auto_group_callback
+        if not callable(callback):
+            self.status_callback("Auto-groupe indisponible : runtime Python absent.")
             return
-        self.status_callback(f"Auto-groupe lancé: {len(invite_names)} invitation(s).")
+        try:
+            accepted = callback(invite_names)
+        except Exception:
+            self.status_callback("Auto-groupe non lancé : erreur du runtime.")
+            raise
+        if accepted is False:
+            self.status_callback(
+                "Auto-groupe non lancé : une macro est déjà active ou le démarrage a échoué."
+            )
+        elif accepted is True:
+            # The worker has merely started. Only its own telemetry knows
+            # how many commands were sent; never claim invitations succeeded.
+            self.status_callback("Auto-groupe en cours : vérification des invitations.")
+        else:
+            # Backwards-compatible adapter: a callback returning None does
+            # not prove that any worker started.
+            self.status_callback("Auto-groupe transmis au runtime (démarrage non confirmé).")
 
     def scan_sessions(self) -> None:
         if os.name != "nt":

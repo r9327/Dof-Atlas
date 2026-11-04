@@ -2729,9 +2729,9 @@ class AtlasWindow(QMainWindow):
         if not runtime.switch_character.activate_next():
             self.set_status("Personnage suivant : aucune autre fenêtre DOFUS activable.")
 
-    def launch_auto_group(self, invite_entries: list[dict[str, object]]) -> None:
+    def launch_auto_group(self, invite_entries: list[dict[str, object]]) -> bool:
         self.reload_runtime()
-        self._ensure_runtime().launch_auto_group(invite_entries)
+        return bool(self._ensure_runtime().launch_auto_group(invite_entries))
 
     def _shutdown_background_services(self) -> None:
         if self._background_services_stopped:

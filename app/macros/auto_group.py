@@ -18,16 +18,69 @@ class AutoGroupMacro:
 
     def run_async(self, invite_entries: list[dict[str, object]]) -> bool:
         entries = [dict(entry) for entry in invite_entries if isinstance(entry, dict)]
+        if not entries:
+            self.runtime.logger.info("Auto groupe non lancé : aucune session candidate.")
+            return False
         return self.runtime._spawn_macro("Auto groupe", lambda: self._run(entries))
 
     def _run(self, invite_entries: list[dict[str, Any]]) -> None:
         if not invite_entries:
             self.runtime.logger.info("Auto groupe ignore: aucune invitation.")
             return
+        if self.runtime.macro_lock.should_stop():
+            self.runtime.logger.info("Auto groupe ignoré : Stop déjà demandé.")
+            return
         sender = self.runtime.switch_character.logical_active_client()
         if (sender is None or not is_unity_window(sender.handle)
                 or not is_dofus_unity_process(sender.handle)):
             self.runtime.logger.info("Auto groupe ignore: aucune fenetre Dofus valide.")
+            return
+
+        sender_name = clean_auto_group_name(sender.display_name)
+        sender_key = normalize_key(sender_name)
+        recipients: list[str] = []
+        seen_recipients: set[str] = set()
+        excluded_sender = 0
+        excluded_duplicate = 0
+        excluded_empty = 0
+        for entry in invite_entries:
+            if not isinstance(entry, dict):
+                excluded_empty += 1
+                continue
+            name = clean_auto_group_name(entry.get("name", ""))
+            if not name:
+                excluded_empty += 1
+                continue
+            try:
+                raw_handle = entry.get("handle", 0)
+                handle = int(raw_handle or 0)
+            except (TypeError, ValueError, OverflowError):
+                # A corrupt Organizer HWND must not drop an otherwise
+                # valid named recipient. Names, not HWNDs, identify /invite.
+                handle = 0
+            key = normalize_key(name)
+            if (handle > 0 and handle == sender.handle) or key == sender_key:
+                excluded_sender += 1
+                continue
+            if key in seen_recipients:
+                excluded_duplicate += 1
+                continue
+            seen_recipients.add(key)
+            recipients.append(name)
+
+        self.runtime.logger.info(
+            "Auto groupe préparé: invitations=%s doublons=%s lanceur=%s vides=%s",
+            len(recipients), excluded_duplicate, excluded_sender, excluded_empty,
+        )
+        if not recipients:
+            # A one-client roster must not steal focus just to do nothing.
+            self.runtime.logger.info(
+                "Auto groupe %s: envoyes=%s/%s candidats=%s sender=%s",
+                "ignore", 0, 0, len(invite_entries), sender.handle,
+            )
+            return
+
+        if self.runtime.macro_lock.should_stop():
             return
         timings = self.runtime.settings.timings
         if not activate_window(
@@ -42,36 +95,13 @@ class AutoGroupMacro:
             self.runtime.logger.info("Auto groupe activation fenetre echec: hwnd=%s", sender.handle)
             return
         favorite_at_start = self.runtime.settings.primary_handle
-        sender_name = clean_auto_group_name(sender.display_name)
-        sender_key = normalize_key(sender_name)
         sent = 0
         eligible = 0
-        seen_recipients: set[str] = set()
         focus_lost = False
         try:
-            for entry in invite_entries:
+            for index, name in enumerate(recipients):
                 if self.runtime.macro_lock.should_stop():
                     return
-                name = clean_auto_group_name(entry.get("name", ""))
-                if not name:
-                    continue
-                try:
-                    handle = int(entry.get("handle", 0) or 0)
-                except (TypeError, ValueError, OverflowError):
-                    # Corrupt/stale Organizer entries must never abort a group.
-                    handle = 0
-                if handle > 0 and handle == sender.handle:
-                    self.runtime.logger.debug("Auto groupe ignore lanceur: %s sender=%s", name, sender.handle)
-                    continue
-                recipient_key = normalize_key(name)
-                if recipient_key == sender_key:
-                    self.runtime.logger.debug("Auto groupe ignore lanceur: %s sender=%s", name, sender.handle)
-                    continue
-                # Duplicated session rows must never send repeated invitations.
-                if recipient_key in seen_recipients:
-                    self.runtime.logger.debug("Auto groupe ignore doublon: %s", name)
-                    continue
-                seen_recipients.add(recipient_key)
                 eligible += 1
                 # Every invitation is a distinct operation. Never type into
                 # another window if focus was stolen after activation.
@@ -117,7 +147,9 @@ class AutoGroupMacro:
                 sent += 1
                 if self.runtime.macro_lock.should_stop():
                     return
-                if timings.auto_group_invite_gap_ms > 0:
+                # There is no next /invite after the last recipient. Do
+                # not make two accounts feel slower for no functional reason.
+                if index + 1 < len(recipients) and timings.auto_group_invite_gap_ms > 0:
                     if self.runtime.macro_lock.wait(timings.auto_group_invite_gap_ms):
                         return
         finally:

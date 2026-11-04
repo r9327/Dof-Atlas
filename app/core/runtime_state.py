@@ -487,9 +487,9 @@ class AtlasRuntime:
         self.settings = load_settings()
         self.zaap.run_async(text, click_position=click_position, click_ratios=click_ratios)
 
-    def launch_auto_group(self, invite_entries: list[dict[str, object]]) -> None:
+    def launch_auto_group(self, invite_entries: list[dict[str, object]]) -> bool:
         self.settings = load_settings()
-        self.auto_group.run_async(invite_entries)
+        return bool(self.auto_group.run_async(invite_entries))
 
     def emergency_stop(self, reason: str = "stop urgence") -> None:
         self.macro_lock.request_stop(reason)
