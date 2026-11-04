@@ -1477,6 +1477,47 @@ class OrganizerMacroReliabilityTests(unittest.TestCase):
             "Switch deplacement %s: envoyes=%s/%s", "interrompu", 1, 1,
         )
 
+    def test_direction_does_not_restore_changed_favorite_after_keys(self) -> None:
+        for count in (2, 4, 6, 8):
+            with self.subTest(count=count):
+                runtime = _runtime()
+                runtime.settings.primary_handle = 101
+                runtime.settings.client_by_handle.return_value = object()
+                handles = list(range(101, 101 + count))
+                runtime.switch_character.ordered_clients_from_source.return_value = [
+                    SimpleNamespace(handle=hwnd) for hwnd in handles
+                ]
+                active = [101]
+                sent = [0]
+
+                def activate(hwnd, *_args, **_kwargs):
+                    active[0] = hwnd
+                    return True
+
+                def press(*_args, **_kwargs):
+                    sent[0] += 1
+                    if sent[0] == count:
+                        runtime.settings.primary_handle = 999
+
+                with (
+                    patch("app.macros.direction.foreground_window",
+                          side_effect=lambda: active[0]),
+                    patch("app.macros.direction.is_unity_window",
+                          return_value=True),
+                    patch("app.macros.direction.is_dofus_unity_process",
+                          return_value=True),
+                    patch("app.macros.direction.activate_window",
+                          side_effect=activate),
+                    patch("app.macros.direction.press_key",
+                          side_effect=press) as keyboard,
+                ):
+                    DirectionMacro(runtime)._run("HOME")
+                self.assertEqual(keyboard.call_count, count)
+                runtime.switch_character.restore_preferred_client.assert_not_called()
+                runtime.logger.info.assert_any_call(
+                    "Switch deplacement: retour favori ignoré, favori changé."
+                )
+
     def test_direction_restores_favorite_on_input_exception(self) -> None:
         runtime = _runtime()
         runtime.settings.client_by_handle.return_value = object()
