@@ -1049,6 +1049,44 @@ class OrganizerSendInputTests(unittest.TestCase):
         ])
         guard.end.assert_called_once_with(120)
 
+    def test_post_up_stop_does_not_erase_completed_click_delivery(self) -> None:
+        for button in ("Left", "Right"):
+            for count in (1, 2):
+                with self.subTest(button=button, clicks=count):
+                    stopped = [False]
+                    guard, logger = Mock(), Mock()
+                    down = (
+                        clicks.MOUSEEVENTF_LEFTDOWN if button == "Left"
+                        else clicks.MOUSEEVENTF_RIGHTDOWN
+                    )
+                    up = (
+                        clicks.MOUSEEVENTF_LEFTUP if button == "Left"
+                        else clicks.MOUSEEVENTF_RIGHTUP
+                    )
+                    flags = []
+
+                    def send(flag):
+                        flags.append(flag)
+                        if len(flags) == count * 2:
+                            stopped[0] = True
+                        return True
+
+                    with (
+                        patch.object(clicks.os, "name", "nt"),
+                        patch.object(clicks, "set_cursor_pos"),
+                        patch.object(clicks, "_send_mouse_flag",
+                                     side_effect=send),
+                        patch.object(clicks, "wait_ms",
+                                     side_effect=lambda *_: stopped[0]) as wait,
+                    ):
+                        self.assertTrue(clicks.send_screen_click(
+                            300, 200, button, count, 0, 0, 0, 50,
+                            guard, logger, should_stop=lambda: stopped[0],
+                        ))
+                    self.assertEqual(flags, [down, up] * count)
+                    wait.assert_called_once_with(50, unittest.mock.ANY)
+                    guard.end.assert_called_once_with(120)
+
     def test_failed_first_up_aborts_double_click_before_second_down(self) -> None:
         for retry_works in (True, False):
             for button in ("Left", "Right"):
