@@ -257,7 +257,14 @@ class MouseHook:
                     paired_up = BLOCKED_DOWN_TO_UP.get(w_param)
                     if paired_up is not None:
                         self._consumed_releases.add(paired_up)
-                    self._log_blocked_event(w_param, x, y)
+                    try:
+                        self._log_blocked_event(w_param, x, y)
+                    except Exception:
+                        # Diagnostics must never turn a blocked physical
+                        # gesture into an accidental input to another window.
+                        self.logger.exception(
+                            "Hook souris: journalisation blocage impossible.",
+                        )
                     return 1
 
                 if w_param in (WM_MOUSEWHEEL, WM_MOUSEHWHEEL):
