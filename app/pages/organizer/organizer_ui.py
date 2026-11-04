@@ -23,6 +23,7 @@ from app.constants import (
     KEY_DOUBLE_CLICK_HOTKEY,
     KEY_PRIMARY_WINDOW,
     KEY_RADIAL_HOTKEY,
+    KEY_RADIAL_ENABLED,
     KEY_NEXT_CHARACTER_HOTKEY,
     KEY_STOP_SCRIPT_HOTKEY,
     KEY_SWITCH_CHARACTER,
@@ -253,8 +254,7 @@ class OrganizerUiMixin:
         self.stop_script_hotkey_button.setFixedSize(stop_hotkey_size)
         self.stop_script_hotkey_button.setSizePolicy(QSizePolicy.Fixed, QSizePolicy.Fixed)
         self.radial_select_button.setToolTip(
-            "Maintenir le raccourci : camembert au centre de l'écran. "
-            "Relâcher : fermer, avec ou sans sélection."
+            "Activer ou désactiver la roue ; régler la touche avec le badge."
         )
         self.radial_hotkey_button.setToolTip("Configurer la touche maintenue pour sélectionner un personnage")
         self.radial_hotkey_button.setAccessibleName("Raccourci du camembert")
@@ -535,6 +535,15 @@ class OrganizerUiMixin:
             else "Définir la touche maintenue pour le camembert"
         )
         self.radial_clear.setVisible(bool(radial_hotkey))
+        radial_active = profile_bool(self.profiles, KEY_RADIAL_ENABLED, True)
+        self.radial_select_button.setObjectName(
+            "primaryButton" if radial_active else "secondaryButton"
+        )
+        self.radial_select_button.setToolTip(
+            "Désactiver la roue de sélection" if radial_active
+            else "Activer la roue de sélection"
+        )
+        self.restyle_button(self.radial_select_button)
         self.next_character_hotkey_button.setText(short_label(next_hotkey, 9) if next_hotkey else "...")
         self.next_character_hotkey_button.setToolTip(f"Personnage suivant : {next_hotkey}" if next_hotkey else "Raccourci personnage suivant")
         self.next_character_clear.setVisible(bool(next_hotkey))

@@ -235,6 +235,10 @@ class CharacterSessionsMixin:
         if signature == self._last_notified_session_signature:
             return
         self._last_notified_session_signature = signature
+        # The radial picker reuses this existing changed-roster event.
+        sync_radial = getattr(self, "sync_radial_participants", None)
+        if callable(sync_radial):
+            sync_radial()
         if callable(self.sessions_changed_callback):
             self.sessions_changed_callback()
 

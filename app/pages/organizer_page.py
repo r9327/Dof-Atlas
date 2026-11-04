@@ -18,6 +18,8 @@ from app.constants import (
     KEY_SESSION_ORDER,
     KEY_STOP_SCRIPT_HOTKEY,
     KEY_RADIAL_HOTKEY,
+    KEY_RADIAL_ENABLED,
+    KEY_RADIAL_EXCLUDED,
     KEY_NEXT_CHARACTER_HOTKEY,
     KEY_RADIAL_PARTICIPANTS,
     KEY_SWITCH_CHARACTER,
@@ -29,7 +31,7 @@ from app.constants import (
 )
 from app.services.character_order_service import CharacterOrderService
 from app.services.profile_settings_service import ProfileSettingsService
-from app.storage import clean_auto_group_name, default_profiles, normalize_key, read_json
+from app.storage import clean_auto_group_name, default_profiles, normalize_key, profile_bool, read_json
 from app.windows_embed import UnityWindowEventWatcher, scan_unity_sessions
 from app.pages.organizer.character_sessions import CharacterSessionsMixin
 from app.pages.organizer.common import (
@@ -207,7 +209,9 @@ class OrganizerPage(
             # selector existed. Do not enroll new scans after this snapshot.
             self.ensure_radial_participants()
             self.save_profiles(self.profiles)
-        self._radial_controller.set_shortcut(binding)
+        self._radial_controller.set_shortcut(
+            binding if profile_bool(self.profiles, KEY_RADIAL_ENABLED, True) else ""
+        )
         self.destroyed.connect(self._radial_controller.cancel)
         self.export_client_index()
         self.request_sessions_render()
@@ -258,7 +262,7 @@ class OrganizerPage(
         self.stop_script_button.clicked.connect(self.stop_script)
         self.stop_script_hotkey_button.clicked.connect(lambda: self.begin_capture("stop_script"))
         self.stop_script_clear.clicked.connect(lambda: self.clear_global_hotkey(KEY_STOP_SCRIPT_HOTKEY))
-        self.radial_select_button.clicked.connect(lambda: self.begin_capture("radial"))
+        self.radial_select_button.clicked.connect(self.toggle_radial_enabled)
         self.radial_hotkey_button.clicked.connect(lambda: self.begin_capture("radial"))
         self.radial_clear.clicked.connect(lambda: self.clear_global_hotkey(KEY_RADIAL_HOTKEY))
         self.next_character.clicked.connect(self.activate_next_character)
@@ -296,6 +300,38 @@ class OrganizerPage(
             key for key in keys if key
         ))
 
+    def sync_radial_participants(self, *, persist: bool = True) -> bool:
+        """Auto-enroll NEW detected clients without undoing manual exclusions.
+
+        The watcher already scans Organizer windows; do not create another
+        process scanner or poll loop just to refresh the radial picker.
+        """
+        if not profile_bool(self.profiles, KEY_RADIAL_ENABLED, True):
+            return False
+        included = self.profiles.get(KEY_RADIAL_PARTICIPANTS)
+        if not isinstance(included, list):
+            return False
+        excluded = self.profiles.get(KEY_RADIAL_EXCLUDED, [])
+        blocked = {
+            key for key in excluded if isinstance(key, str)
+        } if isinstance(excluded, list) else set()
+        selected = list(dict.fromkeys(
+            key for key in included if isinstance(key, str) and key
+        ))
+        previous = tuple(selected)
+        for row in getattr(self, "sessions", ()):
+            if not session_is_detected(row):
+                continue
+            key = radial_roster_key(row)
+            if key and key not in blocked and key not in selected:
+                selected.append(key)
+        if tuple(selected) == previous:
+            return False
+        self.profiles[KEY_RADIAL_PARTICIPANTS] = selected
+        if persist:
+            self.save_profiles(self.profiles)
+        return True
+
     def radial_session_is_selected(self, session: dict[str, Any]) -> bool:
         # Before initial configuration, show the current roster as a preview.
         if KEY_RADIAL_PARTICIPANTS not in self.profiles:
@@ -309,14 +345,24 @@ class OrganizerPage(
         key = radial_roster_key(session)
         if not key:
             return
-        selected = [str(item) for item in self.profiles.get(
-            KEY_RADIAL_PARTICIPANTS, []
-        ) if isinstance(item, str)]
+        raw_selected = self.profiles.get(KEY_RADIAL_PARTICIPANTS, [])
+        selected = list(dict.fromkeys(
+            item for item in raw_selected if isinstance(item, str)
+        )) if isinstance(raw_selected, list) else []
+        raw_excluded = self.profiles.get(KEY_RADIAL_EXCLUDED, [])
+        excluded = list(dict.fromkeys(
+            item for item in raw_excluded if isinstance(item, str)
+        )) if isinstance(raw_excluded, list) else []
         if key in selected:
             selected.remove(key)
+            if key not in excluded:
+                excluded.append(key)
         else:
             selected.append(key)
+            if key in excluded:
+                excluded.remove(key)
         self.profiles[KEY_RADIAL_PARTICIPANTS] = selected
+        self.profiles[KEY_RADIAL_EXCLUDED] = excluded
         self.save_profiles(self.profiles)
         self.request_sessions_render()
 
@@ -333,6 +379,8 @@ class OrganizerPage(
         return visible_characters(sessions, handles)
 
     def _radial_can_open(self) -> bool:
+        if not profile_bool(self.profiles, KEY_RADIAL_ENABLED, True):
+            return False
         if self.capture_target is not None:
             return False
         from app.windows.unity_windows import foreground_window, is_unity_window
@@ -348,6 +396,15 @@ class OrganizerPage(
         )
 
     def _activate_radial_handle(self, handle: int) -> None:
+        if handle == 0:
+            # Centre: open the existing Atlas window, never another instance.
+            window = self.window()
+            if window is not None:
+                window.showNormal()
+                window.raise_()
+                window.activateWindow()
+                self.status_callback("DOFUS ATLAS au premier plan.")
+            return
         if not any(session_hwnd(row) == handle and session_is_detected(row)
                    for row in getattr(self, "sessions", [])):
             return

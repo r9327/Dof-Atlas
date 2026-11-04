@@ -11,6 +11,7 @@ from app.constants import (
     KEY_SCRIPT_SPEED,
     KEY_SCRIPT_SPEED_SCHEMA,
     KEY_RADIAL_HOTKEY,
+    KEY_RADIAL_ENABLED,
     KEY_NEXT_CHARACTER_HOTKEY,
     KEY_STOP_SCRIPT_HOTKEY,
     KEY_SWITCH_CLICK,
@@ -39,6 +40,26 @@ class OrganizerHotkeysMixin:
         self.status_callback(
             "Miroir : clics, touches courtes et molette recopiés séquentiellement."
             if mode == "mirror" else "Macros classiques réactivées."
+        )
+
+    def toggle_radial_enabled(self) -> None:
+        enabled = not profile_bool(self.profiles, KEY_RADIAL_ENABLED, True)
+        self.profiles[KEY_RADIAL_ENABLED] = enabled
+        if enabled:
+            self.ensure_radial_participants()
+            self.sync_radial_participants(persist=False)
+        # Persist ON/OFF + inclusion changes in one profile transaction.
+        self.save_profiles(self.profiles)
+        controller = getattr(self, "_radial_controller", None)
+        if controller is not None:
+            controller.cancel()
+            controller.set_shortcut(
+                self.hotkey_label(KEY_RADIAL_HOTKEY) if enabled else ""
+            )
+        self.update_global_buttons()
+        self.status_callback(
+            "Sélection personnage activée." if enabled
+            else "Sélection personnage désactivée."
         )
 
     def toggle_profile_bool(self, key: str) -> None:
@@ -355,6 +376,9 @@ class OrganizerHotkeysMixin:
         self.render_sessions()
         controller = getattr(self, "_radial_controller", None)
         if controller is not None:
-            controller.set_shortcut(self.hotkey_label(KEY_RADIAL_HOTKEY))
+            controller.set_shortcut(
+                self.hotkey_label(KEY_RADIAL_HOTKEY)
+                if profile_bool(self.profiles, KEY_RADIAL_ENABLED, True) else ""
+            )
         self.reload_runtime_callback()
         self.status_callback(f"Raccourci {hotkey} enregistré.")
