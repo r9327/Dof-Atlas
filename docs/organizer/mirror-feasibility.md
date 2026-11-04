@@ -494,9 +494,11 @@ La validation reste **fail-closed**, sans nouveau moteur, hook ou file de
 rejeu, et sans modification des données persistantes.
 
 `tests/test_organizer_macro_reliability.py` adapte ses mocks de processus
-et ajoute cinq scénarios ciblés (usurpation après activation, client
-remplacé en cours de diffusion et Stop avant tout accès Win32).
-Le Stop /zaap ne provoque plus de requête d'identité de processus tardive.
+et ajoute sept scénarios ciblés (usurpation après activation, client
+remplacé en cours de diffusion, Stop avant tout accès Win32 et Stop
+entre contrôle d'identité et restauration du favori).
+Le Stop /zaap ne provoque plus de requête d'identité de processus tardive ;
+Auto-groupe et /zaap reconsultent Stop juste avant le retour au favori.
 Les simulations existantes 2/4/6/8
 restent dans leur ordre canonique.
 
