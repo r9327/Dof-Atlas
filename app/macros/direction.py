@@ -3,6 +3,7 @@ from __future__ import annotations
 from typing import TYPE_CHECKING
 
 from app.macros.input_tools import _vk, key_up, press_key
+from app.macros.mirror_plan import is_dofus_unity_process
 from app.windows.focus import activate_window
 from app.windows.unity_windows import foreground_window, is_unity_window
 
@@ -19,7 +20,9 @@ class DirectionMacro:
 
     def _run(self, key_name: str) -> None:
         source = foreground_window()
-        if not source or not is_unity_window(source) or self.runtime.settings.client_by_handle(source) is None:
+        if (not source or not is_unity_window(source)
+                or not is_dofus_unity_process(source)
+                or self.runtime.settings.client_by_handle(source) is None):
             self.runtime.logger.info("Switch deplacement ignore: fenetre active non Unity.")
             self.release_virtual_inputs()
             return
@@ -32,9 +35,12 @@ class DirectionMacro:
             for client in targets:
                 if self.runtime.macro_lock.should_stop():
                     return
-                if not is_unity_window(client.handle):
-                    self.runtime.logger.info("Switch deplacement fenetre introuvable/non Unity: hwnd=%s", client.handle)
-                    continue
+                if not is_unity_window(client.handle) or not is_dofus_unity_process(client.handle):
+                    focus_lost = True
+                    self.runtime.logger.warning(
+                        "Switch deplacement interrompu: cible non DOFUS Unity hwnd=%s", client.handle,
+                    )
+                    return
                 if activate_window(
                     client.handle,
                     timings.click_focus_settle_ms,
@@ -44,10 +50,11 @@ class DirectionMacro:
                     "Switch deplacement",
                     should_stop=self.runtime.macro_lock.should_stop,
                 ):
-                    if foreground_window() != int(client.handle):
+                    if (foreground_window() != int(client.handle)
+                            or not is_dofus_unity_process(client.handle)):
                         focus_lost = True
                         self.runtime.logger.warning(
-                            "Switch deplacement interrompu: focus perdu avant frappe hwnd=%s",
+                            "Switch deplacement interrompu: focus ou identité DOFUS perdus avant frappe hwnd=%s",
                             client.handle,
                         )
                         return
@@ -62,6 +69,12 @@ class DirectionMacro:
                         client.handle,
                     )
         finally:
+            if (not self.runtime.macro_lock.should_stop() and not focus_lost
+                    and not is_dofus_unity_process(source)):
+                focus_lost = True
+                self.runtime.logger.warning(
+                    "Switch deplacement: identité DOFUS perdue avant restauration hwnd=%s", source,
+                )
             if not self.runtime.macro_lock.should_stop() and not focus_lost:
                 try:
                     self.runtime.switch_character.restore_preferred_client("Switch deplacement")
