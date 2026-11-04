@@ -538,3 +538,38 @@ CPU/RAM/p50/p95/p99 ni recette DOFUS Unity. Ces tests sont écrits et
 versionnés, pas certifiés. **MIRR-007 reste PENDING** : le blocage global
 peut toujours absorber les gestes physiques reçus pendant un worker.
 Conserver la PR en Draft et éviter tout replay structurel sans Graphify.
+
+## Lot fiabilité ciblée du 04/11/2026 — fenêtres et erreurs de clipboard
+
+- Miroir clavier et molette : le contrôle de la fenêtre au premier plan
+  intervient **après** les probes d'identité/roster et immédiatement avant
+  l'émission. Le Stop est revérifié avant chaque envoi. Les tests simulent
+  un vol de focus pendant le dernier contrôle du processus et vérifient
+  que ni touche ni molette n'est injectée dans une autre application.
+- Switch clic Miroir : après calcul de la position, nouveau contrôle du
+  roster, de l'identité du processus et du Stop avant le sender canonique.
+  Tests sur favori changé, HWND recyclé et arrêt durant le calcul du point.
+- Switch Déplacement, Auto-groupe et /zaap : ordre des probes d'identité et
+  focus corrigé (focus vérifié en dernier), Stop consulté juste avant frappe
+  ou commande. Après un échec d'envoi chat, refaire le contrôle de focus en
+  dernier : aucune tentative suivante si un probe Win32 a changé le premier
+  plan. Mocks ajoutés sur ces cas.
+- **Erreur de fond identifiée dans le presse-papiers** : un `return` dans
+  le `finally` de `clipboard_text` absorbait les exceptions sorties du
+  corps du contexte (par exemple un refus `SendInput`). Remplacement par
+  un marqueur de restauration et une sortie normale de boucle ; l'erreur
+  originelle remonte désormais, même si la restauration du presse-papiers
+  échoue. Tests sur échec d'envoi et de restauration.
+
+**Portée :** gardes ciblées dans les moteurs existants, aucun changement de
+format de profil, aucun moteur d'injection secondaire et aucune file de replay.
+L'utilisation du clipboard reste limitée à la restauration du texte ; les
+formats non texte/multiformats ne sont pas entièrement restaurés et doivent
+être qualifiés avant certification.
+
+**Preuves :** lecture des sources, tests ajoutés mais **NOT_RUN** : accès
+GitHub seulement, pas de checkout local permettant `atlas_doctor agent
+plan/check/validate`, ni `git diff --check`, ni tests Python/Qt, ni carte
+Graphify exacte, ni bench CPU/RAM/p50/p95/p99 ni recette Windows DOFUS
+2/4/6/8. **MIRR-007** (gestes capturés durant un worker) demeure PENDING.
+PR Draft, non certifiée ; ne pas exécuter FULL/Phase Certification ni fusionner.
