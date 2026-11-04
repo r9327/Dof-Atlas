@@ -145,10 +145,6 @@ class MirrorInputMacro:
                     focus_lost = True
                     runtime.logger.warning("Miroir %s: activation non confirmée hwnd=%s.", kind, hwnd)
                     break
-                if foreground_window() != hwnd:
-                    focus_lost = True
-                    runtime.logger.warning("Miroir %s: focus volé avant envoi hwnd=%s.", kind, hwnd)
-                    break
                 if runtime.macro_lock.should_stop():
                     break
                 # Activation may run callbacks or release the GIL. Recheck the
@@ -167,6 +163,14 @@ class MirrorInputMacro:
                         "Miroir %s: processus DOFUS remplacé après activation hwnd=%s.",
                         kind, hwnd,
                     )
+                    break
+                # The native identity probe can yield to another window.
+                # Make foreground the LAST Win32 check before input.
+                if foreground_window() != hwnd:
+                    focus_lost = True
+                    runtime.logger.warning("Miroir %s: focus volé avant envoi hwnd=%s.", kind, hwnd)
+                    break
+                if runtime.macro_lock.should_stop():
                     break
                 try:
                     sent_at = perf_counter()
@@ -207,12 +211,6 @@ class MirrorInputMacro:
                             # Cursor motion can activate a different window on
                             # some desktop configurations. Verify again before
                             # dispatching the physical wheel gesture.
-                            if foreground_window() != hwnd:
-                                focus_lost = True
-                                runtime.logger.warning(
-                                    "Miroir molette: focus volé après déplacement hwnd=%s.", hwnd,
-                                )
-                                break
                             # Cursor movement can invoke native hooks and user
                             # actions; never emit a wheel tick on a stale
                             # favorite, changed roster or stopped worker.
@@ -229,6 +227,16 @@ class MirrorInputMacro:
                                 runtime.logger.warning(
                                     "Miroir molette: processus remplacé après déplacement hwnd=%s.", hwnd,
                                 )
+                                break
+                            # Final focus check occurs AFTER identity/roster
+                            # validation and immediately before SendInput.
+                            if foreground_window() != hwnd:
+                                focus_lost = True
+                                runtime.logger.warning(
+                                    "Miroir molette: focus volé après déplacement hwnd=%s.", hwnd,
+                                )
+                                break
+                            if runtime.macro_lock.should_stop():
                                 break
                             if not send_screen_wheel(delta, horizontal=horizontal):
                                 delivery_failed = True
