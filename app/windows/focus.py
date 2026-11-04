@@ -158,6 +158,15 @@ def activate_window(
                 )
 
             attached = attach_threads()
+            # This pre-activation check matters on a slow desktop: the
+            # emergency Stop may arrive while AttachThreadInput is running.
+            # The surrounding finally must detach even on early return.
+            if should_stop is not None and should_stop():
+                logger.info(
+                    "%s activation stoppee avant manipulation hwnd=%s",
+                    action_label, hwnd,
+                )
+                return False
 
             if win32gui.IsIconic(hwnd):
                 win32gui.ShowWindow(hwnd, win32con.SW_RESTORE)
