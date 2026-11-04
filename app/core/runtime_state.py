@@ -957,9 +957,13 @@ class AtlasRuntime:
                 context = self.switch_click._capture_trigger_context(
                     screen_x, screen_y, action_label,
                 )
+                if self.settings is not profile_at_press:
+                    # The old physical DOWN is already native. Never fall
+                    # through to a synthetic replay under the new profile.
+                    self.logger.debug("Clic natif non recopié: cause=profile_changed_during_capture")
+                    return False
                 if (context is not None and context.reason == "cursor"
-                        and context.source_hwnd == source
-                        and self.settings is profile_at_press):
+                        and context.source_hwnd == source):
                     self._pending_physical_switch = (
                         button, screen_x, screen_y, click_count,
                         action_label, context, monotonic(), profile_at_press,

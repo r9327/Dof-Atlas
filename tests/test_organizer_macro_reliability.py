@@ -1520,6 +1520,49 @@ class OrganizerMacroReliabilityTests(unittest.TestCase):
             "profile_replaced", "Left",
         )
 
+    def test_native_click_profile_reload_during_capture_preserves_physical_down(self):
+        from app.core.runtime_state import AtlasRuntime
+        from app.macros.switch_click import SwitchClickContext
+
+        for count in (2, 4, 6, 8):
+            with self.subTest(clients=count):
+                runtime = _runtime()
+                runtime._running = True
+                runtime._admin_ok = True
+                runtime.macro_lock.active_label = ""
+                runtime.settings.macro_mode = "macro"
+                runtime.settings.clients = [
+                    SimpleNamespace(handle=101 + i) for i in range(count)
+                ]
+                runtime.registry.switch_action_for_pressed_keys.return_value = SimpleNamespace(
+                    action_id="switch_click",
+                    payload={"click_count": 1, "label": "Switch clique"},
+                )
+                def capture(*_args):
+                    replacement = Mock()
+                    replacement.macro_mode = "macro"
+                    replacement.clients = runtime.settings.clients
+                    runtime.settings = replacement
+                    return SwitchClickContext(101, 25, 30, 0.2, 0.3, "cursor")
+
+                runtime.switch_click._capture_trigger_context.side_effect = capture
+                with (
+                    patch("app.windows.unity_windows.find_known_client_from_point",
+                          return_value=101),
+                    patch("app.windows.unity_windows.foreground_window",
+                          return_value=101),
+                    patch("app.macros.mirror_plan.is_dofus_unity_process",
+                          return_value=True),
+                ):
+                    self.assertFalse(AtlasRuntime._handle_mouse_click(
+                        runtime, "Left", 150, 160,
+                    ))
+                runtime.switch_click.run_async.assert_not_called()
+                self.assertIsNone(runtime._pending_physical_switch)
+                runtime.logger.debug.assert_any_call(
+                    "Clic natif non recopié: cause=profile_changed_during_capture"
+                )
+
     def test_settings_replacement_clears_native_replay_before_release(self):
         import threading
         from app.core.runtime_state import AtlasRuntime
