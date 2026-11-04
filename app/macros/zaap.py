@@ -57,6 +57,7 @@ class ZaapMacro:
             self.runtime.logger.info("Auto zaap ignore: aucune fenetre chargee.")
             return
         timings = self.runtime.settings.timings
+        favorite_at_start = self.runtime.settings.primary_handle
         self.runtime.logger.info(
             "Auto zaap lance: clients=%s commande=%s",
             len(clients),
@@ -135,6 +136,16 @@ class ZaapMacro:
                 focus_lost = True
                 self.runtime.logger.warning(
                     "Auto zaap: identité DOFUS perdue avant restauration hwnd=%s", client.handle,
+                )
+            # Do not reactivate a favorite selected midway through an
+            # older macro sequence, even if the foreground did not change.
+            if (
+                not self.runtime.macro_lock.should_stop() and not focus_lost
+                and self.runtime.settings.primary_handle != favorite_at_start
+            ):
+                focus_lost = True
+                self.runtime.logger.info(
+                    "Auto zaap: retour favori ignoré, favori changé."
                 )
             # After the final chat submission (or clipboard cleanup),
             # the user may focus a different app. Never force DOFUS back.
