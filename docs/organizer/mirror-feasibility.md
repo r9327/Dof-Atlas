@@ -1037,3 +1037,40 @@ worker est déjà occupé), MIRR-002 (arrière-plan Unity non attesté),
 conflit éventuel avec `main` et recette #322. Le hook souris partagé
 ne doit pas être refactoré sans Graphify du SHA exact et plan Doctor
 `--structural`. **CHANGES REQUIRED**, PR Draft.
+
+## Maxi-lot suivant 04/11 — aucun geste consommé sur roster périmé
+
+- Le snapshot Miroir clavier/molette conserve **exactement** la sélection
+  enregistrée : 2 à 8 HWND entiers uniques et natifs, avec favori inclus.
+  Aucune fenêtre invalide, hors ligne ou Unity étrangère n'est écartée
+  silencieusement pour continuer avec moins de destinataires.
+- Le clic Miroir utilise le même refus anticipé : si un personnage
+  enregistré n'est plus authentifié, le clic physique **reste natif**.
+  Cela évite la consommation sans diffusion qui survient quand le worker
+  découvre ensuite que le roster attendu ne correspond pas au réel.
+- Une mise à jour de `AtlasSettings` pendant les probes Win32 empêche
+  la capture et le clic de déclencher un worker sur un ancien snapshot.
+  La comparaison d'identité de l'objet settings ne remplace pas la
+  revérification du worker ; elle ferme la fenêtre avant consommation.
+- En mode classique, `ordered_clients_from_source(source_hwnd)`
+  refuse un HWND source positif explicitement fourni mais détaché du
+  roster, au lieu de substituer silencieusement le favori.
+  L'appel sans source explicite (`0`) conserve le comportement historique.
+- Les entrées clavier rejetées par la whitelist et les callbacks
+  souris/molette malformés ne déclenchent pas de scans de processus.
+  Le contrôle souris vérifie des coordonnées Win32 signées ; la
+  validation des touches interdit les touches système et modificateurs.
+- Régressions ajoutées : roster tronqué, doublon/fraction/HWND hors
+  plage, conservation du geste natif, favori en dernier slot,
+  changement de settings pendant le probe, raccourci vers source
+  inconnue, et comportement nominal 2/4/6/8 clients.
+
+**Audit statique uniquement :** code, tests et commits versionnés, mais
+**NOT_RUN** pour Doctor/Graphify exact-SHA, tests Python/PySide6,
+Win32/Unity, benchmarks et p50/p95/p99. Aucune affirmation de PASS
+ou de geste garanti en conditions réelles.
+
+**MIRR-007 reste ouvert :** les DOWN physiques pendant un worker
+avec le blocage global souris actif peuvent encore être interceptés.
+Ne pas refactorer `app/input/mouse_hooks.py` sans graphe Graphify
+du SHA exact et préflight Doctor structurel. La PR reste Draft.
