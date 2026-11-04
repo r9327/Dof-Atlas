@@ -64,6 +64,7 @@ class ZaapMacro:
         )
         sent = 0
         focus_lost = False
+        last_activated_handle: int | None = None
         try:
             for client in clients:
                 if self.runtime.macro_lock.should_stop():
@@ -98,6 +99,7 @@ class ZaapMacro:
                     return
                 if self.runtime.macro_lock.should_stop():
                     return
+                last_activated_handle = int(client.handle)
                 if not send_chat_command(
                     command,
                     self.runtime.logger,
@@ -134,6 +136,23 @@ class ZaapMacro:
                 self.runtime.logger.warning(
                     "Auto zaap: identité DOFUS perdue avant restauration hwnd=%s", client.handle,
                 )
+            # After the final chat submission (or clipboard cleanup),
+            # the user may focus a different app. Never force DOFUS back.
+            if (
+                not self.runtime.macro_lock.should_stop() and not focus_lost
+                and last_activated_handle is not None
+            ):
+                try:
+                    if foreground_window() != last_activated_handle:
+                        focus_lost = True
+                        self.runtime.logger.info(
+                            "Auto zaap: retour favori ignoré, focus utilisateur changé."
+                        )
+                except Exception:
+                    focus_lost = True
+                    self.runtime.logger.exception(
+                        "Auto zaap: focus illisible avant retour au favori."
+                    )
             # Stop may arrive between the identity probe and the restore.
             # Recheck the live lock state instead of using the earlier snapshot.
             if not self.runtime.macro_lock.should_stop() and not focus_lost:
