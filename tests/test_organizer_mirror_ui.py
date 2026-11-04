@@ -664,6 +664,31 @@ class OrganizerMirrorIntegrationTests(unittest.TestCase):
                 self.assertEqual(send.call_count, count)
                 self.assertFalse(runtime.input_state.is_mouse_blocked())
 
+    def test_busy_non_mouse_work_does_not_probe_8_processes_in_native_hook(self):
+        for count in (2, 4, 6, 8):
+            for busy in ("Miroir clavier", "Miroir molette"):
+                with self.subTest(count=count, busy=busy):
+                    slots = tuple(range(101, 101 + count))
+                    runtime = self._runtime(primary=slots[0], handles=slots)
+                    runtime.macro_lock.active_label = busy
+                    runtime.input_state.is_mouse_blocked.return_value = False
+                    with (
+                        patch("app.windows.unity_windows.foreground_window") as focus,
+                        patch("app.windows.unity_windows.is_unity_window") as unity,
+                        patch("app.macros.mirror_plan.is_dofus_unity_process") as identity,
+                        patch("app.windows.unity_windows.find_known_client_from_point") as point,
+                    ):
+                        self.assertFalse(
+                            AtlasRuntime._handle_mirror_click(
+                                runtime, "Left", 12, 28,
+                            )
+                        )
+                    focus.assert_not_called()
+                    unity.assert_not_called()
+                    identity.assert_not_called()
+                    point.assert_not_called()
+                    runtime.switch_click.run_async.assert_not_called()
+
     def test_wheel_preflight_passes_click_then_blocks_only_during_delivery(self):
         runtime = self._runtime()
         runtime.macro_lock.active_label = "Miroir molette"

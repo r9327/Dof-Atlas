@@ -734,6 +734,15 @@ class AtlasRuntime:
                 or not -(2**31) <= screen_x < 2**31
                 or not -(2**31) <= screen_y < 2**31):
             return False
+        # A keyboard worker never owns the pointer; a wheel worker only
+        # owns it after preflight. The native event is intentionally left
+        # alone: do not perform 2–8 expensive process probes inside the
+        # low-level mouse hook merely to decide to pass a click through.
+        busy = self.macro_lock.active_label
+        if (busy == "Miroir clavier"
+                or (busy == "Miroir molette"
+                    and not self.input_state.is_mouse_blocked())):
+            return False
         settings = self.settings
         if not settings.primary_handle:
             return False
@@ -772,16 +781,7 @@ class AtlasRuntime:
         )
         if len(destinations) < 2:
             return False
-        if self.macro_lock.active_label:
-            busy = self.macro_lock.active_label
-            if (busy == "Miroir clavier"
-                    or (busy == "Miroir molette"
-                        and not self.input_state.is_mouse_blocked())):
-                # Keyboard never owns the mouse; wheel owns it only after
-                # roster preflight. Pass this physical DOWN/UP through rather
-                # than swallow it before any pointer manipulation begins.
-                self.logger.debug("Miroir: clic physique conservé pendant %s.", busy)
-                return False
+        if busy:
             self.logger.debug("Miroir: clic ignoré, macro déjà active.")
             return True
         try:

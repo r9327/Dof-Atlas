@@ -1095,3 +1095,7 @@ du SHA exact et préflight Doctor structurel. La PR reste Draft.
 - Tant que `Miroir molette` n'a pas acquis le blocage natif (phase de validation des sessions), les clics physiques traversent le hook comme dans `Miroir clavier`. Dès que le pointeur doit être déplacé, les clics restent bloqués jusqu'à la restitution, afin d'éviter de cliquer une autre fenêtre pendant SendInput.
 - Tests d'intégration simulée Win32 sur les paires DOWN/UP physiques en Miroir clavier avec 2/4/6/8 comptes, tests de bascule preflight→delivery pour la molette et adaptation de l'ancienne assertion de blocage clavier.
 - Ne constitue pas une résolution complète de MIRR-007 : les clics pendant la diffusion des clics ou des molettes sont toujours bloqués. **NOT_RUN** pour Doctor, PySide6, Graphify et recette DOFUS Unity ; PR Draft.
+
+## Fast-path natif du callback pendant Miroir clavier/molette (04/11)
+
+Le callback souris laisse désormais immédiatement passer les clics physiques si un worker clavier est occupé ou si le worker molette n'a pas encore acquis son blocage protecteur. Ce chemin ne parcourt plus le roster ni n'interroge Win32 pour 2 à 8 comptes sur ces clics : il réduit la durée du callback low-level et évite de traiter comme un clic Miroir une action qui ne doit pas l'être. Le clic pendant le déplacement du curseur par la molette reste protégé. Tests ciblés 2/4/6/8 ajoutés ; exécution Python/Windows et Doctor non réalisée. MIRR-007 global reste ouvert, PR Draft.
