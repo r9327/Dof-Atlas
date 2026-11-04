@@ -613,8 +613,14 @@ class AtlasRuntime:
 
     def _handle_mirror_key(self, vk_code: int, pressed: bool) -> bool:
         """Forward only short standalone keystrokes; never modifier/OS chords."""
+        from app.input.hotkeys import MIRROR_DISCRETE_KEYS
         from app.windows.unity_windows import foreground_window
 
+        # Reject reserved keys and malformed callbacks before any expensive
+        # Win32 focus/process query, even if this method is called directly.
+        if (type(pressed) is not bool or type(vk_code) is not int
+                or vk_code not in MIRROR_DISCRETE_KEYS):
+            return False
         if not pressed:
             return False
         if (not self._running or not self._admin_ok
