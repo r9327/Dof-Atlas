@@ -21,9 +21,18 @@ class AutoGroupMacro:
         if not entries:
             self.runtime.logger.info("Auto groupe non lancé : aucune session candidate.")
             return False
-        return self.runtime._spawn_macro("Auto groupe", lambda: self._run(entries))
+        profile_at_dispatch = self.runtime.settings
+        return self.runtime._spawn_macro(
+            "Auto groupe",
+            lambda: self._run(
+                entries, profile_at_dispatch=profile_at_dispatch,
+            ),
+        )
 
-    def _run(self, invite_entries: list[dict[str, Any]]) -> None:
+    def _run(
+        self, invite_entries: list[dict[str, Any]],
+        *, profile_at_dispatch: object | None = None,
+    ) -> None:
         if not invite_entries:
             self.runtime.logger.info("Auto groupe ignore: aucune invitation.")
             self.runtime._emit_status("Auto-groupe ignoré : aucun destinataire.")
@@ -33,6 +42,11 @@ class AutoGroupMacro:
             self.runtime._emit_status("Auto-groupe arrêté avant lancement.")
             return
         settings_at_start = self.runtime.settings
+        if (profile_at_dispatch is not None
+                and settings_at_start is not profile_at_dispatch):
+            self.runtime.logger.info("Auto groupe annulé: profil remplacé avant worker.")
+            self.runtime._emit_status("Auto-groupe interrompu : profil Organizer modifié.")
+            return
         sender = self.runtime.switch_character.logical_active_client()
         if self.runtime.settings is not settings_at_start:
             self.runtime.logger.info("Auto groupe annulé: profil Organizer remplacé.")

@@ -16,10 +16,22 @@ class DirectionMacro:
         self.runtime = runtime
 
     def run_async(self, key_name: str) -> bool:
-        return self.runtime._spawn_macro("Switch deplacement", lambda: self._run(key_name))
+        profile_at_dispatch = self.runtime.settings
+        return self.runtime._spawn_macro(
+            "Switch deplacement",
+            lambda: self._run(key_name, profile_at_dispatch=profile_at_dispatch),
+        )
 
-    def _run(self, key_name: str) -> None:
+    def _run(
+        self, key_name: str, *, profile_at_dispatch: object | None = None,
+    ) -> None:
         settings_at_start = self.runtime.settings
+        if (profile_at_dispatch is not None
+                and settings_at_start is not profile_at_dispatch):
+            self.runtime.logger.info(
+                "Switch deplacement annulé: profil Organizer remplacé avant worker.",
+            )
+            return
         source = foreground_window()
         if (not source or not is_unity_window(source)
                 or not is_dofus_unity_process(source)

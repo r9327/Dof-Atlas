@@ -44,9 +44,15 @@ class ZaapMacro:
         if parse_zaap_command(command) is None:
             self.runtime.logger.info("Auto zaap refuse: commande /zaap invalide.")
             return False
-        return self.runtime._spawn_macro("Auto zaap", lambda: self._run(command))
+        profile_at_dispatch = self.runtime.settings
+        return self.runtime._spawn_macro(
+            "Auto zaap",
+            lambda: self._run(command, profile_at_dispatch=profile_at_dispatch),
+        )
 
-    def _run(self, command: str) -> None:
+    def _run(
+        self, command: str, *, profile_at_dispatch: object | None = None,
+    ) -> None:
         coords = parse_zaap_command(command)
         if coords is None:
             self.runtime.logger.info("Auto zaap ignore: commande /zaap invalide.")
@@ -54,6 +60,11 @@ class ZaapMacro:
             return
         command = zaap_command(*coords)
         settings_at_start = self.runtime.settings
+        if (profile_at_dispatch is not None
+                and settings_at_start is not profile_at_dispatch):
+            self.runtime.logger.info("Auto zaap annulé: profil remplacé avant worker.")
+            self.runtime._emit_status("Auto zaap interrompu : profil Organizer modifié.")
+            return
         clients = self.runtime.switch_character.ordered_clients_from_source()
         if self.runtime.settings is not settings_at_start:
             self.runtime.logger.info("Auto zaap annulé : profil Organizer remplacé.")

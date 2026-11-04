@@ -2930,5 +2930,66 @@ class OrganizerMacroReliabilityTests(unittest.TestCase):
         runtime.switch_character.restore_preferred_client.assert_not_called()
 
 
+    def test_all_existing_macro_workers_reject_prestart_profile_reload_2_to_8(self):
+        # A queued action belongs to the generation at its hotkey dispatch,
+        # even if Organizer rebuilds the same visible HWND roster.
+        for count in (2, 4, 6, 8):
+            for kind in ("direction", "zaap", "auto_group"):
+                with self.subTest(clients=count, kind=kind):
+                    runtime = _runtime()
+                    runtime._spawn_macro.return_value = True
+                    runtime.settings.clients = [
+                        SimpleNamespace(handle=101 + i) for i in range(count)
+                    ]
+                    if kind == "direction":
+                        started = DirectionMacro(runtime).run_async("HOME")
+                    elif kind == "zaap":
+                        started = ZaapMacro(runtime).run_async("/zaap 1,2")
+                    else:
+                        started = AutoGroupMacro(runtime).run_async([
+                            {"name": "Friend", "handle": 102},
+                        ])
+                    self.assertTrue(started)
+                    worker = runtime._spawn_macro.call_args.args[1]
+                    original = runtime.settings
+                    new_profile = Mock()
+                    new_profile.clients = original.clients
+                    new_profile.primary_handle = original.primary_handle
+                    new_profile.timings = original.timings
+                    runtime.settings = new_profile
+                    with (
+                        patch("app.macros.direction.foreground_window") as d_focus,
+                        patch("app.macros.direction.activate_window") as d_activate,
+                        patch("app.macros.direction.press_key") as d_key,
+                        patch("app.macros.zaap.activate_window") as z_activate,
+                        patch("app.macros.zaap.send_chat_command") as z_chat,
+                        patch("app.macros.auto_group.activate_window") as g_activate,
+                        patch("app.macros.auto_group.send_chat_command") as g_chat,
+                    ):
+                        worker()
+                    d_focus.assert_not_called()
+                    d_activate.assert_not_called()
+                    d_key.assert_not_called()
+                    z_activate.assert_not_called()
+                    z_chat.assert_not_called()
+                    g_activate.assert_not_called()
+                    g_chat.assert_not_called()
+                    runtime.switch_character.logical_active_client.assert_not_called()
+                    runtime.switch_character.ordered_clients_from_source.assert_not_called()
+                    runtime.switch_character.restore_preferred_client.assert_not_called()
+                    if kind == "direction":
+                        runtime.logger.info.assert_any_call(
+                            "Switch deplacement annulé: profil Organizer remplacé avant worker.",
+                        )
+                    elif kind == "zaap":
+                        runtime._emit_status.assert_called_once_with(
+                            "Auto zaap interrompu : profil Organizer modifié.",
+                        )
+                    else:
+                        runtime._emit_status.assert_called_once_with(
+                            "Auto-groupe interrompu : profil Organizer modifié.",
+                        )
+
+
 if __name__ == "__main__":
     unittest.main()
