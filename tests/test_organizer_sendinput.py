@@ -785,6 +785,61 @@ class OrganizerSendInputTests(unittest.TestCase):
             self.assertEqual(clicks.current_cursor_pos(), (-1280, 540))
         user32.GetCursorPos.assert_called_once()
 
+    def test_successful_cursor_move_preserves_negative_desktop_point(self) -> None:
+        def read_position(pointer):
+            point = ctypes.cast(
+                pointer, ctypes.POINTER(ctypes.wintypes.POINT),
+            ).contents
+            point.x, point.y = -1200, 600
+            return 1
+
+        user32 = SimpleNamespace(
+            SetCursorPos=Mock(return_value=1),
+            GetCursorPos=Mock(side_effect=read_position),
+        )
+        with (
+            patch.object(clicks.os, "name", "nt"),
+            patch.object(clicks.ctypes, "windll",
+                         SimpleNamespace(user32=user32), create=True),
+        ):
+            self.assertIsNone(clicks.set_cursor_pos(-1200, 600))
+        user32.SetCursorPos.assert_called_once_with(-1200, 600)
+        user32.GetCursorPos.assert_called_once()
+
+    def test_clipcursor_clamp_refuses_click_without_mouse_down(self) -> None:
+        def clipped_position(pointer):
+            point = ctypes.cast(
+                pointer, ctypes.POINTER(ctypes.wintypes.POINT),
+            ).contents
+            point.x, point.y = 120, 60
+            return 1
+
+        user32 = SimpleNamespace(
+            SetCursorPos=Mock(return_value=1),
+            GetCursorPos=Mock(side_effect=clipped_position),
+        )
+        guard, logger = Mock(), Mock()
+        with (
+            patch.object(clicks.os, "name", "nt"),
+            patch.object(clicks.ctypes, "windll",
+                         SimpleNamespace(user32=user32), create=True),
+            patch.object(clicks, "_send_mouse_flag") as sender,
+        ):
+            with self.assertRaisesRegex(
+                OSError, "cursor confined or moved",
+            ):
+                clicks.set_cursor_pos(300, 200)
+            self.assertFalse(clicks.send_screen_click(
+                300, 200, "Right", 2,
+                30, 25, 40, 0, guard, logger,
+            ))
+        sender.assert_not_called()
+        guard.end.assert_called_once_with(120)
+        logger.exception.assert_called_once_with(
+            "Erreur pendant le clic synthetique: button=%s x=%s y=%s",
+            "Right", 300, 200,
+        )
+
     def test_cursor_move_win32_refusal_has_diagnostic_and_no_ghost_click(self) -> None:
         user32 = SimpleNamespace(SetCursorPos=Mock(return_value=0))
         kernel32 = SimpleNamespace(GetLastError=Mock(return_value=5))
