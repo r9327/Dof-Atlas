@@ -2717,11 +2717,11 @@ class AtlasWindow(QMainWindow):
         self.reload_runtime()
         self._ensure_runtime().launch_guide_travel(text, tuple(character_keys or ()))
 
-    def launch_zaap(self, text: str, click_position=None, click_ratios=None) -> None:
+    def launch_zaap(self, text: str, click_position=None, click_ratios=None) -> bool:
         self.reload_runtime()
-        self._ensure_runtime().launch_zaap(
-            text, click_position=click_position, click_ratios=click_ratios
-        )
+        return bool(self._ensure_runtime().launch_zaap(
+            text, click_position=click_position, click_ratios=click_ratios,
+        ))
 
     def launch_next_character(self) -> None:
         """Direct Organizer action: reuse the live character-switching worker."""

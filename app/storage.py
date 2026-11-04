@@ -1397,11 +1397,31 @@ class ZaapWidget(QWidget):
             self.search_input.setText(label)
             if self.config_update_callback is not None:
                 self.config_update_callback()
-            if self.start_callback is not None:
-                command = f"/zaap {coords[0]},{coords[1]}"
-                invoke_compatible_callback(self.start_callback, command, None, None)
-            LOGGER.info("Auto zaap selection: label=%s coords=%s", label, coords)
-            self.status_callback(f"Auto zaap lance: {label}")
+            if self.start_callback is None:
+                self.status_callback("Auto zaap indisponible : runtime non connecté.")
+                return
+            command = f"/zaap {coords[0]},{coords[1]}"
+            try:
+                accepted = invoke_compatible_callback(
+                    self.start_callback, command, None, None,
+                )
+            except Exception:
+                LOGGER.exception("Auto zaap: lancement du runtime impossible.")
+                self.status_callback(f"Auto zaap non lancé : {label}")
+                return
+            LOGGER.info(
+                "Auto zaap sélection: label=%s coords=%s accepté=%s",
+                label, coords, accepted is True,
+            )
+            if accepted is True:
+                self.status_callback(f"Auto zaap en cours : {label}")
+            elif accepted is False:
+                self.status_callback(
+                    f"Auto zaap non lancé : macro occupée ou runtime indisponible ({label})."
+                )
+            else:
+                # Legacy callbacks returning None do not prove acceptance.
+                self.status_callback(f"Auto zaap transmis (démarrage non confirmé) : {label}")
         finally:
             self._schedule_owned_callback(0, self.reset_launch_guard)
 
