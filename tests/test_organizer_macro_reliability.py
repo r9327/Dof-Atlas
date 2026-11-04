@@ -1823,6 +1823,39 @@ class OrganizerMacroReliabilityTests(unittest.TestCase):
         foreground.assert_not_called()
         self.assertEqual(runtime.active_client_handle, 101)
 
+    def test_favorite_restore_does_not_publish_old_favorite_after_change(self) -> None:
+        runtime = _runtime()
+        runtime.active_client_handle = 101
+        runtime.settings.preferred_client.side_effect = [
+            SimpleNamespace(handle=202), SimpleNamespace(handle=303),
+        ]
+        with (
+            patch("app.macros.switch_character.is_unity_window", return_value=True),
+            patch("app.macros.switch_character.is_dofus_unity_process", return_value=True),
+            patch("app.macros.switch_character.activate_window", return_value=True) as activate,
+            patch("app.macros.switch_character.foreground_window") as foreground,
+        ):
+            SwitchCharacterMacro(runtime).restore_preferred_client("Macro")
+        activate.assert_called_once()
+        foreground.assert_not_called()
+        self.assertEqual(runtime.active_client_handle, 101)
+
+    def test_favorite_restore_does_not_publish_when_favorite_removed(self) -> None:
+        runtime = _runtime()
+        runtime.active_client_handle = 101
+        runtime.settings.preferred_client.side_effect = [
+            SimpleNamespace(handle=202), None,
+        ]
+        with (
+            patch("app.macros.switch_character.is_unity_window", return_value=True),
+            patch("app.macros.switch_character.is_dofus_unity_process", return_value=True),
+            patch("app.macros.switch_character.activate_window", return_value=True),
+            patch("app.macros.switch_character.foreground_window") as foreground,
+        ):
+            SwitchCharacterMacro(runtime).restore_preferred_client("Macro")
+        foreground.assert_not_called()
+        self.assertEqual(runtime.active_client_handle, 101)
+
     def test_favorite_restore_refuses_foreign_unity_process(self) -> None:
         runtime = _runtime()
         runtime.active_client_handle = 101
