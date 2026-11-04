@@ -275,7 +275,7 @@ class OrganizerMirrorIntegrationTests(unittest.TestCase):
                         macro_mode=profile.macro_mode,
                         primary_handle=profile.primary_handle,
                         clients=profile.clients,
-                        timings=profile.timings,
+                        timings=getattr(profile, "timings", None),
                     )
                     runtime.settings = replacement
                     with (
@@ -313,7 +313,7 @@ class OrganizerMirrorIntegrationTests(unittest.TestCase):
                         macro_mode=old.macro_mode,
                         primary_handle=old.primary_handle,
                         clients=old.clients,
-                        timings=old.timings,
+                        timings=getattr(old, "timings", None),
                     )
                     mirror = MirrorInputMacro(runtime)
                     if kind == "key":
@@ -343,7 +343,7 @@ class OrganizerMirrorIntegrationTests(unittest.TestCase):
                             macro_mode=old.macro_mode,
                             primary_handle=old.primary_handle,
                             clients=old.clients,
-                            timings=old.timings,
+                            timings=getattr(old, "timings", None),
                         )
                         return handles[0], handles
 
@@ -508,7 +508,7 @@ class OrganizerMirrorIntegrationTests(unittest.TestCase):
                         macro_mode=old.macro_mode,
                         primary_handle=old.primary_handle,
                         clients=old.clients,
-                        timings=old.timings,
+                        timings=getattr(old, "timings", None),
                     )
                     return destinations
 
@@ -542,7 +542,7 @@ class OrganizerMirrorIntegrationTests(unittest.TestCase):
                     macro_mode=old.macro_mode,
                     primary_handle=old.primary_handle,
                     clients=old.clients,
-                    timings=old.timings,
+                    timings=getattr(old, "timings", None),
                 )
                 sender = SwitchClickMacro(runtime)
                 with patch.object(sender, "_capture_trigger_context") as capture:
