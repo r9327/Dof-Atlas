@@ -74,13 +74,17 @@ class AutoGroupMacro:
                 eligible += 1
                 # Every invitation is a distinct operation. Never type into
                 # another window if focus was stolen after activation.
-                if (foreground_window() != int(sender.handle)
-                        or not is_dofus_unity_process(sender.handle)):
+                # A native identity probe may yield focus to another app.
+                # Check the foreground last, then Stop before opening chat.
+                if (not is_dofus_unity_process(sender.handle)
+                        or foreground_window() != int(sender.handle)):
                     focus_lost = True
                     self.runtime.logger.warning(
                         "Auto groupe interrompu: focus ou identité DOFUS perdus avant invitation hwnd=%s",
                         sender.handle,
                     )
+                    return
+                if self.runtime.macro_lock.should_stop():
                     return
                 if not send_chat_command(
                     f"/invite {name}",
