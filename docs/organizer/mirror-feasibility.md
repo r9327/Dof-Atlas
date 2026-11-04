@@ -896,3 +896,43 @@ ne valent ni `VALIDATED` ni `CERTIFIED`.
 un geste physique quand le worker est déjà occupé. L'architecture des
 hooks ne peut pas être modifiée sans Graphify au SHA exact et route
 Doctor `--structural`. Cette PR reste Draft, non fusionnable.
+
+## Lot 04/11 — retrait TOPMOST garanti et bornes anti-blocage
+
+**Portée :** garde localisé des moteurs `app/windows/focus.py` et
+`app/windows/clicks.py` ; nouveaux tests unitaires de focus et de clics.
+Pas de refonte du hook souris, de changement de profil ni de dépendance.
+
+- Le dernier recours `HWND_TOPMOST` utilise un `try/finally` pour
+  **toujours tenter** `HWND_NOTOPMOST`, y compris quand l'API initiale
+  lève une exception. Si le retrait échoue une fois, une seule nouvelle
+  tentative est autorisée avant de renoncer à l'activation. Un double
+  échec est signalé explicitement comme une fenêtre potentiellement
+  coincée au premier plan ; il est impossible de garantir le retrait
+  si Windows refuse réellement les deux appels.
+- Stop vérifié après le retrait TOPMOST, après `SetForegroundWindow`,
+  après `ShowWindow` et `BringWindowToTop` : le worker ne lance pas
+  les manipulations suivantes quand l'arrêt vient d'être demandé.
+  Les `AttachThreadInput` sont toujours détachés par le `finally` existant.
+- Les profils actuellement livrés configurent des délais d'activation
+  de 12–24 ms et de retry de 12–18 ms. Une temporisation de focus
+  **supérieure à 1 000 ms** est refusée, plutôt que de bloquer des workers
+  pendant plusieurs secondes ou minutes sur 8 comptes.
+- Le clic synthétique refuse maintenant une somme de temporisations
+  (`pre + post + click_count * down + double_gap`) supérieure à
+  **1 000 ms**, avant de modifier le curseur ou d'armer le garde souris.
+  Les timings légitimes et le chemin de double-clic existant restent
+  inchangés.
+
+**Tests ajoutés/ajustés :** injection Win32 simulée des refus TOPMOST,
+NOTOPMOST (simple/double), Stop pendant BringWindowToTop, Stop entre
+SetForegroundWindow et SetFocus, annulation après ShowWindow ; budgets
+extrêmes et budget normal des clics. Aucun de ces tests n'a été exécuté
+sur Python/Windows/DOFUS dans cette session.
+
+**NOT_RUN** : Atlas Doctor `agent plan/check/validate`, Graphify
+exact-SHA, tests Python/PySide6, `git diff --check`, vraies sessions
+Windows 2/4/6/8 et mesures RAM/CPU/p50/p95/p99. Le P0 **MIRR-007**
+(gestes physiques perdus pendant worker occupé) demeure non résolu et
+ne doit pas être traité par une refonte structurelle des hooks sans
+Graphify+Doctor au SHA exact. PR Draft ; pas de fusion ni certification.
