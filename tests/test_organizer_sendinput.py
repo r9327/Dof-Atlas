@@ -332,11 +332,14 @@ class OrganizerSendInputTests(unittest.TestCase):
             patch.object(input_tools, "replace_chat_text_with_clipboard") as paste,
             patch.object(input_tools, "press_key") as press,
         ):
-            self.assertFalse(input_tools.send_chat_command("/invite Friend", logger))
-        paste.assert_called_once()
+            with self.assertRaisesRegex(OSError, "Clipboard revision Win32 indisponible"):
+                input_tools.send_chat_command("/invite Friend", logger)
+        paste.assert_not_called()
         press.assert_not_called()
+        clipboard.EmptyClipboard.assert_not_called()
+        clipboard.SetClipboardText.assert_not_called()
         logger.warning.assert_any_call(
-            "Clipboard: revision Win32 indisponible, chat annule."
+            "Clipboard conserve: revision Win32 non fiable."
         )
 
     def test_clipboard_user_copy_during_command_is_preserved(self) -> None:
