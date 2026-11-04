@@ -380,6 +380,40 @@ class OrganizerSendInputTests(unittest.TestCase):
             self.assertEqual(hook._mouse_proc(0, WM_LBUTTONUP, addr), 51)
             self.assertEqual(len(calls), 1)
 
+    def test_busy_mouse_hook_remains_fail_closed_when_logging_fails(self) -> None:
+        from app.input.input_state import InputState, SyntheticInputGuard
+        from app.input.mouse_hooks import (
+            MSLLHOOKSTRUCT, MouseHook,
+            WM_LBUTTONDOWN, WM_LBUTTONUP,
+        )
+
+        logger = Mock()
+        state = InputState()
+        hook = MouseHook(state, SyntheticInputGuard(logger), logger, Mock())
+        event = MSLLHOOKSTRUCT()
+        user32 = Mock()
+        user32.CallNextHookEx.return_value = 42
+        with (
+            patch.object(
+                ctypes, "windll", SimpleNamespace(user32=user32), create=True,
+            ),
+            patch.object(
+                hook, "_log_blocked_event",
+                side_effect=RuntimeError("log formatter failed"),
+            ),
+        ):
+            state.begin_mouse_block("Miroir")
+            addr = ctypes.addressof(event)
+            self.assertEqual(hook._mouse_proc(0, WM_LBUTTONDOWN, addr), 1)
+            self.assertEqual(hook._consumed_releases, {WM_LBUTTONUP})
+            self.assertEqual(hook._mouse_proc(0, WM_LBUTTONUP, addr), 1)
+            self.assertEqual(hook._consumed_releases, set())
+            state.clear_mouse_block()
+        logger.exception.assert_called_once_with(
+            "Hook souris: journalisation blocage impossible.",
+        )
+        user32.CallNextHookEx.assert_not_called()
+
     def test_busy_mouse_hook_bursts_two_four_six_eight_are_counted(self) -> None:
         import logging
         from app.input.input_state import InputState, SyntheticInputGuard
