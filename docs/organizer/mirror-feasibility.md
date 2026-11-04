@@ -995,3 +995,45 @@ certification CI. Verdict : **CHANGES REQUIRED**, Draft, non fusionnée.
 - **P0 MIRR-007 inchangé :** gestes physiques perdus pendant un worker
   occupé. Ne pas modifier structurellement le hook sans Graphify exact-SHA,
   préflight Doctor `--structural` et scénarios Windows correspondants.
+
+## Maxi-lot 04/11 — identité Win32 et cohérence des personnages (PR #325)
+
+**Périmètre : durcissement local, pas de refactor du hook partagé.**
+
+- `SwitchCharacterMacro` ne choisit plus de source, favori ou destinataire
+  appartenant à un autre processus Unity ; la validation de l'exécutable
+  DOFUS est appliquée aux chemins de secours et au roster, pas seulement
+  à l'activation directe.
+- Un raccourci mis en file ne peut plus activer un ancien HWND si le slot a
+  été réaffecté ; le slot est revérifié avant l'activation et avant de publier
+  `active_client_handle`. Les autres changements de slots restent permis.
+- Le retour au favori ne publie pas un ancien favori si l'utilisateur en a
+  choisi un autre pendant `activate_window`. Le deuxième contrôle d'identité
+  est conservé **après** activation, pas exécuté deux fois avant.
+- `AtlasSettings.client_by_handle` saute les HWND corrompus (NaN, inf,
+  booléens, valeurs fractionnaires, chaînes non convertibles, dépassements)
+  sans masquer les autres clients valides du profil.
+- `SwitchClickMacro` vérifie aussi en mode classique le propriétaire DOFUS
+  de chaque fenêtre avant l'activation et à nouveau juste avant
+  `send_client_click`, après calcul des coordonnées : les contrôles de
+  non-régression Miroir restent appliqués.
+- `is_dofus_unity_process` refuse les HWND hors plage native 64 bits
+  et les PID qui ne sont pas de vrais entiers DWORD positifs, avant tout
+  accès au chemin exécutable.
+- Les simulations ajoutées couvrent notamment 2/4/6/8 personnages lors
+  du réaffectation d'un slot, un autre Unity au premier plan, un favori
+  modifié pendant l'activation, un HWND repris par une autre application,
+  et les identifiants/valeurs malformés.
+
+**Évidence disponible :** modifications et tests versionnés sur la branche
+de PR, relecture statique de ce lot ; les cas ne sont **pas** des PASS
+d'exécution. **NOT_RUN :** Doctor `agent plan/check/validate`, Graphify
+exact-SHA, tests Python/PySide6, `git diff --check` local, CI finale,
+benchmarks et tests Windows/DOFUS Unity 1/2/4/6/8. Une campagne réelle
+reste indispensable pour mesurer entrée→rendu, erreurs et p50/p95/p99.
+
+**Bloquants conservés :** MIRR-007 (perte de geste physique quand le
+worker est déjà occupé), MIRR-002 (arrière-plan Unity non attesté),
+conflit éventuel avec `main` et recette #322. Le hook souris partagé
+ne doit pas être refactoré sans Graphify du SHA exact et plan Doctor
+`--structural`. **CHANGES REQUIRED**, PR Draft.
