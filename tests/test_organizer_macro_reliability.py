@@ -1023,6 +1023,68 @@ class OrganizerMacroReliabilityTests(unittest.TestCase):
                     "Auto zaap %s: envoyes=%s/%s", "interrompu", 0, 2,
                 )
 
+    def test_auto_group_failed_chat_probe_cannot_hide_stolen_focus(self) -> None:
+        runtime = _runtime()
+        runtime.switch_character.logical_active_client.return_value = (
+            SimpleNamespace(handle=101, display_name="Leader")
+        )
+        runtime.settings.timings.auto_group_invite_gap_ms = 0
+        active = [101]
+        probes = [0]
+
+        def probe(_hwnd):
+            probes[0] += 1
+            if probes[0] == 3:
+                active[0] = 999
+            return True
+
+        with (
+            patch("app.macros.auto_group.foreground_window",
+                  side_effect=lambda: active[0]),
+            patch("app.macros.auto_group.is_unity_window", return_value=True),
+            patch("app.macros.auto_group.is_dofus_unity_process", side_effect=probe),
+            patch("app.macros.auto_group.activate_window", return_value=True),
+            patch("app.macros.auto_group.send_chat_command",
+                  return_value=False) as chat,
+        ):
+            AutoGroupMacro(runtime)._run([
+                {"name": "Friend1", "handle": 202},
+                {"name": "Friend2", "handle": 303},
+            ])
+        chat.assert_called_once()
+        runtime.switch_character.restore_preferred_client.assert_not_called()
+        runtime.logger.info.assert_any_call(
+            "Auto groupe %s: envoyes=%s/%s candidats=%s sender=%s",
+            "interrompu", 0, 1, 2, 101,
+        )
+
+    def test_zaap_failed_chat_probe_cannot_hide_stolen_focus(self) -> None:
+        runtime = _runtime()
+        active = [101]
+        probes = [0]
+
+        def probe(_hwnd):
+            probes[0] += 1
+            if probes[0] == 3:
+                active[0] = 999
+            return True
+
+        with (
+            patch("app.macros.zaap.foreground_window",
+                  side_effect=lambda: active[0]),
+            patch("app.macros.zaap.is_unity_window", return_value=True),
+            patch("app.macros.zaap.is_dofus_unity_process", side_effect=probe),
+            patch("app.macros.zaap.activate_window", return_value=True),
+            patch("app.macros.zaap.send_chat_command",
+                  return_value=False) as chat,
+        ):
+            ZaapMacro(runtime)._run("/zaap 1,2")
+        chat.assert_called_once()
+        runtime.switch_character.restore_preferred_client.assert_not_called()
+        runtime.logger.info.assert_any_call(
+            "Auto zaap %s: envoyes=%s/%s", "interrompu", 0, 2,
+        )
+
     def test_direction_reports_partial_when_client_activation_fails(self) -> None:
         runtime = _runtime()
         runtime.settings.client_by_handle.return_value = object()
