@@ -15,8 +15,17 @@ class SwitchCharacterMacro:
     def __init__(self, runtime: "AtlasRuntime"):
         self.runtime = runtime
 
-    def activate_by_index(self, client_index: int) -> bool:
+    def activate_by_index(
+        self, client_index: int, *, expected_profile: object | None = None,
+    ) -> bool:
         settings = self.runtime.settings
+        # A "next" selection may be calculated while native process probes
+        # yield to a profile reload. Never route an old slot into a replacement.
+        if expected_profile is not None and settings is not expected_profile:
+            self.runtime.logger.info(
+                "Activation client annulée: profil Organizer remplacé avant dispatch.",
+            )
+            return False
         # Numeric strings from older profiles remain supported, but do not
         # truncate other number-like objects into a different character slot.
         if type(client_index) not in (int, str):
@@ -101,24 +110,32 @@ class SwitchCharacterMacro:
         """
         if self.runtime.macro_lock.should_stop():
             return False
+        settings = self.runtime.settings
         clients = []
         seen: set[int] = set()
-        for client in self.runtime.settings.clients:
+        for client in settings.clients:
             hwnd = client.handle
-            if (type(hwnd) is not int or hwnd <= 0 or hwnd in seen
-                    or not is_unity_window(hwnd)
+            if (type(hwnd) is not int or not 0 < hwnd <= (2**64 - 1)
+                    or hwnd in seen or not is_unity_window(hwnd)
                     or not is_dofus_unity_process(hwnd)):
                 continue
             seen.add(hwnd)
             clients.append(client)
-        if len(clients) < 2:
+            if self.runtime.settings is not settings:
+                return False
+        if len(clients) < 2 or self.runtime.settings is not settings:
             return False
         current = self.logical_active_client()
+        if self.runtime.settings is not settings or self.runtime.macro_lock.should_stop():
+            return False
         current_hwnd = current.handle if current is not None else 0
         position = next(
             (i for i, item in enumerate(clients) if item.handle == current_hwnd), -1,
         )
-        return self.activate_by_index(clients[(position + 1) % len(clients)].index)
+        return self.activate_by_index(
+            clients[(position + 1) % len(clients)].index,
+            expected_profile=settings,
+        )
 
     def preferred_client(self) -> "AtlasClient | None":
         """
@@ -180,10 +197,17 @@ class SwitchCharacterMacro:
             seen_handles.add(handle)
             clients.append(client)
 
-        try:
-            source_hwnd = int(source_hwnd or 0)
-        except (TypeError, ValueError, OverflowError):
+        # A bad explicit Win32 source must not silently fall back to the
+        # favorite. Never truncate fractional HWND aliases to an active
+        # character; only the omitted/default zero requests a fallback.
+        if source_hwnd is None:
             source_hwnd = 0
+        if (type(source_hwnd) is not int
+                or not 0 <= source_hwnd <= (2**64 - 1)):
+            self.runtime.logger.warning(
+                "Switch: source explicite invalide hwnd=%r", source_hwnd,
+            )
+            return []
 
         # A real, explicit source that disappeared from Organizer must not
         # silently turn into the logical favorite: that can broadcast a

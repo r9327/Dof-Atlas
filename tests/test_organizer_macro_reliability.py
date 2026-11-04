@@ -42,7 +42,7 @@ class OrganizerMacroReliabilityTests(unittest.TestCase):
         self.assertEqual([c.handle for c in ordered], [303, 202])
         self.assertEqual(runtime.logger.warning.call_count, 2)
 
-    def test_roster_handles_overflowing_source_without_fanning_to_invalid_windows(self) -> None:
+    def test_roster_rejects_invalid_explicit_source_instead_of_favorite_fallback(self) -> None:
         runtime = _runtime()
         runtime.settings.clients = [
             SimpleNamespace(index=1, handle=101),
@@ -52,10 +52,13 @@ class OrganizerMacroReliabilityTests(unittest.TestCase):
         with (
             patch("app.macros.switch_character.is_unity_window", return_value=True),
             patch("app.macros.switch_character.is_dofus_unity_process", return_value=True),
-            patch.object(macro, "logical_active_client", return_value=runtime.settings.clients[1]),
+            patch.object(macro, "logical_active_client") as fallback,
         ):
-            ordered = macro.ordered_clients_from_source(float("inf"))
-        self.assertEqual([c.handle for c in ordered], [202, 101])
+            for raw in (float("inf"), float("nan"), 101.9, 101.0, True,
+                        -1, 2**64, "101", object()):
+                with self.subTest(source=repr(raw)):
+                    self.assertEqual(macro.ordered_clients_from_source(raw), [])
+        fallback.assert_not_called()
 
 
     def test_roster_does_not_cast_foreign_or_fractional_hwnd_into_trusted_client(self) -> None:
@@ -79,6 +82,84 @@ class OrganizerMacroReliabilityTests(unittest.TestCase):
         unity.assert_called_once_with(101)
         process.assert_called_once_with(101)
         self.assertEqual(runtime.logger.warning.call_count, 4)
+
+
+    def test_next_character_rejects_identical_profile_reload_while_scanning(self):
+        for count in (2, 4, 6, 8):
+            with self.subTest(clients=count):
+                runtime = _runtime()
+                clients = [
+                    SimpleNamespace(index=i + 1, handle=101 + i, display_name=str(i))
+                    for i in range(count)
+                ]
+                runtime.settings.clients = clients
+                original = runtime.settings
+
+                def process_check(_hwnd):
+                    # Simulates Organizer hot-reload during an expensive native
+                    # verification of the first of 2/4/6/8 Unity clients.
+                    replacement = Mock()
+                    replacement.clients = clients
+                    replacement.timings = original.timings
+                    runtime.settings = replacement
+                    return True
+
+                macro = SwitchCharacterMacro(runtime)
+                with (
+                    patch("app.macros.switch_character.is_unity_window", return_value=True),
+                    patch("app.macros.switch_character.is_dofus_unity_process",
+                          side_effect=process_check),
+                    patch.object(macro, "activate_by_index") as activate,
+                    patch.object(macro, "logical_active_client") as source,
+                ):
+                    self.assertFalse(macro.activate_next())
+                activate.assert_not_called()
+                source.assert_not_called()
+                runtime._spawn_macro.assert_not_called()
+
+    def test_next_character_dispatch_refuses_replaced_same_slot_profile(self):
+        for count in (2, 4, 6, 8):
+            with self.subTest(clients=count):
+                runtime = _runtime()
+                clients = [
+                    SimpleNamespace(index=i + 1, handle=101 + i, display_name=str(i))
+                    for i in range(count)
+                ]
+                runtime.settings.clients = clients
+                original = runtime.settings
+                new_profile = Mock()
+                new_profile.clients = clients
+                new_profile.timings = original.timings
+                runtime.settings = new_profile
+                self.assertFalse(SwitchCharacterMacro(runtime).activate_by_index(
+                    2, expected_profile=original,
+                ))
+                runtime._spawn_macro.assert_not_called()
+                runtime.logger.info.assert_any_call(
+                    "Activation client annulée: profil Organizer remplacé avant dispatch.",
+                )
+
+    def test_next_character_nominal_wrap_after_final_slot_2_to_8(self):
+        for count in (2, 4, 6, 8):
+            with self.subTest(clients=count):
+                runtime = _runtime()
+                clients = [
+                    SimpleNamespace(index=i + 1, handle=101 + i, display_name=str(i))
+                    for i in range(count)
+                ]
+                runtime.settings.clients = clients
+                runtime._spawn_macro.return_value = True
+                macro = SwitchCharacterMacro(runtime)
+                with (
+                    patch("app.macros.switch_character.is_unity_window", return_value=True),
+                    patch("app.macros.switch_character.is_dofus_unity_process", return_value=True),
+                    patch.object(macro, "logical_active_client", return_value=clients[-1]),
+                ):
+                    self.assertTrue(macro.activate_next())
+                # The chosen character wraps to the first slot, but execution
+                # still belongs to the original immutable Organizer profile.
+                runtime._spawn_macro.assert_called_once()
+                self.assertEqual(runtime._spawn_macro.call_args.args[0], "Activation client")
 
     def test_character_hotkey_rejects_fractional_slot_without_spawning(self) -> None:
         runtime = _runtime()
