@@ -156,14 +156,19 @@ def send_screen_click(
         else MOUSEEVENTF_LEFTUP
     )
 
-    guard_duration_ms = max(
-        250,
-        pre_click_ms
-        + post_up_ms
-        + click_total * down_ms
+    timing_budget_ms = (
+        pre_click_ms + post_up_ms + click_total * down_ms
         + max(0, click_total - 1) * double_gap_ms
-        + 120,
     )
+    # Normal Unity profiles need under 200 ms for a double-click. Reject
+    # extreme finite values before arming a mouse guard lasting minutes.
+    if timing_budget_ms > 1000:
+        logger.warning(
+            "Clic synthetique refuse: temporisation excessive budget=%s ms.",
+            timing_budget_ms,
+        )
+        return False
+    guard_duration_ms = max(250, timing_budget_ms + 120)
     button_is_down = False
     synthetic_guard.begin(guard_duration_ms)
     try:
