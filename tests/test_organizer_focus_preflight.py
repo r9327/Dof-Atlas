@@ -154,6 +154,52 @@ class OrganizerFocusPreflightTests(unittest.TestCase):
             "%s activation stoppee avant manipulation hwnd=%s", "Miroir", 101,
         )
 
+    def test_stop_after_window_show_cannot_trigger_foreground_set(self) -> None:
+        win32gui = SimpleNamespace(
+            IsWindow=Mock(return_value=True),
+            IsIconic=Mock(return_value=False),
+            GetForegroundWindow=Mock(return_value=999),
+            ShowWindow=Mock(),
+            BringWindowToTop=Mock(),
+            SetWindowPos=Mock(),
+            SetActiveWindow=Mock(),
+            SetForegroundWindow=Mock(),
+            SetFocus=Mock(),
+        )
+        process = SimpleNamespace(
+            GetWindowThreadProcessId=Mock(return_value=(2, 999)),
+            AttachThreadInput=Mock(return_value=True),
+        )
+        modules = {
+            "win32con": SimpleNamespace(
+                SW_SHOW=5, SW_RESTORE=9, HWND_TOP=0,
+                SWP_NOMOVE=2, SWP_NOSIZE=1, SWP_SHOWWINDOW=0x40,
+            ),
+            "win32gui": win32gui,
+            "win32api": SimpleNamespace(GetCurrentThreadId=Mock(return_value=1)),
+            "win32process": process,
+        }
+        stops = iter((False, False, False, True))
+        logger = Mock()
+        with (
+            patch.object(focus.os, "name", "nt"),
+            patch.dict("sys.modules", modules),
+            patch.object(focus, "is_unity_window", return_value=True),
+            patch.object(focus, "foreground_window", return_value=999),
+        ):
+            self.assertFalse(focus.activate_window(
+                101, 0, 1, 0, logger, "Miroir",
+                should_stop=lambda: next(stops),
+            ))
+        win32gui.ShowWindow.assert_called_once_with(101, 5)
+        win32gui.SetWindowPos.assert_called_once()
+        win32gui.SetActiveWindow.assert_not_called()
+        win32gui.SetForegroundWindow.assert_not_called()
+        self.assertEqual(process.AttachThreadInput.call_count, 2)
+        logger.info.assert_any_call(
+            "%s activation stoppee avant foreground hwnd=%s", "Miroir", 101,
+        )
+
     def test_stop_before_last_resort_topmost_prevents_focus_override(self) -> None:
         win32gui = SimpleNamespace(
             IsWindow=Mock(return_value=True),
