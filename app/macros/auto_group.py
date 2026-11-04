@@ -96,8 +96,8 @@ class AutoGroupMacro:
                 ):
                     if self.runtime.macro_lock.should_stop():
                         return
-                    if (foreground_window() != int(sender.handle)
-                            or not is_dofus_unity_process(sender.handle)):
+                    if (not is_dofus_unity_process(sender.handle)
+                            or foreground_window() != int(sender.handle)):
                         focus_lost = True
                         self.runtime.logger.warning(
                             "Auto groupe interrompu: focus ou identité DOFUS perdus après échec du chat hwnd=%s",
