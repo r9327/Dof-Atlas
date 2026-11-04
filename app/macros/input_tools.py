@@ -196,13 +196,14 @@ def clipboard_text(text: str, logger: Logger):
     try:
         import win32clipboard
         import win32con
-    except Exception:
+    except Exception as exc:
         logger.error("Clipboard indisponible: pywin32 introuvable.")
-        yield
-        return
+        # Sending Ctrl+V now would paste unrelated user clipboard data.
+        raise OSError("Clipboard indisponible pour la commande macro") from exc
 
     previous = ""
     captured = False
+    prepared = False
     for _attempt in range(10):
         try:
             win32clipboard.OpenClipboard()
@@ -217,9 +218,13 @@ def clipboard_text(text: str, logger: Logger):
                 win32clipboard.SetClipboardText(str(text), win32con.CF_UNICODETEXT)
             finally:
                 win32clipboard.CloseClipboard()
+            prepared = True
             break
         except Exception:
             time.sleep(0.03)
+    if not prepared:
+        logger.error("Clipboard: impossible de preparer la commande apres 10 tentatives.")
+        raise OSError("Clipboard non prepare: commande macro annulee")
     try:
         yield
     finally:
