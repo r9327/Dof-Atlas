@@ -221,8 +221,12 @@ def send_screen_click(
             ):
                 return False
 
-        if post_up_ms > 0 and wait_ms(post_up_ms, should_stop):
-            return False
+        if post_up_ms > 0:
+            # The final UP has already been accepted by Windows. A Stop
+            # during this optional settle delay must not turn a completed
+            # click into a failed send (and risk a duplicate retry).
+            # wait_ms still returns promptly when Stop is requested.
+            wait_ms(post_up_ms, should_stop)
 
         return ok
     except Exception:
