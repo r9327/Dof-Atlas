@@ -122,6 +122,7 @@ class AutoGroupMacro:
                         return
         finally:
             stopped = self.runtime.macro_lock.should_stop()
+            restore_skipped = False
             if not stopped and not focus_lost and not is_dofus_unity_process(sender.handle):
                 focus_lost = True
                 self.runtime.logger.warning(
@@ -133,28 +134,30 @@ class AutoGroupMacro:
                 not self.runtime.macro_lock.should_stop() and not focus_lost
                 and self.runtime.settings.primary_handle != favorite_at_start
             ):
-                focus_lost = True
+                restore_skipped = True
                 self.runtime.logger.info(
                     "Auto groupe: retour favori ignoré, favori changé."
                 )
             # The user may focus another application AFTER the last
             # invitation, or while clipboard restoration is finishing.
             # A completed SendInput is not permission to steal focus back.
-            if not self.runtime.macro_lock.should_stop() and not focus_lost and eligible:
+            if (not self.runtime.macro_lock.should_stop() and not focus_lost
+                    and not restore_skipped and eligible):
                 try:
                     if foreground_window() != int(sender.handle):
-                        focus_lost = True
+                        restore_skipped = True
                         self.runtime.logger.info(
                             "Auto groupe: retour favori ignoré, focus utilisateur changé."
                         )
                 except Exception:
-                    focus_lost = True
+                    restore_skipped = True
                     self.runtime.logger.exception(
                         "Auto groupe: focus illisible avant retour au favori."
                     )
             # Stop may be requested while identity is being checked.
             # Never restore focus on a stale snapshot of the stop flag.
-            if not self.runtime.macro_lock.should_stop() and not focus_lost:
+            if (not self.runtime.macro_lock.should_stop() and not focus_lost
+                    and not restore_skipped):
                 try:
                     self.runtime.switch_character.restore_preferred_client("Auto groupe")
                 except Exception:
