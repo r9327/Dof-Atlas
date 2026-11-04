@@ -101,10 +101,18 @@ def activate_window(
                     exc,
                 )
 
-    hwnd = int(hwnd)
-    attempt_count = max(1, int(attempts))
-    settle_ms = max(0, int(settle_ms))
-    retry_ms = max(0, int(retry_ms))
+    try:
+        hwnd = int(hwnd)
+        attempt_count = max(1, int(attempts))
+        settle_ms = max(0, int(settle_ms))
+        retry_ms = max(0, int(retry_ms))
+    except (TypeError, ValueError, OverflowError):
+        # A corrupted timing profile must not tear down a macro worker
+        # outside its cancellable SendInput/Stop cleanup path.
+        logger.warning(
+            "%s activation refusee: temporisations ou hwnd invalides.", action_label,
+        )
+        return False
 
     try:
         if not win32gui.IsWindow(hwnd):
