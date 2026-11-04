@@ -118,6 +118,9 @@ class MirrorInputMacro:
                 if runtime.macro_lock.should_stop() or not self._still_current(source, handles):
                     break
                 if not is_dofus_unity_process(hwnd):
+                    # A validated roster can change identity during fan-out.
+                    # Never restore cursor/focus on a partial unsafe delivery.
+                    delivery_failed = True
                     runtime.logger.warning("Miroir %s: HWND non DOFUS, annulation.", kind)
                     break
                 focus_started_at = perf_counter()
@@ -178,6 +181,7 @@ class MirrorInputMacro:
                         point = client_point_from_ratio(hwnd, xr, yr)
                         screen = client_to_screen(hwnd, *point) if point is not None else None
                         if screen is None:
+                            delivery_failed = True
                             runtime.logger.warning("Miroir molette: coordonnées indisponibles.")
                             break
                         runtime.synthetic_guard.begin(200)
