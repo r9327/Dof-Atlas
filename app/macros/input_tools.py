@@ -207,6 +207,7 @@ def clipboard_text(text: str, logger: Logger):
     clipboard_seq = 0
     for _attempt in range(10):
         unsupported_formats = False
+        recovery_failed = False
         try:
             win32clipboard.OpenClipboard()
             try:
@@ -254,6 +255,7 @@ def clipboard_text(text: str, logger: Logger):
                                 previous, win32con.CF_UNICODETEXT,
                             )
                         except Exception:
+                            recovery_failed = True
                             logger.exception(
                                 "Clipboard: reparation immediate apres echec SetClipboardText impossible."
                             )
@@ -275,6 +277,10 @@ def clipboard_text(text: str, logger: Logger):
                 # Unsupported formats cannot be recovered by retrying.
                 logger.warning("Clipboard conservé: %s", exc)
                 raise OSError("Clipboard multi-format non restaure: commande annulee") from exc
+            if recovery_failed:
+                # Never retry over an already damaged clipboard snapshot:
+                # it would be misread as empty and the backup would be lost.
+                raise OSError("Clipboard non restaure apres echec de preparation") from exc
             time.sleep(0.03)
     if not prepared:
         logger.error("Clipboard: impossible de preparer la commande apres 10 tentatives.")
