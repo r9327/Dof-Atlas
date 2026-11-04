@@ -1825,5 +1825,89 @@ class OrganizerMirrorIntegrationTests(unittest.TestCase):
 
 
 
+    def test_mirror_late_process_replacement_never_restores_favorite(self):
+        from app.macros.mirror_input import MirrorInputMacro
+
+        runtime = self._runtime(primary=101, handles=(101, 202))
+        runtime.settings.timings = SimpleNamespace(
+            switch_background_pre_click_ms=0, activate_attempts=1,
+            activate_retry_ms=0, switch_click_down_ms=10, switch_client_settle_ms=0,
+        )
+        runtime.macro_lock.should_stop.return_value = False
+        with (
+            patch("app.macros.mirror_input.is_dofus_unity_process",
+                  side_effect=[True, True, False]),
+            patch("app.macros.mirror_input.activate_window") as activate,
+            patch("app.macros.input_tools.key_down") as key_down,
+        ):
+            MirrorInputMacro(runtime)._run("key", 65, 101, (101, 202))
+        activate.assert_not_called()
+        key_down.assert_not_called()
+        runtime.switch_character.restore_preferred_client.assert_not_called()
+        runtime._emit_status.assert_called_once_with(
+            "Miroir Clavier incomplet : 0/2 fenêtres."
+        )
+        runtime.input_state.end_mouse_block.assert_called_once()
+
+    def test_mirror_partial_wheel_process_replacement_does_not_restore_pointer(self):
+        from app.macros.mirror_input import MirrorInputMacro
+
+        runtime = self._runtime(primary=101, handles=(101, 202))
+        runtime.settings.timings = SimpleNamespace(
+            switch_background_pre_click_ms=0, activate_attempts=1,
+            activate_retry_ms=0, switch_client_settle_ms=0,
+        )
+        runtime.macro_lock.should_stop.return_value = False
+        runtime.macro_lock.wait.return_value = False
+        with (
+            patch("app.macros.mirror_input.is_dofus_unity_process",
+                  side_effect=[True, True, True, False]),
+            patch("app.macros.mirror_input.current_cursor_pos", return_value=(12, 14)),
+            patch("app.macros.mirror_input.activate_window", return_value=True),
+            patch("app.macros.mirror_input.foreground_window", return_value=101),
+            patch("app.macros.mirror_input.client_point_from_ratio", return_value=(8, 9)),
+            patch("app.macros.mirror_input.client_to_screen", return_value=(80, 90)),
+            patch("app.macros.mirror_input.set_cursor_pos") as move,
+            patch("app.macros.mirror_input.send_screen_wheel", return_value=True) as send,
+        ):
+            MirrorInputMacro(runtime)._run(
+                "wheel", (120, False, 0.5, 0.5), 101, (101, 202),
+            )
+        send.assert_called_once_with(120, horizontal=False)
+        move.assert_called_once_with(80, 90)
+        runtime.switch_character.restore_preferred_client.assert_not_called()
+        runtime._emit_status.assert_called_once_with(
+            "Miroir Molette incomplet : 1/2 fenêtres."
+        )
+
+    def test_mirror_wheel_missing_target_coordinates_never_restores_pointer(self):
+        from app.macros.mirror_input import MirrorInputMacro
+
+        runtime = self._runtime(primary=101, handles=(101, 202))
+        runtime.settings.timings = SimpleNamespace(
+            switch_background_pre_click_ms=0, activate_attempts=1,
+            activate_retry_ms=0, switch_client_settle_ms=0,
+        )
+        runtime.macro_lock.should_stop.return_value = False
+        with (
+            patch("app.macros.mirror_input.is_dofus_unity_process", return_value=True),
+            patch("app.macros.mirror_input.current_cursor_pos", return_value=(12, 14)),
+            patch("app.macros.mirror_input.activate_window", return_value=True),
+            patch("app.macros.mirror_input.foreground_window", return_value=101),
+            patch("app.macros.mirror_input.client_point_from_ratio", return_value=None),
+            patch("app.macros.mirror_input.set_cursor_pos") as move,
+            patch("app.macros.mirror_input.send_screen_wheel") as send,
+        ):
+            MirrorInputMacro(runtime)._run(
+                "wheel", (120, False, 0.5, 0.5), 101, (101, 202),
+            )
+        move.assert_not_called()
+        send.assert_not_called()
+        runtime.switch_character.restore_preferred_client.assert_not_called()
+        runtime._emit_status.assert_called_once_with(
+            "Miroir Molette incomplet : 0/2 fenêtres."
+        )
+
+
 if __name__ == "__main__":
     unittest.main()
