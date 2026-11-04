@@ -857,3 +857,42 @@ exact, mesures CPU/RAM/p50/p95/p99 et recette DOFUS Unity Windows 2/4/6/8.
 Tests présents ne signifie pas PASS. **MIRR-007 PENDING** : gestes physiques
 sous worker occupé, modification structurelle à réserver à Graphify exact-SHA
 et Doctor `--structural`. PR Draft, non certifiée, ne pas fusionner.
+
+## Lot 04/11 — protection du focus Win32 et Stop du worker
+
+Le propriétaire existant `app/windows/focus.py` a été renforcé **sans
+refonte ni nouvel appel réseau**. La sélection du favori et les workers
+Macro/Miroir gardent leurs APIs et timers actuels.
+
+- **Stop précoce** : aucune vérification ou manipulation native de fenêtre
+  quand le Stop est déjà demandé. Même une cible déjà au premier plan ne
+  doit pas renvoyer un faux succès après l'arrêt.
+- **Focus déjà actif** : à la fin du délai Unity, le premier plan est
+  recontrôlé ; un autre programme sélectionné pendant la pause annule
+  l'activation plutôt que de faire croire au caller qu'elle réussit.
+- **Activation native** : gardes Stop après l'attachement des threads
+  (qui sont détachés par le `finally`), après `SetWindowPos`, juste avant
+  `SetForegroundWindow`, avant le repli temporaire `HWND_TOPMOST`, et
+  avant de retourner un succès. La règle s'applique aux 2-8 comptes.
+- **Valeurs corrompues** : `NaN`, `inf` et `None` dans les timings
+  d'activation retournent un refus diagnostiqué, sans faire planter un
+  worker. Le nombre de tentatives est borné à **8**, valeur maximale des
+  profils rapides/normaux vérifiés dans `app/core/settings.py`, pour éviter
+  des boucles massives sur un profil mal formé.
+
+**12 tests unitaires ciblés ajoutés** dans
+`tests/test_organizer_focus_preflight.py` : Stop initial, focus volé
+pendant settle, Stop tardif, timings invalides, énorme nombre de tentatives,
+libération des threads, omission des fallbacks topmost, et chemin court
+sur 2/4/6/8 fenêtres déjà actives. **Tests écrits, pas exécutés** : aucune
+preuve Windows/DOFUS ni mesure de latence réelle n'est disponible ici.
+
+**Évidence toujours manquante :** Doctor `agent plan/check/validate`,
+Graphify exact SHA, `git diff --check` local, PySide6/Windows réel,
+recette 2/4/6/8, mesures CPU/RAM/p50/p95/p99 et CI finale. Ces scénarios
+ne valent ni `VALIDATED` ni `CERTIFIED`.
+
+**MIRR-007 reste un P0 ouvert** : le hook souris peut encore consommer
+un geste physique quand le worker est déjà occupé. L'architecture des
+hooks ne peut pas être modifiée sans Graphify au SHA exact et route
+Doctor `--structural`. Cette PR reste Draft, non fusionnable.
