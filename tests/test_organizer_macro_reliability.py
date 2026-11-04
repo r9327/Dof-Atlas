@@ -349,6 +349,98 @@ class OrganizerMacroReliabilityTests(unittest.TestCase):
         )
         self.assertIsNone(runtime._pending_physical_switch)
 
+    def test_busy_switch_does_not_consume_foreign_application_click(self) -> None:
+        from app.core.runtime_state import AtlasRuntime
+
+        runtime = _runtime()
+        runtime._running = True
+        runtime._admin_ok = True
+        runtime.settings.macro_mode = "macro"
+        runtime.settings.clients = [
+            SimpleNamespace(handle=101), SimpleNamespace(handle=202),
+        ]
+        runtime.macro_lock.active_label = "Switch clique"
+        runtime.registry.switch_action_for_pressed_keys.return_value = (
+            SimpleNamespace(action_id="switch_click", payload={"click_count": 1})
+        )
+        with (
+            patch("app.windows.unity_windows.foreground_window",
+                  return_value=999),
+            patch("app.windows.unity_windows.find_known_client_from_point") as point,
+            patch("app.macros.mirror_plan.is_dofus_unity_process") as probe,
+        ):
+            self.assertFalse(
+                AtlasRuntime._handle_mouse_click(runtime, "Left", 40, 60)
+            )
+        point.assert_not_called()
+        probe.assert_not_called()
+        runtime.switch_click.run_async.assert_not_called()
+
+    def test_busy_switch_refuses_wrong_window_under_pointer(self) -> None:
+        from app.core.runtime_state import AtlasRuntime
+
+        runtime = _runtime()
+        runtime._running = True
+        runtime._admin_ok = True
+        runtime.settings.macro_mode = "macro"
+        runtime.settings.clients = [
+            SimpleNamespace(handle=101), SimpleNamespace(handle=202),
+        ]
+        runtime.macro_lock.active_label = "Switch clique"
+        runtime.registry.switch_action_for_pressed_keys.return_value = (
+            SimpleNamespace(action_id="switch_click", payload={"click_count": 1})
+        )
+        with (
+            patch("app.windows.unity_windows.foreground_window", return_value=101),
+            patch("app.windows.unity_windows.find_known_client_from_point",
+                  return_value=888),
+            patch("app.macros.mirror_plan.is_dofus_unity_process") as probe,
+        ):
+            self.assertFalse(
+                AtlasRuntime._handle_mouse_click(runtime, "Right", 40, 60)
+            )
+        probe.assert_not_called()
+        runtime.switch_click.run_async.assert_not_called()
+
+    def test_busy_switch_consumes_only_trusted_focused_game_window(self) -> None:
+        from app.core.runtime_state import AtlasRuntime
+
+        for trusted in (True, False):
+            with self.subTest(trusted=trusted):
+                runtime = _runtime()
+                runtime._running = True
+                runtime._admin_ok = True
+                runtime.settings.macro_mode = "macro"
+                runtime.settings.clients = [
+                    SimpleNamespace(handle=101), SimpleNamespace(handle=202),
+                ]
+                runtime.macro_lock.active_label = "Switch clique"
+                runtime.registry.switch_action_for_pressed_keys.return_value = (
+                    SimpleNamespace(
+                        action_id="switch_click", payload={"click_count": 1},
+                    )
+                )
+                with (
+                    patch("app.windows.unity_windows.foreground_window",
+                          return_value=101),
+                    patch("app.windows.unity_windows.find_known_client_from_point",
+                          return_value=101),
+                    patch("app.macros.mirror_plan.is_dofus_unity_process",
+                          return_value=trusted),
+                ):
+                    self.assertEqual(
+                        AtlasRuntime._handle_mouse_click(
+                            runtime, "Left", 40, 60,
+                        ),
+                        trusted,
+                    )
+                runtime.switch_click.run_async.assert_not_called()
+                if trusted:
+                    runtime.logger.debug.assert_any_call(
+                        "Clic switch consomme: macro deja active=%s button=%s x=%s y=%s",
+                        "Switch clique", "Left", 40, 60,
+                    )
+
     def test_native_overlapping_downs_cancel_replay_without_swallowing_either(self) -> None:
         from app.core.runtime_state import AtlasRuntime
         from app.macros.switch_click import SwitchClickContext
