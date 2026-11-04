@@ -87,12 +87,16 @@ class ZaapMacro:
                     continue
                 # A focus change after activation must not send the chat
                 # command to Organizer, another game window, or a browser.
-                if (foreground_window() != int(client.handle)
-                        or not is_dofus_unity_process(client.handle)):
+                # Make foreground the last native check. A process probe
+                # can yield focus during a multi-window Unity sequence.
+                if (not is_dofus_unity_process(client.handle)
+                        or foreground_window() != int(client.handle)):
                     focus_lost = True
                     self.runtime.logger.warning(
                         "Auto zaap interrompu: focus ou identité DOFUS perdus avant commande hwnd=%s", client.handle
                     )
+                    return
+                if self.runtime.macro_lock.should_stop():
                     return
                 if not send_chat_command(
                     command,
