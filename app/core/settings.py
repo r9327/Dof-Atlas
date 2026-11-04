@@ -178,7 +178,7 @@ def read_json_file(path: Path, default: Any) -> Any:
 def int_value(value: Any, default: int = 0) -> int:
     try:
         return int(value)
-    except (TypeError, ValueError):
+    except (TypeError, ValueError, OverflowError):
         return default
 
 
