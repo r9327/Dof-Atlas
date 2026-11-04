@@ -540,7 +540,21 @@ class SwitchClickMacro:
             if original_cursor is not None and restore_after_worker:
                 try:
                     set_cursor_pos(*original_cursor)
+                    # Cursor restoration may invoke native hooks and change
+                    # the foreground. Never steal another app's focus.
+                    if (
+                        mirror_target_handles is not None
+                        and last_activated_hwnd is not None
+                        and foreground_window() != last_activated_hwnd
+                    ):
+                        restore_after_worker = False
+                        self.runtime.logger.info(
+                            "%s: retour au favori ignoré, focus changé après curseur.",
+                            action_label,
+                        )
                 except Exception:
+                    if mirror_target_handles is not None:
+                        restore_after_worker = False
                     self.runtime.logger.exception(
                         "%s restauration curseur impossible.",
                         action_label,
