@@ -239,21 +239,6 @@ class OrganizerHotkeysMixin:
                 self.render_sessions()
                 self.status_callback("Touche déjà utilisée par Switch Déplacement.")
                 return
-            if hotkey == self.hotkey_label(KEY_NEXT_CHARACTER_HOTKEY):
-                self.update_global_buttons()
-                self.render_sessions()
-                self.status_callback("Raccourci déjà utilisé par Personnage suivant.")
-                return
-            if hotkey == self.hotkey_label(KEY_NEXT_CHARACTER_HOTKEY):
-                self.update_global_buttons()
-                self.render_sessions()
-                self.status_callback("Raccourci déjà utilisé par Personnage suivant.")
-                return
-            if hotkey == self.hotkey_label(KEY_NEXT_CHARACTER_HOTKEY):
-                self.update_global_buttons()
-                self.render_sessions()
-                self.status_callback("Raccourci déjà utilisé par Personnage suivant.")
-                return
             owner = self.client_hotkey_owner(hotkey)
             existing_global = self.global_hotkey_owner(hotkey)
             if existing_global and existing_global != "Sélection personnage":
@@ -296,6 +281,11 @@ class OrganizerHotkeysMixin:
                 self.render_sessions()
                 self.status_callback("Raccourci déjà utilisé par Stop script.")
                 return
+            if hotkey == self.hotkey_label(KEY_NEXT_CHARACTER_HOTKEY):
+                self.update_global_buttons()
+                self.render_sessions()
+                self.status_callback("Raccourci déjà utilisé par Personnage suivant.")
+                return
             owner = self.client_hotkey_owner(hotkey)
             if owner:
                 self.update_global_buttons()
@@ -314,6 +304,11 @@ class OrganizerHotkeysMixin:
                 self.render_sessions()
                 self.status_callback("Raccourci déjà utilisé par Stop script.")
                 return
+            if hotkey == self.hotkey_label(KEY_NEXT_CHARACTER_HOTKEY):
+                self.update_global_buttons()
+                self.render_sessions()
+                self.status_callback("Raccourci déjà utilisé par Personnage suivant.")
+                return
             owner = self.client_hotkey_owner(hotkey)
             if owner:
                 self.update_global_buttons()
@@ -331,6 +326,11 @@ class OrganizerHotkeysMixin:
                 self.update_global_buttons()
                 self.render_sessions()
                 self.status_callback("Raccourci déjà utilisé par Switch clic x2.")
+                return
+            if hotkey == self.hotkey_label(KEY_NEXT_CHARACTER_HOTKEY):
+                self.update_global_buttons()
+                self.render_sessions()
+                self.status_callback("Raccourci déjà utilisé par Personnage suivant.")
                 return
             owner = self.client_hotkey_owner(hotkey)
             if owner:

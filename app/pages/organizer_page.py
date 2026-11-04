@@ -136,6 +136,7 @@ class OrganizerPage(
         parent: QWidget | None = None,
         sessions_changed_callback=None,
         active_session_callback=None,
+        next_character_callback=None,
     ) -> None:
         super().__init__(parent)
         self.setObjectName("organizerPage")
@@ -147,6 +148,7 @@ class OrganizerPage(
         self.launch_zaap_callback = launch_zaap_callback
         self.sessions_changed_callback = sessions_changed_callback
         self.active_session_callback = active_session_callback
+        self.next_character_callback = next_character_callback
         self._last_notified_session_signature: tuple[tuple[int, str, int, int], ...] | None = None
         self._sessions_render_dirty = False
         self.release_retry_index = 0
@@ -259,7 +261,7 @@ class OrganizerPage(
         self.radial_select_button.clicked.connect(lambda: self.begin_capture("radial"))
         self.radial_hotkey_button.clicked.connect(lambda: self.begin_capture("radial"))
         self.radial_clear.clicked.connect(lambda: self.clear_global_hotkey(KEY_RADIAL_HOTKEY))
-        self.next_character.clicked.connect(lambda: self.begin_capture("next_character"))
+        self.next_character.clicked.connect(self.activate_next_character)
         self.next_character_hotkey_button.clicked.connect(lambda: self.begin_capture("next_character"))
         self.next_character_clear.clicked.connect(lambda: self.clear_global_hotkey(KEY_NEXT_CHARACTER_HOTKEY))
         self.reload_runtime_button.clicked.connect(self.reload_runtime)
@@ -272,6 +274,14 @@ class OrganizerPage(
         self.switch_fake.clicked.connect(self.launch_auto_group)
         self.script_speed_normal.clicked.connect(lambda: self.set_script_speed("normal"))
         self.script_speed_fast.clicked.connect(lambda: self.set_script_speed("rapide"))
+
+    def activate_next_character(self) -> None:
+        """Use the existing app runtime; the shortcut badge configures the key."""
+        callback = self.next_character_callback
+        if callable(callback):
+            callback()
+        else:
+            self.status_callback("Personnage suivant : runtime indisponible.")
 
     def ensure_radial_participants(self) -> None:
         # Snapshot the current Organizer roster when the shortcut is first

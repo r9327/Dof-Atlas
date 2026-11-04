@@ -23,6 +23,56 @@ def settings(count: int, *, hotkey: str = "F9", mode: str = "macro"):
 
 
 class NextCharacterTests(unittest.TestCase):
+    def test_organizer_button_invokes_existing_runtime_action(self):
+        from app.pages.organizer_page import OrganizerPage
+        owner = SimpleNamespace(
+            next_character_callback=Mock(), status_callback=Mock(),
+        )
+        OrganizerPage.activate_next_character(owner)
+        owner.next_character_callback.assert_called_once_with()
+        owner.status_callback.assert_not_called()
+
+    def test_organizer_button_without_runtime_reports_unavailable(self):
+        from app.pages.organizer_page import OrganizerPage
+        owner = SimpleNamespace(
+            next_character_callback=None, status_callback=Mock(),
+        )
+        OrganizerPage.activate_next_character(owner)
+        owner.status_callback.assert_called_once()
+
+    def test_organizer_refuses_next_hotkey_conflicts_with_existing_actions(self):
+        from app.pages.organizer.organizer_hotkeys import OrganizerHotkeysMixin
+        from app.constants import KEY_NEXT_CHARACTER_HOTKEY, KEY_CLICK_HOTKEY
+        from app.pages.organizer import organizer_hotkeys as hooks
+
+        class Fake(OrganizerHotkeysMixin):
+            def __init__(self, kind):
+                self.capture_target = {"kind": kind, "slot": None}
+                self.profiles = {KEY_NEXT_CHARACTER_HOTKEY: "F9", KEY_CLICK_HOTKEY: "F3"}
+                self.status_callback = Mock()
+                self.update_global_buttons = Mock()
+                self.render_sessions = Mock()
+                self.save_profiles = Mock()
+                self.export_client_index = Mock()
+                self.reload_runtime_callback = Mock()
+                self.client_hotkey_owner = Mock(return_value="")
+                self._capture_timer = None
+
+            def hotkey_label(self, key):
+                return self.profiles.get(key, "")
+
+        for kind in ("click", "double_click", "stop_script", "radial"):
+            with self.subTest(kind=kind):
+                owner = Fake(kind)
+                event = Mock()
+                event.key.return_value = 0x78
+                event.modifiers.return_value = 0
+                with patch.object(hooks, "key_sequence_to_hotkey", return_value="F9"):
+                    owner.keyPressEvent(event)
+                self.assertEqual(owner.profiles[KEY_NEXT_CHARACTER_HOTKEY], "F9")
+                owner.save_profiles.assert_not_called()
+                owner.status_callback.assert_called_once()
+
     def test_hotkey_registered_only_in_macro_with_enabled_setting(self):
         config = settings(4)
         actions = build_hotkey_actions(config)

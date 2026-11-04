@@ -2037,6 +2037,7 @@ class AtlasWindow(QMainWindow):
             self.launch_zaap,
             sessions_changed_callback=self.refresh_global_characters,
             active_session_callback=self.on_organizer_active_window,
+            next_character_callback=self.launch_next_character,
         )
 
     def create_craft_page(self) -> QWidget:
@@ -2721,6 +2722,12 @@ class AtlasWindow(QMainWindow):
         self._ensure_runtime().launch_zaap(
             text, click_position=click_position, click_ratios=click_ratios
         )
+
+    def launch_next_character(self) -> None:
+        """Direct Organizer action: reuse the live character-switching worker."""
+        runtime = self._ensure_runtime()
+        if not runtime.switch_character.activate_next():
+            self.set_status("Personnage suivant : aucune autre fenêtre DOFUS activable.")
 
     def launch_auto_group(self, invite_entries: list[dict[str, object]]) -> None:
         self.reload_runtime()
