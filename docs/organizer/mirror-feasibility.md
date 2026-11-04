@@ -974,3 +974,24 @@ exact-SHA et Doctor `--structural`.
 **NOT_RUN :** Doctor `agent plan/check/validate`, Graphify exact-SHA,
 Python/PySide6, Windows réel, mesures CPU/RAM et latence 2/4/6/8, et
 certification CI. Verdict : **CHANGES REQUIRED**, Draft, non fusionnée.
+
+## Lot ciblé 04/11 — authentification du changement de personnage (PR #325)
+
+- `SwitchCharacterMacro.activate_by_index` refuse désormais une fenêtre Unity
+  étrangère même si son HWND correspond à un ancien slot Organizer : contrôle
+  de l'exécutable DOFUS avant toute activation et nouveau contrôle après
+  `activate_window`, avant publication de `active_client_handle`.
+- `restore_preferred_client` applique le même contrôle avant la restitution
+  au favori et juste avant de mettre à jour le handle actif. Cette correction
+  réutilise l'authentification canonique `is_dofus_unity_process` de
+  `app/macros/mirror_plan.py`, sans moteur supplémentaire.
+- Quatre tests mock explicitent les refus d'un processus Unity étranger
+  et d'un HWND réaffecté en cours d'activation ; les tests existants de
+  raccourcis, de focus et de Stop sont adaptés au nouveau garde.
+- **État : code et tests ajoutés, non exécutés.** L'agent n'a pas de
+  checkout du dépôt et PySide6/Windows ne sont pas disponibles dans son
+  environnement. Atlas Doctor, Graphify exact-SHA, suite Python, mesures
+  de latence et recette DOFUS Unity restent NOT_RUN. La PR reste Draft.
+- **P0 MIRR-007 inchangé :** gestes physiques perdus pendant un worker
+  occupé. Ne pas modifier structurellement le hook sans Graphify exact-SHA,
+  préflight Doctor `--structural` et scénarios Windows correspondants.
