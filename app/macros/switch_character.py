@@ -35,9 +35,11 @@ class SwitchCharacterMacro:
             # before this worker receives its turn. Never activate a stale
             # HWND merely because it still belongs to a DOFUS process.
             def target_is_current() -> bool:
-                return any(
+                # A new settings object is a new Organizer generation even
+                # when the same slot/handle were reloaded from disk.
+                return self.runtime.settings is settings and any(
                     client.index == target.index and client.handle == target.handle
-                    for client in self.runtime.settings.clients
+                    for client in settings.clients
                 )
 
             if not target_is_current():
@@ -59,7 +61,10 @@ class SwitchCharacterMacro:
                 settings.timings.activate_retry_ms,
                 self.runtime.logger,
                 "Activation client",
-                should_stop=self.runtime.macro_lock.should_stop,
+                should_stop=lambda: (
+                    self.runtime.macro_lock.should_stop()
+                    or self.runtime.settings is not settings
+                ),
             ):
                 # Activation success is not enough: the slot may have been
                 # reassigned, or Stop/focus theft may have arrived in the meantime.
@@ -200,6 +205,7 @@ class SwitchCharacterMacro:
         )
 
     def restore_preferred_client(self, action_label: str) -> None:
+        settings = self.runtime.settings
         if self.runtime.macro_lock.should_stop():
             self.runtime.logger.info(
                 "%s retour ignore: stop urgence actif.",
@@ -210,6 +216,11 @@ class SwitchCharacterMacro:
         # preferred_client() already checks DOFUS identity; keep a second
         # independent check only AFTER activation, to catch HWND reuse.
         preferred = self.preferred_client()
+        if self.runtime.settings is not settings:
+            self.runtime.logger.info(
+                "%s retour ignore: profil Organizer remplacé.", action_label,
+            )
+            return
         if preferred is None:
             self.runtime.logger.info(
                 "%s retour ignore: favori/premier indisponible.",
@@ -217,7 +228,7 @@ class SwitchCharacterMacro:
             )
             return
 
-        timings = self.runtime.settings.timings
+        timings = settings.timings
         if activate_window(
             preferred.handle,
             timings.click_focus_settle_ms,
@@ -225,9 +236,12 @@ class SwitchCharacterMacro:
             timings.activate_retry_ms,
             self.runtime.logger,
             f"{action_label} retour",
-            should_stop=self.runtime.macro_lock.should_stop,
+            should_stop=lambda: (
+                self.runtime.macro_lock.should_stop()
+                or self.runtime.settings is not settings
+            ),
         ):
-            if self.runtime.macro_lock.should_stop():
+            if self.runtime.macro_lock.should_stop() or self.runtime.settings is not settings:
                 return
             # The preferred client can change while a Win32 activation is
             # settling. A former favorite must never become the new active

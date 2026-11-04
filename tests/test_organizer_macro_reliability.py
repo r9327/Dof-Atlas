@@ -2265,6 +2265,89 @@ class OrganizerMacroReliabilityTests(unittest.TestCase):
             runtime._spawn_macro.call_args.args[1]()
         self.assertEqual(runtime.active_client_handle, 202)
 
+    def test_queued_character_activation_rejects_identical_profile_reload_2_to_8(self) -> None:
+        for count in (2, 4, 6, 8):
+            with self.subTest(count=count):
+                runtime = _runtime()
+                clients = [
+                    SimpleNamespace(index=i, handle=101 + i, display_name=f"Player{i}")
+                    for i in range(1, count + 1)
+                ]
+                runtime.settings.clients = clients
+                runtime.active_client_handle = 101
+                runtime._spawn_macro.return_value = True
+                self.assertTrue(SwitchCharacterMacro(runtime).activate_by_index(1))
+                former = runtime.settings
+                newer = Mock()
+                newer.clients = list(clients)
+                newer.timings = former.timings
+                runtime.settings = newer
+                with (
+                    patch("app.macros.switch_character.is_unity_window") as unity,
+                    patch("app.macros.switch_character.activate_window") as activate,
+                ):
+                    runtime._spawn_macro.call_args.args[1]()
+                unity.assert_not_called()
+                activate.assert_not_called()
+                self.assertEqual(runtime.active_client_handle, 101)
+
+    def test_character_activation_rejects_identical_profile_reload_during_focus(self) -> None:
+        runtime = _runtime()
+        runtime.settings.clients = [
+            SimpleNamespace(index=1, handle=202, display_name="Friend"),
+        ]
+        runtime.active_client_handle = 101
+        runtime._spawn_macro.return_value = True
+        self.assertTrue(SwitchCharacterMacro(runtime).activate_by_index(1))
+
+        def activate_and_reload(*_args, **kwargs):
+            old = runtime.settings
+            newer = Mock()
+            newer.clients = list(old.clients)
+            newer.timings = old.timings
+            runtime.settings = newer
+            self.assertTrue(kwargs["should_stop"]())
+            return True
+
+        with (
+            patch("app.macros.switch_character.is_unity_window", return_value=True),
+            patch("app.macros.switch_character.is_dofus_unity_process", return_value=True),
+            patch("app.macros.switch_character.activate_window",
+                  side_effect=activate_and_reload) as activate,
+            patch("app.macros.switch_character.foreground_window") as foreground,
+        ):
+            runtime._spawn_macro.call_args.args[1]()
+        activate.assert_called_once()
+        foreground.assert_not_called()
+        self.assertEqual(runtime.active_client_handle, 101)
+
+    def test_favorite_restore_rejects_identical_profile_reload_during_activation(self) -> None:
+        runtime = _runtime()
+        runtime.active_client_handle = 101
+        runtime.settings.preferred_client.return_value = SimpleNamespace(handle=202)
+
+        def activate_and_reload(*_args, **kwargs):
+            old = runtime.settings
+            newer = Mock()
+            newer.clients = old.clients
+            newer.timings = old.timings
+            newer.preferred_client.return_value = SimpleNamespace(handle=202)
+            runtime.settings = newer
+            self.assertTrue(kwargs["should_stop"]())
+            return True
+
+        with (
+            patch("app.macros.switch_character.is_unity_window", return_value=True),
+            patch("app.macros.switch_character.is_dofus_unity_process", return_value=True),
+            patch("app.macros.switch_character.activate_window",
+                  side_effect=activate_and_reload) as activate,
+            patch("app.macros.switch_character.foreground_window") as foreground,
+        ):
+            SwitchCharacterMacro(runtime).restore_preferred_client("Macro")
+        activate.assert_called_once()
+        foreground.assert_not_called()
+        self.assertEqual(runtime.active_client_handle, 101)
+
     def test_shortcut_rejects_foreign_unity_process_without_activation(self) -> None:
         runtime = _runtime()
         runtime.settings.clients = [
