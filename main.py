@@ -2718,7 +2718,11 @@ class AtlasWindow(QMainWindow):
         self._ensure_runtime().launch_guide_travel(text, tuple(character_keys or ()))
 
     def launch_zaap(self, text: str, click_position=None, click_ratios=None) -> bool:
+        if self.quit_requested or self._background_services_stopped:
+            return False
         self.reload_runtime()
+        if self.quit_requested or self._background_services_stopped:
+            return False
         return bool(self._ensure_runtime().launch_zaap(
             text, click_position=click_position, click_ratios=click_ratios,
         ))
@@ -2730,7 +2734,11 @@ class AtlasWindow(QMainWindow):
             self.set_status("Personnage suivant : aucune autre fenêtre DOFUS activable.")
 
     def launch_auto_group(self, invite_entries: list[dict[str, object]]) -> bool:
+        if self.quit_requested or self._background_services_stopped:
+            return False
         self.reload_runtime()
+        if self.quit_requested or self._background_services_stopped:
+            return False
         return bool(self._ensure_runtime().launch_auto_group(invite_entries))
 
     def _shutdown_background_services(self) -> None:

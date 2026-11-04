@@ -100,6 +100,64 @@ class OrganizerLayoutTests(unittest.TestCase):
         page.export_client_index.assert_not_called()
         self.assertIn("aucun personnage", page.status_callback.call_args.args[0])
 
+    def test_organizer_auto_group_and_zaap_cannot_launch_during_shutdown(self):
+        from unittest.mock import Mock
+        import main as app_main
+
+        fake = Mock()
+        fake.quit_requested = False
+        fake._background_services_stopped = False
+        for method, args in (
+            (app_main.AtlasWindow.launch_auto_group,
+             ([{"name": "Friend", "handle": 202}],)),
+            (app_main.AtlasWindow.launch_zaap, ("/zaap 1,2",)),
+        ):
+            for stopped_attr in ("quit_requested", "_background_services_stopped"):
+                with self.subTest(method=method.__name__, attr=stopped_attr):
+                    setattr(fake, stopped_attr, True)
+                    self.assertFalse(method(fake, *args))
+                    fake.reload_runtime.assert_not_called()
+                    fake._ensure_runtime.assert_not_called()
+                    setattr(fake, stopped_attr, False)
+
+    def test_organizer_macro_launch_aborts_if_shutdown_begins_during_reload(self):
+        from unittest.mock import Mock
+        import main as app_main
+
+        for method, args in (
+            (app_main.AtlasWindow.launch_auto_group,
+             ([{"name": "Friend", "handle": 202}],)),
+            (app_main.AtlasWindow.launch_zaap, ("/zaap 1,2",)),
+        ):
+            with self.subTest(method=method.__name__):
+                fake = Mock()
+                fake.quit_requested = False
+                fake._background_services_stopped = False
+                fake.reload_runtime.side_effect = lambda: setattr(
+                    fake, "_background_services_stopped", True,
+                )
+                self.assertFalse(method(fake, *args))
+                fake.reload_runtime.assert_called_once()
+                fake._ensure_runtime.assert_not_called()
+
+    def test_organizer_macro_launch_still_returns_runtime_acceptance(self):
+        from unittest.mock import Mock
+        import main as app_main
+
+        for accepted in (True, False):
+            with self.subTest(accepted=accepted):
+                fake = Mock()
+                fake.quit_requested = False
+                fake._background_services_stopped = False
+                fake._ensure_runtime.return_value.launch_auto_group.return_value = accepted
+                fake._ensure_runtime.return_value.launch_zaap.return_value = accepted
+                self.assertIs(app_main.AtlasWindow.launch_auto_group(
+                    fake, [{"name": "Friend", "handle": 202}],
+                ), accepted)
+                self.assertIs(app_main.AtlasWindow.launch_zaap(
+                    fake, "/zaap 1,2",
+                ), accepted)
+
     def test_character_slots_panel_calculates_height_from_grid_geometry(self):
         refresh = QFrame()
         refresh.setFixedSize(32, organizer.BUTTON_HEIGHT)

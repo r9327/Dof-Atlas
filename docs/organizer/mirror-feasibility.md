@@ -1151,3 +1151,7 @@ Les envois réels restent séquentiels et soumis aux protections de focus/Stop. 
 Le worker émet un statut final dans l'interface (pas seulement un log) : `termine`, `partiel`, `interrompu` ou `ignore` avec le nombre de **commandes effectivement transmises** au moteur SendInput sur le nombre prévu. Les statuts d'absence de fenêtre, de commande invalide, de Stop initial ou d'activation impossible sont explicites. La mention « réception DOFUS non vérifiée » reste systématique : ni un test mock ni SendInput ne prouvent que le jeu a effectivement pris en compte l'invitation ou le zaap.
 
 Tests ciblés rédigés pour Auto-groupe/Zaap en 2, 4, 6 et 8 comptes, succès et échecs partiels, aucune cible, stop précoce et absence de vol de focus pour un seul compte. **Exécution NOT_RUN** ; livrable non certifié.
+
+### Arrêt de l'application entre le clic et le runtime (Auto-groupe et Zaap)
+
+Le chemin UI `AtlasWindow` vérifie `quit_requested` et `_background_services_stopped` **avant et après** le rechargement des sessions. Si la fermeture de l'application commence pendant celui-ci, le lancement Auto-groupe/Zaap retourne `False` et ne crée ni worker ni runtime. Tests ciblés sur les deux états de shutdown et sur le retour vrai/faux du runtime. Le Stop urgence actif continue de contrôler les travailleurs déjà lancés via `MacroLock.should_stop`. Tests non exécutés, PR Draft.
