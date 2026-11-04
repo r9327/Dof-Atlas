@@ -32,6 +32,7 @@ class OrganizerSendInputTests(unittest.TestCase):
     def test_clipboard_restore_never_swallows_chat_sendinput_failure(self) -> None:
         clipboard = Mock()
         clipboard.GetClipboardData.return_value = "previous text"
+        clipboard.EnumClipboardFormats.side_effect = [13, 0]
         with (
             patch.object(input_tools.os, "name", "nt"),
             patch.dict("sys.modules", {
@@ -53,6 +54,7 @@ class OrganizerSendInputTests(unittest.TestCase):
     def test_clipboard_restore_failure_keeps_original_send_error(self) -> None:
         clipboard = Mock()
         clipboard.GetClipboardData.return_value = "original"
+        clipboard.EnumClipboardFormats.side_effect = [13, 0]
         clipboard.OpenClipboard.side_effect = [
             None, *(OSError("clipboard locked") for _ in range(10)),
         ]
@@ -87,12 +89,54 @@ class OrganizerSendInputTests(unittest.TestCase):
             patch.object(input_tools.time, "sleep"),
             patch.object(input_tools, "press_key") as press,
         ):
-            with self.assertRaisesRegex(OSError, "Clipboard non prepare"):
+            with self.assertRaisesRegex(OSError, "Clipboard multi-format"):
                 input_tools.send_chat_command("/zaap 1,2", Mock())
-        self.assertEqual(clipboard.OpenClipboard.call_count, 10)
+        self.assertEqual(clipboard.OpenClipboard.call_count, 1)
         clipboard.EmptyClipboard.assert_not_called()
         clipboard.SetClipboardText.assert_not_called()
         press.assert_not_called()
+
+    def test_chat_rejects_rich_clipboard_even_with_unicode_text(self) -> None:
+        clipboard = Mock()
+        clipboard.GetClipboardData.return_value = "plain part of rich text"
+        clipboard.EnumClipboardFormats.side_effect = [13, 0xC001]  # registered HTML
+        logger = Mock()
+        with (
+            patch.object(input_tools.os, "name", "nt"),
+            patch.dict("sys.modules", {
+                "win32clipboard": clipboard,
+                "win32con": SimpleNamespace(CF_UNICODETEXT=13),
+            }),
+            patch.object(input_tools, "press_key") as press,
+        ):
+            with self.assertRaisesRegex(OSError, "Clipboard multi-format"):
+                input_tools.send_chat_command("/invite Friend", logger)
+        clipboard.EmptyClipboard.assert_not_called()
+        clipboard.SetClipboardText.assert_not_called()
+        logger.warning.assert_called_once()
+        press.assert_not_called()
+
+    def test_chat_accepts_plain_clipboard_with_standard_text_formats(self) -> None:
+        clipboard = Mock()
+        clipboard.GetClipboardData.return_value = "original"
+        clipboard.EnumClipboardFormats.side_effect = [1, 7, 13, 16, 0]
+        with (
+            patch.object(input_tools.os, "name", "nt"),
+            patch.dict("sys.modules", {
+                "win32clipboard": clipboard,
+                "win32con": SimpleNamespace(CF_UNICODETEXT=13),
+            }),
+            patch.object(input_tools, "replace_chat_text_with_clipboard",
+                         return_value=True),
+            patch.object(input_tools, "press_key") as press,
+        ):
+            self.assertTrue(input_tools.send_chat_command("/invite Friend", Mock()))
+        self.assertEqual(clipboard.EmptyClipboard.call_count, 2)
+        self.assertEqual(
+            clipboard.SetClipboardText.call_args_list,
+            [call("/invite Friend", 13), call("original", 13)],
+        )
+        press.assert_called_once_with("ENTER")
 
     def test_chat_accepts_truly_empty_clipboard_and_restores_empty_state(self) -> None:
         clipboard = Mock()
