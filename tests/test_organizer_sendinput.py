@@ -904,7 +904,10 @@ class OrganizerSendInputTests(unittest.TestCase):
                     )
 
     def test_invalid_or_infinite_client_hwnd_never_targets_unity(self) -> None:
-        for invalid in (float("inf"), float("nan"), None, object()):
+        for invalid in (
+            float("inf"), float("nan"), None, object(), False, True,
+            0, -1, 2**64, 101.0, 101.9, "101",
+        ):
             with self.subTest(handle=repr(invalid)):
                 with (
                     patch.object(clicks, "is_unity_window") as check,

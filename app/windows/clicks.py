@@ -275,9 +275,9 @@ def send_client_click(
     logger: Logger,
     should_stop: Callable[[], bool] | None = None,
 ) -> bool:
-    try:
-        hwnd = int(hwnd)
-    except (TypeError, ValueError, OverflowError):
+    # Never coerce bool, fraction, string, or an out-of-range HWND into a
+    # different real window. This is the final boundary before SendInput.
+    if type(hwnd) is not int or not 0 < hwnd <= (2**64 - 1):
         logger.info("Clic ignore: hwnd invalide=%r", hwnd)
         return False
 
