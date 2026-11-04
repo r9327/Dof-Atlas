@@ -192,6 +192,16 @@ class SwitchCharacterMacro:
         ):
             if self.runtime.macro_lock.should_stop():
                 return
+            # The preferred client can change while a Win32 activation is
+            # settling. A former favorite must never become the new active
+            # character just because its process is still DOFUS.
+            current_preferred = self.runtime.settings.preferred_client()
+            if (current_preferred is None
+                    or current_preferred.handle != preferred.handle):
+                self.runtime.logger.info(
+                    "%s retour non publié: favori modifié.", action_label,
+                )
+                return
             if (not is_dofus_unity_process(preferred.handle)
                 or foreground_window() != int(preferred.handle)):
                 self.runtime.logger.warning(
