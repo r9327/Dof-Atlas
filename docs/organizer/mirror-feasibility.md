@@ -388,3 +388,30 @@ et couvrir des séquences adversariales sur 2/4/6/8 comptes.
 autres fenêtres peut déplacer le focus au milieu d'un geste humain :
 rejouer ce geste plus tard sans contexte fiable serait plus dangereux
 que le supprimer. La faisabilité doit être établie sur Windows/Unity.
+
+
+## P0 — Résilience des diagnostics et arrêt du hook (04/11/2026)
+
+Deux protections locales sont maintenant en place, sans modification
+structurelle du dispatcher et sans file de replay supplémentaire :
+
+- **Arrêt Windows incomplet** : `stop_message_hook` peut revenir alors
+  que le thread de hook est encore vivant (la fonction conserve alors
+  `_thread`). Dans ce cas, les relâchements physiques réservés ne
+  sont plus vidés avant que le thread ne se termine : le `finally`
+  de `_run_hook` réalise le nettoyage final. Un warning signale
+  l'état encore actif.
+- **Diagnostic défaillant** : une exception dans
+  `_log_blocked_event` ne fait plus sortir le chemin
+  `InputState.is_mouse_blocked` en laissant passer un DOWN vers une
+  autre fenêtre. La paire `DOWN/UP` reste protégée et l'exception est
+  journalisée, sans remettre en cause l'ordre des contrôles.
+- Des tests mocks couvrent un arrêt de hook qui dépasse son délai et
+  une exception de journalisation sous blocage.
+
+Le problème fonctionnel plus large **MIRR-007** reste ouvert : les
+nouveaux clics physiques bloqués durant la diffusion ne sont pas
+automatiquement redistribués. Ni la télémétrie ni ces protections
+locales ne constituent une solution complète. Carte Graphify exacte,
+Doctor, exécution des tests Python et recette Windows/Unity restent
+**NOT_RUN**. Aucun verdict de certification n'est implicite.
