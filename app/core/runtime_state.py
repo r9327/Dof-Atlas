@@ -759,6 +759,10 @@ class AtlasRuntime:
             for hwnd in live_handles if hwnd != favorite.handle
         ):
             return False
+        # Do not swallow a physical DOWN for the old favorite if Organizer
+        # reloaded while Win32 was verifying the 2–8 client processes.
+        if self.settings is not settings:
+            return False
         destinations = mirror_delivery_targets(
             live_handles, live_handles, favorite.handle, source_was_consumed=True,
         )
