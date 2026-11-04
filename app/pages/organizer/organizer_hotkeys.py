@@ -9,6 +9,7 @@ from app.constants import (
     KEY_ORGANIZER_MACRO_MODE,
     KEY_DOUBLE_CLICK_HOTKEY,
     KEY_SCRIPT_SPEED,
+    KEY_SCRIPT_SPEED_SCHEMA,
     KEY_RADIAL_HOTKEY,
     KEY_NEXT_CHARACTER_HOTKEY,
     KEY_STOP_SCRIPT_HOTKEY,
@@ -17,6 +18,7 @@ from app.constants import (
     KEY_SWITCH_MOVEMENT,
 )
 from app.storage import invoke_compatible_callback, key_sequence_to_hotkey, profile_bool
+from app.core.settings import normalize_script_speed
 from .common import SESSION_SLOT_COUNT, client_slot_hotkey_key
 
 
@@ -104,17 +106,25 @@ class OrganizerHotkeysMixin:
         return ""
 
     def script_speed(self) -> str:
-        speed = str(self.profiles.get(KEY_SCRIPT_SPEED, "normal")).strip().casefold()
-        return "rapide" if speed in ("rapide", "fast") else "normal"
+        return normalize_script_speed(
+            self.profiles.get(KEY_SCRIPT_SPEED, "normal"),
+            legacy=str(self.profiles.get(KEY_SCRIPT_SPEED_SCHEMA, "1")) != "2",
+        )
 
     def set_script_speed(self, speed: str) -> None:
-        resolved = "rapide" if str(speed).strip().casefold() in ("rapide", "fast") else "normal"
+        resolved = normalize_script_speed(speed)
         self.profiles[KEY_SCRIPT_SPEED] = resolved
+        # Persist the schema together with the chosen preset. Otherwise a
+        # future reload would reinterpret a v2 Rapide as legacy v1 Rapide.
+        self.profiles[KEY_SCRIPT_SPEED_SCHEMA] = 2
         self.save_profiles(self.profiles)
         self.export_client_index()
         self.update_script_speed_buttons()
         self.reload_runtime_callback()
-        label = "Rapide" if resolved == "rapide" else "Normal"
+        label = {
+            "classique": "Classique", "normal": "Normal",
+            "rapide": "Rapide", "instantane": "Instantané",
+        }[resolved]
         self.status_callback(f"Vitesse script : {label}.")
 
     def stop_script(self) -> None:

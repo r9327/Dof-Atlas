@@ -72,6 +72,7 @@ KEY_SESSION_ORDER = "__ordre_personnages__"
 KEY_TOPMOST = "__fenetre_premier_plan__"
 KEY_ORGANIZER_MACRO_MODE = "__organizer_macro_mode"
 KEY_SCRIPT_SPEED = "__vitesse_script__"
+KEY_SCRIPT_SPEED_SCHEMA = "__vitesse_script_schema__"
 KEY_DEBUG_MODE = "__mode_debug_runtime__"
 KEY_SELECTED_CHARACTER = "__personnage_selectionne_ui__"
 

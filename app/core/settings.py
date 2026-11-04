@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from pathlib import Path
 from typing import Any
 
@@ -13,6 +13,7 @@ from app.constants import (
     KEY_PRIMARY_WINDOW,
     KEY_SCRIPT_SPEED,
     KEY_STOP_SCRIPT_HOTKEY,
+    KEY_SCRIPT_SPEED_SCHEMA,
     KEY_NEXT_CHARACTER_HOTKEY,
     KEY_SWITCH_CHARACTER,
     KEY_SWITCH_CLICK,
@@ -140,12 +141,54 @@ class AtlasSettings:
         return self.clients[0] if self.clients else None
 
 
-def normalize_script_speed(value: Any) -> str:
-    return "rapide" if str(value or "").strip().casefold() in {"rapide", "fast"} else "normal"
+def normalize_script_speed(value: Any, *, legacy: bool = False) -> str:
+    """Normalize persisted v1 speed names without speeding up old profiles.
+
+    Legacy Normal was deliberately conservative -> Classique.
+    Legacy Rapide used the v1 fast preset -> new Normal (same timings).
+    Versioned v2 labels are unambiguous and do not need conversion.
+    """
+    name = str(value or "").strip().casefold()
+    if legacy and name in {"rapide", "fast"}:
+        return "normal"
+    if legacy and name in {"normal", ""}:
+        return "classique"
+    if name in {"instantane", "instantané", "instant"}:
+        return "instantane"
+    if name in {"rapide", "fast"}:
+        return "rapide"
+    if name == "normal":
+        return "normal"
+    return "classique"
 
 
 def timings_for_speed(speed: str) -> MacroTimings:
-    if normalize_script_speed(speed) == "rapide":
+    mode = normalize_script_speed(speed)
+    if mode == "instantane":
+        # Unity click reliability remains protected by sender-side 35ms DOWN
+        # and 50ms hover floors even in this optional fastest preset.
+        return replace(
+            timings_for_speed("normal"),
+            click_focus_settle_ms=4, input_double_gap_ms=4,
+            travel_focus_settle_ms=6, activate_min_settle_ms=5,
+            activate_retry_ms=8, activate_attempts=5,
+            switch_background_pre_click_ms=10, switch_background_post_up_ms=2,
+            auto_group_chat_open_ms=25, auto_group_key_step_ms=8,
+            auto_group_paste_settle_ms=25, auto_group_invite_gap_ms=65,
+            movement_key_hold_ms=16,
+        )
+    if mode == "rapide":
+        return replace(
+            timings_for_speed("normal"),
+            click_focus_settle_ms=6, input_double_gap_ms=4,
+            travel_focus_settle_ms=10, activate_min_settle_ms=6,
+            activate_retry_ms=10, activate_attempts=6,
+            switch_background_pre_click_ms=14, switch_background_post_up_ms=3,
+            auto_group_chat_open_ms=35, auto_group_key_step_ms=10,
+            auto_group_paste_settle_ms=35, auto_group_invite_gap_ms=100,
+            movement_key_hold_ms=17,
+        )
+    if mode == "normal":
         return MacroTimings(
             click_focus_settle_ms=8,
             input_click_down_ms=1,
@@ -239,7 +282,13 @@ def load_settings() -> AtlasSettings:
     if not isinstance(global_hotkeys, dict):
         global_hotkeys = {}
 
-    speed = normalize_script_speed(global_hotkeys.get("script_speed", profile.get(KEY_SCRIPT_SPEED, "normal")))
+    speed_schema = int_value(
+        global_hotkeys.get("script_speed_schema", profile.get(KEY_SCRIPT_SPEED_SCHEMA)), 1,
+    )
+    speed = normalize_script_speed(
+        global_hotkeys.get("script_speed", profile.get(KEY_SCRIPT_SPEED, "normal")),
+        legacy=speed_schema < 2,
+    )
     clients: list[AtlasClient] = []
     for raw in index_payload.get("clients", []):
         if not isinstance(raw, dict):

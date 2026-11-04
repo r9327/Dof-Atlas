@@ -211,8 +211,10 @@ class OrganizerUiMixin:
         self.reload_runtime_button = AtlasButton("Relancer scripts")
         self.debug_button = AtlasButton("Debug")
         self.script_speed_title = QLabel("Vitesse script")
+        self.script_speed_legacy = AtlasButton("Classique")
         self.script_speed_normal = AtlasButton("Normal")
         self.script_speed_fast = AtlasButton("Rapide")
+        self.script_speed_instant = AtlasButton("Instantané")
         self.stop_script_button = AtlasButton("Stop urgence")
         self.stop_script_hotkey_button = AtlasButton("")
         self.stop_script_clear = AtlasButton("x")
@@ -262,7 +264,10 @@ class OrganizerUiMixin:
         self.script_speed_title.setFixedSize(stop_size.width(), 0)
         self.script_speed_title.setAlignment(Qt.AlignLeft | Qt.AlignVCenter)
         self.script_speed_title.hide()
-        for button in (self.script_speed_normal, self.script_speed_fast):
+        for button in (
+            self.script_speed_legacy, self.script_speed_normal,
+            self.script_speed_fast, self.script_speed_instant,
+        ):
             button.setFixedSize(control_size)
             button.setSizePolicy(QSizePolicy.Fixed, QSizePolicy.Fixed)
             button.setObjectName("segmentedButton")
@@ -271,8 +276,10 @@ class OrganizerUiMixin:
         self.stop_script_hotkey_button.setToolTip("Raccourci Stop script")
         self.reload_runtime_button.setToolTip("Relancer les raccourcis et le runtime Python")
         self.debug_button.setToolTip("Activer les logs runtime detailles")
-        self.script_speed_normal.setToolTip("Vitesse script normale")
-        self.script_speed_fast.setToolTip("Vitesse script rapide")
+        self.script_speed_legacy.setToolTip("Classique : anciens délais Normal conservés")
+        self.script_speed_normal.setToolTip("Normal : anciens délais Rapide conservés")
+        self.script_speed_fast.setToolTip("Rapide : délais réduits, à confirmer sur DOFUS Unity")
+        self.script_speed_instant.setToolTip("Instantané : délais minimaux, fiabilité à tester en jeu")
         self.next_character.setToolTip("Configurer le raccourci de personnage suivant")
         self.next_character_hotkey_button.setToolTip("Raccourci personnage suivant")
         self.stop_script_button.setToolTip("Arreter immediatement les macros Python")
@@ -381,8 +388,10 @@ class OrganizerUiMixin:
         quick_grid.setVerticalSpacing(8)
         quick_grid.addWidget(self.switch_fake, 0, 0)
         quick_grid.addWidget(macro_cell(self.radial_select_button, self.radial_hotkey_button, self.radial_clear), 0, 1)
-        quick_grid.addWidget(self.script_speed_normal, 1, 0)
-        quick_grid.addWidget(self.script_speed_fast, 1, 1)
+        quick_grid.addWidget(self.script_speed_legacy, 1, 0)
+        quick_grid.addWidget(self.script_speed_normal, 1, 1)
+        quick_grid.addWidget(self.script_speed_fast, 2, 0)
+        quick_grid.addWidget(self.script_speed_instant, 2, 1)
         stop_row = QWidget()
         stop_row.setFixedSize(panel_inner_width, STOP_BUTTON_HEIGHT)
         stop_row.setSizePolicy(QSizePolicy.Fixed, QSizePolicy.Fixed)
@@ -396,6 +405,7 @@ class OrganizerUiMixin:
             quick_grid.setColumnStretch(column, 0)
         quick_grid.setRowMinimumHeight(0, BUTTON_HEIGHT)
         quick_grid.setRowMinimumHeight(1, BUTTON_HEIGHT)
+        quick_grid.setRowMinimumHeight(2, BUTTON_HEIGHT)
         quick_layout.addWidget(quick_grid_host, alignment=Qt.AlignLeft)
 
         self.controls_panel = QFrame()
@@ -531,7 +541,12 @@ class OrganizerUiMixin:
 
     def update_script_speed_buttons(self) -> None:
         speed = self.script_speed()
-        for button, value in ((self.script_speed_normal, "normal"), (self.script_speed_fast, "rapide")):
+        for button, value in (
+            (self.script_speed_legacy, "classique"),
+            (self.script_speed_normal, "normal"),
+            (self.script_speed_fast, "rapide"),
+            (self.script_speed_instant, "instantane"),
+        ):
             button.setObjectName("segmentedButtonActive" if speed == value else "segmentedButton")
             self.restyle_button(button)
 

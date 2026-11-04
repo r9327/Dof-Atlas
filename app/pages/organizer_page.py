@@ -272,8 +272,10 @@ class OrganizerPage(
         self.switch_double_click.clicked.connect(lambda: self.toggle_profile_bool(KEY_SWITCH_DOUBLE_CLICK))
         self.switch_movement.clicked.connect(lambda: self.toggle_profile_bool(KEY_SWITCH_MOVEMENT))
         self.switch_fake.clicked.connect(self.launch_auto_group)
+        self.script_speed_legacy.clicked.connect(lambda: self.set_script_speed("classique"))
         self.script_speed_normal.clicked.connect(lambda: self.set_script_speed("normal"))
         self.script_speed_fast.clicked.connect(lambda: self.set_script_speed("rapide"))
+        self.script_speed_instant.clicked.connect(lambda: self.set_script_speed("instantane"))
 
     def activate_next_character(self) -> None:
         """Use the existing app runtime; the shortcut badge configures the key."""

@@ -1074,3 +1074,10 @@ ou de geste garanti en conditions réelles.
 avec le blocage global souris actif peuvent encore être interceptés.
 Ne pas refactorer `app/input/mouse_hooks.py` sans graphe Graphify
 du SHA exact et préflight Doctor structurel. La PR reste Draft.
+
+## Lot fonctionnel 04/11 — vitesses Classique / Normal / Rapide / Instantané
+
+- Le contrat ATMC-002/MIRR-017 utilise les presets réels du runtime, pas un simple changement de libellé. L'ancien **Normal** devient **Classique** (délais inchangés) et l'ancien **Rapide** devient **Normal** (délais inchangés). Les nouveaux **Rapide** et **Instantané** réduisent des attentes identifiées dans le moteur partagé ; des minima de maintien/survol restent appliqués par le sender.
+- Le schéma de vitesse v2 est exporté avec `client_index.json` et `.ini`; les profils v1 non migrés sont lus sans accélération silencieuse. Dès que l'utilisateur choisit un mode, le profil et le marqueur de schéma sont sauvegardés ensemble.
+- Les quatre boutons sont dans la carte Actions rapides, utilisent la classe `segmentedButton`/`segmentedButtonActive` commune, et déclenchent un rechargement du runtime.
+- Les tests couvrent la migration, la persistance, l'ordre des délais, les modes et la compatibilité de chargement. **NOT_RUN** : tests PySide6/Windows, Doctor, Graphify, mesures CPU/RAM et ressenti réel DOFUS. En particulier, Rapide et Instantané ne sont PAS certifiés fiables sur 2/4/6/8 comptes. La PR reste Draft.
