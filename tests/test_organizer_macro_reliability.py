@@ -1314,7 +1314,7 @@ class OrganizerMacroReliabilityTests(unittest.TestCase):
                 ]
                 with (
                     patch("app.macros.direction.foreground_window",
-                          side_effect=[handles[0], *handles]),
+                          side_effect=[handles[0], *handles, handles[-1]]),
                     patch("app.macros.direction.is_unity_window", return_value=True),
                     patch("app.macros.direction.is_dofus_unity_process", return_value=True),
                     patch("app.macros.direction.activate_window", return_value=True),
