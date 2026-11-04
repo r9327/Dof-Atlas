@@ -76,6 +76,7 @@ class DirectionMacro:
                         client.handle,
                     )
         finally:
+            restore_skipped = False
             if (not self.runtime.macro_lock.should_stop() and not focus_lost
                     and not is_dofus_unity_process(source)):
                 focus_lost = True
@@ -88,7 +89,7 @@ class DirectionMacro:
                 not self.runtime.macro_lock.should_stop() and not focus_lost
                 and self.runtime.settings.primary_handle != favorite_at_start
             ):
-                focus_lost = True
+                restore_skipped = True
                 self.runtime.logger.info(
                     "Switch deplacement: retour favori ignoré, favori changé."
                 )
@@ -96,20 +97,21 @@ class DirectionMacro:
             # does not authorize bringing DOFUS back after user focus theft.
             if (
                 not self.runtime.macro_lock.should_stop() and not focus_lost
-                and last_activated_hwnd is not None
+                and not restore_skipped and last_activated_hwnd is not None
             ):
                 try:
                     if foreground_window() != last_activated_hwnd:
-                        focus_lost = True
+                        restore_skipped = True
                         self.runtime.logger.info(
                             "Switch deplacement: retour favori ignoré, focus utilisateur changé."
                         )
                 except Exception:
-                    focus_lost = True
+                    restore_skipped = True
                     self.runtime.logger.exception(
                         "Switch deplacement: focus illisible avant retour au favori."
                     )
-            if not self.runtime.macro_lock.should_stop() and not focus_lost:
+            if (not self.runtime.macro_lock.should_stop() and not focus_lost
+                    and not restore_skipped):
                 try:
                     self.runtime.switch_character.restore_preferred_client("Switch deplacement")
                 except Exception:
