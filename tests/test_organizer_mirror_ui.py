@@ -490,7 +490,67 @@ class OrganizerMirrorIntegrationTests(unittest.TestCase):
         runtime.switch_click.run_async.assert_called_once_with(
             "Left", 12, 28, 1, "Miroir", exact_source_handle=101,
             mirror_target_handles=(101, 202, 303),
+            expected_profile=runtime.settings,
         )
+
+    def test_mirror_click_rejects_profile_reload_between_snapshot_and_dispatch(self):
+        for count in (2, 4, 6, 8):
+            with self.subTest(clients=count):
+                handles = tuple(range(101, 101 + count))
+                runtime = self._runtime(primary=handles[-1], handles=handles)
+                old = runtime.settings
+
+                def reload_after_targets(*args, **kwargs):
+                    from app.macros.mirror_plan import mirror_delivery_targets
+                    destinations = mirror_delivery_targets(*args, **kwargs)
+                    runtime.settings = SimpleNamespace(
+                        macro_mode=old.macro_mode,
+                        primary_handle=old.primary_handle,
+                        clients=old.clients,
+                        timings=old.timings,
+                    )
+                    return destinations
+
+                with (
+                    patch("app.windows.unity_windows.is_unity_window", return_value=True),
+                    patch("app.macros.mirror_plan.is_dofus_unity_process",
+                          return_value=True),
+                    patch("app.windows.unity_windows.foreground_window",
+                          return_value=handles[-1]),
+                    patch("app.windows.unity_windows.find_known_client_from_point",
+                          return_value=handles[-1]),
+                    patch("app.macros.mirror_plan.mirror_delivery_targets",
+                          side_effect=reload_after_targets),
+                ):
+                    # No click is consumed if an identical-looking profile was
+                    # replaced after native HWND authentication.
+                    self.assertFalse(AtlasRuntime._handle_mirror_click(
+                        runtime, "Left", 20, 25,
+                    ))
+                runtime.switch_click.run_async.assert_not_called()
+
+    def test_click_sender_refuses_stale_generation_before_context_capture(self):
+        from app.macros.switch_click import SwitchClickMacro
+
+        for count in (2, 4, 6, 8):
+            with self.subTest(clients=count):
+                handles = tuple(range(101, 101 + count))
+                runtime = self._runtime(primary=handles[0], handles=handles)
+                old = runtime.settings
+                runtime.settings = SimpleNamespace(
+                    macro_mode=old.macro_mode,
+                    primary_handle=old.primary_handle,
+                    clients=old.clients,
+                    timings=old.timings,
+                )
+                sender = SwitchClickMacro(runtime)
+                with patch.object(sender, "_capture_trigger_context") as capture:
+                    self.assertFalse(sender.run_async(
+                        "left", 20, 25, 1, "Miroir",
+                        expected_profile=old,
+                    ))
+                capture.assert_not_called()
+                runtime._spawn_macro.assert_not_called()
 
     def test_invalid_key_callback_never_scans_foreground_or_roster(self):
         runtime = self._runtime()
@@ -600,6 +660,7 @@ class OrganizerMirrorIntegrationTests(unittest.TestCase):
                 runtime.switch_click.run_async.assert_called_once_with(
                     "Left", 20, 25, 1, "Miroir",
                     exact_source_handle=source, mirror_target_handles=ordered,
+                    expected_profile=runtime.settings,
                 )
 
     def test_foreign_input_never_scans_unrelated_unity_sessions(self):

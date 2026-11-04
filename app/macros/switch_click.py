@@ -53,8 +53,14 @@ class SwitchClickMacro:
         mirror_target_handles: tuple[int, ...] | None = None,
         captured_context: SwitchClickContext | None = None,
         physical_source_delivered: bool = False,
+        expected_profile: object | None = None,
     ) -> bool:
         settings_at_dispatch = self.runtime.settings
+        if expected_profile is not None and settings_at_dispatch is not expected_profile:
+            self.runtime.logger.info(
+                "%s annulé: profil Organizer remplacé avant capture.", action_label,
+            )
+            return False
         normalized_button = str(button or "").strip().casefold()
         if normalized_button not in {"left", "right"}:
             self.runtime.logger.warning(

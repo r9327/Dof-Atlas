@@ -1247,6 +1247,7 @@ class OrganizerMacroReliabilityTests(unittest.TestCase):
         runtime.switch_click.run_async.assert_called_once_with(
             "Left", 150, 160, 1, "Switch clique",
             captured_context=context, physical_source_delivered=True,
+            expected_profile=runtime.settings,
         )
         self.assertIsNone(runtime._pending_physical_switch)
 
@@ -1646,6 +1647,47 @@ class OrganizerMacroReliabilityTests(unittest.TestCase):
                 with patch("app.windows.unity_windows.foreground_window", return_value=101):
                     self.assertTrue(AtlasRuntime._handle_mouse_release(runtime, "Left", 20, 40))
                 runtime.switch_click.run_async.assert_not_called()
+
+    def test_native_source_release_preserves_up_after_probe_profile_reload(self):
+        from time import monotonic
+        from app.core.runtime_state import AtlasRuntime
+        from app.macros.switch_click import SwitchClickContext
+
+        for count in (2, 4, 6, 8):
+            with self.subTest(clients=count):
+                runtime = _runtime()
+                runtime._running = True
+                runtime._admin_ok = True
+                runtime.settings.macro_mode = "macro"
+                runtime.settings.clients = [
+                    SimpleNamespace(handle=101 + i) for i in range(count)
+                ]
+                runtime.macro_lock.active_label = ""
+                old = runtime.settings
+                runtime._pending_physical_switch = (
+                    "Left", 20, 40, 1, "Switch clique",
+                    SwitchClickContext(101, 12, 18, 0.5, 0.5, "cursor"),
+                    monotonic(), old,
+                )
+                def reload_at_identity(_hwnd):
+                    runtime.settings = Mock()
+                    runtime.settings.macro_mode = "macro"
+                    runtime.settings.clients = old.clients
+                    return True
+                with (
+                    patch("app.windows.unity_windows.foreground_window",
+                          return_value=101),
+                    patch("app.macros.mirror_plan.is_dofus_unity_process",
+                          side_effect=reload_at_identity),
+                ):
+                    self.assertTrue(AtlasRuntime._handle_mouse_release(
+                        runtime, "Left", 20, 40,
+                    ))
+                runtime.switch_click.run_async.assert_not_called()
+                runtime.logger.debug.assert_any_call(
+                    "Clic natif non recopié: cause=%s button=%s",
+                    "profile_replaced", "Left",
+                )
 
     def test_native_source_replay_refusal_is_visible_but_up_passes_through(self) -> None:
         from time import monotonic

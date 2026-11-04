@@ -854,7 +854,7 @@ class AtlasRuntime:
         destinations = mirror_delivery_targets(
             live_handles, live_handles, favorite.handle, source_was_consumed=True,
         )
-        if len(destinations) < 2:
+        if len(destinations) < 2 or self.settings is not settings:
             return False
         if busy:
             # Direct calls remain fail-safe while a worker owns the pointer.
@@ -866,6 +866,7 @@ class AtlasRuntime:
                 button, screen_x, screen_y, 1, "Miroir",
                 exact_source_handle=favorite.handle,
                 mirror_target_handles=destinations,
+                expected_profile=settings,
             ))
         except Exception:
             self.logger.exception("Miroir: démarrage impossible.")
@@ -1033,16 +1034,26 @@ class AtlasRuntime:
                 reason = "focus_changed"
             elif not is_dofus_unity_process(context.source_hwnd):
                 reason = "source_untrusted"
+            elif (profile_at_press is not None
+                  and self.settings is not profile_at_press):
+                # A native process probe can release the GIL and reload the
+                # roster even after our first generation check.
+                reason = "profile_replaced"
             if reason is not None:
                 self.logger.debug(
                     "Clic natif non recopié: cause=%s button=%s",
                     reason, button,
                 )
                 return True
+            replay_kwargs = (
+                {"expected_profile": profile_at_press}
+                if profile_at_press is not None else {}
+            )
             if not self.switch_click.run_async(
                 button, down_x, down_y, count, label,
                 captured_context=context,
                 physical_source_delivered=True,
+                **replay_kwargs,
             ):
                 self.logger.warning(
                     "Clic natif non recopié: cause=dispatch_refused button=%s",
