@@ -257,7 +257,7 @@ def send_client_click(
 ) -> bool:
     try:
         hwnd = int(hwnd)
-    except (TypeError, ValueError):
+    except (TypeError, ValueError, OverflowError):
         logger.info("Clic ignore: hwnd invalide=%r", hwnd)
         return False
 
