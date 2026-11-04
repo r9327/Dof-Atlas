@@ -274,7 +274,7 @@ class OrganizerSendInputTests(unittest.TestCase):
         clipboard.GetClipboardSequenceNumber.return_value = 100
         clipboard.GetClipboardData.return_value = "old clipboard"
         clipboard.EnumClipboardFormats.side_effect = [13, 0]
-        clipboard.GetClipboardSequenceNumber.side_effect = [100, 101]
+        clipboard.GetClipboardSequenceNumber.side_effect = [100, 100, 101]
         logger = Mock()
         with (
             patch.object(input_tools.os, "name", "nt"),
@@ -299,7 +299,8 @@ class OrganizerSendInputTests(unittest.TestCase):
         clipboard.GetClipboardSequenceNumber.return_value = 100
         clipboard.GetClipboardData.return_value = "old clipboard"
         clipboard.EnumClipboardFormats.side_effect = [13, 0]
-        clipboard.GetClipboardSequenceNumber.side_effect = [100, 100]
+        # The same revision is checked at every chat keyboard boundary.
+        clipboard.GetClipboardSequenceNumber.return_value = 100
         with (
             patch.object(input_tools.os, "name", "nt"),
             patch.dict("sys.modules", {
@@ -336,8 +337,9 @@ class OrganizerSendInputTests(unittest.TestCase):
             calls.append("close")
 
         def read_revision():
-            self.assertTrue(opened[0], "Clipboard serial must be read under lock")
-            calls.append("serial")
+            # The prepare and restore snapshots occur inside the Win32
+            # lease; intermediate lightweight safety checks do not open it.
+            calls.append("serial_locked" if opened[0] else "serial_check")
             return 99
 
         clipboard.OpenClipboard.side_effect = open_clipboard
@@ -356,7 +358,8 @@ class OrganizerSendInputTests(unittest.TestCase):
             self.assertTrue(input_tools.send_chat_command("/invite Friend", Mock()))
         self.assertEqual(
             calls,
-            ["open", "serial", "close", "open", "serial", "close"],
+            ["open", "serial_locked", "close", "serial_check",
+             "open", "serial_locked", "close"],
         )
         self.assertFalse(opened[0])
         self.assertEqual(clipboard.EmptyClipboard.call_count, 2)
@@ -405,7 +408,7 @@ class OrganizerSendInputTests(unittest.TestCase):
         for count in (2, 4, 6, 8):
             with self.subTest(clients=count):
                 clipboard = Mock()
-        clipboard.GetClipboardSequenceNumber.return_value = 100
+                clipboard.GetClipboardSequenceNumber.return_value = 100
                 clipboard.GetClipboardData.return_value = "original"
                 clipboard.EnumClipboardFormats.side_effect = (
                     lambda previous: 13 if previous == 0 else 0
