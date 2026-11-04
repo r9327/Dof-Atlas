@@ -720,6 +720,11 @@ class AtlasRuntime:
         )
         from app.macros.mirror_plan import mirror_delivery_targets, is_dofus_unity_process
 
+        if (type(button) is not str or button.casefold() not in {"left", "right"}
+                or type(screen_x) is not int or type(screen_y) is not int
+                or not -(2**31) <= screen_x < 2**31
+                or not -(2**31) <= screen_y < 2**31):
+            return False
         settings = self.settings
         if not settings.primary_handle:
             return False
