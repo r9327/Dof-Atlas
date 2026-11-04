@@ -2,13 +2,48 @@ from __future__ import annotations
 
 import unittest
 from pathlib import Path
+from types import SimpleNamespace
 from unittest.mock import Mock, patch
 
 from app.constants import KEY_PRIMARY_WINDOW
+from app.core.settings import AtlasSettings
 from app.pages.organizer.character_sessions import CharacterSessionsMixin
 
 
 class OrganizerIdentityOverflowTests(unittest.TestCase):
+    def test_settings_client_lookup_skips_bad_hwnds_and_keeps_valid_slot(self):
+        valid = SimpleNamespace(handle=202, index=2)
+        owner = SimpleNamespace(clients=(
+            SimpleNamespace(handle=float("inf"), index=0),
+            SimpleNamespace(handle=None, index=1),
+            SimpleNamespace(handle=True, index=3),
+            SimpleNamespace(handle=202.5, index=4),
+            SimpleNamespace(handle="9" * 5000, index=5),
+            SimpleNamespace(handle=2**128, index=6),
+            valid,
+        ))
+        self.assertIs(AtlasSettings.client_by_handle(owner, 202), valid)
+        self.assertIs(AtlasSettings.client_by_handle(owner, "202"), valid)
+
+    def test_settings_client_lookup_rejects_invalid_requested_hwnd(self):
+        owner = SimpleNamespace(clients=(
+            SimpleNamespace(handle=101, index=1),
+        ))
+        for value in (
+            None, True, False, float("nan"), float("inf"), 101.5,
+            0, -1, "invalid", "9" * 5000, 2**128, object(),
+        ):
+            with self.subTest(handle=repr(value)[:36]):
+                self.assertIsNone(AtlasSettings.client_by_handle(owner, value))
+
+    def test_settings_client_lookup_never_converts_float_to_another_client(self):
+        client = SimpleNamespace(handle=101, index=1)
+        owner = SimpleNamespace(clients=(client,))
+        self.assertIsNone(AtlasSettings.client_by_handle(owner, 101.9))
+        self.assertIsNone(AtlasSettings.client_by_handle(
+            SimpleNamespace(clients=(SimpleNamespace(handle=101.9),)), 101,
+        ))
+
     def test_verified_identity_scan_skips_invalid_digit_strings(self):
         owner = CharacterSessionsMixin()
         owner.network_character_bindings_file = Path(
