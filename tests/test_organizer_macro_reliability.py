@@ -224,6 +224,114 @@ class OrganizerMacroReliabilityTests(unittest.TestCase):
                     "Switch: roster abandonné, profil Organizer remplacé pendant scan.",
                 )
 
+
+    def test_switch_hotkey_refuses_corrupt_target_hwnd_before_spawning(self):
+        for count in (2, 4, 6, 8):
+            with self.subTest(clients=count):
+                runtime = _runtime()
+                clients = [
+                    SimpleNamespace(index=i + 1, handle=101 + i, display_name=str(i))
+                    for i in range(count)
+                ]
+                runtime.settings.clients = clients
+                macro = SwitchCharacterMacro(runtime)
+                for bad in (101.0, 101.9, True, False, 2**64, -1, "101"):
+                    clients[0].handle = bad
+                    with self.subTest(hwnd=repr(bad)):
+                        self.assertFalse(macro.activate_by_index(1))
+                runtime._spawn_macro.assert_not_called()
+                clients[0].handle = 101
+                runtime._spawn_macro.return_value = True
+                self.assertTrue(macro.activate_by_index(1))
+                runtime._spawn_macro.assert_called_once()
+
+    def test_switch_hotkey_cannot_publish_old_client_after_final_win32_probe(self):
+        for count in (2, 4, 6, 8):
+            with self.subTest(clients=count):
+                runtime = _runtime()
+                runtime.active_client_handle = 101
+                clients = [
+                    SimpleNamespace(index=i + 1, handle=101 + i, display_name=str(i))
+                    for i in range(count)
+                ]
+                runtime.settings.clients = clients
+                runtime._spawn_macro.return_value = True
+                macro = SwitchCharacterMacro(runtime)
+                self.assertTrue(macro.activate_by_index(2))
+                worker = runtime._spawn_macro.call_args.args[1]
+                original = runtime.settings
+                calls = [0]
+
+                def native_probe(_hwnd):
+                    calls[0] += 1
+                    if calls[0] == 2:
+                        replacement = Mock()
+                        replacement.clients = clients
+                        replacement.timings = original.timings
+                        runtime.settings = replacement
+                    return True
+
+                with (
+                    patch("app.macros.switch_character.is_unity_window",
+                          return_value=True),
+                    patch("app.macros.switch_character.is_dofus_unity_process",
+                          side_effect=native_probe),
+                    patch("app.macros.switch_character.activate_window",
+                          return_value=True) as activate,
+                    patch("app.macros.switch_character.foreground_window",
+                          return_value=102),
+                ):
+                    worker()
+                activate.assert_called_once()
+                self.assertEqual(calls, [2])
+                self.assertEqual(runtime.active_client_handle, 101)
+                runtime.logger.info.assert_any_call(
+                    "Activation client non publiée: profil ou Stop changé après contrôle final.",
+                )
+
+    def test_preferred_restore_never_publishes_stale_hwnd_after_final_probe(self):
+        for count in (2, 4, 6, 8):
+            with self.subTest(clients=count):
+                runtime = _runtime()
+                runtime.active_client_handle = 999
+                preferred = SimpleNamespace(handle=101, display_name="favori")
+                original = runtime.settings
+                original.clients = [
+                    SimpleNamespace(index=i + 1, handle=101 + i)
+                    for i in range(count)
+                ]
+                original.preferred_client.return_value = preferred
+                runtime.macro_lock.should_stop.return_value = False
+                macro = SwitchCharacterMacro(runtime)
+                calls = [0]
+
+                def native_probe(_hwnd):
+                    calls[0] += 1
+                    if calls[0] == 2:
+                        replacement = Mock()
+                        replacement.clients = original.clients
+                        replacement.timings = original.timings
+                        runtime.settings = replacement
+                    return True
+
+                with (
+                    patch("app.macros.switch_character.is_unity_window",
+                          return_value=True),
+                    patch("app.macros.switch_character.is_dofus_unity_process",
+                          side_effect=native_probe),
+                    patch("app.macros.switch_character.activate_window",
+                          return_value=True),
+                    patch("app.macros.switch_character.foreground_window",
+                          return_value=101),
+                ):
+                    macro.restore_preferred_client("Switch clique")
+                self.assertEqual(calls, [2])
+                self.assertEqual(runtime.active_client_handle, 999)
+                runtime.logger.info.assert_any_call(
+                    "%s retour non publié: profil ou Stop changé après contrôle final.",
+                    "Switch clique",
+                )
+
     def test_character_hotkey_rejects_fractional_slot_without_spawning(self) -> None:
         runtime = _runtime()
         runtime.settings.clients = [

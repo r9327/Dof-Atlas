@@ -40,6 +40,15 @@ class SwitchCharacterMacro:
         if target is None:
             self.runtime.logger.info("Activation client ignoree: index introuvable=%s", client_index)
             return False
+        # Direct client hotkeys must use actual Win32 HWNDs. The lower-level
+        # Unity helper casts numbers, so reject fractional/bool aliases here
+        # before reserving MacroLock or starting a worker.
+        if (type(target.handle) is not int
+                or not 0 < target.handle <= (2**64 - 1)):
+            self.runtime.logger.info(
+                "Activation client ignorée: HWND invalide index=%s", requested_index,
+            )
+            return False
 
         def run() -> None:
             # Hotkey callbacks are asynchronous: a slot can be reassigned
@@ -98,6 +107,13 @@ class SwitchCharacterMacro:
                     self.runtime.logger.warning(
                         "Activation client ignoree: identite ou focus non confirme hwnd=%s",
                         target.handle,
+                    )
+                    return
+                # Either Win32 call can yield to a profile reload/Stop. Never
+                # publish a stale HWND after the final native identity probe.
+                if self.runtime.macro_lock.should_stop() or not target_is_current():
+                    self.runtime.logger.info(
+                        "Activation client non publiée: profil ou Stop changé après contrôle final.",
                     )
                     return
                 self.runtime.active_client_handle = target.handle
@@ -300,6 +316,13 @@ class SwitchCharacterMacro:
                 self.runtime.logger.warning(
                     "%s retour non confirmé: identite ou focus différent hwnd=%s",
                     action_label, preferred.handle,
+                )
+                return
+            if (self.runtime.macro_lock.should_stop()
+                    or self.runtime.settings is not settings):
+                self.runtime.logger.info(
+                    "%s retour non publié: profil ou Stop changé après contrôle final.",
+                    action_label,
                 )
                 return
             self.runtime.active_client_handle = preferred.handle
