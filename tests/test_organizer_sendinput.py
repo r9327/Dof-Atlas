@@ -265,6 +265,42 @@ class OrganizerSendInputTests(unittest.TestCase):
         clipboard.SetClipboardText.assert_called_once_with("/zaap 1,2", 13)
         press.assert_called_once_with("ENTER")
 
+    def test_chat_clipboard_cycles_two_four_six_eight_remain_balanced(self) -> None:
+        for count in (2, 4, 6, 8):
+            with self.subTest(clients=count):
+                clipboard = Mock()
+                clipboard.GetClipboardData.return_value = "original"
+                clipboard.EnumClipboardFormats.side_effect = (
+                    lambda previous: 13 if previous == 0 else 0
+                )
+                clipboard.GetClipboardSequenceNumber.return_value = 77
+                with (
+                    patch.object(input_tools.os, "name", "nt"),
+                    patch.dict("sys.modules", {
+                        "win32clipboard": clipboard,
+                        "win32con": SimpleNamespace(CF_UNICODETEXT=13),
+                    }),
+                    patch.object(input_tools, "replace_chat_text_with_clipboard",
+                                 return_value=True),
+                    patch.object(input_tools, "press_key") as press,
+                ):
+                    for index in range(count):
+                        self.assertTrue(input_tools.send_chat_command(
+                            f"/invite Player{index}", Mock(),
+                        ))
+                self.assertEqual(clipboard.OpenClipboard.call_count, 2 * count)
+                self.assertEqual(clipboard.CloseClipboard.call_count, 2 * count)
+                self.assertEqual(clipboard.EmptyClipboard.call_count, 2 * count)
+                self.assertEqual(
+                    clipboard.SetClipboardText.call_count, 2 * count,
+                )
+                for index in range(count):
+                    self.assertEqual(
+                        clipboard.SetClipboardText.call_args_list[2 * index:2 * index + 2],
+                        [call(f"/invite Player{index}", 13), call("original", 13)],
+                    )
+                self.assertEqual(press.call_count, count)
+
     def test_chat_never_pastes_user_clipboard_when_pywin32_missing(self) -> None:
         with (
             patch.object(input_tools.os, "name", "nt"),
