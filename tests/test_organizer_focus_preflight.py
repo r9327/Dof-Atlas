@@ -113,6 +113,47 @@ class OrganizerFocusPreflightTests(unittest.TestCase):
             "%s activation echec hwnd=%s foreground=%s", "Miroir", 101, 999,
         )
 
+    def test_stop_during_thread_attach_detaches_without_showing_window(self) -> None:
+        win32gui = SimpleNamespace(
+            IsWindow=Mock(return_value=True),
+            IsIconic=Mock(side_effect=AssertionError("showed a stopped window")),
+            GetForegroundWindow=Mock(return_value=999),
+            ShowWindow=Mock(side_effect=AssertionError("show after Stop")),
+            BringWindowToTop=Mock(side_effect=AssertionError("focus after Stop")),
+        )
+        process = SimpleNamespace(
+            GetWindowThreadProcessId=Mock(return_value=(2, 999)),
+            AttachThreadInput=Mock(return_value=True),
+        )
+        modules = {
+            "win32con": SimpleNamespace(),
+            "win32gui": win32gui,
+            "win32api": SimpleNamespace(GetCurrentThreadId=Mock(return_value=1)),
+            "win32process": process,
+        }
+        stops = iter((False, False, True))
+        logger = Mock()
+        with (
+            patch.object(focus.os, "name", "nt"),
+            patch.dict("sys.modules", modules),
+            patch.object(focus, "is_unity_window", return_value=True),
+            patch.object(focus, "foreground_window", return_value=999),
+        ):
+            self.assertFalse(focus.activate_window(
+                101, 0, 1, 0, logger, "Miroir",
+                should_stop=lambda: next(stops),
+            ))
+        self.assertEqual(
+            [entry.args for entry in process.AttachThreadInput.call_args_list],
+            [(1, 2, True), (1, 2, False)],
+        )
+        win32gui.IsIconic.assert_not_called()
+        win32gui.ShowWindow.assert_not_called()
+        win32gui.BringWindowToTop.assert_not_called()
+        logger.info.assert_any_call(
+            "%s activation stoppee avant manipulation hwnd=%s", "Miroir", 101,
+        )
+
     def test_stop_after_native_foreground_success_never_reports_activation(self) -> None:
         win32gui = SimpleNamespace(
             IsWindow=Mock(return_value=True),
