@@ -573,3 +573,41 @@ plan/check/validate`, ni `git diff --check`, ni tests Python/Qt, ni carte
 Graphify exacte, ni bench CPU/RAM/p50/p95/p99 ni recette Windows DOFUS
 2/4/6/8. **MIRR-007** (gestes capturés durant un worker) demeure PENDING.
 PR Draft, non certifiée ; ne pas exécuter FULL/Phase Certification ni fusionner.
+
+## Lot P0 du 04/11/2026 — protection du presse-papiers et séquences chat
+
+- La préparation de `clipboard_text` refuse désormais les contenus dont
+  le module ne peut pas conserver les données : presse-papiers non texte,
+  image et formats enrichis (CF_HTML, format d'application, etc.). Seuls les
+  formats texte Win32 usuels CF_TEXT, CF_OEMTEXT, CF_UNICODETEXT, CF_LOCALE
+  sont autorisés à passer dans le moteur texte actuel ; les données non
+  restaurables restent intactes. Le presse-papiers **vide** reste utilisable.
+- Avant de restaurer l'ancien texte, le numéro de séquence Win32 est comparé
+  à celui pris sous le verrou de préparation. Si l'utilisateur copie un
+  nouveau contenu pendant la macro, la copie récente est conservée, sans
+  restauration tardive. Le garde reste conservateur si Windows ne fournit
+  pas un numéro de séquence exploitable (0).
+- `send_chat_command` ne touche plus au presse-papiers si le Stop était déjà
+  demandé avant sa préparation. Les vérifications précédentes de Stop entre
+  les étapes de collage et avant Entrée demeurent.
+- Auto-groupe et /zaap passent au sender canonique un prédicat d'annulation
+  combinant Stop et perte du premier plan. Il est évalué entre les étapes de
+  la commande : un basculement de fenêtre en plein collage empêche les
+  actions clavier suivantes, sans créer un autre sender ni nouveaux threads.
+- Nouveaux tests isolés sur image/texte riche/vide, formats Win32 texte,
+  changement externe du clipboard, propagation des erreurs sur Stop et
+  refus SendInput, verrou de lecture de séquence, restauration séquentielle
+  simulée pour 2/4/6/8 et interruption de chat après vol de focus.
+
+**Portée/risque :** correctifs ciblés sur les trois moteurs existants et
+leurs tests, sans migration de profil ni modification des hooks natifs.
+Ce garde de presse-papiers volontairement strict peut refuser une commande
+si un format riche est copié ; effacer/copier du texte simple est alors
+nécessaire. Il ne constitue pas une restauration multi-format complète.
+
+**Validation : NOT_RUN** dans cette session GitHub-only : Doctor plan/check,
+Graphify exact SHA, tests Python/PySide6, benchmarks de latence/CPU/RAM,
+recette DOFUS Unity et `git diff --check`. Les scénarios sont **ajoutés**,
+mais aucun PASS ne doit être revendiqué. Le blocage de MIRR-007 (gestes
+physiques avalés pendant le worker) demeure à résoudre sur carte Graphify
+exact-SHA, puis à vérifier sur Windows réel. **PR Draft, CHANGES REQUIRED**.
