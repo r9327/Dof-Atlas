@@ -719,6 +719,44 @@ class OrganizerSendInputTests(unittest.TestCase):
         self.assertEqual(key.call_count, 3)
 
 
+    def test_corrupted_click_timings_fail_closed_before_cursor_or_input(self) -> None:
+        for index in range(4):
+            for invalid in (float("nan"), float("inf"), None):
+                with self.subTest(field=index, invalid=invalid):
+                    guard, logger = Mock(), Mock()
+                    timings = [20, 30, 40, 50]
+                    timings[index] = invalid
+                    with (
+                        patch.object(clicks.os, "name", "nt"),
+                        patch.object(clicks, "set_cursor_pos") as move,
+                        patch.object(clicks, "_send_mouse_flag") as send,
+                    ):
+                        self.assertFalse(clicks.send_screen_click(
+                            300, 200, "Left", 2,
+                            *timings, guard, logger,
+                        ))
+                    move.assert_not_called()
+                    send.assert_not_called()
+                    guard.begin.assert_not_called()
+                    guard.end.assert_not_called()
+                    logger.warning.assert_called_once_with(
+                        "Clic synthetique refuse: temporisation invalide."
+                    )
+
+    def test_invalid_or_infinite_client_hwnd_never_targets_unity(self) -> None:
+        for invalid in (float("inf"), float("nan"), None, object()):
+            with self.subTest(handle=repr(invalid)):
+                with (
+                    patch.object(clicks, "is_unity_window") as check,
+                    patch.object(clicks, "send_screen_click") as send,
+                ):
+                    self.assertFalse(clicks.send_client_click(
+                        invalid, 10, 20, "Left", 1, 20, 0, 0, 0,
+                        Mock(), Mock(),
+                    ))
+                check.assert_not_called()
+                send.assert_not_called()
+
     def test_cursor_read_refusal_never_returns_false_zero_origin(self) -> None:
         user32 = SimpleNamespace(GetCursorPos=Mock(return_value=0))
         with (
