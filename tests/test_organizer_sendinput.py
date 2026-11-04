@@ -247,6 +247,54 @@ class OrganizerSendInputTests(unittest.TestCase):
         clipboard.SetClipboardText.assert_called_once_with("/invite Friend", 13)
         logger.warning.assert_any_call("Clipboard modifie pendant le chat: envoi annule.")
 
+    def test_zaap_double_enter_aborts_when_clipboard_changes_after_first_enter(self) -> None:
+        clipboard = Mock()
+        clipboard.GetClipboardData.return_value = "user before"
+        clipboard.EnumClipboardFormats.side_effect = [13, 0]
+        clipboard.GetClipboardSequenceNumber.side_effect = [100, 100, 101, 101]
+        with (
+            patch.object(input_tools.os, "name", "nt"),
+            patch.dict("sys.modules", {
+                "win32clipboard": clipboard,
+                "win32con": SimpleNamespace(CF_UNICODETEXT=13),
+            }),
+            patch.object(input_tools, "replace_chat_text_with_clipboard",
+                         return_value=True),
+            patch.object(input_tools, "_sleep_ms", return_value=False),
+            patch.object(input_tools, "press_key") as press,
+        ):
+            self.assertFalse(input_tools.send_chat_command(
+                "/zaap 1,2", Mock(), submit_twice=True,
+            ))
+        press.assert_called_once_with("ENTER")
+        clipboard.SetClipboardText.assert_called_once_with("/zaap 1,2", 13)
+        clipboard.EmptyClipboard.assert_called_once()
+
+    def test_chat_cancels_on_unreadable_revision_without_enter(self) -> None:
+        clipboard = Mock()
+        clipboard.GetClipboardData.return_value = "user before"
+        clipboard.EnumClipboardFormats.side_effect = [13, 0]
+        clipboard.GetClipboardSequenceNumber.side_effect = [
+            100, OSError("Windows clipboard revision read refused"),
+            *([100] * 1),
+        ]
+        logger = Mock()
+        with (
+            patch.object(input_tools.os, "name", "nt"),
+            patch.dict("sys.modules", {
+                "win32clipboard": clipboard,
+                "win32con": SimpleNamespace(CF_UNICODETEXT=13),
+            }),
+            patch.object(input_tools, "replace_chat_text_with_clipboard",
+                         return_value=True),
+            patch.object(input_tools, "press_key") as press,
+        ):
+            self.assertFalse(input_tools.send_chat_command("/invite Friend", logger))
+        press.assert_not_called()
+        logger.warning.assert_any_call(
+            "Clipboard: revision Win32 illisible, chat annule."
+        )
+
     def test_chat_accepts_negative_signed_win32_revision(self) -> None:
         clipboard = Mock()
         clipboard.GetClipboardData.return_value = "original"
