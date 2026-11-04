@@ -98,6 +98,9 @@ class MirrorInputMacro:
                 cursor = current_cursor_pos()
             except Exception:
                 runtime.logger.exception("Miroir molette: lecture curseur impossible.")
+                runtime._emit_status(
+                    f"Miroir Molette incomplet : 0/{len(handles)} fenêtres."
+                )
                 return
         runtime.input_state.begin_mouse_block("Miroir entrée")
         try:
@@ -197,7 +200,13 @@ class MirrorInputMacro:
                     break
         finally:
             runtime.input_state.end_mouse_block()
-            if cursor is not None and not focus_lost:
+            # Stop, failed SendInput or a stolen focus must not move the
+            # user's pointer after the macro has relinquished control.
+            if (
+                cursor is not None and roster_verified
+                and not focus_lost and not delivery_failed
+                and not runtime.macro_lock.should_stop()
+            ):
                 try:
                     set_cursor_pos(*cursor)
                 except Exception:
