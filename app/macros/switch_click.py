@@ -321,6 +321,11 @@ class SwitchClickMacro:
                         action_label,
                         client.handle,
                     )
+                    if mirror_target_handles is not None:
+                        # An already consumed source click must not trigger a
+                        # continuation across a missing/replaced Unity target.
+                        delivery_failed = True
+                        return
                     continue
 
                 focus_started_at = perf_counter() if mirror_started_at is not None else None
@@ -351,6 +356,9 @@ class SwitchClickMacro:
                         "%s clic ignoré: activation échec hwnd=%s",
                         action_label, client.handle,
                     )
+                    if mirror_target_handles is not None:
+                        focus_lost = True
+                        return
                     continue
 
                 # A successful SetForegroundWindow attempt can become stale
@@ -378,6 +386,9 @@ class SwitchClickMacro:
                         action_label,
                         client.handle,
                     )
+                    if mirror_target_handles is not None:
+                        delivery_failed = True
+                        return
                     continue
 
                 double_gap_ms = timings.input_double_gap_ms
