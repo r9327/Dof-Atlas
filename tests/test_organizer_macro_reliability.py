@@ -167,6 +167,42 @@ class OrganizerMacroReliabilityTests(unittest.TestCase):
             "Auto groupe: focus illisible avant retour au favori."
         )
 
+    def test_auto_group_never_restores_favorite_changed_after_last_invite(self) -> None:
+        for count in (2, 4, 6, 8):
+            with self.subTest(count=count):
+                runtime = _runtime()
+                runtime.settings.primary_handle = 101
+                runtime.settings.timings.auto_group_invite_gap_ms = 0
+                runtime.switch_character.logical_active_client.return_value = (
+                    SimpleNamespace(handle=101, display_name="Leader")
+                )
+                entries = [
+                    {"name": f"Friend{index}", "handle": 101 + index}
+                    for index in range(1, count)
+                ]
+                sent = [0]
+
+                def chat(*_args, **_kwargs):
+                    sent[0] += 1
+                    if sent[0] == count - 1:
+                        runtime.settings.primary_handle = 101 + count
+                    return True
+
+                with (
+                    patch("app.macros.auto_group.is_unity_window", return_value=True),
+                    patch("app.macros.auto_group.is_dofus_unity_process", return_value=True),
+                    patch("app.macros.auto_group.activate_window", return_value=True),
+                    patch("app.macros.auto_group.foreground_window", return_value=101),
+                    patch("app.macros.auto_group.send_chat_command",
+                          side_effect=chat) as sender,
+                ):
+                    AutoGroupMacro(runtime)._run(entries)
+                self.assertEqual(sender.call_count, count - 1)
+                runtime.switch_character.restore_preferred_client.assert_not_called()
+                runtime.logger.info.assert_any_call(
+                    "Auto groupe: retour favori ignoré, favori changé."
+                )
+
     def test_auto_group_aborts_when_focus_is_stolen_between_invitations(self) -> None:
         runtime = _runtime()
         runtime.settings.timings.auto_group_invite_gap_ms = 0
