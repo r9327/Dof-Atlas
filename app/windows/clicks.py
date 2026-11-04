@@ -178,6 +178,11 @@ def send_screen_click(
 
             up_ok = _send_mouse_flag(up_flag)
             button_is_down = bool(down_ok and not up_ok)
+            if not up_ok:
+                # An unconfirmed release means this button may STILL be held.
+                # Never stack the next DOWN of a double-click onto it.
+                # The finally block owns the single emergency release.
+                return False
             ok = up_ok and ok
 
             if (
