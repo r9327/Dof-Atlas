@@ -377,7 +377,10 @@ def send_chat_command(
                 return True
             if type(clipboard_revision) is not int:
                 return False
-            if clipboard_revision <= 0:
+            # Pywin32 exposes the native DWORD through a signed C int.
+            # A negative Python value is still a valid 32-bit revision;
+            # only zero represents an unavailable clipboard station.
+            if clipboard_revision == 0:
                 logger.warning("Clipboard: revision Win32 indisponible, chat annule.")
                 return True
             try:
