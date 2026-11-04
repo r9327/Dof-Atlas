@@ -184,6 +184,49 @@ class OrganizerSendInputTests(unittest.TestCase):
             [call("/zaap 1,2", 13), call("old clipboard", 13)],
         )
 
+    def test_clipboard_revision_snapshot_is_taken_before_unlocking(self) -> None:
+        clipboard = Mock()
+        clipboard.GetClipboardData.return_value = "before"
+        clipboard.EnumClipboardFormats.side_effect = [13, 0]
+        opened = [False]
+        calls = []
+
+        def open_clipboard():
+            self.assertFalse(opened[0])
+            opened[0] = True
+            calls.append("open")
+
+        def close_clipboard():
+            self.assertTrue(opened[0])
+            opened[0] = False
+            calls.append("close")
+
+        def read_revision():
+            self.assertTrue(opened[0], "Clipboard serial must be read under lock")
+            calls.append("serial")
+            return 99
+
+        clipboard.OpenClipboard.side_effect = open_clipboard
+        clipboard.CloseClipboard.side_effect = close_clipboard
+        clipboard.GetClipboardSequenceNumber.side_effect = read_revision
+        with (
+            patch.object(input_tools.os, "name", "nt"),
+            patch.dict("sys.modules", {
+                "win32clipboard": clipboard,
+                "win32con": SimpleNamespace(CF_UNICODETEXT=13),
+            }),
+            patch.object(input_tools, "replace_chat_text_with_clipboard",
+                         return_value=True),
+            patch.object(input_tools, "press_key"),
+        ):
+            self.assertTrue(input_tools.send_chat_command("/invite Friend", Mock()))
+        self.assertEqual(
+            calls,
+            ["open", "serial", "close", "open", "serial", "close"],
+        )
+        self.assertFalse(opened[0])
+        self.assertEqual(clipboard.EmptyClipboard.call_count, 2)
+
     def test_clipboard_changed_during_sender_error_keeps_original_exception(self) -> None:
         clipboard = Mock()
         clipboard.GetClipboardData.return_value = "old clipboard"
