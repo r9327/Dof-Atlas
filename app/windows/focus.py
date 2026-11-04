@@ -116,6 +116,16 @@ def activate_window(
         )
         return False
 
+    # Normal/fast profiles are below 30 ms. A finite but corrupt timer could
+    # otherwise hold a blocked macro for hours, especially at eight clients.
+    # Refuse clearly invalid settings instead of silently changing timings.
+    if settle_ms > 1000 or retry_ms > 1000:
+        logger.warning(
+            "%s activation refusee: temporisation excessive settle=%s retry=%s.",
+            action_label, settle_ms, retry_ms,
+        )
+        return False
+
     try:
         if not win32gui.IsWindow(hwnd):
             logger.info(
