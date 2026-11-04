@@ -279,6 +279,79 @@ class OrganizerMacroReliabilityTests(unittest.TestCase):
             ))
         runtime.auto_group.run_async.assert_called_once()
 
+    def test_auto_group_worker_publishes_sent_count_for_2_4_6_8(self) -> None:
+        for count in (2, 4, 6, 8):
+            with self.subTest(count=count):
+                runtime = _runtime()
+                runtime.settings.timings.auto_group_invite_gap_ms = 0
+                runtime.switch_character.logical_active_client.return_value = (
+                    SimpleNamespace(handle=101, display_name="Leader")
+                )
+                entries = [
+                    {"name": f"Friend{i}", "handle": 101 + i}
+                    for i in range(1, count)
+                ]
+                with (
+                    patch("app.macros.auto_group.is_unity_window", return_value=True),
+                    patch("app.macros.auto_group.is_dofus_unity_process", return_value=True),
+                    patch("app.macros.auto_group.activate_window", return_value=True),
+                    patch("app.macros.auto_group.foreground_window", return_value=101),
+                    patch("app.macros.auto_group.send_chat_command", return_value=True),
+                ):
+                    AutoGroupMacro(runtime)._run(entries)
+                runtime._emit_status.assert_called_once_with(
+                    f"Auto-groupe termine : {count-1}/{count-1} commandes émises "
+                    "(réception DOFUS non vérifiée)."
+                )
+
+    def test_auto_group_worker_reports_partial_emission_not_completion(self) -> None:
+        runtime = _runtime()
+        runtime.settings.timings.auto_group_invite_gap_ms = 0
+        runtime.switch_character.logical_active_client.return_value = (
+            SimpleNamespace(handle=101, display_name="Leader")
+        )
+        with (
+            patch("app.macros.auto_group.is_unity_window", return_value=True),
+            patch("app.macros.auto_group.is_dofus_unity_process", return_value=True),
+            patch("app.macros.auto_group.activate_window", return_value=True),
+            patch("app.macros.auto_group.foreground_window", return_value=101),
+            patch("app.macros.auto_group.send_chat_command", side_effect=[True, False]),
+        ):
+            AutoGroupMacro(runtime)._run([
+                {"name": "Friend1", "handle": 202},
+                {"name": "Friend2", "handle": 303},
+            ])
+        runtime._emit_status.assert_called_once_with(
+            "Auto-groupe partiel : 1/2 commandes émises "
+            "(réception DOFUS non vérifiée)."
+        )
+
+    def test_auto_group_one_character_reports_ignored_without_focus(self) -> None:
+        runtime = _runtime()
+        runtime.switch_character.logical_active_client.return_value = (
+            SimpleNamespace(handle=101, display_name="Leader")
+        )
+        with (
+            patch("app.macros.auto_group.is_unity_window", return_value=True),
+            patch("app.macros.auto_group.is_dofus_unity_process", return_value=True),
+            patch("app.macros.auto_group.activate_window") as activate,
+        ):
+            AutoGroupMacro(runtime)._run([{"name": "Leader", "handle": 101}])
+        activate.assert_not_called()
+        runtime._emit_status.assert_called_once_with(
+            "Auto-groupe ignoré : aucun autre personnage à inviter."
+        )
+
+    def test_auto_group_pre_stopped_sends_final_stop_status_without_focus(self) -> None:
+        runtime = _runtime()
+        runtime.macro_lock.should_stop.return_value = True
+        with patch("app.macros.auto_group.activate_window") as activation:
+            AutoGroupMacro(runtime)._run([{"name": "Friend", "handle": 202}])
+        activation.assert_not_called()
+        runtime._emit_status.assert_called_once_with(
+            "Auto-groupe arrêté avant lancement."
+        )
+
     def test_auto_group_overflowing_session_handles_do_not_abort_other_invites(self) -> None:
         runtime = _runtime()
         runtime.settings.timings.auto_group_invite_gap_ms = 0
@@ -633,6 +706,62 @@ class OrganizerMacroReliabilityTests(unittest.TestCase):
         runtime._spawn_macro.return_value = False
         self.assertFalse(ZaapMacro(runtime).run_async("/zaap 1,2"))
         runtime._spawn_macro.assert_called_once()
+
+    def test_zaap_worker_reports_emitted_commands_for_2_4_6_8(self) -> None:
+        for count in (2, 4, 6, 8):
+            with self.subTest(count=count):
+                runtime = _runtime()
+                clients = [
+                    SimpleNamespace(handle=101 + index)
+                    for index in range(count)
+                ]
+                runtime.switch_character.ordered_clients_from_source.return_value = clients
+                focus = [101]
+                def activation(hwnd, *_args, **_kwargs):
+                    focus[0] = hwnd
+                    return True
+                with (
+                    patch("app.macros.zaap.is_unity_window", return_value=True),
+                    patch("app.macros.zaap.is_dofus_unity_process", return_value=True),
+                    patch("app.macros.zaap.activate_window", side_effect=activation),
+                    patch("app.macros.zaap.foreground_window", side_effect=lambda: focus[0]),
+                    patch("app.macros.zaap.send_chat_command", return_value=True),
+                ):
+                    ZaapMacro(runtime)._run("/zaap 1,2")
+                runtime._emit_status.assert_called_once_with(
+                    f"Auto zaap termine : {count}/{count} commandes émises "
+                    "(réception DOFUS non vérifiée)."
+                )
+
+    def test_zaap_worker_reports_partial_failure_with_real_counts(self) -> None:
+        runtime = _runtime()
+        runtime.switch_character.ordered_clients_from_source.return_value = [
+            SimpleNamespace(handle=101), SimpleNamespace(handle=202),
+        ]
+        focus = [101]
+        def activation(hwnd, *_args, **_kwargs):
+            focus[0] = hwnd
+            return True
+        with (
+            patch("app.macros.zaap.is_unity_window", return_value=True),
+            patch("app.macros.zaap.is_dofus_unity_process", return_value=True),
+            patch("app.macros.zaap.activate_window", side_effect=activation),
+            patch("app.macros.zaap.foreground_window", side_effect=lambda: focus[0]),
+            patch("app.macros.zaap.send_chat_command", side_effect=[True, False]),
+        ):
+            ZaapMacro(runtime)._run("/zaap 1,2")
+        runtime._emit_status.assert_called_once_with(
+            "Auto zaap partiel : 1/2 commandes émises "
+            "(réception DOFUS non vérifiée)."
+        )
+
+    def test_zaap_worker_reports_no_clients_as_ignored(self) -> None:
+        runtime = _runtime()
+        runtime.switch_character.ordered_clients_from_source.return_value = []
+        ZaapMacro(runtime)._run("/zaap 1,2")
+        runtime._emit_status.assert_called_once_with(
+            "Auto zaap ignoré : aucune fenêtre DOFUS disponible."
+        )
 
     def test_zaap_no_focus_steal_after_last_chat_on_2_4_6_8_clients(self) -> None:
         for count in (2, 4, 6, 8):

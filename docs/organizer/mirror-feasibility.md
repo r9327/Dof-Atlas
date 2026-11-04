@@ -1145,3 +1145,9 @@ La touche de roue n'est pas dupliquée par le Miroir clavier : interception expl
 Le panneau Zaap fermait déjà son sous-menu avant le rappel runtime (preuve dans `tests/test_organizer_zaap_popup.py`). Le résultat du lancement est maintenant transmis `ZaapMacro.run_async` → `AtlasRuntime.launch_zaap` → `AtlasWindow.launch_zaap` → `ZaapWidget.launch_zaap` : **accepté / refusé / non confirmé**. Il n'annonce plus « lancé » lorsque la macro est occupée, que le callback manque, qu'il lève une erreur, ou qu'un ancien adaptateur ne confirme rien. Les coordonnées invalides ferment aussi le sous-menu sans envoyer de commande, comme avant. Tests Qt offscreen nouveaux : cinq états de lancement, exception callback, absence de runtime, compatibilité callback sans argument et statut confirmé; test de validation du parseur et refus du verrou.
 
 Les envois réels restent séquentiels et soumis aux protections de focus/Stop. La réception effective de la commande par Unity n'est **jamais** déduite du retour de `run_async`. Vérifications locales Doctor et tests Windows **NOT_RUN**.
+
+### Compteurs visibles en fin de macro Auto-groupe / Zaap (04/11)
+
+Le worker émet un statut final dans l'interface (pas seulement un log) : `termine`, `partiel`, `interrompu` ou `ignore` avec le nombre de **commandes effectivement transmises** au moteur SendInput sur le nombre prévu. Les statuts d'absence de fenêtre, de commande invalide, de Stop initial ou d'activation impossible sont explicites. La mention « réception DOFUS non vérifiée » reste systématique : ni un test mock ni SendInput ne prouvent que le jeu a effectivement pris en compte l'invitation ou le zaap.
+
+Tests ciblés rédigés pour Auto-groupe/Zaap en 2, 4, 6 et 8 comptes, succès et échecs partiels, aucune cible, stop précoce et absence de vol de focus pour un seul compte. **Exécution NOT_RUN** ; livrable non certifié.
