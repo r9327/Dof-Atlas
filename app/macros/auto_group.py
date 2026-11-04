@@ -41,6 +41,7 @@ class AutoGroupMacro:
         ):
             self.runtime.logger.info("Auto groupe activation fenetre echec: hwnd=%s", sender.handle)
             return
+        favorite_at_start = self.runtime.settings.primary_handle
         sender_name = clean_auto_group_name(sender.display_name)
         sender_key = normalize_key(sender_name)
         sent = 0
@@ -125,6 +126,16 @@ class AutoGroupMacro:
                 focus_lost = True
                 self.runtime.logger.warning(
                     "Auto groupe: identité DOFUS perdue avant restauration hwnd=%s", sender.handle,
+                )
+            # The favorite may change via Organizer while the worker is
+            # running. Never activate a newly selected favorite on cleanup.
+            if (
+                not self.runtime.macro_lock.should_stop() and not focus_lost
+                and self.runtime.settings.primary_handle != favorite_at_start
+            ):
+                focus_lost = True
+                self.runtime.logger.info(
+                    "Auto groupe: retour favori ignoré, favori changé."
                 )
             # The user may focus another application AFTER the last
             # invitation, or while clipboard restoration is finishing.
