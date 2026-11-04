@@ -116,13 +116,16 @@ class AutoGroupMacro:
                 self.runtime.logger.warning(
                     "Auto groupe: identité DOFUS perdue avant restauration hwnd=%s", sender.handle,
                 )
-            if not stopped and not focus_lost:
+            # Stop may be requested while identity is being checked.
+            # Never restore focus on a stale snapshot of the stop flag.
+            if not self.runtime.macro_lock.should_stop() and not focus_lost:
                 try:
                     self.runtime.switch_character.restore_preferred_client("Auto groupe")
                 except Exception:
                     self.runtime.logger.exception(
                         "Auto groupe: retour au favori impossible."
                     )
+            stopped = self.runtime.macro_lock.should_stop()
             state = (
                 "interrompu" if stopped or focus_lost
                 else "ignore" if not eligible
