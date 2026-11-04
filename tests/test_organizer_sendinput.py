@@ -11,6 +11,41 @@ from app.windows import clicks
 
 
 class OrganizerSendInputTests(unittest.TestCase):
+
+    def test_chat_never_submits_after_stop_during_clipboard_paste(self) -> None:
+        stopped = False
+
+        def finish_paste(**_kwargs) -> bool:
+            nonlocal stopped
+            stopped = True
+            return True
+
+        with (
+            patch.object(input_tools, "clipboard_text"),
+            patch.object(input_tools, "replace_chat_text_with_clipboard", side_effect=finish_paste),
+            patch.object(input_tools, "press_key") as press,
+        ):
+            delivered = input_tools.send_chat_command(
+                "/zaap 1,2", Mock(), should_stop=lambda: stopped,
+            )
+        self.assertFalse(delivered)
+        press.assert_not_called()
+
+    def test_chat_stop_between_double_submissions_never_sends_second_enter(self) -> None:
+        checks = iter((False, True))
+        with (
+            patch.object(input_tools, "clipboard_text"),
+            patch.object(input_tools, "replace_chat_text_with_clipboard", return_value=True),
+            patch.object(input_tools, "_sleep_ms", return_value=False),
+            patch.object(input_tools, "press_key") as press,
+        ):
+            delivered = input_tools.send_chat_command(
+                "/zaap 1,2", Mock(), submit_twice=True,
+                should_stop=lambda: next(checks),
+            )
+        self.assertFalse(delivered)
+        press.assert_called_once_with("ENTER")
+
     def test_keyboard_union_keeps_mouse_sized_native_input(self) -> None:
         self.assertGreaterEqual(ctypes.sizeof(clicks.INPUT_UNION), ctypes.sizeof(clicks.MOUSEINPUT))
         self.assertGreaterEqual(ctypes.sizeof(clicks.INPUT_UNION), ctypes.sizeof(clicks.KEYBDINPUT))
