@@ -29,6 +29,51 @@ class OrganizerSendInputTests(unittest.TestCase):
         self.assertEqual(clipboard.OpenClipboard.call_count, 10)
         press.assert_not_called()
 
+    def test_clipboard_restore_never_swallows_chat_sendinput_failure(self) -> None:
+        clipboard = Mock()
+        clipboard.GetClipboardData.return_value = "previous text"
+        with (
+            patch.object(input_tools.os, "name", "nt"),
+            patch.dict("sys.modules", {
+                "win32clipboard": clipboard,
+                "win32con": SimpleNamespace(CF_UNICODETEXT=13),
+            }),
+            patch.object(input_tools, "replace_chat_text_with_clipboard",
+                         side_effect=RuntimeError("SendInput refused")),
+            patch.object(input_tools, "press_key") as press,
+        ):
+            with self.assertRaisesRegex(RuntimeError, "SendInput refused"):
+                input_tools.send_chat_command("/zaap 1,2", Mock())
+        self.assertEqual(
+            clipboard.SetClipboardText.call_args_list,
+            [call("/zaap 1,2", 13), call("previous text", 13)],
+        )
+        press.assert_not_called()
+
+    def test_clipboard_restore_failure_keeps_original_send_error(self) -> None:
+        clipboard = Mock()
+        clipboard.GetClipboardData.return_value = "original"
+        clipboard.OpenClipboard.side_effect = [
+            None, *(OSError("clipboard locked") for _ in range(10)),
+        ]
+        logger = Mock()
+        with (
+            patch.object(input_tools.os, "name", "nt"),
+            patch.dict("sys.modules", {
+                "win32clipboard": clipboard,
+                "win32con": SimpleNamespace(CF_UNICODETEXT=13),
+            }),
+            patch.object(input_tools.time, "sleep"),
+            patch.object(input_tools, "replace_chat_text_with_clipboard",
+                         side_effect=RuntimeError("chat aborted")),
+        ):
+            with self.assertRaisesRegex(RuntimeError, "chat aborted"):
+                input_tools.send_chat_command("/invite Friend", logger)
+        self.assertEqual(clipboard.OpenClipboard.call_count, 11)
+        logger.warning.assert_called_once_with(
+            "Clipboard: restauration impossible."
+        )
+
     def test_chat_never_pastes_user_clipboard_when_pywin32_missing(self) -> None:
         with (
             patch.object(input_tools.os, "name", "nt"),
