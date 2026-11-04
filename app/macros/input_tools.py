@@ -253,6 +253,15 @@ def clipboard_text(text: str, logger: Logger):
     if not prepared:
         logger.error("Clipboard: impossible de preparer la commande apres 10 tentatives.")
         raise OSError("Clipboard non prepare: commande macro annulee")
+    # Win32 increments this serial on changes by any process. Retain it
+    # after our last clipboard write so a concurrent user Copy wins over
+    # restoring Atlas' old snapshot. Zero means the guard is unavailable.
+    try:
+        clipboard_seq = win32clipboard.GetClipboardSequenceNumber()
+        if type(clipboard_seq) is not int:
+            clipboard_seq = 0
+    except Exception:
+        clipboard_seq = 0
     try:
         yield
     finally:
@@ -261,6 +270,14 @@ def clipboard_text(text: str, logger: Logger):
             try:
                 win32clipboard.OpenClipboard()
                 try:
+                    if clipboard_seq:
+                        current_seq = win32clipboard.GetClipboardSequenceNumber()
+                        if current_seq != clipboard_seq:
+                            logger.info(
+                                "Clipboard utilisateur modifie pendant la macro: restauration ignoree."
+                            )
+                            restored = True  # The NEW clipboard content is authoritative.
+                            break
                     win32clipboard.EmptyClipboard()
                     if captured:
                         win32clipboard.SetClipboardText(previous, win32con.CF_UNICODETEXT)
