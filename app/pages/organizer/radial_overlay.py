@@ -38,7 +38,16 @@ def physical_key_held(keys: frozenset[int]) -> bool:
         return False
     try:
         user32 = ctypes.windll.user32
-        return all(bool(user32.GetAsyncKeyState(int(vk)) & 0x8000) for vk in keys)
+        if not all(bool(user32.GetAsyncKeyState(int(vk)) & 0x8000) for vk in keys):
+            return False
+        # F6 must not become Alt+F6 or Ctrl+F6 while the user is typing
+        # a system/game combination. Query modifiers only when matched.
+        from app.input.hotkeys import MODIFIER_VKS
+
+        return all(
+            bool(user32.GetAsyncKeyState(vk) & 0x8000) == (vk in keys)
+            for vk in MODIFIER_VKS
+        )
     except (AttributeError, OSError, ValueError):
         return False
 

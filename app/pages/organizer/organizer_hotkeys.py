@@ -50,6 +50,15 @@ class OrganizerHotkeysMixin:
             self.sync_radial_participants(persist=False)
         # Persist ON/OFF + inclusion changes in one profile transaction.
         self.save_profiles(self.profiles)
+        # If this key is shared with a slot, changing the active owner
+        # requires rebuilding only the runtime hotkey registry.
+        binding = self.hotkey_label(KEY_RADIAL_HOTKEY)
+        shared_slot = bool(binding) and any(
+            self.hotkey_label(client_slot_hotkey_key(slot)) == binding
+            for slot in range(SESSION_SLOT_COUNT)
+        )
+        if shared_slot:
+            self.reload_runtime_callback()
         controller = getattr(self, "_radial_controller", None)
         if controller is not None:
             controller.cancel()
@@ -248,14 +257,19 @@ class OrganizerHotkeysMixin:
             self.render_sessions()
             return
         kind = target.get("kind")
-        if kind != "radial" and hotkey == self.hotkey_label(KEY_RADIAL_HOTKEY):
+        if kind not in {"radial", "client"} and hotkey == self.hotkey_label(KEY_RADIAL_HOTKEY):
             self.update_global_buttons()
             self.render_sessions()
             self.status_callback("Raccourci déjà utilisé par Sélection personnage.")
             return
         if kind == "client" and target.get("slot") is not None:
             slot_index = int(target["slot"])
-            owner = self.global_hotkey_owner(hotkey) or self.client_hotkey_owner(hotkey, exclude_slot=slot_index)
+            owner = self.global_hotkey_owner(hotkey)
+            if owner == "Sélection personnage":
+                owner = ""  # explicit wheel-over-slot priority
+            owner = owner or self.client_hotkey_owner(
+                hotkey, exclude_slot=slot_index,
+            )
             if owner:
                 self.update_global_buttons()
                 self.render_sessions()
@@ -270,10 +284,12 @@ class OrganizerHotkeysMixin:
                 self.render_sessions()
                 self.status_callback("Touche déjà utilisée par Switch Déplacement.")
                 return
-            owner = self.client_hotkey_owner(hotkey)
-            existing_global = self.global_hotkey_owner(hotkey)
-            if existing_global and existing_global != "Sélection personnage":
-                owner = existing_global
+            # A slot binding is allowed: the radial wheel owns the key
+            # only while enabled, while Stop and other global hotkeys remain
+            # exclusive even when the radial wheel is disabled.
+            owner = self.global_hotkey_owner(hotkey)
+            if owner == "Sélection personnage":
+                owner = ""
             if owner:
                 self.update_global_buttons()
                 self.render_sessions()
@@ -381,4 +397,12 @@ class OrganizerHotkeysMixin:
                 if profile_bool(self.profiles, KEY_RADIAL_ENABLED, True) else ""
             )
         self.reload_runtime_callback()
-        self.status_callback(f"Raccourci {hotkey} enregistré.")
+        shared = (
+            kind in {"radial", "client"}
+            and hotkey == self.hotkey_label(KEY_RADIAL_HOTKEY)
+            and bool(self.client_hotkey_owner(hotkey))
+        )
+        self.status_callback(
+            f"Raccourci {hotkey} enregistré : roue prioritaire lorsqu'elle est active."
+            if shared else f"Raccourci {hotkey} enregistré."
+        )

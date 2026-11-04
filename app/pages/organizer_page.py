@@ -381,6 +381,11 @@ class OrganizerPage(
     def _radial_can_open(self) -> bool:
         if not profile_bool(self.profiles, KEY_RADIAL_ENABLED, True):
             return False
+        # Stop urgence is never used to open the wheel, even if a legacy
+        # profile bypassed the normal hotkey-collision checks.
+        radial = self.hotkey_label(KEY_RADIAL_HOTKEY)
+        if radial and radial == self.hotkey_label(KEY_STOP_SCRIPT_HOTKEY):
+            return False
         if self.capture_target is not None:
             return False
         from app.windows.unity_windows import foreground_window, is_unity_window

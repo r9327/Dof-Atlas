@@ -530,9 +530,11 @@ class OrganizerUiMixin:
         self.stop_script_hotkey_button.setToolTip(f"Stop script: {stop_script}" if stop_script else "Raccourci Stop script")
         self.stop_script_clear.setVisible(bool(stop_script))
         self.radial_hotkey_button.setText(short_label(radial_hotkey, 9) if radial_hotkey else "...")
+        radial_owner = self.client_hotkey_owner(radial_hotkey) if radial_hotkey else ""
         self.radial_hotkey_button.setToolTip(
-            f"Sélection personnage : {radial_hotkey}" if radial_hotkey
-            else "Définir la touche maintenue pour le camembert"
+            (f"Sélection : {radial_hotkey} ; roue prioritaire sur {radial_owner}"
+             if radial_owner else f"Sélection personnage : {radial_hotkey}")
+            if radial_hotkey else "Définir la touche maintenue pour le camembert"
         )
         self.radial_clear.setVisible(bool(radial_hotkey))
         radial_active = profile_bool(self.profiles, KEY_RADIAL_ENABLED, True)

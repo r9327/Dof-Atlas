@@ -302,10 +302,21 @@ def build_hotkey_actions(settings: AtlasSettings) -> list[HotkeyAction]:
             hotkey_text=settings.next_character_hotkey,
             kind="press",
         ))
+    radial_spec = None
+    if getattr(settings, "radial_enabled", False) is True:
+        radial_spec, _error = parse_hotkey(
+            str(getattr(settings, "radial_hotkey", "") or "")
+        )
     if settings.switch_character_enabled:
         for client in settings.clients:
             if not client.binding:
                 continue
+            if radial_spec is not None:
+                slot_spec, _error = parse_hotkey(client.binding)
+                if slot_spec and slot_spec.canonical == radial_spec.canonical:
+                    # An enabled held-wheel shortcut outranks the ordinary
+                    # slot switch. Never dispatch both for one physical key.
+                    continue
             actions.append(
                 HotkeyAction(
                     action_id=f"client:{client.index}",
