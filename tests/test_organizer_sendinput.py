@@ -721,6 +721,28 @@ class OrganizerSendInputTests(unittest.TestCase):
                     count + 1, count,
                 )
 
+    def test_timeout_stopping_live_hook_retains_physical_release_lease(self) -> None:
+        from app.input.input_state import InputState, SyntheticInputGuard
+        from app.input.mouse_hooks import MouseHook, WM_LBUTTONUP
+
+        logger = Mock()
+        hook = MouseHook(InputState(), SyntheticInputGuard(logger), logger, Mock())
+        hook._consumed_releases.add(WM_LBUTTONUP)
+        live_thread = Mock()
+        live_thread.is_alive.return_value = True
+        hook._thread = live_thread
+        with patch("app.input.mouse_hooks.stop_message_hook") as stop:
+            hook.stop()
+        stop.assert_called_once_with(hook)
+        self.assertEqual(hook._consumed_releases, {WM_LBUTTONUP})
+        logger.warning.assert_called_once_with(
+            "Hook souris toujours actif après stop: relâchements réservés=%s",
+            1,
+        )
+        # The existing hook-thread finally block owns final cleanup.
+        hook._consumed_releases.clear()
+        self.assertEqual(hook._consumed_releases, set())
+
     def test_stop_preserves_native_release_lease_until_hook_is_removed(self) -> None:
         from app.input.input_state import InputState, SyntheticInputGuard
         from app.input.mouse_hooks import MouseHook, WM_LBUTTONUP
