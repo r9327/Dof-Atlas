@@ -883,6 +883,23 @@ class OrganizerSendInputTests(unittest.TestCase):
                         "Left",
                     )
 
+    def test_infinite_click_count_is_bounded_to_single_complete_pair(self) -> None:
+        guard = Mock()
+        with (
+            patch.object(clicks.os, "name", "nt"),
+            patch.object(clicks, "set_cursor_pos"),
+            patch.object(clicks, "_send_mouse_flag", return_value=True) as send,
+        ):
+            self.assertTrue(clicks.send_screen_click(
+                300, 200, "Left", float("inf"),
+                0, 0, 0, 0, guard, Mock(),
+            ))
+        self.assertEqual(send.call_args_list, [
+            call(clicks.MOUSEEVENTF_LEFTDOWN),
+            call(clicks.MOUSEEVENTF_LEFTUP),
+        ])
+        guard.end.assert_called_once_with(120)
+
     def test_failed_first_up_aborts_double_click_before_second_down(self) -> None:
         for retry_works in (True, False):
             for button in ("Left", "Right"):
