@@ -453,3 +453,19 @@ différés est une modification structurelle qui exige une carte
 Graphify au SHA exact, Doctor et une recette Windows/Unity.
 Les temps de réponse, l'absence de doublons en jeu et la mémoire
 sur 8 comptes ne sont pas mesurés ni certifiés ici.
+
+## Lot ciblé P0 du 04/11/2026 — vérification de focus et refus tardifs (non certifié)
+
+À partir de la base `434691f76ad7729c822a914eda740e6a8454c8ea`, une série de **10 commits ciblés** (source et tests) renforce les chemins déjà présents sans nouveau backend, thread, queue ou remplacement des hooks Win32 :
+
+- **Changement de personnage / retour au favori :** indices invalides refusés avant de lancer un worker ; retour favori confirmé par le premier plan réel et Stop vérifié avant de mettre à jour le client actif.
+- **Miroir clavier / molette :** un HWND devenu étranger ou des coordonnées cible indisponibles annulent la livraison et interdisent le retour tardif du curseur ou du favori après échec.
+- **Miroir clic :** une cible invalide, un échec d'activation ou un point non disponible interrompent immédiatement le fan-out capturé au lieu de sauter silencieusement un compte. Le comportement classique Switch clic reste distinct.
+- **Auto-groupe et /zaap :** après un refus du chat, revérification du focus avant toute invitation ou commande suivante. En cas de focus volé, interrompre et ne pas restaurer automatiquement le favori.
+- **Tests de non-régression ajoutés :** cas invalides, focus confirmé / volé, Stop, refus tardifs clavier/molette/clic, première livraison partielle, focus perdu après refus du chat et fan-out 2/4/6/8 existant. **Tests écrits, non exécutés sur cette reprise.**
+
+### Portée et limites
+
+Les modifications de ce lot ne résolvent **pas** `MIRR-007` : pendant un blocage physique global, le hook peut encore consommer un nouveau DOWN sans le diffuser. La stratégie de conservation/rejeu borné (TTL, génération de roster, Stop, ordre DOWN/UP) est une évolution structurelle conditionnée à une carte Graphify au **SHA exact** et au plan Doctor. Pas d'ajout d'une file risquée pour simuler la correction.
+
+**Validation de ce lot : NOT_RUN** pour Python/unittest et Qt, Doctor `agent plan/check/validate`, Graphify exact SHA, `git diff --check` local, essais DOFUS Unity réels et mesures CPU/RAM/p50/p95/p99 de 2 à 8 comptes. La lecture du diff GitHub n'est pas une exécution de test. Garder la PR Draft, le Delivery Guard bloquant et les exigences de #321/#322 ouvertes ; aucun Ready, PASS ou fusion tant que les preuves ne sont pas établies.
