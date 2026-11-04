@@ -110,15 +110,22 @@ class SwitchCharacterMacro:
         seen_handles: set[int] = set()
 
         for client in self.runtime.settings.clients:
-            handle = int(client.handle)
-            if handle in seen_handles or not is_unity_window(handle):
+            try:
+                handle = int(client.handle)
+            except (TypeError, ValueError, OverflowError):
+                self.runtime.logger.warning(
+                    "Switch: fenetre ignoree (handle invalide) slot=%s",
+                    client.index,
+                )
+                continue
+            if handle <= 0 or handle in seen_handles or not is_unity_window(handle):
                 continue
             seen_handles.add(handle)
             clients.append(client)
 
         try:
             source_hwnd = int(source_hwnd or 0)
-        except (TypeError, ValueError):
+        except (TypeError, ValueError, OverflowError):
             source_hwnd = 0
 
         if source_hwnd not in seen_handles:
