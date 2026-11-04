@@ -1386,6 +1386,9 @@ class ZaapWidget(QWidget):
         self.launching_zaap = True
         label = self.suggestion_label(zaap)
         coords = row_coordinate_pair(zaap)
+        # Close immediately, before callbacks can reload the runtime or
+        # activate another window. The popup must never stay over DOFUS.
+        self.hide_suggestions()
         try:
             if coords is None:
                 LOGGER.warning("Auto zaap refuse: coordonnees absentes pour %s", label)
@@ -1397,7 +1400,6 @@ class ZaapWidget(QWidget):
             if self.start_callback is not None:
                 command = f"/zaap {coords[0]},{coords[1]}"
                 invoke_compatible_callback(self.start_callback, command, None, None)
-            self.hide_suggestions()
             LOGGER.info("Auto zaap selection: label=%s coords=%s", label, coords)
             self.status_callback(f"Auto zaap lance: {label}")
         finally:
