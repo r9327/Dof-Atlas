@@ -336,6 +336,11 @@ def send_chat_command(
     paste_settle_ms: int = 0,
     should_stop: Callable[[], bool] | None = None,
 ) -> bool:
+    # Stop is authoritative before touching the system clipboard at all.
+    # The later checks remain necessary for a Stop during the paste sequence.
+    if should_stop is not None and should_stop():
+        logger.info("Commande chat stoppee avant preparation du clipboard.")
+        return False
     with clipboard_text(text, logger):
         if not replace_chat_text_with_clipboard(
             chat_open_ms=chat_open_ms,
