@@ -62,6 +62,7 @@ class OrganizerMacroReliabilityTests(unittest.TestCase):
         )
         with (
             patch("app.macros.auto_group.is_unity_window", return_value=True),
+            patch("app.macros.auto_group.is_dofus_unity_process", return_value=True),
             patch("app.macros.auto_group.activate_window", return_value=True),
             patch("app.macros.auto_group.foreground_window", return_value=101),
             patch("app.macros.auto_group.send_chat_command", return_value=True) as sender,
@@ -87,6 +88,7 @@ class OrganizerMacroReliabilityTests(unittest.TestCase):
         )
         with (
             patch("app.macros.auto_group.is_unity_window", return_value=True),
+            patch("app.macros.auto_group.is_dofus_unity_process", return_value=True),
             patch("app.macros.auto_group.activate_window", return_value=True),
             patch("app.macros.auto_group.foreground_window", return_value=101),
             patch("app.macros.auto_group.send_chat_command", side_effect=RuntimeError("chat failed")),
@@ -103,6 +105,7 @@ class OrganizerMacroReliabilityTests(unittest.TestCase):
         )
         with (
             patch("app.macros.auto_group.is_unity_window", return_value=True),
+            patch("app.macros.auto_group.is_dofus_unity_process", return_value=True),
             patch("app.macros.auto_group.activate_window", return_value=True),
             patch("app.macros.auto_group.foreground_window", side_effect=[101, 999]),
             patch("app.macros.auto_group.send_chat_command", return_value=True) as send,
@@ -126,6 +129,7 @@ class OrganizerMacroReliabilityTests(unittest.TestCase):
         )
         with (
             patch("app.macros.auto_group.is_unity_window", return_value=True),
+            patch("app.macros.auto_group.is_dofus_unity_process", return_value=True),
             patch("app.macros.auto_group.activate_window", return_value=True),
             patch("app.macros.auto_group.foreground_window", return_value=101),
             patch("app.macros.auto_group.send_chat_command", side_effect=[True, False]) as send,
@@ -160,6 +164,7 @@ class OrganizerMacroReliabilityTests(unittest.TestCase):
         runtime.macro_lock.should_stop.side_effect = should_stop
         with (
             patch("app.macros.auto_group.is_unity_window", return_value=True),
+            patch("app.macros.auto_group.is_dofus_unity_process", return_value=True),
             patch("app.macros.auto_group.activate_window", return_value=True),
             patch("app.macros.auto_group.foreground_window", return_value=101),
             patch("app.macros.auto_group.send_chat_command", side_effect=stop_during_invite),
@@ -185,6 +190,7 @@ class OrganizerMacroReliabilityTests(unittest.TestCase):
                 ]
                 with (
                     patch("app.macros.auto_group.is_unity_window", return_value=True),
+                    patch("app.macros.auto_group.is_dofus_unity_process", return_value=True),
                     patch("app.macros.auto_group.activate_window", return_value=True),
                     patch("app.macros.auto_group.foreground_window", return_value=101),
                     patch("app.macros.auto_group.send_chat_command", return_value=True) as send,
@@ -208,6 +214,7 @@ class OrganizerMacroReliabilityTests(unittest.TestCase):
         )
         with (
             patch("app.macros.auto_group.is_unity_window", return_value=True),
+            patch("app.macros.auto_group.is_dofus_unity_process", return_value=True),
             patch("app.macros.auto_group.activate_window", return_value=True),
             patch("app.macros.auto_group.send_chat_command") as sender,
         ):
@@ -234,6 +241,7 @@ class OrganizerMacroReliabilityTests(unittest.TestCase):
         runtime.macro_lock.should_stop.side_effect = lambda: stopped
         with (
             patch("app.macros.auto_group.is_unity_window", return_value=True),
+            patch("app.macros.auto_group.is_dofus_unity_process", return_value=True),
             patch("app.macros.auto_group.activate_window", return_value=True),
             patch("app.macros.auto_group.foreground_window", return_value=101),
             patch("app.macros.auto_group.send_chat_command",
@@ -253,6 +261,7 @@ class OrganizerMacroReliabilityTests(unittest.TestCase):
         with (
             patch("app.macros.direction.foreground_window", return_value=101),
             patch("app.macros.direction.is_unity_window", return_value=True),
+            patch("app.macros.direction.is_dofus_unity_process", return_value=True),
             patch("app.macros.direction.press_key") as press,
         ):
             DirectionMacro(runtime)._run("HOME")
@@ -274,6 +283,7 @@ class OrganizerMacroReliabilityTests(unittest.TestCase):
         with (
             patch("app.macros.direction.foreground_window", return_value=101),
             patch("app.macros.direction.is_unity_window", return_value=True),
+            patch("app.macros.direction.is_dofus_unity_process", return_value=True),
             patch("app.macros.direction.activate_window", return_value=True),
             patch("app.macros.direction.press_key", side_effect=stop_after_key) as press,
         ):
@@ -300,6 +310,7 @@ class OrganizerMacroReliabilityTests(unittest.TestCase):
         ]
         with (
             patch("app.macros.auto_group.is_unity_window", return_value=True),
+            patch("app.macros.auto_group.is_dofus_unity_process", return_value=True),
             patch("app.macros.auto_group.activate_window", return_value=True),
             patch("app.macros.auto_group.foreground_window", return_value=101),
             patch("app.macros.auto_group.send_chat_command", return_value=True) as sender,
@@ -847,6 +858,7 @@ class OrganizerMacroReliabilityTests(unittest.TestCase):
         runtime = _runtime()
         with (
             patch("app.macros.zaap.is_unity_window", return_value=True),
+            patch("app.macros.zaap.is_dofus_unity_process", return_value=True),
             patch("app.macros.zaap.activate_window", return_value=True),
             patch("app.macros.zaap.foreground_window", return_value=101),
             patch("app.macros.zaap.send_chat_command", side_effect=RuntimeError("chat failed")),
@@ -870,6 +882,7 @@ class OrganizerMacroReliabilityTests(unittest.TestCase):
         runtime.macro_lock.should_stop.side_effect = should_stop
         with (
             patch("app.macros.zaap.is_unity_window", return_value=True),
+            patch("app.macros.zaap.is_dofus_unity_process", return_value=True),
             patch("app.macros.zaap.activate_window", return_value=True),
             patch("app.macros.zaap.foreground_window", return_value=101),
             patch("app.macros.zaap.send_chat_command", side_effect=stop_during_chat),
@@ -883,6 +896,7 @@ class OrganizerMacroReliabilityTests(unittest.TestCase):
         with (
             patch("app.macros.direction.foreground_window", return_value=101),
             patch("app.macros.direction.is_unity_window", return_value=True),
+            patch("app.macros.direction.is_dofus_unity_process", return_value=True),
             patch("app.macros.direction.activate_window", side_effect=[True, False]),
             patch("app.macros.direction.press_key") as press,
         ):
@@ -908,6 +922,7 @@ class OrganizerMacroReliabilityTests(unittest.TestCase):
                     patch("app.macros.direction.foreground_window",
                           side_effect=[handles[0], *handles]),
                     patch("app.macros.direction.is_unity_window", return_value=True),
+                    patch("app.macros.direction.is_dofus_unity_process", return_value=True),
                     patch("app.macros.direction.activate_window", return_value=True),
                     patch("app.macros.direction.press_key") as press,
                 ):
@@ -924,6 +939,7 @@ class OrganizerMacroReliabilityTests(unittest.TestCase):
         with (
             patch("app.macros.direction.foreground_window", return_value=101),
             patch("app.macros.direction.is_unity_window", return_value=True),
+            patch("app.macros.direction.is_dofus_unity_process", return_value=True),
             patch("app.macros.direction.activate_window", return_value=True),
             patch("app.macros.direction.press_key", side_effect=RuntimeError("key failed")),
         ):
@@ -937,6 +953,7 @@ class OrganizerMacroReliabilityTests(unittest.TestCase):
         with (
             patch("app.macros.direction.foreground_window", side_effect=[101, 999, 999]),
             patch("app.macros.direction.is_unity_window", return_value=True),
+            patch("app.macros.direction.is_dofus_unity_process", return_value=True),
             patch("app.macros.direction.activate_window", return_value=True),
             patch("app.macros.direction.press_key") as press,
         ):
@@ -960,6 +977,7 @@ class OrganizerMacroReliabilityTests(unittest.TestCase):
         with (
             patch("app.macros.direction.foreground_window", return_value=101),
             patch("app.macros.direction.is_unity_window", return_value=True),
+            patch("app.macros.direction.is_dofus_unity_process", return_value=True),
             patch("app.macros.direction.activate_window", return_value=True),
             patch("app.macros.direction.press_key", side_effect=stop_during_key),
         ):
@@ -970,6 +988,7 @@ class OrganizerMacroReliabilityTests(unittest.TestCase):
         runtime = _runtime()
         with (
             patch("app.macros.zaap.is_unity_window", return_value=True),
+            patch("app.macros.zaap.is_dofus_unity_process", return_value=True),
             patch("app.macros.zaap.activate_window", return_value=True),
             patch("app.macros.zaap.foreground_window", return_value=999),
             patch("app.macros.zaap.send_chat_command") as send,
@@ -985,6 +1004,7 @@ class OrganizerMacroReliabilityTests(unittest.TestCase):
         runtime = _runtime()
         with (
             patch("app.macros.zaap.is_unity_window", return_value=True),
+            patch("app.macros.zaap.is_dofus_unity_process", return_value=True),
             patch("app.macros.zaap.activate_window", return_value=True),
             patch("app.macros.zaap.foreground_window", side_effect=[101, 202, 202]),
             patch("app.macros.zaap.send_chat_command", side_effect=[True, False]),
@@ -1054,6 +1074,7 @@ class OrganizerMacroReliabilityTests(unittest.TestCase):
         )
         with (
             patch("app.macros.auto_group.is_unity_window", return_value=True),
+            patch("app.macros.auto_group.is_dofus_unity_process", return_value=True),
             patch("app.macros.auto_group.activate_window", return_value=True),
             patch("app.macros.auto_group.foreground_window", side_effect=[101, 999]),
             patch("app.macros.auto_group.send_chat_command", return_value=False) as send,
@@ -1065,7 +1086,7 @@ class OrganizerMacroReliabilityTests(unittest.TestCase):
         send.assert_called_once()
         runtime.switch_character.restore_preferred_client.assert_not_called()
         runtime.logger.warning.assert_any_call(
-            "Auto groupe interrompu: focus perdu après échec du chat hwnd=%s",
+            "Auto groupe interrompu: focus ou identité DOFUS perdus après échec du chat hwnd=%s",
             101,
         )
         runtime.logger.info.assert_any_call(
@@ -1078,6 +1099,7 @@ class OrganizerMacroReliabilityTests(unittest.TestCase):
         runtime = _runtime()
         with (
             patch("app.macros.zaap.is_unity_window", return_value=True),
+            patch("app.macros.zaap.is_dofus_unity_process", return_value=True),
             patch("app.macros.zaap.activate_window", return_value=True),
             patch("app.macros.zaap.foreground_window", side_effect=[101, 999]),
             patch("app.macros.zaap.send_chat_command", return_value=False) as send,
@@ -1086,11 +1108,86 @@ class OrganizerMacroReliabilityTests(unittest.TestCase):
         send.assert_called_once()
         runtime.switch_character.restore_preferred_client.assert_not_called()
         runtime.logger.warning.assert_any_call(
-            "Auto zaap interrompu: focus perdu après échec du chat hwnd=%s",
+            "Auto zaap interrompu: focus ou identité DOFUS perdus après échec du chat hwnd=%s",
             101,
         )
         runtime.logger.info.assert_any_call(
             "Auto zaap %s: envoyes=%s/%s", "interrompu", 0, 2,
+        )
+
+
+
+    def test_auto_group_rejects_sender_process_swap_before_invitation(self) -> None:
+        runtime = _runtime()
+        runtime.switch_character.logical_active_client.return_value = SimpleNamespace(
+            handle=101, display_name="Leader",
+        )
+        with (
+            patch("app.macros.auto_group.is_unity_window", return_value=True),
+            patch("app.macros.auto_group.is_dofus_unity_process",
+                  side_effect=[True, False]),
+            patch("app.macros.auto_group.activate_window", return_value=True),
+            patch("app.macros.auto_group.foreground_window", return_value=101),
+            patch("app.macros.auto_group.send_chat_command") as send,
+        ):
+            AutoGroupMacro(runtime)._run([{"name": "Friend", "handle": 202}])
+        send.assert_not_called()
+        runtime.switch_character.restore_preferred_client.assert_not_called()
+        runtime.logger.info.assert_any_call(
+            "Auto groupe %s: envoyes=%s/%s candidats=%s sender=%s",
+            "interrompu", 0, 1, 1, 101,
+        )
+
+    def test_direction_rejects_foreign_window_after_focus_activation(self) -> None:
+        runtime = _runtime()
+        runtime.settings.client_by_handle.return_value = object()
+        with (
+            patch("app.macros.direction.foreground_window", return_value=101),
+            patch("app.macros.direction.is_unity_window", return_value=True),
+            patch("app.macros.direction.is_dofus_unity_process",
+                  side_effect=[True, True, False]),
+            patch("app.macros.direction.activate_window", return_value=True),
+            patch("app.macros.direction.press_key") as press,
+        ):
+            DirectionMacro(runtime)._run("HOME")
+        press.assert_not_called()
+        runtime.switch_character.restore_preferred_client.assert_not_called()
+        runtime.logger.info.assert_any_call(
+            "Switch deplacement %s: envoyes=%s/%s", "interrompu", 0, 2,
+        )
+
+    def test_zaap_rejects_foreign_window_after_focus_activation(self) -> None:
+        runtime = _runtime()
+        with (
+            patch("app.macros.zaap.is_unity_window", return_value=True),
+            patch("app.macros.zaap.is_dofus_unity_process",
+                  side_effect=[True, False]),
+            patch("app.macros.zaap.activate_window", return_value=True),
+            patch("app.macros.zaap.foreground_window", return_value=101),
+            patch("app.macros.zaap.send_chat_command") as send,
+        ):
+            ZaapMacro(runtime)._run("/zaap 1,2")
+        send.assert_not_called()
+        runtime.switch_character.restore_preferred_client.assert_not_called()
+        runtime.logger.info.assert_any_call(
+            "Auto zaap %s: envoyes=%s/%s", "interrompu", 0, 2,
+        )
+
+    def test_zaap_aborts_after_first_client_if_second_is_not_dofus(self) -> None:
+        runtime = _runtime()
+        with (
+            patch("app.macros.zaap.is_unity_window", return_value=True),
+            patch("app.macros.zaap.is_dofus_unity_process",
+                  side_effect=[True, True, False]),
+            patch("app.macros.zaap.activate_window", return_value=True),
+            patch("app.macros.zaap.foreground_window", return_value=101),
+            patch("app.macros.zaap.send_chat_command", return_value=True) as send,
+        ):
+            ZaapMacro(runtime)._run("/zaap 1,2")
+        send.assert_called_once()
+        runtime.switch_character.restore_preferred_client.assert_not_called()
+        runtime.logger.info.assert_any_call(
+            "Auto zaap %s: envoyes=%s/%s", "interrompu", 1, 2,
         )
 
 
