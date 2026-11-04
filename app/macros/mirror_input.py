@@ -36,11 +36,13 @@ class MirrorInputMacro:
         profile_at_dispatch = self.runtime.settings
         if expected_profile is not None and profile_at_dispatch is not expected_profile:
             return False
+        dispatch_at = perf_counter()
         return self.runtime._spawn_macro(
             "Miroir clavier",
             lambda: self._run(
                 "key", vk_code, source, handles,
                 profile_at_dispatch=profile_at_dispatch,
+                dispatch_at=dispatch_at,
             ),
         )
 
@@ -58,11 +60,13 @@ class MirrorInputMacro:
         profile_at_dispatch = self.runtime.settings
         if expected_profile is not None and profile_at_dispatch is not expected_profile:
             return False
+        dispatch_at = perf_counter()
         return self.runtime._spawn_macro(
             "Miroir molette",
             lambda: self._run(
                 "wheel", (delta, horizontal, x_ratio, y_ratio), source, handles,
                 profile_at_dispatch=profile_at_dispatch,
+                dispatch_at=dispatch_at,
             ),
         )
 
@@ -99,6 +103,7 @@ class MirrorInputMacro:
     def _run(
         self, kind: str, payload: object, source: int, handles: tuple[int, ...],
         *, profile_at_dispatch: object | None = None,
+        dispatch_at: float | None = None,
     ) -> None:
         runtime = self.runtime
         # A queued callback belongs to the profile that accepted the physical
@@ -116,6 +121,7 @@ class MirrorInputMacro:
             return
         timings = profile_at_start.timings
         start = perf_counter()
+        last_emission_at: float | None = None
         delivered = 0
         send_samples_ms: list[float] = []
         focus_samples_ms: list[float] = []
@@ -297,7 +303,8 @@ class MirrorInputMacro:
                         finally:
                             runtime.synthetic_guard.end(120)
                     delivered += 1
-                    send_samples_ms.append((perf_counter() - sent_at) * 1000.0)
+                    last_emission_at = perf_counter()
+                    send_samples_ms.append((last_emission_at - sent_at) * 1000.0)
                 except Exception:
                     delivery_failed = True
                     runtime.logger.exception("Miroir %s: échec SendInput.", kind)
@@ -384,6 +391,17 @@ class MirrorInputMacro:
                 latency if latency is not None else "NOT_MEASURED",
                 focus_latency if focus_latency is not None else "NOT_MEASURED",
             )
+            if dispatch_at is not None:
+                # This measures scheduler start and last successful SendInput
+                # issuance, NOT the observed Unity response. A refused/preflight
+                # gesture has no last emission and must say NOT_MEASURED.
+                runtime.logger.info(
+                    "Miroir %s: dispatch_to_worker_ms=%.2f "
+                    "dispatch_to_last_emit_ms=%s (envoi, pas rendu Unity)",
+                    kind, max(0.0, (start - dispatch_at) * 1000.0),
+                    (f"{max(0.0, (last_emission_at - dispatch_at) * 1000.0):.2f}"
+                     if last_emission_at is not None else "NOT_MEASURED"),
+                )
             label = "Clavier" if kind == "key" else "Molette"
             if delivered != len(handles) or runtime.macro_lock.should_stop():
                 runtime._emit_status(

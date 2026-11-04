@@ -368,6 +368,75 @@ class OrganizerMirrorIntegrationTests(unittest.TestCase):
                     runtime.mirror_input.run_key.assert_not_called()
                     runtime.mirror_input.run_wheel.assert_not_called()
 
+
+    def test_mirror_accepted_gesture_binds_worker_timing_and_generation(self):
+        from app.macros.mirror_input import MirrorInputMacro
+
+        for count in (2, 4, 6, 8):
+            for kind in ("key", "wheel"):
+                with self.subTest(clients=count, kind=kind):
+                    handles = tuple(range(101, 101 + count))
+                    runtime = self._runtime(primary=handles[0], handles=handles)
+                    runtime._spawn_macro.return_value = True
+                    macro = MirrorInputMacro(runtime)
+                    with patch("app.macros.mirror_input.perf_counter", return_value=123.25):
+                        if kind == "key":
+                            self.assertTrue(macro.run_key(65, handles[0], handles))
+                        else:
+                            self.assertTrue(macro.run_wheel(
+                                120, False, 0.3, 0.6, handles[0], handles,
+                            ))
+                    worker = runtime._spawn_macro.call_args.args[1]
+                    with patch.object(macro, "_run") as runner:
+                        worker()
+                    self.assertEqual(runner.call_args.kwargs, {
+                        "profile_at_dispatch": runtime.settings,
+                        "dispatch_at": 123.25,
+                    })
+
+    def test_mirror_worker_reports_emission_not_unity_render_latency(self):
+        from app.macros.mirror_input import MirrorInputMacro
+        from time import perf_counter
+
+        for count in (2, 4, 6, 8):
+            with self.subTest(clients=count):
+                handles = tuple(range(101, 101 + count))
+                runtime = self._runtime(primary=handles[0], handles=handles)
+                runtime.settings.timings = SimpleNamespace(
+                    switch_background_pre_click_ms=0,
+                    activate_attempts=1,
+                    activate_retry_ms=0,
+                    switch_click_down_ms=10,
+                    switch_client_settle_ms=0,
+                )
+                runtime.macro_lock.should_stop.return_value = False
+                runtime.macro_lock.wait.return_value = False
+                with (
+                    patch("app.macros.mirror_input.is_dofus_unity_process",
+                          return_value=True),
+                    patch("app.macros.mirror_input.activate_window",
+                          return_value=True),
+                    patch("app.macros.mirror_input.foreground_window",
+                          side_effect=[*handles, handles[-1]]),
+                    patch("app.macros.input_tools.key_down") as down,
+                    patch("app.macros.input_tools.key_up") as up,
+                ):
+                    MirrorInputMacro(runtime)._run(
+                        "key", 65, handles[0], handles,
+                        dispatch_at=perf_counter() - 0.025,
+                    )
+                self.assertEqual(down.call_count, count)
+                self.assertEqual(up.call_count, count)
+                logs = [
+                    call for call in runtime.logger.info.call_args_list
+                    if call.args and "dispatch_to_last_emit_ms" in str(call.args[0])
+                ]
+                self.assertEqual(len(logs), 1)
+                self.assertEqual(logs[0].args[1], "key")
+                self.assertNotEqual(logs[0].args[3], "NOT_MEASURED")
+                self.assertGreaterEqual(logs[0].args[2], 0.0)
+                self.assertIn("pas rendu Unity", logs[0].args[0])
+
     def test_mirror_worker_accepts_nonfirst_favorite_and_rejects_roster_drift(self):
         from app.macros.mirror_input import MirrorInputMacro
 
