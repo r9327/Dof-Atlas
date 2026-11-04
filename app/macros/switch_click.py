@@ -236,6 +236,27 @@ class SwitchClickMacro:
                         action_label,
                     )
                     return
+
+                def mirror_roster_is_current() -> bool:
+                    settings = self.runtime.settings
+                    live = tuple(client.handle for client in settings.clients)
+                    ordered = (
+                        context.source_hwnd,
+                        *(hwnd for hwnd in live if hwnd != context.source_hwnd),
+                    )
+                    return (
+                        settings.macro_mode == "mirror"
+                        and settings.primary_handle == context.source_hwnd
+                        and len(live) == len(captured_handles)
+                        and ordered == captured_handles
+                    )
+
+                if not mirror_roster_is_current():
+                    self.runtime.logger.warning(
+                        "%s annulé: liste des fenêtres changée après capture.",
+                        action_label,
+                    )
+                    return
             # Targets existing in the roster do not prove that any window
             # was actually activated. Restore the favorite only after at
             # least one target has been confirmed in the foreground.
@@ -282,6 +303,13 @@ class SwitchClickMacro:
                         "%s stoppé avant hwnd=%s",
                         action_label,
                         client.handle,
+                    )
+                    return
+                if mirror_target_handles is not None and not mirror_roster_is_current():
+                    delivery_failed = True
+                    self.runtime.logger.warning(
+                        "%s interrompu: roster changé avant clic hwnd=%s",
+                        action_label, client.handle,
                     )
                     return
 
@@ -331,6 +359,13 @@ class SwitchClickMacro:
                     focus_lost = True
                     self.runtime.logger.warning(
                         "%s interrompu: focus perdu avant clic hwnd=%s",
+                        action_label, client.handle,
+                    )
+                    return
+                if mirror_target_handles is not None and not mirror_roster_is_current():
+                    delivery_failed = True
+                    self.runtime.logger.warning(
+                        "%s interrompu: roster changé après focus hwnd=%s",
                         action_label, client.handle,
                     )
                     return
