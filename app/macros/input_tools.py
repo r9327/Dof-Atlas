@@ -288,7 +288,10 @@ def clipboard_text(text: str, logger: Logger):
     # Win32 increments this serial when another process changes clipboard.
     # Zero means sequence tracking was unavailable during preparation.
     try:
-        yield
+        # Expose the exact revision owned by this temporary chat command.
+        # The sender checks it at every cancellable keyboard boundary, not
+        # only when the old clipboard is restored.
+        yield clipboard_seq
     finally:
         restored = False
         for _attempt in range(10):
@@ -364,25 +367,47 @@ def send_chat_command(
     if should_stop is not None and should_stop():
         logger.info("Commande chat stoppee avant preparation du clipboard.")
         return False
-    with clipboard_text(text, logger):
+    with clipboard_text(text, logger) as clipboard_revision:
+        # A physical Ctrl+C during chat preparation would replace Atlas'
+        # temporary command. Do not paste/submit that unrelated text.
+        # Existing callers and injected test contexts without a native
+        # revision keep the historical Stop predicate.
+        def interrupted() -> bool:
+            if should_stop is not None and should_stop():
+                return True
+            if type(clipboard_revision) is not int:
+                return False
+            if clipboard_revision <= 0:
+                logger.warning("Clipboard: revision Win32 indisponible, chat annule.")
+                return True
+            try:
+                import win32clipboard
+                current = win32clipboard.GetClipboardSequenceNumber()
+            except Exception:
+                logger.warning("Clipboard: revision Win32 illisible, chat annule.")
+                return True
+            if type(current) is not int or current != clipboard_revision:
+                logger.warning("Clipboard modifie pendant le chat: envoi annule.")
+                return True
+            return False
+
         if not replace_chat_text_with_clipboard(
             chat_open_ms=chat_open_ms,
             key_step_ms=key_step_ms,
             paste_settle_ms=paste_settle_ms,
-            should_stop=should_stop,
+            should_stop=interrupted,
         ):
             logger.info("Commande chat stoppee avant validation.")
             return False
-        # Stop can arrive after the final clipboard paste and before ENTER.
-        # Never submit a command after an emergency-stop request.
-        if should_stop is not None and should_stop():
+        # Check after the paste and once more before any second ENTER.
+        if interrupted():
             logger.info("Commande chat stoppee avant validation.")
             return False
         press_key("ENTER")
         if submit_twice:
-            if _sleep_ms(key_step_ms, should_stop):
+            if _sleep_ms(key_step_ms, interrupted):
                 return False
-            if should_stop is not None and should_stop():
+            if interrupted():
                 return False
             press_key("ENTER")
     return True
