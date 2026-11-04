@@ -97,6 +97,47 @@ class OrganizerMacroReliabilityTests(unittest.TestCase):
                 AutoGroupMacro(runtime)._run([{"name": "Friend", "handle": 202}])
         runtime.switch_character.restore_preferred_client.assert_called_once_with("Auto groupe")
 
+    def test_auto_group_does_not_steal_focus_after_last_invite_on_2_4_6_8(self) -> None:
+        for count in (2, 4, 6, 8):
+            with self.subTest(count=count):
+                runtime = _runtime()
+                runtime.settings.timings.auto_group_invite_gap_ms = 0
+                runtime.switch_character.logical_active_client.return_value = (
+                    SimpleNamespace(handle=101, display_name="Leader")
+                )
+                active = [101]
+                entries = [
+                    {"name": f"Friend{index}", "handle": 101 + index}
+                    for index in range(1, count)
+                ]
+                completed = [0]
+
+                def send(*_args, **_kwargs):
+                    completed[0] += 1
+                    if completed[0] == count - 1:
+                        active[0] = 999
+                    return True
+
+                with (
+                    patch("app.macros.auto_group.is_unity_window", return_value=True),
+                    patch("app.macros.auto_group.is_dofus_unity_process", return_value=True),
+                    patch("app.macros.auto_group.activate_window", return_value=True),
+                    patch("app.macros.auto_group.foreground_window",
+                          side_effect=lambda: active[0]),
+                    patch("app.macros.auto_group.send_chat_command",
+                          side_effect=send) as chat,
+                ):
+                    AutoGroupMacro(runtime)._run(entries)
+                self.assertEqual(chat.call_count, count - 1)
+                runtime.switch_character.restore_preferred_client.assert_not_called()
+                runtime.logger.info.assert_any_call(
+                    "Auto groupe: retour favori ignoré, focus utilisateur changé."
+                )
+                runtime.logger.info.assert_any_call(
+                    "Auto groupe %s: envoyes=%s/%s candidats=%s sender=%s",
+                    "interrompu", count - 1, count - 1, count - 1, 101,
+                )
+
     def test_auto_group_aborts_when_focus_is_stolen_between_invitations(self) -> None:
         runtime = _runtime()
         runtime.settings.timings.auto_group_invite_gap_ms = 0
