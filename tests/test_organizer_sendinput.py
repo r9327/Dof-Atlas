@@ -208,7 +208,7 @@ class OrganizerSendInputTests(unittest.TestCase):
         clipboard = Mock()
         clipboard.GetClipboardData.return_value = "original"
         clipboard.EnumClipboardFormats.side_effect = [13, 0]
-        clipboard.GetClipboardSequenceNumber.side_effect = [100, 100, 101, 101]
+        clipboard.GetClipboardSequenceNumber.side_effect = [100, 100, 100, 101, 101]
         logger = Mock()
         with (
             patch.object(input_tools.os, "name", "nt"),
@@ -229,7 +229,7 @@ class OrganizerSendInputTests(unittest.TestCase):
         clipboard = Mock()
         clipboard.GetClipboardData.return_value = "original"
         clipboard.EnumClipboardFormats.side_effect = [13, 0]
-        clipboard.GetClipboardSequenceNumber.side_effect = [100, 101, 101]
+        clipboard.GetClipboardSequenceNumber.side_effect = [100, 100, 101, 101]
         logger = Mock()
         with (
             patch.object(input_tools.os, "name", "nt"),
@@ -251,7 +251,7 @@ class OrganizerSendInputTests(unittest.TestCase):
         clipboard = Mock()
         clipboard.GetClipboardData.return_value = "user before"
         clipboard.EnumClipboardFormats.side_effect = [13, 0]
-        clipboard.GetClipboardSequenceNumber.side_effect = [100, 100, 101, 101]
+        clipboard.GetClipboardSequenceNumber.side_effect = [100, 100, 100, 101, 101]
         with (
             patch.object(input_tools.os, "name", "nt"),
             patch.dict("sys.modules", {
@@ -275,7 +275,7 @@ class OrganizerSendInputTests(unittest.TestCase):
         clipboard.GetClipboardData.return_value = "user before"
         clipboard.EnumClipboardFormats.side_effect = [13, 0]
         clipboard.GetClipboardSequenceNumber.side_effect = [
-            100, OSError("Windows clipboard revision read refused"),
+            100, 100, OSError("Windows clipboard revision read refused"),
             *([100] * 1),
         ]
         logger = Mock()
@@ -344,7 +344,7 @@ class OrganizerSendInputTests(unittest.TestCase):
         clipboard.GetClipboardSequenceNumber.return_value = 100
         clipboard.GetClipboardData.return_value = "old clipboard"
         clipboard.EnumClipboardFormats.side_effect = [13, 0]
-        clipboard.GetClipboardSequenceNumber.side_effect = [100, 100, 101]
+        clipboard.GetClipboardSequenceNumber.side_effect = [100, 100, 100, 101]
         logger = Mock()
         with (
             patch.object(input_tools.os, "name", "nt"),
@@ -428,7 +428,7 @@ class OrganizerSendInputTests(unittest.TestCase):
             self.assertTrue(input_tools.send_chat_command("/invite Friend", Mock()))
         self.assertEqual(
             calls,
-            ["open", "serial_locked", "close", "serial_check",
+            ["open", "serial_locked", "serial_locked", "close", "serial_check",
              "open", "serial_locked", "close"],
         )
         self.assertFalse(opened[0])
@@ -439,7 +439,7 @@ class OrganizerSendInputTests(unittest.TestCase):
         clipboard.GetClipboardSequenceNumber.return_value = 100
         clipboard.GetClipboardData.return_value = "old clipboard"
         clipboard.EnumClipboardFormats.side_effect = [13, 0]
-        clipboard.GetClipboardSequenceNumber.side_effect = [100, 101]
+        clipboard.GetClipboardSequenceNumber.side_effect = [100, 100, 101]
         with (
             patch.object(input_tools.os, "name", "nt"),
             patch.dict("sys.modules", {
