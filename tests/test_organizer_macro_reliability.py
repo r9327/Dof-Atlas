@@ -58,6 +58,45 @@ class OrganizerMacroReliabilityTests(unittest.TestCase):
         self.assertEqual([c.handle for c in ordered], [202, 101])
 
 
+    def test_explicit_detached_source_never_falls_back_to_favorite(self) -> None:
+        for count in (2, 4, 6, 8):
+            with self.subTest(clients=count):
+                runtime = _runtime()
+                runtime.settings.clients = [
+                    SimpleNamespace(index=i, handle=101 + i)
+                    for i in range(count)
+                ]
+                macro = SwitchCharacterMacro(runtime)
+                with (
+                    patch("app.macros.switch_character.is_unity_window",
+                          return_value=True),
+                    patch("app.macros.switch_character.is_dofus_unity_process",
+                          return_value=True),
+                    patch.object(macro, "logical_active_client") as fallback,
+                ):
+                    self.assertEqual(
+                        macro.ordered_clients_from_source(999), []
+                    )
+                fallback.assert_not_called()
+
+    def test_source_zero_preserves_implicit_active_character_fallback(self) -> None:
+        runtime = _runtime()
+        runtime.settings.clients = [
+            SimpleNamespace(index=1, handle=101),
+            SimpleNamespace(index=2, handle=202),
+        ]
+        macro = SwitchCharacterMacro(runtime)
+        with (
+            patch("app.macros.switch_character.is_unity_window", return_value=True),
+            patch("app.macros.switch_character.is_dofus_unity_process", return_value=True),
+            patch.object(macro, "logical_active_client",
+                         return_value=runtime.settings.clients[1]),
+        ):
+            self.assertEqual(
+                [client.handle for client in macro.ordered_clients_from_source(0)],
+                [202, 101],
+            )
+
     def test_roster_never_includes_foreign_unity_process(self) -> None:
         runtime = _runtime()
         runtime.settings.clients = [
