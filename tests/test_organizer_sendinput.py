@@ -14,6 +14,7 @@ class OrganizerSendInputTests(unittest.TestCase):
 
     def test_chat_refuses_stale_clipboard_after_windows_clipboard_lock_timeout(self) -> None:
         clipboard = Mock()
+        clipboard.GetClipboardSequenceNumber.return_value = 100
         clipboard.OpenClipboard.side_effect = OSError("locked by another process")
         with (
             patch.object(input_tools.os, "name", "nt"),
@@ -31,6 +32,7 @@ class OrganizerSendInputTests(unittest.TestCase):
 
     def test_clipboard_restore_never_swallows_chat_sendinput_failure(self) -> None:
         clipboard = Mock()
+        clipboard.GetClipboardSequenceNumber.return_value = 100
         clipboard.GetClipboardData.return_value = "previous text"
         clipboard.EnumClipboardFormats.side_effect = [13, 0]
         with (
@@ -53,6 +55,7 @@ class OrganizerSendInputTests(unittest.TestCase):
 
     def test_clipboard_restore_failure_keeps_original_send_error(self) -> None:
         clipboard = Mock()
+        clipboard.GetClipboardSequenceNumber.return_value = 100
         clipboard.GetClipboardData.return_value = "original"
         clipboard.EnumClipboardFormats.side_effect = [13, 0]
         clipboard.OpenClipboard.side_effect = [
@@ -78,6 +81,7 @@ class OrganizerSendInputTests(unittest.TestCase):
 
     def test_preparation_failure_restores_original_clipboard_then_retries(self) -> None:
         clipboard = Mock()
+        clipboard.GetClipboardSequenceNumber.return_value = 100
         clipboard.GetClipboardData.return_value = "user text"
         clipboard.EnumClipboardFormats.side_effect = (
             lambda old: 13 if old == 0 else 0
@@ -110,6 +114,7 @@ class OrganizerSendInputTests(unittest.TestCase):
 
     def test_preparation_and_recovery_failure_stops_without_retry(self) -> None:
         clipboard = Mock()
+        clipboard.GetClipboardSequenceNumber.return_value = 100
         clipboard.GetClipboardData.return_value = "user text"
         clipboard.EnumClipboardFormats.side_effect = [13, 0]
         clipboard.SetClipboardText.side_effect = [
@@ -136,6 +141,7 @@ class OrganizerSendInputTests(unittest.TestCase):
 
     def test_chat_rejects_non_text_clipboard_without_erasing_user_data(self) -> None:
         clipboard = Mock()
+        clipboard.GetClipboardSequenceNumber.return_value = 100
         clipboard.GetClipboardData.side_effect = TypeError("CF_UNICODETEXT missing")
         clipboard.EnumClipboardFormats.return_value = 8  # CF_DIB image data
         with (
@@ -156,6 +162,7 @@ class OrganizerSendInputTests(unittest.TestCase):
 
     def test_chat_rejects_rich_clipboard_even_with_unicode_text(self) -> None:
         clipboard = Mock()
+        clipboard.GetClipboardSequenceNumber.return_value = 100
         clipboard.GetClipboardData.return_value = "plain part of rich text"
         clipboard.EnumClipboardFormats.side_effect = [13, 0xC001]  # registered HTML
         logger = Mock()
@@ -176,6 +183,7 @@ class OrganizerSendInputTests(unittest.TestCase):
 
     def test_chat_accepts_plain_clipboard_with_standard_text_formats(self) -> None:
         clipboard = Mock()
+        clipboard.GetClipboardSequenceNumber.return_value = 100
         clipboard.GetClipboardData.return_value = "original"
         clipboard.EnumClipboardFormats.side_effect = [1, 7, 13, 16, 0]
         with (
@@ -198,6 +206,7 @@ class OrganizerSendInputTests(unittest.TestCase):
 
     def test_clipboard_user_copy_during_command_is_preserved(self) -> None:
         clipboard = Mock()
+        clipboard.GetClipboardSequenceNumber.return_value = 100
         clipboard.GetClipboardData.return_value = "old clipboard"
         clipboard.EnumClipboardFormats.side_effect = [13, 0]
         clipboard.GetClipboardSequenceNumber.side_effect = [100, 101]
@@ -222,6 +231,7 @@ class OrganizerSendInputTests(unittest.TestCase):
 
     def test_clipboard_unchanged_sequence_restores_original_text(self) -> None:
         clipboard = Mock()
+        clipboard.GetClipboardSequenceNumber.return_value = 100
         clipboard.GetClipboardData.return_value = "old clipboard"
         clipboard.EnumClipboardFormats.side_effect = [13, 0]
         clipboard.GetClipboardSequenceNumber.side_effect = [100, 100]
@@ -244,6 +254,7 @@ class OrganizerSendInputTests(unittest.TestCase):
 
     def test_clipboard_revision_snapshot_is_taken_before_unlocking(self) -> None:
         clipboard = Mock()
+        clipboard.GetClipboardSequenceNumber.return_value = 100
         clipboard.GetClipboardData.return_value = "before"
         clipboard.EnumClipboardFormats.side_effect = [13, 0]
         opened = [False]
@@ -287,6 +298,7 @@ class OrganizerSendInputTests(unittest.TestCase):
 
     def test_clipboard_changed_during_sender_error_keeps_original_exception(self) -> None:
         clipboard = Mock()
+        clipboard.GetClipboardSequenceNumber.return_value = 100
         clipboard.GetClipboardData.return_value = "old clipboard"
         clipboard.EnumClipboardFormats.side_effect = [13, 0]
         clipboard.GetClipboardSequenceNumber.side_effect = [100, 101]
@@ -306,6 +318,7 @@ class OrganizerSendInputTests(unittest.TestCase):
 
     def test_chat_accepts_truly_empty_clipboard_and_restores_empty_state(self) -> None:
         clipboard = Mock()
+        clipboard.GetClipboardSequenceNumber.return_value = 100
         clipboard.GetClipboardData.side_effect = TypeError("clipboard empty")
         clipboard.EnumClipboardFormats.return_value = 0
         with (
@@ -327,6 +340,7 @@ class OrganizerSendInputTests(unittest.TestCase):
         for count in (2, 4, 6, 8):
             with self.subTest(clients=count):
                 clipboard = Mock()
+        clipboard.GetClipboardSequenceNumber.return_value = 100
                 clipboard.GetClipboardData.return_value = "original"
                 clipboard.EnumClipboardFormats.side_effect = (
                     lambda previous: 13 if previous == 0 else 0
