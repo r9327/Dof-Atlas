@@ -150,6 +150,41 @@ class OrganizerMirrorIntegrationTests(unittest.TestCase):
                         AtlasRuntime._mirror_gesture_targets(runtime)
                     )
 
+    def test_invalid_secondary_never_consumes_real_key_wheel_or_click(self):
+        for count in (2, 4, 6, 8):
+            with self.subTest(clients=count):
+                slots = tuple(range(101, 101 + count))
+                source = slots[-1]  # favorite need not be slot zero
+                stale = slots[0]
+                runtime = self._runtime(primary=source, handles=slots)
+                runtime._running = True
+                runtime._admin_ok = True
+                runtime._mirror_gesture_targets.side_effect = (
+                    lambda: AtlasRuntime._mirror_gesture_targets(runtime)
+                )
+                with (
+                    patch("app.windows.unity_windows.foreground_window",
+                          return_value=source),
+                    patch("app.windows.unity_windows.find_known_client_from_point",
+                          return_value=source),
+                    patch("app.windows.unity_windows.is_unity_window",
+                          return_value=True),
+                    patch("app.macros.mirror_plan.is_dofus_unity_process",
+                          side_effect=lambda hwnd: hwnd != stale),
+                    patch("app.windows.unity_windows.screen_to_client") as point,
+                ):
+                    self.assertFalse(AtlasRuntime._handle_mirror_key(runtime, 65, True))
+                    self.assertFalse(AtlasRuntime._handle_mirror_wheel(
+                        runtime, 120, 20, 25, False,
+                    ))
+                    self.assertFalse(AtlasRuntime._handle_mirror_click(
+                        runtime, "Left", 20, 25,
+                    ))
+                point.assert_not_called()
+                runtime.mirror_input.run_key.assert_not_called()
+                runtime.mirror_input.run_wheel.assert_not_called()
+                runtime.switch_click.run_async.assert_not_called()
+
     def test_mirror_worker_accepts_nonfirst_favorite_and_rejects_roster_drift(self):
         from app.macros.mirror_input import MirrorInputMacro
 
