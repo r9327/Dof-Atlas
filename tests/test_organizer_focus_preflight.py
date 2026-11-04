@@ -192,12 +192,13 @@ class OrganizerFocusPreflightTests(unittest.TestCase):
                 should_stop=lambda: next(stops),
             ))
         win32gui.ShowWindow.assert_called_once_with(101, 5)
-        win32gui.SetWindowPos.assert_called_once()
+        win32gui.BringWindowToTop.assert_not_called()
+        win32gui.SetWindowPos.assert_not_called()
         win32gui.SetActiveWindow.assert_not_called()
         win32gui.SetForegroundWindow.assert_not_called()
         self.assertEqual(process.AttachThreadInput.call_count, 2)
         logger.info.assert_any_call(
-            "%s activation stoppee avant foreground hwnd=%s", "Miroir", 101,
+            "%s activation stoppee apres ShowWindow hwnd=%s", "Miroir", 101,
         )
 
     def test_stop_before_last_resort_topmost_prevents_focus_override(self) -> None:
@@ -226,7 +227,7 @@ class OrganizerFocusPreflightTests(unittest.TestCase):
             "win32api": SimpleNamespace(GetCurrentThreadId=Mock(return_value=1)),
             "win32process": process,
         }
-        stops = iter((False, False, False, False, False, True))
+        stops = iter((False, False, False, False, False, False, False, True))
         logger = Mock()
         with (
             patch.object(focus.os, "name", "nt"),
@@ -271,7 +272,7 @@ class OrganizerFocusPreflightTests(unittest.TestCase):
                 AttachThreadInput=Mock(return_value=True),
             ),
         }
-        stops = iter((False, False, False, False, False, True))
+        stops = iter((False, False, False, False, False, False, False, True))
         logger = Mock()
         with (
             patch.object(focus.os, "name", "nt"),
