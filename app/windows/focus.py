@@ -20,6 +20,11 @@ def activate_window(
 ) -> bool:
     if os.name != "nt" or not hwnd:
         return False
+    # Stop is authoritative before importing pywin32, checking windows or
+    # changing foreground. A currently active HWND is not an exception.
+    if should_stop is not None and should_stop():
+        logger.info("%s activation stoppee avant preflight hwnd=%s", action_label, hwnd)
+        return False
     try:
         import win32con
         import win32gui
@@ -115,7 +120,12 @@ def activate_window(
     if foreground_window() == hwnd:
         if settle_ms > 0 and wait_ms(settle_ms, should_stop):
             return False
-        return True
+        # The user can focus a different app during Unity's settle delay,
+        # even when the target was foreground at the first native probe.
+        # Do not report success on an obsolete foreground snapshot.
+        if should_stop is not None and should_stop():
+            return False
+        return foreground_window() == hwnd
 
     for attempt in range(attempt_count):
         if should_stop is not None and should_stop():
