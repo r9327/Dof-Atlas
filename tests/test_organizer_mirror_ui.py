@@ -934,7 +934,7 @@ class OrganizerMirrorIntegrationTests(unittest.TestCase):
                     patch("app.macros.switch_click.activate_window",
                           return_value=True) as activate,
                     patch("app.macros.switch_click.foreground_window",
-                          side_effect=[*handles, handles[-1]]),
+                          side_effect=[*handles, handles[-1], handles[-1]]),
                     patch("app.macros.switch_click.send_client_click",
                           return_value=True) as send,
                 ):
@@ -1014,6 +1014,79 @@ class OrganizerMirrorIntegrationTests(unittest.TestCase):
                 runtime.input_state.end_mouse_block.assert_called_once()
                 runtime.logger.info.assert_any_call(
                     "%s: restauration ignorée, focus utilisateur changé.", "Miroir",
+                )
+                runtime._emit_status.assert_called_once_with(
+                    f"Miroir : {count}/{count} fenêtres."
+                )
+
+    def test_mirror_does_not_steal_focus_if_cursor_restoration_switches_apps(self):
+        from app.macros.switch_click import SwitchClickMacro, SwitchClickContext
+
+        for count in (2, 4, 6, 8):
+            with self.subTest(count=count):
+                handles = tuple(range(101, 101 + count))
+                runtime = Mock()
+                runtime.settings.primary_handle = handles[0]
+                runtime.settings.macro_mode = "mirror"
+                runtime.settings.clients = [
+                    SimpleNamespace(handle=h) for h in handles
+                ]
+                runtime.settings.timings = SimpleNamespace(
+                    switch_background_pre_click_ms=0,
+                    activate_attempts=1, activate_retry_ms=0,
+                    switch_click_down_ms=35, input_double_gap_ms=5,
+                    switch_background_post_up_ms=0, switch_client_settle_ms=0,
+                )
+                runtime.switch_character.ordered_clients_from_source.return_value = [
+                    SimpleNamespace(handle=h, display_name=str(h))
+                    for h in handles
+                ]
+                runtime.macro_lock.should_stop.return_value = False
+                runtime.macro_lock.wait.return_value = False
+                active = [handles[0]]
+
+                def activate(hwnd, *_args, **_kwargs):
+                    active[0] = hwnd
+                    return True
+
+                def move(x, y):
+                    if (x, y) == (12, 14):
+                        active[0] = 999
+
+                macro = SwitchClickMacro(runtime)
+                context = SwitchClickContext(
+                    handles[0], 20, 30, 0.5, 0.5, "cursor",
+                )
+                with (
+                    patch.object(macro, "_validated_context", return_value=context),
+                    patch.object(macro, "_target_point", return_value=(20, 30)),
+                    patch("app.macros.switch_click.current_cursor_pos",
+                          return_value=(12, 14)),
+                    patch("app.macros.switch_click.set_cursor_pos",
+                          side_effect=move) as cursor,
+                    patch("app.macros.switch_click.is_unity_window",
+                          return_value=True),
+                    patch("app.macros.switch_click.is_dofus_unity_process",
+                          return_value=True),
+                    patch("app.macros.switch_click.activate_window",
+                          side_effect=activate),
+                    patch("app.macros.switch_click.foreground_window",
+                          side_effect=lambda: active[0]),
+                    patch("app.macros.switch_click.send_client_click",
+                          return_value=True) as send,
+                ):
+                    macro._run(
+                        "Left", 1, "Miroir", context,
+                        exact_source_handle=handles[0],
+                        mirror_target_handles=handles,
+                    )
+                self.assertEqual(send.call_count, count)
+                cursor.assert_called_once_with(12, 14)
+                runtime.switch_character.restore_preferred_client.assert_not_called()
+                runtime.input_state.end_mouse_block.assert_called_once()
+                runtime.logger.info.assert_any_call(
+                    "%s: retour au favori ignoré, focus changé après curseur.",
+                    "Miroir",
                 )
                 runtime._emit_status.assert_called_once_with(
                     f"Miroir : {count}/{count} fenêtres."
