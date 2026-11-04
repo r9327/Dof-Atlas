@@ -1716,6 +1716,77 @@ class OrganizerMacroReliabilityTests(unittest.TestCase):
                 self.assertFalse(macro.activate_by_index(invalid))
         runtime._spawn_macro.assert_not_called()
 
+    def test_hotkey_never_activates_reassigned_slot_while_worker_waits(self) -> None:
+        for count in (2, 4, 6, 8):
+            with self.subTest(clients=count):
+                runtime = _runtime()
+                runtime.settings.clients = [
+                    SimpleNamespace(index=i, handle=100 + i, display_name=f"Client {i}")
+                    for i in range(1, count + 1)
+                ]
+                runtime.active_client_handle = 101
+                runtime._spawn_macro.return_value = True
+                macro = SwitchCharacterMacro(runtime)
+                self.assertTrue(macro.activate_by_index(count))
+                runtime.settings.clients[-1] = SimpleNamespace(
+                    index=count, handle=999, display_name="Replacement",
+                )
+                with (
+                    patch("app.macros.switch_character.is_unity_window") as unity,
+                    patch("app.macros.switch_character.is_dofus_unity_process") as identity,
+                    patch("app.macros.switch_character.activate_window") as activate,
+                ):
+                    runtime._spawn_macro.call_args.args[1]()
+                unity.assert_not_called()
+                identity.assert_not_called()
+                activate.assert_not_called()
+                self.assertEqual(runtime.active_client_handle, 101)
+
+    def test_hotkey_does_not_publish_focus_after_slot_changed_during_activation(self):
+        runtime = _runtime()
+        original = SimpleNamespace(index=1, handle=202, display_name="Friend")
+        runtime.settings.clients = [original]
+        runtime.active_client_handle = 101
+        runtime._spawn_macro.return_value = True
+        macro = SwitchCharacterMacro(runtime)
+        self.assertTrue(macro.activate_by_index(1))
+
+        def replace_target(*_args, **_kwargs):
+            runtime.settings.clients = [
+                SimpleNamespace(index=1, handle=303, display_name="New"),
+            ]
+            return True
+
+        with (
+            patch("app.macros.switch_character.is_unity_window", return_value=True),
+            patch("app.macros.switch_character.is_dofus_unity_process", return_value=True),
+            patch("app.macros.switch_character.activate_window",
+                  side_effect=replace_target) as activate,
+            patch("app.macros.switch_character.foreground_window") as foreground,
+        ):
+            runtime._spawn_macro.call_args.args[1]()
+        activate.assert_called_once()
+        foreground.assert_not_called()
+        self.assertEqual(runtime.active_client_handle, 101)
+
+    def test_hotkey_allows_unrelated_slot_refresh_if_target_is_unchanged(self):
+        runtime = _runtime()
+        target = SimpleNamespace(index=1, handle=202, display_name="Friend")
+        runtime.settings.clients = [target, SimpleNamespace(index=2, handle=303)]
+        runtime.active_client_handle = 101
+        runtime._spawn_macro.return_value = True
+        macro = SwitchCharacterMacro(runtime)
+        self.assertTrue(macro.activate_by_index(1))
+        runtime.settings.clients = [target, SimpleNamespace(index=2, handle=404)]
+        with (
+            patch("app.macros.switch_character.is_unity_window", return_value=True),
+            patch("app.macros.switch_character.is_dofus_unity_process", return_value=True),
+            patch("app.macros.switch_character.activate_window", return_value=True),
+            patch("app.macros.switch_character.foreground_window", return_value=202),
+        ):
+            runtime._spawn_macro.call_args.args[1]()
+        self.assertEqual(runtime.active_client_handle, 202)
+
     def test_shortcut_rejects_foreign_unity_process_without_activation(self) -> None:
         runtime = _runtime()
         runtime.settings.clients = [
