@@ -226,7 +226,7 @@ class OrganizerFocusPreflightTests(unittest.TestCase):
             "win32api": SimpleNamespace(GetCurrentThreadId=Mock(return_value=1)),
             "win32process": process,
         }
-        stops = iter((False, False, False, False, True))
+        stops = iter((False, False, False, False, False, True))
         logger = Mock()
         with (
             patch.object(focus.os, "name", "nt"),
@@ -271,7 +271,7 @@ class OrganizerFocusPreflightTests(unittest.TestCase):
                 AttachThreadInput=Mock(return_value=True),
             ),
         }
-        stops = iter((False, False, False, False, True))
+        stops = iter((False, False, False, False, False, True))
         logger = Mock()
         with (
             patch.object(focus.os, "name", "nt"),
