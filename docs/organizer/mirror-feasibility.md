@@ -348,3 +348,43 @@ application étrangère. Le comportement réel Win32/Unity reste NOT_RUN.
 La prochaine étape structurelle de MIRR-007 requiert toujours Graphify
 sur le SHA exact, Doctor puis tests et recette Windows 2/4/6/8 pour
 garantir l'absence de clics différés dangereux ou doublonnés.
+
+
+## Reprise P0 du 04/11/2026 — sécurité dans les fenêtres de transition
+
+- **UP natif antérieur à un worker :** un bouton pressé avant le démarrage
+  du Miroir peut être relâché pendant un blocage sans laisser le bouton
+  coincé. Seuls les UP d'un DOWN réellement intercepté par le hook sont
+  avalés ; les événements marqués injectés conservent leur exclusion.
+- **Fenêtre entre verrou et blocage :** quand `MacroLock` est déjà pris,
+  mais qu'`InputState` ne bloque pas encore, le Switch ne consomme un
+  clic qu'après contrôle du HWND actif, de la fenêtre sous le pointeur
+  et de l'identité DOFUS Unity. Les clics sur les autres applications
+  restent natifs.
+- **Rafales instrumentées :** un test de non-régression emprunte le vrai
+  chemin `MouseHook._mouse_proc` avec 2/4/6/8 DOWN/UP et crans de
+  molette, puis simule un Stop et un clic neuf. Les compteurs de gestes
+  bloqués doivent correspondre aux événements physiques observés.
+- **Statut réel :** tous ces tests sont écrits, mais non exécutés sur
+  un runner Windows avec DOFUS. Ils ne prouvent pas une interaction
+  Unity réussie ni un débit de 8 personnages.
+
+### Décision de sécurité : aucune file active sans graphe certifié
+
+La carte Graphify du SHA exact de #325 n'est pas accessible dans cette
+session GitHub. Le workflow `Graphify Code Map` n'est pas déclenché par
+les simples pushes sur la PR : `workflow_dispatch` et
+`workflow_call` uniquement. Faute d'artefact ou de checkout local,
+le contrat `GRAPHIFY.md` interdit une refonte structurelle.
+
+Une file future doit impérativement : conserver le couple DOWN/UP ;
+limiter et horodater chaque geste ; vérifier favori, identité du
+processus, HWND sous le curseur, génération de roster et focus avant
+l'injection ; être annulée au Stop ou au changement de mode ; ne
+jamais rejouer un geste périmé ou déjà envoyé ; utiliser le worker
+canonique sans deuxième moteur ; journaliser acceptés/expirés/refusés
+et couvrir des séquences adversariales sur 2/4/6/8 comptes.
+**MIRR-007 demeure PENDING.** Le moteur séquentiel qui active les
+autres fenêtres peut déplacer le focus au milieu d'un geste humain :
+rejouer ce geste plus tard sans contexte fiable serait plus dangereux
+que le supprimer. La faisabilité doit être établie sur Windows/Unity.
