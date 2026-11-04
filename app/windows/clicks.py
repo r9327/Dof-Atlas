@@ -63,7 +63,18 @@ def current_cursor_pos() -> tuple[int, int]:
 
 def set_cursor_pos(screen_x: int, screen_y: int) -> None:
     if os.name == "nt":
-        ctypes.windll.user32.SetCursorPos(int(screen_x), int(screen_y))
+        x, y = int(screen_x), int(screen_y)
+        if not ctypes.windll.user32.SetCursorPos(x, y):
+            # A refused move must not be mistaken for a successful aim:
+            # send_screen_click would otherwise click at the old position.
+            try:
+                win32_error = int(ctypes.windll.kernel32.GetLastError())
+            except (AttributeError, OSError, ValueError):
+                win32_error = 0
+            raise OSError(
+                f"Windows SetCursorPos refused at ({x},{y}) "
+                f"(win32_error={win32_error})"
+            )
 
 
 def _send_mouse_flag(flag: int) -> bool:
