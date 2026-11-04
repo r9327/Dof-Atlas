@@ -165,6 +165,7 @@ class SwitchClickMacro:
         target_total = 0
         mouse_blocked = mouse_block_started
         should_restore_preferred = False
+        last_activated_hwnd: int | None = None
         focus_lost = False
         delivery_failed = False
         mirror_started_at = perf_counter() if action_label == "Miroir" else None
@@ -378,6 +379,7 @@ class SwitchClickMacro:
                     )
                     return
                 should_restore_preferred = True
+                last_activated_hwnd = int(client.handle)
 
                 target = self._target_point(client.handle, context)
                 if target is None:
@@ -514,6 +516,27 @@ class SwitchClickMacro:
                 and not delivery_failed
                 and not self.runtime.macro_lock.should_stop()
             )
+            if (
+                restore_after_worker
+                and mirror_target_handles is not None
+                and last_activated_hwnd is not None
+            ):
+                # A user may switch to another app after the last successful
+                # SendInput. Never move their pointer or pull DOFUS back on
+                # top just because the sends themselves completed.
+                try:
+                    if foreground_window() != last_activated_hwnd:
+                        restore_after_worker = False
+                        self.runtime.logger.info(
+                            "%s: restauration ignorée, focus utilisateur changé.",
+                            action_label,
+                        )
+                except Exception:
+                    restore_after_worker = False
+                    self.runtime.logger.exception(
+                        "%s: focus non vérifiable avant restauration.",
+                        action_label,
+                    )
             if original_cursor is not None and restore_after_worker:
                 try:
                     set_cursor_pos(*original_cursor)
