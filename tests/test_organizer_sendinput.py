@@ -834,6 +834,51 @@ class OrganizerSendInputTests(unittest.TestCase):
         self.assertEqual(key.call_count, 3)
 
 
+    def test_finite_excessive_click_delay_refuses_before_mouse_guard(self) -> None:
+        for field in range(4):
+            for amount in (1001, 10**9):
+                with self.subTest(field=field, amount=amount):
+                    guard, logger = Mock(), Mock()
+                    timings = [0, 0, 0, 0]
+                    timings[field] = amount
+                    expected_budget = amount * (2 if field == 0 else 1)
+                    with (
+                        patch.object(clicks.os, "name", "nt"),
+                        patch.object(clicks, "set_cursor_pos") as move,
+                        patch.object(clicks, "_send_mouse_flag") as sender,
+                    ):
+                        self.assertFalse(clicks.send_screen_click(
+                            300, 200, "Left", 2, *timings, guard, logger,
+                        ))
+                    move.assert_not_called()
+                    sender.assert_not_called()
+                    guard.begin.assert_not_called()
+                    guard.end.assert_not_called()
+                    logger.warning.assert_called_once_with(
+                        "Clic synthetique refuse: temporisation excessive budget=%s ms.",
+                        expected_budget,
+                    )
+
+    def test_valid_timing_budget_still_emits_exactly_one_double_click(self) -> None:
+        guard, logger = Mock(), Mock()
+        with (
+            patch.object(clicks.os, "name", "nt"),
+            patch.object(clicks, "set_cursor_pos"),
+            patch.object(clicks, "wait_ms", return_value=False),
+            patch.object(clicks, "_send_mouse_flag", return_value=True) as sender,
+        ):
+            self.assertTrue(clicks.send_screen_click(
+                300, 200, "Left", 2, 2, 3, 2, 2, guard, logger,
+            ))
+        self.assertEqual(sender.call_args_list, [
+            call(clicks.MOUSEEVENTF_LEFTDOWN),
+            call(clicks.MOUSEEVENTF_LEFTUP),
+            call(clicks.MOUSEEVENTF_LEFTDOWN),
+            call(clicks.MOUSEEVENTF_LEFTUP),
+        ])
+        guard.begin.assert_called_once_with(250)
+        guard.end.assert_called_once_with(120)
+
     def test_corrupted_click_timings_fail_closed_before_cursor_or_input(self) -> None:
         for index in range(4):
             for invalid in (float("nan"), float("inf"), None):
