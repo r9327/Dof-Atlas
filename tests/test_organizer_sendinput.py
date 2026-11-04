@@ -380,6 +380,63 @@ class OrganizerSendInputTests(unittest.TestCase):
             self.assertEqual(hook._mouse_proc(0, WM_LBUTTONUP, addr), 51)
             self.assertEqual(len(calls), 1)
 
+    def test_busy_mouse_hook_bursts_two_four_six_eight_are_counted(self) -> None:
+        import logging
+        from app.input.input_state import InputState, SyntheticInputGuard
+        from app.input.mouse_hooks import (
+            MSLLHOOKSTRUCT, MouseHook,
+            WM_LBUTTONDOWN, WM_LBUTTONUP, WM_MOUSEWHEEL,
+        )
+
+        for count in (2, 4, 6, 8):
+            with self.subTest(count=count):
+                logger = logging.getLogger("test_busy_hook_bursts")
+                state = InputState()
+                click = Mock(return_value=False)
+                wheel = Mock(return_value=False)
+                hook = MouseHook(
+                    state, SyntheticInputGuard(logger), logger,
+                    click, wheel_callback=wheel,
+                )
+                event = MSLLHOOKSTRUCT()
+                event.pt.x, event.pt.y = 30, 40
+                event.mouseData = 120 << 16
+                user32 = Mock()
+                user32.CallNextHookEx.return_value = 51
+
+                with patch.object(
+                    ctypes, "windll", SimpleNamespace(user32=user32),
+                    create=True,
+                ):
+                    addr = ctypes.addressof(event)
+                    state.begin_mouse_block("Miroir")
+                    for _ in range(count):
+                        self.assertEqual(
+                            hook._mouse_proc(0, WM_LBUTTONDOWN, addr), 1,
+                        )
+                        self.assertEqual(
+                            hook._mouse_proc(0, WM_MOUSEWHEEL, addr), 1,
+                        )
+                        self.assertEqual(
+                            hook._mouse_proc(0, WM_LBUTTONUP, addr), 1,
+                        )
+                    self.assertEqual(hook._blocked_click_count, count)
+                    self.assertEqual(hook._blocked_wheel_count, count)
+                    self.assertEqual(hook._consumed_releases, set())
+                    state.clear_mouse_block()
+                    # The first new click after Stop must be a real
+                    # click, not a replay of a previously blocked gesture.
+                    self.assertEqual(
+                        hook._mouse_proc(0, WM_LBUTTONDOWN, addr), 51,
+                    )
+                    self.assertEqual(
+                        hook._mouse_proc(0, WM_LBUTTONUP, addr), 51,
+                    )
+                click.assert_called_once_with("Left", 30, 40)
+                wheel.assert_not_called()
+                self.assertEqual(hook._blocked_click_count, count)
+                self.assertEqual(hook._blocked_wheel_count, count)
+
     def test_native_up_from_press_before_busy_worker_is_not_swallowed(self) -> None:
         import logging
         from app.input.input_state import InputState, SyntheticInputGuard
