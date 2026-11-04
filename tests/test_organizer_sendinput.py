@@ -1049,6 +1049,65 @@ class OrganizerSendInputTests(unittest.TestCase):
         ])
         guard.end.assert_called_once_with(120)
 
+    def test_stop_during_mouse_down_hold_releases_one_matching_up(self) -> None:
+        for button in ("Left", "Right"):
+            with self.subTest(button=button):
+                stopped = [False]
+                guard = Mock()
+                down = (
+                    clicks.MOUSEEVENTF_LEFTDOWN if button == "Left"
+                    else clicks.MOUSEEVENTF_RIGHTDOWN
+                )
+                up = (
+                    clicks.MOUSEEVENTF_LEFTUP if button == "Left"
+                    else clicks.MOUSEEVENTF_RIGHTUP
+                )
+                with (
+                    patch.object(clicks.os, "name", "nt"),
+                    patch.object(clicks, "set_cursor_pos"),
+                    patch.object(clicks, "_send_mouse_flag",
+                                 return_value=True) as sender,
+                    patch.object(clicks, "wait_ms",
+                                 side_effect=lambda *_: True),
+                ):
+                    self.assertFalse(clicks.send_screen_click(
+                        300, 200, button, 2, 40, 0, 0, 0,
+                        guard, Mock(), should_stop=lambda: stopped[0],
+                    ))
+                self.assertEqual(sender.call_args_list, [
+                    call(down), call(up),
+                ])
+                guard.end.assert_called_once_with(120)
+
+    def test_double_gap_stop_never_emits_second_down(self) -> None:
+        for button in ("Left", "Right"):
+            with self.subTest(button=button):
+                guard = Mock()
+                down = (
+                    clicks.MOUSEEVENTF_LEFTDOWN if button == "Left"
+                    else clicks.MOUSEEVENTF_RIGHTDOWN
+                )
+                up = (
+                    clicks.MOUSEEVENTF_LEFTUP if button == "Left"
+                    else clicks.MOUSEEVENTF_RIGHTUP
+                )
+                with (
+                    patch.object(clicks.os, "name", "nt"),
+                    patch.object(clicks, "set_cursor_pos"),
+                    patch.object(clicks, "_send_mouse_flag",
+                                 return_value=True) as sender,
+                    patch.object(clicks, "wait_ms",
+                                 side_effect=lambda *_: True),
+                ):
+                    self.assertFalse(clicks.send_screen_click(
+                        300, 200, button, 2, 0, 30, 0, 0,
+                        guard, Mock(), should_stop=lambda: False,
+                    ))
+                self.assertEqual(sender.call_args_list, [
+                    call(down), call(up),
+                ])
+                guard.end.assert_called_once_with(120)
+
     def test_post_up_stop_does_not_erase_completed_click_delivery(self) -> None:
         for button in ("Left", "Right"):
             for count in (1, 2):
