@@ -928,7 +928,7 @@ class OrganizerMacroReliabilityTests(unittest.TestCase):
         with (
             patch("app.macros.zaap.is_unity_window", return_value=True),
             patch("app.macros.zaap.activate_window", return_value=True),
-            patch("app.macros.zaap.foreground_window", side_effect=[101, 202]),
+            patch("app.macros.zaap.foreground_window", side_effect=[101, 202, 202]),
             patch("app.macros.zaap.send_chat_command", side_effect=[True, False]),
         ):
             ZaapMacro(runtime)._run("/zaap 1,2")
@@ -1013,6 +1013,26 @@ class OrganizerMacroReliabilityTests(unittest.TestCase):
         runtime.logger.info.assert_any_call(
             "Auto groupe %s: envoyes=%s/%s candidats=%s sender=%s",
             "interrompu", 0, 1, 2, 101,
+        )
+
+
+    def test_zaap_failed_chat_with_stolen_focus_aborts_other_windows(self) -> None:
+        runtime = _runtime()
+        with (
+            patch("app.macros.zaap.is_unity_window", return_value=True),
+            patch("app.macros.zaap.activate_window", return_value=True),
+            patch("app.macros.zaap.foreground_window", side_effect=[101, 999]),
+            patch("app.macros.zaap.send_chat_command", return_value=False) as send,
+        ):
+            ZaapMacro(runtime)._run("/zaap 1,2")
+        send.assert_called_once()
+        runtime.switch_character.restore_preferred_client.assert_not_called()
+        runtime.logger.warning.assert_any_call(
+            "Auto zaap interrompu: focus perdu après échec du chat hwnd=%s",
+            101,
+        )
+        runtime.logger.info.assert_any_call(
+            "Auto zaap %s: envoyes=%s/%s", "interrompu", 0, 2,
         )
 
 
