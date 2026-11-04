@@ -173,7 +173,21 @@ def activate_window(
             else:
                 win32gui.ShowWindow(hwnd, win32con.SW_SHOW)
 
+            if should_stop is not None and should_stop():
+                logger.info(
+                    "%s activation stoppee apres ShowWindow hwnd=%s",
+                    action_label, hwnd,
+                )
+                return False
+
             win32gui.BringWindowToTop(hwnd)
+            if should_stop is not None and should_stop():
+                logger.info(
+                    "%s activation stoppee apres BringWindowToTop hwnd=%s",
+                    action_label, hwnd,
+                )
+                return False
+
             win32gui.SetWindowPos(
                 hwnd,
                 win32con.HWND_TOP,
