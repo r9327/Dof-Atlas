@@ -98,6 +98,24 @@ class OrganizerTopmostCleanupTests(unittest.TestCase):
             "Miroir", 101,
         )
 
+    def test_stop_during_bring_to_top_skips_setwindowpos(self):
+        stopped = [False]
+        modules = _topmost_modules(lambda *_: None)
+
+        def bring_to_top(hwnd):
+            stopped[0] = True
+
+        modules["win32gui"].BringWindowToTop.side_effect = bring_to_top
+        logger = self._activate(modules, should_stop=lambda: stopped[0])
+        modules["win32gui"].ShowWindow.assert_called_once_with(101, 5)
+        modules["win32gui"].BringWindowToTop.assert_called_once_with(101)
+        modules["win32gui"].SetWindowPos.assert_not_called()
+        modules["win32gui"].SetForegroundWindow.assert_not_called()
+        logger.info.assert_any_call(
+            "%s activation stoppee apres BringWindowToTop hwnd=%s",
+            "Miroir", 101,
+        )
+
     def test_stop_during_setforeground_does_not_call_setfocus(self):
         stopped = [False]
         modules = _topmost_modules(lambda *_: None)
