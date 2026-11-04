@@ -86,7 +86,13 @@ class OrganizerMacroReliabilityTests(unittest.TestCase):
             SimpleNamespace(index=1, handle=101, display_name="Friend"),
         ]
         macro = SwitchCharacterMacro(runtime)
-        for malformed in (True, 1.9, 1.0, float("nan"), float("inf")):
+        from decimal import Decimal
+        from fractions import Fraction
+
+        for malformed in (
+            True, 1.9, 1.0, float("nan"), float("inf"),
+            Fraction(3, 2), Decimal("1.9"), complex(1, 0),
+        ):
             with self.subTest(index=repr(malformed)):
                 self.assertFalse(macro.activate_by_index(malformed))
         runtime._spawn_macro.assert_not_called()

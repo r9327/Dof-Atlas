@@ -17,18 +17,15 @@ class SwitchCharacterMacro:
 
     def activate_by_index(self, client_index: int) -> bool:
         settings = self.runtime.settings
-        # Numeric strings from older hotkey profiles remain supported; a
-        # fractional float or bool must never alias a different slot.
-        if type(client_index) in (bool, float):
+        # Numeric strings from older profiles remain supported, but do not
+        # truncate other number-like objects into a different character slot.
+        if type(client_index) not in (int, str):
             self.runtime.logger.info("Activation client ignorée: index invalide=%r", client_index)
             return False
         try:
             requested_index = int(client_index)
         except (TypeError, ValueError, OverflowError):
             self.runtime.logger.info("Activation client ignorée: index invalide=%r", client_index)
-            return False
-        if isinstance(client_index, bool):
-            self.runtime.logger.info("Activation client ignorée: index booléen=%r", client_index)
             return False
         target = next((client for client in settings.clients if client.index == requested_index), None)
         if target is None:
