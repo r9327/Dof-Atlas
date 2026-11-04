@@ -66,7 +66,7 @@ class SwitchClickMacro:
         try:
             screen_x = int(screen_x)
             screen_y = int(screen_y)
-        except (TypeError, ValueError):
+        except (TypeError, ValueError, OverflowError):
             self.runtime.logger.warning(
                 "%s ignore: position souris invalide x=%r y=%r",
                 action_label,
@@ -77,7 +77,7 @@ class SwitchClickMacro:
 
         try:
             requested_count = int(click_count)
-        except (TypeError, ValueError):
+        except (TypeError, ValueError, OverflowError):
             requested_count = 1
         click_count = 2 if requested_count >= 2 else 1
         button_name = "Right" if normalized_button == "right" else "Left"
