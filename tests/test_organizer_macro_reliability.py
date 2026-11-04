@@ -21,6 +21,32 @@ def _runtime() -> Mock:
 
 
 class OrganizerMacroReliabilityTests(unittest.TestCase):
+
+    def test_auto_group_overflowing_session_handles_do_not_abort_other_invites(self) -> None:
+        runtime = _runtime()
+        runtime.settings.timings.auto_group_invite_gap_ms = 0
+        runtime.switch_character.logical_active_client.return_value = SimpleNamespace(
+            handle=101, display_name="Leader",
+        )
+        with (
+            patch("app.macros.auto_group.is_unity_window", return_value=True),
+            patch("app.macros.auto_group.activate_window", return_value=True),
+            patch("app.macros.auto_group.foreground_window", return_value=101),
+            patch("app.macros.auto_group.send_chat_command", return_value=True) as sender,
+        ):
+            AutoGroupMacro(runtime)._run([
+                {"name": "Friend1", "handle": float("inf")},
+                {"name": "Friend2", "handle": 303},
+            ])
+        self.assertEqual(
+            [call.args[0] for call in sender.call_args_list],
+            ["/invite Friend1", "/invite Friend2"],
+        )
+        runtime.logger.info.assert_any_call(
+            "Auto groupe %s: envoyes=%s/%s candidats=%s sender=%s",
+            "termine", 2, 2, 2, 101,
+        )
+
     def test_auto_group_restores_favorite_after_invitation_failure(self) -> None:
         runtime = _runtime()
         runtime.settings.timings.auto_group_invite_gap_ms = 0
