@@ -317,6 +317,38 @@ class OrganizerSendInputTests(unittest.TestCase):
             [call("/invite Friend", 13), call("original", 13)],
         )
 
+    def test_clipboard_preflight_rejects_unreadable_or_nonnumeric_revision(self) -> None:
+        for revision in (None, "invalid", OSError("access denied")):
+            with self.subTest(revision=repr(revision)):
+                clipboard = Mock()
+                clipboard.GetClipboardData.return_value = "important user text"
+                clipboard.EnumClipboardFormats.side_effect = [13, 0]
+                if isinstance(revision, Exception):
+                    clipboard.GetClipboardSequenceNumber.side_effect = revision
+                else:
+                    clipboard.GetClipboardSequenceNumber.return_value = revision
+                logger = Mock()
+                with (
+                    patch.object(input_tools.os, "name", "nt"),
+                    patch.dict("sys.modules", {
+                        "win32clipboard": clipboard,
+                        "win32con": SimpleNamespace(CF_UNICODETEXT=13),
+                    }),
+                    patch.object(input_tools, "press_key") as press,
+                ):
+                    with self.assertRaisesRegex(
+                        OSError, "Clipboard revision Win32 indisponible",
+                    ):
+                        input_tools.send_chat_command("/invite Friend", logger)
+                clipboard.OpenClipboard.assert_called_once()
+                clipboard.CloseClipboard.assert_called_once()
+                clipboard.EmptyClipboard.assert_not_called()
+                clipboard.SetClipboardText.assert_not_called()
+                press.assert_not_called()
+                logger.warning.assert_any_call(
+                    "Clipboard conserve: revision Win32 non fiable."
+                )
+
     def test_chat_refuses_submission_without_clipboard_revision(self) -> None:
         clipboard = Mock()
         clipboard.GetClipboardData.return_value = "original"
