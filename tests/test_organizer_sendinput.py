@@ -138,6 +138,71 @@ class OrganizerSendInputTests(unittest.TestCase):
         )
         press.assert_called_once_with("ENTER")
 
+    def test_clipboard_user_copy_during_command_is_preserved(self) -> None:
+        clipboard = Mock()
+        clipboard.GetClipboardData.return_value = "old clipboard"
+        clipboard.EnumClipboardFormats.side_effect = [13, 0]
+        clipboard.GetClipboardSequenceNumber.side_effect = [100, 101]
+        logger = Mock()
+        with (
+            patch.object(input_tools.os, "name", "nt"),
+            patch.dict("sys.modules", {
+                "win32clipboard": clipboard,
+                "win32con": SimpleNamespace(CF_UNICODETEXT=13),
+            }),
+            patch.object(input_tools, "replace_chat_text_with_clipboard",
+                         return_value=True),
+            patch.object(input_tools, "press_key") as press,
+        ):
+            self.assertTrue(input_tools.send_chat_command("/zaap 1,2", logger))
+        clipboard.SetClipboardText.assert_called_once_with("/zaap 1,2", 13)
+        clipboard.EmptyClipboard.assert_called_once()
+        logger.info.assert_called_once_with(
+            "Clipboard utilisateur modifie pendant la macro: restauration ignoree."
+        )
+        press.assert_called_once_with("ENTER")
+
+    def test_clipboard_unchanged_sequence_restores_original_text(self) -> None:
+        clipboard = Mock()
+        clipboard.GetClipboardData.return_value = "old clipboard"
+        clipboard.EnumClipboardFormats.side_effect = [13, 0]
+        clipboard.GetClipboardSequenceNumber.side_effect = [100, 100]
+        with (
+            patch.object(input_tools.os, "name", "nt"),
+            patch.dict("sys.modules", {
+                "win32clipboard": clipboard,
+                "win32con": SimpleNamespace(CF_UNICODETEXT=13),
+            }),
+            patch.object(input_tools, "replace_chat_text_with_clipboard",
+                         return_value=True),
+            patch.object(input_tools, "press_key"),
+        ):
+            self.assertTrue(input_tools.send_chat_command("/zaap 1,2", Mock()))
+        self.assertEqual(clipboard.EmptyClipboard.call_count, 2)
+        self.assertEqual(
+            clipboard.SetClipboardText.call_args_list,
+            [call("/zaap 1,2", 13), call("old clipboard", 13)],
+        )
+
+    def test_clipboard_changed_during_sender_error_keeps_original_exception(self) -> None:
+        clipboard = Mock()
+        clipboard.GetClipboardData.return_value = "old clipboard"
+        clipboard.EnumClipboardFormats.side_effect = [13, 0]
+        clipboard.GetClipboardSequenceNumber.side_effect = [100, 101]
+        with (
+            patch.object(input_tools.os, "name", "nt"),
+            patch.dict("sys.modules", {
+                "win32clipboard": clipboard,
+                "win32con": SimpleNamespace(CF_UNICODETEXT=13),
+            }),
+            patch.object(input_tools, "replace_chat_text_with_clipboard",
+                         side_effect=OSError("SendInput refused")),
+        ):
+            with self.assertRaisesRegex(OSError, "SendInput refused"):
+                input_tools.send_chat_command("/invite Friend", Mock())
+        clipboard.SetClipboardText.assert_called_once_with("/invite Friend", 13)
+        clipboard.EmptyClipboard.assert_called_once()
+
     def test_chat_accepts_truly_empty_clipboard_and_restores_empty_state(self) -> None:
         clipboard = Mock()
         clipboard.GetClipboardData.side_effect = TypeError("clipboard empty")
