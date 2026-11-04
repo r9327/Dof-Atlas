@@ -48,6 +48,7 @@ class OrganizerMacroReliabilityTests(unittest.TestCase):
         macro = SwitchCharacterMacro(runtime)
         with (
             patch("app.macros.switch_character.is_unity_window", return_value=True),
+            patch("app.macros.switch_character.is_dofus_unity_process", return_value=True),
             patch.object(macro, "logical_active_client", return_value=runtime.settings.clients[1]),
         ):
             ordered = macro.ordered_clients_from_source(float("inf"))
@@ -615,6 +616,7 @@ class OrganizerMacroReliabilityTests(unittest.TestCase):
         runtime._spawn_macro.return_value = True
         with (
             patch("app.macros.switch_character.is_unity_window", return_value=True),
+            patch("app.macros.switch_character.is_dofus_unity_process", return_value=True),
             patch("app.macros.switch_character.activate_window", return_value=True),
             patch("app.macros.switch_character.foreground_window", return_value=202),
         ):
@@ -632,6 +634,7 @@ class OrganizerMacroReliabilityTests(unittest.TestCase):
         runtime._spawn_macro.return_value = True
         with (
             patch("app.macros.switch_character.is_unity_window", return_value=True),
+            patch("app.macros.switch_character.is_dofus_unity_process", return_value=True),
             patch("app.macros.switch_character.activate_window", return_value=True),
             patch("app.macros.switch_character.foreground_window", return_value=999),
         ):
@@ -639,7 +642,7 @@ class OrganizerMacroReliabilityTests(unittest.TestCase):
             runtime._spawn_macro.call_args.args[1]()
         self.assertEqual(runtime.active_client_handle, 101)
         runtime.logger.warning.assert_any_call(
-            "Activation client ignoree: focus non confirme hwnd=%s", 202,
+            "Activation client ignoree: identite ou focus non confirme hwnd=%s", 202,
         )
         self.assertFalse(
             any(
@@ -658,6 +661,7 @@ class OrganizerMacroReliabilityTests(unittest.TestCase):
         runtime._spawn_macro.return_value = True
         with (
             patch("app.macros.switch_character.is_unity_window", return_value=True),
+            patch("app.macros.switch_character.is_dofus_unity_process", return_value=True),
             patch("app.macros.switch_character.activate_window", return_value=True),
             patch("app.macros.switch_character.foreground_window") as foreground,
         ):
@@ -1650,19 +1654,84 @@ class OrganizerMacroReliabilityTests(unittest.TestCase):
                 self.assertFalse(macro.activate_by_index(invalid))
         runtime._spawn_macro.assert_not_called()
 
+    def test_shortcut_rejects_foreign_unity_process_without_activation(self) -> None:
+        runtime = _runtime()
+        runtime.settings.clients = [
+            SimpleNamespace(index=1, handle=202, display_name="Friend"),
+        ]
+        runtime.active_client_handle = 101
+        runtime._spawn_macro.return_value = True
+        with (
+            patch("app.macros.switch_character.is_unity_window", return_value=True),
+            patch("app.macros.switch_character.is_dofus_unity_process", return_value=False),
+            patch("app.macros.switch_character.activate_window") as activate,
+        ):
+            self.assertTrue(SwitchCharacterMacro(runtime).activate_by_index(1))
+            runtime._spawn_macro.call_args.args[1]()
+        activate.assert_not_called()
+        self.assertEqual(runtime.active_client_handle, 101)
+
+    def test_shortcut_rejects_process_replacement_after_activation(self) -> None:
+        runtime = _runtime()
+        runtime.settings.clients = [
+            SimpleNamespace(index=1, handle=202, display_name="Friend"),
+        ]
+        runtime.active_client_handle = 101
+        runtime._spawn_macro.return_value = True
+        with (
+            patch("app.macros.switch_character.is_unity_window", return_value=True),
+            patch("app.macros.switch_character.is_dofus_unity_process",
+                  side_effect=[True, False]),
+            patch("app.macros.switch_character.activate_window", return_value=True),
+            patch("app.macros.switch_character.foreground_window") as foreground,
+        ):
+            self.assertTrue(SwitchCharacterMacro(runtime).activate_by_index(1))
+            runtime._spawn_macro.call_args.args[1]()
+        foreground.assert_not_called()
+        self.assertEqual(runtime.active_client_handle, 101)
+
+    def test_favorite_restore_refuses_foreign_unity_process(self) -> None:
+        runtime = _runtime()
+        runtime.active_client_handle = 101
+        runtime.settings.preferred_client.return_value = SimpleNamespace(handle=202)
+        with (
+            patch("app.macros.switch_character.is_unity_window", return_value=True),
+            patch("app.macros.switch_character.is_dofus_unity_process", return_value=False),
+            patch("app.macros.switch_character.activate_window") as activate,
+        ):
+            SwitchCharacterMacro(runtime).restore_preferred_client("Macro")
+        activate.assert_not_called()
+        self.assertEqual(runtime.active_client_handle, 101)
+
+    def test_favorite_restore_refuses_process_replacement_after_activation(self) -> None:
+        runtime = _runtime()
+        runtime.active_client_handle = 101
+        runtime.settings.preferred_client.return_value = SimpleNamespace(handle=202)
+        with (
+            patch("app.macros.switch_character.is_unity_window", return_value=True),
+            patch("app.macros.switch_character.is_dofus_unity_process",
+                  side_effect=[True, False]),
+            patch("app.macros.switch_character.activate_window", return_value=True),
+            patch("app.macros.switch_character.foreground_window") as foreground,
+        ):
+            SwitchCharacterMacro(runtime).restore_preferred_client("Macro")
+        foreground.assert_not_called()
+        self.assertEqual(runtime.active_client_handle, 101)
+
     def test_switch_character_return_does_not_report_stolen_focus(self) -> None:
         runtime = _runtime()
         runtime.active_client_handle = 101
         runtime.settings.preferred_client.return_value = SimpleNamespace(handle=202)
         with (
             patch("app.macros.switch_character.is_unity_window", return_value=True),
+            patch("app.macros.switch_character.is_dofus_unity_process", return_value=True),
             patch("app.macros.switch_character.activate_window", return_value=True),
             patch("app.macros.switch_character.foreground_window", return_value=999),
         ):
             SwitchCharacterMacro(runtime).restore_preferred_client("Macro")
         self.assertEqual(runtime.active_client_handle, 101)
         runtime.logger.warning.assert_any_call(
-            "%s retour non confirmé: focus différent hwnd=%s", "Macro", 202,
+            "%s retour non confirmé: identite ou focus différent hwnd=%s", "Macro", 202,
         )
 
     def test_switch_character_return_does_not_mark_success_after_stop(self) -> None:
@@ -1672,6 +1741,7 @@ class OrganizerMacroReliabilityTests(unittest.TestCase):
         runtime.macro_lock.should_stop.side_effect = [False, True]
         with (
             patch("app.macros.switch_character.is_unity_window", return_value=True),
+            patch("app.macros.switch_character.is_dofus_unity_process", return_value=True),
             patch("app.macros.switch_character.activate_window", return_value=True),
             patch("app.macros.switch_character.foreground_window") as foreground,
         ):
@@ -1685,6 +1755,7 @@ class OrganizerMacroReliabilityTests(unittest.TestCase):
         runtime.settings.preferred_client.return_value = SimpleNamespace(handle=202)
         with (
             patch("app.macros.switch_character.is_unity_window", return_value=True),
+            patch("app.macros.switch_character.is_dofus_unity_process", return_value=True),
             patch("app.macros.switch_character.activate_window", return_value=True),
             patch("app.macros.switch_character.foreground_window", return_value=202),
         ):
