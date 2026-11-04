@@ -166,6 +166,7 @@ class SwitchClickMacro:
         mouse_blocked = mouse_block_started
         should_restore_preferred = False
         focus_lost = False
+        delivery_failed = False
         mirror_started_at = perf_counter() if action_label == "Miroir" else None
         mirror_send_samples: list[float] = []
         mirror_focus_samples: list[float] = []
@@ -385,15 +386,22 @@ class SwitchClickMacro:
                     mirror_send_samples.append((perf_counter() - send_started_at) * 1000.0)
                 if delivered:
                     sent_count += 1
-                elif foreground_window() != int(client.handle):
-                    # The sender may refuse a click after Unity's hover
-                    # delay because another app stole focus. Do not force
-                    # the favorite back or continue to another client.
-                    focus_lost = True
-                    self.runtime.logger.warning(
-                        "%s interrompu: focus perdu pendant clic hwnd=%s",
-                        action_label, client.handle,
-                    )
+                else:
+                    if foreground_window() != int(client.handle):
+                        # A stolen focus may have caused the sender to refuse.
+                        focus_lost = True
+                        self.runtime.logger.warning(
+                            "%s interrompu: focus perdu pendant clic hwnd=%s",
+                            action_label, client.handle,
+                        )
+                    else:
+                        # Never broadcast subsequent clicks after Windows
+                        # refused one, and never report an apparent success.
+                        delivery_failed = True
+                        self.runtime.logger.warning(
+                            "%s interrompu: SendInput clic refusé hwnd=%s",
+                            action_label, client.handle,
+                        )
                     return
 
                 if (
@@ -410,6 +418,7 @@ class SwitchClickMacro:
             # The user may already have selected another application.
             restore_after_worker = (
                 should_restore_preferred and not focus_lost
+                and not delivery_failed
                 and not self.runtime.macro_lock.should_stop()
             )
             if original_cursor is not None and restore_after_worker:
