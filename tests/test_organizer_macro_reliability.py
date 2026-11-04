@@ -161,6 +161,69 @@ class OrganizerMacroReliabilityTests(unittest.TestCase):
                 runtime._spawn_macro.assert_called_once()
                 self.assertEqual(runtime._spawn_macro.call_args.args[0], "Activation client")
 
+
+    def test_switch_worker_aborts_before_focus_if_native_identity_reloads_profile(self):
+        for count in (2, 4, 6, 8):
+            with self.subTest(clients=count):
+                runtime = _runtime()
+                clients = [
+                    SimpleNamespace(index=i + 1, handle=101 + i, display_name=str(i))
+                    for i in range(count)
+                ]
+                runtime.settings.clients = clients
+                runtime._spawn_macro.return_value = True
+                macro = SwitchCharacterMacro(runtime)
+                self.assertTrue(macro.activate_by_index(2))
+                worker = runtime._spawn_macro.call_args.args[1]
+                old = runtime.settings
+                def reload_at_identity(_hwnd):
+                    newer = Mock()
+                    newer.clients = clients
+                    newer.timings = old.timings
+                    runtime.settings = newer
+                    return True
+                with (
+                    patch("app.macros.switch_character.is_unity_window",
+                          return_value=True),
+                    patch("app.macros.switch_character.is_dofus_unity_process",
+                          side_effect=reload_at_identity),
+                    patch("app.macros.switch_character.activate_window") as activate,
+                ):
+                    worker()
+                activate.assert_not_called()
+                runtime.logger.info.assert_any_call(
+                    "Activation client annulée: profil ou Stop changé après contrôle natif.",
+                )
+
+    def test_switch_roster_cannot_return_partial_clients_after_profile_reload(self):
+        for count in (2, 4, 6, 8):
+            with self.subTest(clients=count):
+                runtime = _runtime()
+                clients = [
+                    SimpleNamespace(index=i + 1, handle=101 + i)
+                    for i in range(count)
+                ]
+                runtime.settings.clients = clients
+                old = runtime.settings
+                macro = SwitchCharacterMacro(runtime)
+                def reload_at_identity(_hwnd):
+                    newer = Mock()
+                    newer.clients = clients
+                    runtime.settings = newer
+                    return True
+                with (
+                    patch("app.macros.switch_character.is_unity_window",
+                          return_value=True),
+                    patch("app.macros.switch_character.is_dofus_unity_process",
+                          side_effect=reload_at_identity),
+                    patch.object(macro, "logical_active_client") as fallback,
+                ):
+                    self.assertEqual(macro.ordered_clients_from_source(0), [])
+                fallback.assert_not_called()
+                runtime.logger.info.assert_any_call(
+                    "Switch: roster abandonné, profil Organizer remplacé pendant scan.",
+                )
+
     def test_character_hotkey_rejects_fractional_slot_without_spawning(self) -> None:
         runtime = _runtime()
         runtime.settings.clients = [

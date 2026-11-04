@@ -65,6 +65,13 @@ class SwitchCharacterMacro:
                     target.handle,
                 )
                 return
+            # Native identity checks may release the GIL. Abort before ANY
+            # focus change if a newer profile replaced this queued activation.
+            if not target_is_current() or self.runtime.macro_lock.should_stop():
+                self.runtime.logger.info(
+                    "Activation client annulée: profil ou Stop changé après contrôle natif.",
+                )
+                return
             if activate_window(
                 target.handle,
                 settings.timings.click_focus_settle_ms,
@@ -180,10 +187,11 @@ class SwitchCharacterMacro:
         self,
         source_hwnd: int = 0,
     ) -> list["AtlasClient"]:
+        settings_at_start = self.runtime.settings
         clients: list["AtlasClient"] = []
         seen_handles: set[int] = set()
 
-        for client in self.runtime.settings.clients:
+        for client in settings_at_start.clients:
             handle = client.handle
             if type(handle) is not int or not 0 < handle <= (2**64 - 1):
                 self.runtime.logger.warning(
@@ -196,6 +204,13 @@ class SwitchCharacterMacro:
                 continue
             seen_handles.add(handle)
             clients.append(client)
+            if self.runtime.settings is not settings_at_start:
+                self.runtime.logger.info(
+                    "Switch: roster abandonné, profil Organizer remplacé pendant scan.",
+                )
+                return []
+        if self.runtime.settings is not settings_at_start:
+            return []
 
         # A bad explicit Win32 source must not silently fall back to the
         # favorite. Never truncate fractional HWND aliases to an active
@@ -221,6 +236,8 @@ class SwitchCharacterMacro:
             source = self.logical_active_client()
             source_hwnd = source.handle if source is not None else 0
 
+        if self.runtime.settings is not settings_at_start:
+            return []
         if not source_hwnd:
             return clients
 
