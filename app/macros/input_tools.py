@@ -228,6 +228,7 @@ def clipboard_text(text: str, logger: Logger):
     try:
         yield
     finally:
+        restored = False
         for _attempt in range(10):
             try:
                 win32clipboard.OpenClipboard()
@@ -237,10 +238,14 @@ def clipboard_text(text: str, logger: Logger):
                         win32clipboard.SetClipboardText(previous, win32con.CF_UNICODETEXT)
                 finally:
                     win32clipboard.CloseClipboard()
-                return
+                restored = True
+                break
             except Exception:
                 time.sleep(0.03)
-        logger.warning("Clipboard: restauration impossible.")
+        if not restored:
+            logger.warning("Clipboard: restauration impossible.")
+        # Never return from this finally: contextlib would swallow exceptions
+        # from the caller (SendInput, focus, Stop, etc.) and report fake success.
 
 
 def _sleep_ms(duration_ms: int, should_stop: Callable[[], bool] | None = None) -> bool:
