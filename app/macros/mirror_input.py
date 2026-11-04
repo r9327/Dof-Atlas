@@ -30,8 +30,13 @@ class MirrorInputMacro:
 
         if type(vk_code) is not int or vk_code not in MIRROR_DISCRETE_KEYS:
             return False
+        profile_at_dispatch = self.runtime.settings
         return self.runtime._spawn_macro(
-            "Miroir clavier", lambda: self._run("key", vk_code, source, handles)
+            "Miroir clavier",
+            lambda: self._run(
+                "key", vk_code, source, handles,
+                profile_at_dispatch=profile_at_dispatch,
+            ),
         )
 
     def run_wheel(
@@ -44,9 +49,12 @@ class MirrorInputMacro:
                        or not 0.0 <= v <= 1.0
                        for v in (x_ratio, y_ratio))):
             return False
+        profile_at_dispatch = self.runtime.settings
         return self.runtime._spawn_macro(
-            "Miroir molette", lambda: self._run(
+            "Miroir molette",
+            lambda: self._run(
                 "wheel", (delta, horizontal, x_ratio, y_ratio), source, handles,
+                profile_at_dispatch=profile_at_dispatch,
             ),
         )
 
@@ -82,12 +90,22 @@ class MirrorInputMacro:
 
     def _run(
         self, kind: str, payload: object, source: int, handles: tuple[int, ...],
+        *, profile_at_dispatch: object | None = None,
     ) -> None:
         runtime = self.runtime
-        # A profile reload is an atomic replacement even when its visible
-        # favorite and 2–8 handles happen to remain identical. Never let an
-        # older gesture focus or send through a replacement generation.
+        # A queued callback belongs to the profile that accepted the physical
+        # gesture. Identical HWNDs after a reload are still a new generation.
+        # Reject BEFORE cursor reads, process probes or focus changes.
         profile_at_start = runtime.settings
+        if (profile_at_dispatch is not None
+                and profile_at_start is not profile_at_dispatch):
+            runtime.logger.warning(
+                "Miroir %s annulé: profil Organizer remplacé avant worker.", kind,
+            )
+            runtime._emit_status(
+                "Miroir non diffusé : profil Organizer modifié."
+            )
+            return
         timings = profile_at_start.timings
         start = perf_counter()
         delivered = 0

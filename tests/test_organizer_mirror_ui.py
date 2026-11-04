@@ -246,6 +246,60 @@ class OrganizerMirrorIntegrationTests(unittest.TestCase):
                 self.assertIsNot(runtime.settings, original_settings)
                 runtime.switch_click.run_async.assert_not_called()
 
+
+    def test_mirror_queued_input_rejects_identical_profile_reload_2_to_8(self):
+        from app.macros.mirror_input import MirrorInputMacro
+
+        for count in (2, 4, 6, 8):
+            for kind in ("key", "wheel"):
+                with self.subTest(clients=count, kind=kind):
+                    handles = tuple(range(101, 101 + count))
+                    runtime = self._runtime(
+                        primary=handles[-1], handles=handles,
+                    )
+                    runtime._spawn_macro.return_value = True
+                    macro = MirrorInputMacro(runtime)
+                    order = (handles[-1], *handles[:-1])
+                    if kind == "key":
+                        accepted = macro.run_key(65, handles[-1], order)
+                    else:
+                        accepted = macro.run_wheel(
+                            120, False, 0.4, 0.6, handles[-1], order,
+                        )
+                    self.assertTrue(accepted)
+                    worker = runtime._spawn_macro.call_args.args[1]
+                    profile = runtime.settings
+                    # A profile reload with exactly the same visible clients
+                    # must invalidate the queued physical gesture.
+                    replacement = SimpleNamespace(
+                        macro_mode=profile.macro_mode,
+                        primary_handle=profile.primary_handle,
+                        clients=profile.clients,
+                        timings=profile.timings,
+                    )
+                    runtime.settings = replacement
+                    with (
+                        patch("app.macros.mirror_input.current_cursor_pos") as cursor,
+                        patch("app.macros.mirror_input.is_dofus_unity_process") as probe,
+                        patch("app.macros.mirror_input.activate_window") as activate,
+                        patch("app.macros.mirror_input.send_screen_wheel") as wheel,
+                        patch("app.macros.input_tools.key_down") as key,
+                    ):
+                        worker()
+                    cursor.assert_not_called()
+                    probe.assert_not_called()
+                    activate.assert_not_called()
+                    wheel.assert_not_called()
+                    key.assert_not_called()
+                    runtime.switch_character.restore_preferred_client.assert_not_called()
+                    runtime._emit_status.assert_called_once_with(
+                        "Miroir non diffusé : profil Organizer modifié."
+                    )
+                    runtime.logger.warning.assert_any_call(
+                        "Miroir %s annulé: profil Organizer remplacé avant worker.",
+                        kind,
+                    )
+
     def test_mirror_worker_accepts_nonfirst_favorite_and_rejects_roster_drift(self):
         from app.macros.mirror_input import MirrorInputMacro
 
