@@ -556,7 +556,7 @@ class AtlasRuntime:
         if action_id.startswith("client:"):
             try:
                 client_index = int(payload.get("client_index", 0))
-            except (TypeError, ValueError):
+            except (TypeError, ValueError, OverflowError):
                 self.logger.debug("Payload invalide pour switch personnage: action=%s payload=%s", action_id, payload)
                 return
             self.switch_character.activate_by_index(client_index)
@@ -796,7 +796,7 @@ class AtlasRuntime:
             return True
         try:
             click_count = int(action.payload.get("click_count", 1))
-        except (TypeError, ValueError):
+        except (TypeError, ValueError, OverflowError):
             self.logger.debug("Payload switch invalide: action=%s payload=%s", action.action_id, action.payload)
             click_count = 1
         action_label = str(action.payload.get("label", "Switch clique"))
