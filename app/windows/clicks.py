@@ -123,7 +123,7 @@ def send_screen_click(
     button_name = "Right" if normalized_button == "right" else "Left"
     try:
         requested_count = int(click_count)
-    except (TypeError, ValueError):
+    except (TypeError, ValueError, OverflowError):
         requested_count = 1
     click_total = 2 if requested_count >= 2 else 1
     try:
