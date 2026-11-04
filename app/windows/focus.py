@@ -257,10 +257,17 @@ def activate_window(
                         )
                         # Exactly one bounded retry; if it fails too the
                         # outer handler refuses the final foreground step.
-                        win32gui.SetWindowPos(
-                            hwnd, win32con.HWND_NOTOPMOST,
-                            0, 0, 0, 0, flags,
-                        )
+                        try:
+                            win32gui.SetWindowPos(
+                                hwnd, win32con.HWND_NOTOPMOST,
+                                0, 0, 0, 0, flags,
+                            )
+                        except Exception:
+                            logger.error(
+                                "%s: fenetre potentiellement bloquee topmost hwnd=%s.",
+                                action_label, hwnd,
+                            )
+                            raise
                 if should_stop is not None and should_stop():
                     logger.info(
                         "%s activation stoppee apres topmost hwnd=%s",
