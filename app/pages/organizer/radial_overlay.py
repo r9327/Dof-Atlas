@@ -241,6 +241,10 @@ class OrganizerRadialHoldController:
             return False
         self.keys = spec.keys
         if self.keys:
+            # Binding a shortcut while its key is already down must not
+            # open the wheel retroactively. Require a fresh key release
+            # before the next deliberate press.
+            self._cancel_until_release = bool(self.key_reader(self.keys))
             self._timer.start()
         return True
 

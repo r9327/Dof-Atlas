@@ -122,6 +122,48 @@ class OrganizerRadialSelectionTests(unittest.TestCase):
             (1, 2),
         )
 
+    def test_corrupt_or_overflowing_handles_never_select_another_character(self):
+        cases = [True, False, float("inf"), float("nan"), 12.5, 2**64, "invalid"]
+        valid = {"nom": "Panda", "hwnd": 12, "pid": 125}
+        for invalid in cases:
+            with self.subTest(invalid=repr(invalid)):
+                self.assertEqual(
+                    visible_characters([valid], [invalid]), [],
+                )
+                self.assertEqual(
+                    visible_characters([
+                        {"nom": "Corrupt", "hwnd": invalid},
+                        valid,
+                    ], [12]),
+                    [valid],
+                )
+                self.assertEqual(radial_roster_key(
+                    {"nom": "Corrupt", "hwnd": invalid, "pid": 125}
+                ), "")
+                self.assertIsNone(confirmed_radial_target(
+                    [{"nom": "Corrupt", "hwnd": invalid, "pid": 125}],
+                    [valid], 0,
+                ))
+
+    def test_pid_overflow_cannot_reuse_unverified_radial_identity(self):
+        for invalid in (float("inf"), float("nan"), 2**32, -1, True, 17.5):
+            with self.subTest(pid=repr(invalid)):
+                self.assertEqual(radial_roster_key(
+                    {"nom": "Panda", "hwnd": 12, "pid": invalid},
+                ), "")
+        self.assertEqual(
+            radial_roster_key({"nom": "Panda", "hwnd": "12", "pid": "125"}),
+            "unverified:panda:125",
+        )
+
+    def test_bad_selected_index_never_activates_a_character(self):
+        snapshot = [{"hwnd": 12, "nom": "Panda"}]
+        for invalid in (True, False, 1.0, "0", -1, 1):
+            with self.subTest(index=repr(invalid)):
+                self.assertIsNone(
+                    confirmed_radial_target(snapshot, snapshot, invalid)
+                )
+
     def test_center_and_empty_selection_cancel(self) -> None:
         self.assertIsNone(selected_slice(0, 0, 8))
         self.assertIsNone(selected_slice(15, 15, 4))

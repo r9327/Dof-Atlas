@@ -20,12 +20,16 @@ def radial_roster_key(session: Mapping[str, Any]) -> str:
     if verified.startswith("character:") and len(verified) > len("character:"):
         return verified
     name = " ".join(str(session.get("nom") or "").strip().casefold().split())
-    try:
-        pid = int(session.get("pid") or 0)
-        hwnd = int(session.get("hwnd") or 0)
-    except (TypeError, ValueError):
+    raw_pid = session.get("pid")
+    raw_hwnd = session.get("hwnd")
+    if isinstance(raw_pid, (bool, float)) or isinstance(raw_hwnd, (bool, float)):
         return ""
-    if not name or hwnd <= 0:
+    try:
+        pid = int(raw_pid or 0)
+        hwnd = int(raw_hwnd or 0)
+    except (TypeError, ValueError, OverflowError):
+        return ""
+    if not name or not 0 < hwnd <= (2**64 - 1) or not 0 <= pid <= (2**32 - 1):
         return ""
     return f"unverified:{name}:{pid if pid > 0 else hwnd}"
 
@@ -41,11 +45,13 @@ def visible_characters(
     """
     selected: set[int] = set()
     for value in included_handles:
+        if isinstance(value, (bool, float)):
+            continue
         try:
             handle = int(value)
-        except (TypeError, ValueError):
+        except (TypeError, ValueError, OverflowError):
             continue
-        if handle > 0:
+        if 0 < handle <= (2**64 - 1):
             selected.add(handle)
     found: list[dict[str, Any]] = []
     seen: set[int] = set()
@@ -53,13 +59,16 @@ def visible_characters(
         if not isinstance(session, Mapping):
             # A malformed legacy/session cache must not crash the picker.
             continue
+        raw_hwnd = session.get("hwnd", 0)
+        if isinstance(raw_hwnd, (bool, float)):
+            continue
         try:
-            handle = int(session.get("hwnd", 0))
-        except (TypeError, ValueError):
+            handle = int(raw_hwnd)
+        except (TypeError, ValueError, OverflowError):
             continue
         label = str(session.get("nom", "") or "").strip()
         if (
-            handle <= 0
+            not 0 < handle <= (2**64 - 1)
             or handle not in selected
             or handle in seen
             or not label
@@ -147,14 +156,18 @@ def confirmed_radial_target(
     mutable index into a freshly sorted roster at key-release time.
     Call with `current` already filtered through visible_characters().
     """
-    if selected_index is None or not 0 <= selected_index < len(snapshot):
+    if (type(selected_index) is not int
+            or not 0 <= selected_index < len(snapshot)):
         return None
     original = snapshot[selected_index]
-    try:
-        handle = int(original.get("hwnd") or 0)
-    except (TypeError, ValueError):
+    raw_handle = original.get("hwnd")
+    if isinstance(raw_handle, (bool, float)):
         return None
-    if handle <= 0:
+    try:
+        handle = int(raw_handle or 0)
+    except (TypeError, ValueError, OverflowError):
+        return None
+    if not 0 < handle <= (2**64 - 1):
         return None
     identity = str(original.get("character_key") or "").strip()
     name = str(original.get("nom") or "").strip()
@@ -162,9 +175,12 @@ def confirmed_radial_target(
     for item in current:
         if not isinstance(item, Mapping):
             continue
+        raw_candidate = item.get("hwnd")
+        if isinstance(raw_candidate, (bool, float)):
+            continue
         try:
-            candidate = int(item.get("hwnd") or 0)
-        except (TypeError, ValueError):
+            candidate = int(raw_candidate or 0)
+        except (TypeError, ValueError, OverflowError):
             continue
         if candidate != handle or str(item.get("nom") or "").strip() != name:
             continue

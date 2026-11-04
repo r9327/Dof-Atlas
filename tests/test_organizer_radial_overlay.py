@@ -82,6 +82,122 @@ class OrganizerRadialOverlayTests(unittest.TestCase):
             overlay.hide()
             overlay.deleteLater()
 
+    def test_explicit_center_movement_returns_atlas_without_character_handle(self):
+        from PySide6.QtCore import QPoint
+
+        overlay = OrganizerRadialOverlay()
+        rows = [{"nom": "Panda", "hwnd": 101, "pid": 15}]
+        try:
+            with patch("app.pages.organizer.radial_overlay.class_icon_path_for_window_name",
+                       return_value=None):
+                self.assertTrue(overlay.open_for(rows))
+            center = overlay.geometry().center()
+            overlay._start_cursor = QPoint(center.x() + 100, center.y() + 100)
+            with patch("app.pages.organizer.radial_overlay.QCursor") as cursor:
+                cursor.pos.return_value = center
+                overlay.track_cursor()
+            self.assertTrue(overlay._center_hovered)
+            self.assertEqual(overlay.finish(rows), 0)
+            self.assertFalse(overlay._center_hovered)
+            self.assertFalse(overlay.isVisible())
+        finally:
+            overlay.hide()
+            overlay.deleteLater()
+
+    def test_center_without_explicit_movement_never_opens_atlas(self):
+        overlay = OrganizerRadialOverlay()
+        rows = [{"nom": "Panda", "hwnd": 101}]
+        try:
+            with patch("app.pages.organizer.radial_overlay.class_icon_path_for_window_name",
+                       return_value=None):
+                self.assertTrue(overlay.open_for(rows))
+            center = overlay.geometry().center()
+            overlay._start_cursor = center
+            with patch("app.pages.organizer.radial_overlay.QCursor") as cursor:
+                cursor.pos.return_value = center
+                overlay.track_cursor()
+            self.assertFalse(overlay._center_hovered)
+            self.assertIsNone(overlay.finish(rows))
+        finally:
+            overlay.hide()
+            overlay.deleteLater()
+
+    def test_escape_cancels_center_selection_even_if_center_hovered(self):
+        overlay = OrganizerRadialOverlay()
+        rows = [{"nom": "Panda", "hwnd": 101}]
+        try:
+            with patch("app.pages.organizer.radial_overlay.class_icon_path_for_window_name",
+                       return_value=None):
+                self.assertTrue(overlay.open_for(rows))
+            overlay._center_hovered = True
+            self.assertIsNone(overlay.finish(rows, cancel=True))
+            self.assertFalse(overlay.isVisible())
+        finally:
+            overlay.hide()
+            overlay.deleteLater()
+
+    def test_atlas_center_logo_is_loaded_once_for_repeated_opening(self):
+        overlay = OrganizerRadialOverlay()
+        rows = [{"nom": "Panda", "hwnd": 101}]
+        try:
+            with patch("app.pages.organizer.radial_overlay.class_icon_path_for_window_name",
+                       return_value=None):
+                self.assertTrue(overlay.open_for(rows))
+                cached = overlay._atlas_logo
+                self.assertIsNotNone(cached)
+                overlay.finish(rows)
+                self.assertTrue(overlay.open_for(rows))
+                self.assertIs(overlay._atlas_logo, cached)
+        finally:
+            overlay.hide()
+            overlay.deleteLater()
+
+    def test_existing_atlas_window_is_activated_from_center_without_win32(self):
+        page = Mock()
+        parent = Mock()
+        page.window.return_value = parent
+        with (
+            patch("app.windows.unity_windows.is_unity_window") as unity,
+            patch("app.windows.focus.activate_window") as focus,
+        ):
+            OrganizerPage._activate_radial_handle(page, 0)
+        parent.showNormal.assert_called_once()
+        parent.raise_.assert_called_once()
+        parent.activateWindow.assert_called_once()
+        page.status_callback.assert_called_once()
+        unity.assert_not_called()
+        focus.assert_not_called()
+
+    def test_wheel_controller_dispatches_center_sentinel_just_once(self):
+        overlay = _Overlay(selection=0)
+        pressed = [True]
+        parent, controller, launched = self._controller(overlay, pressed)
+        try:
+            controller.poll()
+            pressed[0] = False
+            controller.poll()
+            controller.poll()
+            self.assertEqual(launched, [0])
+            self.assertFalse(overlay.visible)
+        finally:
+            parent.deleteLater()
+
+    def test_rebinding_while_hotkey_held_requires_release_before_open(self):
+        overlay = _Overlay(selection=101)
+        pressed = [True]
+        parent, controller, launched = self._controller(overlay, pressed)
+        try:
+            self.assertTrue(controller.set_shortcut("F6"))
+            controller.poll()
+            self.assertFalse(overlay.visible)
+            pressed[0] = False
+            controller.poll()
+            pressed[0] = True
+            controller.poll()
+            self.assertTrue(overlay.visible)
+        finally:
+            parent.deleteLater()
+
     def test_no_win32_poll_during_offscreen_test(self):
         self.assertFalse(physical_key_held(frozenset({0x70})))
 
