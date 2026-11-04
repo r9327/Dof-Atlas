@@ -349,6 +349,27 @@ class OrganizerSendInputTests(unittest.TestCase):
                     "Clipboard conserve: revision Win32 non fiable."
                 )
 
+    def test_clipboard_empty_state_is_restored_if_postwrite_serial_fails(self) -> None:
+        clipboard = Mock()
+        clipboard.GetClipboardData.side_effect = TypeError("empty clipboard")
+        clipboard.EnumClipboardFormats.return_value = 0
+        clipboard.GetClipboardSequenceNumber.side_effect = [101, 0]
+        with (
+            patch.object(input_tools.os, "name", "nt"),
+            patch.dict("sys.modules", {
+                "win32clipboard": clipboard,
+                "win32con": SimpleNamespace(CF_UNICODETEXT=13),
+            }),
+            patch.object(input_tools, "press_key") as press,
+        ):
+            with self.assertRaisesRegex(OSError, "Clipboard revision Win32 indisponible"):
+                input_tools.send_chat_command("/zaap 1,2", Mock())
+        clipboard.OpenClipboard.assert_called_once()
+        clipboard.CloseClipboard.assert_called_once()
+        self.assertEqual(clipboard.EmptyClipboard.call_count, 2)
+        clipboard.SetClipboardText.assert_called_once_with("/zaap 1,2", 13)
+        press.assert_not_called()
+
     def test_clipboard_postwrite_repair_refusal_never_retries_or_sends(self) -> None:
         clipboard = Mock()
         clipboard.GetClipboardData.return_value = "old clipboard"
