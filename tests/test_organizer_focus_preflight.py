@@ -32,6 +32,31 @@ class OrganizerFocusPreflightTests(unittest.TestCase):
             "%s activation stoppee avant preflight hwnd=%s", "Miroir", 101,
         )
 
+    def test_invalid_focus_timings_never_change_foreground(self) -> None:
+        for field in ("settle", "attempts", "retry"):
+            for invalid in (float("nan"), float("inf"), None):
+                with self.subTest(field=field, invalid=invalid):
+                    values = {"settle": 12, "attempts": 8, "retry": 10}
+                    values[field] = invalid
+                    modules = _win32_activation_modules()
+                    logger = Mock()
+                    with (
+                        patch.object(focus.os, "name", "nt"),
+                        patch.dict("sys.modules", modules),
+                        patch.object(focus, "is_unity_window", return_value=True),
+                        patch.object(focus, "foreground_window") as foreground,
+                    ):
+                        self.assertFalse(focus.activate_window(
+                            101, values["settle"], values["attempts"],
+                            values["retry"], logger, "Miroir",
+                        ))
+                    modules["win32gui"].IsWindow.assert_not_called()
+                    foreground.assert_not_called()
+                    logger.warning.assert_called_once_with(
+                        "%s activation refusee: temporisations ou hwnd invalides.",
+                        "Miroir",
+                    )
+
     def test_already_foreground_focus_theft_during_settle_never_reports_success(self) -> None:
         with (
             patch.object(focus.os, "name", "nt"),
