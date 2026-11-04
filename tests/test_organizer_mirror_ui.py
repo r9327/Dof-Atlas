@@ -1909,5 +1909,83 @@ class OrganizerMirrorIntegrationTests(unittest.TestCase):
         )
 
 
+    def test_mirror_click_late_target_refusal_never_restores_or_continues(self):
+        from app.macros.switch_click import SwitchClickMacro, SwitchClickContext
+
+        for cause in ("process", "focus", "coordinates"):
+            with self.subTest(cause=cause):
+                runtime = Mock()
+                runtime.settings.primary_handle = 101
+                runtime.settings.macro_mode = "mirror"
+                runtime.settings.clients = [
+                    SimpleNamespace(handle=101), SimpleNamespace(handle=202),
+                ]
+                runtime.settings.timings = SimpleNamespace(
+                    switch_background_pre_click_ms=0, activate_attempts=1,
+                    activate_retry_ms=0, switch_click_down_ms=35,
+                    input_double_gap_ms=5, switch_background_post_up_ms=0,
+                    switch_client_settle_ms=0,
+                )
+                runtime.switch_character.ordered_clients_from_source.return_value = [
+                    SimpleNamespace(handle=101, display_name="source"),
+                    SimpleNamespace(handle=202, display_name="other"),
+                ]
+                runtime.macro_lock.should_stop.return_value = False
+                runtime.macro_lock.wait.return_value = False
+                context = SwitchClickContext(101, 20, 30, 0.5, 0.5, "cursor")
+                macro = SwitchClickMacro(runtime)
+                process_results = [True, False] if cause == "process" else True
+                focus_results = [True, False] if cause == "focus" else True
+                point_results = [(20, 30), None] if cause == "coordinates" else (20, 30)
+                foreground = [101, 202] if cause == "coordinates" else [101]
+                with (
+                    patch.object(macro, "_validated_context", return_value=context),
+                    patch.object(macro, "_target_point", side_effect=(
+                        point_results if isinstance(point_results, list) else None
+                    ), return_value=(
+                        point_results if not isinstance(point_results, list) else None
+                    )),
+                    patch("app.macros.switch_click.current_cursor_pos",
+                          return_value=(12, 14)),
+                    patch("app.macros.switch_click.set_cursor_pos") as move,
+                    patch("app.macros.switch_click.is_unity_window", return_value=True),
+                    patch("app.macros.switch_click.is_dofus_unity_process",
+                          side_effect=(
+                              process_results if isinstance(process_results, list)
+                              else None
+                          ), return_value=(
+                              process_results if not isinstance(process_results, list)
+                              else None
+                          )),
+                    patch("app.macros.switch_click.activate_window",
+                          side_effect=(
+                              focus_results if isinstance(focus_results, list)
+                              else None
+                          ), return_value=(
+                              focus_results if not isinstance(focus_results, list)
+                              else None
+                          )),
+                    patch("app.macros.switch_click.foreground_window",
+                          side_effect=foreground),
+                    patch("app.macros.switch_click.send_client_click",
+                          return_value=True) as send,
+                ):
+                    macro._run(
+                        "Left", 1, "Miroir", context,
+                        exact_source_handle=101, mirror_target_handles=(101, 202),
+                    )
+                send.assert_called_once()
+                move.assert_not_called()
+                runtime.switch_character.restore_preferred_client.assert_not_called()
+                runtime.input_state.end_mouse_block.assert_called_once()
+                expected = (
+                    "Miroir interrompu" if cause == "focus"
+                    else "Miroir incomplet"
+                )
+                runtime._emit_status.assert_called_once_with(
+                    f"{expected} : 1/2 fenêtres."
+                )
+
+
 if __name__ == "__main__":
     unittest.main()
