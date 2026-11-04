@@ -222,11 +222,14 @@ def send_screen_click(
                 return False
 
         if post_up_ms > 0:
-            # The final UP has already been accepted by Windows. A Stop
-            # during this optional settle delay must not turn a completed
-            # click into a failed send (and risk a duplicate retry).
-            # wait_ms still returns promptly when Stop is requested.
-            wait_ms(post_up_ms, should_stop)
+            # Once UP is confirmed, settle errors/Stop must not downgrade a
+            # delivered click and cause duplicate delivery at the next layer.
+            try:
+                wait_ms(post_up_ms, should_stop)
+            except Exception:
+                logger.exception(
+                    "Clic envoyé: temporisation après UP impossible; livraison conservée."
+                )
 
         return ok
     except Exception:
