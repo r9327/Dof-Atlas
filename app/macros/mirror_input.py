@@ -25,12 +25,17 @@ class MirrorInputMacro:
     def __init__(self, runtime: "AtlasRuntime") -> None:
         self.runtime = runtime
 
-    def run_key(self, vk_code: int, source: int, handles: tuple[int, ...]) -> bool:
+    def run_key(
+        self, vk_code: int, source: int, handles: tuple[int, ...],
+        *, expected_profile: object | None = None,
+    ) -> bool:
         from app.input.hotkeys import MIRROR_DISCRETE_KEYS
 
         if type(vk_code) is not int or vk_code not in MIRROR_DISCRETE_KEYS:
             return False
         profile_at_dispatch = self.runtime.settings
+        if expected_profile is not None and profile_at_dispatch is not expected_profile:
+            return False
         return self.runtime._spawn_macro(
             "Miroir clavier",
             lambda: self._run(
@@ -42,6 +47,7 @@ class MirrorInputMacro:
     def run_wheel(
         self, delta: int, horizontal: bool, x_ratio: float, y_ratio: float,
         source: int, handles: tuple[int, ...],
+        *, expected_profile: object | None = None,
     ) -> bool:
         if (type(delta) is not int or delta == 0 or abs(delta) > 32767
                 or type(horizontal) is not bool
@@ -50,6 +56,8 @@ class MirrorInputMacro:
                        for v in (x_ratio, y_ratio))):
             return False
         profile_at_dispatch = self.runtime.settings
+        if expected_profile is not None and profile_at_dispatch is not expected_profile:
+            return False
         return self.runtime._spawn_macro(
             "Miroir molette",
             lambda: self._run(

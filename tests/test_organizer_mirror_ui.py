@@ -300,6 +300,74 @@ class OrganizerMirrorIntegrationTests(unittest.TestCase):
                         kind,
                     )
 
+    def test_mirror_dispatch_rejects_profile_changed_before_acceptance(self):
+        from app.macros.mirror_input import MirrorInputMacro
+
+        for count in (2, 4, 6, 8):
+            for kind in ("key", "wheel"):
+                with self.subTest(clients=count, kind=kind):
+                    handles = tuple(range(101, 101 + count))
+                    runtime = self._runtime(primary=handles[0], handles=handles)
+                    old = runtime.settings
+                    runtime.settings = SimpleNamespace(
+                        macro_mode=old.macro_mode,
+                        primary_handle=old.primary_handle,
+                        clients=old.clients,
+                        timings=old.timings,
+                    )
+                    mirror = MirrorInputMacro(runtime)
+                    if kind == "key":
+                        accepted = mirror.run_key(
+                            65, handles[0], handles, expected_profile=old,
+                        )
+                    else:
+                        accepted = mirror.run_wheel(
+                            120, False, 0.25, 0.75, handles[0], handles,
+                            expected_profile=old,
+                        )
+                    self.assertFalse(accepted)
+                    runtime._spawn_macro.assert_not_called()
+
+    def test_mirror_callbacks_do_not_consume_profile_reloaded_after_snapshot(self):
+        for count in (2, 4, 6, 8):
+            for kind in ("key", "wheel"):
+                with self.subTest(clients=count, kind=kind):
+                    handles = tuple(range(101, 101 + count))
+                    runtime = self._runtime(primary=handles[0], handles=handles)
+                    runtime._running = True
+                    runtime._admin_ok = True
+                    runtime.macro_lock.active_label = ""
+                    old = runtime.settings
+                    def reload_after_snapshot():
+                        runtime.settings = SimpleNamespace(
+                            macro_mode=old.macro_mode,
+                            primary_handle=old.primary_handle,
+                            clients=old.clients,
+                            timings=old.timings,
+                        )
+                        return handles[0], handles
+
+                    runtime._mirror_gesture_targets.side_effect = reload_after_snapshot
+                    with (
+                        patch("app.windows.unity_windows.foreground_window",
+                              return_value=handles[0]),
+                        patch("app.windows.unity_windows.find_known_client_from_point",
+                              return_value=handles[0]),
+                        patch("app.windows.unity_windows.screen_to_client",
+                              return_value=(12, 15)),
+                        patch("app.windows.unity_windows.client_point_ratio",
+                              return_value=(0.2, 0.3)),
+                    ):
+                        if kind == "key":
+                            consumed = AtlasRuntime._handle_mirror_key(runtime, 65, True)
+                        else:
+                            consumed = AtlasRuntime._handle_mirror_wheel(
+                                runtime, 120, 80, 95, False,
+                            )
+                    self.assertFalse(consumed)
+                    runtime.mirror_input.run_key.assert_not_called()
+                    runtime.mirror_input.run_wheel.assert_not_called()
+
     def test_mirror_worker_accepts_nonfirst_favorite_and_rejects_roster_drift(self):
         from app.macros.mirror_input import MirrorInputMacro
 
@@ -523,10 +591,11 @@ class OrganizerMirrorIntegrationTests(unittest.TestCase):
                         )
                     )
                 runtime.mirror_input.run_key.assert_called_once_with(
-                    65, source, ordered,
+                    65, source, ordered, expected_profile=runtime.settings,
                 )
                 runtime.mirror_input.run_wheel.assert_called_once_with(
                     -120, False, 0.25, 0.75, source, ordered,
+                    expected_profile=runtime.settings,
                 )
                 runtime.switch_click.run_async.assert_called_once_with(
                     "Left", 20, 25, 1, "Miroir",
@@ -3763,9 +3832,12 @@ class OrganizerMirrorIntegrationTests(unittest.TestCase):
             self.assertTrue(AtlasRuntime._handle_mirror_key(runtime, 65, True))
             self.assertFalse(AtlasRuntime._handle_mirror_key(runtime, 65, False))
             self.assertTrue(AtlasRuntime._handle_mirror_wheel(runtime, -120, 80, 95, False))
-        runtime.mirror_input.run_key.assert_called_once_with(65, 101, (101, 202, 303))
+        runtime.mirror_input.run_key.assert_called_once_with(
+            65, 101, (101, 202, 303), expected_profile=runtime.settings,
+        )
         runtime.mirror_input.run_wheel.assert_called_once_with(
             -120, False, 0.2, 0.5, 101, (101, 202, 303),
+            expected_profile=runtime.settings,
         )
 
     def test_busy_favorite_key_and_wheel_remain_native_for_2_4_6_8(self):

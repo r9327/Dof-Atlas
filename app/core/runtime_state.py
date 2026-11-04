@@ -717,10 +717,12 @@ class AtlasRuntime:
         if snapshot is None:
             return False
         source, targets = snapshot
-        if foreground != source:
+        if foreground != source or self.settings is not settings:
             return False
         try:
-            return bool(self.mirror_input.run_key(vk_code, source, targets))
+            return bool(self.mirror_input.run_key(
+                vk_code, source, targets, expected_profile=settings,
+            ))
         except Exception:
             self.logger.exception("Miroir clavier: lancement impossible.")
             return False
@@ -744,6 +746,7 @@ class AtlasRuntime:
         if (not self._running or not self._admin_ok
                 or self.settings.macro_mode != "mirror"):
             return False
+        settings = self.settings
         foreground = foreground_window()
         if self.macro_lock.active_label:
             # A wheel tick on the still-focused favorite stays physical.
@@ -778,11 +781,12 @@ class AtlasRuntime:
             return False
         point = screen_to_client(source, screen_x, screen_y)
         ratio = client_point_ratio(source, *point) if point is not None else None
-        if ratio is None:
+        if ratio is None or self.settings is not settings:
             return False
         try:
             return bool(self.mirror_input.run_wheel(
                 delta, horizontal, ratio[0], ratio[1], source, targets,
+                expected_profile=settings,
             ))
         except Exception:
             self.logger.exception("Miroir molette: lancement impossible.")
