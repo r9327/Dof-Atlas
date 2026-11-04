@@ -207,6 +207,15 @@ def activate_window(
 
             win32gui.SetForegroundWindow(hwnd)
 
+            # A cancelled action must not issue an additional SetFocus after
+            # SetForegroundWindow yields to another desktop thread.
+            if should_stop is not None and should_stop():
+                logger.info(
+                    "%s activation stoppee avant SetFocus hwnd=%s",
+                    action_label, hwnd,
+                )
+                return False
+
             try:
                 win32gui.SetFocus(hwnd)
             except Exception as exc:
