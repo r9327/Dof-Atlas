@@ -707,6 +707,75 @@ class OrganizerMirrorIntegrationTests(unittest.TestCase):
             "Miroir interrompu : 0/2 fenêtres."
         )
 
+    def test_switchclick_mirror_rejects_changes_during_target_lookup(self):
+        from app.macros.switch_click import SwitchClickMacro, SwitchClickContext
+
+        for change in ("roster", "process", "stop"):
+            with self.subTest(change=change):
+                handles = (101, 202)
+                runtime = Mock()
+                runtime.settings.primary_handle = 101
+                runtime.settings.macro_mode = "mirror"
+                runtime.settings.clients = [
+                    SimpleNamespace(handle=hwnd) for hwnd in handles
+                ]
+                runtime.settings.timings = SimpleNamespace(
+                    switch_background_pre_click_ms=0,
+                    activate_attempts=1, activate_retry_ms=0,
+                )
+                runtime.switch_character.ordered_clients_from_source.return_value = [
+                    SimpleNamespace(handle=hwnd, display_name=str(hwnd))
+                    for hwnd in handles
+                ]
+                stopped = [False]
+                trusted = [True]
+                runtime.macro_lock.should_stop.side_effect = lambda: stopped[0]
+                macro = SwitchClickMacro(runtime)
+                context = SwitchClickContext(101, 20, 30, 0.5, 0.5, "cursor")
+
+                def lookup(_hwnd, _context):
+                    if change == "roster":
+                        runtime.settings.clients = [
+                            SimpleNamespace(handle=101),
+                            SimpleNamespace(handle=303),
+                        ]
+                    elif change == "process":
+                        trusted[0] = False
+                    else:
+                        stopped[0] = True
+                    return (20, 30)
+
+                with (
+                    patch.object(macro, "_validated_context", return_value=context),
+                    patch.object(macro, "_target_point", side_effect=lookup),
+                    patch("app.macros.switch_click.current_cursor_pos",
+                          return_value=(20, 30)),
+                    patch("app.macros.switch_click.set_cursor_pos") as cursor,
+                    patch("app.macros.switch_click.is_unity_window",
+                          return_value=True),
+                    patch("app.macros.switch_click.is_dofus_unity_process",
+                          side_effect=lambda _hwnd: trusted[0]),
+                    patch("app.macros.switch_click.activate_window",
+                          return_value=True) as focus,
+                    patch("app.macros.switch_click.foreground_window",
+                          return_value=101),
+                    patch("app.macros.switch_click.send_client_click") as send,
+                ):
+                    macro._run(
+                        "Left", 1, "Miroir", context,
+                        exact_source_handle=101,
+                        mirror_target_handles=handles,
+                    )
+                focus.assert_called_once()
+                send.assert_not_called()
+                cursor.assert_not_called()
+                runtime.switch_character.restore_preferred_client.assert_not_called()
+                runtime.input_state.end_mouse_block.assert_called_once()
+                status = "Miroir interrompu" if change == "stop" else "Miroir incomplet"
+                runtime._emit_status.assert_called_once_with(
+                    f"{status} : 0/2 fenêtres."
+                )
+
     def test_mirror_partial_delivery_is_not_reported_complete(self):
         from app.macros.switch_click import SwitchClickMacro, SwitchClickContext
 
