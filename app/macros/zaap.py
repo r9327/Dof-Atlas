@@ -109,8 +109,8 @@ class ZaapMacro:
                 ):
                     if self.runtime.macro_lock.should_stop():
                         return
-                    if (foreground_window() != int(client.handle)
-                            or not is_dofus_unity_process(client.handle)):
+                    if (not is_dofus_unity_process(client.handle)
+                            or foreground_window() != int(client.handle)):
                         focus_lost = True
                         self.runtime.logger.warning(
                             "Auto zaap interrompu: focus ou identité DOFUS perdus après échec du chat hwnd=%s",
