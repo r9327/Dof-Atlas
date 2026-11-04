@@ -1081,3 +1081,11 @@ du SHA exact et préflight Doctor structurel. La PR reste Draft.
 - Le schéma de vitesse v2 est exporté avec `client_index.json` et `.ini`; les profils v1 non migrés sont lus sans accélération silencieuse. Dès que l'utilisateur choisit un mode, le profil et le marqueur de schéma sont sauvegardés ensemble.
 - Les quatre boutons sont dans la carte Actions rapides, utilisent la classe `segmentedButton`/`segmentedButtonActive` commune, et déclenchent un rechargement du runtime.
 - Les tests couvrent la migration, la persistance, l'ordre des délais, les modes et la compatibilité de chargement. **NOT_RUN** : tests PySide6/Windows, Doctor, Graphify, mesures CPU/RAM et ressenti réel DOFUS. En particulier, Rapide et Instantané ne sont PAS certifiés fiables sur 2/4/6/8 comptes. La PR reste Draft.
+
+## Lot fonctionnel 04/11 — Miroir clavier sans blocage souris
+
+- Le Miroir clavier (2/4/6/8 comptes) n'acquiert plus `InputState.begin_mouse_block` : aucune émission de souris ni déplacement du curseur n'y avait lieu. Les clics physiques doivent rester natifs, sans second worker.
+- Le clic physique du favori pendant `Miroir clavier` n'est plus consommé par le callback occupé ; la diffusion clavier conserve ses vérifications de focus et Stop.
+- Le Miroir molette authentifie tout son roster avant de bloquer la souris ; son blocage reste actif pendant l'activation, le déplacement du curseur, SendInput et la restitution.
+- Tests 2/4/6/8 + roster invalide + callback occupé, et attentes historiques du blocage clavier corrigées sans supprimer de tests.
+- Non certifié : tests Windows/PySide6 et Doctor/Graphify NOT_RUN dans cette session. **MIRR-007 reste partiellement ouvert pour le Miroir clic/molette et SwitchClick ; le hook partagé n'a pas été modifié.** PR Draft.

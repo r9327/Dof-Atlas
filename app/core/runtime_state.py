@@ -773,6 +773,11 @@ class AtlasRuntime:
         if len(destinations) < 2:
             return False
         if self.macro_lock.active_label:
+            if self.macro_lock.active_label == "Miroir clavier":
+                # A keyboard worker does not own the mouse. Keep this
+                # physical DOWN/UP native; do not start a second worker.
+                self.logger.debug("Miroir: clic physique conservé pendant clavier.")
+                return False
             self.logger.debug("Miroir: clic ignoré, macro déjà active.")
             return True
         try:

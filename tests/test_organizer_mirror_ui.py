@@ -542,6 +542,128 @@ class OrganizerMirrorIntegrationTests(unittest.TestCase):
                     )
                 runtime.switch_click.run_async.assert_not_called()
 
+    def test_busy_keyboard_lets_real_click_through_without_second_worker(self):
+        runtime = self._runtime()
+        runtime.macro_lock.active_label = "Miroir clavier"
+        with (
+            patch("app.windows.unity_windows.is_unity_window", return_value=True),
+            patch("app.macros.mirror_plan.is_dofus_unity_process", return_value=True),
+            patch("app.windows.unity_windows.foreground_window", return_value=101),
+            patch("app.windows.unity_windows.find_known_client_from_point",
+                  return_value=101),
+        ):
+            self.assertFalse(AtlasRuntime._handle_mirror_click(
+                runtime, "Left", 12, 28,
+            ))
+        runtime.switch_click.run_async.assert_not_called()
+
+    def test_key_worker_does_not_block_physical_mouse_for_2_4_6_8(self):
+        from app.macros.mirror_input import MirrorInputMacro
+        from app.input.input_state import InputState
+
+        for count in (2, 4, 6, 8):
+            with self.subTest(count=count):
+                handles = tuple(range(101, 101 + count))
+                runtime = self._runtime(primary=handles[0], handles=handles)
+                runtime.input_state = InputState()
+                runtime.settings.timings = SimpleNamespace(
+                    switch_background_pre_click_ms=0,
+                    activate_attempts=1, activate_retry_ms=0,
+                    switch_click_down_ms=10, switch_client_settle_ms=0,
+                )
+                runtime.macro_lock.should_stop.return_value = False
+                runtime.macro_lock.wait.return_value = False
+                emitted = []
+                def key_event(vk):
+                    self.assertFalse(runtime.input_state.is_mouse_blocked())
+                    emitted.append(vk)
+                with (
+                    patch("app.macros.mirror_input.is_dofus_unity_process",
+                          return_value=True),
+                    patch("app.macros.mirror_input.activate_window",
+                          return_value=True),
+                    patch("app.macros.mirror_input.foreground_window",
+                          side_effect=[*handles, handles[-1]]),
+                    patch("app.macros.input_tools.key_down", side_effect=key_event),
+                    patch("app.macros.input_tools.key_up", side_effect=key_event),
+                ):
+                    MirrorInputMacro(runtime)._run("key", 65, handles[0], handles)
+                self.assertEqual(emitted, [65] * (2 * count))
+                self.assertFalse(runtime.input_state.is_mouse_blocked())
+                runtime._emit_status.assert_called_once_with(
+                    f"Miroir Clavier : {count}/{count} fenêtres."
+                )
+
+    def test_wheel_preflight_stays_unblocked_and_never_activates_invalid_roster(self):
+        from app.macros.mirror_input import MirrorInputMacro
+        from app.input.input_state import InputState
+
+        runtime = self._runtime(primary=101, handles=(101, 202))
+        runtime.input_state = InputState()
+        runtime.settings.timings = SimpleNamespace()
+        runtime.macro_lock.should_stop.return_value = False
+        seen = []
+        def identity(hwnd):
+            seen.append(runtime.input_state.is_mouse_blocked())
+            return hwnd != 202
+        with (
+            patch("app.macros.mirror_input.is_dofus_unity_process",
+                  side_effect=identity),
+            patch("app.macros.mirror_input.current_cursor_pos",
+                  return_value=(10, 20)),
+            patch("app.macros.mirror_input.activate_window") as activate,
+        ):
+            MirrorInputMacro(runtime)._run(
+                "wheel", (120, False, 0.5, 0.5), 101, (101, 202),
+            )
+        self.assertEqual(seen, [False, False])
+        self.assertFalse(runtime.input_state.is_mouse_blocked())
+        activate.assert_not_called()
+
+    def test_wheel_worker_blocks_only_during_delivery_for_2_4_6_8(self):
+        from app.macros.mirror_input import MirrorInputMacro
+        from app.input.input_state import InputState
+
+        for count in (2, 4, 6, 8):
+            with self.subTest(count=count):
+                handles = tuple(range(101, 101 + count))
+                runtime = self._runtime(primary=handles[0], handles=handles)
+                runtime.input_state = InputState()
+                runtime.settings.timings = SimpleNamespace(
+                    switch_background_pre_click_ms=0,
+                    activate_attempts=1, activate_retry_ms=0,
+                    switch_client_settle_ms=0,
+                )
+                runtime.macro_lock.should_stop.return_value = False
+                runtime.macro_lock.wait.return_value = False
+                def activate(_hwnd, *_args, **_kwargs):
+                    self.assertTrue(runtime.input_state.is_mouse_blocked())
+                    return True
+                with (
+                    patch("app.macros.mirror_input.is_dofus_unity_process",
+                          return_value=True),
+                    patch("app.macros.mirror_input.current_cursor_pos",
+                          return_value=(12, 14)),
+                    patch("app.macros.mirror_input.activate_window",
+                          side_effect=activate) as activator,
+                    patch("app.macros.mirror_input.foreground_window",
+                          side_effect=[*(h for h in handles for _ in range(2)),
+                                       handles[-1], handles[-1]]),
+                    patch("app.macros.mirror_input.client_point_from_ratio",
+                          return_value=(8, 9)),
+                    patch("app.macros.mirror_input.client_to_screen",
+                          return_value=(80, 90)),
+                    patch("app.macros.mirror_input.set_cursor_pos"),
+                    patch("app.macros.mirror_input.send_screen_wheel",
+                          return_value=True) as send,
+                ):
+                    MirrorInputMacro(runtime)._run(
+                        "wheel", (120, False, 0.5, 0.5), handles[0], handles,
+                    )
+                self.assertEqual(activator.call_count, count)
+                self.assertEqual(send.call_count, count)
+                self.assertFalse(runtime.input_state.is_mouse_blocked())
+
     def test_macro_busy_consumes_without_starting_a_second_delivery(self):
         runtime = self._runtime()
         runtime.macro_lock.active_label = "Miroir"
@@ -1841,7 +1963,7 @@ class OrganizerMirrorIntegrationTests(unittest.TestCase):
         runtime._emit_status.assert_called_once_with(
             "Miroir Clavier incomplet : 0/2 fenêtres."
         )
-        runtime.input_state.end_mouse_block.assert_called_once()
+        runtime.input_state.end_mouse_block.assert_not_called()
 
     def test_mirror_keyboard_failed_key_up_reports_incomplete_delivery(self):
         from app.macros.mirror_input import MirrorInputMacro
@@ -2154,7 +2276,7 @@ class OrganizerMirrorIntegrationTests(unittest.TestCase):
             macro._run("key", 65, 101, (101, 202))
         self.assertEqual(events, [("down", 65), ("up", 65)] * 2)
         runtime.input_state.begin_mouse_block.assert_called_once()
-        runtime.input_state.end_mouse_block.assert_called_once()
+        runtime.input_state.end_mouse_block.assert_not_called()
         runtime.switch_character.restore_preferred_client.assert_called_once()
 
     def test_mirror_keyboard_delivery_two_four_six_eight_and_no_final_gap(self):
@@ -2251,7 +2373,7 @@ class OrganizerMirrorIntegrationTests(unittest.TestCase):
                 key_down.assert_not_called()
                 key_up.assert_not_called()
                 runtime.switch_character.restore_preferred_client.assert_not_called()
-                runtime.input_state.end_mouse_block.assert_called_once()
+                runtime.input_state.end_mouse_block.assert_not_called()
                 runtime._emit_status.assert_called_once_with(
                     "Miroir Clavier incomplet : 0/2 fenêtres."
                 )
@@ -2340,7 +2462,7 @@ class OrganizerMirrorIntegrationTests(unittest.TestCase):
         down.assert_not_called()
         up.assert_not_called()
         runtime.switch_character.restore_preferred_client.assert_not_called()
-        runtime.input_state.end_mouse_block.assert_called_once()
+        runtime.input_state.end_mouse_block.assert_not_called()
         runtime._emit_status.assert_called_once_with(
             "Miroir Clavier incomplet : 0/2 fenêtres."
         )
@@ -2443,7 +2565,10 @@ class OrganizerMirrorIntegrationTests(unittest.TestCase):
                         self.assertEqual(move.call_count, 2)
                         label = "Molette"
                 runtime.switch_character.restore_preferred_client.assert_not_called()
-                runtime.input_state.end_mouse_block.assert_called_once()
+                if kind == "wheel":
+                    runtime.input_state.end_mouse_block.assert_called_once()
+                else:
+                    runtime.input_state.end_mouse_block.assert_not_called()
                 runtime.logger.exception.assert_any_call(
                     "Miroir %s: focus non vérifiable avant restauration.", kind,
                 )
@@ -2511,7 +2636,10 @@ class OrganizerMirrorIntegrationTests(unittest.TestCase):
                         move.assert_any_call(80, 90)
                         label = "Molette"
                     runtime.switch_character.restore_preferred_client.assert_not_called()
-                    runtime.input_state.end_mouse_block.assert_called_once()
+                    if kind == "wheel":
+                        runtime.input_state.end_mouse_block.assert_called_once()
+                    else:
+                        runtime.input_state.end_mouse_block.assert_not_called()
                     runtime.logger.info.assert_any_call(
                         "Miroir %s: restauration ignorée, focus utilisateur changé.",
                         kind,
@@ -2724,7 +2852,7 @@ class OrganizerMirrorIntegrationTests(unittest.TestCase):
         foreground.assert_not_called()
         key_down.assert_not_called()
         runtime.switch_character.restore_preferred_client.assert_not_called()
-        runtime.input_state.end_mouse_block.assert_called_once()
+        runtime.input_state.end_mouse_block.assert_not_called()
         runtime._emit_status.assert_called_once_with(
             "Miroir Clavier incomplet : 0/2 fenêtres."
         )
@@ -2821,7 +2949,7 @@ class OrganizerMirrorIntegrationTests(unittest.TestCase):
         ):
             macro._run("key", 65, 101, (101, 202))
         self.assertEqual(events, [("down", 65), ("up", 65)])
-        runtime.input_state.end_mouse_block.assert_called_once()
+        runtime.input_state.end_mouse_block.assert_not_called()
 
 
 
@@ -2977,7 +3105,7 @@ class OrganizerMirrorIntegrationTests(unittest.TestCase):
         # drift check prevents any activation or sending.
         self.assertEqual(probe.call_count, 2)
         runtime.switch_character.restore_preferred_client.assert_not_called()
-        runtime.input_state.end_mouse_block.assert_called_once()
+        runtime.input_state.end_mouse_block.assert_not_called()
 
 
 
@@ -3052,7 +3180,7 @@ class OrganizerMirrorIntegrationTests(unittest.TestCase):
         runtime._emit_status.assert_called_once_with(
             "Miroir Clavier incomplet : 0/2 fenêtres."
         )
-        runtime.input_state.end_mouse_block.assert_called_once()
+        runtime.input_state.end_mouse_block.assert_not_called()
 
     def test_mirror_partial_wheel_process_replacement_does_not_restore_pointer(self):
         from app.macros.mirror_input import MirrorInputMacro

@@ -103,7 +103,10 @@ class MirrorInputMacro:
                     f"Miroir Molette incomplet : 0/{len(handles)} fenêtres."
                 )
                 return
-        runtime.input_state.begin_mouse_block("Miroir entrée")
+        # Keyboard-only replay never moves the pointer. Blocking the real
+        # mouse here discards user clicks throughout the 2–8 client fan-out.
+        # Wheel replay does move the pointer and needs the native guard.
+        mouse_blocked = False
         try:
             if not self._still_current(source, handles):
                 runtime.logger.warning("Miroir %s annulé: favori ou sessions modifiés.", kind)
@@ -115,6 +118,11 @@ class MirrorInputMacro:
                 runtime.logger.warning("Miroir %s annulé: roster non DOFUS.", kind)
                 return
             roster_verified = True
+            # Authenticate the entire roster before taking a mouse block.
+            # This keeps slow Win32 process probes outside the blocked interval.
+            if kind == "wheel":
+                runtime.input_state.begin_mouse_block("Miroir molette")
+                mouse_blocked = True
             for index, hwnd in enumerate(handles):
                 if runtime.macro_lock.should_stop() or not self._still_current(source, handles):
                     break
@@ -257,9 +265,8 @@ class MirrorInputMacro:
                         and runtime.macro_lock.wait(max(0, timings.switch_client_settle_ms))):
                     break
         finally:
-            # Input must remain blocked while the worker moves the cursor
-            # and restores focus. Otherwise native clicks may leak to a
-            # different client during teardown. Release on EVERY path.
+            # Wheel-only block stays active during cursor/focus restoration.
+            # Keyboard never acquires the physical mouse block.
             try:
                 # A fully sent command does not authorize taking focus or
                 # moving the pointer after the user has switched apps.
@@ -319,7 +326,8 @@ class MirrorInputMacro:
                     except Exception:
                         runtime.logger.exception("Miroir %s: retour au favori impossible.", kind)
             finally:
-                runtime.input_state.end_mouse_block()
+                if mouse_blocked:
+                    runtime.input_state.end_mouse_block()
             from app.macros.mirror_plan import mirror_latency_percentiles_ms
 
             latency = mirror_latency_percentiles_ms(send_samples_ms)
