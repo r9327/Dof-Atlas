@@ -317,6 +317,65 @@ class OrganizerSendInputTests(unittest.TestCase):
             [call("/invite Friend", 13), call("original", 13)],
         )
 
+    def test_clipboard_postwrite_missing_revision_restores_before_unlock(self) -> None:
+        for postwrite in (0, OSError("revision lost")):
+            with self.subTest(revision=repr(postwrite)):
+                clipboard = Mock()
+                clipboard.GetClipboardData.return_value = "old clipboard"
+                clipboard.EnumClipboardFormats.side_effect = [13, 0]
+                clipboard.GetClipboardSequenceNumber.side_effect = [100, postwrite]
+                logger = Mock()
+                with (
+                    patch.object(input_tools.os, "name", "nt"),
+                    patch.dict("sys.modules", {
+                        "win32clipboard": clipboard,
+                        "win32con": SimpleNamespace(CF_UNICODETEXT=13),
+                    }),
+                    patch.object(input_tools, "press_key") as press,
+                ):
+                    with self.assertRaisesRegex(
+                        OSError, "Clipboard revision Win32 indisponible",
+                    ):
+                        input_tools.send_chat_command("/zaap 1,2", logger)
+                self.assertEqual(clipboard.OpenClipboard.call_count, 1)
+                clipboard.CloseClipboard.assert_called_once()
+                self.assertEqual(clipboard.EmptyClipboard.call_count, 2)
+                self.assertEqual(
+                    clipboard.SetClipboardText.call_args_list,
+                    [call("/zaap 1,2", 13), call("old clipboard", 13)],
+                )
+                press.assert_not_called()
+                logger.warning.assert_any_call(
+                    "Clipboard conserve: revision Win32 non fiable."
+                )
+
+    def test_clipboard_postwrite_repair_refusal_never_retries_or_sends(self) -> None:
+        clipboard = Mock()
+        clipboard.GetClipboardData.return_value = "old clipboard"
+        clipboard.EnumClipboardFormats.side_effect = [13, 0]
+        clipboard.GetClipboardSequenceNumber.side_effect = [100, 0]
+        clipboard.SetClipboardText.side_effect = [
+            None, OSError("restoration denied"),
+        ]
+        logger = Mock()
+        with (
+            patch.object(input_tools.os, "name", "nt"),
+            patch.dict("sys.modules", {
+                "win32clipboard": clipboard,
+                "win32con": SimpleNamespace(CF_UNICODETEXT=13),
+            }),
+            patch.object(input_tools, "press_key") as press,
+        ):
+            with self.assertRaisesRegex(OSError, "Clipboard non restaure"):
+                input_tools.send_chat_command("/invite Friend", logger)
+        clipboard.OpenClipboard.assert_called_once()
+        clipboard.CloseClipboard.assert_called_once()
+        self.assertEqual(clipboard.SetClipboardText.call_count, 2)
+        logger.exception.assert_called_once_with(
+            "Clipboard: reparation apres compteur Win32 invalide impossible."
+        )
+        press.assert_not_called()
+
     def test_clipboard_preflight_rejects_unreadable_or_nonnumeric_revision(self) -> None:
         for revision in (None, "invalid", OSError("access denied")):
             with self.subTest(revision=repr(revision)):
