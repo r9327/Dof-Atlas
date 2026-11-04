@@ -510,6 +510,94 @@ class OrganizerMirrorIntegrationTests(unittest.TestCase):
                 runtime.mirror_input.run_wheel.assert_not_called()
                 probe.assert_not_called()
 
+    def test_switch_click_discard_queued_worker_after_identical_profile_reload(self):
+        from app.macros.switch_click import SwitchClickMacro, SwitchClickContext
+
+        for count in (2, 4, 6, 8):
+            with self.subTest(count=count):
+                handles = tuple(range(101, 101 + count))
+                runtime = self._runtime(primary=handles[0], handles=handles)
+                runtime._spawn_macro.return_value = True
+                macro = SwitchClickMacro(runtime)
+                captured = SwitchClickContext(
+                    handles[0], 20, 30, 0.5, 0.5, "cursor",
+                )
+                with patch.object(macro, "_capture_trigger_context",
+                                  return_value=captured):
+                    self.assertTrue(macro.run_async(
+                        "Left", 20, 30, 1, "Miroir",
+                        exact_source_handle=handles[0],
+                        mirror_target_handles=handles,
+                    ))
+                runtime.settings = SimpleNamespace(**vars(runtime.settings))
+                with (
+                    patch("app.macros.switch_click.current_cursor_pos") as cursor,
+                    patch("app.macros.switch_click.activate_window") as focus,
+                    patch("app.macros.switch_click.send_client_click") as send,
+                ):
+                    runtime._spawn_macro.call_args.args[1]()
+                cursor.assert_not_called()
+                focus.assert_not_called()
+                send.assert_not_called()
+                runtime.input_state.begin_mouse_block.assert_not_called()
+                runtime.switch_character.restore_preferred_client.assert_not_called()
+
+    def test_switch_click_identical_profile_reload_after_activation_never_clicks(self):
+        from app.macros.switch_click import SwitchClickMacro, SwitchClickContext
+
+        for count in (2, 4, 6, 8):
+            with self.subTest(count=count):
+                handles = tuple(range(101, 101 + count))
+                runtime = self._runtime(primary=handles[0], handles=handles)
+                runtime.settings.timings = SimpleNamespace(
+                    switch_background_pre_click_ms=0,
+                    activate_attempts=1, activate_retry_ms=0,
+                    switch_click_down_ms=35, input_double_gap_ms=5,
+                    switch_background_post_up_ms=0,
+                    switch_client_settle_ms=0,
+                )
+                runtime.switch_character.ordered_clients_from_source.return_value = [
+                    SimpleNamespace(handle=h, display_name=str(h))
+                    for h in handles
+                ]
+                runtime.macro_lock.should_stop.return_value = False
+                context = SwitchClickContext(
+                    handles[0], 20, 30, 0.5, 0.5, "cursor",
+                )
+                macro = SwitchClickMacro(runtime)
+
+                def activate_and_reload(_hwnd, *_args, **kwargs):
+                    runtime.settings = SimpleNamespace(**vars(runtime.settings))
+                    self.assertTrue(kwargs["should_stop"]())
+                    return True
+
+                with (
+                    patch.object(macro, "_validated_context", return_value=context),
+                    patch("app.macros.switch_click.current_cursor_pos",
+                          return_value=(12, 14)),
+                    patch("app.macros.switch_click.is_unity_window",
+                          return_value=True),
+                    patch("app.macros.switch_click.is_dofus_unity_process",
+                          return_value=True),
+                    patch("app.macros.switch_click.activate_window",
+                          side_effect=activate_and_reload) as focus,
+                    patch("app.macros.switch_click.foreground_window") as foreground,
+                    patch("app.macros.switch_click.send_client_click") as send,
+                ):
+                    macro._run(
+                        "Left", 1, "Miroir", context,
+                        exact_source_handle=handles[0],
+                        mirror_target_handles=handles,
+                    )
+                focus.assert_called_once()
+                foreground.assert_not_called()
+                send.assert_not_called()
+                runtime.input_state.end_mouse_block.assert_called_once()
+                runtime.switch_character.restore_preferred_client.assert_not_called()
+                runtime._emit_status.assert_called_once_with(
+                    f"Miroir interrompu : 0/{count} fenêtres."
+                )
+
     def test_mirror_click_wrong_window_under_cursor_skips_roster_scan(self):
         runtime = self._runtime()
         runtime._running = True

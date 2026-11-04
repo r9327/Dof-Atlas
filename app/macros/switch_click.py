@@ -54,6 +54,7 @@ class SwitchClickMacro:
         captured_context: SwitchClickContext | None = None,
         physical_source_delivered: bool = False,
     ) -> bool:
+        settings_at_dispatch = self.runtime.settings
         normalized_button = str(button or "").strip().casefold()
         if normalized_button not in {"left", "right"}:
             self.runtime.logger.warning(
@@ -107,6 +108,11 @@ class SwitchClickMacro:
                 action_label, exact_source_handle,
             )
             return False
+        if self.runtime.settings is not settings_at_dispatch:
+            self.runtime.logger.info(
+                "%s annulé: profil Organizer changé pendant capture.", action_label,
+            )
+            return False
         if context is None:
             self.runtime.logger.info(
                 "%s ignore: aucune fenêtre Unity source ou favorite.",
@@ -139,6 +145,7 @@ class SwitchClickMacro:
                 exact_source_handle=exact_source_handle,
                 mirror_target_handles=mirror_target_handles,
                 physical_source_delivered=physical_source_delivered,
+                settings_at_dispatch=settings_at_dispatch,
             ),
         )
 
@@ -152,7 +159,12 @@ class SwitchClickMacro:
         exact_source_handle: int | None = None,
         mirror_target_handles: tuple[int, ...] | None = None,
         physical_source_delivered: bool = False,
+        settings_at_dispatch: object | None = None,
     ) -> None:
+        settings_at_start = (
+            settings_at_dispatch if settings_at_dispatch is not None
+            else self.runtime.settings
+        )
         original_cursor: tuple[int, int] | None = None
         sent_count = 0
         target_total = 0
@@ -167,6 +179,11 @@ class SwitchClickMacro:
         mirror_focus_samples: list[float] = []
 
         try:
+            if self.runtime.settings is not settings_at_start:
+                self.runtime.logger.info(
+                    "%s annulé: profil Organizer remplacé avant worker.", action_label,
+                )
+                return
             try:
                 original_cursor = current_cursor_pos()
             except Exception:
@@ -179,6 +196,11 @@ class SwitchClickMacro:
             # changing focus, moving the pointer or emitting mouse events.
             # Keep actual physical clicks native through this preflight.
             context = self._validated_context(context, action_label)
+            if self.runtime.settings is not settings_at_start:
+                self.runtime.logger.info(
+                    "%s annulé: profil Organizer remplacé durant preflight.", action_label,
+                )
+                return
             # Classic SwitchClick may recover another favorite; Mirror must
             # never silently change its source after a click was consumed.
             if exact_source_handle is not None and (
@@ -234,7 +256,8 @@ class SwitchClickMacro:
                         *(hwnd for hwnd in live if hwnd != context.source_hwnd),
                     )
                     return (
-                        settings.macro_mode == "mirror"
+                        settings is settings_at_start
+                        and settings.macro_mode == "mirror"
                         and settings.primary_handle == context.source_hwnd
                         and len(live) == len(captured_handles)
                         and ordered == captured_handles
@@ -276,7 +299,8 @@ class SwitchClickMacro:
                 )
                 return
 
-            if self.runtime.macro_lock.should_stop():
+            if (self.runtime.macro_lock.should_stop()
+                    or self.runtime.settings is not settings_at_start):
                 return
             if not mouse_blocked:
                 # Only the dispatch phase owns the pointer. A rejected
@@ -289,7 +313,7 @@ class SwitchClickMacro:
                 "%s souris physique bloquée pendant diffusion.", action_label,
             )
 
-            settings = self.runtime.settings
+            settings = settings_at_start
             timings = settings.timings
             # Give the native mouse UP a render frame before switching focus
             # to another Unity client. This wait is cancellable by Stop.
@@ -300,9 +324,10 @@ class SwitchClickMacro:
                 if physical_source_delivered and client.handle == context.source_hwnd:
                     sent_count += 1  # native UP was forwarded; never inject twice
                     continue
-                if self.runtime.macro_lock.should_stop():
+                if (self.runtime.macro_lock.should_stop()
+                        or self.runtime.settings is not settings_at_start):
                     self.runtime.logger.info(
-                        "%s stoppé avant hwnd=%s",
+                        "%s stoppé ou profil remplacé avant hwnd=%s",
                         action_label,
                         client.handle,
                     )
@@ -338,7 +363,10 @@ class SwitchClickMacro:
                         timings.activate_retry_ms,
                         self.runtime.logger,
                         action_label,
-                        should_stop=self.runtime.macro_lock.should_stop,
+                        should_stop=lambda: (
+                            self.runtime.macro_lock.should_stop()
+                            or self.runtime.settings is not settings_at_start
+                        ),
                     )
                 except Exception:
                     focus_lost = True
@@ -364,6 +392,9 @@ class SwitchClickMacro:
 
                 # A successful SetForegroundWindow attempt can become stale
                 # before SendInput. Never click another application or client.
+                if self.runtime.settings is not settings_at_start:
+                    delivery_failed = True
+                    return
                 if foreground_window() != int(client.handle):
                     focus_lost = True
                     self.runtime.logger.warning(
@@ -413,7 +444,8 @@ class SwitchClickMacro:
                         action_label, client.handle,
                     )
                     return
-                if self.runtime.macro_lock.should_stop():
+                if (self.runtime.macro_lock.should_stop()
+                        or self.runtime.settings is not settings_at_start):
                     return
 
                 double_gap_ms = timings.input_double_gap_ms
@@ -443,7 +475,8 @@ class SwitchClickMacro:
                 # Keep it in-memory: native process probes on every 10 ms
                 # settle tick would scale poorly with eight Unity clients.
                 def send_interrupted() -> bool:
-                    if self.runtime.macro_lock.should_stop():
+                    if (self.runtime.macro_lock.should_stop()
+                            or self.runtime.settings is not settings_at_start):
                         return True
                     return (
                         mirror_target_handles is not None
@@ -470,9 +503,10 @@ class SwitchClickMacro:
                 if delivered:
                     sent_count += 1
                 else:
-                    if self.runtime.macro_lock.should_stop():
+                    if (self.runtime.macro_lock.should_stop()
+                            or self.runtime.settings is not settings_at_start):
                         self.runtime.logger.info(
-                            "%s clic interrompu par Stop hwnd=%s",
+                            "%s clic interrompu par Stop ou rechargement hwnd=%s",
                             action_label, client.handle,
                         )
                     elif (
@@ -517,6 +551,7 @@ class SwitchClickMacro:
                 should_restore_preferred and not focus_lost
                 and not delivery_failed
                 and not self.runtime.macro_lock.should_stop()
+                and self.runtime.settings is settings_at_start
             )
 
             def roster_allows_restore() -> bool:
@@ -643,7 +678,8 @@ class SwitchClickMacro:
             if target_total > 0:
                 stopped = self.runtime.macro_lock.should_stop()
                 state = (
-                    "interrompu" if stopped or focus_lost
+                    "interrompu" if (stopped or focus_lost
+                                     or self.runtime.settings is not settings_at_start)
                     else "terminé" if sent_count == target_total
                     else "partiel"
                 )
