@@ -74,6 +74,45 @@ class OrganizerSendInputTests(unittest.TestCase):
             "Clipboard: restauration impossible."
         )
 
+    def test_chat_rejects_non_text_clipboard_without_erasing_user_data(self) -> None:
+        clipboard = Mock()
+        clipboard.GetClipboardData.side_effect = TypeError("CF_UNICODETEXT missing")
+        clipboard.EnumClipboardFormats.return_value = 8  # CF_DIB image data
+        with (
+            patch.object(input_tools.os, "name", "nt"),
+            patch.dict("sys.modules", {
+                "win32clipboard": clipboard,
+                "win32con": SimpleNamespace(CF_UNICODETEXT=13),
+            }),
+            patch.object(input_tools.time, "sleep"),
+            patch.object(input_tools, "press_key") as press,
+        ):
+            with self.assertRaisesRegex(OSError, "Clipboard non prepare"):
+                input_tools.send_chat_command("/zaap 1,2", Mock())
+        self.assertEqual(clipboard.OpenClipboard.call_count, 10)
+        clipboard.EmptyClipboard.assert_not_called()
+        clipboard.SetClipboardText.assert_not_called()
+        press.assert_not_called()
+
+    def test_chat_accepts_truly_empty_clipboard_and_restores_empty_state(self) -> None:
+        clipboard = Mock()
+        clipboard.GetClipboardData.side_effect = TypeError("clipboard empty")
+        clipboard.EnumClipboardFormats.return_value = 0
+        with (
+            patch.object(input_tools.os, "name", "nt"),
+            patch.dict("sys.modules", {
+                "win32clipboard": clipboard,
+                "win32con": SimpleNamespace(CF_UNICODETEXT=13),
+            }),
+            patch.object(input_tools, "replace_chat_text_with_clipboard",
+                         return_value=True),
+            patch.object(input_tools, "press_key") as press,
+        ):
+            self.assertTrue(input_tools.send_chat_command("/zaap 1,2", Mock()))
+        self.assertEqual(clipboard.EmptyClipboard.call_count, 2)
+        clipboard.SetClipboardText.assert_called_once_with("/zaap 1,2", 13)
+        press.assert_called_once_with("ENTER")
+
     def test_chat_never_pastes_user_clipboard_when_pywin32_missing(self) -> None:
         with (
             patch.object(input_tools.os, "name", "nt"),
