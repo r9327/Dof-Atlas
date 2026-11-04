@@ -185,6 +185,29 @@ class OrganizerMirrorIntegrationTests(unittest.TestCase):
                 runtime.mirror_input.run_wheel.assert_not_called()
                 runtime.switch_click.run_async.assert_not_called()
 
+    def test_mirror_snapshot_refuses_profile_reload_during_identity_probe(self):
+        runtime = self._runtime(primary=101, handles=(101, 202, 303))
+        runtime._running = True
+        runtime._admin_ok = True
+        initial = runtime.settings
+
+        def probe(hwnd):
+            if hwnd == 202:
+                runtime.settings = self._runtime(
+                    primary=303, handles=(101, 202, 303),
+                ).settings
+            return True
+
+        with (
+            patch("app.windows.unity_windows.is_unity_window", return_value=True),
+            patch("app.macros.mirror_plan.is_dofus_unity_process",
+                  side_effect=probe),
+        ):
+            self.assertIsNone(AtlasRuntime._mirror_gesture_targets(runtime))
+        self.assertIsNot(runtime.settings, initial)
+        runtime.mirror_input.run_key.assert_not_called()
+        runtime.mirror_input.run_wheel.assert_not_called()
+
     def test_mirror_worker_accepts_nonfirst_favorite_and_rejects_roster_drift(self):
         from app.macros.mirror_input import MirrorInputMacro
 
