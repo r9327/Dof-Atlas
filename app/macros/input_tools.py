@@ -207,6 +207,7 @@ def clipboard_text(text: str, logger: Logger):
     clipboard_seq = 0
     for _attempt in range(10):
         unsupported_formats = False
+        revision_unavailable = False
         recovery_failed = False
         try:
             win32clipboard.OpenClipboard()
@@ -242,6 +243,18 @@ def clipboard_text(text: str, logger: Logger):
                         ) from exc
                     previous = ""
                     captured = False
+                # A missing Win32 sequence counter cannot protect a
+                # concurrent user Copy during restoration. Refuse BEFORE
+                # replacing any user data, rather than preparing a command
+                # the sender would have to reject after the mutation.
+                try:
+                    revision = win32clipboard.GetClipboardSequenceNumber()
+                except Exception as exc:
+                    revision_unavailable = True
+                    raise OSError("Clipboard revision Win32 illisible") from exc
+                if type(revision) is not int or revision == 0:
+                    revision_unavailable = True
+                    raise OSError("Clipboard revision Win32 indisponible")
                 win32clipboard.EmptyClipboard()
                 try:
                     win32clipboard.SetClipboardText(str(text), win32con.CF_UNICODETEXT)
@@ -277,6 +290,11 @@ def clipboard_text(text: str, logger: Logger):
                 # Unsupported formats cannot be recovered by retrying.
                 logger.warning("Clipboard conservé: %s", exc)
                 raise OSError("Clipboard multi-format non restaure: commande annulee") from exc
+            if revision_unavailable:
+                # Retrying a broken counter cannot make previous clipboard
+                # content recoverable. Its original formats are still intact.
+                logger.warning("Clipboard conserve: revision Win32 non fiable.")
+                raise OSError("Clipboard revision Win32 indisponible: commande annulee") from exc
             if recovery_failed:
                 # Never retry over an already damaged clipboard snapshot:
                 # it would be misread as empty and the backup would be lost.
