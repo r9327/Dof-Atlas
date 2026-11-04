@@ -768,3 +768,48 @@ du focus est volontairement abandonnée.
 Doctor / Graphify exact-SHA / Windows DOFUS non exécutés. MIRR-007 (gestes
 avalés sous charge) demeure ouvert : cette mesure n'implémente ni file de
 replay ni repli non destructif. PR Draft, non certifiée.
+
+## Lot 04/11 — restitution des macros classiques après changement de focus/favori
+
+**Cible :** correction minimale dans les moteurs déjà canoniques
+`auto_group.py`, `zaap.py`, `direction.py`, sans mutation des hooks,
+modification des paramètres de vitesse, changement de profil ni backend
+supplémentaire.
+
+- Auto-groupe : après une invitation (succès, refus ou exception), avant
+  la restitution de la fenêtre favorite, Atlas recontrôle le premier plan
+  du lanceur et le favori sélectionné en début de macro. Une nouvelle
+  fenêtre ou un favori changé dans Organizer ne sera pas réactivé.
+- Zaap : même vérification sur la dernière fenêtre effectivement activée
+  pour le chat ; une diffusion séquentielle 2/4/6/8 ne ramène pas DOFUS
+  devant l'application que l'utilisateur a sélectionnée après la dernière
+  commande. La sélection du favori est capturée avant diffusion.
+- Direction : même protection après la dernière touche virtuelle sur le
+  dernier client réellement activé ; ne restaure pas un favori nouveau.
+- Les erreurs de lecture de premier plan sont **fail-safe** : abandon de
+  la restitution, sans provoquer un retour au favori non vérifié.
+- La télémétrie distingue désormais **l'émission** de la **restitution** :
+  le drapeau `restore_skipped` empêche le retour au favori sans marquer
+  à tort `interrompu` une commande déjà envoyée à tous les clients. Une
+  perte de focus détectée durant la saisie ou un Stop conserve l'état
+  `interrompu` selon le comportement préexistant.
+
+**Tests écrits :** Auto-groupe, Zaap et Direction sur 2, 4, 6 et 8 clients
+avec changement de focus juste après le dernier geste, changement de favori
+pendant le travail et lectures de premier plan rejetées. Les assertions
+sur le nombre réel de commandes émises et les états complets restent
+séparées des assertions `restore_preferred_client.assert_not_called()`.
+Les tests historiques de diffusion complète/échec/Stop restent en place ;
+le parcours Direction 2/4/6/8 a été ajusté pour la lecture Win32 finale.
+
+**Validation actuelle : NOT_RUN.** Sans checkout local exécutable, Doctor
+`agent plan/check/validate`, Graphify exact-SHA, exécution Python/PySide6,
+`git diff --check`, recette DOFUS Windows et mesures CPU/RAM/p50/p95/p99
+ne peuvent pas être déclarés PASS. Les seuls contrôles possibles via ce
+connecteur sont la revue des patches et du code retourné par GitHub.
+
+**MIRR-007 reste PENDING.** La gestion des gestes physiques arrivant pendant
+un worker occupé reste un blocage P0 exigeant un graphe exact-SHA et le
+plan Doctor `--structural` avant tout changement de hook ; ni replay
+périssable ni politique non destructive ne sont revendiqués ici. PR Draft,
+non certifiée et non fusionnée.
