@@ -49,6 +49,39 @@ class OrganizerZaapPopupTests(unittest.TestCase):
         finally:
             widget.close()
 
+
+    def test_scheduled_zaap_popup_reopen_is_cancelled_after_selection(self) -> None:
+        widget = self.make_widget(Mock(return_value=True))
+        try:
+            widget.search_input.setText("Zaap test")
+            # FocusIn/MousePress can enqueue show at 0 ms before itemPressed
+            # closes the popup. It must not resurrect on the next Qt cycle.
+            widget._schedule_owned_callback(0, widget.show_suggestions)
+            widget.launch_zaap({"label": "Zaap test", "posX": 1, "posY": 2})
+            self.app.processEvents()
+            self.assertFalse(widget.suggestion_popup.isVisible())
+            self.assertTrue(widget._suppress_autoshow_after_launch)
+            widget.show_suggestions()
+            self.assertFalse(widget.suggestion_popup.isVisible())
+        finally:
+            widget.close()
+
+    def test_new_zaap_search_can_reopen_popup_after_completed_selection(self) -> None:
+        widget = self.make_widget(Mock(return_value=True))
+        try:
+            widget.launch_zaap({"label": "Zaap test", "posX": 1, "posY": 2})
+            self.app.processEvents()
+            self.assertTrue(widget._suppress_autoshow_after_launch)
+            with patch.object(widget, "search", return_value=[
+                {"label": "Zaap suivant", "posX": 3, "posY": 4},
+            ]):
+                widget.refresh_results("Zaap suivant")
+            self.assertFalse(widget._suppress_autoshow_after_launch)
+            widget.show_suggestions()
+            self.assertTrue(widget.suggestion_popup.isVisible())
+        finally:
+            widget.close()
+
     def test_zaap_reports_runtime_acceptance_without_claiming_completion(self) -> None:
         for accepted in (True, False, None):
             with self.subTest(accepted=accepted):
