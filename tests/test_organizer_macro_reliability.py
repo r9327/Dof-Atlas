@@ -1212,5 +1212,45 @@ class OrganizerMacroReliabilityTests(unittest.TestCase):
         )
 
 
+
+    def test_auto_group_stop_between_identity_check_and_restore(self) -> None:
+        runtime = _runtime()
+        runtime.settings.timings.auto_group_invite_gap_ms = 0
+        runtime.switch_character.logical_active_client.return_value = SimpleNamespace(
+            handle=101, display_name="Leader",
+        )
+        runtime.macro_lock.should_stop.side_effect = [False, False, False, True, True]
+        with (
+            patch("app.macros.auto_group.is_unity_window", return_value=True),
+            patch("app.macros.auto_group.is_dofus_unity_process", return_value=True),
+            patch("app.macros.auto_group.activate_window", return_value=True),
+            patch("app.macros.auto_group.foreground_window", return_value=101),
+            patch("app.macros.auto_group.send_chat_command", return_value=True),
+        ):
+            AutoGroupMacro(runtime)._run([{"name": "Friend", "handle": 202}])
+        runtime.switch_character.restore_preferred_client.assert_not_called()
+        runtime.logger.info.assert_any_call(
+            "Auto groupe %s: envoyes=%s/%s candidats=%s sender=%s",
+            "interrompu", 1, 1, 1, 101,
+        )
+
+    def test_zaap_stop_between_identity_check_and_restore(self) -> None:
+        runtime = _runtime()
+        runtime.macro_lock.should_stop.side_effect = [False, False, False, True, True]
+        with (
+            patch("app.macros.zaap.is_unity_window", return_value=True),
+            patch("app.macros.zaap.is_dofus_unity_process", return_value=True),
+            patch("app.macros.zaap.activate_window", return_value=True),
+            patch("app.macros.zaap.foreground_window", side_effect=[101, 202]),
+            patch("app.macros.zaap.send_chat_command", return_value=True) as send,
+        ):
+            ZaapMacro(runtime)._run("/zaap 1,2")
+        self.assertEqual(send.call_count, 2)
+        runtime.switch_character.restore_preferred_client.assert_not_called()
+        runtime.logger.info.assert_any_call(
+            "Auto zaap %s: envoyes=%s/%s", "interrompu", 2, 2,
+        )
+
+
 if __name__ == "__main__":
     unittest.main()
