@@ -22,7 +22,7 @@ def radial_roster_key(session: Mapping[str, Any]) -> str:
     name = " ".join(str(session.get("nom") or "").strip().casefold().split())
     raw_pid = session.get("pid")
     raw_hwnd = session.get("hwnd")
-    if isinstance(raw_pid, (bool, float)) or isinstance(raw_hwnd, (bool, float)):
+    if type(raw_pid) not in (int, str, type(None)) or type(raw_hwnd) not in (int, str):
         return ""
     try:
         pid = int(raw_pid or 0)
@@ -45,7 +45,7 @@ def visible_characters(
     """
     selected: set[int] = set()
     for value in included_handles:
-        if isinstance(value, (bool, float)):
+        if type(value) not in (int, str):
             continue
         try:
             handle = int(value)
@@ -60,7 +60,7 @@ def visible_characters(
             # A malformed legacy/session cache must not crash the picker.
             continue
         raw_hwnd = session.get("hwnd", 0)
-        if isinstance(raw_hwnd, (bool, float)):
+        if type(raw_hwnd) not in (int, str):
             continue
         try:
             handle = int(raw_hwnd)
@@ -161,7 +161,7 @@ def confirmed_radial_target(
         return None
     original = snapshot[selected_index]
     raw_handle = original.get("hwnd")
-    if isinstance(raw_handle, (bool, float)):
+    if type(raw_handle) not in (int, str):
         return None
     try:
         handle = int(raw_handle or 0)
@@ -176,7 +176,7 @@ def confirmed_radial_target(
         if not isinstance(item, Mapping):
             continue
         raw_candidate = item.get("hwnd")
-        if isinstance(raw_candidate, (bool, float)):
+        if type(raw_candidate) not in (int, str):
             continue
         try:
             candidate = int(raw_candidate or 0)

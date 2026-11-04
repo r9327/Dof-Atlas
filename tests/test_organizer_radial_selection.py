@@ -145,6 +145,39 @@ class OrganizerRadialSelectionTests(unittest.TestCase):
                     [valid], 0,
                 ))
 
+
+    def test_fractional_numeric_objects_cannot_alias_radial_hwnd_or_pid(self):
+        from decimal import Decimal
+        from fractions import Fraction
+
+        valid = {"nom": "Panda", "hwnd": 12, "pid": 125}
+        for alias in (Decimal("12.9"), Fraction(25, 2), complex(12, 0)):
+            with self.subTest(alias=repr(alias)):
+                self.assertEqual(visible_characters([valid], [alias]), [])
+                self.assertEqual(
+                    visible_characters([{"nom": "Alias", "hwnd": alias}], [12]), [],
+                )
+                self.assertEqual(
+                    radial_roster_key({"nom": "Alias", "hwnd": alias, "pid": 125}), "",
+                )
+                self.assertIsNone(confirmed_radial_target(
+                    [{"nom": "Alias", "hwnd": alias}], [valid], 0,
+                ))
+                self.assertIsNone(confirmed_radial_target(
+                    [{"nom": "Panda", "hwnd": 12}],
+                    [{"nom": "Panda", "hwnd": alias}], 0,
+                ))
+        for pid in (Decimal("125.9"), Fraction(251, 2), complex(125, 0)):
+            with self.subTest(pid=repr(pid)):
+                self.assertEqual(
+                    radial_roster_key({"nom": "Panda", "hwnd": 12, "pid": pid}), "",
+                )
+        # Preserve legacy cached integer-as-text handles and PIDs.
+        self.assertEqual(
+            visible_characters([{"nom": "Panda", "hwnd": "12"}], ["12"]),
+            [{"nom": "Panda", "hwnd": "12"}],
+        )
+
     def test_pid_overflow_cannot_reuse_unverified_radial_identity(self):
         for invalid in (float("inf"), float("nan"), 2**32, -1, True, 17.5):
             with self.subTest(pid=repr(invalid)):
