@@ -204,6 +204,7 @@ def clipboard_text(text: str, logger: Logger):
     previous = ""
     captured = False
     prepared = False
+    clipboard_seq = 0
     for _attempt in range(10):
         try:
             win32clipboard.OpenClipboard()
@@ -239,6 +240,14 @@ def clipboard_text(text: str, logger: Logger):
                     captured = False
                 win32clipboard.EmptyClipboard()
                 win32clipboard.SetClipboardText(str(text), win32con.CF_UNICODETEXT)
+                # Snapshot under the same OpenClipboard lease. Capturing the
+                # serial after closing would race a new user Copy.
+                try:
+                    serial = win32clipboard.GetClipboardSequenceNumber()
+                    if type(serial) is int:
+                        clipboard_seq = serial
+                except Exception:
+                    clipboard_seq = 0
             finally:
                 win32clipboard.CloseClipboard()
             prepared = True
@@ -253,15 +262,8 @@ def clipboard_text(text: str, logger: Logger):
     if not prepared:
         logger.error("Clipboard: impossible de preparer la commande apres 10 tentatives.")
         raise OSError("Clipboard non prepare: commande macro annulee")
-    # Win32 increments this serial on changes by any process. Retain it
-    # after our last clipboard write so a concurrent user Copy wins over
-    # restoring Atlas' old snapshot. Zero means the guard is unavailable.
-    try:
-        clipboard_seq = win32clipboard.GetClipboardSequenceNumber()
-        if type(clipboard_seq) is not int:
-            clipboard_seq = 0
-    except Exception:
-        clipboard_seq = 0
+    # Win32 increments this serial when another process changes clipboard.
+    # Zero means sequence tracking was unavailable during preparation.
     try:
         yield
     finally:
