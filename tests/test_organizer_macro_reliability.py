@@ -34,7 +34,10 @@ class OrganizerMacroReliabilityTests(unittest.TestCase):
             SimpleNamespace(index=4, handle=None),
             valid[1],
         ]
-        with patch("app.macros.switch_character.is_unity_window", return_value=True):
+        with (
+            patch("app.macros.switch_character.is_unity_window", return_value=True),
+            patch("app.macros.switch_character.is_dofus_unity_process", return_value=True),
+        ):
             ordered = SwitchCharacterMacro(runtime).ordered_clients_from_source(303)
         self.assertEqual([c.handle for c in ordered], [303, 202])
         self.assertEqual(runtime.logger.warning.call_count, 2)
@@ -54,6 +57,65 @@ class OrganizerMacroReliabilityTests(unittest.TestCase):
             ordered = macro.ordered_clients_from_source(float("inf"))
         self.assertEqual([c.handle for c in ordered], [202, 101])
 
+
+    def test_roster_never_includes_foreign_unity_process(self) -> None:
+        runtime = _runtime()
+        runtime.settings.clients = [
+            SimpleNamespace(index=1, handle=101),
+            SimpleNamespace(index=2, handle=202),
+            SimpleNamespace(index=3, handle=303),
+        ]
+        with (
+            patch("app.macros.switch_character.is_unity_window", return_value=True),
+            patch("app.macros.switch_character.is_dofus_unity_process",
+                  side_effect=lambda hwnd: hwnd != 202),
+        ):
+            ordered = SwitchCharacterMacro(runtime).ordered_clients_from_source(303)
+        self.assertEqual([client.handle for client in ordered], [303, 101])
+
+    def test_roster_with_only_foreign_unity_windows_is_empty(self) -> None:
+        runtime = _runtime()
+        runtime.settings.clients = [SimpleNamespace(index=1, handle=101)]
+        with (
+            patch("app.macros.switch_character.is_unity_window", return_value=True),
+            patch("app.macros.switch_character.is_dofus_unity_process", return_value=False),
+        ):
+            self.assertEqual(SwitchCharacterMacro(runtime).ordered_clients_from_source(101), [])
+
+    def test_active_client_never_falls_back_to_foreign_unity_window(self) -> None:
+        runtime = _runtime()
+        foreign = SimpleNamespace(index=1, handle=101)
+        trusted = SimpleNamespace(index=2, handle=202)
+        runtime.settings.clients = [foreign, trusted]
+        runtime.settings.client_by_handle.side_effect = (
+            lambda hwnd: next((c for c in runtime.settings.clients if c.handle == hwnd), None)
+        )
+        runtime.settings.preferred_client.return_value = foreign
+        runtime.active_client_handle = 101
+        with (
+            patch("app.macros.switch_character.foreground_window", return_value=101),
+            patch("app.macros.switch_character.is_unity_window", return_value=True),
+            patch("app.macros.switch_character.is_dofus_unity_process",
+                  side_effect=lambda hwnd: hwnd == 202),
+        ):
+            found = SwitchCharacterMacro(runtime).logical_active_client()
+        self.assertIs(found, trusted)
+        self.assertEqual(runtime.active_client_handle, 202)
+
+    def test_no_trusted_client_keeps_last_active_handle_unchanged(self) -> None:
+        runtime = _runtime()
+        foreign = SimpleNamespace(index=1, handle=101)
+        runtime.settings.clients = [foreign]
+        runtime.settings.client_by_handle.return_value = foreign
+        runtime.settings.preferred_client.return_value = foreign
+        runtime.active_client_handle = 303
+        with (
+            patch("app.macros.switch_character.foreground_window", return_value=101),
+            patch("app.macros.switch_character.is_unity_window", return_value=True),
+            patch("app.macros.switch_character.is_dofus_unity_process", return_value=False),
+        ):
+            self.assertIsNone(SwitchCharacterMacro(runtime).logical_active_client())
+        self.assertEqual(runtime.active_client_handle, 303)
 
     def test_auto_group_overflowing_session_handles_do_not_abort_other_invites(self) -> None:
         runtime = _runtime()
