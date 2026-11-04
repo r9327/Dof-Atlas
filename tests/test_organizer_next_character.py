@@ -99,7 +99,35 @@ class NextCharacterTests(unittest.TestCase):
                         patch.object(macro, "activate_by_index", return_value=True) as activate,
                     ):
                         self.assertTrue(macro.activate_next())
-                    activate.assert_called_once_with(slot % count + 1)
+                    activate.assert_called_once_with(
+                        slot % count + 1, expected_profile=runtime.settings,
+                    )
+
+
+    def test_next_rejects_profile_reload_while_resolving_active_character(self):
+        for count in (2, 4, 6, 8):
+            with self.subTest(clients=count):
+                runtime = Mock()
+                runtime.settings = settings(count)
+                runtime.macro_lock.should_stop.return_value = False
+                old = runtime.settings
+
+                def active_and_reload():
+                    # Process checks passed, but Organizer was reloaded while
+                    # looking up the currently focused character.
+                    runtime.settings = settings(count)
+                    return old.clients[-1]
+
+                macro = SwitchCharacterMacro(runtime)
+                with (
+                    patch("app.macros.switch_character.is_unity_window", return_value=True),
+                    patch("app.macros.switch_character.is_dofus_unity_process", return_value=True),
+                    patch.object(macro, "logical_active_client",
+                                 side_effect=active_and_reload),
+                    patch.object(macro, "activate_by_index") as activate,
+                ):
+                    self.assertFalse(macro.activate_next())
+                activate.assert_not_called()
 
     def test_closed_client_skipped_without_false_activation(self):
         runtime = Mock()
@@ -115,7 +143,9 @@ class NextCharacterTests(unittest.TestCase):
             patch.object(macro, "activate_by_index", return_value=True) as activate,
         ):
             self.assertTrue(macro.activate_next())
-        activate.assert_called_once_with(3)
+        activate.assert_called_once_with(
+            3, expected_profile=runtime.settings,
+        )
 
     def test_zero_or_one_live_client_cannot_start_worker(self):
         for count in (0, 1):
