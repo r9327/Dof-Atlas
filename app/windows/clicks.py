@@ -79,6 +79,14 @@ def set_cursor_pos(screen_x: int, screen_y: int) -> None:
                 f"Windows SetCursorPos refused at ({x},{y}) "
                 f"(win32_error={win32_error})"
             )
+        # Win32 can return success while ClipCursor silently clamps the
+        # position. A SendInput click at that OTHER position is unsafe.
+        actual = current_cursor_pos()
+        if actual != (x, y):
+            raise OSError(
+                f"Windows cursor confined or moved: wanted=({x},{y}) "
+                f"actual={actual}"
+            )
 
 
 def _send_mouse_flag(flag: int) -> bool:
