@@ -203,6 +203,45 @@ class OrganizerRadialOverlayTests(unittest.TestCase):
         finally:
             parent.deleteLater()
 
+    def test_radial_key_must_have_exact_modifiers_without_alt_tab(self):
+        import ctypes
+        from types import SimpleNamespace
+
+        pressed = {0x75}  # F6
+        user32 = SimpleNamespace(
+            GetAsyncKeyState=lambda vk: 0x8000 if vk in pressed else 0,
+        )
+        with (
+            patch("app.pages.organizer.radial_overlay.os") as fake_os,
+            patch.object(ctypes, "windll",
+                         SimpleNamespace(user32=user32), create=True),
+        ):
+            fake_os.name = "nt"
+            fake_os.environ = {"QT_QPA_PLATFORM": "windows"}
+            self.assertTrue(physical_key_held(frozenset({0x75})))
+            pressed.add(0x12)
+            self.assertFalse(physical_key_held(frozenset({0x75})))
+            self.assertFalse(physical_key_held(frozenset({0x11, 0x75})))
+            pressed.remove(0x12)
+            pressed.add(0x11)
+            self.assertFalse(physical_key_held(frozenset({0x75})))
+            self.assertTrue(physical_key_held(frozenset({0x11, 0x75})))
+
+    def test_legacy_stop_collision_never_opens_radial_even_if_enabled(self):
+        from app.constants import KEY_STOP_SCRIPT_HOTKEY
+
+        page = Mock()
+        page.profiles = {
+            KEY_RADIAL_ENABLED: True,
+            KEY_RADIAL_HOTKEY: "F6",
+            KEY_STOP_SCRIPT_HOTKEY: "F6",
+        }
+        page.hotkey_label = lambda key: page.profiles.get(key, "")
+        page.capture_target = None
+        with patch("app.windows.unity_windows.foreground_window") as focus:
+            self.assertFalse(OrganizerPage._radial_can_open(page))
+        focus.assert_not_called()
+
     def test_no_win32_poll_during_offscreen_test(self):
         self.assertFalse(physical_key_held(frozenset({0x70})))
 

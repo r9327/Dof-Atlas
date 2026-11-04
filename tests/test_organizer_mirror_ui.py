@@ -3455,6 +3455,22 @@ class OrganizerMirrorIntegrationTests(unittest.TestCase):
 
 
 
+    def test_held_radial_key_is_not_broadcast_as_discrete_mirror_tap(self):
+        from app.input.hotkeys import parsed_hotkey_keys
+
+        runtime = self._runtime()
+        runtime._running = True
+        runtime._admin_ok = True
+        runtime.settings.radial_hotkey = "F6"
+        runtime.settings.radial_enabled = True
+        self.assertIn(0x75, parsed_hotkey_keys("F6"))
+        with patch("app.windows.unity_windows.foreground_window") as focus:
+            self.assertFalse(AtlasRuntime._handle_mirror_key(
+                runtime, 0x75, True,
+            ))
+        focus.assert_not_called()
+        runtime.mirror_input.run_key.assert_not_called()
+
     def test_keyboard_and_wheel_callbacks_use_frozen_favorite_roster(self):
         runtime = self._runtime()
         runtime._running = True
