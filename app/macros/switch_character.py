@@ -17,6 +17,11 @@ class SwitchCharacterMacro:
 
     def activate_by_index(self, client_index: int) -> bool:
         settings = self.runtime.settings
+        # Numeric strings from older hotkey profiles remain supported; a
+        # fractional float or bool must never alias a different slot.
+        if type(client_index) in (bool, float):
+            self.runtime.logger.info("Activation client ignorée: index invalide=%r", client_index)
+            return False
         try:
             requested_index = int(client_index)
         except (TypeError, ValueError, OverflowError):
@@ -165,15 +170,14 @@ class SwitchCharacterMacro:
         seen_handles: set[int] = set()
 
         for client in self.runtime.settings.clients:
-            try:
-                handle = int(client.handle)
-            except (TypeError, ValueError, OverflowError):
+            handle = client.handle
+            if type(handle) is not int or not 0 < handle <= (2**64 - 1):
                 self.runtime.logger.warning(
                     "Switch: fenetre ignoree (handle invalide) slot=%s",
                     client.index,
                 )
                 continue
-            if (handle <= 0 or handle in seen_handles or not is_unity_window(handle)
+            if (handle in seen_handles or not is_unity_window(handle)
                     or not is_dofus_unity_process(handle)):
                 continue
             seen_handles.add(handle)

@@ -58,6 +58,43 @@ class OrganizerMacroReliabilityTests(unittest.TestCase):
         self.assertEqual([c.handle for c in ordered], [202, 101])
 
 
+    def test_roster_does_not_cast_foreign_or_fractional_hwnd_into_trusted_client(self) -> None:
+        runtime = _runtime()
+        trusted = SimpleNamespace(index=9, handle=101)
+        runtime.settings.clients = [
+            SimpleNamespace(index=1, handle=101.9),
+            SimpleNamespace(index=2, handle=True),
+            SimpleNamespace(index=3, handle="101"),
+            SimpleNamespace(index=4, handle=2**64),
+            trusted,
+        ]
+        with (
+            patch("app.macros.switch_character.is_unity_window",
+                  return_value=True) as unity,
+            patch("app.macros.switch_character.is_dofus_unity_process",
+                  return_value=True) as process,
+        ):
+            ordered = SwitchCharacterMacro(runtime).ordered_clients_from_source(101)
+        self.assertEqual(ordered, [trusted])
+        unity.assert_called_once_with(101)
+        process.assert_called_once_with(101)
+        self.assertEqual(runtime.logger.warning.call_count, 4)
+
+    def test_character_hotkey_rejects_fractional_slot_without_spawning(self) -> None:
+        runtime = _runtime()
+        runtime.settings.clients = [
+            SimpleNamespace(index=1, handle=101, display_name="Friend"),
+        ]
+        macro = SwitchCharacterMacro(runtime)
+        for malformed in (True, 1.9, 1.0, float("nan"), float("inf")):
+            with self.subTest(index=repr(malformed)):
+                self.assertFalse(macro.activate_by_index(malformed))
+        runtime._spawn_macro.assert_not_called()
+        # Legacy textual slot indices are still accepted.
+        runtime._spawn_macro.return_value = True
+        self.assertTrue(macro.activate_by_index("1"))
+        runtime._spawn_macro.assert_called_once()
+
     def test_explicit_detached_source_never_falls_back_to_favorite(self) -> None:
         for count in (2, 4, 6, 8):
             with self.subTest(clients=count):
