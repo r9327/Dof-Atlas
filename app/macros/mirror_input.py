@@ -162,7 +162,17 @@ class MirrorInputMacro:
                                 min(40, max(10, timings.switch_click_down_ms))
                             )
                         finally:
-                            key_up(vk)
+                            try:
+                                key_up(vk)
+                            except OSError:
+                                # A refused KEYUP can leave the synthetic key
+                                # logically held across clients. Retry once
+                                # without changing focus or starting a worker.
+                                runtime.logger.warning(
+                                    "Miroir clavier: relâchement refusé, tentative de secours vk=%s",
+                                    vk,
+                                )
+                                key_up(vk)
                     else:
                         delta, horizontal, xr, yr = payload
                         point = client_point_from_ratio(hwnd, xr, yr)
