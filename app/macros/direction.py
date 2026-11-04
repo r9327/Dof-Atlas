@@ -27,6 +27,7 @@ class DirectionMacro:
             self.release_virtual_inputs()
             return
         timings = self.runtime.settings.timings
+        favorite_at_start = self.runtime.settings.primary_handle
         focus_lost = False
         last_activated_hwnd: int | None = None
         targets = []
@@ -80,6 +81,16 @@ class DirectionMacro:
                 focus_lost = True
                 self.runtime.logger.warning(
                     "Switch deplacement: identité DOFUS perdue avant restauration hwnd=%s", source,
+                )
+            # The Organizer favorite is part of this action's immutable
+            # context. A changed choice is not ours to reactivate.
+            if (
+                not self.runtime.macro_lock.should_stop() and not focus_lost
+                and self.runtime.settings.primary_handle != favorite_at_start
+            ):
+                focus_lost = True
+                self.runtime.logger.info(
+                    "Switch deplacement: retour favori ignoré, favori changé."
                 )
             # One final focus probe: a completed synthetic movement key
             # does not authorize bringing DOFUS back after user focus theft.
