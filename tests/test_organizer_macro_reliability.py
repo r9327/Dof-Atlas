@@ -463,6 +463,44 @@ class OrganizerMacroReliabilityTests(unittest.TestCase):
             "Auto zaap: focus illisible avant retour au favori."
         )
 
+    def test_zaap_does_not_restore_new_favorite_selected_mid_broadcast(self) -> None:
+        for count in (2, 4, 6, 8):
+            with self.subTest(count=count):
+                runtime = _runtime()
+                runtime.settings.primary_handle = 101
+                runtime.switch_character.ordered_clients_from_source.return_value = [
+                    SimpleNamespace(handle=101 + index)
+                    for index in range(count)
+                ]
+                active = [101]
+                sent = [0]
+
+                def activate(hwnd, *_args, **_kwargs):
+                    active[0] = hwnd
+                    return True
+
+                def chat(*_args, **_kwargs):
+                    sent[0] += 1
+                    if sent[0] == count:
+                        runtime.settings.primary_handle = 999
+                    return True
+
+                with (
+                    patch("app.macros.zaap.is_unity_window", return_value=True),
+                    patch("app.macros.zaap.is_dofus_unity_process", return_value=True),
+                    patch("app.macros.zaap.activate_window", side_effect=activate),
+                    patch("app.macros.zaap.foreground_window",
+                          side_effect=lambda: active[0]),
+                    patch("app.macros.zaap.send_chat_command",
+                          side_effect=chat) as send,
+                ):
+                    ZaapMacro(runtime)._run("/zaap 1,2")
+                self.assertEqual(send.call_count, count)
+                runtime.switch_character.restore_preferred_client.assert_not_called()
+                runtime.logger.info.assert_any_call(
+                    "Auto zaap: retour favori ignoré, favori changé."
+                )
+
     def test_zaap_mid_command_focus_loss_aborts_following_clients(self) -> None:
         runtime = _runtime()
         focus = [101]
