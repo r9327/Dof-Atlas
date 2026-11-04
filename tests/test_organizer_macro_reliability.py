@@ -2713,5 +2713,69 @@ class OrganizerMacroReliabilityTests(unittest.TestCase):
         )
 
 
+    def test_direction_no_successful_activation_cannot_restore_favorite_2_to_8(self) -> None:
+        # An activation refusal must not steal the user's focus merely
+        # because a valid DOFUS source was present at dispatch time.
+        for count in (2, 4, 6, 8):
+            with self.subTest(clients=count):
+                runtime = _runtime()
+                runtime.settings.client_by_handle.return_value = object()
+                runtime.switch_character.ordered_clients_from_source.return_value = [
+                    SimpleNamespace(handle=101 + i) for i in range(count)
+                ]
+                with (
+                    patch("app.macros.direction.foreground_window", return_value=101),
+                    patch("app.macros.direction.is_unity_window", return_value=True),
+                    patch("app.macros.direction.is_dofus_unity_process", return_value=True),
+                    patch("app.macros.direction.activate_window", return_value=False),
+                    patch("app.macros.direction.press_key") as send,
+                ):
+                    DirectionMacro(runtime)._run("HOME")
+                send.assert_not_called()
+                runtime.switch_character.restore_preferred_client.assert_not_called()
+                runtime.logger.info.assert_any_call(
+                    "Switch deplacement %s: envoyes=%s/%s", "partiel", 0, count,
+                )
+
+    def test_zaap_no_successful_activation_cannot_restore_favorite_2_to_8(self) -> None:
+        # Refused focus does not authorize a gratuitous preferred-client
+        # activation after the attempted /zaap broadcast.
+        for count in (2, 4, 6, 8):
+            with self.subTest(clients=count):
+                runtime = _runtime()
+                runtime.switch_character.ordered_clients_from_source.return_value = [
+                    SimpleNamespace(handle=101 + i) for i in range(count)
+                ]
+                with (
+                    patch("app.macros.zaap.is_unity_window", return_value=True),
+                    patch("app.macros.zaap.is_dofus_unity_process", return_value=True),
+                    patch("app.macros.zaap.activate_window", return_value=False),
+                    patch("app.macros.zaap.send_chat_command") as send,
+                ):
+                    ZaapMacro(runtime)._run("/zaap 1,2")
+                send.assert_not_called()
+                runtime.switch_character.restore_preferred_client.assert_not_called()
+                runtime._emit_status.assert_called_once_with(
+                    f"Auto zaap partiel : 0/{count} commandes émises "
+                    "(réception DOFUS non vérifiée)."
+                )
+
+    def test_direction_empty_roster_never_restores_or_emits(self) -> None:
+        runtime = _runtime()
+        runtime.settings.client_by_handle.return_value = object()
+        runtime.switch_character.ordered_clients_from_source.return_value = []
+        with (
+            patch("app.macros.direction.foreground_window", return_value=101),
+            patch("app.macros.direction.is_unity_window", return_value=True),
+            patch("app.macros.direction.is_dofus_unity_process", return_value=True),
+            patch("app.macros.direction.activate_window") as activate,
+            patch("app.macros.direction.press_key") as send,
+        ):
+            DirectionMacro(runtime)._run("HOME")
+        activate.assert_not_called()
+        send.assert_not_called()
+        runtime.switch_character.restore_preferred_client.assert_not_called()
+
+
 if __name__ == "__main__":
     unittest.main()
