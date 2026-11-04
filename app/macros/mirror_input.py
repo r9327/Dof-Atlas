@@ -151,6 +151,23 @@ class MirrorInputMacro:
                     break
                 if runtime.macro_lock.should_stop():
                     break
+                # Activation may run callbacks or release the GIL. Recheck the
+                # exact roster and Win32 process identity AFTER focus changes,
+                # not only before activating the target.
+                if not self._still_current(source, handles):
+                    delivery_failed = True
+                    runtime.logger.warning(
+                        "Miroir %s: favori ou roster changé après activation hwnd=%s.",
+                        kind, hwnd,
+                    )
+                    break
+                if not is_dofus_unity_process(hwnd):
+                    delivery_failed = True
+                    runtime.logger.warning(
+                        "Miroir %s: processus DOFUS remplacé après activation hwnd=%s.",
+                        kind, hwnd,
+                    )
+                    break
                 try:
                     sent_at = perf_counter()
                     if kind == "key":
@@ -194,6 +211,23 @@ class MirrorInputMacro:
                                 focus_lost = True
                                 runtime.logger.warning(
                                     "Miroir molette: focus volé après déplacement hwnd=%s.", hwnd,
+                                )
+                                break
+                            # Cursor movement can invoke native hooks and user
+                            # actions; never emit a wheel tick on a stale
+                            # favorite, changed roster or stopped worker.
+                            if runtime.macro_lock.should_stop():
+                                break
+                            if not self._still_current(source, handles):
+                                delivery_failed = True
+                                runtime.logger.warning(
+                                    "Miroir molette: roster changé après déplacement hwnd=%s.", hwnd,
+                                )
+                                break
+                            if not is_dofus_unity_process(hwnd):
+                                delivery_failed = True
+                                runtime.logger.warning(
+                                    "Miroir molette: processus remplacé après déplacement hwnd=%s.", hwnd,
                                 )
                                 break
                             if not send_screen_wheel(delta, horizontal=horizontal):
