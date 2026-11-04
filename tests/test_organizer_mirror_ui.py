@@ -2047,7 +2047,9 @@ class OrganizerMirrorIntegrationTests(unittest.TestCase):
         runtime.macro_lock.wait.return_value = False
         with (
             patch("app.macros.mirror_input.is_dofus_unity_process",
-                  side_effect=[True, True, True, False]),
+                  # Roster preflight (2) + before/after first focus (2)
+                  # + after first cursor move (1), then reject client 2.
+                  side_effect=[True, True, True, True, True, False]),
             patch("app.macros.mirror_input.current_cursor_pos", return_value=(12, 14)),
             patch("app.macros.mirror_input.activate_window", return_value=True),
             patch("app.macros.mirror_input.foreground_window", return_value=101),
