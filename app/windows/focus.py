@@ -214,6 +214,14 @@ def activate_window(
                 attempt == attempt_count - 1
                 and foreground_window() != hwnd
             ):
+                # The final TOPMOST/not-TOPMOST fallback must not override
+                # an emergency Stop that arrived during the native attempt.
+                if should_stop is not None and should_stop():
+                    logger.info(
+                        "%s activation stoppee avant topmost hwnd=%s",
+                        action_label, hwnd,
+                    )
+                    return False
                 flags = (
                     win32con.SWP_NOMOVE
                     | win32con.SWP_NOSIZE
