@@ -247,6 +247,14 @@ def activate_window(
 
         foreground = foreground_window()
         if foreground == hwnd:
+            # Stop can arrive after SetForegroundWindow succeeds but before
+            # this worker is allowed to send any virtual input. Don't certify
+            # an activation that the owner already cancelled.
+            if should_stop is not None and should_stop():
+                logger.info(
+                    "%s activation stoppee apres tentative hwnd=%s", action_label, hwnd,
+                )
+                return False
             logger.debug(
                 "%s activation reussie hwnd=%s tentative=%s/%s",
                 action_label,
