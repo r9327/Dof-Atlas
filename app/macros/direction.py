@@ -28,6 +28,7 @@ class DirectionMacro:
             return
         timings = self.runtime.settings.timings
         focus_lost = False
+        last_activated_hwnd: int | None = None
         targets = []
         sent = 0
         try:
@@ -62,6 +63,7 @@ class DirectionMacro:
                         return
                     if self.runtime.macro_lock.should_stop():
                         return
+                    last_activated_hwnd = int(client.handle)
                     press_key(key_name, timings.movement_key_hold_ms)
                     # Count an input that completed before Stop was observed.
                     sent += 1
@@ -79,6 +81,23 @@ class DirectionMacro:
                 self.runtime.logger.warning(
                     "Switch deplacement: identité DOFUS perdue avant restauration hwnd=%s", source,
                 )
+            # One final focus probe: a completed synthetic movement key
+            # does not authorize bringing DOFUS back after user focus theft.
+            if (
+                not self.runtime.macro_lock.should_stop() and not focus_lost
+                and last_activated_hwnd is not None
+            ):
+                try:
+                    if foreground_window() != last_activated_hwnd:
+                        focus_lost = True
+                        self.runtime.logger.info(
+                            "Switch deplacement: retour favori ignoré, focus utilisateur changé."
+                        )
+                except Exception:
+                    focus_lost = True
+                    self.runtime.logger.exception(
+                        "Switch deplacement: focus illisible avant retour au favori."
+                    )
             if not self.runtime.macro_lock.should_stop() and not focus_lost:
                 try:
                     self.runtime.switch_character.restore_preferred_client("Switch deplacement")
