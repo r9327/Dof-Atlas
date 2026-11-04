@@ -1371,6 +1371,38 @@ class OrganizerMacroReliabilityTests(unittest.TestCase):
                     "interrompu", count, count,
                 )
 
+    def test_direction_cleanup_focus_read_error_never_restores(self) -> None:
+        runtime = _runtime()
+        runtime.settings.client_by_handle.return_value = object()
+        runtime.switch_character.ordered_clients_from_source.return_value = [
+            SimpleNamespace(handle=101),
+        ]
+        calls = [0]
+
+        def foreground():
+            calls[0] += 1
+            if calls[0] == 3:
+                raise OSError("foreground refused")
+            return 101
+
+        with (
+            patch("app.macros.direction.foreground_window",
+                  side_effect=foreground),
+            patch("app.macros.direction.is_unity_window", return_value=True),
+            patch("app.macros.direction.is_dofus_unity_process", return_value=True),
+            patch("app.macros.direction.activate_window", return_value=True),
+            patch("app.macros.direction.press_key") as press,
+        ):
+            DirectionMacro(runtime)._run("HOME")
+        press.assert_called_once()
+        runtime.switch_character.restore_preferred_client.assert_not_called()
+        runtime.logger.exception.assert_any_call(
+            "Switch deplacement: focus illisible avant retour au favori."
+        )
+        runtime.logger.info.assert_any_call(
+            "Switch deplacement %s: envoyes=%s/%s", "interrompu", 1, 1,
+        )
+
     def test_direction_restores_favorite_on_input_exception(self) -> None:
         runtime = _runtime()
         runtime.settings.client_by_handle.return_value = object()
