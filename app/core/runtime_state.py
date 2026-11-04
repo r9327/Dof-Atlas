@@ -773,10 +773,14 @@ class AtlasRuntime:
         if len(destinations) < 2:
             return False
         if self.macro_lock.active_label:
-            if self.macro_lock.active_label == "Miroir clavier":
-                # A keyboard worker does not own the mouse. Keep this
-                # physical DOWN/UP native; do not start a second worker.
-                self.logger.debug("Miroir: clic physique conservé pendant clavier.")
+            busy = self.macro_lock.active_label
+            if (busy == "Miroir clavier"
+                    or (busy == "Miroir molette"
+                        and not self.input_state.is_mouse_blocked())):
+                # Keyboard never owns the mouse; wheel owns it only after
+                # roster preflight. Pass this physical DOWN/UP through rather
+                # than swallow it before any pointer manipulation begins.
+                self.logger.debug("Miroir: clic physique conservé pendant %s.", busy)
                 return False
             self.logger.debug("Miroir: clic ignoré, macro déjà active.")
             return True

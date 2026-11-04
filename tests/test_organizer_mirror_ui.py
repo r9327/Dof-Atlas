@@ -664,6 +664,73 @@ class OrganizerMirrorIntegrationTests(unittest.TestCase):
                 self.assertEqual(send.call_count, count)
                 self.assertFalse(runtime.input_state.is_mouse_blocked())
 
+    def test_wheel_preflight_passes_click_then_blocks_only_during_delivery(self):
+        runtime = self._runtime()
+        runtime.macro_lock.active_label = "Miroir molette"
+        runtime.input_state.is_mouse_blocked.return_value = False
+        with (
+            patch("app.windows.unity_windows.is_unity_window", return_value=True),
+            patch("app.macros.mirror_plan.is_dofus_unity_process", return_value=True),
+            patch("app.windows.unity_windows.foreground_window", return_value=101),
+            patch("app.windows.unity_windows.find_known_client_from_point",
+                  return_value=101),
+        ):
+            self.assertFalse(
+                AtlasRuntime._handle_mirror_click(runtime, "Left", 12, 28)
+            )
+            runtime.input_state.is_mouse_blocked.return_value = True
+            self.assertTrue(
+                AtlasRuntime._handle_mirror_click(runtime, "Left", 12, 28)
+            )
+        runtime.switch_click.run_async.assert_not_called()
+
+    def test_native_mouse_down_up_survive_busy_keyboard_for_2_to_8(self):
+        import ctypes
+        from app.input.input_state import InputState
+        from app.input.mouse_hooks import (
+            MouseHook, MSLLHOOKSTRUCT, WM_LBUTTONDOWN, WM_LBUTTONUP,
+        )
+        for count in (2, 4, 6, 8):
+            with self.subTest(count=count):
+                slots = tuple(range(101, 101 + count))
+                runtime = self._runtime(primary=slots[0], handles=slots)
+                runtime._running = True
+                runtime._admin_ok = True
+                runtime.macro_lock.active_label = "Miroir clavier"
+                runtime.input_state = InputState()
+                callback = lambda button, x, y: AtlasRuntime._handle_mouse_click(
+                    runtime, button, x, y,
+                )
+                hook = MouseHook(
+                    runtime.input_state, Mock(), Mock(), callback,
+                )
+                event = MSLLHOOKSTRUCT()
+                event.pt.x = 20
+                event.pt.y = 25
+                event.flags = 0
+                event.dwExtraInfo = None
+                next_hook = Mock(return_value=37)
+                with (
+                    patch("app.windows.unity_windows.is_unity_window",
+                          return_value=True),
+                    patch("app.macros.mirror_plan.is_dofus_unity_process",
+                          return_value=True),
+                    patch("app.windows.unity_windows.foreground_window",
+                          return_value=slots[0]),
+                    patch("app.windows.unity_windows.find_known_client_from_point",
+                          return_value=slots[0]),
+                    patch.object(ctypes, "windll",
+                          SimpleNamespace(user32=SimpleNamespace(
+                              CallNextHookEx=next_hook,
+                          )), create=True),
+                ):
+                    ptr = ctypes.addressof(event)
+                    self.assertEqual(hook._mouse_proc(0, WM_LBUTTONDOWN, ptr), 37)
+                    self.assertEqual(hook._mouse_proc(0, WM_LBUTTONUP, ptr), 37)
+                self.assertFalse(hook._consumed_releases)
+                self.assertEqual(next_hook.call_count, 2)
+                runtime.switch_click.run_async.assert_not_called()
+
     def test_macro_busy_consumes_without_starting_a_second_delivery(self):
         runtime = self._runtime()
         runtime.macro_lock.active_label = "Miroir"
@@ -2275,7 +2342,7 @@ class OrganizerMirrorIntegrationTests(unittest.TestCase):
         ):
             macro._run("key", 65, 101, (101, 202))
         self.assertEqual(events, [("down", 65), ("up", 65)] * 2)
-        runtime.input_state.begin_mouse_block.assert_called_once()
+        runtime.input_state.begin_mouse_block.assert_not_called()
         runtime.input_state.end_mouse_block.assert_not_called()
         runtime.switch_character.restore_preferred_client.assert_called_once()
 
