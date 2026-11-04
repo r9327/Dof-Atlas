@@ -1127,7 +1127,13 @@ class OrganizerMirrorIntegrationTests(unittest.TestCase):
                     def sender(*_args, **kwargs):
                         self.assertFalse(kwargs["should_stop"]())
                         if change == "roster":
-                            runtime.settings.clients = list(reversed(runtime.settings.clients))
+                            # Reversing a two-client roster leaves the
+                            # favorite-first delivery order unchanged. Use a
+                            # genuine HWND replacement for every team size.
+                            runtime.settings.clients = [
+                                SimpleNamespace(handle=h)
+                                for h in (*handles[:-1], 999)
+                            ]
                         elif change == "favorite":
                             runtime.settings.primary_handle = handles[-1]
                         elif change == "mode":
