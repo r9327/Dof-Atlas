@@ -85,7 +85,12 @@ class CharacterSessionsMixin:
         for raw_id, row in characters.items() if isinstance(characters, dict) else ():
             if not str(raw_id).isdigit() or not isinstance(row, dict):
                 continue
-            character_id = int(raw_id)
+            try:
+                character_id = int(raw_id)
+            except (ValueError, OverflowError):
+                # Unicode digit-like keys and oversized integers must not
+                # interrupt the entire verified identity refresh.
+                continue
             if character_id <= 0 or str(row.get("source") or "") != "verified_network_identity":
                 continue
             rows.append((character_id, dict(row)))
@@ -263,7 +268,7 @@ class CharacterSessionsMixin:
     def session_order_keys(self, session: dict[str, Any]) -> list[str]:
         try:
             hwnd = int(session.get("hwnd", 0))
-        except (AttributeError, TypeError, ValueError):
+        except (AttributeError, TypeError, ValueError, OverflowError):
             hwnd = 0
         label = str(session.get("nom", "")).strip() if isinstance(session, dict) else ""
         short_name = clean_auto_group_name(label)
@@ -458,7 +463,7 @@ class CharacterSessionsMixin:
             token = f"character:{character_id}"
             try:
                 row_pid = int(row.get("pid") or 0)
-            except (TypeError, ValueError):
+            except (TypeError, ValueError, OverflowError):
                 row_pid = 0
             # A Windows PID can be reused after restart. Never trust it
             # without matching the verified character name AND class.
@@ -564,7 +569,7 @@ class CharacterSessionsMixin:
             name = str(session.get("nom", "Session"))
             try:
                 hwnd = int(session.get("hwnd", 0))
-            except (TypeError, ValueError):
+            except (TypeError, ValueError, OverflowError):
                 hwnd = 0
             token = self.primary_token_for_session(name, hwnd, session)
         else:
