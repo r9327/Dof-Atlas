@@ -509,3 +509,32 @@ tests PySide6, recette DOFUS Unity, p50/p95/p99, CPU et RAM ne sont pas
 déclarés PASS. Le travail de MIRR-007 (gestes absorbés quand le worker est
 occupé) reste ouvert ; pas de replay différé sans carte Graphify ni
 preuve Windows. Conserver la PR Draft et ne pas fusionner.
+
+## Lot P0 du 04/11/2026 — vérifications après activation et nettoyage du Miroir
+
+- Le Miroir **clavier et molette** revalide le mode, le favori, l'ordre des
+  fenêtres et l'identité du processus DOFUS **après** chaque activation native,
+  juste avant l'injection. Un changement pendant `activate_window` annule
+  la diffusion avec statut incomplet ; aucun appel `key_down` ou envoi de
+  molette ne doit suivre cette invalidation.
+- Pour la molette, un second contrôle du Stop, des sessions et de l'identité
+  du processus est effectué **après** `set_cursor_pos` et le contrôle du
+  premier plan, pour empêcher une émission tardive si le mouvement du
+  curseur a permis une réaffectation de fenêtre ou un arrêt.
+- Le blocage physique de souris reste actif durant la restitution du
+  curseur **et** du favori, comme dans Switch clic. Une clause `finally`
+  imbriquée débloque la souris même si une vérification de restitution
+  lève une exception. Le code n'introduit ni hook, ni sender, ni queue.
+- Tests ajoutés : changements de roster/processus durant l'activation,
+  Stop/roster/processus invalidé pendant le déplacement molette,
+  ordre blocage → restauration → déblocage, déblocage sur erreur de
+  vérification. La borne de contrôles natifs clavier en 2/4/6/8 passe
+  de `2N+1` à `3N+1` (vérification de sécurité additionnelle) :
+  aucun gain ou maintien de latence n'est revendiqué sans benchmark.
+
+**Validation : NOT_RUN.** Aucun checkout Windows Python/PySide6 ni Doctor
+`agent plan/check/validate`, aucune carte Graphify exact-SHA, ni mesure
+CPU/RAM/p50/p95/p99 ni recette DOFUS Unity. Ces tests sont écrits et
+versionnés, pas certifiés. **MIRR-007 reste PENDING** : le blocage global
+peut toujours absorber les gestes physiques reçus pendant un worker.
+Conserver la PR en Draft et éviter tout replay structurel sans Graphify.
