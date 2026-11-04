@@ -1043,6 +1043,171 @@ class OrganizerMirrorIntegrationTests(unittest.TestCase):
                     ))
                 self.assertFalse(runtime.input_state.is_mouse_blocked())
 
+    def test_queued_mirror_click_owns_physical_down_up_before_worker_2_to_8(self):
+        import ctypes
+        from app.core.runtime_state import AtlasRuntime
+        from app.input.input_state import InputState
+        from app.input.mouse_hooks import (
+            MouseHook, MSLLHOOKSTRUCT, WM_LBUTTONDOWN, WM_LBUTTONUP,
+        )
+        from app.macros.switch_click import SwitchClickMacro, SwitchClickContext
+
+        for count in (2, 4, 6, 8):
+            with self.subTest(clients=count):
+                handles = tuple(range(101, 101 + count))
+                runtime = self._runtime(primary=handles[0], handles=handles)
+                runtime._running = True
+                runtime._admin_ok = True
+                runtime.input_state = InputState()
+                runtime.macro_lock.should_stop.return_value = False
+                runtime.macro_lock.wait.return_value = False
+                runtime.settings.timings = SimpleNamespace(
+                    switch_background_pre_click_ms=0, activate_attempts=1,
+                    activate_retry_ms=0, switch_click_down_ms=35,
+                    input_double_gap_ms=5, switch_background_post_up_ms=0,
+                    switch_client_settle_ms=0,
+                )
+                runtime._spawn_macro.return_value = True
+                runtime.switch_character.ordered_clients_from_source.return_value = [
+                    SimpleNamespace(handle=h, display_name=str(h))
+                    for h in handles
+                ]
+                macro = SwitchClickMacro(runtime)
+                runtime.switch_click = macro
+                context = SwitchClickContext(handles[0], 20, 25, 0.25, 0.5, "cursor")
+                hook = MouseHook(
+                    runtime.input_state, Mock(), Mock(),
+                    lambda button, x, y: AtlasRuntime._handle_mouse_click(
+                        runtime, button, x, y,
+                    ),
+                )
+                event = MSLLHOOKSTRUCT()
+                event.pt.x = 20
+                event.pt.y = 25
+                event.flags = 0
+                event.dwExtraInfo = None
+                native = Mock(return_value=77)
+                active = [handles[0]]
+                sent = []
+                def focus(hwnd, *_args, **_kwargs):
+                    self.assertTrue(runtime.input_state.is_mouse_blocked())
+                    active[0] = hwnd
+                    return True
+                def send(hwnd, *_args, **_kwargs):
+                    self.assertTrue(runtime.input_state.is_mouse_blocked())
+                    sent.append(hwnd)
+                    return True
+
+                with (
+                    patch.object(macro, "_capture_trigger_context",
+                                 return_value=context),
+                    patch.object(macro, "_validated_context",
+                                 return_value=context),
+                    patch.object(macro, "_target_point",
+                                 return_value=(20, 25)),
+                    patch("app.windows.unity_windows.is_unity_window",
+                          return_value=True),
+                    patch("app.windows.unity_windows.find_known_client_from_point",
+                          return_value=handles[0]),
+                    patch("app.windows.unity_windows.foreground_window",
+                          return_value=handles[0]),
+                    patch("app.macros.mirror_plan.is_dofus_unity_process",
+                          return_value=True),
+                    patch("app.macros.switch_click.is_unity_window",
+                          return_value=True),
+                    patch("app.macros.switch_click.is_dofus_unity_process",
+                          return_value=True),
+                    patch("app.macros.switch_click.current_cursor_pos",
+                          return_value=(12, 14)),
+                    patch("app.macros.switch_click.set_cursor_pos"),
+                    patch("app.macros.switch_click.activate_window",
+                          side_effect=focus),
+                    patch("app.macros.switch_click.foreground_window",
+                          side_effect=lambda: active[0]),
+                    patch("app.macros.switch_click.send_client_click",
+                          side_effect=send),
+                    patch.object(ctypes, "windll",
+                        SimpleNamespace(user32=SimpleNamespace(
+                            CallNextHookEx=native,
+                        )), create=True),
+                ):
+                    ptr = ctypes.addressof(event)
+                    # The source DOWN is consumed by the hook exactly once.
+                    self.assertEqual(hook._mouse_proc(0, WM_LBUTTONDOWN, ptr), 1)
+                    self.assertIn(WM_LBUTTONUP, hook._consumed_releases)
+                    self.assertFalse(runtime.input_state.is_mouse_blocked())
+                    # Even with no physical block yet, the paired UP is owned
+                    # by the hook and must not leak to a different client.
+                    self.assertEqual(hook._mouse_proc(0, WM_LBUTTONUP, ptr), 1)
+                    self.assertFalse(hook._consumed_releases)
+                    native.assert_not_called()
+                    runtime._spawn_macro.assert_called_once()
+                    runtime._spawn_macro.call_args.args[1]()
+                self.assertEqual(sent, list(handles))
+                self.assertFalse(runtime.input_state.is_mouse_blocked())
+
+    def test_queued_mirror_click_rejected_preflight_never_leaks_native_up(self):
+        import ctypes
+        from app.input.input_state import InputState
+        from app.input.mouse_hooks import (
+            MouseHook, MSLLHOOKSTRUCT, WM_LBUTTONDOWN, WM_LBUTTONUP,
+        )
+        from app.macros.switch_click import SwitchClickMacro, SwitchClickContext
+
+        runtime = self._runtime(primary=101, handles=(101, 202))
+        runtime._running = True
+        runtime._admin_ok = True
+        runtime.input_state = InputState()
+        runtime.macro_lock.should_stop.return_value = False
+        runtime._spawn_macro.return_value = True
+        macro = SwitchClickMacro(runtime)
+        runtime.switch_click = macro
+        context = SwitchClickContext(101, 20, 25, 0.25, 0.5, "cursor")
+        runtime.switch_character.ordered_clients_from_source.return_value = [
+            SimpleNamespace(handle=101, display_name="source"),
+        ]
+        hook = MouseHook(
+            runtime.input_state, Mock(), Mock(),
+            lambda button, x, y: AtlasRuntime._handle_mouse_click(
+                runtime, button, x, y,
+            ),
+        )
+        event = MSLLHOOKSTRUCT()
+        event.pt.x = 20
+        event.pt.y = 25
+        native = Mock(return_value=77)
+        with (
+            patch.object(macro, "_capture_trigger_context",
+                         return_value=context),
+            patch.object(macro, "_validated_context",
+                         return_value=context),
+            patch("app.windows.unity_windows.is_unity_window",
+                  return_value=True),
+            patch("app.windows.unity_windows.foreground_window",
+                  return_value=101),
+            patch("app.windows.unity_windows.find_known_client_from_point",
+                  return_value=101),
+            patch("app.macros.mirror_plan.is_dofus_unity_process",
+                  return_value=True),
+            patch("app.macros.switch_click.current_cursor_pos",
+                  return_value=(12, 14)),
+            patch("app.macros.switch_click.activate_window") as activate,
+            patch("app.macros.switch_click.send_client_click") as sender,
+            patch.object(ctypes, "windll",
+                SimpleNamespace(user32=SimpleNamespace(
+                    CallNextHookEx=native,
+                )), create=True),
+        ):
+            ptr = ctypes.addressof(event)
+            self.assertEqual(hook._mouse_proc(0, WM_LBUTTONDOWN, ptr), 1)
+            runtime._spawn_macro.call_args.args[1]()
+            self.assertFalse(runtime.input_state.is_mouse_blocked())
+            self.assertEqual(hook._mouse_proc(0, WM_LBUTTONUP, ptr), 1)
+        activate.assert_not_called()
+        sender.assert_not_called()
+        native.assert_not_called()
+        self.assertFalse(hook._consumed_releases)
+
     def test_mirror_click_failed_send_stops_remaining_clients_and_restoration(self):
         from app.macros.switch_click import SwitchClickMacro, SwitchClickContext
 
