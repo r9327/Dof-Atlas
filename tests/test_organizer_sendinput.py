@@ -730,7 +730,7 @@ class OrganizerSendInputTests(unittest.TestCase):
             patch.object(clicks, "_send_mouse_flag") as sender,
         ):
             with self.assertRaisesRegex(
-                OSError, r"SetCursorPos refused at \\(300,200\\).*win32_error=5",
+                OSError, r"SetCursorPos refused at \(300,200\).*win32_error=5",
             ):
                 clicks.set_cursor_pos(300, 200)
             self.assertFalse(clicks.send_screen_click(
