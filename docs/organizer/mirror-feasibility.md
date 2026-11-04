@@ -321,3 +321,30 @@ session GitHub et le checkout local du dépôt n'était pas accessible :
 Stop au milieu, déplacement du focus vers une application tierce,
 compter actions visibles, clics/roulettes bloqués, doublons, p50/p95/p99
 du geste complet, CPU/RAM et usage du favori. **Aucun PASS revendiqué**.
+
+
+## P0 — Relâchement natif et application tierce, 04/11/2026
+
+Deux anomalies ciblées ont été corrigées **sans créer de file ni modifier
+l'architecture des hooks** :
+
+- Si l'utilisateur a pressé un bouton physiquement **avant** le lancement
+  du worker, puis le relâche pendant le blocage du Miroir, cet UP sans
+  DOWN consommé est désormais transmis. Le hook continue à bloquer tout
+  UP dont il a réellement intercepté le DOWN, y compris après un Stop.
+  Boutons couverts : gauche, droit, milieu et X.
+- Pendant l'intervalle entre la prise de `MacroLock` et l'activation du
+  blocage souris, un raccourci Switch actif n'absorbe plus un clic destiné
+  à une autre application. La fenêtre au premier plan, sa position sous
+  le pointeur et son identité DOFUS sont vérifiées avant interception.
+  **Limite :** si `InputState.is_mouse_blocked()` est déjà actif, le
+  filtrage global précède toujours le callback runtime ; le problème
+  de saturation MIRR-007 n'est pas résolu par ce garde supplémentaire.
+
+Les tests de non-régression comprennent les quatre types de boutons,
+les UP associés à des DOWN consommés, la molette et les clics en
+application étrangère. Le comportement réel Win32/Unity reste NOT_RUN.
+
+La prochaine étape structurelle de MIRR-007 requiert toujours Graphify
+sur le SHA exact, Doctor puis tests et recette Windows 2/4/6/8 pour
+garantir l'absence de clics différés dangereux ou doublonnés.
