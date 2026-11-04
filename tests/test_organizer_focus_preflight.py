@@ -71,6 +71,31 @@ class OrganizerFocusPreflightTests(unittest.TestCase):
         self.assertEqual(current.call_count, 2)
         settle.assert_called_once_with(35, None)
 
+    def test_excessive_finite_focus_delays_refuse_before_native_checks(self) -> None:
+        for field in ("settle", "retry"):
+            for value in (1001, 10**9):
+                with self.subTest(field=field, value=value):
+                    modules = _win32_activation_modules()
+                    logger = Mock()
+                    settle, retry = (value, 18) if field == "settle" else (24, value)
+                    with (
+                        patch.object(focus.os, "name", "nt"),
+                        patch.dict("sys.modules", modules),
+                        patch.object(focus, "is_unity_window", return_value=True),
+                        patch.object(focus, "foreground_window") as current,
+                        patch.object(focus, "wait_ms") as wait,
+                    ):
+                        self.assertFalse(focus.activate_window(
+                            101, settle, 8, retry, logger, "Miroir",
+                        ))
+                    modules["win32gui"].IsWindow.assert_not_called()
+                    current.assert_not_called()
+                    wait.assert_not_called()
+                    logger.warning.assert_called_once_with(
+                        "%s activation refusee: temporisation excessive settle=%s retry=%s.",
+                        "Miroir", settle, retry,
+                    )
+
     def test_corrupt_huge_attempt_count_stays_bounded_to_eight(self) -> None:
         win32gui = SimpleNamespace(
             IsWindow=Mock(return_value=True),
