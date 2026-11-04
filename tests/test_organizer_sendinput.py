@@ -76,6 +76,64 @@ class OrganizerSendInputTests(unittest.TestCase):
             "Clipboard: restauration impossible."
         )
 
+    def test_preparation_failure_restores_original_clipboard_then_retries(self) -> None:
+        clipboard = Mock()
+        clipboard.GetClipboardData.return_value = "user text"
+        clipboard.EnumClipboardFormats.side_effect = (
+            lambda old: 13 if old == 0 else 0
+        )
+        clipboard.SetClipboardText.side_effect = [
+            OSError("first SetClipboardText refused"), None, None, None,
+        ]
+        with (
+            patch.object(input_tools.os, "name", "nt"),
+            patch.dict("sys.modules", {
+                "win32clipboard": clipboard,
+                "win32con": SimpleNamespace(CF_UNICODETEXT=13),
+            }),
+            patch.object(input_tools.time, "sleep"),
+            patch.object(input_tools, "replace_chat_text_with_clipboard",
+                         return_value=True),
+            patch.object(input_tools, "press_key") as press,
+        ):
+            self.assertTrue(input_tools.send_chat_command("/zaap 1,2", Mock()))
+        self.assertEqual(
+            clipboard.SetClipboardText.call_args_list,
+            [
+                call("/zaap 1,2", 13), call("user text", 13),
+                call("/zaap 1,2", 13), call("user text", 13),
+            ],
+        )
+        self.assertEqual(clipboard.OpenClipboard.call_count, 3)
+        self.assertEqual(clipboard.CloseClipboard.call_count, 3)
+        press.assert_called_once_with("ENTER")
+
+    def test_preparation_and_recovery_failure_stops_without_retry(self) -> None:
+        clipboard = Mock()
+        clipboard.GetClipboardData.return_value = "user text"
+        clipboard.EnumClipboardFormats.side_effect = [13, 0]
+        clipboard.SetClipboardText.side_effect = [
+            OSError("first SetClipboardText refused"),
+            OSError("restoration refused"),
+        ]
+        logger = Mock()
+        with (
+            patch.object(input_tools.os, "name", "nt"),
+            patch.dict("sys.modules", {
+                "win32clipboard": clipboard,
+                "win32con": SimpleNamespace(CF_UNICODETEXT=13),
+            }),
+            patch.object(input_tools.time, "sleep"),
+            patch.object(input_tools, "press_key") as press,
+        ):
+            with self.assertRaisesRegex(OSError, "Clipboard non restaure"):
+                input_tools.send_chat_command("/zaap 1,2", logger)
+        self.assertEqual(clipboard.SetClipboardText.call_count, 2)
+        self.assertEqual(clipboard.OpenClipboard.call_count, 1)
+        clipboard.CloseClipboard.assert_called_once()
+        logger.exception.assert_called_once()
+        press.assert_not_called()
+
     def test_chat_rejects_non_text_clipboard_without_erasing_user_data(self) -> None:
         clipboard = Mock()
         clipboard.GetClipboardData.side_effect = TypeError("CF_UNICODETEXT missing")
