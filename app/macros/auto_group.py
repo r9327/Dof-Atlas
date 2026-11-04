@@ -92,7 +92,13 @@ class AutoGroupMacro:
                     chat_open_ms=timings.auto_group_chat_open_ms,
                     key_step_ms=timings.auto_group_key_step_ms,
                     paste_settle_ms=timings.auto_group_paste_settle_ms,
-                    should_stop=self.runtime.macro_lock.should_stop,
+                    # send_chat_command rechecks this predicate between
+                    # every chat key. Stop if focus moves mid-paste instead
+                    # of typing Ctrl+A/Delete/Enter into another program.
+                    should_stop=lambda: (
+                        self.runtime.macro_lock.should_stop()
+                        or foreground_window() != int(sender.handle)
+                    ),
                 ):
                     if self.runtime.macro_lock.should_stop():
                         return
