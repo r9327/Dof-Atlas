@@ -743,3 +743,28 @@ les gestes physiques arrivant pendant un worker occupé peuvent encore
 être consommés sans diffusion. Aucune nouvelle politique de replay ou
 modification structurelle de hook sans Graphify exact-SHA + Doctor.
 **PR Draft, certification manquante, verdict provisoire CHANGES REQUIRED.**
+
+### Complément P0 — favori/roster invalidés durant la restitution du clic
+
+En plus du contrôle de focus, le nettoyage du Switch clic Miroir
+revalide maintenant explicitement la sélection Organizer (mode, favori,
+roster) **après la dernière émission**, avant de replacer le curseur, et
+**une seconde fois avant de réactiver le favori**. Une sélection modifiée
+par l'utilisateur ou un rafraîchissement de l'Organizer ne peut donc plus
+provoquer de restauration sur un favori différent de celui du geste initial.
+La vérification utilise seulement les données de sessions déjà chargées,
+sans scan de tous les processus Windows. Une lecture du roster devenue
+impossible est traitée comme un refus de restauration, tout en libérant
+normalement le blocage de souris.
+
+Tests supplémentaires sur **2/4/6/8 clients** : changement du roster par
+HWND remplacé, modification du favori ou bascule du mode immédiatement
+après le dernier envoi ; modification du favori pendant le retour du curseur.
+Les actions déjà émises ne sont pas inventées comme « non envoyées » :
+le statut de diffusion peut rester complet même lorsque la restitution
+du focus est volontairement abandonnée.
+
+**État de preuve :** audit statique uniquement, tests écrits mais NOT_RUN,
+Doctor / Graphify exact-SHA / Windows DOFUS non exécutés. MIRR-007 (gestes
+avalés sous charge) demeure ouvert : cette mesure n'implémente ni file de
+replay ni repli non destructif. PR Draft, non certifiée.
