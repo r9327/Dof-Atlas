@@ -88,6 +88,13 @@ class AutoGroupMacro:
                 ):
                     if self.runtime.macro_lock.should_stop():
                         return
+                    if foreground_window() != int(sender.handle):
+                        focus_lost = True
+                        self.runtime.logger.warning(
+                            "Auto groupe interrompu: focus perdu après échec du chat hwnd=%s",
+                            sender.handle,
+                        )
+                        return
                     continue
                 # The command returned successful: retain this emission
                 # in telemetry even when Stop arrives immediately afterward.
