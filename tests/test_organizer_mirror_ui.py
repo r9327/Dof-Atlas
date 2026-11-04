@@ -366,6 +366,58 @@ class OrganizerMirrorIntegrationTests(unittest.TestCase):
                 foreground.assert_not_called()
         runtime.switch_click.run_async.assert_not_called()
 
+    def test_healthy_favorite_and_roster_still_dispatch_2_to_8_clients(self):
+        for count in (2, 4, 6, 8):
+            with self.subTest(count=count):
+                slots = tuple(range(101, 101 + count))
+                source = slots[-1]
+                ordered = (source, *slots[:-1])
+                runtime = self._runtime(primary=source, handles=slots)
+                runtime._running = True
+                runtime._admin_ok = True
+                runtime._mirror_gesture_targets.side_effect = (
+                    lambda: AtlasRuntime._mirror_gesture_targets(runtime)
+                )
+                runtime.mirror_input.run_key.return_value = True
+                runtime.mirror_input.run_wheel.return_value = True
+                with (
+                    patch("app.windows.unity_windows.foreground_window",
+                          return_value=source),
+                    patch("app.windows.unity_windows.find_known_client_from_point",
+                          return_value=source),
+                    patch("app.windows.unity_windows.is_unity_window",
+                          return_value=True),
+                    patch("app.macros.mirror_plan.is_dofus_unity_process",
+                          return_value=True),
+                    patch("app.windows.unity_windows.screen_to_client",
+                          return_value=(10, 20)),
+                    patch("app.windows.unity_windows.client_point_ratio",
+                          return_value=(0.25, 0.75)),
+                ):
+                    self.assertTrue(
+                        AtlasRuntime._handle_mirror_key(runtime, 65, True)
+                    )
+                    self.assertTrue(
+                        AtlasRuntime._handle_mirror_wheel(
+                            runtime, -120, 20, 25, False,
+                        )
+                    )
+                    self.assertTrue(
+                        AtlasRuntime._handle_mirror_click(
+                            runtime, "Left", 20, 25,
+                        )
+                    )
+                runtime.mirror_input.run_key.assert_called_once_with(
+                    65, source, ordered,
+                )
+                runtime.mirror_input.run_wheel.assert_called_once_with(
+                    -120, False, 0.25, 0.75, source, ordered,
+                )
+                runtime.switch_click.run_async.assert_called_once_with(
+                    "Left", 20, 25, 1, "Miroir",
+                    exact_source_handle=source, mirror_target_handles=ordered,
+                )
+
     def test_foreign_input_never_scans_unrelated_unity_sessions(self):
         for count in (2, 4, 6, 8):
             with self.subTest(count=count):
