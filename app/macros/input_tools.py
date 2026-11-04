@@ -211,7 +211,18 @@ def clipboard_text(text: str, logger: Logger):
                 try:
                     previous = win32clipboard.GetClipboardData(win32con.CF_UNICODETEXT)
                     captured = True
-                except Exception:
+                except Exception as exc:
+                    # Never destroy a user's image, files, or other clipboard
+                    # formats that cannot be restored by this text-only path.
+                    # An actually empty clipboard is safe to temporarily use.
+                    try:
+                        empty = win32clipboard.EnumClipboardFormats(0) == 0
+                    except Exception:
+                        empty = False
+                    if not empty:
+                        raise OSError(
+                            "Clipboard non texte ou illisible: commande annulee"
+                        ) from exc
                     previous = ""
                     captured = False
                 win32clipboard.EmptyClipboard()
