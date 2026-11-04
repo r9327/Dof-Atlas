@@ -184,7 +184,7 @@ class OrganizerMirrorIntegrationTests(unittest.TestCase):
                 timings.switch_client_settle_ms = 0
                 runtime.macro_lock.should_stop.return_value = False
                 runtime.macro_lock.wait.return_value = False
-                focus_sequence = [h for h in handles for _ in range(2)] + [handles[-1]]
+                focus_sequence = [h for h in handles for _ in range(2)] + [handles[-1]] * 2
                 with (
                     patch("app.macros.mirror_input.is_dofus_unity_process",
                           return_value=True),
@@ -2028,7 +2028,7 @@ class OrganizerMirrorIntegrationTests(unittest.TestCase):
             patch("app.macros.mirror_input.activate_window",
                   return_value=True),
             patch("app.macros.mirror_input.foreground_window",
-                  side_effect=[101, 101, 202, 202, 202]),
+                  side_effect=[101, 101, 202, 202, 202, 202]),
             patch("app.macros.mirror_input.client_point_from_ratio",
                   return_value=(8, 9)),
             patch("app.macros.mirror_input.client_to_screen",
