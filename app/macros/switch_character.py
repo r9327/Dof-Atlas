@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
+from app.macros.mirror_plan import is_dofus_unity_process
 from app.windows.focus import activate_window
 from app.windows.unity_windows import foreground_window, is_unity_window
 
@@ -30,9 +31,9 @@ class SwitchCharacterMacro:
             return False
 
         def run() -> None:
-            if not is_unity_window(target.handle):
+            if not is_unity_window(target.handle) or not is_dofus_unity_process(target.handle):
                 self.runtime.logger.info(
-                    "Activation client ignoree: cible non Unity label=%s hwnd=%s",
+                    "Activation client ignoree: cible non DOFUS Unity label=%s hwnd=%s",
                     target.display_name,
                     target.handle,
                 )
@@ -50,9 +51,10 @@ class SwitchCharacterMacro:
                 # the Win32 request and the actual game input.
                 if self.runtime.macro_lock.should_stop():
                     return
-                if foreground_window() != int(target.handle):
+                if (not is_dofus_unity_process(target.handle)
+                        or foreground_window() != int(target.handle)):
                     self.runtime.logger.warning(
-                        "Activation client ignoree: focus non confirme hwnd=%s",
+                        "Activation client ignoree: identite ou focus non confirme hwnd=%s",
                         target.handle,
                     )
                     return
@@ -149,7 +151,7 @@ class SwitchCharacterMacro:
             return
 
         preferred = self.preferred_client()
-        if preferred is None:
+        if preferred is None or not is_dofus_unity_process(preferred.handle):
             self.runtime.logger.info(
                 "%s retour ignore: favori/premier indisponible.",
                 action_label,
@@ -168,9 +170,10 @@ class SwitchCharacterMacro:
         ):
             if self.runtime.macro_lock.should_stop():
                 return
-            if foreground_window() != int(preferred.handle):
+            if (not is_dofus_unity_process(preferred.handle)
+                or foreground_window() != int(preferred.handle)):
                 self.runtime.logger.warning(
-                    "%s retour non confirmé: focus différent hwnd=%s",
+                    "%s retour non confirmé: identite ou focus différent hwnd=%s",
                     action_label, preferred.handle,
                 )
                 return
