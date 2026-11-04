@@ -292,6 +292,31 @@ class OrganizerFocusPreflightTests(unittest.TestCase):
             modules["win32process"].AttachThreadInput.call_count, 2,
         )
 
+    def test_already_foreground_two_four_six_eight_clients_need_no_native_retry(self) -> None:
+        for count in (2, 4, 6, 8):
+            with self.subTest(clients=count):
+                modules = _win32_activation_modules()
+                with (
+                    patch.object(focus.os, "name", "nt"),
+                    patch.dict("sys.modules", modules),
+                    patch.object(focus, "is_unity_window", return_value=True),
+                    patch.object(focus, "foreground_window") as foreground,
+                    patch.object(focus, "wait_ms", return_value=False) as wait,
+                ):
+                    for hwnd in range(101, 101 + count):
+                        foreground.return_value = hwnd
+                        self.assertTrue(focus.activate_window(
+                            hwnd, 12, 8, 18, Mock(), "Miroir",
+                        ))
+                self.assertEqual(foreground.call_count, 2 * count)
+                self.assertEqual(wait.call_count, count)
+                modules["win32gui"].IsWindow.assert_has_calls(
+                    [unittest.mock.call(hwnd) for hwnd in range(101, 101 + count)]
+                )
+                self.assertEqual(
+                    modules["win32gui"].IsWindow.call_count, count,
+                )
+
     def test_already_foreground_unstolen_focus_remains_successful(self) -> None:
         with (
             patch.object(focus.os, "name", "nt"),
