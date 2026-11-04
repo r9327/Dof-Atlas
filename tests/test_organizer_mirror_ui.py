@@ -112,6 +112,44 @@ class OrganizerMirrorIntegrationTests(unittest.TestCase):
                 (202, (202, 101, 303)),
             )
 
+    def test_mirror_snapshot_never_drops_foreign_client_for_2_to_8(self):
+        for count in (2, 4, 6, 8):
+            with self.subTest(count=count):
+                slots = tuple(range(101, 101 + count))
+                foreign = slots[-1]
+                runtime = self._runtime(primary=slots[0], handles=slots)
+                runtime._running = True
+                runtime._admin_ok = True
+                with (
+                    patch("app.windows.unity_windows.is_unity_window",
+                          return_value=True),
+                    patch("app.macros.mirror_plan.is_dofus_unity_process",
+                          side_effect=lambda hwnd: hwnd != foreign),
+                ):
+                    self.assertIsNone(
+                        AtlasRuntime._mirror_gesture_targets(runtime)
+                    )
+
+    def test_mirror_rejects_duplicate_or_non_integral_roster_before_replay(self):
+        for handles in (
+            (101, 202, 202), (101, 202.0, 303),
+            (101, None, 303), (101, 2**64, 303),
+            tuple(range(101, 110)),
+        ):
+            with self.subTest(handles=handles):
+                runtime = self._runtime(primary=101, handles=handles)
+                runtime._running = True
+                runtime._admin_ok = True
+                with (
+                    patch("app.windows.unity_windows.is_unity_window",
+                          return_value=True),
+                    patch("app.macros.mirror_plan.is_dofus_unity_process",
+                          return_value=True),
+                ):
+                    self.assertIsNone(
+                        AtlasRuntime._mirror_gesture_targets(runtime)
+                    )
+
     def test_mirror_worker_accepts_nonfirst_favorite_and_rejects_roster_drift(self):
         from app.macros.mirror_input import MirrorInputMacro
 
