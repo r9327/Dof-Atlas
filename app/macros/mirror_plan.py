@@ -64,14 +64,18 @@ def is_dofus_unity_executable(image_path: str) -> bool:
 
 def is_dofus_unity_process(hwnd: int) -> bool:
     """Fail closed if the HWND process identity is not independently readable."""
-    if type(hwnd) is not int or hwnd <= 0:
+    if type(hwnd) is not int or not 0 < hwnd <= (2**64 - 1):
         return False
     from app.windows_embed import window_class, window_process_id, process_image_path
     try:
         if window_class(hwnd) != "UnityWndClass":
             return False
         pid = window_process_id(hwnd)
-        return pid > 0 and is_dofus_unity_executable(process_image_path(pid))
+        # A Win32 PID is a positive DWORD. Reject bool, overflow and other
+        # malformed identities BEFORE querying a possibly unrelated process.
+        if type(pid) is not int or not 0 < pid <= (2**32 - 1):
+            return False
+        return is_dofus_unity_executable(process_image_path(pid))
     except (OSError, ValueError, TypeError, OverflowError):
         return False
 
