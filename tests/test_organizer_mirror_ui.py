@@ -955,6 +955,83 @@ class OrganizerMirrorIntegrationTests(unittest.TestCase):
                     f"Miroir : {count}/{count} fenêtres."
                 )
 
+    def test_mirror_click_aborts_during_hover_when_roster_becomes_stale(self):
+        from app.macros.switch_click import SwitchClickMacro, SwitchClickContext
+
+        for count in (2, 4, 6, 8):
+            for change in ("roster", "favorite", "mode", "stop"):
+                with self.subTest(clients=count, change=change):
+                    handles = tuple(range(101, 101 + count))
+                    runtime = Mock()
+                    runtime.settings.primary_handle = handles[0]
+                    runtime.settings.macro_mode = "mirror"
+                    runtime.settings.clients = [
+                        SimpleNamespace(handle=h) for h in handles
+                    ]
+                    runtime.settings.timings = SimpleNamespace(
+                        switch_background_pre_click_ms=0,
+                        activate_attempts=1, activate_retry_ms=0,
+                        switch_click_down_ms=35, input_double_gap_ms=5,
+                        switch_background_post_up_ms=0,
+                        switch_client_settle_ms=0,
+                    )
+                    runtime.switch_character.ordered_clients_from_source.return_value = [
+                        SimpleNamespace(handle=h, display_name=str(h))
+                        for h in handles
+                    ]
+                    stopped = [False]
+                    runtime.macro_lock.should_stop.side_effect = lambda: stopped[0]
+                    runtime.macro_lock.wait.return_value = False
+                    macro = SwitchClickMacro(runtime)
+                    context = SwitchClickContext(
+                        handles[0], 20, 30, 0.5, 0.5, "cursor",
+                    )
+
+                    def sender(*_args, **kwargs):
+                        self.assertFalse(kwargs["should_stop"]())
+                        if change == "roster":
+                            runtime.settings.clients = list(reversed(runtime.settings.clients))
+                        elif change == "favorite":
+                            runtime.settings.primary_handle = handles[-1]
+                        elif change == "mode":
+                            runtime.settings.macro_mode = "macro"
+                        else:
+                            stopped[0] = True
+                        self.assertTrue(kwargs["should_stop"]())
+                        return False
+
+                    with (
+                        patch.object(macro, "_validated_context", return_value=context),
+                        patch.object(macro, "_target_point", return_value=(20, 30)),
+                        patch("app.macros.switch_click.current_cursor_pos",
+                              return_value=(12, 14)),
+                        patch("app.macros.switch_click.set_cursor_pos") as move,
+                        patch("app.macros.switch_click.is_unity_window",
+                              return_value=True),
+                        patch("app.macros.switch_click.is_dofus_unity_process",
+                              return_value=True),
+                        patch("app.macros.switch_click.activate_window",
+                              return_value=True) as activate,
+                        patch("app.macros.switch_click.foreground_window",
+                              return_value=handles[0]),
+                        patch("app.macros.switch_click.send_client_click",
+                              side_effect=sender) as send,
+                    ):
+                        macro._run(
+                            "Left", 1, "Miroir", context,
+                            exact_source_handle=handles[0],
+                            mirror_target_handles=handles,
+                        )
+                    activate.assert_called_once()
+                    send.assert_called_once()
+                    move.assert_not_called()
+                    runtime.switch_character.restore_preferred_client.assert_not_called()
+                    runtime.input_state.end_mouse_block.assert_called_once()
+                    state = "interrompu" if change == "stop" else "incomplet"
+                    runtime._emit_status.assert_called_once_with(
+                        f"Miroir {state} : 0/{count} fenêtres."
+                    )
+
     def test_mirror_click_roster_reordered_during_first_send_stops_fanout(self):
         from app.macros.switch_click import SwitchClickMacro, SwitchClickContext
 
