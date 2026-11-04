@@ -135,7 +135,7 @@ class OrganizerMacroReliabilityTests(unittest.TestCase):
                 )
                 runtime.logger.info.assert_any_call(
                     "Auto groupe %s: envoyes=%s/%s candidats=%s sender=%s",
-                    "interrompu", count - 1, count - 1, count - 1, 101,
+                    "termine", count - 1, count - 1, count - 1, 101,
                 )
 
     def test_auto_group_cleanup_failure_to_read_foreground_never_refocuses(self) -> None:
@@ -431,7 +431,7 @@ class OrganizerMacroReliabilityTests(unittest.TestCase):
                     "Auto zaap: retour favori ignoré, focus utilisateur changé."
                 )
                 runtime.logger.info.assert_any_call(
-                    "Auto zaap %s: envoyes=%s/%s", "interrompu", count, count,
+                    "Auto zaap %s: envoyes=%s/%s", "termine", count, count,
                 )
 
     def test_zaap_cleanup_foreground_error_never_forces_favorite(self) -> None:
@@ -1442,7 +1442,7 @@ class OrganizerMacroReliabilityTests(unittest.TestCase):
                 )
                 runtime.logger.info.assert_any_call(
                     "Switch deplacement %s: envoyes=%s/%s",
-                    "interrompu", count, count,
+                    "termine", count, count,
                 )
 
     def test_direction_cleanup_focus_read_error_never_restores(self) -> None:
@@ -1474,7 +1474,7 @@ class OrganizerMacroReliabilityTests(unittest.TestCase):
             "Switch deplacement: focus illisible avant retour au favori."
         )
         runtime.logger.info.assert_any_call(
-            "Switch deplacement %s: envoyes=%s/%s", "interrompu", 1, 1,
+            "Switch deplacement %s: envoyes=%s/%s", "termine", 1, 1,
         )
 
     def test_direction_does_not_restore_changed_favorite_after_keys(self) -> None:
