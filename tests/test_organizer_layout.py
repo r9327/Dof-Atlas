@@ -51,6 +51,55 @@ class OrganizerLayoutTests(unittest.TestCase):
                 page.deleteLater()
                 self.app.processEvents()
 
+    def test_organizer_autogroup_reports_accepted_rejected_and_legacy_launch(self):
+        from unittest.mock import Mock
+        from app.pages.organizer.character_sessions import CharacterSessionsMixin
+
+        for accepted in (True, False, None):
+            with self.subTest(accepted=accepted):
+                page = Mock()
+                page.sessions = [
+                    {"nom": "Leader", "hwnd": 101, "pid": 1001},
+                    {"nom": "Friend", "hwnd": 202, "pid": 1002},
+                ]
+                page.launch_auto_group_callback.return_value = accepted
+                CharacterSessionsMixin.launch_auto_group(page)
+                page.export_client_index.assert_called_once()
+                page.launch_auto_group_callback.assert_called_once()
+                message = page.status_callback.call_args.args[0]
+                if accepted is True:
+                    self.assertIn("en cours", message)
+                    self.assertNotIn("invitation(s)", message)
+                elif accepted is False:
+                    self.assertIn("non lancé", message)
+                else:
+                    self.assertIn("non confirmé", message)
+
+    def test_organizer_autogroup_callback_exception_fails_safely_without_ui_crash(self):
+        from unittest.mock import Mock
+        from app.pages.organizer.character_sessions import CharacterSessionsMixin
+
+        page = Mock()
+        page.sessions = [
+            {"nom": "Leader", "hwnd": 101, "pid": 1001},
+            {"nom": "Friend", "hwnd": 202, "pid": 1002},
+        ]
+        page.launch_auto_group_callback.side_effect = RuntimeError("runtime failed")
+        with self.assertLogs("app.pages.organizer.character_sessions", level="ERROR"):
+            CharacterSessionsMixin.launch_auto_group(page)
+        self.assertIn("non lancé", page.status_callback.call_args.args[0])
+
+    def test_organizer_autogroup_does_not_claim_success_without_any_sessions(self):
+        from unittest.mock import Mock
+        from app.pages.organizer.character_sessions import CharacterSessionsMixin
+
+        page = Mock()
+        page.sessions = []
+        CharacterSessionsMixin.launch_auto_group(page)
+        page.launch_auto_group_callback.assert_not_called()
+        page.export_client_index.assert_not_called()
+        self.assertIn("aucun personnage", page.status_callback.call_args.args[0])
+
     def test_character_slots_panel_calculates_height_from_grid_geometry(self):
         refresh = QFrame()
         refresh.setFixedSize(32, organizer.BUTTON_HEIGHT)

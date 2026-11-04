@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import logging
 import os
 from datetime import datetime
 from typing import Any
@@ -356,8 +357,11 @@ class CharacterSessionsMixin:
         try:
             accepted = callback(invite_names)
         except Exception:
+            logging.getLogger(__name__).exception(
+                "Auto-groupe : échec du callback de lancement."
+            )
             self.status_callback("Auto-groupe non lancé : erreur du runtime.")
-            raise
+            return
         if accepted is False:
             self.status_callback(
                 "Auto-groupe non lancé : une macro est déjà active ou le démarrage a échoué."

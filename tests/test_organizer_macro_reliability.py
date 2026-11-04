@@ -156,6 +156,129 @@ class OrganizerMacroReliabilityTests(unittest.TestCase):
             self.assertIsNone(SwitchCharacterMacro(runtime).logical_active_client())
         self.assertEqual(runtime.active_client_handle, 303)
 
+    def test_auto_group_rejects_empty_queued_requests_before_spawning_worker(self) -> None:
+        runtime = _runtime()
+        macro = AutoGroupMacro(runtime)
+        self.assertFalse(macro.run_async([]))
+        self.assertFalse(macro.run_async([None, "", 5]))
+        runtime._spawn_macro.assert_not_called()
+
+    def test_auto_group_preplans_2_4_6_8_before_focus_and_skips_final_gap(self) -> None:
+        for count in (2, 4, 6, 8):
+            with self.subTest(count=count):
+                runtime = _runtime()
+                runtime.settings.timings.auto_group_invite_gap_ms = 250
+                runtime.macro_lock.wait.return_value = False
+                runtime.switch_character.logical_active_client.return_value = (
+                    SimpleNamespace(handle=101, display_name="Leader")
+                )
+                entries = [
+                    {"name": "Leader", "handle": 101},
+                    *({"name": f"Friend{i}", "handle": i + 101}
+                      for i in range(1, count)),
+                    {"name": "friend1", "handle": 202},
+                    {"name": "", "handle": 999},
+                ]
+                observed = []
+                def activate(*_args, **_kwargs):
+                    observed.append("focus")
+                    return True
+                def send(text, *_args, **_kwargs):
+                    observed.append(text)
+                    return True
+                with (
+                    patch("app.macros.auto_group.is_unity_window", return_value=True),
+                    patch("app.macros.auto_group.is_dofus_unity_process", return_value=True),
+                    patch("app.macros.auto_group.activate_window",
+                          side_effect=activate),
+                    patch("app.macros.auto_group.foreground_window", return_value=101),
+                    patch("app.macros.auto_group.send_chat_command", side_effect=send),
+                ):
+                    macro = AutoGroupMacro(runtime)
+                    macro._run(entries)
+                self.assertEqual(observed, [
+                    "focus", *(f"/invite Friend{i}" for i in range(1, count))
+                ])
+                self.assertEqual(runtime.macro_lock.wait.call_count, max(0, count - 2))
+                runtime.logger.info.assert_any_call(
+                    "Auto groupe préparé: invitations=%s doublons=%s lanceur=%s vides=%s",
+                    count - 1, 1, 1, 1,
+                )
+                runtime.logger.info.assert_any_call(
+                    "Auto groupe %s: envoyes=%s/%s candidats=%s sender=%s",
+                    "termine", count - 1, count - 1, len(entries), 101,
+                )
+
+    def test_auto_group_one_client_does_not_activate_or_restore_window(self) -> None:
+        runtime = _runtime()
+        runtime.switch_character.logical_active_client.return_value = (
+            SimpleNamespace(handle=101, display_name="Leader")
+        )
+        with (
+            patch("app.macros.auto_group.is_unity_window", return_value=True),
+            patch("app.macros.auto_group.is_dofus_unity_process", return_value=True),
+            patch("app.macros.auto_group.activate_window") as activate,
+            patch("app.macros.auto_group.send_chat_command") as send,
+        ):
+            AutoGroupMacro(runtime)._run([{"name": "Leader", "handle": 101}])
+        activate.assert_not_called()
+        send.assert_not_called()
+        runtime.switch_character.restore_preferred_client.assert_not_called()
+        runtime.logger.info.assert_any_call(
+            "Auto groupe %s: envoyes=%s/%s candidats=%s sender=%s",
+            "ignore", 0, 0, 1, 101,
+        )
+
+    def test_auto_group_stop_prevents_any_focus_or_chat_before_preflight(self) -> None:
+        runtime = _runtime()
+        runtime.macro_lock.should_stop.return_value = True
+        with (
+            patch("app.macros.auto_group.is_unity_window") as unity,
+            patch("app.macros.auto_group.activate_window") as activate,
+            patch("app.macros.auto_group.send_chat_command") as send,
+        ):
+            AutoGroupMacro(runtime)._run([{"name": "Friend", "handle": 202}])
+        unity.assert_not_called()
+        activate.assert_not_called()
+        send.assert_not_called()
+
+    def test_auto_group_failed_last_invitation_never_waits_after_failure(self) -> None:
+        runtime = _runtime()
+        runtime.settings.timings.auto_group_invite_gap_ms = 200
+        runtime.macro_lock.wait.return_value = False
+        runtime.switch_character.logical_active_client.return_value = (
+            SimpleNamespace(handle=101, display_name="Leader")
+        )
+        with (
+            patch("app.macros.auto_group.is_unity_window", return_value=True),
+            patch("app.macros.auto_group.is_dofus_unity_process", return_value=True),
+            patch("app.macros.auto_group.activate_window", return_value=True),
+            patch("app.macros.auto_group.foreground_window", return_value=101),
+            patch("app.macros.auto_group.send_chat_command",
+                  side_effect=[True, False]) as send,
+        ):
+            AutoGroupMacro(runtime)._run([
+                {"name": "Friend1", "handle": 202},
+                {"name": "Friend2", "handle": 303},
+            ])
+        self.assertEqual(send.call_count, 2)
+        runtime.macro_lock.wait.assert_called_once_with(200)
+        runtime.logger.info.assert_any_call(
+            "Auto groupe %s: envoyes=%s/%s candidats=%s sender=%s",
+            "partiel", 1, 2, 2, 101,
+        )
+
+    def test_auto_group_runtime_propagates_spawn_refusal(self) -> None:
+        from app.core.runtime_state import AtlasRuntime
+
+        runtime = _runtime()
+        runtime.auto_group.run_async.return_value = False
+        with patch("app.core.runtime_state.load_settings", return_value=runtime.settings):
+            self.assertFalse(AtlasRuntime.launch_auto_group(
+                runtime, [{"name": "Friend", "handle": 202}]
+            ))
+        runtime.auto_group.run_async.assert_called_once()
+
     def test_auto_group_overflowing_session_handles_do_not_abort_other_invites(self) -> None:
         runtime = _runtime()
         runtime.settings.timings.auto_group_invite_gap_ms = 0
