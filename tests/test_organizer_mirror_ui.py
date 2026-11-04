@@ -494,6 +494,8 @@ class OrganizerMirrorIntegrationTests(unittest.TestCase):
         )
 
     def test_mirror_click_rejects_profile_reload_between_snapshot_and_dispatch(self):
+        from app.macros.mirror_plan import mirror_delivery_targets as original_targets
+
         for count in (2, 4, 6, 8):
             with self.subTest(clients=count):
                 handles = tuple(range(101, 101 + count))
@@ -501,8 +503,7 @@ class OrganizerMirrorIntegrationTests(unittest.TestCase):
                 old = runtime.settings
 
                 def reload_after_targets(*args, **kwargs):
-                    from app.macros.mirror_plan import mirror_delivery_targets
-                    destinations = mirror_delivery_targets(*args, **kwargs)
+                    destinations = original_targets(*args, **kwargs)
                     runtime.settings = SimpleNamespace(
                         macro_mode=old.macro_mode,
                         primary_handle=old.primary_handle,
