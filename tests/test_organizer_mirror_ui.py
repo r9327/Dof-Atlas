@@ -822,6 +822,121 @@ class OrganizerMirrorIntegrationTests(unittest.TestCase):
         runtime.switch_character.ordered_clients_from_source.assert_not_called()
 
 
+    def test_mirror_click_roster_reordered_during_first_send_stops_fanout(self):
+        from app.macros.switch_click import SwitchClickMacro, SwitchClickContext
+
+        runtime = Mock()
+        runtime.settings.primary_handle = 101
+        runtime.settings.macro_mode = "mirror"
+        runtime.settings.clients = [
+            SimpleNamespace(handle=h) for h in (101, 202, 303)
+        ]
+        runtime.settings.timings = SimpleNamespace(
+            switch_background_pre_click_ms=0, activate_attempts=1,
+            activate_retry_ms=0, switch_click_down_ms=35,
+            input_double_gap_ms=5, switch_background_post_up_ms=0,
+            switch_client_settle_ms=0,
+        )
+        runtime.switch_character.ordered_clients_from_source.return_value = [
+            SimpleNamespace(handle=h, display_name=str(h))
+            for h in (101, 202, 303)
+        ]
+        runtime.macro_lock.should_stop.return_value = False
+        context = SwitchClickContext(101, 20, 30, 0.5, 0.5, "cursor")
+        macro = SwitchClickMacro(runtime)
+
+        def send_then_reorder(*_args, **_kwargs):
+            runtime.settings.clients = [
+                SimpleNamespace(handle=h) for h in (101, 303, 202)
+            ]
+            return True
+
+        with (
+            patch.object(macro, "_validated_context", return_value=context),
+            patch.object(macro, "_target_point", return_value=(20, 30)),
+            patch("app.macros.switch_click.current_cursor_pos",
+                  return_value=(12, 14)),
+            patch("app.macros.switch_click.set_cursor_pos") as move,
+            patch("app.macros.switch_click.is_unity_window", return_value=True),
+            patch("app.macros.switch_click.is_dofus_unity_process", return_value=True),
+            patch("app.macros.switch_click.activate_window",
+                  return_value=True) as activate,
+            patch("app.macros.switch_click.foreground_window", return_value=101),
+            patch("app.macros.switch_click.send_client_click",
+                  side_effect=send_then_reorder) as send,
+        ):
+            macro._run(
+                "Left", 1, "Miroir", context,
+                exact_source_handle=101,
+                mirror_target_handles=(101, 202, 303),
+            )
+        activate.assert_called_once()
+        send.assert_called_once()
+        move.assert_not_called()
+        runtime.switch_character.restore_preferred_client.assert_not_called()
+        runtime._emit_status.assert_called_once_with(
+            "Miroir incomplet : 1/3 fenêtres."
+        )
+        runtime.logger.warning.assert_any_call(
+            "%s interrompu: roster changé avant clic hwnd=%s", "Miroir", 202,
+        )
+
+    def test_mirror_click_favorite_changed_during_activation_sends_nothing(self):
+        from app.macros.switch_click import SwitchClickMacro, SwitchClickContext
+
+        runtime = Mock()
+        runtime.settings.primary_handle = 101
+        runtime.settings.macro_mode = "mirror"
+        runtime.settings.clients = [
+            SimpleNamespace(handle=h) for h in (101, 202)
+        ]
+        runtime.settings.timings = SimpleNamespace(
+            switch_background_pre_click_ms=0, activate_attempts=1,
+            activate_retry_ms=0, switch_click_down_ms=35,
+            input_double_gap_ms=5, switch_background_post_up_ms=0,
+            switch_client_settle_ms=0,
+        )
+        runtime.switch_character.ordered_clients_from_source.return_value = [
+            SimpleNamespace(handle=h, display_name=str(h))
+            for h in (101, 202)
+        ]
+        runtime.macro_lock.should_stop.return_value = False
+        context = SwitchClickContext(101, 20, 30, 0.5, 0.5, "cursor")
+        macro = SwitchClickMacro(runtime)
+
+        def change_favorite(*_args, **_kwargs):
+            runtime.settings.primary_handle = 202
+            return True
+
+        with (
+            patch.object(macro, "_validated_context", return_value=context),
+            patch.object(macro, "_target_point", return_value=(20, 30)),
+            patch("app.macros.switch_click.current_cursor_pos",
+                  return_value=(12, 14)),
+            patch("app.macros.switch_click.set_cursor_pos") as move,
+            patch("app.macros.switch_click.is_unity_window", return_value=True),
+            patch("app.macros.switch_click.is_dofus_unity_process", return_value=True),
+            patch("app.macros.switch_click.activate_window",
+                  side_effect=change_favorite) as activate,
+            patch("app.macros.switch_click.foreground_window", return_value=101),
+            patch("app.macros.switch_click.send_client_click") as send,
+        ):
+            macro._run(
+                "Left", 1, "Miroir", context,
+                exact_source_handle=101,
+                mirror_target_handles=(101, 202),
+            )
+        activate.assert_called_once()
+        send.assert_not_called()
+        move.assert_not_called()
+        runtime.switch_character.restore_preferred_client.assert_not_called()
+        runtime._emit_status.assert_called_once_with(
+            "Miroir incomplet : 0/2 fenêtres."
+        )
+        runtime.logger.warning.assert_any_call(
+            "%s interrompu: roster changé après focus hwnd=%s", "Miroir", 101,
+        )
+
     def test_mirror_sender_aborts_when_clients_change_after_capture(self):
         from app.macros.switch_click import SwitchClickMacro, SwitchClickContext
 
