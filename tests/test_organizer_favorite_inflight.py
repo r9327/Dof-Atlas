@@ -509,5 +509,77 @@ class OrganizerFavoriteInflightTests(unittest.TestCase):
                 )
 
 
+    def test_preferred_restore_rejects_late_mode_or_favorite_change(self):
+        from app.macros.switch_character import SwitchCharacterMacro
+
+        for count in (2, 4, 6, 8):
+            for field, replacement in (("primary_handle", 303), ("macro_mode", "mirror")):
+                with self.subTest(clients=count, field=field):
+                    runtime = _runtime(count)
+                    runtime.settings.primary_handle = 202
+                    runtime.settings.macro_mode = "macro"
+                    runtime.settings.preferred_client.return_value = (
+                        SimpleNamespace(handle=202)
+                    )
+                    runtime.active_client_handle = 101
+                    inspected = [0]
+
+                    def process_probe(_hwnd):
+                        inspected[0] += 1
+                        if inspected[0] == 2:
+                            setattr(runtime.settings, field, replacement)
+                        return True
+
+                    with (
+                        patch("app.macros.switch_character.is_unity_window",
+                              return_value=True),
+                        patch("app.macros.switch_character.is_dofus_unity_process",
+                              side_effect=process_probe),
+                        patch("app.macros.switch_character.activate_window",
+                              return_value=True) as focus,
+                        patch("app.macros.switch_character.foreground_window",
+                              return_value=202),
+                    ):
+                        SwitchCharacterMacro(runtime).restore_preferred_client(
+                            "Auto groupe",
+                        )
+                    focus.assert_called_once()
+                    self.assertEqual(runtime.active_client_handle, 101)
+                    self.assertEqual(inspected[0], 2)
+
+    def test_preferred_restore_rejects_mode_changed_during_activation(self):
+        from app.macros.switch_character import SwitchCharacterMacro
+
+        for count in (2, 4, 6, 8):
+            with self.subTest(clients=count):
+                runtime = _runtime(count)
+                runtime.settings.primary_handle = 202
+                runtime.settings.macro_mode = "macro"
+                runtime.settings.preferred_client.return_value = (
+                    SimpleNamespace(handle=202)
+                )
+                runtime.active_client_handle = 101
+
+                def activate(*_args, **_kwargs):
+                    runtime.settings.macro_mode = "mirror"
+                    return True
+
+                with (
+                    patch("app.macros.switch_character.is_unity_window",
+                          return_value=True),
+                    patch("app.macros.switch_character.is_dofus_unity_process",
+                          return_value=True),
+                    patch("app.macros.switch_character.activate_window",
+                          side_effect=activate) as focus,
+                    patch("app.macros.switch_character.foreground_window") as foreground,
+                ):
+                    SwitchCharacterMacro(runtime).restore_preferred_client(
+                        "Switch deplacement",
+                    )
+                focus.assert_called_once()
+                foreground.assert_not_called()
+                self.assertEqual(runtime.active_client_handle, 101)
+
+
 if __name__ == "__main__":
     unittest.main()
