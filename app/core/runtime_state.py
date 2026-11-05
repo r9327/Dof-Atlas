@@ -794,7 +794,10 @@ class AtlasRuntime:
         if snapshot is None:
             return False
         source, targets = snapshot
-        if foreground != source or self.settings is not settings:
+        # Native process probes can yield while another application takes
+        # focus. Preserve the physical key rather than consuming a stale tap.
+        if (foreground != source or self.settings is not settings
+                or foreground_window() != source):
             return False
         try:
             return bool(self.mirror_input.run_key(
@@ -883,7 +886,10 @@ class AtlasRuntime:
             return False
         point = screen_to_client(source, screen_x, screen_y)
         ratio = client_point_ratio(source, *point) if point is not None else None
-        if ratio is None or self.settings is not settings:
+        # Screen-to-client conversion can also yield to a focus change.
+        # Do not swallow the physical wheel tick for a stale Unity source.
+        if (ratio is None or self.settings is not settings
+                or foreground_window() != source):
             return False
         try:
             return bool(self.mirror_input.run_wheel(
@@ -998,6 +1004,10 @@ class AtlasRuntime:
             source_hwnd,
             *(hwnd for hwnd in destinations if hwnd != source_hwnd),
         )
+        # A DOFUS process probe may yield to another application. Do not
+        # consume the physical DOWN if the favorite lost focus meanwhile.
+        if foreground_window() != source_hwnd:
+            return False
         if busy:
             # The native Win32 roster probe above can yield while a worker
             # completes, Stop is requested or Organizer switches modes.
