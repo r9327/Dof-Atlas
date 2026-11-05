@@ -4697,6 +4697,84 @@ class OrganizerMirrorIntegrationTests(unittest.TestCase):
                 )
 
 
+    def test_switch_click_admission_preserves_native_mouse_on_reload_2_to_8(self):
+        from app.macros.switch_click import SwitchClickMacro, SwitchClickContext
+
+        for count in (2, 4, 6, 8):
+            for label in ("Miroir", "Switch double clic"):
+                with self.subTest(clients=count, action=label):
+                    runtime = self._runtime(
+                        primary=101, handles=tuple(range(101, 101 + count)),
+                    )
+                    old = runtime.settings
+                    queued = []
+                    context = SwitchClickContext(
+                        101, 20, 30, 0.5, 0.5, "cursor",
+                    )
+
+                    def spawn(_action_label, worker):
+                        queued.append(worker)
+                        # A reload with identical visible DOFUS clients is
+                        # still a new Organizer generation.
+                        runtime.settings = SimpleNamespace(
+                            macro_mode=old.macro_mode,
+                            primary_handle=old.primary_handle,
+                            clients=old.clients,
+                            timings=old.timings,
+                        )
+                        return True
+
+                    runtime._spawn_macro.side_effect = spawn
+                    macro = SwitchClickMacro(runtime)
+                    with patch.object(macro, "_capture_trigger_context",
+                                      return_value=context):
+                        self.assertFalse(macro.run_async(
+                            "Left", 20, 30, 1 if label == "Miroir" else 2,
+                            label, exact_source_handle=101 if label == "Miroir" else None,
+                            mirror_target_handles=(
+                                tuple(range(101, 101 + count))
+                                if label == "Miroir" else None
+                            ),
+                        ))
+                    self.assertEqual(len(queued), 1)
+                    with (
+                        patch("app.macros.switch_click.current_cursor_pos") as cursor,
+                        patch("app.macros.switch_click.activate_window") as focus,
+                        patch("app.macros.switch_click.send_client_click") as send,
+                    ):
+                        queued[0]()
+                    cursor.assert_not_called()
+                    focus.assert_not_called()
+                    send.assert_not_called()
+                    runtime.input_state.begin_mouse_block.assert_not_called()
+                    runtime.switch_character.restore_preferred_client.assert_not_called()
+
+    def test_switch_click_healthy_admission_still_accepts_2_to_8(self):
+        from app.macros.switch_click import SwitchClickMacro, SwitchClickContext
+
+        for count in (2, 4, 6, 8):
+            for label in ("Miroir", "Switch double clic"):
+                with self.subTest(clients=count, action=label):
+                    runtime = self._runtime(
+                        primary=101, handles=tuple(range(101, 101 + count)),
+                    )
+                    runtime._spawn_macro.return_value = True
+                    context = SwitchClickContext(
+                        101, 20, 30, 0.5, 0.5, "cursor",
+                    )
+                    macro = SwitchClickMacro(runtime)
+                    with patch.object(macro, "_capture_trigger_context",
+                                      return_value=context):
+                        self.assertTrue(macro.run_async(
+                            "Left", 20, 30, 1 if label == "Miroir" else 2, label,
+                            exact_source_handle=101 if label == "Miroir" else None,
+                            mirror_target_handles=(
+                                tuple(range(101, 101 + count))
+                                if label == "Miroir" else None
+                            ),
+                        ))
+                    runtime._spawn_macro.assert_called_once()
+
     def test_classic_click_frozen_hwnd_rejects_native_mutation_2_to_8(self):
         from app.macros.switch_click import SwitchClickMacro, SwitchClickContext
 

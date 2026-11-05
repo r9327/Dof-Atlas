@@ -141,7 +141,7 @@ class SwitchClickMacro:
         # A low-level hook callback must never reserve the physical mouse
         # while a worker is merely queued. The worker validates the source
         # and exact roster before taking ownership of the pointer.
-        return self.runtime._spawn_macro(
+        started = self.runtime._spawn_macro(
             action_label,
             lambda: self._run(
                 button_name,
@@ -154,6 +154,11 @@ class SwitchClickMacro:
                 settings_at_dispatch=settings_at_dispatch,
             ),
         )
+        # Worker admission can yield to an Organizer reload after the native
+        # mouse hook has validated its context. If that happens, let the
+        # real DOWN/UP pass through: the queued worker will reject its stale
+        # generation before any synthetic click is sent.
+        return bool(started and self.runtime.settings is settings_at_dispatch)
 
     def _run(
         self,
