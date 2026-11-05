@@ -3371,5 +3371,185 @@ class OrganizerMacroReliabilityTests(unittest.TestCase):
                         )
 
 
+    def test_classic_click_binding_reload_preserves_native_down_2_to_8(self):
+        from app.core.runtime_state import AtlasRuntime
+
+        for count in (2, 4, 6, 8):
+            with self.subTest(clients=count):
+                runtime = _runtime()
+                runtime._running = True
+                runtime._admin_ok = True
+                runtime._pending_physical_switch = None
+                old = runtime.settings
+                old.macro_mode = "macro"
+                old.clients = [
+                    SimpleNamespace(handle=101 + i) for i in range(count)
+                ]
+                newer = Mock()
+                newer.macro_mode = "macro"
+                newer.clients = old.clients
+
+                def reload_during_binding():
+                    runtime.settings = newer
+                    return SimpleNamespace(
+                        action_id="switch_click",
+                        payload={"click_count": 2, "label": "Switch double clic"},
+                    )
+
+                runtime.registry.switch_action_for_pressed_keys.side_effect = reload_during_binding
+                with (
+                    patch("app.windows.unity_windows.foreground_window") as focus,
+                    patch("app.windows.unity_windows.find_known_client_from_point") as hit,
+                ):
+                    self.assertFalse(
+                        AtlasRuntime._handle_mouse_click(runtime, "Left", 20, 25),
+                    )
+                focus.assert_not_called()
+                hit.assert_not_called()
+                runtime.switch_click.run_async.assert_not_called()
+                self.assertIsNone(runtime._pending_physical_switch)
+                runtime.logger.debug.assert_any_call(
+                    "Clic switch abandonné: profil Organizer modifié pendant raccourci."
+                )
+
+    def test_classic_click_reload_during_hit_test_prevents_replay_2_to_8(self):
+        from app.core.runtime_state import AtlasRuntime
+
+        for count in (2, 4, 6, 8):
+            with self.subTest(clients=count):
+                runtime = _runtime()
+                runtime._running = True
+                runtime._admin_ok = True
+                runtime._pending_physical_switch = None
+                old = runtime.settings
+                old.macro_mode = "macro"
+                old.clients = [
+                    SimpleNamespace(handle=101 + i) for i in range(count)
+                ]
+                runtime.macro_lock.active_label = ""
+                runtime.registry.switch_action_for_pressed_keys.return_value = (
+                    SimpleNamespace(
+                        action_id="switch_click",
+                        payload={"click_count": 1, "label": "Switch clique"},
+                    )
+                )
+                newer = Mock()
+                newer.macro_mode = "macro"
+                newer.clients = old.clients
+
+                def reload_during_hit(*_args):
+                    runtime.settings = newer
+                    return 101
+
+                with (
+                    patch("app.windows.unity_windows.find_known_client_from_point",
+                          side_effect=reload_during_hit),
+                    patch("app.windows.unity_windows.foreground_window") as focus,
+                    patch("app.macros.mirror_plan.is_dofus_unity_process") as identity,
+                ):
+                    self.assertFalse(
+                        AtlasRuntime._handle_mouse_click(runtime, "Left", 20, 25),
+                    )
+                focus.assert_not_called()
+                identity.assert_not_called()
+                runtime.switch_click.run_async.assert_not_called()
+                self.assertIsNone(runtime._pending_physical_switch)
+
+    def test_busy_classic_click_never_swallows_after_native_profile_reload(self):
+        from app.core.runtime_state import AtlasRuntime
+
+        for count in (2, 4, 6, 8):
+            with self.subTest(clients=count):
+                runtime = _runtime()
+                runtime._running = True
+                runtime._admin_ok = True
+                runtime.settings.macro_mode = "macro"
+                runtime.settings.clients = [
+                    SimpleNamespace(handle=101 + i) for i in range(count)
+                ]
+                runtime.macro_lock.active_label = "Switch clique"
+                runtime.input_state.is_mouse_blocked.return_value = True
+                runtime.registry.switch_action_for_pressed_keys.return_value = (
+                    SimpleNamespace(action_id="switch_click", payload={})
+                )
+                original = runtime.settings
+
+                def reload_during_process(_hwnd):
+                    newer = Mock()
+                    newer.macro_mode = "macro"
+                    newer.clients = original.clients
+                    runtime.settings = newer
+                    return True
+
+                with (
+                    patch("app.windows.unity_windows.foreground_window",
+                          return_value=101),
+                    patch("app.windows.unity_windows.find_known_client_from_point",
+                          return_value=101),
+                    patch("app.macros.mirror_plan.is_dofus_unity_process",
+                          side_effect=reload_during_process),
+                ):
+                    self.assertFalse(
+                        AtlasRuntime._handle_mouse_click(runtime, "Left", 20, 25),
+                    )
+                runtime.switch_click.run_async.assert_not_called()
+
+    def test_classic_double_click_uses_profile_generation_2_to_8(self):
+        from app.core.runtime_state import AtlasRuntime
+
+        for count in (2, 4, 6, 8):
+            with self.subTest(clients=count):
+                runtime = _runtime()
+                runtime._running = True
+                runtime._admin_ok = True
+                runtime.settings.macro_mode = "macro"
+                runtime.settings.clients = [
+                    SimpleNamespace(handle=101 + i) for i in range(count)
+                ]
+                runtime.macro_lock.active_label = ""
+                runtime.registry.switch_action_for_pressed_keys.return_value = (
+                    SimpleNamespace(
+                        action_id="double_click",
+                        payload={"click_count": 2, "label": "Switch double clic"},
+                    )
+                )
+                runtime.switch_click.run_async.return_value = True
+                self.assertTrue(AtlasRuntime._handle_mouse_click(
+                    runtime, "Left", 20, 25,
+                ))
+                runtime.switch_click.run_async.assert_called_once_with(
+                    "Left", 20, 25, 2, "Switch double clic",
+                    expected_profile=runtime.settings,
+                )
+
+    def test_click_capture_profile_change_aborts_before_worker_creation(self):
+        from app.macros.switch_click import SwitchClickContext, SwitchClickMacro
+
+        for count in (2, 4, 6, 8):
+            with self.subTest(clients=count):
+                runtime = _runtime()
+                old = runtime.settings
+                old.clients = [
+                    SimpleNamespace(handle=101 + i) for i in range(count)
+                ]
+                sender = SwitchClickMacro(runtime)
+                context = SwitchClickContext(101, 12, 15, 0.5, 0.5, "cursor")
+
+                def reload_during_capture(*_args):
+                    newer = Mock()
+                    newer.clients = old.clients
+                    runtime.settings = newer
+                    return context
+
+                with patch.object(sender, "_capture_trigger_context",
+                                  side_effect=reload_during_capture):
+                    self.assertFalse(sender.run_async(
+                        "Left", 20, 25, 2, "Switch double clic",
+                        expected_profile=old,
+                    ))
+                runtime._spawn_macro.assert_not_called()
+
+
+
 if __name__ == "__main__":
     unittest.main()
