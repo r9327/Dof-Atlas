@@ -66,6 +66,21 @@ class SwitchClickMacro:
         dispatch_mode = settings_at_dispatch.macro_mode
         dispatch_primary = settings_at_dispatch.primary_handle
 
+        # A native click may be swallowed as soon as this function admits
+        # a worker. Reject a corrupt live Organizer roster BEFORE capture
+        # or admission: the low-level hook can then preserve the real click
+        # instead of losing it when _run later refuses the same roster.
+        if dispatch_roster is not None and (
+                not 1 <= len(dispatch_roster) <= 8
+                or any(kind is not int or not 0 < hwnd <= (2**64 - 1)
+                       for kind, hwnd in dispatch_roster)
+                or len({hwnd for _, hwnd in dispatch_roster}) != len(dispatch_roster)):
+            self.runtime.logger.warning(
+                "%s refusé avant clic physique: roster Organizer invalide.",
+                action_label,
+            )
+            return False
+
         def dispatch_is_current() -> bool:
             if (self.runtime.settings is not settings_at_dispatch
                     or settings_at_dispatch.macro_mode != dispatch_mode

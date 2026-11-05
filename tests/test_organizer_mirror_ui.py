@@ -1765,6 +1765,27 @@ class OrganizerMirrorIntegrationTests(unittest.TestCase):
         activate.assert_not_called()
         send.assert_not_called()
 
+    def test_native_classic_click_refuses_bad_roster_before_worker_admission(self):
+        from app.macros.switch_click import SwitchClickMacro, SwitchClickContext
+
+        for bad_handles in (
+            (), tuple(range(101, 110)), (101, 202, 202),
+            (101, 202.0), (101, True), (101, 2**64),
+        ):
+            with self.subTest(handles=bad_handles):
+                runtime = self._runtime(primary=101, handles=bad_handles)
+                runtime.settings.macro_mode = "macro"
+                context = SwitchClickContext(101, 20, 30, 0.5, 0.5, "cursor")
+                sender = SwitchClickMacro(runtime)
+                with patch.object(sender, "_capture_trigger_context") as capture:
+                    self.assertFalse(sender.run_async(
+                        "Left", 100, 200, 1, "Switch clique",
+                        captured_context=context,
+                    ))
+                capture.assert_not_called()
+                runtime._spawn_macro.assert_not_called()
+                runtime.input_state.begin_mouse_block.assert_not_called()
+
     def test_classic_click_rejects_oversized_or_duplicate_roster_before_mouse_block(self):
         from app.macros.switch_click import SwitchClickMacro, SwitchClickContext
         from app.input.input_state import InputState
