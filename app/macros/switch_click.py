@@ -718,7 +718,11 @@ class SwitchClickMacro:
                         "%s: focus non vérifiable avant restauration.",
                         action_label,
                     )
-            if original_cursor is not None and restore_after_worker:
+            # Cleanup focus probes may yield to the Stop hotkey after the
+            # initial restore decision. Never move the physical pointer on
+            # the basis of an obsolete pre-Stop snapshot.
+            if (original_cursor is not None and restore_after_worker
+                    and not self.runtime.macro_lock.should_stop()):
                 try:
                     set_cursor_pos(*original_cursor)
                     # Cursor restoration may invoke native hooks and change
