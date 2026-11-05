@@ -39,6 +39,7 @@ class ModularDomainRoutingTests(unittest.TestCase):
             "app/windows/clicks.py": {"organizer", "ui", "startup", "identity"},
             "tests/test_organizer_sendinput.py": {"organizer", "ui", "identity"},
             "tests/test_organizer_macro_reliability.py": {"organizer", "ui", "identity"},
+            "tests/test_organizer_favorite_inflight.py": {"organizer", "ui", "identity"},
             "tests/test_organizer_mirror_plan.py": {"organizer", "ui", "identity"},
             "tests/test_organizer_mirror_ui.py": {"organizer", "ui", "identity"},
             "tests/test_organizer_radial_overlay.py": {"organizer", "ui", "identity"},
