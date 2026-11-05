@@ -48,7 +48,10 @@ ne fournit pas à lui seul un interpréteur Python ou un poste Windows.
    `executed_modules`. `FULL_REQUIRED_NOT_DISPATCHED` ne signifie pas PASS.
 4. Pour Graphify, lire `graphify-out/graph.json`, `GRAPH_REPORT.md`,
    `graph.html` et `artifacts/doctor_on_demand/graph_doctor.json`.
-5. Croiser l'artefact avec le HEAD **actuel** de la PR. Si le HEAD a changé,
+5. Vérifier que le job **freshness** de ce même run a réussi : il contrôle
+   le HEAD actuel sur un runner séparé, après le diagnostic, sans exposer
+   de jeton aux scripts du code de PR.
+6. Croiser l'artefact avec le HEAD **actuel** de la PR. Si le HEAD a changé,
    si le SHA du graphe diffère, si la commande échoue, ou si l'artefact manque
    ou a expiré : déclarer `STALE`, `FAIL` ou `UNAVAILABLE`, jamais PASS.
    Ne pas faire de refactor structurel sans Graphify exact-SHA disponible.
