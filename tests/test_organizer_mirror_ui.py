@@ -6215,5 +6215,78 @@ class OrganizerMirrorIntegrationTests(unittest.TestCase):
 
 
 
+    def test_mirror_key_wheel_snapshot_refuses_inplace_changes_after_native_probe(self):
+        from app.core.runtime_state import AtlasRuntime
+
+        for count in (2, 4, 6, 8):
+            slots = tuple(range(101, 101 + count))
+            for source in (slots[0], slots[-1]):
+                for change in ("mode", "favorite", "roster", "source",
+                               "stop", "runtime"):
+                    with self.subTest(count=count, source=source, change=change):
+                        runtime = self._runtime(primary=source, handles=slots)
+                        runtime._running = True
+                        runtime._admin_ok = True
+                        profile = runtime.settings
+
+                        def mutate():
+                            if change == "mode":
+                                profile.macro_mode = "macro"
+                            elif change == "favorite":
+                                profile.primary_handle = next(
+                                    hwnd for hwnd in slots if hwnd != source
+                                )
+                            elif change == "roster":
+                                profile.clients = (
+                                    *profile.clients[:-1],
+                                    SimpleNamespace(handle=999),
+                                )
+                            elif change == "source":
+                                next(c for c in profile.clients
+                                     if c.handle == source).handle = 999
+                            elif change == "stop":
+                                runtime.macro_lock.should_stop.return_value = True
+                            else:
+                                runtime._running = False
+
+                        def identity(_hwnd):
+                            mutate()
+                            return True
+
+                        with (
+                            patch("app.windows.unity_windows.is_unity_window",
+                                  return_value=True),
+                            patch("app.macros.mirror_plan.is_dofus_unity_process",
+                                  side_effect=identity),
+                        ):
+                            self.assertIsNone(
+                                AtlasRuntime._mirror_gesture_targets(runtime)
+                            )
+                        runtime.mirror_input.run_key.assert_not_called()
+                        runtime.mirror_input.run_wheel.assert_not_called()
+
+    def test_mirror_snapshot_favorite_last_still_preserves_slot_order(self):
+        from app.core.runtime_state import AtlasRuntime
+
+        for count in (2, 4, 6, 8):
+            slots = tuple(range(101, 101 + count))
+            for source in (slots[0], slots[-1]):
+                with self.subTest(count=count, source=source):
+                    runtime = self._runtime(primary=source, handles=slots)
+                    runtime._running = True
+                    runtime._admin_ok = True
+                    with (
+                        patch("app.windows.unity_windows.is_unity_window",
+                              return_value=True),
+                        patch("app.macros.mirror_plan.is_dofus_unity_process",
+                              return_value=True),
+                    ):
+                        self.assertEqual(
+                            AtlasRuntime._mirror_gesture_targets(runtime),
+                            (source, (source, *(h for h in slots if h != source))),
+                        )
+
+
+
 if __name__ == "__main__":
     unittest.main()

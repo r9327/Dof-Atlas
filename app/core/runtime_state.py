@@ -641,15 +641,21 @@ class AtlasRuntime:
             return None
         settings = self.settings
         source = settings.primary_handle
-        favorite = settings.client_by_handle(source) if source else None
-        if favorite is None or not is_unity_window(source):
+        if type(source) is not int or not 0 < source <= (2**64 - 1):
+            return None
+        clients = getattr(settings, "clients", None)
+        if not isinstance(clients, (list, tuple)):
+            return None
+        favorite = settings.client_by_handle(source)
+        if (favorite is None or type(favorite.handle) is not int
+                or favorite.handle != source or not is_unity_window(source)):
             return None
         if not is_dofus_unity_process(source):
             return None
         # Never silently drop a stale/foreign client. Consuming the physical
         # key or wheel for a reduced roster would lose the source gesture
         # when the worker rejects that snapshot against the live settings.
-        live = tuple(client.handle for client in settings.clients)
+        live = tuple(client.handle for client in clients)
         if (not 2 <= len(live) <= 8
                 or any(type(hwnd) is not int or not 0 < hwnd <= (2**64 - 1) for hwnd in live)
                 or len(set(live)) != len(live)
@@ -660,10 +666,27 @@ class AtlasRuntime:
             for hwnd in live if hwnd != source
         ):
             return None
-        # Profiles are replaced atomically on reload. Native process reads
-        # may release the GIL, so a previous snapshot must not authorize
-        # consumption of a gesture after settings have changed.
-        if self.settings is not settings:
+        # Native identity probes can release the GIL. Reconfirm the same
+        # in-memory slot values, favorite, mode and runtime state, even if
+        # the Organizer settings object itself was mutated in place.
+        def still_authorized() -> bool:
+            active = getattr(settings, "clients", None)
+            return (
+                self.settings is settings
+                and self._running and self._admin_ok
+                and not self.macro_lock.should_stop()
+                and settings.macro_mode == "mirror"
+                and type(settings.primary_handle) is int
+                and settings.primary_handle == source
+                and type(favorite.handle) is int
+                and favorite.handle == source
+                and isinstance(active, (list, tuple))
+                and tuple((type(client.handle), client.handle)
+                          for client in active)
+                == tuple((int, hwnd) for hwnd in live)
+            )
+
+        if not still_authorized():
             return None
         targets = mirror_delivery_targets(
             live, live, source, source_was_consumed=True,
@@ -671,7 +694,7 @@ class AtlasRuntime:
         # The favorite may be any Organizer slot. Keyboard/wheel workers
         # always begin with that physical source; preserve the relative
         # order of all other clients.
-        if len(targets) < 2 or source not in targets:
+        if len(targets) < 2 or source not in targets or not still_authorized():
             return None
         ordered = (source, *(hwnd for hwnd in targets if hwnd != source))
         return source, ordered
