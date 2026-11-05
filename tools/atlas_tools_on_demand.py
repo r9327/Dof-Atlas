@@ -202,13 +202,22 @@ def run(mode: str, base_sha: str, head_sha: str,
                 "exit_code": code, "status": status, "seconds": round(time.monotonic()-started, 2),
                 "evidence": evidence,
             })
+        # A successful process exit is not proof a requested diagnostic ran.
+        # Preserve missing/partial execution rather than presenting it as
+        # EXECUTED_NOT_CERTIFIED. Explicitly fail closed on NOT_RUN.
+        results = [row["status"] for row in report["commands"]]
         failures = {"FAIL", "TIMEOUT", "BLOCKED", "ERROR"}
-        report["status"] = (
-            "FAIL" if any(row["status"] in failures for row in report["commands"])
-            else "REVIEW" if any(row["status"] in {"REVIEW", "UNAVAILABLE", "NOT_AVAILABLE"}
-                                 for row in report["commands"])
-            else "EXECUTED_NOT_CERTIFIED"
-        )
+        if any(state in failures for state in results):
+            report["status"] = "FAIL"
+        elif any(state in {"NOT_RUN", "SKIPPED", "PENDING"} for state in results):
+            report["status"] = "NOT_RUN"
+        elif results and all(state == "NOT_APPLICABLE" for state in results):
+            report["status"] = "NOT_APPLICABLE"
+        elif any(state in {"REVIEW", "UNAVAILABLE", "NOT_AVAILABLE", "NOT_APPLICABLE"}
+                 for state in results):
+            report["status"] = "REVIEW"
+        else:
+            report["status"] = "EXECUTED_NOT_CERTIFIED"
     (output / "report.json").write_text(json.dumps(report, ensure_ascii=False, indent=2) + "\n",
                                         encoding="utf-8")
     return report
@@ -233,7 +242,7 @@ def main(argv: list[str] | None = None) -> int:
         (OUTPUT_ROOT / "report.json").write_text(
             json.dumps(report, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
     print(json.dumps(report, ensure_ascii=False, indent=2))
-    return 2 if report["status"] in ("FAIL", "BLOCKED") else 0
+    return 2 if report["status"] in ("FAIL", "BLOCKED", "NOT_RUN") else 0
 
 
 if __name__ == "__main__":
