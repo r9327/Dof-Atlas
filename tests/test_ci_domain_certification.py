@@ -96,7 +96,7 @@ class ModularDomainRoutingTests(unittest.TestCase):
                 self.assertEqual(routed["status"], "READY_TO_EXECUTE")
                 self.assertEqual(routed["unknown_paths"], [])
                 self.assertEqual(
-                    routed["domains"], ["organizer", "ui", "identity"],
+                    routed["domains"], ["ui", "identity", "organizer"],
                 )
         lazy = "tests/test_managed_hooks_lazy.py"
         self.assertEqual(
