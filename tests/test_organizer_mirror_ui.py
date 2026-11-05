@@ -4749,6 +4749,80 @@ class OrganizerMirrorIntegrationTests(unittest.TestCase):
                     runtime.input_state.begin_mouse_block.assert_not_called()
                     runtime.switch_character.restore_preferred_client.assert_not_called()
 
+    def test_click_inplace_roster_mutation_during_admission_leaves_native_down(self):
+        from app.macros.switch_click import SwitchClickMacro, SwitchClickContext
+
+        for count in (2, 4, 6, 8):
+            for action in ("Miroir", "Switch double clic"):
+                for alteration in ("reassign", "append", "mode"):
+                    with self.subTest(count=count, action=action, change=alteration):
+                        handles = tuple(range(101, 101 + count))
+                        runtime = self._runtime(primary=101, handles=handles)
+                        old = runtime.settings
+                        queued = []
+                        context = SwitchClickContext(
+                            101, 20, 30, 0.5, 0.5, "cursor",
+                        )
+
+                        def spawn(_action, worker):
+                            queued.append(worker)
+                            if alteration == "reassign":
+                                old.clients[-1].handle = 999
+                            elif alteration == "append":
+                                old.clients = (*old.clients, SimpleNamespace(handle=999))
+                            else:
+                                old.macro_mode = "macro" if action == "Miroir" else "mirror"
+                            return True
+
+                        runtime._spawn_macro.side_effect = spawn
+                        macro = SwitchClickMacro(runtime)
+                        with patch.object(macro, "_capture_trigger_context",
+                                          return_value=context):
+                            self.assertFalse(macro.run_async(
+                                "Left", 20, 30, 1 if action == "Miroir" else 2,
+                                action,
+                                exact_source_handle=101 if action == "Miroir" else None,
+                                mirror_target_handles=handles if action == "Miroir" else None,
+                            ))
+                        self.assertEqual(len(queued), 1)
+                        with (
+                            patch.object(macro, "_run") as runner,
+                            patch("app.macros.switch_click.activate_window") as focus,
+                            patch("app.macros.switch_click.send_client_click") as send,
+                        ):
+                            queued[0]()
+                        runner.assert_not_called()
+                        focus.assert_not_called()
+                        send.assert_not_called()
+                        runtime.input_state.begin_mouse_block.assert_not_called()
+
+    def test_click_inplace_roster_mutation_before_worker_keeps_focus_native(self):
+        from app.macros.switch_click import SwitchClickMacro, SwitchClickContext
+
+        for count in (2, 4, 6, 8):
+            with self.subTest(count=count):
+                handles = tuple(range(101, 101 + count))
+                runtime = self._runtime(primary=101, handles=handles)
+                runtime._spawn_macro.return_value = True
+                context = SwitchClickContext(101, 20, 30, 0.5, 0.5, "cursor")
+                macro = SwitchClickMacro(runtime)
+                with patch.object(macro, "_capture_trigger_context",
+                                  return_value=context):
+                    self.assertTrue(macro.run_async(
+                        "Left", 20, 30, 2, "Switch double clic",
+                    ))
+                queued = runtime._spawn_macro.call_args.args[1]
+                runtime.settings.clients[-1].handle = 999
+                with (
+                    patch.object(macro, "_run") as runner,
+                    patch("app.macros.switch_click.activate_window") as focus,
+                    patch("app.macros.switch_click.send_client_click") as send,
+                ):
+                    queued()
+                runner.assert_not_called()
+                focus.assert_not_called()
+                send.assert_not_called()
+
     def test_switch_click_healthy_admission_still_accepts_2_to_8(self):
         from app.macros.switch_click import SwitchClickMacro, SwitchClickContext
 

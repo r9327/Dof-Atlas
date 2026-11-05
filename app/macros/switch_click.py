@@ -56,6 +56,26 @@ class SwitchClickMacro:
         expected_profile: object | None = None,
     ) -> bool:
         settings_at_dispatch = self.runtime.settings
+        original_clients = getattr(settings_at_dispatch, "clients", None)
+        dispatch_roster = (
+            tuple((type(c.handle), c.handle) for c in original_clients)
+            if isinstance(original_clients, (list, tuple)) else None
+        )
+        dispatch_mode = settings_at_dispatch.macro_mode
+
+        def dispatch_is_current() -> bool:
+            if (self.runtime.settings is not settings_at_dispatch
+                    or settings_at_dispatch.macro_mode != dispatch_mode):
+                return False
+            if dispatch_roster is None:
+                return True
+            live = getattr(settings_at_dispatch, "clients", None)
+            return (
+                isinstance(live, (list, tuple))
+                and tuple((type(c.handle), c.handle) for c in live)
+                == dispatch_roster
+            )
+
         if expected_profile is not None and settings_at_dispatch is not expected_profile:
             self.runtime.logger.info(
                 "%s annulé: profil Organizer remplacé avant capture.", action_label,
@@ -114,9 +134,9 @@ class SwitchClickMacro:
                 action_label, exact_source_handle,
             )
             return False
-        if self.runtime.settings is not settings_at_dispatch:
+        if not dispatch_is_current():
             self.runtime.logger.info(
-                "%s annulé: profil Organizer changé pendant capture.", action_label,
+                "%s annulé: profil ou roster Organizer changé pendant capture.", action_label,
             )
             return False
         if context is None:
@@ -141,9 +161,13 @@ class SwitchClickMacro:
         # A low-level hook callback must never reserve the physical mouse
         # while a worker is merely queued. The worker validates the source
         # and exact roster before taking ownership of the pointer.
-        started = self.runtime._spawn_macro(
-            action_label,
-            lambda: self._run(
+        def worker() -> None:
+            if not dispatch_is_current():
+                self.runtime.logger.info(
+                    "%s annulé: roster Organizer changé avant worker.", action_label,
+                )
+                return
+            self._run(
                 button_name,
                 click_count,
                 action_label,
@@ -152,13 +176,14 @@ class SwitchClickMacro:
                 mirror_target_handles=mirror_target_handles,
                 physical_source_delivered=physical_source_delivered,
                 settings_at_dispatch=settings_at_dispatch,
-            ),
-        )
+            )
+
+        started = self.runtime._spawn_macro(action_label, worker)
         # Worker admission can yield to an Organizer reload after the native
         # mouse hook has validated its context. If that happens, let the
         # real DOWN/UP pass through: the queued worker will reject its stale
         # generation before any synthetic click is sent.
-        return bool(started and self.runtime.settings is settings_at_dispatch)
+        return bool(started and dispatch_is_current())
 
     def _run(
         self,
@@ -190,14 +215,27 @@ class SwitchClickMacro:
         mirror_focus_samples: list[float] = []
         targets = []
         frozen_handles: tuple[int, ...] = ()
+        initial_clients = getattr(settings_at_start, "clients", None)
+        initial_roster = (
+            tuple((type(c.handle), c.handle) for c in initial_clients)
+            if isinstance(initial_clients, (list, tuple)) else None
+        )
 
         def target_roster_intact() -> bool:
             # Ordered clients contain mutable Organizer records. Use HWNDs
             # accepted before Win32 yields, never their reassigned values.
             return (
                 self.runtime.settings is settings_at_start
+                and (
+                    initial_roster is None
+                    or (
+                        isinstance(getattr(settings_at_start, "clients", None), (list, tuple))
+                        and tuple((type(c.handle), c.handle)
+                                  for c in settings_at_start.clients) == initial_roster
+                    )
+                )
                 and len(targets) == len(frozen_handles)
-                and all(client.handle == hwnd
+                and all(type(client.handle) is type(hwnd) and client.handle == hwnd
                         for client, hwnd in zip(targets, frozen_handles))
             )
 
