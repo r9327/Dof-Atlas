@@ -413,7 +413,7 @@ class SwitchCharacterMacro:
                     or context_changed()
                     or preferred.handle != preferred_hwnd):
                 self.runtime.logger.info(
-                    "%s retour non publié: profil, favori, mode ou Stop changé après contrôle final.",
+                    "%s retour non publié: profil ou Stop changé après contrôle final.",
                     action_label,
                 )
                 return
