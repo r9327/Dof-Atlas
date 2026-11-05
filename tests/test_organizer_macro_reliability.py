@@ -998,6 +998,73 @@ class OrganizerMacroReliabilityTests(unittest.TestCase):
         runtime._spawn_macro.assert_called_once()
         self.assertEqual(runtime._spawn_macro.call_args.args[0], "Auto groupe")
 
+    def test_auto_group_does_not_reserve_worker_for_unaddressable_names(self) -> None:
+        runtime = _runtime()
+        for entries in (
+            [{"name": "", "handle": 202}],
+            [{"name": "!!!", "handle": 202}],
+            [{"name": "---", "handle": 202}, {"name": "", "handle": 303}],
+        ):
+            with self.subTest(entries=entries):
+                self.assertFalse(AutoGroupMacro(runtime).run_async(entries))
+        runtime._spawn_macro.assert_not_called()
+
+    def test_auto_group_worker_ignores_unaddressable_name_but_keeps_valid_clients(self):
+        for count in (2, 4, 6, 8):
+            with self.subTest(clients=count):
+                runtime = _runtime()
+                runtime.macro_lock.wait.return_value = False
+                runtime.settings.timings.auto_group_invite_gap_ms = 0
+                runtime.switch_character.logical_active_client.return_value = (
+                    SimpleNamespace(handle=101, display_name="Leader")
+                )
+                entries = [
+                    {"name": "Leader", "handle": 101},
+                    {"name": "!!!", "handle": 900},
+                    *({"name": f"Friend{i}", "handle": 101 + i}
+                      for i in range(1, count)),
+                ]
+                with (
+                    patch("app.macros.auto_group.is_unity_window", return_value=True),
+                    patch("app.macros.auto_group.is_dofus_unity_process", return_value=True),
+                    patch("app.macros.auto_group.activate_window",
+                          return_value=True) as focus,
+                    patch("app.macros.auto_group.foreground_window", return_value=101),
+                    patch("app.macros.auto_group.send_chat_command",
+                          return_value=True) as send,
+                ):
+                    AutoGroupMacro(runtime)._run(entries)
+                focus.assert_called_once()
+                self.assertEqual(
+                    [call.args[0] for call in send.call_args_list],
+                    [f"/invite Friend{i}" for i in range(1, count)],
+                )
+                runtime.logger.info.assert_any_call(
+                    "Auto groupe préparé: invitations=%s doublons=%s lanceur=%s vides=%s",
+                    count - 1, 0, 1, 1,
+                )
+
+    def test_auto_group_unicode_decimal_hwnd_never_aliases_sender(self):
+        runtime = _runtime()
+        runtime.macro_lock.wait.return_value = False
+        runtime.settings.timings.auto_group_invite_gap_ms = 0
+        runtime.switch_character.logical_active_client.return_value = (
+            SimpleNamespace(handle=101, display_name="Leader")
+        )
+        with (
+            patch("app.macros.auto_group.is_unity_window", return_value=True),
+            patch("app.macros.auto_group.is_dofus_unity_process", return_value=True),
+            patch("app.macros.auto_group.activate_window", return_value=True),
+            patch("app.macros.auto_group.foreground_window", return_value=101),
+            patch("app.macros.auto_group.send_chat_command",
+                  return_value=True) as send,
+        ):
+            AutoGroupMacro(runtime)._run([
+                {"name": "NotLeader", "handle": "١٠١"},
+            ])
+        send.assert_called_once()
+        self.assertEqual(send.call_args.args[0], "/invite NotLeader")
+
     def test_auto_group_preplans_2_4_6_8_before_focus_and_skips_final_gap(self) -> None:
         for count in (2, 4, 6, 8):
             with self.subTest(count=count):

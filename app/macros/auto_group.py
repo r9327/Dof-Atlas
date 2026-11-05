@@ -34,6 +34,11 @@ class AutoGroupMacro:
             for entry in entries
         }
         names.discard("")
+        if not names:
+            self.runtime.logger.info(
+                "Auto groupe non lancé : aucun nom de personnage adressable."
+            )
+            return False
         if len(names) > 8:
             self.runtime.logger.warning(
                 "Auto groupe refusé: plus de huit participants distincts."
@@ -135,7 +140,10 @@ class AutoGroupMacro:
                 excluded_empty += 1
                 continue
             name = clean_auto_group_name(entry.get("name", ""))
-            if not name:
+            key = normalize_key(name)
+            # Match Organizer's own invite-name eligibility. A nonempty
+            # punctuation-only label is not a DOFUS character to invite.
+            if not name or not key:
                 excluded_empty += 1
                 continue
             # Organizer HWNDs are integers (legacy decimal strings are
@@ -145,7 +153,8 @@ class AutoGroupMacro:
             handle = 0
             if type(raw_handle) is int:
                 candidate = raw_handle
-            elif type(raw_handle) is str and raw_handle.strip().isdecimal():
+            elif (type(raw_handle) is str and raw_handle.isascii()
+                  and raw_handle.strip().isdecimal()):
                 try:
                     candidate = int(raw_handle.strip())
                 except ValueError:
@@ -154,7 +163,6 @@ class AutoGroupMacro:
                 candidate = 0
             if 0 < candidate <= (2**64 - 1):
                 handle = candidate
-            key = normalize_key(name)
             if (handle > 0 and handle == sender_hwnd) or key == sender_key:
                 excluded_sender += 1
                 continue
