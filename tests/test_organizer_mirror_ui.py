@@ -5643,5 +5643,47 @@ class OrganizerMirrorIntegrationTests(unittest.TestCase):
 
 
 
+    def test_mirror_click_rejects_unreadable_roster_without_capture(self):
+        from app.core.runtime_state import AtlasRuntime
+        from app.macros.mirror_plan import mirror_delivery_targets as planner
+
+        for count in (2, 4, 6, 8):
+            handles = tuple(range(101, 101 + count))
+            for invalid in (None, "old-session", object()):
+                for timing in ("native", "planner"):
+                    with self.subTest(count=count, invalid=repr(invalid),
+                                      timing=timing):
+                        runtime = self._runtime(primary=handles[-1], handles=handles)
+                        profile = runtime.settings
+
+                        def identity(_hwnd):
+                            if timing == "native":
+                                profile.clients = invalid
+                            return True
+
+                        def plan(*args, **kwargs):
+                            found = planner(*args, **kwargs)
+                            if timing == "planner":
+                                profile.clients = invalid
+                            return found
+
+                        with (
+                            patch("app.windows.unity_windows.foreground_window",
+                                  return_value=handles[-1]),
+                            patch("app.windows.unity_windows.find_known_client_from_point",
+                                  return_value=handles[-1]),
+                            patch("app.windows.unity_windows.is_unity_window",
+                                  return_value=True),
+                            patch("app.macros.mirror_plan.is_dofus_unity_process",
+                                  side_effect=identity),
+                            patch("app.macros.mirror_plan.mirror_delivery_targets",
+                                  side_effect=plan),
+                        ):
+                            self.assertFalse(AtlasRuntime._handle_mirror_click(
+                                runtime, "Left", 24, 32,
+                            ))
+                        runtime.switch_click.run_async.assert_not_called()
+
+
 if __name__ == "__main__":
     unittest.main()

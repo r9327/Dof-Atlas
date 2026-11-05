@@ -871,6 +871,8 @@ class AtlasRuntime:
         # The source click will be consumed only if *every* configured
         # character is still valid. Filtering missing windows would create
         # an unsafe partial mirror and silently drop the user's click.
+        if not isinstance(settings.clients, (list, tuple)):
+            return False
         live_handles = tuple(client.handle for client in settings.clients)
         if (not 2 <= len(live_handles) <= 8
                 or any(type(hwnd) is not int or not 0 < hwnd <= (2**64 - 1) for hwnd in live_handles)
@@ -893,6 +895,7 @@ class AtlasRuntime:
                 and settings.primary_handle == source_hwnd
                 and type(favorite.handle) is int
                 and favorite.handle == source_hwnd
+                and isinstance(settings.clients, (list, tuple))
                 and tuple((type(client.handle), client.handle)
                           for client in settings.clients)
                 == tuple((int, hwnd) for hwnd in live_handles)
