@@ -160,7 +160,7 @@ def run(mode: str, base_sha: str, head_sha: str,
         report["status"] = "NOT_APPLICABLE"
         report["reason"] = "No eligible changed Python/workflow files"
     else:
-        for name, command, evidence in plan:
+        for index, (name, command, evidence) in enumerate(plan):
             started = time.monotonic()
             try:
                 result = subprocess.run(
@@ -202,6 +202,18 @@ def run(mode: str, base_sha: str, head_sha: str,
                 "exit_code": code, "status": status, "seconds": round(time.monotonic()-started, 2),
                 "evidence": evidence,
             })
+            # Fail fast on incomplete or broken probes. A multi-benchmark
+            # campaign must not spend more CI time once a required stage fails.
+            # Keep every unexecuted stage visible as NOT_RUN in the artifact.
+            if status in {"FAIL", "TIMEOUT", "BLOCKED", "ERROR", "NOT_RUN"}:
+                for remaining_name, remaining_argv, remaining_evidence in plan[index + 1:]:
+                    report["commands"].append({
+                        "name": remaining_name, "argv": remaining_argv,
+                        "exit_code": None, "status": "NOT_RUN", "seconds": 0,
+                        "evidence": remaining_evidence,
+                        "reason": "Previous required stage failed or did not run",
+                    })
+                break
         # A successful process exit is not proof a requested diagnostic ran.
         # Preserve missing/partial execution rather than presenting it as
         # EXECUTED_NOT_CERTIFIED. Explicitly fail closed on NOT_RUN.
