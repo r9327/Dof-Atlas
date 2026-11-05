@@ -67,6 +67,7 @@ class ModularDomainRoutingTests(unittest.TestCase):
         # blocked until individually reviewed; the new contract test is owned.
         changed = [
             "tools/doctor_pr_on_demand.py",
+            "tools/doctor_dev_lot.py",
             "tools/atlas_tools_on_demand.py",
             "tests/test_atlas_tools_on_demand.py",
             ".github/workflows/atlas-tools-on-demand.yml",
