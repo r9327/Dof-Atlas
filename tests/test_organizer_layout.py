@@ -319,6 +319,45 @@ class OrganizerLayoutTests(unittest.TestCase):
                 page.sync_event_watcher_sessions.assert_not_called()
                 page.schedule_next_release_identity_retry.assert_called_once()
 
+    def test_successful_empty_scans_clear_stale_slots_across_all_entrypoints(self):
+        from unittest.mock import Mock
+        from app.pages.organizer.character_sessions import CharacterSessionsMixin
+        from app.pages.organizer.common import session_is_detected
+
+        for action in ("scan_sessions", "refresh_sessions_from_window_event",
+                       "retry_release_identity"):
+            for count in (2, 4, 6, 8):
+                with self.subTest(action=action, clients=count):
+                    page = Mock()
+                    page.sessions = [
+                        {"nom": f"Perso{i}", "hwnd": 101 + i}
+                        for i in range(count)
+                    ]
+                    page.detected_session_count.return_value = 0
+                    page.sessions_have_generic_names.side_effect = [True, False]
+                    page.session_identity_signature.side_effect = [
+                        ("old_roster",), ("empty_roster",),
+                    ]
+                    page._scan_unity_sessions.return_value = []
+                    page.load_profiles.return_value = {}
+                    page.character_order_service.sort_rows.side_effect = (
+                        lambda rows, **_kwargs: rows
+                    )
+                    page.build_session_slots.side_effect = (
+                        lambda rows: CharacterSessionsMixin.build_session_slots(page, rows)
+                    )
+                    with (
+                        patch.object(organizer_sessions.os, "name", "nt"),
+                        patch.object(
+                            CharacterSessionsMixin, "_scan_unity_sessions",
+                            return_value=[],
+                        ),
+                    ):
+                        getattr(CharacterSessionsMixin, action)(page)
+                    self.assertEqual(len(page.sessions), 8)
+                    self.assertFalse(any(session_is_detected(row) for row in page.sessions))
+                    page.export_client_index.assert_called_once()
+
     def test_organizer_order_and_favorite_never_coerce_foreign_window_ids(self):
         from unittest.mock import Mock
         from app.pages.organizer.character_sessions import CharacterSessionsMixin
