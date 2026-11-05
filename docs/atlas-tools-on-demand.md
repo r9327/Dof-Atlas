@@ -77,7 +77,7 @@ reste une orchestration indépendante dédiée à la certification élargie.
 **États :** `EXECUTED_NOT_CERTIFIED` signifie que la commande a bien tourné,
 pas que sa mesure est conforme aux budgets. `REVIEW` signale que les
 résultats nécessitent interprétation. `FAIL`, `BLOCKED` et `TIMEOUT`
-restent des échecs. `NOT_RUN` et `NOT_APPLICABLE` ne sont pas PASS.
+restent des échecs. Pour Doctor `quick`, `code-inspect` et `ponytail`, le code de sortie `1` signifie parfois un verdict consultatif (`WARN`/`REVIEW`) : le lanceur le conserve comme **REVIEW**, avec le code de sortie d'origine dans le rapport, uniquement si le JSON attendu est valide. Un code `2`, une sortie malformée, un véritable `FAIL` ou un outil inconnu restent des échecs. Ce résultat consultatif n'est **jamais** un PASS ni une certification. `NOT_RUN` et `NOT_APPLICABLE` ne sont pas PASS.
 Si une suite inclut une étape manquante, ne pas annoncer un benchmark complet.
 
 ## Sécurité, limites et coûts
