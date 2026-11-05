@@ -193,8 +193,17 @@ class MirrorInputMacro:
             # Fail closed before the first emission if ANY configured HWND
             # has become an unrelated process. Avoid partial delivery caused
             # by a foreign/stale handle discovered halfway through a gesture.
-            if not all(is_dofus_unity_process(hwnd) for hwnd in handles):
-                runtime.logger.warning("Miroir %s annulé: roster non DOFUS.", kind)
+            if not all(
+                not runtime.macro_lock.should_stop()
+                and is_dofus_unity_process(hwnd)
+                for hwnd in handles
+            ):
+                if runtime.macro_lock.should_stop():
+                    runtime.logger.info(
+                        "Miroir %s annulé: Stop pendant le contrôle des clients.", kind,
+                    )
+                else:
+                    runtime.logger.warning("Miroir %s annulé: roster non DOFUS.", kind)
                 return
             roster_verified = True
             if runtime.settings is not profile_at_start:

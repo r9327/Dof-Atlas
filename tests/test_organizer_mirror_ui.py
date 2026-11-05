@@ -5441,5 +5441,45 @@ class OrganizerMirrorIntegrationTests(unittest.TestCase):
                     self.assertIn("incomplet", runtime._emit_status.call_args.args[0])
 
 
+    def test_mirror_stop_after_first_native_probe_skips_remaining_clients_2_to_8(self):
+        from app.macros.mirror_input import MirrorInputMacro
+
+        for count in (2, 4, 6, 8):
+            for kind in ("key", "wheel"):
+                with self.subTest(clients=count, kind=kind):
+                    handles = tuple(range(101, 101 + count))
+                    runtime = self._runtime(primary=handles[0], handles=handles)
+                    probes = []
+
+                    def process(hwnd):
+                        probes.append(hwnd)
+                        runtime.macro_lock.should_stop.return_value = True
+                        return True
+
+                    with (
+                        patch("app.macros.mirror_input.current_cursor_pos",
+                              return_value=(12, 14)),
+                        patch("app.macros.mirror_input.is_dofus_unity_process",
+                              side_effect=process),
+                        patch("app.macros.mirror_input.activate_window") as activate,
+                        patch("app.macros.mirror_input.send_screen_wheel") as wheel,
+                        patch("app.macros.input_tools.key_down") as down,
+                    ):
+                        payload = 65 if kind == "key" else (120, False, 0.5, 0.5)
+                        MirrorInputMacro(runtime)._run(
+                            kind, payload, handles[0], handles,
+                        )
+                    self.assertEqual(probes, [handles[0]])
+                    activate.assert_not_called()
+                    wheel.assert_not_called()
+                    down.assert_not_called()
+                    runtime.input_state.begin_mouse_block.assert_not_called()
+                    runtime.switch_character.restore_preferred_client.assert_not_called()
+                    runtime.logger.info.assert_any_call(
+                        "Miroir %s annulé: Stop pendant le contrôle des clients.",
+                        kind,
+                    )
+
+
 if __name__ == "__main__":
     unittest.main()
