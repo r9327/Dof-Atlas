@@ -168,6 +168,13 @@ jobs:
           persist-credentials: false
           lfs: false
 
+      - name: Install Ubuntu EGL runtime for developer-lot Qt imports
+        if: env.MODE == 'doctor-lot'
+        shell: bash
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y --no-install-recommends libegl1
+
       - name: Install pinned Qt runtime for developer-lot UI regression tests
         if: env.MODE == 'doctor-lot'
         shell: bash
