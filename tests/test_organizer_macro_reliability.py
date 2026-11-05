@@ -3349,6 +3349,57 @@ class OrganizerMacroReliabilityTests(unittest.TestCase):
             "interrompu", 0, 1, 1, 101,
         )
 
+    def test_direction_refused_foreign_hotkey_never_sends_unowned_keyups(self):
+        for count in (2, 4, 6, 8):
+            for reason in ("foreign_window", "foreign_process",
+                           "not_in_organizer", "profile_reload"):
+                with self.subTest(clients=count, reason=reason):
+                    runtime = _runtime()
+                    runtime.settings.clients = [
+                        SimpleNamespace(handle=101 + i) for i in range(count)
+                    ]
+                    runtime.settings.client_by_handle.return_value = (
+                        None if reason == "not_in_organizer" else object()
+                    )
+                    macro = DirectionMacro(runtime)
+
+                    def native_process(_hwnd):
+                        if reason == "profile_reload":
+                            runtime.settings = Mock()
+                        return reason != "foreign_process"
+
+                    with (
+                        patch("app.macros.direction.foreground_window",
+                              return_value=999 if reason == "foreign_window" else 101),
+                        patch("app.macros.direction.is_unity_window",
+                              return_value=reason != "foreign_window"),
+                        patch("app.macros.direction.is_dofus_unity_process",
+                              side_effect=native_process),
+                        patch("app.macros.direction.activate_window") as focus,
+                        patch("app.macros.direction.press_key") as press,
+                        patch("app.macros.direction.key_up") as release,
+                        patch.object(macro, "release_virtual_inputs") as emergency_release,
+                    ):
+                        macro._run("HOME")
+                    focus.assert_not_called()
+                    press.assert_not_called()
+                    release.assert_not_called()
+                    emergency_release.assert_not_called()
+                    runtime.switch_character.restore_preferred_client.assert_not_called()
+                    runtime.logger.info.assert_any_call(
+                        "Switch deplacement ignore: fenetre active non Unity."
+                    )
+
+    def test_direction_explicit_emergency_release_remains_available(self):
+        runtime = _runtime()
+        macro = DirectionMacro(runtime)
+        with (
+            patch("app.macros.direction._vk", side_effect=lambda name: len(name)),
+            patch("app.macros.direction.key_up") as release,
+        ):
+            macro.release_virtual_inputs()
+        self.assertEqual(release.call_count, 4)
+
     def test_direction_rejects_foreign_window_after_focus_activation(self) -> None:
         runtime = _runtime()
         runtime.settings.client_by_handle.return_value = object()
