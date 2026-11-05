@@ -45,7 +45,16 @@ class SwitchCharacterMacro:
         except (TypeError, ValueError, OverflowError):
             self.runtime.logger.info("Activation client ignorée: index invalide=%r", client_index)
             return False
-        target = next((client for client in settings.clients if client.index == requested_index), None)
+        # A corrupt slot stored as True or 1.0 compares equal to integer 1.
+        # Such a client must not hijack a healthy slot's native hotkey.
+        if not 1 <= requested_index <= 8:
+            self.runtime.logger.info("Activation client ignorée: slot hors limites=%s", requested_index)
+            return False
+        target = next(
+            (client for client in settings.clients
+             if type(client.index) is int and client.index == requested_index),
+            None,
+        )
         if target is None:
             self.runtime.logger.info("Activation client ignoree: index introuvable=%s", client_index)
             return False
@@ -78,7 +87,8 @@ class SwitchCharacterMacro:
                     and settings.primary_handle == favorite_at_dispatch
                     and settings.macro_mode == mode_at_dispatch
                     and any(
-                        client.index == target_index and client.handle == target_handle
+                        type(client.index) is int and client.index == target_index
+                        and type(client.handle) is int and client.handle == target_handle
                         for client in settings.clients
                     )
                 )
@@ -182,10 +192,12 @@ class SwitchCharacterMacro:
         clients = []
         accepted: list[tuple[object, int, int]] = []
         seen: set[int] = set()
+        seen_slots: set[int] = set()
 
         def accepted_unchanged() -> bool:
             return all(
-                item.index == index and item.handle == hwnd
+                type(item.index) is int and item.index == index
+                and type(item.handle) is int and item.handle == hwnd
                 for item, index, hwnd in accepted
             )
 
@@ -193,6 +205,16 @@ class SwitchCharacterMacro:
             if not context_current():
                 return False
             index, hwnd = client.index, client.handle
+            # The eight Organizer slots are integer identities. Ignore bad
+            # aliases without probing their HWNDs; two valid clients with
+            # the same slot make the cycling order ambiguous.
+            if type(index) is not int or not 1 <= index <= 8:
+                continue
+            if index in seen_slots:
+                self.runtime.logger.warning(
+                    "Personnage suivant annulé: slot Organizer dupliqué=%s", index,
+                )
+                return False
             if (type(hwnd) is not int or not 0 < hwnd <= (2**64 - 1)
                     or hwnd in seen or not is_unity_window(hwnd)
                     or not is_dofus_unity_process(hwnd)):
@@ -203,6 +225,7 @@ class SwitchCharacterMacro:
                     or client.index != index or client.handle != hwnd):
                 return False
             seen.add(hwnd)
+            seen_slots.add(index)
             clients.append(client)
             accepted.append((client, index, hwnd))
         if (len(clients) < 2 or not context_current()
@@ -219,7 +242,8 @@ class SwitchCharacterMacro:
              if hwnd == current_hwnd), -1,
         )
         chosen, index, hwnd = accepted[(position + 1) % len(accepted)]
-        if (chosen.index != index or chosen.handle != hwnd
+        if (type(chosen.index) is not int or chosen.index != index
+                or type(chosen.handle) is not int or chosen.handle != hwnd
                 or not accepted_unchanged()):
             return False
         if not context_current():
