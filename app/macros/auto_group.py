@@ -302,7 +302,8 @@ class AutoGroupMacro:
             # Never restore focus on a stale snapshot of the stop flag.
             if (not self.runtime.macro_lock.should_stop() and not focus_lost
                     and not restore_skipped
-                    and self.runtime.settings is settings_at_start):
+                    and self.runtime.settings is settings_at_start
+                    and not dispatch_context_changed()):
                 try:
                     self.runtime.switch_character.restore_preferred_client("Auto groupe")
                 except Exception:
