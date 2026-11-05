@@ -316,5 +316,41 @@ jobs:
           printf -v body '### Atlas on-demand — %s\n- Run: %s (ID %s)\n- PR: #%s\n- Candidate SHA: %s\n- Tool job (Ubuntu/Windows): %s / %s\n- Freshness: %s\n- Phase Certification: NOT_RUN; live DOFUS 2–8 accounts: NOT_RUN\n\nRead the run artifact and re-check the current PR HEAD before claiming any result. This receipt is NOT a PASS or certification.\n' \
             "$MODE" "$RUN_URL" "$RUN_ID" "$PR_NUMBER" "$HEAD_SHA" \
             "$LIGHT_RESULT" "$WINDOWS_RESULT" "$FRESHNESS_RESULT"
-          gh api "repos/$GITHUB_REPOSITORY/issues/$PR_NUMBER/comments" \
-            --method POST -f "body=$body" > /dev/null
+          # Some repository policies reject GITHUB_TOKEN comments (HTTP 403)
+          # even when the workflow shows "Issues: write". A failed optional
+          # receipt is NEVER an execution/freshness failure.
+          if gh api "repos/$GITHUB_REPOSITORY/issues/$PR_NUMBER/comments" \
+              --method POST -f "body=$body" > /dev/null 2>/dev/null; then
+            delivery=COMMENT_POSTED
+          else
+            delivery=COMMENT_UNAVAILABLE
+            echo "::warning::PR receipt unavailable; read the run-scoped JSON artifact instead."
+          fi
+          export RECEIPT_DELIVERY="$delivery"
+          mkdir -p artifacts/atlas_tools_receipt
+          python - <<'PY'
+          import json
+          import os
+          from pathlib import Path
+
+          keys = ("PR_NUMBER", "MODE", "HEAD_SHA", "LIGHT_RESULT",
+                  "WINDOWS_RESULT", "FRESHNESS_RESULT", "RUN_ID", "RUN_URL")
+          record = {key.lower(): os.environ[key] for key in keys}
+          record.update({
+              "schema_version": 1,
+              "receipt_delivery": os.environ["RECEIPT_DELIVERY"],
+              "phase_certified": False,
+              "live_dofus_accounts_tested": False,
+          })
+          target = Path("artifacts/atlas_tools_receipt/receipt.json")
+          target.write_text(json.dumps(record, indent=2) + "\n", encoding="utf-8")
+          PY
+          echo "- Receipt delivery: $delivery (fallback artifact: atlas-tools-receipt-$RUN_ID)" >> "$GITHUB_STEP_SUMMARY"
+      - name: Archive run receipt even when GitHub denies comment permissions
+        if: ${{ always() }}
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: atlas-tools-receipt-${{ github.run_id }}
+          path: artifacts/atlas_tools_receipt/receipt.json
+          if-no-files-found: warn
+          retention-days: 7
