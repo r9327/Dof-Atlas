@@ -144,7 +144,7 @@ jobs:
           if-no-files-found: warn
           retention-days: 7
 
-  windows-bench:
+  windows_bench:
     needs: resolve
     if: >-
       needs.resolve.result == 'success' &&
@@ -154,7 +154,7 @@ jobs:
        needs.resolve.outputs.mode == 'bench-8' ||
        needs.resolve.outputs.mode == 'bench-full')
     runs-on: windows-latest
-    timeout-minutes: ${{ needs.resolve.outputs.mode == 'bench-full' && 160 || 45 }}
+    timeout-minutes: 160 # Individual commands have smaller explicit deadlines
     concurrency:
       group: atlas-tools-${{ needs.resolve.outputs.pr_number }}-${{ needs.resolve.outputs.mode }}
       cancel-in-progress: true
@@ -263,7 +263,7 @@ jobs:
   freshness:
     # Isolated runner with token checks the CURRENT PR HEAD after untrusted
     # candidate code has exited; the benchmark jobs never have GH_TOKEN.
-    needs: [resolve, light, windows-bench]
+    needs: [resolve, light, windows_bench]
     if: ${{ always() && needs.resolve.result == 'success' }}
     runs-on: ubuntu-latest
     timeout-minutes: 5
@@ -277,7 +277,7 @@ jobs:
           PR_NUMBER: ${{ needs.resolve.outputs.pr_number }}
           EXPECTED_SHA: ${{ needs.resolve.outputs.head_sha }}
           LIGHT_RESULT: ${{ needs.light.result }}
-          WINDOWS_RESULT: ${{ needs.windows-bench.result }}
+          WINDOWS_RESULT: ${{ needs.windows_bench.result }}
         shell: bash
         run: |
           set -euo pipefail
