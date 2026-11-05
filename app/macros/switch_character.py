@@ -157,6 +157,16 @@ class SwitchCharacterMacro:
         if self.runtime.macro_lock.should_stop():
             return False
         settings = self.runtime.settings
+        favorite_at_dispatch = settings.primary_handle
+        mode_at_dispatch = settings.macro_mode
+
+        def context_current() -> bool:
+            return (
+                self.runtime.settings is settings
+                and settings.primary_handle == favorite_at_dispatch
+                and settings.macro_mode == mode_at_dispatch
+            )
+
         if expected_profile is not None and settings is not expected_profile:
             self.runtime.logger.info(
                 "Personnage suivant annulé: profil Organizer remplacé avant scan.",
@@ -173,6 +183,8 @@ class SwitchCharacterMacro:
             )
 
         for client in settings.clients:
+            if not context_current():
+                return False
             index, hwnd = client.index, client.handle
             if (type(hwnd) is not int or not 0 < hwnd <= (2**64 - 1)
                     or hwnd in seen or not is_unity_window(hwnd)
@@ -180,17 +192,17 @@ class SwitchCharacterMacro:
                 continue
             # Another client may be reassigned during the Win32 check. Do
             # not create a "next character" action from a mixed generation.
-            if (self.runtime.settings is not settings or not accepted_unchanged()
+            if (not context_current() or not accepted_unchanged()
                     or client.index != index or client.handle != hwnd):
                 return False
             seen.add(hwnd)
             clients.append(client)
             accepted.append((client, index, hwnd))
-        if (len(clients) < 2 or self.runtime.settings is not settings
+        if (len(clients) < 2 or not context_current()
                 or not accepted_unchanged()):
             return False
         current = self.logical_active_client()
-        if (self.runtime.settings is not settings
+        if (not context_current()
                 or self.runtime.macro_lock.should_stop()
                 or not accepted_unchanged()):
             return False
@@ -202,6 +214,8 @@ class SwitchCharacterMacro:
         chosen, index, hwnd = accepted[(position + 1) % len(accepted)]
         if (chosen.index != index or chosen.handle != hwnd
                 or not accepted_unchanged()):
+            return False
+        if not context_current():
             return False
         return self.activate_by_index(index, expected_profile=settings)
 
