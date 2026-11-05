@@ -231,6 +231,7 @@ class DirectionMacro:
             if (not self.runtime.macro_lock.should_stop() and not focus_lost
                     and not restore_skipped
                     and self.runtime.settings is settings_at_start
+                    and frozen_roster_intact()
                     and not dispatch_context_changed()
                     and last_activated_hwnd is not None):
                 try:

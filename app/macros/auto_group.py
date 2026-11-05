@@ -303,6 +303,7 @@ class AutoGroupMacro:
             if (not self.runtime.macro_lock.should_stop() and not focus_lost
                     and not restore_skipped
                     and self.runtime.settings is settings_at_start
+                    and sender.handle == sender_hwnd
                     and not dispatch_context_changed()):
                 try:
                     self.runtime.switch_character.restore_preferred_client("Auto groupe")

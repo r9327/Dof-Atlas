@@ -4560,5 +4560,117 @@ class OrganizerMacroReliabilityTests(unittest.TestCase):
 
 
 
+    def test_auto_group_native_cleanup_mutation_never_restores_2_to_8(self):
+        for count in (2, 4, 6, 8):
+            with self.subTest(clients=count):
+                runtime = _runtime()
+                runtime.settings.primary_handle = 101
+                runtime.settings.macro_mode = "macro"
+                runtime.settings.timings.auto_group_invite_gap_ms = 0
+                sender = SimpleNamespace(handle=101, display_name="Leader")
+                runtime.switch_character.logical_active_client.return_value = sender
+                entries = [
+                    {"name": f"Friend{i}", "handle": 101 + i}
+                    for i in range(1, count)
+                ]
+                probes = []
+
+                def probe(hwnd):
+                    probes.append(hwnd)
+                    if len(probes) == count + 1:
+                        self.assertEqual(hwnd, 101)
+                        sender.handle = 999
+                    return True
+
+                with (
+                    patch("app.macros.auto_group.is_unity_window", return_value=True),
+                    patch("app.macros.auto_group.is_dofus_unity_process",
+                          side_effect=probe),
+                    patch("app.macros.auto_group.activate_window", return_value=True),
+                    patch("app.macros.auto_group.foreground_window", return_value=101),
+                    patch("app.macros.auto_group.send_chat_command",
+                          return_value=True) as send,
+                ):
+                    AutoGroupMacro(runtime)._run(entries)
+                self.assertEqual(send.call_count, count - 1)
+                self.assertEqual(len(probes), count + 1)
+                runtime.switch_character.restore_preferred_client.assert_not_called()
+                self.assertIn("interrompu", runtime._emit_status.call_args.args[0])
+
+    def test_direction_native_cleanup_mutation_never_restores_2_to_8(self):
+        for count in (2, 4, 6, 8):
+            with self.subTest(clients=count):
+                runtime = _runtime()
+                runtime.settings.primary_handle = 101
+                runtime.settings.macro_mode = "macro"
+                clients = [SimpleNamespace(handle=101 + i) for i in range(count)]
+                handles = tuple(client.handle for client in clients)
+                runtime.switch_character.ordered_clients_from_source.return_value = clients
+                runtime.settings.client_by_handle.return_value = clients[0]
+                probes = []
+
+                def probe(hwnd):
+                    probes.append(hwnd)
+                    if len(probes) == 2 * count + 2:
+                        self.assertEqual(hwnd, 101)
+                        clients[0].handle = 999
+                    return True
+
+                with (
+                    patch("app.macros.direction.foreground_window",
+                          side_effect=[101, *handles, handles[-1]]),
+                    patch("app.macros.direction.is_unity_window", return_value=True),
+                    patch("app.macros.direction.is_dofus_unity_process",
+                          side_effect=probe),
+                    patch("app.macros.direction.activate_window", return_value=True),
+                    patch("app.macros.direction.press_key") as press,
+                ):
+                    DirectionMacro(runtime)._run("HOME")
+                self.assertEqual(press.call_count, count)
+                self.assertEqual(len(probes), 2 * count + 2)
+                runtime.switch_character.restore_preferred_client.assert_not_called()
+                runtime.logger.info.assert_any_call(
+                    "Switch deplacement %s: envoyes=%s/%s", "interrompu", count, count,
+                )
+
+    def test_zaap_native_cleanup_mutation_never_restores_2_to_8(self):
+        for count in (2, 4, 6, 8):
+            with self.subTest(clients=count):
+                runtime = _runtime()
+                runtime.settings.primary_handle = 101
+                runtime.settings.macro_mode = "macro"
+                clients = [SimpleNamespace(handle=101 + i) for i in range(count)]
+                runtime.switch_character.ordered_clients_from_source.return_value = clients
+                active = [101]
+                probes = []
+
+                def activate(hwnd, *_args, **_kwargs):
+                    active[0] = hwnd
+                    return True
+
+                def probe(hwnd):
+                    probes.append(hwnd)
+                    if len(probes) == 2 * count + 1:
+                        self.assertEqual(hwnd, clients[-1].handle)
+                        clients[0].handle = 999
+                    return True
+
+                with (
+                    patch("app.macros.zaap.is_unity_window", return_value=True),
+                    patch("app.macros.zaap.is_dofus_unity_process",
+                          side_effect=probe),
+                    patch("app.macros.zaap.activate_window", side_effect=activate),
+                    patch("app.macros.zaap.foreground_window",
+                          side_effect=lambda: active[0]),
+                    patch("app.macros.zaap.send_chat_command",
+                          return_value=True) as send,
+                ):
+                    ZaapMacro(runtime)._run("/zaap 1,2")
+                self.assertEqual(send.call_count, count)
+                self.assertEqual(len(probes), 2 * count + 1)
+                runtime.switch_character.restore_preferred_client.assert_not_called()
+                self.assertIn("interrompu", runtime._emit_status.call_args.args[0])
+
+
 if __name__ == "__main__":
     unittest.main()
