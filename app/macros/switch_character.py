@@ -50,6 +50,13 @@ class SwitchCharacterMacro:
             )
             return False
 
+        # Freeze the actual HWND/index pair accepted by the native hotkey.
+        # Organizer may mutate an existing client object in place without
+        # replacing its container, so comparing it to itself is not a guard.
+        target_index = target.index
+        target_handle = target.handle
+        target_name = target.display_name
+
         def run() -> None:
             # Hotkey callbacks are asynchronous: a slot can be reassigned
             # before this worker receives its turn. Never activate a stale
@@ -58,20 +65,20 @@ class SwitchCharacterMacro:
                 # A new settings object is a new Organizer generation even
                 # when the same slot/handle were reloaded from disk.
                 return self.runtime.settings is settings and any(
-                    client.index == target.index and client.handle == target.handle
+                    client.index == target_index and client.handle == target_handle
                     for client in settings.clients
                 )
 
             if not target_is_current():
                 self.runtime.logger.info(
-                    "Activation client annulée: slot modifié index=%s", target.index,
+                    "Activation client annulée: slot modifié index=%s", target_index,
                 )
                 return
-            if not is_unity_window(target.handle) or not is_dofus_unity_process(target.handle):
+            if not is_unity_window(target_handle) or not is_dofus_unity_process(target_handle):
                 self.runtime.logger.info(
                     "Activation client ignoree: cible non DOFUS Unity label=%s hwnd=%s",
-                    target.display_name,
-                    target.handle,
+                    target_name,
+                    target_handle,
                 )
                 return
             # Native identity checks may release the GIL. Abort before ANY
@@ -82,7 +89,7 @@ class SwitchCharacterMacro:
                 )
                 return
             if activate_window(
-                target.handle,
+                target_handle,
                 settings.timings.click_focus_settle_ms,
                 settings.timings.activate_attempts,
                 settings.timings.activate_retry_ms,
@@ -99,14 +106,14 @@ class SwitchCharacterMacro:
                     return
                 if not target_is_current():
                     self.runtime.logger.info(
-                        "Activation client non publiée: slot modifié index=%s", target.index,
+                        "Activation client non publiée: slot modifié index=%s", target_index,
                     )
                     return
-                if (not is_dofus_unity_process(target.handle)
-                        or foreground_window() != int(target.handle)):
+                if (not is_dofus_unity_process(target_handle)
+                        or foreground_window() != int(target_handle)):
                     self.runtime.logger.warning(
                         "Activation client ignoree: identite ou focus non confirme hwnd=%s",
-                        target.handle,
+                        target_handle,
                     )
                     return
                 # Either Win32 call can yield to a profile reload/Stop. Never
@@ -116,11 +123,11 @@ class SwitchCharacterMacro:
                         "Activation client non publiée: profil ou Stop changé après contrôle final.",
                     )
                     return
-                self.runtime.active_client_handle = target.handle
+                self.runtime.active_client_handle = target_handle
                 self.runtime.logger.info(
                     "Activation par raccourci client: label=%s hwnd=%s",
-                    target.display_name,
-                    target.handle,
+                    target_name,
+                    target_handle,
                 )
 
         return self.runtime._spawn_macro("Activation client", run)

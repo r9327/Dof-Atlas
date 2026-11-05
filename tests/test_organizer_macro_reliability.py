@@ -2743,6 +2743,41 @@ class OrganizerMacroReliabilityTests(unittest.TestCase):
                 self.assertFalse(macro.activate_by_index(invalid))
         runtime._spawn_macro.assert_not_called()
 
+    def test_switch_hotkey_rejects_in_place_session_mutation_2_to_8(self):
+        # The existing client record itself can be modified in place while
+        # the hotkey worker is queued; the accepted HWND/index must be frozen.
+        for count in (2, 4, 6, 8):
+            for changed in ("handle", "index"):
+                with self.subTest(clients=count, changed=changed):
+                    runtime = _runtime()
+                    runtime.settings.clients = [
+                        SimpleNamespace(index=i + 1, handle=101 + i,
+                                        display_name=f"Client {i + 1}")
+                        for i in range(count)
+                    ]
+                    runtime._spawn_macro.return_value = True
+                    macro = SwitchCharacterMacro(runtime)
+                    self.assertTrue(macro.activate_by_index(count))
+                    worker = runtime._spawn_macro.call_args.args[1]
+                    selected = runtime.settings.clients[-1]
+                    if changed == "handle":
+                        selected.handle = 999
+                    else:
+                        selected.index = 99
+                    with (
+                        patch("app.macros.switch_character.is_unity_window") as unity,
+                        patch("app.macros.switch_character.is_dofus_unity_process") as identity,
+                        patch("app.macros.switch_character.activate_window") as activate,
+                    ):
+                        worker()
+                    unity.assert_not_called()
+                    identity.assert_not_called()
+                    activate.assert_not_called()
+                    runtime.active_client_handle = 101
+                    runtime.logger.info.assert_any_call(
+                        "Activation client annulée: slot modifié index=%s", count,
+                    )
+
     def test_hotkey_never_activates_reassigned_slot_while_worker_waits(self) -> None:
         for count in (2, 4, 6, 8):
             with self.subTest(clients=count):
