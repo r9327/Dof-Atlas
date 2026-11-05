@@ -16,6 +16,11 @@ class InputState:
         self.active_hotkeys: set[str] = set()
         self._mouse_block_count = 0
         self._mouse_block_label = ""
+        # Emergency Stop revokes all prior pointer leases. Track ownership
+        # per thread so a stale worker cannot decrement a NEW worker's block.
+        # All canonical macro senders acquire/release on their worker thread.
+        self._mouse_block_epoch = 0
+        self._mouse_block_owners = threading.local()
 
     def set_key(self, vk_code: int, pressed: bool) -> None:
         with self._lock:
@@ -44,12 +49,26 @@ class InputState:
 
     def begin_mouse_block(self, label: str) -> int:
         with self._lock:
+            owners = getattr(self._mouse_block_owners, "epochs", None)
+            if owners is None:
+                owners = []
+                self._mouse_block_owners.epochs = owners
+            owners.append(self._mouse_block_epoch)
             self._mouse_block_count += 1
             self._mouse_block_label = str(label or "macro")
             return self._mouse_block_count
 
     def end_mouse_block(self) -> int:
         with self._lock:
+            owners = getattr(self._mouse_block_owners, "epochs", None)
+            if not owners:
+                # Never unlock a lease acquired by another worker thread.
+                return self._mouse_block_count
+            epoch = owners.pop()
+            if epoch != self._mouse_block_epoch:
+                # Stop invalidated this lease; another macro may already
+                # own a new block after the prior worker was interrupted.
+                return self._mouse_block_count
             self._mouse_block_count = max(0, self._mouse_block_count - 1)
             if self._mouse_block_count == 0:
                 self._mouse_block_label = ""
@@ -57,6 +76,8 @@ class InputState:
 
     def clear_mouse_block(self) -> None:
         with self._lock:
+            # The next worker's lease belongs to a distinct generation.
+            self._mouse_block_epoch += 1
             self._mouse_block_count = 0
             self._mouse_block_label = ""
 
