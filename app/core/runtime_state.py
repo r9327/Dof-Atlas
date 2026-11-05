@@ -886,6 +886,14 @@ class AtlasRuntime:
         )
         if len(destinations) < 2 or self.settings is not settings:
             return False
+        # mirror_delivery_targets preserves Organizer slot order, whereas
+        # the click worker requires the starred physical source first. A
+        # favorite in a later slot must not make an otherwise valid gesture
+        # fail the worker's roster identity check after its DOWN was eaten.
+        ordered_destinations = (
+            favorite.handle,
+            *(hwnd for hwnd in destinations if hwnd != favorite.handle),
+        )
         if busy:
             # Direct calls remain fail-safe while a worker owns the pointer.
             # MouseHook suppresses these physical DOWNs before this callback.
@@ -895,7 +903,7 @@ class AtlasRuntime:
             return bool(self.switch_click.run_async(
                 button, screen_x, screen_y, 1, "Miroir",
                 exact_source_handle=favorite.handle,
-                mirror_target_handles=destinations,
+                mirror_target_handles=ordered_destinations,
                 expected_profile=settings,
             ))
         except Exception:

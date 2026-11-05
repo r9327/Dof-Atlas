@@ -5480,6 +5480,40 @@ class OrganizerMirrorIntegrationTests(unittest.TestCase):
                         kind,
                     )
 
+    def test_mirror_click_favorite_last_is_dispatched_first_2_4_6_8(self):
+        from app.core.runtime_state import AtlasRuntime
+
+        for count in (2, 4, 6, 8):
+            for favorite_offset in (0, count // 2, count - 1):
+                with self.subTest(clients=count, favorite_slot=favorite_offset):
+                    slots = tuple(range(101, 101 + count))
+                    favorite = slots[favorite_offset]
+                    expected_order = (
+                        favorite, *(hwnd for hwnd in slots if hwnd != favorite),
+                    )
+                    runtime = self._runtime(primary=favorite, handles=slots)
+                    runtime.macro_lock.active_label = ""
+                    with (
+                        patch("app.windows.unity_windows.foreground_window",
+                              return_value=favorite),
+                        patch("app.windows.unity_windows.find_known_client_from_point",
+                              return_value=favorite),
+                        patch("app.windows.unity_windows.is_unity_window",
+                              return_value=True),
+                        patch("app.macros.mirror_plan.is_dofus_unity_process",
+                              return_value=True),
+                    ):
+                        self.assertTrue(AtlasRuntime._handle_mirror_click(
+                            runtime, "Left", 24, 32,
+                        ))
+                    runtime.switch_click.run_async.assert_called_once_with(
+                        "Left", 24, 32, 1, "Miroir",
+                        exact_source_handle=favorite,
+                        mirror_target_handles=expected_order,
+                        expected_profile=runtime.settings,
+                    )
+
+
 
 if __name__ == "__main__":
     unittest.main()
