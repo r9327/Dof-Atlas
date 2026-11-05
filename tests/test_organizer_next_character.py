@@ -180,7 +180,9 @@ class NextCharacterTests(unittest.TestCase):
         runtime._admin_ok = True
         runtime.settings = settings(4)
         AtlasRuntime._handle_hotkey(runtime, "next_character", {})
-        runtime.switch_character.activate_next.assert_called_once_with()
+        runtime.switch_character.activate_next.assert_called_once_with(
+            expected_profile=runtime.settings,
+        )
         runtime.settings.macro_mode = "mirror"
         AtlasRuntime._handle_hotkey(runtime, "next_character", {})
         runtime.switch_character.activate_next.assert_called_once()

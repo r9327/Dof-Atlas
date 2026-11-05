@@ -556,11 +556,12 @@ class AtlasRuntime:
                 action_id,
             )
             return
-        if self.settings.macro_mode == "mirror":
+        settings = self.settings
+        if settings.macro_mode == "mirror":
             return
         if action_id == "next_character":
-            if self.settings.switch_character_enabled:
-                self.switch_character.activate_next()
+            if settings.switch_character_enabled and self.settings is settings:
+                self.switch_character.activate_next(expected_profile=settings)
             return
         if action_id.startswith("client:"):
             raw_index = payload.get("client_index", 0)
@@ -574,7 +575,7 @@ class AtlasRuntime:
             except (TypeError, ValueError, OverflowError):
                 self.logger.debug("Payload invalide pour switch personnage: action=%s payload=%s", action_id, payload)
                 return
-            if not self.settings.switch_character_enabled or action_id != f"client:{client_index}":
+            if not settings.switch_character_enabled or action_id != f"client:{client_index}":
                 self.logger.debug("Raccourci personnage périmé ou désactivé: action=%s", action_id)
                 return
             # The registry binds a slot AND its HWND. An old callback from a
@@ -585,24 +586,32 @@ class AtlasRuntime:
                 type(bound_handle) is not int or not 0 < bound_handle <= (2**64 - 1)
                 or not any(
                     client.index == client_index and client.handle == bound_handle
-                    for client in self.settings.clients
+                    for client in settings.clients
                 )
             ):
                 self.logger.debug("Raccourci personnage périmé: action=%s", action_id)
                 return
-            self.switch_character.activate_by_index(client_index)
+            if self.settings is not settings:
+                self.logger.debug("Raccourci personnage abandonné: profil Organizer modifié.")
+                return
+            self.switch_character.activate_by_index(
+                client_index, expected_profile=settings,
+            )
             return
         if action_id.startswith("direction:"):
             key_name = payload.get("key_name")
             if (
-                not self.settings.movement_enabled
+                not settings.movement_enabled
                 or type(key_name) is not str
                 or key_name not in ("HOME", "DELETE", "END", "PAGEDOWN")
                 or action_id != f"direction:{key_name}"
             ):
                 self.logger.debug("Payload invalide pour direction: action=%s payload=%s", action_id, payload)
                 return
-            self.direction.run_async(key_name)
+            if self.settings is not settings:
+                self.logger.debug("Raccourci déplacement abandonné: profil Organizer modifié.")
+                return
+            self.direction.run_async(key_name, expected_profile=settings)
             return
 
     def _mirror_gesture_targets(self) -> tuple[int, tuple[int, ...]] | None:

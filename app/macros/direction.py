@@ -15,8 +15,16 @@ class DirectionMacro:
     def __init__(self, runtime: "AtlasRuntime"):
         self.runtime = runtime
 
-    def run_async(self, key_name: str) -> bool:
+    def run_async(
+        self, key_name: str, *, expected_profile: object | None = None,
+    ) -> bool:
         profile_at_dispatch = self.runtime.settings
+        if (expected_profile is not None
+                and profile_at_dispatch is not expected_profile):
+            self.runtime.logger.info(
+                "Switch deplacement annulé: profil Organizer remplacé avant dispatch.",
+            )
+            return False
         return self.runtime._spawn_macro(
             "Switch deplacement",
             lambda: self._run(key_name, profile_at_dispatch=profile_at_dispatch),

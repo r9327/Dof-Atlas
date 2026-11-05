@@ -125,7 +125,7 @@ class SwitchCharacterMacro:
 
         return self.runtime._spawn_macro("Activation client", run)
 
-    def activate_next(self) -> bool:
+    def activate_next(self, *, expected_profile: object | None = None) -> bool:
         """Advance in live Organizer slot order, wrapping after the last.
 
         Each target still uses the canonical activation worker with its
@@ -134,6 +134,11 @@ class SwitchCharacterMacro:
         if self.runtime.macro_lock.should_stop():
             return False
         settings = self.runtime.settings
+        if expected_profile is not None and settings is not expected_profile:
+            self.runtime.logger.info(
+                "Personnage suivant annulé: profil Organizer remplacé avant scan.",
+            )
+            return False
         clients = []
         seen: set[int] = set()
         for client in settings.clients:

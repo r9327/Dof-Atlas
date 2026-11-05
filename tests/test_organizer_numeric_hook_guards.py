@@ -56,15 +56,21 @@ class OrganizerNumericHookGuardsTests(unittest.TestCase):
                 action = "client:1"
                 payload = {"client_index": 1, "handle": 101}
                 AtlasRuntime._handle_hotkey(runtime, action, payload)
-                runtime.switch_character.activate_by_index.assert_called_once_with(1)
+                runtime.switch_character.activate_by_index.assert_called_once_with(
+                    1, expected_profile=runtime.settings,
+                )
                 runtime.settings.clients[0].handle = 901
                 AtlasRuntime._handle_hotkey(runtime, action, payload)
-                runtime.switch_character.activate_by_index.assert_called_once_with(1)
+                runtime.switch_character.activate_by_index.assert_called_once_with(
+                    1, expected_profile=runtime.settings,
+                )
                 runtime.settings.switch_character_enabled = False
                 AtlasRuntime._handle_hotkey(
                     runtime, action, {"client_index": 1, "handle": 901},
                 )
-                runtime.switch_character.activate_by_index.assert_called_once_with(1)
+                runtime.switch_character.activate_by_index.assert_called_once_with(
+                    1, expected_profile=runtime.settings,
+                )
 
     def test_hotkey_action_and_payload_must_agree(self):
         runtime = Mock()
@@ -93,12 +99,16 @@ class OrganizerNumericHookGuardsTests(unittest.TestCase):
         AtlasRuntime._handle_hotkey(
             runtime, "direction:HOME", {"key_name": "HOME"},
         )
-        runtime.direction.run_async.assert_called_once_with("HOME")
+        runtime.direction.run_async.assert_called_once_with(
+            "HOME", expected_profile=runtime.settings,
+        )
         runtime.settings.movement_enabled = False
         AtlasRuntime._handle_hotkey(
             runtime, "direction:DELETE", {"key_name": "DELETE"},
         )
-        runtime.direction.run_async.assert_called_once_with("HOME")
+        runtime.direction.run_async.assert_called_once_with(
+            "HOME", expected_profile=runtime.settings,
+        )
 
     def test_infinite_click_binding_falls_back_to_single_native_click(self):
         for value in (float("inf"), -float("inf"), float("nan")):
