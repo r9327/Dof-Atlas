@@ -38,6 +38,7 @@ BASELINE_GROUPS = {
 # decision for PHASE_CERTIFICATION.md or any executable policy change.
 REVIEWED_CI_INSTRUCTION_PATHS = frozenset({
     "AGENTS.md", "AI_ENTRYPOINT.md", "AI_CONTEXT.md", "CLAUDE.md",
+    "GRAPHIFY.md",  # Canonical architecture/agent instruction (not runtime)
     ".github/copilot-instructions.md", ".cursor/rules/atlas-doctor.mdc",
     "app/AGENTS.md", "data/AGENTS.md", "tests/AGENTS.md", "tools/AGENTS.md",
     "tools/skills/dofus-atlas-tools/SKILL.md",
