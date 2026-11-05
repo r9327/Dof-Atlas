@@ -313,7 +313,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          printf -v body '### Atlas on-demand — `%s`\n- Run: %s (ID `%s`)\n- PR: #%s\n- Candidate SHA: `%s`\n- Tool job (Ubuntu/Windows): `%s` / `%s`\n- Freshness: `%s`\n- Phase Certification: NOT_RUN; live DOFUS 2–8 accounts: NOT_RUN\n\nRead the run artifact and re-check the current PR HEAD before claiming any result. This receipt is NOT a PASS or certification.\n' \
+          printf -v body '### Atlas on-demand — %s\n- Run: %s (ID %s)\n- PR: #%s\n- Candidate SHA: %s\n- Tool job (Ubuntu/Windows): %s / %s\n- Freshness: %s\n- Phase Certification: NOT_RUN; live DOFUS 2–8 accounts: NOT_RUN\n\nRead the run artifact and re-check the current PR HEAD before claiming any result. This receipt is NOT a PASS or certification.\n' \
             "$MODE" "$RUN_URL" "$RUN_ID" "$PR_NUMBER" "$HEAD_SHA" \
             "$LIGHT_RESULT" "$WINDOWS_RESULT" "$FRESHNESS_RESULT"
           gh api "repos/$GITHUB_REPOSITORY/issues/$PR_NUMBER/comments" \
