@@ -53,6 +53,11 @@ class DirectionMacro:
         focus_lost = False
         last_activated_hwnd: int | None = None
         targets = []
+        target_handles: tuple[int, ...] = ()
+
+        def frozen_roster_intact() -> bool:
+            return tuple(client.handle for client in targets) == target_handles
+
         sent = 0
         try:
             targets = self.runtime.switch_character.ordered_clients_from_source(source)
@@ -64,7 +69,7 @@ class DirectionMacro:
                         or self.runtime.settings is not settings_at_start):
                     return
                 if (type(target_hwnd) is not int or not 0 < target_hwnd <= (2**64 - 1)
-                        or client.handle != target_hwnd):
+                        or not frozen_roster_intact()):
                     focus_lost = True
                     self.runtime.logger.warning(
                         "Switch deplacement interrompu: session modifiée hwnd=%r", target_hwnd,
@@ -74,6 +79,13 @@ class DirectionMacro:
                     focus_lost = True
                     self.runtime.logger.warning(
                         "Switch deplacement interrompu: cible non DOFUS Unity hwnd=%s", target_hwnd,
+                    )
+                    return
+                if not frozen_roster_intact():
+                    focus_lost = True
+                    self.runtime.logger.warning(
+                        "Switch deplacement interrompu: roster muté pendant contrôle natif hwnd=%s",
+                        target_hwnd,
                     )
                     return
                 if activate_window(
@@ -86,7 +98,7 @@ class DirectionMacro:
                     should_stop=lambda client=client, hwnd=target_hwnd: (
                         self.runtime.macro_lock.should_stop()
                         or self.runtime.settings is not settings_at_start
-                        or client.handle != hwnd
+                        or not frozen_roster_intact()
                     ),
                 ):
                     # Validate native identity BEFORE the last focus check:
@@ -94,7 +106,7 @@ class DirectionMacro:
                     if (self.runtime.settings is not settings_at_start
                             or not is_dofus_unity_process(target_hwnd)
                             or foreground_window() != int(target_hwnd)
-                            or client.handle != target_hwnd):
+                            or not frozen_roster_intact()):
                         focus_lost = True
                         self.runtime.logger.warning(
                             "Switch deplacement interrompu: focus ou identité DOFUS perdus avant frappe hwnd=%s",
@@ -104,7 +116,7 @@ class DirectionMacro:
                     if (self.runtime.macro_lock.should_stop()
                             or self.runtime.settings is not settings_at_start):
                         return
-                    if client.handle != target_hwnd:
+                    if not frozen_roster_intact():
                         focus_lost = True
                         self.runtime.logger.warning(
                             "Switch deplacement interrompu: session mutée avant touche hwnd=%s",
@@ -115,7 +127,7 @@ class DirectionMacro:
                     press_key(key_name, timings.movement_key_hold_ms)
                     # Count an input that completed before Stop was observed.
                     sent += 1
-                    if client.handle != target_hwnd:
+                    if not frozen_roster_intact():
                         focus_lost = True
                         self.runtime.logger.warning(
                             "Switch deplacement interrompu: session mutée après touche hwnd=%s",
@@ -126,12 +138,25 @@ class DirectionMacro:
                             or self.runtime.settings is not settings_at_start):
                         return
                 else:
+                    if (self.runtime.macro_lock.should_stop()
+                            or self.runtime.settings is not settings_at_start):
+                        return
+                    if not frozen_roster_intact():
+                        focus_lost = True
+                        self.runtime.logger.warning(
+                            "Switch deplacement interrompu: session mutée pendant activation hwnd=%s",
+                            target_hwnd,
+                        )
+                        return
                     self.runtime.logger.info(
                         "Switch deplacement: activation echec hwnd=%s",
                         target_hwnd,
                     )
         finally:
-            restore_skipped = self.runtime.settings is not settings_at_start
+            restore_skipped = (
+                self.runtime.settings is not settings_at_start
+                or not frozen_roster_intact()
+            )
             if restore_skipped:
                 self.runtime.logger.info("Switch deplacement: retour ignoré, profil remplacé.")
             if (not self.runtime.macro_lock.should_stop() and not focus_lost
@@ -177,7 +202,9 @@ class DirectionMacro:
                     self.runtime.logger.exception("Switch deplacement: retour au favori impossible.")
             stopped = self.runtime.macro_lock.should_stop()
             state = (
-                "interrompu" if stopped or focus_lost or self.runtime.settings is not settings_at_start
+                "interrompu" if (stopped or focus_lost
+                                  or self.runtime.settings is not settings_at_start
+                                  or not frozen_roster_intact())
                 else "ignore" if not targets
                 else "termine" if sent == len(targets)
                 else "partiel"

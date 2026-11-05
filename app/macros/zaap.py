@@ -77,6 +77,10 @@ class ZaapMacro:
         # Freeze HWNDs before the native fan-out: Organizer client objects can
         # be modified in place while Win32 yields to the UI thread.
         target_handles = tuple(client.handle for client in clients)
+
+        def frozen_roster_intact() -> bool:
+            return tuple(client.handle for client in clients) == target_handles
+
         timings = settings_at_start.timings
         favorite_at_start = settings_at_start.primary_handle
         self.runtime.logger.info(
@@ -93,7 +97,7 @@ class ZaapMacro:
                         or self.runtime.settings is not settings_at_start):
                     return
                 if (type(target_hwnd) is not int or not 0 < target_hwnd <= (2**64 - 1)
-                        or client.handle != target_hwnd):
+                        or not frozen_roster_intact()):
                     focus_lost = True
                     self.runtime.logger.warning(
                         "Auto zaap interrompu: session remplacée en place hwnd=%r", target_hwnd,
@@ -103,6 +107,13 @@ class ZaapMacro:
                     focus_lost = True
                     self.runtime.logger.warning(
                         "Auto zaap interrompu: cible non DOFUS Unity hwnd=%s", target_hwnd,
+                    )
+                    return
+                if not frozen_roster_intact():
+                    focus_lost = True
+                    self.runtime.logger.warning(
+                        "Auto zaap interrompu: roster muté pendant contrôle natif hwnd=%s",
+                        target_hwnd,
                     )
                     return
                 if not activate_window(
@@ -115,9 +126,19 @@ class ZaapMacro:
                     should_stop=lambda client=client, hwnd=target_hwnd: (
                         self.runtime.macro_lock.should_stop()
                         or self.runtime.settings is not settings_at_start
-                        or client.handle != hwnd
+                        or not frozen_roster_intact()
                     ),
                 ):
+                    if (self.runtime.macro_lock.should_stop()
+                            or self.runtime.settings is not settings_at_start):
+                        return
+                    if not frozen_roster_intact():
+                        focus_lost = True
+                        self.runtime.logger.warning(
+                            "Auto zaap interrompu: session mutée pendant activation hwnd=%s",
+                            target_hwnd,
+                        )
+                        return
                     self.runtime.logger.info("Auto zaap activation echec: hwnd=%s", target_hwnd)
                     continue
                 # A focus change after activation must not send the chat
@@ -127,7 +148,7 @@ class ZaapMacro:
                 if (self.runtime.settings is not settings_at_start
                         or not is_dofus_unity_process(target_hwnd)
                         or foreground_window() != int(target_hwnd)
-                        or client.handle != target_hwnd):
+                        or not frozen_roster_intact()):
                     focus_lost = True
                     self.runtime.logger.warning(
                         "Auto zaap interrompu: focus ou identité DOFUS perdus avant commande hwnd=%s", target_hwnd
@@ -135,7 +156,7 @@ class ZaapMacro:
                     return
                 if self.runtime.macro_lock.should_stop():
                     return
-                if client.handle != target_hwnd:
+                if not frozen_roster_intact():
                     focus_lost = True
                     self.runtime.logger.warning(
                         "Auto zaap interrompu: session mutée avant chat hwnd=%s", target_hwnd,
@@ -155,7 +176,7 @@ class ZaapMacro:
                     should_stop=lambda hwnd=target_hwnd, client=client: (
                         self.runtime.macro_lock.should_stop()
                         or self.runtime.settings is not settings_at_start
-                        or client.handle != hwnd
+                        or not frozen_roster_intact()
                         or foreground_window() != int(hwnd)
                     ),
                 ):
@@ -164,7 +185,7 @@ class ZaapMacro:
                         return
                     if (not is_dofus_unity_process(target_hwnd)
                             or foreground_window() != int(target_hwnd)
-                        or client.handle != target_hwnd):
+                            or not frozen_roster_intact()):
                         focus_lost = True
                         self.runtime.logger.warning(
                             "Auto zaap interrompu: focus ou identité DOFUS perdus après échec du chat hwnd=%s",
@@ -173,7 +194,7 @@ class ZaapMacro:
                         return
                     continue
                 sent += 1
-                if client.handle != target_hwnd:
+                if not frozen_roster_intact():
                     focus_lost = True
                     self.runtime.logger.warning(
                         "Auto zaap interrompu: session mutée après chat hwnd=%s", target_hwnd,
@@ -187,7 +208,7 @@ class ZaapMacro:
             stopped = self.runtime.macro_lock.should_stop()
             restore_skipped = (
                 self.runtime.settings is not settings_at_start
-                or client.handle != target_hwnd
+                or not frozen_roster_intact()
             )
             if restore_skipped:
                 self.runtime.logger.info("Auto zaap: retour ignoré, profil remplacé.")
@@ -237,7 +258,7 @@ class ZaapMacro:
             state = (
                 "interrompu" if (self.runtime.macro_lock.should_stop() or focus_lost
                                   or self.runtime.settings is not settings_at_start
-                                  or client.handle != target_hwnd)
+                                  or not frozen_roster_intact())
                 else "termine" if sent == len(clients)
                 else "partiel"
             )
