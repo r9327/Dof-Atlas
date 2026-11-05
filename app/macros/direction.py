@@ -45,8 +45,11 @@ class DirectionMacro:
                 or not is_dofus_unity_process(source)
                 or settings_at_start.client_by_handle(source) is None
                 or self.runtime.settings is not settings_at_start):
+            # No synthetic DOWN was issued by this worker. Sending four
+            # orphaned KEYUP events to the currently focused foreign app
+            # would leak keyboard input outside DOFUS. Emergency Stop still
+            # owns explicit release_virtual_inputs() for interrupted macros.
             self.runtime.logger.info("Switch deplacement ignore: fenetre active non Unity.")
-            self.release_virtual_inputs()
             return
         timings = settings_at_start.timings
         favorite_at_start = settings_at_start.primary_handle
