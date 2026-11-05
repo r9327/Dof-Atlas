@@ -147,30 +147,47 @@ class SwitchCharacterMacro:
             )
             return False
         clients = []
+        accepted: list[tuple[object, int, int]] = []
         seen: set[int] = set()
+
+        def accepted_unchanged() -> bool:
+            return all(
+                item.index == index and item.handle == hwnd
+                for item, index, hwnd in accepted
+            )
+
         for client in settings.clients:
-            hwnd = client.handle
+            index, hwnd = client.index, client.handle
             if (type(hwnd) is not int or not 0 < hwnd <= (2**64 - 1)
                     or hwnd in seen or not is_unity_window(hwnd)
                     or not is_dofus_unity_process(hwnd)):
                 continue
+            # Another client may be reassigned during the Win32 check. Do
+            # not create a "next character" action from a mixed generation.
+            if (self.runtime.settings is not settings or not accepted_unchanged()
+                    or client.index != index or client.handle != hwnd):
+                return False
             seen.add(hwnd)
             clients.append(client)
-            if self.runtime.settings is not settings:
-                return False
-        if len(clients) < 2 or self.runtime.settings is not settings:
+            accepted.append((client, index, hwnd))
+        if (len(clients) < 2 or self.runtime.settings is not settings
+                or not accepted_unchanged()):
             return False
         current = self.logical_active_client()
-        if self.runtime.settings is not settings or self.runtime.macro_lock.should_stop():
+        if (self.runtime.settings is not settings
+                or self.runtime.macro_lock.should_stop()
+                or not accepted_unchanged()):
             return False
         current_hwnd = current.handle if current is not None else 0
         position = next(
-            (i for i, item in enumerate(clients) if item.handle == current_hwnd), -1,
+            (i for i, (_item, _slot, hwnd) in enumerate(accepted)
+             if hwnd == current_hwnd), -1,
         )
-        return self.activate_by_index(
-            clients[(position + 1) % len(clients)].index,
-            expected_profile=settings,
-        )
+        chosen, index, hwnd = accepted[(position + 1) % len(accepted)]
+        if (chosen.index != index or chosen.handle != hwnd
+                or not accepted_unchanged()):
+            return False
+        return self.activate_by_index(index, expected_profile=settings)
 
     def preferred_client(self) -> "AtlasClient | None":
         """
@@ -249,7 +266,11 @@ class SwitchCharacterMacro:
     ) -> list["AtlasClient"]:
         settings_at_start = self.runtime.settings
         clients: list["AtlasClient"] = []
+        accepted_hwnds: list[tuple["AtlasClient", int]] = []
         seen_handles: set[int] = set()
+
+        def accepted_unchanged() -> bool:
+            return all(client.handle == hwnd for client, hwnd in accepted_hwnds)
 
         for client in settings_at_start.clients:
             handle = client.handle
@@ -262,14 +283,17 @@ class SwitchCharacterMacro:
             if (handle in seen_handles or not is_unity_window(handle)
                     or not is_dofus_unity_process(handle)):
                 continue
-            seen_handles.add(handle)
-            clients.append(client)
-            if self.runtime.settings is not settings_at_start:
+            if (self.runtime.settings is not settings_at_start
+                    or client.handle != handle or not accepted_unchanged()):
                 self.runtime.logger.info(
-                    "Switch: roster abandonné, profil Organizer remplacé pendant scan.",
+                    "Switch: roster abandonné, session modifiée pendant scan.",
                 )
                 return []
-        if self.runtime.settings is not settings_at_start:
+            seen_handles.add(handle)
+            clients.append(client)
+            accepted_hwnds.append((client, handle))
+        if (self.runtime.settings is not settings_at_start
+                or not accepted_unchanged()):
             return []
 
         # A bad explicit Win32 source must not silently fall back to the
@@ -296,15 +320,18 @@ class SwitchCharacterMacro:
             source = self.logical_active_client()
             source_hwnd = source.handle if source is not None else 0
 
-        if self.runtime.settings is not settings_at_start:
+        if (self.runtime.settings is not settings_at_start
+                or not accepted_unchanged()):
             return []
         if not source_hwnd:
             return clients
 
-        return sorted(
-            clients,
-            key=lambda client: 0 if client.handle == source_hwnd else 1,
-        )
+        return [
+            client for client, hwnd in sorted(
+                accepted_hwnds,
+                key=lambda pair: 0 if pair[1] == source_hwnd else 1,
+            )
+        ]
 
     def restore_preferred_client(self, action_label: str) -> None:
         settings = self.runtime.settings
