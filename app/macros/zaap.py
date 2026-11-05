@@ -1,10 +1,11 @@
 from __future__ import annotations
 
 import re
+from time import perf_counter
 from typing import TYPE_CHECKING
 
 from app.macros.input_tools import send_chat_command
-from app.macros.mirror_plan import is_dofus_unity_process
+from app.macros.mirror_plan import is_dofus_unity_process, mirror_latency_percentiles_ms
 from app.windows.focus import activate_window
 from app.windows.unity_windows import foreground_window, is_unity_window
 
@@ -120,6 +121,9 @@ class ZaapMacro:
         sent = 0
         focus_lost = False
         last_activated_handle: int | None = None
+        action_started_at = perf_counter()
+        focus_steps_ms: list[float] = []
+        chat_steps_ms: list[float] = []
         try:
             for client, target_hwnd in zip(clients, target_handles):
                 if (self.runtime.macro_lock.should_stop()
@@ -151,8 +155,10 @@ class ZaapMacro:
                         target_hwnd,
                     )
                     return
-                if not activate_window(
-                    target_hwnd,
+                focus_started_at = perf_counter()
+                try:
+                    activated = activate_window(
+                        target_hwnd,
                     timings.travel_focus_settle_ms,
                     timings.activate_attempts,
                     timings.activate_retry_ms,
@@ -164,7 +170,12 @@ class ZaapMacro:
                         or not frozen_roster_intact()
                         or dispatch_context_changed()
                     ),
-                ):
+                    )
+                finally:
+                    focus_steps_ms.append(
+                        max(0.0, (perf_counter() - focus_started_at) * 1000.0)
+                    )
+                if not activated:
                     if (self.runtime.macro_lock.should_stop()
                             or self.runtime.settings is not settings_at_start):
                         return
@@ -201,8 +212,10 @@ class ZaapMacro:
                     )
                     return
                 last_activated_handle = int(target_hwnd)
-                if not send_chat_command(
-                    command,
+                chat_started_at = perf_counter()
+                try:
+                    accepted = send_chat_command(
+                        command,
                     self.runtime.logger,
                     submit_twice=True,
                     chat_open_ms=timings.auto_group_chat_open_ms,
@@ -218,7 +231,12 @@ class ZaapMacro:
                         or dispatch_context_changed()
                         or foreground_window() != int(hwnd)
                     ),
-                ):
+                    )
+                finally:
+                    chat_steps_ms.append(
+                        max(0.0, (perf_counter() - chat_started_at) * 1000.0)
+                    )
+                if not accepted:
                     if (self.runtime.macro_lock.should_stop()
                             or self.runtime.settings is not settings_at_start):
                         return
@@ -315,4 +333,14 @@ class ZaapMacro:
             self.runtime._emit_status(
                 f"Auto zaap {state} : {sent}/{len(clients)} commandes émises "
                 "(réception DOFUS non vérifiée)."
+            )
+            self.runtime.logger.info(
+                "Auto zaap mesures: activation=%s/%s p50_p95_p99_ms=%s "
+                "chat=%s/%s p50_p95_p99_ms=%s total_ms=%.2f "
+                "(envoi, pas rendu Unity)",
+                len(focus_steps_ms), len(clients),
+                mirror_latency_percentiles_ms(focus_steps_ms) or "NOT_MEASURED",
+                len(chat_steps_ms), len(clients),
+                mirror_latency_percentiles_ms(chat_steps_ms) or "NOT_MEASURED",
+                max(0.0, (perf_counter() - action_started_at) * 1000.0),
             )

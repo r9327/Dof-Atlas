@@ -5153,5 +5153,63 @@ class OrganizerMacroReliabilityTests(unittest.TestCase):
 
 
 
+    def test_zaap_logs_focus_chat_and_total_latency_for_2_4_6_8(self):
+        for count in (2, 4, 6, 8):
+            for fail_last in (False, True):
+                with self.subTest(count=count, fail_last=fail_last):
+                    runtime = _runtime()
+                    runtime.settings.primary_handle = 101
+                    runtime.settings.macro_mode = "macro"
+                    handles = tuple(range(101, 101 + count))
+                    runtime.switch_character.ordered_clients_from_source.return_value = [
+                        SimpleNamespace(handle=handle) for handle in handles
+                    ]
+                    active = [handles[0]]
+                    sent = [0]
+
+                    def focus(hwnd, *_args, **_kwargs):
+                        active[0] = hwnd
+                        return True
+
+                    def send(_command, *_args, **_kwargs):
+                        sent[0] += 1
+                        return not (fail_last and sent[0] == count)
+
+                    with (
+                        patch("app.macros.zaap.is_unity_window", return_value=True),
+                        patch("app.macros.zaap.is_dofus_unity_process",
+                              return_value=True),
+                        patch("app.macros.zaap.activate_window",
+                              side_effect=focus),
+                        patch("app.macros.zaap.foreground_window",
+                              side_effect=lambda: active[0]),
+                        patch("app.macros.zaap.send_chat_command",
+                              side_effect=send),
+                    ):
+                        ZaapMacro(runtime)._run("/zaap 10,20")
+                    self.assertEqual(sent[0], count)
+                    matches = [
+                        call for call in runtime.logger.info.call_args_list
+                        if call.args and call.args[0].startswith(
+                            "Auto zaap mesures: activation="
+                        )
+                    ]
+                    self.assertEqual(len(matches), 1)
+                    data = matches[0].args
+                    self.assertEqual(data[1:3], (count, count))
+                    self.assertEqual(data[3]["n"], count)
+                    self.assertEqual(data[4:6], (count, count))
+                    self.assertEqual(data[6]["n"], count)
+                    for quantiles in (data[3], data[6]):
+                        for percentile in ("p50", "p95", "p99"):
+                            self.assertGreaterEqual(quantiles[percentile], 0.0)
+                    self.assertGreaterEqual(data[7], 0.0)
+                    self.assertIn(
+                        "partiel" if fail_last else "termine",
+                        runtime._emit_status.call_args.args[0],
+                    )
+
+
+
 if __name__ == "__main__":
     unittest.main()
