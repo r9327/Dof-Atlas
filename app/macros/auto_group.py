@@ -316,7 +316,7 @@ class AutoGroupMacro:
                 "interrompu" if (stopped or focus_lost
                                   or self.runtime.settings is not settings_at_start
                                   or sender.handle != sender_hwnd
-                                  or settings_at_start.macro_mode != mode_at_start)
+                                  or dispatch_context_changed())
                 else "ignore" if not eligible
                 else "termine" if sent == eligible
                 else "partiel"

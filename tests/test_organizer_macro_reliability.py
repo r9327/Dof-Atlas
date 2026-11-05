@@ -4672,5 +4672,124 @@ class OrganizerMacroReliabilityTests(unittest.TestCase):
                 self.assertIn("interrompu", runtime._emit_status.call_args.args[0])
 
 
+    def test_auto_group_last_invite_favorite_change_is_interrupted_2_to_8(self):
+        for count in (2, 4, 6, 8):
+            with self.subTest(clients=count):
+                runtime = _runtime()
+                runtime.settings.primary_handle = 101
+                runtime.settings.macro_mode = "macro"
+                runtime.settings.timings.auto_group_invite_gap_ms = 0
+                runtime.switch_character.logical_active_client.return_value = (
+                    SimpleNamespace(handle=101, display_name="Leader")
+                )
+                entries = [
+                    {"name": f"Friend{i}", "handle": 101 + i}
+                    for i in range(1, count)
+                ]
+                sent = []
+
+                def chat(*_args, **_kwargs):
+                    sent.append(True)
+                    if len(sent) == count - 1:
+                        runtime.settings.primary_handle = 101 + count - 1
+                    return True
+
+                with (
+                    patch("app.macros.auto_group.is_unity_window", return_value=True),
+                    patch("app.macros.auto_group.is_dofus_unity_process",
+                          return_value=True),
+                    patch("app.macros.auto_group.activate_window", return_value=True),
+                    patch("app.macros.auto_group.foreground_window", return_value=101),
+                    patch("app.macros.auto_group.send_chat_command",
+                          side_effect=chat),
+                ):
+                    AutoGroupMacro(runtime)._run(entries)
+                self.assertEqual(len(sent), count - 1)
+                runtime.switch_character.restore_preferred_client.assert_not_called()
+                runtime.logger.info.assert_any_call(
+                    "Auto groupe %s: envoyes=%s/%s candidats=%s sender=%s",
+                    "interrompu", count - 1, count - 1, count - 1, 101,
+                )
+
+    def test_direction_last_key_favorite_change_is_interrupted_2_to_8(self):
+        for count in (2, 4, 6, 8):
+            with self.subTest(clients=count):
+                runtime = _runtime()
+                runtime.settings.primary_handle = 101
+                runtime.settings.macro_mode = "macro"
+                clients = [SimpleNamespace(handle=101 + i) for i in range(count)]
+                runtime.switch_character.ordered_clients_from_source.return_value = clients
+                runtime.settings.client_by_handle.return_value = clients[0]
+                active = [101]
+                emitted = []
+
+                def activate(hwnd, *_args, **_kwargs):
+                    active[0] = hwnd
+                    return True
+
+                def send(*_args):
+                    emitted.append(True)
+                    if len(emitted) == count:
+                        runtime.settings.primary_handle = 101 + count - 1
+
+                with (
+                    patch("app.macros.direction.foreground_window",
+                          side_effect=lambda: active[0]),
+                    patch("app.macros.direction.is_unity_window", return_value=True),
+                    patch("app.macros.direction.is_dofus_unity_process",
+                          return_value=True),
+                    patch("app.macros.direction.activate_window",
+                          side_effect=activate),
+                    patch("app.macros.direction.press_key",
+                          side_effect=send),
+                ):
+                    DirectionMacro(runtime)._run("HOME")
+                self.assertEqual(len(emitted), count)
+                runtime.switch_character.restore_preferred_client.assert_not_called()
+                runtime.logger.info.assert_any_call(
+                    "Switch deplacement %s: envoyes=%s/%s",
+                    "interrompu", count, count,
+                )
+
+    def test_zaap_last_command_favorite_change_is_interrupted_2_to_8(self):
+        for count in (2, 4, 6, 8):
+            with self.subTest(clients=count):
+                runtime = _runtime()
+                runtime.settings.primary_handle = 101
+                runtime.settings.macro_mode = "macro"
+                clients = [SimpleNamespace(handle=101 + i) for i in range(count)]
+                runtime.switch_character.ordered_clients_from_source.return_value = clients
+                active = [101]
+                sent = []
+
+                def activate(hwnd, *_args, **_kwargs):
+                    active[0] = hwnd
+                    return True
+
+                def chat(*_args, **_kwargs):
+                    sent.append(True)
+                    if len(sent) == count:
+                        runtime.settings.primary_handle = 101 + count - 1
+                    return True
+
+                with (
+                    patch("app.macros.zaap.is_unity_window", return_value=True),
+                    patch("app.macros.zaap.is_dofus_unity_process",
+                          return_value=True),
+                    patch("app.macros.zaap.activate_window",
+                          side_effect=activate),
+                    patch("app.macros.zaap.foreground_window",
+                          side_effect=lambda: active[0]),
+                    patch("app.macros.zaap.send_chat_command",
+                          side_effect=chat),
+                ):
+                    ZaapMacro(runtime)._run("/zaap 1,2")
+                self.assertEqual(len(sent), count)
+                runtime.switch_character.restore_preferred_client.assert_not_called()
+                runtime.logger.info.assert_any_call(
+                    "Auto zaap %s: envoyes=%s/%s", "interrompu", count, count,
+                )
+
+
 if __name__ == "__main__":
     unittest.main()

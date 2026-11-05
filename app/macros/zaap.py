@@ -296,7 +296,7 @@ class ZaapMacro:
                 "interrompu" if (self.runtime.macro_lock.should_stop() or focus_lost
                                   or self.runtime.settings is not settings_at_start
                                   or not frozen_roster_intact()
-                                  or settings_at_start.macro_mode != mode_at_start)
+                                  or dispatch_context_changed())
                 else "termine" if sent == len(clients)
                 else "partiel"
             )
