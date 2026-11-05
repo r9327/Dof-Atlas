@@ -104,6 +104,33 @@ jobs:
         with:
           python-version: "3.13"
 
+      - name: Record diagnostic provenance (not a certification)
+        shell: bash
+        run: |
+          python - <<'PY'
+          import json
+          import os
+          import platform
+          import sys
+          from pathlib import Path
+          report = {
+              "schema_version": 1,
+              "kind": "atlas_on_demand_development_diagnostic",
+              "pr_number": int(os.environ["PR_NUMBER"]),
+              "mode": os.environ["MODE"],
+              "candidate_sha": os.environ["HEAD_SHA"],
+              "base_sha": os.environ["BASE_SHA"],
+              "run_id": os.environ["GITHUB_RUN_ID"],
+              "run_attempt": os.environ["GITHUB_RUN_ATTEMPT"],
+              "runner_os": platform.platform(),
+              "python": sys.version.split()[0],
+              "phase_certified": False,
+              "full_suite_executed": False,
+          }
+          out = Path("artifacts/doctor_on_demand/provenance.json")
+          out.write_text(json.dumps(report, indent=2) + "\\n", encoding="utf-8")
+          PY
+
       - name: Run canonical Doctor adaptive scope and safe selected tests
         if: env.MODE == 'doctor'
         shell: bash
@@ -137,6 +164,11 @@ jobs:
           root = Path("graphify-out")
           graph_path = root / "graph.json"
           graph = json.loads(graph_path.read_text(encoding="utf-8"))
+          doctor = json.loads(Path("artifacts/doctor_on_demand/graph_doctor.json").read_text(encoding="utf-8"))
+          assert doctor.get("status") == "PASS", "Doctor rejected graph generation"
+          audit = doctor.get("graph_audit") or {}
+          assert audit.get("status") in {"PASS", "REVIEW"}, "Graphify audit failed"
+          assert not audit.get("blocking_findings"), "Confirmed structural blocking findings"
           assert graph.get("built_at_commit") == os.environ["HEAD_SHA"], "STALE Graphify SHA"
           assert graph.get("nodes") and graph.get("links"), "Empty Graphify topology"
           assert (root / "graph.html").is_file(), "Graphify HTML missing"
