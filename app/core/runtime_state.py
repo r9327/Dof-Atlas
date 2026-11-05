@@ -849,19 +849,24 @@ class AtlasRuntime:
         # The physical click can arrive while the UI switches Macro/Miroir.
         # A mode decision made before a profile reload is not authority to
         # broadcast the event under the new mode.
-        if settings.macro_mode != "mirror" or not settings.primary_handle:
+        source_hwnd = settings.primary_handle
+        if (settings.macro_mode != "mirror"
+                or type(source_hwnd) is not int
+                or not 0 < source_hwnd <= (2**64 - 1)):
             return False
         # Check the focused/pointed window BEFORE scanning the roster.
         # Physical mouse hooks run globally, including over other apps.
-        if foreground_window() != settings.primary_handle:
+        if foreground_window() != source_hwnd:
             return False
         if find_known_client_from_point(
-            screen_x, screen_y, (settings.primary_handle,),
-        ) != settings.primary_handle:
+            screen_x, screen_y, (source_hwnd,),
+        ) != source_hwnd:
             return False
-        favorite = settings.client_by_handle(settings.primary_handle)
-        if (favorite is None or not is_unity_window(favorite.handle)
-                or not is_dofus_unity_process(favorite.handle)):
+        favorite = settings.client_by_handle(source_hwnd)
+        if (favorite is None or type(favorite.handle) is not int
+                or favorite.handle != source_hwnd
+                or not is_unity_window(source_hwnd)
+                or not is_dofus_unity_process(source_hwnd)):
             return False
         # The source click will be consumed only if *every* configured
         # character is still valid. Filtering missing windows would create
@@ -870,39 +875,55 @@ class AtlasRuntime:
         if (not 2 <= len(live_handles) <= 8
                 or any(type(hwnd) is not int or not 0 < hwnd <= (2**64 - 1) for hwnd in live_handles)
                 or len(set(live_handles)) != len(live_handles)
-                or favorite.handle not in live_handles):
+                or source_hwnd not in live_handles):
             return False
         if not all(
             is_unity_window(hwnd) and is_dofus_unity_process(hwnd)
-            for hwnd in live_handles if hwnd != favorite.handle
+            for hwnd in live_handles if hwnd != source_hwnd
         ):
             return False
-        # Do not swallow a physical DOWN for the old favorite if Organizer
-        # reloaded while Win32 was verifying the 2–8 client processes.
-        if self.settings is not settings:
+        # A Win32 probe may yield while Organizer mutates its existing
+        # settings object. An unchanged object reference is not sufficient
+        # to consume the old physical DOWN.
+        def roster_still_current() -> bool:
+            return (
+                self.settings is settings
+                and settings.macro_mode == "mirror"
+                and type(settings.primary_handle) is int
+                and settings.primary_handle == source_hwnd
+                and type(favorite.handle) is int
+                and favorite.handle == source_hwnd
+                and tuple((type(client.handle), client.handle)
+                          for client in settings.clients)
+                == tuple((int, hwnd) for hwnd in live_handles)
+            )
+
+        if not roster_still_current():
             return False
         destinations = mirror_delivery_targets(
-            live_handles, live_handles, favorite.handle, source_was_consumed=True,
+            live_handles, live_handles, source_hwnd, source_was_consumed=True,
         )
-        if len(destinations) < 2 or self.settings is not settings:
+        if len(destinations) < 2 or not roster_still_current():
             return False
         # mirror_delivery_targets preserves Organizer slot order, whereas
         # the click worker requires the starred physical source first. A
         # favorite in a later slot must not make an otherwise valid gesture
         # fail the worker's roster identity check after its DOWN was eaten.
         ordered_destinations = (
-            favorite.handle,
-            *(hwnd for hwnd in destinations if hwnd != favorite.handle),
+            source_hwnd,
+            *(hwnd for hwnd in destinations if hwnd != source_hwnd),
         )
         if busy:
             # Direct calls remain fail-safe while a worker owns the pointer.
             # MouseHook suppresses these physical DOWNs before this callback.
             AtlasRuntime._report_mirror_busy_input(self, "clic")
             return True
+        if not roster_still_current():
+            return False
         try:
             return bool(self.switch_click.run_async(
                 button, screen_x, screen_y, 1, "Miroir",
-                exact_source_handle=favorite.handle,
+                exact_source_handle=source_hwnd,
                 mirror_target_handles=ordered_destinations,
                 expected_profile=settings,
             ))

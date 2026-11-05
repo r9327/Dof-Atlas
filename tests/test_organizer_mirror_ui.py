@@ -5514,6 +5514,61 @@ class OrganizerMirrorIntegrationTests(unittest.TestCase):
                     )
 
 
+    def test_mirror_click_inplace_mutation_during_native_preflight_keeps_down(self):
+        from app.core.runtime_state import AtlasRuntime
+        from app.macros.mirror_plan import mirror_delivery_targets as planner
+
+        for count in (2, 4, 6, 8):
+            for mutation in ("mode", "favorite", "roster", "source"):
+                for timing in ("native", "planner"):
+                    with self.subTest(count=count, mutation=mutation, timing=timing):
+                        handles = tuple(range(101, 101 + count))
+                        source = handles[-1]
+                        runtime = self._runtime(primary=source, handles=handles)
+                        profile = runtime.settings
+
+                        def mutate():
+                            if mutation == "mode":
+                                profile.macro_mode = "macro"
+                            elif mutation == "favorite":
+                                profile.primary_handle = handles[0]
+                            elif mutation == "roster":
+                                profile.clients = (
+                                    *profile.clients[:-1],
+                                    SimpleNamespace(handle=999),
+                                )
+                            else:
+                                profile.clients[-1].handle = 999
+
+                        def identity(_hwnd):
+                            if timing == "native":
+                                mutate()
+                            return True
+
+                        def plan(*args, **kwargs):
+                            found = planner(*args, **kwargs)
+                            if timing == "planner":
+                                mutate()
+                            return found
+
+                        with (
+                            patch("app.windows.unity_windows.foreground_window",
+                                  return_value=source),
+                            patch("app.windows.unity_windows.find_known_client_from_point",
+                                  return_value=source),
+                            patch("app.windows.unity_windows.is_unity_window",
+                                  return_value=True),
+                            patch("app.macros.mirror_plan.is_dofus_unity_process",
+                                  side_effect=identity),
+                            patch("app.macros.mirror_plan.mirror_delivery_targets",
+                                  side_effect=plan),
+                        ):
+                            self.assertFalse(AtlasRuntime._handle_mirror_click(
+                                runtime, "Left", 24, 32,
+                            ))
+                        runtime.switch_click.run_async.assert_not_called()
+
+
 
 if __name__ == "__main__":
     unittest.main()
