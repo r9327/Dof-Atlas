@@ -117,7 +117,12 @@ class MirrorInputMacro:
         # without re-querying every Windows process O(n²) per gesture.
         # Native process identity is verified once for the whole roster at
         # dispatch, then for each recipient immediately before sending.
-        live = tuple(c.handle for c in settings.clients)
+        clients = getattr(settings, "clients", None)
+        if not isinstance(clients, (list, tuple)) or len(clients) != len(handles):
+            return False
+        # A malformed or concurrently replaced client record must not raise
+        # from a hook callback, worker preflight, or emergency cleanup.
+        live = tuple(getattr(c, "handle", None) for c in clients)
         # Python considers 202.0 == 202 and True == 1: never let a
         # non-Win32 roster alias authorize consuming a physical gesture.
         if any(type(hwnd) is not int or not 0 < hwnd <= (2**64 - 1)

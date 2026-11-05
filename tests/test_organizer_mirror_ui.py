@@ -5855,5 +5855,60 @@ class OrganizerMirrorIntegrationTests(unittest.TestCase):
 
 
 
+    def test_mirror_input_rejects_unreadable_rosters_without_spawning(self):
+        from app.macros.mirror_input import MirrorInputMacro
+
+        for count in (2, 4, 6, 8):
+            handles = tuple(range(101, 101 + count))
+            for kind in ("key", "wheel"):
+                for malformed in ("none", "number", "string", "wrong_length",
+                                  "missing_handle", "invalid_handle"):
+                    with self.subTest(clients=count, kind=kind, roster=malformed):
+                        runtime = self._runtime(primary=handles[0], handles=handles)
+                        if malformed == "none":
+                            runtime.settings.clients = None
+                        elif malformed == "number":
+                            runtime.settings.clients = 101
+                        elif malformed == "string":
+                            runtime.settings.clients = "101"
+                        elif malformed == "wrong_length":
+                            runtime.settings.clients = runtime.settings.clients[:-1]
+                        elif malformed == "missing_handle":
+                            runtime.settings.clients = (
+                                *runtime.settings.clients[:-1], object(),
+                            )
+                        else:
+                            runtime.settings.clients = (
+                                *runtime.settings.clients[:-1],
+                                SimpleNamespace(handle=True),
+                            )
+                        macro = MirrorInputMacro(runtime)
+                        self.assertFalse(macro._still_current(handles[0], handles))
+                        if kind == "key":
+                            accepted = macro.run_key(65, handles[0], handles)
+                        else:
+                            accepted = macro.run_wheel(
+                                120, False, 0.5, 0.5, handles[0], handles,
+                            )
+                        self.assertFalse(accepted)
+                        runtime._spawn_macro.assert_not_called()
+                        with (
+                            patch("app.macros.mirror_input.activate_window") as activate,
+                            patch("app.macros.mirror_input.is_dofus_unity_process") as probe,
+                            patch("app.macros.mirror_input.current_cursor_pos") as cursor,
+                        ):
+                            macro._run(
+                                kind, 65 if kind == "key" else (120, False, 0.5, 0.5),
+                                handles[0], handles, profile_at_dispatch=runtime.settings,
+                            )
+                        probe.assert_not_called()
+                        activate.assert_not_called()
+                        cursor.assert_not_called()
+                        runtime.input_state.begin_mouse_block.assert_not_called()
+                        runtime._emit_status.assert_called_once_with(
+                            "Miroir non diffusé : profil Organizer modifié."
+                        )
+
+
 if __name__ == "__main__":
     unittest.main()
