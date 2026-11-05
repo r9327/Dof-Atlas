@@ -19,6 +19,8 @@ class SwitchCharacterMacro:
         self, client_index: int, *, expected_profile: object | None = None,
     ) -> bool:
         settings = self.runtime.settings
+        favorite_at_dispatch = settings.primary_handle
+        mode_at_dispatch = settings.macro_mode
         # A "next" selection may be calculated while native process probes
         # yield to a profile reload. Never route an old slot into a replacement.
         if expected_profile is not None and settings is not expected_profile:
@@ -64,9 +66,14 @@ class SwitchCharacterMacro:
             def target_is_current() -> bool:
                 # A new settings object is a new Organizer generation even
                 # when the same slot/handle were reloaded from disk.
-                return self.runtime.settings is settings and any(
-                    client.index == target_index and client.handle == target_handle
-                    for client in settings.clients
+                return (
+                    self.runtime.settings is settings
+                    and settings.primary_handle == favorite_at_dispatch
+                    and settings.macro_mode == mode_at_dispatch
+                    and any(
+                        client.index == target_index and client.handle == target_handle
+                        for client in settings.clients
+                    )
                 )
 
             if not target_is_current():
@@ -130,6 +137,15 @@ class SwitchCharacterMacro:
                     target_handle,
                 )
 
+        # An in-place preference edit during hotkey resolution must not
+        # reserve a worker for an obsolete Organizer generation.
+        if (self.runtime.settings is not settings
+                or settings.primary_handle != favorite_at_dispatch
+                or settings.macro_mode != mode_at_dispatch):
+            self.runtime.logger.info(
+                "Activation client annulée: favori ou mode modifié avant worker."
+            )
+            return False
         return self.runtime._spawn_macro("Activation client", run)
 
     def activate_next(self, *, expected_profile: object | None = None) -> bool:
