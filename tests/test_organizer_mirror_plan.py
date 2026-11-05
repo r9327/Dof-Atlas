@@ -239,6 +239,23 @@ class OrganizerMirrorPlanTests(unittest.TestCase):
                 (selected,),
             )
 
+    def test_mirror_latency_refuses_non_measurements_and_preserves_quantiles(self) -> None:
+        from decimal import Decimal
+        for count in (2, 4, 6, 8):
+            with self.subTest(clients=count):
+                measured = [float(5 + i) for i in range(count)]
+                contaminated = [
+                    True, False, "999", Decimal("777"), object(),
+                    float("nan"), float("inf"), -10.0, 10**1000,
+                    *measured,
+                ]
+                self.assertEqual(
+                    mirror_latency_percentiles_ms(contaminated),
+                    mirror_latency_percentiles_ms(measured),
+                )
+        self.assertIsNone(mirror_latency_percentiles_ms([True, False, "9"]))
+
+
 
 if __name__ == "__main__":
     unittest.main()

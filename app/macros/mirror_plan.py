@@ -154,6 +154,10 @@ def mirror_latency_percentiles_ms(samples_ms: Iterable[float]) -> dict[str, floa
 
     clean: list[float] = []
     for sample in samples_ms:
+        # Metrics are measured durations, never booleans or numeric-looking
+        # labels. Coercing True or "999" invents samples and corrupts p95.
+        if type(sample) not in (int, float):
+            continue
         try:
             numeric = float(sample)
         except (TypeError, ValueError, OverflowError):
