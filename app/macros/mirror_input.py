@@ -191,6 +191,7 @@ class MirrorInputMacro:
         # mouse here discards user clicks throughout the 2–8 client fan-out.
         # Wheel replay does move the pointer and needs the native guard.
         mouse_blocked = False
+        mouse_block_started_at: float | None = None
         try:
             if (runtime.settings is not profile_at_start
                     or not self._still_current(source, handles)):
@@ -223,6 +224,7 @@ class MirrorInputMacro:
             if kind == "wheel":
                 runtime.input_state.begin_mouse_block("Miroir molette")
                 mouse_blocked = True
+                mouse_block_started_at = perf_counter()
             for index, hwnd in enumerate(handles):
                 if (runtime.macro_lock.should_stop()
                         or runtime.settings is not profile_at_start
@@ -444,7 +446,15 @@ class MirrorInputMacro:
                         runtime.logger.exception("Miroir %s: retour au favori impossible.", kind)
             finally:
                 if mouse_blocked:
+                    # Release the physical pointer before diagnostics: a
+                    # slow logger must not extend the saturation window.
                     runtime.input_state.end_mouse_block()
+                    if mouse_block_started_at is not None:
+                        runtime.logger.info(
+                            "Miroir molette blocage_souris_ms=%.2f cibles=%s",
+                            max(0.0, (perf_counter() - mouse_block_started_at) * 1000.0),
+                            len(handles),
+                        )
             from app.macros.mirror_plan import mirror_latency_percentiles_ms
 
             latency = mirror_latency_percentiles_ms(send_samples_ms)

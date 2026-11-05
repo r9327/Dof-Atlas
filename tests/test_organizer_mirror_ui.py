@@ -5910,5 +5910,59 @@ class OrganizerMirrorIntegrationTests(unittest.TestCase):
                         )
 
 
+    def test_mirror_wheel_reports_real_pointer_lease_after_release_2_4_6_8(self):
+        from app.macros.mirror_input import MirrorInputMacro
+        from app.input.input_state import InputState
+
+        for count in (2, 4, 6, 8):
+            with self.subTest(clients=count):
+                handles = tuple(range(101, 101 + count))
+                runtime = self._runtime(primary=handles[0], handles=handles)
+                runtime.input_state = InputState()
+                runtime.settings.timings = SimpleNamespace(
+                    switch_background_pre_click_ms=0,
+                    activate_attempts=1, activate_retry_ms=0,
+                    switch_client_settle_ms=0,
+                )
+                runtime.macro_lock.should_stop.return_value = False
+                runtime.macro_lock.wait.return_value = False
+                active = [handles[0]]
+
+                def activate(hwnd, *_args, **_kwargs):
+                    active[0] = hwnd
+                    return True
+
+                with (
+                    patch("app.macros.mirror_input.is_dofus_unity_process",
+                          return_value=True),
+                    patch("app.macros.mirror_input.current_cursor_pos",
+                          return_value=(12, 14)),
+                    patch("app.macros.mirror_input.activate_window",
+                          side_effect=activate),
+                    patch("app.macros.mirror_input.foreground_window",
+                          side_effect=lambda: active[0]),
+                    patch("app.macros.mirror_input.client_point_from_ratio",
+                          return_value=(8, 9)),
+                    patch("app.macros.mirror_input.client_to_screen",
+                          return_value=(80, 90)),
+                    patch("app.macros.mirror_input.set_cursor_pos"),
+                    patch("app.macros.mirror_input.send_screen_wheel",
+                          return_value=True),
+                ):
+                    MirrorInputMacro(runtime)._run(
+                        "wheel", (120, False, 0.5, 0.5), handles[0], handles,
+                    )
+                self.assertFalse(runtime.input_state.is_mouse_blocked())
+                matches = [
+                    call for call in runtime.logger.info.call_args_list
+                    if call.args and call.args[0] ==
+                    "Miroir molette blocage_souris_ms=%.2f cibles=%s"
+                ]
+                self.assertEqual(len(matches), 1)
+                self.assertGreaterEqual(matches[0].args[1], 0.0)
+                self.assertEqual(matches[0].args[2], count)
+
+
+
 if __name__ == "__main__":
     unittest.main()
