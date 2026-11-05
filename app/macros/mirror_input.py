@@ -52,7 +52,10 @@ class MirrorInputMacro:
         # The native hook must pass through the physical key if a profile
         # reload happened during worker admission. The queued worker checks
         # this same generation again before touching Win32.
-        return bool(started and self.runtime.settings is profile_at_dispatch)
+        return bool(
+            started and self.runtime.settings is profile_at_dispatch
+            and self._still_current(source, handles)
+        )
 
     def run_wheel(
         self, delta: int, horizontal: bool, x_ratio: float, y_ratio: float,
@@ -81,7 +84,10 @@ class MirrorInputMacro:
         )
         # Reject a newly obsolete wheel before the hook swallows its native
         # physical event; do not queue a stale follow-up for a new profile.
-        return bool(started and self.runtime.settings is profile_at_dispatch)
+        return bool(
+            started and self.runtime.settings is profile_at_dispatch
+            and self._still_current(source, handles)
+        )
 
     def _still_current(self, source: int, handles: tuple[int, ...]) -> bool:
         """Cheap roster check; native DOFUS identity is validated separately.
@@ -139,6 +145,15 @@ class MirrorInputMacro:
             runtime._emit_status(
                 "Miroir non diffusé : profil Organizer modifié."
             )
+            return
+        # Dispatch-to-worker gaps can mutate the same in-memory Organizer
+        # profile. Refuse the old key/wheel before even reading the cursor,
+        # not only when the settings object was replaced.
+        if profile_at_dispatch is not None and not self._still_current(source, handles):
+            runtime.logger.warning(
+                "Miroir %s annulé: favori ou roster modifié avant worker.", kind,
+            )
+            runtime._emit_status("Miroir non diffusé : profil Organizer modifié.")
             return
         timings = profile_at_start.timings
         start = perf_counter()

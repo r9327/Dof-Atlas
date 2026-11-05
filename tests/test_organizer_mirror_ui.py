@@ -371,6 +371,59 @@ class OrganizerMirrorIntegrationTests(unittest.TestCase):
                         runtime.input_state.begin_mouse_block.assert_not_called()
                         runtime.switch_character.restore_preferred_client.assert_not_called()
 
+    def test_mirror_inplace_mutation_during_admission_never_consumes_key_or_wheel(self):
+        from app.macros.mirror_input import MirrorInputMacro
+
+        for count in (2, 4, 6, 8):
+            for kind in ("key", "wheel"):
+                for change in ("mode", "favorite", "roster", "float_alias"):
+                    with self.subTest(clients=count, kind=kind, change=change):
+                        handles = tuple(range(101, 101 + count))
+                        runtime = self._runtime(primary=handles[0], handles=handles)
+                        queued = []
+
+                        def spawn(_label, worker):
+                            queued.append(worker)
+                            if change == "mode":
+                                runtime.settings.macro_mode = "macro"
+                            elif change == "favorite":
+                                runtime.settings.primary_handle = handles[-1]
+                            elif change == "float_alias":
+                                runtime.settings.clients[-1].handle = float(handles[-1])
+                            else:
+                                runtime.settings.clients[-1].handle = 999
+                            return True
+
+                        runtime._spawn_macro.side_effect = spawn
+                        macro = MirrorInputMacro(runtime)
+                        if kind == "key":
+                            self.assertFalse(macro.run_key(
+                                65, handles[0], handles,
+                            ))
+                        else:
+                            self.assertFalse(macro.run_wheel(
+                                120, False, 0.4, 0.6, handles[0], handles,
+                            ))
+                        self.assertEqual(len(queued), 1)
+                        with (
+                            patch("app.macros.mirror_input.current_cursor_pos") as cursor,
+                            patch("app.macros.mirror_input.activate_window") as focus,
+                            patch("app.macros.mirror_input.is_dofus_unity_process") as process,
+                            patch("app.macros.mirror_input.send_screen_wheel") as wheel,
+                            patch("app.macros.input_tools.key_down") as key,
+                        ):
+                            queued[0]()
+                        cursor.assert_not_called()
+                        focus.assert_not_called()
+                        process.assert_not_called()
+                        wheel.assert_not_called()
+                        key.assert_not_called()
+                        runtime.input_state.begin_mouse_block.assert_not_called()
+                        runtime.switch_character.restore_preferred_client.assert_not_called()
+                        runtime._emit_status.assert_called_once_with(
+                            "Miroir non diffusé : profil Organizer modifié."
+                        )
+
     def test_mirror_admission_rejects_profile_reloaded_during_spawn_2_to_8(self):
         from app.macros.mirror_input import MirrorInputMacro
 
