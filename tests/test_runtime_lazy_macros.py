@@ -175,8 +175,7 @@ class MacroWorkerStartupTests(unittest.TestCase):
         runtime.logger = logging.getLogger("test-organizer-macro-worker-start")
         runtime._threads = []
         runtime.macro_lock = Mock()
-        runtime.macro_lock.try_begin.return_value = True
-        runtime.macro_lock.active_generation = 42
+        runtime.macro_lock.try_begin_generation.return_value = 42
         runtime._emit_status = Mock()
         return runtime
 

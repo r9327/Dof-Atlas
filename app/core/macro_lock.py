@@ -58,11 +58,12 @@ class MacroLock:
     def unbind_worker(self) -> None:
         self._worker_generation.token = None
 
-    def try_begin(self, label: str) -> bool:
+    def try_begin_generation(self, label: str) -> int | None:
+        """Atomically reserve a macro worker and return its exact lease ID."""
         with self._lock:
             if self._lease is not None:
                 self._logger.debug("%s ignore: boucle macro deja en cours active=%s", label, self._lease.label)
-                return False
+                return None
             self.stop_event.clear()
             self._generation += 1
             self._lease = MacroLease(
@@ -70,7 +71,11 @@ class MacroLock:
                 generation=self._generation,
             )
             self._logger.info("Macro debut: action=%s", label)
-            return True
+            return self._generation
+
+    def try_begin(self, label: str) -> bool:
+        # Legacy callers still receive an unchanged boolean contract.
+        return self.try_begin_generation(label) is not None
 
     def end(self, label: str | None = None, *, generation: int | None = None) -> None:
         with self._lock:

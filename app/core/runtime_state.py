@@ -522,15 +522,11 @@ class AtlasRuntime:
         self._emit_status("Stop urgence: macros Python arretees.")
 
     def _spawn_macro(self, label: str, target: Callable[[], None]) -> bool:
-        if not self.macro_lock.try_begin(label):
-            return False
-        # A repeated label (e.g. two Miroir clicks) is not a lease identity.
-        # Capture the exact generation before the worker thread is scheduled.
-        generation = self.macro_lock.active_generation
+        # Reservation and generation capture must be one atomic step. A
+        # Stop/restart between two separate reads must not attach this runner
+        # to a newer macro with the same label.
+        generation = self.macro_lock.try_begin_generation(label)
         if type(generation) is not int:
-            self.logger.warning(
-                "%s refusé: bail modifié avant création du worker.", label,
-            )
             return False
 
         def runner() -> None:
