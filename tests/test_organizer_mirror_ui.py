@@ -4697,6 +4697,88 @@ class OrganizerMirrorIntegrationTests(unittest.TestCase):
                 )
 
 
+    def test_classic_click_frozen_hwnd_rejects_native_mutation_2_to_8(self):
+        from app.macros.switch_click import SwitchClickMacro, SwitchClickContext
+
+        for count in (2, 4, 6, 8):
+            for phase in ("process", "activation", "point", "send"):
+                with self.subTest(clients=count, phase=phase):
+                    runtime = Mock()
+                    runtime.settings.primary_handle = 101
+                    runtime.settings.timings = SimpleNamespace(
+                        switch_background_pre_click_ms=0, activate_attempts=1,
+                        activate_retry_ms=0, switch_click_down_ms=35,
+                        input_double_gap_ms=5, switch_background_post_up_ms=0,
+                        switch_client_settle_ms=0,
+                    )
+                    clients = [
+                        SimpleNamespace(handle=101 + i,
+                                        display_name=f"Player{i + 1}")
+                        for i in range(count)
+                    ]
+                    runtime.switch_character.ordered_clients_from_source.return_value = clients
+                    runtime.macro_lock.should_stop.return_value = False
+                    runtime.macro_lock.wait.return_value = False
+                    context = SwitchClickContext(101, 20, 30, 0.5, 0.5, "cursor")
+                    macro = SwitchClickMacro(runtime)
+                    target = clients[1]
+                    sent = []
+
+                    def process(_hwnd):
+                        if phase == "process":
+                            target.handle = 999
+                        return True
+
+                    def activate(hwnd, *_args, **kwargs):
+                        self.assertEqual(hwnd, 102)
+                        if phase == "activation":
+                            target.handle = 999
+                            self.assertTrue(kwargs["should_stop"]())
+                        return True
+
+                    def point(hwnd, _context):
+                        self.assertEqual(hwnd, 102)
+                        if phase == "point":
+                            target.handle = 999
+                        return (20, 30)
+
+                    def send(hwnd, *_args, **kwargs):
+                        self.assertEqual(hwnd, 102)
+                        sent.append(hwnd)
+                        if phase == "send":
+                            target.handle = 999
+                            self.assertTrue(kwargs["should_stop"]())
+                        return True
+
+                    with (
+                        patch.object(macro, "_validated_context", return_value=context),
+                        patch.object(macro, "_target_point", side_effect=point),
+                        patch("app.macros.switch_click.current_cursor_pos",
+                              return_value=(12, 14)),
+                        patch("app.macros.switch_click.set_cursor_pos") as move,
+                        patch("app.macros.switch_click.is_unity_window",
+                              return_value=True),
+                        patch("app.macros.switch_click.is_dofus_unity_process",
+                              side_effect=process if phase == "process" else None,
+                              return_value=True),
+                        patch("app.macros.switch_click.activate_window",
+                              side_effect=activate) as focus,
+                        patch("app.macros.switch_click.foreground_window",
+                              return_value=102),
+                        patch("app.macros.switch_click.send_client_click",
+                              side_effect=send) as click,
+                    ):
+                        macro._run(
+                            "Left", 1, "Switch clique", context,
+                            physical_source_delivered=True,
+                        )
+                    self.assertEqual(focus.call_count, 0 if phase == "process" else 1)
+                    self.assertEqual(click.call_count, 1 if phase == "send" else 0)
+                    self.assertEqual(sent, [102] if phase == "send" else [])
+                    move.assert_not_called()
+                    runtime.switch_character.restore_preferred_client.assert_not_called()
+                    runtime.input_state.end_mouse_block.assert_called_once()
+
     def test_classic_click_refuses_foreign_unity_target_before_activation(self):
         from app.macros.switch_click import SwitchClickMacro, SwitchClickContext
 

@@ -183,6 +183,18 @@ class SwitchClickMacro:
         mirror_started_at = perf_counter() if action_label == "Miroir" else None
         mirror_send_samples: list[float] = []
         mirror_focus_samples: list[float] = []
+        targets = []
+        frozen_handles: tuple[int, ...] = ()
+
+        def target_roster_intact() -> bool:
+            # Ordered clients contain mutable Organizer records. Use HWNDs
+            # accepted before Win32 yields, never their reassigned values.
+            return (
+                self.runtime.settings is settings_at_start
+                and len(targets) == len(frozen_handles)
+                and all(client.handle == hwnd
+                        for client, hwnd in zip(targets, frozen_handles))
+            )
 
         try:
             if self.runtime.settings is not settings_at_start:
@@ -234,10 +246,17 @@ class SwitchClickMacro:
                 context.source_hwnd
             )
             target_total = len(targets)
+            frozen_handles = tuple(client.handle for client in targets)
+            if not target_roster_intact():
+                delivery_failed = True
+                self.runtime.logger.warning(
+                    "%s interrompu: roster modifié pendant capture.", action_label,
+                )
+                return
             if mirror_target_handles is not None:
                 # Never fan out to a client that appeared after the physical
                 # click, or to a different favorite during an active gesture.
-                actual_handles = tuple(client.handle for client in targets)
+                actual_handles = frozen_handles
                 captured_handles = tuple(mirror_target_handles)
                 if (
                     len(captured_handles) < 2
@@ -326,8 +345,15 @@ class SwitchClickMacro:
             if physical_source_delivered and self.runtime.macro_lock.wait(60):
                 return
 
-            for index, client in enumerate(targets):
-                if physical_source_delivered and client.handle == context.source_hwnd:
+            for index, (client, target_hwnd) in enumerate(zip(targets, frozen_handles)):
+                if not target_roster_intact():
+                    delivery_failed = True
+                    self.runtime.logger.warning(
+                        "%s interrompu: session modifiée avant clic hwnd=%s",
+                        action_label, target_hwnd,
+                    )
+                    return
+                if physical_source_delivered and target_hwnd == context.source_hwnd:
                     sent_count += 1  # native UP was forwarded; never inject twice
                     continue
                 if (self.runtime.macro_lock.should_stop()
@@ -335,23 +361,25 @@ class SwitchClickMacro:
                     self.runtime.logger.info(
                         "%s stoppé ou profil remplacé avant hwnd=%s",
                         action_label,
-                        client.handle,
+                        target_hwnd,
                     )
                     return
                 if mirror_target_handles is not None and not mirror_roster_is_current():
                     delivery_failed = True
                     self.runtime.logger.warning(
                         "%s interrompu: roster changé avant clic hwnd=%s",
-                        action_label, client.handle,
+                        action_label, target_hwnd,
                     )
                     return
 
-                if (not is_unity_window(client.handle)
-                        or not is_dofus_unity_process(client.handle)):
+                if (type(target_hwnd) is not int
+                        or not 0 < target_hwnd <= (2**64 - 1)
+                        or not is_unity_window(target_hwnd)
+                        or not is_dofus_unity_process(target_hwnd)):
                     self.runtime.logger.info(
                         "%s fenêtre introuvable/non Unity: hwnd=%s",
                         action_label,
-                        client.handle,
+                        target_hwnd,
                     )
                     if mirror_target_handles is not None:
                         # An already consumed source click must not trigger a
@@ -359,11 +387,14 @@ class SwitchClickMacro:
                         delivery_failed = True
                         return
                     continue
+                if not target_roster_intact():
+                    delivery_failed = True
+                    return
 
                 focus_started_at = perf_counter() if mirror_started_at is not None else None
                 try:
                     activated = activate_window(
-                        client.handle,
+                        target_hwnd,
                         timings.switch_background_pre_click_ms,
                         timings.activate_attempts,
                         timings.activate_retry_ms,
@@ -372,13 +403,14 @@ class SwitchClickMacro:
                         should_stop=lambda: (
                             self.runtime.macro_lock.should_stop()
                             or self.runtime.settings is not settings_at_start
+                            or not target_roster_intact()
                         ),
                     )
                 except Exception:
                     focus_lost = True
                     self.runtime.logger.exception(
                         "%s interrompu: exception focus hwnd=%s",
-                        action_label, client.handle,
+                        action_label, target_hwnd,
                     )
                     return
                 finally:
@@ -387,9 +419,16 @@ class SwitchClickMacro:
                             (perf_counter() - focus_started_at) * 1000.0
                         )
                 if not activated:
+                    if not target_roster_intact():
+                        delivery_failed = True
+                        self.runtime.logger.warning(
+                            "%s interrompu: roster modifié pendant activation hwnd=%s",
+                            action_label, target_hwnd,
+                        )
+                        return
                     self.runtime.logger.info(
                         "%s clic ignoré: activation échec hwnd=%s",
-                        action_label, client.handle,
+                        action_label, target_hwnd,
                     )
                     if mirror_target_handles is not None:
                         focus_lost = True
@@ -398,32 +437,39 @@ class SwitchClickMacro:
 
                 # A successful SetForegroundWindow attempt can become stale
                 # before SendInput. Never click another application or client.
-                if self.runtime.settings is not settings_at_start:
+                if not target_roster_intact():
                     delivery_failed = True
                     return
-                if foreground_window() != int(client.handle):
+                if foreground_window() != int(target_hwnd):
                     focus_lost = True
                     self.runtime.logger.warning(
                         "%s interrompu: focus perdu avant clic hwnd=%s",
-                        action_label, client.handle,
+                        action_label, target_hwnd,
                     )
                     return
                 if mirror_target_handles is not None and not mirror_roster_is_current():
                     delivery_failed = True
                     self.runtime.logger.warning(
                         "%s interrompu: roster changé après focus hwnd=%s",
-                        action_label, client.handle,
+                        action_label, target_hwnd,
                     )
                     return
                 should_restore_preferred = True
-                last_activated_hwnd = int(client.handle)
+                last_activated_hwnd = int(target_hwnd)
 
-                target = self._target_point(client.handle, context)
+                target = self._target_point(target_hwnd, context)
+                if not target_roster_intact():
+                    delivery_failed = True
+                    self.runtime.logger.warning(
+                        "%s interrompu: roster modifié pendant calcul clic hwnd=%s",
+                        action_label, target_hwnd,
+                    )
+                    return
                 if target is None:
                     self.runtime.logger.info(
                         "%s clic ignoré: point cible indisponible hwnd=%s",
                         action_label,
-                        client.handle,
+                        target_hwnd,
                     )
                     if mirror_target_handles is not None:
                         delivery_failed = True
@@ -437,21 +483,22 @@ class SwitchClickMacro:
                         delivery_failed = True
                         self.runtime.logger.warning(
                             "%s interrompu: roster changé après calcul du point hwnd=%s",
-                            action_label, client.handle,
+                            action_label, target_hwnd,
                         )
                         return
                 # Classic SwitchClick needs the same late process guard as
                 # Miroir. A recycled HWND may still be a valid Unity window
                 # while belonging to another game or application.
-                if not is_dofus_unity_process(client.handle):
+                if not is_dofus_unity_process(target_hwnd):
                     delivery_failed = True
                     self.runtime.logger.warning(
                         "%s interrompu: processus remplacé avant clic hwnd=%s",
-                        action_label, client.handle,
+                        action_label, target_hwnd,
                     )
                     return
                 if (self.runtime.macro_lock.should_stop()
-                        or self.runtime.settings is not settings_at_start):
+                        or not target_roster_intact()):
+                    delivery_failed = True
                     return
 
                 double_gap_ms = timings.input_double_gap_ms
@@ -468,7 +515,7 @@ class SwitchClickMacro:
                     "count=%s x=%s y=%s reason=%s",
                     action_label,
                     client.display_name,
-                    client.handle,
+                    target_hwnd,
                     button,
                     click_count,
                     target[0],
@@ -482,7 +529,7 @@ class SwitchClickMacro:
                 # settle tick would scale poorly with eight Unity clients.
                 def send_interrupted() -> bool:
                     if (self.runtime.macro_lock.should_stop()
-                            or self.runtime.settings is not settings_at_start):
+                            or not target_roster_intact()):
                         return True
                     return (
                         mirror_target_handles is not None
@@ -491,7 +538,7 @@ class SwitchClickMacro:
 
                 send_started_at = perf_counter() if mirror_started_at is not None else None
                 delivered = send_client_click(
-                    client.handle,
+                    target_hwnd,
                     target[0],
                     target[1],
                     button,
@@ -508,12 +555,25 @@ class SwitchClickMacro:
                     mirror_send_samples.append((perf_counter() - send_started_at) * 1000.0)
                 if delivered:
                     sent_count += 1
+                    if not target_roster_intact():
+                        delivery_failed = True
+                        self.runtime.logger.warning(
+                            "%s interrompu: roster modifié après clic hwnd=%s",
+                            action_label, target_hwnd,
+                        )
+                        return
                 else:
                     if (self.runtime.macro_lock.should_stop()
                             or self.runtime.settings is not settings_at_start):
                         self.runtime.logger.info(
                             "%s clic interrompu par Stop ou rechargement hwnd=%s",
-                            action_label, client.handle,
+                            action_label, target_hwnd,
+                        )
+                    elif not target_roster_intact():
+                        delivery_failed = True
+                        self.runtime.logger.warning(
+                            "%s interrompu: roster modifié pendant clic hwnd=%s",
+                            action_label, target_hwnd,
                         )
                     elif (
                         mirror_target_handles is not None
@@ -522,14 +582,14 @@ class SwitchClickMacro:
                         delivery_failed = True
                         self.runtime.logger.warning(
                             "%s interrompu: roster changé pendant clic hwnd=%s",
-                            action_label, client.handle,
+                            action_label, target_hwnd,
                         )
-                    elif foreground_window() != int(client.handle):
+                    elif foreground_window() != int(target_hwnd):
                         # A stolen focus may have caused the sender to refuse.
                         focus_lost = True
                         self.runtime.logger.warning(
                             "%s interrompu: focus perdu pendant clic hwnd=%s",
-                            action_label, client.handle,
+                            action_label, target_hwnd,
                         )
                     else:
                         # Never broadcast subsequent clicks after Windows
@@ -537,7 +597,7 @@ class SwitchClickMacro:
                         delivery_failed = True
                         self.runtime.logger.warning(
                             "%s interrompu: SendInput clic refusé hwnd=%s",
-                            action_label, client.handle,
+                            action_label, target_hwnd,
                         )
                     return
 
@@ -558,9 +618,12 @@ class SwitchClickMacro:
                 and not delivery_failed
                 and not self.runtime.macro_lock.should_stop()
                 and self.runtime.settings is settings_at_start
+                and target_roster_intact()
             )
 
             def roster_allows_restore() -> bool:
+                if not target_roster_intact():
+                    return False
                 if mirror_target_handles is None:
                     return True
                 try:
@@ -685,7 +748,7 @@ class SwitchClickMacro:
                 stopped = self.runtime.macro_lock.should_stop()
                 state = (
                     "interrompu" if (stopped or focus_lost
-                                     or self.runtime.settings is not settings_at_start)
+                                     or not target_roster_intact())
                     else "terminé" if sent_count == target_total
                     else "partiel"
                 )
