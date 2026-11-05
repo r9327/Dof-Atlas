@@ -222,7 +222,7 @@ class ZaapMacro:
                             or dispatch_context_changed()):
                         focus_lost = True
                         self.runtime.logger.warning(
-                            "Auto zaap interrompu: focus, identité ou favori perdus après échec du chat hwnd=%s",
+                            "Auto zaap interrompu: focus ou identité DOFUS perdus après échec du chat hwnd=%s",
                             target_hwnd,
                         )
                         return
