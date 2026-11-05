@@ -84,6 +84,96 @@ class OrganizerMacroReliabilityTests(unittest.TestCase):
         self.assertEqual(runtime.logger.warning.call_count, 4)
 
 
+    def test_roster_rejects_current_or_previous_hwnd_mutated_during_native_scan(self):
+        for count in (2, 4, 6, 8):
+            for mutation in ("current", "previous"):
+                with self.subTest(clients=count, mutation=mutation):
+                    runtime = _runtime()
+                    clients = [
+                        SimpleNamespace(index=i + 1, handle=101 + i)
+                        for i in range(count)
+                    ]
+                    runtime.settings.clients = clients
+
+                    def process_check(hwnd):
+                        if (mutation == "current" and hwnd == 101
+                                or mutation == "previous" and hwnd == 102):
+                            clients[0].handle = 999
+                        return True
+
+                    macro = SwitchCharacterMacro(runtime)
+                    with (
+                        patch("app.macros.switch_character.is_unity_window",
+                              return_value=True),
+                        patch("app.macros.switch_character.is_dofus_unity_process",
+                              side_effect=process_check) as process,
+                        patch.object(macro, "logical_active_client") as fallback,
+                    ):
+                        self.assertEqual(
+                            macro.ordered_clients_from_source(101), [],
+                        )
+                    self.assertEqual(process.call_count, 1 if mutation == "current" else 2)
+                    fallback.assert_not_called()
+
+    def test_next_character_never_dispatches_mutated_inplace_slot_2_to_8(self):
+        for count in (2, 4, 6, 8):
+            for mutation in ("current", "previous"):
+                with self.subTest(clients=count, mutation=mutation):
+                    runtime = _runtime()
+                    clients = [
+                        SimpleNamespace(index=i + 1, handle=101 + i,
+                                        display_name=f"Player{i + 1}")
+                        for i in range(count)
+                    ]
+                    runtime.settings.clients = clients
+
+                    def process_check(hwnd):
+                        if (mutation == "current" and hwnd == 101
+                                or mutation == "previous" and hwnd == 102):
+                            clients[0].handle = 999
+                        return True
+
+                    macro = SwitchCharacterMacro(runtime)
+                    with (
+                        patch("app.macros.switch_character.is_unity_window",
+                              return_value=True),
+                        patch("app.macros.switch_character.is_dofus_unity_process",
+                              side_effect=process_check),
+                        patch.object(macro, "activate_by_index") as activate,
+                        patch.object(macro, "logical_active_client") as active,
+                    ):
+                        self.assertFalse(macro.activate_next())
+                    activate.assert_not_called()
+                    active.assert_not_called()
+                    runtime._spawn_macro.assert_not_called()
+
+    def test_roster_healthy_preserves_favorite_first_order_2_to_8(self):
+        for count in (2, 4, 6, 8):
+            for source_index in (0, count - 1):
+                with self.subTest(clients=count, source_index=source_index):
+                    runtime = _runtime()
+                    clients = [
+                        SimpleNamespace(index=i + 1, handle=101 + i)
+                        for i in range(count)
+                    ]
+                    runtime.settings.clients = clients
+                    source = clients[source_index].handle
+                    with (
+                        patch("app.macros.switch_character.is_unity_window",
+                              return_value=True),
+                        patch("app.macros.switch_character.is_dofus_unity_process",
+                              return_value=True) as identity,
+                    ):
+                        result = SwitchCharacterMacro(runtime).ordered_clients_from_source(
+                            source
+                        )
+                    expected = [clients[source_index]] + [
+                        client for i, client in enumerate(clients)
+                        if i != source_index
+                    ]
+                    self.assertEqual(result, expected)
+                    self.assertEqual(identity.call_count, count)
+
     def test_next_character_rejects_identical_profile_reload_while_scanning(self):
         for count in (2, 4, 6, 8):
             with self.subTest(clients=count):
