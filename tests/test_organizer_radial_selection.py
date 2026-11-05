@@ -212,5 +212,48 @@ class OrganizerRadialSelectionTests(unittest.TestCase):
         self.assertEqual(visible[selected_slice(0, 100, 2)]["nom"], "Alpha")
 
 
+    def test_decimal_like_aliases_cannot_select_a_different_window_2_4_6_8(self):
+        for count in (2, 4, 6, 8):
+            valid = [{"nom": f"Perso {i}", "hwnd": 101 + i,
+                      "pid": 300 + i} for i in range(count)]
+            for bad in ("101.0", "1.01e2", "+101", "١٠١",
+                        "9" * 5000, " 101.0 ", 101.0, 101.9):
+                with self.subTest(count=count, bad=repr(bad)):
+                    self.assertEqual(visible_characters(valid, [bad]), [])
+                    snapshot = [dict(valid[0], hwnd=bad)]
+                    self.assertIsNone(confirmed_radial_target(
+                        snapshot, valid, 0,
+                    ))
+                    self.assertEqual(radial_roster_key(
+                        dict(valid[0], hwnd=bad)
+                    ), "")
+
+    def test_valid_ascii_decimal_strings_keep_radial_compatibility(self):
+        for hwnd in (101, "101", " 101 "):
+            with self.subTest(hwnd=repr(hwnd)):
+                entry = {"nom": "Panda", "hwnd": hwnd, "pid": " 42 "}
+                self.assertEqual(
+                    visible_characters([entry], [101]), [entry],
+                )
+                self.assertEqual(radial_roster_key(entry), "unverified:panda:42")
+                self.assertEqual(
+                    confirmed_radial_target([entry], [entry], 0), 101,
+                )
+
+    def test_corrupt_snapshot_entry_and_pid_alias_fail_closed(self):
+        current = [{"nom": "Panda", "hwnd": 101, "pid": 42}]
+        for malformed in (None, False, True, object(), "bad"):
+            with self.subTest(snapshot=repr(malformed)):
+                self.assertIsNone(confirmed_radial_target(
+                    [malformed], current, 0,
+                ))
+        for pid in ("42.0", "+42", "-42", "٤٢", 42.9):
+            with self.subTest(pid=repr(pid)):
+                self.assertEqual(radial_roster_key({
+                    "nom": "Panda", "hwnd": 101, "pid": pid,
+                }), "")
+
+
+
 if __name__ == "__main__":
     unittest.main()

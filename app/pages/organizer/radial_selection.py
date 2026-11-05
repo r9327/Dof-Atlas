@@ -9,6 +9,20 @@ import math
 from typing import Collection, Mapping, Any
 
 
+def _exact_native_id(value: object, maximum: int, *, allow_zero: bool = False) -> int | None:
+    """Accept only real Win32 integer IDs or persisted ASCII decimal text."""
+    if type(value) is int:
+        number = value
+    elif type(value) is str and value.isascii() and value.strip().isdecimal():
+        try:
+            number = int(value.strip())
+        except (ValueError, OverflowError):
+            return None
+    else:
+        return None
+    return number if (0 if allow_zero else 1) <= number <= maximum else None
+
+
 def radial_roster_key(session: Mapping[str, Any]) -> str:
     """A verified character ID when known, otherwise a process-local identity.
 
@@ -21,15 +35,10 @@ def radial_roster_key(session: Mapping[str, Any]) -> str:
         return verified
     name = " ".join(str(session.get("nom") or "").strip().casefold().split())
     raw_pid = session.get("pid")
-    raw_hwnd = session.get("hwnd")
-    if type(raw_pid) not in (int, str, type(None)) or type(raw_hwnd) not in (int, str):
-        return ""
-    try:
-        pid = int(raw_pid or 0)
-        hwnd = int(raw_hwnd or 0)
-    except (TypeError, ValueError, OverflowError):
-        return ""
-    if not name or not 0 < hwnd <= (2**64 - 1) or not 0 <= pid <= (2**32 - 1):
+    pid = _exact_native_id(raw_pid if raw_pid not in (None, "") else 0,
+                           2**32 - 1, allow_zero=True)
+    hwnd = _exact_native_id(session.get("hwnd"), 2**64 - 1)
+    if not name or hwnd is None or pid is None:
         return ""
     return f"unverified:{name}:{pid if pid > 0 else hwnd}"
 
@@ -45,13 +54,8 @@ def visible_characters(
     """
     selected: set[int] = set()
     for value in included_handles:
-        if type(value) not in (int, str):
-            continue
-        try:
-            handle = int(value)
-        except (TypeError, ValueError, OverflowError):
-            continue
-        if 0 < handle <= (2**64 - 1):
+        handle = _exact_native_id(value, 2**64 - 1)
+        if handle is not None:
             selected.add(handle)
     found: list[dict[str, Any]] = []
     seen: set[int] = set()
@@ -59,17 +63,12 @@ def visible_characters(
         if not isinstance(session, Mapping):
             # A malformed legacy/session cache must not crash the picker.
             continue
-        raw_hwnd = session.get("hwnd", 0)
-        if type(raw_hwnd) not in (int, str):
-            continue
-        try:
-            handle = int(raw_hwnd)
-        except (TypeError, ValueError, OverflowError):
+        handle = _exact_native_id(session.get("hwnd", 0), 2**64 - 1)
+        if handle is None:
             continue
         label = str(session.get("nom", "") or "").strip()
         if (
-            not 0 < handle <= (2**64 - 1)
-            or handle not in selected
+            handle not in selected
             or handle in seen
             or not label
             or session.get("_empty_slot")
@@ -160,14 +159,10 @@ def confirmed_radial_target(
             or not 0 <= selected_index < len(snapshot)):
         return None
     original = snapshot[selected_index]
-    raw_handle = original.get("hwnd")
-    if type(raw_handle) not in (int, str):
+    if not isinstance(original, Mapping):
         return None
-    try:
-        handle = int(raw_handle or 0)
-    except (TypeError, ValueError, OverflowError):
-        return None
-    if not 0 < handle <= (2**64 - 1):
+    handle = _exact_native_id(original.get("hwnd"), 2**64 - 1)
+    if handle is None:
         return None
     identity = str(original.get("character_key") or "").strip()
     name = str(original.get("nom") or "").strip()
@@ -175,13 +170,7 @@ def confirmed_radial_target(
     for item in current:
         if not isinstance(item, Mapping):
             continue
-        raw_candidate = item.get("hwnd")
-        if type(raw_candidate) not in (int, str):
-            continue
-        try:
-            candidate = int(raw_candidate or 0)
-        except (TypeError, ValueError, OverflowError):
-            continue
+        candidate = _exact_native_id(item.get("hwnd"), 2**64 - 1)
         if candidate != handle or str(item.get("nom") or "").strip() != name:
             continue
         if identity and str(item.get("character_key") or "").strip() != identity:
