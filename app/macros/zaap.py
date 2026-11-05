@@ -108,6 +108,17 @@ class ZaapMacro:
         # Freeze HWNDs before the native fan-out: Organizer client objects can
         # be modified in place while Win32 yields to the UI thread.
         target_handles = tuple(client.handle for client in clients)
+        if (not 1 <= len(target_handles) <= 8
+                or any(type(hwnd) is not int or not 0 < hwnd <= (2**64 - 1)
+                       for hwnd in target_handles)
+                or len(set(target_handles)) != len(target_handles)):
+            self.runtime.logger.warning(
+                "Auto zaap refusé : liste de clients invalide ou supérieure à huit."
+            )
+            self.runtime._emit_status(
+                "Auto zaap non lancé : clients Organizer invalides."
+            )
+            return
 
         def frozen_roster_intact() -> bool:
             return tuple(client.handle for client in clients) == target_handles

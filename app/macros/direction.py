@@ -96,6 +96,16 @@ class DirectionMacro:
             # Keep a fixed HWND for each physical direction gesture. A mutable
             # Organizer client can be reassigned while focus changes yield.
             target_handles = tuple(client.handle for client in targets)
+            if (not 1 <= len(target_handles) <= 8
+                    or source not in target_handles
+                    or any(type(hwnd) is not int or not 0 < hwnd <= (2**64 - 1)
+                           for hwnd in target_handles)
+                    or len(set(target_handles)) != len(target_handles)):
+                focus_lost = True
+                self.runtime.logger.warning(
+                    "Switch deplacement refusé: liste Organizer invalide ou supérieure à huit."
+                )
+                return
             for client, target_hwnd in zip(targets, target_handles):
                 if (self.runtime.macro_lock.should_stop()
                         or self.runtime.settings is not settings_at_start):

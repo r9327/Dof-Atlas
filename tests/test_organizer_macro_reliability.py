@@ -1605,6 +1605,56 @@ class OrganizerMacroReliabilityTests(unittest.TestCase):
             "interrompu", 0, 1, 2, 101,
         )
 
+    def test_zaap_rejects_duplicate_or_oversized_clients_before_any_focus(self) -> None:
+        for bad_handles in (
+            tuple(range(101, 110)),
+            (101, 202, 202),
+            (101, 202.0),
+            (101, True),
+            (101, 2**64),
+        ):
+            with self.subTest(handles=bad_handles):
+                runtime = _runtime()
+                runtime.switch_character.ordered_clients_from_source.return_value = [
+                    SimpleNamespace(handle=hwnd) for hwnd in bad_handles
+                ]
+                with (
+                    patch("app.macros.zaap.activate_window") as focus,
+                    patch("app.macros.zaap.send_chat_command") as chat,
+                ):
+                    ZaapMacro(runtime)._run("/zaap 1,2")
+                focus.assert_not_called()
+                chat.assert_not_called()
+                runtime._emit_status.assert_called_once_with(
+                    "Auto zaap non lancé : clients Organizer invalides."
+                )
+
+    def test_direction_rejects_duplicate_or_oversized_clients_before_keypress(self) -> None:
+        for bad_handles in (
+            tuple(range(101, 110)),
+            (101, 202, 202),
+            (101, 202.0),
+            (101, True),
+            (202, 303),
+        ):
+            with self.subTest(handles=bad_handles):
+                runtime = _runtime()
+                runtime.settings.client_by_handle.return_value = object()
+                runtime.switch_character.ordered_clients_from_source.return_value = [
+                    SimpleNamespace(handle=hwnd) for hwnd in bad_handles
+                ]
+                with (
+                    patch("app.macros.direction.foreground_window", return_value=101),
+                    patch("app.macros.direction.is_unity_window", return_value=True),
+                    patch("app.macros.direction.is_dofus_unity_process", return_value=True),
+                    patch("app.macros.direction.activate_window") as focus,
+                    patch("app.macros.direction.press_key") as key,
+                ):
+                    DirectionMacro(runtime)._run("HOME")
+                focus.assert_not_called()
+                key.assert_not_called()
+                runtime.switch_character.restore_preferred_client.assert_not_called()
+
     def test_zaap_invalid_command_cannot_claim_worker_started(self) -> None:
         runtime = _runtime()
         self.assertFalse(ZaapMacro(runtime).run_async("/zaap not-allowed"))
