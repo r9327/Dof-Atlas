@@ -69,9 +69,12 @@ class AutoGroupMacro:
         # Capture the exact source HWND before native probes or recipient
         # preparation; the client object may be edited in place by Organizer.
         sender_hwnd = sender.handle if sender is not None else 0
-        if self.runtime.settings is not settings_at_start:
-            self.runtime.logger.info("Auto groupe annulé: profil Organizer remplacé.")
-            self.runtime._emit_status("Auto-groupe interrompu : profil modifié.")
+        if (self.runtime.settings is not settings_at_start
+                or dispatch_context_changed()):
+            self.runtime.logger.info(
+                "Auto groupe annulé: profil, favori ou mode changé pendant lecture source."
+            )
+            self.runtime._emit_status("Auto-groupe interrompu : contexte Organizer modifié.")
             return
         if (sender is None or type(sender_hwnd) is not int
                 or not 0 < sender_hwnd <= (2**64 - 1)
