@@ -75,6 +75,7 @@ CI_FILES = frozenset({
     "tools/ci_delivery_guard.py",
     "tools/ci_domain_certification.py", "tools/doctor_certification.py",
     "tools/doctor_pr_on_demand.py",  # Explicit CI owner: read-only PR diagnostics
+    "tools/atlas_tools_on_demand.py",  # Explicit CI owner: bounded PR tool router
     "tools/atlas_full_suite_proof.py", "tools/ci_verified_pr_full.py",
     "tools/ci_main_phase_evidence.py", "tools/ci_guide_full_evidence.py",
     "tools/doctor_policy_authority.py", "tools/ci_guide_full_evidence.py",
