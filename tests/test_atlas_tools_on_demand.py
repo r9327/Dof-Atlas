@@ -147,6 +147,8 @@ class OnDemandToolModeTests(unittest.TestCase):
         self.assertIn("ruff==0.17.3", new)
         self.assertIn("zizmor==1.30.1", new)
         self.assertIn("requirements-pyside.txt", new)
+        self.assertIn("$attempt -le 3", new)
+        self.assertIn("Pinned asset materialization failed after three attempts", new)
         self.assertIn("python -I .atlas_tools_runner/tools/atlas_tools_on_demand.py", new)
         self.assertEqual(new.count("Checkout trusted tool dispatcher"), 2)
         self.assertIn("sparse-checkout: |", new)
