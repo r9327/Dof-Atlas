@@ -346,5 +346,54 @@ class OrganizerLayoutTests(unittest.TestCase):
                 self.assertEqual(len(page.sessions), 8)
 
 
+    def test_zaap_legacy_position_controls_are_hidden_without_losing_destination_ui(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            with self.organizer_page(Path(temporary)) as page:
+                self.assertFalse(page.zaap.show_position_controls)
+                for control in (
+                    page.zaap.position_label,
+                    page.zaap.position_wrapper,
+                    page.zaap.lock_button,
+                    page.zaap.calibrate_button,
+                ):
+                    self.assertTrue(control.isHidden())
+                self.assertTrue(page.zaap.search_input.isVisible())
+                self.assertIsNotNone(page.zaap.suggestion_popup)
+                self.assertTrue(page.zaap.show_favorites)
+
+    def test_normal_rapid_speed_is_horizontal_and_legacy_modes_remain_accessible(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            with self.organizer_page(Path(temporary)) as page:
+                self.app.processEvents()
+                normal = page.script_speed_normal
+                rapid = page.script_speed_fast
+                classic = page.script_speed_legacy
+                instant = page.script_speed_instant
+                self.assertEqual(normal.parent(), rapid.parent())
+                self.assertEqual(classic.parent(), instant.parent())
+                self.assertEqual(normal.y(), rapid.y())
+                self.assertLess(normal.x(), rapid.x())
+                self.assertEqual(classic.y(), instant.y())
+                self.assertLess(classic.x(), instant.x())
+                self.assertGreater(classic.y(), normal.y())
+                for button in (normal, rapid, classic, instant):
+                    self.assertTrue(button.isVisible())
+                from app.constants import KEY_SCRIPT_SPEED, KEY_SCRIPT_SPEED_SCHEMA
+                for value, selected in (
+                    ("normal", normal), ("rapide", rapid),
+                    ("classique", classic), ("instantane", instant),
+                ):
+                    page.profiles[KEY_SCRIPT_SPEED] = value
+                    page.profiles[KEY_SCRIPT_SPEED_SCHEMA] = 2
+                    page.update_script_speed_buttons()
+                    for button in (normal, rapid, classic, instant):
+                        self.assertEqual(
+                            button.objectName(),
+                            "segmentedButtonActive" if button is selected
+                            else "segmentedButton",
+                        )
+
+
+
 if __name__ == "__main__":
     unittest.main()

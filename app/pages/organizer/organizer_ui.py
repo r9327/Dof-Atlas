@@ -159,7 +159,13 @@ class CharacterSlotsPanel(QFrame):
 
 class OrganizerUiMixin:
     def build_organizer_ui(self, status_callback, launch_zaap_callback) -> None:
-        self.zaap = ZaapWidget(status_callback, launch_zaap_callback, self.refresh_sessions_and_export)
+        # The active /zaap sender uses the destination command directly.
+        # Keep legacy calibration data readable but hide its obsolete
+        # position/lock/calibrate widgets on the Organizer page.
+        self.zaap = ZaapWidget(
+            status_callback, launch_zaap_callback, self.refresh_sessions_and_export,
+            show_position_controls=False,
+        )
         self.zaap.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
 
         root = QVBoxLayout(self)
@@ -388,9 +394,12 @@ class OrganizerUiMixin:
         quick_grid.setVerticalSpacing(8)
         quick_grid.addWidget(self.switch_fake, 0, 0)
         quick_grid.addWidget(macro_cell(self.radial_select_button, self.radial_hotkey_button, self.radial_clear), 0, 1)
-        quick_grid.addWidget(self.script_speed_legacy, 1, 0)
-        quick_grid.addWidget(self.script_speed_normal, 1, 1)
-        quick_grid.addWidget(self.script_speed_fast, 2, 0)
+        # Primary Normal/Rapide choice is a single horizontal pair. Keep
+        # Classique and Instantané available underneath for existing profiles
+        # without changing any stored preset or actual timing.
+        quick_grid.addWidget(self.script_speed_normal, 1, 0)
+        quick_grid.addWidget(self.script_speed_fast, 1, 1)
+        quick_grid.addWidget(self.script_speed_legacy, 2, 0)
         quick_grid.addWidget(self.script_speed_instant, 2, 1)
         stop_row = QWidget()
         stop_row.setFixedSize(panel_inner_width, STOP_BUTTON_HEIGHT)
