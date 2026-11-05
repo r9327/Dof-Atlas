@@ -96,6 +96,12 @@ class ZaapMacro:
                 if (self.runtime.macro_lock.should_stop()
                         or self.runtime.settings is not settings_at_start):
                     return
+                if settings_at_start.primary_handle != favorite_at_start:
+                    focus_lost = True
+                    self.runtime.logger.warning(
+                        "Auto zaap interrompu: favori modifié entre clients."
+                    )
+                    return
                 if (type(target_hwnd) is not int or not 0 < target_hwnd <= (2**64 - 1)
                         or not frozen_roster_intact()):
                     focus_lost = True
@@ -127,15 +133,17 @@ class ZaapMacro:
                         self.runtime.macro_lock.should_stop()
                         or self.runtime.settings is not settings_at_start
                         or not frozen_roster_intact()
+                        or settings_at_start.primary_handle != favorite_at_start
                     ),
                 ):
                     if (self.runtime.macro_lock.should_stop()
                             or self.runtime.settings is not settings_at_start):
                         return
-                    if not frozen_roster_intact():
+                    if (not frozen_roster_intact()
+                            or settings_at_start.primary_handle != favorite_at_start):
                         focus_lost = True
                         self.runtime.logger.warning(
-                            "Auto zaap interrompu: session mutée pendant activation hwnd=%s",
+                            "Auto zaap interrompu: session ou favori muté pendant activation hwnd=%s",
                             target_hwnd,
                         )
                         return
@@ -148,10 +156,11 @@ class ZaapMacro:
                 if (self.runtime.settings is not settings_at_start
                         or not is_dofus_unity_process(target_hwnd)
                         or foreground_window() != int(target_hwnd)
-                        or not frozen_roster_intact()):
+                        or not frozen_roster_intact()
+                        or settings_at_start.primary_handle != favorite_at_start):
                     focus_lost = True
                     self.runtime.logger.warning(
-                        "Auto zaap interrompu: focus ou identité DOFUS perdus avant commande hwnd=%s", target_hwnd
+                        "Auto zaap interrompu: focus, identité ou favori perdus avant commande hwnd=%s", target_hwnd
                     )
                     return
                 if self.runtime.macro_lock.should_stop():
@@ -177,6 +186,7 @@ class ZaapMacro:
                         self.runtime.macro_lock.should_stop()
                         or self.runtime.settings is not settings_at_start
                         or not frozen_roster_intact()
+                        or settings_at_start.primary_handle != favorite_at_start
                         or foreground_window() != int(hwnd)
                     ),
                 ):
@@ -185,10 +195,11 @@ class ZaapMacro:
                         return
                     if (not is_dofus_unity_process(target_hwnd)
                             or foreground_window() != int(target_hwnd)
-                            or not frozen_roster_intact()):
+                            or not frozen_roster_intact()
+                            or settings_at_start.primary_handle != favorite_at_start):
                         focus_lost = True
                         self.runtime.logger.warning(
-                            "Auto zaap interrompu: focus ou identité DOFUS perdus après échec du chat hwnd=%s",
+                            "Auto zaap interrompu: focus, identité ou favori perdus après échec du chat hwnd=%s",
                             target_hwnd,
                         )
                         return
