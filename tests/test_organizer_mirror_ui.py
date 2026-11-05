@@ -1640,8 +1640,58 @@ class OrganizerMirrorIntegrationTests(unittest.TestCase):
 
         runtime = self._runtime(primary=101, handles=(101, 202))
         runtime.input_state = InputState()
+        runtime.settings.timings = SimpleNamespace()
+        runtime.switch_character.ordered_clients_from_source.return_value = [
+            SimpleNamespace(handle=101, display_name="source"),
+            SimpleNamespace(handle=202, display_name="target"),
+        ]
         runtime.macro_lock.should_stop.return_value = False
         runtime.macro_lock.wait.side_effect = lambda ms: ms == 60
+        context = SwitchClickContext(101, 20, 25, 0.3, 0.4, "cursor")
+        macro = SwitchClickMacro(runtime)
+        with (
+            patch.object(macro, "_validated_context", return_value=context),
+            patch("app.macros.switch_click.current_cursor_pos",
+                  return_value=(11, 12)),
+            patch("app.macros.switch_click.foreground_window",
+                  return_value=101),
+            patch("app.macros.switch_click.activate_window") as activate,
+            patch("app.macros.switch_click.send_client_click") as send,
+        ):
+            macro._run(
+                "Left", 1, "Miroir", context,
+                exact_source_handle=101,
+                mirror_target_handles=(101, 202),
+                physical_source_delivered=True,
+                settings_at_dispatch=runtime.settings,
+            )
+        self.assertFalse(runtime.input_state.is_mouse_blocked())
+        activate.assert_not_called()
+        send.assert_not_called()
+
+    def test_roster_change_during_native_settle_never_blocks_or_injects(self):
+        from app.macros.switch_click import SwitchClickMacro, SwitchClickContext
+        from app.input.input_state import InputState
+
+        runtime = self._runtime(primary=101, handles=(101, 202))
+        runtime.input_state = InputState()
+        runtime.settings.timings = SimpleNamespace()
+        runtime.switch_character.ordered_clients_from_source.return_value = [
+            SimpleNamespace(handle=101, display_name="source"),
+            SimpleNamespace(handle=202, display_name="target"),
+        ]
+        runtime.macro_lock.should_stop.return_value = False
+
+        def mutate_during_wait(ms):
+            self.assertEqual(ms, 60)
+            self.assertFalse(runtime.input_state.is_mouse_blocked())
+            runtime.settings.clients = (
+                SimpleNamespace(handle=101),
+                SimpleNamespace(handle=303),
+            )
+            return False
+
+        runtime.macro_lock.wait.side_effect = mutate_during_wait
         context = SwitchClickContext(101, 20, 25, 0.3, 0.4, "cursor")
         macro = SwitchClickMacro(runtime)
         with (
