@@ -102,11 +102,29 @@ class AutoGroupMacro:
             return
         favorite_at_start = settings_at_start.primary_handle
         mode_at_start = settings_at_start.macro_mode
+        # Freeze the native roster once. Organizer can mutate client.handle
+        # in place without replacing settings or changing the favorite.
+        initial_clients = getattr(settings_at_start, "clients", None)
+        initial_roster = (
+            tuple((type(getattr(c, "handle", None)), getattr(c, "handle", None))
+                  for c in initial_clients)
+            if isinstance(initial_clients, (list, tuple)) else None
+        )
 
         def dispatch_context_changed() -> bool:
+            live_clients = getattr(settings_at_start, "clients", None)
+            roster_changed = (
+                initial_roster is not None
+                and (
+                    not isinstance(live_clients, (list, tuple))
+                    or tuple((type(getattr(c, "handle", None)), getattr(c, "handle", None))
+                             for c in live_clients) != initial_roster
+                )
+            )
             return (
                 settings_at_start.primary_handle != favorite_at_start
                 or settings_at_start.macro_mode != mode_at_start
+                or roster_changed
             )
         sender = self.runtime.switch_character.logical_active_client()
         # Capture the exact source HWND before native probes or recipient
@@ -348,6 +366,7 @@ class AutoGroupMacro:
                 self.runtime.settings is not settings_at_start
                 or sender.handle != sender_hwnd
                 or settings_at_start.macro_mode != mode_at_start
+                or dispatch_context_changed()
             )
             if restore_skipped:
                 self.runtime.logger.info("Auto groupe: retour ignoré, profil remplacé.")

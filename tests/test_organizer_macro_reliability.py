@@ -844,6 +844,47 @@ class OrganizerMacroReliabilityTests(unittest.TestCase):
                     "(réception DOFUS non vérifiée)."
                 )
 
+    def test_auto_group_in_place_roster_mutation_stops_remaining_invitations_2_to_8(self):
+        for count in (2, 4, 6, 8):
+            with self.subTest(clients=count):
+                runtime = _runtime()
+                clients = [
+                    SimpleNamespace(handle=101 + i) for i in range(count)
+                ]
+                runtime.settings.clients = clients
+                runtime.settings.primary_handle = 101
+                runtime.settings.timings.auto_group_invite_gap_ms = 0
+                runtime.switch_character.logical_active_client.return_value = (
+                    SimpleNamespace(handle=101, display_name="Leader")
+                )
+                entries = [
+                    {"name": f"Friend{i}", "handle": 101 + i}
+                    for i in range(1, count)
+                ]
+
+                def mutate_roster(_command, _logger, **kwargs):
+                    clients[-1].handle = 999
+                    self.assertTrue(kwargs["should_stop"]())
+                    return False
+
+                with (
+                    patch("app.macros.auto_group.is_unity_window", return_value=True),
+                    patch("app.macros.auto_group.is_dofus_unity_process", return_value=True),
+                    patch("app.macros.auto_group.activate_window",
+                          return_value=True) as focus,
+                    patch("app.macros.auto_group.foreground_window", return_value=101),
+                    patch("app.macros.auto_group.send_chat_command",
+                          side_effect=mutate_roster) as send,
+                ):
+                    AutoGroupMacro(runtime)._run(entries)
+                focus.assert_called_once()
+                send.assert_called_once()
+                runtime.switch_character.restore_preferred_client.assert_not_called()
+                runtime._emit_status.assert_called_once_with(
+                    f"Auto-groupe interrompu : 0/{count - 1} commandes émises "
+                    "(réception DOFUS non vérifiée)."
+                )
+
     def test_profile_reload_during_zaap_activation_cancels_chat_2_to_8(self) -> None:
         for count in (2, 4, 6, 8):
             with self.subTest(count=count):
