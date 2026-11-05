@@ -935,6 +935,69 @@ class OrganizerMacroReliabilityTests(unittest.TestCase):
                 ]))
                 runtime._spawn_macro.assert_called_once()
 
+    def test_auto_group_dispatch_rejects_corrupt_native_roster_2_to_8(self):
+        bad_rosters = (
+            (), tuple(range(101, 110)), (101, 202, 202),
+            (101, 202.0), (101, True), (101, 2**64),
+        )
+        for handles in bad_rosters:
+            with self.subTest(handles=handles):
+                runtime = _runtime()
+                runtime.settings.clients = [
+                    SimpleNamespace(handle=h) for h in handles
+                ]
+                runtime.settings.primary_handle = 101
+                runtime.settings.macro_mode = "macro"
+                self.assertFalse(AutoGroupMacro(runtime).run_async([
+                    {"name": "Friend", "handle": 202},
+                ]))
+                runtime._spawn_macro.assert_not_called()
+                runtime.logger.warning.assert_any_call(
+                    "Auto groupe refusé: roster Organizer invalide avant dispatch."
+                )
+
+    def test_auto_group_final_success_cannot_restore_focus_after_roster_mutation(self):
+        for count in (2, 4, 6, 8):
+            with self.subTest(clients=count):
+                runtime = _runtime()
+                clients = [
+                    SimpleNamespace(handle=101 + i) for i in range(count)
+                ]
+                runtime.settings.clients = clients
+                runtime.settings.primary_handle = 101
+                runtime.settings.macro_mode = "macro"
+                runtime.settings.timings.auto_group_invite_gap_ms = 0
+                runtime.macro_lock.wait.return_value = False
+                runtime.switch_character.logical_active_client.return_value = (
+                    SimpleNamespace(handle=101, display_name="Leader")
+                )
+                entries = [
+                    {"name": f"Friend{i}", "handle": 101 + i}
+                    for i in range(1, count)
+                ]
+
+                def send_then_mutate(_command, _logger, **_kwargs):
+                    clients[-1].handle = 999
+                    return True  # emitted; not proof Unity accepted the invite
+
+                with (
+                    patch("app.macros.auto_group.is_unity_window", return_value=True),
+                    patch("app.macros.auto_group.is_dofus_unity_process", return_value=True),
+                    patch("app.macros.auto_group.activate_window",
+                          return_value=True) as focus,
+                    patch("app.macros.auto_group.foreground_window", return_value=101),
+                    patch("app.macros.auto_group.send_chat_command",
+                          side_effect=send_then_mutate) as send,
+                ):
+                    AutoGroupMacro(runtime)._run(entries)
+                focus.assert_called_once()
+                send.assert_called_once()
+                runtime.switch_character.restore_preferred_client.assert_not_called()
+                runtime._emit_status.assert_called_once_with(
+                    f"Auto-groupe interrompu : 1/{count - 1} commandes émises "
+                    "(réception DOFUS non vérifiée)."
+                )
+
     def test_profile_reload_during_zaap_activation_cancels_chat_2_to_8(self) -> None:
         for count in (2, 4, 6, 8):
             with self.subTest(count=count):
