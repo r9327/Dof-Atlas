@@ -1320,7 +1320,7 @@ sans modifier les hooks globaux, leur source de vérité ni le sender canonique.
   L'action **Personnage suivant** vérifie également cette génération
   pendant son scan de 2 à 8 clients et la résolution du client actif.
 - **Simulation ajoutée :** `tests/test_organizer_favorite_inflight.py`
-  contient 25 méthodes de régression sur **2/4/6/8 comptes** : changements
+  contient 26 méthodes de régression sur **2/4/6/8 comptes** : changements
   en place pendant admission, lookup source/roster, focus, chat, dernière
   émission et nettoyage. Elles conservent la distinction entre commandes
   acceptées, interruptions et réception non prouvée côté Unity.
