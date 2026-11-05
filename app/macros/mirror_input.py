@@ -157,6 +157,10 @@ class MirrorInputMacro:
             )
             runtime._emit_status("Miroir non diffusé : profil Organizer modifié.")
             return
+        if runtime.macro_lock.should_stop():
+            runtime.logger.info("Miroir %s annulé: Stop avant worker.", kind)
+            runtime._emit_status("Miroir non diffusé : Stop urgence.")
+            return
         timings = profile_at_start.timings
         start = perf_counter()
         last_emission_at: float | None = None
@@ -195,6 +199,9 @@ class MirrorInputMacro:
             roster_verified = True
             if runtime.settings is not profile_at_start:
                 runtime.logger.warning("Miroir %s annulé: profil remplacé pendant le contrôle des clients.", kind)
+                return
+            if runtime.macro_lock.should_stop():
+                runtime.logger.info("Miroir %s annulé: Stop pendant le contrôle des clients.", kind)
                 return
             # Authenticate the entire roster before taking a mouse block.
             # This keeps slow Win32 process probes outside the blocked interval.
