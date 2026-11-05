@@ -265,6 +265,13 @@ class SwitchClickMacro:
                     "%s lecture position curseur impossible.",
                     action_label,
                 )
+                # All click deliveries move the physical pointer. Without a
+                # reliable original position, the worker cannot give it back.
+                # Abort before activating or blocking any client.
+                self.runtime._emit_status(
+                    f"{action_label} non diffusé : position souris indisponible."
+                )
+                return
 
             # The original cursor can be read and roster checked without
             # changing focus, moving the pointer or emitting mouse events.

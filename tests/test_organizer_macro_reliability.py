@@ -5000,6 +5000,52 @@ class OrganizerMacroReliabilityTests(unittest.TestCase):
         runtime._spawn_macro.assert_called_once()
 
 
+    def test_switch_click_missing_cursor_snapshot_never_moves_any_window(self):
+        from app.macros.switch_click import SwitchClickMacro, SwitchClickContext
+
+        for count in (2, 4, 6, 8):
+            for mirror in (False, True):
+                with self.subTest(clients=count, mirror=mirror):
+                    runtime = _runtime()
+                    handles = tuple(range(101, 101 + count))
+                    runtime.settings.clients = [
+                        SimpleNamespace(handle=hwnd, display_name=str(hwnd))
+                        for hwnd in handles
+                    ]
+                    runtime.settings.primary_handle = handles[0]
+                    runtime.settings.macro_mode = "mirror" if mirror else "macro"
+                    context = SwitchClickContext(
+                        handles[0], 10, 15, 0.5, 0.5, "cursor",
+                    )
+                    sender = SwitchClickMacro(runtime)
+                    with (
+                        patch(
+                            "app.macros.switch_click.current_cursor_pos",
+                            side_effect=OSError("GetCursorPos denied"),
+                        ),
+                        patch.object(sender, "_validated_context") as validate,
+                        patch("app.macros.switch_click.activate_window") as focus,
+                        patch("app.macros.switch_click.send_client_click") as click,
+                        patch("app.macros.switch_click.set_cursor_pos") as move,
+                    ):
+                        sender._run(
+                            "Left", 1, "Miroir" if mirror else "Switch clique",
+                            context,
+                            exact_source_handle=handles[0] if mirror else None,
+                            mirror_target_handles=handles if mirror else None,
+                        )
+                    validate.assert_not_called()
+                    focus.assert_not_called()
+                    click.assert_not_called()
+                    move.assert_not_called()
+                    runtime.input_state.begin_mouse_block.assert_not_called()
+                    runtime.switch_character.restore_preferred_client.assert_not_called()
+                    runtime._emit_status.assert_called_once_with(
+                        ("Miroir" if mirror else "Switch clique")
+                        + " non diffusé : position souris indisponible."
+                    )
+
+
 
 if __name__ == "__main__":
     unittest.main()
