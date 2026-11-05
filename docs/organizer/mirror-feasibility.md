@@ -1297,3 +1297,44 @@ Le P0 **MIRR-007** demeure ouvert : aucun Graphify Code Map artifact
 du HEAD exact n'a été retrouvé, le hook partagé n'a donc pas été refactoré
 sans preuve d'impact. Les conflits avec `main`, l'audit PR complet et la
 certification indépendante restent à résoudre avant fusion.
+
+## Reprise de fiabilité du 05/11/2026 — génération du favori et du mode
+
+Cette reprise part de la PR #325 au SHA `6f66a67bf6a45e511c77dd02662e16238fd3ced0`.
+Les corrections **non structurelles** restent confinées aux workers Organizer,
+sans modifier les hooks globaux, leur source de vérité ni le sender canonique.
+
+- **Auto-groupe, /zaap et Direction :** chaque travailleur conserve le profil
+  d'origine et la paire `(primary_handle, macro_mode)` au dispatch. Il annule
+  avant les sondes natives si cette paire a changé pendant l'admission ;
+  il revérifie ensuite pendant les recherches source/roster, chaque activation
+  et chaque frontière d'envoi, y compris les callbacks de chat annulables.
+  Une nouvelle sélection de favori ou une bascule Macro/Miroir ne doit pas
+  poursuivre silencieusement une diffusion multi-fenêtres.
+- **Restitution :** les trois workers refont la vérification de génération
+  immédiatement avant de restaurer le favori. Un changement pendant une
+  sonde native de nettoyage ne permet plus une restauration obsolète.
+- **Changement de personnage :** le hotkey direct lie le slot/HWND et la
+  génération favori/mode ; sa restauration préférée protège la sélection et
+  le mode pendant et après `activate_window` et le contrôle natif final.
+- **Simulation ajoutée :** `tests/test_organizer_favorite_inflight.py`
+  contient 23 méthodes de régression sur **2/4/6/8 comptes** : changements
+  en place pendant admission, lookup source/roster, focus, chat, dernière
+  émission et nettoyage. Elles conservent la distinction entre commandes
+  acceptées, interruptions et réception non prouvée côté Unity.
+- **CI ownership :** le nouveau test possède une entrée explicite dans
+  `ORGANIZER_TEST_PATHS` et une assertion dédiée dans le test du
+  routage par domaine. La classification des chemins inconnus reste
+  bloquante ; aucun wildcard n'a été ajouté.
+
+**Preuves / limites :** revue statique des sources et des commits de cette
+reprise ; Python/PySide6 et Doctor agent plan/check/validate **NOT_RUN**
+(absence de checkout exécutable dans la session GitHub), Graphify exact-SHA
+**NOT_AVAILABLE**, campagne Windows/DOFUS 2/4/6/8, p50/p95/p99,
+CPU/RAM et certification **NOT_RUN**. Le P0 **MIRR-007** reste ouvert :
+les clics physiques reçus pendant un véritable blocage du pointeur
+ne sont pas rejoués. Une file bornée ou un refactor du hook partagé
+demandent Graphify sur le SHA exact, Doctor structurel, essais ciblés
+et recette Windows avant de prétendre à la non-perte. Garder #325 en
+**Draft / CHANGES REQUIRED**, sans fusion.
+
