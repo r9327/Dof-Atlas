@@ -336,16 +336,41 @@ class CharacterSessionsMixin:
     def launch_auto_group(self) -> None:
         self.capture_target = None
         invite_names = []
-        seen = set()
+        seen_names: set[str] = set()
+        seen_windows: set[int] = set()
+        ambiguous_names = 0
+        duplicate_windows = 0
+        invalid_names = 0
         for session in self.sessions:
             if not session_is_detected(session):
                 continue
             name = clean_auto_group_name(session.get("nom", ""))
             key = normalize_key(name)
-            if not name or key in seen:
+            hwnd = session_hwnd(session)
+            if not name or not key:
+                invalid_names += 1
                 continue
-            seen.add(key)
-            invite_names.append({"name": name, "handle": session_hwnd(session)})
+            if hwnd in seen_windows:
+                duplicate_windows += 1
+                continue
+            if key in seen_names:
+                # Two distinct detected windows with the same invite name
+                # cannot both be addressed unambiguously with /invite.
+                # Never drop an actual participant silently.
+                ambiguous_names += 1
+                continue
+            seen_windows.add(hwnd)
+            seen_names.add(key)
+            invite_names.append({"name": name, "handle": hwnd})
+        if ambiguous_names or duplicate_windows or invalid_names:
+            self.status_callback(
+                "Auto-groupe non lancé : sessions ambiguës "
+                f"({ambiguous_names} nom(s) en doublon, "
+                f"{duplicate_windows} fenêtre(s) en doublon, "
+                f"{invalid_names} nom(s) invalide(s)). "
+                "Actualiser Organizer avant de relancer."
+            )
+            return
         if not invite_names:
             self.status_callback("Auto-groupe ignoré: aucun personnage détecté.")
             return

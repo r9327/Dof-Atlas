@@ -109,6 +109,53 @@ class OrganizerLayoutTests(unittest.TestCase):
                 else:
                     self.assertIn("non confirmé", message)
 
+    def test_organizer_autogroup_passes_all_unique_detected_clients_2_4_6_8(self):
+        from unittest.mock import Mock
+        from app.pages.organizer.character_sessions import CharacterSessionsMixin
+
+        for count in (2, 4, 6, 8):
+            with self.subTest(count=count):
+                page = Mock()
+                page.sessions = [
+                    {"nom": f"Perso-{i}", "hwnd": 101 + i, "pid": 1001 + i}
+                    for i in range(count)
+                ]
+                page.launch_auto_group_callback.return_value = True
+                CharacterSessionsMixin.launch_auto_group(page)
+                page.export_client_index.assert_called_once()
+                entries = page.launch_auto_group_callback.call_args.args[0]
+                self.assertEqual(len(entries), count)
+                self.assertEqual(
+                    {entry["handle"] for entry in entries},
+                    set(range(101, 101 + count)),
+                )
+                self.assertIn("en cours", page.status_callback.call_args.args[0])
+
+    def test_organizer_autogroup_refuses_duplicate_or_unaddressable_clients(self):
+        from unittest.mock import Mock
+        from app.pages.organizer.character_sessions import CharacterSessionsMixin
+
+        for count in (2, 4, 6, 8):
+            sessions = [
+                {"nom": f"Perso{i}", "hwnd": 101 + i, "pid": 1001 + i}
+                for i in range(count)
+            ]
+            for invalid in ("duplicate_name", "duplicate_hwnd", "empty_invite_name"):
+                with self.subTest(count=count, invalid=invalid):
+                    page = Mock()
+                    page.sessions = [dict(session) for session in sessions]
+                    if invalid == "duplicate_name":
+                        page.sessions[-1]["nom"] = page.sessions[0]["nom"] + " - Dofus"
+                    elif invalid == "duplicate_hwnd":
+                        page.sessions[-1]["hwnd"] = page.sessions[0]["hwnd"]
+                    else:
+                        page.sessions[-1]["nom"] = " - Dofus"
+                    CharacterSessionsMixin.launch_auto_group(page)
+                    page.export_client_index.assert_not_called()
+                    page.launch_auto_group_callback.assert_not_called()
+                    self.assertIn("non lancé", page.status_callback.call_args.args[0])
+                    self.assertIn("Actualiser Organizer", page.status_callback.call_args.args[0])
+
     def test_organizer_autogroup_callback_exception_fails_safely_without_ui_crash(self):
         from unittest.mock import Mock
         from app.pages.organizer.character_sessions import CharacterSessionsMixin
