@@ -3288,6 +3288,27 @@ class OrganizerMacroReliabilityTests(unittest.TestCase):
         runtime.switch_character.restore_preferred_client.assert_not_called()
 
 
+    def test_direction_rejects_outdated_hotkey_before_starting_worker_2_to_8(self):
+        for count in (2, 4, 6, 8):
+            with self.subTest(clients=count):
+                runtime = _runtime()
+                old = runtime.settings
+                newer = Mock()
+                newer.clients = [
+                    SimpleNamespace(index=i + 1, handle=101 + i)
+                    for i in range(count)
+                ]
+                runtime.settings = newer
+                self.assertFalse(
+                    DirectionMacro(runtime).run_async(
+                        "HOME", expected_profile=old,
+                    )
+                )
+                runtime._spawn_macro.assert_not_called()
+                runtime.logger.info.assert_any_call(
+                    "Switch deplacement annulé: profil Organizer remplacé avant dispatch.",
+                )
+
     def test_all_existing_macro_workers_reject_prestart_profile_reload_2_to_8(self):
         # A queued action belongs to the generation at its hotkey dispatch,
         # even if Organizer rebuilds the same visible HWND roster.

@@ -147,6 +147,24 @@ class NextCharacterTests(unittest.TestCase):
             3, expected_profile=runtime.settings,
         )
 
+    def test_next_rejects_obsolete_callback_before_native_scan_2_to_8(self):
+        for count in (2, 4, 6, 8):
+            with self.subTest(clients=count):
+                runtime = Mock()
+                old = settings(count)
+                runtime.settings = settings(count)
+                runtime.macro_lock.should_stop.return_value = False
+                macro = SwitchCharacterMacro(runtime)
+                with (
+                    patch("app.macros.switch_character.is_unity_window") as unity,
+                    patch("app.macros.switch_character.is_dofus_unity_process") as dofus,
+                    patch.object(macro, "activate_by_index") as activate,
+                ):
+                    self.assertFalse(macro.activate_next(expected_profile=old))
+                unity.assert_not_called()
+                dofus.assert_not_called()
+                activate.assert_not_called()
+
     def test_zero_or_one_live_client_cannot_start_worker(self):
         for count in (0, 1):
             runtime = Mock()

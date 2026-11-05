@@ -110,6 +110,105 @@ class OrganizerNumericHookGuardsTests(unittest.TestCase):
             "HOME", expected_profile=runtime.settings,
         )
 
+    def test_client_hotkey_reload_during_native_slot_binding_never_dispatches(self):
+        for count in (2, 4, 6, 8):
+            with self.subTest(clients=count):
+                runtime = Mock()
+                runtime._running = True
+                runtime._admin_ok = True
+                replacement = SimpleNamespace(
+                    macro_mode="macro",
+                    switch_character_enabled=True,
+                    clients=[
+                        SimpleNamespace(index=i + 1, handle=101 + i)
+                        for i in range(count)
+                    ],
+                )
+
+                class ReloadingRoster:
+                    def __iter__(self):
+                        # Loading the HWND binding can yield to a concurrent
+                        # Organizer replacement with identical-looking slots.
+                        runtime.settings = replacement
+                        return iter(replacement.clients)
+
+                old = SimpleNamespace(
+                    macro_mode="macro",
+                    switch_character_enabled=True,
+                    clients=ReloadingRoster(),
+                )
+                runtime.settings = old
+                AtlasRuntime._handle_hotkey(
+                    runtime, "client:1",
+                    {"client_index": 1, "handle": 101},
+                )
+                runtime.switch_character.activate_by_index.assert_not_called()
+                runtime.logger.debug.assert_any_call(
+                    "Raccourci personnage abandonné: profil Organizer modifié."
+                )
+
+    def test_hotkey_reload_while_evaluating_toggle_rejects_next_and_direction(self):
+        for count in (2, 4, 6, 8):
+            for action in ("next_character", "direction:HOME"):
+                with self.subTest(clients=count, action=action):
+                    runtime = Mock()
+                    runtime._running = True
+                    runtime._admin_ok = True
+                    replacement = SimpleNamespace(
+                        macro_mode="macro",
+                        switch_character_enabled=True,
+                        movement_enabled=True,
+                    )
+
+                    class ReloadOnToggle:
+                        def __bool__(self):
+                            runtime.settings = replacement
+                            return True
+
+                    old = SimpleNamespace(
+                        macro_mode="macro",
+                        switch_character_enabled=ReloadOnToggle(),
+                        movement_enabled=ReloadOnToggle(),
+                    )
+                    runtime.settings = old
+                    payload = {"key_name": "HOME"} if action.startswith("direction:") else {}
+                    AtlasRuntime._handle_hotkey(runtime, action, payload)
+                    runtime.switch_character.activate_next.assert_not_called()
+                    runtime.direction.run_async.assert_not_called()
+
+    def test_healthy_native_hotkey_profile_binding_all_client_counts(self):
+        for count in (2, 4, 6, 8):
+            with self.subTest(clients=count):
+                runtime = Mock()
+                runtime._running = True
+                runtime._admin_ok = True
+                profile = SimpleNamespace(
+                    macro_mode="macro",
+                    switch_character_enabled=True,
+                    movement_enabled=True,
+                    clients=[
+                        SimpleNamespace(index=i + 1, handle=101 + i)
+                        for i in range(count)
+                    ],
+                )
+                runtime.settings = profile
+                AtlasRuntime._handle_hotkey(runtime, f"client:{count}", {
+                    "client_index": count, "handle": 100 + count,
+                })
+                AtlasRuntime._handle_hotkey(
+                    runtime, "direction:HOME", {"key_name": "HOME"},
+                )
+                AtlasRuntime._handle_hotkey(runtime, "next_character", {})
+                runtime.switch_character.activate_by_index.assert_called_once_with(
+                    count, expected_profile=profile,
+                )
+                runtime.switch_character.activate_next.assert_called_once_with(
+                    expected_profile=profile,
+                )
+                runtime.direction.run_async.assert_called_once_with(
+                    "HOME", expected_profile=profile,
+                )
+
     def test_infinite_click_binding_falls_back_to_single_native_click(self):
         for value in (float("inf"), -float("inf"), float("nan")):
             with self.subTest(value=str(value)):
