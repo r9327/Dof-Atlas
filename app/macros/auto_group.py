@@ -132,6 +132,8 @@ class AutoGroupMacro:
         sender_key = normalize_key(sender_name)
         recipients: list[str] = []
         seen_recipients: set[str] = set()
+        seen_recipient_hwnds: dict[int, str] = {}
+        ambiguous_windows = 0
         excluded_sender = 0
         excluded_duplicate = 0
         excluded_empty = 0
@@ -169,6 +171,14 @@ class AutoGroupMacro:
             if key in seen_recipients:
                 excluded_duplicate += 1
                 continue
+            # Two different names from the same real HWND are not two
+            # independent DOFUS accounts. Fail closed instead of silently
+            # inviting one or both from an ambiguous scanner roster.
+            if handle > 0 and handle in seen_recipient_hwnds:
+                ambiguous_windows += 1
+                continue
+            if handle > 0:
+                seen_recipient_hwnds[handle] = key
             seen_recipients.add(key)
             recipients.append(name)
 
@@ -176,6 +186,15 @@ class AutoGroupMacro:
             "Auto groupe préparé: invitations=%s doublons=%s lanceur=%s vides=%s",
             len(recipients), excluded_duplicate, excluded_sender, excluded_empty,
         )
+        if ambiguous_windows:
+            self.runtime.logger.warning(
+                "Auto groupe refusé: %s fenêtre(s) associée(s) à plusieurs noms.",
+                ambiguous_windows,
+            )
+            self.runtime._emit_status(
+                "Auto-groupe non lancé : fenêtre(s) ambiguë(s), actualiser Organizer."
+            )
+            return
         if len(recipients) > 7:
             # The source is the eighth possible account. Never send a
             # ninth participant's invite, even when raw input had only

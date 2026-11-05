@@ -1065,6 +1065,32 @@ class OrganizerMacroReliabilityTests(unittest.TestCase):
         send.assert_called_once()
         self.assertEqual(send.call_args.args[0], "/invite NotLeader")
 
+    def test_auto_group_refuses_two_distinct_names_on_same_hwnd_before_focus_2_to_8(self):
+        for count in (2, 4, 6, 8):
+            with self.subTest(clients=count):
+                runtime = _runtime()
+                runtime.switch_character.logical_active_client.return_value = (
+                    SimpleNamespace(handle=101, display_name="Leader")
+                )
+                entries = [
+                    {"name": "Leader", "handle": 101},
+                    *({"name": f"Friend{i}", "handle": 101 + i}
+                      for i in range(1, count)),
+                    {"name": "WrongAlias", "handle": 102},
+                ]
+                with (
+                    patch("app.macros.auto_group.is_unity_window", return_value=True),
+                    patch("app.macros.auto_group.is_dofus_unity_process", return_value=True),
+                    patch("app.macros.auto_group.activate_window") as focus,
+                    patch("app.macros.auto_group.send_chat_command") as chat,
+                ):
+                    AutoGroupMacro(runtime)._run(entries)
+                focus.assert_not_called()
+                chat.assert_not_called()
+                runtime._emit_status.assert_called_once_with(
+                    "Auto-groupe non lancé : fenêtre(s) ambiguë(s), actualiser Organizer."
+                )
+
     def test_auto_group_preplans_2_4_6_8_before_focus_and_skips_final_gap(self) -> None:
         for count in (2, 4, 6, 8):
             with self.subTest(count=count):
