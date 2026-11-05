@@ -646,6 +646,15 @@ class AtlasRuntime:
         clients = getattr(settings, "clients", None)
         if not isinstance(clients, (list, tuple)):
             return None
+        # Freeze the roster BEFORE even the first native identity probe:
+        # a process query can yield while Organizer changes a slot in place.
+        # Also reject an invalid roster without any expensive Win32 reads.
+        live = tuple(client.handle for client in clients)
+        if (not 2 <= len(live) <= 8
+                or any(type(hwnd) is not int or not 0 < hwnd <= (2**64 - 1) for hwnd in live)
+                or len(set(live)) != len(live)
+                or source not in live):
+            return None
         favorite = settings.client_by_handle(source)
         if (favorite is None or type(favorite.handle) is not int
                 or favorite.handle != source or not is_unity_window(source)):
@@ -655,12 +664,6 @@ class AtlasRuntime:
         # Never silently drop a stale/foreign client. Consuming the physical
         # key or wheel for a reduced roster would lose the source gesture
         # when the worker rejects that snapshot against the live settings.
-        live = tuple(client.handle for client in clients)
-        if (not 2 <= len(live) <= 8
-                or any(type(hwnd) is not int or not 0 < hwnd <= (2**64 - 1) for hwnd in live)
-                or len(set(live)) != len(live)
-                or source not in live):
-            return None
         if not all(
             is_unity_window(hwnd) and is_dofus_unity_process(hwnd)
             for hwnd in live if hwnd != source

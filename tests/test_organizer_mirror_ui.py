@@ -6288,5 +6288,77 @@ class OrganizerMirrorIntegrationTests(unittest.TestCase):
 
 
 
+    def test_mirror_invalid_roster_never_issues_native_identity_probes(self):
+        from app.core.runtime_state import AtlasRuntime
+
+        for count in (2, 4, 6, 8):
+            slots = tuple(range(101, 101 + count))
+            for invalid in ("duplicate", "float_alias", "missing", "too_many"):
+                with self.subTest(count=count, invalid=invalid):
+                    runtime = self._runtime(primary=slots[0], handles=slots)
+                    runtime._running = True
+                    runtime._admin_ok = True
+                    if invalid == "duplicate":
+                        runtime.settings.clients = (
+                            *runtime.settings.clients[:-1],
+                            SimpleNamespace(handle=slots[0]),
+                        )
+                    elif invalid == "float_alias":
+                        runtime.settings.clients = (
+                            *runtime.settings.clients[:-1],
+                            SimpleNamespace(handle=float(slots[-1])),
+                        )
+                    elif invalid == "missing":
+                        runtime.settings.clients = ()
+                    else:
+                        runtime.settings.clients = tuple(
+                            SimpleNamespace(handle=h) for h in range(101, 110)
+                        )
+                    with (
+                        patch("app.windows.unity_windows.is_unity_window") as unity,
+                        patch("app.macros.mirror_plan.is_dofus_unity_process") as process,
+                    ):
+                        self.assertIsNone(
+                            AtlasRuntime._mirror_gesture_targets(runtime)
+                        )
+                    unity.assert_not_called()
+                    process.assert_not_called()
+
+    def test_mirror_source_native_probe_cannot_adopt_new_roster(self):
+        from app.core.runtime_state import AtlasRuntime
+
+        for count in (2, 4, 6, 8):
+            slots = tuple(range(101, 101 + count))
+            for source in (slots[0], slots[-1]):
+                with self.subTest(count=count, source=source):
+                    runtime = self._runtime(primary=source, handles=slots)
+                    runtime._running = True
+                    runtime._admin_ok = True
+                    probes = []
+
+                    def native_probe(hwnd):
+                        probes.append(hwnd)
+                        if len(probes) == 1:
+                            runtime.settings.clients = tuple(
+                                SimpleNamespace(handle=999 if h == slots[-1] else h)
+                                for h in slots
+                            )
+                        return True
+
+                    with (
+                        patch("app.windows.unity_windows.is_unity_window",
+                              return_value=True),
+                        patch("app.macros.mirror_plan.is_dofus_unity_process",
+                              side_effect=native_probe),
+                    ):
+                        self.assertIsNone(
+                            AtlasRuntime._mirror_gesture_targets(runtime)
+                        )
+                    self.assertGreaterEqual(len(probes), 1)
+                    runtime.mirror_input.run_key.assert_not_called()
+                    runtime.mirror_input.run_wheel.assert_not_called()
+
+
+
 if __name__ == "__main__":
     unittest.main()
