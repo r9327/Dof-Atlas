@@ -404,5 +404,110 @@ class OrganizerFavoriteInflightTests(unittest.TestCase):
                     self.assertIn("interrompu", runtime._emit_status.call_args.args[0])
 
 
+    def test_auto_group_late_mode_change_during_cleanup_never_restores(self):
+        for count in (2, 4, 6, 8):
+            with self.subTest(clients=count):
+                runtime = _runtime(count)
+                runtime.settings.macro_mode = "macro"
+                entries = [
+                    {"name": f"Friend{i}", "handle": 101 + i}
+                    for i in range(1, count)
+                ]
+                completed = [False]
+                sent_count = [0]
+
+                def send(*_args, **_kwargs):
+                    sent_count[0] += 1
+                    completed[0] = sent_count[0] == count - 1
+                    return True
+
+                def probe(_hwnd):
+                    if completed[0]:
+                        runtime.settings.macro_mode = "mirror"
+                    return True
+
+                with (
+                    patch("app.macros.auto_group.is_unity_window", return_value=True),
+                    patch("app.macros.auto_group.is_dofus_unity_process", side_effect=probe),
+                    patch("app.macros.auto_group.activate_window", return_value=True),
+                    patch("app.macros.auto_group.foreground_window", return_value=101),
+                    patch("app.macros.auto_group.send_chat_command", side_effect=send) as sender,
+                ):
+                    AutoGroupMacro(runtime)._run(entries)
+                self.assertEqual(sender.call_count, count - 1)
+                runtime.switch_character.restore_preferred_client.assert_not_called()
+                self.assertIn("interrompu : ", runtime._emit_status.call_args.args[0])
+
+    def test_zaap_late_mode_change_during_cleanup_never_restores(self):
+        for count in (2, 4, 6, 8):
+            with self.subTest(clients=count):
+                runtime = _runtime(count)
+                runtime.settings.macro_mode = "macro"
+                active = [101]
+                completed = [False]
+                sent_count = [0]
+
+                def activate(hwnd, *_args, **_kwargs):
+                    active[0] = hwnd
+                    return True
+
+                def send(*_args, **_kwargs):
+                    sent_count[0] += 1
+                    completed[0] = sent_count[0] == count
+                    return True
+
+                def probe(_hwnd):
+                    if completed[0]:
+                        runtime.settings.macro_mode = "mirror"
+                    return True
+
+                with (
+                    patch("app.macros.zaap.is_unity_window", return_value=True),
+                    patch("app.macros.zaap.is_dofus_unity_process", side_effect=probe),
+                    patch("app.macros.zaap.activate_window", side_effect=activate),
+                    patch("app.macros.zaap.foreground_window", side_effect=lambda: active[0]),
+                    patch("app.macros.zaap.send_chat_command", side_effect=send) as sender,
+                ):
+                    ZaapMacro(runtime)._run("/zaap 1,2")
+                self.assertEqual(sender.call_count, count)
+                runtime.switch_character.restore_preferred_client.assert_not_called()
+                self.assertIn("interrompu : ", runtime._emit_status.call_args.args[0])
+
+    def test_direction_late_mode_change_during_cleanup_never_restores(self):
+        for count in (2, 4, 6, 8):
+            with self.subTest(clients=count):
+                runtime = _runtime(count)
+                runtime.settings.macro_mode = "macro"
+                active = [101]
+                sent_count = [0]
+
+                def activate(hwnd, *_args, **_kwargs):
+                    active[0] = hwnd
+                    return True
+
+                def send(*_args, **_kwargs):
+                    sent_count[0] += 1
+
+                def probe(_hwnd):
+                    if sent_count[0] == count:
+                        runtime.settings.macro_mode = "mirror"
+                    return True
+
+                with (
+                    patch("app.macros.direction.is_unity_window", return_value=True),
+                    patch("app.macros.direction.is_dofus_unity_process", side_effect=probe),
+                    patch("app.macros.direction.activate_window", side_effect=activate),
+                    patch("app.macros.direction.foreground_window", side_effect=lambda: active[0]),
+                    patch("app.macros.direction.press_key", side_effect=send) as sender,
+                ):
+                    DirectionMacro(runtime)._run("HOME")
+                self.assertEqual(sender.call_count, count)
+                runtime.switch_character.restore_preferred_client.assert_not_called()
+                runtime.logger.info.assert_any_call(
+                    "Switch deplacement %s: envoyes=%s/%s",
+                    "interrompu", count, count,
+                )
+
+
 if __name__ == "__main__":
     unittest.main()
