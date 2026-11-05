@@ -234,6 +234,9 @@ class SwitchClickMacro:
                 )
                 return True
 
+        # Count from admission to the last successful *emission*, including
+        # scheduler delay. This is never a measure of Unity rendering.
+        dispatch_at = perf_counter() if action_label == "Miroir" else None
         # A low-level hook callback must never reserve the physical mouse
         # while a worker is merely queued. The worker validates the source
         # and exact roster before taking ownership of the pointer.
@@ -258,6 +261,7 @@ class SwitchClickMacro:
                 physical_source_delivered=physical_source_delivered,
                 settings_at_dispatch=settings_at_dispatch,
                 dispatch_guard=dispatch_is_current,
+                dispatch_at=dispatch_at,
             )
 
         started = self.runtime._spawn_macro(action_label, worker)
@@ -282,6 +286,7 @@ class SwitchClickMacro:
         physical_source_delivered: bool = False,
         settings_at_dispatch: object | None = None,
         dispatch_guard: Callable[[], bool] | None = None,
+        dispatch_at: float | None = None,
     ) -> None:
         settings_at_start = (
             settings_at_dispatch if settings_at_dispatch is not None
@@ -297,6 +302,7 @@ class SwitchClickMacro:
         focus_lost = False
         delivery_failed = False
         mirror_started_at = perf_counter() if action_label == "Miroir" else None
+        last_emission_at: float | None = None
         mirror_send_samples: list[float] = []
         mirror_focus_samples: list[float] = []
         targets = []
@@ -779,6 +785,8 @@ class SwitchClickMacro:
                     mirror_send_samples.append((perf_counter() - send_started_at) * 1000.0)
                 if delivered:
                     sent_count += 1
+                    if mirror_started_at is not None:
+                        last_emission_at = perf_counter()
                     if not target_roster_intact():
                         delivery_failed = True
                         self.runtime.logger.warning(
@@ -959,6 +967,14 @@ class SwitchClickMacro:
                     focus_quantiles if focus_quantiles is not None else "NOT_MEASURED",
                 )
                 elapsed_ms = round((perf_counter() - mirror_started_at) * 1000.0, 2)
+                if dispatch_at is not None:
+                    self.runtime.logger.info(
+                        "Miroir clic dispatch_to_worker_ms=%.2f "
+                        "dispatch_to_last_emit_ms=%s (envoi, pas rendu Unity)",
+                        max(0.0, (mirror_started_at - dispatch_at) * 1000.0),
+                        (f"{max(0.0, (last_emission_at - dispatch_at) * 1000.0):.2f}"
+                         if last_emission_at is not None else "NOT_MEASURED"),
+                    )
                 if quantiles is None:
                     self.runtime.logger.info(
                         "Miroir mesures: n=0 total_ms=%s envoyés=%s/%s",
