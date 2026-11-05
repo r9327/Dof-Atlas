@@ -439,7 +439,19 @@ class CharacterSessionsMixin:
             self.status_callback("Scan sessions disponible seulement sous Windows.")
             return
         self.capture_target = None
-        self.sessions = self.build_session_slots(self._scan_unity_sessions())
+        try:
+            scanned = self._scan_unity_sessions()
+        except Exception:
+            logging.getLogger(__name__).exception(
+                "Organizer scan manuel échoué : sessions précédentes conservées."
+            )
+            self.status_callback("Scan échoué : sessions précédentes conservées.")
+            return
+        if not isinstance(scanned, (list, tuple)) or (scanned and not any(
+                isinstance(row, dict) and session_is_detected(row) for row in scanned)):
+            self.status_callback("Scan invalide : sessions précédentes conservées.")
+            return
+        self.sessions = self.build_session_slots(scanned)
         self.export_client_index()
         self.request_sessions_render()
         self.sync_event_watcher_sessions()
@@ -469,9 +481,20 @@ class CharacterSessionsMixin:
             return
         previous_signature = self.session_identity_signature()
         self.profiles = self.load_profiles()
-        self.sessions = self.build_session_slots(
-            CharacterSessionsMixin._scan_unity_sessions(self)
-        )
+        try:
+            scanned = CharacterSessionsMixin._scan_unity_sessions(self)
+        except Exception:
+            logging.getLogger(__name__).exception(
+                "Organizer événement Windows : scan échoué, sessions conservées."
+            )
+            return
+        if not isinstance(scanned, (list, tuple)) or (scanned and not any(
+                isinstance(row, dict) and session_is_detected(row) for row in scanned)):
+            logging.getLogger(__name__).warning(
+                "Organizer événement Windows : scan invalide, sessions conservées."
+            )
+            return
+        self.sessions = self.build_session_slots(scanned)
         changed = self.session_identity_signature() != previous_signature
         if changed:
             self.export_client_index()
@@ -497,9 +520,22 @@ class CharacterSessionsMixin:
         if os.name != "nt" or not self.sessions_have_generic_names():
             return
         previous_signature = self.session_identity_signature()
-        self.sessions = self.build_session_slots(
-            CharacterSessionsMixin._scan_unity_sessions(self)
-        )
+        try:
+            scanned = CharacterSessionsMixin._scan_unity_sessions(self)
+        except Exception:
+            logging.getLogger(__name__).exception(
+                "Organizer identification différée : scan échoué, sessions conservées."
+            )
+            self.schedule_next_release_identity_retry()
+            return
+        if not isinstance(scanned, (list, tuple)) or (scanned and not any(
+                isinstance(row, dict) and session_is_detected(row) for row in scanned)):
+            logging.getLogger(__name__).warning(
+                "Organizer identification différée : scan invalide, sessions conservées."
+            )
+            self.schedule_next_release_identity_retry()
+            return
+        self.sessions = self.build_session_slots(scanned)
         changed = self.session_identity_signature() != previous_signature
         if changed:
             self.export_client_index()

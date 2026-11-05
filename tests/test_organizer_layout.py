@@ -241,6 +241,84 @@ class OrganizerLayoutTests(unittest.TestCase):
                 page.export_client_index.assert_called_once()
                 page.notify_sessions_changed.assert_called_once()
 
+    def test_explicit_scan_failure_preserves_sessions_without_reload(self):
+        from unittest.mock import Mock
+        from app.pages.organizer.character_sessions import CharacterSessionsMixin
+
+        for outcome in (None, False, [None], RuntimeError("bad scanner")):
+            with self.subTest(outcome=repr(outcome)):
+                page = Mock()
+                previous = [{"nom": "Perso", "hwnd": 101}]
+                page.sessions = previous
+                if isinstance(outcome, Exception):
+                    page._scan_unity_sessions.side_effect = outcome
+                else:
+                    page._scan_unity_sessions.return_value = outcome
+                with patch.object(organizer_sessions.os, "name", "nt"):
+                    CharacterSessionsMixin.scan_sessions(page)
+                self.assertIs(page.sessions, previous)
+                page.export_client_index.assert_not_called()
+                page.request_sessions_render.assert_not_called()
+                page.sync_event_watcher_sessions.assert_not_called()
+                page.reload_runtime_callback.assert_not_called()
+                self.assertIn("conservées", page.status_callback.call_args.args[0])
+
+    def test_window_event_scan_failure_preserves_roster_without_export(self):
+        from unittest.mock import Mock
+        from app.pages.organizer.character_sessions import CharacterSessionsMixin
+
+        for outcome in (None, {}, [{"nom": "Broken", "hwnd": 3.2}],
+                        RuntimeError("bad scanner")):
+            with self.subTest(outcome=repr(outcome)):
+                page = Mock()
+                previous = [{"nom": "Perso", "hwnd": 101}]
+                page.sessions = previous
+                if isinstance(outcome, Exception):
+                    scan = patch.object(
+                        CharacterSessionsMixin, "_scan_unity_sessions",
+                        side_effect=outcome,
+                    )
+                else:
+                    scan = patch.object(
+                        CharacterSessionsMixin, "_scan_unity_sessions",
+                        return_value=outcome,
+                    )
+                with patch.object(organizer_sessions.os, "name", "nt"), scan:
+                    CharacterSessionsMixin.refresh_sessions_from_window_event(page)
+                self.assertIs(page.sessions, previous)
+                page.build_session_slots.assert_not_called()
+                page.export_client_index.assert_not_called()
+                page.request_sessions_render.assert_not_called()
+                page.sync_event_watcher_sessions.assert_not_called()
+                page.begin_release_identity_retries.assert_not_called()
+
+    def test_generic_release_retry_failed_scan_retries_without_erasing_roster(self):
+        from unittest.mock import Mock
+        from app.pages.organizer.character_sessions import CharacterSessionsMixin
+
+        for outcome in (None, 123, [None], RuntimeError("bad scanner")):
+            with self.subTest(outcome=repr(outcome)):
+                page = Mock()
+                previous = [{"nom": "Dofus", "hwnd": 101}]
+                page.sessions = previous
+                page.sessions_have_generic_names.return_value = True
+                if isinstance(outcome, Exception):
+                    scan = patch.object(
+                        CharacterSessionsMixin, "_scan_unity_sessions",
+                        side_effect=outcome,
+                    )
+                else:
+                    scan = patch.object(
+                        CharacterSessionsMixin, "_scan_unity_sessions",
+                        return_value=outcome,
+                    )
+                with patch.object(organizer_sessions.os, "name", "nt"), scan:
+                    CharacterSessionsMixin.retry_release_identity(page)
+                self.assertIs(page.sessions, previous)
+                page.export_client_index.assert_not_called()
+                page.sync_event_watcher_sessions.assert_not_called()
+                page.schedule_next_release_identity_retry.assert_called_once()
+
     def test_organizer_order_and_favorite_never_coerce_foreign_window_ids(self):
         from unittest.mock import Mock
         from app.pages.organizer.character_sessions import CharacterSessionsMixin
