@@ -6360,5 +6360,85 @@ class OrganizerMirrorIntegrationTests(unittest.TestCase):
 
 
 
+    def test_mirror_click_source_probe_cannot_adopt_changed_recipient_list(self):
+        from app.core.runtime_state import AtlasRuntime
+
+        for count in (2, 4, 6, 8):
+            slots = tuple(range(101, 101 + count))
+            for source in (slots[0], slots[-1]):
+                with self.subTest(count=count, source=source):
+                    runtime = self._runtime(primary=source, handles=slots)
+                    profile = runtime.settings
+                    probes = []
+
+                    def identity(hwnd):
+                        probes.append(hwnd)
+                        if len(probes) == 1:
+                            # Keep the old source intact while changing
+                            # a different destination in the same profile.
+                            replacement = next(
+                                h for h in reversed(slots) if h != source
+                            )
+                            profile.clients = tuple(
+                                SimpleNamespace(handle=999 if h == replacement else h)
+                                for h in slots
+                            )
+                        return True
+
+                    with (
+                        patch("app.windows.unity_windows.foreground_window",
+                              return_value=source),
+                        patch("app.windows.unity_windows.find_known_client_from_point",
+                              return_value=source),
+                        patch("app.windows.unity_windows.is_unity_window",
+                              return_value=True),
+                        patch("app.macros.mirror_plan.is_dofus_unity_process",
+                              side_effect=identity),
+                    ):
+                        self.assertFalse(AtlasRuntime._handle_mirror_click(
+                            runtime, "Left", 20, 30,
+                        ))
+                    self.assertGreaterEqual(len(probes), 1)
+                    runtime.switch_click.run_async.assert_not_called()
+
+    def test_mirror_click_invalid_roster_never_runs_foreground_or_native_probes(self):
+        from app.core.runtime_state import AtlasRuntime
+
+        for count in (2, 4, 6, 8):
+            slots = tuple(range(101, 101 + count))
+            for invalid in ("duplicate", "float_alias", "missing", "too_many"):
+                with self.subTest(count=count, invalid=invalid):
+                    runtime = self._runtime(primary=slots[0], handles=slots)
+                    if invalid == "duplicate":
+                        runtime.settings.clients = (
+                            *runtime.settings.clients[:-1],
+                            SimpleNamespace(handle=slots[0]),
+                        )
+                    elif invalid == "float_alias":
+                        runtime.settings.clients = (
+                            *runtime.settings.clients[:-1],
+                            SimpleNamespace(handle=float(slots[-1])),
+                        )
+                    elif invalid == "missing":
+                        runtime.settings.clients = None
+                    else:
+                        runtime.settings.clients = tuple(
+                            SimpleNamespace(handle=h) for h in range(101, 110)
+                        )
+                    with (
+                        patch("app.windows.unity_windows.foreground_window") as foreground,
+                        patch("app.windows.unity_windows.find_known_client_from_point") as point,
+                        patch("app.macros.mirror_plan.is_dofus_unity_process") as process,
+                    ):
+                        self.assertFalse(AtlasRuntime._handle_mirror_click(
+                            runtime, "Left", 20, 30,
+                        ))
+                    foreground.assert_not_called()
+                    point.assert_not_called()
+                    process.assert_not_called()
+                    runtime.switch_click.run_async.assert_not_called()
+
+
+
 if __name__ == "__main__":
     unittest.main()

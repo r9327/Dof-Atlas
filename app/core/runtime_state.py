@@ -880,6 +880,19 @@ class AtlasRuntime:
                 or type(source_hwnd) is not int
                 or not 0 < source_hwnd <= (2**64 - 1)):
             return False
+        # Freeze the exact slots BEFORE GetForegroundWindow, hit-test and
+        # the favorite's process probe. These native calls can yield, so a
+        # later snapshot might silently adopt a changed roster and consume
+        # the physical DOWN for the *old* gesture.
+        if not isinstance(settings.clients, (list, tuple)):
+            return False
+        live_handles = tuple(client.handle for client in settings.clients)
+        if (not 2 <= len(live_handles) <= 8
+                or any(type(hwnd) is not int or not 0 < hwnd <= (2**64 - 1)
+                       for hwnd in live_handles)
+                or len(set(live_handles)) != len(live_handles)
+                or source_hwnd not in live_handles):
+            return False
         # Check the focused/pointed window BEFORE scanning the roster.
         # Physical mouse hooks run globally, including over other apps.
         if foreground_window() != source_hwnd:
@@ -894,17 +907,9 @@ class AtlasRuntime:
                 or not is_unity_window(source_hwnd)
                 or not is_dofus_unity_process(source_hwnd)):
             return False
-        # The source click will be consumed only if *every* configured
-        # character is still valid. Filtering missing windows would create
-        # an unsafe partial mirror and silently drop the user's click.
-        if not isinstance(settings.clients, (list, tuple)):
-            return False
-        live_handles = tuple(client.handle for client in settings.clients)
-        if (not 2 <= len(live_handles) <= 8
-                or any(type(hwnd) is not int or not 0 < hwnd <= (2**64 - 1) for hwnd in live_handles)
-                or len(set(live_handles)) != len(live_handles)
-                or source_hwnd not in live_handles):
-            return False
+        # The source click will be consumed only if *every* original
+        # configured character is still valid. Never silently drop a stale
+        # or foreign client from the frozen roster.
         if not all(
             is_unity_window(hwnd) and is_dofus_unity_process(hwnd)
             for hwnd in live_handles if hwnd != source_hwnd
