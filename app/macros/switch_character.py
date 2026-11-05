@@ -97,7 +97,7 @@ class SwitchCharacterMacro:
                 "Activation client",
                 should_stop=lambda: (
                     self.runtime.macro_lock.should_stop()
-                    or self.runtime.settings is not settings
+                    or not target_is_current()
                 ),
             ):
                 # Activation success is not enough: the slot may have been
@@ -312,9 +312,17 @@ class SwitchCharacterMacro:
             )
             return
 
+        # Freeze the exact HWND; an in-place Organizer edit must not retarget
+        # the native call or publish a different favorite as accepted.
+        preferred_hwnd = preferred.handle
+        if type(preferred_hwnd) is not int or not 0 < preferred_hwnd <= (2**64 - 1):
+            self.runtime.logger.info(
+                "%s retour ignore: HWND favori invalide.", action_label,
+            )
+            return
         timings = settings.timings
         if activate_window(
-            preferred.handle,
+            preferred_hwnd,
             timings.click_focus_settle_ms,
             timings.activate_attempts,
             timings.activate_retry_ms,
@@ -323,6 +331,7 @@ class SwitchCharacterMacro:
             should_stop=lambda: (
                 self.runtime.macro_lock.should_stop()
                 or self.runtime.settings is not settings
+                or preferred.handle != preferred_hwnd
             ),
         ):
             if self.runtime.macro_lock.should_stop() or self.runtime.settings is not settings:
@@ -332,23 +341,25 @@ class SwitchCharacterMacro:
             # character just because its process is still DOFUS.
             current_preferred = self.runtime.settings.preferred_client()
             if (current_preferred is None
-                    or current_preferred.handle != preferred.handle):
+                    or current_preferred.handle != preferred_hwnd
+                    or preferred.handle != preferred_hwnd):
                 self.runtime.logger.info(
                     "%s retour non publié: favori modifié.", action_label,
                 )
                 return
-            if (not is_dofus_unity_process(preferred.handle)
-                or foreground_window() != int(preferred.handle)):
+            if (not is_dofus_unity_process(preferred_hwnd)
+                or foreground_window() != preferred_hwnd):
                 self.runtime.logger.warning(
                     "%s retour non confirmé: identite ou focus différent hwnd=%s",
-                    action_label, preferred.handle,
+                    action_label, preferred_hwnd,
                 )
                 return
             if (self.runtime.macro_lock.should_stop()
-                    or self.runtime.settings is not settings):
+                    or self.runtime.settings is not settings
+                    or preferred.handle != preferred_hwnd):
                 self.runtime.logger.info(
                     "%s retour non publié: profil ou Stop changé après contrôle final.",
                     action_label,
                 )
                 return
-            self.runtime.active_client_handle = preferred.handle
+            self.runtime.active_client_handle = preferred_hwnd
