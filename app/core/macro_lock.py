@@ -10,6 +10,7 @@ from logging import Logger
 class MacroLease:
     label: str
     started_at: float
+    generation: int = 0
 
 
 class MacroLock:
@@ -17,6 +18,7 @@ class MacroLock:
         self._logger = logger
         self._lock = threading.Lock()
         self._lease: MacroLease | None = None
+        self._generation = 0
         self.stop_event = threading.Event()
 
     @property
@@ -24,21 +26,47 @@ class MacroLock:
         lease = self._lease
         return lease.label if lease is not None else ""
 
+    @property
+    def active_generation(self) -> int | None:
+        with self._lock:
+            return self._lease.generation if self._lease is not None else None
+
+    def owns(self, label: str, generation: int) -> bool:
+        """True only while this exact worker generation owns the lease."""
+        with self._lock:
+            return (
+                type(generation) is int and self._lease is not None
+                and self._lease.generation == generation
+                and self._lease.label == label
+            )
+
     def try_begin(self, label: str) -> bool:
         with self._lock:
             if self._lease is not None:
                 self._logger.debug("%s ignore: boucle macro deja en cours active=%s", label, self._lease.label)
                 return False
             self.stop_event.clear()
-            self._lease = MacroLease(label=label, started_at=time.monotonic())
+            self._generation += 1
+            self._lease = MacroLease(
+                label=label, started_at=time.monotonic(),
+                generation=self._generation,
+            )
             self._logger.info("Macro debut: action=%s", label)
             return True
 
-    def end(self, label: str | None = None) -> None:
+    def end(self, label: str | None = None, *, generation: int | None = None) -> None:
         with self._lock:
             if self._lease is None:
                 return
             active = self._lease.label
+            if generation is not None and (
+                type(generation) is not int or generation != self._lease.generation
+            ):
+                self._logger.warning(
+                    "Macro fin refusée: génération périmée owner=%s caller=%s",
+                    self._lease.generation, generation,
+                )
+                return
             # A stale completion must never release another macro's lease.
             # Only the owner (or an explicit administrative end) may unlock.
             if label is not None and label != active:

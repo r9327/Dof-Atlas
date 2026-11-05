@@ -524,6 +524,9 @@ class AtlasRuntime:
     def _spawn_macro(self, label: str, target: Callable[[], None]) -> bool:
         if not self.macro_lock.try_begin(label):
             return False
+        # A repeated label (e.g. two Miroir clicks) is not a lease identity.
+        # Capture the exact generation before the worker thread is scheduled.
+        generation = self.macro_lock.active_generation
 
         def runner() -> None:
             try:
@@ -531,8 +534,11 @@ class AtlasRuntime:
             except Exception:
                 self.logger.exception("%s erreur non geree.", label)
             finally:
-                self.synthetic_guard.reset()
-                self.macro_lock.end(label)
+                # An old worker must not reset the synthetic guard or unlock
+                # a fresh macro if Stop/restart reused the same action label.
+                if self.macro_lock.owns(label, generation):
+                    self.synthetic_guard.reset()
+                self.macro_lock.end(label, generation=generation)
 
         thread = None
         try:
@@ -545,7 +551,7 @@ class AtlasRuntime:
             # but never leak the exclusive lease on construction/start failure.
             if thread is not None and thread in self._threads:
                 self._threads.remove(thread)
-            self.macro_lock.end(label)
+            self.macro_lock.end(label, generation=generation)
             self.logger.exception("%s impossible de demarrer le thread macro.", label)
             self._emit_status(f"{label}: lancement impossible.")
             return False
