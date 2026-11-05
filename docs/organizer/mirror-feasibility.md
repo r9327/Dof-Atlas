@@ -1235,3 +1235,36 @@ ouvert : ces refus explicites de gestes périmés ne corrigent pas la perte
 de gestes pendant un blocage souris actif. Ne pas déclarer zéro perte ni
 équivalence des latences 2 à 8 comptes. Maintenir la PR en Draft, résoudre
 les conflits GitHub avec main avant toute certification et fusion.
+
+## 05/11/2026 — sécurité des raccourcis et arrêt du runtime (PR #325)
+
+- La sélection directe d'un personnage transmet désormais son identifiant de
+  slot jusqu'au `should_stop` de l'activation Win32. Une réaffectation du
+  même profil pendant les tentatives de focus annule la commande, même si
+  l'objet de paramètres n'a pas été remplacé.
+- Le retour au favori fige le HWND choisi : un enregistrement de session
+  modifié en cours d'activation ne peut plus devenir le nouveau HWND publié.
+  L'entrée canonique rejette aussi les HWND absents, non entiers, booléens ou
+  hors plage avant les contrôles Windows, avec la même sélection normale.
+- Le bouton **Personnage suivant** n'initialise plus le runtime si la
+  fermeture est engagée, y compris lorsque l'état d'arrêt change pendant
+  l'acquisition du runtime.
+- Le chemin **Switch Déplacement refusé** n'envoie plus quatre KEYUP
+  synthétiques dans une application étrangère alors qu'aucun KEYDOWN n'a
+  été émis par cette action. Les relâchements explicites du **Stop urgence**
+  et le `finally` de chaque appui autorisé restent inchangés.
+- Scénarios Python de régression **rédigés** pour 2/4/6/8 comptes :
+  mutations slot/HWND pendant l'activation, favori réaffecté, source hors
+  DOFUS, profil remplacé au milieu des sondes Win32 et absence de
+  rechargement du runtime pendant sa fermeture.
+
+**Classification du lot : MEDIUM** (contrôles Win32/focus et chemin de
+libération clavier). La revue statique au SHA du lot n'est pas une preuve
+d'exécution des tests. `Doctor agent plan/check/validate`, tests
+Python/PySide6, Graphify exact-SHA et recette Windows/DOFUS : **NOT_RUN**
+dans cette session. Les tests de simulation rédigés ne sont pas PASS.
+
+**Ouverts :** MIRR-007 (gestes physiques avalés sous blocage souris),
+validation réelle du ressenti 2/4/6/8, contrôles Doctor/Graphify, conflit
+GitHub avec `main`, et certification indépendante. Ne pas marquer les
+exigences #321 terminées ni transformer la PR Draft en Ready avant preuves.
