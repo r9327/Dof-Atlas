@@ -1690,6 +1690,31 @@ class OrganizerMacroReliabilityTests(unittest.TestCase):
                 key.assert_not_called()
                 runtime.switch_character.restore_preferred_client.assert_not_called()
 
+    def test_direction_rejects_bad_live_roster_before_hotkey_worker(self) -> None:
+        for bad_handles in (
+            (), tuple(range(101, 110)), (101, 202, 202),
+            (101, 202.0), (101, True), (101, 2**64),
+        ):
+            with self.subTest(handles=bad_handles):
+                runtime = _runtime()
+                runtime.settings.clients = [
+                    SimpleNamespace(handle=h) for h in bad_handles
+                ]
+                self.assertFalse(DirectionMacro(runtime).run_async("HOME"))
+                runtime._spawn_macro.assert_not_called()
+                runtime.logger.warning.assert_any_call(
+                    "Switch deplacement refusé avant dispatch: roster Organizer invalide."
+                )
+
+    def test_direction_admits_eight_valid_live_windows(self) -> None:
+        runtime = _runtime()
+        runtime.settings.clients = [
+            SimpleNamespace(handle=101 + i) for i in range(8)
+        ]
+        runtime._spawn_macro.return_value = True
+        self.assertTrue(DirectionMacro(runtime).run_async("HOME"))
+        runtime._spawn_macro.assert_called_once()
+
     def test_zaap_invalid_command_cannot_claim_worker_started(self) -> None:
         runtime = _runtime()
         self.assertFalse(ZaapMacro(runtime).run_async("/zaap not-allowed"))

@@ -25,6 +25,21 @@ class DirectionMacro:
                 "Switch deplacement annulé: profil Organizer remplacé avant dispatch.",
             )
             return False
+        # For the real Organizer roster, reject duplicate/invalid or extra
+        # windows before a hotkey is accepted and the worker is admitted.
+        # Legacy injected test adapters with no concrete list retain their
+        # existing worker-side validation.
+        clients = getattr(profile_at_dispatch, "clients", None)
+        if isinstance(clients, (list, tuple)):
+            handles = tuple(getattr(client, "handle", None) for client in clients)
+            if (not 1 <= len(handles) <= 8
+                    or any(type(hwnd) is not int or not 0 < hwnd <= (2**64 - 1)
+                           for hwnd in handles)
+                    or len(set(handles)) != len(handles)):
+                self.runtime.logger.warning(
+                    "Switch deplacement refusé avant dispatch: roster Organizer invalide."
+                )
+                return False
         dispatch_context = (
             profile_at_dispatch.primary_handle, profile_at_dispatch.macro_mode,
         )
