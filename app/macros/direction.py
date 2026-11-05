@@ -115,6 +115,13 @@ class DirectionMacro:
                     press_key(key_name, timings.movement_key_hold_ms)
                     # Count an input that completed before Stop was observed.
                     sent += 1
+                    if client.handle != target_hwnd:
+                        focus_lost = True
+                        self.runtime.logger.warning(
+                            "Switch deplacement interrompu: session mutée après touche hwnd=%s",
+                            target_hwnd,
+                        )
+                        return
                     if (self.runtime.macro_lock.should_stop()
                             or self.runtime.settings is not settings_at_start):
                         return

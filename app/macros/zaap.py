@@ -173,6 +173,12 @@ class ZaapMacro:
                         return
                     continue
                 sent += 1
+                if client.handle != target_hwnd:
+                    focus_lost = True
+                    self.runtime.logger.warning(
+                        "Auto zaap interrompu: session mutée après chat hwnd=%s", target_hwnd,
+                    )
+                    return
                 if self.runtime.settings is not settings_at_start:
                     return
         finally:
@@ -230,7 +236,8 @@ class ZaapMacro:
                     self.runtime.logger.exception("Auto zaap: retour au favori impossible.")
             state = (
                 "interrompu" if (self.runtime.macro_lock.should_stop() or focus_lost
-                                  or self.runtime.settings is not settings_at_start)
+                                  or self.runtime.settings is not settings_at_start
+                                  or client.handle != target_hwnd)
                 else "termine" if sent == len(clients)
                 else "partiel"
             )

@@ -200,6 +200,13 @@ class AutoGroupMacro:
                 # The command returned successful: retain this emission
                 # in telemetry even when Stop arrives immediately afterward.
                 sent += 1
+                if sender.handle != sender_hwnd:
+                    focus_lost = True
+                    self.runtime.logger.warning(
+                        "Auto groupe interrompu: session mutée après invitation hwnd=%s",
+                        sender_hwnd,
+                    )
+                    return
                 if (self.runtime.macro_lock.should_stop()
                         or self.runtime.settings is not settings_at_start):
                     return
@@ -261,7 +268,9 @@ class AutoGroupMacro:
                     )
             stopped = self.runtime.macro_lock.should_stop()
             state = (
-                "interrompu" if stopped or focus_lost or self.runtime.settings is not settings_at_start
+                "interrompu" if (stopped or focus_lost
+                                  or self.runtime.settings is not settings_at_start
+                                  or sender.handle != sender_hwnd)
                 else "ignore" if not eligible
                 else "termine" if sent == eligible
                 else "partiel"
