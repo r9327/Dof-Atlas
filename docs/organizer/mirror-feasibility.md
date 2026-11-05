@@ -1380,3 +1380,47 @@ exécutable. Les contrôles sont des protections de logique, pas une preuve
 d'acceptation des événements par Unity. **MIRR-002, MIRR-005, MIRR-007
 et recette #322 restent bloquants** ; ne pas annoncer READY / CERTIFIED
 ni fusionner.
+
+## 05/11/2026 — admission physique du Miroir et contrat Stop (PR #325)
+
+Les corrections de cette reprise privilégient une **acceptation stricte du
+geste physique avant toute injection**, sans changer le hook natif partagé :
+
+- **Clic Miroir** : validation bornée des ratios et des pixels client
+  avant consommation du DOWN ; le roster favori-first est figé avant les
+  premières sondes Win32 et revérifié après celles-ci et pendant le worker.
+  Un changement de mode, favori ou HWND n'autorise jamais une nouvelle
+  diffusion au titre de l'ancien clic.
+- **Clavier/molette** : même gel des 2–8 HWND avant les sondes de processus,
+  annulation si les destinataires changent en place, liste illisible,
+  profil remplacé ou focus source perdu avant le worker.
+- **Worker occupé** : pour clavier, molette et clic, le signalement d'un
+  geste non diffusé revérifie Stop, l'état du worker et les valeurs
+  d'Organizer. Les événements physiques ne sont pas consommés au titre
+  d'une session déjà terminée ou réaffectée.
+- **Sémantique de Stop** : `MacroLock.request_stop` garde `stop_event`
+  positionné jusqu'à un futur `try_begin`. Cela **n'interdit pas** un
+  nouveau geste après libération du verrou : les vérifications de Stop
+  à l'entrée du hook concernent seulement un **worker encore actif**.
+  Les workers conservent leurs propres vérifications après admission,
+  après `try_begin`, avant chaque envoi, et en nettoyage.
+- **Mesures** : la durée `blocage_souris_ms` instrumente le bail physique
+  pendant la diffusion molette, indépendamment de la latence des appels
+  SendInput et **sans prétendre mesurer le rendu Unity**.
+- **Régressions rédigées** : cas de curseur corrompu, snapshots modifiés
+  pendant les premières sondes, Stop actif/terminé, favori en premier ou
+  dernier slot, état muté durant le signalement occupé, et reprise après
+  Stop pour 2/4/6/8 comptes.
+
+**Validation : NON CERTIFIÉ.** Modifications et tests sauvegardés dans la
+PR ; aucun test Python/PySide6 ou Doctor agent exécuté par l'environnement
+GitHub de cette reprise. Aucun Graphify exact-SHA, aucune recette Windows
+DOFUS/Unity, mesure CPU/RAM ou preuve p50/p95/p99 native. Une expérience
+de rendu réel et des règles d'utilisation applicables restent à évaluer.
+
+**MIRR-007 PENDING** : les DOWN physiques interceptés **pendant le blocage
+global du pointeur** peuvent toujours être perdus. Ce lot protège surtout
+l'admission et l'invalidation des gestes ; il ne crée **aucune file de
+replay** et ne refactore **aucun hook global**. Faire Graphify exact-SHA,
+Doctor structurel et la recette Windows 2/4/6/8 avant toute politique de
+diffusion différée. Garder la PR **Draft / CHANGES REQUIRED**.
