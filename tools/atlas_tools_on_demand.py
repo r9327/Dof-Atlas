@@ -177,6 +177,22 @@ def run(mode: str, base_sha: str, head_sha: str,
                 if evidence and not (root / evidence).is_file():
                     status = "FAIL"
                     stderr += "\nMissing required benchmark evidence: " + evidence
+                elif evidence:
+                    try:
+                        payload = json.loads((root / evidence).read_text(encoding="utf-8"))
+                        if not isinstance(payload, dict):
+                            raise ValueError("Benchmark evidence is not a JSON object")
+                        metrics = payload.get("metrics") or {}
+                        observed = (payload.get("candidate_sha") or payload.get("git_head")
+                                    or (metrics.get("git_head") if isinstance(metrics, dict) else None))
+                        if observed is not None and observed != head_sha:
+                            raise ValueError("STALE benchmark data source SHA")
+                    except (OSError, ValueError, json.JSONDecodeError) as exc:
+                        status = "FAIL"
+                        stderr += "\nInvalid benchmark evidence: " + str(exc)
+                if _git("rev-parse", "HEAD") != head_sha:
+                    status = "FAIL"
+                    stderr += "\nCandidate SHA changed during the diagnostic"
             except subprocess.TimeoutExpired:
                 code, status, stdout, stderr = 124, "TIMEOUT", "", "Bounded on-demand command exceeded deadline"
             (output / f"{name}.stdout.txt").write_text(stdout, encoding="utf-8")
