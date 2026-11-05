@@ -408,7 +408,12 @@ class MirrorInputMacro:
                         and runtime.settings is profile_at_start
                         and self._still_current(source, handles)
                         and is_dofus_unity_process(source)
-                        and runtime.settings is profile_at_start):
+                        # Native process checks can invoke hooks or release the
+                        # GIL. A changed favorite, roster, mode or Stop must
+                        # never restore a different client's foreground.
+                        and runtime.settings is profile_at_start
+                        and self._still_current(source, handles)
+                        and not runtime.macro_lock.should_stop()):
                     try:
                         runtime.switch_character.restore_preferred_client("Miroir " + kind)
                     except Exception:

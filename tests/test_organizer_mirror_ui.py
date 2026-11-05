@@ -5217,5 +5217,63 @@ class OrganizerMirrorIntegrationTests(unittest.TestCase):
         runtime.input_state.end_mouse_block.assert_called_once()
 
 
+    def test_mirror_cleanup_skips_restore_when_native_probe_changes_favorite_mode_or_stop(self):
+        from app.macros.mirror_input import MirrorInputMacro
+
+        # The last source-process check can release the GIL and permit
+        # Organizer to change the live profile without replacing its object.
+        for count in (2, 4, 6, 8):
+            for mutation in ("favorite", "mode", "stop"):
+                with self.subTest(clients=count, mutation=mutation):
+                    handles = tuple(range(101, 101 + count))
+                    runtime = self._runtime(primary=handles[0], handles=handles)
+                    runtime.settings.timings = SimpleNamespace(
+                        switch_background_pre_click_ms=0,
+                        activate_attempts=1,
+                        activate_retry_ms=0,
+                        switch_click_down_ms=10,
+                        switch_client_settle_ms=0,
+                    )
+                    runtime.macro_lock.should_stop.return_value = False
+                    runtime.macro_lock.wait.return_value = False
+                    probes = []
+
+                    def native_probe(hwnd):
+                        probes.append(hwnd)
+                        if len(probes) == 3 * count + 1:
+                            self.assertEqual(hwnd, handles[0])
+                            if mutation == "favorite":
+                                runtime.settings.primary_handle = handles[-1]
+                            elif mutation == "mode":
+                                runtime.settings.macro_mode = "macro"
+                            else:
+                                runtime.macro_lock.should_stop.return_value = True
+                        return True
+
+                    with (
+                        patch("app.macros.mirror_input.is_dofus_unity_process",
+                              side_effect=native_probe),
+                        patch("app.macros.mirror_input.activate_window",
+                              return_value=True),
+                        patch("app.macros.mirror_input.foreground_window",
+                              side_effect=[*handles, handles[-1]]),
+                        patch("app.macros.input_tools.key_down") as down,
+                        patch("app.macros.input_tools.key_up") as up,
+                    ):
+                        MirrorInputMacro(runtime)._run(
+                            "key", 65, handles[0], handles,
+                        )
+                    self.assertEqual(len(probes), 3 * count + 1)
+                    self.assertEqual(down.call_count, count)
+                    self.assertEqual(up.call_count, count)
+                    runtime.switch_character.restore_preferred_client.assert_not_called()
+                    runtime._emit_status.assert_called_once()
+                    status = runtime._emit_status.call_args.args[0]
+                    if mutation == "stop":
+                        self.assertIn("incomplet", status)
+                    else:
+                        self.assertIn("profil modifié après envoi", status)
+
+
 if __name__ == "__main__":
     unittest.main()
