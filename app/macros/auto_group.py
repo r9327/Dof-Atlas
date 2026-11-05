@@ -47,6 +47,7 @@ class AutoGroupMacro:
             self.runtime.logger.info("Auto groupe annulé: profil remplacé avant worker.")
             self.runtime._emit_status("Auto-groupe interrompu : profil Organizer modifié.")
             return
+        favorite_at_start = settings_at_start.primary_handle
         sender = self.runtime.switch_character.logical_active_client()
         # Capture the exact source HWND before native probes or recipient
         # preparation; the client object may be edited in place by Organizer.
@@ -123,8 +124,9 @@ class AutoGroupMacro:
             return
         timings = settings_at_start.timings
         if (self.runtime.settings is not settings_at_start
-                or sender.handle != sender_hwnd):
-            self.runtime._emit_status("Auto-groupe interrompu : session Organizer modifiée.")
+                or sender.handle != sender_hwnd
+                or settings_at_start.primary_handle != favorite_at_start):
+            self.runtime._emit_status("Auto-groupe interrompu : session ou favori modifié.")
             return
         if not activate_window(
             sender_hwnd,
@@ -137,12 +139,12 @@ class AutoGroupMacro:
                 self.runtime.macro_lock.should_stop()
                 or self.runtime.settings is not settings_at_start
                 or sender.handle != sender_hwnd
+                or settings_at_start.primary_handle != favorite_at_start
             ),
         ):
             self.runtime.logger.info("Auto groupe activation fenetre echec: hwnd=%s", sender_hwnd)
             self.runtime._emit_status("Auto-groupe non envoyé : activation DOFUS échouée.")
             return
-        favorite_at_start = settings_at_start.primary_handle
         sent = 0
         eligible = 0
         focus_lost = False
@@ -150,6 +152,12 @@ class AutoGroupMacro:
             for index, name in enumerate(recipients):
                 if (self.runtime.macro_lock.should_stop()
                         or self.runtime.settings is not settings_at_start):
+                    return
+                if settings_at_start.primary_handle != favorite_at_start:
+                    focus_lost = True
+                    self.runtime.logger.warning(
+                        "Auto groupe interrompu: favori modifié entre invitations."
+                    )
                     return
                 eligible += 1
                 # Every invitation is a distinct operation. Never type into
@@ -159,7 +167,8 @@ class AutoGroupMacro:
                 if (self.runtime.settings is not settings_at_start
                         or not is_dofus_unity_process(sender_hwnd)
                         or foreground_window() != int(sender_hwnd)
-                        or sender.handle != sender_hwnd):
+                        or sender.handle != sender_hwnd
+                        or settings_at_start.primary_handle != favorite_at_start):
                     focus_lost = True
                     self.runtime.logger.warning(
                         "Auto groupe interrompu: focus ou identité DOFUS perdus avant invitation hwnd=%s",
@@ -181,6 +190,7 @@ class AutoGroupMacro:
                         self.runtime.macro_lock.should_stop()
                         or self.runtime.settings is not settings_at_start
                         or sender.handle != sender_hwnd
+                        or settings_at_start.primary_handle != favorite_at_start
                         or foreground_window() != int(sender_hwnd)
                     ),
                 ):
@@ -189,7 +199,8 @@ class AutoGroupMacro:
                         return
                     if (not is_dofus_unity_process(sender_hwnd)
                             or foreground_window() != int(sender_hwnd)
-                            or sender.handle != sender_hwnd):
+                            or sender.handle != sender_hwnd
+                            or settings_at_start.primary_handle != favorite_at_start):
                         focus_lost = True
                         self.runtime.logger.warning(
                             "Auto groupe interrompu: focus ou identité DOFUS perdus après échec du chat hwnd=%s",
