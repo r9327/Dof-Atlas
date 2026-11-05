@@ -67,6 +67,9 @@ class ModularDomainRoutingTests(unittest.TestCase):
         # blocked until individually reviewed; the new contract test is owned.
         changed = [
             "tools/doctor_pr_on_demand.py",
+            "tools/atlas_tools_on_demand.py",
+            "tests/test_atlas_tools_on_demand.py",
+            ".github/workflows/atlas-tools-on-demand.yml",
             "tests/test_doctor_pr_on_demand.py",
             ".github/workflows/atlas-doctor-on-demand.yml",
             "GRAPHIFY.md",  # Reviewed root Graphify agent contract.
