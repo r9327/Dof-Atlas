@@ -15,7 +15,8 @@ def settings(count: int, *, hotkey: str = "F9", mode: str = "macro"):
         for i in range(1, count + 1)
     ]
     return SimpleNamespace(
-        clients=clients, macro_mode=mode, switch_character_enabled=True,
+        clients=clients, primary_handle=clients[0].handle if clients else 0,
+        timings=Mock(), macro_mode=mode, switch_character_enabled=True,
         next_character_hotkey=hotkey, switch_click_enabled=False,
         switch_click_hotkey="", switch_double_click_enabled=False,
         switch_double_click_hotkey="", movement_enabled=False, stop_hotkey="",
@@ -103,6 +104,73 @@ class NextCharacterTests(unittest.TestCase):
                         slot % count + 1, expected_profile=runtime.settings,
                     )
 
+
+    def test_direct_activation_ignores_corrupt_numeric_slot_aliases_2_to_8(self):
+        for count in (2, 4, 6, 8):
+            with self.subTest(clients=count):
+                runtime = Mock()
+                profile = settings(count)
+                # Both aliases compare equal to integer 1 in Python. Neither
+                # may shadow the actual Organizer slot, even with a DOFUS HWND.
+                profile.clients.insert(0, SimpleNamespace(
+                    index=True, handle=900, display_name="Bad bool",
+                ))
+                profile.clients.insert(1, SimpleNamespace(
+                    index=1.0, handle=901, display_name="Bad float",
+                ))
+                runtime.settings = profile
+                runtime.macro_lock.should_stop.return_value = False
+                runtime._spawn_macro.return_value = True
+                macro = SwitchCharacterMacro(runtime)
+                with (
+                    patch("app.macros.switch_character.is_unity_window", return_value=True),
+                    patch("app.macros.switch_character.is_dofus_unity_process", return_value=True),
+                    patch("app.macros.switch_character.activate_window", return_value=True) as focus,
+                    patch("app.macros.switch_character.foreground_window", return_value=101),
+                ):
+                    self.assertTrue(macro.activate_by_index("1"))
+                    runtime._spawn_macro.assert_called_once()
+                    runtime._spawn_macro.call_args.args[1]()
+                self.assertEqual(focus.call_args.args[0], 101)
+                self.assertEqual(runtime.active_client_handle, 101)
+
+    def test_direct_activation_refuses_out_of_range_or_corrupt_only_slot(self):
+        for count in (2, 4, 6, 8):
+            with self.subTest(clients=count):
+                runtime = Mock()
+                profile = settings(count)
+                profile.clients[0].index = True
+                runtime.settings = profile
+                macro = SwitchCharacterMacro(runtime)
+                for raw in (0, -1, 9, "9", 2**64, 1):
+                    with self.subTest(raw=repr(raw)):
+                        self.assertFalse(macro.activate_by_index(raw))
+                runtime._spawn_macro.assert_not_called()
+
+    def test_next_skips_invalid_slot_but_refuses_duplicate_live_slot(self):
+        for count in (2, 4, 6, 8):
+            with self.subTest(clients=count):
+                runtime = Mock()
+                profile = settings(count)
+                runtime.settings = profile
+                runtime.macro_lock.should_stop.return_value = False
+                macro = SwitchCharacterMacro(runtime)
+                profile.clients.insert(0, SimpleNamespace(index=1.0, handle=999))
+                with (
+                    patch("app.macros.switch_character.is_unity_window", return_value=True) as unity,
+                    patch("app.macros.switch_character.is_dofus_unity_process", return_value=True),
+                    patch.object(macro, "logical_active_client", return_value=profile.clients[1]),
+                    patch.object(macro, "activate_by_index", return_value=True) as activate,
+                ):
+                    self.assertTrue(macro.activate_next())
+                    activate.assert_called_once_with(2, expected_profile=profile)
+                    self.assertNotIn(999, [call.args[0] for call in unity.call_args_list])
+                    # Two distinct authenticated clients claiming slot 1 make
+                    # the character-cycle order ambiguous: never choose one.
+                    profile.clients[0].index = 1
+                    activate.reset_mock()
+                    self.assertFalse(macro.activate_next())
+                    activate.assert_not_called()
 
     def test_next_rejects_profile_reload_while_resolving_active_character(self):
         for count in (2, 4, 6, 8):
