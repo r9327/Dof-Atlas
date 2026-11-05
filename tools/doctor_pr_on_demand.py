@@ -30,7 +30,7 @@ class RequestRejected(ValueError):
     """An untrusted, stale or malformed on-demand request."""
 
 
-def parse_request(event_name: str, event: dict[str, Any]) -> tuple[int, str, str, str]:
+def parse_request(event_name: str, event: dict[str, Any]) -> tuple[int, str, str]:
     lot_base = ""
     if event_name == "issue_comment":
         issue = event.get("issue") or {}
@@ -76,7 +76,7 @@ def parse_request(event_name: str, event: dict[str, Any]) -> tuple[int, str, str
             raise RequestRejected("Development lot cannot be empty")
     elif lot_base:
         raise RequestRejected("Lot base is allowed only for doctor-lot")
-    return number, mode, expected, lot_base
+    return number, mode, expected
 
 
 def resolve(
@@ -87,7 +87,14 @@ def resolve(
 ) -> dict[str, Any]:
     if not REPO.fullmatch(repository):
         raise RequestRejected("Invalid repository")
-    number, mode, expected, lot_base = parse_request(event_name, event)
+    number, mode, expected = parse_request(event_name, event)
+    lot_base = ""
+    if mode == "doctor-lot":
+        if event_name == "issue_comment":
+            body = str((event.get("comment") or {}).get("body", "")).strip()
+            lot_base = LOT_COMMENT.fullmatch(body).group(1).lower()
+        else:
+            lot_base = str((event.get("inputs") or {}).get("lot_base_sha")).strip().lower()
     pr = fetch_pr(number)
     if pr.get("state") != "open":
         raise RequestRejected("The PR must be open (Draft is accepted)")
