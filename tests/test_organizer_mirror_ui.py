@@ -664,6 +664,62 @@ class OrganizerMirrorIntegrationTests(unittest.TestCase):
         runtime._mirror_gesture_targets.assert_not_called()
         runtime.mirror_input.run_wheel.assert_not_called()
 
+    def test_mirror_click_rejects_mode_changed_to_macro_before_native_probes(self):
+        for count in (2, 4, 6, 8):
+            with self.subTest(clients=count):
+                handles = tuple(range(101, 101 + count))
+                runtime = self._runtime(primary=handles[0], handles=handles)
+                runtime.settings.macro_mode = "macro"
+                with (
+                    patch("app.windows.unity_windows.foreground_window") as foreground,
+                    patch("app.windows.unity_windows.find_known_client_from_point") as hit,
+                    patch("app.macros.mirror_plan.is_dofus_unity_process") as probe,
+                ):
+                    self.assertFalse(AtlasRuntime._handle_mirror_click(
+                        runtime, "Left", 20, 25,
+                    ))
+                foreground.assert_not_called()
+                hit.assert_not_called()
+                probe.assert_not_called()
+                runtime.switch_click.run_async.assert_not_called()
+
+    def test_racing_mode_toggle_during_physical_click_cannot_dispatch_mirror(self):
+        for count in (2, 4, 6, 8):
+            with self.subTest(clients=count):
+                handles = tuple(range(101, 101 + count))
+                runtime = self._runtime(primary=handles[-1], handles=handles)
+                runtime._running = True
+                runtime._admin_ok = True
+                runtime._pending_physical_switch = None
+                replacement = SimpleNamespace(
+                    macro_mode="macro",
+                    primary_handle=handles[-1],
+                    clients=runtime.settings.clients,
+                )
+
+                class ReloadingProfile:
+                    @property
+                    def macro_mode(self):
+                        runtime.settings = replacement
+                        return "mirror"
+
+                runtime.settings = ReloadingProfile()
+                runtime._handle_mirror_click.side_effect = (
+                    lambda *args: AtlasRuntime._handle_mirror_click(runtime, *args)
+                )
+                with (
+                    patch("app.windows.unity_windows.foreground_window") as focus,
+                    patch("app.windows.unity_windows.find_known_client_from_point") as hit,
+                    patch("app.macros.mirror_plan.is_dofus_unity_process") as probe,
+                ):
+                    self.assertFalse(AtlasRuntime._handle_mouse_click(
+                        runtime, "Left", 20, 25,
+                    ))
+                focus.assert_not_called()
+                hit.assert_not_called()
+                probe.assert_not_called()
+                runtime.switch_click.run_async.assert_not_called()
+
     def test_invalid_click_callback_never_consults_favorite_or_consumes(self):
         runtime = self._runtime()
         for values in (

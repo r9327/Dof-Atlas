@@ -828,7 +828,10 @@ class AtlasRuntime:
             # block; do not run a full DOFUS roster probe from the hook.
             return False
         settings = self.settings
-        if not settings.primary_handle:
+        # The physical click can arrive while the UI switches Macro/Miroir.
+        # A mode decision made before a profile reload is not authority to
+        # broadcast the event under the new mode.
+        if settings.macro_mode != "mirror" or not settings.primary_handle:
             return False
         # Check the focused/pointed window BEFORE scanning the roster.
         # Physical mouse hooks run globally, including over other apps.
