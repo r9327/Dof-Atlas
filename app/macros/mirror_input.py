@@ -167,6 +167,23 @@ class MirrorInputMacro:
             runtime.logger.info("Miroir %s annulé: Stop avant worker.", kind)
             runtime._emit_status("Miroir non diffusé : Stop urgence.")
             return
+        # An input was physically consumed on the favorite when admitted.
+        # If the user changed applications before the queued worker starts,
+        # replaying it now would steal focus for a stale gesture.
+        if profile_at_dispatch is not None:
+            try:
+                if foreground_window() != source:
+                    runtime.logger.info(
+                        "Miroir %s annulé: source non active avant worker.", kind,
+                    )
+                    runtime._emit_status("Miroir non diffusé : focus source perdu.")
+                    return
+            except Exception:
+                runtime.logger.exception(
+                    "Miroir %s annulé: focus source illisible avant worker.", kind,
+                )
+                runtime._emit_status("Miroir non diffusé : focus source perdu.")
+                return
         timings = profile_at_start.timings
         start = perf_counter()
         last_emission_at: float | None = None
@@ -219,6 +236,23 @@ class MirrorInputMacro:
             if runtime.macro_lock.should_stop():
                 runtime.logger.info("Miroir %s annulé: Stop pendant le contrôle des clients.", kind)
                 return
+            # A native process probe may yield to a browser or a different
+            # game. Verify the original source is still foreground BEFORE
+            # activating a target or blocking the physical pointer.
+            if profile_at_dispatch is not None:
+                try:
+                    if foreground_window() != source:
+                        focus_lost = True
+                        runtime.logger.warning(
+                            "Miroir %s annulé: source perdue pendant preflight.", kind,
+                        )
+                        return
+                except Exception:
+                    focus_lost = True
+                    runtime.logger.exception(
+                        "Miroir %s annulé: focus source illisible après preflight.", kind,
+                    )
+                    return
             # Authenticate the entire roster before taking a mouse block.
             # This keeps slow Win32 process probes outside the blocked interval.
             if kind == "wheel":

@@ -5964,5 +5964,97 @@ class OrganizerMirrorIntegrationTests(unittest.TestCase):
 
 
 
+    def test_queued_mirror_key_wheel_never_steals_focus_from_other_app(self):
+        from app.macros.mirror_input import MirrorInputMacro
+
+        for count in (2, 4, 6, 8):
+            for kind in ("key", "wheel"):
+                with self.subTest(clients=count, kind=kind):
+                    handles = tuple(range(101, 101 + count))
+                    runtime = self._runtime(primary=handles[0], handles=handles)
+                    runtime.macro_lock.should_stop.return_value = False
+                    macro = MirrorInputMacro(runtime)
+                    queued = []
+
+                    def spawn(_name, worker):
+                        queued.append(worker)
+                        return True
+
+                    runtime._spawn_macro.side_effect = spawn
+                    if kind == "key":
+                        self.assertTrue(macro.run_key(65, handles[0], handles))
+                    else:
+                        self.assertTrue(macro.run_wheel(
+                            120, False, 0.5, 0.5, handles[0], handles,
+                        ))
+                    with (
+                        patch("app.macros.mirror_input.foreground_window",
+                              return_value=999),
+                        patch("app.macros.mirror_input.is_dofus_unity_process") as probe,
+                        patch("app.macros.mirror_input.current_cursor_pos") as cursor,
+                        patch("app.macros.mirror_input.activate_window") as activate,
+                        patch("app.macros.mirror_input.send_screen_wheel") as wheel,
+                        patch("app.macros.input_tools.key_down") as down,
+                    ):
+                        queued[0]()
+                    probe.assert_not_called()
+                    cursor.assert_not_called()
+                    activate.assert_not_called()
+                    wheel.assert_not_called()
+                    down.assert_not_called()
+                    runtime.input_state.begin_mouse_block.assert_not_called()
+                    runtime._emit_status.assert_called_once_with(
+                        "Miroir non diffusé : focus source perdu."
+                    )
+
+    def test_queued_mirror_aborts_when_source_loses_focus_during_native_scan(self):
+        from app.macros.mirror_input import MirrorInputMacro
+
+        for count in (2, 4, 6, 8):
+            for kind in ("key", "wheel"):
+                with self.subTest(clients=count, kind=kind):
+                    handles = tuple(range(101, 101 + count))
+                    runtime = self._runtime(primary=handles[0], handles=handles)
+                    runtime.settings.timings = SimpleNamespace(
+                        switch_background_pre_click_ms=0,
+                        activate_attempts=1, activate_retry_ms=0,
+                        switch_client_settle_ms=0,
+                    )
+                    runtime.macro_lock.should_stop.return_value = False
+                    focus = [handles[0]]
+                    probes = []
+
+                    def probe(hwnd):
+                        probes.append(hwnd)
+                        if len(probes) == count:
+                            focus[0] = 999
+                        return True
+
+                    with (
+                        patch("app.macros.mirror_input.foreground_window",
+                              side_effect=lambda: focus[0]),
+                        patch("app.macros.mirror_input.is_dofus_unity_process",
+                              side_effect=probe),
+                        patch("app.macros.mirror_input.current_cursor_pos",
+                              return_value=(12, 14)),
+                        patch("app.macros.mirror_input.activate_window") as activate,
+                        patch("app.macros.mirror_input.send_screen_wheel") as wheel,
+                        patch("app.macros.input_tools.key_down") as down,
+                    ):
+                        MirrorInputMacro(runtime)._run(
+                            kind, 65 if kind == "key" else (120, False, 0.5, 0.5),
+                            handles[0], handles,
+                            profile_at_dispatch=runtime.settings,
+                        )
+                    self.assertEqual(probes, list(handles))
+                    activate.assert_not_called()
+                    wheel.assert_not_called()
+                    down.assert_not_called()
+                    runtime.input_state.begin_mouse_block.assert_not_called()
+                    runtime.switch_character.restore_preferred_client.assert_not_called()
+                    self.assertIn("incomplet", runtime._emit_status.call_args.args[0])
+
+
+
 if __name__ == "__main__":
     unittest.main()
