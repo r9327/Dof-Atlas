@@ -1268,3 +1268,32 @@ dans cette session. Les tests de simulation rédigés ne sont pas PASS.
 validation réelle du ressenti 2/4/6/8, contrôles Doctor/Graphify, conflit
 GitHub avec `main`, et certification indépendante. Ne pas marquer les
 exigences #321 terminées ni transformer la PR Draft en Ready avant preuves.
+
+## 05/11/2026 — sélection et admission Miroir (reprise PR #325)
+
+- Le statut de **Miroir clavier/molette** distingue désormais une émission
+  complète (N/N appels synthétiques) d'un **profil ou roster modifié après
+  le dernier envoi**. Ce statut n'est jamais une preuve de rendu Unity.
+- Le worker refusé **pendant l'admission** ne fait plus consommer le geste
+  physique si Organizer a changé de génération avant le retour au hook.
+  L'entrée clavier/molette vérifie aussi le favori, le mode, l'ordre des
+  HWND et les limites entières 64 bits dans la mémoire du profil, **sans
+  ajouter de sondes Win32 aux hooks**.
+- Les cibles **Personnage suivant**, la liste ordonnée des fenêtres et
+  la détection du personnage actif refusent une mutation d'un objet de
+  session **pendant** les sondes de processus. L'identité vérifiée d'un
+  HWND ne peut plus autoriser par alias un nouvel HWND flottant/booléen
+  ni une réaffectation d'un client déjà inspecté.
+- Matrice de tests déterministes **rédigés** pour 2/4/6/8 comptes :
+  modification du dernier geste clavier/molette, rechargement pendant
+  `_spawn_macro`, HWND altéré dans le roster, fenêtre source/slot réaffecté,
+  comparaison favorite-first nominale, et handles entiers hors plage.
+
+**Risque du lot : MEDIUM (entrées natives et contrôle de source).**
+Aucun test Python/PySide6, Doctor agent, Graphify exact-SHA, benchmark ni
+essai Windows/Unity **exécuté** dans cette session GitHub.
+Les 2/4/6/8 sont des *configurations de tests écrits*, pas des PASS.
+Le P0 **MIRR-007** demeure ouvert : aucun Graphify Code Map artifact
+du HEAD exact n'a été retrouvé, le hook partagé n'a donc pas été refactoré
+sans preuve d'impact. Les conflits avec `main`, l'audit PR complet et la
+certification indépendante restent à résoudre avant fusion.
