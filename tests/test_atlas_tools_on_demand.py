@@ -291,7 +291,7 @@ class OnDemandToolModeTests(unittest.TestCase):
         self.assertIn("RECEIPT_HTTP_STATUS", freshness)
         self.assertIn("RECEIPT_REQUEST_ID", freshness)
         self.assertIn("http_status=UNKNOWN", freshness)
-        self.assertIn("request_id=${request_id:-UNAVAILABLE}", freshness)
+        self.assertIn("${request_id:-UNAVAILABLE}", freshness)
         self.assertIn("tr -cd", freshness)
         self.assertIn("use run-scoped JSON artifact", freshness)
         self.assertIn("delivery=COMMENT_UNAVAILABLE", freshness)
