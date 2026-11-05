@@ -71,6 +71,12 @@ class DirectionMacro:
                 if (self.runtime.macro_lock.should_stop()
                         or self.runtime.settings is not settings_at_start):
                     return
+                if settings_at_start.primary_handle != favorite_at_start:
+                    focus_lost = True
+                    self.runtime.logger.warning(
+                        "Switch deplacement interrompu: favori modifié entre clients."
+                    )
+                    return
                 if (type(target_hwnd) is not int or not 0 < target_hwnd <= (2**64 - 1)
                         or not frozen_roster_intact()):
                     focus_lost = True
@@ -102,6 +108,7 @@ class DirectionMacro:
                         self.runtime.macro_lock.should_stop()
                         or self.runtime.settings is not settings_at_start
                         or not frozen_roster_intact()
+                        or settings_at_start.primary_handle != favorite_at_start
                     ),
                 ):
                     # Validate native identity BEFORE the last focus check:
@@ -109,10 +116,11 @@ class DirectionMacro:
                     if (self.runtime.settings is not settings_at_start
                             or not is_dofus_unity_process(target_hwnd)
                             or foreground_window() != int(target_hwnd)
-                            or not frozen_roster_intact()):
+                            or not frozen_roster_intact()
+                            or settings_at_start.primary_handle != favorite_at_start):
                         focus_lost = True
                         self.runtime.logger.warning(
-                            "Switch deplacement interrompu: focus ou identité DOFUS perdus avant frappe hwnd=%s",
+                            "Switch deplacement interrompu: focus, identité ou favori perdus avant frappe hwnd=%s",
                             target_hwnd,
                         )
                         return
@@ -144,10 +152,11 @@ class DirectionMacro:
                     if (self.runtime.macro_lock.should_stop()
                             or self.runtime.settings is not settings_at_start):
                         return
-                    if not frozen_roster_intact():
+                    if (not frozen_roster_intact()
+                            or settings_at_start.primary_handle != favorite_at_start):
                         focus_lost = True
                         self.runtime.logger.warning(
-                            "Switch deplacement interrompu: session mutée pendant activation hwnd=%s",
+                            "Switch deplacement interrompu: session ou favori muté pendant activation hwnd=%s",
                             target_hwnd,
                         )
                         return
