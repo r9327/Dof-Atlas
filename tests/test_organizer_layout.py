@@ -115,6 +115,35 @@ class OrganizerLayoutTests(unittest.TestCase):
                 )
                 self.assertEqual(active[0]["nom"], "Perso0")
 
+    def test_organizer_scanner_skips_malformed_rows_without_losing_eighth_window(self):
+        from unittest.mock import Mock
+        from app.pages.organizer.character_sessions import CharacterSessionsMixin
+        from app.pages.organizer.common import session_hwnd, session_is_detected
+
+        for count in (2, 4, 6, 8):
+            with self.subTest(count=count):
+                page = Mock()
+                page.character_order_service.sort_rows.side_effect = (
+                    lambda rows, **_kwargs: rows
+                )
+                valid = [
+                    {"nom": f"Perso{i}", "hwnd": 101 + i}
+                    for i in range(count)
+                ]
+                # Invalid native callback rows must never crash a refresh or
+                # consume the fixed-size slot budget before the final client.
+                scanned = [None, False, 123, "invalid", [],
+                           {"nom": "Broken", "hwnd": 101.5},
+                           *valid[:-1], object(), valid[-1]]
+                slots = CharacterSessionsMixin.build_session_slots(page, scanned)
+                active = [row for row in slots if session_is_detected(row)]
+                self.assertEqual(len(slots), 8)
+                self.assertEqual(len(active), count)
+                self.assertEqual(
+                    tuple(session_hwnd(row) for row in active),
+                    tuple(range(101, 101 + count)),
+                )
+
     def test_organizer_order_and_favorite_never_coerce_foreign_window_ids(self):
         from unittest.mock import Mock
         from app.pages.organizer.character_sessions import CharacterSessionsMixin

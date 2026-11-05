@@ -260,7 +260,9 @@ class CharacterSessionsMixin:
         detected: list[dict[str, Any]] = []
         seen_handles: set[int] = set()
         for session in detected_sessions:
-            if not session_is_detected(session):
+            # Injectable Win32 scanners/watchers may yield corrupt records.
+            # Reject them without losing valid later windows (including #8).
+            if not isinstance(session, dict) or not session_is_detected(session):
                 continue
             hwnd = session_hwnd(session)
             if hwnd in seen_handles:
