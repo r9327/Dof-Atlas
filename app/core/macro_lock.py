@@ -19,6 +19,7 @@ class MacroLock:
         self._lock = threading.Lock()
         self._lease: MacroLease | None = None
         self._generation = 0
+        self._worker_generation = threading.local()
         self.stop_event = threading.Event()
 
     @property
@@ -39,6 +40,23 @@ class MacroLock:
                 and self._lease.generation == generation
                 and self._lease.label == label
             )
+
+    def bind_worker(self, label: str, generation: int) -> bool:
+        """Bind the runner to the lease acquired before thread scheduling."""
+        with self._lock:
+            if (
+                type(generation) is not int
+                or self._lease is None
+                or self._lease.label != label
+                or self._lease.generation != generation
+                or self.stop_event.is_set()
+            ):
+                return False
+            self._worker_generation.token = generation
+            return True
+
+    def unbind_worker(self) -> None:
+        self._worker_generation.token = None
 
     def try_begin(self, label: str) -> bool:
         with self._lock:
@@ -85,7 +103,20 @@ class MacroLock:
         self._logger.warning("Stop urgence: reason=%s active=%s", reason, active)
 
     def should_stop(self) -> bool:
-        return self.stop_event.is_set()
+        if self.stop_event.is_set():
+            return True
+        worker = getattr(self._worker_generation, "token", None)
+        if worker is None:
+            return False
+        with self._lock:
+            return (
+                self._lease is None or self._lease.generation != worker
+            )
 
     def wait(self, duration_ms: int) -> bool:
-        return self.stop_event.wait(max(0, int(duration_ms)) / 1000.0)
+        if self.should_stop():
+            return True
+        signaled = self.stop_event.wait(max(0, int(duration_ms)) / 1000.0)
+        # A subsequent worker may clear the shared Stop event during an old
+        # sleep. The bound worker generation is still canceled in that case.
+        return bool(signaled or self.should_stop())

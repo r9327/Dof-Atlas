@@ -527,13 +527,27 @@ class AtlasRuntime:
         # A repeated label (e.g. two Miroir clicks) is not a lease identity.
         # Capture the exact generation before the worker thread is scheduled.
         generation = self.macro_lock.active_generation
+        if type(generation) is not int:
+            self.logger.warning(
+                "%s refusé: bail modifié avant création du worker.", label,
+            )
+            return False
 
         def runner() -> None:
+            bound = self.macro_lock.bind_worker(label, generation)
             try:
+                if not bound:
+                    self.logger.info(
+                        "%s annulé: ancien worker planifié sur un bail périmé.",
+                        label,
+                    )
+                    return
                 target()
             except Exception:
                 self.logger.exception("%s erreur non geree.", label)
             finally:
+                if bound:
+                    self.macro_lock.unbind_worker()
                 # An old worker must not reset the synthetic guard or unlock
                 # a fresh macro if Stop/restart reused the same action label.
                 if self.macro_lock.owns(label, generation):
