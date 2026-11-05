@@ -972,6 +972,33 @@ class OrganizerMirrorIntegrationTests(unittest.TestCase):
                 runtime.mirror_input.run_wheel.assert_not_called()
                 probe.assert_not_called()
 
+    def test_switch_click_mirror_dispatch_timestamp_survives_worker_queue(self):
+        from app.macros.switch_click import SwitchClickMacro, SwitchClickContext
+
+        for count in (2, 4, 6, 8):
+            with self.subTest(clients=count):
+                handles = tuple(range(101, 101 + count))
+                runtime = self._runtime(primary=handles[0], handles=handles)
+                runtime._spawn_macro.return_value = True
+                macro = SwitchClickMacro(runtime)
+                context = SwitchClickContext(
+                    handles[0], 20, 30, 0.5, 0.5, "cursor",
+                )
+                with (
+                    patch.object(macro, "_capture_trigger_context",
+                                 return_value=context),
+                    patch("app.macros.switch_click.perf_counter", return_value=123.25),
+                ):
+                    self.assertTrue(macro.run_async(
+                        "Left", 20, 30, 1, "Miroir",
+                        exact_source_handle=handles[0],
+                        mirror_target_handles=handles,
+                    ))
+                with patch.object(macro, "_run") as run:
+                    runtime._spawn_macro.call_args.args[1]()
+                self.assertEqual(run.call_args.kwargs["dispatch_at"], 123.25)
+                self.assertIs(run.call_args.kwargs["settings_at_dispatch"], runtime.settings)
+
     def test_switch_click_discard_queued_worker_after_identical_profile_reload(self):
         from app.macros.switch_click import SwitchClickMacro, SwitchClickContext
 
@@ -1006,6 +1033,7 @@ class OrganizerMirrorIntegrationTests(unittest.TestCase):
 
     def test_switch_click_identical_profile_reload_after_activation_never_clicks(self):
         from app.macros.switch_click import SwitchClickMacro, SwitchClickContext
+        from time import perf_counter
 
         for count in (2, 4, 6, 8):
             with self.subTest(count=count):
@@ -1050,6 +1078,7 @@ class OrganizerMirrorIntegrationTests(unittest.TestCase):
                         "Left", 1, "Miroir", context,
                         exact_source_handle=handles[0],
                         mirror_target_handles=handles,
+                        dispatch_at=perf_counter() - 0.025,
                     )
                 focus.assert_called_once()
                 foreground.assert_not_called()
@@ -1059,6 +1088,12 @@ class OrganizerMirrorIntegrationTests(unittest.TestCase):
                 runtime._emit_status.assert_called_once_with(
                     f"Miroir interrompu : 0/{count} fenêtres."
                 )
+                dispatch_logs = [
+                    call for call in runtime.logger.info.call_args_list
+                    if call.args and "dispatch_to_last_emit_ms" in str(call.args[0])
+                ]
+                self.assertEqual(len(dispatch_logs), 1)
+                self.assertEqual(dispatch_logs[0].args[2], "NOT_MEASURED")
 
     def test_mirror_click_wrong_window_under_cursor_skips_roster_scan(self):
         runtime = self._runtime()
@@ -1414,6 +1449,7 @@ class OrganizerMirrorIntegrationTests(unittest.TestCase):
 
     def test_sequential_sender_visits_2_4_6_8_clients_exactly_once(self):
         from app.macros.switch_click import SwitchClickMacro, SwitchClickContext
+        from time import perf_counter
         for count in (2, 4, 6, 8):
             with self.subTest(count=count):
                 handles = tuple(range(101, 101 + count))
@@ -1441,7 +1477,10 @@ class OrganizerMirrorIntegrationTests(unittest.TestCase):
                     patch("app.macros.switch_click.send_client_click", return_value=True) as sender,
                     patch.object(macro, "_target_point", return_value=(20, 30)),
                 ):
-                    macro._run("Left", 1, "Miroir", context)
+                    macro._run(
+                        "Left", 1, "Miroir", context,
+                        dispatch_at=perf_counter() - 0.025,
+                    )
                 self.assertEqual(sender.call_count, count)
                 self.assertEqual(
                     [call.args[0] for call in sender.call_args_list], list(handles),
@@ -1456,6 +1495,14 @@ class OrganizerMirrorIntegrationTests(unittest.TestCase):
                 ]
                 self.assertEqual(len(focus_logs), 1)
                 self.assertEqual(focus_logs[0].args[1]["n"], count)
+                dispatch_logs = [
+                    call for call in runtime.logger.info.call_args_list
+                    if call.args and "dispatch_to_last_emit_ms" in str(call.args[0])
+                ]
+                self.assertEqual(len(dispatch_logs), 1)
+                self.assertGreaterEqual(dispatch_logs[0].args[1], 0.0)
+                self.assertNotEqual(dispatch_logs[0].args[2], "NOT_MEASURED")
+                self.assertIn("pas rendu Unity", dispatch_logs[0].args[0])
 
 
     def test_switch_click_dispatch_leaves_mouse_native_while_worker_is_queued(self):
