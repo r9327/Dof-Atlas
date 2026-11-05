@@ -654,5 +654,70 @@ class OrganizerFavoriteInflightTests(unittest.TestCase):
                     self.assertEqual(runtime.active_client_handle, 888)
 
 
+    def test_next_character_scan_rejects_mode_or_favorite_change(self):
+        from app.macros.switch_character import SwitchCharacterMacro
+
+        for count in (2, 4, 6, 8):
+            for field, replacement in (("primary_handle", 999), ("macro_mode", "mirror")):
+                with self.subTest(clients=count, field=field):
+                    runtime = _runtime(count)
+                    runtime.settings.macro_mode = "macro"
+                    runtime.settings.clients = [
+                        SimpleNamespace(index=i + 1, handle=101 + i,
+                                        display_name=f"Player{i + 1}")
+                        for i in range(count)
+                    ]
+
+                    def process_probe(_hwnd):
+                        setattr(runtime.settings, field, replacement)
+                        return True
+
+                    macro = SwitchCharacterMacro(runtime)
+                    with (
+                        patch("app.macros.switch_character.is_unity_window",
+                              return_value=True),
+                        patch("app.macros.switch_character.is_dofus_unity_process",
+                              side_effect=process_probe) as process,
+                        patch.object(macro, "logical_active_client") as active,
+                    ):
+                        self.assertFalse(macro.activate_next())
+                    process.assert_called_once()
+                    active.assert_not_called()
+                    runtime._spawn_macro.assert_not_called()
+
+    def test_next_character_source_lookup_cannot_handoff_stale_action(self):
+        from app.macros.switch_character import SwitchCharacterMacro
+
+        for count in (2, 4, 6, 8):
+            for field, replacement in (("primary_handle", 999), ("macro_mode", "mirror")):
+                with self.subTest(clients=count, field=field):
+                    runtime = _runtime(count)
+                    runtime.settings.macro_mode = "macro"
+                    runtime.settings.clients = [
+                        SimpleNamespace(index=i + 1, handle=101 + i,
+                                        display_name=f"Player{i + 1}")
+                        for i in range(count)
+                    ]
+
+                    def source():
+                        setattr(runtime.settings, field, replacement)
+                        return runtime.settings.clients[0]
+
+                    macro = SwitchCharacterMacro(runtime)
+                    with (
+                        patch("app.macros.switch_character.is_unity_window",
+                              return_value=True),
+                        patch("app.macros.switch_character.is_dofus_unity_process",
+                              return_value=True),
+                        patch.object(macro, "logical_active_client",
+                                     side_effect=source) as active,
+                        patch.object(macro, "activate_by_index") as dispatch,
+                    ):
+                        self.assertFalse(macro.activate_next())
+                    active.assert_called_once()
+                    dispatch.assert_not_called()
+                    runtime._spawn_macro.assert_not_called()
+
+
 if __name__ == "__main__":
     unittest.main()
