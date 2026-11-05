@@ -3410,6 +3410,127 @@ class OrganizerMacroReliabilityTests(unittest.TestCase):
                     "Switch deplacement annulé: profil Organizer remplacé avant dispatch.",
                 )
 
+
+    def test_zaap_in_place_hwnd_change_never_sends_or_restores_2_to_8(self):
+        for count in (2, 4, 6, 8):
+            for phase in ("activate", "chat"):
+                with self.subTest(clients=count, phase=phase):
+                    runtime = _runtime()
+                    clients = [
+                        SimpleNamespace(handle=101 + index) for index in range(count)
+                    ]
+                    runtime.switch_character.ordered_clients_from_source.return_value = clients
+                    runtime.macro_lock.should_stop.return_value = False
+                    runtime.settings.primary_handle = 101
+                    calls = []
+
+                    def activate(*_args, **_kwargs):
+                        if phase == "activate":
+                            clients[0].handle = 999
+                        return True
+
+                    def chat(command, logger, **kwargs):
+                        calls.append(command)
+                        clients[0].handle = 999
+                        self.assertTrue(kwargs["should_stop"]())
+                        return False
+
+                    with (
+                        patch("app.macros.zaap.is_unity_window", return_value=True),
+                        patch("app.macros.zaap.is_dofus_unity_process", return_value=True),
+                        patch("app.macros.zaap.activate_window",
+                              side_effect=activate) as focus,
+                        patch("app.macros.zaap.foreground_window", return_value=101),
+                        patch("app.macros.zaap.send_chat_command",
+                              side_effect=chat) as send,
+                    ):
+                        ZaapMacro(runtime)._run("/zaap 1,2")
+                    focus.assert_called_once()
+                    self.assertEqual(send.call_count, int(phase == "chat"))
+                    self.assertEqual(calls, ["/zaap 1,2"] if phase == "chat" else [])
+                    runtime.switch_character.restore_preferred_client.assert_not_called()
+                    runtime._emit_status.assert_called_once_with(
+                        f"Auto zaap interrompu : 0/{count} commandes émises "
+                        "(réception DOFUS non vérifiée)."
+                    )
+
+    def test_direction_in_place_hwnd_change_prevents_keypress_2_to_8(self):
+        for count in (2, 4, 6, 8):
+            with self.subTest(clients=count):
+                runtime = _runtime()
+                clients = [
+                    SimpleNamespace(handle=101 + index) for index in range(count)
+                ]
+                runtime.switch_character.ordered_clients_from_source.return_value = clients
+                runtime.settings.client_by_handle.return_value = clients[0]
+                runtime.macro_lock.should_stop.return_value = False
+
+                def activate(*_args, **_kwargs):
+                    clients[0].handle = 999
+                    return True
+
+                with (
+                    patch("app.macros.direction.foreground_window", return_value=101),
+                    patch("app.macros.direction.is_unity_window", return_value=True),
+                    patch("app.macros.direction.is_dofus_unity_process",
+                          return_value=True),
+                    patch("app.macros.direction.activate_window",
+                          side_effect=activate) as focus,
+                    patch("app.macros.direction.press_key") as key,
+                ):
+                    DirectionMacro(runtime)._run("HOME")
+                focus.assert_called_once()
+                key.assert_not_called()
+                runtime.switch_character.restore_preferred_client.assert_not_called()
+                runtime.logger.info.assert_any_call(
+                    "Switch deplacement %s: envoyes=%s/%s",
+                    "interrompu", 0, count,
+                )
+
+    def test_auto_group_in_place_sender_change_never_invites_new_hwnd(self):
+        for count in (2, 4, 6, 8):
+            for phase in ("activate", "chat"):
+                with self.subTest(clients=count, phase=phase):
+                    runtime = _runtime()
+                    runtime.macro_lock.should_stop.return_value = False
+                    runtime.settings.timings.auto_group_invite_gap_ms = 0
+                    sender = SimpleNamespace(handle=101, display_name="Leader")
+                    runtime.switch_character.logical_active_client.return_value = sender
+                    recipients = [
+                        {"name": f"Friend{index}", "handle": 101 + index}
+                        for index in range(1, count)
+                    ]
+
+                    def activate(*_args, **_kwargs):
+                        if phase == "activate":
+                            sender.handle = 999
+                        return True
+
+                    def chat(command, logger, **kwargs):
+                        sender.handle = 999
+                        self.assertTrue(kwargs["should_stop"]())
+                        return False
+
+                    with (
+                        patch("app.macros.auto_group.is_unity_window", return_value=True),
+                        patch("app.macros.auto_group.is_dofus_unity_process",
+                              return_value=True),
+                        patch("app.macros.auto_group.activate_window",
+                              side_effect=activate) as focus,
+                        patch("app.macros.auto_group.foreground_window",
+                              return_value=101),
+                        patch("app.macros.auto_group.send_chat_command",
+                              side_effect=chat) as send,
+                    ):
+                        AutoGroupMacro(runtime)._run(recipients)
+                    focus.assert_called_once()
+                    self.assertEqual(send.call_count, int(phase == "chat"))
+                    runtime.switch_character.restore_preferred_client.assert_not_called()
+                    runtime._emit_status.assert_called_once_with(
+                        f"Auto-groupe interrompu : 0/{count - 1} commandes émises "
+                        "(réception DOFUS non vérifiée)."
+                    )
+
     def test_all_existing_macro_workers_reject_prestart_profile_reload_2_to_8(self):
         # A queued action belongs to the generation at its hotkey dispatch,
         # even if Organizer rebuilds the same visible HWND roster.
