@@ -1562,6 +1562,108 @@ class OrganizerMirrorIntegrationTests(unittest.TestCase):
                     "Miroir", unittest.mock.ANY, count,
                 )
 
+    def test_native_source_settle_wait_does_not_block_mouse_before_switch_2_4_6_8(self):
+        from app.macros.switch_click import SwitchClickMacro, SwitchClickContext
+        from app.input.input_state import InputState
+
+        for count in (2, 4, 6, 8):
+            with self.subTest(clients=count):
+                handles = tuple(range(101, 101 + count))
+                runtime = self._runtime(primary=handles[0], handles=handles)
+                runtime.input_state = InputState()
+                runtime.settings.timings = SimpleNamespace(
+                    switch_background_pre_click_ms=0, activate_attempts=1,
+                    activate_retry_ms=0, switch_click_down_ms=35,
+                    input_double_gap_ms=5, switch_background_post_up_ms=0,
+                    switch_client_settle_ms=0,
+                )
+                runtime.switch_character.ordered_clients_from_source.return_value = [
+                    SimpleNamespace(handle=hwnd, display_name=str(hwnd))
+                    for hwnd in handles
+                ]
+                runtime.macro_lock.should_stop.return_value = False
+                waited = []
+                active = [handles[0]]
+                emitted = []
+
+                def wait(ms):
+                    if ms == 60:
+                        waited.append(ms)
+                        self.assertFalse(runtime.input_state.is_mouse_blocked())
+                    return False
+
+                def activate(hwnd, *_args, **_kwargs):
+                    self.assertTrue(runtime.input_state.is_mouse_blocked())
+                    active[0] = hwnd
+                    return True
+
+                def send(hwnd, *_args, **_kwargs):
+                    self.assertTrue(runtime.input_state.is_mouse_blocked())
+                    self.assertEqual(active[0], hwnd)
+                    emitted.append(hwnd)
+                    return True
+
+                runtime.macro_lock.wait.side_effect = wait
+                context = SwitchClickContext(handles[0], 20, 25, 0.3, 0.4, "cursor")
+                macro = SwitchClickMacro(runtime)
+                with (
+                    patch.object(macro, "_validated_context", return_value=context),
+                    patch.object(macro, "_target_point", return_value=(20, 25)),
+                    patch("app.macros.switch_click.current_cursor_pos",
+                          return_value=(11, 12)),
+                    patch("app.macros.switch_click.set_cursor_pos"),
+                    patch("app.macros.switch_click.is_unity_window",
+                          return_value=True),
+                    patch("app.macros.switch_click.is_dofus_unity_process",
+                          return_value=True),
+                    patch("app.macros.switch_click.foreground_window",
+                          side_effect=lambda: active[0]),
+                    patch("app.macros.switch_click.activate_window",
+                          side_effect=activate),
+                    patch("app.macros.switch_click.send_client_click",
+                          side_effect=send),
+                ):
+                    macro._run(
+                        "Left", 1, "Miroir", context,
+                        exact_source_handle=handles[0],
+                        mirror_target_handles=handles,
+                        physical_source_delivered=True,
+                        settings_at_dispatch=runtime.settings,
+                    )
+                self.assertEqual(waited, [60])
+                self.assertEqual(emitted, list(handles[1:]))
+                self.assertFalse(runtime.input_state.is_mouse_blocked())
+
+    def test_stop_during_native_source_settle_never_blocks_mouse(self):
+        from app.macros.switch_click import SwitchClickMacro, SwitchClickContext
+        from app.input.input_state import InputState
+
+        runtime = self._runtime(primary=101, handles=(101, 202))
+        runtime.input_state = InputState()
+        runtime.macro_lock.should_stop.return_value = False
+        runtime.macro_lock.wait.side_effect = lambda ms: ms == 60
+        context = SwitchClickContext(101, 20, 25, 0.3, 0.4, "cursor")
+        macro = SwitchClickMacro(runtime)
+        with (
+            patch.object(macro, "_validated_context", return_value=context),
+            patch("app.macros.switch_click.current_cursor_pos",
+                  return_value=(11, 12)),
+            patch("app.macros.switch_click.foreground_window",
+                  return_value=101),
+            patch("app.macros.switch_click.activate_window") as activate,
+            patch("app.macros.switch_click.send_client_click") as send,
+        ):
+            macro._run(
+                "Left", 1, "Miroir", context,
+                exact_source_handle=101,
+                mirror_target_handles=(101, 202),
+                physical_source_delivered=True,
+                settings_at_dispatch=runtime.settings,
+            )
+        self.assertFalse(runtime.input_state.is_mouse_blocked())
+        activate.assert_not_called()
+        send.assert_not_called()
+
     def test_switch_click_invalid_roster_does_not_block_or_inject(self):
         from app.macros.switch_click import SwitchClickMacro, SwitchClickContext
         from app.input.input_state import InputState

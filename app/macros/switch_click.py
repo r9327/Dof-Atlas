@@ -500,23 +500,27 @@ class SwitchClickMacro:
                         action_label,
                     )
                     return
+            settings = settings_at_start
+            timings = settings.timings
+            # The physical source must finish its native UP before any
+            # secondary receives a click. No cursor move or focus change
+            # occurs during this cancellable 60 ms settle window: do NOT
+            # swallow additional native clicks for this entire wait.
+            if physical_source_delivered and self.runtime.macro_lock.wait(60):
+                return
+            # A Stop or in-place roster change during the native settle wait
+            # must not take a mouse lease merely to abort the replay.
+            if self.runtime.macro_lock.should_stop() or not target_roster_intact():
+                return
             if not mouse_blocked:
-                # Only the dispatch phase owns the pointer. A rejected
-                # source, a stale favorite, an empty roster, or a native
-                # one-client click will not block any physical gesture.
+                # Own the pointer only for actual client activation/sending
+                # and restoration; the shared native hook stays unchanged.
                 self.runtime.input_state.begin_mouse_block(action_label)
                 mouse_blocked = True
                 mouse_block_started_at = perf_counter()
             self.runtime.logger.debug(
                 "%s souris physique bloquée pendant diffusion.", action_label,
             )
-
-            settings = settings_at_start
-            timings = settings.timings
-            # Give the native mouse UP a render frame before switching focus
-            # to another Unity client. This wait is cancellable by Stop.
-            if physical_source_delivered and self.runtime.macro_lock.wait(60):
-                return
 
             for index, (client, target_hwnd) in enumerate(zip(targets, frozen_handles)):
                 if not target_roster_intact():
