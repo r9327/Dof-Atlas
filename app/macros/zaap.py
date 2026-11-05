@@ -76,7 +76,7 @@ class ZaapMacro:
             return
         # Freeze HWNDs before the native fan-out: Organizer client objects can
         # be modified in place while Win32 yields to the UI thread.
-        target_handles = tuple(target_hwnd for client in clients)
+        target_handles = tuple(client.handle for client in clients)
         timings = settings_at_start.timings
         favorite_at_start = settings_at_start.primary_handle
         self.runtime.logger.info(
