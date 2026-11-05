@@ -469,8 +469,18 @@ class HotkeyRegistry:
         return self._start_ok
 
     def stop(self) -> None:
+        # Keep the original UP owned until the native hook actually stops.
+        # A timed-out hook thread can still process a physical release after
+        # stop_message_hook returns; clearing early would leak an orphan UP.
         stop_message_hook(self)
-        self._mirrored_key_ups.clear()
+        thread = self._thread
+        if thread is None or not thread.is_alive():
+            self._mirrored_key_ups.clear()
+        elif self._mirrored_key_ups:
+            self.logger.warning(
+                "Hook clavier encore actif après stop: relâchements réservés=%s",
+                len(self._mirrored_key_ups),
+            )
 
     def _run_hook(self) -> None:
         self._hook_thread_id = current_native_thread_id(self.logger)
@@ -499,6 +509,9 @@ class HotkeyRegistry:
                 user32.TranslateMessage(ctypes.byref(msg))
                 user32.DispatchMessageW(ctypes.byref(msg))
         finally:
+            # Clear ownership only when this hook thread can no longer
+            # intercept a matching native UP. Repeated stop() is idempotent.
+            self._mirrored_key_ups.clear()
             self._hook_thread_id = 0
 
     def _keyboard_proc(self, n_code: int, w_param: int, l_param: int) -> int:
