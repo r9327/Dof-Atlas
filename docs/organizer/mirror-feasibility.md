@@ -1432,3 +1432,32 @@ diffusion différée. Garder la PR **Draft / CHANGES REQUIRED**.
 - Les clics Miroir utilisent le moteur `SwitchClickMacro` existant et publient désormais aussi `dispatch_to_worker_ms` et `dispatch_to_last_emit_ms` lorsque la séquence a réellement émis un clic. `NOT_MEASURED` est affiché si aucun clic n'a été émis. Ce temps commence à l'admission `run_async` (après les contrôles de hook), **pas** au premier signal matériel : ni délai physique complet, ni rendu Unity attesté.
 - Tests mock nouveaux/ciblés pour X1/X2, Stop, UP synthétiques, rafales de MOVE, propagation du timestamp, et cas de rejet sans émission, y compris 2/4/6/8 profils.
 - **Preuves manquantes :** la suite Python ciblée et la recette Windows/Unity restent à lancer/confronter au SHA courant. Doctor on-demand est `FULL_REQUIRED` sur ce large diff et n'a pas dispatché les tests (cela n'est PAS un PASS). Les gestes perdus quand le blocage est actif restent **MIRR-007 PENDING** ; le support ciblé sans focus reste MIRR-002 PENDING ; MIRR-005/ATQA-002 restent NOT_RUN sous #322.
+
+
+## Lot P0 — génération des baux souris et sélection radiale stricte (05/11/2026)
+
+- `InputState.begin_mouse_block/end_mouse_block/clear_mouse_block` conservent
+  les signatures existantes mais lient désormais chaque réservation à la
+  génération en cours **et au thread acquéreur**. Stop invalide la génération
+  précédente : la sortie tardive de Miroir, Switch clic ou d'un ancien worker
+  ne peut plus retirer le blocage d'un nouveau worker. Pas de file ou
+  d'injection parallèle ajoutée.
+- Pendant qu'un worker Miroir est occupé **sans bail de pointeur**, les touches
+  et molettes d'une fenêtre secondaire déjà inscrite passent directement en
+  entrée native. Les contrôles de processus Win32 coûteux ne sont plus
+  exécutés sur ce chemin de callback. Le chemin avec bail de pointeur conserve
+  son contrôle d'identité et son refus des gestes non synchronisés.
+- `radial_selection` refuse les alias d'identifiants HWND/PID (booléens,
+  fractions, notations scientifiques, dépassements, chiffres non ASCII)
+  pendant la construction du roster, la sélection et la confirmation sur
+  relâchement. Les anciens entiers et nombres décimaux ASCII restent valides.
+- **Validation partielle exacte source** : tests Python isolés du bail souris
+  (`tests/test_organizer_pointer_lease_epoch.py`) : 5/5 réussis sous Python
+  3.13 sur copies dont les SHA Git blob correspondent à la PR. Vérifications
+  pures `radial_selection` pour 2/4/6/8 clients et cas HWND/PID corrompus
+  réussies sur une copie de SHA Git blob exact. **Pas** une validation du
+  runtime Windows, du hook Win32 ni de la suite PySide6 complète.
+- **Limite de MIRR-007** : les clics physiques pendant une diffusion déjà
+  propriétaire du pointeur peuvent encore être consommés. Ne pas annoncer
+  résolution complète, replay garanti, compatibilité Unity sans focus ou
+  performances identiques 2→8 sans recette Windows.
