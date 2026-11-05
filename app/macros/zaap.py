@@ -87,9 +87,12 @@ class ZaapMacro:
             )
 
         clients = self.runtime.switch_character.ordered_clients_from_source()
-        if self.runtime.settings is not settings_at_start:
-            self.runtime.logger.info("Auto zaap annulé : profil Organizer remplacé.")
-            self.runtime._emit_status("Auto zaap interrompu : profil modifié.")
+        if (self.runtime.settings is not settings_at_start
+                or dispatch_context_changed()):
+            self.runtime.logger.info(
+                "Auto zaap annulé : profil, favori ou mode modifié pendant lecture des sessions."
+            )
+            self.runtime._emit_status("Auto zaap interrompu : contexte Organizer modifié.")
             return
         if not clients:
             self.runtime.logger.info("Auto zaap ignore: aucune fenetre chargee.")
