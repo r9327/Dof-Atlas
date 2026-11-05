@@ -39,6 +39,20 @@ WheelCallback = Callable[[int, int, int, bool], bool]
 MouseReleaseCallback = Callable[[str, int, int], bool]
 
 
+def _physical_release_token(up_message: int, mouse_data: int) -> int:
+    """Distinguish XBUTTON1 and XBUTTON2 ownership during a mouse block.
+
+    Both thumb buttons share WM_XBUTTONUP. Without its HIWORD identity,
+    releasing one can discharge the other's swallowed DOWN and leak an
+    orphaned UP into whichever window the macro has focused.
+    """
+    if up_message == WM_XBUTTONUP:
+        xbutton = (int(mouse_data) >> 16) & 0xFFFF
+        if xbutton in (1, 2):
+            return up_message | (xbutton << 16)
+    return up_message
+
+
 class POINT(ctypes.Structure):
     _fields_ = [("x", ctypes.c_long), ("y", ctypes.c_long)]
 
@@ -219,8 +233,9 @@ class MouseHook:
                 # A swallowed DOWN owns its matching physical UP. Never run
                 # native-release callbacks for that pair: an UP without its
                 # corresponding DOWN can activate an unrelated Unity target.
-                if not atlas_synthetic and w_param in self._consumed_releases:
-                    self._consumed_releases.discard(int(w_param))
+                release_token = _physical_release_token(w_param, int(event.mouseData))
+                if not atlas_synthetic and release_token in self._consumed_releases:
+                    self._consumed_releases.discard(release_token)
                     return 1
 
                 # A native source DOWN that was NOT swallowed must keep its
@@ -256,7 +271,9 @@ class MouseHook:
                     # could be delivered to Unity or another application.
                     paired_up = BLOCKED_DOWN_TO_UP.get(w_param)
                     if paired_up is not None:
-                        self._consumed_releases.add(paired_up)
+                        self._consumed_releases.add(
+                            _physical_release_token(paired_up, int(event.mouseData))
+                        )
                     try:
                         self._log_blocked_event(w_param, x, y)
                     except Exception:
