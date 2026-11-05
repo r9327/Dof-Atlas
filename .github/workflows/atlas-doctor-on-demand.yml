@@ -155,6 +155,19 @@ jobs:
           printf '%s\n' "$code" > artifacts/doctor_on_demand/exit_code.txt
           exit "$code"
 
+      # Older Draft PRs (e.g. #325) do not contain the newly merged lot
+      # selector. Execute the reviewed selector from main; only the tests
+      # and application source come from the exact untrusted PR checkout.
+      - name: Checkout trusted Doctor-lot selector independently
+        if: env.MODE == 'doctor-lot'
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ github.event.repository.default_branch }}
+          path: .atlas-trusted-lot
+          sparse-checkout: tools
+          persist-credentials: false
+          lfs: false
+
       - name: Install pinned Qt runtime for developer-lot UI regression tests
         if: env.MODE == 'doctor-lot'
         shell: bash
@@ -162,13 +175,15 @@ jobs:
 
       - name: Run bounded exact-SHA development-lot tests (never FULL)
         if: env.MODE == 'doctor-lot'
+        working-directory: .atlas-trusted-lot
         shell: bash
         run: |
           python -m tools.doctor_dev_lot \
+            --repo-root "$GITHUB_WORKSPACE" \
             --lot-base "$LOT_BASE_SHA" \
             --pr-base "$BASE_SHA" \
             --expected-sha "$HEAD_SHA" \
-            --run --output artifacts/doctor_on_demand/doctor_lot.json
+            --run --output "$GITHUB_WORKSPACE/artifacts/doctor_on_demand/doctor_lot.json"
 
       - name: Install the canonical pinned Graphify version
         if: env.MODE == 'graphify'
