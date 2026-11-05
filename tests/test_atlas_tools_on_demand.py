@@ -218,6 +218,8 @@ class OnDemandToolModeTests(unittest.TestCase):
         self.assertNotIn("issues: write", code_jobs)
         freshness = new.split("\n  freshness:\n", 1)[1]
         self.assertIn("issues: write", freshness)
+        self.assertIn("pull-requests: write", freshness)
+        self.assertNotIn("pull-requests: write", code_jobs)
         self.assertIn("id: verify", freshness)
         self.assertIn("if: ${{ always() }}", freshness)
         self.assertIn("FRESHNESS_RESULT: ${{ steps.verify.outcome }}", freshness)

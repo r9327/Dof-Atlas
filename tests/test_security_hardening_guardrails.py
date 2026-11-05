@@ -49,10 +49,10 @@ class SecurityHardeningGuardrailsTests(unittest.TestCase):
                     # execution jobs, including Windows benchmarks, stay read-only.
                     before, marker, freshness = source.partition("\n  freshness:\n")
                     self.assertTrue(marker, "Missing isolated trusted freshness job")
-                    self.assertEqual(writes, ["issues"])
-                    self.assertEqual(re.findall(write_pattern, freshness), ["issues"])
+                    self.assertEqual(writes, ["pull-requests", "issues"])
+                    self.assertEqual(re.findall(write_pattern, freshness), ["pull-requests", "issues"])
                     self.assertNotRegex(before, write_pattern)
-                    self.assertIn("    permissions:\n      contents: read\n      pull-requests: read\n      issues: write", freshness)
+                    self.assertIn("    permissions:\n      contents: read\n      pull-requests: write\n      issues: write", freshness)
                     self.assertIn("needs: [resolve, light, windows_bench]", freshness)
                     self.assertIn("needs.resolve.result == 'success'", freshness)
                     self.assertIn('gh api "repos/$GITHUB_REPOSITORY/issues/$PR_NUMBER/comments"', freshness)
