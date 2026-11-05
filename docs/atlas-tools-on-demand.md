@@ -63,7 +63,7 @@ reste une orchestration indépendante dédiée à la certification élargie.
    est ancienne et ne contient pas ce nouveau fichier.
 3. Le job de développement n'a **aucun jeton GitHub**. Le job `freshness`
    vérifie séparément que le HEAD est encore actuel.
-4. Une fois la demande exécutée, le job isolé `freshness` ajoute un **accusé de réception sur la PR** (URL du run, `run_id`, mode, SHA, états Ubuntu/Windows et fraîcheur). Cet accusé n'est **jamais un PASS**, même si les jobs sont verts. Il permet à ChatGPT/GitHub de retrouver le run par les commentaires de PR, puis de lire ses artefacts avec le `run_id`. Si l'accusé manque, ne pas deviner son identifiant.
+4. Le job isolé `freshness` **essaie** d'ajouter un accusé de réception à la PR (URL du run, `run_id`, mode, SHA, états Ubuntu/Windows et fraîcheur). Selon les restrictions du jeton Actions, GitHub peut refuser ce commentaire avec HTTP 403 **même si `Issues: write` est affiché**. Ce refus n'invalide pas un diagnostic réellement exécuté : le job conserve `COMMENT_UNAVAILABLE` dans l'artefact séparé `atlas-tools-receipt-<run_id>/receipt.json` et le résumé du run. Les deux états sont des informations de livraison, jamais des certificats. Utiliser Actions ou le connecteur GitHub pour lister les runs ; ne pas inventer leur ID si le commentaire manque.
 5. Récupérer les artefacts du run
    `atlas-tools-pr-<PR>-<mode>-<SHA>` (rétention 7 jours) :
    `artifacts/atlas_tools_on_demand/report.json`, `summary.json`, sorties
