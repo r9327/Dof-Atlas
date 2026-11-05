@@ -2734,7 +2734,11 @@ class AtlasWindow(QMainWindow):
 
     def launch_next_character(self) -> None:
         """Direct Organizer action: reuse the live character-switching worker."""
+        if self.quit_requested or self._background_services_stopped:
+            return
         runtime = self._ensure_runtime()
+        if self.quit_requested or self._background_services_stopped:
+            return
         if runtime.macro_lock.active_label:
             self.set_status("Personnage suivant indisponible : macro déjà en cours.")
             return

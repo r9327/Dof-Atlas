@@ -108,6 +108,8 @@ class OrganizerLayoutTests(unittest.TestCase):
         for count in (2, 4, 6, 8):
             with self.subTest(clients=count):
                 fake = Mock()
+                fake.quit_requested = False
+                fake._background_services_stopped = False
                 fake._ensure_runtime.return_value.macro_lock.active_label = "Auto groupe"
                 app_main.AtlasWindow.launch_next_character(fake)
                 fake._ensure_runtime.assert_called_once()
@@ -116,6 +118,40 @@ class OrganizerLayoutTests(unittest.TestCase):
                     "Personnage suivant indisponible : macro déjà en cours."
                 )
 
+    def test_next_button_never_resurrects_runtime_during_shutdown(self):
+        from unittest.mock import Mock
+        import main as app_main
+
+        for count in (2, 4, 6, 8):
+            for stopped_attr in ("quit_requested", "_background_services_stopped"):
+                with self.subTest(clients=count, shutdown=stopped_attr):
+                    fake = Mock()
+                    fake.quit_requested = False
+                    fake._background_services_stopped = False
+                    setattr(fake, stopped_attr, True)
+                    app_main.AtlasWindow.launch_next_character(fake)
+                    fake._ensure_runtime.assert_not_called()
+                    fake.set_status.assert_not_called()
+
+    def test_next_button_aborts_if_shutdown_begins_during_runtime_init(self):
+        from unittest.mock import Mock
+        import main as app_main
+
+        for stopped_attr in ("quit_requested", "_background_services_stopped"):
+            with self.subTest(shutdown=stopped_attr):
+                fake = Mock()
+                fake.quit_requested = False
+                fake._background_services_stopped = False
+                runtime = Mock()
+                def init_and_close():
+                    setattr(fake, stopped_attr, True)
+                    return runtime
+                fake._ensure_runtime.side_effect = init_and_close
+                app_main.AtlasWindow.launch_next_character(fake)
+                fake._ensure_runtime.assert_called_once_with()
+                runtime.switch_character.activate_next.assert_not_called()
+                fake.set_status.assert_not_called()
+
     def test_idle_organizer_next_button_preserves_normal_action(self):
         from unittest.mock import Mock
         import main as app_main
@@ -123,6 +159,8 @@ class OrganizerLayoutTests(unittest.TestCase):
         for accepted in (True, False):
             with self.subTest(accepted=accepted):
                 fake = Mock()
+                fake.quit_requested = False
+                fake._background_services_stopped = False
                 runtime = fake._ensure_runtime.return_value
                 runtime.macro_lock.active_label = ""
                 runtime.switch_character.activate_next.return_value = accepted
