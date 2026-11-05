@@ -45,13 +45,20 @@ class ZaapMacro:
             self.runtime.logger.info("Auto zaap refuse: commande /zaap invalide.")
             return False
         profile_at_dispatch = self.runtime.settings
+        dispatch_context = (
+            profile_at_dispatch.primary_handle, profile_at_dispatch.macro_mode,
+        )
         return self.runtime._spawn_macro(
             "Auto zaap",
-            lambda: self._run(command, profile_at_dispatch=profile_at_dispatch),
+            lambda: self._run(
+                command, profile_at_dispatch=profile_at_dispatch,
+                dispatch_context=dispatch_context,
+            ),
         )
 
     def _run(
         self, command: str, *, profile_at_dispatch: object | None = None,
+        dispatch_context: tuple[object, object] | None = None,
     ) -> None:
         coords = parse_zaap_command(command)
         if coords is None:
@@ -65,6 +72,20 @@ class ZaapMacro:
             self.runtime.logger.info("Auto zaap annulé: profil remplacé avant worker.")
             self.runtime._emit_status("Auto zaap interrompu : profil Organizer modifié.")
             return
+        if (dispatch_context is not None and
+                (settings_at_start.primary_handle, settings_at_start.macro_mode)
+                != dispatch_context):
+            self.runtime._emit_status("Auto zaap interrompu : favori ou mode modifié avant worker.")
+            return
+        favorite_at_start = settings_at_start.primary_handle
+        mode_at_start = settings_at_start.macro_mode
+
+        def dispatch_context_changed() -> bool:
+            return (
+                settings_at_start.primary_handle != favorite_at_start
+                or settings_at_start.macro_mode != mode_at_start
+            )
+
         clients = self.runtime.switch_character.ordered_clients_from_source()
         if self.runtime.settings is not settings_at_start:
             self.runtime.logger.info("Auto zaap annulé : profil Organizer remplacé.")
@@ -82,7 +103,6 @@ class ZaapMacro:
             return tuple(client.handle for client in clients) == target_handles
 
         timings = settings_at_start.timings
-        favorite_at_start = settings_at_start.primary_handle
         self.runtime.logger.info(
             "Auto zaap lance: clients=%s commande=%s",
             len(clients),
@@ -96,7 +116,7 @@ class ZaapMacro:
                 if (self.runtime.macro_lock.should_stop()
                         or self.runtime.settings is not settings_at_start):
                     return
-                if settings_at_start.primary_handle != favorite_at_start:
+                if dispatch_context_changed():
                     focus_lost = True
                     self.runtime.logger.warning(
                         "Auto zaap interrompu: favori modifié entre clients."
@@ -133,14 +153,14 @@ class ZaapMacro:
                         self.runtime.macro_lock.should_stop()
                         or self.runtime.settings is not settings_at_start
                         or not frozen_roster_intact()
-                        or settings_at_start.primary_handle != favorite_at_start
+                        or dispatch_context_changed()
                     ),
                 ):
                     if (self.runtime.macro_lock.should_stop()
                             or self.runtime.settings is not settings_at_start):
                         return
                     if (not frozen_roster_intact()
-                            or settings_at_start.primary_handle != favorite_at_start):
+                            or dispatch_context_changed()):
                         focus_lost = True
                         self.runtime.logger.warning(
                             "Auto zaap interrompu: session ou favori muté pendant activation hwnd=%s",
@@ -157,7 +177,7 @@ class ZaapMacro:
                         or not is_dofus_unity_process(target_hwnd)
                         or foreground_window() != int(target_hwnd)
                         or not frozen_roster_intact()
-                        or settings_at_start.primary_handle != favorite_at_start):
+                        or dispatch_context_changed()):
                     focus_lost = True
                     self.runtime.logger.warning(
                         "Auto zaap interrompu: focus, identité ou favori perdus avant commande hwnd=%s", target_hwnd
@@ -186,7 +206,7 @@ class ZaapMacro:
                         self.runtime.macro_lock.should_stop()
                         or self.runtime.settings is not settings_at_start
                         or not frozen_roster_intact()
-                        or settings_at_start.primary_handle != favorite_at_start
+                        or dispatch_context_changed()
                         or foreground_window() != int(hwnd)
                     ),
                 ):
@@ -196,7 +216,7 @@ class ZaapMacro:
                     if (not is_dofus_unity_process(target_hwnd)
                             or foreground_window() != int(target_hwnd)
                             or not frozen_roster_intact()
-                            or settings_at_start.primary_handle != favorite_at_start):
+                            or dispatch_context_changed()):
                         focus_lost = True
                         self.runtime.logger.warning(
                             "Auto zaap interrompu: focus, identité ou favori perdus après échec du chat hwnd=%s",
@@ -220,6 +240,7 @@ class ZaapMacro:
             restore_skipped = (
                 self.runtime.settings is not settings_at_start
                 or not frozen_roster_intact()
+                or settings_at_start.macro_mode != mode_at_start
             )
             if restore_skipped:
                 self.runtime.logger.info("Auto zaap: retour ignoré, profil remplacé.")
@@ -269,7 +290,8 @@ class ZaapMacro:
             state = (
                 "interrompu" if (self.runtime.macro_lock.should_stop() or focus_lost
                                   or self.runtime.settings is not settings_at_start
-                                  or not frozen_roster_intact())
+                                  or not frozen_roster_intact()
+                                  or settings_at_start.macro_mode != mode_at_start)
                 else "termine" if sent == len(clients)
                 else "partiel"
             )
