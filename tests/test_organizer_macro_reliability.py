@@ -4950,6 +4950,56 @@ class OrganizerMacroReliabilityTests(unittest.TestCase):
                     self.assertFalse(accepted)
                     runtime._spawn_macro.assert_called_once()
 
+    def test_switch_click_rejects_noninteger_or_out_of_range_screen_pixels(self):
+        from app.macros.switch_click import SwitchClickMacro
+
+        for invalid in (True, False, 20.0, 20.5, "20", 2**31, -(2**31) - 1):
+            for axis in ("x", "y"):
+                with self.subTest(value=repr(invalid), axis=axis):
+                    runtime = _runtime()
+                    macro = SwitchClickMacro(runtime)
+                    coordinates = (
+                        (invalid, 20) if axis == "x" else (20, invalid)
+                    )
+                    with patch.object(macro, "_capture_trigger_context") as capture:
+                        self.assertFalse(macro.run_async(
+                            "Left", *coordinates, 1, "Switch clique",
+                        ))
+                    capture.assert_not_called()
+                    runtime._spawn_macro.assert_not_called()
+
+    def test_mirror_wheel_extreme_ratio_is_rejected_without_overflow(self):
+        from app.macros.mirror_input import MirrorInputMacro
+
+        invalid_ratios = (
+            10**1000, -(10**1000), float("nan"), float("inf"),
+            -0.1, 1.1, True, "0.5",
+        )
+        for invalid in invalid_ratios:
+            for axis in ("x", "y"):
+                with self.subTest(value=repr(invalid)[:40], axis=axis):
+                    runtime = _runtime()
+                    macro = MirrorInputMacro(runtime)
+                    x, y = (
+                        (invalid, 0.5) if axis == "x" else (0.5, invalid)
+                    )
+                    with patch.object(macro, "_still_current") as current:
+                        self.assertFalse(macro.run_wheel(
+                            120, False, x, y, 101, (101, 202),
+                        ))
+                    current.assert_not_called()
+                    runtime._spawn_macro.assert_not_called()
+
+        runtime = _runtime()
+        runtime._spawn_macro.return_value = True
+        macro = MirrorInputMacro(runtime)
+        with patch.object(macro, "_still_current", return_value=True):
+            self.assertTrue(macro.run_wheel(
+                120, False, 0.0, 1.0, 101, (101, 202),
+            ))
+        runtime._spawn_macro.assert_called_once()
+
+
 
 if __name__ == "__main__":
     unittest.main()

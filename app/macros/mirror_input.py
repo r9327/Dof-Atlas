@@ -65,8 +65,9 @@ class MirrorInputMacro:
     ) -> bool:
         if (type(delta) is not int or delta == 0 or abs(delta) > 32767
                 or type(horizontal) is not bool
-                or any(type(v) not in (float, int) or not math.isfinite(v)
-                       or not 0.0 <= v <= 1.0
+                or any(type(v) not in (float, int)
+                       or not 0 <= v <= 1
+                       or (type(v) is float and not math.isfinite(v))
                        for v in (x_ratio, y_ratio))):
             return False
         profile_at_dispatch = self.runtime.settings

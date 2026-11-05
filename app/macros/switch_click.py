@@ -94,15 +94,15 @@ class SwitchClickMacro:
             )
             return False
 
-        try:
-            screen_x = int(screen_x)
-            screen_y = int(screen_y)
-        except (TypeError, ValueError, OverflowError):
+        # Physical screen coordinates are signed Win32 pixels. Casting a
+        # fractional, boolean or oversized value can target another object.
+        # Refuse it before any expensive hit-test or worker admission.
+        if (type(screen_x) is not int or type(screen_y) is not int
+                or not -(2**31) <= screen_x < 2**31
+                or not -(2**31) <= screen_y < 2**31):
             self.runtime.logger.warning(
                 "%s ignore: position souris invalide x=%r y=%r",
-                action_label,
-                screen_x,
-                screen_y,
+                action_label, screen_x, screen_y,
             )
             return False
 
