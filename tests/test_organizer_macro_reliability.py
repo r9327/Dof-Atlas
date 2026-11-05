@@ -3478,7 +3478,9 @@ class OrganizerMacroReliabilityTests(unittest.TestCase):
             patch("app.macros.switch_character.foreground_window") as foreground,
         ):
             SwitchCharacterMacro(runtime).restore_preferred_client("Macro")
-        activate.assert_called_once()
+        # A preference change discovered during the native identity probe
+        # must now prevent focus theft, not merely prevent publishing HWND.
+        activate.assert_not_called()
         foreground.assert_not_called()
         self.assertEqual(runtime.active_client_handle, 101)
 
@@ -3491,10 +3493,11 @@ class OrganizerMacroReliabilityTests(unittest.TestCase):
         with (
             patch("app.macros.switch_character.is_unity_window", return_value=True),
             patch("app.macros.switch_character.is_dofus_unity_process", return_value=True),
-            patch("app.macros.switch_character.activate_window", return_value=True),
+            patch("app.macros.switch_character.activate_window", return_value=True) as activate,
             patch("app.macros.switch_character.foreground_window") as foreground,
         ):
             SwitchCharacterMacro(runtime).restore_preferred_client("Macro")
+        activate.assert_not_called()
         foreground.assert_not_called()
         self.assertEqual(runtime.active_client_handle, 101)
 
