@@ -38,11 +38,28 @@ class SecurityHardeningGuardrailsTests(unittest.TestCase):
                 self.assertEqual(checkout_count, source.count("persist-credentials: false"))
 
     def test_workflow_tokens_remain_read_only_and_pr_target_is_forbidden(self) -> None:
+        write_pattern = r"(?m)^\s+([A-Za-z_-]+):\s*write\s*$"
         for path in sorted(WORKFLOWS.glob("*.yml")):
             source = path.read_text(encoding="utf-8")
             with self.subTest(path=path.name):
                 self.assertNotIn("pull_request_target:", source)
-                self.assertNotRegex(source, r"(?m)^\s+[A-Za-z_-]+:\s*write\s*$")
+                writes = re.findall(write_pattern, source)
+                if path.name == "atlas-tools-on-demand.yml":
+                    # Exactly one trusted job can write PR run receipts. The PR
+                    # execution jobs, including Windows benchmarks, stay read-only.
+                    before, marker, freshness = source.partition("\n  freshness:\n")
+                    self.assertTrue(marker, "Missing isolated trusted freshness job")
+                    self.assertEqual(writes, ["issues"])
+                    self.assertEqual(re.findall(write_pattern, freshness), ["issues"])
+                    self.assertNotRegex(before, write_pattern)
+                    self.assertIn("    permissions:\n      contents: read\n      pull-requests: read\n      issues: write", freshness)
+                    self.assertIn("needs: [resolve, light, windows_bench]", freshness)
+                    self.assertIn("needs.resolve.result == 'success'", freshness)
+                    self.assertIn('gh api "repos/$GITHUB_REPOSITORY/issues/$PR_NUMBER/comments"', freshness)
+                    self.assertIn("This receipt is NOT a PASS or certification", freshness)
+                    self.assertNotIn("uses: actions/checkout@", freshness)
+                else:
+                    self.assertEqual(writes, [], "Unexpected GitHub write permission")
                 if "permissions:" in source:
                     self.assertIn("contents: read", source)
 

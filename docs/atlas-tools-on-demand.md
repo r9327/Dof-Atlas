@@ -63,12 +63,13 @@ reste une orchestration indépendante dédiée à la certification élargie.
    est ancienne et ne contient pas ce nouveau fichier.
 3. Le job de développement n'a **aucun jeton GitHub**. Le job `freshness`
    vérifie séparément que le HEAD est encore actuel.
-4. Récupérer les artefacts du run
+4. Une fois la demande exécutée, le job isolé `freshness` ajoute un **accusé de réception sur la PR** (URL du run, `run_id`, mode, SHA, états Ubuntu/Windows et fraîcheur). Cet accusé n'est **jamais un PASS**, même si les jobs sont verts. Il permet à ChatGPT/GitHub de retrouver le run par les commentaires de PR, puis de lire ses artefacts avec le `run_id`. Si l'accusé manque, ne pas deviner son identifiant.
+5. Récupérer les artefacts du run
    `atlas-tools-pr-<PR>-<mode>-<SHA>` (rétention 7 jours) :
    `artifacts/atlas_tools_on_demand/report.json`, `summary.json`, sorties
    de chaque commande et éventuels résultats `memory.json`, `preload.json`,
    `eight.json`, `guides.json`.
-5. Croiser le `candidate_sha` du rapport, le HEAD **actuel** de la PR et
+6. Croiser le `candidate_sha` du rapport, le HEAD **actuel** de la PR et
    le statut du job `freshness`. Si un seul diverge : `STALE`, jamais PASS.
    Les outils absents ou sans chemin applicable restent `UNAVAILABLE` ou
    `NOT_APPLICABLE` — jamais certifiés.
