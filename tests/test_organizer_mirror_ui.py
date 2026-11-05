@@ -3409,7 +3409,113 @@ class OrganizerMirrorIntegrationTests(unittest.TestCase):
                 runtime.switch_character.restore_preferred_client.assert_not_called()
                 runtime.input_state.end_mouse_block.assert_not_called()
                 runtime._emit_status.assert_called_once_with(
-                    f"Miroir Clavier : {count}/{count} fenêtres."
+                    f"Miroir Clavier : {count}/{count} fenêtres "
+                    "(profil modifié après envoi)."
+                )
+
+    def test_mirror_wheel_after_final_send_reports_profile_change_without_faking_loss(self):
+        from app.macros.mirror_input import MirrorInputMacro
+
+        for count in (2, 4, 6, 8):
+            with self.subTest(clients=count):
+                handles = tuple(range(101, 101 + count))
+                runtime = self._runtime(primary=handles[0], handles=handles)
+                runtime.settings.timings = SimpleNamespace(
+                    switch_background_pre_click_ms=0, activate_attempts=1,
+                    activate_retry_ms=0, switch_client_settle_ms=0,
+                )
+                runtime.macro_lock.should_stop.return_value = False
+                runtime.macro_lock.wait.return_value = False
+                active = [handles[0]]
+                sent = [0]
+
+                def activate(hwnd, *_args, **_kwargs):
+                    active[0] = hwnd
+                    return True
+
+                def wheel(_delta, *, horizontal):
+                    self.assertFalse(horizontal)
+                    sent[0] += 1
+                    if sent[0] == count:
+                        runtime.settings = SimpleNamespace(**vars(runtime.settings))
+                    return True
+
+                with (
+                    patch("app.macros.mirror_input.is_dofus_unity_process",
+                          return_value=True),
+                    patch("app.macros.mirror_input.activate_window",
+                          side_effect=activate),
+                    patch("app.macros.mirror_input.foreground_window",
+                          side_effect=lambda: active[0]),
+                    patch("app.macros.mirror_input.current_cursor_pos",
+                          return_value=(12, 14)),
+                    patch("app.macros.mirror_input.client_point_from_ratio",
+                          return_value=(8, 9)),
+                    patch("app.macros.mirror_input.client_to_screen",
+                          return_value=(80, 90)),
+                    patch("app.macros.mirror_input.set_cursor_pos") as move,
+                    patch("app.macros.mirror_input.send_screen_wheel",
+                          side_effect=wheel) as send,
+                ):
+                    MirrorInputMacro(runtime)._run(
+                        "wheel", (120, False, 0.5, 0.5),
+                        handles[0], handles,
+                    )
+                self.assertEqual(send.call_count, count)
+                self.assertEqual(move.call_count, count)
+                runtime.switch_character.restore_preferred_client.assert_not_called()
+                runtime.input_state.end_mouse_block.assert_called_once_with()
+                runtime._emit_status.assert_called_once_with(
+                    f"Miroir Molette : {count}/{count} fenêtres "
+                    "(profil modifié après envoi)."
+                )
+
+    def test_mirror_key_last_send_inplace_roster_change_is_reported(self):
+        from app.macros.mirror_input import MirrorInputMacro
+
+        for count in (2, 4, 6, 8):
+            with self.subTest(clients=count):
+                handles = tuple(range(101, 101 + count))
+                runtime = self._runtime(primary=handles[0], handles=handles)
+                runtime.settings.timings = SimpleNamespace(
+                    switch_background_pre_click_ms=0, activate_attempts=1,
+                    activate_retry_ms=0, switch_click_down_ms=10,
+                    switch_client_settle_ms=0,
+                )
+                runtime.macro_lock.should_stop.return_value = False
+                runtime.macro_lock.wait.return_value = False
+                active = [handles[0]]
+                released = [0]
+
+                def activate(hwnd, *_args, **_kwargs):
+                    active[0] = hwnd
+                    return True
+
+                def release(_vk):
+                    released[0] += 1
+                    if released[0] == count:
+                        runtime.settings.clients[-1].handle = 999
+
+                with (
+                    patch("app.macros.mirror_input.is_dofus_unity_process",
+                          return_value=True),
+                    patch("app.macros.mirror_input.activate_window",
+                          side_effect=activate),
+                    patch("app.macros.mirror_input.foreground_window",
+                          side_effect=lambda: active[0]),
+                    patch("app.macros.input_tools.key_down") as down,
+                    patch("app.macros.input_tools.key_up",
+                          side_effect=release) as up,
+                ):
+                    MirrorInputMacro(runtime)._run(
+                        "key", 65, handles[0], handles,
+                    )
+                self.assertEqual(down.call_count, count)
+                self.assertEqual(up.call_count, count)
+                runtime.switch_character.restore_preferred_client.assert_not_called()
+                runtime._emit_status.assert_called_once_with(
+                    f"Miroir Clavier : {count}/{count} fenêtres "
+                    "(profil modifié après envoi)."
                 )
 
     def test_mirror_wheel_rechecks_stop_roster_and_identity_after_cursor_move(self):

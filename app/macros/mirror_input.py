@@ -403,9 +403,19 @@ class MirrorInputMacro:
                      if last_emission_at is not None else "NOT_MEASURED"),
                 )
             label = "Clavier" if kind == "key" else "Molette"
+            # A completed SendInput count is still valid when Organizer
+            # changes just after the last key/wheel, but it is not a fully
+            # completed gesture under the original profile generation.
+            # Keep both facts visible without claiming Unity received input.
             if delivered != len(handles) or runtime.macro_lock.should_stop():
                 runtime._emit_status(
                     f"Miroir {label} incomplet : {delivered}/{len(handles)} fenêtres."
+                )
+            elif (runtime.settings is not profile_at_start
+                  or not self._still_current(source, handles)):
+                runtime._emit_status(
+                    f"Miroir {label} : {delivered}/{len(handles)} fenêtres "
+                    "(profil modifié après envoi)."
                 )
             else:
                 runtime._emit_status(
