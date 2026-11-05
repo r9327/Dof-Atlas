@@ -2720,6 +2720,11 @@ class AtlasWindow(QMainWindow):
     def launch_zaap(self, text: str, click_position=None, click_ratios=None) -> bool:
         if self.quit_requested or self._background_services_stopped:
             return False
+        # Refreshing sessions invalidates the running worker's generation.
+        # Refuse a second launch BEFORE any reload, not after MacroLock fails.
+        runtime = self.runtime
+        if runtime is not None and runtime.macro_lock.active_label:
+            return False
         self.reload_runtime()
         if self.quit_requested or self._background_services_stopped:
             return False
@@ -2735,6 +2740,9 @@ class AtlasWindow(QMainWindow):
 
     def launch_auto_group(self, invite_entries: list[dict[str, object]]) -> bool:
         if self.quit_requested or self._background_services_stopped:
+            return False
+        runtime = self.runtime
+        if runtime is not None and runtime.macro_lock.active_label:
             return False
         self.reload_runtime()
         if self.quit_requested or self._background_services_stopped:

@@ -784,6 +784,7 @@ class OrganizerMacroReliabilityTests(unittest.TestCase):
         from app.core.runtime_state import AtlasRuntime
 
         runtime = _runtime()
+        runtime.macro_lock.active_label = ""
         runtime.auto_group.run_async.return_value = False
         with patch("app.core.runtime_state.load_settings", return_value=runtime.settings):
             self.assertFalse(AtlasRuntime.launch_auto_group(

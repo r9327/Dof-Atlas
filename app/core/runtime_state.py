@@ -487,12 +487,20 @@ class AtlasRuntime:
         self.travel.run_async(text, tuple(character_keys or ()))
 
     def launch_zaap(self, text: str, click_position=None, click_ratios=None) -> bool:
+        # A rejected concurrent launch must not reload Organizer while the
+        # first worker is still sending actions to its captured roster.
+        if self.macro_lock.active_label:
+            self.logger.info("Auto zaap refusé: macro déjà active.")
+            return False
         self.settings = load_settings()
         return bool(self.zaap.run_async(
             text, click_position=click_position, click_ratios=click_ratios,
         ))
 
     def launch_auto_group(self, invite_entries: list[dict[str, object]]) -> bool:
+        if self.macro_lock.active_label:
+            self.logger.info("Auto groupe refusé: macro déjà active.")
+            return False
         self.settings = load_settings()
         return bool(self.auto_group.run_async(invite_entries))
 

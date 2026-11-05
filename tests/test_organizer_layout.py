@@ -131,6 +131,7 @@ class OrganizerLayoutTests(unittest.TestCase):
         ):
             with self.subTest(method=method.__name__):
                 fake = Mock()
+                fake.runtime = None
                 fake.quit_requested = False
                 fake._background_services_stopped = False
                 fake.reload_runtime.side_effect = lambda: setattr(
@@ -147,6 +148,7 @@ class OrganizerLayoutTests(unittest.TestCase):
         for accepted in (True, False):
             with self.subTest(accepted=accepted):
                 fake = Mock()
+                fake.runtime = None
                 fake.quit_requested = False
                 fake._background_services_stopped = False
                 fake._ensure_runtime.return_value.launch_auto_group.return_value = accepted
