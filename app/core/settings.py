@@ -294,7 +294,11 @@ def load_settings() -> AtlasSettings:
         legacy=speed_schema < 2,
     )
     clients: list[AtlasClient] = []
-    for raw in index_payload.get("clients", []):
+    # A partially written/corrupt index must not crash runtime startup.
+    raw_clients = index_payload.get("clients", ())
+    if not isinstance(raw_clients, (list, tuple)):
+        raw_clients = ()
+    for raw in raw_clients:
         if not isinstance(raw, dict):
             continue
         raw_handle = raw.get("handle")
@@ -311,7 +315,18 @@ def load_settings() -> AtlasSettings:
             continue
         if not 0 < handle <= (2**64 - 1):
             continue
-        index = int_value(raw.get("index"), len(clients) + 1)
+        raw_index = raw.get("index")
+        if type(raw_index) is int and 1 <= raw_index <= 8:
+            index = raw_index
+        elif type(raw_index) is str:
+            token = raw_index.strip()
+            index = int_value(token) if (
+                token.isascii() and token.isdecimal()
+            ) else 0
+            if not 1 <= index <= 8:
+                index = len(clients) + 1
+        else:
+            index = len(clients) + 1
         binding = str(raw.get("binding") or "").strip().upper()
         binding_explicit = bool_value(raw.get("binding_explicit"), bool(binding))
         clients.append(

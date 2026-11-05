@@ -77,5 +77,35 @@ class OrganizerPersistedWindowIdentityTests(unittest.TestCase):
         self.assertEqual(loaded.primary_handle, maximum)
 
 
+    def test_corrupt_clients_container_is_treated_as_empty_roster(self):
+        for invalid in (None, False, True, 202, 101.5,
+                        "not a roster", {"handle": 202}):
+            with self.subTest(value=repr(invalid)):
+                loaded = self._load(invalid)
+                self.assertEqual(loaded.clients, ())
+
+    def test_slot_rejects_fractional_or_boolean_alias_without_losing_client(self):
+        for bad_index in (True, False, 1.75, 1.0, "1.0", "+1", "-1", "٩"):
+            with self.subTest(index=repr(bad_index)):
+                loaded = self._load([
+                    {"handle": 101, "index": 1},
+                    {"handle": 202, "index": bad_index},
+                ])
+                self.assertEqual(
+                    tuple(c.handle for c in loaded.clients), (101, 202),
+                )
+                self.assertEqual(
+                    tuple(c.index for c in loaded.clients), (1, 2),
+                )
+
+    def test_legacy_decimal_string_slot_is_preserved(self):
+        loaded = self._load([
+            {"handle": 101, "index": " 1 "},
+            {"handle": 202, "index": "2"},
+        ])
+        self.assertEqual(tuple(c.index for c in loaded.clients), (1, 2))
+
+
+
 if __name__ == "__main__":
     unittest.main()
