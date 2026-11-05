@@ -405,6 +405,20 @@ class SwitchClickMacro:
                     "%s interrompu: roster modifié pendant capture.", action_label,
                 )
                 return
+            # Both classic SwitchClick and Miroir must reject a malformed
+            # participant roster before taking ownership of the physical
+            # pointer. Eight is the Organizer capacity, never a send quota
+            # that silently trims an unknown ninth window.
+            if (len(frozen_handles) > 8
+                    or any(type(hwnd) is not int or not 0 < hwnd <= (2**64 - 1)
+                           for hwnd in frozen_handles)
+                    or len(set(frozen_handles)) != len(frozen_handles)):
+                delivery_failed = True
+                self.runtime.logger.warning(
+                    "%s refusé: roster Organizer invalide ou supérieur à huit.",
+                    action_label,
+                )
+                return
             if mirror_target_handles is not None:
                 # Never fan out to a client that appeared after the physical
                 # click, or to a different favorite during an active gesture.

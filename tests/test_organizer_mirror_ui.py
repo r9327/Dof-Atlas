@@ -1765,6 +1765,37 @@ class OrganizerMirrorIntegrationTests(unittest.TestCase):
         activate.assert_not_called()
         send.assert_not_called()
 
+    def test_classic_click_rejects_oversized_or_duplicate_roster_before_mouse_block(self):
+        from app.macros.switch_click import SwitchClickMacro, SwitchClickContext
+        from app.input.input_state import InputState
+
+        for bad_handles in (
+            tuple(range(101, 110)), (101, 202, 202),
+            (101, 202.0), (101, True), (101, 2**64),
+        ):
+            with self.subTest(handles=bad_handles):
+                runtime = self._runtime(primary=101, handles=bad_handles)
+                runtime.settings.macro_mode = "macro"
+                runtime.input_state = InputState()
+                runtime.switch_character.ordered_clients_from_source.return_value = [
+                    SimpleNamespace(handle=h, display_name=str(h))
+                    for h in bad_handles
+                ]
+                context = SwitchClickContext(101, 20, 30, 0.5, 0.5, "cursor")
+                macro = SwitchClickMacro(runtime)
+                with (
+                    patch.object(macro, "_validated_context", return_value=context),
+                    patch("app.macros.switch_click.current_cursor_pos",
+                          return_value=(11, 12)),
+                    patch("app.macros.switch_click.activate_window") as focus,
+                    patch("app.macros.switch_click.send_client_click") as click,
+                ):
+                    macro._run("Left", 1, "Switch clique", context)
+                focus.assert_not_called()
+                click.assert_not_called()
+                self.assertFalse(runtime.input_state.is_mouse_blocked())
+                runtime.switch_character.restore_preferred_client.assert_not_called()
+
     def test_switch_click_invalid_roster_does_not_block_or_inject(self):
         from app.macros.switch_click import SwitchClickMacro, SwitchClickContext
         from app.input.input_state import InputState
