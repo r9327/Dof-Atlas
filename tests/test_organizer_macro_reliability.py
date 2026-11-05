@@ -885,6 +885,56 @@ class OrganizerMacroReliabilityTests(unittest.TestCase):
                     "(réception DOFUS non vérifiée)."
                 )
 
+    def test_auto_group_in_place_roster_change_during_admission_rejects_start_2_to_8(self):
+        for count in (2, 4, 6, 8):
+            with self.subTest(clients=count):
+                runtime = _runtime()
+                clients = [SimpleNamespace(handle=101 + i) for i in range(count)]
+                runtime.settings.clients = clients
+                runtime.settings.primary_handle = 101
+                runtime.settings.macro_mode = "macro"
+                queued = []
+
+                def spawn(_label, callback):
+                    queued.append(callback)
+                    clients[-1].handle = 999
+                    return True
+
+                runtime._spawn_macro.side_effect = spawn
+                self.assertFalse(AutoGroupMacro(runtime).run_async([
+                    {"name": f"Friend{i}", "handle": 101 + i}
+                    for i in range(1, count)
+                ]))
+                self.assertEqual(len(queued), 1)
+                with (
+                    patch("app.macros.auto_group.is_unity_window") as unity,
+                    patch("app.macros.auto_group.activate_window") as activate,
+                    patch("app.macros.auto_group.send_chat_command") as chat,
+                ):
+                    queued[0]()
+                unity.assert_not_called()
+                activate.assert_not_called()
+                chat.assert_not_called()
+                runtime._emit_status.assert_called_once_with(
+                    "Auto-groupe interrompu : sessions Organizer modifiées avant worker."
+                )
+
+    def test_auto_group_valid_frozen_roster_remains_admitted_2_to_8(self):
+        for count in (2, 4, 6, 8):
+            with self.subTest(clients=count):
+                runtime = _runtime()
+                runtime.settings.clients = [
+                    SimpleNamespace(handle=101 + i) for i in range(count)
+                ]
+                runtime.settings.primary_handle = 101
+                runtime.settings.macro_mode = "macro"
+                runtime._spawn_macro.return_value = True
+                self.assertTrue(AutoGroupMacro(runtime).run_async([
+                    {"name": f"Friend{i}", "handle": 101 + i}
+                    for i in range(1, count)
+                ]))
+                runtime._spawn_macro.assert_called_once()
+
     def test_profile_reload_during_zaap_activation_cancels_chat_2_to_8(self) -> None:
         for count in (2, 4, 6, 8):
             with self.subTest(count=count):

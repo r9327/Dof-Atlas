@@ -13,6 +13,18 @@ if TYPE_CHECKING:
     from app.core.runtime_state import AtlasRuntime
 
 
+def _client_handle_snapshot(settings: object) -> tuple[tuple[type, object], ...] | None:
+    clients = getattr(settings, "clients", None)
+    if not isinstance(clients, (list, tuple)):
+        return None
+    # Keep strict Python types: 101.0 and True must not alias Win32 HWND 101.
+    snapshot = []
+    for client in clients:
+        hwnd = getattr(client, "handle", None)
+        snapshot.append((type(hwnd), hwnd))
+    return tuple(snapshot)
+
+
 class AutoGroupMacro:
     def __init__(self, runtime: "AtlasRuntime"):
         self.runtime = runtime
@@ -48,6 +60,16 @@ class AutoGroupMacro:
             self.runtime.logger.info("Auto groupe non lancé : aucune session candidate.")
             return False
         profile_at_dispatch = self.runtime.settings
+        roster_at_dispatch = _client_handle_snapshot(profile_at_dispatch)
+        if roster_at_dispatch is not None and (
+                not 1 <= len(roster_at_dispatch) <= 8
+                or any(kind is not int or not 0 < hwnd <= (2**64 - 1)
+                       for kind, hwnd in roster_at_dispatch)
+                or len({hwnd for _, hwnd in roster_at_dispatch}) != len(roster_at_dispatch)):
+            self.runtime.logger.warning(
+                "Auto groupe refusé: roster Organizer invalide avant dispatch."
+            )
+            return False
         dispatch_context = (
             profile_at_dispatch.primary_handle, profile_at_dispatch.macro_mode,
         )
@@ -56,6 +78,7 @@ class AutoGroupMacro:
             lambda: self._run(
                 entries, profile_at_dispatch=profile_at_dispatch,
                 dispatch_context=dispatch_context,
+                roster_at_dispatch=roster_at_dispatch,
             ),
         )
         # Admission may yield to an Organizer reload. The worker already
@@ -63,12 +86,16 @@ class AutoGroupMacro:
         return bool(admitted and not self.runtime.macro_lock.should_stop()
                     and self.runtime.settings is profile_at_dispatch
                     and (profile_at_dispatch.primary_handle,
-                         profile_at_dispatch.macro_mode) == dispatch_context)
+                         profile_at_dispatch.macro_mode) == dispatch_context
+                    and (roster_at_dispatch is None
+                         or _client_handle_snapshot(profile_at_dispatch)
+                         == roster_at_dispatch))
 
     def _run(
         self, invite_entries: list[dict[str, Any]],
         *, profile_at_dispatch: object | None = None,
         dispatch_context: tuple[object, object] | None = None,
+        roster_at_dispatch: tuple[tuple[type, object], ...] | None = None,
     ) -> None:
         # _run is also used directly by integrations/tests. Keep malformed
         # scanner payloads bounded, but count distinct valid participants
@@ -100,26 +127,25 @@ class AutoGroupMacro:
                 != dispatch_context):
             self.runtime._emit_status("Auto-groupe interrompu : favori ou mode modifié avant worker.")
             return
+        if (roster_at_dispatch is not None
+                and _client_handle_snapshot(settings_at_start) != roster_at_dispatch):
+            self.runtime._emit_status(
+                "Auto-groupe interrompu : sessions Organizer modifiées avant worker."
+            )
+            return
         favorite_at_start = settings_at_start.primary_handle
         mode_at_start = settings_at_start.macro_mode
         # Freeze the native roster once. Organizer can mutate client.handle
         # in place without replacing settings or changing the favorite.
-        initial_clients = getattr(settings_at_start, "clients", None)
         initial_roster = (
-            tuple((type(getattr(c, "handle", None)), getattr(c, "handle", None))
-                  for c in initial_clients)
-            if isinstance(initial_clients, (list, tuple)) else None
+            roster_at_dispatch if roster_at_dispatch is not None
+            else _client_handle_snapshot(settings_at_start)
         )
 
         def dispatch_context_changed() -> bool:
-            live_clients = getattr(settings_at_start, "clients", None)
             roster_changed = (
                 initial_roster is not None
-                and (
-                    not isinstance(live_clients, (list, tuple))
-                    or tuple((type(getattr(c, "handle", None)), getattr(c, "handle", None))
-                             for c in live_clients) != initial_roster
-                )
+                and _client_handle_snapshot(settings_at_start) != initial_roster
             )
             return (
                 settings_at_start.primary_handle != favorite_at_start
