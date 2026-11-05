@@ -41,6 +41,33 @@ class OrganizerNumericHookGuardsTests(unittest.TestCase):
             [1, 2],
         )
 
+    def test_bound_hotkey_requires_integer_session_slot_2_to_8(self):
+        for count in (2, 4, 6, 8):
+            for bad_index in (True, 1.0, "1", False):
+                with self.subTest(clients=count, slot=repr(bad_index)):
+                    runtime = Mock()
+                    runtime._running = True
+                    runtime._admin_ok = True
+                    profile = SimpleNamespace(
+                        macro_mode="macro", switch_character_enabled=True,
+                        clients=[SimpleNamespace(index=i + 1, handle=101 + i)
+                                 for i in range(count)],
+                    )
+                    runtime.settings = profile
+                    profile.clients[0].index = bad_index
+                    AtlasRuntime._handle_hotkey(
+                        runtime, "client:1", {"client_index": "1", "handle": 101},
+                    )
+                    runtime.switch_character.activate_by_index.assert_not_called()
+                    # A valid integer slot keeps the existing behavior.
+                    profile.clients[0].index = 1
+                    AtlasRuntime._handle_hotkey(
+                        runtime, "client:1", {"client_index": 1, "handle": 101},
+                    )
+                    runtime.switch_character.activate_by_index.assert_called_once_with(
+                        1, expected_profile=profile,
+                    )
+
     def test_stale_slot_hotkey_cannot_activate_reassigned_client_2_to_8(self):
         for count in (2, 4, 6, 8):
             with self.subTest(clients=count):
