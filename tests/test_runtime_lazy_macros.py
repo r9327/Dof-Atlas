@@ -176,6 +176,7 @@ class MacroWorkerStartupTests(unittest.TestCase):
         runtime._threads = []
         runtime.macro_lock = Mock()
         runtime.macro_lock.try_begin.return_value = True
+        runtime.macro_lock.active_generation = 42
         runtime._emit_status = Mock()
         return runtime
 
@@ -185,7 +186,7 @@ class MacroWorkerStartupTests(unittest.TestCase):
         fake_thread.start.side_effect = RuntimeError("thread unavailable")
         with patch.object(runtime_module.threading, "Thread", return_value=fake_thread):
             self.assertFalse(runtime._spawn_macro("Auto zaap", lambda: None))
-        runtime.macro_lock.end.assert_called_once_with("Auto zaap")
+        runtime.macro_lock.end.assert_called_once_with("Auto zaap", generation=42)
         runtime._emit_status.assert_called_once_with("Auto zaap: lancement impossible.")
         self.assertEqual(runtime._threads, [])
 
@@ -196,5 +197,5 @@ class MacroWorkerStartupTests(unittest.TestCase):
             side_effect=RuntimeError("thread constructor unavailable"),
         ):
             self.assertFalse(runtime._spawn_macro("Activation client", lambda: None))
-        runtime.macro_lock.end.assert_called_once_with("Activation client")
+        runtime.macro_lock.end.assert_called_once_with("Activation client", generation=42)
         self.assertEqual(runtime._threads, [])
