@@ -581,5 +581,78 @@ class OrganizerFavoriteInflightTests(unittest.TestCase):
                 self.assertEqual(runtime.active_client_handle, 101)
 
 
+    def test_character_hotkey_worker_refuses_stale_mode_or_favorite(self):
+        from app.macros.switch_character import SwitchCharacterMacro
+
+        for count in (2, 4, 6, 8):
+            for field, replacement in (("primary_handle", 999), ("macro_mode", "mirror")):
+                with self.subTest(clients=count, field=field):
+                    runtime = _runtime(count)
+                    runtime.settings.macro_mode = "macro"
+                    runtime.settings.clients = [
+                        SimpleNamespace(index=i + 1, handle=101 + i,
+                                        display_name=f"Player{i + 1}")
+                        for i in range(count)
+                    ]
+                    runtime.active_client_handle = 101
+
+                    def spawn(_label, worker):
+                        setattr(runtime.settings, field, replacement)
+                        worker()
+                        return True
+
+                    runtime._spawn_macro.side_effect = spawn
+                    with (
+                        patch("app.macros.switch_character.is_unity_window",
+                              side_effect=AssertionError("Stale hotkey reached Win32")),
+                        patch("app.macros.switch_character.activate_window") as focus,
+                    ):
+                        self.assertTrue(
+                            SwitchCharacterMacro(runtime).activate_by_index(1)
+                        )
+                    focus.assert_not_called()
+                    self.assertEqual(runtime.active_client_handle, 101)
+
+    def test_character_hotkey_focus_ignores_late_mode_or_favorite(self):
+        from app.macros.switch_character import SwitchCharacterMacro
+
+        for count in (2, 4, 6, 8):
+            for field, replacement in (("primary_handle", 999), ("macro_mode", "mirror")):
+                with self.subTest(clients=count, field=field):
+                    runtime = _runtime(count)
+                    runtime.settings.macro_mode = "macro"
+                    runtime.settings.clients = [
+                        SimpleNamespace(index=i + 1, handle=101 + i,
+                                        display_name=f"Player{i + 1}")
+                        for i in range(count)
+                    ]
+                    runtime.active_client_handle = 888
+
+                    def spawn(_label, worker):
+                        worker()
+                        return True
+
+                    def activate(*_args, **_kwargs):
+                        setattr(runtime.settings, field, replacement)
+                        return True
+
+                    runtime._spawn_macro.side_effect = spawn
+                    with (
+                        patch("app.macros.switch_character.is_unity_window",
+                              return_value=True),
+                        patch("app.macros.switch_character.is_dofus_unity_process",
+                              return_value=True),
+                        patch("app.macros.switch_character.activate_window",
+                              side_effect=activate) as focus,
+                        patch("app.macros.switch_character.foreground_window") as foreground,
+                    ):
+                        self.assertTrue(
+                            SwitchCharacterMacro(runtime).activate_by_index(1)
+                        )
+                    focus.assert_called_once()
+                    foreground.assert_not_called()
+                    self.assertEqual(runtime.active_client_handle, 888)
+
+
 if __name__ == "__main__":
     unittest.main()
