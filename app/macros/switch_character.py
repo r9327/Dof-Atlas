@@ -17,10 +17,17 @@ class SwitchCharacterMacro:
 
     def activate_by_index(
         self, client_index: int, *, expected_profile: object | None = None,
+        expected_context: tuple[object, object] | None = None,
     ) -> bool:
         settings = self.runtime.settings
         favorite_at_dispatch = settings.primary_handle
         mode_at_dispatch = settings.macro_mode
+        if (expected_context is not None
+                and (favorite_at_dispatch, mode_at_dispatch) != expected_context):
+            self.runtime.logger.info(
+                "Activation client annulée: contexte favori/mode modifié avant dispatch."
+            )
+            return False
         # A "next" selection may be calculated while native process probes
         # yield to a profile reload. Never route an old slot into a replacement.
         if expected_profile is not None and settings is not expected_profile:
@@ -217,7 +224,10 @@ class SwitchCharacterMacro:
             return False
         if not context_current():
             return False
-        return self.activate_by_index(index, expected_profile=settings)
+        return self.activate_by_index(
+            index, expected_profile=settings,
+            expected_context=(favorite_at_dispatch, mode_at_dispatch),
+        )
 
     def preferred_client(self) -> "AtlasClient | None":
         """
