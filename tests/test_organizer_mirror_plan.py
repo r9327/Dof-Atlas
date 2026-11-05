@@ -257,5 +257,45 @@ class OrganizerMirrorPlanTests(unittest.TestCase):
 
 
 
+    def test_non_ascii_handle_alias_cannot_enter_mirror_delivery_plan(self):
+        for count in (2, 4, 6, 8):
+            source = 101
+            roster = tuple(range(source, source + count))
+            selected = set(roster)
+            for invalid in ("١٠١", "२०२", "101.0", "1.01e2", "+101"):
+                with self.subTest(clients=count, alias=invalid):
+                    self.assertEqual(
+                        mirror_targets([invalid, *roster[1:]], selected, source), (),
+                    )
+                    self.assertEqual(
+                        mirror_delivery_targets(
+                            [invalid, *roster[1:]], selected, source,
+                            source_was_consumed=True,
+                        ), (),
+                    )
+                    self.assertNotIn(
+                        source,
+                        mirror_targets(roster, [invalid], source),
+                    )
+            self.assertEqual(
+                mirror_targets(roster, selected, source), roster[1:],
+            )
+
+    def test_unbounded_handle_iterables_fail_closed_without_hanging(self):
+        from itertools import repeat
+
+        self.assertEqual(mirror_targets(repeat(202), [202], 101), ())
+        self.assertEqual(mirror_targets([101, 202], repeat(202), 101), ())
+        self.assertEqual(
+            mirror_delivery_targets(
+                [101, 202], repeat(202), 101, source_was_consumed=True,
+            ), (),
+        )
+        self.assertEqual(
+            mirror_targets([101, *range(202, 267)], [202], 101), (),
+        )
+
+
+
 if __name__ == "__main__":
     unittest.main()

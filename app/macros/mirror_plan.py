@@ -39,13 +39,17 @@ def _valid_handles(values: Iterable[int]) -> tuple[int, ...]:
         return ()
     clean: list[int] = []
     seen: set[int] = set()
-    for raw in iterator:
+    for position, raw in enumerate(iterator):
+        # A malformed tool integration may supply an unbounded generator.
+        # Refuse it rather than freezing the Win32 hook on an infinite scan.
+        if position >= 64:
+            return ()
         # Only genuine Win32 integers or persisted decimal strings may own a
         # window. Decimal/Fraction/custom numeric objects can truncate a
         # different value to an existing HWND and replay to the wrong client.
         if type(raw) is int:
             hwnd = raw
-        elif type(raw) is str and raw.strip().isdecimal():
+        elif type(raw) is str and raw.isascii() and raw.strip().isdecimal():
             try:
                 hwnd = int(raw.strip())
             except (ValueError, OverflowError):
