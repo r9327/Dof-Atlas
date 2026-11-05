@@ -358,6 +358,49 @@ class OrganizerLayoutTests(unittest.TestCase):
                     self.assertFalse(any(session_is_detected(row) for row in page.sessions))
                     page.export_client_index.assert_called_once()
 
+    def test_native_window_event_never_truncates_corrupt_hwnd_or_id(self):
+        from unittest.mock import Mock
+        from app.pages.organizer.character_sessions import CharacterSessionsMixin
+        from app.windows_embed import EVENT_SYSTEM_FOREGROUND
+
+        for invalid in (None, True, False, 101.0, 101.9, "101", -1, 0, 2**64):
+            with self.subTest(hwnd=repr(invalid)):
+                page = Mock()
+                CharacterSessionsMixin.on_unity_window_event(
+                    page, EVENT_SYSTEM_FOREGROUND, invalid
+                )
+                page.active_session_callback.assert_not_called()
+                page.window_event_refresh_timer.start.assert_not_called()
+        for invalid_event in (None, True, 3.0, "3", float("inf")):
+            with self.subTest(event=repr(invalid_event)):
+                page = Mock()
+                CharacterSessionsMixin.on_unity_window_event(
+                    page, invalid_event, 101
+                )
+                page.active_session_callback.assert_not_called()
+                page.window_event_refresh_timer.start.assert_not_called()
+
+    def test_native_window_event_preserves_exact_2_4_6_8_client_selection(self):
+        from unittest.mock import Mock
+        from app.pages.organizer.character_sessions import CharacterSessionsMixin
+        from app.windows_embed import EVENT_SYSTEM_FOREGROUND
+
+        for count in (2, 4, 6, 8):
+            for hwnd in range(101, 101 + count):
+                with self.subTest(clients=count, hwnd=hwnd):
+                    page = Mock()
+                    CharacterSessionsMixin.on_unity_window_event(
+                        page, EVENT_SYSTEM_FOREGROUND, hwnd
+                    )
+                    page.active_session_callback.assert_called_once_with(hwnd)
+                    page.window_event_refresh_timer.start.assert_called_once_with()
+        page = Mock()
+        CharacterSessionsMixin.on_unity_window_event(
+            page, EVENT_SYSTEM_FOREGROUND + 1, 101
+        )
+        page.active_session_callback.assert_not_called()
+        page.window_event_refresh_timer.start.assert_called_once_with()
+
     def test_organizer_order_and_favorite_never_coerce_foreign_window_ids(self):
         from unittest.mock import Mock
         from app.pages.organizer.character_sessions import CharacterSessionsMixin

@@ -239,8 +239,17 @@ class CharacterSessionsMixin:
             watcher.stop()
 
     def on_unity_window_event(self, event_id: int, hwnd: int) -> None:
-        if int(event_id) == EVENT_SYSTEM_FOREGROUND and callable(self.active_session_callback):
-            self.active_session_callback(int(hwnd))
+        # Native watcher callbacks already provide exact Win32 ints.
+        # Never coerce True, fractional floats or textual HWNDs into a real
+        # tracked window: a bad event must not select another character.
+        if (type(event_id) is not int or type(hwnd) is not int
+                or not 0 < hwnd <= (2**64 - 1)):
+            logging.getLogger(__name__).warning(
+                "Organizer événement fenêtre invalide : sélection inchangée."
+            )
+            return
+        if event_id == EVENT_SYSTEM_FOREGROUND and callable(self.active_session_callback):
+            self.active_session_callback(hwnd)
         self.window_event_refresh_timer.start()
 
     def session_identity_signature(self) -> tuple[tuple[int, str, int, int], ...]:
