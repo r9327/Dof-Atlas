@@ -2,7 +2,7 @@ from __future__ import annotations
 
 """Optional exact-SHA development-lot tests, never a PR/Phase certification.
 
-The canonical ci_scope_gate and Phase Certification still decide whether the
+The trusted-main ci_scope_gate and Phase Certification still decide whether the
 *entire* pull request needs FULL. This module only tests a bounded ancestor
 delta on the immutable PR checkout, without credentials or arbitrary commands.
 """
@@ -134,6 +134,8 @@ def plan_lot(root: Path, *, lot_base: str, pr_base: str, head: str) -> dict:
 
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("--repo-root", type=Path, default=ROOT,
+                        help="Immutable PR checkout; selector code may live in trusted main")
     parser.add_argument("--lot-base", required=True)
     parser.add_argument("--pr-base", required=True)
     parser.add_argument("--expected-sha", required=True)
@@ -141,11 +143,11 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--run", action="store_true")
     args = parser.parse_args(argv)
     try:
-        report = plan_lot(ROOT, lot_base=args.lot_base,
+        report = plan_lot(args.repo_root, lot_base=args.lot_base,
                           pr_base=args.pr_base, head=args.expected_sha)
         if args.run and report["status"] in {"READY", "REVIEW"} and report["test_modules"]:
             try:
-                code = ci_scope_gate._run_scoped_modules(ROOT, report["test_modules"])
+                code = ci_scope_gate._run_scoped_modules(args.repo_root.resolve(), report["test_modules"])
             except (OSError, subprocess.TimeoutExpired) as exc:
                 report["execution"] = {"status": "BLOCKED", "reason": type(exc).__name__}
             else:
