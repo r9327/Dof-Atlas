@@ -359,5 +359,50 @@ class OrganizerFavoriteInflightTests(unittest.TestCase):
                 )
 
 
+    def test_auto_group_favorite_or_mode_mutated_during_source_lookup_aborts(self):
+        for count in (2, 4, 6, 8):
+            for field, replacement in (("primary_handle", 999), ("macro_mode", "mirror")):
+                with self.subTest(clients=count, field=field):
+                    runtime = _runtime(count)
+                    runtime.settings.macro_mode = "macro"
+
+                    def resolve_source():
+                        setattr(runtime.settings, field, replacement)
+                        return SimpleNamespace(handle=101, display_name="Leader")
+
+                    runtime.switch_character.logical_active_client.side_effect = resolve_source
+                    with patch(
+                        "app.macros.auto_group.is_unity_window",
+                        side_effect=AssertionError("Stale source reached Win32"),
+                    ):
+                        AutoGroupMacro(runtime)._run(
+                            [{"name": "Friend", "handle": 202}],
+                        )
+                    runtime.switch_character.logical_active_client.assert_called_once()
+                    runtime.switch_character.restore_preferred_client.assert_not_called()
+                    self.assertIn("interrompu", runtime._emit_status.call_args.args[0])
+
+    def test_zaap_favorite_or_mode_mutated_during_roster_lookup_aborts(self):
+        for count in (2, 4, 6, 8):
+            for field, replacement in (("primary_handle", 999), ("macro_mode", "mirror")):
+                with self.subTest(clients=count, field=field):
+                    runtime = _runtime(count)
+                    runtime.settings.macro_mode = "macro"
+
+                    def resolve_clients():
+                        setattr(runtime.settings, field, replacement)
+                        return [SimpleNamespace(handle=101 + i) for i in range(count)]
+
+                    runtime.switch_character.ordered_clients_from_source.side_effect = resolve_clients
+                    with patch(
+                        "app.macros.zaap.is_unity_window",
+                        side_effect=AssertionError("Stale roster reached Win32"),
+                    ):
+                        ZaapMacro(runtime)._run("/zaap 1,2")
+                    runtime.switch_character.ordered_clients_from_source.assert_called_once()
+                    runtime.switch_character.restore_preferred_client.assert_not_called()
+                    self.assertIn("interrompu", runtime._emit_status.call_args.args[0])
+
+
 if __name__ == "__main__":
     unittest.main()
