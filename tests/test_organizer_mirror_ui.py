@@ -5783,5 +5783,44 @@ class OrganizerMirrorIntegrationTests(unittest.TestCase):
 
 
 
+    def test_mirror_click_dispatch_rejects_stale_roster_before_native_capture(self):
+        from app.macros.switch_click import SwitchClickMacro
+
+        for count in (2, 4, 6, 8):
+            slots = tuple(range(101, 101 + count))
+            for source in (slots[0], slots[-1]):
+                accepted = (source, *(hwnd for hwnd in slots if hwnd != source))
+                for change in ("replace", "missing", "duplicate", "wrong_order"):
+                    with self.subTest(count=count, source=source, change=change):
+                        runtime = self._runtime(primary=source, handles=slots)
+                        if change == "replace":
+                            runtime.settings.clients[-1].handle = 999
+                            frozen = accepted
+                        elif change == "missing":
+                            runtime.settings.clients = runtime.settings.clients[:-1]
+                            frozen = accepted
+                        elif change == "duplicate":
+                            runtime.settings.clients = tuple(
+                                SimpleNamespace(handle=source)
+                                if i == 0 else client
+                                for i, client in enumerate(runtime.settings.clients)
+                            )
+                            frozen = accepted
+                        else:
+                            frozen = (source, *reversed(accepted[1:]))
+                            if frozen == accepted:
+                                continue
+                        sender = SwitchClickMacro(runtime)
+                        with patch.object(sender, "_capture_trigger_context") as capture:
+                            self.assertFalse(sender.run_async(
+                                "Left", 20, 30, 1, "Miroir",
+                                exact_source_handle=source,
+                                mirror_target_handles=frozen,
+                                expected_profile=runtime.settings,
+                            ))
+                        capture.assert_not_called()
+                        runtime._spawn_macro.assert_not_called()
+
+
 if __name__ == "__main__":
     unittest.main()

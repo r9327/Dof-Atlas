@@ -104,6 +104,17 @@ class SwitchClickMacro:
             or dispatch_mode != "mirror"
             or type(dispatch_primary) is not int
             or dispatch_primary != exact_source_handle
+            # The native hook may have frozen this gesture before an
+            # in-place Organizer slot change. Never accept that stale roster
+            # as a new snapshot: the worker would abort after DOWN was eaten.
+            or dispatch_roster is None
+            or len(dispatch_roster) != len(mirror_target_handles)
+            or any(kind is not int for kind, _ in dispatch_roster)
+            or (
+                exact_source_handle,
+                *(hwnd for _, hwnd in dispatch_roster
+                  if hwnd != exact_source_handle),
+            ) != mirror_target_handles
         ):
             return False
         normalized_button = str(button or "").strip().casefold()
