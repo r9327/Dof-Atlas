@@ -124,7 +124,8 @@ jobs:
       - name: Install only pinned approved OSS scanners when requested
         if: env.MODE == 'oss'
         shell: bash
-        run: python -m pip install --disable-pip-version-check --only-binary=:all: "ruff==0.17.3" "zizmor==1.30.1"
+        run: |
+          python -m pip install --disable-pip-version-check --only-binary=:all: "ruff==0.17.3" "zizmor==1.30.1"
       - name: Execute selected canonical tool only
         shell: bash
         run: |
