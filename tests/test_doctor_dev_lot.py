@@ -117,6 +117,37 @@ class DevelopmentLotTests(unittest.TestCase):
             doctor_dev_lot.plan_lot(
                 self.root, lot_base="not-a-sha", pr_base=PR_BASE, head=HEAD)
 
+    def test_cli_uses_explicit_candidate_checkout_not_trusted_tool_directory(self):
+        candidate = self.root
+        output = candidate / "lot-report.json"
+        fake_plan = {
+            "status": "READY", "test_modules": ["tests.test_organizer_sendinput"],
+            "global_scope_status": "FULL_REQUIRED", "global_full_required": True,
+            "phase_certified": False, "full_suite_waived": False,
+            "execution": {"status": "NOT_RUN", "exit_code": None},
+        }
+        with (
+            patch.object(doctor_dev_lot, "plan_lot", return_value=fake_plan) as planner,
+            patch.object(doctor_dev_lot.ci_scope_gate, "_run_scoped_modules",
+                         return_value=0) as runner,
+        ):
+            code = doctor_dev_lot.main([
+                "--repo-root", str(candidate), "--lot-base", LOT_BASE,
+                "--pr-base", PR_BASE, "--expected-sha", HEAD,
+                "--run", "--output", str(output),
+            ])
+        self.assertEqual(code, 0)
+        planner.assert_called_once_with(
+            candidate, lot_base=LOT_BASE, pr_base=PR_BASE, head=HEAD,
+        )
+        runner.assert_called_once_with(
+            candidate.resolve(), ["tests.test_organizer_sendinput"],
+        )
+        data = __import__("json").loads(output.read_text(encoding="utf-8"))
+        self.assertEqual(data["execution"]["status"], "PASS")
+        self.assertTrue(data["global_full_required"])
+        self.assertFalse(data["phase_certified"])
+
     def test_missing_test_owner_is_not_silently_dropped(self):
         (self.root / "tests/test_organizer_mirror_ui.py").unlink()
         # Direct owner has an explicit second test, so the lot still has
