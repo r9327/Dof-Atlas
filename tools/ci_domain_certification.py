@@ -128,6 +128,7 @@ ORGANIZER_TEST_PATHS = frozenset({
     "tests/test_organizer_icon_cache.py",
     "tests/test_organizer_shutdown_guard.py",
     "tests/test_organizer_macro_reliability.py",
+    "tests/test_organizer_favorite_inflight.py",
     "tests/test_organizer_radial_selection.py",
     "tests/test_organizer_radial_overlay.py",
     "tests/test_organizer_mirror_plan.py",
