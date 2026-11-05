@@ -138,29 +138,6 @@ class MouseHook:
         self._blocked_wheel_count = 0
         # A consumed DOWN must always swallow its matching physical UP.
         self._consumed_releases: set[int] = set()
-        # Multiple native DOWNs of one button can precede their UPs during
-        # hardware bounce or an overloaded multi-client hook. A plain set
-        # would consume only the first UP and leak the next one into Unity.
-        self._consumed_release_depth: dict[int, int] = {}
-
-    def _reserve_physical_up(self, token: int) -> None:
-        if token not in self._consumed_releases:
-            self._consumed_release_depth[token] = 0
-        self._consumed_releases.add(token)
-        self._consumed_release_depth[token] = (
-            self._consumed_release_depth.get(token, 0) + 1
-        )
-
-    def _take_reserved_physical_up(self, token: int) -> bool:
-        if token not in self._consumed_releases:
-            return False
-        remaining = self._consumed_release_depth.get(token, 1) - 1
-        if remaining > 0:
-            self._consumed_release_depth[token] = remaining
-        else:
-            self._consumed_release_depth.pop(token, None)
-            self._consumed_releases.discard(token)
-        return True
 
     def start(self) -> bool:
         if os.name != "nt":
@@ -191,7 +168,6 @@ class MouseHook:
         thread = self._thread
         if thread is None or not thread.is_alive():
             self._consumed_releases.clear()
-            self._consumed_release_depth.clear()
         else:
             self.logger.warning(
                 "Hook souris toujours actif après stop: relâchements réservés=%s",
@@ -236,7 +212,6 @@ class MouseHook:
                 user32.DispatchMessageW(ctypes.byref(msg))
         finally:
             self._consumed_releases.clear()
-            self._consumed_release_depth.clear()
             self._hook_thread_id = 0
 
     def _mouse_proc(self, n_code: int, w_param: int, l_param: int) -> int:
@@ -266,7 +241,8 @@ class MouseHook:
                     release_token = _physical_release_token(
                         w_param, int(event.mouseData),
                     )
-                    if self._take_reserved_physical_up(release_token):
+                    if release_token in self._consumed_releases:
+                        self._consumed_releases.discard(release_token)
                         return 1
 
                 # A native source DOWN that was NOT swallowed must keep its
@@ -302,7 +278,7 @@ class MouseHook:
                     # could be delivered to Unity or another application.
                     paired_up = BLOCKED_DOWN_TO_UP.get(w_param)
                     if paired_up is not None:
-                        self._reserve_physical_up(
+                        self._consumed_releases.add(
                             _physical_release_token(paired_up, int(event.mouseData))
                         )
                     try:
@@ -343,7 +319,7 @@ class MouseHook:
                         )
                         consumed = bool(self.callback(button, x, y))
                         if consumed:
-                            self._reserve_physical_up(
+                            self._consumed_releases.add(
                                 WM_LBUTTONUP if w_param == WM_LBUTTONDOWN else WM_RBUTTONUP
                             )
                             self.logger.debug(
