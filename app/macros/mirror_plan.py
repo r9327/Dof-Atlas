@@ -40,13 +40,17 @@ def _valid_handles(values: Iterable[int]) -> tuple[int, ...]:
     clean: list[int] = []
     seen: set[int] = set()
     for raw in iterator:
-        if isinstance(raw, float):
-            continue
-        if isinstance(raw, bool):
-            continue
-        try:
-            hwnd = int(raw)
-        except (ValueError, TypeError, OverflowError):
+        # Only genuine Win32 integers or persisted decimal strings may own a
+        # window. Decimal/Fraction/custom numeric objects can truncate a
+        # different value to an existing HWND and replay to the wrong client.
+        if type(raw) is int:
+            hwnd = raw
+        elif type(raw) is str and raw.strip().isdecimal():
+            try:
+                hwnd = int(raw.strip())
+            except (ValueError, OverflowError):
+                continue
+        else:
             continue
         if 0 < hwnd <= (2**64 - 1) and hwnd not in seen:
             seen.add(hwnd)

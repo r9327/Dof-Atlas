@@ -203,6 +203,42 @@ class OrganizerMirrorPlanTests(unittest.TestCase):
         self.assertIsNone(event)
 
 
+    def test_non_integral_numeric_handles_never_alias_a_dofus_client(self) -> None:
+        from decimal import Decimal
+        from fractions import Fraction
+
+        invalid = (Decimal("202.9"), Fraction(405, 2), 202.9, True)
+        for count in (2, 4, 6, 8):
+            handles = tuple(range(201, 201 + count))
+            source = handles[0]
+            selected = handles[1]
+            for value in invalid:
+                with self.subTest(clients=count, value=repr(value)):
+                    self.assertEqual(
+                        mirror_targets(handles, [value], source), (),
+                    )
+                    self.assertEqual(
+                        mirror_delivery_targets(
+                            handles, [value], source,
+                            source_was_consumed=True,
+                        ),
+                        (),
+                    )
+                    self.assertEqual(
+                        mirror_targets(
+                            (source, value), [selected], source,
+                        ),
+                        (),
+                    )
+            # Existing JSON-backed indexes still use decimal strings.
+            self.assertEqual(
+                mirror_targets(
+                    [str(hwnd) for hwnd in handles],
+                    [str(selected)], source,
+                ),
+                (selected,),
+            )
+
 
 if __name__ == "__main__":
     unittest.main()
