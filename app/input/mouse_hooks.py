@@ -233,10 +233,17 @@ class MouseHook:
                 # A swallowed DOWN owns its matching physical UP. Never run
                 # native-release callbacks for that pair: an UP without its
                 # corresponding DOWN can activate an unrelated Unity target.
-                release_token = _physical_release_token(w_param, int(event.mouseData))
-                if not atlas_synthetic and release_token in self._consumed_releases:
-                    self._consumed_releases.discard(release_token)
-                    return 1
+                # WM_MOUSEMOVE floods this hook. Decode the X-button
+                # HIWORD only for a possible pending release, not per move.
+                if (not atlas_synthetic and self._consumed_releases
+                        and (w_param in self._consumed_releases
+                             or w_param == WM_XBUTTONUP)):
+                    release_token = _physical_release_token(
+                        w_param, int(event.mouseData),
+                    )
+                    if release_token in self._consumed_releases:
+                        self._consumed_releases.discard(release_token)
+                        return 1
 
                 # A native source DOWN that was NOT swallowed must keep its
                 # matching UP, even when the release callback starts a replay
