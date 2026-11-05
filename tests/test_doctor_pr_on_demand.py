@@ -143,12 +143,9 @@ class OnDemandRequestTests(unittest.TestCase):
     def test_comments_accept_exact_sha_and_trusted_roles(self):
         for role in ("OWNER", "MEMBER", "COLLABORATOR"):
             with self.subTest(role=role):
-                number, mode, expected, lot_base = parse_request(
+                number, mode, expected = parse_request(
                     "issue_comment", comment("/atlas graphify " + HEAD, role=role))
-                self.assertEqual(
-                    (number, mode, expected, lot_base),
-                    (325, "graphify", HEAD, ""),
-                )
+                self.assertEqual((number, mode, expected), (325, "graphify", HEAD))
 
 
 class OnDemandWorkflowTests(unittest.TestCase):
