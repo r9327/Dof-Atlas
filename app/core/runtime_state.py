@@ -780,6 +780,10 @@ class AtlasRuntime:
                     and not self.macro_lock.should_stop()
                     and isinstance(active, (list, tuple))
                     and tuple((type(c.handle), c.handle) for c in active) == frozen
+                    # The foreground HWND can change during process identity
+                    # inspection. Never eat a busy secondary input for an app
+                    # that was not foreground when this gesture began.
+                    and foreground_window() == foreground
                 )
 
             if not still_busy_and_current():
@@ -863,6 +867,10 @@ class AtlasRuntime:
                     and not self.macro_lock.should_stop()
                     and isinstance(active, (list, tuple))
                     and tuple((type(c.handle), c.handle) for c in active) == frozen
+                    # The foreground HWND can change during process identity
+                    # inspection. Never eat a busy secondary input for an app
+                    # that was not foreground when this gesture began.
+                    and foreground_window() == foreground
                 )
 
             if not still_busy_and_current():
