@@ -81,9 +81,6 @@ class MacroGenerationOwnershipTests(unittest.TestCase):
                     self.assertTrue(new_started.wait(2))
                     current = runtime.macro_lock.active_generation
                     finish_old.set()
-                    for worker in runtime._threads:
-                        if worker.name == "DofusAtlas-Miroir" and worker.is_alive():
-                            pass
                     # The previous runner is allowed to exit first, but its
                     # stale finally cannot reset or unlock the live new one.
                     old_thread = runtime._threads[0]
@@ -184,6 +181,47 @@ class MacroGenerationOwnershipTests(unittest.TestCase):
         pending[1].target()
         self.assertFalse(runtime.macro_lock.active_label)
         runtime.synthetic_guard.reset.assert_called_once()
+
+
+
+    def test_concurrent_reservations_admit_only_one_generation_2_4_6_8(self):
+        # A high load on Organizer must never admit two identically named
+        # SendInput workers, nor reuse a previous generation number.
+        for accounts in (2, 4, 6, 8):
+            with self.subTest(accounts=accounts):
+                lock = MacroLock(Mock())
+                previous = 0
+                for _round in range(5):
+                    barrier = threading.Barrier(accounts + 1)
+                    admitted = []
+                    list_lock = threading.Lock()
+
+                    def contender():
+                        barrier.wait(2)
+                        claim = lock.try_begin_generation("Miroir")
+                        with list_lock:
+                            admitted.append(claim)
+
+                    workers = [threading.Thread(target=contender)
+                               for _ in range(accounts)]
+                    for worker in workers:
+                        worker.start()
+                    try:
+                        barrier.wait(2)
+                        for worker in workers:
+                            worker.join(2)
+                        self.assertTrue(all(not w.is_alive() for w in workers))
+                        claimed = [value for value in admitted
+                                   if type(value) is int]
+                        self.assertEqual(len(admitted), accounts)
+                        self.assertEqual(len(claimed), 1)
+                        self.assertGreater(claimed[0], previous)
+                        previous = claimed[0]
+                        lock.end("Miroir", generation=previous)
+                    finally:
+                        for worker in workers:
+                            worker.join(2)
+                self.assertFalse(lock.active_label)
 
 
 
