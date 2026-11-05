@@ -56,43 +56,62 @@ class DirectionMacro:
         sent = 0
         try:
             targets = self.runtime.switch_character.ordered_clients_from_source(source)
-            for client in targets:
+            # Keep a fixed HWND for each physical direction gesture. A mutable
+            # Organizer client can be reassigned while focus changes yield.
+            target_handles = tuple(client.handle for client in targets)
+            for client, target_hwnd in zip(targets, target_handles):
                 if (self.runtime.macro_lock.should_stop()
                         or self.runtime.settings is not settings_at_start):
                     return
-                if not is_unity_window(client.handle) or not is_dofus_unity_process(client.handle):
+                if (type(target_hwnd) is not int or not 0 < target_hwnd <= (2**64 - 1)
+                        or client.handle != target_hwnd):
                     focus_lost = True
                     self.runtime.logger.warning(
-                        "Switch deplacement interrompu: cible non DOFUS Unity hwnd=%s", client.handle,
+                        "Switch deplacement interrompu: session modifiée hwnd=%r", target_hwnd,
+                    )
+                    return
+                if not is_unity_window(target_hwnd) or not is_dofus_unity_process(target_hwnd):
+                    focus_lost = True
+                    self.runtime.logger.warning(
+                        "Switch deplacement interrompu: cible non DOFUS Unity hwnd=%s", target_hwnd,
                     )
                     return
                 if activate_window(
-                    client.handle,
+                    target_hwnd,
                     timings.click_focus_settle_ms,
                     timings.activate_attempts,
                     timings.activate_retry_ms,
                     self.runtime.logger,
                     "Switch deplacement",
-                    should_stop=lambda: (
+                    should_stop=lambda client=client, hwnd=target_hwnd: (
                         self.runtime.macro_lock.should_stop()
                         or self.runtime.settings is not settings_at_start
+                        or client.handle != hwnd
                     ),
                 ):
                     # Validate native identity BEFORE the last focus check:
                     # a process probe may itself yield to a foreign window.
                     if (self.runtime.settings is not settings_at_start
-                            or not is_dofus_unity_process(client.handle)
-                            or foreground_window() != int(client.handle)):
+                            or not is_dofus_unity_process(target_hwnd)
+                            or foreground_window() != int(target_hwnd)
+                            or client.handle != target_hwnd):
                         focus_lost = True
                         self.runtime.logger.warning(
                             "Switch deplacement interrompu: focus ou identité DOFUS perdus avant frappe hwnd=%s",
-                            client.handle,
+                            target_hwnd,
                         )
                         return
                     if (self.runtime.macro_lock.should_stop()
                             or self.runtime.settings is not settings_at_start):
                         return
-                    last_activated_hwnd = int(client.handle)
+                    if client.handle != target_hwnd:
+                        focus_lost = True
+                        self.runtime.logger.warning(
+                            "Switch deplacement interrompu: session mutée avant touche hwnd=%s",
+                            target_hwnd,
+                        )
+                        return
+                    last_activated_hwnd = int(target_hwnd)
                     press_key(key_name, timings.movement_key_hold_ms)
                     # Count an input that completed before Stop was observed.
                     sent += 1
@@ -102,7 +121,7 @@ class DirectionMacro:
                 else:
                     self.runtime.logger.info(
                         "Switch deplacement: activation echec hwnd=%s",
-                        client.handle,
+                        target_hwnd,
                     )
         finally:
             restore_skipped = self.runtime.settings is not settings_at_start
