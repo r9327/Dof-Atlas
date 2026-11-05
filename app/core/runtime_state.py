@@ -587,7 +587,9 @@ class AtlasRuntime:
             except (TypeError, ValueError, OverflowError):
                 self.logger.debug("Payload invalide pour switch personnage: action=%s payload=%s", action_id, payload)
                 return
-            if not settings.switch_character_enabled or action_id != f"client:{client_index}":
+            if (not settings.switch_character_enabled
+                    or not 1 <= client_index <= 8
+                    or action_id != f"client:{client_index}"):
                 self.logger.debug("Raccourci personnage périmé ou désactivé: action=%s", action_id)
                 return
             # The registry binds a slot AND its HWND. An old callback from a
@@ -597,7 +599,8 @@ class AtlasRuntime:
             if bound_handle is not None and (
                 type(bound_handle) is not int or not 0 < bound_handle <= (2**64 - 1)
                 or not any(
-                    client.index == client_index and client.handle == bound_handle
+                    type(client.index) is int and client.index == client_index
+                    and type(client.handle) is int and client.handle == bound_handle
                     for client in settings.clients
                 )
             ):
