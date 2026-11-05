@@ -57,7 +57,8 @@ class ZaapMacro:
         )
         # A profile changed during admission cannot be a confirmed launch.
         # The queued worker will independently cancel before its first send.
-        return bool(admitted and self.runtime.settings is profile_at_dispatch
+        return bool(admitted and not self.runtime.macro_lock.should_stop()
+                    and self.runtime.settings is profile_at_dispatch
                     and (profile_at_dispatch.primary_handle,
                          profile_at_dispatch.macro_mode) == dispatch_context)
 

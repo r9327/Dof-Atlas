@@ -4857,5 +4857,35 @@ class OrganizerMacroReliabilityTests(unittest.TestCase):
                     runtime._spawn_macro.assert_called_once()
 
 
+    def test_existing_macro_admission_stop_is_not_reported_accepted_2_to_8(self):
+        for count in (2, 4, 6, 8):
+            for action in ("group", "direction", "zaap"):
+                with self.subTest(clients=count, action=action):
+                    runtime = _runtime()
+                    runtime.settings = SimpleNamespace(
+                        primary_handle=101, macro_mode="macro",
+                        clients=[SimpleNamespace(handle=101 + i)
+                                 for i in range(count)],
+                    )
+
+                    def stop_during_admission(_label, _worker):
+                        runtime.macro_lock.should_stop.return_value = True
+                        return True
+
+                    runtime._spawn_macro.side_effect = stop_during_admission
+                    if action == "group":
+                        accepted = AutoGroupMacro(runtime).run_async(
+                            [{"name": "Friend", "handle": 102}],
+                        )
+                    elif action == "direction":
+                        accepted = DirectionMacro(runtime).run_async(
+                            "HOME", expected_profile=runtime.settings,
+                        )
+                    else:
+                        accepted = ZaapMacro(runtime).run_async("/zaap 1,2")
+                    self.assertFalse(accepted)
+                    runtime._spawn_macro.assert_called_once()
+
+
 if __name__ == "__main__":
     unittest.main()

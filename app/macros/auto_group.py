@@ -34,7 +34,8 @@ class AutoGroupMacro:
         )
         # Admission may yield to an Organizer reload. The worker already
         # refuses stale generations; the UI must not report false acceptance.
-        return bool(admitted and self.runtime.settings is profile_at_dispatch
+        return bool(admitted and not self.runtime.macro_lock.should_stop()
+                    and self.runtime.settings is profile_at_dispatch
                     and (profile_at_dispatch.primary_handle,
                          profile_at_dispatch.macro_mode) == dispatch_context)
 
