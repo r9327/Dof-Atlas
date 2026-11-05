@@ -31,7 +31,7 @@ jobs:
   resolve:
     if: >-
       github.event_name == 'workflow_dispatch' ||
-      (github.event.issue.pull_request && startsWith(github.event.comment.body, '/atlas '))
+      (github.event.issue.pull_request && (startsWith(github.event.comment.body, '/atlas doctor') || startsWith(github.event.comment.body, '/atlas graphify')))
     runs-on: ubuntu-latest
     timeout-minutes: 5
     outputs:
