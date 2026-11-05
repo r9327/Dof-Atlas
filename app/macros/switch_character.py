@@ -335,6 +335,16 @@ class SwitchCharacterMacro:
 
     def restore_preferred_client(self, action_label: str) -> None:
         settings = self.runtime.settings
+        favorite_at_dispatch = settings.primary_handle
+        mode_at_dispatch = settings.macro_mode
+
+        def context_changed() -> bool:
+            return (
+                self.runtime.settings is not settings
+                or settings.primary_handle != favorite_at_dispatch
+                or settings.macro_mode != mode_at_dispatch
+            )
+
         if self.runtime.macro_lock.should_stop():
             self.runtime.logger.info(
                 "%s retour ignore: stop urgence actif.",
@@ -345,9 +355,9 @@ class SwitchCharacterMacro:
         # preferred_client() already checks DOFUS identity; keep a second
         # independent check only AFTER activation, to catch HWND reuse.
         preferred = self.preferred_client()
-        if self.runtime.settings is not settings:
+        if context_changed():
             self.runtime.logger.info(
-                "%s retour ignore: profil Organizer remplacé.", action_label,
+                "%s retour ignore: profil, favori ou mode Organizer modifié.", action_label,
             )
             return
         if preferred is None:
@@ -375,11 +385,11 @@ class SwitchCharacterMacro:
             f"{action_label} retour",
             should_stop=lambda: (
                 self.runtime.macro_lock.should_stop()
-                or self.runtime.settings is not settings
+                or context_changed()
                 or preferred.handle != preferred_hwnd
             ),
         ):
-            if self.runtime.macro_lock.should_stop() or self.runtime.settings is not settings:
+            if self.runtime.macro_lock.should_stop() or context_changed():
                 return
             # The preferred client can change while a Win32 activation is
             # settling. A former favorite must never become the new active
@@ -400,10 +410,10 @@ class SwitchCharacterMacro:
                 )
                 return
             if (self.runtime.macro_lock.should_stop()
-                    or self.runtime.settings is not settings
+                    or context_changed()
                     or preferred.handle != preferred_hwnd):
                 self.runtime.logger.info(
-                    "%s retour non publié: profil ou Stop changé après contrôle final.",
+                    "%s retour non publié: profil, favori, mode ou Stop changé après contrôle final.",
                     action_label,
                 )
                 return
