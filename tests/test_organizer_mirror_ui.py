@@ -1634,6 +1634,57 @@ class OrganizerMirrorIntegrationTests(unittest.TestCase):
                 self.assertEqual(emitted, list(handles[1:]))
                 self.assertFalse(runtime.input_state.is_mouse_blocked())
 
+    def test_native_source_focus_lost_during_settle_refuses_replay_2_4_6_8(self):
+        from app.macros.switch_click import SwitchClickMacro, SwitchClickContext
+        from app.input.input_state import InputState
+
+        for count in (2, 4, 6, 8):
+            with self.subTest(clients=count):
+                handles = tuple(range(101, 101 + count))
+                runtime = self._runtime(primary=handles[0], handles=handles)
+                runtime.input_state = InputState()
+                runtime.settings.timings = SimpleNamespace()
+                runtime.switch_character.ordered_clients_from_source.return_value = [
+                    SimpleNamespace(handle=h, display_name=str(h)) for h in handles
+                ]
+                runtime.macro_lock.should_stop.return_value = False
+                active = [handles[0]]
+
+                def wait(ms):
+                    self.assertEqual(ms, 60)
+                    self.assertFalse(runtime.input_state.is_mouse_blocked())
+                    active[0] = 999  # user switched to a foreign application
+                    return False
+
+                runtime.macro_lock.wait.side_effect = wait
+                context = SwitchClickContext(handles[0], 20, 25, 0.3, 0.4, "cursor")
+                macro = SwitchClickMacro(runtime)
+                with (
+                    patch.object(macro, "_validated_context", return_value=context),
+                    patch("app.macros.switch_click.current_cursor_pos",
+                          return_value=(11, 12)),
+                    patch("app.macros.switch_click.set_cursor_pos") as move,
+                    patch("app.macros.switch_click.foreground_window",
+                          side_effect=lambda: active[0]),
+                    patch("app.macros.switch_click.activate_window") as activate,
+                    patch("app.macros.switch_click.send_client_click") as send,
+                ):
+                    macro._run(
+                        "Left", 1, "Miroir", context,
+                        exact_source_handle=handles[0],
+                        mirror_target_handles=handles,
+                        physical_source_delivered=True,
+                        settings_at_dispatch=runtime.settings,
+                    )
+                self.assertFalse(runtime.input_state.is_mouse_blocked())
+                activate.assert_not_called()
+                send.assert_not_called()
+                move.assert_not_called()
+                runtime.switch_character.restore_preferred_client.assert_not_called()
+                runtime.logger.info.assert_any_call(
+                    "%s annulé: source perdue durant attente native.", "Miroir",
+                )
+
     def test_stop_during_native_source_settle_never_blocks_mouse(self):
         from app.macros.switch_click import SwitchClickMacro, SwitchClickContext
         from app.input.input_state import InputState

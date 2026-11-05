@@ -512,6 +512,24 @@ class SwitchClickMacro:
             # must not take a mouse lease merely to abort the replay.
             if self.runtime.macro_lock.should_stop() or not target_roster_intact():
                 return
+            # The pointer remained native during source settle. If the user
+            # switched to another app in that interval, do not take a mouse
+            # lease or pull foreground back into the old DOFUS gesture.
+            if (physical_source_delivered and mirror_target_handles is not None
+                    and exact_source_handle is not None):
+                try:
+                    if foreground_window() != exact_source_handle:
+                        focus_lost = True
+                        self.runtime.logger.info(
+                            "%s annulé: source perdue durant attente native.", action_label,
+                        )
+                        return
+                except Exception:
+                    focus_lost = True
+                    self.runtime.logger.exception(
+                        "%s annulé: focus illisible après attente native.", action_label,
+                    )
+                    return
             if not mouse_blocked:
                 # Own the pointer only for actual client activation/sending
                 # and restoration; the shared native hook stays unchanged.
