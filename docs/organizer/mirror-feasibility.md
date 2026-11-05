@@ -1340,3 +1340,43 @@ demandent Graphify sur le SHA exact, Doctor structurel, essais ciblés
 et recette Windows avant de prétendre à la non-perte. Garder #325 en
 **Draft / CHANGES REQUIRED**, sans fusion.
 
+
+## Suite ciblée du 05/11/2026 — nettoyage sûr, admission et Stop
+
+Base : `abf6a786eb36fe47e13e5e7b401a8f9042598942`.
+HEAD de code : `c345089ac8511b1ec1c23201d2009590bb1aabba`
+(**9 commits**), PR #325 en **Draft**. Périmètre non structurel :
+Auto-groupe, Direction, /zaap, Switch clic, Miroir clavier/molette et tests.
+
+- **Restitution non intrusive :** le Miroir vérifie une seconde fois
+  favori/mode/roster/Stop après sa sonde native finale ; Auto-groupe,
+  Direction et /zaap revérifient leurs identités HWND juste avant le
+  retour au favori. Le Switch clic refuse de repositionner le pointeur
+  si Stop arrive lors du contrôle de focus en fin de diffusion.
+- **État exact :** les trois macros ne déclarent plus une émission complète
+  comme `termine` lorsqu'un favori change pendant la dernière commande.
+  Elles refusent aussi de déclarer leur lancement accepté si le profil,
+  le mode ou Stop change pendant `_spawn_macro`.
+- **Miroir :** une touche/molette native n'est pas avalée lors d'un Stop
+  pendant l'admission. Le worker annule avant les sondes Win32 et avant
+  l'acquisition du blocage souris si Stop est actif ; il interrompt la
+  prévalidation des autres clients dès qu'un Stop arrive dans une sonde
+  de processus, sans émission résiduelle programmée.
+- **Tests ajoutés (mais non exécutés) :** scénarios déterministes
+  2/4/6/8 dans `tests/test_organizer_mirror_ui.py` et
+  `tests/test_organizer_macro_reliability.py` : mutations au nettoyage,
+  changement de favori après la dernière émission, admission concurrente,
+  Stop pendant admission/préflight/focus. Le comparatif GitHub constate
+  exactement 9 commits de code, 7 fichiers modifiés, aucun changement de
+  hook global ou de sender canonique.
+
+**Preuve disponible :** revue statique des chemins et tests (noms uniques,
+pas de marqueurs de conflit ni d'espaces finaux), comparatif exact des
+commits GitHub. **Non exécuté :** tests Python/PySide6, Doctor
+`agent plan/check/validate`, Graphify exact-SHA, Windows/DOFUS,
+p50/p95/p99, CPU/RAM, Phase Certification et audit global de la PR
+historique. L'environnement présent ne permet pas un checkout Windows
+exécutable. Les contrôles sont des protections de logique, pas une preuve
+d'acceptation des événements par Unity. **MIRR-002, MIRR-005, MIRR-007
+et recette #322 restent bloquants** ; ne pas annoncer READY / CERTIFIED
+ni fusionner.
