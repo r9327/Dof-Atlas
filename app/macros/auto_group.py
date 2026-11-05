@@ -142,6 +142,17 @@ class AutoGroupMacro:
                 or settings_at_start.primary_handle != favorite_at_start
             ),
         ):
+            if (self.runtime.macro_lock.should_stop()
+                    or self.runtime.settings is not settings_at_start
+                    or sender.handle != sender_hwnd
+                    or settings_at_start.primary_handle != favorite_at_start):
+                self.runtime.logger.info(
+                    "Auto groupe interrompu: session ou favori changé pendant activation."
+                )
+                self.runtime._emit_status(
+                    "Auto-groupe interrompu : session ou favori modifié."
+                )
+                return
             self.runtime.logger.info("Auto groupe activation fenetre echec: hwnd=%s", sender_hwnd)
             self.runtime._emit_status("Auto-groupe non envoyé : activation DOFUS échouée.")
             return
