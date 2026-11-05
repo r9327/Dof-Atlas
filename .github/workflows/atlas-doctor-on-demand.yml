@@ -1,0 +1,189 @@
+name: Atlas Doctor / Graphify — On Demand
+
+# Deliberately NOT triggered by a push/PR update. This is developer feedback,
+# including Draft PRs, and never a Phase Certification or merge gate.
+on:
+  issue_comment:
+    types: [created]
+  workflow_dispatch:
+    inputs:
+      pr_number:
+        description: "Existing PR number (Draft accepted)"
+        required: true
+        type: number
+      mode:
+        description: "Doctor targeted tests or Graphify AST map"
+        required: true
+        type: choice
+        options:
+          - doctor
+          - graphify
+      expected_sha:
+        description: "Optional exact PR HEAD SHA; reject if stale"
+        required: false
+        type: string
+
+permissions:
+  contents: read
+  pull-requests: read
+
+jobs:
+  resolve:
+    if: >-
+      github.event_name == 'workflow_dispatch' ||
+      (github.event.issue.pull_request && startsWith(github.event.comment.body, '/atlas '))
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    outputs:
+      pr_number: ${{ steps.request.outputs.pr_number }}
+      mode: ${{ steps.request.outputs.mode }}
+      head_sha: ${{ steps.request.outputs.head_sha }}
+      base_sha: ${{ steps.request.outputs.base_sha }}
+    steps:
+      # The resolver MUST come from the default branch, not from the PR under test.
+      - name: Checkout trusted request resolver
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ github.event.repository.default_branch }}
+          persist-credentials: false
+          lfs: false
+      - name: Set up Python 3.13
+        uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version: "3.13"
+      - name: Resolve authorized PR and immutable commit IDs
+        id: request
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          python -I tools/doctor_pr_on_demand.py \
+            --event-path "$GITHUB_EVENT_PATH" \
+            --report artifacts/doctor_on_demand/request.json \
+            --github-output "$GITHUB_OUTPUT"
+      - name: Store authorized request metadata
+        if: always()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: atlas-on-demand-request-${{ github.run_id }}
+          path: artifacts/doctor_on_demand/request.json
+          if-no-files-found: ignore
+          retention-days: 7
+
+  diagnostic:
+    needs: resolve
+    if: needs.resolve.result == 'success'
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    concurrency:
+      group: atlas-on-demand-${{ needs.resolve.outputs.pr_number }}-${{ needs.resolve.outputs.mode }}
+      cancel-in-progress: true
+    env:
+      PR_NUMBER: ${{ needs.resolve.outputs.pr_number }}
+      MODE: ${{ needs.resolve.outputs.mode }}
+      HEAD_SHA: ${{ needs.resolve.outputs.head_sha }}
+      BASE_SHA: ${{ needs.resolve.outputs.base_sha }}
+    steps:
+      - name: Checkout the exact PR candidate (never an implicit merge commit)
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ env.HEAD_SHA }}
+          fetch-depth: 0
+          persist-credentials: false
+          lfs: false
+      - name: Verify candidate and base commits
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "$HEAD_SHA"
+          test -z "$(git status --porcelain --untracked-files=no)"
+          git cat-file -e "$BASE_SHA^{commit}"
+          mkdir -p artifacts/doctor_on_demand
+          printf '%s\n' "$HEAD_SHA" > artifacts/doctor_on_demand/candidate_sha.txt
+      - name: Set up Python 3.13
+        uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version: "3.13"
+
+      - name: Run canonical Doctor adaptive scope and safe selected tests
+        if: env.MODE == 'doctor'
+        shell: bash
+        run: |
+          set +e
+          python -m tools.doctor_certification \
+            --base-ref "$BASE_SHA" \
+            --expected-sha "$HEAD_SHA" \
+            --run --output artifacts/doctor_on_demand/doctor.json \
+            > artifacts/doctor_on_demand/doctor.stdout.json
+          code=$?
+          printf '%s\n' "$code" > artifacts/doctor_on_demand/exit_code.txt
+          exit "$code"
+
+      - name: Install the canonical pinned Graphify version
+        if: env.MODE == 'graphify'
+        shell: bash
+        run: python -m pip install --disable-pip-version-check "graphifyy==0.9.72"
+
+      - name: Rebuild Graphify via Atlas Doctor
+        if: env.MODE == 'graphify'
+        shell: bash
+        run: |
+          set -euo pipefail
+          python -m tools.atlas_doctor graph --rebuild --json \
+            > artifacts/doctor_on_demand/graph_doctor.json
+          python - <<'PY'
+          import json
+          import os
+          from pathlib import Path
+          root = Path("graphify-out")
+          graph_path = root / "graph.json"
+          graph = json.loads(graph_path.read_text(encoding="utf-8"))
+          assert graph.get("built_at_commit") == os.environ["HEAD_SHA"], "STALE Graphify SHA"
+          assert graph.get("nodes") and graph.get("links"), "Empty Graphify topology"
+          assert (root / "graph.html").is_file(), "Graphify HTML missing"
+          assert (root / "GRAPH_REPORT.md").is_file(), "Graphify report missing"
+          print("Exact-SHA Graphify AST map verified; no runtime certification")
+          PY
+
+      - name: Reject evidence if the PR head moved during execution
+        if: always()
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          now="$(gh api "repos/$GITHUB_REPOSITORY/pulls/$PR_NUMBER" --jq '.head.sha')"
+          if [ "$now" != "$HEAD_SHA" ]; then
+            echo "::error::STALE diagnostic: PR HEAD moved; current=$now analyzed=$HEAD_SHA"
+            exit 1
+          fi
+
+      - name: Show execution boundary
+        if: always()
+        env:
+          CURRENT_JOB_STATUS: ${{ job.status }}
+        shell: bash
+        run: |
+          {
+            echo "## Developer-only Doctor / Graphify"
+            echo "- PR: #$PR_NUMBER"
+            echo "- Requested tool: $MODE"
+            echo "- Candidate SHA: \`$HEAD_SHA\`"
+            echo "- Base SHA: \`$BASE_SHA\`"
+            echo "- Job status: $CURRENT_JOB_STATUS"
+            echo "- Phase certified: **NO**"
+            echo "- FULL / Windows / 2–8 DOFUS accounts: **NOT_RUN**"
+            echo "- Reports: see the artifact attached to this workflow run"
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Archive Doctor/Graphify evidence (including failures)
+        if: always()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: atlas-on-demand-pr-${{ env.PR_NUMBER }}-${{ env.MODE }}-${{ env.HEAD_SHA }}
+          path: |
+            artifacts/doctor_on_demand/
+            graphify-out/graph.json
+            graphify-out/GRAPH_REPORT.md
+            graphify-out/graph.html
+          if-no-files-found: warn
+          retention-days: 7
