@@ -37,7 +37,7 @@ class MirrorInputMacro:
         if expected_profile is not None and profile_at_dispatch is not expected_profile:
             return False
         dispatch_at = perf_counter()
-        return self.runtime._spawn_macro(
+        started = self.runtime._spawn_macro(
             "Miroir clavier",
             lambda: self._run(
                 "key", vk_code, source, handles,
@@ -45,6 +45,10 @@ class MirrorInputMacro:
                 dispatch_at=dispatch_at,
             ),
         )
+        # The native hook must pass through the physical key if a profile
+        # reload happened during worker admission. The queued worker checks
+        # this same generation again before touching Win32.
+        return bool(started and self.runtime.settings is profile_at_dispatch)
 
     def run_wheel(
         self, delta: int, horizontal: bool, x_ratio: float, y_ratio: float,
@@ -61,7 +65,7 @@ class MirrorInputMacro:
         if expected_profile is not None and profile_at_dispatch is not expected_profile:
             return False
         dispatch_at = perf_counter()
-        return self.runtime._spawn_macro(
+        started = self.runtime._spawn_macro(
             "Miroir molette",
             lambda: self._run(
                 "wheel", (delta, horizontal, x_ratio, y_ratio), source, handles,
@@ -69,6 +73,9 @@ class MirrorInputMacro:
                 dispatch_at=dispatch_at,
             ),
         )
+        # Reject a newly obsolete wheel before the hook swallows its native
+        # physical event; do not queue a stale follow-up for a new profile.
+        return bool(started and self.runtime.settings is profile_at_dispatch)
 
     def _still_current(self, source: int, handles: tuple[int, ...]) -> bool:
         """Cheap roster check; native DOFUS identity is validated separately.
