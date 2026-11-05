@@ -122,16 +122,15 @@ class OrganizerLayoutTests(unittest.TestCase):
         from unittest.mock import Mock
         import main as app_main
 
-        for count in (2, 4, 6, 8):
-            for stopped_attr in ("quit_requested", "_background_services_stopped"):
-                with self.subTest(clients=count, shutdown=stopped_attr):
-                    fake = Mock()
-                    fake.quit_requested = False
-                    fake._background_services_stopped = False
-                    setattr(fake, stopped_attr, True)
-                    app_main.AtlasWindow.launch_next_character(fake)
-                    fake._ensure_runtime.assert_not_called()
-                    fake.set_status.assert_not_called()
+        for stopped_attr in ("quit_requested", "_background_services_stopped"):
+            with self.subTest(shutdown=stopped_attr):
+                fake = Mock()
+                fake.quit_requested = False
+                fake._background_services_stopped = False
+                setattr(fake, stopped_attr, True)
+                app_main.AtlasWindow.launch_next_character(fake)
+                fake._ensure_runtime.assert_not_called()
+                fake.set_status.assert_not_called()
 
     def test_next_button_aborts_if_shutdown_begins_during_runtime_init(self):
         from unittest.mock import Mock

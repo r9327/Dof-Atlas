@@ -3081,12 +3081,12 @@ class OrganizerMacroReliabilityTests(unittest.TestCase):
                 runtime.settings.clients = [
                     SimpleNamespace(handle=101 + i) for i in range(count)
                 ]
-                favorite = SimpleNamespace(handle=202)
+                favorite = runtime.settings.clients[-1]
                 runtime.settings.preferred_client.return_value = favorite
 
                 def mutate_during_activation(hwnd, *_args, **kwargs):
-                    self.assertEqual(hwnd, 202)
-                    favorite.handle = 303
+                    self.assertEqual(hwnd, 100 + count)
+                    favorite.handle = 999
                     self.assertTrue(kwargs["should_stop"]())
                     return True
 
@@ -3131,9 +3131,10 @@ class OrganizerMacroReliabilityTests(unittest.TestCase):
             with self.subTest(clients=count):
                 runtime = _runtime()
                 invalids = (True, 101.5, "101", float("inf"), 2**64)
-                valid = SimpleNamespace(index=8, handle=303, display_name="Real")
+                valid = SimpleNamespace(index=count, handle=303, display_name="Real")
                 runtime.settings.clients = [
-                    SimpleNamespace(index=i, handle=bad) for i, bad in enumerate(invalids)
+                    SimpleNamespace(index=i + 1, handle=invalids[i % len(invalids)])
+                    for i in range(count - 1)
                 ] + [valid]
                 runtime.settings.client_by_handle.return_value = None
                 runtime.active_client_handle = 0
