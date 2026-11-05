@@ -207,10 +207,18 @@ jobs:
         shell: pwsh
         run: |
           # Same canonical materialization as atlas-short-full-app.yml.
-          python -m scripts.windows.quest_assets --download
-          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
-          python -m scripts.windows.craft_seed --download
-          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          # Pinned SHA-256 validation remains mandatory. Bounded retry only
+          # for transient upstream 504/transport errors; never use a fallback
+          # unverified dataset or accept a failed last attempt.
+          foreach ($module in @("scripts.windows.quest_assets", "scripts.windows.craft_seed")) {
+            $ok = $false
+            for ($attempt = 1; $attempt -le 3; $attempt++) {
+              python -m $module --download
+              if ($LASTEXITCODE -eq 0) { $ok = $true; break }
+              if ($attempt -lt 3) { Start-Sleep -Seconds (5 * $attempt) }
+            }
+            if (-not $ok) { throw "Pinned asset materialization failed after three attempts: $module" }
+          }
           @'
           from pathlib import Path
           from shutil import copy2
