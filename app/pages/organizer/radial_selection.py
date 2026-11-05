@@ -167,6 +167,12 @@ def confirmed_radial_target(
     identity = str(original.get("character_key") or "").strip()
     name = str(original.get("nom") or "").strip()
     pid = original.get("pid")
+    # A recycled HWND with a corrupt PID must never be released as an
+    # authenticated radial target, even if its title still matches.
+    if pid is not None and _exact_native_id(
+        pid, 2**32 - 1, allow_zero=True,
+    ) is None:
+        return None
     for item in current:
         if not isinstance(item, Mapping):
             continue
@@ -175,7 +181,11 @@ def confirmed_radial_target(
             continue
         if identity and str(item.get("character_key") or "").strip() != identity:
             continue
-        if pid is not None and item.get("pid") != pid:
+        if pid is not None and (
+                item.get("pid") != pid
+                or _exact_native_id(
+                    item.get("pid"), 2**32 - 1, allow_zero=True,
+                ) is None):
             continue
         return handle
     return None

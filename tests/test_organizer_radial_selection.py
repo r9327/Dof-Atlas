@@ -255,5 +255,26 @@ class OrganizerRadialSelectionTests(unittest.TestCase):
 
 
 
+    def test_corrupt_pid_never_confirms_radial_release_even_if_unchanged(self):
+        for pid in (True, False, 42.0, 42.9, "42.0", "+42", "٤٢",
+                    -1, 2**32):
+            with self.subTest(pid=repr(pid)):
+                snapshot = [{"hwnd": 101, "pid": pid, "nom": "Panda"}]
+                self.assertIsNone(confirmed_radial_target(
+                    snapshot, snapshot, 0,
+                ))
+
+    def test_current_pid_corruption_never_matches_trusted_snapshot(self):
+        trusted = [{"hwnd": 101, "pid": 42, "nom": "Panda"}]
+        for corrupted in (True, 42.0, "42.0", -1, 2**32):
+            with self.subTest(pid=repr(corrupted)):
+                changed = [dict(trusted[0], pid=corrupted)]
+                self.assertIsNone(confirmed_radial_target(
+                    trusted, changed, 0,
+                ))
+        self.assertEqual(confirmed_radial_target(trusted, trusted, 0), 101)
+
+
+
 if __name__ == "__main__":
     unittest.main()
