@@ -25,13 +25,20 @@ class DirectionMacro:
                 "Switch deplacement annulé: profil Organizer remplacé avant dispatch.",
             )
             return False
+        dispatch_context = (
+            profile_at_dispatch.primary_handle, profile_at_dispatch.macro_mode,
+        )
         return self.runtime._spawn_macro(
             "Switch deplacement",
-            lambda: self._run(key_name, profile_at_dispatch=profile_at_dispatch),
+            lambda: self._run(
+                key_name, profile_at_dispatch=profile_at_dispatch,
+                dispatch_context=dispatch_context,
+            ),
         )
 
     def _run(
         self, key_name: str, *, profile_at_dispatch: object | None = None,
+        dispatch_context: tuple[object, object] | None = None,
     ) -> None:
         settings_at_start = self.runtime.settings
         if (profile_at_dispatch is not None
@@ -40,11 +47,28 @@ class DirectionMacro:
                 "Switch deplacement annulé: profil Organizer remplacé avant worker.",
             )
             return
+        if (dispatch_context is not None and
+                (settings_at_start.primary_handle, settings_at_start.macro_mode)
+                != dispatch_context):
+            self.runtime.logger.info(
+                "Switch deplacement annulé: favori ou mode modifié avant worker."
+            )
+            return
+        favorite_at_start = settings_at_start.primary_handle
+        mode_at_start = settings_at_start.macro_mode
+
+        def dispatch_context_changed() -> bool:
+            return (
+                settings_at_start.primary_handle != favorite_at_start
+                or settings_at_start.macro_mode != mode_at_start
+            )
+
         source = foreground_window()
         if (not source or not is_unity_window(source)
                 or not is_dofus_unity_process(source)
                 or settings_at_start.client_by_handle(source) is None
-                or self.runtime.settings is not settings_at_start):
+                or self.runtime.settings is not settings_at_start
+                or dispatch_context_changed()):
             # No synthetic DOWN was issued by this worker. Sending four
             # orphaned KEYUP events to the currently focused foreign app
             # would leak keyboard input outside DOFUS. Emergency Stop still
@@ -52,7 +76,6 @@ class DirectionMacro:
             self.runtime.logger.info("Switch deplacement ignore: fenetre active non Unity.")
             return
         timings = settings_at_start.timings
-        favorite_at_start = settings_at_start.primary_handle
         focus_lost = False
         last_activated_hwnd: int | None = None
         targets = []
@@ -71,7 +94,7 @@ class DirectionMacro:
                 if (self.runtime.macro_lock.should_stop()
                         or self.runtime.settings is not settings_at_start):
                     return
-                if settings_at_start.primary_handle != favorite_at_start:
+                if dispatch_context_changed():
                     focus_lost = True
                     self.runtime.logger.warning(
                         "Switch deplacement interrompu: favori modifié entre clients."
@@ -108,7 +131,7 @@ class DirectionMacro:
                         self.runtime.macro_lock.should_stop()
                         or self.runtime.settings is not settings_at_start
                         or not frozen_roster_intact()
-                        or settings_at_start.primary_handle != favorite_at_start
+                        or dispatch_context_changed()
                     ),
                 ):
                     # Validate native identity BEFORE the last focus check:
@@ -117,7 +140,7 @@ class DirectionMacro:
                             or not is_dofus_unity_process(target_hwnd)
                             or foreground_window() != int(target_hwnd)
                             or not frozen_roster_intact()
-                            or settings_at_start.primary_handle != favorite_at_start):
+                            or dispatch_context_changed()):
                         focus_lost = True
                         self.runtime.logger.warning(
                             "Switch deplacement interrompu: focus, identité ou favori perdus avant frappe hwnd=%s",
@@ -153,7 +176,7 @@ class DirectionMacro:
                             or self.runtime.settings is not settings_at_start):
                         return
                     if (not frozen_roster_intact()
-                            or settings_at_start.primary_handle != favorite_at_start):
+                            or dispatch_context_changed()):
                         focus_lost = True
                         self.runtime.logger.warning(
                             "Switch deplacement interrompu: session ou favori muté pendant activation hwnd=%s",
@@ -168,6 +191,7 @@ class DirectionMacro:
             restore_skipped = (
                 self.runtime.settings is not settings_at_start
                 or not frozen_roster_intact()
+                or settings_at_start.macro_mode != mode_at_start
             )
             if restore_skipped:
                 self.runtime.logger.info("Switch deplacement: retour ignoré, profil remplacé.")
@@ -216,7 +240,8 @@ class DirectionMacro:
             state = (
                 "interrompu" if (stopped or focus_lost
                                   or self.runtime.settings is not settings_at_start
-                                  or not frozen_roster_intact())
+                                  or not frozen_roster_intact()
+                                  or settings_at_start.macro_mode != mode_at_start)
                 else "ignore" if not targets
                 else "termine" if sent == len(targets)
                 else "partiel"
