@@ -63,7 +63,7 @@ reste une orchestration indépendante dédiée à la certification élargie.
    est ancienne et ne contient pas ce nouveau fichier.
 3. Le job de développement n'a **aucun jeton GitHub**. Le job `freshness`
    vérifie séparément que le HEAD est encore actuel.
-4. Une fois la demande exécutée, le job isolé `freshness` ajoute un **accusé de réception sur la PR** (URL du run, `run_id`, mode, SHA, états Ubuntu/Windows et fraîcheur). Cet accusé n'est **jamais un PASS**, même si les jobs sont verts. Il permet à ChatGPT/GitHub de retrouver le run par les commentaires de PR, puis de lire ses artefacts avec le `run_id`. Si l'accusé manque, ne pas deviner son identifiant.
+4. Une fois la demande exécutée, le job isolé `freshness` **tente** de publier un accusé de réception sur la PR (URL du run, `run_id`, mode, SHA, états Ubuntu/Windows et fraîcheur). Certaines installations GitHub refusent ce commentaire avec `HTTP 403` malgré `issues: write`. La publication est donc **facultative** : son refus ne doit pas invalider un diagnostic exact-SHA qui a réussi, ni masquer un `freshness` échoué. Le reçu et l'état `PUBLISHED` ou `UNAVAILABLE` sont toujours inscrits dans le **résumé GitHub Actions du run**. Pour retrouver un reçu non publié, rechercher l'exécution `Atlas Tools / Bench — On Demand` dans Actions ou via la liste REST des runs, puis ouvrir le résumé et vérifier la PR, le SHA, le mode et les artefacts. Ne jamais inventer un identifiant de run ou déclarer le reçu publié sans preuve.
 5. Récupérer les artefacts du run
    `atlas-tools-pr-<PR>-<mode>-<SHA>` (rétention 7 jours) :
    `artifacts/atlas_tools_on_demand/report.json`, `summary.json`, sorties
