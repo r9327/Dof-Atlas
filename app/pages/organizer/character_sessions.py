@@ -187,9 +187,33 @@ class CharacterSessionsMixin:
         self.profiles = self.load_profiles()
         refreshed = False
         if os.name == "nt":
-            sessions = self._scan_unity_sessions()
+            try:
+                sessions = self._scan_unity_sessions()
+            except Exception:
+                logging.getLogger(__name__).exception(
+                    "Organizer scan échoué : sessions précédentes conservées."
+                )
+                return False
+            # A broken native scanner is not proof that all eight DOFUS
+            # windows closed. Preserve the last published roster/index.
+            # An actual empty list remains a valid all-windows-closed scan.
+            if not isinstance(sessions, (list, tuple)):
+                logging.getLogger(__name__).warning(
+                    "Organizer scan invalide (%s) : sessions précédentes conservées.",
+                    type(sessions).__name__,
+                )
+                return False
+            valid = [
+                session for session in sessions
+                if isinstance(session, dict) and session_is_detected(session)
+            ]
+            if sessions and not valid:
+                logging.getLogger(__name__).warning(
+                    "Organizer scan uniquement corrompu : sessions précédentes conservées."
+                )
+                return False
             self.sessions = self.build_session_slots(sessions)
-            refreshed = bool(sessions)
+            refreshed = bool(valid)
         self.export_client_index()
         if render:
             self.request_sessions_render()

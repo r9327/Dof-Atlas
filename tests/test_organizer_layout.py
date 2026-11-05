@@ -144,6 +144,103 @@ class OrganizerLayoutTests(unittest.TestCase):
                     tuple(range(101, 101 + count)),
                 )
 
+    def test_organizer_invalid_scanner_result_keeps_prior_sessions_2_4_6_8(self):
+        from unittest.mock import Mock
+        from app.pages.organizer.character_sessions import CharacterSessionsMixin
+
+        for count in (2, 4, 6, 8):
+            for corrupt in (None, False, "broken", 42, {"nom": "wrong"},
+                            [None, "broken", {"nom": "Broken", "hwnd": 101.5}]):
+                with self.subTest(count=count, corrupt=repr(corrupt)):
+                    page = Mock()
+                    previous = [
+                        {"nom": f"Perso{i}", "hwnd": 101 + i}
+                        for i in range(count)
+                    ]
+                    page.sessions = previous
+                    page.load_profiles.return_value = {}
+                    page._scan_unity_sessions.return_value = corrupt
+                    with patch.object(organizer_sessions.os, "name", "nt"):
+                        refreshed = CharacterSessionsMixin.refresh_sessions_and_export(page)
+                    self.assertFalse(refreshed)
+                    self.assertIs(page.sessions, previous)
+                    page.build_session_slots.assert_not_called()
+                    page.export_client_index.assert_not_called()
+                    page.sync_event_watcher_sessions.assert_not_called()
+                    page.notify_sessions_changed.assert_not_called()
+
+    def test_organizer_scanner_exception_preserves_prior_sessions_and_index(self):
+        from unittest.mock import Mock
+        from app.pages.organizer.character_sessions import CharacterSessionsMixin
+
+        page = Mock()
+        previous = [{"nom": "Perso1", "hwnd": 101}]
+        page.sessions = previous
+        page.load_profiles.return_value = {}
+        page._scan_unity_sessions.side_effect = RuntimeError("scanner failed")
+        with patch.object(organizer_sessions.os, "name", "nt"):
+            self.assertFalse(CharacterSessionsMixin.refresh_sessions_and_export(page))
+        self.assertIs(page.sessions, previous)
+        page.export_client_index.assert_not_called()
+        page.notify_sessions_changed.assert_not_called()
+
+    def test_organizer_empty_successful_scan_clears_closed_windows(self):
+        from unittest.mock import Mock
+        from app.pages.organizer.character_sessions import CharacterSessionsMixin
+        from app.pages.organizer.common import session_is_detected
+
+        for count in (2, 4, 6, 8):
+            with self.subTest(clients=count):
+                page = Mock()
+                page.sessions = [
+                    {"nom": f"Perso{i}", "hwnd": 101 + i}
+                    for i in range(count)
+                ]
+                page.load_profiles.return_value = {}
+                page._scan_unity_sessions.return_value = []
+                page.character_order_service.sort_rows.side_effect = (
+                    lambda rows, **_kwargs: rows
+                )
+                page.build_session_slots.side_effect = (
+                    lambda rows: CharacterSessionsMixin.build_session_slots(page, rows)
+                )
+                with patch.object(organizer_sessions.os, "name", "nt"):
+                    self.assertFalse(CharacterSessionsMixin.refresh_sessions_and_export(page))
+                self.assertEqual(len(page.sessions), 8)
+                self.assertFalse(any(session_is_detected(row) for row in page.sessions))
+                page.export_client_index.assert_called_once()
+                page.notify_sessions_changed.assert_called_once()
+
+    def test_organizer_partial_corrupt_scan_keeps_all_valid_clients(self):
+        from unittest.mock import Mock
+        from app.pages.organizer.character_sessions import CharacterSessionsMixin
+        from app.pages.organizer.common import session_hwnd, session_is_detected
+
+        for count in (2, 4, 6, 8):
+            with self.subTest(clients=count):
+                page = Mock()
+                page.load_profiles.return_value = {}
+                page._scan_unity_sessions.return_value = [
+                    None, False, {"nom": "broken", "hwnd": 101.5},
+                    *({"nom": f"Perso{i}", "hwnd": 101 + i}
+                      for i in range(count)),
+                ]
+                page.character_order_service.sort_rows.side_effect = (
+                    lambda rows, **_kwargs: rows
+                )
+                page.build_session_slots.side_effect = (
+                    lambda rows: CharacterSessionsMixin.build_session_slots(page, rows)
+                )
+                with patch.object(organizer_sessions.os, "name", "nt"):
+                    self.assertTrue(CharacterSessionsMixin.refresh_sessions_and_export(page))
+                valid = [row for row in page.sessions if session_is_detected(row)]
+                self.assertEqual(
+                    tuple(session_hwnd(row) for row in valid),
+                    tuple(range(101, 101 + count)),
+                )
+                page.export_client_index.assert_called_once()
+                page.notify_sessions_changed.assert_called_once()
+
     def test_organizer_order_and_favorite_never_coerce_foreign_window_ids(self):
         from unittest.mock import Mock
         from app.pages.organizer.character_sessions import CharacterSessionsMixin
