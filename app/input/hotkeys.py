@@ -294,7 +294,11 @@ def build_hotkey_actions(settings: AtlasSettings) -> list[HotkeyAction]:
     # Stop urgence is optional. An empty optional binding is absence of an action,
     # not a registry error and must never poison the runtime readiness report.
     if settings.stop_hotkey:
-        actions.append(
+        # Persisted profiles can still contain duplicate bindings despite UI
+        # validation. Register Stop first so the conflict owner always stays
+        # the emergency action; no classic macro may shadow it.
+        actions.insert(
+            0,
             HotkeyAction(
                 action_id="stop_script",
                 label="Stop urgence",
