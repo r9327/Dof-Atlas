@@ -1204,3 +1204,34 @@ par des mocks. Le P0 **MIRR-007** (clics consommés lors du blocage physique du
 Miroir molette / Switch clic) **n'est pas résolu** : le changement structurel
 du hook partagé attend Graphify au HEAD exact et une recette réelle. PR Draft,
 ne pas fusionner ; conflit de fusion GitHub avec main à traiter avant revue.
+
+## 05/11/2026 — dispatch raccourcis et Switch clic figés à leur génération
+
+- Le callback des raccourcis **slot**, **personnage suivant** et **déplacement**
+  utilise désormais un seul instantané de profil Organizer. Il propage
+  l'identité du profil jusqu'au point d'acceptation de la macro ; si une
+  mise à jour survient pendant la lecture du HWND, du bouton de commande
+  ou le passage au worker, la commande périmée est refusée.
+- Le **Switch clic classique** garde la même génération entre l'action du
+  registre, le hit-test souris, les vérifications du focus et le démarrage
+  d'un worker ; un changement de profil préserve le DOWN physique plutôt
+  que de le transformer en ancien double-clic.
+- Un clic arrivé pendant la bascule **Macro/Miroir** ne peut plus démarrer
+  la diffusion Miroir si le mode actif est redevenu Macro. Pour les gestes
+  clavier/molette reçus sous occupation Miroir, un rechargement du profil
+  pendant le contrôle natif d'un secondaire conserve l'entrée physique
+  au lieu de l'avaler sur la base d'un ancien roster.
+- Les activations différées de personnage figent maintenant le **slot, HWND
+  et libellé** : modifier en place un objet de session dans le roster ne
+  peut plus altérer la cible d'un worker déjà accepté.
+- Nouveaux scénarios de non-régression **simulés** pour 2, 4, 6 et 8
+  comptes : mutations de session, remplacement pendant raccourci, capture
+  et contrôles natifs, bascule du mode et démarrage différé.
+
+**Preuves et limites :** code et tests présents sur la branche, aucun test
+Python/PySide6 réellement exécuté ici, ni Doctor agent plan/check/validate,
+ni Graphify exact-SHA, ni essai Windows/Unity. Le P0 **MIRR-007** reste
+ouvert : ces refus explicites de gestes périmés ne corrigent pas la perte
+de gestes pendant un blocage souris actif. Ne pas déclarer zéro perte ni
+équivalence des latences 2 à 8 comptes. Maintenir la PR en Draft, résoudre
+les conflits GitHub avec main avant toute certification et fusion.

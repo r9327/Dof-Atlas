@@ -2759,6 +2759,7 @@ class OrganizerMacroReliabilityTests(unittest.TestCase):
                     macro = SwitchCharacterMacro(runtime)
                     self.assertTrue(macro.activate_by_index(count))
                     worker = runtime._spawn_macro.call_args.args[1]
+                    runtime.active_client_handle = 101
                     selected = runtime.settings.clients[-1]
                     if changed == "handle":
                         selected.handle = 999
@@ -2773,7 +2774,7 @@ class OrganizerMacroReliabilityTests(unittest.TestCase):
                     unity.assert_not_called()
                     identity.assert_not_called()
                     activate.assert_not_called()
-                    runtime.active_client_handle = 101
+                    self.assertEqual(runtime.active_client_handle, 101)
                     runtime.logger.info.assert_any_call(
                         "Activation client annulée: slot modifié index=%s", count,
                     )
