@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from collections.abc import Callable
 from dataclasses import dataclass
 from time import perf_counter
 from typing import TYPE_CHECKING
@@ -179,6 +180,7 @@ class SwitchClickMacro:
                 mirror_target_handles=mirror_target_handles,
                 physical_source_delivered=physical_source_delivered,
                 settings_at_dispatch=settings_at_dispatch,
+                dispatch_guard=dispatch_is_current,
             )
 
         started = self.runtime._spawn_macro(action_label, worker)
@@ -199,6 +201,7 @@ class SwitchClickMacro:
         mirror_target_handles: tuple[int, ...] | None = None,
         physical_source_delivered: bool = False,
         settings_at_dispatch: object | None = None,
+        dispatch_guard: Callable[[], bool] | None = None,
     ) -> None:
         settings_at_start = (
             settings_at_dispatch if settings_at_dispatch is not None
@@ -231,6 +234,7 @@ class SwitchClickMacro:
             # accepted before Win32 yields, never their reassigned values.
             return (
                 self.runtime.settings is settings_at_start
+                and (dispatch_guard is None or dispatch_guard())
                 and settings_at_start.macro_mode == initial_mode
                 and type(settings_at_start.primary_handle) is type(initial_primary)
                 and settings_at_start.primary_handle == initial_primary
@@ -248,9 +252,10 @@ class SwitchClickMacro:
             )
 
         try:
-            if self.runtime.settings is not settings_at_start:
+            if (self.runtime.settings is not settings_at_start
+                    or (dispatch_guard is not None and not dispatch_guard())):
                 self.runtime.logger.info(
-                    "%s annulé: profil Organizer remplacé avant worker.", action_label,
+                    "%s annulé: profil ou roster modifié avant worker.", action_label,
                 )
                 return
             try:
@@ -265,9 +270,10 @@ class SwitchClickMacro:
             # changing focus, moving the pointer or emitting mouse events.
             # Keep actual physical clicks native through this preflight.
             context = self._validated_context(context, action_label)
-            if self.runtime.settings is not settings_at_start:
+            if (self.runtime.settings is not settings_at_start
+                    or (dispatch_guard is not None and not dispatch_guard())):
                 self.runtime.logger.info(
-                    "%s annulé: profil Organizer remplacé durant preflight.", action_label,
+                    "%s annulé: profil ou roster modifié durant preflight.", action_label,
                 )
                 return
             # Classic SwitchClick may recover another favorite; Mirror must

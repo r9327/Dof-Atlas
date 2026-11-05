@@ -4877,6 +4877,67 @@ class OrganizerMirrorIntegrationTests(unittest.TestCase):
                 focus.assert_not_called()
                 send.assert_not_called()
 
+    def test_switch_click_capture_to_worker_native_probe_rejects_inplace_edits(self):
+        from app.macros.switch_click import SwitchClickMacro, SwitchClickContext
+
+        for count in (2, 4, 6, 8):
+            for action in ("Miroir", "Switch double clic"):
+                for edited in ("mode", "favorite", "new_client", "reassigned_hwnd"):
+                    with self.subTest(clients=count, action=action, change=edited):
+                        handles = tuple(range(101, 101 + count))
+                        runtime = self._runtime(primary=101, handles=handles)
+                        runtime.settings.macro_mode = (
+                            "mirror" if action == "Miroir" else "macro"
+                        )
+                        runtime._spawn_macro.return_value = True
+                        context = SwitchClickContext(
+                            101, 20, 30, 0.5, 0.5, "cursor",
+                        )
+                        macro = SwitchClickMacro(runtime)
+                        with patch.object(macro, "_capture_trigger_context",
+                                          return_value=context):
+                            self.assertTrue(macro.run_async(
+                                "Left", 20, 30, 1 if action == "Miroir" else 2,
+                                action,
+                                exact_source_handle=101 if action == "Miroir" else None,
+                                mirror_target_handles=handles if action == "Miroir" else None,
+                            ))
+                        worker = runtime._spawn_macro.call_args.args[1]
+
+                        def mutate_and_return(*_args):
+                            if edited == "mode":
+                                runtime.settings.macro_mode = (
+                                    "macro" if action == "Miroir" else "mirror"
+                                )
+                            elif edited == "favorite":
+                                runtime.settings.primary_handle = handles[-1]
+                            elif edited == "new_client":
+                                runtime.settings.clients = (
+                                    *runtime.settings.clients,
+                                    SimpleNamespace(handle=999),
+                                )
+                            else:
+                                runtime.settings.clients[-1].handle = 999
+                            return context
+
+                        with (
+                            patch.object(macro, "_validated_context",
+                                         side_effect=mutate_and_return),
+                            patch("app.macros.switch_click.current_cursor_pos",
+                                  return_value=(12, 14)),
+                            patch("app.macros.switch_click.activate_window") as focus,
+                            patch("app.macros.switch_click.send_client_click") as send,
+                        ):
+                            worker()
+                        focus.assert_not_called()
+                        send.assert_not_called()
+                        runtime.input_state.begin_mouse_block.assert_not_called()
+                        runtime.switch_character.restore_preferred_client.assert_not_called()
+                        runtime.logger.info.assert_any_call(
+                            "%s annulé: profil ou roster modifié durant preflight.",
+                            action,
+                        )
+
     def test_switch_click_admission_refuses_favorite_change_during_spawn(self):
         from app.macros.switch_click import SwitchClickMacro, SwitchClickContext
 
