@@ -5821,6 +5821,39 @@ class OrganizerMirrorIntegrationTests(unittest.TestCase):
                         capture.assert_not_called()
                         runtime._spawn_macro.assert_not_called()
 
+    def test_mirror_busy_completed_during_native_probe_keeps_click_physical(self):
+        from app.core.runtime_state import AtlasRuntime
+
+        for count in (2, 4, 6, 8):
+            slots = tuple(range(101, 101 + count))
+            for source in (slots[0], slots[-1]):
+                with self.subTest(count=count, source=source):
+                    runtime = self._runtime(primary=source, handles=slots)
+                    runtime.macro_lock.active_label = "Miroir"
+                    runtime.input_state.is_mouse_blocked.return_value = True
+
+                    def finish_during_probe(_hwnd):
+                        runtime.macro_lock.active_label = ""
+                        runtime.input_state.is_mouse_blocked.return_value = False
+                        return True
+
+                    with (
+                        patch("app.windows.unity_windows.foreground_window",
+                              return_value=source),
+                        patch("app.windows.unity_windows.find_known_client_from_point",
+                              return_value=source),
+                        patch("app.windows.unity_windows.is_unity_window",
+                              return_value=True),
+                        patch("app.macros.mirror_plan.is_dofus_unity_process",
+                              side_effect=finish_during_probe),
+                    ):
+                        self.assertFalse(AtlasRuntime._handle_mirror_click(
+                            runtime, "Left", 20, 30,
+                        ))
+                    runtime.switch_click.run_async.assert_not_called()
+                    runtime._emit_status.assert_not_called()
+
+
 
 if __name__ == "__main__":
     unittest.main()

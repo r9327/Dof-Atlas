@@ -917,8 +917,14 @@ class AtlasRuntime:
             *(hwnd for hwnd in destinations if hwnd != source_hwnd),
         )
         if busy:
-            # Direct calls remain fail-safe while a worker owns the pointer.
-            # MouseHook suppresses these physical DOWNs before this callback.
+            # The native Win32 roster probe above can yield while a worker
+            # completes. Recheck the actual pointer lease: an old busy
+            # snapshot must never swallow a NEW physical click after the
+            # worker released its block. The normal hook already handles
+            # clicks arriving during a real active block.
+            if (not self.input_state.is_mouse_blocked()
+                    or not self.macro_lock.active_label):
+                return False
             AtlasRuntime._report_mirror_busy_input(self, "clic")
             return True
         if not roster_still_current():
