@@ -57,6 +57,10 @@ class SecurityHardeningGuardrailsTests(unittest.TestCase):
                     self.assertIn("needs.resolve.result == 'success'", freshness)
                     self.assertIn('gh api "repos/$GITHUB_REPOSITORY/issues/$PR_NUMBER/comments"', freshness)
                     self.assertIn("This receipt is NOT a PASS or certification", freshness)
+                    self.assertIn("delivery=COMMENT_UNAVAILABLE", freshness)
+                    self.assertIn("atlas-tools-receipt-${{ github.run_id }}", freshness)
+                    self.assertIn("if gh api", freshness)
+                    self.assertNotIn("continue-on-error: true", freshness)
                     self.assertNotIn("uses: actions/checkout@", freshness)
                 else:
                     self.assertEqual(writes, [], "Unexpected GitHub write permission")
