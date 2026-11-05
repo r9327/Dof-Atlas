@@ -285,6 +285,7 @@ class ZaapMacro:
             if (not self.runtime.macro_lock.should_stop() and not focus_lost
                     and not restore_skipped
                     and self.runtime.settings is settings_at_start
+                    and not dispatch_context_changed()
                     and last_activated_handle is not None):
                 try:
                     self.runtime.switch_character.restore_preferred_client("Auto zaap")
