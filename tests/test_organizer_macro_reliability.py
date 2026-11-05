@@ -1955,6 +1955,7 @@ class OrganizerMacroReliabilityTests(unittest.TestCase):
         )
         runtime.switch_click.run_async.assert_called_once_with(
             "Left", 150, 160, 2, "Switch double clic",
+            expected_profile=runtime.settings,
         )
         # Never start a separate native-source UP replay for double-click.
         self.assertFalse(

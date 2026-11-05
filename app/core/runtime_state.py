@@ -904,9 +904,15 @@ class AtlasRuntime:
                 button,
             )
             return False
-        if self.settings.macro_mode == "mirror":
+        settings = self.settings
+        if settings.macro_mode == "mirror":
             return self._handle_mirror_click(button, screen_x, screen_y)
         action = self.registry.switch_action_for_pressed_keys()
+        if self.settings is not settings:
+            # Register lookups can overlap a reload. Never use an old hotkey
+            # to consume the first physical DOWN of a replacement profile.
+            self.logger.debug("Clic switch abandonné: profil Organizer modifié pendant raccourci.")
+            return False
         if action is None:
             self.logger.debug(
                 "Clic sans macro: aucun raccourci switch physiquement maintenu button=%s x=%s y=%s",
@@ -931,11 +937,12 @@ class AtlasRuntime:
 
             foreground = foreground_window()
             if (
-                foreground not in (c.handle for c in self.settings.clients)
+                foreground not in (c.handle for c in settings.clients)
                 or find_known_client_from_point(
                     screen_x, screen_y, (foreground,),
                 ) != foreground
                 or not is_dofus_unity_process(foreground)
+                or self.settings is not settings
             ):
                 return False
             self.logger.debug(
@@ -956,7 +963,7 @@ class AtlasRuntime:
         # foreground source. Keep that pair intact for a simple click and
         # replay only the other clients after physical release.
         if click_count == 1 and str(button).casefold() in {"left", "right"}:
-            profile_at_press = self.settings
+            profile_at_press = settings
             from app.windows.unity_windows import (
                 find_known_client_from_point, foreground_window,
             )
@@ -964,8 +971,10 @@ class AtlasRuntime:
 
             source = find_known_client_from_point(
                 screen_x, screen_y,
-                (client.handle for client in self.settings.clients),
+                (client.handle for client in settings.clients),
             )
+            if (self.settings is not settings):
+                return False
             if (source and foreground_window() == source
                     and is_dofus_unity_process(int(source))):
                 context = self.switch_click._capture_trigger_context(
@@ -990,6 +999,7 @@ class AtlasRuntime:
                 screen_y,
                 click_count,
                 action_label,
+                expected_profile=settings,
             )
         except Exception:
             self.logger.exception(

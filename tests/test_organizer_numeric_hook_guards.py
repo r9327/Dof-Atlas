@@ -235,6 +235,7 @@ class OrganizerNumericHookGuardsTests(unittest.TestCase):
                     )
                 runtime.switch_click.run_async.assert_called_once_with(
                     "Left", 10, 20, 1, "Switch clique",
+                    expected_profile=runtime.settings,
                 )
                 runtime.logger.debug.assert_any_call(
                     "Payload switch invalide: action=%s payload=%s",
