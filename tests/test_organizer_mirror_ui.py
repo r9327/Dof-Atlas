@@ -5570,7 +5570,7 @@ class OrganizerMirrorIntegrationTests(unittest.TestCase):
 
 
     def test_mirror_sender_rejects_invalid_hwnd_aliases_before_capture(self):
-        from app.macros.switch_click import SwitchClickMacro, SwitchClickContext
+        from app.macros.switch_click import SwitchClickMacro
 
         for count in (2, 4, 6, 8):
             handles = tuple(range(101, 101 + count))
@@ -5683,6 +5683,104 @@ class OrganizerMirrorIntegrationTests(unittest.TestCase):
                                 runtime, "Left", 24, 32,
                             ))
                         runtime.switch_click.run_async.assert_not_called()
+
+
+    def test_favorite_last_mirror_click_worker_delivers_in_dispatch_order(self):
+        from app.core.runtime_state import AtlasRuntime
+        from app.input.input_state import InputState
+        from app.macros.switch_click import SwitchClickMacro, SwitchClickContext
+
+        for count in (2, 4, 6, 8):
+            with self.subTest(clients=count):
+                slots = tuple(range(101, 101 + count))
+                source = slots[-1]
+                expected = (source, *slots[:-1])
+                runtime = self._runtime(primary=source, handles=slots)
+                runtime.settings.clients = tuple(
+                    SimpleNamespace(handle=hwnd, display_name=str(hwnd))
+                    for hwnd in slots
+                )
+                runtime.settings.timings = SimpleNamespace(
+                    switch_background_pre_click_ms=0,
+                    activate_attempts=1, activate_retry_ms=0,
+                    switch_click_down_ms=35, input_double_gap_ms=5,
+                    switch_background_post_up_ms=0, switch_client_settle_ms=0,
+                )
+                runtime.input_state = InputState()
+                runtime.macro_lock.active_label = ""
+                runtime.macro_lock.should_stop.return_value = False
+                runtime.macro_lock.wait.return_value = False
+                runtime.switch_character.ordered_clients_from_source.return_value = [
+                    SimpleNamespace(handle=hwnd, display_name=str(hwnd))
+                    for hwnd in expected
+                ]
+                queued = []
+
+                def spawn(_label, worker):
+                    queued.append(worker)
+                    return True
+
+                runtime._spawn_macro.side_effect = spawn
+                sender = SwitchClickMacro(runtime)
+                runtime.switch_click = sender
+                context = SwitchClickContext(source, 20, 25, 0.5, 0.5, "cursor")
+                active = [source]
+                dispatched = []
+
+                def activate(hwnd, *_args, **_kwargs):
+                    active[0] = hwnd
+                    return True
+
+                def click(hwnd, *_args, **_kwargs):
+                    self.assertTrue(runtime.input_state.is_mouse_blocked())
+                    dispatched.append(hwnd)
+                    return True
+
+                with (
+                    patch.object(sender, "_capture_trigger_context",
+                                 return_value=context),
+                    patch.object(sender, "_validated_context",
+                                 return_value=context),
+                    patch.object(sender, "_target_point",
+                                 return_value=(20, 25)),
+                    patch("app.windows.unity_windows.is_unity_window",
+                          return_value=True),
+                    patch("app.windows.unity_windows.find_known_client_from_point",
+                          return_value=source),
+                    patch("app.windows.unity_windows.foreground_window",
+                          return_value=source),
+                    patch("app.macros.mirror_plan.is_dofus_unity_process",
+                          return_value=True),
+                    patch("app.macros.switch_click.current_cursor_pos",
+                          return_value=(12, 14)),
+                    patch("app.macros.switch_click.is_unity_window",
+                          return_value=True),
+                    patch("app.macros.switch_click.is_dofus_unity_process",
+                          return_value=True),
+                    patch("app.macros.switch_click.activate_window",
+                          side_effect=activate),
+                    patch("app.macros.switch_click.foreground_window",
+                          side_effect=lambda: active[0]),
+                    patch("app.macros.switch_click.send_client_click",
+                          side_effect=click),
+                    patch("app.macros.switch_click.set_cursor_pos"),
+                ):
+                    self.assertTrue(AtlasRuntime._handle_mirror_click(
+                        runtime, "Left", 20, 25,
+                    ))
+                    self.assertEqual(len(queued), 1)
+                    self.assertFalse(runtime.input_state.is_mouse_blocked())
+                    queued[0]()
+
+                self.assertEqual(dispatched, list(expected))
+                self.assertFalse(runtime.input_state.is_mouse_blocked())
+                runtime.switch_character.restore_preferred_client.assert_called_once_with(
+                    "Miroir",
+                )
+                runtime._emit_status.assert_called_once_with(
+                    f"Miroir : {count}/{count} fenêtres."
+                )
+
 
 
 if __name__ == "__main__":
