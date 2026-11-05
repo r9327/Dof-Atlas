@@ -68,6 +68,57 @@ class ModularDomainRoutingTests(unittest.TestCase):
         self.assertFalse(owners_for(generic_doc))
         self.assertNotIn("organizer", self.route([generic_doc])["domains"])
 
+    def test_all_reviewed_organizer_p0_tests_get_explicit_ownership(self):
+        # These tests are real PR #325 files, not future hypothetical paths.
+        reviewed = (
+            "tests/test_character_hotkey_mapping.py",
+            "tests/test_organizer_focus_preflight.py",
+            "tests/test_organizer_focus_topmost.py",
+            "tests/test_organizer_hook_stop_race.py",
+            "tests/test_organizer_identity_overflow.py",
+            "tests/test_organizer_macro_generation.py",
+            "tests/test_organizer_mirror_focus_admission.py",
+            "tests/test_organizer_next_character.py",
+            "tests/test_organizer_numeric_hook_guards.py",
+            "tests/test_organizer_persisted_hwnd.py",
+            "tests/test_organizer_pointer_lease_epoch.py",
+            "tests/test_organizer_speed_lease.py",
+            "tests/test_organizer_speed_presets.py",
+            "tests/test_organizer_stop_hotkey_priority.py",
+            "tests/test_organizer_zaap_popup.py",
+        )
+        for path in reviewed:
+            with self.subTest(path=path):
+                self.assertEqual(
+                    owners_for(path), frozenset({"organizer", "ui", "identity"})
+                )
+                routed = self.route([path])
+                self.assertEqual(routed["status"], "READY_TO_EXECUTE")
+                self.assertEqual(routed["unknown_paths"], [])
+                self.assertEqual(
+                    routed["domains"], ["organizer", "ui", "identity"],
+                )
+        lazy = "tests/test_managed_hooks_lazy.py"
+        self.assertEqual(
+            owners_for(lazy),
+            frozenset({"organizer", "startup", "ui", "identity"}),
+        )
+        self.assertEqual(
+            self.route(list(reviewed) + [lazy])["status"],
+            "READY_TO_EXECUTE",
+        )
+        # Keep the intent of the strict closed-world owner registry intact.
+        for unreviewed in (
+            "tests/test_organizer_new_backend.py",
+            "tests/test_managed_hooks_unreviewed.py",
+            "app/input/new_win32_injector.py",
+        ):
+            with self.subTest(unreviewed=unreviewed):
+                self.assertFalse(owners_for(unreviewed))
+                self.assertEqual(
+                    self.route([unreviewed])["status"], "BLOCKED",
+                )
+
     def test_new_organizer_ai_scope_manifests_have_exact_ci_owner(self):
         manifests = (
             ".ai/scopes/organizer.yaml",

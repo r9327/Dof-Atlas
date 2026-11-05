@@ -139,6 +139,23 @@ ORGANIZER_TEST_PATHS = frozenset({
     "tests/test_runtime_hook_lifecycle.py",
     "tests/test_direction_macro.py",
     "tests/test_zaap_shortcut_import_boundary.py",
+    # Explicit P0 tests reviewed with Organizer #325. Do not broaden to a
+    # tests/test_organizer* wildcard: unknown backends must remain BLOCKED.
+    "tests/test_character_hotkey_mapping.py",
+    "tests/test_organizer_focus_preflight.py",
+    "tests/test_organizer_focus_topmost.py",
+    "tests/test_organizer_hook_stop_race.py",
+    "tests/test_organizer_identity_overflow.py",
+    "tests/test_organizer_macro_generation.py",
+    "tests/test_organizer_mirror_focus_admission.py",
+    "tests/test_organizer_next_character.py",
+    "tests/test_organizer_numeric_hook_guards.py",
+    "tests/test_organizer_persisted_hwnd.py",
+    "tests/test_organizer_pointer_lease_epoch.py",
+    "tests/test_organizer_speed_lease.py",
+    "tests/test_organizer_speed_presets.py",
+    "tests/test_organizer_stop_hotkey_priority.py",
+    "tests/test_organizer_zaap_popup.py",
 })
 
 CRAFT_PATHS = frozenset({
@@ -258,6 +275,9 @@ def owners_for(path: str) -> frozenset[str]:
         return frozenset({"organizer", "ui", "identity"})
     if path in ORGANIZER_TEST_PATHS:
         return frozenset({"organizer", "ui", "identity"})
+    if path == "tests/test_managed_hooks_lazy.py":
+        # Shared lazy Win32 keyboard/mouse wrappers are also used at startup.
+        return frozenset({"organizer", "startup", "ui", "identity"})
     if path in CRAFT_PATHS or path.startswith("app/pages/craft_"):
         return frozenset({"craft"})
     if path.startswith("app/modules/encyclopedia/services/guide_"):
