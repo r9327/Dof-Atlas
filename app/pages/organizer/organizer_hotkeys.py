@@ -143,14 +143,18 @@ class OrganizerHotkeysMixin:
 
     def set_script_speed(self, speed: str) -> None:
         resolved = normalize_script_speed(speed)
+        schema_v2 = str(self.profiles.get(KEY_SCRIPT_SPEED_SCHEMA, "1")) == "2"
         previous = normalize_script_speed(
             self.profiles.get(KEY_SCRIPT_SPEED, "normal"),
-            legacy=str(self.profiles.get(KEY_SCRIPT_SPEED_SCHEMA, "1")) != "2",
+            legacy=not schema_v2,
         )
-        # Changing effective timings while a 2–8 client worker is sending
-        # can leave an old gesture on the previous speed/profile generation.
-        # Apply the same stop-before-persist ordering as Macro/Miroir toggle.
-        if previous != resolved and callable(getattr(self, "stop_runtime_callback", None)):
+        # Re-selecting the active v2 preset must not reload Organizer or
+        # cancel a live 2–8 client worker without changing any effective delay.
+        if previous == resolved and schema_v2:
+            return
+        # Both a speed change and an old-profile schema migration replace the
+        # runtime settings generation. Stop the worker before persisting.
+        if callable(getattr(self, "stop_runtime_callback", None)):
             self.stop_runtime_callback()
         self.profiles[KEY_SCRIPT_SPEED] = resolved
         # Persist the schema together with the chosen preset. Otherwise a

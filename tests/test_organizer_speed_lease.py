@@ -48,16 +48,19 @@ class OrganizerSpeedAndLeaseTests(unittest.TestCase):
             with self.subTest(speed=speed):
                 owner, events = self._owner(speed)
                 OrganizerHotkeysMixin.set_script_speed(owner, speed)
-                self.assertEqual(events, ["save", "export", "reload"])
+                self.assertEqual(events, [])
+                owner.save_profiles.assert_not_called()
+                owner.export_client_index.assert_not_called()
+                owner.reload_runtime_callback.assert_not_called()
                 owner.stop_runtime_callback.assert_not_called()
 
-    def test_legacy_speed_label_migration_does_not_stop_when_delays_equal(self):
+    def test_legacy_speed_label_migration_stops_before_reload(self):
         owner, events = self._owner("rapide")
         owner.profiles[KEY_SCRIPT_SPEED_SCHEMA] = 1
         OrganizerHotkeysMixin.set_script_speed(owner, "normal")
-        self.assertEqual(events, ["save", "export", "reload"])
+        self.assertEqual(events, ["stop", "save", "export", "reload"])
         self.assertEqual(owner.profiles[KEY_SCRIPT_SPEED_SCHEMA], 2)
-        owner.stop_runtime_callback.assert_not_called()
+        owner.stop_runtime_callback.assert_called_once()
 
     def test_wrong_owner_cannot_release_active_macro_lease(self):
         for current in ("Miroir clavier", "Miroir molette", "Auto zaap"):
