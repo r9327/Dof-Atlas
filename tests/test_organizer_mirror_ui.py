@@ -328,6 +328,40 @@ class OrganizerMirrorIntegrationTests(unittest.TestCase):
                     self.assertFalse(accepted)
                     runtime._spawn_macro.assert_not_called()
 
+    def test_mirror_admission_rejects_changed_roster_before_worker_2_to_8(self):
+        from app.macros.mirror_input import MirrorInputMacro
+
+        for count in (2, 4, 6, 8):
+            for kind in ("key", "wheel"):
+                for stale in ("mode", "favorite", "replaced_client", "invalid_hwnd"):
+                    with self.subTest(clients=count, kind=kind, stale=stale):
+                        handles = tuple(range(101, 101 + count))
+                        runtime = self._runtime(primary=handles[0], handles=handles)
+                        if stale == "mode":
+                            runtime.settings.macro_mode = "macro"
+                            candidates = handles
+                        elif stale == "favorite":
+                            runtime.settings.primary_handle = handles[-1]
+                            candidates = handles
+                        elif stale == "replaced_client":
+                            runtime.settings.clients[-1].handle = 999
+                            candidates = handles
+                        else:
+                            candidates = (*handles[:-1], 2**64)
+
+                        macro = MirrorInputMacro(runtime)
+                        if kind == "key":
+                            self.assertFalse(macro.run_key(
+                                65, handles[0], candidates,
+                            ))
+                        else:
+                            self.assertFalse(macro.run_wheel(
+                                120, False, 0.4, 0.6, handles[0], candidates,
+                            ))
+                        runtime._spawn_macro.assert_not_called()
+                        runtime.input_state.begin_mouse_block.assert_not_called()
+                        runtime.switch_character.restore_preferred_client.assert_not_called()
+
     def test_mirror_admission_rejects_profile_reloaded_during_spawn_2_to_8(self):
         from app.macros.mirror_input import MirrorInputMacro
 
@@ -4478,7 +4512,8 @@ class OrganizerMirrorIntegrationTests(unittest.TestCase):
         mirror = MirrorInputMacro(runtime)
         with patch("app.macros.mirror_input.is_dofus_unity_process", return_value=True):
             for handles in ((202, 101), (101, 101), (101, -1),
-                            (101, True), (101, 202.0), (101,), ()):
+                            (101, True), (101, 202.0),
+                            (101, 2**64), (101, 2**65), (101,), ()):
                 with self.subTest(handles=handles):
                     self.assertFalse(mirror._still_current(101, handles))
             self.assertTrue(mirror._still_current(101, (101, 202)))
