@@ -120,6 +120,32 @@ class OrganizerLayoutTests(unittest.TestCase):
                     fake._ensure_runtime.assert_not_called()
                     setattr(fake, stopped_attr, False)
 
+
+    def test_busy_organizer_quick_action_refuses_before_session_refresh(self):
+        from unittest.mock import Mock
+        import main as app_main
+
+        for count in (2, 4, 6, 8):
+            for busy in ("Auto groupe", "Auto zaap", "Miroir", "Switch clique"):
+                for method, args in (
+                    (app_main.AtlasWindow.launch_auto_group,
+                     ([{"name": "Friend", "handle": 202}],)),
+                    (app_main.AtlasWindow.launch_zaap, ("/zaap 1,2",)),
+                ):
+                    with self.subTest(clients=count, busy=busy, method=method.__name__):
+                        fake = Mock()
+                        fake.quit_requested = False
+                        fake._background_services_stopped = False
+                        fake.runtime.macro_lock.active_label = busy
+                        fake.runtime.settings.clients = [
+                            SimpleNamespace(handle=101 + i) for i in range(count)
+                        ]
+                        old = fake.runtime.settings
+                        self.assertFalse(method(fake, *args))
+                        fake.reload_runtime.assert_not_called()
+                        fake._ensure_runtime.assert_not_called()
+                        self.assertIs(fake.runtime.settings, old)
+
     def test_organizer_macro_launch_aborts_if_shutdown_begins_during_reload(self):
         from unittest.mock import Mock
         import main as app_main

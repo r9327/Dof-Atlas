@@ -792,6 +792,69 @@ class OrganizerMacroReliabilityTests(unittest.TestCase):
             ))
         runtime.auto_group.run_async.assert_called_once()
 
+
+    def test_busy_quick_actions_do_not_replace_worker_generation_2_to_8(self):
+        from app.core.runtime_state import AtlasRuntime
+
+        for count in (2, 4, 6, 8):
+            for busy in ("Miroir clavier", "Miroir molette", "Switch clique",
+                         "Auto zaap", "Auto groupe"):
+                for action in ("zaap", "auto_group"):
+                    with self.subTest(clients=count, busy=busy, action=action):
+                        runtime = _runtime()
+                        runtime.settings.clients = [
+                            SimpleNamespace(handle=101 + i) for i in range(count)
+                        ]
+                        runtime.macro_lock.active_label = busy
+                        captured = runtime.settings
+                        with patch("app.core.runtime_state.load_settings") as load:
+                            if action == "zaap":
+                                result = AtlasRuntime.launch_zaap(
+                                    runtime, "/zaap 1,2",
+                                )
+                            else:
+                                result = AtlasRuntime.launch_auto_group(
+                                    runtime, [{"name": "Friend", "handle": 202}],
+                                )
+                        self.assertFalse(result)
+                        load.assert_not_called()
+                        self.assertIs(runtime.settings, captured)
+                        runtime.zaap.run_async.assert_not_called()
+                        runtime.auto_group.run_async.assert_not_called()
+                        runtime._spawn_macro.assert_not_called()
+
+    def test_idle_quick_actions_keep_existing_runtime_contract(self):
+        from app.core.runtime_state import AtlasRuntime
+
+        for count in (2, 4, 6, 8):
+            for action in ("zaap", "auto_group"):
+                with self.subTest(clients=count, action=action):
+                    runtime = _runtime()
+                    runtime.macro_lock.active_label = ""
+                    loaded = Mock()
+                    loaded.clients = [
+                        SimpleNamespace(handle=101 + i) for i in range(count)
+                    ]
+                    runtime.zaap.run_async.return_value = True
+                    runtime.auto_group.run_async.return_value = True
+                    with patch("app.core.runtime_state.load_settings",
+                               return_value=loaded) as load:
+                        if action == "zaap":
+                            self.assertTrue(AtlasRuntime.launch_zaap(
+                                runtime, "/zaap 1,2",
+                            ))
+                            runtime.zaap.run_async.assert_called_once_with(
+                                "/zaap 1,2", click_position=None,
+                                click_ratios=None,
+                            )
+                        else:
+                            self.assertTrue(AtlasRuntime.launch_auto_group(
+                                runtime, [{"name": "Friend", "handle": 202}],
+                            ))
+                            runtime.auto_group.run_async.assert_called_once()
+                    load.assert_called_once_with()
+                    self.assertIs(runtime.settings, loaded)
+
     def test_auto_group_worker_publishes_sent_count_for_2_4_6_8(self) -> None:
         for count in (2, 4, 6, 8):
             with self.subTest(count=count):
