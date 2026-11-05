@@ -18,6 +18,14 @@ class AutoGroupMacro:
         self.runtime = runtime
 
     def run_async(self, invite_entries: list[dict[str, object]]) -> bool:
+        # The Organizer contract is a maximum of eight total windows
+        # (including the sender). Reject an untrusted oversized callback
+        # BEFORE copying it or admitting a potentially unbounded worker.
+        if not isinstance(invite_entries, (list, tuple)) or len(invite_entries) > 8:
+            self.runtime.logger.warning(
+                "Auto groupe refusé: liste invalide ou plus de huit fenêtres."
+            )
+            return False
         entries = [dict(entry) for entry in invite_entries if isinstance(entry, dict)]
         if not entries:
             self.runtime.logger.info("Auto groupe non lancé : aucune session candidate.")
@@ -45,6 +53,16 @@ class AutoGroupMacro:
         *, profile_at_dispatch: object | None = None,
         dispatch_context: tuple[object, object] | None = None,
     ) -> None:
+        # _run is also used directly by integrations/tests. A caller must
+        # not bypass run_async's eight-client boundary to send extra invites.
+        if not isinstance(invite_entries, (list, tuple)) or len(invite_entries) > 8:
+            self.runtime.logger.warning(
+                "Auto groupe refusé: liste invalide ou plus de huit fenêtres."
+            )
+            self.runtime._emit_status(
+                "Auto-groupe non lancé : plus de huit fenêtres ou liste invalide."
+            )
+            return
         if not invite_entries:
             self.runtime.logger.info("Auto groupe ignore: aucune invitation.")
             self.runtime._emit_status("Auto-groupe ignoré : aucun destinataire.")

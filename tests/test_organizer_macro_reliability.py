@@ -923,6 +923,46 @@ class OrganizerMacroReliabilityTests(unittest.TestCase):
         self.assertFalse(macro.run_async([None, "", 5]))
         runtime._spawn_macro.assert_not_called()
 
+    def test_auto_group_rejects_oversized_or_invalid_roster_before_worker(self) -> None:
+        runtime = _runtime()
+        macro = AutoGroupMacro(runtime)
+        for entries in (
+            None, False, 42, {"name": "Friend"},
+            [{"name": f"Perso{i}", "handle": 101 + i} for i in range(9)],
+            [{"name": f"Perso{i}", "handle": 101 + i} for i in range(100)],
+        ):
+            with self.subTest(entries_type=type(entries).__name__,
+                              size=len(entries) if hasattr(entries, "__len__") else None):
+                self.assertFalse(macro.run_async(entries))
+                runtime._spawn_macro.assert_not_called()
+
+    def test_auto_group_direct_worker_refuses_oversized_roster_before_native_access(self) -> None:
+        runtime = _runtime()
+        macro = AutoGroupMacro(runtime)
+        for entries in (
+            None, "bad", [{"name": f"Perso{i}", "handle": 101 + i}
+                          for i in range(9)],
+        ):
+            with self.subTest(entries=type(entries).__name__):
+                runtime._emit_status.reset_mock()
+                macro._run(entries)
+                runtime.switch_character.logical_active_client.assert_not_called()
+                runtime._emit_status.assert_called_once_with(
+                    "Auto-groupe non lancé : plus de huit fenêtres ou liste invalide."
+                )
+
+    def test_auto_group_valid_eight_window_roster_still_admits_worker(self) -> None:
+        runtime = _runtime()
+        runtime._spawn_macro.return_value = True
+        macro = AutoGroupMacro(runtime)
+        entries = [
+            {"name": f"Perso{i}", "handle": 101 + i}
+            for i in range(8)
+        ]
+        self.assertTrue(macro.run_async(entries))
+        runtime._spawn_macro.assert_called_once()
+        self.assertEqual(runtime._spawn_macro.call_args.args[0], "Auto groupe")
+
     def test_auto_group_preplans_2_4_6_8_before_focus_and_skips_final_gap(self) -> None:
         for count in (2, 4, 6, 8):
             with self.subTest(count=count):
