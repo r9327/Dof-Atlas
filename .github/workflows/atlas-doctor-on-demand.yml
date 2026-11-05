@@ -176,19 +176,6 @@ jobs:
           print("Exact-SHA Graphify AST map verified; no runtime certification")
           PY
 
-      - name: Reject evidence if the PR head moved during execution
-        if: always()
-        env:
-          GH_TOKEN: ${{ github.token }}
-        shell: bash
-        run: |
-          set -euo pipefail
-          now="$(gh api "repos/$GITHUB_REPOSITORY/pulls/$PR_NUMBER" --jq '.head.sha')"
-          if [ "$now" != "$HEAD_SHA" ]; then
-            echo "::error::STALE diagnostic: PR HEAD moved; current=$now analyzed=$HEAD_SHA"
-            exit 1
-          fi
-
       - name: Show execution boundary
         if: always()
         env:
@@ -219,3 +206,34 @@ jobs:
             graphify-out/graph.html
           if-no-files-found: warn
           retention-days: 7
+
+  freshness:
+    # A NEW runner rechecks the SHA with GITHUB_TOKEN. Never expose a token
+    # to a post-PR-code step in the diagnostic runner (GITHUB_PATH/ENV abuse).
+    needs: [resolve, diagnostic]
+    if: ${{ always() && needs.resolve.result == 'success' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: read
+      pull-requests: read
+    steps:
+      - name: Verify latest PR HEAD and diagnostic completion
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PR_NUMBER: ${{ needs.resolve.outputs.pr_number }}
+          EXPECTED_SHA: ${{ needs.resolve.outputs.head_sha }}
+          DIAGNOSTIC_RESULT: ${{ needs.diagnostic.result }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          now="$(gh api "repos/$GITHUB_REPOSITORY/pulls/$PR_NUMBER" --jq '.head.sha')"
+          if [ "$now" != "$EXPECTED_SHA" ]; then
+            echo "::error::STALE: PR HEAD moved; current=$now analyzed=$EXPECTED_SHA"
+            exit 1
+          fi
+          if [ "$DIAGNOSTIC_RESULT" != "success" ]; then
+            echo "::error::Diagnostic was not successful: $DIAGNOSTIC_RESULT"
+            exit 1
+          fi
+          echo "Exact-SHA diagnostic is current; NOT a phase certification"
