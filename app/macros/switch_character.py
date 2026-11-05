@@ -198,23 +198,26 @@ class SwitchCharacterMacro:
     def logical_active_client(self) -> "AtlasClient | None":
         settings = self.runtime.settings
         active = foreground_window()
-        if active and is_unity_window(active) and is_dofus_unity_process(active):
+        if (type(active) is int and 0 < active <= (2**64 - 1)
+                and is_unity_window(active) and is_dofus_unity_process(active)):
             if self.runtime.settings is not settings:
                 return None
             client = settings.client_by_handle(active)
             if client is not None:
-                if self.runtime.settings is not settings:
+                if (self.runtime.settings is not settings
+                        or client.handle != active):
                     return None
-                self.runtime.active_client_handle = client.handle
+                self.runtime.active_client_handle = active
                 return client
 
-        if self.runtime.active_client_handle:
-            client = settings.client_by_handle(self.runtime.active_client_handle)
-            if (client is not None and type(client.handle) is int
-                    and 0 < client.handle <= (2**64 - 1)
-                    and is_unity_window(client.handle)
-                    and is_dofus_unity_process(client.handle)):
-                if self.runtime.settings is not settings:
+        remembered = self.runtime.active_client_handle
+        if type(remembered) is int and 0 < remembered <= (2**64 - 1):
+            client = settings.client_by_handle(remembered)
+            if (client is not None and client.handle == remembered
+                    and is_unity_window(remembered)
+                    and is_dofus_unity_process(remembered)):
+                if (self.runtime.settings is not settings
+                        or client.handle != remembered):
                     return None
                 return client
 
@@ -228,13 +231,15 @@ class SwitchCharacterMacro:
             return preferred
 
         for client in settings.clients:
-            if (type(client.handle) is int
-                    and 0 < client.handle <= (2**64 - 1)
-                    and is_unity_window(client.handle)
-                    and is_dofus_unity_process(client.handle)):
-                if self.runtime.settings is not settings:
+            hwnd = client.handle
+            if (type(hwnd) is int
+                    and 0 < hwnd <= (2**64 - 1)
+                    and is_unity_window(hwnd)
+                    and is_dofus_unity_process(hwnd)):
+                if (self.runtime.settings is not settings
+                        or client.handle != hwnd):
                     return None
-                self.runtime.active_client_handle = client.handle
+                self.runtime.active_client_handle = hwnd
                 return client
         return None
 
