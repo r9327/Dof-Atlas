@@ -6148,5 +6148,72 @@ class OrganizerMirrorIntegrationTests(unittest.TestCase):
                                   runtime._emit_status.call_args.args[0])
 
 
+    def test_mirror_click_rejects_invalid_client_coordinates_before_consumption(self):
+        from app.macros.switch_click import SwitchClickMacro, SwitchClickContext
+
+        for count in (2, 4, 6, 8):
+            slots = tuple(range(101, 101 + count))
+            for source in (slots[0], slots[-1]):
+                handles = (source, *(hwnd for hwnd in slots if hwnd != source))
+                invalid = (
+                    (float("nan"), 0.5, 20, 30),
+                    (float("inf"), 0.5, 20, 30),
+                    (-0.1, 0.5, 20, 30),
+                    (1.1, 0.5, 20, 30),
+                    (True, 0.5, 20, 30),
+                    ("0.5", 0.5, 20, 30),
+                    (0.5, None, 20, 30),
+                    (0.5, 0.5, True, 30),
+                    (0.5, 0.5, 20.5, 30),
+                    (0.5, 0.5, 20, 2**31),
+                    (None, None, None, None),
+                )
+                for xr, yr, cx, cy in invalid:
+                    with self.subTest(count=count, source=source, ratio=(xr, yr),
+                                      pixels=(cx, cy)):
+                        runtime = self._runtime(primary=source, handles=slots)
+                        macro = SwitchClickMacro(runtime)
+                        captured = SwitchClickContext(
+                            source, cx, cy, xr, yr, "cursor",
+                        )
+                        with patch.object(
+                            macro, "_capture_trigger_context", return_value=captured,
+                        ):
+                            self.assertFalse(macro.run_async(
+                                "Left", 20, 30, 1, "Miroir",
+                                exact_source_handle=source,
+                                mirror_target_handles=handles,
+                                expected_profile=runtime.settings,
+                            ))
+                        runtime._spawn_macro.assert_not_called()
+
+    def test_mirror_click_valid_ratio_edges_and_client_pixels_remain_accepted(self):
+        from app.macros.switch_click import SwitchClickMacro, SwitchClickContext
+
+        for count in (2, 4, 6, 8):
+            slots = tuple(range(101, 101 + count))
+            for source in (slots[0], slots[-1]):
+                handles = (source, *(h for h in slots if h != source))
+                for ratio in ((0.0, 0.0), (1.0, 1.0), (None, None)):
+                    with self.subTest(count=count, source=source, ratio=ratio):
+                        runtime = self._runtime(primary=source, handles=slots)
+                        macro = SwitchClickMacro(runtime)
+                        captured = SwitchClickContext(
+                            source, 20, 30, ratio[0], ratio[1], "cursor",
+                        )
+                        runtime._spawn_macro.return_value = True
+                        with patch.object(
+                            macro, "_capture_trigger_context", return_value=captured,
+                        ):
+                            self.assertTrue(macro.run_async(
+                                "Left", 20, 30, 1, "Miroir",
+                                exact_source_handle=source,
+                                mirror_target_handles=handles,
+                                expected_profile=runtime.settings,
+                            ))
+                        runtime._spawn_macro.assert_called_once()
+
+
+
 if __name__ == "__main__":
     unittest.main()

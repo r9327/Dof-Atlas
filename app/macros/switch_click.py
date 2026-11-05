@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from collections.abc import Callable
 from dataclasses import dataclass
+import math
 from time import perf_counter
 from typing import TYPE_CHECKING
 
@@ -181,6 +182,30 @@ class SwitchClickMacro:
                 action_label,
             )
             return False
+        if mirror_target_handles is not None:
+            # Only a real integer client pixel or a *finite* 0..1 ratio
+            # can authorize consumption of a physical Miroir DOWN.
+            # Clamping NaN, infinity, a corrupted ratio, or a fractional
+            # client coordinate may click an unrelated object in DOFUS.
+            ratio = (context.x_ratio, context.y_ratio)
+            pixels = (context.client_x, context.client_y)
+            ratio_valid = (
+                (ratio[0] is None and ratio[1] is None)
+                or all(
+                    type(v) in (int, float) and 0 <= v <= 1
+                    and (type(v) is int or math.isfinite(v))
+                    for v in ratio
+                )
+            )
+            pixels_valid = all(
+                type(v) is int and -(2**31) <= v < 2**31
+                for v in pixels
+            )
+            if not ratio_valid or not pixels_valid:
+                self.runtime.logger.warning(
+                    "%s ignore: coordonnées Unity source invalides.", action_label,
+                )
+                return False
 
         # A native DOWN/UP already reached the only registered character.
         # Do not create a macro worker or block physical input for a no-op.
