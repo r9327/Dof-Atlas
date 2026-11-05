@@ -298,6 +298,29 @@ class SwitchClickMacro:
                     "%s annulé: profil ou roster modifié avant worker.", action_label,
                 )
                 return
+            # The physical DOWN belonged to a real favorite foreground.
+            # An asynchronously admitted mirror worker must not reactivate
+            # Dofus after the user has already switched to another app.
+            if (settings_at_dispatch is not None
+                    and mirror_target_handles is not None
+                    and exact_source_handle is not None):
+                try:
+                    if foreground_window() != exact_source_handle:
+                        self.runtime.logger.info(
+                            "%s annulé: source non active avant worker.", action_label,
+                        )
+                        self.runtime._emit_status(
+                            "Miroir non diffusé : focus source perdu."
+                        )
+                        return
+                except Exception:
+                    self.runtime.logger.exception(
+                        "%s annulé: focus source illisible avant worker.", action_label,
+                    )
+                    self.runtime._emit_status(
+                        "Miroir non diffusé : focus source perdu."
+                    )
+                    return
             try:
                 original_cursor = current_cursor_pos()
             except Exception:

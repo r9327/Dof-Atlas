@@ -6056,5 +6056,47 @@ class OrganizerMirrorIntegrationTests(unittest.TestCase):
 
 
 
+    def test_queued_mirror_click_refuses_lost_original_foreground_2_4_6_8(self):
+        from app.macros.switch_click import SwitchClickMacro, SwitchClickContext
+
+        for count in (2, 4, 6, 8):
+            for source in (101, 100 + count):
+                with self.subTest(count=count, source=source):
+                    slots = tuple(range(101, 101 + count))
+                    ordered = (source, *(h for h in slots if h != source))
+                    runtime = self._runtime(primary=source, handles=slots)
+                    runtime.macro_lock.should_stop.return_value = False
+                    runtime._spawn_macro.return_value = True
+                    sender = SwitchClickMacro(runtime)
+                    context = SwitchClickContext(
+                        source, 20, 30, 0.5, 0.5, "cursor",
+                    )
+                    with patch.object(
+                        sender, "_capture_trigger_context", return_value=context,
+                    ):
+                        self.assertTrue(sender.run_async(
+                            "Left", 20, 30, 1, "Miroir",
+                            exact_source_handle=source,
+                            mirror_target_handles=ordered,
+                        ))
+                    worker = runtime._spawn_macro.call_args.args[1]
+                    with (
+                        patch("app.macros.switch_click.foreground_window",
+                              return_value=999),
+                        patch("app.macros.switch_click.current_cursor_pos") as cursor,
+                        patch("app.macros.switch_click.activate_window") as activate,
+                        patch("app.macros.switch_click.send_client_click") as sender_native,
+                    ):
+                        worker()
+                    cursor.assert_not_called()
+                    activate.assert_not_called()
+                    sender_native.assert_not_called()
+                    runtime.input_state.begin_mouse_block.assert_not_called()
+                    runtime.switch_character.restore_preferred_client.assert_not_called()
+                    runtime._emit_status.assert_called_once_with(
+                        "Miroir non diffusé : focus source perdu."
+                    )
+
+
 if __name__ == "__main__":
     unittest.main()
