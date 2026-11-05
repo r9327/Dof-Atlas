@@ -172,6 +172,32 @@ class NextCharacterTests(unittest.TestCase):
                     self.assertFalse(macro.activate_next())
                     activate.assert_not_called()
 
+    def test_direct_activation_cancels_when_slot_turns_into_numeric_alias(self):
+        for count in (2, 4, 6, 8):
+            with self.subTest(clients=count):
+                runtime = Mock()
+                profile = settings(count)
+                runtime.settings = profile
+                runtime.macro_lock.should_stop.return_value = False
+                runtime._spawn_macro.return_value = True
+                macro = SwitchCharacterMacro(runtime)
+                self.assertTrue(macro.activate_by_index(1))
+                queued_worker = runtime._spawn_macro.call_args.args[1]
+
+                def replace_slot_during_process_check(_hwnd):
+                    profile.clients[0].index = 1.0
+                    return True
+
+                with (
+                    patch("app.macros.switch_character.is_unity_window", return_value=True),
+                    patch("app.macros.switch_character.is_dofus_unity_process",
+                          side_effect=replace_slot_during_process_check),
+                    patch("app.macros.switch_character.activate_window") as focus,
+                ):
+                    queued_worker()
+                focus.assert_not_called()
+                self.assertIsNot(runtime.active_client_handle, 101)
+
     def test_next_rejects_profile_reload_while_resolving_active_character(self):
         for count in (2, 4, 6, 8):
             with self.subTest(clients=count):
