@@ -753,6 +753,23 @@ class AtlasRuntime:
             if foreground == settings.primary_handle:
                 AtlasRuntime._report_mirror_busy_input(self, "clavier")
                 return False
+            # No pointer lease: the native key is safe to pass through.
+            # Avoid an expensive process-image query from the LL hook for
+            # every busy secondary key, especially with 8 clients.
+            if not self.input_state.is_mouse_blocked():
+                clients = getattr(settings, "clients", ())
+                if (isinstance(clients, (list, tuple))
+                        and type(foreground) is int
+                        and any(type(c.handle) is int and c.handle == foreground
+                                for c in clients)
+                        and self.settings is settings
+                        and self._running and self._admin_ok
+                        and settings.macro_mode == "mirror"
+                        and self.macro_lock.active_label
+                        and not self.macro_lock.should_stop()
+                        and foreground_window() == foreground):
+                    AtlasRuntime._report_mirror_busy_input(self, "clavier")
+                return False
             from app.macros.mirror_plan import is_dofus_unity_process
 
             clients = getattr(settings, "clients", None)
@@ -847,6 +864,22 @@ class AtlasRuntime:
             # A busy worker cannot safely replay it to every client later.
             if foreground == settings.primary_handle:
                 AtlasRuntime._report_mirror_busy_input(self, "molette")
+                return False
+            # When the pointer is still native, do not run a Win32 process
+            # probe merely to decide to pass the physical wheel through.
+            if not self.input_state.is_mouse_blocked():
+                clients = getattr(settings, "clients", ())
+                if (isinstance(clients, (list, tuple))
+                        and type(foreground) is int
+                        and any(type(c.handle) is int and c.handle == foreground
+                                for c in clients)
+                        and self.settings is settings
+                        and self._running and self._admin_ok
+                        and settings.macro_mode == "mirror"
+                        and self.macro_lock.active_label
+                        and not self.macro_lock.should_stop()
+                        and foreground_window() == foreground):
+                    AtlasRuntime._report_mirror_busy_input(self, "molette")
                 return False
             from app.macros.mirror_plan import is_dofus_unity_process
 

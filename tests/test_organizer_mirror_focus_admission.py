@@ -337,5 +337,64 @@ class MirrorFocusAdmissionTests(unittest.TestCase):
 
 
 
+    def test_busy_no_pointer_lease_skips_expensive_native_identity(self):
+        from app.input.input_state import InputState
+
+        for count in (2, 4, 6, 8):
+            for kind in ("key", "wheel"):
+                with self.subTest(clients=count, kind=kind):
+                    runtime, source = self._runtime(count)
+                    runtime.input_state = InputState()
+                    runtime.macro_lock.active_label = "Miroir clavier"
+                    self.assertNotEqual(source, 101)
+                    with (
+                        patch("app.windows.unity_windows.foreground_window",
+                              return_value=101),
+                        patch("app.macros.mirror_plan.is_dofus_unity_process",
+                              side_effect=AssertionError("unneeded Win32 probe")) as identity,
+                    ):
+                        if kind == "key":
+                            consumed = AtlasRuntime._handle_mirror_key(
+                                runtime, 65, True,
+                            )
+                        else:
+                            consumed = AtlasRuntime._handle_mirror_wheel(
+                                runtime, 120, 12, 13, False,
+                            )
+                    self.assertFalse(consumed)
+                    identity.assert_not_called()
+                    runtime.mirror_input.run_key.assert_not_called()
+                    runtime.mirror_input.run_wheel.assert_not_called()
+                    runtime._emit_status.assert_called_once_with(
+                        "Miroir desynchronise : geste non diffuse sur tous les comptes."
+                    )
+
+    def test_busy_no_pointer_lease_does_not_report_foreign_application(self):
+        from app.input.input_state import InputState
+
+        for kind in ("key", "wheel"):
+            with self.subTest(kind=kind):
+                runtime, _source = self._runtime(8)
+                runtime.input_state = InputState()
+                runtime.macro_lock.active_label = "Miroir clavier"
+                with (
+                    patch("app.windows.unity_windows.foreground_window",
+                          return_value=999),
+                    patch("app.macros.mirror_plan.is_dofus_unity_process",
+                          side_effect=AssertionError("foreign app probed")) as identity,
+                ):
+                    consumed = (
+                        AtlasRuntime._handle_mirror_key(runtime, 65, True)
+                        if kind == "key" else
+                        AtlasRuntime._handle_mirror_wheel(
+                            runtime, 120, 12, 13, False,
+                        )
+                    )
+                self.assertFalse(consumed)
+                identity.assert_not_called()
+                runtime._emit_status.assert_not_called()
+
+
+
 if __name__ == "__main__":
     unittest.main()
