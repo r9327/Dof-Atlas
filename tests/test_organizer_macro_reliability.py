@@ -22,6 +22,67 @@ def _runtime() -> Mock:
 
 class OrganizerMacroReliabilityTests(unittest.TestCase):
 
+    def test_preferred_client_rejects_inflight_favorite_or_mode_changes_2_to_8(self):
+        for count in (2, 4, 6, 8):
+            for change in ("favorite", "mode", "fallback_selection"):
+                with self.subTest(clients=count, change=change):
+                    runtime = _runtime()
+                    clients = [SimpleNamespace(index=i + 1, handle=101 + i,
+                                               primary=(i == 0))
+                               for i in range(count)]
+                    profile = SimpleNamespace(
+                        clients=clients, primary_handle=101, macro_mode="macro",
+                    )
+                    if change == "fallback_selection":
+                        profile.primary_handle = 0
+                        profile.preferred_client = lambda: next(
+                            (item for item in clients if item.primary), clients[0],
+                        )
+                    else:
+                        profile.preferred_client = lambda: next(
+                            (item for item in clients
+                             if item.handle == profile.primary_handle), None,
+                        )
+                    runtime.settings = profile
+                    macro = SwitchCharacterMacro(runtime)
+
+                    def during_process_check(_hwnd):
+                        if change == "favorite":
+                            profile.primary_handle = clients[-1].handle
+                        elif change == "mode":
+                            profile.macro_mode = "mirror"
+                        else:
+                            clients[0].primary = False
+                            clients[-1].primary = True
+                        return True
+
+                    with (
+                        patch("app.macros.switch_character.is_unity_window", return_value=True),
+                        patch("app.macros.switch_character.is_dofus_unity_process",
+                              side_effect=during_process_check),
+                    ):
+                        self.assertIsNone(macro.preferred_client())
+                    runtime._spawn_macro.assert_not_called()
+
+    def test_preferred_client_still_accepts_unchanged_favorite_2_to_8(self):
+        for count in (2, 4, 6, 8):
+            with self.subTest(clients=count):
+                runtime = _runtime()
+                clients = [SimpleNamespace(index=i + 1, handle=101 + i)
+                           for i in range(count)]
+                profile = SimpleNamespace(
+                    clients=clients, primary_handle=clients[-1].handle,
+                    macro_mode="macro",
+                )
+                profile.preferred_client = lambda: clients[-1]
+                runtime.settings = profile
+                macro = SwitchCharacterMacro(runtime)
+                with (
+                    patch("app.macros.switch_character.is_unity_window", return_value=True),
+                    patch("app.macros.switch_character.is_dofus_unity_process", return_value=True),
+                ):
+                    self.assertIs(macro.preferred_client(), clients[-1])
+
     def test_roster_skips_corrupt_handles_and_keeps_valid_client_order(self) -> None:
         runtime = _runtime()
         valid = [
