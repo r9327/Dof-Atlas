@@ -1424,3 +1424,11 @@ l'admission et l'invalidation des gestes ; il ne crée **aucune file de
 replay** et ne refactore **aucun hook global**. Faire Graphify exact-SHA,
 Doctor structurel et la recette Windows 2/4/6/8 avant toute politique de
 diffusion différée. Garder la PR **Draft / CHANGES REQUIRED**.
+
+## Lot P0 du 05/11/2026 — intégrité des XBUTTON et mesures clic Miroir
+
+- Le hook Win32 différencie `XBUTTON1` et `XBUTTON2` via le HIWORD de `MSLLHOOKSTRUCT.mouseData` lors de l'appariement d'un DOWN physique consommé avec son UP. Deux boutons latéraux pressés pendant un blocage ne doivent plus s'annuler mutuellement ; le Stop ou un UP synthétique n'efface pas la paire restante.
+- Le chemin chaud `WM_MOUSEMOVE` évite d'interpréter le HIWORD des boutons X à chaque déplacement. Aucune nouvelle requête Win32 ni file de replay sur le thread hook.
+- Les clics Miroir utilisent le moteur `SwitchClickMacro` existant et publient désormais aussi `dispatch_to_worker_ms` et `dispatch_to_last_emit_ms` lorsque la séquence a réellement émis un clic. `NOT_MEASURED` est affiché si aucun clic n'a été émis. Ce temps commence à l'admission `run_async` (après les contrôles de hook), **pas** au premier signal matériel : ni délai physique complet, ni rendu Unity attesté.
+- Tests mock nouveaux/ciblés pour X1/X2, Stop, UP synthétiques, rafales de MOVE, propagation du timestamp, et cas de rejet sans émission, y compris 2/4/6/8 profils.
+- **Preuves manquantes :** la suite Python ciblée et la recette Windows/Unity restent à lancer/confronter au SHA courant. Doctor on-demand est `FULL_REQUIRED` sur ce large diff et n'a pas dispatché les tests (cela n'est PAS un PASS). Les gestes perdus quand le blocage est actif restent **MIRR-007 PENDING** ; le support ciblé sans focus reste MIRR-002 PENDING ; MIRR-005/ATQA-002 restent NOT_RUN sous #322.
