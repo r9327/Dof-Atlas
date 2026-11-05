@@ -48,12 +48,18 @@ class AutoGroupMacro:
             self.runtime._emit_status("Auto-groupe interrompu : profil Organizer modifié.")
             return
         sender = self.runtime.switch_character.logical_active_client()
+        # Capture the exact source HWND before native probes or recipient
+        # preparation; the client object may be edited in place by Organizer.
+        sender_hwnd = sender.handle if sender is not None else 0
         if self.runtime.settings is not settings_at_start:
             self.runtime.logger.info("Auto groupe annulé: profil Organizer remplacé.")
             self.runtime._emit_status("Auto-groupe interrompu : profil modifié.")
             return
-        if (sender is None or not is_unity_window(sender.handle)
-                or not is_dofus_unity_process(sender.handle)):
+        if (sender is None or type(sender_hwnd) is not int
+                or not 0 < sender_hwnd <= (2**64 - 1)
+                or not is_unity_window(sender_hwnd)
+                or not is_dofus_unity_process(sender_hwnd)
+                or sender.handle != sender_hwnd):
             self.runtime.logger.info("Auto groupe ignore: aucune fenetre Dofus valide.")
             self.runtime._emit_status("Auto-groupe ignoré : fenêtre DOFUS introuvable.")
             return
@@ -90,7 +96,7 @@ class AutoGroupMacro:
             if 0 < candidate <= (2**64 - 1):
                 handle = candidate
             key = normalize_key(name)
-            if (handle > 0 and handle == sender.handle) or key == sender_key:
+            if (handle > 0 and handle == sender_hwnd) or key == sender_key:
                 excluded_sender += 1
                 continue
             if key in seen_recipients:
@@ -107,7 +113,7 @@ class AutoGroupMacro:
             # A one-client roster must not steal focus just to do nothing.
             self.runtime.logger.info(
                 "Auto groupe %s: envoyes=%s/%s candidats=%s sender=%s",
-                "ignore", 0, 0, len(invite_entries), sender.handle,
+                "ignore", 0, 0, len(invite_entries), sender_hwnd,
             )
             self.runtime._emit_status("Auto-groupe ignoré : aucun autre personnage à inviter.")
             return
@@ -116,11 +122,12 @@ class AutoGroupMacro:
             self.runtime._emit_status("Auto-groupe arrêté avant envoi.")
             return
         timings = settings_at_start.timings
-        if self.runtime.settings is not settings_at_start:
-            self.runtime._emit_status("Auto-groupe interrompu : profil modifié.")
+        if (self.runtime.settings is not settings_at_start
+                or sender.handle != sender_hwnd):
+            self.runtime._emit_status("Auto-groupe interrompu : session Organizer modifiée.")
             return
         if not activate_window(
-            sender.handle,
+            sender_hwnd,
             timings.travel_focus_settle_ms,
             timings.activate_attempts,
             timings.activate_retry_ms,
@@ -129,9 +136,10 @@ class AutoGroupMacro:
             should_stop=lambda: (
                 self.runtime.macro_lock.should_stop()
                 or self.runtime.settings is not settings_at_start
+                or sender.handle != sender_hwnd
             ),
         ):
-            self.runtime.logger.info("Auto groupe activation fenetre echec: hwnd=%s", sender.handle)
+            self.runtime.logger.info("Auto groupe activation fenetre echec: hwnd=%s", sender_hwnd)
             self.runtime._emit_status("Auto-groupe non envoyé : activation DOFUS échouée.")
             return
         favorite_at_start = settings_at_start.primary_handle
@@ -149,12 +157,13 @@ class AutoGroupMacro:
                 # A native identity probe may yield focus to another app.
                 # Check the foreground last, then Stop before opening chat.
                 if (self.runtime.settings is not settings_at_start
-                        or not is_dofus_unity_process(sender.handle)
-                        or foreground_window() != int(sender.handle)):
+                        or not is_dofus_unity_process(sender_hwnd)
+                        or foreground_window() != int(sender_hwnd)
+                        or sender.handle != sender_hwnd):
                     focus_lost = True
                     self.runtime.logger.warning(
                         "Auto groupe interrompu: focus ou identité DOFUS perdus avant invitation hwnd=%s",
-                        sender.handle,
+                        sender_hwnd,
                     )
                     return
                 if self.runtime.macro_lock.should_stop():
@@ -171,18 +180,20 @@ class AutoGroupMacro:
                     should_stop=lambda: (
                         self.runtime.macro_lock.should_stop()
                         or self.runtime.settings is not settings_at_start
-                        or foreground_window() != int(sender.handle)
+                        or sender.handle != sender_hwnd
+                        or foreground_window() != int(sender_hwnd)
                     ),
                 ):
                     if (self.runtime.macro_lock.should_stop()
                             or self.runtime.settings is not settings_at_start):
                         return
-                    if (not is_dofus_unity_process(sender.handle)
-                            or foreground_window() != int(sender.handle)):
+                    if (not is_dofus_unity_process(sender_hwnd)
+                            or foreground_window() != int(sender_hwnd)
+                            or sender.handle != sender_hwnd):
                         focus_lost = True
                         self.runtime.logger.warning(
                             "Auto groupe interrompu: focus ou identité DOFUS perdus après échec du chat hwnd=%s",
-                            sender.handle,
+                            sender_hwnd,
                         )
                         return
                     continue
@@ -199,14 +210,17 @@ class AutoGroupMacro:
                         return
         finally:
             stopped = self.runtime.macro_lock.should_stop()
-            restore_skipped = self.runtime.settings is not settings_at_start
+            restore_skipped = (
+                self.runtime.settings is not settings_at_start
+                or sender.handle != sender_hwnd
+            )
             if restore_skipped:
                 self.runtime.logger.info("Auto groupe: retour ignoré, profil remplacé.")
             if (not stopped and not focus_lost and not restore_skipped
-                    and not is_dofus_unity_process(sender.handle)):
+                    and not is_dofus_unity_process(sender_hwnd)):
                 focus_lost = True
                 self.runtime.logger.warning(
-                    "Auto groupe: identité DOFUS perdue avant restauration hwnd=%s", sender.handle,
+                    "Auto groupe: identité DOFUS perdue avant restauration hwnd=%s", sender_hwnd,
                 )
             # The favorite may change via Organizer while the worker is
             # running. Never activate a newly selected favorite on cleanup.
@@ -224,7 +238,7 @@ class AutoGroupMacro:
             if (not self.runtime.macro_lock.should_stop() and not focus_lost
                     and not restore_skipped and eligible):
                 try:
-                    if foreground_window() != int(sender.handle):
+                    if foreground_window() != int(sender_hwnd):
                         restore_skipped = True
                         self.runtime.logger.info(
                             "Auto groupe: retour favori ignoré, focus utilisateur changé."
@@ -254,7 +268,7 @@ class AutoGroupMacro:
             )
             self.runtime.logger.info(
                 "Auto groupe %s: envoyes=%s/%s candidats=%s sender=%s",
-                state, sent, eligible, len(invite_entries), sender.handle,
+                state, sent, eligible, len(invite_entries), sender_hwnd,
             )
             self.runtime._emit_status(
                 f"Auto-groupe {state} : {sent}/{len(recipients)} commandes émises "
