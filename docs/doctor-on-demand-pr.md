@@ -103,7 +103,11 @@ HEAD actuel, et non un exemple périmé. Via `workflow_dispatch`, sélectionner
 `doctor-lot` avec `expected_sha` et `lot_base_sha`.
 
 Le résolveur approuvé vérifie les rôles GitHub, le dépôt d'origine, la PR
-ouverte et le HEAD exact. Dans un checkout sans jeton, le routeur de lot :
+ouverte et le HEAD exact. Le sélecteur Doctor-lot est extrait **séparément de
+la branche de confiance `main`** : il fonctionne donc aussi sur les anciennes
+PR Draft qui ne contiennent pas encore son module Python, sans importer un
+sélecteur fourni par la PR sous test. Les tests applicatifs s'exécutent
+toujours dans le checkout exact du candidat, sans jeton. Le routeur de lot :
 
 - exige que la base soit un ancêtre réel du HEAD, avec **1 à 20 commits**,
   **1 à 16 fichiers**, sans suppression/renommage ;
