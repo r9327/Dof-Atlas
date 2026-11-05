@@ -1649,6 +1649,104 @@ class OrganizerSendInputTests(unittest.TestCase):
                 click.assert_not_called()
                 released.assert_not_called()
 
+    def test_busy_xbuttons_remain_independent_after_stop_and_synthetic_up(self) -> None:
+        import logging
+        from app.input.input_state import InputState, SyntheticInputGuard
+        from app.input.mouse_hooks import (
+            LLMHF_INJECTED, MSLLHOOKSTRUCT, MouseHook,
+            WM_XBUTTONDOWN, WM_XBUTTONUP,
+        )
+
+        for first, second in ((1, 2), (2, 1)):
+            with self.subTest(first=first, second=second):
+                state = InputState()
+                callback = Mock(return_value=False)
+                logger = logging.getLogger("test_busy_thumb_buttons")
+                hook = MouseHook(
+                    state, SyntheticInputGuard(logger), logger, callback,
+                )
+                event = MSLLHOOKSTRUCT()
+                user32 = Mock()
+                user32.CallNextHookEx.return_value = 51
+                with patch.object(
+                    ctypes, "windll",
+                    SimpleNamespace(user32=user32), create=True,
+                ):
+                    pointer = ctypes.addressof(event)
+                    state.begin_mouse_block("Miroir")
+                    event.mouseData = first << 16
+                    self.assertEqual(
+                        hook._mouse_proc(0, WM_XBUTTONDOWN, pointer), 1,
+                    )
+                    event.mouseData = second << 16
+                    self.assertEqual(
+                        hook._mouse_proc(0, WM_XBUTTONDOWN, pointer), 1,
+                    )
+                    self.assertEqual(hook._blocked_click_count, 2)
+                    self.assertEqual(
+                        hook._consumed_releases,
+                        {WM_XBUTTONUP | (first << 16),
+                         WM_XBUTTONUP | (second << 16)},
+                    )
+                    # Stop ends the global block, but both swallowed DOWNs
+                    # still own their separate UPs across different clients.
+                    state.clear_mouse_block()
+                    event.flags = LLMHF_INJECTED
+                    self.assertEqual(
+                        hook._mouse_proc(0, WM_XBUTTONUP, pointer), 51,
+                    )
+                    self.assertEqual(len(hook._consumed_releases), 2)
+                    event.flags = 0
+                    self.assertEqual(
+                        hook._mouse_proc(0, WM_XBUTTONUP, pointer), 1,
+                    )
+                    self.assertEqual(
+                        hook._consumed_releases,
+                        {WM_XBUTTONUP | (first << 16)},
+                    )
+                    event.mouseData = first << 16
+                    self.assertEqual(
+                        hook._mouse_proc(0, WM_XBUTTONUP, pointer), 1,
+                    )
+                    self.assertFalse(hook._consumed_releases)
+                    # Only a NEW unpaired UP can reach the active window.
+                    self.assertEqual(
+                        hook._mouse_proc(0, WM_XBUTTONUP, pointer), 51,
+                    )
+                callback.assert_not_called()
+
+    def test_busy_xbutton_up_from_other_thumb_is_not_swallowed(self) -> None:
+        import logging
+        from app.input.input_state import InputState, SyntheticInputGuard
+        from app.input.mouse_hooks import (
+            MSLLHOOKSTRUCT, MouseHook, WM_XBUTTONDOWN, WM_XBUTTONUP,
+        )
+
+        state = InputState()
+        hook = MouseHook(
+            state, SyntheticInputGuard(logging.getLogger("test_xbutton_up")),
+            logging.getLogger("test_xbutton_up"), Mock(),
+        )
+        event = MSLLHOOKSTRUCT()
+        user32 = Mock()
+        user32.CallNextHookEx.return_value = 51
+        with patch.object(
+            ctypes, "windll", SimpleNamespace(user32=user32), create=True,
+        ):
+            pointer = ctypes.addressof(event)
+            state.begin_mouse_block("Miroir")
+            event.mouseData = 1 << 16
+            self.assertEqual(hook._mouse_proc(0, WM_XBUTTONDOWN, pointer), 1)
+            state.end_mouse_block()
+            event.mouseData = 2 << 16
+            self.assertEqual(hook._mouse_proc(0, WM_XBUTTONUP, pointer), 51)
+            self.assertEqual(
+                hook._consumed_releases, {WM_XBUTTONUP | (1 << 16)},
+            )
+            event.mouseData = 1 << 16
+            self.assertEqual(hook._mouse_proc(0, WM_XBUTTONUP, pointer), 1)
+            self.assertFalse(hook._consumed_releases)
+
     def test_emergency_clear_keeps_blocked_physical_pair_balanced(self) -> None:
         import logging
         from app.input.input_state import InputState, SyntheticInputGuard
