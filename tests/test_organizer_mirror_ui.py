@@ -333,7 +333,8 @@ class OrganizerMirrorIntegrationTests(unittest.TestCase):
 
         for count in (2, 4, 6, 8):
             for kind in ("key", "wheel"):
-                for stale in ("mode", "favorite", "replaced_client", "invalid_hwnd"):
+                for stale in ("mode", "favorite", "replaced_client",
+                              "favorite_alias", "float_alias", "invalid_hwnd"):
                     with self.subTest(clients=count, kind=kind, stale=stale):
                         handles = tuple(range(101, 101 + count))
                         runtime = self._runtime(primary=handles[0], handles=handles)
@@ -345,6 +346,14 @@ class OrganizerMirrorIntegrationTests(unittest.TestCase):
                             candidates = handles
                         elif stale == "replaced_client":
                             runtime.settings.clients[-1].handle = 999
+                            candidates = handles
+                        elif stale == "favorite_alias":
+                            runtime.settings.primary_handle = float(handles[0])
+                            candidates = handles
+                        elif stale == "float_alias":
+                            # 202.0 equals 202 numerically, but is not a
+                            # trustworthy Win32 HWND and must not be accepted.
+                            runtime.settings.clients[-1].handle = float(handles[-1])
                             candidates = handles
                         else:
                             candidates = (*handles[:-1], 2**64)
