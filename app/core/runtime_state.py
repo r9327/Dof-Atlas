@@ -686,10 +686,10 @@ class AtlasRuntime:
             return False
         if not pressed:
             return False
-        if (not self._running or not self._admin_ok
-                or self.settings.macro_mode != "mirror"):
-            return False
         settings = self.settings
+        if (not self._running or not self._admin_ok
+                or settings.macro_mode != "mirror"):
+            return False
         if getattr(settings, "radial_enabled", False) is True:
             radial_text = getattr(settings, "radial_hotkey", "")
             if type(radial_text) is str and radial_text:
@@ -704,23 +704,24 @@ class AtlasRuntime:
             # The existing worker cannot accept a second gesture. Keep real
             # input native if the favorite is still foreground; never enqueue
             # an old key for replay after Stop, reload or focus changes.
-            if foreground == self.settings.primary_handle:
+            if foreground == settings.primary_handle:
                 AtlasRuntime._report_mirror_busy_input(self, "clavier")
                 return False
-            # During sequential fan-out, the worker can focus a secondary
-            # client. Suppress that accidental action but report it explicitly.
+            # During fan-out, suppress only for a trusted secondary while
+            # the EXACT profile generation still owns this busy gesture.
             from app.macros.mirror_plan import is_dofus_unity_process
 
             trusted = (
-                foreground in (c.handle for c in self.settings.clients)
+                foreground in (c.handle for c in settings.clients)
                 and is_dofus_unity_process(foreground)
             )
-            if trusted:
-                AtlasRuntime._report_mirror_busy_input(self, "clavier")
-            return trusted
+            if not trusted or self.settings is not settings:
+                return False
+            AtlasRuntime._report_mirror_busy_input(self, "clavier")
+            return self.settings is settings
         # Never probe the entire 8-client roster for a key typed into
         # another application or a non-favorite DOFUS window.
-        if foreground != self.settings.primary_handle:
+        if foreground != settings.primary_handle:
             return False
         snapshot = self._mirror_gesture_targets()
         if snapshot is None:
@@ -752,29 +753,31 @@ class AtlasRuntime:
             foreground_window, screen_to_client,
         )
 
-        if (not self._running or not self._admin_ok
-                or self.settings.macro_mode != "mirror"):
-            return False
         settings = self.settings
+        if (not self._running or not self._admin_ok
+                or settings.macro_mode != "mirror"):
+            return False
         foreground = foreground_window()
         if self.macro_lock.active_label:
             # A wheel tick on the still-focused favorite stays physical.
             # A busy worker cannot safely replay it to every client later.
-            if foreground == self.settings.primary_handle:
+            if foreground == settings.primary_handle:
                 AtlasRuntime._report_mirror_busy_input(self, "molette")
                 return False
-            # Temporary secondary focus is protected against stray input.
+            # Temporary secondary focus is protected only while the profile
+            # that authorized the busy Miroir still owns this gesture.
             from app.macros.mirror_plan import is_dofus_unity_process
 
             trusted = (
-                foreground in (c.handle for c in self.settings.clients)
+                foreground in (c.handle for c in settings.clients)
                 and is_dofus_unity_process(foreground)
             )
-            if trusted:
-                AtlasRuntime._report_mirror_busy_input(self, "molette")
-            return trusted
+            if not trusted or self.settings is not settings:
+                return False
+            AtlasRuntime._report_mirror_busy_input(self, "molette")
+            return self.settings is settings
         # A wheel gesture outside the favorite should cost no roster scans.
-        if foreground != self.settings.primary_handle:
+        if foreground != settings.primary_handle:
             return False
         if find_known_client_from_point(
             screen_x, screen_y, (foreground,),

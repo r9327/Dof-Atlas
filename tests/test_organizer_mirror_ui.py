@@ -4056,6 +4056,46 @@ class OrganizerMirrorIntegrationTests(unittest.TestCase):
                     "Miroir desynchronise : geste non diffuse sur tous les comptes."
                 )
 
+    def test_busy_secondary_key_wheel_do_not_swallow_on_profile_reload(self):
+        for count in (2, 4, 6, 8):
+            for kind in ("key", "wheel"):
+                with self.subTest(clients=count, kind=kind):
+                    handles = tuple(range(101, 101 + count))
+                    runtime = self._runtime(primary=handles[0], handles=handles)
+                    runtime._running = True
+                    runtime._admin_ok = True
+                    runtime.macro_lock.active_label = "Miroir"
+                    old = runtime.settings
+                    secondary = handles[-1]
+
+                    def reload_on_process(_hwnd):
+                        runtime.settings = SimpleNamespace(
+                            macro_mode="macro",
+                            primary_handle=old.primary_handle,
+                            clients=old.clients,
+                        )
+                        return True
+
+                    with (
+                        patch("app.windows.unity_windows.foreground_window",
+                              return_value=secondary),
+                        patch("app.macros.mirror_plan.is_dofus_unity_process",
+                              side_effect=reload_on_process) as process,
+                    ):
+                        if kind == "key":
+                            self.assertFalse(
+                                AtlasRuntime._handle_mirror_key(runtime, 65, True),
+                            )
+                        else:
+                            self.assertFalse(AtlasRuntime._handle_mirror_wheel(
+                                runtime, 120, 20, 25, False,
+                            ))
+                    process.assert_called_once_with(secondary)
+                    runtime._report_mirror_busy_input.assert_not_called()
+                    runtime._emit_status.assert_not_called()
+                    runtime.mirror_input.run_key.assert_not_called()
+                    runtime.mirror_input.run_wheel.assert_not_called()
+
     def test_busy_secondary_input_reports_loss_without_replay(self):
         runtime = self._runtime(primary=101, handles=(101, 202))
         runtime._running = True
