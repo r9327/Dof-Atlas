@@ -4824,6 +4824,41 @@ class OrganizerMirrorIntegrationTests(unittest.TestCase):
                 focus.assert_not_called()
                 send.assert_not_called()
 
+    def test_switch_click_admission_refuses_favorite_change_during_spawn(self):
+        from app.macros.switch_click import SwitchClickMacro, SwitchClickContext
+
+        for count in (2, 4, 6, 8):
+            for action in ("Miroir", "Switch double clic"):
+                with self.subTest(clients=count, action=action):
+                    handles = tuple(range(101, 101 + count))
+                    runtime = self._runtime(primary=101, handles=handles)
+                    runtime.settings.macro_mode = (
+                        "mirror" if action == "Miroir" else "macro"
+                    )
+                    queued = []
+                    context = SwitchClickContext(101, 20, 30, 0.5, 0.5, "cursor")
+
+                    def spawn(_label, worker):
+                        queued.append(worker)
+                        runtime.settings.primary_handle = handles[-1]
+                        return True
+
+                    runtime._spawn_macro.side_effect = spawn
+                    macro = SwitchClickMacro(runtime)
+                    with patch.object(macro, "_capture_trigger_context",
+                                      return_value=context):
+                        self.assertFalse(macro.run_async(
+                            "Left", 20, 30, 1 if action == "Miroir" else 2,
+                            action,
+                            exact_source_handle=101 if action == "Miroir" else None,
+                            mirror_target_handles=handles if action == "Miroir" else None,
+                        ))
+                    self.assertEqual(len(queued), 1)
+                    with patch.object(macro, "_run") as run:
+                        queued[0]()
+                    run.assert_not_called()
+                    runtime.input_state.begin_mouse_block.assert_not_called()
+
     def test_switch_click_healthy_admission_still_accepts_2_to_8(self):
         from app.macros.switch_click import SwitchClickMacro, SwitchClickContext
 
@@ -4854,7 +4889,7 @@ class OrganizerMirrorIntegrationTests(unittest.TestCase):
         from app.macros.switch_click import SwitchClickMacro, SwitchClickContext
 
         for count in (2, 4, 6, 8):
-            for phase in ("process", "activation", "point", "send"):
+            for phase in ("process", "activation", "point", "send", "favorite", "mode"):
                 with self.subTest(clients=count, phase=phase):
                     runtime = Mock()
                     runtime.settings.primary_handle = 101
@@ -4886,6 +4921,12 @@ class OrganizerMirrorIntegrationTests(unittest.TestCase):
                         self.assertEqual(hwnd, 102)
                         if phase == "activation":
                             target.handle = 999
+                            self.assertTrue(kwargs["should_stop"]())
+                        elif phase == "favorite":
+                            runtime.settings.primary_handle = 102
+                            self.assertTrue(kwargs["should_stop"]())
+                        elif phase == "mode":
+                            runtime.settings.macro_mode = "mirror"
                             self.assertTrue(kwargs["should_stop"]())
                         return True
 

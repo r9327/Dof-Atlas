@@ -62,10 +62,13 @@ class SwitchClickMacro:
             if isinstance(original_clients, (list, tuple)) else None
         )
         dispatch_mode = settings_at_dispatch.macro_mode
+        dispatch_primary = settings_at_dispatch.primary_handle
 
         def dispatch_is_current() -> bool:
             if (self.runtime.settings is not settings_at_dispatch
-                    or settings_at_dispatch.macro_mode != dispatch_mode):
+                    or settings_at_dispatch.macro_mode != dispatch_mode
+                    or type(settings_at_dispatch.primary_handle) is not type(dispatch_primary)
+                    or settings_at_dispatch.primary_handle != dispatch_primary):
                 return False
             if dispatch_roster is None:
                 return True
@@ -215,6 +218,8 @@ class SwitchClickMacro:
         mirror_focus_samples: list[float] = []
         targets = []
         frozen_handles: tuple[int, ...] = ()
+        initial_mode = settings_at_start.macro_mode
+        initial_primary = settings_at_start.primary_handle
         initial_clients = getattr(settings_at_start, "clients", None)
         initial_roster = (
             tuple((type(c.handle), c.handle) for c in initial_clients)
@@ -226,6 +231,9 @@ class SwitchClickMacro:
             # accepted before Win32 yields, never their reassigned values.
             return (
                 self.runtime.settings is settings_at_start
+                and settings_at_start.macro_mode == initial_mode
+                and type(settings_at_start.primary_handle) is type(initial_primary)
+                and settings_at_start.primary_handle == initial_primary
                 and (
                     initial_roster is None
                     or (
