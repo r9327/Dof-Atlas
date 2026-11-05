@@ -75,7 +75,7 @@ class OnDemandToolModeTests(unittest.TestCase):
                     self.assertNotIn("sudo", args)
                     self.assertFalse(any("phase-certification" in a.lower() for a in args))
                     if evidence:
-                        self.assertTrue(str(evidence).startswith("artifacts/"))
+                        self.assertEqual(Path(evidence).parts[0], "artifacts")
         self.assertEqual(len(subject.command_plan("bench-full", B, H)), 5)
         self.assertEqual(subject.command_plan("oss", B, H, []), [])
         with self.assertRaises(ValueError):
