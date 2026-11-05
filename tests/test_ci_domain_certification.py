@@ -69,6 +69,7 @@ class ModularDomainRoutingTests(unittest.TestCase):
             "tools/doctor_pr_on_demand.py",
             "tests/test_doctor_pr_on_demand.py",
             ".github/workflows/atlas-doctor-on-demand.yml",
+            "GRAPHIFY.md",  # Reviewed root Graphify agent contract.
         ]
         for path in changed:
             with self.subTest(path=path):
