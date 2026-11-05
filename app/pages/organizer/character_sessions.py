@@ -272,11 +272,10 @@ class CharacterSessionsMixin:
         return slots
 
     def session_order_keys(self, session: dict[str, Any]) -> list[str]:
-        try:
-            hwnd = int(session.get("hwnd", 0))
-        except (AttributeError, TypeError, ValueError, OverflowError):
-            hwnd = 0
-        label = str(session.get("nom", "")).strip() if isinstance(session, dict) else ""
+        # Reuse the exact HWND parser used for export and dispatch. A float
+        # or boolean alias must not acquire a persisted session-order key.
+        hwnd = session_hwnd(session)
+        label = session_name(session)
         short_name = clean_auto_group_name(label)
         keys = [normalize_key(label), normalize_key(short_name)]
         if hwnd > 0:
@@ -510,10 +509,7 @@ class CharacterSessionsMixin:
             return ""
         for character_id, row in self._verified_character_rows():
             token = f"character:{character_id}"
-            try:
-                row_pid = int(row.get("pid") or 0)
-            except (TypeError, ValueError, OverflowError):
-                row_pid = 0
+            row_pid = session_pid(row)
             # A Windows PID can be reused after restart. Never trust it
             # without matching the verified character name AND class.
             verified_identity_matches = (
@@ -615,11 +611,8 @@ class CharacterSessionsMixin:
     def set_primary_window(self, session: dict[str, Any] | str) -> None:
         current = str(self.profiles.get(KEY_PRIMARY_WINDOW, ""))
         if isinstance(session, dict):
-            name = str(session.get("nom", "Session"))
-            try:
-                hwnd = int(session.get("hwnd", 0))
-            except (TypeError, ValueError, OverflowError):
-                hwnd = 0
+            name = session_name(session) or "Session"
+            hwnd = session_hwnd(session)
             token = self.primary_token_for_session(name, hwnd, session)
         else:
             name = str(session)

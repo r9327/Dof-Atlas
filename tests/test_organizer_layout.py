@@ -85,6 +85,34 @@ class OrganizerLayoutTests(unittest.TestCase):
                 page.deleteLater()
                 self.app.processEvents()
 
+    def test_organizer_order_and_favorite_never_coerce_foreign_window_ids(self):
+        from unittest.mock import Mock
+        from app.pages.organizer.character_sessions import CharacterSessionsMixin
+
+        for count in (2, 4, 6, 8):
+            for index in range(count):
+                with self.subTest(count=count, index=index):
+                    hwnd = 101 + index
+                    page = Mock()
+                    page.profiles = {}
+                    page.primary_token_for_session.return_value = ""
+                    valid = {"nom": f"Perso{index}", "hwnd": str(hwnd)}
+                    keys = CharacterSessionsMixin.session_order_keys(page, valid)
+                    self.assertIn(f"hwnd:{hwnd}", keys)
+                    for invalid in (float(hwnd), True, f"+{hwnd}", 2**64):
+                        row = {"nom": f"Perso{index}", "hwnd": invalid}
+                        bad = CharacterSessionsMixin.session_order_keys(page, row)
+                        self.assertFalse(any(key.startswith("hwnd:") for key in bad))
+                        with patch.object(
+                            organizer_sessions, "record_validation",
+                        ):
+                            CharacterSessionsMixin.set_primary_window(page, row)
+                        page.primary_token_for_session.assert_called_with(
+                            f"Perso{index}", 0, row,
+                        )
+                        page.reload_runtime_callback.assert_not_called()
+                        page.primary_token_for_session.reset_mock()
+
     def test_organizer_autogroup_reports_accepted_rejected_and_legacy_launch(self):
         from unittest.mock import Mock
         from app.pages.organizer.character_sessions import CharacterSessionsMixin
