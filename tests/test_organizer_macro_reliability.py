@@ -941,15 +941,50 @@ class OrganizerMacroReliabilityTests(unittest.TestCase):
         macro = AutoGroupMacro(runtime)
         for entries in (
             None, "bad", [{"name": f"Perso{i}", "handle": 101 + i}
-                          for i in range(9)],
+                          for i in range(33)],
         ):
             with self.subTest(entries=type(entries).__name__):
                 runtime._emit_status.reset_mock()
                 macro._run(entries)
                 runtime.switch_character.logical_active_client.assert_not_called()
                 runtime._emit_status.assert_called_once_with(
-                    "Auto-groupe non lancé : plus de huit fenêtres ou liste invalide."
+                    "Auto-groupe non lancé : liste invalide ou trop volumineuse."
                 )
+
+    def test_auto_group_eight_valid_plus_duplicate_and_empty_entries_remain_supported(self):
+        runtime = _runtime()
+        runtime._spawn_macro.return_value = True
+        entries = [
+            {"name": "Leader", "handle": 101},
+            *({"name": f"Friend{i}", "handle": 101 + i}
+              for i in range(1, 8)),
+            {"name": "friend1", "handle": 102},
+            {"name": "", "handle": 999},
+        ]
+        self.assertTrue(AutoGroupMacro(runtime).run_async(entries))
+        runtime._spawn_macro.assert_called_once()
+
+    def test_auto_group_direct_worker_refuses_eight_invitees_plus_source(self):
+        runtime = _runtime()
+        runtime.switch_character.logical_active_client.return_value = SimpleNamespace(
+            handle=101, display_name="Leader",
+        )
+        entries = [
+            {"name": f"Friend{i}", "handle": 201 + i}
+            for i in range(8)
+        ]
+        with (
+            patch("app.macros.auto_group.is_unity_window", return_value=True),
+            patch("app.macros.auto_group.is_dofus_unity_process", return_value=True),
+            patch("app.macros.auto_group.activate_window") as focus,
+            patch("app.macros.auto_group.send_chat_command") as chat,
+        ):
+            AutoGroupMacro(runtime)._run(entries)
+        focus.assert_not_called()
+        chat.assert_not_called()
+        runtime._emit_status.assert_called_once_with(
+            "Auto-groupe non lancé : plus de huit comptes source comprise."
+        )
 
     def test_auto_group_valid_eight_window_roster_still_admits_worker(self) -> None:
         runtime = _runtime()

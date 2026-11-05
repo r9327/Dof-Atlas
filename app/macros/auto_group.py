@@ -18,15 +18,27 @@ class AutoGroupMacro:
         self.runtime = runtime
 
     def run_async(self, invite_entries: list[dict[str, object]]) -> bool:
-        # The Organizer contract is a maximum of eight total windows
-        # (including the sender). Reject an untrusted oversized callback
-        # BEFORE copying it or admitting a potentially unbounded worker.
-        if not isinstance(invite_entries, (list, tuple)) or len(invite_entries) > 8:
+        # A scanner may report eight valid windows PLUS duplicate/empty
+        # rows, so raw item count is not the participant count. Bound the
+        # untrusted raw payload, then reject more than eight distinct names
+        # before ever reserving a worker. The worker removes the sender and
+        # checks its final recipient count against the same total capacity.
+        if not isinstance(invite_entries, (list, tuple)) or len(invite_entries) > 32:
             self.runtime.logger.warning(
-                "Auto groupe refusé: liste invalide ou plus de huit fenêtres."
+                "Auto groupe refusé: liste invalide ou scanner trop volumineux."
             )
             return False
         entries = [dict(entry) for entry in invite_entries if isinstance(entry, dict)]
+        names = {
+            normalize_key(clean_auto_group_name(entry.get("name", "")))
+            for entry in entries
+        }
+        names.discard("")
+        if len(names) > 8:
+            self.runtime.logger.warning(
+                "Auto groupe refusé: plus de huit participants distincts."
+            )
+            return False
         if not entries:
             self.runtime.logger.info("Auto groupe non lancé : aucune session candidate.")
             return False
@@ -53,14 +65,15 @@ class AutoGroupMacro:
         *, profile_at_dispatch: object | None = None,
         dispatch_context: tuple[object, object] | None = None,
     ) -> None:
-        # _run is also used directly by integrations/tests. A caller must
-        # not bypass run_async's eight-client boundary to send extra invites.
-        if not isinstance(invite_entries, (list, tuple)) or len(invite_entries) > 8:
+        # _run is also used directly by integrations/tests. Keep malformed
+        # scanner payloads bounded, but count distinct valid participants
+        # AFTER sender/dedup filtering instead of truncating raw rows.
+        if not isinstance(invite_entries, (list, tuple)) or len(invite_entries) > 32:
             self.runtime.logger.warning(
-                "Auto groupe refusé: liste invalide ou plus de huit fenêtres."
+                "Auto groupe refusé: liste invalide ou scanner trop volumineux."
             )
             self.runtime._emit_status(
-                "Auto-groupe non lancé : plus de huit fenêtres ou liste invalide."
+                "Auto-groupe non lancé : liste invalide ou trop volumineuse."
             )
             return
         if not invite_entries:
@@ -155,6 +168,17 @@ class AutoGroupMacro:
             "Auto groupe préparé: invitations=%s doublons=%s lanceur=%s vides=%s",
             len(recipients), excluded_duplicate, excluded_sender, excluded_empty,
         )
+        if len(recipients) > 7:
+            # The source is the eighth possible account. Never send a
+            # ninth participant's invite, even when raw input had only
+            # eight rows and omitted the active sender.
+            self.runtime.logger.warning(
+                "Auto groupe refusé: trop de destinataires (source comprise)."
+            )
+            self.runtime._emit_status(
+                "Auto-groupe non lancé : plus de huit comptes source comprise."
+            )
+            return
         if not recipients:
             # A one-client roster must not steal focus just to do nothing.
             self.runtime.logger.info(
