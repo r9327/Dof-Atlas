@@ -22,6 +22,40 @@ class OrganizerLayoutTests(unittest.TestCase):
     def setUpClass(cls) -> None:
         cls.app = QApplication.instance() or QApplication([])
 
+    def test_session_ids_refuse_fractional_boolean_and_corrupt_native_values(self):
+        from app.pages.organizer.common import (
+            session_hwnd, session_pid, session_is_detected, session_name,
+        )
+
+        for count in (2, 4, 6, 8):
+            for hwnd in range(101, 101 + count):
+                with self.subTest(count=count, hwnd=hwnd):
+                    self.assertEqual(session_hwnd({"hwnd": hwnd}), hwnd)
+                    self.assertEqual(session_hwnd({"hwnd": f" {hwnd} "}), hwnd)
+                    self.assertTrue(session_is_detected({
+                        "nom": "Witsis", "hwnd": hwnd,
+                    }))
+        bad_hwnds = (
+            True, False, 101.0, 101.9, float("nan"), float("inf"),
+            None, "-101", "+101", "101.5", object(), 0, -1, 2**64,
+        )
+        for raw in bad_hwnds:
+            with self.subTest(hwnd=repr(raw)):
+                self.assertEqual(session_hwnd({"hwnd": raw}), 0)
+                self.assertFalse(session_is_detected({
+                    "nom": "Witsis", "hwnd": raw,
+                }))
+        for raw in (None, False, True, float("inf"), 2**32, "1.5"):
+            with self.subTest(pid=repr(raw)):
+                self.assertEqual(session_pid({"pid": raw}), 0)
+        self.assertEqual(session_pid({"pid": " 12345 "}), 12345)
+        for invalid_name in (None, False, 101, object()):
+            with self.subTest(name=repr(invalid_name)):
+                self.assertEqual(session_name({"nom": invalid_name}), "")
+                self.assertFalse(session_is_detected({
+                    "nom": invalid_name, "hwnd": 101,
+                }))
+
     @contextmanager
     def organizer_page(self, root: Path):
         profile = root / "client_profiles.json"
