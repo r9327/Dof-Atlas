@@ -85,6 +85,36 @@ class OrganizerLayoutTests(unittest.TestCase):
                 page.deleteLater()
                 self.app.processEvents()
 
+    def test_organizer_duplicate_scanner_windows_never_hide_eighth_client(self):
+        from unittest.mock import Mock
+        from app.pages.organizer.character_sessions import CharacterSessionsMixin
+        from app.pages.organizer.common import session_hwnd, session_is_detected
+
+        for count in (2, 4, 6, 8):
+            with self.subTest(count=count):
+                page = Mock()
+                page.character_order_service.sort_rows.side_effect = (
+                    lambda rows, **_kwargs: rows
+                )
+                distinct = [
+                    {"nom": f"Perso{i}", "hwnd": 101 + i}
+                    for i in range(count)
+                ]
+                scanned = [
+                    distinct[0],
+                    {"nom": "Duplicated event", "hwnd": 101},
+                    *distinct[1:],
+                ]
+                slots = CharacterSessionsMixin.build_session_slots(page, scanned)
+                self.assertEqual(len(slots), 8)
+                active = [row for row in slots if session_is_detected(row)]
+                self.assertEqual(len(active), count)
+                self.assertEqual(
+                    tuple(session_hwnd(row) for row in active),
+                    tuple(range(101, 101 + count)),
+                )
+                self.assertEqual(active[0]["nom"], "Perso0")
+
     def test_organizer_order_and_favorite_never_coerce_foreign_window_ids(self):
         from unittest.mock import Mock
         from app.pages.organizer.character_sessions import CharacterSessionsMixin

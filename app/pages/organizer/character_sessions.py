@@ -253,11 +253,20 @@ class CharacterSessionsMixin:
         return sum(1 for session in self.sessions if session_is_detected(session))
 
     def build_session_slots(self, detected_sessions: list[dict[str, Any]]) -> list[dict[str, Any]]:
-        detected = [
-            dict(session)
-            for session in detected_sessions
-            if session_is_detected(session)
-        ]
+        # An event watcher may report one HWND more than once during a
+        # refresh. Duplicates must not consume the eight visible Organizer
+        # slots and hide the last real character. Deduplicate on the exact
+        # validated Win32 HWND, never on a possibly shared window title.
+        detected: list[dict[str, Any]] = []
+        seen_handles: set[int] = set()
+        for session in detected_sessions:
+            if not session_is_detected(session):
+                continue
+            hwnd = session_hwnd(session)
+            if hwnd in seen_handles:
+                continue
+            seen_handles.add(hwnd)
+            detected.append(dict(session))
         ordered = list(
             self.character_order_service.sort_rows(
                 detected,
