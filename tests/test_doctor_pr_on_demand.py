@@ -120,6 +120,10 @@ class OnDemandWorkflowTests(unittest.TestCase):
         self.assertIn("tools.atlas_doctor graph --rebuild", text)
         self.assertIn("graphifyy==0.9.72", text)
         self.assertIn("provenance.json", text)
+        self.assertIn("\n  freshness:\n", text)
+        self.assertIn("needs: [resolve, diagnostic]", text)
+        diagnostic = text.split("\n  diagnostic:\n", 1)[1].split("\n  freshness:\n", 1)[0]
+        self.assertNotIn("GH_TOKEN", diagnostic)
         self.assertIn("Doctor rejected graph generation", text)
         self.assertIn("Confirmed structural blocking findings", text)
         self.assertIn("actions/upload-artifact@", text)
