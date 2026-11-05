@@ -6440,5 +6440,89 @@ class OrganizerMirrorIntegrationTests(unittest.TestCase):
 
 
 
+    def test_mirror_busy_key_wheel_stop_does_not_consume_or_probe(self):
+        from app.core.runtime_state import AtlasRuntime
+
+        for count in (2, 4, 6, 8):
+            slots = tuple(range(101, 101 + count))
+            for kind in ("key", "wheel"):
+                with self.subTest(clients=count, kind=kind):
+                    runtime = self._runtime(primary=slots[0], handles=slots)
+                    runtime._running = True
+                    runtime._admin_ok = True
+                    runtime.macro_lock.active_label = "Miroir"
+                    runtime.macro_lock.should_stop.return_value = True
+                    with (
+                        patch("app.windows.unity_windows.foreground_window") as focus,
+                        patch("app.macros.mirror_plan.is_dofus_unity_process") as process,
+                    ):
+                        consumed = (
+                            AtlasRuntime._handle_mirror_key(runtime, 65, True)
+                            if kind == "key"
+                            else AtlasRuntime._handle_mirror_wheel(
+                                runtime, 120, 20, 25, False
+                            )
+                        )
+                    self.assertFalse(consumed)
+                    focus.assert_not_called()
+                    process.assert_not_called()
+                    runtime._emit_status.assert_not_called()
+                    runtime.mirror_input.run_key.assert_not_called()
+                    runtime.mirror_input.run_wheel.assert_not_called()
+
+    def test_busy_secondary_rechecks_mode_favorite_roster_stop_and_worker(self):
+        from app.core.runtime_state import AtlasRuntime
+
+        for count in (2, 4, 6, 8):
+            slots = tuple(range(101, 101 + count))
+            for kind in ("key", "wheel"):
+                for mutation in ("mode", "favorite", "roster", "stop",
+                                 "worker_done", "runtime"):
+                    with self.subTest(clients=count, kind=kind, mutation=mutation):
+                        runtime = self._runtime(primary=slots[0], handles=slots)
+                        runtime._running = True
+                        runtime._admin_ok = True
+                        runtime.macro_lock.active_label = "Miroir"
+                        profile = runtime.settings
+
+                        def process(_hwnd):
+                            if mutation == "mode":
+                                profile.macro_mode = "macro"
+                            elif mutation == "favorite":
+                                profile.primary_handle = slots[-1]
+                            elif mutation == "roster":
+                                profile.clients = (
+                                    *profile.clients[:-1],
+                                    SimpleNamespace(handle=999),
+                                )
+                            elif mutation == "stop":
+                                runtime.macro_lock.should_stop.return_value = True
+                            elif mutation == "worker_done":
+                                runtime.macro_lock.active_label = ""
+                            else:
+                                runtime._running = False
+                            return True
+
+                        with (
+                            patch("app.windows.unity_windows.foreground_window",
+                                  return_value=slots[-1]),
+                            patch("app.macros.mirror_plan.is_dofus_unity_process",
+                                  side_effect=process) as probe,
+                        ):
+                            consumed = (
+                                AtlasRuntime._handle_mirror_key(runtime, 65, True)
+                                if kind == "key"
+                                else AtlasRuntime._handle_mirror_wheel(
+                                    runtime, 120, 20, 25, False
+                                )
+                            )
+                        self.assertFalse(consumed)
+                        probe.assert_called_once_with(slots[-1])
+                        runtime._emit_status.assert_not_called()
+                        runtime.mirror_input.run_key.assert_not_called()
+                        runtime.mirror_input.run_wheel.assert_not_called()
+
+
+
 if __name__ == "__main__":
     unittest.main()

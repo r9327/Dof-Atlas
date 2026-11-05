@@ -729,7 +729,8 @@ class AtlasRuntime:
             return False
         settings = self.settings
         if (not self._running or not self._admin_ok
-                or settings.macro_mode != "mirror"):
+                or settings.macro_mode != "mirror"
+                or self.macro_lock.should_stop()):
             return False
         if getattr(settings, "radial_enabled", False) is True:
             radial_text = getattr(settings, "radial_hotkey", "")
@@ -742,24 +743,45 @@ class AtlasRuntime:
                     return False
         foreground = foreground_window()
         if self.macro_lock.active_label:
-            # The existing worker cannot accept a second gesture. Keep real
-            # input native if the favorite is still foreground; never enqueue
-            # an old key for replay after Stop, reload or focus changes.
+            # A worker may finish/Stop while native Win32 checks are running.
+            # Only the exact original Organizer generation may suppress a
+            # busy secondary key. Otherwise let the real key pass through.
             if foreground == settings.primary_handle:
                 AtlasRuntime._report_mirror_busy_input(self, "clavier")
                 return False
-            # During fan-out, suppress only for a trusted secondary while
-            # the EXACT profile generation still owns this busy gesture.
             from app.macros.mirror_plan import is_dofus_unity_process
 
+            clients = getattr(settings, "clients", None)
+            if not isinstance(clients, (list, tuple)):
+                return False
+            favorite_at_probe = settings.primary_handle
+            frozen = tuple((type(c.handle), c.handle) for c in clients)
             trusted = (
-                foreground in (c.handle for c in settings.clients)
+                type(foreground) is int
+                and (int, foreground) in frozen
                 and is_dofus_unity_process(foreground)
             )
-            if not trusted or self.settings is not settings:
+            if not trusted:
+                return False
+
+            def still_busy_and_current() -> bool:
+                active = getattr(settings, "clients", None)
+                return (
+                    self.settings is settings
+                    and self._running and self._admin_ok
+                    and settings.macro_mode == "mirror"
+                    and type(settings.primary_handle) is int
+                    and settings.primary_handle == favorite_at_probe
+                    and self.macro_lock.active_label
+                    and not self.macro_lock.should_stop()
+                    and isinstance(active, (list, tuple))
+                    and tuple((type(c.handle), c.handle) for c in active) == frozen
+                )
+
+            if not still_busy_and_current():
                 return False
             AtlasRuntime._report_mirror_busy_input(self, "clavier")
-            return self.settings is settings
+            return bool(still_busy_and_current())
         # Never probe the entire 8-client roster for a key typed into
         # another application or a non-favorite DOFUS window.
         if foreground != settings.primary_handle:
@@ -796,7 +818,8 @@ class AtlasRuntime:
 
         settings = self.settings
         if (not self._running or not self._admin_ok
-                or settings.macro_mode != "mirror"):
+                or settings.macro_mode != "mirror"
+                or self.macro_lock.should_stop()):
             return False
         foreground = foreground_window()
         if self.macro_lock.active_label:
@@ -805,18 +828,39 @@ class AtlasRuntime:
             if foreground == settings.primary_handle:
                 AtlasRuntime._report_mirror_busy_input(self, "molette")
                 return False
-            # Temporary secondary focus is protected only while the profile
-            # that authorized the busy Miroir still owns this gesture.
             from app.macros.mirror_plan import is_dofus_unity_process
 
+            clients = getattr(settings, "clients", None)
+            if not isinstance(clients, (list, tuple)):
+                return False
+            favorite_at_probe = settings.primary_handle
+            frozen = tuple((type(c.handle), c.handle) for c in clients)
             trusted = (
-                foreground in (c.handle for c in settings.clients)
+                type(foreground) is int
+                and (int, foreground) in frozen
                 and is_dofus_unity_process(foreground)
             )
-            if not trusted or self.settings is not settings:
+            if not trusted:
+                return False
+
+            def still_busy_and_current() -> bool:
+                active = getattr(settings, "clients", None)
+                return (
+                    self.settings is settings
+                    and self._running and self._admin_ok
+                    and settings.macro_mode == "mirror"
+                    and type(settings.primary_handle) is int
+                    and settings.primary_handle == favorite_at_probe
+                    and self.macro_lock.active_label
+                    and not self.macro_lock.should_stop()
+                    and isinstance(active, (list, tuple))
+                    and tuple((type(c.handle), c.handle) for c in active) == frozen
+                )
+
+            if not still_busy_and_current():
                 return False
             AtlasRuntime._report_mirror_busy_input(self, "molette")
-            return self.settings is settings
+            return bool(still_busy_and_current())
         # A wheel gesture outside the favorite should cost no roster scans.
         if foreground != settings.primary_handle:
             return False
