@@ -133,6 +133,46 @@ class OnDemandToolModeTests(unittest.TestCase):
             self.assertEqual(result["commands"], [])
             self.assertTrue((root / subject.OUTPUT_ROOT / "report.json").is_file())
 
+    def test_subtool_not_run_cannot_be_promoted_to_execution(self):
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp)
+            result = subject.subprocess.CompletedProcess(
+                args=["fake-tool"], returncode=0,
+                stdout='{"status":"NOT_RUN"}', stderr="")
+            with patch.object(subject, "_git", return_value=H), \
+                    patch.object(subject.subprocess, "run", return_value=result):
+                report = subject.run("ponytail", B, H, root=root)
+            self.assertEqual(report["status"], "NOT_RUN")
+            self.assertEqual(report["commands"][0]["status"], "NOT_RUN")
+            with patch.object(subject, "run", return_value=report):
+                self.assertEqual(subject.main([
+                    "--mode", "ponytail", "--base-sha", B, "--head-sha", H
+                ]), 2)
+
+    def test_not_applicable_subtool_is_not_reported_executed(self):
+        with tempfile.TemporaryDirectory() as temp:
+            result = subject.subprocess.CompletedProcess(
+                args=["fake-tool"], returncode=0,
+                stdout='{"status":"NOT_APPLICABLE"}', stderr="")
+            with patch.object(subject, "_git", return_value=H), \
+                    patch.object(subject.subprocess, "run", return_value=result):
+                report = subject.run("ponytail", B, H, root=Path(temp))
+            self.assertEqual(report["status"], "NOT_APPLICABLE")
+            self.assertNotEqual(report["status"], "EXECUTED_NOT_CERTIFIED")
+
+    def test_failed_stage_stops_benchmark_chain_and_records_not_run(self):
+        with tempfile.TemporaryDirectory() as temp:
+            result = subject.subprocess.CompletedProcess(
+                args=["fake-tool"], returncode=1,
+                stdout="", stderr="Simulated failure")
+            with patch.object(subject, "_git", return_value=H), \
+                    patch.object(subject.subprocess, "run", return_value=result) as call:
+                report = subject.run("tools", B, H, root=Path(temp))
+            self.assertEqual(call.call_count, 1)
+            self.assertEqual(report["status"], "FAIL")
+            self.assertEqual([item["status"] for item in report["commands"]],
+                             ["FAIL", "NOT_RUN"])
+
     def test_workflow_trust_boundary_and_full_opt_in(self):
         root = Path(__file__).resolve().parents[1]
         new = (root / ".github/workflows/atlas-tools-on-demand.yml").read_text(encoding="utf-8")
