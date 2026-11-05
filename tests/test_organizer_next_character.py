@@ -192,11 +192,26 @@ class NextCharacterTests(unittest.TestCase):
         unity.assert_not_called()
         dofus.assert_not_called()
 
+
+    def test_busy_hotkey_next_character_skips_roster_scanning_2_to_8(self):
+        for count in (2, 4, 6, 8):
+            for busy in ("Switch clique", "Auto zaap", "Auto groupe", "Miroir"):
+                with self.subTest(clients=count, busy=busy):
+                    runtime = Mock()
+                    runtime._running = True
+                    runtime._admin_ok = True
+                    runtime.settings = settings(count)
+                    runtime.macro_lock.active_label = busy
+                    AtlasRuntime._handle_hotkey(runtime, "next_character", {})
+                    runtime.switch_character.activate_next.assert_not_called()
+                    runtime.switch_character.activate_by_index.assert_not_called()
+
     def test_runtime_handler_honors_mode_and_existing_toggle(self):
         runtime = Mock()
         runtime._running = True
         runtime._admin_ok = True
         runtime.settings = settings(4)
+        runtime.macro_lock.active_label = ""
         AtlasRuntime._handle_hotkey(runtime, "next_character", {})
         runtime.switch_character.activate_next.assert_called_once_with(
             expected_profile=runtime.settings,

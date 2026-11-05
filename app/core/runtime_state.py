@@ -568,7 +568,11 @@ class AtlasRuntime:
         if settings.macro_mode == "mirror":
             return
         if action_id == "next_character":
-            if settings.switch_character_enabled and self.settings is settings:
+            # A busy MacroLock would reject the eventual activation worker.
+            # Avoid scanning up to eight HWNDs just to hit that refusal.
+            if (settings.switch_character_enabled
+                    and self.settings is settings
+                    and not self.macro_lock.active_label):
                 self.switch_character.activate_next(expected_profile=settings)
             return
         if action_id.startswith("client:"):

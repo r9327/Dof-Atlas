@@ -100,6 +100,41 @@ class OrganizerLayoutTests(unittest.TestCase):
         page.export_client_index.assert_not_called()
         self.assertIn("aucun personnage", page.status_callback.call_args.args[0])
 
+
+    def test_busy_organizer_next_button_does_not_scan_live_windows(self):
+        from unittest.mock import Mock
+        import main as app_main
+
+        for count in (2, 4, 6, 8):
+            with self.subTest(clients=count):
+                fake = Mock()
+                fake._ensure_runtime.return_value.macro_lock.active_label = "Auto groupe"
+                app_main.AtlasWindow.launch_next_character(fake)
+                fake._ensure_runtime.assert_called_once()
+                fake._ensure_runtime.return_value.switch_character.activate_next.assert_not_called()
+                fake.set_status.assert_called_once_with(
+                    "Personnage suivant indisponible : macro déjà en cours."
+                )
+
+    def test_idle_organizer_next_button_preserves_normal_action(self):
+        from unittest.mock import Mock
+        import main as app_main
+
+        for accepted in (True, False):
+            with self.subTest(accepted=accepted):
+                fake = Mock()
+                runtime = fake._ensure_runtime.return_value
+                runtime.macro_lock.active_label = ""
+                runtime.switch_character.activate_next.return_value = accepted
+                app_main.AtlasWindow.launch_next_character(fake)
+                runtime.switch_character.activate_next.assert_called_once_with()
+                if accepted:
+                    fake.set_status.assert_not_called()
+                else:
+                    fake.set_status.assert_called_once_with(
+                        "Personnage suivant : aucune autre fenêtre DOFUS activable."
+                    )
+
     def test_organizer_auto_group_and_zaap_cannot_launch_during_shutdown(self):
         from unittest.mock import Mock
         import main as app_main

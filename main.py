@@ -2735,6 +2735,9 @@ class AtlasWindow(QMainWindow):
     def launch_next_character(self) -> None:
         """Direct Organizer action: reuse the live character-switching worker."""
         runtime = self._ensure_runtime()
+        if runtime.macro_lock.active_label:
+            self.set_status("Personnage suivant indisponible : macro déjà en cours.")
+            return
         if not runtime.switch_character.activate_next():
             self.set_status("Personnage suivant : aucune autre fenêtre DOFUS activable.")
 
