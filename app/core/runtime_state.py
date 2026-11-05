@@ -677,7 +677,10 @@ class AtlasRuntime:
             return (
                 self.settings is settings
                 and self._running and self._admin_ok
-                and not self.macro_lock.should_stop()
+                # MacroLock keeps Stop latched once a worker ends. A fresh
+                # gesture may start a new lease, which clears that old latch.
+                and not (self.macro_lock.active_label
+                         and self.macro_lock.should_stop())
                 and settings.macro_mode == "mirror"
                 and type(settings.primary_handle) is int
                 and settings.primary_handle == source
@@ -730,7 +733,8 @@ class AtlasRuntime:
         settings = self.settings
         if (not self._running or not self._admin_ok
                 or settings.macro_mode != "mirror"
-                or self.macro_lock.should_stop()):
+                or (self.macro_lock.active_label
+                    and self.macro_lock.should_stop())):
             return False
         if getattr(settings, "radial_enabled", False) is True:
             radial_text = getattr(settings, "radial_hotkey", "")
@@ -819,7 +823,8 @@ class AtlasRuntime:
         settings = self.settings
         if (not self._running or not self._admin_ok
                 or settings.macro_mode != "mirror"
-                or self.macro_lock.should_stop()):
+                or (self.macro_lock.active_label
+                    and self.macro_lock.should_stop())):
             return False
         foreground = foreground_window()
         if self.macro_lock.active_label:
@@ -923,7 +928,8 @@ class AtlasRuntime:
         if (settings.macro_mode != "mirror"
                 or type(source_hwnd) is not int
                 or not 0 < source_hwnd <= (2**64 - 1)
-                or self.macro_lock.should_stop()):
+                or (self.macro_lock.active_label
+                    and self.macro_lock.should_stop())):
             return False
         # Freeze the exact slots BEFORE GetForegroundWindow, hit-test and
         # the favorite's process probe. These native calls can yield, so a

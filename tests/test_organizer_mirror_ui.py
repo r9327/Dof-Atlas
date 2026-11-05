@@ -6598,5 +6598,95 @@ class OrganizerMirrorIntegrationTests(unittest.TestCase):
 
 
 
+    def test_new_mirror_gesture_after_completed_stop_can_reenter_dispatch(self):
+        from app.core.runtime_state import AtlasRuntime
+
+        for count in (2, 4, 6, 8):
+            slots = tuple(range(101, 101 + count))
+            for source in (slots[0], slots[-1]):
+                ordered = (source, *(h for h in slots if h != source))
+                for kind in ("key", "wheel", "click"):
+                    with self.subTest(count=count, source=source, kind=kind):
+                        runtime = self._runtime(primary=source, handles=slots)
+                        runtime._running = True
+                        runtime._admin_ok = True
+                        # MacroLock retains a stopped event after the previous
+                        # lease ends. The next accepted macro start clears it.
+                        runtime.macro_lock.active_label = ""
+                        runtime.macro_lock.should_stop.return_value = True
+                        runtime._mirror_gesture_targets.return_value = (
+                            source, ordered,
+                        )
+                        runtime.mirror_input.run_key.return_value = True
+                        runtime.mirror_input.run_wheel.return_value = True
+                        with (
+                            patch("app.windows.unity_windows.foreground_window",
+                                  return_value=source),
+                            patch("app.windows.unity_windows.find_known_client_from_point",
+                                  return_value=source),
+                            patch("app.windows.unity_windows.is_unity_window",
+                                  return_value=True),
+                            patch("app.windows.unity_windows.screen_to_client",
+                                  return_value=(20, 25)),
+                            patch("app.windows.unity_windows.client_point_ratio",
+                                  return_value=(0.2, 0.4)),
+                            patch("app.macros.mirror_plan.is_dofus_unity_process",
+                                  return_value=True),
+                        ):
+                            if kind == "key":
+                                accepted = AtlasRuntime._handle_mirror_key(
+                                    runtime, 65, True,
+                                )
+                            elif kind == "wheel":
+                                accepted = AtlasRuntime._handle_mirror_wheel(
+                                    runtime, 120, 20, 25, False,
+                                )
+                            else:
+                                accepted = AtlasRuntime._handle_mirror_click(
+                                    runtime, "Left", 20, 25,
+                                )
+                        self.assertTrue(accepted)
+                        if kind == "key":
+                            runtime.mirror_input.run_key.assert_called_once_with(
+                                65, source, ordered,
+                                expected_profile=runtime.settings,
+                            )
+                        elif kind == "wheel":
+                            runtime.mirror_input.run_wheel.assert_called_once_with(
+                                120, False, 0.2, 0.4, source, ordered,
+                                expected_profile=runtime.settings,
+                            )
+                        else:
+                            runtime.switch_click.run_async.assert_called_once_with(
+                                "Left", 20, 25, 1, "Miroir",
+                                exact_source_handle=source,
+                                mirror_target_handles=ordered,
+                                expected_profile=runtime.settings,
+                            )
+
+    def test_mirror_snapshot_is_available_after_old_stop_lease_has_ended(self):
+        from app.core.runtime_state import AtlasRuntime
+
+        for count in (2, 4, 6, 8):
+            slots = tuple(range(101, 101 + count))
+            source = slots[-1]
+            runtime = self._runtime(primary=source, handles=slots)
+            runtime._running = True
+            runtime._admin_ok = True
+            runtime.macro_lock.active_label = ""
+            runtime.macro_lock.should_stop.return_value = True
+            with (
+                patch("app.windows.unity_windows.is_unity_window",
+                      return_value=True),
+                patch("app.macros.mirror_plan.is_dofus_unity_process",
+                      return_value=True),
+            ):
+                self.assertEqual(
+                    AtlasRuntime._mirror_gesture_targets(runtime),
+                    (source, (source, *slots[:-1])),
+                )
+
+
+
 if __name__ == "__main__":
     unittest.main()
