@@ -181,12 +181,17 @@ class SwitchCharacterMacro:
         """
         settings = self.runtime.settings
         preferred = settings.preferred_client()
-        if (preferred is None
-                or type(preferred.handle) is not int
-                or not 0 < preferred.handle <= (2**64 - 1)
-                or not is_unity_window(preferred.handle)
-                or not is_dofus_unity_process(preferred.handle)
-                or self.runtime.settings is not settings):
+        if preferred is None:
+            return None
+        # Win32 probes can yield while Organizer edits the same client
+        # object. Trust only the HWND that was actually authenticated.
+        hwnd = preferred.handle
+        if (type(hwnd) is not int
+                or not 0 < hwnd <= (2**64 - 1)
+                or not is_unity_window(hwnd)
+                or not is_dofus_unity_process(hwnd)
+                or self.runtime.settings is not settings
+                or preferred.handle != hwnd):
             return None
         return preferred
 
