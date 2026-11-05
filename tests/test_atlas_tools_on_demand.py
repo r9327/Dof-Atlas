@@ -191,6 +191,66 @@ class OnDemandToolModeTests(unittest.TestCase):
             self.assertEqual([item["status"] for item in report["commands"]],
                              ["FAIL", "NOT_RUN"])
 
+    def test_quick_warn_and_code_inspect_review_are_not_execution_failures(self):
+        with tempfile.TemporaryDirectory() as temp:
+            quick = subject.subprocess.CompletedProcess(
+                args=["doctor", "quick"], returncode=1,
+                stdout=json.dumps({
+                    "kind": "audit", "summary": {"verdict": "WARN", "issues_total": 2},
+                }), stderr="")
+            inspect = subject.subprocess.CompletedProcess(
+                args=["doctor", "code-inspect"], returncode=1,
+                stdout=json.dumps({"status": "REVIEW"}), stderr="")
+            with patch.object(subject, "_git", return_value=H), \
+                    patch.object(subject.subprocess, "run", side_effect=[quick, inspect]) as call:
+                report = subject.run("audit", B, H, root=Path(temp))
+            self.assertEqual(call.call_count, 2)
+            self.assertEqual(report["status"], "REVIEW")
+            self.assertEqual([item["status"] for item in report["commands"]], ["WARN", "REVIEW"])
+            self.assertEqual([item["exit_code"] for item in report["commands"]], [1, 1])
+            self.assertFalse(report["phase_certified"])
+            with patch.object(subject, "run", return_value=report):
+                self.assertEqual(subject.main([
+                    "--mode", "audit", "--base-sha", B, "--head-sha", H
+                ]), 0)
+
+    def test_ponytail_review_with_exit_one_stays_review(self):
+        with tempfile.TemporaryDirectory() as temp:
+            cmd = subject.subprocess.CompletedProcess(
+                args=["doctor", "ponytail"], returncode=1,
+                stdout=json.dumps({"kind": "ponytail_policy", "status": "REVIEW"}),
+                stderr="")
+            with patch.object(subject, "_git", return_value=H), \
+                    patch.object(subject.subprocess, "run", return_value=cmd):
+                report = subject.run("ponytail", B, H, root=Path(temp))
+            self.assertEqual(report["status"], "REVIEW")
+            self.assertEqual(report["commands"][0]["status"], "REVIEW")
+            self.assertEqual(report["commands"][0]["exit_code"], 1)
+
+    def test_advisory_escape_hatch_is_strictly_bounded(self):
+        cases = [
+            ("ponytail", 2, {"kind": "ponytail_policy", "status": "REVIEW"}),
+            ("ponytail", 1, {"kind": "wrong", "status": "REVIEW"}),
+            ("ponytail", 1, {"kind": "ponytail_policy", "status": "FAIL"}),
+            ("audit", 1, {"kind": "audit", "summary": {"verdict": "FAIL"}}),
+            ("audit", 1, {"kind": "bad", "summary": {"verdict": "WARN"}}),
+            ("audit", 1, {"status": "WARN"}),
+        ]
+        for mode, code, payload in cases:
+            with self.subTest(mode=mode, code=code, payload=payload):
+                with tempfile.TemporaryDirectory() as temp:
+                    cmd = subject.subprocess.CompletedProcess(
+                        args=["fake-tool"], returncode=code,
+                        stdout=json.dumps(payload), stderr="")
+                    with patch.object(subject, "_git", return_value=H), \
+                            patch.object(subject.subprocess, "run", return_value=cmd) as call:
+                        report = subject.run(mode, B, H, root=Path(temp))
+                    self.assertEqual(call.call_count, 1)
+                    self.assertEqual(report["status"], "FAIL")
+                    self.assertEqual(report["commands"][0]["status"], "FAIL")
+                    if mode == "audit":
+                        self.assertEqual(report["commands"][1]["status"], "NOT_RUN")
+
     def test_workflow_trust_boundary_and_full_opt_in(self):
         root = Path(__file__).resolve().parents[1]
         new = (root / ".github/workflows/atlas-tools-on-demand.yml").read_text(encoding="utf-8")
