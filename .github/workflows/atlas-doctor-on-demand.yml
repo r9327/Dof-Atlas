@@ -128,7 +128,7 @@ jobs:
               "full_suite_executed": False,
           }
           out = Path("artifacts/doctor_on_demand/provenance.json")
-          out.write_text(json.dumps(report, indent=2) + "\\n", encoding="utf-8")
+          out.write_text(json.dumps(report, indent=2) + "\n", encoding="utf-8")
           PY
 
       - name: Run canonical Doctor adaptive scope and safe selected tests
