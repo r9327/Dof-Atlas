@@ -166,6 +166,11 @@ class SwitchClickMacro:
         # while a worker is merely queued. The worker validates the source
         # and exact roster before taking ownership of the pointer.
         def worker() -> None:
+            if self.runtime.macro_lock.should_stop():
+                self.runtime.logger.info(
+                    "%s annulé: Stop urgence avant worker.", action_label,
+                )
+                return
             if not dispatch_is_current():
                 self.runtime.logger.info(
                     "%s annulé: roster Organizer changé avant worker.", action_label,
@@ -188,7 +193,10 @@ class SwitchClickMacro:
         # mouse hook has validated its context. If that happens, let the
         # real DOWN/UP pass through: the queued worker will reject its stale
         # generation before any synthetic click is sent.
-        return bool(started and dispatch_is_current())
+        return bool(
+            started and not self.runtime.macro_lock.should_stop()
+            and dispatch_is_current()
+        )
 
     def _run(
         self,

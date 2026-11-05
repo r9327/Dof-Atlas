@@ -5046,6 +5046,56 @@ class OrganizerMacroReliabilityTests(unittest.TestCase):
                     )
 
 
+    def test_switch_click_stop_during_admission_preserves_native_gesture(self):
+        from app.macros.switch_click import SwitchClickMacro, SwitchClickContext
+
+        for count in (2, 4, 6, 8):
+            for mirror in (False, True):
+                with self.subTest(clients=count, mirror=mirror):
+                    runtime = _runtime()
+                    handles = tuple(range(101, 101 + count))
+                    runtime.settings.clients = [
+                        SimpleNamespace(handle=hwnd, display_name=str(hwnd))
+                        for hwnd in handles
+                    ]
+                    runtime.settings.macro_mode = "mirror" if mirror else "macro"
+                    runtime.settings.primary_handle = 101
+                    runtime.macro_lock.should_stop.return_value = False
+                    context = SwitchClickContext(101, 20, 30, 0.25, 0.5, "cursor")
+                    sender = SwitchClickMacro(runtime)
+                    queued = []
+
+                    def spawn(_label, worker):
+                        queued.append(worker)
+                        runtime.macro_lock.should_stop.return_value = True
+                        return True
+
+                    runtime._spawn_macro.side_effect = spawn
+                    with patch.object(
+                        sender, "_capture_trigger_context", return_value=context
+                    ):
+                        self.assertFalse(sender.run_async(
+                            "Left", 20, 30, 1, "Miroir" if mirror else "Switch clique",
+                            exact_source_handle=101 if mirror else None,
+                            mirror_target_handles=handles if mirror else None,
+                        ))
+                    self.assertEqual(len(queued), 1)
+                    with (
+                        patch.object(sender, "_run") as deliver,
+                        patch("app.macros.switch_click.current_cursor_pos") as cursor,
+                        patch("app.macros.switch_click.activate_window") as focus,
+                    ):
+                        queued[0]()
+                    deliver.assert_not_called()
+                    cursor.assert_not_called()
+                    focus.assert_not_called()
+                    runtime.input_state.begin_mouse_block.assert_not_called()
+                    runtime.logger.info.assert_any_call(
+                        "%s annulé: Stop urgence avant worker.",
+                        "Miroir" if mirror else "Switch clique",
+                    )
+
+
 
 if __name__ == "__main__":
     unittest.main()
