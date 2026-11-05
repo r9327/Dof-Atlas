@@ -86,3 +86,42 @@ après fusion du workflow sur la branche par défaut, demander les deux modes
 sur une PR Draft et vérifier les SHA, artefacts, états `NOT_RUN` et refus
 de l'ancienne révision. Une recette qui n'a pas été effectivement exécutée
 reste `NOT_RUN`.
+
+## Tests ciblés d'un lot récent, même si la PR entière demande FULL
+
+Sur une PR Draft longue, `/atlas doctor` conserve le diagnostic **global**
+(`FULL_REQUIRED` signifie qu'aucun test automatique ciblé n'est déclaré
+suffisant pour toute la PR). Pour tester uniquement le lot récent, utiliser :
+
+```text
+/atlas doctor-lot <SHA du commit AVANT le lot> <SHA HEAD exact de la PR>
+```
+
+Exemple pour la PR #325 : le SHA avant lot peut être son ancien HEAD
+`c2f71285fc6f9b26dfabdcd396c7de4dfa9d23e9`. Toujours reprendre le
+HEAD actuel, et non un exemple périmé. Via `workflow_dispatch`, sélectionner
+`doctor-lot` avec `expected_sha` et `lot_base_sha`.
+
+Le résolveur approuvé vérifie les rôles GitHub, le dépôt d'origine, la PR
+ouverte et le HEAD exact. Le sélecteur Doctor-lot est extrait **séparément de
+la branche de confiance `main`** : il fonctionne donc aussi sur les anciennes
+PR Draft qui ne contiennent pas encore son module Python, sans importer un
+sélecteur fourni par la PR sous test. Les tests applicatifs s'exécutent
+toujours dans le checkout exact du candidat, sans jeton. Le routeur de lot :
+
+- exige que la base soit un ancêtre réel du HEAD, avec **1 à 20 commits**,
+  **1 à 16 fichiers**, sans suppression/renommage ;
+- sélectionne uniquement des modules de tests existants liés aux sources
+  modifiées ; refuse les fichiers de politique/CI ou non reconnus ; affiche
+  `REVIEW` si un code n'a pas de tests directs, sans prétendre le couvrir ;
+- utilise l'exécuteur ciblé canonique `ci_scope_gate._run_scoped_modules`
+  et fournit `doctor_lot.json`, avec modules réellement lancés, code retour,
+  SHA exact et lacunes éventuelles ;
+- recalcule **séparément** le classement de la PR entière depuis son SHA
+  de base. Le classement `FULL_REQUIRED`, les contrôles de fusion et Phase
+  Certification ne sont jamais modifiés, allégés ni remplacés.
+
+Un `PASS` de tests de lot n'est **ni** une validation de l'interface en jeu,
+**ni** une preuve de fonctionnement des comptes DOFUS Unity, ni une
+certification complète. Pour valider les clients 1/2/4/6/8 sur un vrai PC,
+suivre l'issue #322. Le job `freshness` recontrôle le HEAD après les tests.

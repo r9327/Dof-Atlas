@@ -19,7 +19,8 @@ from typing import Any, Callable
 SHA = re.compile(r"[0-9a-f]{40}\Z")
 REPO = re.compile(r"[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+\Z")
 COMMENT = re.compile(r"/atlas (doctor|graphify|tools|audit|ponytail|oss|bench (?:quick|runtime|memory|preload|8|full))(?: ([0-9a-fA-F]{40}))?\Z")
-MODES = frozenset({"doctor", "graphify", "tools", "audit", "ponytail", "oss",
+LOT_COMMENT = re.compile(r"/atlas doctor-lot ([0-9a-fA-F]{40}) ([0-9a-fA-F]{40})\Z")
+MODES = frozenset({"doctor", "doctor-lot", "graphify", "tools", "audit", "ponytail", "oss",
                    "bench-quick", "bench-runtime", "bench-memory",
                    "bench-preload", "bench-8", "bench-full"})
 TRUSTED_ROLES = frozenset({"OWNER", "MEMBER", "COLLABORATOR"})
@@ -30,6 +31,7 @@ class RequestRejected(ValueError):
 
 
 def parse_request(event_name: str, event: dict[str, Any]) -> tuple[int, str, str]:
+    lot_base = ""
     if event_name == "issue_comment":
         issue = event.get("issue") or {}
         comment = event.get("comment") or {}
@@ -37,17 +39,24 @@ def parse_request(event_name: str, event: dict[str, Any]) -> tuple[int, str, str
             raise RequestRejected("Not a pull-request comment")
         if comment.get("author_association") not in TRUSTED_ROLES:
             raise RequestRejected("Only repository collaborators can request diagnostics")
-        match = COMMENT.fullmatch(str(comment.get("body", "")).strip())
-        if not match:
+        body = str(comment.get("body", "")).strip()
+        lot = LOT_COMMENT.fullmatch(body)
+        match = COMMENT.fullmatch(body) if lot is None else None
+        if not lot and not match:
             raise RequestRejected("Unknown /atlas command or invalid 40-hex SHA")
         number = issue.get("number")
-        mode = match.group(1).replace("bench ", "bench-")
-        expected = (match.group(2) or "").lower()
+        if lot is not None:
+            mode = "doctor-lot"
+            lot_base, expected = lot.group(1).lower(), lot.group(2).lower()
+        else:
+            mode = match.group(1).replace("bench ", "bench-")
+            expected = (match.group(2) or "").lower()
     elif event_name == "workflow_dispatch":
         inputs = event.get("inputs") or {}
         number = inputs.get("pr_number")
         mode = inputs.get("mode")
         expected = str(inputs.get("expected_sha") or "").strip().lower()
+        lot_base = str(inputs.get("lot_base_sha") or "").strip().lower()
     else:
         raise RequestRejected("Unsupported event")
     try:
@@ -60,6 +69,13 @@ def parse_request(event_name: str, event: dict[str, Any]) -> tuple[int, str, str
         raise RequestRejected("Unknown diagnostic mode")
     if expected and not SHA.fullmatch(expected):
         raise RequestRejected("Invalid expected SHA")
+    if mode == "doctor-lot":
+        if not expected or not SHA.fullmatch(lot_base):
+            raise RequestRejected("Development lot needs base and exact HEAD SHA")
+        if lot_base == expected:
+            raise RequestRejected("Development lot cannot be empty")
+    elif lot_base:
+        raise RequestRejected("Lot base is allowed only for doctor-lot")
     return number, mode, expected
 
 
@@ -72,6 +88,13 @@ def resolve(
     if not REPO.fullmatch(repository):
         raise RequestRejected("Invalid repository")
     number, mode, expected = parse_request(event_name, event)
+    lot_base = ""
+    if mode == "doctor-lot":
+        if event_name == "issue_comment":
+            body = str((event.get("comment") or {}).get("body", "")).strip()
+            lot_base = LOT_COMMENT.fullmatch(body).group(1).lower()
+        else:
+            lot_base = str((event.get("inputs") or {}).get("lot_base_sha")).strip().lower()
     pr = fetch_pr(number)
     if pr.get("state") != "open":
         raise RequestRejected("The PR must be open (Draft is accepted)")
@@ -94,6 +117,7 @@ def resolve(
         "mode": mode,
         "candidate_sha": head_sha,
         "base_sha": base_sha,
+        "lot_base_sha": lot_base,
         "draft": bool(pr.get("draft")),
         "request_event": event_name,
         "certified": False,
@@ -139,6 +163,7 @@ def main(argv: list[str] | None = None) -> int:
             for name, key in (
                 ("pr_number", "pr_number"), ("mode", "mode"),
                 ("head_sha", "candidate_sha"), ("base_sha", "base_sha"),
+                ("lot_base_sha", "lot_base_sha"),
             ):
                 stream.write(f"{name}={report[key]}\n")
         print(f"PR #{report['pr_number']} {report['mode']} on {report['candidate_sha']}")

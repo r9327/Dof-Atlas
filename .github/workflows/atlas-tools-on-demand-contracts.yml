@@ -8,8 +8,10 @@ on:
     paths:
       - "tools/atlas_tools_on_demand.py"
       - "tools/doctor_pr_on_demand.py"
+      - "tools/doctor_dev_lot.py"
       - "tests/test_atlas_tools_on_demand.py"
       - "tests/test_doctor_pr_on_demand.py"
+      - "tests/test_doctor_dev_lot.py"
       - "tests/test_ci_domain_certification.py"
       - ".github/workflows/atlas-tools-on-demand.yml"
       - ".github/workflows/atlas-tools-on-demand-contracts.yml"
@@ -52,6 +54,7 @@ jobs:
           set -euo pipefail
           python -m unittest discover -s tests -p test_atlas_tools_on_demand.py -v
           python -m unittest discover -s tests -p test_doctor_pr_on_demand.py -v
+          python -m unittest discover -s tests -p test_doctor_dev_lot.py -v
           python -m unittest discover -s tests -p test_ci_domain_certification.py -v
       - name: State evidence boundary
         if: always()

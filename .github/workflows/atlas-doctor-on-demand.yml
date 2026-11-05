@@ -17,9 +17,14 @@ on:
         type: choice
         options:
           - doctor
+          - doctor-lot
           - graphify
       expected_sha:
-        description: "Optional exact PR HEAD SHA; reject if stale"
+        description: "Optional exact PR HEAD SHA; mandatory for doctor-lot"
+        required: false
+        type: string
+      lot_base_sha:
+        description: "Exact ancestor SHA for doctor-lot (required in this mode)"
         required: false
         type: string
 
@@ -39,6 +44,7 @@ jobs:
       mode: ${{ steps.request.outputs.mode }}
       head_sha: ${{ steps.request.outputs.head_sha }}
       base_sha: ${{ steps.request.outputs.base_sha }}
+      lot_base_sha: ${{ steps.request.outputs.lot_base_sha }}
     steps:
       # The resolver MUST come from the default branch, not from the PR under test.
       - name: Checkout trusted request resolver
@@ -82,6 +88,9 @@ jobs:
       MODE: ${{ needs.resolve.outputs.mode }}
       HEAD_SHA: ${{ needs.resolve.outputs.head_sha }}
       BASE_SHA: ${{ needs.resolve.outputs.base_sha }}
+      LOT_BASE_SHA: ${{ needs.resolve.outputs.lot_base_sha }}
+      QT_QPA_PLATFORM: offscreen
+      QTWEBENGINE_DISABLE_SANDBOX: "1"
     steps:
       - name: Checkout the exact PR candidate (never an implicit merge commit)
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -120,6 +129,7 @@ jobs:
               "mode": os.environ["MODE"],
               "candidate_sha": os.environ["HEAD_SHA"],
               "base_sha": os.environ["BASE_SHA"],
+              "lot_base_sha": os.environ["LOT_BASE_SHA"],
               "run_id": os.environ["GITHUB_RUN_ID"],
               "run_attempt": os.environ["GITHUB_RUN_ATTEMPT"],
               "runner_os": platform.platform(),
@@ -144,6 +154,36 @@ jobs:
           code=$?
           printf '%s\n' "$code" > artifacts/doctor_on_demand/exit_code.txt
           exit "$code"
+
+      # Older Draft PRs (e.g. #325) do not contain the newly merged lot
+      # selector. Execute the reviewed selector from main; only the tests
+      # and application source come from the exact untrusted PR checkout.
+      - name: Checkout trusted Doctor-lot selector independently
+        if: env.MODE == 'doctor-lot'
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ github.event.repository.default_branch }}
+          path: .atlas-trusted-lot
+          sparse-checkout: tools
+          persist-credentials: false
+          lfs: false
+
+      - name: Install pinned Qt runtime for developer-lot UI regression tests
+        if: env.MODE == 'doctor-lot'
+        shell: bash
+        run: python -m pip install --disable-pip-version-check "PySide6==6.12.0"
+
+      - name: Run bounded exact-SHA development-lot tests (never FULL)
+        if: env.MODE == 'doctor-lot'
+        working-directory: .atlas-trusted-lot
+        shell: bash
+        run: |
+          python -m tools.doctor_dev_lot \
+            --repo-root "$GITHUB_WORKSPACE" \
+            --lot-base "$LOT_BASE_SHA" \
+            --pr-base "$BASE_SHA" \
+            --expected-sha "$HEAD_SHA" \
+            --run --output "$GITHUB_WORKSPACE/artifacts/doctor_on_demand/doctor_lot.json"
 
       - name: Install the canonical pinned Graphify version
         if: env.MODE == 'graphify'
@@ -188,6 +228,7 @@ jobs:
             echo "- Requested tool: $MODE"
             echo "- Candidate SHA: \`$HEAD_SHA\`"
             echo "- Base SHA: \`$BASE_SHA\`"
+            echo "- Lot ancestor SHA: \`$LOT_BASE_SHA\`"
             echo "- Job status: $CURRENT_JOB_STATUS"
             echo "- Phase certified: **NO**"
             echo "- FULL / Windows / 2–8 DOFUS accounts: **NOT_RUN**"
