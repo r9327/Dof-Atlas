@@ -194,7 +194,7 @@ class OnDemandToolModeTests(unittest.TestCase):
         self.assertIn("sparse-checkout: |", new)
         self.assertIn("path: .atlas_tools_runner", new)
         self.assertIn("\n  freshness:\n", new)
-        self.assertIn("needs: [resolve, light, windows-bench]", new)
+        self.assertIn("needs: [resolve, light, windows_bench]", new)
         code_jobs = new.split("\n  light:\n", 1)[1].split("\n  freshness:\n", 1)[0]
         self.assertNotIn("GH_TOKEN", code_jobs)
         self.assertNotIn("needs.resolve.outputs.mode == 'bench-full' ||", old)
