@@ -160,6 +160,24 @@ class OnDemandToolModeTests(unittest.TestCase):
             self.assertEqual(report["status"], "NOT_APPLICABLE")
             self.assertNotEqual(report["status"], "EXECUTED_NOT_CERTIFIED")
 
+    def test_review_required_warning_and_unknown_status_stay_review(self):
+        for upstream in ("REVIEW_REQUIRED", "WARN", "SOMETHING_UNRECOGNIZED"):
+            with self.subTest(upstream=upstream), tempfile.TemporaryDirectory() as temp:
+                catalog = subject.subprocess.CompletedProcess(
+                    args=["fake-catalog"], returncode=0,
+                    stdout='{"status":"PASS"}', stderr="")
+                audit = subject.subprocess.CompletedProcess(
+                    args=["fake-audit"], returncode=0,
+                    stdout=json.dumps({"status": upstream}), stderr="")
+                with patch.object(subject, "_git", return_value=H), \
+                        patch.object(subject.subprocess, "run",
+                                     side_effect=[catalog, audit]) as call:
+                    report = subject.run("tools", B, H, root=Path(temp))
+                self.assertEqual(call.call_count, 2)
+                self.assertEqual(report["status"], "REVIEW")
+                self.assertEqual(report["commands"][-1]["status"], upstream)
+                self.assertFalse(report["phase_certified"])
+
     def test_failed_stage_stops_benchmark_chain_and_records_not_run(self):
         with tempfile.TemporaryDirectory() as temp:
             result = subject.subprocess.CompletedProcess(
