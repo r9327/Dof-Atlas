@@ -197,6 +197,15 @@ class OnDemandToolModeTests(unittest.TestCase):
         self.assertIn("needs: [resolve, light, windows_bench]", new)
         code_jobs = new.split("\n  light:\n", 1)[1].split("\n  freshness:\n", 1)[0]
         self.assertNotIn("GH_TOKEN", code_jobs)
+        self.assertNotIn("issues: write", code_jobs)
+        freshness = new.split("\n  freshness:\n", 1)[1]
+        self.assertIn("issues: write", freshness)
+        self.assertIn("id: verify", freshness)
+        self.assertIn("if: ${{ always() }}", freshness)
+        self.assertIn("FRESHNESS_RESULT: ${{ steps.verify.outcome }}", freshness)
+        self.assertIn('gh api "repos/$GITHUB_REPOSITORY/issues/$PR_NUMBER/comments"', freshness)
+        self.assertIn("This receipt is NOT a PASS or certification", freshness)
+        self.assertNotIn("Checkout exact PR candidate", freshness)
         self.assertNotIn("needs.resolve.outputs.mode == 'bench-full' ||", old)
         self.assertIn("startsWith(github.event.comment.body, '/atlas doctor')", old)
         self.assertIn("startsWith(github.event.comment.body, '/atlas graphify')", old)
