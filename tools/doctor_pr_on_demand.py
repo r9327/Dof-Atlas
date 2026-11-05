@@ -18,7 +18,10 @@ from typing import Any, Callable
 
 SHA = re.compile(r"[0-9a-f]{40}\Z")
 REPO = re.compile(r"[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+\Z")
-COMMENT = re.compile(r"/atlas (doctor|graphify)(?: ([0-9a-fA-F]{40}))?\Z")
+COMMENT = re.compile(r"/atlas (doctor|graphify|tools|audit|ponytail|oss|bench (?:quick|runtime|memory|preload|8|full))(?: ([0-9a-fA-F]{40}))?\Z")
+MODES = frozenset({"doctor", "graphify", "tools", "audit", "ponytail", "oss",
+                   "bench-quick", "bench-runtime", "bench-memory",
+                   "bench-preload", "bench-8", "bench-full"})
 TRUSTED_ROLES = frozenset({"OWNER", "MEMBER", "COLLABORATOR"})
 
 
@@ -36,9 +39,9 @@ def parse_request(event_name: str, event: dict[str, Any]) -> tuple[int, str, str
             raise RequestRejected("Only repository collaborators can request diagnostics")
         match = COMMENT.fullmatch(str(comment.get("body", "")).strip())
         if not match:
-            raise RequestRejected("Expected exactly /atlas doctor|graphify [40-hex SHA]")
+            raise RequestRejected("Unknown /atlas command or invalid 40-hex SHA")
         number = issue.get("number")
-        mode = match.group(1)
+        mode = match.group(1).replace("bench ", "bench-")
         expected = (match.group(2) or "").lower()
     elif event_name == "workflow_dispatch":
         inputs = event.get("inputs") or {}
@@ -53,7 +56,7 @@ def parse_request(event_name: str, event: dict[str, Any]) -> tuple[int, str, str
         raise RequestRejected("Invalid PR number") from exc
     if not 0 < number < 1_000_000_000:
         raise RequestRejected("Invalid PR number")
-    if mode not in ("doctor", "graphify"):
+    if mode not in MODES:
         raise RequestRejected("Unknown diagnostic mode")
     if expected and not SHA.fullmatch(expected):
         raise RequestRejected("Invalid expected SHA")

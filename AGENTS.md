@@ -41,6 +41,13 @@ benchmarks or Windows distribution workflows. Never interpret skipped/not-run
 checks as PASS. This applies to guides, Doctor, Graphify, launcher, Organizer,
 data, and every other PR without exception.
 
+For further canonical tools/benchmarks from GitHub-only sessions on a Draft PR,
+use the explicit allowlisted routes documented in `docs/atlas-tools-on-demand.md`.
+Demand real exact-SHA artifacts and a successful isolated freshness check;
+benchmarks (including 8 Atlas processes) never claim real DOFUS accounts or
+Phase Certification. Do not execute arbitrary repository tooling merely because
+it is visible in the catalog.
+
 For agents with GitHub-only access, the **explicit on-demand** Doctor/Graphify
 workflow in `docs/doctor-on-demand-pr.md` may run targeted development
 diagnostics on Draft PRs. It does not trigger Phase Certification, does not
