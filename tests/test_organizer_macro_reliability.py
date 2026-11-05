@@ -393,6 +393,148 @@ class OrganizerMacroReliabilityTests(unittest.TestCase):
                     self.assertIsNone(SwitchCharacterMacro(runtime).preferred_client())
                 self.assertIsNot(runtime.settings, original)
 
+    def test_favorite_probe_rejects_inplace_hwnd_mutation_2_to_8(self):
+        for count in (2, 4, 6, 8):
+            with self.subTest(clients=count):
+                runtime = _runtime()
+                clients = [
+                    SimpleNamespace(index=i + 1, handle=101 + i,
+                                    display_name=str(i + 1))
+                    for i in range(count)
+                ]
+                runtime.settings.clients = clients
+                favorite = clients[-1]
+                accepted_hwnd = favorite.handle
+                runtime.settings.preferred_client.return_value = favorite
+
+                def process_check(hwnd):
+                    self.assertEqual(hwnd, accepted_hwnd)
+                    favorite.handle = 999
+                    return True
+
+                with (
+                    patch("app.macros.switch_character.is_unity_window",
+                          return_value=True) as unity,
+                    patch("app.macros.switch_character.is_dofus_unity_process",
+                          side_effect=process_check) as process,
+                ):
+                    self.assertIsNone(SwitchCharacterMacro(runtime).preferred_client())
+                unity.assert_called_once_with(accepted_hwnd)
+                process.assert_called_once_with(accepted_hwnd)
+
+    def test_logical_foreground_rejects_session_mutated_during_lookup(self):
+        for count in (2, 4, 6, 8):
+            with self.subTest(clients=count):
+                runtime = _runtime()
+                clients = [
+                    SimpleNamespace(index=i + 1, handle=101 + i)
+                    for i in range(count)
+                ]
+                runtime.settings.clients = clients
+                runtime.active_client_handle = 0
+
+                def lookup(hwnd):
+                    self.assertEqual(hwnd, 101)
+                    clients[0].handle = 999
+                    return clients[0]
+
+                runtime.settings.client_by_handle.side_effect = lookup
+                with (
+                    patch("app.macros.switch_character.foreground_window",
+                          return_value=101),
+                    patch("app.macros.switch_character.is_unity_window",
+                          return_value=True),
+                    patch("app.macros.switch_character.is_dofus_unity_process",
+                          return_value=True),
+                ):
+                    self.assertIsNone(
+                        SwitchCharacterMacro(runtime).logical_active_client()
+                    )
+                self.assertEqual(runtime.active_client_handle, 0)
+
+    def test_logical_remembered_rejects_hwnd_changed_during_process_check(self):
+        for count in (2, 4, 6, 8):
+            with self.subTest(clients=count):
+                runtime = _runtime()
+                clients = [
+                    SimpleNamespace(index=i + 1, handle=101 + i)
+                    for i in range(count)
+                ]
+                runtime.settings.clients = clients
+                runtime.settings.client_by_handle.return_value = clients[0]
+                runtime.active_client_handle = 101
+
+                def process_check(hwnd):
+                    self.assertEqual(hwnd, 101)
+                    clients[0].handle = 999
+                    return True
+
+                with (
+                    patch("app.macros.switch_character.foreground_window",
+                          return_value=0),
+                    patch("app.macros.switch_character.is_unity_window",
+                          return_value=True) as unity,
+                    patch("app.macros.switch_character.is_dofus_unity_process",
+                          side_effect=process_check) as process,
+                ):
+                    self.assertIsNone(
+                        SwitchCharacterMacro(runtime).logical_active_client()
+                    )
+                unity.assert_called_once_with(101)
+                process.assert_called_once_with(101)
+                self.assertEqual(runtime.active_client_handle, 101)
+
+    def test_logical_fallback_rejects_mutated_handle_after_native_probe(self):
+        for count in (2, 4, 6, 8):
+            with self.subTest(clients=count):
+                runtime = _runtime()
+                clients = [
+                    SimpleNamespace(index=i + 1, handle=101 + i)
+                    for i in range(count)
+                ]
+                runtime.settings.clients = clients
+                runtime.settings.preferred_client.return_value = None
+                runtime.active_client_handle = 0
+
+                def process_check(hwnd):
+                    self.assertEqual(hwnd, 101)
+                    clients[0].handle = 999
+                    return True
+
+                with (
+                    patch("app.macros.switch_character.foreground_window",
+                          return_value=0),
+                    patch("app.macros.switch_character.is_unity_window",
+                          return_value=True) as unity,
+                    patch("app.macros.switch_character.is_dofus_unity_process",
+                          side_effect=process_check) as process,
+                ):
+                    self.assertIsNone(
+                        SwitchCharacterMacro(runtime).logical_active_client()
+                    )
+                unity.assert_called_once_with(101)
+                process.assert_called_once_with(101)
+                self.assertEqual(runtime.active_client_handle, 0)
+
+    def test_logical_rejects_invalid_physical_and_remembered_hwnd_before_win32(self):
+        for invalid in (None, True, 101.5, "101", float("inf"), -1, 2**64):
+            with self.subTest(hwnd=repr(invalid)):
+                runtime = _runtime()
+                runtime.active_client_handle = invalid
+                runtime.settings.clients = []
+                runtime.settings.preferred_client.return_value = None
+                with (
+                    patch("app.macros.switch_character.foreground_window",
+                          return_value=invalid),
+                    patch("app.macros.switch_character.is_unity_window") as unity,
+                    patch("app.macros.switch_character.is_dofus_unity_process") as process,
+                ):
+                    self.assertIsNone(
+                        SwitchCharacterMacro(runtime).logical_active_client()
+                    )
+                unity.assert_not_called()
+                process.assert_not_called()
+
     def test_character_hotkey_rejects_fractional_slot_without_spawning(self) -> None:
         runtime = _runtime()
         runtime.settings.clients = [
