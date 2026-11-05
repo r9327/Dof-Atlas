@@ -39,6 +39,13 @@ class MacroLock:
             if self._lease is None:
                 return
             active = self._lease.label
+            # A stale completion must never release another macro's lease.
+            # Only the owner (or an explicit administrative end) may unlock.
+            if label is not None and label != active:
+                self._logger.warning(
+                    "Macro fin refusée: owner=%s caller=%s", active, label,
+                )
+                return
             elapsed = int((time.monotonic() - self._lease.started_at) * 1000)
             self._lease = None
             self._logger.info("Macro fin: action=%s elapsed_ms=%s", label or active, elapsed)

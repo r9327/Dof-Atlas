@@ -143,6 +143,15 @@ class OrganizerHotkeysMixin:
 
     def set_script_speed(self, speed: str) -> None:
         resolved = normalize_script_speed(speed)
+        previous = normalize_script_speed(
+            self.profiles.get(KEY_SCRIPT_SPEED, "normal"),
+            legacy=str(self.profiles.get(KEY_SCRIPT_SPEED_SCHEMA, "1")) != "2",
+        )
+        # Changing effective timings while a 2–8 client worker is sending
+        # can leave an old gesture on the previous speed/profile generation.
+        # Apply the same stop-before-persist ordering as Macro/Miroir toggle.
+        if previous != resolved and callable(getattr(self, "stop_runtime_callback", None)):
+            self.stop_runtime_callback()
         self.profiles[KEY_SCRIPT_SPEED] = resolved
         # Persist the schema together with the chosen preset. Otherwise a
         # future reload would reinterpret a v2 Rapide as legacy v1 Rapide.
