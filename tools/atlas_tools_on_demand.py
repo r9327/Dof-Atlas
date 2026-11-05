@@ -123,6 +123,32 @@ def _parse_status(stdout: str) -> str | None:
     return None
 
 
+def _advisory_exit(name: str, code: int, stdout: str) -> str | None:
+    """Recognize exit 1 as a *review verdict*, never as proof of PASS.
+
+    Doctor intentionally exits 1 when quick reports WARN, Ponytail reports
+    REVIEW, or code-inspect reports REVIEW. This is not an interpreter crash.
+    All other nonzero exits, including exit 2 and malformed JSON, remain FAIL.
+    """
+    if code != 1 or name not in {"quick", "code_inspect", "ponytail"}:
+        return None
+    try:
+        data = json.loads(stdout)
+    except (ValueError, TypeError):
+        return None
+    if not isinstance(data, dict):
+        return None
+    if name == "quick" and data.get("kind") == "audit":
+        summary = data.get("summary")
+        if isinstance(summary, dict) and summary.get("verdict") == "WARN":
+            return "WARN"
+    if name == "ponytail" and data.get("kind") == "ponytail_policy" and data.get("status") == "REVIEW":
+        return "REVIEW"
+    if name == "code_inspect" and data.get("status") == "REVIEW":
+        return "REVIEW"
+    return None
+
+
 def run(mode: str, base_sha: str, head_sha: str,
         *, root: Path = Path("."), dry_run: bool = False) -> dict[str, Any]:
     root = root.resolve()
@@ -173,7 +199,10 @@ def run(mode: str, base_sha: str, head_sha: str,
                 stdout, stderr = result.stdout, result.stderr
                 status = _parse_status(stdout) or ("EXECUTED_NOT_CERTIFIED" if code == 0 else "FAIL")
                 if code != 0:
-                    status = "FAIL"
+                    # Doctor uses exit 1 for advisory findings. Keep WARN/REVIEW
+                    # observable and continue other audit steps, but reject
+                    # execution errors and unknown/malformed tool verdicts.
+                    status = _advisory_exit(name, code, stdout) or "FAIL"
                 if evidence and not (root / evidence).is_file():
                     status = "FAIL"
                     stderr += "\nMissing required benchmark evidence: " + evidence
