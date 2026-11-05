@@ -261,20 +261,27 @@ class SwitchCharacterMacro:
         primary_handle, client marqué primary, puis premier client configuré.
         """
         settings = self.runtime.settings
+        favorite_at_start = settings.primary_handle
+        mode_at_start = settings.macro_mode
         preferred = settings.preferred_client()
         if preferred is None:
             return None
-        # Win32 probes can yield while Organizer edits the same client
-        # object. Trust only the HWND that was actually authenticated.
+        # Native process queries can release the GIL while an Organizer
+        # preference changes in place. An old favorite is not authorized to
+        # receive focus just because its HWND still belongs to DOFUS Unity.
         hwnd = preferred.handle
         if (type(hwnd) is not int
                 or not 0 < hwnd <= (2**64 - 1)
                 or not is_unity_window(hwnd)
                 or not is_dofus_unity_process(hwnd)
                 or self.runtime.settings is not settings
+                or settings.primary_handle != favorite_at_start
+                or settings.macro_mode != mode_at_start
                 or preferred.handle != hwnd):
             return None
-        return preferred
+        # A changed primary flag can also reassign the preferred client
+        # without changing the saved primary HWND (fallback profiles).
+        return preferred if settings.preferred_client() is preferred else None
 
     def logical_active_client(self) -> "AtlasClient | None":
         settings = self.runtime.settings
