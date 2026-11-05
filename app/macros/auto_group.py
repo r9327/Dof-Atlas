@@ -22,16 +22,21 @@ class AutoGroupMacro:
             self.runtime.logger.info("Auto groupe non lancé : aucune session candidate.")
             return False
         profile_at_dispatch = self.runtime.settings
+        dispatch_context = (
+            profile_at_dispatch.primary_handle, profile_at_dispatch.macro_mode,
+        )
         return self.runtime._spawn_macro(
             "Auto groupe",
             lambda: self._run(
                 entries, profile_at_dispatch=profile_at_dispatch,
+                dispatch_context=dispatch_context,
             ),
         )
 
     def _run(
         self, invite_entries: list[dict[str, Any]],
         *, profile_at_dispatch: object | None = None,
+        dispatch_context: tuple[object, object] | None = None,
     ) -> None:
         if not invite_entries:
             self.runtime.logger.info("Auto groupe ignore: aucune invitation.")
@@ -47,7 +52,19 @@ class AutoGroupMacro:
             self.runtime.logger.info("Auto groupe annulé: profil remplacé avant worker.")
             self.runtime._emit_status("Auto-groupe interrompu : profil Organizer modifié.")
             return
+        if (dispatch_context is not None and
+                (settings_at_start.primary_handle, settings_at_start.macro_mode)
+                != dispatch_context):
+            self.runtime._emit_status("Auto-groupe interrompu : favori ou mode modifié avant worker.")
+            return
         favorite_at_start = settings_at_start.primary_handle
+        mode_at_start = settings_at_start.macro_mode
+
+        def dispatch_context_changed() -> bool:
+            return (
+                settings_at_start.primary_handle != favorite_at_start
+                or settings_at_start.macro_mode != mode_at_start
+            )
         sender = self.runtime.switch_character.logical_active_client()
         # Capture the exact source HWND before native probes or recipient
         # preparation; the client object may be edited in place by Organizer.
@@ -125,7 +142,7 @@ class AutoGroupMacro:
         timings = settings_at_start.timings
         if (self.runtime.settings is not settings_at_start
                 or sender.handle != sender_hwnd
-                or settings_at_start.primary_handle != favorite_at_start):
+                or dispatch_context_changed()):
             self.runtime._emit_status("Auto-groupe interrompu : session ou favori modifié.")
             return
         if not activate_window(
@@ -139,13 +156,13 @@ class AutoGroupMacro:
                 self.runtime.macro_lock.should_stop()
                 or self.runtime.settings is not settings_at_start
                 or sender.handle != sender_hwnd
-                or settings_at_start.primary_handle != favorite_at_start
+                or dispatch_context_changed()
             ),
         ):
             if (self.runtime.macro_lock.should_stop()
                     or self.runtime.settings is not settings_at_start
                     or sender.handle != sender_hwnd
-                    or settings_at_start.primary_handle != favorite_at_start):
+                    or dispatch_context_changed()):
                 self.runtime.logger.info(
                     "Auto groupe interrompu: session ou favori changé pendant activation."
                 )
@@ -164,7 +181,7 @@ class AutoGroupMacro:
                 if (self.runtime.macro_lock.should_stop()
                         or self.runtime.settings is not settings_at_start):
                     return
-                if settings_at_start.primary_handle != favorite_at_start:
+                if dispatch_context_changed():
                     focus_lost = True
                     self.runtime.logger.warning(
                         "Auto groupe interrompu: favori modifié entre invitations."
@@ -179,7 +196,7 @@ class AutoGroupMacro:
                         or not is_dofus_unity_process(sender_hwnd)
                         or foreground_window() != int(sender_hwnd)
                         or sender.handle != sender_hwnd
-                        or settings_at_start.primary_handle != favorite_at_start):
+                        or dispatch_context_changed()):
                     focus_lost = True
                     self.runtime.logger.warning(
                         "Auto groupe interrompu: focus ou identité DOFUS perdus avant invitation hwnd=%s",
@@ -201,7 +218,7 @@ class AutoGroupMacro:
                         self.runtime.macro_lock.should_stop()
                         or self.runtime.settings is not settings_at_start
                         or sender.handle != sender_hwnd
-                        or settings_at_start.primary_handle != favorite_at_start
+                        or dispatch_context_changed()
                         or foreground_window() != int(sender_hwnd)
                     ),
                 ):
@@ -211,7 +228,7 @@ class AutoGroupMacro:
                     if (not is_dofus_unity_process(sender_hwnd)
                             or foreground_window() != int(sender_hwnd)
                             or sender.handle != sender_hwnd
-                            or settings_at_start.primary_handle != favorite_at_start):
+                            or dispatch_context_changed()):
                         focus_lost = True
                         self.runtime.logger.warning(
                             "Auto groupe interrompu: focus ou identité DOFUS perdus après échec du chat hwnd=%s",
@@ -242,6 +259,7 @@ class AutoGroupMacro:
             restore_skipped = (
                 self.runtime.settings is not settings_at_start
                 or sender.handle != sender_hwnd
+                or settings_at_start.macro_mode != mode_at_start
             )
             if restore_skipped:
                 self.runtime.logger.info("Auto groupe: retour ignoré, profil remplacé.")
@@ -292,7 +310,8 @@ class AutoGroupMacro:
             state = (
                 "interrompu" if (stopped or focus_lost
                                   or self.runtime.settings is not settings_at_start
-                                  or sender.handle != sender_hwnd)
+                                  or sender.handle != sender_hwnd
+                                  or settings_at_start.macro_mode != mode_at_start)
                 else "ignore" if not eligible
                 else "termine" if sent == eligible
                 else "partiel"
