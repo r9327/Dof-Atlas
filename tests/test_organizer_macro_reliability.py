@@ -3616,6 +3616,172 @@ class OrganizerMacroReliabilityTests(unittest.TestCase):
                     self.assertEqual(len(sent), 1)
                     runtime.switch_character.restore_preferred_client.assert_not_called()
 
+
+    def test_frozen_roster_stops_on_failed_activation_with_mutated_hwnd(self):
+        for count in (2, 4, 6, 8):
+            for kind in ("zaap", "direction"):
+                with self.subTest(clients=count, kind=kind):
+                    runtime = _runtime()
+                    clients = [
+                        SimpleNamespace(handle=101 + i) for i in range(count)
+                    ]
+                    runtime.settings.primary_handle = 101
+                    runtime.macro_lock.should_stop.return_value = False
+                    runtime.switch_character.ordered_clients_from_source.return_value = clients
+                    runtime.settings.client_by_handle.return_value = clients[0]
+
+                    def activate(*_args, **_kwargs):
+                        clients[0].handle = 999
+                        return False
+
+                    if kind == "zaap":
+                        with (
+                            patch("app.macros.zaap.is_unity_window",
+                                  return_value=True),
+                            patch("app.macros.zaap.is_dofus_unity_process",
+                                  return_value=True),
+                            patch("app.macros.zaap.activate_window",
+                                  side_effect=activate) as focus,
+                            patch("app.macros.zaap.foreground_window",
+                                  return_value=101),
+                            patch("app.macros.zaap.send_chat_command") as chat,
+                        ):
+                            ZaapMacro(runtime)._run("/zaap 1,2")
+                        chat.assert_not_called()
+                        runtime._emit_status.assert_called_once_with(
+                            f"Auto zaap interrompu : 0/{count} commandes émises "
+                            "(réception DOFUS non vérifiée)."
+                        )
+                    else:
+                        with (
+                            patch("app.macros.direction.foreground_window",
+                                  return_value=101),
+                            patch("app.macros.direction.is_unity_window",
+                                  return_value=True),
+                            patch("app.macros.direction.is_dofus_unity_process",
+                                  return_value=True),
+                            patch("app.macros.direction.activate_window",
+                                  side_effect=activate) as focus,
+                            patch("app.macros.direction.press_key") as press,
+                        ):
+                            DirectionMacro(runtime)._run("HOME")
+                        press.assert_not_called()
+                        runtime.logger.info.assert_any_call(
+                            "Switch deplacement %s: envoyes=%s/%s",
+                            "interrompu", 0, count,
+                        )
+                    focus.assert_called_once()
+                    runtime.switch_character.restore_preferred_client.assert_not_called()
+
+    def test_frozen_roster_stops_if_previous_client_mutates_during_next_focus(self):
+        for count in (2, 4, 6, 8):
+            for kind in ("zaap", "direction"):
+                with self.subTest(clients=count, kind=kind):
+                    runtime = _runtime()
+                    clients = [
+                        SimpleNamespace(handle=101 + i) for i in range(count)
+                    ]
+                    runtime.settings.primary_handle = 101
+                    runtime.macro_lock.should_stop.return_value = False
+                    runtime.switch_character.ordered_clients_from_source.return_value = clients
+                    runtime.settings.client_by_handle.return_value = clients[0]
+                    activations = []
+
+                    def activate(hwnd, *_args, **_kwargs):
+                        activations.append(hwnd)
+                        if hwnd == 102:
+                            clients[0].handle = 999
+                        return True
+
+                    if kind == "zaap":
+                        with (
+                            patch("app.macros.zaap.is_unity_window",
+                                  return_value=True),
+                            patch("app.macros.zaap.is_dofus_unity_process",
+                                  return_value=True),
+                            patch("app.macros.zaap.activate_window",
+                                  side_effect=activate),
+                            patch("app.macros.zaap.foreground_window",
+                                  side_effect=lambda: activations[-1]),
+                            patch("app.macros.zaap.send_chat_command",
+                                  return_value=True) as chat,
+                        ):
+                            ZaapMacro(runtime)._run("/zaap 1,2")
+                        chat.assert_called_once()
+                        runtime._emit_status.assert_called_once_with(
+                            f"Auto zaap interrompu : 1/{count} commandes émises "
+                            "(réception DOFUS non vérifiée)."
+                        )
+                    else:
+                        with (
+                            patch("app.macros.direction.foreground_window",
+                                  side_effect=lambda: activations[-1] if activations else 101),
+                            patch("app.macros.direction.is_unity_window",
+                                  return_value=True),
+                            patch("app.macros.direction.is_dofus_unity_process",
+                                  return_value=True),
+                            patch("app.macros.direction.activate_window",
+                                  side_effect=activate),
+                            patch("app.macros.direction.press_key") as press,
+                        ):
+                            DirectionMacro(runtime)._run("HOME")
+                        press.assert_called_once()
+                        runtime.logger.info.assert_any_call(
+                            "Switch deplacement %s: envoyes=%s/%s",
+                            "interrompu", 1, count,
+                        )
+                    self.assertEqual(activations, [101, 102])
+                    runtime.switch_character.restore_preferred_client.assert_not_called()
+
+    def test_frozen_roster_still_skips_only_genuine_unavailable_target(self):
+        for count in (2, 4, 6, 8):
+            for kind in ("zaap", "direction"):
+                with self.subTest(clients=count, kind=kind):
+                    runtime = _runtime()
+                    clients = [
+                        SimpleNamespace(handle=101 + i) for i in range(count)
+                    ]
+                    runtime.settings.primary_handle = 101
+                    runtime.macro_lock.should_stop.return_value = False
+                    runtime.switch_character.ordered_clients_from_source.return_value = clients
+                    runtime.settings.client_by_handle.return_value = clients[0]
+                    activated = []
+
+                    def activate(hwnd, *_args, **_kwargs):
+                        activated.append(hwnd)
+                        return hwnd != 101
+
+                    if kind == "zaap":
+                        with (
+                            patch("app.macros.zaap.is_unity_window",
+                                  return_value=True),
+                            patch("app.macros.zaap.is_dofus_unity_process",
+                                  return_value=True),
+                            patch("app.macros.zaap.activate_window",
+                                  side_effect=activate),
+                            patch("app.macros.zaap.foreground_window",
+                                  side_effect=lambda: activated[-1]),
+                            patch("app.macros.zaap.send_chat_command",
+                                  return_value=True) as chat,
+                        ):
+                            ZaapMacro(runtime)._run("/zaap 1,2")
+                        self.assertEqual(chat.call_count, count - 1)
+                    else:
+                        with (
+                            patch("app.macros.direction.foreground_window",
+                                  side_effect=lambda: activated[-1] if activated else 101),
+                            patch("app.macros.direction.is_unity_window",
+                                  return_value=True),
+                            patch("app.macros.direction.is_dofus_unity_process",
+                                  return_value=True),
+                            patch("app.macros.direction.activate_window",
+                                  side_effect=activate),
+                            patch("app.macros.direction.press_key") as press,
+                        ):
+                            DirectionMacro(runtime)._run("HOME")
+                        self.assertEqual(press.call_count, count - 1)
+                    self.assertEqual(activated, [101 + i for i in range(count)])
+
     def test_all_existing_macro_workers_reject_prestart_profile_reload_2_to_8(self):
         # A queued action belongs to the generation at its hotkey dispatch,
         # even if Organizer rebuilds the same visible HWND roster.
