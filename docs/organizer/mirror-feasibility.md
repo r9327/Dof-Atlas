@@ -1461,3 +1461,49 @@ diffusion différée. Garder la PR **Draft / CHANGES REQUIRED**.
   propriétaire du pointeur peuvent encore être consommés. Ne pas annoncer
   résolution complète, replay garanti, compatibilité Unity sans focus ou
   performances identiques 2→8 sans recette Windows.
+
+
+## Lot P0 — exclusivité des générations Macro et routage CI explicite (05/11/2026)
+
+Point de départ : `8eb44acef96e6fe1483f89b79245334c66eb27e2`.
+PR #325 conservée en **Draft** pendant le développement.
+
+- **Cause racine :** le contrôle du verrou `MacroLock` par le seul label
+  `Miroir` ne suffisait pas à distinguer un ancien thread d'une nouvelle
+  exécution de même nom après Stop/restart. Les `try_begin` restaient exclusifs,
+  mais une fin retardée ou une annulation de démarrage pouvait relâcher un bail
+  réutilisé ou remettre à zéro la protection synthétique d'un autre worker.
+- **Correction :** `try_begin_generation` réserve le bail et retourne son
+  numéro **atomiquement**. `_spawn_macro` lie chaque worker à cette génération
+  avant `target()`; un runner périmé ne démarre pas et sa fin ne libère plus
+  un bail plus récent. `MacroLock.should_stop()/wait()` restent en arrêt
+  même si un nouveau runner efface le signal Stop partagé. Le contrat
+  `try_begin(label) -> bool` est conservé pour les consommateurs existants.
+  Le même contrôle empêche la fin d'un vieux runner de réinitialiser le
+  `SyntheticInputGuard` du nouveau.
+- **Tests :** `test_organizer_macro_generation.py` contient les cas de
+  démarrage différé, relâchement/Stop d'une génération précédente, reset
+  synthétique, délai et contestation simultanée du même nom pour **2/4/6/8**
+  comptes. `test_runtime_lazy_macros.py` vérifie le numéro du bail libéré
+  lors d'un échec de création/démarrage du thread.
+- **Routage CI intelligent :** 15 fichiers de tests Organizer P0 explicitement
+  revus ainsi que `test_managed_hooks_lazy.py` bénéficient désormais de
+  leurs vrais domaines de certification ; `app/windows/focus.py`,
+  `app/windows/unity_windows.py` et `app/storage.py` gardent leurs
+  dépendances inter-domaines réelles. Aucun wildcard permettant à un nouveau
+  backend d'injection de se déclarer Organizer n'a été ajouté. Les tests de
+  routage continuent à déclarer les chemins non revus **BLOCKED**.
+- **Preuves ciblées :** contrôle Git blob SHA et exécution isolée de
+  `MacroLock` sous Python 3.13, **6/6 tests PASS**, dont 5 tours de
+  concurrence pour 2, 4, 6 et 8 threads. Les tests Python/PySide6 de
+  `AtlasRuntime`, le hook Win32 réel, le rendu Unity et les performances
+  p50/p95/p99 **ne sont pas certifiés**. Graphify exact `b54444f6`
+  a produit `PASS` structurel, mais son workflow a échoué en étape
+  fraîcheur à cause de nouveaux commits ; ce résultat n'est PAS celui
+  du HEAD final.
+
+**Limite technique :** le P0 **MIRR-007** reste PENDING pour les clics natifs
+produits lorsque le worker détient réellement le pointeur. Ne pas rejouer
+ces clics à l'aveugle vers un HWND potentiellement différent : les tests
+Windows/DOFUS Unity et une politique d'émission fiable sont indispensables.
+Ne pas changer la PR en Ready ni déclencher Phase Certification globale.
