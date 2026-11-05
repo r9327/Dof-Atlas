@@ -1,10 +1,11 @@
 from __future__ import annotations
 
+from time import perf_counter
 from typing import TYPE_CHECKING, Any
 
 from app.core.text import clean_auto_group_name, normalize_key
 from app.macros.input_tools import send_chat_command
-from app.macros.mirror_plan import is_dofus_unity_process
+from app.macros.mirror_plan import is_dofus_unity_process, mirror_latency_percentiles_ms
 from app.windows.focus import activate_window
 from app.windows.unity_windows import foreground_window, is_unity_window
 
@@ -185,6 +186,8 @@ class AutoGroupMacro:
         sent = 0
         eligible = 0
         focus_lost = False
+        action_started_at = perf_counter()
+        chat_steps_ms: list[float] = []
         try:
             for index, name in enumerate(recipients):
                 if (self.runtime.macro_lock.should_stop()
@@ -214,8 +217,10 @@ class AutoGroupMacro:
                     return
                 if self.runtime.macro_lock.should_stop():
                     return
-                if not send_chat_command(
-                    f"/invite {name}",
+                chat_started_at = perf_counter()
+                try:
+                    accepted = send_chat_command(
+                        f"/invite {name}",
                     self.runtime.logger,
                     chat_open_ms=timings.auto_group_chat_open_ms,
                     key_step_ms=timings.auto_group_key_step_ms,
@@ -230,7 +235,12 @@ class AutoGroupMacro:
                         or dispatch_context_changed()
                         or foreground_window() != int(sender_hwnd)
                     ),
-                ):
+                    )
+                finally:
+                    chat_steps_ms.append(
+                        max(0.0, (perf_counter() - chat_started_at) * 1000.0)
+                    )
+                if not accepted:
                     if (self.runtime.macro_lock.should_stop()
                             or self.runtime.settings is not settings_at_start):
                         return
@@ -334,4 +344,15 @@ class AutoGroupMacro:
             self.runtime._emit_status(
                 f"Auto-groupe {state} : {sent}/{len(recipients)} commandes émises "
                 "(réception DOFUS non vérifiée)."
+            )
+            # Per-invitation durations include only the actual chat sender,
+            # not the inter-invite pacing. A successful SendInput is still
+            # not evidence that DOFUS accepted an invite.
+            quantiles = mirror_latency_percentiles_ms(chat_steps_ms)
+            self.runtime.logger.info(
+                "Auto groupe mesures: etapes=%s/%s p50_p95_p99_ms=%s "
+                "total_ms=%.2f (envoi, pas reception Unity)",
+                len(chat_steps_ms), len(recipients),
+                quantiles if quantiles is not None else "NOT_MEASURED",
+                max(0.0, (perf_counter() - action_started_at) * 1000.0),
             )

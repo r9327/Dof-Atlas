@@ -5097,5 +5097,61 @@ class OrganizerMacroReliabilityTests(unittest.TestCase):
 
 
 
+    def test_auto_group_measures_every_chat_attempt_and_full_duration_2_4_6_8(self):
+        for count in (2, 4, 6, 8):
+            for fail_last in (False, True):
+                with self.subTest(count=count, fail_last=fail_last):
+                    runtime = _runtime()
+                    runtime.settings.primary_handle = 101
+                    runtime.settings.macro_mode = "macro"
+                    runtime.settings.timings.auto_group_invite_gap_ms = 0
+                    runtime.switch_character.logical_active_client.return_value = (
+                        SimpleNamespace(handle=101, display_name="Leader")
+                    )
+                    entries = [
+                        {"name": "Leader", "handle": 101},
+                        *({"name": f"Friend{i}", "handle": 101 + i}
+                          for i in range(1, count)),
+                    ]
+                    attempts = [0]
+
+                    def chat(_text, *_args, **_kwargs):
+                        attempts[0] += 1
+                        return not (fail_last and attempts[0] == count - 1)
+
+                    with (
+                        patch("app.macros.auto_group.is_unity_window",
+                              return_value=True),
+                        patch("app.macros.auto_group.is_dofus_unity_process",
+                              return_value=True),
+                        patch("app.macros.auto_group.activate_window",
+                              return_value=True),
+                        patch("app.macros.auto_group.foreground_window",
+                              return_value=101),
+                        patch("app.macros.auto_group.send_chat_command",
+                              side_effect=chat),
+                    ):
+                        AutoGroupMacro(runtime)._run(entries)
+                    self.assertEqual(attempts[0], count - 1)
+                    matches = [
+                        call for call in runtime.logger.info.call_args_list
+                        if call.args and call.args[0].startswith(
+                            "Auto groupe mesures: etapes="
+                        )
+                    ]
+                    self.assertEqual(len(matches), 1)
+                    record = matches[0].args
+                    self.assertEqual(record[1:3], (count - 1, count - 1))
+                    self.assertEqual(record[3]["n"], count - 1)
+                    for key in ("p50", "p95", "p99"):
+                        self.assertGreaterEqual(record[3][key], 0)
+                    self.assertGreaterEqual(record[4], 0.0)
+                    if fail_last:
+                        self.assertIn("partiel", runtime._emit_status.call_args.args[0])
+                    else:
+                        self.assertIn("termine", runtime._emit_status.call_args.args[0])
+
+
+
 if __name__ == "__main__":
     unittest.main()
