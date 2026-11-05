@@ -1715,6 +1715,41 @@ class OrganizerSendInputTests(unittest.TestCase):
                     )
                 callback.assert_not_called()
 
+    def test_busy_mouse_moves_do_not_decode_xbutton_release(self) -> None:
+        import logging
+        from app.input.input_state import InputState, SyntheticInputGuard
+        from app.input.mouse_hooks import (
+            MSLLHOOKSTRUCT, MouseHook,
+            WM_MOUSEMOVE, WM_XBUTTONDOWN, WM_XBUTTONUP,
+        )
+
+        state = InputState()
+        logger = logging.getLogger("test_mouse_move_flood_xbutton")
+        hook = MouseHook(state, SyntheticInputGuard(logger), logger, Mock())
+        event = MSLLHOOKSTRUCT()
+        event.mouseData = 1 << 16
+        user32 = Mock()
+        user32.CallNextHookEx.return_value = 51
+        with patch.object(
+            ctypes, "windll", SimpleNamespace(user32=user32), create=True,
+        ):
+            ptr = ctypes.addressof(event)
+            state.begin_mouse_block("Miroir")
+            self.assertEqual(hook._mouse_proc(0, WM_XBUTTONDOWN, ptr), 1)
+            with patch(
+                "app.input.mouse_hooks._physical_release_token",
+                side_effect=AssertionError("Move must not decode XBUTTON"),
+            ):
+                for _ in range(200):
+                    self.assertEqual(hook._mouse_proc(0, WM_MOUSEMOVE, ptr), 1)
+            self.assertEqual(
+                hook._consumed_releases, {WM_XBUTTONUP | (1 << 16)},
+            )
+            state.end_mouse_block()
+            self.assertEqual(hook._mouse_proc(0, WM_XBUTTONUP, ptr), 1)
+            self.assertFalse(hook._consumed_releases)
+        self.assertEqual(hook._blocked_click_count, 1)
+
     def test_busy_xbutton_up_from_other_thumb_is_not_swallowed(self) -> None:
         import logging
         from app.input.input_state import InputState, SyntheticInputGuard
