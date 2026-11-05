@@ -297,8 +297,19 @@ def load_settings() -> AtlasSettings:
     for raw in index_payload.get("clients", []):
         if not isinstance(raw, dict):
             continue
-        handle = int_value(raw.get("handle"))
-        if handle <= 0:
+        raw_handle = raw.get("handle")
+        # Never coerce 202.9, True or scientific notation to a native HWND:
+        # the truncated value could alias another live DOFUS window.
+        if type(raw_handle) is int:
+            handle = raw_handle
+        elif type(raw_handle) is str:
+            token = raw_handle.strip()
+            if not token or not token.isascii() or not token.isdecimal():
+                continue
+            handle = int_value(token)
+        else:
+            continue
+        if not 0 < handle <= (2**64 - 1):
             continue
         index = int_value(raw.get("index"), len(clients) + 1)
         binding = str(raw.get("binding") or "").strip().upper()
@@ -315,11 +326,24 @@ def load_settings() -> AtlasSettings:
             )
         )
 
-    primary_handle = int_value(global_hotkeys.get("primary_handle"))
-    if primary_handle <= 0:
+    raw_primary = global_hotkeys.get("primary_handle")
+    if type(raw_primary) is int:
+        primary_handle = raw_primary
+    elif type(raw_primary) is str and (
+        raw_primary.strip().isascii() and raw_primary.strip().isdecimal()
+    ):
+        primary_handle = int_value(raw_primary.strip())
+    else:
+        primary_handle = 0
+    if not 0 < primary_handle <= (2**64 - 1):
+        primary_handle = 0
         primary_token = str(profile.get(KEY_PRIMARY_WINDOW, "")).strip()
         if primary_token.startswith("hwnd:"):
-            primary_handle = int_value(primary_token[5:])
+            token = primary_token[5:]
+            if token.isascii() and token.isdecimal():
+                candidate = int_value(token)
+                if 0 < candidate <= (2**64 - 1):
+                    primary_handle = candidate
 
     zaap_position = parse_zaap_click_position(
         profile.get(KEY_ZAAP_CLICK_POSITION),
