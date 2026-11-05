@@ -3531,6 +3531,91 @@ class OrganizerMacroReliabilityTests(unittest.TestCase):
                         "(réception DOFUS non vérifiée)."
                     )
 
+
+    def test_successful_send_then_hwnd_reassignment_stays_interrupted_2_to_8(self):
+        for count in (2, 4, 6, 8):
+            for kind in ("zaap", "auto_group", "direction"):
+                with self.subTest(clients=count, macro=kind):
+                    runtime = _runtime()
+                    runtime.macro_lock.should_stop.return_value = False
+                    runtime.settings.timings.auto_group_invite_gap_ms = 0
+                    clients = [
+                        SimpleNamespace(handle=101 + i, index=i + 1,
+                                        display_name=f"Client{i + 1}")
+                        for i in range(count)
+                    ]
+                    sender = clients[0]
+                    runtime.settings.primary_handle = 101
+                    runtime.settings.client_by_handle.return_value = sender
+                    runtime.switch_character.logical_active_client.return_value = sender
+                    runtime.switch_character.ordered_clients_from_source.return_value = clients
+                    sent = []
+
+                    def chat(command, logger, **_kwargs):
+                        sent.append(command)
+                        sender.handle = 999
+                        return True
+
+                    def key(name, hold):
+                        sent.append(name)
+                        sender.handle = 999
+
+                    with (
+                        patch("app.macros.zaap.is_unity_window", return_value=True),
+                        patch("app.macros.zaap.is_dofus_unity_process", return_value=True),
+                        patch("app.macros.zaap.activate_window",
+                              return_value=True) as zaap_focus,
+                        patch("app.macros.zaap.foreground_window", return_value=101),
+                        patch("app.macros.zaap.send_chat_command",
+                              side_effect=chat) as zaap_send,
+                        patch("app.macros.auto_group.is_unity_window", return_value=True),
+                        patch("app.macros.auto_group.is_dofus_unity_process",
+                              return_value=True),
+                        patch("app.macros.auto_group.activate_window",
+                              return_value=True) as group_focus,
+                        patch("app.macros.auto_group.foreground_window",
+                              return_value=101),
+                        patch("app.macros.auto_group.send_chat_command",
+                              side_effect=chat) as group_send,
+                        patch("app.macros.direction.is_unity_window", return_value=True),
+                        patch("app.macros.direction.is_dofus_unity_process",
+                              return_value=True),
+                        patch("app.macros.direction.activate_window",
+                              return_value=True) as direction_focus,
+                        patch("app.macros.direction.foreground_window",
+                              return_value=101),
+                        patch("app.macros.direction.press_key", side_effect=key) as key_send,
+                    ):
+                        if kind == "zaap":
+                            ZaapMacro(runtime)._run("/zaap 1,2")
+                            zaap_focus.assert_called_once()
+                            zaap_send.assert_called_once()
+                            runtime._emit_status.assert_called_once_with(
+                                f"Auto zaap interrompu : 1/{count} commandes émises "
+                                "(réception DOFUS non vérifiée)."
+                            )
+                        elif kind == "auto_group":
+                            AutoGroupMacro(runtime)._run([
+                                {"name": f"Friend{i}", "handle": 101 + i}
+                                for i in range(1, count)
+                            ])
+                            group_focus.assert_called_once()
+                            group_send.assert_called_once()
+                            runtime._emit_status.assert_called_once_with(
+                                f"Auto-groupe interrompu : 1/{count - 1} commandes émises "
+                                "(réception DOFUS non vérifiée)."
+                            )
+                        else:
+                            DirectionMacro(runtime)._run("HOME")
+                            direction_focus.assert_called_once()
+                            key_send.assert_called_once()
+                            runtime.logger.info.assert_any_call(
+                                "Switch deplacement %s: envoyes=%s/%s",
+                                "interrompu", 1, count,
+                            )
+                    self.assertEqual(len(sent), 1)
+                    runtime.switch_character.restore_preferred_client.assert_not_called()
+
     def test_all_existing_macro_workers_reject_prestart_profile_reload_2_to_8(self):
         # A queued action belongs to the generation at its hotkey dispatch,
         # even if Organizer rebuilds the same visible HWND roster.
