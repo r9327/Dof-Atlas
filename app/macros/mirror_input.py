@@ -90,7 +90,9 @@ class MirrorInputMacro:
         verify all processes at preflight and the recipient before each send.
         """
         settings = self.runtime.settings
-        if settings.macro_mode != "mirror" or settings.primary_handle != source:
+        if (settings.macro_mode != "mirror"
+                or type(settings.primary_handle) is not int
+                or settings.primary_handle != source):
             return False
         if (
             type(source) is not int
@@ -107,6 +109,11 @@ class MirrorInputMacro:
         # Native process identity is verified once for the whole roster at
         # dispatch, then for each recipient immediately before sending.
         live = tuple(c.handle for c in settings.clients)
+        # Python considers 202.0 == 202 and True == 1: never let a
+        # non-Win32 roster alias authorize consuming a physical gesture.
+        if any(type(hwnd) is not int or not 0 < hwnd <= (2**64 - 1)
+               for hwnd in live):
+            return False
         if source not in live:
             return False
         # Favorite-first is the dispatch order, not necessarily the saved
