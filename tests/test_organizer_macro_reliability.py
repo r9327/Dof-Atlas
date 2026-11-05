@@ -4791,5 +4791,71 @@ class OrganizerMacroReliabilityTests(unittest.TestCase):
                 )
 
 
+    def test_existing_macro_dispatch_rejects_inplace_or_replaced_profile_during_admission(self):
+        for count in (2, 4, 6, 8):
+            for action in ("group", "direction", "zaap"):
+                for mutation in ("favorite", "mode", "replace"):
+                    with self.subTest(clients=count, action=action, mutation=mutation):
+                        runtime = _runtime()
+                        original = SimpleNamespace(
+                            primary_handle=101, macro_mode="macro",
+                            clients=[SimpleNamespace(handle=101 + i)
+                                     for i in range(count)],
+                        )
+                        runtime.settings = original
+                        queued = []
+
+                        def spawn(_label, worker):
+                            queued.append(worker)
+                            if mutation == "favorite":
+                                original.primary_handle = original.clients[-1].handle
+                            elif mutation == "mode":
+                                original.macro_mode = "mirror"
+                            else:
+                                runtime.settings = SimpleNamespace(
+                                    primary_handle=101, macro_mode="macro",
+                                    clients=original.clients,
+                                )
+                            return True
+
+                        runtime._spawn_macro.side_effect = spawn
+                        if action == "group":
+                            accepted = AutoGroupMacro(runtime).run_async(
+                                [{"name": "Friend", "handle": 102}],
+                            )
+                        elif action == "direction":
+                            accepted = DirectionMacro(runtime).run_async(
+                                "HOME", expected_profile=original,
+                            )
+                        else:
+                            accepted = ZaapMacro(runtime).run_async("/zaap 1,2")
+                        self.assertFalse(accepted)
+                        self.assertEqual(len(queued), 1)
+
+    def test_existing_macro_dispatch_accepts_unchanged_profile_2_to_8(self):
+        for count in (2, 4, 6, 8):
+            for action in ("group", "direction", "zaap"):
+                with self.subTest(clients=count, action=action):
+                    runtime = _runtime()
+                    runtime.settings = SimpleNamespace(
+                        primary_handle=101, macro_mode="macro",
+                        clients=[SimpleNamespace(handle=101 + i)
+                                 for i in range(count)],
+                    )
+                    runtime._spawn_macro.return_value = True
+                    if action == "group":
+                        accepted = AutoGroupMacro(runtime).run_async(
+                            [{"name": "Friend", "handle": 102}],
+                        )
+                    elif action == "direction":
+                        accepted = DirectionMacro(runtime).run_async(
+                            "HOME", expected_profile=runtime.settings,
+                        )
+                    else:
+                        accepted = ZaapMacro(runtime).run_async("/zaap 1,2")
+                    self.assertTrue(accepted)
+                    runtime._spawn_macro.assert_called_once()
+
+
 if __name__ == "__main__":
     unittest.main()

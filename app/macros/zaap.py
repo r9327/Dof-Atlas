@@ -48,13 +48,18 @@ class ZaapMacro:
         dispatch_context = (
             profile_at_dispatch.primary_handle, profile_at_dispatch.macro_mode,
         )
-        return self.runtime._spawn_macro(
+        admitted = self.runtime._spawn_macro(
             "Auto zaap",
             lambda: self._run(
                 command, profile_at_dispatch=profile_at_dispatch,
                 dispatch_context=dispatch_context,
             ),
         )
+        # A profile changed during admission cannot be a confirmed launch.
+        # The queued worker will independently cancel before its first send.
+        return bool(admitted and self.runtime.settings is profile_at_dispatch
+                    and (profile_at_dispatch.primary_handle,
+                         profile_at_dispatch.macro_mode) == dispatch_context)
 
     def _run(
         self, command: str, *, profile_at_dispatch: object | None = None,

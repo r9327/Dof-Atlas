@@ -25,13 +25,18 @@ class AutoGroupMacro:
         dispatch_context = (
             profile_at_dispatch.primary_handle, profile_at_dispatch.macro_mode,
         )
-        return self.runtime._spawn_macro(
+        admitted = self.runtime._spawn_macro(
             "Auto groupe",
             lambda: self._run(
                 entries, profile_at_dispatch=profile_at_dispatch,
                 dispatch_context=dispatch_context,
             ),
         )
+        # Admission may yield to an Organizer reload. The worker already
+        # refuses stale generations; the UI must not report false acceptance.
+        return bool(admitted and self.runtime.settings is profile_at_dispatch
+                    and (profile_at_dispatch.primary_handle,
+                         profile_at_dispatch.macro_mode) == dispatch_context)
 
     def _run(
         self, invite_entries: list[dict[str, Any]],
