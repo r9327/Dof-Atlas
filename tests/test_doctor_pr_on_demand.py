@@ -172,6 +172,9 @@ class OnDemandWorkflowTests(unittest.TestCase):
         self.assertIn("path: .atlas-trusted-lot", text)
         self.assertIn("sparse-checkout: tools", text)
         self.assertIn('--repo-root "$GITHUB_WORKSPACE"', text)
+        # Qt6 needs an EGL loader even in offscreen mode on Ubuntu.
+        self.assertIn("sudo apt-get install -y --no-install-recommends libegl1", text)
+        self.assertIn("if: env.MODE == 'doctor-lot'", text)
         self.assertIn("tools.atlas_doctor graph --rebuild", text)
         self.assertIn("graphifyy==0.9.72", text)
         self.assertIn("provenance.json", text)
