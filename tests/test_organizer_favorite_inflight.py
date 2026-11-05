@@ -219,5 +219,145 @@ class OrganizerFavoriteInflightTests(unittest.TestCase):
                 )
 
 
+    def test_auto_group_queued_worker_rejects_mode_or_favorite_change(self):
+        for count in (2, 4, 6, 8):
+            for field, replacement in (("primary_handle", 999), ("macro_mode", "mirror")):
+                with self.subTest(clients=count, field=field):
+                    runtime = _runtime(count)
+                    runtime.settings.macro_mode = "macro"
+
+                    def spawn(_label, worker):
+                        setattr(runtime.settings, field, replacement)
+                        worker()
+                        return True
+
+                    runtime._spawn_macro.side_effect = spawn
+                    with patch(
+                        "app.macros.auto_group.is_unity_window",
+                        side_effect=AssertionError("Native probe after stale dispatch"),
+                    ):
+                        self.assertTrue(AutoGroupMacro(runtime).run_async(
+                            [{"name": "Friend", "handle": 202}]
+                        ))
+                    runtime.switch_character.logical_active_client.assert_not_called()
+                    self.assertIn("interrompu", runtime._emit_status.call_args.args[0])
+
+    def test_zaap_queued_worker_rejects_mode_or_favorite_change(self):
+        for count in (2, 4, 6, 8):
+            for field, replacement in (("primary_handle", 999), ("macro_mode", "mirror")):
+                with self.subTest(clients=count, field=field):
+                    runtime = _runtime(count)
+                    runtime.settings.macro_mode = "macro"
+
+                    def spawn(_label, worker):
+                        setattr(runtime.settings, field, replacement)
+                        worker()
+                        return True
+
+                    runtime._spawn_macro.side_effect = spawn
+                    self.assertTrue(ZaapMacro(runtime).run_async("/zaap 1,2"))
+                    runtime.switch_character.ordered_clients_from_source.assert_not_called()
+                    self.assertIn("interrompu", runtime._emit_status.call_args.args[0])
+
+    def test_direction_queued_worker_rejects_mode_or_favorite_change(self):
+        for count in (2, 4, 6, 8):
+            for field, replacement in (("primary_handle", 999), ("macro_mode", "mirror")):
+                with self.subTest(clients=count, field=field):
+                    runtime = _runtime(count)
+                    runtime.settings.macro_mode = "macro"
+
+                    def spawn(_label, worker):
+                        setattr(runtime.settings, field, replacement)
+                        worker()
+                        return True
+
+                    runtime._spawn_macro.side_effect = spawn
+                    with patch(
+                        "app.macros.direction.foreground_window",
+                        side_effect=AssertionError("Native probe after stale dispatch"),
+                    ):
+                        self.assertTrue(DirectionMacro(runtime).run_async("HOME"))
+                    runtime.switch_character.ordered_clients_from_source.assert_not_called()
+
+    def test_auto_group_mode_switch_aborts_remaining_invitations(self):
+        for count in (4, 6, 8):
+            with self.subTest(clients=count):
+                runtime = _runtime(count)
+                runtime.settings.macro_mode = "macro"
+                entries = [
+                    {"name": f"Friend{i}", "handle": 101 + i}
+                    for i in range(1, count)
+                ]
+                def send(*_args, **_kwargs):
+                    runtime.settings.macro_mode = "mirror"
+                    return True
+
+                with (
+                    patch("app.macros.auto_group.is_unity_window", return_value=True),
+                    patch("app.macros.auto_group.is_dofus_unity_process", return_value=True),
+                    patch("app.macros.auto_group.activate_window", return_value=True),
+                    patch("app.macros.auto_group.foreground_window", return_value=101),
+                    patch("app.macros.auto_group.send_chat_command", side_effect=send) as sender,
+                ):
+                    AutoGroupMacro(runtime)._run(entries)
+                self.assertEqual(sender.call_count, 1)
+                runtime.switch_character.restore_preferred_client.assert_not_called()
+                self.assertIn("interrompu : 1/", runtime._emit_status.call_args.args[0])
+
+    def test_zaap_mode_switch_aborts_remaining_clients(self):
+        for count in (2, 4, 6, 8):
+            with self.subTest(clients=count):
+                runtime = _runtime(count)
+                runtime.settings.macro_mode = "macro"
+                active = [101]
+                def activate(hwnd, *_args, **_kwargs):
+                    active[0] = hwnd
+                    return True
+
+                def send(*_args, **_kwargs):
+                    runtime.settings.macro_mode = "mirror"
+                    return True
+
+                with (
+                    patch("app.macros.zaap.is_unity_window", return_value=True),
+                    patch("app.macros.zaap.is_dofus_unity_process", return_value=True),
+                    patch("app.macros.zaap.activate_window", side_effect=activate),
+                    patch("app.macros.zaap.foreground_window", side_effect=lambda: active[0]),
+                    patch("app.macros.zaap.send_chat_command", side_effect=send) as sender,
+                ):
+                    ZaapMacro(runtime)._run("/zaap 1,2")
+                self.assertEqual(sender.call_count, 1)
+                runtime.switch_character.restore_preferred_client.assert_not_called()
+                self.assertIn("interrompu : 1/", runtime._emit_status.call_args.args[0])
+
+    def test_direction_mode_switch_aborts_remaining_clients(self):
+        for count in (2, 4, 6, 8):
+            with self.subTest(clients=count):
+                runtime = _runtime(count)
+                runtime.settings.macro_mode = "macro"
+                active = [101]
+                def activate(hwnd, *_args, **_kwargs):
+                    active[0] = hwnd
+                    return True
+
+                def send(*_args, **_kwargs):
+                    runtime.settings.macro_mode = "mirror"
+
+                with (
+                    patch("app.macros.direction.is_unity_window", return_value=True),
+                    patch("app.macros.direction.is_dofus_unity_process", return_value=True),
+                    patch("app.macros.direction.activate_window", side_effect=activate),
+                    patch("app.macros.direction.foreground_window", side_effect=lambda: active[0]),
+                    patch("app.macros.direction.press_key", side_effect=send) as sender,
+                ):
+                    DirectionMacro(runtime)._run("HOME")
+                self.assertEqual(sender.call_count, 1)
+                runtime.switch_character.restore_preferred_client.assert_not_called()
+                runtime.logger.info.assert_any_call(
+                    "Switch deplacement %s: envoyes=%s/%s",
+                    "interrompu", 1, count,
+                )
+
+
 if __name__ == "__main__":
     unittest.main()
