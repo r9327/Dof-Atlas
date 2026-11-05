@@ -719,5 +719,31 @@ class OrganizerFavoriteInflightTests(unittest.TestCase):
                     runtime._spawn_macro.assert_not_called()
 
 
+    def test_character_hotkey_preserves_next_scan_context_at_handoff(self):
+        from app.macros.switch_character import SwitchCharacterMacro
+
+        for count in (2, 4, 6, 8):
+            for field, replacement in (("primary_handle", 999), ("macro_mode", "mirror")):
+                with self.subTest(clients=count, field=field):
+                    runtime = _runtime(count)
+                    runtime.settings.macro_mode = "macro"
+                    runtime.settings.clients = [
+                        SimpleNamespace(index=i + 1, handle=101 + i,
+                                        display_name=f"Player{i + 1}")
+                        for i in range(count)
+                    ]
+                    old_context = (
+                        runtime.settings.primary_handle, runtime.settings.macro_mode,
+                    )
+                    setattr(runtime.settings, field, replacement)
+                    self.assertFalse(
+                        SwitchCharacterMacro(runtime).activate_by_index(
+                            1, expected_profile=runtime.settings,
+                            expected_context=old_context,
+                        )
+                    )
+                    runtime._spawn_macro.assert_not_called()
+
+
 if __name__ == "__main__":
     unittest.main()
