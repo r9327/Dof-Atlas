@@ -265,6 +265,17 @@ def owners_for(path: str) -> frozenset[str]:
     # Organizer reads the persisted UI/session registry from runtime settings.
     if path == "app/core/settings.py":
         return frozenset({"organizer", "ui", "startup", "identity", "data"})
+    if path in {"app/windows/focus.py", "app/windows/unity_windows.py"}:
+        # These canonical Win32 helpers route focus/Unity identity for the
+        # Organizer workers AND the initial session scan. Do not classify
+        # every app/windows module by name: unreviewed injection stays blocked.
+        return frozenset({"organizer", "ui", "startup", "identity"})
+    if path == "app/storage.py":
+        # Shared Qt, profile, craft, quest, persistence and launcher service.
+        # Its Graphify consumer graph reaches those domains; never treat
+        # the central storage facade as an Organizer-only change.
+        return frozenset({"craft", "quests", "guides", "ui", "startup",
+                          "identity", "data", "organizer"})
     if path in ORGANIZER_RUNTIME_PATHS or path == "app/pages/organizer_page.py":
         # OrganizerPage creates the native watcher, Qt timers and startup scan.
         return frozenset({"organizer", "startup", "ui", "identity"})

@@ -68,6 +68,32 @@ class ModularDomainRoutingTests(unittest.TestCase):
         self.assertFalse(owners_for(generic_doc))
         self.assertNotIn("organizer", self.route([generic_doc])["domains"])
 
+    def test_shared_win32_and_storage_dependencies_keep_real_cross_domain_owners(self):
+        reviewed = {
+            "app/windows/focus.py":
+                {"organizer", "ui", "startup", "identity"},
+            "app/windows/unity_windows.py":
+                {"organizer", "ui", "startup", "identity"},
+            "app/storage.py":
+                {"craft", "quests", "guides", "ui", "startup",
+                 "identity", "data", "organizer"},
+        }
+        for path, expected in reviewed.items():
+            with self.subTest(path=path):
+                self.assertEqual(owners_for(path), frozenset(expected))
+                plan = self.route([path])
+                self.assertEqual(plan["status"], "READY_TO_EXECUTE")
+                self.assertEqual(plan["unknown_paths"], [])
+                self.assertEqual(set(plan["domains"]), expected)
+                self.assertFalse(plan["phase_certified"])
+        # No wildcard for future Win32 sender helpers or parallel stores.
+        for unknown in ("app/windows/new_injector.py",
+                        "app/windows/new_hooks.py",
+                        "app/storage_unreviewed.py"):
+            with self.subTest(path=unknown):
+                self.assertFalse(owners_for(unknown))
+                self.assertEqual(self.route([unknown])["status"], "BLOCKED")
+
     def test_all_reviewed_organizer_p0_tests_get_explicit_ownership(self):
         # These tests are real PR #325 files, not future hypothetical paths.
         reviewed = (
