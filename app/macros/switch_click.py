@@ -85,6 +85,27 @@ class SwitchClickMacro:
                 "%s annulé: profil Organizer remplacé avant capture.", action_label,
             )
             return False
+        # Direct consumers must not alias an old favorite/roster with numeric
+        # lookalikes, or queue a Mirror gesture after Macro was selected.
+        # This check happens before any native context capture.
+        if exact_source_handle is not None and (
+            type(exact_source_handle) is not int
+            or not 0 < exact_source_handle <= (2**64 - 1)
+        ):
+            return False
+        if mirror_target_handles is not None and (
+            type(mirror_target_handles) is not tuple
+            or not 2 <= len(mirror_target_handles) <= 8
+            or exact_source_handle is None
+            or mirror_target_handles[0] != exact_source_handle
+            or any(type(hwnd) is not int or not 0 < hwnd <= (2**64 - 1)
+                   for hwnd in mirror_target_handles)
+            or len(set(mirror_target_handles)) != len(mirror_target_handles)
+            or dispatch_mode != "mirror"
+            or type(dispatch_primary) is not int
+            or dispatch_primary != exact_source_handle
+        ):
+            return False
         normalized_button = str(button or "").strip().casefold()
         if normalized_button not in {"left", "right"}:
             self.runtime.logger.warning(

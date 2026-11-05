@@ -5569,6 +5569,79 @@ class OrganizerMirrorIntegrationTests(unittest.TestCase):
                         runtime.switch_click.run_async.assert_not_called()
 
 
+    def test_mirror_sender_rejects_invalid_hwnd_aliases_before_capture(self):
+        from app.macros.switch_click import SwitchClickMacro, SwitchClickContext
+
+        for count in (2, 4, 6, 8):
+            handles = tuple(range(101, 101 + count))
+            for variant in ("source_bool", "source_float", "target_float",
+                            "target_bool", "target_duplicate", "wrong_order",
+                            "mode", "favorite"):
+                with self.subTest(count=count, variant=variant):
+                    runtime = self._runtime(primary=handles[0], handles=handles)
+                    exact = handles[0]
+                    targets = handles
+                    if variant == "source_bool":
+                        exact = True
+                    elif variant == "source_float":
+                        exact = float(handles[0])
+                    elif variant == "target_float":
+                        targets = (handles[0], float(handles[1]), *handles[2:])
+                    elif variant == "target_bool":
+                        targets = (handles[0], True, *handles[2:])
+                    elif variant == "target_duplicate":
+                        targets = (handles[0], handles[0], *handles[2:])
+                    elif variant == "wrong_order":
+                        targets = (handles[1], handles[0], *handles[2:])
+                    elif variant == "mode":
+                        runtime.settings.macro_mode = "macro"
+                    elif variant == "favorite":
+                        runtime.settings.primary_handle = handles[1]
+                    macro = SwitchClickMacro(runtime)
+                    with patch.object(macro, "_capture_trigger_context") as capture:
+                        self.assertFalse(macro.run_async(
+                            "Left", 20, 25, 1, "Miroir",
+                            exact_source_handle=exact,
+                            mirror_target_handles=targets,
+                        ))
+                    capture.assert_not_called()
+                    runtime._spawn_macro.assert_not_called()
+
+    def test_mirror_sender_refuses_inplace_changes_during_capture(self):
+        from app.macros.switch_click import SwitchClickMacro, SwitchClickContext
+
+        for count in (2, 4, 6, 8):
+            for mutation in ("mode", "favorite", "roster"):
+                with self.subTest(count=count, mutation=mutation):
+                    handles = tuple(range(101, 101 + count))
+                    runtime = self._runtime(primary=handles[0], handles=handles)
+                    settings = runtime.settings
+                    macro = SwitchClickMacro(runtime)
+                    context = SwitchClickContext(101, 20, 25, 0.5, 0.5, "cursor")
+
+                    def capture(*_args, **_kwargs):
+                        if mutation == "mode":
+                            settings.macro_mode = "macro"
+                        elif mutation == "favorite":
+                            settings.primary_handle = handles[-1]
+                        else:
+                            settings.clients = (
+                                *settings.clients[:-1],
+                                SimpleNamespace(handle=999),
+                            )
+                        return context
+
+                    with patch.object(
+                        macro, "_capture_trigger_context", side_effect=capture
+                    ):
+                        self.assertFalse(macro.run_async(
+                            "Left", 20, 25, 1, "Miroir",
+                            exact_source_handle=101,
+                            mirror_target_handles=handles,
+                        ))
+                    runtime._spawn_macro.assert_not_called()
+
+
 
 if __name__ == "__main__":
     unittest.main()
