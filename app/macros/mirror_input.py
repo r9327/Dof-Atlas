@@ -34,7 +34,11 @@ class MirrorInputMacro:
         if type(vk_code) is not int or vk_code not in MIRROR_DISCRETE_KEYS:
             return False
         profile_at_dispatch = self.runtime.settings
-        if expected_profile is not None and profile_at_dispatch is not expected_profile:
+        if (expected_profile is not None and profile_at_dispatch is not expected_profile):
+            return False
+        # No native probes here: a bounded 2-8 HWND roster check is enough to
+        # refuse an obsolete physical gesture before the hook consumes it.
+        if not self._still_current(source, handles):
             return False
         dispatch_at = perf_counter()
         started = self.runtime._spawn_macro(
@@ -62,7 +66,9 @@ class MirrorInputMacro:
                        for v in (x_ratio, y_ratio))):
             return False
         profile_at_dispatch = self.runtime.settings
-        if expected_profile is not None and profile_at_dispatch is not expected_profile:
+        if (expected_profile is not None and profile_at_dispatch is not expected_profile):
+            return False
+        if not self._still_current(source, handles):
             return False
         dispatch_at = perf_counter()
         started = self.runtime._spawn_macro(
@@ -90,7 +96,8 @@ class MirrorInputMacro:
             type(source) is not int
             or not isinstance(handles, tuple)
             or not 2 <= len(handles) <= 8
-            or any(type(hwnd) is not int or hwnd <= 0 for hwnd in handles)
+            or any(type(hwnd) is not int or not 0 < hwnd <= (2**64 - 1)
+                   for hwnd in handles)
             or len(set(handles)) != len(handles)
             or handles[0] != source
         ):
