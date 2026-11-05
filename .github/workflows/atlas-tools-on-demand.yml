@@ -316,5 +316,22 @@ jobs:
           printf -v body '### Atlas on-demand — %s\n- Run: %s (ID %s)\n- PR: #%s\n- Candidate SHA: %s\n- Tool job (Ubuntu/Windows): %s / %s\n- Freshness: %s\n- Phase Certification: NOT_RUN; live DOFUS 2–8 accounts: NOT_RUN\n\nRead the run artifact and re-check the current PR HEAD before claiming any result. This receipt is NOT a PASS or certification.\n' \
             "$MODE" "$RUN_URL" "$RUN_ID" "$PR_NUMBER" "$HEAD_SHA" \
             "$LIGHT_RESULT" "$WINDOWS_RESULT" "$FRESHNESS_RESULT"
-          gh api "repos/$GITHUB_REPOSITORY/issues/$PR_NUMBER/comments" \
-            --method POST -f "body=$body" > /dev/null
+          # Some repository installations prohibit Actions bot comments (HTTP 403)
+          # even when this isolated job requests issues:write. A receipt is
+          # informational only: its publication must never invalidate an
+          # otherwise valid exact-SHA diagnostic or hide a failed freshness gate.
+          {
+            echo "### Atlas on-demand receipt"
+            echo "- Run: $RUN_URL (ID $RUN_ID)"
+            echo "- PR: #$PR_NUMBER; mode: $MODE; candidate SHA: $HEAD_SHA"
+            echo "- Diagnostic jobs (Ubuntu/Windows): $LIGHT_RESULT / $WINDOWS_RESULT"
+            echo "- Freshness: $FRESHNESS_RESULT"
+            echo "- Phase Certification: NOT_RUN; live DOFUS 2–8 accounts: NOT_RUN"
+          } >> "$GITHUB_STEP_SUMMARY"
+          if gh api "repos/$GITHUB_REPOSITORY/issues/$PR_NUMBER/comments" \
+              --method POST -f "body=$body" > /dev/null; then
+            echo "PR receipt: PUBLISHED" >> "$GITHUB_STEP_SUMMARY"
+          else
+            echo "::warning::PR receipt UNAVAILABLE (GitHub integration denied posting); find this run in Actions and use its artifacts"
+            echo "- PR receipt: UNAVAILABLE (GitHub permission/policy); run and artifact retained" >> "$GITHUB_STEP_SUMMARY"
+          fi
