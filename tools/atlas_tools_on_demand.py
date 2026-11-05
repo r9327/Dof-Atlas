@@ -225,8 +225,10 @@ def run(mode: str, base_sha: str, head_sha: str,
             report["status"] = "NOT_RUN"
         elif results and all(state == "NOT_APPLICABLE" for state in results):
             report["status"] = "NOT_APPLICABLE"
-        elif any(state in {"REVIEW", "UNAVAILABLE", "NOT_AVAILABLE", "NOT_APPLICABLE"}
+        elif any(state not in {"PASS", "SUCCESS", "OK", "READY", "EXECUTED_NOT_CERTIFIED"}
                  for state in results):
+            # Fail closed on REVIEW_REQUIRED, WARN and unfamiliar tool statuses.
+            # A zero exit code proves execution, not a clean diagnostic verdict.
             report["status"] = "REVIEW"
         else:
             report["status"] = "EXECUTED_NOT_CERTIFIED"
