@@ -181,7 +181,10 @@ class SwitchCharacterMacro:
         """
         settings = self.runtime.settings
         preferred = settings.preferred_client()
-        if (preferred is None or not is_unity_window(preferred.handle)
+        if (preferred is None
+                or type(preferred.handle) is not int
+                or not 0 < preferred.handle <= (2**64 - 1)
+                or not is_unity_window(preferred.handle)
                 or not is_dofus_unity_process(preferred.handle)
                 or self.runtime.settings is not settings):
             return None
@@ -202,7 +205,9 @@ class SwitchCharacterMacro:
 
         if self.runtime.active_client_handle:
             client = settings.client_by_handle(self.runtime.active_client_handle)
-            if (client is not None and is_unity_window(client.handle)
+            if (client is not None and type(client.handle) is int
+                    and 0 < client.handle <= (2**64 - 1)
+                    and is_unity_window(client.handle)
                     and is_dofus_unity_process(client.handle)):
                 if self.runtime.settings is not settings:
                     return None
@@ -218,7 +223,10 @@ class SwitchCharacterMacro:
             return preferred
 
         for client in settings.clients:
-            if is_unity_window(client.handle) and is_dofus_unity_process(client.handle):
+            if (type(client.handle) is int
+                    and 0 < client.handle <= (2**64 - 1)
+                    and is_unity_window(client.handle)
+                    and is_dofus_unity_process(client.handle)):
                 if self.runtime.settings is not settings:
                     return None
                 self.runtime.active_client_handle = client.handle

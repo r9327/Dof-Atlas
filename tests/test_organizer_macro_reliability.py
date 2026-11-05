@@ -3107,6 +3107,50 @@ class OrganizerMacroReliabilityTests(unittest.TestCase):
                     "%s retour non publié: favori modifié.", "Miroir",
                 )
 
+    def test_invalid_favorite_handle_never_reaches_native_helpers_2_to_8(self):
+        for count in (2, 4, 6, 8):
+            for invalid in (None, True, "101", 101.5, float("inf"), 0, -1, 2**64):
+                with self.subTest(clients=count, hwnd=repr(invalid)):
+                    runtime = _runtime()
+                    runtime.settings.clients = [
+                        SimpleNamespace(handle=101 + i) for i in range(count)
+                    ]
+                    runtime.settings.preferred_client.return_value = (
+                        SimpleNamespace(handle=invalid)
+                    )
+                    with (
+                        patch("app.macros.switch_character.is_unity_window") as unity,
+                        patch("app.macros.switch_character.is_dofus_unity_process") as process,
+                    ):
+                        self.assertIsNone(SwitchCharacterMacro(runtime).preferred_client())
+                    unity.assert_not_called()
+                    process.assert_not_called()
+
+    def test_logical_active_skips_corrupt_roster_before_win32_probe(self):
+        for count in (2, 4, 6, 8):
+            with self.subTest(clients=count):
+                runtime = _runtime()
+                invalids = (True, 101.5, "101", float("inf"), 2**64)
+                valid = SimpleNamespace(index=8, handle=303, display_name="Real")
+                runtime.settings.clients = [
+                    SimpleNamespace(index=i, handle=bad) for i, bad in enumerate(invalids)
+                ] + [valid]
+                runtime.settings.client_by_handle.return_value = None
+                runtime.active_client_handle = 0
+                runtime.settings.preferred_client.return_value = None
+                with (
+                    patch("app.macros.switch_character.foreground_window", return_value=0),
+                    patch("app.macros.switch_character.is_unity_window",
+                          return_value=True) as unity,
+                    patch("app.macros.switch_character.is_dofus_unity_process",
+                          return_value=True) as process,
+                ):
+                    self.assertIs(
+                        SwitchCharacterMacro(runtime).logical_active_client(), valid,
+                    )
+                unity.assert_called_once_with(303)
+                process.assert_called_once_with(303)
+
     def test_favorite_restore_rejects_non_integer_hwnd_before_native_focus(self):
         for invalid in (True, 202.5, "202", 0, -3, 2**64):
             with self.subTest(hwnd=repr(invalid)):
@@ -3124,7 +3168,7 @@ class OrganizerMacroReliabilityTests(unittest.TestCase):
                     SwitchCharacterMacro(runtime).restore_preferred_client("Miroir")
                 focus.assert_not_called()
                 runtime.logger.info.assert_any_call(
-                    "%s retour ignore: HWND favori invalide.", "Miroir",
+                    "%s retour ignore: favori/premier indisponible.", "Miroir",
                 )
 
     def test_favorite_restore_does_not_publish_old_favorite_after_change(self) -> None:
