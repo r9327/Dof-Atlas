@@ -270,7 +270,8 @@ jobs:
     timeout-minutes: 5
     permissions:
       contents: read
-      pull-requests: write # Only isolated receipt/freshness job; no token in candidate jobs
+      # Only this isolated receipt/freshness job can write; candidate jobs have no token.
+      pull-requests: write
     steps:
       - name: Reject failed diagnostic or a PR HEAD that moved
         id: verify
