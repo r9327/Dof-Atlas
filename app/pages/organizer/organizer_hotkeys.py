@@ -262,8 +262,15 @@ class OrganizerHotkeysMixin:
             self.render_sessions()
             self.status_callback("Raccourci déjà utilisé par Sélection personnage.")
             return
-        if kind == "client" and target.get("slot") is not None:
-            slot_index = int(target["slot"])
+        if kind == "client":
+            # A malformed or stale capture target must never silently bind a
+            # shortcut to a different character (int(1.9) == 1, True == 1).
+            slot_index = target.get("slot")
+            if type(slot_index) is not int or not 0 <= slot_index < SESSION_SLOT_COUNT:
+                self.update_global_buttons()
+                self.render_sessions()
+                self.status_callback("Raccourci ignoré : slot personnage invalide.")
+                return
             owner = self.global_hotkey_owner(hotkey)
             if owner == "Sélection personnage":
                 owner = ""  # explicit wheel-over-slot priority

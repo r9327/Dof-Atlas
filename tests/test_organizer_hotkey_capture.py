@@ -43,6 +43,50 @@ class OrganizerHotkeyCaptureTests(unittest.TestCase):
     def setUpClass(cls) -> None:
         cls.app = QApplication.instance() or QApplication([])
 
+    def test_client_capture_rejects_invalid_slot_without_rebinding_another_character(self) -> None:
+        for bad_slot in (None, True, False, -1, 8, 1.9, "1", object()):
+            with self.subTest(slot=repr(bad_slot)):
+                widget = _CaptureWidget()
+                try:
+                    with (
+                        patch("app.pages.organizer.organizer_hotkeys.QTimer"),
+                        patch("app.pages.organizer.organizer_hotkeys.key_sequence_to_hotkey",
+                              return_value="F6"),
+                    ):
+                        widget.begin_capture("client", slot=bad_slot)
+                        event = Mock()
+                        event.key.return_value = Qt.Key_F6
+                        event.modifiers.return_value = Qt.NoModifier
+                        widget.keyPressEvent(event)
+                    self.assertEqual(widget.profiles, {})
+                    widget.save_profiles.assert_not_called()
+                    widget.reload_runtime_callback.assert_not_called()
+                    self.assertIn("slot personnage invalide",
+                                  widget.status_callback.call_args.args[0])
+                finally:
+                    widget.close()
+                    widget.deleteLater()
+
+    def test_client_capture_accepts_eighth_slot_without_rebinding_first(self) -> None:
+        widget = _CaptureWidget()
+        try:
+            with (
+                patch("app.pages.organizer.organizer_hotkeys.QTimer"),
+                patch("app.pages.organizer.organizer_hotkeys.key_sequence_to_hotkey",
+                      return_value="F6"),
+            ):
+                widget.begin_capture("client", slot=7)
+                event = Mock()
+                event.key.return_value = Qt.Key_F6
+                event.modifiers.return_value = Qt.NoModifier
+                widget.keyPressEvent(event)
+            self.assertEqual(widget.profiles.get(client_slot_hotkey_key(7)), "F6")
+            self.assertNotIn(client_slot_hotkey_key(0), widget.profiles)
+            widget.save_profiles.assert_called_once()
+        finally:
+            widget.close()
+            widget.deleteLater()
+
     def test_radial_button_captures_a_real_configurable_shortcut(self) -> None:
         widget = _CaptureWidget()
         try:
