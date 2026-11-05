@@ -62,6 +62,22 @@ class ModularDomainRoutingTests(unittest.TestCase):
         self.assertFalse(owners_for(generic_doc))
         self.assertNotIn("organizer", self.route([generic_doc])["domains"])
 
+    def test_doctor_pr_on_demand_exact_owner_and_contract(self):
+        # New on-demand runner is CI-only. Unknown sibling executables stay
+        # blocked until individually reviewed; the new contract test is owned.
+        changed = [
+            "tools/doctor_pr_on_demand.py",
+            "tests/test_doctor_pr_on_demand.py",
+            ".github/workflows/atlas-doctor-on-demand.yml",
+            "GRAPHIFY.md",  # Reviewed root Graphify agent contract.
+        ]
+        for path in changed:
+            with self.subTest(path=path):
+                self.assertEqual(owners_for(path), frozenset({"ci"}))
+        self.assertEqual(self.route(changed)["status"], "READY_TO_EXECUTE")
+        self.assertFalse(owners_for("tools/doctor_unreviewed_entry.py"))
+        self.assertEqual(self.route(["tools/doctor_unreviewed_entry.py"])["status"], "BLOCKED")
+
     def test_delivery_contract_and_guard_are_ci_owned(self):
         for path in ("tools/ci_delivery_guard.py",
                      ".github/pull_request_template.md", "AGENTS.md",

@@ -38,6 +38,7 @@ BASELINE_GROUPS = {
 # decision for PHASE_CERTIFICATION.md or any executable policy change.
 REVIEWED_CI_INSTRUCTION_PATHS = frozenset({
     "AGENTS.md", "AI_ENTRYPOINT.md", "AI_CONTEXT.md", "CLAUDE.md",
+    "GRAPHIFY.md",  # Canonical architecture/agent instruction (not runtime)
     ".github/copilot-instructions.md", ".cursor/rules/atlas-doctor.mdc",
     "app/AGENTS.md", "data/AGENTS.md", "tests/AGENTS.md", "tools/AGENTS.md",
     "tools/skills/dofus-atlas-tools/SKILL.md",
@@ -73,6 +74,7 @@ CI_FILES = frozenset({
     "tools/ci_scope_gate.py", "tools/ci_pr_audit.py",
     "tools/ci_delivery_guard.py",
     "tools/ci_domain_certification.py", "tools/doctor_certification.py",
+    "tools/doctor_pr_on_demand.py",  # Explicit CI owner: read-only PR diagnostics
     "tools/atlas_full_suite_proof.py", "tools/ci_verified_pr_full.py",
     "tools/ci_main_phase_evidence.py", "tools/ci_guide_full_evidence.py",
     "tools/doctor_policy_authority.py", "tools/ci_guide_full_evidence.py",

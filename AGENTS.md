@@ -41,6 +41,12 @@ benchmarks or Windows distribution workflows. Never interpret skipped/not-run
 checks as PASS. This applies to guides, Doctor, Graphify, launcher, Organizer,
 data, and every other PR without exception.
 
+For agents with GitHub-only access, the **explicit on-demand** Doctor/Graphify
+workflow in `docs/doctor-on-demand-pr.md` may run targeted development
+diagnostics on Draft PRs. It does not trigger Phase Certification, does not
+replace local checks or Windows tests, and requires artifact proof for the
+exact PR SHA; a missing artifact is `NOT_RUN`, never PASS.
+
 Once implementation, dependencies, tests and self-review are finished, ensure
 the branch contains the complete final candidate and mark the PR **Ready for
 review**. This single transition triggers Phase Certification on that SHA.
