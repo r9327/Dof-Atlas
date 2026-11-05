@@ -270,8 +270,7 @@ jobs:
     timeout-minutes: 5
     permissions:
       contents: read
-      pull-requests: read
-      issues: write
+      pull-requests: write # Only isolated receipt/freshness job; no token in candidate jobs
     steps:
       - name: Reject failed diagnostic or a PR HEAD that moved
         id: verify
@@ -316,17 +315,24 @@ jobs:
           printf -v body '### Atlas on-demand — %s\n- Run: %s (ID %s)\n- PR: #%s\n- Candidate SHA: %s\n- Tool job (Ubuntu/Windows): %s / %s\n- Freshness: %s\n- Phase Certification: NOT_RUN; live DOFUS 2–8 accounts: NOT_RUN\n\nRead the run artifact and re-check the current PR HEAD before claiming any result. This receipt is NOT a PASS or certification.\n' \
             "$MODE" "$RUN_URL" "$RUN_ID" "$PR_NUMBER" "$HEAD_SHA" \
             "$LIGHT_RESULT" "$WINDOWS_RESULT" "$FRESHNESS_RESULT"
-          # Some repository policies reject GITHUB_TOKEN comments (HTTP 403)
-          # even when the workflow shows "Issues: write". A failed optional
-          # receipt is NEVER an execution/freshness failure.
-          if gh api "repos/$GITHUB_REPOSITORY/issues/$PR_NUMBER/comments" \
-              --method POST -f "body=$body" > /dev/null 2>/dev/null; then
+          # GitHub accepts either Issues:write or PullRequests:write here.
+          # Keep the token isolated, record safe HTTP diagnostics, and retain
+          # the artifact fallback if the Actions installation is denied.
+          response="$(mktemp)"
+          trap 'rm -f "$response"' EXIT
+          delivery=COMMENT_UNAVAILABLE
+          if gh api --include "repos/$GITHUB_REPOSITORY/issues/$PR_NUMBER/comments" \
+              --method POST -f "body=$body" > "$response" 2>/dev/null; then
             delivery=COMMENT_POSTED
-          else
-            delivery=COMMENT_UNAVAILABLE
-            echo "::warning::PR receipt unavailable; read the run-scoped JSON artifact instead."
           fi
-          export RECEIPT_DELIVERY="$delivery"
+          http_status="$(awk '$1 ~ /^HTTP\\// { code=$2 } END { print code }' "$response")"
+          if ! [[ "$http_status" =~ ^[0-9]{3}$ ]]; then http_status=UNKNOWN; fi
+          request_id="$(awk 'tolower($1) == "x-github-request-id:" { value=$2 } END { print value }' "$response" | tr -cd 'A-Za-z0-9:-' | cut -c1-96)"
+          request_id="${request_id:-UNAVAILABLE}"
+          if [ "$delivery" = COMMENT_UNAVAILABLE ]; then
+            echo "::warning::PR receipt unavailable (HTTP $http_status; GitHub request $request_id); use run-scoped JSON artifact."
+          fi
+          export RECEIPT_DELIVERY="$delivery" RECEIPT_HTTP_STATUS="$http_status" RECEIPT_REQUEST_ID="$request_id"
           mkdir -p artifacts/atlas_tools_receipt
           python - <<'PY'
           import json
@@ -339,6 +345,8 @@ jobs:
           record.update({
               "schema_version": 1,
               "receipt_delivery": os.environ["RECEIPT_DELIVERY"],
+              "receipt_http_status": os.environ["RECEIPT_HTTP_STATUS"],
+              "receipt_request_id": os.environ["RECEIPT_REQUEST_ID"],
               "phase_certified": False,
               "live_dofus_accounts_tested": False,
           })
