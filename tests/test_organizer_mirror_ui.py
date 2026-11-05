@@ -104,6 +104,7 @@ class OrganizerMirrorIntegrationTests(unittest.TestCase):
         runtime = Mock()
         runtime.settings = settings
         runtime.macro_lock.active_label = ""
+        runtime.macro_lock.should_stop.return_value = False
         runtime.switch_click.run_async.return_value = True
         return runtime
 
@@ -5333,6 +5334,34 @@ class OrganizerMirrorIntegrationTests(unittest.TestCase):
                 cursor.assert_not_called()
                 runtime.switch_character.restore_preferred_client.assert_not_called()
                 runtime.input_state.end_mouse_block.assert_called_once()
+
+
+    def test_mirror_key_wheel_stop_during_worker_admission_passes_native_2_to_8(self):
+        from app.macros.mirror_input import MirrorInputMacro
+
+        for count in (2, 4, 6, 8):
+            for kind in ("key", "wheel"):
+                with self.subTest(clients=count, kind=kind):
+                    handles = tuple(range(101, 101 + count))
+                    runtime = self._runtime(primary=handles[0], handles=handles)
+                    queued = []
+
+                    def stop_during_admission(_label, worker):
+                        queued.append(worker)
+                        runtime.macro_lock.should_stop.return_value = True
+                        return True
+
+                    runtime._spawn_macro.side_effect = stop_during_admission
+                    macro = MirrorInputMacro(runtime)
+                    if kind == "key":
+                        accepted = macro.run_key(65, handles[0], handles)
+                    else:
+                        accepted = macro.run_wheel(
+                            120, False, 0.3, 0.6, handles[0], handles,
+                        )
+                    self.assertFalse(accepted)
+                    self.assertEqual(len(queued), 1)
+                    runtime._spawn_macro.assert_called_once()
 
 
 if __name__ == "__main__":

@@ -53,7 +53,8 @@ class MirrorInputMacro:
         # reload happened during worker admission. The queued worker checks
         # this same generation again before touching Win32.
         return bool(
-            started and self.runtime.settings is profile_at_dispatch
+            started and not self.runtime.macro_lock.should_stop()
+            and self.runtime.settings is profile_at_dispatch
             and self._still_current(source, handles)
         )
 
@@ -85,7 +86,8 @@ class MirrorInputMacro:
         # Reject a newly obsolete wheel before the hook swallows its native
         # physical event; do not queue a stale follow-up for a new profile.
         return bool(
-            started and self.runtime.settings is profile_at_dispatch
+            started and not self.runtime.macro_lock.should_stop()
+            and self.runtime.settings is profile_at_dispatch
             and self._still_current(source, handles)
         )
 
