@@ -6524,5 +6524,79 @@ class OrganizerMirrorIntegrationTests(unittest.TestCase):
 
 
 
+    def test_busy_mirror_click_stop_before_native_probe_preserves_event(self):
+        from app.core.runtime_state import AtlasRuntime
+
+        for count in (2, 4, 6, 8):
+            handles = tuple(range(101, 101 + count))
+            for source in (handles[0], handles[-1]):
+                with self.subTest(count=count, source=source):
+                    runtime = self._runtime(primary=source, handles=handles)
+                    runtime.macro_lock.active_label = "Miroir"
+                    runtime.macro_lock.should_stop.return_value = True
+                    runtime.input_state.is_mouse_blocked.return_value = True
+                    with (
+                        patch("app.windows.unity_windows.foreground_window") as focus,
+                        patch("app.windows.unity_windows.find_known_client_from_point") as point,
+                        patch("app.macros.mirror_plan.is_dofus_unity_process") as process,
+                    ):
+                        self.assertFalse(AtlasRuntime._handle_mirror_click(
+                            runtime, "Left", 20, 30,
+                        ))
+                    focus.assert_not_called()
+                    point.assert_not_called()
+                    process.assert_not_called()
+                    runtime.switch_click.run_async.assert_not_called()
+                    runtime._emit_status.assert_not_called()
+
+    def test_busy_mirror_click_status_cannot_swallow_after_stop_or_mode_change(self):
+        from app.core.runtime_state import AtlasRuntime
+
+        for count in (2, 4, 6, 8):
+            slots = tuple(range(101, 101 + count))
+            for mutation in ("stop", "mode", "favorite", "roster", "worker_done"):
+                with self.subTest(count=count, mutation=mutation):
+                    source = slots[0]
+                    runtime = self._runtime(primary=source, handles=slots)
+                    runtime.macro_lock.active_label = "Miroir"
+                    runtime.input_state.is_mouse_blocked.return_value = True
+                    runtime.macro_lock.should_stop.return_value = False
+                    profile = runtime.settings
+
+                    def report(_runtime, _kind):
+                        if mutation == "stop":
+                            runtime.macro_lock.should_stop.return_value = True
+                        elif mutation == "mode":
+                            profile.macro_mode = "macro"
+                        elif mutation == "favorite":
+                            profile.primary_handle = slots[-1]
+                        elif mutation == "roster":
+                            profile.clients = (
+                                *profile.clients[:-1],
+                                SimpleNamespace(handle=999),
+                            )
+                        else:
+                            runtime.macro_lock.active_label = ""
+
+                    with (
+                        patch("app.windows.unity_windows.foreground_window",
+                              return_value=source),
+                        patch("app.windows.unity_windows.find_known_client_from_point",
+                              return_value=source),
+                        patch("app.windows.unity_windows.is_unity_window",
+                              return_value=True),
+                        patch("app.macros.mirror_plan.is_dofus_unity_process",
+                              return_value=True),
+                        patch.object(AtlasRuntime, "_report_mirror_busy_input",
+                                     side_effect=report) as reporter,
+                    ):
+                        self.assertFalse(AtlasRuntime._handle_mirror_click(
+                            runtime, "Left", 20, 30,
+                        ))
+                    reporter.assert_called_once_with(runtime, "clic")
+                    runtime.switch_click.run_async.assert_not_called()
+
+
+
 if __name__ == "__main__":
     unittest.main()

@@ -922,7 +922,8 @@ class AtlasRuntime:
         source_hwnd = settings.primary_handle
         if (settings.macro_mode != "mirror"
                 or type(source_hwnd) is not int
-                or not 0 < source_hwnd <= (2**64 - 1)):
+                or not 0 < source_hwnd <= (2**64 - 1)
+                or self.macro_lock.should_stop()):
             return False
         # Freeze the exact slots BEFORE GetForegroundWindow, hit-test and
         # the favorite's process probe. These native calls can yield, so a
@@ -993,15 +994,22 @@ class AtlasRuntime:
         )
         if busy:
             # The native Win32 roster probe above can yield while a worker
-            # completes. Recheck the actual pointer lease: an old busy
-            # snapshot must never swallow a NEW physical click after the
-            # worker released its block. The normal hook already handles
-            # clicks arriving during a real active block.
+            # completes, Stop is requested or Organizer switches modes.
+            # Never swallow a new physical DOWN on a stale pointer lease.
             if (not self.input_state.is_mouse_blocked()
-                    or not self.macro_lock.active_label):
+                    or not self.macro_lock.active_label
+                    or self.macro_lock.should_stop()
+                    or not roster_still_current()):
                 return False
             AtlasRuntime._report_mirror_busy_input(self, "clic")
-            return True
+            # Publishing a status can also yield to Stop or a profile edit.
+            # Return true only while the SAME worker still owns the pointer.
+            return bool(
+                self.input_state.is_mouse_blocked()
+                and self.macro_lock.active_label
+                and not self.macro_lock.should_stop()
+                and roster_still_current()
+            )
         if not roster_still_current():
             return False
         try:
