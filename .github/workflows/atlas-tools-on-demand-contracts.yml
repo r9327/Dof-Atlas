@@ -21,7 +21,7 @@ jobs:
   contracts:
     if: github.event.pull_request.head.repo.full_name == github.repository
     runs-on: ubuntu-latest
-    timeout-minutes: 8
+    timeout-minutes: 12
     steps:
       - name: Checkout exact PR candidate with no credentials
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -39,6 +39,13 @@ jobs:
         uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
         with:
           python-version: "3.13"
+      - name: Validate on-demand workflows using pinned actionlint
+        shell: bash
+        run: |
+          set -euo pipefail
+          go run github.com/rhysd/actionlint/cmd/actionlint@v1.7.12 \
+            .github/workflows/atlas-tools-on-demand.yml \
+            .github/workflows/atlas-tools-on-demand-contracts.yml
       - name: Exercise strict command router and authorized exact-SHA modes
         shell: bash
         run: |
