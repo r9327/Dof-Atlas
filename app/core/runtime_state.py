@@ -789,6 +789,13 @@ class AtlasRuntime:
             if not still_busy_and_current():
                 return False
             AtlasRuntime._report_mirror_busy_input(self, "clavier")
+            if not still_busy_and_current():
+                return False
+            # Without a pointer lease this physical key can remain native
+            # in the currently focused, authenticated DOFUS client. Never
+            # consume a key merely because the previous worker is busy.
+            if not self.input_state.is_mouse_blocked():
+                return False
             return bool(still_busy_and_current())
         # Never probe the entire 8-client roster for a key typed into
         # another application or a non-favorite DOFUS window.
@@ -801,6 +808,7 @@ class AtlasRuntime:
         # Native process probes can yield while another application takes
         # focus. Preserve the physical key rather than consuming a stale tap.
         if (foreground != source or self.settings is not settings
+                or not self._running or not self._admin_ok
                 or foreground_window() != source):
             return False
         try:
@@ -876,6 +884,12 @@ class AtlasRuntime:
             if not still_busy_and_current():
                 return False
             AtlasRuntime._report_mirror_busy_input(self, "molette")
+            if not still_busy_and_current():
+                return False
+            # The worker has not claimed the cursor: keep the actual wheel
+            # tick native instead of silently losing it during dispatch.
+            if not self.input_state.is_mouse_blocked():
+                return False
             return bool(still_busy_and_current())
         # A wheel gesture outside the favorite should cost no roster scans.
         if foreground != settings.primary_handle:
@@ -897,6 +911,7 @@ class AtlasRuntime:
         # Screen-to-client conversion can also yield to a focus change.
         # Do not swallow the physical wheel tick for a stale Unity source.
         if (ratio is None or self.settings is not settings
+                or not self._running or not self._admin_ok
                 or foreground_window() != source):
             return False
         try:
@@ -986,6 +1001,7 @@ class AtlasRuntime:
         def roster_still_current() -> bool:
             return (
                 self.settings is settings
+                and self._running and self._admin_ok
                 and settings.macro_mode == "mirror"
                 and type(settings.primary_handle) is int
                 and settings.primary_handle == source_hwnd
