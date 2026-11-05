@@ -454,6 +454,27 @@ class SwitchClickMacro:
             if (self.runtime.macro_lock.should_stop()
                     or self.runtime.settings is not settings_at_start):
                 return
+            # The roster scan above can yield to another foreground app.
+            # A queued physical Miroir gesture must still belong to the
+            # original favorite before we block the pointer or change focus.
+            if (settings_at_dispatch is not None
+                    and mirror_target_handles is not None
+                    and exact_source_handle is not None):
+                try:
+                    if foreground_window() != exact_source_handle:
+                        focus_lost = True
+                        self.runtime.logger.warning(
+                            "%s interrompu: source perdue pendant preflight.",
+                            action_label,
+                        )
+                        return
+                except Exception:
+                    focus_lost = True
+                    self.runtime.logger.exception(
+                        "%s interrompu: source illisible après preflight.",
+                        action_label,
+                    )
+                    return
             if not mouse_blocked:
                 # Only the dispatch phase owns the pointer. A rejected
                 # source, a stale favorite, an empty roster, or a native

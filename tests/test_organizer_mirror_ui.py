@@ -6098,5 +6098,55 @@ class OrganizerMirrorIntegrationTests(unittest.TestCase):
                     )
 
 
+    def test_queued_mirror_click_rechecks_focus_after_roster_scan_2_4_6_8(self):
+        from app.macros.switch_click import SwitchClickMacro, SwitchClickContext
+
+        for count in (2, 4, 6, 8):
+            slots = tuple(range(101, 101 + count))
+            for source in (slots[0], slots[-1]):
+                with self.subTest(clients=count, source=source):
+                    ordered = (source, *(h for h in slots if h != source))
+                    runtime = self._runtime(primary=source, handles=slots)
+                    runtime.macro_lock.should_stop.return_value = False
+                    context = SwitchClickContext(source, 20, 30, 0.5, 0.5, "cursor")
+                    focus = [source]
+                    target_clients = [
+                        SimpleNamespace(handle=h, display_name=str(h))
+                        for h in ordered
+                    ]
+
+                    def roster_scan(*_args):
+                        focus[0] = 999
+                        return target_clients
+
+                    runtime.switch_character.ordered_clients_from_source.side_effect = roster_scan
+                    sender = SwitchClickMacro(runtime)
+                    with (
+                        patch("app.macros.switch_click.current_cursor_pos",
+                              return_value=(12, 14)),
+                        patch.object(sender, "_validated_context",
+                                     return_value=context),
+                        patch("app.macros.switch_click.foreground_window",
+                              side_effect=lambda: focus[0]),
+                        patch("app.macros.switch_click.activate_window") as activate,
+                        patch("app.macros.switch_click.send_client_click") as click,
+                        patch("app.macros.switch_click.set_cursor_pos") as move,
+                    ):
+                        sender._run(
+                            "Left", 1, "Miroir", context,
+                            exact_source_handle=source,
+                            mirror_target_handles=ordered,
+                            settings_at_dispatch=runtime.settings,
+                        )
+                    self.assertEqual(focus[0], 999)
+                    activate.assert_not_called()
+                    click.assert_not_called()
+                    move.assert_not_called()
+                    runtime.input_state.begin_mouse_block.assert_not_called()
+                    runtime.switch_character.restore_preferred_client.assert_not_called()
+                    self.assertIn("Miroir interrompu",
+                                  runtime._emit_status.call_args.args[0])
+
+
 if __name__ == "__main__":
     unittest.main()
