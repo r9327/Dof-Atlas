@@ -830,14 +830,34 @@ class SwitchClickMacro:
         action_label: str,
     ) -> SwitchClickContext | None:
         settings = self.runtime.settings
-        handles = [client.handle for client in settings.clients]
+        handles = tuple(client.handle for client in settings.clients)
+        mode_at_start = settings.macro_mode
+        favorite_at_start = settings.primary_handle
+
+        def capture_is_current() -> bool:
+            # No extra Win32 probes on the low-level hook: just compare the
+            # in-memory 2-8 roster used for the original physical DOWN.
+            return (
+                self.runtime.settings is settings
+                and settings.macro_mode == mode_at_start
+                and settings.primary_handle == favorite_at_start
+                and tuple(client.handle for client in settings.clients) == handles
+            )
 
         source_hwnd = find_known_client_from_point(
             screen_x,
             screen_y,
             handles,
         )
+        if not capture_is_current():
+            self.runtime.logger.info(
+                "%s capture annulée: roster Organizer modifié pendant hit-test.",
+                action_label,
+            )
+            return None
         if source_hwnd and is_unity_window(source_hwnd):
+            if not capture_is_current():
+                return None
             point = screen_to_client(source_hwnd, screen_x, screen_y)
             if point is not None:
                 x, y = clamp_client_point(
@@ -848,6 +868,12 @@ class SwitchClickMacro:
                 ratio = client_point_ratio(source_hwnd, x, y)
                 x_ratio = ratio[0] if ratio else None
                 y_ratio = ratio[1] if ratio else None
+                if not capture_is_current():
+                    self.runtime.logger.info(
+                        "%s capture annulée: roster Organizer modifié pendant point.",
+                        action_label,
+                    )
+                    return None
 
                 self.runtime.last_client_point.hwnd = source_hwnd
                 self.runtime.last_client_point.x = x
@@ -875,8 +901,10 @@ class SwitchClickMacro:
                     reason="cursor",
                 )
 
+        if not capture_is_current():
+            return None
         preferred = self.runtime.switch_character.preferred_client()
-        if preferred is None:
+        if preferred is None or not capture_is_current():
             return None
 
         last = self.runtime.last_client_point

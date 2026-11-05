@@ -4877,6 +4877,59 @@ class OrganizerMirrorIntegrationTests(unittest.TestCase):
                 focus.assert_not_called()
                 send.assert_not_called()
 
+    def test_native_click_capture_does_not_publish_stale_point_during_probe(self):
+        from app.macros.switch_click import SwitchClickMacro
+
+        for count in (2, 4, 6, 8):
+            for altered in ("hit_test", "point", "mode", "favorite"):
+                with self.subTest(clients=count, phase=altered):
+                    handles = tuple(range(101, 101 + count))
+                    runtime = self._runtime(primary=101, handles=handles)
+                    runtime.last_client_point = SimpleNamespace(
+                        valid=False, hwnd=0, x=0, y=0,
+                        x_ratio=None, y_ratio=None,
+                    )
+                    macro = SwitchClickMacro(runtime)
+
+                    def mutate():
+                        if altered in ("hit_test", "point"):
+                            runtime.settings.clients[-1].handle = 999
+                        elif altered == "mode":
+                            runtime.settings.macro_mode = "macro"
+                        else:
+                            runtime.settings.primary_handle = handles[-1]
+
+                    def hit(*_args):
+                        if altered == "hit_test":
+                            mutate()
+                        return 101
+
+                    def ratio(*_args):
+                        if altered != "hit_test":
+                            mutate()
+                        return (0.5, 0.5)
+
+                    with (
+                        patch("app.macros.switch_click.find_known_client_from_point",
+                              side_effect=hit),
+                        patch("app.macros.switch_click.is_unity_window",
+                              return_value=True),
+                        patch("app.macros.switch_click.screen_to_client",
+                              return_value=(5, 6)),
+                        patch("app.macros.switch_click.clamp_client_point",
+                              return_value=(5, 6)),
+                        patch("app.macros.switch_click.client_point_ratio",
+                              side_effect=ratio),
+                    ):
+                        self.assertIsNone(
+                            macro._capture_trigger_context(
+                                20, 30, "Switch clique",
+                            )
+                        )
+                    self.assertFalse(runtime.last_client_point.valid)
+                    self.assertEqual(runtime.last_client_point.hwnd, 0)
+                    runtime.switch_character.preferred_client.assert_not_called()
+
     def test_switch_click_capture_to_worker_native_probe_rejects_inplace_edits(self):
         from app.macros.switch_click import SwitchClickMacro, SwitchClickContext
 
