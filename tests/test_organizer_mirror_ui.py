@@ -4759,6 +4759,7 @@ class OrganizerMirrorIntegrationTests(unittest.TestCase):
                         handles = tuple(range(101, 101 + count))
                         runtime = self._runtime(primary=101, handles=handles)
                         old = runtime.settings
+                        old.macro_mode = "mirror" if action == "Miroir" else "macro"
                         queued = []
                         context = SwitchClickContext(
                             101, 20, 30, 0.5, 0.5, "cursor",
