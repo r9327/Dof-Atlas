@@ -3033,6 +3033,100 @@ class OrganizerMacroReliabilityTests(unittest.TestCase):
         foreground.assert_not_called()
         self.assertEqual(runtime.active_client_handle, 101)
 
+    def test_queued_character_activation_cancel_callback_sees_inplace_slot_change(self):
+        for count in (2, 4, 6, 8):
+            for changed in ("index", "handle"):
+                with self.subTest(clients=count, changed=changed):
+                    runtime = _runtime()
+                    selected = SimpleNamespace(
+                        index=count, handle=100 + count, display_name="Target",
+                    )
+                    runtime.settings.clients = [
+                        SimpleNamespace(index=i, handle=100 + i, display_name=str(i))
+                        for i in range(1, count)
+                    ] + [selected]
+                    runtime.active_client_handle = 101
+                    runtime._spawn_macro.return_value = True
+                    macro = SwitchCharacterMacro(runtime)
+                    self.assertTrue(macro.activate_by_index(count))
+                    worker = runtime._spawn_macro.call_args.args[1]
+
+                    def mutate_during_activation(_hwnd, *_args, **kwargs):
+                        if changed == "handle":
+                            selected.handle = 999
+                        else:
+                            selected.index = 99
+                        self.assertTrue(kwargs["should_stop"]())
+                        return False
+
+                    with (
+                        patch("app.macros.switch_character.is_unity_window",
+                              return_value=True),
+                        patch("app.macros.switch_character.is_dofus_unity_process",
+                              return_value=True),
+                        patch("app.macros.switch_character.activate_window",
+                              side_effect=mutate_during_activation) as focus,
+                        patch("app.macros.switch_character.foreground_window") as foreground,
+                    ):
+                        worker()
+                    focus.assert_called_once()
+                    foreground.assert_not_called()
+                    self.assertEqual(runtime.active_client_handle, 101)
+
+    def test_favorite_restore_freezes_hwnd_through_native_activation_2_to_8(self):
+        for count in (2, 4, 6, 8):
+            with self.subTest(clients=count):
+                runtime = _runtime()
+                runtime.active_client_handle = 101
+                runtime.settings.clients = [
+                    SimpleNamespace(handle=101 + i) for i in range(count)
+                ]
+                favorite = SimpleNamespace(handle=202)
+                runtime.settings.preferred_client.return_value = favorite
+
+                def mutate_during_activation(hwnd, *_args, **kwargs):
+                    self.assertEqual(hwnd, 202)
+                    favorite.handle = 303
+                    self.assertTrue(kwargs["should_stop"]())
+                    return True
+
+                with (
+                    patch("app.macros.switch_character.is_unity_window",
+                          return_value=True),
+                    patch("app.macros.switch_character.is_dofus_unity_process",
+                          return_value=True),
+                    patch("app.macros.switch_character.activate_window",
+                          side_effect=mutate_during_activation) as focus,
+                    patch("app.macros.switch_character.foreground_window") as foreground,
+                ):
+                    SwitchCharacterMacro(runtime).restore_preferred_client("Miroir")
+                focus.assert_called_once()
+                foreground.assert_not_called()
+                self.assertEqual(runtime.active_client_handle, 101)
+                runtime.logger.info.assert_any_call(
+                    "%s retour non publié: favori modifié.", "Miroir",
+                )
+
+    def test_favorite_restore_rejects_non_integer_hwnd_before_native_focus(self):
+        for invalid in (True, 202.5, "202", 0, -3, 2**64):
+            with self.subTest(hwnd=repr(invalid)):
+                runtime = _runtime()
+                runtime.settings.preferred_client.return_value = (
+                    SimpleNamespace(handle=invalid)
+                )
+                with (
+                    patch("app.macros.switch_character.is_unity_window",
+                          return_value=True),
+                    patch("app.macros.switch_character.is_dofus_unity_process",
+                          return_value=True),
+                    patch("app.macros.switch_character.activate_window") as focus,
+                ):
+                    SwitchCharacterMacro(runtime).restore_preferred_client("Miroir")
+                focus.assert_not_called()
+                runtime.logger.info.assert_any_call(
+                    "%s retour ignore: HWND favori invalide.", "Miroir",
+                )
+
     def test_favorite_restore_does_not_publish_old_favorite_after_change(self) -> None:
         runtime = _runtime()
         runtime.active_client_handle = 101
