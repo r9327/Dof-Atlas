@@ -68,6 +68,24 @@ class OrganizerMirrorLogReportTests(unittest.TestCase):
         self.assertIsNone(report["metrics"]["click_dispatch_to_last_emit_ms"])
         self.assertEqual(report["roster_mismatch_lines"], 1)
 
+    def test_profile_changed_after_full_send_is_not_reported_complete(self):
+        # Runtime explicitly distinguishes delivery count from final profile
+        # integrity. A full counter must never silently become a green action.
+        for accounts in (2, 4, 6, 8):
+            with self.subTest(accounts=accounts):
+                result = summarize([
+                    f"Miroir Clavier : {accounts}/{accounts} fenêtres (profil modifié après envoi).",
+                    f"Miroir Molette : {accounts}/{accounts} fenêtres (profil modifié après envoi).",
+                    f"Miroir : {accounts}/{accounts} fenêtres.",
+                    f"Miroir Clavier : {accounts - 1}/{accounts} fenêtres.",
+                    "Miroir Clavier : 8/8 fenêtres (profil modifié après envoi)." if accounts != 8
+                    else "Miroir Clavier incomplet : 0/8 fenêtres.",
+                ], accounts)
+                self.assertEqual(result["actions"]["complete"], 1)
+                self.assertEqual(result["actions"]["partial"], 4 if accounts == 8 else 3)
+                self.assertEqual(result["profile_changed_after_send"], 2)
+                self.assertEqual(result["roster_mismatch_lines"], 0 if accounts == 8 else 1)
+
     def test_streaming_input_is_consumed_once_without_materializing_list(self):
         count = 0
 
