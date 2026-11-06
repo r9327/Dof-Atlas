@@ -22,8 +22,17 @@ MAX_MODULES = 12
 # A direct owner is mandatory for executable files: domain smokes alone do not
 # prove a changed source. Extend this map only with existing, reviewed tests.
 DIRECT_OWNERS = {
+    # Both modules are exercised by real mouse-hook + collision/Stop tests;
+    # test-module existence and actual execution are still mandatory.
+    "app/input/input_state.py": (
+        "tests.test_organizer_sendinput",
+        "tests.test_organizer_mirror_ui",
+    ),
     "app/input/mouse_hooks.py": (
         "tests.test_organizer_sendinput",
+        "tests.test_organizer_mirror_ui",
+    ),
+    "app/macros/mirror_input.py": (
         "tests.test_organizer_mirror_ui",
     ),
     "app/macros/switch_click.py": (

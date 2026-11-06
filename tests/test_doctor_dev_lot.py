@@ -77,6 +77,42 @@ class DevelopmentLotTests(unittest.TestCase):
         self.assertFalse(report["full_suite_waived"])
         self.assertEqual(report["execution"]["status"], "NOT_RUN")
 
+    def test_pointer_state_and_mirror_worker_have_real_test_owners(self):
+        # These are production senders; a broad organizer-domain smoke
+        # cannot substitute for an explicit, executable owner.
+        for source in ("app/input/input_state.py", "app/macros/mirror_input.py"):
+            path = self.root / source
+            path.parent.mkdir(parents=True, exist_ok=True)
+            path.write_text("pass\n", encoding="utf-8")
+        self.paths = [
+            "app/input/input_state.py", "app/macros/mirror_input.py",
+            "tests/test_organizer_sendinput.py", "tests/test_organizer_mirror_ui.py",
+        ]
+        report = self.plan()
+        self.assertEqual(report["status"], "READY")
+        self.assertEqual(report["uncovered_paths"], [])
+        self.assertEqual(report["unsupported_paths"], [])
+        self.assertEqual(report["test_modules"], [
+            "tests.test_organizer_mirror_ui",
+            "tests.test_organizer_sendinput",
+        ])
+        # Targeted tests may run, but the whole PR still requires FULL.
+        self.assertTrue(report["global_full_required"])
+        self.assertFalse(report["phase_certified"])
+
+    def test_pointer_owner_absence_remains_review_not_false_ready(self):
+        self.paths = ["app/input/input_state.py", "app/macros/mirror_input.py"]
+        for name in ("test_organizer_mirror_ui.py", "test_organizer_sendinput.py"):
+            (self.root / "tests" / name).unlink()
+        report = self.plan()
+        self.assertEqual(report["status"], "REVIEW")
+        self.assertEqual(
+            sorted(report["uncovered_paths"]),
+            sorted(self.paths),
+        )
+        self.assertEqual(report["test_modules"], [])
+        self.assertTrue(report["global_full_required"])
+
     def test_unknown_code_has_explicit_review_not_false_pass(self):
         self.paths = ["app/macros/brand_new_engine.py", "tests/test_organizer_sendinput.py"]
         report = self.plan()
