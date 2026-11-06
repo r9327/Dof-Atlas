@@ -309,6 +309,15 @@ class MouseHook:
                         self._consumed_releases.add(
                             _physical_release_token(paired_up, int(event.mouseData))
                         )
+                    # A NEW user click or wheel while Atlas physically
+                    # owns the cursor cancels the active fan-out. The DOWN
+                    # remains swallowed (and its UP paired) for safety;
+                    # the next physical attempt can be native after cleanup.
+                    # Neither a move nor an unmatched native UP is a new
+                    # gesture, and neither may cancel a worker.
+                    if (paired_up is not None
+                            or w_param in (WM_MOUSEWHEEL, WM_MOUSEHWHEEL)):
+                        self.input_state.note_blocked_physical_gesture()
                     try:
                         self._log_blocked_event(w_param, x, y)
                     except Exception:
