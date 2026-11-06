@@ -232,9 +232,14 @@ def send_screen_click(
             try:
                 wait_ms(post_up_ms, should_stop)
             except Exception:
-                logger.exception(
-                    "Clic envoyé: temporisation après UP impossible; livraison conservée."
-                )
+                # Delivery has already completed. A broken diagnostic sink
+                # must not turn a real click into a reported failure.
+                try:
+                    logger.exception(
+                        "Clic envoyé: temporisation après UP impossible; livraison conservée."
+                    )
+                except Exception:
+                    pass
 
         return ok
     except Exception:
