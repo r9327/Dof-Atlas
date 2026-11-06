@@ -100,6 +100,19 @@ class DevelopmentLotTests(unittest.TestCase):
         self.assertTrue(report["global_full_required"])
         self.assertFalse(report["phase_certified"])
 
+    def test_pointer_owner_absence_remains_review_not_false_ready(self):
+        self.paths = ["app/input/input_state.py", "app/macros/mirror_input.py"]
+        for name in ("test_organizer_mirror_ui.py", "test_organizer_sendinput.py"):
+            (self.root / "tests" / name).unlink()
+        report = self.plan()
+        self.assertEqual(report["status"], "REVIEW")
+        self.assertEqual(
+            sorted(report["uncovered_paths"]),
+            sorted(self.paths),
+        )
+        self.assertEqual(report["test_modules"], [])
+        self.assertTrue(report["global_full_required"])
+
     def test_unknown_code_has_explicit_review_not_false_pass(self):
         self.paths = ["app/macros/brand_new_engine.py", "tests/test_organizer_sendinput.py"]
         report = self.plan()
