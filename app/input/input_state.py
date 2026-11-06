@@ -16,6 +16,10 @@ class InputState:
         self.active_hotkeys: set[str] = set()
         self._mouse_block_count = 0
         self._mouse_block_label = ""
+        # A NEW physical click/wheel while a worker owns the pointer must
+        # interrupt that worker. Do not enqueue/replay it onto an unknown
+        # Unity foreground target.
+        self._mouse_block_interrupted = False
         # Emergency Stop revokes all prior pointer leases. Track ownership
         # per thread so a stale worker cannot decrement a NEW worker's block.
         # All canonical macro senders acquire/release on their worker thread.
@@ -54,6 +58,8 @@ class InputState:
                 owners = []
                 self._mouse_block_owners.epochs = owners
             owners.append(self._mouse_block_epoch)
+            if self._mouse_block_count == 0:
+                self._mouse_block_interrupted = False
             self._mouse_block_count += 1
             self._mouse_block_label = str(label or "macro")
             return self._mouse_block_count
@@ -72,6 +78,7 @@ class InputState:
             self._mouse_block_count = max(0, self._mouse_block_count - 1)
             if self._mouse_block_count == 0:
                 self._mouse_block_label = ""
+                self._mouse_block_interrupted = False
             return self._mouse_block_count
 
     def clear_mouse_block(self) -> None:
@@ -80,6 +87,24 @@ class InputState:
             self._mouse_block_epoch += 1
             self._mouse_block_count = 0
             self._mouse_block_label = ""
+            self._mouse_block_interrupted = False
+
+    def note_blocked_physical_gesture(self) -> bool:
+        """Request cancellation of the CURRENT pointer lease, never replay.
+
+        Called only for an intercepted physical DOWN/wheel in the low-level
+        mouse hook. Unlike an emergency Stop, this does not revoke the
+        worker's cleanup ownership or release the pointer prematurely.
+        """
+        with self._lock:
+            if self._mouse_block_count <= 0:
+                return False
+            self._mouse_block_interrupted = True
+            return True
+
+    def mouse_block_interrupted(self) -> bool:
+        with self._lock:
+            return self._mouse_block_count > 0 and self._mouse_block_interrupted
 
     def is_mouse_blocked(self) -> bool:
         with self._lock:
