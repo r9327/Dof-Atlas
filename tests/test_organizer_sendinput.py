@@ -1238,6 +1238,40 @@ class OrganizerSendInputTests(unittest.TestCase):
                     )
                     guard.end.assert_called_once_with(120)
 
+    def test_synthetic_guard_and_click_debug_logger_failures_do_not_drop_click(self):
+        from app.input.input_state import SyntheticInputGuard
+
+        for button in ("Left", "Right"):
+            for count in (1, 2):
+                with self.subTest(button=button, count=count):
+                    logger = Mock()
+                    logger.debug.side_effect = RuntimeError("debug sink offline")
+                    guard = SyntheticInputGuard(logger)
+                    down = (
+                        clicks.MOUSEEVENTF_LEFTDOWN if button == "Left"
+                        else clicks.MOUSEEVENTF_RIGHTDOWN
+                    )
+                    up = (
+                        clicks.MOUSEEVENTF_LEFTUP if button == "Left"
+                        else clicks.MOUSEEVENTF_RIGHTUP
+                    )
+                    with (
+                        patch.object(clicks.os, "name", "nt"),
+                        patch.object(clicks, "set_cursor_pos"),
+                        patch.object(clicks, "_send_mouse_flag",
+                                     return_value=True) as sender,
+                    ):
+                        self.assertTrue(clicks.send_screen_click(
+                            300, 200, button, count, 0, 0, 0, 0,
+                            guard, logger,
+                        ))
+                    self.assertEqual(
+                        [item.args for item in sender.call_args_list],
+                        [(down,), (up,)] * count,
+                    )
+                    self.assertEqual(guard._active_count, 0)
+                    self.assertEqual(logger.exception.call_count, 0)
+
     def test_post_up_stop_does_not_erase_completed_click_delivery(self) -> None:
         for button in ("Left", "Right"):
             for count in (1, 2):
