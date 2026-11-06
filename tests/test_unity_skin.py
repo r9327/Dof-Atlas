@@ -10,7 +10,7 @@ from unittest.mock import patch
 os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
 
 from PySide6.QtGui import QColor, QImage
-from PySide6.QtWidgets import QApplication
+from PySide6.QtWidgets import QApplication, QTabWidget, QWidget
 
 from app.ui import unity_skin
 from app.ui.unity_skin import (
@@ -153,6 +153,51 @@ class UnitySkinTests(unittest.TestCase):
         )
         with patch.dict(os.environ, {"ATLAS_THEME": "atlas"}):
             self.assertIn("AtlasUnityBackdrop", unity_skin_stylesheet())
+
+    def test_tab_sprite_reserves_equal_border_for_all_states(self) -> None:
+        sprite = "Assets_UI_Themes_darkStone_common_bg_tab_selected_normal-png.png"
+        with patch.object(
+            unity_skin, "_sprite_url",
+            side_effect=lambda name: "/tmp/selected-tab.png" if name == sprite else None,
+        ):
+            style = unity_skin_stylesheet()
+        self.assertIn(
+            "QTabBar::tab, QTabWidget#EncyclopediaTabs QTabBar::tab { "
+            "border: 6px solid transparent; }",
+            style,
+        )
+        self.assertIn(
+            "QTabBar::tab:selected, "
+            "QTabWidget#EncyclopediaTabs QTabBar::tab:selected { "
+            "border: 6px solid transparent; border-image:",
+            style,
+        )
+
+    def test_encyclopedia_tab_sizes_do_not_change_on_selection(self) -> None:
+        from app.ui.theme import atlas_stylesheet
+
+        tabs = QTabWidget()
+        tabs.setObjectName("EncyclopediaTabs")
+        tabs.tabBar().setExpanding(False)
+        for label in ("Quêtes", "Succès", "Guides", "Donjons"):
+            tabs.addTab(QWidget(), label)
+        tabs.setStyleSheet(atlas_stylesheet())
+        tabs.resize(800, 260)
+        tabs.show()
+        try:
+            self.app.processEvents()
+            bar = tabs.tabBar()
+            expected = tuple(bar.tabRect(i).size() for i in range(bar.count()))
+            for index in range(bar.count()):
+                tabs.setCurrentIndex(index)
+                self.app.processEvents()
+                self.assertEqual(
+                    tuple(bar.tabRect(i).size() for i in range(bar.count())),
+                    expected,
+                )
+        finally:
+            tabs.close()
+            tabs.deleteLater()
 
     def test_primary_navigation_uses_local_unity_pictograms_with_fallback(self) -> None:
         main_source = (Path(__file__).resolve().parents[1] / "main.py").read_text(encoding="utf-8")

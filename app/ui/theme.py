@@ -305,7 +305,7 @@ QTabWidget#EncyclopediaTabs::pane {
 
 QTabWidget#EncyclopediaTabs QTabBar::tab {
     background: @PANEL;
-    border: 1px solid @BORDER;
+    border: 2px solid @BORDER;
     border-bottom-color: @BORDER_SOFT;
     border-top-left-radius: 6px;
     border-top-right-radius: 6px;
@@ -317,7 +317,7 @@ QTabWidget#EncyclopediaTabs QTabBar::tab {
 }
 
 QTabWidget#EncyclopediaTabs QTabBar::tab:selected {
-    background: #101E2F;
+    background: @PANEL_2;
     border-color: @GREEN;
     border-bottom: 2px solid @GREEN;
     color: @TEXT;
@@ -650,6 +650,32 @@ QLineEdit, QComboBox, QSpinBox, #inputField, #comboField {
 QLineEdit:focus, QComboBox:focus, QSpinBox:focus, #inputField:focus, #comboField:focus {
     background: @PANEL_HOVER;
     border-color: @GREEN;
+}
+
+/* One popup contract for all native dropdowns (including Successes). */
+QComboBox:hover {
+    border-color: @BORDER_STRONG;
+}
+
+QComboBox:disabled {
+    background: @PANEL;
+    border-color: @BORDER_SOFT;
+    color: @TEXT_DISABLED;
+}
+
+QComboBox::drop-down {
+    border: none;
+    border-left: 1px solid @BORDER_SOFT;
+    width: @CONTROL_HEIGHT_COMPACT;
+}
+
+QComboBox QAbstractItemView {
+    background: @PANEL_2;
+    color: @TEXT;
+    border: 1px solid @BORDER;
+    outline: none;
+    selection-background-color: @PANEL_ACTIVE;
+    selection-color: @TEXT;
 }
 
 QSpinBox#QuantitySpinBox {
