@@ -1732,3 +1732,9 @@ Ne pas rendre la PR non-Draft.
 - Les diffuseurs clic/molette traitent une lecture impossible du latch souris comme un arrêt prudent `contrôle souris indisponible`, distinct de `geste physique non rejoué`. Aucun clic/molette supplémentaire, restauration de favori ou déplacement de curseur ne découle d'une lecture non fiable ; la sortie du bail souris reste garantie.
 - Tests ciblés : gauche, droite, molette, XBUTTON, Stop / remplacement générationnel, fin du bail pendant l'appel du hook, erreurs de lecture, catégories de perte réellement observée, en simulations 2/4/6/8 fenêtres.
 - **MIRR-007 reste PENDING** : tout clic survenant sous un bail **réellement encore actif** reste bloqué, et l'absence de retransmission vers Unity n'a pas été résolue. L'entrée native relâchée ne constitue pas une preuve de gameplay. Tests Windows/DOFUS #322 **NOT_RUN**, ne pas certifier globalement ni fusionner #325.
+
+### 06/11/2026 — premier mouvement souris après fermeture du bail
+
+- Le chemin chaud `WM_MOUSEMOVE` ne fait **aucun décodage ctypes** si la souris est libre dès le premier test. Lorsqu'un bail était actif au départ, le hook reverifie ce bail **après** le décodage de l'événement : un mouvement natif arrivé juste après sa libération n'est plus avalé en retard.
+- Un mouvement physique pendant le bail réellement actif reste protégé ; les mouvements marqués injectés passent sans déclencher les callbacks utilisateur. La vérification supplémentaire est limitée au chemin déjà bloqué.
+- Une régression simulée sur 2/4/6/8 clients force l'expiration du bail entre ces deux sondes. Cela ne mesure ni la latence réelle des hooks sur Windows ni le rendu Unity.
