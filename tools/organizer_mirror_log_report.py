@@ -26,7 +26,8 @@ METRIC_PATTERNS = {
     ),
     "click_dispatch_to_last_emit_ms": re.compile(
         r"\bMiroir clic dispatch_to_worker_ms=\S+ "
-        r"dispatch_to_last_emit_ms=(?P<value>\d+(?:\.\d+)?|NOT_MEASURED)"
+        r"dispatch_to_last_emit_ms=(?P<value>\d+(?:\.\d+)?|NOT_MEASURED) "
+        r"cibles=(?P<accounts>\d+)"
     ),
     "key_worker_ms": re.compile(
         r"\bMiroir key: envoyés=\d+/(?P<accounts>\d+) worker_total_ms=(?P<value>\d+(?:\.\d+)?)"
@@ -111,10 +112,6 @@ def summarize(lines: Iterable[str], accounts: int) -> dict:
             duration = float(metric.group("value"))
             if math.isfinite(duration) and duration >= 0:
                 samples[name].append(duration)
-    if mismatched_roster_lines:
-        # Click dispatch logs lack an account count; never attribute their
-        # timing to one roster if the file contains mixed-size sessions.
-        samples["click_dispatch_to_last_emit_ms"].clear()
     return {
         "account_count": accounts,
         "evidence": "LOG_ONLY_NOT_UNITY_CERTIFIED",
