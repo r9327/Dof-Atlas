@@ -119,6 +119,57 @@ class DevelopmentLotTests(unittest.TestCase):
         self.assertEqual(report["status"], "REVIEW")
         self.assertIn("app/macros/brand_new_engine.py", report["uncovered_paths"])
 
+    def test_mirror_report_tool_has_exact_direct_test_owner(self):
+        self.paths = [
+            "app/macros/switch_click.py",
+            "tools/organizer_mirror_log_report.py",
+            "tests/test_organizer_mirror_log_report.py",
+            "tests/test_organizer_mirror_ui.py",
+            ".ai/context_index.json",
+        ]
+        for name in (
+            "tools/organizer_mirror_log_report.py",
+            "tests/test_organizer_mirror_log_report.py",
+        ):
+            path = self.root / name
+            path.parent.mkdir(parents=True, exist_ok=True)
+            path.write_text("pass\\n", encoding="utf-8")
+        report = self.plan()
+        self.assertEqual(report["status"], "READY")
+        self.assertEqual(report["uncovered_paths"], [])
+        self.assertEqual(report["unsupported_paths"], [])
+        self.assertEqual(report["test_modules"], [
+            "tests.test_organizer_macro_reliability",
+            "tests.test_organizer_mirror_log_report",
+            "tests.test_organizer_mirror_ui",
+        ])
+        self.assertTrue(report["global_full_required"])
+        self.assertEqual(report["execution"]["status"], "NOT_RUN")
+        self.assertFalse(report["phase_certified"])
+
+    def test_unmapped_tool_remains_blocked_even_with_matching_test(self):
+        self.paths = [
+            "tools/unreviewed_mirror_sender.py",
+            "tests/test_unreviewed_mirror_sender.py",
+        ]
+        name = self.root / "tests/test_unreviewed_mirror_sender.py"
+        name.parent.mkdir(parents=True, exist_ok=True)
+        name.write_text("pass\\n", encoding="utf-8")
+        report = self.plan()
+        self.assertEqual(report["status"], "BLOCKED")
+        self.assertIn("tools/unreviewed_mirror_sender.py",
+                      report["unsupported_paths"])
+        self.assertTrue(report["global_full_required"])
+
+    def test_missing_mirror_report_owner_is_review_never_ready(self):
+        self.paths = ["tools/organizer_mirror_log_report.py"]
+        report = self.plan()
+        self.assertEqual(report["status"], "REVIEW")
+        self.assertEqual(report["uncovered_paths"],
+                         ["tools/organizer_mirror_log_report.py"])
+        self.assertEqual(report["test_modules"], [])
+        self.assertFalse(report["phase_certified"])
+
     def test_workflow_and_policy_changes_are_blocked(self):
         for path in ("tools/ci_scope_gate.py", ".github/workflows/phase-certification.yml"):
             with self.subTest(path=path):
