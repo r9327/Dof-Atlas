@@ -567,10 +567,15 @@ class MirrorInputMacro:
                         pointer_collision = True
                     blocked_count = runtime.input_state.last_release_blocked_count()
                     if type(blocked_count) is int and blocked_count > 0:
-                        runtime.logger.info(
-                            "Miroir molette collisions_physiques=%s cibles=%s",
-                            blocked_count, len(handles),
-                        )
+                        try:
+                            runtime.logger.info(
+                                "Miroir molette collisions_physiques=%s cibles=%s",
+                                blocked_count, len(handles),
+                            )
+                        except Exception:
+                            # Failure of diagnostics cannot mask the lost
+                            # physical gesture or strand worker teardown.
+                            pass
                     if mouse_block_started_at is not None:
                         runtime.logger.info(
                             "Miroir molette blocage_souris_ms=%.2f cibles=%s",
