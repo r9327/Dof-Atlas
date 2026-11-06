@@ -723,6 +723,10 @@ class SwitchClickMacro:
                 # before SendInput. Never click another application or client.
                 if not target_roster_intact():
                     delivery_failed = True
+                    self.runtime.logger.warning(
+                        "%s interrompu: roster modifié pendant activation hwnd=%s",
+                        action_label, target_hwnd,
+                    )
                     return
                 if foreground_window() != int(target_hwnd):
                     focus_lost = True
