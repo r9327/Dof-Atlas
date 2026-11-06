@@ -1716,6 +1716,95 @@ class OrganizerSendInputTests(unittest.TestCase):
                     callback.assert_not_called()
                     user32.CallNextHookEx.assert_not_called()
 
+    def test_unreadable_initial_pointer_state_never_leaks_clicks_or_wheel_2_to_8(self):
+        from app.input.input_state import InputState, SyntheticInputGuard
+        from app.input.mouse_hooks import (
+            MSLLHOOKSTRUCT, MouseHook,
+            WM_LBUTTONDOWN, WM_LBUTTONUP, WM_RBUTTONDOWN, WM_RBUTTONUP,
+            WM_MBUTTONDOWN, WM_MBUTTONUP, WM_XBUTTONDOWN, WM_XBUTTONUP,
+            WM_MOUSEWHEEL, WM_MOUSEHWHEEL,
+        )
+
+        for accounts in (2, 4, 6, 8):
+            for down, up in (
+                (WM_LBUTTONDOWN, WM_LBUTTONUP),
+                (WM_RBUTTONDOWN, WM_RBUTTONUP),
+                (WM_MBUTTONDOWN, WM_MBUTTONUP),
+                (WM_XBUTTONDOWN, WM_XBUTTONUP),
+                (WM_MOUSEWHEEL, None),
+                (WM_MOUSEHWHEEL, None),
+            ):
+                with self.subTest(accounts=accounts, down=down):
+                    state = InputState()
+                    state.begin_mouse_block("Miroir")
+                    logger = Mock()
+                    logger.exception.side_effect = RuntimeError("logger failed")
+                    click, wheel = Mock(return_value=True), Mock(return_value=True)
+                    hook = MouseHook(
+                        state, SyntheticInputGuard(logger), logger, click,
+                        wheel_callback=wheel,
+                    )
+                    event = MSLLHOOKSTRUCT()
+                    event.mouseData = (1 if down == WM_XBUTTONDOWN else 120) << 16
+                    addr = ctypes.addressof(event)
+                    next_hook = Mock(return_value=71)
+                    with (
+                        patch.object(
+                            ctypes, "windll",
+                            SimpleNamespace(user32=SimpleNamespace(
+                                CallNextHookEx=next_hook,
+                            )), create=True,
+                        ),
+                        patch.object(
+                            state, "is_mouse_blocked",
+                            side_effect=RuntimeError("pointer state unavailable"),
+                        ),
+                    ):
+                        self.assertEqual(hook._mouse_proc(0, down, addr), 1)
+                        if up is not None:
+                            self.assertEqual(hook._mouse_proc(0, up, addr), 1)
+                    self.assertEqual(hook._consumed_releases, set())
+                    self.assertEqual(state.end_mouse_block(), 0)
+                    click.assert_not_called()
+                    wheel.assert_not_called()
+                    next_hook.assert_not_called()
+
+    def test_unpaired_release_remains_native_when_pointer_state_is_unreadable(self):
+        from app.input.input_state import InputState, SyntheticInputGuard
+        from app.input.mouse_hooks import (
+            MSLLHOOKSTRUCT, MouseHook, WM_LBUTTONUP,
+            WM_RBUTTONUP, WM_MBUTTONUP, WM_XBUTTONUP, LLMHF_INJECTED,
+            WM_LBUTTONDOWN,
+        )
+
+        state = InputState()
+        hook = MouseHook(
+            state, SyntheticInputGuard(Mock()), Mock(), Mock(return_value=True),
+        )
+        event = MSLLHOOKSTRUCT()
+        addr = ctypes.addressof(event)
+        next_hook = Mock(return_value=71)
+        with (
+            patch.object(
+                ctypes, "windll",
+                SimpleNamespace(user32=SimpleNamespace(
+                    CallNextHookEx=next_hook,
+                )), create=True,
+            ),
+            patch.object(
+                state, "is_mouse_blocked",
+                side_effect=RuntimeError("pointer state unavailable"),
+            ),
+        ):
+            for up in (
+                WM_LBUTTONUP, WM_RBUTTONUP, WM_MBUTTONUP, WM_XBUTTONUP,
+            ):
+                self.assertEqual(hook._mouse_proc(0, up, addr), 71)
+            event.flags = LLMHF_INJECTED
+            self.assertEqual(hook._mouse_proc(0, WM_LBUTTONDOWN, addr), 71)
+        self.assertEqual(next_hook.call_count, 5)
+        self.assertFalse(hook._consumed_releases)
+
     def test_busy_mouse_hook_bursts_two_four_six_eight_are_counted(self) -> None:
         import logging
         from app.input.input_state import InputState, SyntheticInputGuard

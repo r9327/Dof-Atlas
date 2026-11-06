@@ -327,7 +327,33 @@ class MouseHook:
                                 self._hook, n_code, w_param, l_param,
                             )
 
-                if self.input_state.is_mouse_blocked() and not atlas_synthetic:
+                # An unreadable pointer lease is not proof that it is safe
+                # to forward a new physical click to the foreground Unity
+                # client. Preserve DOWN/UP ownership even if diagnostics fail.
+                pointer_blocked = False
+                if not atlas_synthetic:
+                    try:
+                        pointer_blocked = self.input_state.is_mouse_blocked()
+                    except Exception:
+                        paired_up = BLOCKED_DOWN_TO_UP.get(w_param)
+                        if paired_up is not None:
+                            self._consumed_releases.add(
+                                _physical_release_token(
+                                    paired_up, int(event.mouseData),
+                                ),
+                            )
+                        if (paired_up is not None
+                                or w_param in (WM_MOUSEWHEEL, WM_MOUSEHWHEEL)):
+                            try:
+                                self.logger.exception(
+                                    "Hook souris: verrou illisible, geste physique refusé.",
+                                )
+                            except Exception:
+                                pass
+                            return 1
+                        # A native UP with no intercepted DOWN must still
+                        # reach its original client to avoid a stuck button.
+                if pointer_blocked:
                     # An UP with no consumed DOWN can belong to a real press
                     # that began BEFORE the worker blocked input. Swallowing
                     # only that UP would leave the user's button held. The
