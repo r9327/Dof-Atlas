@@ -685,16 +685,6 @@ class AtlasRuntime:
         if (favorite is None or type(getattr(favorite, "handle", None)) is not int
                 or getattr(favorite, "handle", None) != source or not is_unity_window(source)):
             return None
-        if not is_dofus_unity_process(source):
-            return None
-        # Never silently drop a stale/foreign client. Consuming the physical
-        # key or wheel for a reduced roster would lose the source gesture
-        # when the worker rejects that snapshot against the live settings.
-        if not all(
-            is_unity_window(hwnd) and is_dofus_unity_process(hwnd)
-            for hwnd in live if hwnd != source
-        ):
-            return None
         # Native identity probes can release the GIL. Reconfirm the same
         # in-memory slot values, favorite, mode and runtime state, even if
         # the Organizer settings object itself was mutated in place.
@@ -707,18 +697,33 @@ class AtlasRuntime:
                 # gesture may start a new lease, which clears that old latch.
                 and not (self.macro_lock.active_label
                          and self.macro_lock.should_stop())
-                and settings.macro_mode == "mirror"
-                and type(settings.primary_handle) is int
-                and settings.primary_handle == source
+                and getattr(settings, "macro_mode", None) == "mirror"
+                and type(getattr(settings, "primary_handle", None)) is int
+                and getattr(settings, "primary_handle", None) == source
                 and type(getattr(favorite, "handle", None)) is int
                 and getattr(favorite, "handle", None) == source
                 and isinstance(active, (list, tuple))
-                and tuple((type(getattr(client, "handle", None)), getattr(client, "handle", None))
+                and tuple((type(getattr(client, "handle", None)),
+                           getattr(client, "handle", None))
                           for client in active)
                 == tuple((int, hwnd) for hwnd in live)
             )
 
-        if not still_authorized():
+        # A native identity query can yield to an in-place Organizer edit
+        # or Emergency Stop. Stop immediately: do not scan the remaining
+        # 2-8 windows for a gesture that is no longer authorized.
+        try:
+            if not is_dofus_unity_process(source) or not still_authorized():
+                return None
+            for hwnd in live:
+                if hwnd == source:
+                    continue
+                if not is_unity_window(hwnd) or not is_dofus_unity_process(hwnd):
+                    return None
+                if not still_authorized():
+                    return None
+        except Exception:
+            self.logger.exception("Miroir: vérification des fenêtres interrompue.")
             return None
         targets = mirror_delivery_targets(
             live, live, source, source_was_consumed=True,
