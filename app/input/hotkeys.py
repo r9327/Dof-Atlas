@@ -529,16 +529,28 @@ class HotkeyRegistry:
                 if pressed or released:
                     vk_code = LEFT_RIGHT_MODIFIERS.get(int(event.vkCode), int(event.vkCode))
                     self.input_state.set_key(vk_code, pressed)
-                    if self._dispatch_priority_stop(vk_code, pressed):
-                        return 1
-                    self._dispatch_matching_hotkeys()
+                    # Snapshot ownership BEFORE user callbacks. A failing
+                    # hotkey handler must not let the physical UP of an
+                    # already-consumed DOWN leak into whichever Unity window
+                    # the sequential worker has focused in the meantime.
+                    mirrored_pair = vk_code in self._mirrored_key_ups
+                    if released and mirrored_pair:
+                        self._mirrored_key_ups.discard(vk_code)
+                    try:
+                        if self._dispatch_priority_stop(vk_code, pressed):
+                            return 1
+                        self._dispatch_matching_hotkeys()
+                    except Exception:
+                        if mirrored_pair:
+                            self.logger.exception(
+                                "Hook clavier: callback échoué, paire miroir préservée."
+                            )
+                            return 1
+                        raise
                     # A mirrored physical DOWN is a short, balanced injected
                     # tap; swallow its original UP even after the worker ends.
-                    if released and vk_code in self._mirrored_key_ups:
-                        self._mirrored_key_ups.discard(vk_code)
-                        return 1
-                    if pressed and vk_code in self._mirrored_key_ups:
-                        return 1  # physical autorepeat, never a second tap
+                    if mirrored_pair and (released or pressed):
+                        return 1  # also suppress physical autorepeat
                     # Never intercept global combinations, modifiers, or the
                     # emergency-stop key. In particular preserve Alt+Tab.
                     reserved = any(
