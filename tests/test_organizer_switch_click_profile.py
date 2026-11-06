@@ -124,5 +124,20 @@ class SwitchClickProfileAdmissionTests(unittest.TestCase):
         runtime._spawn_macro.assert_not_called()
 
 
+    def test_invalid_mode_before_capture_preserves_click(self):
+        for count in (2, 4, 6, 8):
+            for mode in (None, "unknown", 123, "deleted"):
+                with self.subTest(accounts=count, mode=mode):
+                    macro, handles, source = self._macro(count)
+                    if mode == "deleted":
+                        del macro.runtime.settings.macro_mode
+                    else:
+                        macro.runtime.settings.macro_mode = mode
+                    with patch.object(macro, "_capture_trigger_context") as capture:
+                        self.assertFalse(self._dispatch(macro, handles, source))
+                    capture.assert_not_called()
+                    macro.runtime._spawn_macro.assert_not_called()
+
+
 if __name__ == "__main__":
     unittest.main()
