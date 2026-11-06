@@ -1698,7 +1698,7 @@ class OrganizerMacroReliabilityTests(unittest.TestCase):
                 )
                 runtime.logger.info.assert_any_call(
                     "Auto groupe %s: envoyes=%s/%s candidats=%s sender=%s",
-                    "termine", count - 1, count - 1, count - 1, 101,
+                    "interrompu", count - 1, count - 1, count - 1, 101,
                 )
 
     def test_auto_group_aborts_when_focus_is_stolen_between_invitations(self) -> None:
@@ -2141,7 +2141,7 @@ class OrganizerMacroReliabilityTests(unittest.TestCase):
                     "Auto zaap: retour favori ignoré, favori changé."
                 )
                 runtime.logger.info.assert_any_call(
-                    "Auto zaap %s: envoyes=%s/%s", "termine", count, count,
+                    "Auto zaap %s: envoyes=%s/%s", "interrompu", count, count,
                 )
 
     def test_zaap_mid_command_focus_loss_aborts_following_clients(self) -> None:
@@ -3408,7 +3408,7 @@ class OrganizerMacroReliabilityTests(unittest.TestCase):
                 )
                 runtime.logger.info.assert_any_call(
                     "Switch deplacement %s: envoyes=%s/%s",
-                    "termine", count, count,
+                    "interrompu", count, count,
                 )
 
     def test_direction_restores_favorite_on_input_exception(self) -> None:
