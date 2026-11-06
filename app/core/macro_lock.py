@@ -69,7 +69,11 @@ class MacroLock:
         """Atomically reserve a macro worker and return its exact lease ID."""
         with self._lock:
             if self._lease is not None:
-                self._logger.debug("%s ignore: boucle macro deja en cours active=%s", label, self._lease.label)
+                try:
+                    self._logger.debug("%s ignore: boucle macro deja en cours active=%s", label, self._lease.label)
+                except Exception:
+                    # A faulty diagnostic sink must not escape admission.
+                    pass
                 return None
             self.stop_event.clear()
             self._generation += 1
@@ -77,7 +81,11 @@ class MacroLock:
                 label=label, started_at=time.monotonic(),
                 generation=self._generation,
             )
-            self._logger.info("Macro debut: action=%s", label)
+            try:
+                self._logger.info("Macro debut: action=%s", label)
+            except Exception:
+                # The lease is already owned; never strand it on a log error.
+                pass
             return self._generation
 
     def try_begin(self, label: str) -> bool:
@@ -95,17 +103,23 @@ class MacroLock:
             if generation is not None and (
                 type(generation) is not int or generation != self._lease.generation
             ):
-                self._logger.warning(
-                    "Macro fin refusée: génération périmée owner=%s caller=%s",
-                    self._lease.generation, generation,
-                )
+                try:
+                    self._logger.warning(
+                        "Macro fin refusée: génération périmée owner=%s caller=%s",
+                        self._lease.generation, generation,
+                    )
+                except Exception:
+                    pass
                 return
             # A stale completion must never release another macro's lease.
             # Only the owner (or an explicit administrative end) may unlock.
             if label is not None and label != active:
-                self._logger.warning(
-                    "Macro fin refusée: owner=%s caller=%s", active, label,
-                )
+                try:
+                    self._logger.warning(
+                        "Macro fin refusée: owner=%s caller=%s", active, label,
+                    )
+                except Exception:
+                    pass
                 return
             elapsed = int((time.monotonic() - self._lease.started_at) * 1000)
             # An old runner must never reset a NEW runner's synthetic input
@@ -117,13 +131,20 @@ class MacroLock:
             except Exception:
                 # A failing synthetic-guard reset must be observable, but
                 # must not leave the exclusive macro lease permanently held.
-                self._logger.exception(
-                    "Macro nettoyage propriétaire impossible: action=%s",
-                    active,
-                )
+                try:
+                    self._logger.exception(
+                        "Macro nettoyage propriétaire impossible: action=%s",
+                        active,
+                    )
+                except Exception:
+                    pass
             finally:
                 self._lease = None
-            self._logger.info("Macro fin: action=%s elapsed_ms=%s", label or active, elapsed)
+            try:
+                self._logger.info("Macro fin: action=%s elapsed_ms=%s", label or active, elapsed)
+            except Exception:
+                # Cleanup has already completed, regardless of diagnostics.
+                pass
 
     def request_stop(self, reason: str = "stop urgence") -> None:
         # Wake native and Python waits immediately, even if a worker is
@@ -136,7 +157,12 @@ class MacroLock:
             # overlap. A genuinely NEW admission after Stop may clear it.
             self.stop_event.set()
             active = self._lease.label if self._lease else ""
-        self._logger.warning("Stop urgence: reason=%s active=%s", reason, active)
+        try:
+            self._logger.warning("Stop urgence: reason=%s active=%s", reason, active)
+        except Exception:
+            # Stop is already latched under the admission lock; do not
+            # rethrow into a physical hotkey hook.
+            pass
 
     def should_stop(self) -> bool:
         if self.stop_event.is_set():
