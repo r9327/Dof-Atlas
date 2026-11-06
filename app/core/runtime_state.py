@@ -667,15 +667,15 @@ class AtlasRuntime:
         # Freeze the roster BEFORE even the first native identity probe:
         # a process query can yield while Organizer changes a slot in place.
         # Also reject an invalid roster without any expensive Win32 reads.
-        live = tuple(client.handle for client in clients)
+        live = tuple(getattr(client, "handle", None) for client in clients)
         if (not 2 <= len(live) <= 8
                 or any(type(hwnd) is not int or not 0 < hwnd <= (2**64 - 1) for hwnd in live)
                 or len(set(live)) != len(live)
                 or source not in live):
             return None
         favorite = settings.client_by_handle(source)
-        if (favorite is None or type(favorite.handle) is not int
-                or favorite.handle != source or not is_unity_window(source)):
+        if (favorite is None or type(getattr(favorite, "handle", None)) is not int
+                or getattr(favorite, "handle", None) != source or not is_unity_window(source)):
             return None
         if not is_dofus_unity_process(source):
             return None
@@ -702,10 +702,10 @@ class AtlasRuntime:
                 and settings.macro_mode == "mirror"
                 and type(settings.primary_handle) is int
                 and settings.primary_handle == source
-                and type(favorite.handle) is int
-                and favorite.handle == source
+                and type(getattr(favorite, "handle", None)) is int
+                and getattr(favorite, "handle", None) == source
                 and isinstance(active, (list, tuple))
-                and tuple((type(client.handle), client.handle)
+                and tuple((type(getattr(client, "handle", None)), getattr(client, "handle", None))
                           for client in active)
                 == tuple((int, hwnd) for hwnd in live)
             )
@@ -787,7 +787,7 @@ class AtlasRuntime:
                 clients = getattr(settings, "clients", ())
                 if (isinstance(clients, (list, tuple))
                         and type(foreground) is int
-                        and any(type(c.handle) is int and c.handle == foreground
+                        and any(type(getattr(c, "handle", None)) is int and getattr(c, "handle", None) == foreground
                                 for c in clients)
                         and self.settings is settings
                         and self._running and self._admin_ok
@@ -803,7 +803,7 @@ class AtlasRuntime:
             if not isinstance(clients, (list, tuple)):
                 return False
             favorite_at_probe = settings.primary_handle
-            frozen = tuple((type(c.handle), c.handle) for c in clients)
+            frozen = tuple((type(getattr(c, "handle", None)), getattr(c, "handle", None)) for c in clients)
             trusted = (
                 type(foreground) is int
                 and (int, foreground) in frozen
@@ -823,7 +823,7 @@ class AtlasRuntime:
                     and self.macro_lock.owns(busy_label, busy_generation)
                     and not self.macro_lock.should_stop()
                     and isinstance(active, (list, tuple))
-                    and tuple((type(c.handle), c.handle) for c in active) == frozen
+                    and tuple((type(getattr(c, "handle", None)), getattr(c, "handle", None)) for c in active) == frozen
                     # The foreground HWND can change during process identity
                     # inspection. Never eat a busy secondary input for an app
                     # that was not foreground when this gesture began.
@@ -907,7 +907,7 @@ class AtlasRuntime:
                 clients = getattr(settings, "clients", ())
                 if (isinstance(clients, (list, tuple))
                         and type(foreground) is int
-                        and any(type(c.handle) is int and c.handle == foreground
+                        and any(type(getattr(c, "handle", None)) is int and getattr(c, "handle", None) == foreground
                                 for c in clients)
                         and self.settings is settings
                         and self._running and self._admin_ok
@@ -923,7 +923,7 @@ class AtlasRuntime:
             if not isinstance(clients, (list, tuple)):
                 return False
             favorite_at_probe = settings.primary_handle
-            frozen = tuple((type(c.handle), c.handle) for c in clients)
+            frozen = tuple((type(getattr(c, "handle", None)), getattr(c, "handle", None)) for c in clients)
             trusted = (
                 type(foreground) is int
                 and (int, foreground) in frozen
@@ -943,7 +943,7 @@ class AtlasRuntime:
                     and self.macro_lock.owns(busy_label, busy_generation)
                     and not self.macro_lock.should_stop()
                     and isinstance(active, (list, tuple))
-                    and tuple((type(c.handle), c.handle) for c in active) == frozen
+                    and tuple((type(getattr(c, "handle", None)), getattr(c, "handle", None)) for c in active) == frozen
                     # The foreground HWND can change during process identity
                     # inspection. Never eat a busy secondary input for an app
                     # that was not foreground when this gesture began.
@@ -1043,7 +1043,7 @@ class AtlasRuntime:
         # the physical DOWN for the *old* gesture.
         if not isinstance(settings.clients, (list, tuple)):
             return False
-        live_handles = tuple(client.handle for client in settings.clients)
+        live_handles = tuple(getattr(client, "handle", None) for client in settings.clients)
         if (not 2 <= len(live_handles) <= 8
                 or any(type(hwnd) is not int or not 0 < hwnd <= (2**64 - 1)
                        for hwnd in live_handles)
@@ -1059,8 +1059,8 @@ class AtlasRuntime:
         ) != source_hwnd:
             return False
         favorite = settings.client_by_handle(source_hwnd)
-        if (favorite is None or type(favorite.handle) is not int
-                or favorite.handle != source_hwnd
+        if (favorite is None or type(getattr(favorite, "handle", None)) is not int
+                or getattr(favorite, "handle", None) != source_hwnd
                 or not is_unity_window(source_hwnd)
                 or not is_dofus_unity_process(source_hwnd)):
             return False
@@ -1082,10 +1082,10 @@ class AtlasRuntime:
                 and settings.macro_mode == "mirror"
                 and type(settings.primary_handle) is int
                 and settings.primary_handle == source_hwnd
-                and type(favorite.handle) is int
-                and favorite.handle == source_hwnd
+                and type(getattr(favorite, "handle", None)) is int
+                and getattr(favorite, "handle", None) == source_hwnd
                 and isinstance(settings.clients, (list, tuple))
-                and tuple((type(client.handle), client.handle)
+                and tuple((type(getattr(client, "handle", None)), getattr(client, "handle", None))
                           for client in settings.clients)
                 == tuple((int, hwnd) for hwnd in live_handles)
             )
