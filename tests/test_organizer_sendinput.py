@@ -2327,5 +2327,117 @@ class OrganizerSendInputTests(unittest.TestCase):
 
 
 
+    def test_pointer_interruption_latched_only_for_current_lease(self):
+        from app.input.input_state import InputState
+
+        state = InputState()
+        self.assertFalse(state.note_blocked_physical_gesture())
+        self.assertFalse(state.mouse_block_interrupted())
+        state.begin_mouse_block("Miroir molette")
+        self.assertTrue(state.note_blocked_physical_gesture())
+        self.assertTrue(state.mouse_block_interrupted())
+        # An overlapping block must NOT clear the first cancellation.
+        state.begin_mouse_block("Miroir clic")
+        self.assertTrue(state.mouse_block_interrupted())
+        self.assertEqual(state.end_mouse_block(), 1)
+        self.assertTrue(state.mouse_block_interrupted())
+        self.assertEqual(state.end_mouse_block(), 0)
+        self.assertFalse(state.mouse_block_interrupted())
+        # A fresh gesture is never cancelled by an older worker's lease.
+        state.begin_mouse_block("Miroir nouveau")
+        self.assertFalse(state.mouse_block_interrupted())
+        self.assertTrue(state.note_blocked_physical_gesture())
+        state.clear_mouse_block()
+        self.assertFalse(state.mouse_block_interrupted())
+        state.begin_mouse_block("Miroir après Stop")
+        self.assertFalse(state.mouse_block_interrupted())
+        self.assertEqual(state.end_mouse_block(), 0)
+        self.assertFalse(state.mouse_block_interrupted())
+
+    def test_blocked_native_down_or_wheel_interrupts_without_orphaned_up_2_4_6_8(self):
+        from app.input.input_state import InputState, ATLAS_SYNTHETIC_MOUSE_EXTRA_INFO
+        from app.input.mouse_hooks import (
+            MouseHook, MSLLHOOKSTRUCT, WM_LBUTTONDOWN,
+            WM_LBUTTONUP, WM_MOUSEWHEEL, WM_MOUSEMOVE,
+        )
+
+        for count in (2, 4, 6, 8):
+            for kind in ("down", "wheel"):
+                with self.subTest(count=count, kind=kind):
+                    state = InputState()
+                    hook = MouseHook(state, Mock(), Mock(), Mock(), Mock())
+                    event = MSLLHOOKSTRUCT()
+                    event.pt.x = 11
+                    event.pt.y = 22
+                    event.flags = 0
+                    event.dwExtraInfo = None
+                    event.mouseData = (120 & 0xFFFF) << 16
+                    next_hook = Mock(return_value=37)
+                    state.begin_mouse_block("Miroir")
+                    with patch.object(
+                        ctypes, "windll",
+                        SimpleNamespace(user32=SimpleNamespace(
+                            CallNextHookEx=next_hook,
+                        )), create=True,
+                    ):
+                        msg = (
+                            WM_LBUTTONDOWN if kind == "down" else WM_MOUSEWHEEL
+                        )
+                        self.assertEqual(
+                            hook._mouse_proc(0, msg, ctypes.addressof(event)), 1,
+                        )
+                        self.assertTrue(state.mouse_block_interrupted())
+                        # A pending native UP stays paired with the suppressed
+                        # DOWN even after pointer ownership is released.
+                        state.end_mouse_block()
+                        self.assertFalse(state.mouse_block_interrupted())
+                        if kind == "down":
+                            self.assertEqual(
+                                hook._mouse_proc(
+                                    0, WM_LBUTTONUP, ctypes.addressof(event),
+                                ), 1,
+                            )
+                            self.assertFalse(hook._consumed_releases)
+                        else:
+                            self.assertEqual(
+                                hook._mouse_proc(
+                                    0, WM_MOUSEWHEEL, ctypes.addressof(event),
+                                ), 37,
+                            )
+                        self.assertFalse(state.mouse_block_interrupted())
+                    hook.callback.assert_not_called()
+                    hook.wheel_callback.assert_not_called()
+
+    def test_synthetic_mouse_and_physical_move_never_cancel_pointer_owner(self):
+        from app.input.input_state import InputState, ATLAS_SYNTHETIC_MOUSE_EXTRA_INFO
+        from app.input.mouse_hooks import (
+            MouseHook, MSLLHOOKSTRUCT, WM_LBUTTONDOWN, WM_MOUSEMOVE,
+        )
+
+        state = InputState()
+        hook = MouseHook(state, Mock(), Mock(), Mock())
+        native = MSLLHOOKSTRUCT()
+        native.pt.x = 11
+        native.pt.y = 22
+        native.flags = 0
+        state.begin_mouse_block("Miroir")
+        next_hook = Mock(return_value=37)
+        with patch.object(
+            ctypes, "windll",
+            SimpleNamespace(user32=SimpleNamespace(CallNextHookEx=next_hook)),
+            create=True,
+        ):
+            self.assertEqual(
+                hook._mouse_proc(0, WM_MOUSEMOVE, ctypes.addressof(native)), 1,
+            )
+            self.assertFalse(state.mouse_block_interrupted())
+            native.dwExtraInfo = ATLAS_SYNTHETIC_MOUSE_EXTRA_INFO
+            self.assertEqual(
+                hook._mouse_proc(0, WM_LBUTTONDOWN, ctypes.addressof(native)), 37,
+            )
+            self.assertFalse(state.mouse_block_interrupted())
+        state.end_mouse_block()
+
+
 if __name__ == "__main__":
     unittest.main()
