@@ -3137,5 +3137,34 @@ class OrganizerSendInputTests(unittest.TestCase):
         self.assertEqual(state.end_mouse_block(), 0)
 
 
+    def test_unreadable_blocked_mousemove_payload_never_leaks_native(self):
+        from app.input.input_state import InputState, SyntheticInputGuard
+        from app.input.mouse_hooks import MouseHook, WM_MOUSEMOVE
+
+        state = InputState()
+        state.begin_mouse_block("Miroir")
+        logger = Mock()
+        logger.exception.side_effect = RuntimeError("logging unavailable")
+        hook = MouseHook(state, SyntheticInputGuard(logger), logger, Mock())
+        next_hook = Mock(return_value=47)
+        with (
+            patch.object(state, "is_mouse_blocked", return_value=True) as probe,
+            patch.object(
+                ctypes, "windll",
+                SimpleNamespace(user32=SimpleNamespace(CallNextHookEx=next_hook)),
+                create=True,
+            ),
+            patch("app.input.mouse_hooks.ctypes.cast",
+                  side_effect=ValueError("unreadable Win32 event")),
+        ):
+            self.assertEqual(hook._mouse_proc(0, WM_MOUSEMOVE, 0), 1)
+        next_hook.assert_not_called()
+        probe.assert_called_once()
+        hook.callback.assert_not_called()
+        logger.exception.assert_called_once()
+        self.assertTrue(state.is_mouse_blocked())
+        self.assertEqual(state.end_mouse_block(), 0)
+
+
 if __name__ == "__main__":
     unittest.main()

@@ -249,15 +249,27 @@ class MouseHook:
                 # Under a pointer lease only the injected marker is needed.
                 # Do not decode x/y, allocate a release token, or log MOVE
                 # for every physical update during a 2–8 client fan-out.
-                move = ctypes.cast(
-                    ctypes.c_void_p(l_param),
-                    ctypes.POINTER(MSLLHOOKSTRUCT),
-                ).contents
-                atlas_synthetic = (
-                    bool(move.flags & LLMHF_INJECTED)
-                    or int(move.dwExtraInfo or 0)
-                    == ATLAS_SYNTHETIC_MOUSE_EXTRA_INFO
-                )
+                try:
+                    move = ctypes.cast(
+                        ctypes.c_void_p(l_param),
+                        ctypes.POINTER(MSLLHOOKSTRUCT),
+                    ).contents
+                    atlas_synthetic = (
+                        bool(move.flags & LLMHF_INJECTED)
+                        or int(move.dwExtraInfo or 0)
+                        == ATLAS_SYNTHETIC_MOUSE_EXTRA_INFO
+                    )
+                except Exception:
+                    # Only this active-lease path decodes MOVE. A malformed
+                    # native event or ctypes failure must not silently leak
+                    # a physical movement to a temporarily focused client.
+                    try:
+                        self.logger.exception(
+                            "Hook souris: événement MOVE bloqué illisible.",
+                        )
+                    except Exception:
+                        pass
+                    return 1
                 if not atlas_synthetic:
                     # A long 8-client fan-out can release the pointer while
                     # this hook is decoding MOVE. Do not swallow the first
