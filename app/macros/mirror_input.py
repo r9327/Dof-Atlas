@@ -220,6 +220,12 @@ class MirrorInputMacro:
         # Wheel replay does move the pointer and needs the native guard.
         mouse_blocked = False
         mouse_block_started_at: float | None = None
+
+        def pointer_interrupted() -> bool:
+            check = getattr(runtime.input_state, "mouse_block_interrupted", None)
+            return bool(kind == "wheel" and mouse_blocked
+                        and callable(check) and check() is True)
+
         try:
             if (runtime.settings is not profile_at_start
                     or not self._still_current(source, handles)):
@@ -271,6 +277,12 @@ class MirrorInputMacro:
                 mouse_blocked = True
                 mouse_block_started_at = perf_counter()
             for index, hwnd in enumerate(handles):
+                if pointer_interrupted():
+                    delivery_failed = True
+                    runtime.logger.warning(
+                        "Miroir molette interrompu: geste physique sous blocage souris.",
+                    )
+                    break
                 if (runtime.macro_lock.should_stop()
                         or runtime.settings is not profile_at_start
                         or not self._still_current(source, handles)):
@@ -289,6 +301,7 @@ class MirrorInputMacro:
                         runtime.logger, "Miroir " + kind,
                         should_stop=lambda: (
                             runtime.macro_lock.should_stop()
+                            or pointer_interrupted()
                             or runtime.settings is not profile_at_start
                             or not self._still_current(source, handles)
                         ),
@@ -308,6 +321,13 @@ class MirrorInputMacro:
                     runtime.logger.warning("Miroir %s: activation non confirmée hwnd=%s.", kind, hwnd)
                     break
                 if runtime.macro_lock.should_stop():
+                    break
+                if pointer_interrupted():
+                    delivery_failed = True
+                    runtime.logger.warning(
+                        "Miroir molette interrompu: geste physique pendant activation hwnd=%s.",
+                        hwnd,
+                    )
                     break
                 # Activation may run callbacks or release the GIL. Recheck the
                 # exact roster and Win32 process identity AFTER focus changes,
@@ -335,6 +355,13 @@ class MirrorInputMacro:
                     break
                 last_activated_hwnd = hwnd
                 if runtime.macro_lock.should_stop():
+                    break
+                if pointer_interrupted():
+                    delivery_failed = True
+                    runtime.logger.warning(
+                        "Miroir molette interrompu: geste physique avant émission hwnd=%s.",
+                        hwnd,
+                    )
                     break
                 try:
                     sent_at = perf_counter()
@@ -380,6 +407,13 @@ class MirrorInputMacro:
                             # favorite, changed roster or stopped worker.
                             if runtime.macro_lock.should_stop():
                                 break
+                            if pointer_interrupted():
+                                delivery_failed = True
+                                runtime.logger.warning(
+                                    "Miroir molette interrompu: geste physique avant SendInput hwnd=%s.",
+                                    hwnd,
+                                )
+                                break
                             if (runtime.settings is not profile_at_start
                                     or not self._still_current(source, handles)):
                                 delivery_failed = True
@@ -403,6 +437,9 @@ class MirrorInputMacro:
                                 break
                             if runtime.macro_lock.should_stop():
                                 break
+                            if pointer_interrupted():
+                                delivery_failed = True
+                                break
                             if not send_screen_wheel(delta, horizontal=horizontal):
                                 delivery_failed = True
                                 runtime.logger.warning("Miroir molette: SendInput refusé.")
@@ -410,6 +447,13 @@ class MirrorInputMacro:
                         finally:
                             runtime.synthetic_guard.end(120)
                     delivered += 1
+                    if pointer_interrupted():
+                        delivery_failed = True
+                        runtime.logger.warning(
+                            "Miroir molette interrompu: geste physique après envoi hwnd=%s.",
+                            hwnd,
+                        )
+                        break
                     last_emission_at = perf_counter()
                     send_samples_ms.append((last_emission_at - sent_at) * 1000.0)
                 except Exception:
@@ -431,6 +475,7 @@ class MirrorInputMacro:
                 if (
                     roster_verified and not focus_lost and not delivery_failed
                     and not runtime.macro_lock.should_stop()
+                    and not pointer_interrupted()
                     and last_activated_hwnd is not None
                 ):
                     try:
@@ -452,6 +497,7 @@ class MirrorInputMacro:
                     and not user_focus_changed
                     and not focus_lost and not delivery_failed
                     and not runtime.macro_lock.should_stop()
+                    and not pointer_interrupted()
                     and runtime.settings is profile_at_start
                     and self._still_current(source, handles)
                 ):
@@ -476,6 +522,7 @@ class MirrorInputMacro:
                 if (roster_verified and not user_focus_changed
                         and not focus_lost and not delivery_failed
                         and not runtime.macro_lock.should_stop()
+                        and not pointer_interrupted()
                         and runtime.settings is profile_at_start
                         and self._still_current(source, handles)
                         and is_dofus_unity_process(source)
