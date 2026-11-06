@@ -7315,7 +7315,8 @@ class OrganizerMirrorIntegrationTests(unittest.TestCase):
                     # standalone collision probe but BEFORE the release lock.
                     self.assertTrue(state.is_mouse_blocked())
                     self.assertFalse(state.mouse_block_interrupted())
-                    self.assertTrue(state.note_blocked_physical_gesture())
+                    for _ in range(count):
+                        self.assertTrue(state.note_blocked_physical_gesture())
                     return release()
 
                 macro = SwitchClickMacro(runtime)
@@ -7343,6 +7344,10 @@ class OrganizerMirrorIntegrationTests(unittest.TestCase):
                 self.assertEqual(sent, list(handles))
                 self.assertFalse(state.is_mouse_blocked())
                 self.assertTrue(state.last_release_interrupted())
+                self.assertEqual(state.last_release_blocked_count(), count)
+                runtime.logger.info.assert_any_call(
+                    "Miroir clic collisions_physiques=%s cibles=%s", count, count,
+                )
                 runtime._emit_status.assert_called_once_with(
                     f"Miroir interrompu : {count}/{count} fenêtres "
                     "(geste physique non rejoué)."
@@ -7380,7 +7385,8 @@ class OrganizerMirrorIntegrationTests(unittest.TestCase):
                 def late_release():
                     self.assertTrue(state.is_mouse_blocked())
                     self.assertFalse(state.mouse_block_interrupted())
-                    self.assertTrue(state.note_blocked_physical_gesture())
+                    for _ in range(count):
+                        self.assertTrue(state.note_blocked_physical_gesture())
                     return release()
 
                 with (
@@ -7407,6 +7413,10 @@ class OrganizerMirrorIntegrationTests(unittest.TestCase):
                 self.assertEqual(sent[0], count)
                 self.assertFalse(state.is_mouse_blocked())
                 self.assertTrue(state.last_release_interrupted())
+                self.assertEqual(state.last_release_blocked_count(), count)
+                runtime.logger.info.assert_any_call(
+                    "Miroir molette collisions_physiques=%s cibles=%s", count, count,
+                )
                 runtime._emit_status.assert_called_once_with(
                     f"Miroir Molette interrompu : {count}/{count} fenêtres "
                     "(geste physique non rejoué)."
