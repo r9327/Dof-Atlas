@@ -10,6 +10,7 @@ import json
 import math
 import re
 from pathlib import Path
+from collections.abc import Iterable
 
 MAX_LOG_BYTES = 64 * 1024 * 1024
 ACCOUNTS = (1, 2, 4, 6, 8)
@@ -60,7 +61,7 @@ def _percentiles(values: list[float]) -> dict[str, float | int] | None:
     }
 
 
-def summarize(lines: list[str], accounts: int) -> dict:
+def summarize(lines: Iterable[str], accounts: int) -> dict:
     if accounts not in ACCOUNTS:
         raise ValueError("accounts must be one of 1, 2, 4, 6, 8")
     samples = {key: [] for key in METRIC_PATTERNS}
@@ -123,7 +124,8 @@ def main(argv: list[str] | None = None) -> int:
     args = parser.parse_args(argv)
     if not args.logs.is_file() or args.logs.stat().st_size > MAX_LOG_BYTES:
         parser.error("log file missing or larger than 64 MiB")
-    data = summarize(args.logs.read_text(encoding="utf-8", errors="replace").splitlines(), args.accounts)
+    with args.logs.open("r", encoding="utf-8", errors="replace") as stream:
+        data = summarize(stream, args.accounts)
     print(json.dumps(data, indent=2, ensure_ascii=False, sort_keys=True))
     return 0
 
