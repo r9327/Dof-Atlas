@@ -528,14 +528,24 @@ class HotkeyRegistry:
                 released = w_param in (WM_KEYUP, WM_SYSKEYUP)
                 if pressed or released:
                     vk_code = LEFT_RIGHT_MODIFIERS.get(int(event.vkCode), int(event.vkCode))
-                    self.input_state.set_key(vk_code, pressed)
-                    # Snapshot ownership BEFORE user callbacks. A failing
-                    # hotkey handler must not let the physical UP of an
-                    # already-consumed DOWN leak into whichever Unity window
-                    # the sequential worker has focused in the meantime.
+                    # Ownership must be read BEFORE updating shared key
+                    # state: even a failed state update must not leak the
+                    # physical UP of a previously consumed mirror DOWN.
                     mirrored_pair = vk_code in self._mirrored_key_ups
                     if released and mirrored_pair:
                         self._mirrored_key_ups.discard(vk_code)
+                    try:
+                        self.input_state.set_key(vk_code, pressed)
+                    except Exception:
+                        if mirrored_pair:
+                            try:
+                                self.logger.exception(
+                                    "Hook clavier: état indisponible, paire miroir préservée."
+                                )
+                            except Exception:
+                                pass
+                            return 1
+                        raise
                     try:
                         if self._dispatch_priority_stop(vk_code, pressed):
                             return 1
