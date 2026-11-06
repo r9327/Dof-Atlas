@@ -2525,7 +2525,10 @@ class OrganizerMirrorIntegrationTests(unittest.TestCase):
                 cursor.assert_not_called()
                 runtime.switch_character.restore_preferred_client.assert_not_called()
                 runtime.input_state.end_mouse_block.assert_called_once()
-                status = "Miroir interrompu" if change == "stop" else "Miroir incomplet"
+                status = (
+                    "Miroir interrompu" if change in ("stop", "roster")
+                    else "Miroir incomplet"
+                )
                 runtime._emit_status.assert_called_once_with(
                     f"{status} : 0/2 fenêtres."
                 )
@@ -5095,7 +5098,12 @@ class OrganizerMirrorIntegrationTests(unittest.TestCase):
                         "Left", 1, "Miroir", context,
                         exact_source_handle=101, mirror_target_handles=(101, 202),
                     )
-                send.assert_called_once()
+                # The second process probe can reject the FIRST recipient
+                # before SendInput: no click should be reported as delivered.
+                if cause == "process":
+                    send.assert_not_called()
+                else:
+                    send.assert_called_once()
                 move.assert_not_called()
                 runtime.switch_character.restore_preferred_client.assert_not_called()
                 runtime.input_state.end_mouse_block.assert_called_once()
@@ -5103,8 +5111,9 @@ class OrganizerMirrorIntegrationTests(unittest.TestCase):
                     "Miroir interrompu" if cause == "focus"
                     else "Miroir incomplet"
                 )
+                delivered = 0 if cause == "process" else 1
                 runtime._emit_status.assert_called_once_with(
-                    f"{expected} : 1/2 fenêtres."
+                    f"{expected} : {delivered}/2 fenêtres."
                 )
 
 
