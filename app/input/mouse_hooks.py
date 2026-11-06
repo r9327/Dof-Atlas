@@ -407,7 +407,12 @@ class MouseHook:
                                 else WM_RBUTTONUP
                             )
         except Exception:
-            self.logger.exception("Hook souris: erreur callback.")
+            # Before ownership is established, preserve the original native
+            # event even if both the callback and the logger fail.
+            try:
+                self.logger.exception("Hook souris: erreur callback.")
+            except Exception:
+                pass
 
         return ctypes.windll.user32.CallNextHookEx(
             self._hook,
