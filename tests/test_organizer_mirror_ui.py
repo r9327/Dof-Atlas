@@ -130,6 +130,13 @@ class OrganizerMirrorIntegrationTests(unittest.TestCase):
         )
         runtime.macro_lock.should_stop.return_value = False
         runtime.switch_click.run_async.return_value = True
+        # Calling _handle_mouse_click on a Mock does not automatically bind
+        # the delegate _handle_mirror_click. Bind the real runtime method so
+        # native DOWN tests exercise admission rather than swallowing clicks
+        # through a truthy Mock return value.
+        runtime._handle_mirror_click.side_effect = lambda *args: (
+            AtlasRuntime._handle_mirror_click(runtime, *args)
+        )
         return runtime
 
     def test_mirror_keyboard_and_wheel_start_from_favorite_in_another_slot(self):
