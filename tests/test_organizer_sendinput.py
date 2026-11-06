@@ -1207,6 +1207,37 @@ class OrganizerSendInputTests(unittest.TestCase):
                 )
                 guard.end.assert_called_once_with(120)
 
+    def test_post_up_logging_failure_never_erases_delivered_click(self) -> None:
+        for button in ("Left", "Right"):
+            for count in (1, 2):
+                with self.subTest(button=button, count=count):
+                    guard, logger = Mock(), Mock()
+                    logger.exception.side_effect = RuntimeError("logger failed")
+                    down = (
+                        clicks.MOUSEEVENTF_LEFTDOWN if button == "Left"
+                        else clicks.MOUSEEVENTF_RIGHTDOWN
+                    )
+                    up = (
+                        clicks.MOUSEEVENTF_LEFTUP if button == "Left"
+                        else clicks.MOUSEEVENTF_RIGHTUP
+                    )
+                    with (
+                        patch.object(clicks.os, "name", "nt"),
+                        patch.object(clicks, "set_cursor_pos"),
+                        patch.object(clicks, "_send_mouse_flag",
+                                     return_value=True) as sender,
+                        patch.object(clicks, "wait_ms",
+                                     side_effect=OSError("post-up failed")),
+                    ):
+                        self.assertTrue(clicks.send_screen_click(
+                            300, 200, button, count, 0, 0, 0, 35,
+                            guard, logger,
+                        ))
+                    self.assertEqual(
+                        sender.call_args_list, [call(down), call(up)] * count,
+                    )
+                    guard.end.assert_called_once_with(120)
+
     def test_post_up_stop_does_not_erase_completed_click_delivery(self) -> None:
         for button in ("Left", "Right"):
             for count in (1, 2):
