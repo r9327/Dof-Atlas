@@ -2464,6 +2464,57 @@ class OrganizerSendInputTests(unittest.TestCase):
 
 
 
+    def test_native_move_during_final_release_is_not_lost_2_to_8(self):
+        from app.input.input_state import InputState
+        from app.input.mouse_hooks import MouseHook, MSLLHOOKSTRUCT, WM_MOUSEMOVE
+
+        for accounts in (2, 4, 6, 8):
+            with self.subTest(accounts=accounts):
+                state = InputState()
+                state.begin_mouse_block("Miroir")
+                hook = MouseHook(
+                    state, Mock(), Mock(), Mock(return_value=True),
+                    Mock(return_value=True),
+                )
+                event = MSLLHOOKSTRUCT()
+                event.pt.x, event.pt.y = 11, 22
+                event.flags = 0
+                original = state.is_mouse_blocked
+                calls = [0]
+
+                def release_between_probes():
+                    calls[0] += 1
+                    if calls[0] == 2:
+                        self.assertTrue(original())
+                        state.end_mouse_block()
+                    return original()
+
+                forward = Mock(return_value=57)
+                with (
+                    patch.object(
+                        state, "is_mouse_blocked",
+                        side_effect=release_between_probes,
+                    ),
+                    patch.object(
+                        ctypes, "windll",
+                        SimpleNamespace(user32=SimpleNamespace(
+                            CallNextHookEx=forward,
+                        )), create=True,
+                    ),
+                ):
+                    self.assertEqual(
+                        hook._mouse_proc(
+                            0, WM_MOUSEMOVE, ctypes.addressof(event),
+                        ), 57,
+                    )
+                self.assertEqual(calls[0], 2)
+                self.assertFalse(state.is_mouse_blocked())
+                forward.assert_called_once()
+                hook.callback.assert_not_called()
+                hook.wheel_callback.assert_not_called()
+                self.assertEqual(hook._blocked_click_count, 0)
+                self.assertEqual(hook._blocked_wheel_count, 0)
+
     def test_blocked_native_move_burst_never_enters_generic_hook_path(self):
         import ctypes
         from types import SimpleNamespace
