@@ -2841,7 +2841,7 @@ class OrganizerMirrorIntegrationTests(unittest.TestCase):
                         "%s: restauration ignorée, favori ou roster changé.", "Miroir",
                     )
                     runtime._emit_status.assert_called_once_with(
-                        f"Miroir : {count}/{count} fenêtres."
+                        f"Miroir interrompu : {count}/{count} fenêtres."
                     )
 
     def test_mirror_cleanup_rechecks_favorite_changed_during_cursor_restore(self):
@@ -2914,7 +2914,7 @@ class OrganizerMirrorIntegrationTests(unittest.TestCase):
                     "Miroir",
                 )
                 runtime._emit_status.assert_called_once_with(
-                    f"Miroir : {count}/{count} fenêtres."
+                    f"Miroir interrompu : {count}/{count} fenêtres."
                 )
 
     def test_mirror_does_not_steal_focus_if_cursor_restoration_switches_apps(self):
@@ -3120,7 +3120,9 @@ class OrganizerMirrorIntegrationTests(unittest.TestCase):
                     move.assert_not_called()
                     runtime.switch_character.restore_preferred_client.assert_not_called()
                     runtime.input_state.end_mouse_block.assert_called_once()
-                    state = "interrompu" if change == "stop" else "incomplet"
+                    # A changed source/roster/Stop interrupts a gesture,
+                    # even if no client completed the pending click.
+                    state = "interrompu"
                     runtime._emit_status.assert_called_once_with(
                         f"Miroir {state} : 0/{count} fenêtres."
                     )
@@ -3178,7 +3180,7 @@ class OrganizerMirrorIntegrationTests(unittest.TestCase):
         move.assert_not_called()
         runtime.switch_character.restore_preferred_client.assert_not_called()
         runtime._emit_status.assert_called_once_with(
-            "Miroir incomplet : 1/3 fenêtres."
+            "Miroir interrompu : 1/3 fenêtres."
         )
         runtime.logger.warning.assert_any_call(
             "%s interrompu: roster changé avant clic hwnd=%s", "Miroir", 202,
@@ -5307,6 +5309,10 @@ class OrganizerMirrorIntegrationTests(unittest.TestCase):
                                          side_effect=mutate_and_return),
                             patch("app.macros.switch_click.current_cursor_pos",
                                   return_value=(12, 14)),
+                            # Queued Miroir validates its original favorite
+                            # before the worker can call _validated_context.
+                            patch("app.macros.switch_click.foreground_window",
+                                  return_value=101),
                             patch("app.macros.switch_click.activate_window") as focus,
                             patch("app.macros.switch_click.send_client_click") as send,
                         ):
@@ -6127,9 +6133,12 @@ class OrganizerMirrorIntegrationTests(unittest.TestCase):
                             runtime.settings.clients = runtime.settings.clients[:-1]
                             frozen = accepted
                         elif change == "duplicate":
+                            # The replacement must create a REAL duplicate
+                            # even when the favorite is slot zero.
+                            duplicate_slot = 1 if source == slots[0] else 0
                             runtime.settings.clients = tuple(
                                 SimpleNamespace(handle=source)
-                                if i == 0 else client
+                                if i == duplicate_slot else client
                                 for i, client in enumerate(runtime.settings.clients)
                             )
                             frozen = accepted
