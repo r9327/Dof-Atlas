@@ -309,35 +309,48 @@ class MouseHook:
                         return ctypes.windll.user32.CallNextHookEx(
                             self._hook, n_code, w_param, l_param,
                         )
-                    # A DOWN blocked during replay must retain ownership of
-                    # its matching UP even if the worker ends before the user
-                    # releases the button. Otherwise an orphaned physical UP
-                    # could be delivered to Unity or another application.
-                    paired_up = BLOCKED_DOWN_TO_UP.get(w_param)
-                    if paired_up is not None:
-                        self._consumed_releases.add(
-                            _physical_release_token(paired_up, int(event.mouseData))
+                    # A blocking lease can end between the first hot-path
+                    # check and deciding whether this physical gesture lives.
+                    # Capture its generation and accept the collision under
+                    # the SAME state lock. Never swallow a newly native DOWN
+                    # merely because a previous worker owned the cursor.
+                    lease_epoch = self.input_state.mouse_block_epoch_if_active()
+                    if lease_epoch is None:
+                        return ctypes.windll.user32.CallNextHookEx(
+                            self._hook, n_code, w_param, l_param,
                         )
-                    # A NEW user click or wheel while Atlas physically
-                    # owns the cursor cancels the active fan-out. The DOWN
-                    # remains swallowed (and its UP paired) for safety;
-                    # the next physical attempt can be native after cleanup.
-                    # Neither a move nor an unmatched native UP is a new
-                    # gesture, and neither may cancel a worker.
+                    paired_up = BLOCKED_DOWN_TO_UP.get(w_param)
                     if (paired_up is not None
                             or w_param in (WM_MOUSEWHEEL, WM_MOUSEHWHEEL)):
                         try:
-                            self.input_state.note_blocked_physical_gesture()
+                            claimed = self.input_state.note_blocked_physical_gesture(
+                                expected_epoch=lease_epoch,
+                            )
                         except Exception:
-                            # A diagnostic failure must not make an already
-                            # blocked native DOWN escape into the wrong
-                            # foreground application.
+                            claimed = None
+                            # If the pointer status is now unverifiable,
+                            # fail closed to avoid a DOWN landing in the
+                            # previously activated Unity target.
                             try:
                                 self.logger.exception(
                                     "Hook souris: signal d'interruption impossible.",
                                 )
                             except Exception:
                                 pass
+                        if claimed is False:
+                            # Old worker released its lease before admission.
+                            # If a NEW worker has begun, preserve its safety
+                            # block but do not cancel its generation.
+                            if self.input_state.mouse_block_epoch_if_active() is None:
+                                return ctypes.windll.user32.CallNextHookEx(
+                                    self._hook, n_code, w_param, l_param,
+                                )
+                    # Once interception is decided, own the matching UP even
+                    # after Stop/restart. Never emit an orphaned release.
+                    if paired_up is not None:
+                        self._consumed_releases.add(
+                            _physical_release_token(paired_up, int(event.mouseData))
+                        )
                     try:
                         self._log_blocked_event(w_param, x, y)
                     except Exception:
