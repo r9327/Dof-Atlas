@@ -77,6 +77,36 @@ class DirectionMacro:
             return
         favorite_at_start = settings_at_start.primary_handle
         mode_at_start = settings_at_start.macro_mode
+        # Capture real configured HWNDs BEFORE any native foreground/process
+        # probe: such calls can yield while Organizer mutates the same
+        # in-memory profile. A late target scan cannot establish the OLD
+        # roster if a slot was already reassigned during source validation.
+        configured_clients = getattr(settings_at_start, "clients", None)
+        configured_roster = (
+            tuple((type(getattr(c, "handle", None)), getattr(c, "handle", None))
+                  for c in configured_clients)
+            if isinstance(configured_clients, (list, tuple)) else None
+        )
+        if configured_roster is not None and (
+                not 1 <= len(configured_roster) <= 8
+                or any(kind is not int or not 0 < hwnd <= (2**64 - 1)
+                       for kind, hwnd in configured_roster)
+                or len({hwnd for _, hwnd in configured_roster}) != len(configured_roster)):
+            self.runtime.logger.warning(
+                "Switch deplacement refusé: roster configuré invalide.",
+            )
+            return
+
+        def configured_roster_intact() -> bool:
+            if configured_roster is None:
+                return True  # Legacy adapter with no concrete slot list.
+            active = getattr(settings_at_start, "clients", None)
+            return (
+                isinstance(active, (list, tuple))
+                and tuple((type(getattr(c, "handle", None)),
+                           getattr(c, "handle", None)) for c in active)
+                == configured_roster
+            )
 
         def dispatch_context_changed() -> bool:
             return (
@@ -89,7 +119,8 @@ class DirectionMacro:
                 or not is_dofus_unity_process(source)
                 or settings_at_start.client_by_handle(source) is None
                 or self.runtime.settings is not settings_at_start
-                or dispatch_context_changed()):
+                or dispatch_context_changed()
+                or not configured_roster_intact()):
             # No synthetic DOWN was issued by this worker. Sending four
             # orphaned KEYUP events to the currently focused foreign app
             # would leak keyboard input outside DOFUS. Emergency Stop still
@@ -103,7 +134,10 @@ class DirectionMacro:
         target_handles: tuple[int, ...] = ()
 
         def frozen_roster_intact() -> bool:
-            return tuple(client.handle for client in targets) == target_handles
+            return (
+                configured_roster_intact()
+                and tuple(client.handle for client in targets) == target_handles
+            )
 
         sent = 0
         try:
