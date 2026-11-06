@@ -7219,6 +7219,67 @@ class OrganizerMirrorIntegrationTests(unittest.TestCase):
 
 
 
+    def test_mirror_click_restore_logging_failure_releases_pointer_for_2_to_8(self):
+        from app.input.input_state import InputState
+        from app.macros.switch_click import SwitchClickMacro, SwitchClickContext
+
+        for count in (2, 4, 6, 8):
+            with self.subTest(clients=count):
+                handles = tuple(range(101, 101 + count))
+                runtime = self._runtime(primary=handles[0], handles=handles)
+                runtime.settings.clients = tuple(
+                    SimpleNamespace(handle=h, display_name=str(h)) for h in handles
+                )
+                runtime.input_state = InputState()
+                runtime.macro_lock.should_stop.return_value = False
+                runtime.macro_lock.wait.return_value = False
+                runtime.switch_character.ordered_clients_from_source.return_value = [
+                    SimpleNamespace(handle=h, display_name=str(h)) for h in handles
+                ]
+                runtime.switch_character.restore_preferred_client.side_effect = (
+                    OSError("restore preferred window unavailable")
+                )
+                runtime.logger.exception.side_effect = RuntimeError("logger unavailable")
+                active = [handles[0]]
+                sent = []
+
+                def activate(hwnd, *_args, **_kwargs):
+                    active[0] = hwnd
+                    return True
+
+                def click(hwnd, *_args, **_kwargs):
+                    self.assertTrue(runtime.input_state.is_mouse_blocked())
+                    sent.append(hwnd)
+                    return True
+
+                macro = SwitchClickMacro(runtime)
+                context = SwitchClickContext(handles[0], 20, 25, 0.5, 0.5, "cursor")
+                with (
+                    patch.object(macro, "_validated_context", return_value=context),
+                    patch.object(macro, "_target_point", return_value=(20, 25)),
+                    patch("app.macros.switch_click.current_cursor_pos",
+                          return_value=(12, 14)),
+                    patch("app.macros.switch_click.is_unity_window", return_value=True),
+                    patch("app.macros.switch_click.is_dofus_unity_process", return_value=True),
+                    patch("app.macros.switch_click.activate_window", side_effect=activate),
+                    patch("app.macros.switch_click.foreground_window",
+                          side_effect=lambda: active[0]),
+                    patch("app.macros.switch_click.send_client_click",
+                          side_effect=click),
+                    patch("app.macros.switch_click.set_cursor_pos"),
+                ):
+                    with self.assertRaisesRegex(RuntimeError, "logger unavailable"):
+                        macro._run(
+                            "Left", 1, "Miroir", context,
+                            exact_source_handle=handles[0],
+                            mirror_target_handles=handles,
+                        )
+                self.assertEqual(sent, list(handles))
+                runtime.switch_character.restore_preferred_client.assert_called_once()
+                self.assertFalse(runtime.input_state.is_mouse_blocked())
+                self.assertEqual(runtime.input_state.mouse_block_label(), "")
+                self.assertFalse(runtime.input_state.mouse_block_interrupted())
+
     def test_mirror_click_physical_collision_aborts_fanout_and_skips_restore_2_to_8(self):
         from app.input.input_state import InputState
         from app.macros.switch_click import SwitchClickMacro, SwitchClickContext
