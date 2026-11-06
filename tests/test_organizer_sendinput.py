@@ -2820,6 +2820,7 @@ class OrganizerSendInputTests(unittest.TestCase):
                     event = MSLLHOOKSTRUCT()
                     event.mouseData = 120 << 16
                     original = state.note_blocked_physical_gesture
+                    original_epoch = state.mouse_block_epoch_if_active()
                     epochs = []
 
                     def stop_then_replace(*, expected_epoch):
@@ -2841,7 +2842,7 @@ class OrganizerSendInputTests(unittest.TestCase):
                     ):
                         ptr = ctypes.addressof(event)
                         self.assertEqual(hook._mouse_proc(0, down, ptr), 1)
-                        self.assertEqual(epochs, [0])
+                        self.assertEqual(epochs, [original_epoch])
                         # Stop replaced the cursor owner. Preserve safety
                         # without a spurious cancellation of the new worker.
                         self.assertTrue(state.is_mouse_blocked())
