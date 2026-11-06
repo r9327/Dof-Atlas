@@ -1652,3 +1652,46 @@ garanti) ; `MIRR-002` — entrée Unity hors focus non démontrée ;
 `MIRR-005`/`ATQA-002` — recette réelle Windows/DOFUS 1/2/4/6/8
 et p50/p95/p99 d'actions non mesurés. Ces trois points restent
 `PENDING/NOT_RUN` ; conserver la PR **Draft** et ne pas fusionner.
+
+## 06/11/2026 — interruption du fan-out à la première nouvelle entrée physique
+
+**Problème MIRR-007 :** une nouvelle pression/coche de molette pendant
+`InputState.is_mouse_blocked()` était absorbée pendant toute la diffusion.
+Ce nouveau lot ne tente **aucun replay** sur une cible ou un focus devenu
+indéterminé : la première entrée interceptée reste non diffusée.
+
+**Mitigation P0 effective dans le code :**
+- `InputState` mémorise un signal `mouse_block_interrupted` uniquement
+  pendant le bail courant ; un Stop révoque l'ancien epoch. Les leases
+  imbriqués ne réinitialisent pas le signal d'une collision déjà détectée.
+- `MouseHook` avertit le worker après un DOWN ou cran de molette physique
+  absorbé. La paire DOWN/UP est conservée même si le worker quitte
+  immédiatement le verrou. MOVE physique et événements injectés ne
+  provoquent pas de fausse interruption. Le signalement en échec reste
+  **fail-closed**.
+- Les workers de clic et de molette détectent cette interruption **avant
+  l'activation, avant SendInput et entre deux destinataires**. Ils
+  arrêtent les émissions suivantes, libèrent leur bail et ne restaurent
+  ni curseur ni favori sur une décision périmée.
+- Le suivi du `DOWN` natif a été séparé des `DOWN` absorbés : un
+  `UP` isolé ou d'un autre bouton ne peut plus déclencher une lecture
+  de relâchement qui ferait démarrer la macro classique.
+- Les compteurs de fenêtres restent exacts et le statut mentionne
+  explicitement **« geste physique non rejoué »**.
+
+**Tests simulés** : 2/4/6/8 personnages, collision au premier clic/molette,
+Stop/reprise avec epoch différent, paire native/unmatched/synthetic,
+contre-exemple de signalement qui lève une exception. Au SHA
+`aca24a56f30edd2c4711062ec63c9607a2c62a11`, Doctor-lot a
+exécuté **475 tests PASS** mais donné `REVIEW` pour deux chemins de code
+sans owner direct : `app/input/input_state.py` et
+`app/macros/mirror_input.py`. L'outillage est corrigé dans
+[PR #394](https://github.com/r9327/Dof-Atlas/pull/394) ; il faut
+**relancer au HEAD final après intégration** et vérifier son résultat
+avant de revendiquer `READY`.
+
+**Ne pas certifier MIRR-007 comme résolu.** Les pressions arrivant pendant
+le verrou restent absorbées, même si le worker s'arrête plus tôt.
+Réception Unity hors focus (MIRR-002), mesures p50/p95/p99 et essais
+réels Windows 1/2/4/6/8 (MIRR-005/ATQA-002) restent `PENDING/NOT_RUN`.
+Ne pas rendre la PR non-Draft.
