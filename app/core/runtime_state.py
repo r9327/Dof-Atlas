@@ -761,11 +761,11 @@ class AtlasRuntime:
                     # The radial hold-controller owns this physical key.
                     # Do not broadcast it as an extra mirrored tap.
                     return False
-        foreground = foreground_window()
-        # A Stop/restart must never mix the label of one worker with the
-        # generation of another worker bearing that same label.
+        # Capture the active worker BEFORE the native foreground query,
+        # which can yield to a Stop/restart with the same action label.
         owner = self.macro_lock.snapshot_active()
         busy_label, busy_generation = owner if owner is not None else ("", None)
+        foreground = foreground_window()
         if busy_label and (
             type(busy_generation) is not int
             or not self.macro_lock.owns(busy_label, busy_generation)
@@ -883,11 +883,11 @@ class AtlasRuntime:
                 or (self.macro_lock.active_label
                     and self.macro_lock.should_stop())):
             return False
-        foreground = foreground_window()
-        # A Stop/restart must never mix the label of one worker with the
-        # generation of another worker bearing that same label.
+        # Capture the active worker BEFORE the native foreground query,
+        # which can yield to a Stop/restart with the same action label.
         owner = self.macro_lock.snapshot_active()
         busy_label, busy_generation = owner if owner is not None else ("", None)
+        foreground = foreground_window()
         if busy_label and (
             type(busy_generation) is not int
             or not self.macro_lock.owns(busy_label, busy_generation)

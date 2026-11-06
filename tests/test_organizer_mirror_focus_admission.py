@@ -495,5 +495,46 @@ class MirrorFocusAdmissionTests(unittest.TestCase):
 
 
 
+    def test_restarted_worker_during_foreground_probe_keeps_old_input_native(self):
+        from app.input.input_state import InputState
+
+        for count in (2, 4, 6, 8):
+            for gesture in ("key", "wheel"):
+                with self.subTest(accounts=count, gesture=gesture):
+                    runtime, source = self._runtime(count)
+                    runtime.input_state = InputState()
+                    runtime.input_state.begin_mouse_block("Miroir")
+                    runtime.macro_lock.active_label = "Miroir"
+                    runtime.macro_lock.active_generation = 61
+
+                    def native_focus_probe():
+                        # Native Win32 query yields while an old worker ends
+                        # and a new Miroir takes the same label/pointer.
+                        runtime.macro_lock.active_generation = 62
+                        return 101
+
+                    with (
+                        patch("app.windows.unity_windows.foreground_window",
+                              side_effect=native_focus_probe),
+                        patch("app.macros.mirror_plan.is_dofus_unity_process") as native,
+                    ):
+                        if gesture == "key":
+                            accepted = AtlasRuntime._handle_mirror_key(
+                                runtime, 65, True,
+                            )
+                        else:
+                            accepted = AtlasRuntime._handle_mirror_wheel(
+                                runtime, 120, 20, 25, False,
+                            )
+                    self.assertFalse(accepted)
+                    self.assertNotEqual(source, 101)
+                    native.assert_not_called()
+                    runtime._emit_status.assert_not_called()
+                    runtime.mirror_input.run_key.assert_not_called()
+                    runtime.mirror_input.run_wheel.assert_not_called()
+                    runtime.input_state.end_mouse_block()
+
+
+
 if __name__ == "__main__":
     unittest.main()
