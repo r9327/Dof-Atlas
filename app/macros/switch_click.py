@@ -58,13 +58,27 @@ class SwitchClickMacro:
         expected_profile: object | None = None,
     ) -> bool:
         settings_at_dispatch = self.runtime.settings
+        if settings_at_dispatch is None:
+            # Organizer reload may detach its profile while a native hook
+            # dispatches a click; never swallow a real click on that race.
+            self.runtime.logger.warning(
+                "%s refusé avant clic physique: profil Organizer absent.",
+                action_label,
+            )
+            return False
+
+        def roster_snapshot(clients: object) -> tuple[tuple[type, object], ...] | None:
+            if not isinstance(clients, (list, tuple)):
+                return None
+            # A client may be detached or replaced in-place during reload.
+            # Never read .handle unguarded in a low-level hook callback.
+            handles = (getattr(client, "handle", None) for client in clients)
+            return tuple((type(handle), handle) for handle in handles)
+
         original_clients = getattr(settings_at_dispatch, "clients", None)
-        dispatch_roster = (
-            tuple((type(c.handle), c.handle) for c in original_clients)
-            if isinstance(original_clients, (list, tuple)) else None
-        )
-        dispatch_mode = settings_at_dispatch.macro_mode
-        dispatch_primary = settings_at_dispatch.primary_handle
+        dispatch_roster = roster_snapshot(original_clients)
+        dispatch_mode = getattr(settings_at_dispatch, "macro_mode", None)
+        dispatch_primary = getattr(settings_at_dispatch, "primary_handle", None)
 
         # A native click may be swallowed as soon as this function admits
         # a worker. Reject a corrupt live Organizer roster BEFORE capture
@@ -82,19 +96,17 @@ class SwitchClickMacro:
             return False
 
         def dispatch_is_current() -> bool:
+            active_mode = getattr(settings_at_dispatch, "macro_mode", None)
+            active_primary = getattr(settings_at_dispatch, "primary_handle", None)
             if (self.runtime.settings is not settings_at_dispatch
-                    or settings_at_dispatch.macro_mode != dispatch_mode
-                    or type(settings_at_dispatch.primary_handle) is not type(dispatch_primary)
-                    or settings_at_dispatch.primary_handle != dispatch_primary):
+                    or active_mode != dispatch_mode
+                    or type(active_primary) is not type(dispatch_primary)
+                    or active_primary != dispatch_primary):
                 return False
             if dispatch_roster is None:
                 return True
             live = getattr(settings_at_dispatch, "clients", None)
-            return (
-                isinstance(live, (list, tuple))
-                and tuple((type(c.handle), c.handle) for c in live)
-                == dispatch_roster
-            )
+            return roster_snapshot(live) == dispatch_roster
 
         if expected_profile is not None and settings_at_dispatch is not expected_profile:
             self.runtime.logger.info(
