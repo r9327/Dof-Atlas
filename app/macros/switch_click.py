@@ -926,14 +926,22 @@ class SwitchClickMacro:
                         )
                     return
 
-                if (
-                    index < len(targets) - 1
-                    and timings.switch_client_settle_ms > 0
-                    and self.runtime.macro_lock.wait(
-                        timings.switch_client_settle_ms
-                    )
-                ):
-                    return
+                if (index < len(targets) - 1
+                        and timings.switch_client_settle_ms > 0):
+                    # A physical DOWN/wheel during an active Miroir pointer
+                    # lease cancels the inter-client wait within the 25ms
+                    # stop-event slice. Classic SwitchClick stays unchanged.
+                    if mirror_target_handles is not None:
+                        interrupted_wait = self.runtime.macro_lock.wait(
+                            timings.switch_client_settle_ms,
+                            interrupted=pointer_interrupted,
+                        )
+                    else:
+                        interrupted_wait = self.runtime.macro_lock.wait(
+                            timings.switch_client_settle_ms,
+                        )
+                    if interrupted_wait:
+                        return
         finally:
             # Retain the collision result even after releasing InputState's
             # lease (which deliberately clears the interruption latch).
