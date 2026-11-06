@@ -126,13 +126,22 @@ class SyntheticInputGuard:
         with self._lock:
             self._active_count += 1
             self._until = max(self._until, time.monotonic() + max(0, duration_ms) / 1000.0)
-            self._logger.debug("Protection clic synthetique active: count=%s", self._active_count)
+            try:
+                self._logger.debug("Protection clic synthetique active: count=%s", self._active_count)
+            except Exception:
+                # A logger failure cannot invalidate an acquired input guard.
+                pass
 
     def end(self, duration_ms: int = 120) -> None:
         with self._lock:
             self._active_count = max(0, self._active_count - 1)
             self._until = max(self._until, time.monotonic() + max(0, duration_ms) / 1000.0)
-            self._logger.debug("Protection clic synthetique relachee: count=%s", self._active_count)
+            try:
+                self._logger.debug("Protection clic synthetique relachee: count=%s", self._active_count)
+            except Exception:
+                # The release already happened; do not report a sent click as
+                # failed solely because diagnostics are unavailable.
+                pass
 
     def reset(self) -> None:
         with self._lock:
