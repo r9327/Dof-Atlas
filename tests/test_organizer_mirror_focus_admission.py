@@ -678,5 +678,45 @@ class MirrorFocusAdmissionTests(unittest.TestCase):
                         self.assertTrue(runtime.logger.exception.called)
 
 
+    def test_client_roster_detaches_between_native_hook_reads(self):
+        for count in (2, 4, 6, 8):
+            with self.subTest(accounts=count):
+                runtime, source = self._runtime(count)
+                original = runtime.settings
+                original_clients = original.clients
+
+                class FlippingProfile:
+                    macro_mode = "mirror"
+                    primary_handle = source
+                    client_by_handle = original.client_by_handle
+
+                    def __init__(self):
+                        self.reads = 0
+
+                    @property
+                    def clients(self):
+                        self.reads += 1
+                        if self.reads == 1:
+                            return original_clients
+                        return None
+
+                runtime.settings = FlippingProfile()
+                with (
+                    patch("app.windows.unity_windows.foreground_window",
+                          return_value=source),
+                    patch("app.windows.unity_windows.find_known_client_from_point",
+                          return_value=source),
+                    patch("app.windows.unity_windows.is_unity_window",
+                          return_value=True),
+                    patch("app.macros.mirror_plan.is_dofus_unity_process",
+                          return_value=True),
+                ):
+                    self.assertFalse(AtlasRuntime._handle_mirror_click(
+                        runtime, "Left", 20, 25,
+                    ))
+                self.assertEqual(runtime.settings.reads, 2)
+                runtime.switch_click.run_async.assert_not_called()
+
+
 if __name__ == "__main__":
     unittest.main()
