@@ -167,24 +167,41 @@ def release_common_inputs() -> None:
     # when Windows refuses an individual input.
     import logging
     from app.input.hotkeys import VK_CONTROL, VK_MENU, VK_SHIFT
+
+    logger = logging.getLogger(__name__)
+
+    def report(level: str, message: str, value: int) -> None:
+        try:
+            getattr(logger, level)(message, value)
+        except Exception:
+            # An unavailable diagnostic sink is not a reason to abandon
+            # subsequent emergency key/button releases.
+            pass
+
     if os.name == "nt":
         from app.windows.clicks import _send_mouse_flag
         for flag in (0x0004, 0x0010, 0x0040):  # left/right/middle UP
             try:
                 if not _send_mouse_flag(flag):
-                    logging.getLogger(__name__).warning(
-                        "Stop urgence: SendInput souris refuse le relachement flag=%s", flag
+                    report(
+                        "warning",
+                        "Stop urgence: SendInput souris refuse le relachement flag=%s",
+                        flag,
                     )
             except Exception:
-                logging.getLogger(__name__).exception(
-                    "Stop urgence: erreur relachement souris flag=%s", flag
+                report(
+                    "exception",
+                    "Stop urgence: erreur relachement souris flag=%s",
+                    flag,
                 )
     for vk_code in (VK_SHIFT, VK_CONTROL, VK_MENU):
         try:
             key_up(vk_code)
         except Exception:
-            logging.getLogger(__name__).exception(
-                "Stop urgence: relachement touche refuse vk=%s", vk_code
+            report(
+                "exception",
+                "Stop urgence: relachement touche refuse vk=%s",
+                vk_code,
             )
 
 

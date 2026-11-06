@@ -507,19 +507,40 @@ class AtlasRuntime:
     def emergency_stop(self, reason: str = "stop urgence") -> None:
         self.macro_lock.request_stop(reason)
         self._pending_physical_switch = None
-        self.input_state.reset_armed()
-        self.input_state.clear_mouse_block()
-        self.synthetic_guard.reset()
+        failures: list[str] = []
+
+        def cleanup(label: str, action: Callable[[], None]) -> None:
+            try:
+                action()
+            except Exception:
+                failures.append(label)
+                try:
+                    self.logger.exception(
+                        "Stop urgence: nettoyage incomplet step=%s", label,
+                    )
+                except Exception:
+                    # Diagnostics must never prevent another release attempt.
+                    pass
+
+        cleanup("input_state", self.input_state.reset_armed)
+        cleanup("pointer", self.input_state.clear_mouse_block)
+        cleanup("synthetic", self.synthetic_guard.reset)
         with self._macro_init_lock:
             switch_click = self._switch_click
             direction = self._direction
         if switch_click is not None:
-            switch_click.reset()
+            cleanup("switch_click", switch_click.reset)
         if direction is not None:
-            direction.release_virtual_inputs()
-        release_common_inputs()
-        self.logger.warning("Stop urgence Python: etats internes remis a zero.")
-        self._emit_status("Stop urgence: macros Python arretees.")
+            cleanup("direction", direction.release_virtual_inputs)
+        cleanup("common_inputs", release_common_inputs)
+        try:
+            self.logger.warning("Stop urgence Python: etats internes remis a zero.")
+        except Exception:
+            pass
+        self._emit_status(
+            "Stop urgence: interruption demandée, relâchements à vérifier."
+            if failures else "Stop urgence: macros Python arretees."
+        )
 
     def _spawn_macro(self, label: str, target: Callable[[], None]) -> bool:
         # Reservation and generation capture must be one atomic step. A

@@ -324,8 +324,12 @@ class DirectionMacro:
             try:
                 key_up(_vk(key_name))
             except Exception as exc:
-                self.runtime.logger.warning(
-                    "Relachement touche virtuelle impossible: key=%s error=%s",
-                    key_name,
-                    exc,
-                )
+                try:
+                    self.runtime.logger.warning(
+                        "Relachement touche virtuelle impossible: key=%s error=%s",
+                        key_name,
+                        exc,
+                    )
+                except Exception:
+                    # One broken log must not skip the remaining virtual UPs.
+                    pass

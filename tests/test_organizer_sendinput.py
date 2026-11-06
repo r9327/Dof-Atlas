@@ -834,6 +834,27 @@ class OrganizerSendInputTests(unittest.TestCase):
         self.assertEqual(key.call_count, 3)
 
 
+    def test_emergency_release_attempts_all_buttons_and_keys_when_logging_fails(self):
+        logger = Mock()
+        logger.warning.side_effect = RuntimeError("warning unavailable")
+        logger.exception.side_effect = RuntimeError("exception unavailable")
+        with (
+            patch.object(input_tools.os, "name", "nt"),
+            patch("logging.getLogger", return_value=logger),
+            patch.object(clicks, "_send_mouse_flag",
+                         side_effect=[False, OSError("mouse refused"), True]) as mouse,
+            patch.object(input_tools, "key_up",
+                         side_effect=[OSError("key refused"), None, None]) as key,
+        ):
+            input_tools.release_common_inputs()
+        self.assertEqual(
+            mouse.call_args_list,
+            [call(0x0004), call(0x0010), call(0x0040)],
+        )
+        self.assertEqual(key.call_count, 3)
+        logger.warning.assert_called_once()
+        self.assertEqual(logger.exception.call_count, 2)
+
     def test_finite_excessive_click_delay_refuses_before_mouse_guard(self) -> None:
         for field in range(4):
             for amount in (1001, 10**9):

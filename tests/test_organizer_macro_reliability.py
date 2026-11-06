@@ -4089,6 +4089,55 @@ class OrganizerMacroReliabilityTests(unittest.TestCase):
                         "Switch deplacement ignore: fenetre active non Unity."
                     )
 
+    def test_direction_release_continues_when_error_logger_fails(self):
+        runtime = _runtime()
+        runtime.logger.warning.side_effect = RuntimeError("logger unavailable")
+        macro = DirectionMacro(runtime)
+        with (
+            patch("app.macros.direction._vk",
+                  side_effect=lambda name: len(name)),
+            patch("app.macros.direction.key_up",
+                  side_effect=[OSError("first UP refused"), None, None, None]) as release,
+        ):
+            macro.release_virtual_inputs()
+        self.assertEqual(release.call_count, 4)
+        runtime.logger.warning.assert_called_once()
+
+    def test_emergency_stop_attempts_all_cleanup_after_independent_failures(self):
+        import threading
+        from app.core.runtime_state import AtlasRuntime
+
+        runtime = object.__new__(AtlasRuntime)
+        runtime.logger = Mock()
+        runtime.logger.exception.side_effect = RuntimeError("logger unavailable")
+        runtime.macro_lock = Mock()
+        runtime.input_state = Mock()
+        runtime.synthetic_guard = Mock()
+        runtime._macro_init_lock = threading.RLock()
+        runtime._switch_click = Mock()
+        runtime._direction = Mock()
+        runtime._pending_physical_switch = object()
+        runtime._emit_status = Mock()
+
+        runtime.input_state.reset_armed.side_effect = OSError("state failed")
+        runtime._switch_click.reset.side_effect = OSError("switch failed")
+        runtime._direction.release_virtual_inputs.side_effect = OSError("release failed")
+        with patch(
+            "app.core.runtime_state.release_common_inputs",
+            side_effect=OSError("common release failed"),
+        ) as common_release:
+            runtime.emergency_stop("test Stop")
+        runtime.macro_lock.request_stop.assert_called_once_with("test Stop")
+        runtime.input_state.clear_mouse_block.assert_called_once()
+        runtime.synthetic_guard.reset.assert_called_once()
+        runtime._switch_click.reset.assert_called_once()
+        runtime._direction.release_virtual_inputs.assert_called_once()
+        common_release.assert_called_once()
+        self.assertIsNone(runtime._pending_physical_switch)
+        runtime._emit_status.assert_called_once_with(
+            "Stop urgence: interruption demandée, relâchements à vérifier."
+        )
+
     def test_direction_explicit_emergency_release_remains_available(self):
         runtime = _runtime()
         macro = DirectionMacro(runtime)
