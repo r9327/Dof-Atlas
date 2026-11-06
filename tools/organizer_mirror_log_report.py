@@ -128,9 +128,27 @@ def summarize(lines: Iterable[str], accounts: int) -> dict:
 
 
 
+def _comparison_exclusions(report: dict) -> list[str]:
+    """Exclude fast-but-lost gestures from apparent responsiveness results."""
+    reasons: list[str] = []
+    if report["actions"]["partial"] or report["actions"]["interrupted"]:
+        reasons.append("PARTIAL_OR_INTERRUPTED_ACTIONS")
+    if any(report["observed_blocked_physical_inputs"].values()):
+        reasons.append("BLOCKED_PHYSICAL_INPUTS_IN_LOG")
+    if report["profile_changed_after_send"]:
+        reasons.append("PROFILE_CHANGED_AFTER_SEND")
+    if report["non_replayed_statuses"]:
+        reasons.append("UNREPLAYED_PHYSICAL_GESTURES")
+    if report["roster_mismatch_lines"]:
+        reasons.append("MIXED_OR_MISMATCHED_ROSTERS")
+    return reasons
+
+
 def compare_reports(reports: dict[int, dict]) -> dict:
     """Compare measured p95 to two accounts; never certify gameplay feel."""
     baseline = reports.get(2, {}).get("metrics", {})
+    exclusions = {str(count): _comparison_exclusions(report)
+                  for count, report in sorted(reports.items())}
     ratios: dict[str, dict[str, float | None]] = {}
     for metric_name in METRIC_PATTERNS:
         baseline_measurement = baseline.get(metric_name)
@@ -139,6 +157,7 @@ def compare_reports(reports: dict[int, dict]) -> dict:
             measure = report["metrics"].get(metric_name)
             # p95 based on one or two samples is too weak for a comparison.
             if (not baseline_measurement or not measure
+                    or exclusions.get("2") or exclusions[str(account_count)]
                     or baseline_measurement["n"] < 5 or measure["n"] < 5
                     or baseline_measurement["p95_ms"] <= 0):
                 current[str(account_count)] = None
@@ -151,6 +170,7 @@ def compare_reports(reports: dict[int, dict]) -> dict:
         "evidence": "LOG_ONLY_NOT_UNITY_CERTIFIED",
         "comparison_baseline_accounts": 2,
         "minimum_samples_for_ratio": 5,
+        "ratio_exclusion_reasons": exclusions,
         "p95_ratio_vs_2_accounts": ratios,
         "reports": {str(count): result for count, result in sorted(reports.items())},
     }
