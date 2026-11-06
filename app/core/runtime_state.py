@@ -762,8 +762,10 @@ class AtlasRuntime:
                     # Do not broadcast it as an extra mirrored tap.
                     return False
         foreground = foreground_window()
-        busy_label = self.macro_lock.active_label
-        busy_generation = self.macro_lock.active_generation if busy_label else None
+        # A Stop/restart must never mix the label of one worker with the
+        # generation of another worker bearing that same label.
+        owner = self.macro_lock.snapshot_active()
+        busy_label, busy_generation = owner if owner is not None else ("", None)
         if busy_label and (
             type(busy_generation) is not int
             or not self.macro_lock.owns(busy_label, busy_generation)
@@ -882,8 +884,10 @@ class AtlasRuntime:
                     and self.macro_lock.should_stop())):
             return False
         foreground = foreground_window()
-        busy_label = self.macro_lock.active_label
-        busy_generation = self.macro_lock.active_generation if busy_label else None
+        # A Stop/restart must never mix the label of one worker with the
+        # generation of another worker bearing that same label.
+        owner = self.macro_lock.snapshot_active()
+        busy_label, busy_generation = owner if owner is not None else ("", None)
         if busy_label and (
             type(busy_generation) is not int
             or not self.macro_lock.owns(busy_label, busy_generation)
@@ -1006,10 +1010,10 @@ class AtlasRuntime:
         # owns it after preflight. The native event is intentionally left
         # alone: do not perform 2–8 expensive process probes inside the
         # low-level mouse hook merely to decide to pass a click through.
-        busy = self.macro_lock.active_label
-        # A same-label Stop/restart can occur during slow Win32 probes.
-        # Bind this physical gesture to the actual worker generation.
-        busy_generation = self.macro_lock.active_generation if busy else None
+        # Capture label + generation under a single lease lock acquisition.
+        # Two separate reads could mix old and newly started Miroir workers.
+        owner = self.macro_lock.snapshot_active()
+        busy, busy_generation = owner if owner is not None else ("", None)
         if busy and (
             type(busy_generation) is not int
             or not self.macro_lock.owns(busy, busy_generation)

@@ -312,5 +312,20 @@ class MacroGenerationOwnershipTests(unittest.TestCase):
 
 
 
+    def test_macro_lease_snapshot_keeps_label_and_generation_together(self):
+        lock = MacroLock(Mock())
+        self.assertIsNone(lock.snapshot_active())
+        first = lock.try_begin_generation("Miroir")
+        self.assertEqual(lock.snapshot_active(), ("Miroir", first))
+        lock.request_stop()
+        lock.end("Miroir", generation=first)
+        second = lock.try_begin_generation("Miroir")
+        self.assertEqual(lock.snapshot_active(), ("Miroir", second))
+        self.assertGreater(second, first)
+        lock.end("Miroir", generation=second)
+        self.assertIsNone(lock.snapshot_active())
+
+
+
 if __name__ == "__main__":
     unittest.main()

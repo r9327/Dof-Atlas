@@ -109,6 +109,10 @@ class OrganizerMirrorIntegrationTests(unittest.TestCase):
             runtime.macro_lock.active_label == label
             and runtime.macro_lock.active_generation == generation
         )
+        runtime.macro_lock.snapshot_active.side_effect = lambda: (
+            (runtime.macro_lock.active_label, runtime.macro_lock.active_generation)
+            if runtime.macro_lock.active_label else None
+        )
         runtime.macro_lock.should_stop.return_value = False
         runtime.switch_click.run_async.return_value = True
         return runtime

@@ -32,6 +32,10 @@ class MirrorFocusAdmissionTests(unittest.TestCase):
             runtime.macro_lock.active_label == label
             and runtime.macro_lock.active_generation == generation
         )
+        runtime.macro_lock.snapshot_active.side_effect = lambda: (
+            (runtime.macro_lock.active_label, runtime.macro_lock.active_generation)
+            if runtime.macro_lock.active_label else None
+        )
         runtime.macro_lock.should_stop.return_value = False
         runtime._mirror_gesture_targets.side_effect = (
             lambda: AtlasRuntime._mirror_gesture_targets(runtime)
@@ -445,6 +449,49 @@ class MirrorFocusAdmissionTests(unittest.TestCase):
                         runtime.mirror_input.run_key.assert_not_called()
                         runtime.mirror_input.run_wheel.assert_not_called()
                         runtime.input_state.end_mouse_block()
+
+
+
+    def test_atomic_owner_replaced_during_hook_snapshot_keeps_native_input(self):
+        from app.input.input_state import InputState
+
+        for count in (2, 4, 6, 8):
+            for gesture in ("key", "wheel", "click"):
+                with self.subTest(count=count, gesture=gesture):
+                    runtime, source = self._runtime(count)
+                    runtime.input_state = InputState()
+                    runtime.input_state.begin_mouse_block("Miroir")
+                    runtime.macro_lock.active_label = "Miroir"
+                    runtime.macro_lock.active_generation = 17
+
+                    def swapped_snapshot():
+                        runtime.macro_lock.active_generation = 18
+                        return ("Miroir", 17)
+
+                    runtime.macro_lock.snapshot_active.side_effect = swapped_snapshot
+                    with (
+                        patch("app.windows.unity_windows.foreground_window",
+                              return_value=source),
+                        patch("app.macros.mirror_plan.is_dofus_unity_process") as probe,
+                    ):
+                        if gesture == "key":
+                            accepted = AtlasRuntime._handle_mirror_key(
+                                runtime, 65, True,
+                            )
+                        elif gesture == "wheel":
+                            accepted = AtlasRuntime._handle_mirror_wheel(
+                                runtime, 120, 20, 25, False,
+                            )
+                        else:
+                            accepted = AtlasRuntime._handle_mirror_click(
+                                runtime, "Left", 20, 25,
+                            )
+                    self.assertFalse(accepted)
+                    probe.assert_not_called()
+                    runtime.mirror_input.run_key.assert_not_called()
+                    runtime.mirror_input.run_wheel.assert_not_called()
+                    runtime.switch_click.run_async.assert_not_called()
+                    runtime.input_state.end_mouse_block()
 
 
 

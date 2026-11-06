@@ -32,6 +32,12 @@ class MacroLock:
         with self._lock:
             return self._lease.generation if self._lease is not None else None
 
+    def snapshot_active(self) -> tuple[str, int] | None:
+        """Read an active label and its exact generation atomically."""
+        with self._lock:
+            lease = self._lease
+            return (lease.label, lease.generation) if lease is not None else None
+
     def owns(self, label: str, generation: int) -> bool:
         """True only while this exact worker generation owns the lease."""
         with self._lock:
