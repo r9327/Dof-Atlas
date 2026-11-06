@@ -168,6 +168,14 @@ jobs:
           persist-credentials: false
           lfs: false
 
+      - name: Install Ubuntu EGL runtime required by PySide6
+        if: env.MODE == 'doctor-lot'
+        shell: bash
+        run: |
+          set -euo pipefail
+          sudo apt-get update -qq
+          sudo apt-get install -y --no-install-recommends libegl1
+
       - name: Install pinned Qt runtime for developer-lot UI regression tests
         if: env.MODE == 'doctor-lot'
         shell: bash
