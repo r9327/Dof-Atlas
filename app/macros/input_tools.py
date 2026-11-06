@@ -162,9 +162,11 @@ def press_hotkey(*key_names: str, hold_ms: int = 0) -> None:
                 raise errors[0]
 
 
-def release_common_inputs() -> None:
+def release_common_inputs() -> bool:
     # Emergency stop must continue releasing *all* buttons/modifiers even
-    # when Windows refuses an individual input.
+    # when Windows refuses an individual input. Report failed native
+    # delivery to runtime without allowing a failed logger to strand cleanup.
+    all_released = True
     import logging
     from app.input.hotkeys import VK_CONTROL, VK_MENU, VK_SHIFT
 
@@ -183,12 +185,14 @@ def release_common_inputs() -> None:
         for flag in (0x0004, 0x0010, 0x0040):  # left/right/middle UP
             try:
                 if not _send_mouse_flag(flag):
+                    all_released = False
                     report(
                         "warning",
                         "Stop urgence: SendInput souris refuse le relachement flag=%s",
                         flag,
                     )
             except Exception:
+                all_released = False
                 report(
                     "exception",
                     "Stop urgence: erreur relachement souris flag=%s",
@@ -198,11 +202,13 @@ def release_common_inputs() -> None:
         try:
             key_up(vk_code)
         except Exception:
+            all_released = False
             report(
                 "exception",
                 "Stop urgence: relachement touche refuse vk=%s",
                 vk_code,
             )
+    return all_released
 
 
 @contextmanager

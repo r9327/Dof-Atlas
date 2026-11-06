@@ -25,7 +25,8 @@ class CommonReleaseOwnerTests(unittest.TestCase):
                     patch.object(input_tools, "key_up",
                                  side_effect=OSError("key refused")) as keys,
                 ):
-                    input_tools.release_common_inputs()
+                    released = input_tools.release_common_inputs()
+                self.assertIs(released, False)
                 self.assertEqual(mouse.call_args_list, [
                     call(0x0004), call(0x0010), call(0x0040),
                 ])
@@ -43,7 +44,8 @@ class CommonReleaseOwnerTests(unittest.TestCase):
                     patch.object(clicks, "_send_mouse_flag") as mouse,
                     patch.object(input_tools, "key_up") as keys,
                 ):
-                    input_tools.release_common_inputs()
+                    released = input_tools.release_common_inputs()
+                self.assertIs(released, True)
                 mouse.assert_not_called()
                 self.assertEqual(keys.call_args_list, [
                     call(VK_SHIFT), call(VK_CONTROL), call(VK_MENU),

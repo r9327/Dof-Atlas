@@ -23,7 +23,8 @@ class DirectionReleaseOwnerTests(unittest.TestCase):
                     patch("app.macros.direction.key_up",
                           side_effect=OSError("SendInput refused")) as release,
                 ):
-                    macro.release_virtual_inputs()
+                    result = macro.release_virtual_inputs()
+                self.assertIs(result, False)
                 self.assertEqual(release.call_args_list, [
                     call(36), call(46), call(35), call(34),
                 ])
@@ -39,7 +40,8 @@ class DirectionReleaseOwnerTests(unittest.TestCase):
                           side_effect=lambda name: len(name)),
                     patch("app.macros.direction.key_up") as release,
                 ):
-                    macro.release_virtual_inputs()
+                    result = macro.release_virtual_inputs()
+                self.assertIs(result, True)
                 self.assertEqual(release.call_count, 4)
                 runtime.logger.warning.assert_not_called()
 

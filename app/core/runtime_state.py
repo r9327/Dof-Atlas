@@ -509,9 +509,19 @@ class AtlasRuntime:
         self._pending_physical_switch = None
         failures: list[str] = []
 
-        def cleanup(label: str, action: Callable[[], None]) -> None:
+        def cleanup(label: str, action: Callable[[], object]) -> None:
             try:
-                action()
+                result = action()
+                if result is False:
+                    # SendInput helpers attempt *all* releases but can report
+                    # partial delivery without raising. Do not claim success.
+                    failures.append(label)
+                    try:
+                        self.logger.warning(
+                            "Stop urgence: relachement refuse step=%s", label,
+                        )
+                    except Exception:
+                        pass
             except Exception:
                 failures.append(label)
                 try:
@@ -534,7 +544,13 @@ class AtlasRuntime:
             cleanup("direction", direction.release_virtual_inputs)
         cleanup("common_inputs", release_common_inputs)
         try:
-            self.logger.warning("Stop urgence Python: etats internes remis a zero.")
+            if failures:
+                self.logger.warning(
+                    "Stop urgence Python: nettoyage incomplet steps=%s",
+                    ",".join(failures),
+                )
+            else:
+                self.logger.warning("Stop urgence Python: etats internes remis a zero.")
         except Exception:
             pass
         self._emit_status(

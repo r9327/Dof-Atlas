@@ -319,11 +319,13 @@ class DirectionMacro:
                 state, sent, len(targets),
             )
 
-    def release_virtual_inputs(self) -> None:
+    def release_virtual_inputs(self) -> bool:
+        all_released = True
         for key_name in ("HOME", "DELETE", "END", "PAGEDOWN"):
             try:
                 key_up(_vk(key_name))
             except Exception as exc:
+                all_released = False
                 try:
                     self.runtime.logger.warning(
                         "Relachement touche virtuelle impossible: key=%s error=%s",
@@ -333,3 +335,4 @@ class DirectionMacro:
                 except Exception:
                     # One broken log must not skip the remaining virtual UPs.
                     pass
+        return all_released

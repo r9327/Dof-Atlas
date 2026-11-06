@@ -53,6 +53,35 @@ class RuntimeStopOwnerTests(unittest.TestCase):
                     "Stop urgence: interruption demandée, relâchements à vérifier."
                 )
 
+    def test_native_release_false_reports_incomplete_stop_without_exception(self):
+        for accounts in (2, 4, 6, 8):
+            with self.subTest(accounts=accounts):
+                runtime = _runtime()
+                runtime._direction.release_virtual_inputs.return_value = False
+                with patch(
+                    "app.core.runtime_state.release_common_inputs",
+                    return_value=False,
+                ) as common:
+                    runtime.emergency_stop("P0")
+                runtime.macro_lock.request_stop.assert_called_once_with("P0")
+                runtime.input_state.clear_mouse_block.assert_called_once()
+                runtime.synthetic_guard.reset.assert_called_once()
+                runtime._direction.release_virtual_inputs.assert_called_once()
+                common.assert_called_once()
+                runtime.logger.warning.assert_any_call(
+                    "Stop urgence: relachement refuse step=%s", "direction",
+                )
+                runtime.logger.warning.assert_any_call(
+                    "Stop urgence: relachement refuse step=%s", "common_inputs",
+                )
+                runtime.logger.warning.assert_any_call(
+                    "Stop urgence Python: nettoyage incomplet steps=%s",
+                    "direction,common_inputs",
+                )
+                runtime._emit_status.assert_called_once_with(
+                    "Stop urgence: interruption demandée, relâchements à vérifier."
+                )
+
     def test_stop_without_lazy_macros_still_releases_inputs_2_to_8(self):
         for accounts in (2, 4, 6, 8):
             with self.subTest(accounts=accounts):
