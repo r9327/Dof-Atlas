@@ -384,13 +384,19 @@ class MouseHook:
                             self._consumed_releases.add(
                                 WM_LBUTTONUP if w_param == WM_LBUTTONDOWN else WM_RBUTTONUP
                             )
-                            self.logger.debug(
-                                "Clic utilisateur consommé par macro switch: "
-                                "button=%s x=%s y=%s",
-                                button,
-                                x,
-                                y,
-                            )
+                            # Ownership is already recorded: a failing
+                            # debug sink must never forward this DOWN while
+                            # swallowing its matching physical UP.
+                            try:
+                                self.logger.debug(
+                                    "Clic utilisateur consommé par macro switch: "
+                                    "button=%s x=%s y=%s",
+                                    button,
+                                    x,
+                                    y,
+                                )
+                            except Exception:
+                                pass
                             return 1
                         # The original physical DOWN stays native. Its exact
                         # UP is the only event allowed to start a queued
