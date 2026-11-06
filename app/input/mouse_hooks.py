@@ -341,11 +341,16 @@ class MouseHook:
                     try:
                         self._log_blocked_event(w_param, x, y)
                     except Exception:
-                        # Diagnostics must never turn a blocked physical
-                        # gesture into an accidental input to another window.
-                        self.logger.exception(
-                            "Hook souris: journalisation blocage impossible.",
-                        )
+                        # Keep the physical DOWN/UP pair intercepted even if
+                        # the logger itself fails. Returning to the outer
+                        # exception handler could leak a physical release
+                        # into another focused Unity window.
+                        try:
+                            self.logger.exception(
+                                "Hook souris: journalisation blocage impossible.",
+                            )
+                        except Exception:
+                            pass
                     return 1
 
                 if w_param in (WM_MOUSEWHEEL, WM_MOUSEHWHEEL):
