@@ -1535,6 +1535,33 @@ class OrganizerSendInputTests(unittest.TestCase):
         user32.CallNextHookEx.assert_not_called()
         logger.exception.assert_not_called()
 
+    def test_native_mouse_survives_callback_and_logger_failures(self) -> None:
+        from app.input.input_state import InputState, SyntheticInputGuard
+        from app.input.mouse_hooks import (
+            MSLLHOOKSTRUCT, MouseHook, WM_LBUTTONDOWN,
+        )
+
+        logger = Mock()
+        logger.debug.side_effect = RuntimeError("debug unavailable")
+        logger.exception.side_effect = RuntimeError("error logger unavailable")
+        callback = Mock(return_value=True)
+        hook = MouseHook(
+            InputState(), SyntheticInputGuard(logger), logger, callback,
+        )
+        event = MSLLHOOKSTRUCT()
+        user32 = Mock()
+        user32.CallNextHookEx.return_value = 42
+        with patch.object(
+            ctypes, "windll", SimpleNamespace(user32=user32), create=True,
+        ):
+            result = hook._mouse_proc(
+                0, WM_LBUTTONDOWN, ctypes.addressof(event),
+            )
+        self.assertEqual(result, 42)
+        user32.CallNextHookEx.assert_called_once()
+        callback.assert_not_called()
+        self.assertEqual(hook._consumed_releases, set())
+
     def test_busy_mouse_hook_bursts_two_four_six_eight_are_counted(self) -> None:
         import logging
         from app.input.input_state import InputState, SyntheticInputGuard
