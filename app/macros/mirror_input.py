@@ -169,6 +169,16 @@ class MirrorInputMacro:
             runtime.logger.info("Miroir %s annulé: Stop avant worker.", kind)
             runtime._emit_status("Miroir non diffusé : Stop urgence.")
             return
+        # A profile reload can detach timing configuration after the
+        # gesture was admitted. Never let an uncaught attribute error
+        # escape a background worker before it can report the cancellation.
+        timings = getattr(profile_at_start, "timings", None)
+        if timings is None:
+            runtime.logger.warning(
+                "Miroir %s annulé: paramètres Organizer indisponibles.", kind,
+            )
+            runtime._emit_status("Miroir non diffusé : paramètres Organizer absents.")
+            return
         # An input was physically consumed on the favorite when admitted.
         # If the user changed applications before the queued worker starts,
         # replaying it now would steal focus for a stale gesture.
@@ -186,16 +196,6 @@ class MirrorInputMacro:
                 )
                 runtime._emit_status("Miroir non diffusé : focus source perdu.")
                 return
-        # A profile reload can detach timing configuration after the
-        # gesture was admitted. Never let an uncaught attribute error
-        # escape a background worker before it can report the cancellation.
-        timings = getattr(profile_at_start, "timings", None)
-        if timings is None:
-            runtime.logger.warning(
-                "Miroir %s annulé: paramètres Organizer indisponibles.", kind,
-            )
-            runtime._emit_status("Miroir non diffusé : paramètres Organizer absents.")
-            return
         start = perf_counter()
         last_emission_at: float | None = None
         delivered = 0
