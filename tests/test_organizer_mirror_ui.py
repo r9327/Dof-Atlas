@@ -100,9 +100,20 @@ class OrganizerMirrorIntegrationTests(unittest.TestCase):
         settings = SimpleNamespace(
             macro_mode="mirror", primary_handle=primary, clients=clients,
             client_by_handle=lambda h: next((c for c in clients if c.handle == h), None),
+            # A usable Organizer profile always carries its timing settings.
+            # A test-only SimpleNamespace without these values aborted before
+            # native probes, masking the real Stop/roster assertions.
+            timings=SimpleNamespace(
+                switch_background_pre_click_ms=0,
+                activate_attempts=1, activate_retry_ms=0,
+                switch_click_down_ms=10, switch_client_settle_ms=0,
+                input_double_gap_ms=5, switch_background_post_up_ms=0,
+            ),
         )
         runtime = Mock()
         runtime.settings = settings
+        runtime.macro_lock.wait.return_value = False
+        runtime.input_state.is_mouse_blocked.return_value = False
         runtime.macro_lock.active_label = ""
         runtime.macro_lock.active_generation = 1
         runtime.macro_lock.owns.side_effect = lambda label, generation: (
