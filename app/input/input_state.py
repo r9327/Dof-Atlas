@@ -128,7 +128,14 @@ class InputState:
             self._mouse_block_interrupted = False
             self._mouse_block_gesture_count = 0
 
-    def note_blocked_physical_gesture(self) -> bool:
+    def mouse_block_epoch_if_active(self) -> int | None:
+        """Snapshot current pointer ownership without reviving an old lease."""
+        with self._lock:
+            return self._mouse_block_epoch if self._mouse_block_count > 0 else None
+
+    def note_blocked_physical_gesture(
+        self, *, expected_epoch: int | None = None,
+    ) -> bool:
         """Request cancellation of the CURRENT pointer lease, never replay.
 
         Called only for an intercepted physical DOWN/wheel in the low-level
@@ -136,7 +143,11 @@ class InputState:
         worker's cleanup ownership or release the pointer prematurely.
         """
         with self._lock:
-            if self._mouse_block_count <= 0:
+            if (self._mouse_block_count <= 0
+                    or (expected_epoch is not None
+                        and self._mouse_block_epoch != expected_epoch)):
+                # A Stop/restart must not cancel the next worker on behalf
+                # of a gesture admitted under an obsolete pointer lease.
                 return False
             self._mouse_block_interrupted = True
             self._mouse_block_gesture_count += 1
