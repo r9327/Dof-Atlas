@@ -7230,6 +7230,10 @@ class OrganizerMirrorIntegrationTests(unittest.TestCase):
                     "%s interrompu: nouveau geste physique après clic hwnd=%s",
                     "Miroir", handles[0],
                 )
+                runtime._emit_status.assert_called_once_with(
+                    f"Miroir interrompu : 1/{count} fenêtres "
+                    "(geste physique non rejoué)."
+                )
 
     def test_mirror_wheel_physical_collision_aborts_fanout_and_skips_restore_2_to_8(self):
         from app.input.input_state import InputState
@@ -7290,6 +7294,10 @@ class OrganizerMirrorIntegrationTests(unittest.TestCase):
                 runtime.logger.warning.assert_any_call(
                     "Miroir molette interrompu: geste physique après envoi hwnd=%s.",
                     handles[0],
+                )
+                runtime._emit_status.assert_called_once_with(
+                    f"Miroir Molette interrompu : 1/{count} fenêtres "
+                    "(geste physique non rejoué)."
                 )
 
 
