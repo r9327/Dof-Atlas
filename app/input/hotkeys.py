@@ -542,9 +542,14 @@ class HotkeyRegistry:
                         self._dispatch_matching_hotkeys()
                     except Exception:
                         if mirrored_pair:
-                            self.logger.exception(
-                                "Hook clavier: callback échoué, paire miroir préservée."
-                            )
+                            # A failed logger cannot revoke ownership of a
+                            # physical key already mirrored to other windows.
+                            try:
+                                self.logger.exception(
+                                    "Hook clavier: callback échoué, paire miroir préservée."
+                                )
+                            except Exception:
+                                pass
                             return 1
                         raise
                     # A mirrored physical DOWN is a short, balanced injected
@@ -567,7 +572,12 @@ class HotkeyRegistry:
                             self._mirrored_key_ups.add(vk_code)
                             return 1
         except Exception:
-            self.logger.exception("Hook clavier: erreur callback.")
+            # Unowned physical keys remain native even if diagnostics fail.
+            # Never let an exception escape a low-level Windows hook.
+            try:
+                self.logger.exception("Hook clavier: erreur callback.")
+            except Exception:
+                pass
         return ctypes.windll.user32.CallNextHookEx(self._hook, n_code, w_param, l_param)
 
     def _dispatch_priority_stop(self, vk_code: int, pressed: bool) -> bool:
