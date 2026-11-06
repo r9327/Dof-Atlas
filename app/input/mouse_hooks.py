@@ -134,6 +134,7 @@ class MouseHook:
         self._startup_event = threading.Event()
         self._start_ok = False
         self._last_block_log = 0.0
+        self._last_move_probe_error_log = 0.0
         self._last_block_click_log = 0.0
         self._last_block_wheel_log = 0.0
         self._blocked_click_count = 0
@@ -190,6 +191,7 @@ class MouseHook:
         self._blocked_click_count = 0
         self._blocked_wheel_count = 0
         self._last_block_log = 0.0
+        self._last_move_probe_error_log = 0.0
         self._last_block_click_log = 0.0
         self._last_block_wheel_log = 0.0
 
@@ -235,12 +237,7 @@ class MouseHook:
                     # A failed ownership probe is NOT proof that the cursor
                     # is free. Never leak a physical MOVE to the Unity client
                     # currently activated by an in-flight mirror worker.
-                    try:
-                        self.logger.exception(
-                            "Hook souris: verrou MOVE initial illisible.",
-                        )
-                    except Exception:
-                        pass
+                    self._log_move_probe_error("initial")
                     return 1
                 if not blocked:
                     return ctypes.windll.user32.CallNextHookEx(
@@ -263,12 +260,7 @@ class MouseHook:
                     # Only this active-lease path decodes MOVE. A malformed
                     # native event or ctypes failure must not silently leak
                     # a physical movement to a temporarily focused client.
-                    try:
-                        self.logger.exception(
-                            "Hook souris: événement MOVE bloqué illisible.",
-                        )
-                    except Exception:
-                        pass
+                    self._log_move_probe_error("payload")
                     return 1
                 if not atlas_synthetic:
                     # A long 8-client fan-out can release the pointer while
@@ -282,12 +274,7 @@ class MouseHook:
                         # A late Win32/state failure must not turn an active
                         # pointer lease into a native movement on another
                         # character. Keep injected movements independent.
-                        try:
-                            self.logger.exception(
-                                "Hook souris: verrou MOVE final illisible.",
-                            )
-                        except Exception:
-                            pass
+                        self._log_move_probe_error("final")
                         return 1
                     if still_blocked:
                         return 1
@@ -503,6 +490,22 @@ class MouseHook:
             w_param,
             l_param,
         )
+
+    def _log_move_probe_error(self, probe: str) -> None:
+        # MOVE can arrive thousands of times a second. A failed pointer
+        # probe is fail-closed in _mouse_proc; its diagnostic must be
+        # bounded independently of the click/wheel loss warnings.
+        try:
+            now = time.monotonic()
+            if now - self._last_move_probe_error_log < BLOCK_LOG_INTERVAL_SECONDS:
+                return
+            self._last_move_probe_error_log = now
+            self.logger.exception(
+                "Hook souris: contrôle MOVE illisible probe=%s", probe,
+            )
+        except Exception:
+            # Neither time nor a damaged logger may reopen the native hook.
+            pass
 
     def _log_blocked_event(self, w_param: int, x: int, y: int) -> None:
         # MouseMove floods the low-level hook. It must not hide a subsequent

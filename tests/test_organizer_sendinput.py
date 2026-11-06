@@ -3166,5 +3166,67 @@ class OrganizerSendInputTests(unittest.TestCase):
         self.assertEqual(state.end_mouse_block(), 0)
 
 
+    def test_mousemove_probe_error_warning_is_bounded_without_releasing_pointer(self):
+        from app.input.input_state import InputState, SyntheticInputGuard
+        from app.input.mouse_hooks import MouseHook, WM_MOUSEMOVE
+
+        for clients in (2, 4, 6, 8):
+            with self.subTest(clients=clients):
+                state = InputState()
+                logger = Mock()
+                hook = MouseHook(
+                    state, SyntheticInputGuard(logger), logger, Mock(),
+                )
+                next_hook = Mock(return_value=47)
+                clock = iter([1.0] * (clients * 20) + [1.5])
+                with (
+                    patch.object(
+                        state, "is_mouse_blocked",
+                        side_effect=RuntimeError("state unavailable"),
+                    ),
+                    patch("app.input.mouse_hooks.time.monotonic",
+                          side_effect=lambda: next(clock)),
+                    patch.object(
+                        ctypes, "windll",
+                        SimpleNamespace(
+                            user32=SimpleNamespace(CallNextHookEx=next_hook),
+                        ),
+                        create=True,
+                    ),
+                ):
+                    for _ in range(clients * 20):
+                        self.assertEqual(
+                            hook._mouse_proc(0, WM_MOUSEMOVE, 0), 1,
+                        )
+                    self.assertEqual(logger.exception.call_count, 1)
+                    self.assertEqual(hook._mouse_proc(0, WM_MOUSEMOVE, 0), 1)
+                self.assertEqual(logger.exception.call_count, 2)
+                next_hook.assert_not_called()
+                hook.callback.assert_not_called()
+
+    def test_mousemove_probe_error_clock_failure_still_blocks_native(self):
+        from app.input.input_state import InputState, SyntheticInputGuard
+        from app.input.mouse_hooks import MouseHook, WM_MOUSEMOVE
+
+        state = InputState()
+        logger = Mock()
+        hook = MouseHook(state, SyntheticInputGuard(logger), logger, Mock())
+        next_hook = Mock(return_value=47)
+        with (
+            patch.object(state, "is_mouse_blocked",
+                         side_effect=RuntimeError("bad pointer state")),
+            patch("app.input.mouse_hooks.time.monotonic",
+                  side_effect=RuntimeError("clock unavailable")),
+            patch.object(
+                ctypes, "windll",
+                SimpleNamespace(user32=SimpleNamespace(CallNextHookEx=next_hook)),
+                create=True,
+            ),
+        ):
+            self.assertEqual(hook._mouse_proc(0, WM_MOUSEMOVE, 0), 1)
+        next_hook.assert_not_called()
+        hook.callback.assert_not_called()
+
+
 if __name__ == "__main__":
     unittest.main()
