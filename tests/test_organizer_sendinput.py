@@ -3051,5 +3051,91 @@ class OrganizerSendInputTests(unittest.TestCase):
             state.clear_mouse_block()
 
 
+    def test_unreadable_initial_mousemove_lease_stays_fail_closed(self):
+        from app.input.input_state import InputState, SyntheticInputGuard
+        from app.input.mouse_hooks import MouseHook, WM_MOUSEMOVE
+
+        state = InputState()
+        logger = Mock()
+        logger.exception.side_effect = RuntimeError("logging unavailable")
+        hook = MouseHook(state, SyntheticInputGuard(logger), logger, Mock())
+        next_hook = Mock(return_value=47)
+        with (
+            patch.object(state, "is_mouse_blocked",
+                         side_effect=RuntimeError("pointer state unavailable")),
+            patch.object(
+                ctypes, "windll",
+                SimpleNamespace(user32=SimpleNamespace(CallNextHookEx=next_hook)),
+                create=True,
+            ),
+            patch("app.input.mouse_hooks.ctypes.cast",
+                  side_effect=AssertionError("must not decode MOVE")) as decode,
+        ):
+            self.assertEqual(hook._mouse_proc(0, WM_MOUSEMOVE, 0), 1)
+        decode.assert_not_called()
+        next_hook.assert_not_called()
+        hook.callback.assert_not_called()
+        logger.exception.assert_called_once()
+
+    def test_unreadable_final_mousemove_lease_stays_fail_closed(self):
+        from app.input.input_state import InputState, SyntheticInputGuard
+        from app.input.mouse_hooks import MouseHook, MSLLHOOKSTRUCT, WM_MOUSEMOVE
+
+        state = InputState()
+        state.begin_mouse_block("Miroir")
+        logger = Mock()
+        hook = MouseHook(state, SyntheticInputGuard(logger), logger, Mock())
+        event = MSLLHOOKSTRUCT()
+        event.pt.x, event.pt.y = 12, 34
+        next_hook = Mock(return_value=47)
+        with (
+            patch.object(state, "is_mouse_blocked",
+                         side_effect=[True, RuntimeError("late state failure")]),
+            patch.object(
+                ctypes, "windll",
+                SimpleNamespace(user32=SimpleNamespace(CallNextHookEx=next_hook)),
+                create=True,
+            ),
+        ):
+            self.assertEqual(
+                hook._mouse_proc(0, WM_MOUSEMOVE, ctypes.addressof(event)), 1,
+            )
+        next_hook.assert_not_called()
+        hook.callback.assert_not_called()
+        logger.exception.assert_called_once()
+        self.assertTrue(state.is_mouse_blocked())
+        self.assertEqual(state.end_mouse_block(), 0)
+
+    def test_injected_mousemove_skips_final_probe_during_lease(self):
+        from app.input.input_state import InputState, SyntheticInputGuard
+        from app.input.mouse_hooks import (
+            LLMHF_INJECTED, MouseHook, MSLLHOOKSTRUCT, WM_MOUSEMOVE,
+        )
+
+        state = InputState()
+        state.begin_mouse_block("Miroir")
+        logger = Mock()
+        hook = MouseHook(state, SyntheticInputGuard(logger), logger, Mock())
+        event = MSLLHOOKSTRUCT()
+        event.flags = LLMHF_INJECTED
+        next_hook = Mock(return_value=47)
+        with (
+            patch.object(state, "is_mouse_blocked", side_effect=[True]) as probe,
+            patch.object(
+                ctypes, "windll",
+                SimpleNamespace(user32=SimpleNamespace(CallNextHookEx=next_hook)),
+                create=True,
+            ),
+        ):
+            self.assertEqual(
+                hook._mouse_proc(0, WM_MOUSEMOVE, ctypes.addressof(event)), 47,
+            )
+        probe.assert_called_once()
+        next_hook.assert_called_once()
+        hook.callback.assert_not_called()
+        logger.exception.assert_not_called()
+        self.assertEqual(state.end_mouse_block(), 0)
+
+
 if __name__ == "__main__":
     unittest.main()

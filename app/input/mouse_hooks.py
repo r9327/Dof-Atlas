@@ -229,7 +229,20 @@ class MouseHook:
             if n_code >= 0 and w_param == WM_MOUSEMOVE:
                 # MOVE never owns a DOWN/UP pair and has no user callback.
                 # When the pointer is free, skip even ctypes decoding.
-                if not self.input_state.is_mouse_blocked():
+                try:
+                    blocked = self.input_state.is_mouse_blocked()
+                except Exception:
+                    # A failed ownership probe is NOT proof that the cursor
+                    # is free. Never leak a physical MOVE to the Unity client
+                    # currently activated by an in-flight mirror worker.
+                    try:
+                        self.logger.exception(
+                            "Hook souris: verrou MOVE initial illisible.",
+                        )
+                    except Exception:
+                        pass
+                    return 1
+                if not blocked:
                     return ctypes.windll.user32.CallNextHookEx(
                         self._hook, n_code, w_param, l_param,
                     )
@@ -251,7 +264,20 @@ class MouseHook:
                     # now-native movement on a lease that already ended.
                     # This extra O(1) check runs ONLY during an active lease;
                     # the free-pointer MOVE path above still skips ctypes.
-                    if self.input_state.is_mouse_blocked():
+                    try:
+                        still_blocked = self.input_state.is_mouse_blocked()
+                    except Exception:
+                        # A late Win32/state failure must not turn an active
+                        # pointer lease into a native movement on another
+                        # character. Keep injected movements independent.
+                        try:
+                            self.logger.exception(
+                                "Hook souris: verrou MOVE final illisible.",
+                            )
+                        except Exception:
+                            pass
+                        return 1
+                    if still_blocked:
                         return 1
                 return ctypes.windll.user32.CallNextHookEx(
                     self._hook, n_code, w_param, l_param,
