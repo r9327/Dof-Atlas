@@ -7280,6 +7280,138 @@ class OrganizerMirrorIntegrationTests(unittest.TestCase):
                 self.assertEqual(runtime.input_state.mouse_block_label(), "")
                 self.assertFalse(runtime.input_state.mouse_block_interrupted())
 
+    def test_mirror_click_collision_inside_atomic_release_reports_lost_gesture_2_to_8(self):
+        from app.input.input_state import InputState
+        from app.macros.switch_click import SwitchClickMacro, SwitchClickContext
+
+        for count in (2, 4, 6, 8):
+            with self.subTest(clients=count):
+                handles = tuple(range(101, 101 + count))
+                runtime = self._runtime(primary=handles[0], handles=handles)
+                runtime.settings.clients = tuple(
+                    SimpleNamespace(handle=h, display_name=str(h)) for h in handles
+                )
+                state = runtime.input_state = InputState()
+                runtime.macro_lock.should_stop.return_value = False
+                runtime.macro_lock.wait.return_value = False
+                runtime.switch_character.ordered_clients_from_source.return_value = [
+                    SimpleNamespace(handle=h, display_name=str(h)) for h in handles
+                ]
+                active = [handles[0]]
+                sent = []
+                release = state.end_mouse_block
+
+                def activate(hwnd, *_args, **_kwargs):
+                    active[0] = hwnd
+                    return True
+
+                def click(hwnd, *_args, **_kwargs):
+                    self.assertTrue(state.is_mouse_blocked())
+                    sent.append(hwnd)
+                    return True
+
+                def late_release():
+                    # The hook's physical DOWN lands after the worker's last
+                    # standalone collision probe but BEFORE the release lock.
+                    self.assertTrue(state.is_mouse_blocked())
+                    self.assertFalse(state.mouse_block_interrupted())
+                    self.assertTrue(state.note_blocked_physical_gesture())
+                    return release()
+
+                macro = SwitchClickMacro(runtime)
+                context = SwitchClickContext(handles[0], 20, 25, 0.5, 0.5, "cursor")
+                with (
+                    patch.object(macro, "_validated_context", return_value=context),
+                    patch.object(macro, "_target_point", return_value=(20, 25)),
+                    patch("app.macros.switch_click.current_cursor_pos",
+                          return_value=(12, 14)),
+                    patch("app.macros.switch_click.is_unity_window", return_value=True),
+                    patch("app.macros.switch_click.is_dofus_unity_process", return_value=True),
+                    patch("app.macros.switch_click.activate_window", side_effect=activate),
+                    patch("app.macros.switch_click.foreground_window",
+                          side_effect=lambda: active[0]),
+                    patch("app.macros.switch_click.send_client_click",
+                          side_effect=click),
+                    patch("app.macros.switch_click.set_cursor_pos"),
+                    patch.object(state, "end_mouse_block", side_effect=late_release),
+                ):
+                    macro._run(
+                        "Left", 1, "Miroir", context,
+                        exact_source_handle=handles[0],
+                        mirror_target_handles=handles,
+                    )
+                self.assertEqual(sent, list(handles))
+                self.assertFalse(state.is_mouse_blocked())
+                self.assertTrue(state.last_release_interrupted())
+                runtime._emit_status.assert_called_once_with(
+                    f"Miroir interrompu : {count}/{count} fenêtres "
+                    "(geste physique non rejoué)."
+                )
+
+    def test_mirror_wheel_collision_inside_atomic_release_reports_lost_gesture_2_to_8(self):
+        from app.input.input_state import InputState
+        from app.macros.mirror_input import MirrorInputMacro
+
+        for count in (2, 4, 6, 8):
+            with self.subTest(clients=count):
+                handles = tuple(range(101, 101 + count))
+                runtime = self._runtime(primary=handles[0], handles=handles)
+                state = runtime.input_state = InputState()
+                runtime.settings.timings = SimpleNamespace(
+                    switch_background_pre_click_ms=0,
+                    activate_attempts=1, activate_retry_ms=0,
+                    switch_client_settle_ms=0,
+                )
+                runtime.macro_lock.should_stop.return_value = False
+                runtime.macro_lock.wait.return_value = False
+                active = [handles[0]]
+                sent = [0]
+                release = state.end_mouse_block
+
+                def activate(hwnd, *_args, **_kwargs):
+                    active[0] = hwnd
+                    return True
+
+                def wheel(*_args, **_kwargs):
+                    self.assertTrue(state.is_mouse_blocked())
+                    sent[0] += 1
+                    return True
+
+                def late_release():
+                    self.assertTrue(state.is_mouse_blocked())
+                    self.assertFalse(state.mouse_block_interrupted())
+                    self.assertTrue(state.note_blocked_physical_gesture())
+                    return release()
+
+                with (
+                    patch("app.macros.mirror_input.is_dofus_unity_process",
+                          return_value=True),
+                    patch("app.macros.mirror_input.current_cursor_pos",
+                          return_value=(12, 14)),
+                    patch("app.macros.mirror_input.activate_window",
+                          side_effect=activate),
+                    patch("app.macros.mirror_input.foreground_window",
+                          side_effect=lambda: active[0]),
+                    patch("app.macros.mirror_input.client_point_from_ratio",
+                          return_value=(8, 9)),
+                    patch("app.macros.mirror_input.client_to_screen",
+                          return_value=(80, 90)),
+                    patch("app.macros.mirror_input.set_cursor_pos"),
+                    patch("app.macros.mirror_input.send_screen_wheel",
+                          side_effect=wheel),
+                    patch.object(state, "end_mouse_block", side_effect=late_release),
+                ):
+                    MirrorInputMacro(runtime)._run(
+                        "wheel", (120, False, 0.5, 0.5), handles[0], handles,
+                    )
+                self.assertEqual(sent[0], count)
+                self.assertFalse(state.is_mouse_blocked())
+                self.assertTrue(state.last_release_interrupted())
+                runtime._emit_status.assert_called_once_with(
+                    f"Miroir Molette interrompu : {count}/{count} fenêtres "
+                    "(geste physique non rejoué)."
+                )
+
     def test_mirror_click_physical_collision_aborts_fanout_and_skips_restore_2_to_8(self):
         from app.input.input_state import InputState
         from app.macros.switch_click import SwitchClickMacro, SwitchClickContext
