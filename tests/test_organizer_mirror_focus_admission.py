@@ -536,5 +536,60 @@ class MirrorFocusAdmissionTests(unittest.TestCase):
 
 
 
+    def test_malformed_client_handle_remains_native_2_4_6_8(self):
+        for count in (2, 4, 6, 8):
+            for kind in ("key", "wheel", "click"):
+                with self.subTest(accounts=count, kind=kind):
+                    runtime, source = self._runtime(count)
+                    runtime.settings.clients = (
+                        object(), *runtime.settings.clients[1:],
+                    )
+                    with (
+                        patch("app.windows.unity_windows.foreground_window",
+                              return_value=source),
+                        patch("app.windows.unity_windows.is_unity_window",
+                              side_effect=AssertionError("unexpected native probe")),
+                        patch("app.windows.unity_windows.find_known_client_from_point",
+                              return_value=source),
+                    ):
+                        if kind == "key":
+                            consumed = AtlasRuntime._handle_mirror_key(
+                                runtime, 65, True,
+                            )
+                        elif kind == "wheel":
+                            consumed = AtlasRuntime._handle_mirror_wheel(
+                                runtime, 120, 20, 25, False,
+                            )
+                        else:
+                            consumed = AtlasRuntime._handle_mirror_click(
+                                runtime, "Left", 20, 25,
+                            )
+                    self.assertFalse(consumed)
+                    runtime.mirror_input.run_key.assert_not_called()
+                    runtime.mirror_input.run_wheel.assert_not_called()
+                    runtime.switch_click.run_async.assert_not_called()
+
+    def test_malformed_client_appears_during_process_scan(self):
+        for count in (2, 4, 6, 8):
+            runtime, source = self._runtime(count)
+            def mutate(hwnd):
+                if hwnd != source:
+                    runtime.settings.clients = (
+                        object(), *runtime.settings.clients[1:],
+                    )
+                return True
+            with (
+                patch("app.windows.unity_windows.is_unity_window",
+                      return_value=True),
+                patch("app.macros.mirror_plan.is_dofus_unity_process",
+                      side_effect=mutate),
+            ):
+                self.assertIsNone(
+                    AtlasRuntime._mirror_gesture_targets(runtime)
+                )
+            runtime.mirror_input.run_key.assert_not_called()
+
+
+
 if __name__ == "__main__":
     unittest.main()
