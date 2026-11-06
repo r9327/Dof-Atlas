@@ -79,6 +79,10 @@ class SwitchClickMacro:
         dispatch_roster = roster_snapshot(original_clients)
         dispatch_mode = getattr(settings_at_dispatch, "macro_mode", None)
         dispatch_primary = getattr(settings_at_dispatch, "primary_handle", None)
+        if dispatch_mode not in ("macro", "mirror"):
+            # Partial profile reload: an unknown mode can never authorize
+            # swallowing the physical source gesture.
+            return False
 
         # A native click may be swallowed as soon as this function admits
         # a worker. Reject a corrupt live Organizer roster BEFORE capture
