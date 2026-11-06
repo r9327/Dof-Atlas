@@ -1471,6 +1471,7 @@ class OrganizerMirrorIntegrationTests(unittest.TestCase):
                 )
                 runtime.switch_click.run_async.assert_called_once_with(
                     "Left", 15, 20, 1, "Switch clique",
+                    expected_profile=runtime.settings,
                 )
 
     def test_exact_source_guard_does_not_consume_another_window_or_fallback(self):
@@ -3205,7 +3206,7 @@ class OrganizerMirrorIntegrationTests(unittest.TestCase):
             "Miroir interrompu : 1/3 fenêtres."
         )
         runtime.logger.warning.assert_any_call(
-            "%s interrompu: roster changé avant clic hwnd=%s", "Miroir", 202,
+            "%s interrompu: roster modifié après clic hwnd=%s", "Miroir", 101,
         )
 
     def test_mirror_click_favorite_changed_during_activation_sends_nothing(self):
@@ -3261,7 +3262,7 @@ class OrganizerMirrorIntegrationTests(unittest.TestCase):
             "Miroir interrompu : 0/2 fenêtres."
         )
         runtime.logger.warning.assert_any_call(
-            "%s interrompu: roster changé après focus hwnd=%s", "Miroir", 101,
+            "%s interrompu: roster modifié pendant activation hwnd=%s", "Miroir", 101,
         )
 
     def test_mirror_sender_aborts_when_clients_change_after_capture(self):
