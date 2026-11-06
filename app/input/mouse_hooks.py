@@ -220,6 +220,14 @@ class MouseHook:
 
     def _mouse_proc(self, n_code: int, w_param: int, l_param: int) -> int:
         try:
+            if (n_code >= 0 and w_param == WM_MOUSEMOVE
+                    and not self.input_state.is_mouse_blocked()):
+                # Most native callbacks are MOVE. When nobody owns the
+                # pointer, MOVE has no release pair, replay or user callback:
+                # avoid ctypes pointer decoding entirely (2–8 clients).
+                return ctypes.windll.user32.CallNextHookEx(
+                    self._hook, n_code, w_param, l_param,
+                )
             if n_code >= 0:
                 event = ctypes.cast(
                     ctypes.c_void_p(l_param),

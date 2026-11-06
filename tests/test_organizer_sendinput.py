@@ -2210,5 +2210,72 @@ class OrganizerSendInputTests(unittest.TestCase):
 
 
 
+    def test_unblocked_native_move_burst_skips_ctypes_decode_for_2_4_6_8(self):
+        import ctypes
+        from types import SimpleNamespace
+        from app.input.input_state import InputState, SyntheticInputGuard
+        from app.input.mouse_hooks import MouseHook, WM_MOUSEMOVE
+
+        for count in (2, 4, 6, 8):
+            with self.subTest(clients=count):
+                logger = Mock()
+                click, wheel = Mock(), Mock()
+                hook = MouseHook(
+                    InputState(), SyntheticInputGuard(logger),
+                    logger, click, wheel_callback=wheel,
+                )
+                next_hook = Mock(return_value=47)
+                with (
+                    patch.object(
+                        ctypes, "windll",
+                        SimpleNamespace(user32=SimpleNamespace(
+                            CallNextHookEx=next_hook,
+                        )), create=True,
+                    ),
+                    patch("app.input.mouse_hooks.ctypes.cast",
+                          side_effect=AssertionError("MOVE decoded")) as cast,
+                ):
+                    for _ in range(count * 50):
+                        self.assertEqual(
+                            hook._mouse_proc(0, WM_MOUSEMOVE, 0), 47,
+                        )
+                cast.assert_not_called()
+                self.assertEqual(next_hook.call_count, count * 50)
+                click.assert_not_called()
+                wheel.assert_not_called()
+                self.assertEqual(hook._blocked_click_count, 0)
+
+    def test_blocked_native_move_still_blocks_and_synthetic_move_passes(self):
+        import ctypes
+        from types import SimpleNamespace
+        from app.input.input_state import InputState, SyntheticInputGuard
+        from app.input.mouse_hooks import (
+            LLMHF_INJECTED, MouseHook, MSLLHOOKSTRUCT, WM_MOUSEMOVE,
+        )
+
+        state = InputState()
+        logger = Mock()
+        hook = MouseHook(state, SyntheticInputGuard(logger), logger, Mock())
+        native = MSLLHOOKSTRUCT()
+        native.pt.x, native.pt.y = 20, 30
+        pointer = ctypes.addressof(native)
+        next_hook = Mock(return_value=31)
+        with patch.object(
+            ctypes, "windll",
+            SimpleNamespace(user32=SimpleNamespace(CallNextHookEx=next_hook)),
+            create=True,
+        ):
+            state.begin_mouse_block("Miroir")
+            self.assertEqual(hook._mouse_proc(0, WM_MOUSEMOVE, pointer), 1)
+            next_hook.assert_not_called()
+            native.flags = LLMHF_INJECTED
+            self.assertEqual(hook._mouse_proc(0, WM_MOUSEMOVE, pointer), 31)
+            state.end_mouse_block()
+            native.flags = 0
+            self.assertEqual(hook._mouse_proc(0, WM_MOUSEMOVE, pointer), 31)
+        self.assertEqual(next_hook.call_count, 2)
+
+
+
 if __name__ == "__main__":
     unittest.main()
