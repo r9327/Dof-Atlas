@@ -560,6 +560,11 @@ class MirrorInputMacro:
                     # Release the physical pointer before diagnostics: a
                     # slow logger must not extend the saturation window.
                     runtime.input_state.end_mouse_block()
+                    # The low-level hook can observe a new gesture right
+                    # before the release lock is acquired. Use the atomic
+                    # per-worker release snapshot to preserve that evidence.
+                    if runtime.input_state.last_release_interrupted() is True:
+                        pointer_collision = True
                     if mouse_block_started_at is not None:
                         runtime.logger.info(
                             "Miroir molette blocage_souris_ms=%.2f cibles=%s",
