@@ -55,6 +55,19 @@ class OrganizerMirrorLogReportTests(unittest.TestCase):
         self.assertIsNone(s["metrics"]["click_pointer_block_ms"])
         self.assertIsNone(s["metrics"]["click_dispatch_to_last_emit_ms"])
 
+    def test_mixed_roster_logs_cannot_be_attributed_to_one_size(self):
+        report = summarize([
+            "Miroir key: envoyés=2/2 worker_total_ms=21.0",
+            "Miroir key: envoyés=8/8 worker_total_ms=90.0",
+            "Miroir wheel: envoyés=2/2 worker_total_ms=35.0",
+            "Miroir clic dispatch_to_worker_ms=1 dispatch_to_last_emit_ms=45",
+        ], 2)
+        self.assertEqual(report["metrics"]["key_worker_ms"]["n"], 1)
+        self.assertEqual(report["metrics"]["key_worker_ms"]["p50_ms"], 21.0)
+        self.assertEqual(report["metrics"]["wheel_worker_ms"]["n"], 1)
+        self.assertIsNone(report["metrics"]["click_dispatch_to_last_emit_ms"])
+        self.assertEqual(report["roster_mismatch_lines"], 1)
+
     def test_streaming_input_is_consumed_once_without_materializing_list(self):
         count = 0
 
