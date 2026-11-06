@@ -320,14 +320,28 @@ class MouseHook:
                     # Capture its generation and accept the collision under
                     # the SAME state lock. Never swallow a newly native DOWN
                     # merely because a previous worker owned the cursor.
-                    lease_epoch = self.input_state.mouse_block_epoch_if_active()
-                    if lease_epoch is None:
+                    # An unreadable safety epoch must never make a
+                    # previously blocked physical DOWN escape to Unity.
+                    epoch_probe_failed = False
+                    try:
+                        lease_epoch = self.input_state.mouse_block_epoch_if_active()
+                    except Exception:
+                        lease_epoch = None
+                        epoch_probe_failed = True
+                        try:
+                            self.logger.exception(
+                                "Hook souris: génération du verrou illisible.",
+                            )
+                        except Exception:
+                            pass
+                    if lease_epoch is None and not epoch_probe_failed:
                         return ctypes.windll.user32.CallNextHookEx(
                             self._hook, n_code, w_param, l_param,
                         )
                     paired_up = BLOCKED_DOWN_TO_UP.get(w_param)
-                    if (paired_up is not None
-                            or w_param in (WM_MOUSEWHEEL, WM_MOUSEHWHEEL)):
+                    if (not epoch_probe_failed
+                            and (paired_up is not None
+                                 or w_param in (WM_MOUSEWHEEL, WM_MOUSEHWHEEL))):
                         try:
                             claimed = self.input_state.note_blocked_physical_gesture(
                                 expected_epoch=lease_epoch,
@@ -347,7 +361,19 @@ class MouseHook:
                             # Old worker released its lease before admission.
                             # If a NEW worker has begun, preserve its safety
                             # block but do not cancel its generation.
-                            if self.input_state.mouse_block_epoch_if_active() is None:
+                            try:
+                                current_epoch = self.input_state.mouse_block_epoch_if_active()
+                            except Exception:
+                                # We cannot prove the pointer is free:
+                                # preserve the DOWN/UP ownership below.
+                                current_epoch = lease_epoch
+                                try:
+                                    self.logger.exception(
+                                        "Hook souris: nouvelle génération illisible.",
+                                    )
+                                except Exception:
+                                    pass
+                            if current_epoch is None:
                                 return ctypes.windll.user32.CallNextHookEx(
                                     self._hook, n_code, w_param, l_param,
                                 )
