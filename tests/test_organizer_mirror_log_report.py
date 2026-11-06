@@ -106,6 +106,28 @@ class OrganizerMirrorLogReportTests(unittest.TestCase):
                 self.assertEqual(result["profile_changed_after_send"], 2)
                 self.assertEqual(result["roster_mismatch_lines"], 0 if accounts == 8 else 1)
 
+    def test_unreadable_pointer_latch_is_interruption_not_invented_physical_loss(self):
+        for accounts in (2, 4, 6, 8):
+            with self.subTest(accounts=accounts):
+                r = summarize([
+                    f"Miroir interrompu : 0/{accounts} fenêtres "
+                    "(contrôle souris indisponible).",
+                    f"Miroir Molette interrompu : 0/{accounts} fenêtres "
+                    "(contrôle souris indisponible).",
+                ], accounts)
+                self.assertEqual(r["actions"], {
+                    "complete": 0, "partial": 0, "interrupted": 2,
+                })
+                self.assertEqual(r["non_replayed_statuses"], 0)
+                self.assertEqual(
+                    r["observed_blocked_inputs_per_mirror_action"],
+                    {"click": 0, "wheel": 0},
+                )
+                self.assertIn(
+                    "PARTIAL_OR_INTERRUPTED_ACTIONS",
+                    compare_reports({2: r})["ratio_exclusion_reasons"]["2"],
+                )
+
     def test_streaming_input_is_consumed_once_without_materializing_list(self):
         count = 0
 
