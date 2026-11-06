@@ -220,6 +220,7 @@ class MirrorInputMacro:
         # Wheel replay does move the pointer and needs the native guard.
         mouse_blocked = False
         mouse_block_started_at: float | None = None
+        pointer_collision = False
 
         def pointer_interrupted() -> bool:
             check = getattr(runtime.input_state, "mouse_block_interrupted", None)
@@ -538,6 +539,9 @@ class MirrorInputMacro:
                         runtime.logger.exception("Miroir %s: retour au favori impossible.", kind)
             finally:
                 if mouse_blocked:
+                    # Preserve the collision reason before releasing the
+                    # lease, which resets the per-worker interruption flag.
+                    pointer_collision = pointer_interrupted()
                     # Release the physical pointer before diagnostics: a
                     # slow logger must not extend the saturation window.
                     runtime.input_state.end_mouse_block()
@@ -574,7 +578,12 @@ class MirrorInputMacro:
             # changes just after the last key/wheel, but it is not a fully
             # completed gesture under the original profile generation.
             # Keep both facts visible without claiming Unity received input.
-            if delivered != len(handles) or runtime.macro_lock.should_stop():
+            if pointer_collision:
+                runtime._emit_status(
+                    f"Miroir {label} interrompu : {delivered}/{len(handles)} "
+                    "fenêtres (geste physique non rejoué)."
+                )
+            elif delivered != len(handles) or runtime.macro_lock.should_stop():
                 runtime._emit_status(
                     f"Miroir {label} incomplet : {delivered}/{len(handles)} fenêtres."
                 )
