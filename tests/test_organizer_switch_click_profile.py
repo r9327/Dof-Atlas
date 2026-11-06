@@ -243,5 +243,36 @@ class SwitchClickProfileAdmissionTests(unittest.TestCase):
                 sender.assert_not_called()
 
 
+    def test_raising_client_property_never_crashes_or_blocks_worker(self):
+        class DetachedClient:
+            @property
+            def handle(self):
+                raise RuntimeError("Organizer record disposed")
+
+        for count in (2, 4, 6, 8):
+            with self.subTest(accounts=count):
+                macro, handles, source = self._macro(count)
+                settings = macro.runtime.settings
+                settings.clients = (DetachedClient(), *settings.clients[1:])
+                context = SwitchClickContext(source, 5, 10, 0.5, 0.5, "cursor")
+                with (
+                    patch("app.macros.switch_click.current_cursor_pos") as cursor,
+                    patch("app.macros.switch_click.activate_window") as activate,
+                    patch("app.macros.switch_click.send_client_click") as sender,
+                    patch("app.macros.switch_click.set_cursor_pos") as restore,
+                ):
+                    macro._run(
+                        "Left", 1, "Miroir", context,
+                        exact_source_handle=source,
+                        mirror_target_handles=(source, *(h for h in handles if h != source)),
+                        settings_at_dispatch=settings,
+                    )
+                cursor.assert_not_called()
+                activate.assert_not_called()
+                sender.assert_not_called()
+                restore.assert_not_called()
+                macro.runtime.input_state.begin_mouse_block.assert_not_called()
+
+
 if __name__ == "__main__":
     unittest.main()
