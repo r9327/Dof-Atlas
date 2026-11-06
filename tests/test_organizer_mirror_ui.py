@@ -6572,6 +6572,10 @@ class OrganizerMirrorIntegrationTests(unittest.TestCase):
                                 next(c for c in profile.clients
                                      if c.handle == source).handle = 999
                             elif change == "stop":
+                                # A prior worker's Stop flag is allowed to
+                                # remain set while idle. Here a CURRENT busy
+                                # worker is stopped during the native probe.
+                                runtime.macro_lock.active_label = "Miroir"
                                 runtime.macro_lock.should_stop.return_value = True
                             else:
                                 runtime._running = False
