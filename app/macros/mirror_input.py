@@ -99,8 +99,10 @@ class MirrorInputMacro:
         verify all processes at preflight and the recipient before each send.
         """
         settings = self.runtime.settings
-        if (settings.macro_mode != "mirror"
-                or type(settings.primary_handle) is not int
+        # A Stop/reload may temporarily detach the active Organizer profile.
+        # Preserve native input without querying Win32 or raising from hooks.
+        if (settings is None or getattr(settings, "macro_mode", None) != "mirror"
+                or type(getattr(settings, "primary_handle", None)) is not int
                 or settings.primary_handle != source):
             return False
         if (

@@ -7072,5 +7072,27 @@ class OrganizerMirrorIntegrationTests(unittest.TestCase):
 
 
 
+    def test_mirror_detached_profile_fails_closed_without_worker_or_native_probe(self):
+        from app.macros.mirror_input import MirrorInputMacro
+
+        for accounts in (2, 4, 6, 8):
+            handles = tuple(range(101, 101 + accounts))
+            for corrupted in (None, SimpleNamespace(clients=[]),
+                              SimpleNamespace(macro_mode="mirror", clients=[])):
+                with self.subTest(accounts=accounts, profile=repr(corrupted)):
+                    runtime = self._runtime(primary=handles[0], handles=handles)
+                    runtime.settings = corrupted
+                    macro = MirrorInputMacro(runtime)
+                    self.assertFalse(macro._still_current(handles[0], handles))
+                    self.assertFalse(macro.run_key(
+                        65, handles[0], handles,
+                    ))
+                    self.assertFalse(macro.run_wheel(
+                        120, False, 0.5, 0.5, handles[0], handles,
+                    ))
+                    runtime._spawn_macro.assert_not_called()
+
+
+
 if __name__ == "__main__":
     unittest.main()
