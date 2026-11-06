@@ -238,8 +238,9 @@ class SwitchClickMacro:
         # Do not create a macro worker or block physical input for a no-op.
         if (physical_source_delivered and exact_source_handle is None
                 and mirror_target_handles is None):
-            handles = tuple(client.handle for client in self.runtime.settings.clients)
-            if handles == (context.source_hwnd,):
+            # Do not read a third live roster in this no-op path: reload may
+            # detach a slot after dispatch_is_current() checked the snapshot.
+            if dispatch_roster == ((int, context.source_hwnd),):
                 self.runtime.logger.debug(
                     "%s: source physique seule, aucune réinjection nécessaire.",
                     action_label,
