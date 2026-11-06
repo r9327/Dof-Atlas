@@ -946,127 +946,132 @@ class SwitchClickMacro:
             # Retain the collision result even after releasing InputState's
             # lease (which deliberately clears the interruption latch).
             pointer_collision = pointer_interrupted()
-            # Emergency Stop must never be followed by a late cursor or
-            # favorite restoration from a worker that is winding down.
-            # The user may already have selected another application.
-            restore_after_worker = (
-                should_restore_preferred and not focus_lost
-                and not delivery_failed and not pointer_interrupted()
-                and not self.runtime.macro_lock.should_stop()
-                and self.runtime.settings is settings_at_start
-            )
-
-            def roster_allows_restore() -> bool:
-                if not target_roster_intact():
-                    return False
-                if mirror_target_handles is None:
-                    return True
-                try:
-                    return mirror_roster_is_current()
-                except Exception:
-                    self.runtime.logger.exception(
-                        "%s: roster illisible avant restauration.", action_label,
-                    )
-                    return False
-
-            if restore_after_worker and not roster_allows_restore():
-                restore_after_worker = False
-                self.runtime.logger.info(
-                    "%s: restauration ignorée, favori ou roster changé.",
-                    action_label,
-                )
-            if (
-                restore_after_worker
-                and mirror_target_handles is not None
-                and last_activated_hwnd is not None
-            ):
-                # A user may switch to another app after the last successful
-                # SendInput. Never move their pointer or pull DOFUS back on
-                # top just because the sends themselves completed.
-                try:
-                    if foreground_window() != last_activated_hwnd:
-                        restore_after_worker = False
-                        self.runtime.logger.info(
-                            "%s: restauration ignorée, focus utilisateur changé.",
-                            action_label,
-                        )
-                except Exception:
-                    restore_after_worker = False
-                    self.runtime.logger.exception(
-                        "%s: focus non vérifiable avant restauration.",
-                        action_label,
-                    )
-            # Cleanup focus probes may yield to the Stop hotkey after the
-            # initial restore decision. Never move the physical pointer on
-            # the basis of an obsolete pre-Stop snapshot.
-            if (original_cursor is not None and restore_after_worker
+            try:
+                # Emergency Stop must never be followed by a late cursor or
+                # favorite restoration from a worker that is winding down.
+                # The user may already have selected another application.
+                restore_after_worker = (
+                    should_restore_preferred and not focus_lost
+                    and not delivery_failed and not pointer_interrupted()
                     and not self.runtime.macro_lock.should_stop()
-                    and not pointer_interrupted()):
-                try:
-                    set_cursor_pos(*original_cursor)
-                    # Cursor restoration may invoke native hooks and change
-                    # the foreground. Never steal another app's focus.
-                    if (
-                        mirror_target_handles is not None
-                        and last_activated_hwnd is not None
-                        and foreground_window() != last_activated_hwnd
-                    ):
-                        restore_after_worker = False
-                        self.runtime.logger.info(
-                            "%s: retour au favori ignoré, focus changé après curseur.",
-                            action_label,
-                        )
-                except Exception:
-                    if mirror_target_handles is not None:
-                        restore_after_worker = False
-                    self.runtime.logger.exception(
-                        "%s restauration curseur impossible.",
-                        action_label,
-                    )
-
-            # The cursor restore can yield to the Organizer profile reload
-            # on the UI thread. Do not activate a newly selected favorite.
-            if restore_after_worker and not roster_allows_restore():
-                restore_after_worker = False
-                self.runtime.logger.info(
-                    "%s: retour au favori ignoré, roster changé après curseur.",
-                    action_label,
-                )
-
-            # The last foreground probe can itself yield to Emergency Stop.
-            # Never restore a favorite on a stale decision even if the
-            # previous check passed before Stop arrived.
-            if (restore_after_worker
-                    and not self.runtime.macro_lock.should_stop()
-                    and not pointer_interrupted()
                     and self.runtime.settings is settings_at_start
-                    and target_roster_intact()):
-                try:
-                    self.runtime.switch_character.restore_preferred_client(
-                        action_label
+                )
+
+                def roster_allows_restore() -> bool:
+                    if not target_roster_intact():
+                        return False
+                    if mirror_target_handles is None:
+                        return True
+                    try:
+                        return mirror_roster_is_current()
+                    except Exception:
+                        self.runtime.logger.exception(
+                            "%s: roster illisible avant restauration.", action_label,
+                        )
+                        return False
+
+                if restore_after_worker and not roster_allows_restore():
+                    restore_after_worker = False
+                    self.runtime.logger.info(
+                        "%s: restauration ignorée, favori ou roster changé.",
+                        action_label,
                     )
-                except Exception:
-                    self.runtime.logger.exception(
-                        "%s retour au favori impossible.",
+                if (
+                    restore_after_worker
+                    and mirror_target_handles is not None
+                    and last_activated_hwnd is not None
+                ):
+                    # A user may switch to another app after the last successful
+                    # SendInput. Never move their pointer or pull DOFUS back on
+                    # top just because the sends themselves completed.
+                    try:
+                        if foreground_window() != last_activated_hwnd:
+                            restore_after_worker = False
+                            self.runtime.logger.info(
+                                "%s: restauration ignorée, focus utilisateur changé.",
+                                action_label,
+                            )
+                    except Exception:
+                        restore_after_worker = False
+                        self.runtime.logger.exception(
+                            "%s: focus non vérifiable avant restauration.",
+                            action_label,
+                        )
+                # Cleanup focus probes may yield to the Stop hotkey after the
+                # initial restore decision. Never move the physical pointer on
+                # the basis of an obsolete pre-Stop snapshot.
+                if (original_cursor is not None and restore_after_worker
+                        and not self.runtime.macro_lock.should_stop()
+                        and not pointer_interrupted()):
+                    try:
+                        set_cursor_pos(*original_cursor)
+                        # Cursor restoration may invoke native hooks and change
+                        # the foreground. Never steal another app's focus.
+                        if (
+                            mirror_target_handles is not None
+                            and last_activated_hwnd is not None
+                            and foreground_window() != last_activated_hwnd
+                        ):
+                            restore_after_worker = False
+                            self.runtime.logger.info(
+                                "%s: retour au favori ignoré, focus changé après curseur.",
+                                action_label,
+                            )
+                    except Exception:
+                        if mirror_target_handles is not None:
+                            restore_after_worker = False
+                        self.runtime.logger.exception(
+                            "%s restauration curseur impossible.",
+                            action_label,
+                        )
+
+                # The cursor restore can yield to the Organizer profile reload
+                # on the UI thread. Do not activate a newly selected favorite.
+                if restore_after_worker and not roster_allows_restore():
+                    restore_after_worker = False
+                    self.runtime.logger.info(
+                        "%s: retour au favori ignoré, roster changé après curseur.",
                         action_label,
                     )
 
-            if mouse_blocked:
-                # A click can arrive during the final Win32 cleanup probe.
-                pointer_collision = pointer_collision or pointer_interrupted()
-                remaining_blocks = self.runtime.input_state.end_mouse_block()
-                self.runtime.logger.debug(
-                    "%s souris physique débloquée: remaining=%s",
-                    action_label,
-                    remaining_blocks,
-                )
-                if mouse_block_started_at is not None:
-                    self.runtime.logger.info(
-                        "%s blocage_souris_ms=%.2f cibles=%s",
+                # The last foreground probe can itself yield to Emergency Stop.
+                # Never restore a favorite on a stale decision even if the
+                # previous check passed before Stop arrived.
+                if (restore_after_worker
+                        and not self.runtime.macro_lock.should_stop()
+                        and not pointer_interrupted()
+                        and self.runtime.settings is settings_at_start
+                        and target_roster_intact()):
+                    try:
+                        self.runtime.switch_character.restore_preferred_client(
+                            action_label
+                        )
+                    except Exception:
+                        self.runtime.logger.exception(
+                            "%s retour au favori impossible.",
+                            action_label,
+                        )
+
+            finally:
+                if mouse_blocked:
+                    # Cleanup is unconditional, even if a diagnostic or
+                    # favorite/foreground restoration callback raises.
+                    try:
+                        pointer_collision = pointer_collision or pointer_interrupted()
+                    finally:
+                        remaining_blocks = self.runtime.input_state.end_mouse_block()
+                    self.runtime.logger.debug(
+                        "%s souris physique débloquée: remaining=%s",
                         action_label,
-                        (perf_counter() - mouse_block_started_at) * 1000.0,
-                        target_total,
+                        remaining_blocks,
                     )
+                    if mouse_block_started_at is not None:
+                        self.runtime.logger.info(
+                            "%s blocage_souris_ms=%.2f cibles=%s",
+                            action_label,
+                            (perf_counter() - mouse_block_started_at) * 1000.0,
+                            target_total,
+                        )
 
             if mirror_started_at is not None:
                 from app.macros.mirror_plan import mirror_latency_percentiles_ms
