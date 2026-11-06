@@ -1550,3 +1550,38 @@ nécessite une politique de conservation/repli reproductible sur Windows.
 Le support Unity sans focus (MIRR-002) et les mesures 2/4/6/8 (MIRR-005)
 restent sans preuve réelle. Pas de READY, de Phase Certification ni de
 fusion sur ce lot.
+
+
+## Lot complémentaire P0 — souris native rapide et propriétaire atomique (06/11/2026)
+
+Base `334a14783b24fdc034377c42d50888f2f97f8be8`.
+Graphify exact de cette base = PASS avec 18 426 nœuds.
+Graphify exact de `b79c6e2d` = PASS avec 18 428 nœuds.
+Ces rapports orientent l'impact structurel des consommateurs du
+`MacroLock`, de `AtlasRuntime` et du hook souris.
+
+- **Hot path natif :** `MouseHook._mouse_proc` évite de décoder
+  `MSLLHOOKSTRUCT` lors d'un simple `WM_MOUSEMOVE` non bloqué. Le mouvement
+  est transmis par `CallNextHookEx`. Le cas pointeur bloqué conserve le
+  décodage des drapeaux d'injection, le refus du mouvement physique et
+  la transmission des mouvements synthétiques. Un test de 50 × 2/4/6/8
+  mouvements et un test de mouvement pendant blocage sont rédigés.
+- **Propriétaire cohérent :** `MacroLock.snapshot_active()` retourne sous
+  le même verrou l'étiquette et la génération du worker actif.
+  Les trois entrées Miroir comparent ensuite le bail exact avant toute
+  suppression d'un événement physique, après les sondes et après les
+  callbacks de journalisation. Les entrées clavier/molette prennent ce
+  snapshot **avant** `GetForegroundWindow`, qui peut lui-même céder
+  l'exécution à un Stop/redémarrage. Tests dédiés au snapshot,
+  au remplacement en préflight et aux changements lors du focus
+  pour 2/4/6/8 comptes.
+- **Aucun changement du moteur d'envoi :** pas de nouveau `PostMessage`,
+  pas de nouvelle file de replay, pas d'injection, pas de chemin secondaire
+  contournant les contrôles natifs.
+
+**Validation** : les tests ci-dessus ont été rédigés mais **pas** exécutés
+sur Windows/Unity/PySide6 dans cette session. Le graphe couvre les
+dépendances statiques, pas le rendu du jeu. MIRR-007 demeure PENDING
+pour les clics supplémentaires reçus pendant un blocage réellement
+actif du pointeur. Bench 2/4/6/8, p50/p95/p99, comportement souris
+sur Windows et certification restent NOT_RUN.
