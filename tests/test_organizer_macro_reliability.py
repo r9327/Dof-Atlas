@@ -4175,7 +4175,12 @@ class OrganizerMacroReliabilityTests(unittest.TestCase):
         runtime.switch_character.logical_active_client.return_value = SimpleNamespace(
             handle=101, display_name="Leader",
         )
-        runtime.macro_lock.should_stop.side_effect = [False, False, False, True, True]
+        # After Stop fires it stays latched, regardless of additional
+        # defensive checks added by the macro engine.
+        stop_checks = iter((False, False, False, True))
+        runtime.macro_lock.should_stop.side_effect = lambda: next(
+            stop_checks, True,
+        )
         with (
             patch("app.macros.auto_group.is_unity_window", return_value=True),
             patch("app.macros.auto_group.is_dofus_unity_process", return_value=True),
@@ -4192,7 +4197,12 @@ class OrganizerMacroReliabilityTests(unittest.TestCase):
 
     def test_zaap_stop_between_identity_check_and_restore(self) -> None:
         runtime = _runtime()
-        runtime.macro_lock.should_stop.side_effect = [False, False, False, True, True]
+        # After Stop fires it stays latched, regardless of additional
+        # defensive checks added by the macro engine.
+        stop_checks = iter((False, False, False, True))
+        runtime.macro_lock.should_stop.side_effect = lambda: next(
+            stop_checks, True,
+        )
         with (
             patch("app.macros.zaap.is_unity_window", return_value=True),
             patch("app.macros.zaap.is_dofus_unity_process", return_value=True),
