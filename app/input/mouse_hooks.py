@@ -326,7 +326,18 @@ class MouseHook:
                     # gesture, and neither may cancel a worker.
                     if (paired_up is not None
                             or w_param in (WM_MOUSEWHEEL, WM_MOUSEHWHEEL)):
-                        self.input_state.note_blocked_physical_gesture()
+                        try:
+                            self.input_state.note_blocked_physical_gesture()
+                        except Exception:
+                            # A diagnostic failure must not make an already
+                            # blocked native DOWN escape into the wrong
+                            # foreground application.
+                            try:
+                                self.logger.exception(
+                                    "Hook souris: signal d'interruption impossible.",
+                                )
+                            except Exception:
+                                pass
                     try:
                         self._log_blocked_event(w_param, x, y)
                     except Exception:
