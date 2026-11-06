@@ -335,6 +335,7 @@ class MacroGenerationOwnershipTests(unittest.TestCase):
                 inside_cleanup = threading.Event()
                 permit_cleanup = threading.Event()
                 new_admitted = threading.Event()
+                new_attempted = threading.Event()
                 result = []
 
                 def slow_reset():
@@ -346,6 +347,7 @@ class MacroGenerationOwnershipTests(unittest.TestCase):
                     lock.end("Miroir", generation=old, on_owner_end=slow_reset)
 
                 def new_admission():
+                    new_attempted.set()
                     generation = lock.try_begin_generation("Miroir")
                     result.append(("new", generation))
                     new_admitted.set()
@@ -358,6 +360,7 @@ class MacroGenerationOwnershipTests(unittest.TestCase):
                 try:
                     self.assertTrue(inside_cleanup.wait(2))
                     newcomer.start()
+                    self.assertTrue(new_attempted.wait(2))
                     # A new macro cannot be admitted while the previous
                     # owner's reset is still running under the lease lock.
                     self.assertFalse(new_admitted.wait(0.02))
