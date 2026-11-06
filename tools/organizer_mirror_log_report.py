@@ -46,6 +46,9 @@ BLOCKED_COUNTERS = re.compile(
 STOP_COUNTERS = re.compile(
     r"Organizer hooks arrêtés: clics bloqués=(\d+) molettes bloquées=(\d+)"
 )
+ACTION_COLLISIONS = re.compile(
+    r"\bMiroir (clic|molette) collisions_physiques=(\d+) cibles=(\d+)"
+)
 
 
 def _percentiles(values: list[float]) -> dict[str, float | int] | None:
@@ -68,11 +71,19 @@ def summarize(lines: Iterable[str], accounts: int) -> dict:
     samples = {key: [] for key in METRIC_PATTERNS}
     statuses = {"complete": 0, "partial": 0, "interrupted": 0}
     losses = {"clicks": 0, "wheel_ticks": 0}
+    per_action_losses = {"click": 0, "wheel": 0}
     previous = (0, 0)
     mismatched_roster_lines = 0
     observed_non_replayed = 0
     profile_changed_after_send = 0
     for line in lines:
+        collision = ACTION_COLLISIONS.search(line)
+        if collision:
+            if int(collision[3]) != accounts:
+                mismatched_roster_lines += 1
+            else:
+                target = "click" if collision[1] == "clic" else "wheel"
+                per_action_losses[target] += int(collision[2])
         match = BLOCKED_COUNTERS.search(line) or STOP_COUNTERS.search(line)
         if match:
             counts = (int(match[1]), int(match[2]))
@@ -121,6 +132,7 @@ def summarize(lines: Iterable[str], accounts: int) -> dict:
         "actions": statuses,
         "observed_blocked_physical_inputs": losses,
         "blocked_input_scope": "WHOLE_LOG",
+        "observed_blocked_inputs_per_mirror_action": per_action_losses,
         "non_replayed_statuses": observed_non_replayed,
         "profile_changed_after_send": profile_changed_after_send,
         "roster_mismatch_lines": mismatched_roster_lines,
@@ -135,6 +147,8 @@ def _comparison_exclusions(report: dict) -> list[str]:
         reasons.append("PARTIAL_OR_INTERRUPTED_ACTIONS")
     if any(report["observed_blocked_physical_inputs"].values()):
         reasons.append("BLOCKED_PHYSICAL_INPUTS_IN_LOG")
+    if any(report["observed_blocked_inputs_per_mirror_action"].values()):
+        reasons.append("BLOCKED_PHYSICAL_INPUTS_PER_ACTION")
     if report["profile_changed_after_send"]:
         reasons.append("PROFILE_CHANGED_AFTER_SEND")
     if report["non_replayed_statuses"]:
