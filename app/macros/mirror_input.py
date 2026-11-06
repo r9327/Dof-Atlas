@@ -386,9 +386,14 @@ class MirrorInputMacro:
                                 # without changing focus or starting a worker.
                                 # Diagnostics must not persist the actual
                                 # physical key captured from the user.
-                                runtime.logger.warning(
-                                    "Miroir clavier: relâchement refusé, tentative de secours."
-                                )
+                                try:
+                                    runtime.logger.warning(
+                                        "Miroir clavier: relâchement refusé, tentative de secours."
+                                    )
+                                except Exception:
+                                    # Logging is not allowed to skip the only
+                                    # remaining synthetic KEYUP attempt.
+                                    pass
                                 key_up(vk)
                     else:
                         delta, horizontal, xr, yr = payload
