@@ -674,7 +674,14 @@ class AtlasRuntime:
                 or len(set(live)) != len(live)
                 or source not in live):
             return None
-        favorite = settings.client_by_handle(source)
+        lookup = getattr(settings, "client_by_handle", None)
+        if not callable(lookup):
+            return None
+        try:
+            favorite = lookup(source)
+        except Exception:
+            self.logger.exception("Miroir: recherche du favori impossible.")
+            return None
         if (favorite is None or type(getattr(favorite, "handle", None)) is not int
                 or getattr(favorite, "handle", None) != source or not is_unity_window(source)):
             return None
@@ -1065,7 +1072,14 @@ class AtlasRuntime:
             screen_x, screen_y, (source_hwnd,),
         ) != source_hwnd:
             return False
-        favorite = settings.client_by_handle(source_hwnd)
+        lookup = getattr(settings, "client_by_handle", None)
+        if not callable(lookup):
+            return False
+        try:
+            favorite = lookup(source_hwnd)
+        except Exception:
+            self.logger.exception("Miroir: recherche du favori impossible.")
+            return False
         if (favorite is None or type(getattr(favorite, "handle", None)) is not int
                 or getattr(favorite, "handle", None) != source_hwnd
                 or not is_unity_window(source_hwnd)
