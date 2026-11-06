@@ -187,6 +187,47 @@ class OrganizerPointerLeaseEpochTests(unittest.TestCase):
         self.assertEqual(state.end_mouse_block(), 0)
         self.assertFalse(state.is_mouse_blocked())
 
+    def test_expected_epoch_rejects_stale_hook_events_after_stop(self):
+        for count in (2, 4, 6, 8):
+            with self.subTest(clients=count):
+                state = InputState()
+                self.assertIsNone(state.mouse_block_epoch_if_active())
+                state.begin_mouse_block("ancien")
+                old_epoch = state.mouse_block_epoch_if_active()
+                self.assertEqual(old_epoch, 0)
+                state.clear_mouse_block()
+                state.begin_mouse_block("nouveau")
+                self.assertEqual(state.mouse_block_epoch_if_active(), 1)
+                # Old native DOWN must not cancel a new replay worker.
+                self.assertFalse(state.note_blocked_physical_gesture(
+                    expected_epoch=old_epoch,
+                ))
+                self.assertFalse(state.mouse_block_interrupted())
+                self.assertEqual(state.end_mouse_block(), 0)
+                self.assertEqual(state.last_release_blocked_count(), 0)
+                self.assertIsNone(state.mouse_block_epoch_if_active())
+
+    def test_lease_generation_can_be_claimed_only_while_active(self):
+        for count in (2, 4, 6, 8):
+            with self.subTest(clients=count):
+                state = InputState()
+                self.assertFalse(state.note_blocked_physical_gesture(
+                    expected_epoch=0,
+                ))
+                state.begin_mouse_block("Miroir")
+                generation = state.mouse_block_epoch_if_active()
+                for _ in range(count):
+                    self.assertTrue(state.note_blocked_physical_gesture(
+                        expected_epoch=generation,
+                    ))
+                self.assertTrue(state.mouse_block_interrupted())
+                self.assertEqual(state.end_mouse_block(), 0)
+                self.assertEqual(state.last_release_blocked_count(), count)
+                self.assertFalse(state.note_blocked_physical_gesture(
+                    expected_epoch=generation,
+                ))
+                self.assertIsNone(state.mouse_block_epoch_if_active())
+
     def test_repeated_stop_invalidates_all_old_nested_leases(self):
         state = InputState()
         state.begin_mouse_block("ancien")
