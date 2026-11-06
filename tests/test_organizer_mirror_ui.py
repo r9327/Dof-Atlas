@@ -7294,6 +7294,15 @@ class OrganizerMirrorIntegrationTests(unittest.TestCase):
                 state = runtime.input_state = InputState()
                 runtime.macro_lock.should_stop.return_value = False
                 runtime.macro_lock.wait.return_value = False
+
+                def log_info(format_string, *_args):
+                    # Simulate a dead diagnostic sink for half the rosters.
+                    # A physical gesture was already lost; never also lose
+                    # the final interruption status.
+                    if count in (4, 8) and "collisions_physiques=" in str(format_string):
+                        raise OSError("logger unavailable")
+
+                runtime.logger.info.side_effect = log_info
                 runtime.switch_character.ordered_clients_from_source.return_value = [
                     SimpleNamespace(handle=h, display_name=str(h)) for h in handles
                 ]
@@ -7369,6 +7378,15 @@ class OrganizerMirrorIntegrationTests(unittest.TestCase):
                 )
                 runtime.macro_lock.should_stop.return_value = False
                 runtime.macro_lock.wait.return_value = False
+
+                def log_info(format_string, *_args):
+                    # Simulate a dead diagnostic sink for half the rosters.
+                    # A physical gesture was already lost; never also lose
+                    # the final interruption status.
+                    if count in (4, 8) and "collisions_physiques=" in str(format_string):
+                        raise OSError("logger unavailable")
+
+                runtime.logger.info.side_effect = log_info
                 active = [handles[0]]
                 sent = [0]
                 release = state.end_mouse_block
