@@ -139,6 +139,42 @@ class OrganizerMirrorLogReportTests(unittest.TestCase):
         self.assertIsNone(compare_reports(reports)["p95_ratio_vs_2_accounts"]
                           ["click_pointer_block_ms"]["4"])
 
+    def test_lossy_mirror_session_never_gets_a_favorable_p95_ratio(self):
+        clean_2 = summarize([
+            "Miroir blocage_souris_ms=10 cibles=2",
+        ] * 5, 2)
+        clean_8 = summarize([
+            "Miroir blocage_souris_ms=5 cibles=8",
+        ] * 5, 8)
+        good = compare_reports({2: clean_2, 8: clean_8})
+        self.assertEqual(good["p95_ratio_vs_2_accounts"]
+                         ["click_pointer_block_ms"]["8"], 0.5)
+
+        # Faster observed sends are not evidence of responsiveness when
+        # another physical click was intercepted and never replayed.
+        lossy_8 = summarize([
+            "Miroir blocage_souris_ms=5 cibles=8",
+        ] * 5 + [
+            "Organizer entrées physiques bloquées: clics=1 molettes=0",
+            "Miroir interrompu : 1/8 fenêtres (geste physique non rejoué).",
+            "Miroir Molette : 8/8 fenêtres (profil modifié après envoi).",
+        ], 8)
+        result = compare_reports({2: clean_2, 8: lossy_8})
+        self.assertIsNone(result["p95_ratio_vs_2_accounts"]
+                          ["click_pointer_block_ms"]["8"])
+        self.assertEqual(result["reports"]["8"]["metrics"]
+                         ["click_pointer_block_ms"]["p95_ms"], 5.0)
+        self.assertEqual(set(result["ratio_exclusion_reasons"]["8"]), {
+            "PARTIAL_OR_INTERRUPTED_ACTIONS", "BLOCKED_PHYSICAL_INPUTS_IN_LOG",
+            "PROFILE_CHANGED_AFTER_SEND", "UNREPLAYED_PHYSICAL_GESTURES",
+        })
+        lossy_2 = summarize([
+            "Miroir blocage_souris_ms=10 cibles=2",
+        ] * 5 + ["Organizer entrées physiques bloquées: clics=1 molettes=0"], 2)
+        baseline_bad = compare_reports({2: lossy_2, 8: clean_8})
+        self.assertIsNone(baseline_bad["p95_ratio_vs_2_accounts"]
+                          ["click_pointer_block_ms"]["8"])
+
     def test_compare_cli_reads_separate_logs_and_keeps_evidence_uncertified(self):
         with tempfile.TemporaryDirectory() as directory:
             args = []
