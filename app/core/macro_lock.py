@@ -119,9 +119,16 @@ class MacroLock:
             )
 
     def wait(self, duration_ms: int) -> bool:
-        if self.should_stop():
-            return True
-        signaled = self.stop_event.wait(max(0, int(duration_ms)) / 1000.0)
-        # A subsequent worker may clear the shared Stop event during an old
-        # sleep. The bound worker generation is still canceled in that case.
-        return bool(signaled or self.should_stop())
+        # The same Event is reused across generations: a new start may clear
+        # it before a suspended OLD worker gets scheduled after Stop. Bound
+        # waits so stale threads recheck their generation in <= 25 ms, even
+        # if they miss the transient Event.set() notification.
+        deadline = time.monotonic() + max(0, int(duration_ms)) / 1000.0
+        while True:
+            if self.should_stop():
+                return True
+            remaining = deadline - time.monotonic()
+            if remaining <= 0:
+                return self.should_stop()
+            if self.stop_event.wait(min(remaining, 0.025)):
+                return True

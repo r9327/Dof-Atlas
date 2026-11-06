@@ -225,5 +225,61 @@ class MacroGenerationOwnershipTests(unittest.TestCase):
 
 
 
+    def test_cancelled_generation_wait_is_bounded_when_shared_stop_was_cleared(self):
+        for account_count in (2, 4, 6, 8):
+            with self.subTest(accounts=account_count):
+                lock = MacroLock(Mock())
+                self.assertTrue(lock.try_begin("Miroir"))
+                stale_generation = lock.active_generation
+                waiting = threading.Event()
+                done = threading.Event()
+                result = []
+
+                def old_worker():
+                    self.assertTrue(lock.bind_worker("Miroir", stale_generation))
+                    waiting.set()
+                    result.append(lock.wait(500))
+                    lock.unbind_worker()
+                    done.set()
+
+                worker = threading.Thread(target=old_worker)
+                worker.start()
+                try:
+                    self.assertTrue(waiting.wait(1))
+                    lock.request_stop()
+                    lock.end("Miroir", generation=stale_generation)
+                    self.assertTrue(lock.try_begin("Miroir"))
+                    self.assertTrue(done.wait(0.25))
+                    self.assertEqual(result, [True])
+                    self.assertTrue(lock.owns(
+                        "Miroir", lock.active_generation,
+                    ))
+                finally:
+                    lock.request_stop()
+                    worker.join(1)
+                    lock.end("Miroir", generation=lock.active_generation)
+
+    def test_wait_uses_bounded_native_event_slices_and_preserves_duration(self):
+        from unittest.mock import patch as mock_patch
+
+        lock = MacroLock(Mock())
+        self.assertTrue(lock.try_begin("Miroir"))
+        observed = []
+        original_wait = lock.stop_event.wait
+
+        def observed_wait(seconds):
+            observed.append(seconds)
+            return original_wait(seconds)
+
+        with mock_patch.object(lock.stop_event, "wait", side_effect=observed_wait):
+            self.assertFalse(lock.wait(86))
+        self.assertGreaterEqual(len(observed), 3)
+        self.assertTrue(all(0 < value <= 0.025 for value in observed))
+        self.assertFalse(lock.wait(0))
+        lock.request_stop()
+        self.assertTrue(lock.wait(2000))
+
+
+
 if __name__ == "__main__":
     unittest.main()
