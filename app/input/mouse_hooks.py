@@ -140,6 +140,10 @@ class MouseHook:
         self._blocked_wheel_count = 0
         # A consumed DOWN must always swallow its matching physical UP.
         self._consumed_releases: set[int] = set()
+        # Only DOWN events actually passed through this hook may trigger the
+        # native UP dispatcher. An orphan UP must never start replay or
+        # discharge another button's pending click.
+        self._native_releases: set[int] = set()
 
     def start(self) -> bool:
         if os.name != "nt":
@@ -170,6 +174,7 @@ class MouseHook:
         thread = self._thread
         if thread is None or not thread.is_alive():
             self._consumed_releases.clear()
+            self._native_releases.clear()
         else:
             self.logger.warning(
                 "Hook souris toujours actif après stop: relâchements réservés=%s",
@@ -216,6 +221,7 @@ class MouseHook:
                 user32.DispatchMessageW(ctypes.byref(msg))
         finally:
             self._consumed_releases.clear()
+            self._native_releases.clear()
             self._hook_thread_id = 0
 
     def _mouse_proc(self, n_code: int, w_param: int, l_param: int) -> int:
@@ -276,16 +282,19 @@ class MouseHook:
                 # A native source DOWN that was NOT swallowed must keep its
                 # matching UP, even when the release callback starts a replay
                 # worker which blocks subsequent mouse events.
-                if (
-                    not atlas_synthetic
-                    and w_param in (WM_LBUTTONUP, WM_RBUTTONUP)
-                    and self.release_callback is not None
-                ):
-                    button = "Left" if w_param == WM_LBUTTONUP else "Right"
-                    if self.release_callback(button, x, y):
-                        return ctypes.windll.user32.CallNextHookEx(
-                            self._hook, n_code, w_param, l_param,
-                        )
+                if (not atlas_synthetic
+                        and w_param in (WM_LBUTTONUP, WM_RBUTTONUP)
+                        and w_param in self._native_releases):
+                    # Consume the pair ownership BEFORE the callback:
+                    # the callback can start a new worker and block input,
+                    # but the real UP must still reach its original window.
+                    self._native_releases.discard(w_param)
+                    if self.release_callback is not None:
+                        button = "Left" if w_param == WM_LBUTTONUP else "Right"
+                        if self.release_callback(button, x, y):
+                            return ctypes.windll.user32.CallNextHookEx(
+                                self._hook, n_code, w_param, l_param,
+                            )
 
                 if self.input_state.is_mouse_blocked() and not atlas_synthetic:
                     # An UP with no consumed DOWN can belong to a real press
@@ -367,6 +376,14 @@ class MouseHook:
                                 y,
                             )
                             return 1
+                        # The original physical DOWN stays native. Its exact
+                        # UP is the only event allowed to start a queued
+                        # classic SwitchClick replay after release.
+                        if self.release_callback is not None:
+                            self._native_releases.add(
+                                WM_LBUTTONUP if w_param == WM_LBUTTONDOWN
+                                else WM_RBUTTONUP
+                            )
         except Exception:
             self.logger.exception("Hook souris: erreur callback.")
 
