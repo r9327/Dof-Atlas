@@ -355,10 +355,8 @@ class SwitchClickMacro:
                     ) == initial_roster
                 )
                 and len(targets) == len(frozen_handles)
-                and all(
-                    type(getattr(client, "handle", None)) is type(hwnd)
-                    and getattr(client, "handle", None) == hwnd
-                    for client, hwnd in zip(targets, frozen_handles)
+                and roster_signature(targets) == tuple(
+                    (type(hwnd), hwnd) for hwnd in frozen_handles
                 )
             )
 
@@ -440,9 +438,16 @@ class SwitchClickMacro:
                 )
                 return
 
-            targets = self.runtime.switch_character.ordered_clients_from_source(
+            resolved_targets = self.runtime.switch_character.ordered_clients_from_source(
                 context.source_hwnd
             )
+            if not isinstance(resolved_targets, (list, tuple)):
+                delivery_failed = True
+                self.runtime.logger.warning(
+                    "%s interrompu: liste des destinataires invalide.", action_label,
+                )
+                return
+            targets = resolved_targets
             target_total = len(targets)
             frozen_handles = tuple(
                 getattr(client, "handle", None) for client in targets
