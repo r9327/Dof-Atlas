@@ -28,6 +28,44 @@ class OrganizerPointerLeaseEpochTests(unittest.TestCase):
                 self.assertEqual(guard._active_count, 0)
                 self.assertFalse(guard.is_synthetic_window())
 
+    def test_each_blocked_gesture_is_counted_per_lease_2_to_8(self):
+        for accounts in (2, 4, 6, 8):
+            with self.subTest(accounts=accounts):
+                state = InputState()
+                state.begin_mouse_block("Miroir")
+                for gesture in range(accounts):
+                    self.assertTrue(state.note_blocked_physical_gesture())
+                self.assertEqual(state.end_mouse_block(), 0)
+                self.assertTrue(state.last_release_interrupted())
+                self.assertEqual(state.last_release_blocked_count(), accounts)
+                state.begin_mouse_block("Nouvelle action")
+                self.assertFalse(state.last_release_interrupted())
+                self.assertEqual(state.last_release_blocked_count(), 0)
+                self.assertEqual(state.end_mouse_block(), 0)
+                self.assertEqual(state.last_release_blocked_count(), 0)
+
+    def test_blocked_gestures_do_not_cross_stop_generation_or_thread(self):
+        state = InputState()
+        state.begin_mouse_block("ancien")
+        for _ in range(4):
+            state.note_blocked_physical_gesture()
+        state.clear_mouse_block()
+        state.begin_mouse_block("nouveau")
+        state.note_blocked_physical_gesture()
+        state.note_blocked_physical_gesture()
+        self.assertEqual(state.end_mouse_block(), 0)
+        self.assertEqual(state.last_release_blocked_count(), 2)
+        # The old generation's release cannot reuse the new count.
+        self.assertEqual(state.end_mouse_block(), 0)
+        self.assertEqual(state.last_release_blocked_count(), 0)
+        recorded = []
+        thread = threading.Thread(target=lambda: recorded.append(
+            state.last_release_blocked_count()
+        ))
+        thread.start()
+        thread.join(2)
+        self.assertEqual(recorded, [0])
+
     def test_release_collision_snapshot_is_atomic_for_2_to_8(self):
         for accounts in (2, 4, 6, 8):
             with self.subTest(accounts=accounts):
