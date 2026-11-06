@@ -55,6 +55,19 @@ class OrganizerMirrorLogReportTests(unittest.TestCase):
         self.assertIsNone(s["metrics"]["click_pointer_block_ms"])
         self.assertIsNone(s["metrics"]["click_dispatch_to_last_emit_ms"])
 
+    def test_streaming_input_is_consumed_once_without_materializing_list(self):
+        count = 0
+
+        def lines():
+            nonlocal count
+            for n in range(500):
+                count += 1
+                yield "Miroir blocage_souris_ms=1.0 cibles=8"
+
+        result = summarize(lines(), 8)
+        self.assertEqual(count, 500)
+        self.assertEqual(result["metrics"]["click_pointer_block_ms"]["n"], 500)
+
     def test_cli_emits_aggregates_without_exposing_raw_window_coordinates(self):
         with tempfile.TemporaryDirectory() as directory:
             file = Path(directory) / "atlas.log"
