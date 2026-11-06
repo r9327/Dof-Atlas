@@ -83,7 +83,7 @@ class DevelopmentLotTests(unittest.TestCase):
         for source in ("app/input/input_state.py", "app/macros/mirror_input.py"):
             path = self.root / source
             path.parent.mkdir(parents=True, exist_ok=True)
-            path.write_text("pass\\n", encoding="utf-8")
+            path.write_text("pass\n", encoding="utf-8")
         self.paths = [
             "app/input/input_state.py", "app/macros/mirror_input.py",
             "tests/test_organizer_sendinput.py", "tests/test_organizer_mirror_ui.py",
