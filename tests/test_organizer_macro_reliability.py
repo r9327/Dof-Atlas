@@ -13,6 +13,11 @@ from app.macros.zaap import ZaapMacro
 def _runtime() -> Mock:
     runtime = Mock()
     runtime.settings.timings = Mock()
+    # Real profiles always expose concrete mode and favorite values. Leaving
+    # them as truthy Mock objects made native SwitchClick admission tests
+    # reject a valid physical click before their intended assertions.
+    runtime.settings.macro_mode = "macro"
+    runtime.settings.primary_handle = 101
     runtime.macro_lock.should_stop.return_value = False
     runtime.switch_character.ordered_clients_from_source.return_value = [
         SimpleNamespace(handle=101), SimpleNamespace(handle=202),
@@ -372,7 +377,7 @@ class OrganizerMacroReliabilityTests(unittest.TestCase):
                     self.assertEqual(macro.ordered_clients_from_source(0), [])
                 fallback.assert_not_called()
                 runtime.logger.info.assert_any_call(
-                    "Switch: roster abandonné, profil Organizer remplacé pendant scan.",
+                    "Switch: roster abandonné, session modifiée pendant scan.",
                 )
 
 
