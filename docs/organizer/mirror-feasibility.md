@@ -1612,3 +1612,43 @@ Base exacte : `da757f64cbd70aac400b83220839e91f7c335767`.
   absorbés lorsqu'un worker tient déjà le pointeur ; `MIRR-002` (ciblage
   Unity sans focus) et recette DOFUS 2/4/6/8 / p50/p95/p99 restent
   `PENDING/NOT_RUN`. Ne pas ajouter de replay non certifié.
+
+## 06/11/2026 — reprise des tests réels et refus de focus à la dernière seconde
+
+La dépendance Ubuntu `libEGL.so.1` de PySide6 a été corrigée dans la PR
+d'outillage **#392**, fusionnée dans `main` (merge
+`6754747f8b9ff54c7b34972118219316d77cb1d5`). Cette correction
+ne modifie pas les critères de certification de la PR #325.
+
+**Preuve ciblée exacte** : Doctor-lot
+[run #42194327949](https://github.com/r9327/Dof-Atlas/actions/runs/42194327949),
+candidat `007bff1f15ff22d5d6e6d9dd1dcaf4ae4331d093`, base
+`e373c393eb2ac9e3ed419e7ea3e93ad7127cb91b` :
+**382 tests exécutés, 382 PASS, 0 échec**, fraîcheur exacte du HEAD
+confirmée. Les tests concernés sont
+`tests.test_organizer_macro_reliability` et
+`tests.test_organizer_mirror_ui` ; ce run ne couvre pas l'ensemble de
+l'application et n'est **pas** une Phase Certification.
+
+Correctifs confirmés dans le développement :
+- `SwitchClickMacro` refuse toute restauration de focus après un Stop
+  concurrent et journalise le HWND dont l'activation vient d'être annulée
+  pour changement du roster, avant tout `SendInput`.
+- `DirectionMacro` fige les HWND configurés **avant** la sonde Win32 du
+  client source ; la modification d'une session entre la capture et
+  l'envoi annule le geste au lieu de taper sur un autre personnage.
+- `AtlasRuntime._mirror_gesture_targets` interrompt immédiatement une
+  inspection native quand favori, profil, sessions ou Stop deviennent
+  incompatibles. Le worker molette/clavier refuse un profil sans
+  temporisations valides avant de manipuler une fenêtre.
+- Les fixtures de tests distinguent les profils complets, le pointeur
+  occupé, la véritable interruption Stop et les gestes déjà envoyés.
+  Les compteurs et libellés n'assimilent plus un envoi interrompu par
+  changement de favori à un parcours achevé.
+
+**Bloquants conservés** : `MIRR-007` — nouveaux clics physiques
+absorbés pendant la réservation effective du pointeur (pas de replay
+garanti) ; `MIRR-002` — entrée Unity hors focus non démontrée ;
+`MIRR-005`/`ATQA-002` — recette réelle Windows/DOFUS 1/2/4/6/8
+et p50/p95/p99 d'actions non mesurés. Ces trois points restent
+`PENDING/NOT_RUN` ; conserver la PR **Draft** et ne pas fusionner.
