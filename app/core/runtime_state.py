@@ -654,11 +654,12 @@ class AtlasRuntime:
         )
         from app.windows.unity_windows import is_unity_window
 
-        if (not self._running or not self._admin_ok
-                or self.settings.macro_mode != "mirror"):
-            return None
         settings = self.settings
-        source = settings.primary_handle
+        if (not self._running or not self._admin_ok
+                or settings is None
+                or getattr(settings, "macro_mode", None) != "mirror"):
+            return None
+        source = getattr(settings, "primary_handle", None)
         if type(source) is not int or not 0 < source <= (2**64 - 1):
             return None
         clients = getattr(settings, "clients", None)
@@ -750,7 +751,8 @@ class AtlasRuntime:
             return False
         settings = self.settings
         if (not self._running or not self._admin_ok
-                or settings.macro_mode != "mirror"
+                or settings is None
+                or getattr(settings, "macro_mode", None) != "mirror"
                 or (self.macro_lock.active_label
                     and self.macro_lock.should_stop())):
             return False
@@ -881,7 +883,8 @@ class AtlasRuntime:
 
         settings = self.settings
         if (not self._running or not self._admin_ok
-                or settings.macro_mode != "mirror"
+                or settings is None
+                or getattr(settings, "macro_mode", None) != "mirror"
                 or (self.macro_lock.active_label
                     and self.macro_lock.should_stop())):
             return False
@@ -1027,11 +1030,15 @@ class AtlasRuntime:
             # block; do not run a full DOFUS roster probe from the hook.
             return False
         settings = self.settings
+        # A profile can be detached while the native click hook is running.
+        # Return False so the physical DOWN remains native.
+        if settings is None:
+            return False
         # The physical click can arrive while the UI switches Macro/Miroir.
         # A mode decision made before a profile reload is not authority to
         # broadcast the event under the new mode.
-        source_hwnd = settings.primary_handle
-        if (settings.macro_mode != "mirror"
+        source_hwnd = getattr(settings, "primary_handle", None)
+        if (getattr(settings, "macro_mode", None) != "mirror"
                 or type(source_hwnd) is not int
                 or not 0 < source_hwnd <= (2**64 - 1)
                 or (self.macro_lock.active_label
@@ -1167,7 +1174,11 @@ class AtlasRuntime:
             )
             return False
         settings = self.settings
-        if settings.macro_mode == "mirror":
+        if settings is None:
+            # Runtime shutdown/reload must never turn a physical click into a
+            # Python hook exception or an orphaned release.
+            return False
+        if getattr(settings, "macro_mode", None) == "mirror":
             return self._handle_mirror_click(button, screen_x, screen_y)
         action = self.registry.switch_action_for_pressed_keys()
         if self.settings is not settings:
