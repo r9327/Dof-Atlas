@@ -1716,3 +1716,11 @@ Ne pas rendre la PR non-Draft.
   bail reste absorbée pour éviter un clic dans la mauvaise fenêtre. Le
   prédicat limite l'attente **nominale** avant vérification, mais ne garantit
   aucun p99 de bout en bout, et ne remplace pas la recette réelle #322.
+
+## 06/11/2026 — collision atomique à la libération et pertes par diffusion (P0)
+
+- `InputState.end_mouse_block` photographie sous **le même verrou** l'interruption physique survenue avant la libération du pointeur. Le résultat est propre au thread détenteur, invalide après Stop/epoch ancien et réinitialisé au début d'un nouveau bail ; l'ancien retour numérique de `end_mouse_block` reste compatible.
+- `SwitchClickMacro` et `MirrorInputMacro` consultent ce résultat après la fin du bail. Une nouvelle pression arrivée entre leur dernière sonde et le déverrouillage ne peut plus être annoncée comme une diffusion sans collision.
+- `InputState` compte les gestures physiques signalés **par bail** (`last_release_blocked_count()`), indépendamment des warnings globaux plafonnés à 400 ms. Les workers publient après déverrouillage `Miroir clic/molette collisions_physiques=N cibles=M`. Le rapport local regroupe les compteurs pour la taille d'équipe exacte et exclut les ratios p95 de séances contenant des pertes, sans masquer les mesures brutes.
+- Tests de modèle : collision à la frontière de fermeture, 2/4/6/8 comptes, compteurs par action, Stop/reprise, epoch obsolète, thread étranger, baux imbriqués, séparation des rosters et données perdues malgré un p95 court.
+- **Limite MIRR-007 PENDING** : aucun replay de la première pression physique absorbée pendant le bail ; pas de nouveau backend ni de promesse de fidélité Unity sans focus. Les essais réels Windows/DOFUS, coût CPU/RAM, état visuel et p50/p95/p99 de réaction restent **NOT_RUN** tant que la recette #322 n'a pas été attestée sur le SHA exact.
