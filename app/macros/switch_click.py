@@ -1060,6 +1060,12 @@ class SwitchClickMacro:
                         pointer_collision = pointer_collision or pointer_interrupted()
                     finally:
                         remaining_blocks = self.runtime.input_state.end_mouse_block()
+                    # A physical DOWN may arrive between the last separate
+                    # interruption probe and the atomic lease close. Re-check
+                    # only this worker's final release snapshot; never report
+                    # the swallowed gesture as a completed mirror run.
+                    if self.runtime.input_state.last_release_interrupted() is True:
+                        pointer_collision = True
                     self.runtime.logger.debug(
                         "%s souris physique débloquée: remaining=%s",
                         action_label,
