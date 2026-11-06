@@ -1311,6 +1311,35 @@ class OrganizerSendInputTests(unittest.TestCase):
                             button,
                         )
 
+    def test_failed_emergency_mouse_up_and_logger_still_end_guard(self) -> None:
+        for button in ("Left", "Right"):
+            with self.subTest(button=button):
+                guard, logger = Mock(), Mock()
+                logger.warning.side_effect = RuntimeError("warning logger failed")
+                logger.exception.side_effect = RuntimeError("error logger failed")
+                down = (
+                    clicks.MOUSEEVENTF_LEFTDOWN if button == "Left"
+                    else clicks.MOUSEEVENTF_RIGHTDOWN
+                )
+                up = (
+                    clicks.MOUSEEVENTF_LEFTUP if button == "Left"
+                    else clicks.MOUSEEVENTF_RIGHTUP
+                )
+                with (
+                    patch.object(clicks.os, "name", "nt"),
+                    patch.object(clicks, "set_cursor_pos"),
+                    patch.object(clicks, "_send_mouse_flag",
+                                 side_effect=[True, False, False]) as sender,
+                ):
+                    self.assertFalse(clicks.send_screen_click(
+                        300, 200, button, 1, 0, 0, 0, 0,
+                        guard, logger,
+                    ))
+                self.assertEqual(
+                    sender.call_args_list, [call(down), call(up), call(up)],
+                )
+                guard.end.assert_called_once_with(120)
+
     def test_refused_mouse_down_does_not_send_unpaired_up(self) -> None:
         sent = []
         with (
