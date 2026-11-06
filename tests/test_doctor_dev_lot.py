@@ -133,7 +133,7 @@ class DevelopmentLotTests(unittest.TestCase):
         ):
             path = self.root / name
             path.parent.mkdir(parents=True, exist_ok=True)
-            path.write_text("pass\\n", encoding="utf-8")
+            path.write_text("pass\n", encoding="utf-8")
         report = self.plan()
         self.assertEqual(report["status"], "READY")
         self.assertEqual(report["uncovered_paths"], [])
