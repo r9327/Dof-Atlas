@@ -1585,3 +1585,30 @@ dépendances statiques, pas le rendu du jeu. MIRR-007 demeure PENDING
 pour les clics supplémentaires reçus pendant un blocage réellement
 actif du pointeur. Bench 2/4/6/8, p50/p95/p99, comportement souris
 sur Windows et certification restent NOT_RUN.
+
+
+## Lot P0 — nettoyage atomique et préflight natif sûr (06/11/2026)
+
+Base exacte : `da757f64cbd70aac400b83220839e91f7c335767`.
+
+- **Course de Stop/reprise :** `MacroLock.end(..., on_owner_end=...)`
+  exécute la remise à zéro du `SyntheticInputGuard` uniquement sous le
+  verrou du propriétaire courant, puis libère le bail. Un nouveau Miroir ne
+  peut plus démarrer entre la validation de génération et l'ancien reset.
+  Un échec de nettoyage reste journalisé sans bloquer les futurs démarrages.
+- **Souris :** pour `WM_MOUSEMOVE` pendant un bail de pointeur, le hook
+  ne décode plus coordonnées, statut de clic ou diagnostics inutiles ;
+  il vérifie uniquement la provenance injectée avant de bloquer un MOVE
+  physique. Les déplacements synthétiques continuent à passer.
+- **Préflight Miroir :** les fiches client sans `handle` sont refusées sans
+  exception pendant les contrôles des clics/touches/molette, y compris si
+  une session est remplacée en cours d'identification. Un profil Organizer
+  temporairement détaché conserve l'entrée native, sans lancement d'un worker.
+- **Tests ajoutés :** contention nettoyage/réadmission 2/4/6/8,
+  panne `SyntheticInputGuard.reset`, 2/4/6/8 profils incomplets,
+  burst MOVE bloqué vs injection Atlas, paramètres de session absents.
+  Ces tests sont versionnés, **pas un PASS Windows/Unity**.
+- **Reste bloquant :** `MIRR-007` pour les véritables clics physiques
+  absorbés lorsqu'un worker tient déjà le pointeur ; `MIRR-002` (ciblage
+  Unity sans focus) et recette DOFUS 2/4/6/8 / p50/p95/p99 restent
+  `PENDING/NOT_RUN`. Ne pas ajouter de replay non certifié.
