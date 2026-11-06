@@ -2792,6 +2792,114 @@ class OrganizerSendInputTests(unittest.TestCase):
                         next_hook.assert_not_called()
                     self.assertEqual(state.end_mouse_block(), 0)
 
+    def test_unreadable_pointer_epoch_never_leaks_down_or_up_2_to_8(self):
+        from app.input.input_state import InputState
+        from app.input.mouse_hooks import (
+            MouseHook, MSLLHOOKSTRUCT, WM_LBUTTONDOWN, WM_LBUTTONUP,
+            WM_RBUTTONDOWN, WM_RBUTTONUP, WM_XBUTTONDOWN, WM_XBUTTONUP,
+            WM_MOUSEWHEEL,
+        )
+
+        for accounts in (2, 4, 6, 8):
+            for down, up in (
+                (WM_LBUTTONDOWN, WM_LBUTTONUP),
+                (WM_RBUTTONDOWN, WM_RBUTTONUP),
+                (WM_XBUTTONDOWN, WM_XBUTTONUP),
+                (WM_MOUSEWHEEL, None),
+            ):
+                with self.subTest(accounts=accounts, down=down):
+                    state = InputState()
+                    state.begin_mouse_block("Miroir")
+                    logger = Mock()
+                    logger.exception.side_effect = RuntimeError("logger broken")
+                    callback = Mock(return_value=True)
+                    wheel = Mock(return_value=True)
+                    hook = MouseHook(state, Mock(), logger, callback, wheel)
+                    event = MSLLHOOKSTRUCT()
+                    event.flags = 0
+                    event.mouseData = (1 if down == WM_XBUTTONDOWN else 120) << 16
+                    forward = Mock(return_value=51)
+                    with (
+                        patch.object(
+                            state, "mouse_block_epoch_if_active",
+                            side_effect=OSError("epoch probe unavailable"),
+                        ),
+                        patch.object(
+                            ctypes, "windll",
+                            SimpleNamespace(user32=SimpleNamespace(
+                                CallNextHookEx=forward,
+                            )), create=True,
+                        ),
+                    ):
+                        ptr = ctypes.addressof(event)
+                        self.assertEqual(hook._mouse_proc(0, down, ptr), 1)
+                        if up is not None:
+                            self.assertEqual(hook._mouse_proc(0, up, ptr), 1)
+                            self.assertFalse(hook._consumed_releases)
+                    forward.assert_not_called()
+                    callback.assert_not_called()
+                    wheel.assert_not_called()
+                    logger.exception.assert_called()
+                    self.assertFalse(state.mouse_block_interrupted())
+                    self.assertEqual(state.end_mouse_block(), 0)
+
+    def test_second_epoch_probe_failure_stays_fail_closed_for_2_to_8(self):
+        from app.input.input_state import InputState
+        from app.input.mouse_hooks import (
+            MouseHook, MSLLHOOKSTRUCT, WM_LBUTTONDOWN, WM_LBUTTONUP,
+            WM_MOUSEWHEEL,
+        )
+
+        for accounts in (2, 4, 6, 8):
+            for down, up in (
+                (WM_LBUTTONDOWN, WM_LBUTTONUP),
+                (WM_MOUSEWHEEL, None),
+            ):
+                with self.subTest(accounts=accounts, down=down):
+                    state = InputState()
+                    state.begin_mouse_block("Miroir")
+                    logger, click, wheel = Mock(), Mock(), Mock()
+                    hook = MouseHook(state, Mock(), logger, click, wheel)
+                    event = MSLLHOOKSTRUCT()
+                    event.flags = 0
+                    event.mouseData = 120 << 16
+                    original = state.note_blocked_physical_gesture
+
+                    def release_before_admission(*, expected_epoch):
+                        self.assertEqual(expected_epoch, 0)
+                        state.end_mouse_block()
+                        return original(expected_epoch=expected_epoch)
+
+                    forward = Mock(return_value=51)
+                    with (
+                        patch.object(
+                            state, "mouse_block_epoch_if_active",
+                            side_effect=[0, OSError("recheck unreadable")],
+                        ),
+                        patch.object(
+                            state, "note_blocked_physical_gesture",
+                            side_effect=release_before_admission,
+                        ),
+                        patch.object(
+                            ctypes, "windll",
+                            SimpleNamespace(user32=SimpleNamespace(
+                                CallNextHookEx=forward,
+                            )), create=True,
+                        ),
+                    ):
+                        ptr = ctypes.addressof(event)
+                        self.assertEqual(hook._mouse_proc(0, down, ptr), 1)
+                        if up is not None:
+                            self.assertEqual(hook._mouse_proc(0, up, ptr), 1)
+                            self.assertFalse(hook._consumed_releases)
+                    forward.assert_not_called()
+                    click.assert_not_called()
+                    wheel.assert_not_called()
+                    logger.exception.assert_any_call(
+                        "Hook souris: nouvelle génération illisible.",
+                    )
+                    self.assertFalse(state.is_mouse_blocked())
+
     def test_block_ends_before_epoch_snapshot_preserves_native_press(self):
         from app.input.input_state import InputState
         from app.input.mouse_hooks import MouseHook, MSLLHOOKSTRUCT, WM_LBUTTONDOWN
