@@ -3489,7 +3489,10 @@ class OrganizerMirrorIntegrationTests(unittest.TestCase):
                     )
                 self.assertEqual(down.call_count, count)
                 self.assertEqual(up.call_count, count + 1)
-                up.assert_has_calls([call(65)] * (count + 1))
+                self.assertEqual(
+                    [item.args for item in up.call_args_list],
+                    [(65,)] * (count + 1),
+                )
                 runtime._emit_status.assert_called_once_with(
                     f"Miroir Clavier : {count}/{count} fenêtres."
                 )
