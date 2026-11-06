@@ -2793,6 +2793,33 @@ class OrganizerSendInputTests(unittest.TestCase):
                 state.end_mouse_block()
                 self.assertFalse(state.last_release_interrupted())
 
+    def test_failed_collision_report_finishing_after_unlock_is_not_lost(self):
+        from app.input.input_state import InputState
+
+        for accounts in (2, 4, 6, 8):
+            with self.subTest(accounts=accounts):
+                state = InputState()
+                state.begin_mouse_block("Miroir")
+                owner_epoch = state.mouse_block_epoch_if_active()
+                self.assertEqual(state.end_mouse_block(), 0)
+                self.assertFalse(state.last_release_interrupted())
+                # Native hook owns a DOWN from this lease, but its normal
+                # report failed and its fallback finishes just after unlock.
+                state.note_unconfirmed_physical_gesture(
+                    expected_epoch=owner_epoch,
+                )
+                self.assertTrue(state.last_release_interrupted())
+                self.assertEqual(state.last_release_blocked_count(), 0)
+                state.begin_mouse_block("next Miroir")
+                self.assertFalse(state.mouse_block_interrupted())
+                self.assertFalse(state.last_release_interrupted())
+                state.note_unconfirmed_physical_gesture(
+                    expected_epoch=owner_epoch,
+                )
+                self.assertFalse(state.mouse_block_interrupted())
+                state.end_mouse_block()
+                self.assertFalse(state.last_release_interrupted())
+
     def test_blocked_native_down_or_wheel_interrupts_without_orphaned_up_2_4_6_8(self):
         from app.input.input_state import InputState, ATLAS_SYNTHETIC_MOUSE_EXTRA_INFO
         from app.input.mouse_hooks import (

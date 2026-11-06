@@ -76,6 +76,7 @@ class InputState:
             # The result of an earlier release must never contaminate this
             # worker's next lease after another macro was dispatched.
             self._mouse_block_owners.last_release_interrupted = False
+            self._mouse_block_owners.last_release_unconfirmed_event = None
             self._mouse_block_owners.last_release_blocked_count = 0
             self._mouse_block_count += 1
             self._mouse_block_label = str(label or "macro")
@@ -88,6 +89,7 @@ class InputState:
             # decrement. A physical DOWN can arrive after a worker's last
             # independent collision probe but before this release.
             self._mouse_block_owners.last_release_interrupted = False
+            self._mouse_block_owners.last_release_unconfirmed_event = None
             self._mouse_block_owners.last_release_blocked_count = 0
             if not owners:
                 # Never unlock a lease acquired by another worker thread.
@@ -97,10 +99,19 @@ class InputState:
                 # Stop invalidated this lease; another macro may already
                 # own a new block after the prior worker was interrupted.
                 return self._mouse_block_count
+            # Retain this epoch's Event on the worker thread. If the native
+            # hook's failed collision reporter completes just AFTER the
+            # atomic unlock, its delayed fallback is still observable before
+            # the worker publishes its final status. A new lease has a
+            # different Event and cannot be contaminated.
+            unconfirmed_epoch, unconfirmed_event = self._mouse_block_unconfirmed
+            if unconfirmed_epoch == epoch:
+                self._mouse_block_owners.last_release_unconfirmed_event = (
+                    unconfirmed_event
+                )
             self._mouse_block_owners.last_release_interrupted = (
                 self._mouse_block_interrupted
-                or self._mouse_block_unconfirmed[0] == epoch
-                and self._mouse_block_unconfirmed[1].is_set()
+                or unconfirmed_epoch == epoch and unconfirmed_event.is_set()
             )
             self._mouse_block_owners.last_release_blocked_count = (
                 self._mouse_block_gesture_count
@@ -118,9 +129,13 @@ class InputState:
         Snapshot set atomically by end_mouse_block; no cross-worker status
         contamination and no replay promise. Only read after the release.
         """
-        return bool(getattr(
+        captured = bool(getattr(
             self._mouse_block_owners, "last_release_interrupted", False,
         ))
+        late_event = getattr(
+            self._mouse_block_owners, "last_release_unconfirmed_event", None,
+        )
+        return captured or bool(late_event is not None and late_event.is_set())
 
     def last_release_blocked_count(self) -> int:
         """Number of intercepted physical gestures in this worker's lease.
