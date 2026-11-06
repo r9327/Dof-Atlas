@@ -2447,5 +2447,46 @@ class OrganizerSendInputTests(unittest.TestCase):
         state.end_mouse_block()
 
 
+    def test_blocked_native_down_remains_swallowed_when_collision_signal_raises(self):
+        from app.input.input_state import InputState
+        from app.input.mouse_hooks import (
+            MouseHook, MSLLHOOKSTRUCT, WM_LBUTTONDOWN, WM_LBUTTONUP,
+        )
+
+        state = InputState()
+        state.begin_mouse_block("Miroir")
+        callback = Mock(return_value=False)
+        logger = Mock()
+        hook = MouseHook(state, Mock(), logger, callback)
+        event = MSLLHOOKSTRUCT()
+        event.pt.x = 25
+        event.pt.y = 33
+        event.flags = 0
+        event.dwExtraInfo = None
+        next_hook = Mock(return_value=37)
+        with (
+            patch.object(
+                ctypes, "windll",
+                SimpleNamespace(user32=SimpleNamespace(CallNextHookEx=next_hook)),
+                create=True,
+            ),
+            patch.object(state, "note_blocked_physical_gesture",
+                         side_effect=RuntimeError("interruption failed")),
+        ):
+            self.assertEqual(
+                hook._mouse_proc(0, WM_LBUTTONDOWN, ctypes.addressof(event)), 1,
+            )
+            state.end_mouse_block()
+            self.assertEqual(
+                hook._mouse_proc(0, WM_LBUTTONUP, ctypes.addressof(event)), 1,
+            )
+        callback.assert_not_called()
+        next_hook.assert_not_called()
+        logger.exception.assert_any_call(
+            "Hook souris: signal d'interruption impossible.",
+        )
+        self.assertFalse(hook._consumed_releases)
+
+
 if __name__ == "__main__":
     unittest.main()
