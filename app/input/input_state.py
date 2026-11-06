@@ -58,6 +58,9 @@ class InputState:
                 owners = []
                 self._mouse_block_owners.epochs = owners
             owners.append(self._mouse_block_epoch)
+            # The result of an earlier release must never contaminate this
+            # worker's next lease after another macro was dispatched.
+            self._mouse_block_owners.last_release_interrupted = False
             if self._mouse_block_count == 0:
                 self._mouse_block_interrupted = False
             self._mouse_block_count += 1
@@ -67,6 +70,10 @@ class InputState:
     def end_mouse_block(self) -> int:
         with self._lock:
             owners = getattr(self._mouse_block_owners, "epochs", None)
+            # Capture the interruption under the SAME lock as the lease
+            # decrement. A physical DOWN can arrive after a worker's last
+            # independent collision probe but before this release.
+            self._mouse_block_owners.last_release_interrupted = False
             if not owners:
                 # Never unlock a lease acquired by another worker thread.
                 return self._mouse_block_count
@@ -75,11 +82,24 @@ class InputState:
                 # Stop invalidated this lease; another macro may already
                 # own a new block after the prior worker was interrupted.
                 return self._mouse_block_count
+            self._mouse_block_owners.last_release_interrupted = (
+                self._mouse_block_interrupted
+            )
             self._mouse_block_count = max(0, self._mouse_block_count - 1)
             if self._mouse_block_count == 0:
                 self._mouse_block_label = ""
                 self._mouse_block_interrupted = False
             return self._mouse_block_count
+
+    def last_release_interrupted(self) -> bool:
+        """The calling worker's last valid mouse release saw a lost gesture.
+
+        Snapshot set atomically by end_mouse_block; no cross-worker status
+        contamination and no replay promise. Only read after the release.
+        """
+        return bool(getattr(
+            self._mouse_block_owners, "last_release_interrupted", False,
+        ))
 
     def clear_mouse_block(self) -> None:
         with self._lock:
