@@ -1358,7 +1358,8 @@ class OrganizerSendInputTests(unittest.TestCase):
         self.assertFalse(result)
         move.assert_not_called()
         sender.assert_not_called()
-        guard.end.assert_called_once_with(120)
+        guard.begin.assert_not_called()
+        guard.end.assert_not_called()
 
     def test_client_double_click_checks_focus_before_second_down(self) -> None:
         focused = [202]
@@ -2365,7 +2366,7 @@ class OrganizerSendInputTests(unittest.TestCase):
             for kind in ("down", "wheel"):
                 with self.subTest(count=count, kind=kind):
                     state = InputState()
-                    hook = MouseHook(state, Mock(), Mock(), Mock(), Mock())
+                    hook = MouseHook(state, Mock(), Mock(), Mock(), Mock(return_value=False))
                     event = MSLLHOOKSTRUCT()
                     event.pt.x = 11
                     event.pt.y = 22
