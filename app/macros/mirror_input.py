@@ -468,9 +468,18 @@ class MirrorInputMacro:
                     runtime.logger.exception("Miroir %s: échec SendInput.", kind)
                     break
                 # The final recipient does not need a client-switch gap.
-                if (index < len(handles) - 1
-                        and runtime.macro_lock.wait(max(0, timings.switch_client_settle_ms))):
-                    break
+                if index < len(handles) - 1:
+                    settle_ms = max(0, timings.switch_client_settle_ms)
+                    if kind == "wheel":
+                        interrupted_wait = runtime.macro_lock.wait(
+                            settle_ms, interrupted=pointer_interrupted,
+                        )
+                    else:
+                        interrupted_wait = runtime.macro_lock.wait(settle_ms)
+                    if interrupted_wait:
+                        if kind == "wheel" and pointer_interrupted():
+                            delivery_failed = True
+                        break
         finally:
             # Wheel-only block stays active during cursor/focus restoration.
             # Keyboard never acquires the physical mouse block.
