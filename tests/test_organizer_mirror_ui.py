@@ -113,7 +113,11 @@ class OrganizerMirrorIntegrationTests(unittest.TestCase):
         runtime = Mock()
         runtime.settings = settings
         runtime.macro_lock.wait.return_value = False
-        runtime.input_state.is_mouse_blocked.return_value = False
+        # The legacy busy-lease scenarios use this Mock as an occupied
+        # pointer unless they explicitly opt into the free-pointer path.
+        # Dedicated native-hook scenarios replace InputState with the real
+        # implementation and assert its actual lease transitions.
+        runtime.input_state.is_mouse_blocked.return_value = True
         runtime.macro_lock.active_label = ""
         runtime.macro_lock.active_generation = 1
         runtime.macro_lock.owns.side_effect = lambda label, generation: (
@@ -1158,6 +1162,7 @@ class OrganizerMirrorIntegrationTests(unittest.TestCase):
     def test_busy_keyboard_lets_real_click_through_without_second_worker(self):
         runtime = self._runtime()
         runtime.macro_lock.active_label = "Miroir clavier"
+        runtime.input_state.is_mouse_blocked.return_value = False
         with (
             patch("app.windows.unity_windows.is_unity_window", return_value=True),
             patch("app.macros.mirror_plan.is_dofus_unity_process", return_value=True),
