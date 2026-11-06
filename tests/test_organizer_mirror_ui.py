@@ -1543,6 +1543,8 @@ class OrganizerMirrorIntegrationTests(unittest.TestCase):
                 self.assertEqual(len(dispatch_logs), 1)
                 self.assertGreaterEqual(dispatch_logs[0].args[1], 0.0)
                 self.assertNotEqual(dispatch_logs[0].args[2], "NOT_MEASURED")
+                self.assertEqual(dispatch_logs[0].args[3], count)
+                self.assertIn("cibles=%s", dispatch_logs[0].args[0])
                 self.assertIn("pas rendu Unity", dispatch_logs[0].args[0])
 
 
