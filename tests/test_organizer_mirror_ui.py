@@ -631,6 +631,14 @@ class OrganizerMirrorIntegrationTests(unittest.TestCase):
             SimpleNamespace(handle=101), SimpleNamespace(handle=303),
             SimpleNamespace(handle=202),
         )
+        # The source is always promoted to first at dispatch. Moving only
+        # that saved slot leaves the order of OTHER recipients unchanged,
+        # so this ordered delivery tuple is still the current one.
+        self.assertTrue(macro._still_current(202, (202, 101, 303)))
+        runtime.settings.clients = (
+            SimpleNamespace(handle=303), SimpleNamespace(handle=101),
+            SimpleNamespace(handle=202),
+        )
         self.assertFalse(macro._still_current(202, (202, 101, 303)))
 
     def test_mirror_keyboard_dispatch_with_nonfirst_favorite_two_to_eight(self):
@@ -3247,7 +3255,7 @@ class OrganizerMirrorIntegrationTests(unittest.TestCase):
         move.assert_not_called()
         runtime.switch_character.restore_preferred_client.assert_not_called()
         runtime._emit_status.assert_called_once_with(
-            "Miroir incomplet : 0/2 fenêtres."
+            "Miroir interrompu : 0/2 fenêtres."
         )
         runtime.logger.warning.assert_any_call(
             "%s interrompu: roster changé après focus hwnd=%s", "Miroir", 101,
@@ -4552,7 +4560,9 @@ class OrganizerMirrorIntegrationTests(unittest.TestCase):
             macro._run("wheel", (120, False, 0.4, 0.5), 101, (101, 202))
         activate.assert_not_called()
         send.assert_not_called()
-        runtime.input_state.end_mouse_block.assert_called_once()
+        # The whole roster is rejected BEFORE acquiring the pointer lease.
+        runtime.input_state.begin_mouse_block.assert_not_called()
+        runtime.input_state.end_mouse_block.assert_not_called()
 
 
     def test_mirror_stop_during_key_hold_still_releases_virtual_key(self):
@@ -4923,6 +4933,12 @@ class OrganizerMirrorIntegrationTests(unittest.TestCase):
             self.assertTrue(mirror._still_current(101, (101, 202)))
             runtime.settings.clients = (
                 SimpleNamespace(handle=202), SimpleNamespace(handle=101),
+            )
+            # A source-only slot swap does not change favorite-first delivery
+            # order. Reassignment or missing recipient MUST still fail.
+            self.assertTrue(mirror._still_current(101, (101, 202)))
+            runtime.settings.clients = (
+                SimpleNamespace(handle=202), SimpleNamespace(handle=999),
             )
             self.assertFalse(mirror._still_current(101, (101, 202)))
 
