@@ -246,7 +246,13 @@ class MouseHook:
                     == ATLAS_SYNTHETIC_MOUSE_EXTRA_INFO
                 )
                 if not atlas_synthetic:
-                    return 1
+                    # A long 8-client fan-out can release the pointer while
+                    # this hook is decoding MOVE. Do not swallow the first
+                    # now-native movement on a lease that already ended.
+                    # This extra O(1) check runs ONLY during an active lease;
+                    # the free-pointer MOVE path above still skips ctypes.
+                    if self.input_state.is_mouse_blocked():
+                        return 1
                 return ctypes.windll.user32.CallNextHookEx(
                     self._hook, n_code, w_param, l_param,
                 )
