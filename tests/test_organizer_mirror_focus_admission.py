@@ -636,5 +636,47 @@ class MirrorFocusAdmissionTests(unittest.TestCase):
                 runtime.switch_click.run_async.assert_not_called()
 
 
+    def test_missing_or_failed_favorite_lookup_preserves_native_click(self):
+        for count in (2, 4, 6, 8):
+            for failure in ("missing", "raises"):
+                with self.subTest(accounts=count, failure=failure):
+                    runtime, source = self._runtime(count)
+                    if failure == "missing":
+                        runtime.settings.client_by_handle = None
+                    else:
+                        runtime.settings.client_by_handle = Mock(
+                            side_effect=RuntimeError("detached lookup"),
+                        )
+                    with (
+                        patch(
+                            "app.windows.unity_windows.foreground_window",
+                            return_value=source,
+                        ),
+                        patch(
+                            "app.windows.unity_windows.find_known_client_from_point",
+                            return_value=source,
+                        ),
+                        patch(
+                            "app.windows.unity_windows.is_unity_window",
+                            side_effect=AssertionError("unexpected Unity probe"),
+                        ),
+                        patch(
+                            "app.macros.mirror_plan.is_dofus_unity_process",
+                            side_effect=AssertionError("unexpected process probe"),
+                        ),
+                    ):
+                        self.assertIsNone(
+                            AtlasRuntime._mirror_gesture_targets(runtime)
+                        )
+                        self.assertFalse(
+                            AtlasRuntime._handle_mirror_click(
+                                runtime, "Left", 20, 25,
+                            )
+                        )
+                    runtime.switch_click.run_async.assert_not_called()
+                    if failure == "raises":
+                        self.assertTrue(runtime.logger.exception.called)
+
+
 if __name__ == "__main__":
     unittest.main()
