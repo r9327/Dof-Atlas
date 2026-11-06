@@ -19,20 +19,20 @@ ACCOUNTS = (1, 2, 4, 6, 8)
 # fictitious end-to-end latency: a SendInput event is not a Unity frame.
 METRIC_PATTERNS = {
     "click_pointer_block_ms": re.compile(
-        r"\bMiroir blocage_souris_ms=(\d+(?:\.\d+)?) cibles=(\d+)"
+        r"\bMiroir blocage_souris_ms=(?P<value>\d+(?:\.\d+)?) cibles=(?P<accounts>\d+)"
     ),
     "wheel_pointer_block_ms": re.compile(
-        r"\bMiroir molette blocage_souris_ms=(\d+(?:\.\d+)?) cibles=(\d+)"
+        r"\bMiroir molette blocage_souris_ms=(?P<value>\d+(?:\.\d+)?) cibles=(?P<accounts>\d+)"
     ),
     "click_dispatch_to_last_emit_ms": re.compile(
         r"\bMiroir clic dispatch_to_worker_ms=\S+ "
-        r"dispatch_to_last_emit_ms=(\d+(?:\.\d+)?|NOT_MEASURED)"
+        r"dispatch_to_last_emit_ms=(?P<value>\d+(?:\.\d+)?|NOT_MEASURED)"
     ),
     "key_worker_ms": re.compile(
-        r"\bMiroir key: envoyés=\d+/\d+ worker_total_ms=(\d+(?:\.\d+)?)"
+        r"\bMiroir key: envoyés=\d+/(?P<accounts>\d+) worker_total_ms=(?P<value>\d+(?:\.\d+)?)"
     ),
     "wheel_worker_ms": re.compile(
-        r"\bMiroir wheel: envoyés=\d+/\d+ worker_total_ms=(\d+(?:\.\d+)?)"
+        r"\bMiroir wheel: envoyés=\d+/(?P<accounts>\d+) worker_total_ms=(?P<value>\d+(?:\.\d+)?)"
     ),
 }
 STATUS = re.compile(
@@ -92,18 +92,23 @@ def summarize(lines: Iterable[str], accounts: int) -> dict:
                 statuses["partial"] += 1
             else:
                 statuses["complete"] += 1
-            if "geste physique non rejoué" in line:
+            if total == accounts and "geste physique non rejoué" in line:
                 observed_non_replayed += 1
         for name, pattern in METRIC_PATTERNS.items():
             metric = pattern.search(line)
-            if metric is None or metric[1] == "NOT_MEASURED":
+            if metric is None or metric.group("value") == "NOT_MEASURED":
                 continue
-            if name.endswith("pointer_block_ms") and int(metric[2]) != accounts:
+            observed_accounts = metric.groupdict().get("accounts")
+            if observed_accounts is not None and int(observed_accounts) != accounts:
                 mismatched_roster_lines += 1
                 continue
-            duration = float(metric[1])
+            duration = float(metric.group("value"))
             if math.isfinite(duration) and duration >= 0:
                 samples[name].append(duration)
+    if mismatched_roster_lines:
+        # Click dispatch logs lack an account count; never attribute their
+        # timing to one roster if the file contains mixed-size sessions.
+        samples["click_dispatch_to_last_emit_ms"].clear()
     return {
         "account_count": accounts,
         "evidence": "LOG_ONLY_NOT_UNITY_CERTIFIED",
@@ -112,6 +117,7 @@ def summarize(lines: Iterable[str], accounts: int) -> dict:
         "metrics": {k: _percentiles(v) for k, v in samples.items()},
         "actions": statuses,
         "observed_blocked_physical_inputs": losses,
+        "blocked_input_scope": "WHOLE_LOG",
         "non_replayed_statuses": observed_non_replayed,
         "roster_mismatch_lines": mismatched_roster_lines,
     }
