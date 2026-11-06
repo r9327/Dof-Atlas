@@ -139,5 +139,109 @@ class SwitchClickProfileAdmissionTests(unittest.TestCase):
                     macro.runtime._spawn_macro.assert_not_called()
 
 
+    def test_worker_rejects_invalid_targets_before_any_injection(self):
+        for count in (2, 4, 6, 8):
+            for invalid in (None, object(), [object()]):
+                with self.subTest(accounts=count, invalid_type=type(invalid).__name__):
+                    macro, handles, source = self._macro(count)
+                    context = SwitchClickContext(
+                        source, 5, 10, 0.5, 0.5, "cursor",
+                    )
+                    macro.runtime.switch_character.ordered_clients_from_source.return_value = invalid
+                    with (
+                        patch("app.macros.switch_click.foreground_window",
+                              return_value=source),
+                        patch("app.macros.switch_click.current_cursor_pos",
+                              return_value=(25, 30)),
+                        patch.object(macro, "_validated_context",
+                                     return_value=context),
+                        patch("app.macros.switch_click.activate_window") as activate,
+                        patch("app.macros.switch_click.send_client_click") as sender,
+                        patch("app.macros.switch_click.set_cursor_pos") as restore,
+                    ):
+                        macro._run(
+                            "Left", 1, "Miroir", context,
+                            exact_source_handle=source,
+                            mirror_target_handles=(source, *(h for h in handles if h != source)),
+                            settings_at_dispatch=macro.runtime.settings,
+                        )
+                    activate.assert_not_called()
+                    sender.assert_not_called()
+                    restore.assert_not_called()
+
+    def test_worker_refuses_roster_detached_during_target_resolution(self):
+        for count in (2, 4, 6, 8):
+            with self.subTest(accounts=count):
+                macro, handles, source = self._macro(count)
+                context = SwitchClickContext(source, 5, 10, 0.5, 0.5, "cursor")
+
+                def detach(_source):
+                    previous_clients = macro.runtime.settings.clients
+                    macro.runtime.settings.clients = None
+                    return list(previous_clients)
+
+                macro.runtime.switch_character.ordered_clients_from_source.side_effect = detach
+                with (
+                    patch("app.macros.switch_click.foreground_window",
+                          return_value=source),
+                    patch("app.macros.switch_click.current_cursor_pos",
+                          return_value=(25, 30)),
+                    patch.object(macro, "_validated_context",
+                                 return_value=context),
+                    patch("app.macros.switch_click.activate_window") as activate,
+                    patch("app.macros.switch_click.send_client_click") as sender,
+                ):
+                    macro._run(
+                        "Left", 1, "Miroir", context,
+                        exact_source_handle=source,
+                        mirror_target_handles=(source, *(h for h in handles if h != source)),
+                        settings_at_dispatch=macro.runtime.settings,
+                    )
+                activate.assert_not_called()
+                sender.assert_not_called()
+
+    def test_worker_refuses_roster_detached_during_mirror_recheck(self):
+        for count in (2, 4, 6, 8):
+            with self.subTest(accounts=count):
+                macro, handles, source = self._macro(count)
+                stable_clients = macro.runtime.settings.clients
+
+                class FlippingProfile:
+                    macro_mode = "mirror"
+                    primary_handle = source
+
+                    def __init__(self):
+                        self.reads = 0
+
+                    @property
+                    def clients(self):
+                        self.reads += 1
+                        return stable_clients if self.reads <= 2 else None
+
+                profile = FlippingProfile()
+                macro.runtime.settings = profile
+                macro.runtime.switch_character.ordered_clients_from_source.return_value = list(stable_clients)
+                context = SwitchClickContext(source, 5, 10, 0.5, 0.5, "cursor")
+                with (
+                    patch("app.macros.switch_click.foreground_window",
+                          return_value=source),
+                    patch("app.macros.switch_click.current_cursor_pos",
+                          return_value=(25, 30)),
+                    patch.object(macro, "_validated_context",
+                                 return_value=context),
+                    patch("app.macros.switch_click.activate_window") as activate,
+                    patch("app.macros.switch_click.send_client_click") as sender,
+                ):
+                    macro._run(
+                        "Left", 1, "Miroir", context,
+                        exact_source_handle=source,
+                        mirror_target_handles=(source, *(h for h in handles if h != source)),
+                        settings_at_dispatch=profile,
+                    )
+                self.assertGreaterEqual(profile.reads, 3)
+                activate.assert_not_called()
+                sender.assert_not_called()
+
+
 if __name__ == "__main__":
     unittest.main()
