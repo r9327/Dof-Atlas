@@ -3399,7 +3399,7 @@ class OrganizerMirrorIntegrationTests(unittest.TestCase):
         self.assertEqual(up.call_count, 2)
         up.assert_any_call(65)
         runtime.logger.warning.assert_any_call(
-            "Miroir clavier: relâchement refusé, tentative de secours vk=%s", 65,
+            "Miroir clavier: relâchement refusé, tentative de secours.",
         )
         runtime._emit_status.assert_called_once_with(
             "Miroir Clavier incomplet : 0/2 fenêtres."
@@ -3440,7 +3440,7 @@ class OrganizerMirrorIntegrationTests(unittest.TestCase):
         self.assertEqual(down.call_count, 2)
         self.assertEqual(up.call_count, 3)
         runtime.logger.warning.assert_any_call(
-            "Miroir clavier: relâchement refusé, tentative de secours vk=%s", 65,
+            "Miroir clavier: relâchement refusé, tentative de secours.",
         )
         runtime.switch_character.restore_preferred_client.assert_called_once()
         runtime._emit_status.assert_called_once_with(
