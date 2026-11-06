@@ -384,9 +384,10 @@ class MirrorInputMacro:
                                 # A refused KEYUP can leave the synthetic key
                                 # logically held across clients. Retry once
                                 # without changing focus or starting a worker.
+                                # Diagnostics must not persist the actual
+                                # physical key captured from the user.
                                 runtime.logger.warning(
-                                    "Miroir clavier: relâchement refusé, tentative de secours vk=%s",
-                                    vk,
+                                    "Miroir clavier: relâchement refusé, tentative de secours."
                                 )
                                 key_up(vk)
                     else:
