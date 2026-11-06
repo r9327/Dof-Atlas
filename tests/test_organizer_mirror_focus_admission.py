@@ -591,5 +591,50 @@ class MirrorFocusAdmissionTests(unittest.TestCase):
 
 
 
+    def test_detached_profile_does_not_consume_native_gestures(self):
+        for count in (2, 4, 6, 8):
+            with self.subTest(accounts=count):
+                runtime, source = self._runtime(count)
+                runtime.settings = None
+                with (
+                    patch(
+                        "app.windows.unity_windows.foreground_window",
+                        side_effect=AssertionError("unexpected Win32 focus probe"),
+                    ),
+                    patch(
+                        "app.windows.unity_windows.is_unity_window",
+                        side_effect=AssertionError("unexpected Unity probe"),
+                    ),
+                    patch(
+                        "app.macros.mirror_plan.is_dofus_unity_process",
+                        side_effect=AssertionError("unexpected process probe"),
+                    ),
+                ):
+                    self.assertIsNone(
+                        AtlasRuntime._mirror_gesture_targets(runtime)
+                    )
+                    self.assertFalse(
+                        AtlasRuntime._handle_mirror_key(runtime, 65, True)
+                    )
+                    self.assertFalse(
+                        AtlasRuntime._handle_mirror_wheel(
+                            runtime, 120, 20, 25, False,
+                        )
+                    )
+                    self.assertFalse(
+                        AtlasRuntime._handle_mirror_click(
+                            runtime, "Left", 20, 25,
+                        )
+                    )
+                    self.assertFalse(
+                        AtlasRuntime._handle_mouse_click(
+                            runtime, "Left", 20, 25,
+                        )
+                    )
+                runtime.mirror_input.run_key.assert_not_called()
+                runtime.mirror_input.run_wheel.assert_not_called()
+                runtime.switch_click.run_async.assert_not_called()
+
+
 if __name__ == "__main__":
     unittest.main()
