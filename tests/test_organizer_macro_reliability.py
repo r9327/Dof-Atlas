@@ -4180,18 +4180,17 @@ class OrganizerMacroReliabilityTests(unittest.TestCase):
         runtime.switch_character.logical_active_client.return_value = SimpleNamespace(
             handle=101, display_name="Leader",
         )
-        # After Stop fires it stays latched, regardless of additional
-        # defensive checks added by the macro engine.
-        stop_checks = iter((False, False, False, True))
-        runtime.macro_lock.should_stop.side_effect = lambda: next(
-            stop_checks, True,
-        )
+        runtime.macro_lock.should_stop.return_value = False
+
+        def stop_after_invite(*_args, **_kwargs):
+            runtime.macro_lock.should_stop.return_value = True
+            return True
         with (
             patch("app.macros.auto_group.is_unity_window", return_value=True),
             patch("app.macros.auto_group.is_dofus_unity_process", return_value=True),
             patch("app.macros.auto_group.activate_window", return_value=True),
             patch("app.macros.auto_group.foreground_window", return_value=101),
-            patch("app.macros.auto_group.send_chat_command", return_value=True),
+            patch("app.macros.auto_group.send_chat_command", side_effect=stop_after_invite),
         ):
             AutoGroupMacro(runtime)._run([{"name": "Friend", "handle": 202}])
         runtime.switch_character.restore_preferred_client.assert_not_called()
@@ -4202,18 +4201,20 @@ class OrganizerMacroReliabilityTests(unittest.TestCase):
 
     def test_zaap_stop_between_identity_check_and_restore(self) -> None:
         runtime = _runtime()
-        # After Stop fires it stays latched, regardless of additional
-        # defensive checks added by the macro engine.
-        stop_checks = iter((False, False, False, True))
-        runtime.macro_lock.should_stop.side_effect = lambda: next(
-            stop_checks, True,
-        )
+        runtime.macro_lock.should_stop.return_value = False
+        emitted = [0]
+
+        def stop_after_last_chat(*_args, **_kwargs):
+            emitted[0] += 1
+            if emitted[0] == 2:
+                runtime.macro_lock.should_stop.return_value = True
+            return True
         with (
             patch("app.macros.zaap.is_unity_window", return_value=True),
             patch("app.macros.zaap.is_dofus_unity_process", return_value=True),
             patch("app.macros.zaap.activate_window", return_value=True),
             patch("app.macros.zaap.foreground_window", side_effect=[101, 202]),
-            patch("app.macros.zaap.send_chat_command", return_value=True) as send,
+            patch("app.macros.zaap.send_chat_command", side_effect=stop_after_last_chat) as send,
         ):
             ZaapMacro(runtime)._run("/zaap 1,2")
         self.assertEqual(send.call_count, 2)
