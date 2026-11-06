@@ -119,6 +119,43 @@ class OrganizerMirrorLogReportTests(unittest.TestCase):
         self.assertEqual(count, 500)
         self.assertEqual(result["metrics"]["click_pointer_block_ms"]["n"], 500)
 
+    def test_atomic_lease_loss_counters_remain_scoped_per_roster(self):
+        for count in (2, 4, 6, 8):
+            with self.subTest(accounts=count):
+                r = summarize([
+                    f"Miroir clic collisions_physiques=3 cibles={count}",
+                    f"Miroir molette collisions_physiques=2 cibles={count}",
+                    f"Miroir clic collisions_physiques=20 cibles={8 if count != 8 else 2}",
+                ], count)
+                self.assertEqual(r["observed_blocked_inputs_per_mirror_action"], {
+                    "click": 3, "wheel": 2,
+                })
+                self.assertEqual(r["observed_blocked_physical_inputs"], {
+                    "clicks": 0, "wheel_ticks": 0,
+                })
+                self.assertEqual(r["roster_mismatch_lines"], 1)
+
+    def test_loss_counter_excludes_fast_p95_even_without_throttled_hook_logs(self):
+        clean = summarize(["Miroir blocage_souris_ms=10 cibles=2"] * 5, 2)
+        fast_but_lost = summarize(
+            ["Miroir blocage_souris_ms=5 cibles=8"] * 5 + [
+                "Miroir clic collisions_physiques=2 cibles=8",
+            ], 8,
+        )
+        result = compare_reports({2: clean, 8: fast_but_lost})
+        self.assertEqual(result["reports"]["8"]
+                         ["observed_blocked_inputs_per_mirror_action"]["click"], 2)
+        self.assertIsNone(result["p95_ratio_vs_2_accounts"]
+                          ["click_pointer_block_ms"]["8"])
+        self.assertIn(
+            "BLOCKED_PHYSICAL_INPUTS_PER_ACTION",
+            result["ratio_exclusion_reasons"]["8"],
+        )
+        self.assertEqual(
+            result["reports"]["8"]["metrics"]["click_pointer_block_ms"]["p95_ms"],
+            5.0,
+        )
+
     def test_compare_p95_ratios_requires_five_samples_and_two_account_baseline(self):
         reports = {}
         for accounts, duration in ((2, 10), (4, 12), (6, 14), (8, 20)):
