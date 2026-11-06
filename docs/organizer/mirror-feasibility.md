@@ -1681,14 +1681,15 @@ indéterminé : la première entrée interceptée reste non diffusée.
 
 **Tests simulés** : 2/4/6/8 personnages, collision au premier clic/molette,
 Stop/reprise avec epoch différent, paire native/unmatched/synthetic,
-contre-exemple de signalement qui lève une exception. Au SHA
-`aca24a56f30edd2c4711062ec63c9607a2c62a11`, Doctor-lot a
-exécuté **475 tests PASS** mais donné `REVIEW` pour deux chemins de code
-sans owner direct : `app/input/input_state.py` et
-`app/macros/mirror_input.py`. L'outillage est corrigé dans
-[PR #394](https://github.com/r9327/Dof-Atlas/pull/394) ; il faut
-**relancer au HEAD final après intégration** et vérifier son résultat
-avant de revendiquer `READY`.
+contre-exemple de signalement qui lève une exception. La
+[PR d'outillage #394](https://github.com/r9327/Dof-Atlas/pull/394)
+est **fusionnée** (`2dfe7c5778d28dc9fe69a1a056d44278f98032f3`).
+Au SHA de code `be306409e2c4fcd00b68394da0cba8df752944a5`, le
+[Doctor-lot #42201197808](https://github.com/r9327/Dof-Atlas/actions/runs/42201197808)
+confirme **477 tests Python exécutés, 477 PASS, 0 échec**, statut
+`READY`, aucune source non couverte, `global_full_required=true`,
+`phase_certified=false` et contrôle de fraîcheur exact-SHA réussi.
+Il s'agit d'un **PASS ciblé**, pas de la certification globale.
 
 **Ne pas certifier MIRR-007 comme résolu.** Les pressions arrivant pendant
 le verrou restent absorbées, même si le worker s'arrête plus tôt.
