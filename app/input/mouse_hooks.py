@@ -134,6 +134,8 @@ class MouseHook:
         self._startup_event = threading.Event()
         self._start_ok = False
         self._last_block_log = 0.0
+        self._last_block_click_log = 0.0
+        self._last_block_wheel_log = 0.0
         self._blocked_click_count = 0
         self._blocked_wheel_count = 0
         # A consumed DOWN must always swallow its matching physical UP.
@@ -183,6 +185,8 @@ class MouseHook:
         self._blocked_click_count = 0
         self._blocked_wheel_count = 0
         self._last_block_log = 0.0
+        self._last_block_click_log = 0.0
+        self._last_block_wheel_log = 0.0
 
     def _run_hook(self) -> None:
         self._hook_thread_id = current_native_thread_id(self.logger)
@@ -350,12 +354,25 @@ class MouseHook:
             # A release cannot explain why a gesture was lost; it must not
             # consume the only warning slot before the next physical DOWN.
             return
-        if w_param in (WM_LBUTTONDOWN, WM_RBUTTONDOWN, WM_MBUTTONDOWN, WM_XBUTTONDOWN):
+        click = w_param in (WM_LBUTTONDOWN, WM_RBUTTONDOWN,
+                            WM_MBUTTONDOWN, WM_XBUTTONDOWN)
+        wheel = w_param in (WM_MOUSEWHEEL, WM_MOUSEHWHEEL)
+        if click:
             self._blocked_click_count += 1
-        elif w_param in (WM_MOUSEWHEEL, WM_MOUSEHWHEEL):
+        elif wheel:
             self._blocked_wheel_count += 1
         now = time.monotonic()
-        if now - self._last_block_log < BLOCK_LOG_INTERVAL_SECONDS:
+        # A wheel burst must not consume the single diagnostic slot for a
+        # genuinely lost click (and vice versa). Bound both to <= 2.5/s.
+        if click:
+            if now - self._last_block_click_log < BLOCK_LOG_INTERVAL_SECONDS:
+                return
+            self._last_block_click_log = now
+        elif wheel:
+            if now - self._last_block_wheel_log < BLOCK_LOG_INTERVAL_SECONDS:
+                return
+            self._last_block_wheel_log = now
+        else:
             return
         self._last_block_log = now
         label = self.input_state.mouse_block_label()

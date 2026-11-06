@@ -1929,10 +1929,14 @@ class OrganizerSendInputTests(unittest.TestCase):
                         hook._log_blocked_event(WM_LBUTTONUP, 12, 15)
                 self.assertEqual(hook._blocked_click_count, count)
                 self.assertEqual(hook._blocked_wheel_count, count)
-                self.assertEqual(logger.info.call_count, 1)
-                logger.info.assert_called_once_with(
+                self.assertEqual(logger.info.call_count, 2)
+                logger.info.assert_any_call(
                     "Organizer entrées physiques bloquées: clics=%s molettes=%s",
                     1, 0,
+                )
+                logger.info.assert_any_call(
+                    "Organizer entrées physiques bloquées: clics=%s molettes=%s",
+                    1, 1,
                 )
                 with patch("app.input.mouse_hooks.time.monotonic",
                            return_value=1.5):
@@ -2161,6 +2165,48 @@ class OrganizerSendInputTests(unittest.TestCase):
         click.assert_called_once_with("Left", 30, 40)
         release.assert_called_once_with("Left", 30, 40)
         self.assertEqual(hook._consumed_releases, set())
+
+
+
+    def test_mouse_and_wheel_blocked_warnings_have_independent_throttle(self):
+        from app.input.input_state import InputState, SyntheticInputGuard
+        from app.input.mouse_hooks import (
+            MouseHook, WM_LBUTTONDOWN, WM_MOUSEWHEEL, WM_RBUTTONDOWN,
+        )
+
+        for count in (2, 4, 6, 8):
+            with self.subTest(clients=count):
+                logger = Mock()
+                state = InputState()
+                state.begin_mouse_block("Miroir")
+                hook = MouseHook(state, SyntheticInputGuard(logger), logger, Mock())
+                with patch("app.input.mouse_hooks.time.monotonic",
+                           return_value=1.0):
+                    for _ in range(count):
+                        hook._log_blocked_event(WM_MOUSEWHEEL, 5, 8)
+                    hook._log_blocked_event(WM_LBUTTONDOWN, 5, 8)
+                    for _ in range(count):
+                        hook._log_blocked_event(WM_RBUTTONDOWN, 5, 8)
+                self.assertEqual(hook._blocked_wheel_count, count)
+                self.assertEqual(hook._blocked_click_count, count + 1)
+                self.assertEqual(logger.warning.call_count, 2)
+                logger.warning.assert_any_call(
+                    "Molette physique non diffusée (macro occupée=%s): event=%s",
+                    "Miroir", "wheel",
+                )
+                logger.warning.assert_any_call(
+                    "Clic physique non diffusé (macro occupée=%s): event=%s",
+                    "Miroir", "left_down",
+                )
+                # Neither click nor wheel warning is allowed to hide the
+                # other category; both counters remain exhaustive.
+                with patch("app.input.mouse_hooks.time.monotonic",
+                           return_value=1.1):
+                    hook._log_blocked_event(WM_MOUSEWHEEL, 5, 8)
+                    hook._log_blocked_event(WM_LBUTTONDOWN, 5, 8)
+                self.assertEqual(logger.warning.call_count, 2)
+                self.assertEqual(hook._blocked_wheel_count, count + 1)
+                self.assertEqual(hook._blocked_click_count, count + 2)
 
 
 
