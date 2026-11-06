@@ -983,9 +983,13 @@ class SwitchClickMacro:
                     action_label,
                 )
 
-            # The user may have deliberately changed foreground window.
-            # Never steal it back during an aborted gesture.
-            if restore_after_worker:
+            # The last foreground probe can itself yield to Emergency Stop.
+            # Never restore a favorite on a stale decision even if the
+            # previous check passed before Stop arrived.
+            if (restore_after_worker
+                    and not self.runtime.macro_lock.should_stop()
+                    and self.runtime.settings is settings_at_start
+                    and target_roster_intact()):
                 try:
                     self.runtime.switch_character.restore_preferred_client(
                         action_label
