@@ -268,20 +268,32 @@ class AutoGroupMacro:
                 or dispatch_context_changed()):
             self.runtime._emit_status("Auto-groupe interrompu : session ou favori modifié.")
             return
-        if not activate_window(
-            sender_hwnd,
-            timings.travel_focus_settle_ms,
-            timings.activate_attempts,
-            timings.activate_retry_ms,
-            self.runtime.logger,
-            "Auto groupe",
-            should_stop=lambda: (
-                self.runtime.macro_lock.should_stop()
-                or self.runtime.settings is not settings_at_start
-                or sender.handle != sender_hwnd
-                or dispatch_context_changed()
-            ),
-        ):
+        try:
+            activated = activate_window(
+                sender_hwnd,
+                timings.travel_focus_settle_ms,
+                timings.activate_attempts,
+                timings.activate_retry_ms,
+                self.runtime.logger,
+                "Auto groupe",
+                should_stop=lambda: (
+                    self.runtime.macro_lock.should_stop()
+                    or self.runtime.settings is not settings_at_start
+                    or sender.handle != sender_hwnd
+                    or dispatch_context_changed()
+                ),
+            )
+        except Exception:
+            # A native activation exception makes the target foreground
+            # unverifiable. Never attempt an invitation in this state.
+            self.runtime.logger.exception(
+                "Auto groupe: erreur activation native hwnd=%s.", sender_hwnd,
+            )
+            self.runtime._emit_status(
+                "Auto-groupe non envoyé : activation DOFUS impossible."
+            )
+            return
+        if not activated:
             if (self.runtime.macro_lock.should_stop()
                     or self.runtime.settings is not settings_at_start
                     or sender.handle != sender_hwnd

@@ -1374,6 +1374,37 @@ class OrganizerMacroReliabilityTests(unittest.TestCase):
         activate.assert_not_called()
         send.assert_not_called()
 
+    def test_auto_group_native_activation_exception_never_sends_chat_2_to_8(self):
+        # A native focus API can raise after attempting to move focus.
+        # Do not paste an invitation into any uncertain foreground window.
+        for count in (2, 4, 6, 8):
+            with self.subTest(count=count):
+                runtime = _runtime()
+                runtime.switch_character.logical_active_client.return_value = (
+                    SimpleNamespace(handle=101, display_name="Leader")
+                )
+                entries = [
+                    {"name": f"Friend{index}", "handle": 101 + index}
+                    for index in range(1, count)
+                ]
+                with (
+                    patch("app.macros.auto_group.is_unity_window", return_value=True),
+                    patch("app.macros.auto_group.is_dofus_unity_process", return_value=True),
+                    patch("app.macros.auto_group.activate_window",
+                          side_effect=OSError("Win32 focus failed")) as focus,
+                    patch("app.macros.auto_group.send_chat_command") as chat,
+                ):
+                    AutoGroupMacro(runtime)._run(entries)
+                focus.assert_called_once()
+                chat.assert_not_called()
+                runtime.switch_character.restore_preferred_client.assert_not_called()
+                runtime.logger.exception.assert_any_call(
+                    "Auto groupe: erreur activation native hwnd=%s.", 101,
+                )
+                runtime._emit_status.assert_called_once_with(
+                    "Auto-groupe non envoyé : activation DOFUS impossible."
+                )
+
     def test_auto_group_failed_last_invitation_never_waits_after_failure(self) -> None:
         runtime = _runtime()
         runtime.settings.timings.auto_group_invite_gap_ms = 200
