@@ -1978,6 +1978,48 @@ class OrganizerMacroReliabilityTests(unittest.TestCase):
         self.assertFalse(ZaapMacro(runtime).run_async("/zaap 1,2"))
         runtime._spawn_macro.assert_called_once()
 
+    def test_zaap_activation_exception_never_replays_or_refocuses_2_to_8(self) -> None:
+        # Native activation may fail after changing the foreground. Neither
+        # a stale chat command nor an automatic favorite restoration is safe.
+        for count in (2, 4, 6, 8):
+            for failing_index in (0, 1):
+                with self.subTest(count=count, failing_index=failing_index):
+                    runtime = _runtime()
+                    runtime.switch_character.ordered_clients_from_source.return_value = [
+                        SimpleNamespace(handle=101 + index)
+                        for index in range(count)
+                    ]
+                    focused = [101]
+
+                    def activate(hwnd, *_args, **_kwargs):
+                        if hwnd == 101 + failing_index:
+                            raise OSError("native activation failed")
+                        focused[0] = hwnd
+                        return True
+
+                    with (
+                        patch("app.macros.zaap.is_unity_window", return_value=True),
+                        patch("app.macros.zaap.is_dofus_unity_process", return_value=True),
+                        patch("app.macros.zaap.activate_window",
+                              side_effect=activate) as focus,
+                        patch("app.macros.zaap.foreground_window",
+                              side_effect=lambda: focused[0]),
+                        patch("app.macros.zaap.send_chat_command",
+                              return_value=True) as chat,
+                    ):
+                        ZaapMacro(runtime)._run("/zaap 1,2")
+                    self.assertEqual(focus.call_count, failing_index + 1)
+                    self.assertEqual(chat.call_count, failing_index)
+                    runtime.switch_character.restore_preferred_client.assert_not_called()
+                    runtime.logger.exception.assert_any_call(
+                        "Auto zaap: exception pendant activation hwnd=%s.",
+                        101 + failing_index,
+                    )
+                    runtime._emit_status.assert_called_once_with(
+                        f"Auto zaap interrompu : {failing_index}/{count} commandes émises "
+                        "(réception DOFUS non vérifiée)."
+                    )
+
     def test_zaap_worker_reports_emitted_commands_for_2_4_6_8(self) -> None:
         for count in (2, 4, 6, 8):
             with self.subTest(count=count):

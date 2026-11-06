@@ -182,6 +182,14 @@ class ZaapMacro:
                         or dispatch_context_changed()
                     ),
                     )
+                except Exception:
+                    # A failed native focus operation leaves the foreground
+                    # uncertain. Do not send chat or restore the favorite.
+                    focus_lost = True
+                    self.runtime.logger.exception(
+                        "Auto zaap: exception pendant activation hwnd=%s.", target_hwnd,
+                    )
+                    break
                 finally:
                     focus_steps_ms.append(
                         max(0.0, (perf_counter() - focus_started_at) * 1000.0)
