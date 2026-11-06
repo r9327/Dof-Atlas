@@ -194,10 +194,10 @@ class OrganizerPointerLeaseEpochTests(unittest.TestCase):
                 self.assertIsNone(state.mouse_block_epoch_if_active())
                 state.begin_mouse_block("ancien")
                 old_epoch = state.mouse_block_epoch_if_active()
-                self.assertEqual(old_epoch, 0)
+                self.assertIsInstance(old_epoch, int)
                 state.clear_mouse_block()
                 state.begin_mouse_block("nouveau")
-                self.assertEqual(state.mouse_block_epoch_if_active(), 1)
+                self.assertGreater(state.mouse_block_epoch_if_active(), old_epoch)
                 # Old native DOWN must not cancel a new replay worker.
                 self.assertFalse(state.note_blocked_physical_gesture(
                     expected_epoch=old_epoch,
@@ -206,6 +206,46 @@ class OrganizerPointerLeaseEpochTests(unittest.TestCase):
                 self.assertEqual(state.end_mouse_block(), 0)
                 self.assertEqual(state.last_release_blocked_count(), 0)
                 self.assertIsNone(state.mouse_block_epoch_if_active())
+
+    def test_sequential_pointer_leases_reject_delayed_hook_probe_2_to_8(self):
+        # A native hook may sample the old lease just before that worker
+        # releases it; the next worker can start without an emergency Stop.
+        for accounts in (2, 4, 6, 8):
+            with self.subTest(accounts=accounts):
+                state = InputState()
+                state.begin_mouse_block("Miroir precedent")
+                old_epoch = state.mouse_block_epoch_if_active()
+                self.assertEqual(state.end_mouse_block(), 0)
+                state.begin_mouse_block("Miroir suivant")
+                new_epoch = state.mouse_block_epoch_if_active()
+                self.assertNotEqual(old_epoch, new_epoch)
+                self.assertFalse(state.note_blocked_physical_gesture(
+                    expected_epoch=old_epoch,
+                ))
+                self.assertFalse(state.mouse_block_interrupted())
+                self.assertTrue(state.note_blocked_physical_gesture(
+                    expected_epoch=new_epoch,
+                ))
+                self.assertEqual(state.end_mouse_block(), 0)
+                self.assertTrue(state.last_release_interrupted())
+                self.assertEqual(state.last_release_blocked_count(), 1)
+
+    def test_nested_pointer_blocks_keep_the_outer_epoch_2_to_8(self):
+        for accounts in (2, 4, 6, 8):
+            with self.subTest(accounts=accounts):
+                state = InputState()
+                state.begin_mouse_block("Miroir outer")
+                original_epoch = state.mouse_block_epoch_if_active()
+                state.begin_mouse_block("Miroir inner")
+                self.assertEqual(state.mouse_block_epoch_if_active(), original_epoch)
+                self.assertEqual(state.end_mouse_block(), 1)
+                self.assertEqual(state.mouse_block_epoch_if_active(), original_epoch)
+                self.assertEqual(state.end_mouse_block(), 0)
+                state.begin_mouse_block("Next independent gesture")
+                self.assertNotEqual(
+                    state.mouse_block_epoch_if_active(), original_epoch,
+                )
+                self.assertEqual(state.end_mouse_block(), 0)
 
     def test_lease_generation_can_be_claimed_only_while_active(self):
         for count in (2, 4, 6, 8):

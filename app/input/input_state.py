@@ -58,14 +58,18 @@ class InputState:
             if owners is None:
                 owners = []
                 self._mouse_block_owners.epochs = owners
+            if self._mouse_block_count == 0:
+                # A new, independent pointer lease needs a new epoch even
+                # without Stop. A delayed native-hook probe must not cancel
+                # the next worker simply because both ran between Stops.
+                self._mouse_block_epoch += 1
+                self._mouse_block_interrupted = False
+                self._mouse_block_gesture_count = 0
             owners.append(self._mouse_block_epoch)
             # The result of an earlier release must never contaminate this
             # worker's next lease after another macro was dispatched.
             self._mouse_block_owners.last_release_interrupted = False
             self._mouse_block_owners.last_release_blocked_count = 0
-            if self._mouse_block_count == 0:
-                self._mouse_block_interrupted = False
-                self._mouse_block_gesture_count = 0
             self._mouse_block_count += 1
             self._mouse_block_label = str(label or "macro")
             return self._mouse_block_count
