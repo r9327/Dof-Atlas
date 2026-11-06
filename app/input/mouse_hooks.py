@@ -220,11 +220,27 @@ class MouseHook:
 
     def _mouse_proc(self, n_code: int, w_param: int, l_param: int) -> int:
         try:
-            if (n_code >= 0 and w_param == WM_MOUSEMOVE
-                    and not self.input_state.is_mouse_blocked()):
-                # Most native callbacks are MOVE. When nobody owns the
-                # pointer, MOVE has no release pair, replay or user callback:
-                # avoid ctypes pointer decoding entirely (2–8 clients).
+            if n_code >= 0 and w_param == WM_MOUSEMOVE:
+                # MOVE never owns a DOWN/UP pair and has no user callback.
+                # When the pointer is free, skip even ctypes decoding.
+                if not self.input_state.is_mouse_blocked():
+                    return ctypes.windll.user32.CallNextHookEx(
+                        self._hook, n_code, w_param, l_param,
+                    )
+                # Under a pointer lease only the injected marker is needed.
+                # Do not decode x/y, allocate a release token, or log MOVE
+                # for every physical update during a 2–8 client fan-out.
+                move = ctypes.cast(
+                    ctypes.c_void_p(l_param),
+                    ctypes.POINTER(MSLLHOOKSTRUCT),
+                ).contents
+                atlas_synthetic = (
+                    bool(move.flags & LLMHF_INJECTED)
+                    or int(move.dwExtraInfo or 0)
+                    == ATLAS_SYNTHETIC_MOUSE_EXTRA_INFO
+                )
+                if not atlas_synthetic:
+                    return 1
                 return ctypes.windll.user32.CallNextHookEx(
                     self._hook, n_code, w_param, l_param,
                 )

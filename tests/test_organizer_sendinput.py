@@ -2277,5 +2277,55 @@ class OrganizerSendInputTests(unittest.TestCase):
 
 
 
+    def test_blocked_native_move_burst_never_enters_generic_hook_path(self):
+        import ctypes
+        from types import SimpleNamespace
+        from app.input.input_state import (
+            ATLAS_SYNTHETIC_MOUSE_EXTRA_INFO, InputState, SyntheticInputGuard,
+        )
+        from app.input.mouse_hooks import MouseHook, MSLLHOOKSTRUCT, WM_MOUSEMOVE
+
+        for accounts in (2, 4, 6, 8):
+            with self.subTest(accounts=accounts):
+                state = InputState()
+                logger = Mock()
+                callback, wheel, release = Mock(), Mock(), Mock()
+                hook = MouseHook(
+                    state, SyntheticInputGuard(logger), logger, callback,
+                    wheel_callback=wheel, release_callback=release,
+                )
+                state.begin_mouse_block("Miroir")
+                native = MSLLHOOKSTRUCT()
+                native.pt.x, native.pt.y = 10, 20
+                pointer = ctypes.addressof(native)
+                next_hook = Mock(return_value=81)
+                with (
+                    patch.object(ctypes, "windll", SimpleNamespace(
+                        user32=SimpleNamespace(CallNextHookEx=next_hook),
+                    ), create=True),
+                    patch("app.input.mouse_hooks._physical_release_token",
+                          side_effect=AssertionError("MOVE decoded as UP")),
+                    patch.object(hook, "_log_blocked_event",
+                                 side_effect=AssertionError("MOVE logged")),
+                ):
+                    for _ in range(accounts * 50):
+                        self.assertEqual(
+                            hook._mouse_proc(0, WM_MOUSEMOVE, pointer), 1,
+                        )
+                    native.dwExtraInfo = ATLAS_SYNTHETIC_MOUSE_EXTRA_INFO
+                    for _ in range(accounts * 5):
+                        self.assertEqual(
+                            hook._mouse_proc(0, WM_MOUSEMOVE, pointer), 81,
+                        )
+                self.assertEqual(next_hook.call_count, accounts * 5)
+                callback.assert_not_called()
+                wheel.assert_not_called()
+                release.assert_not_called()
+                self.assertEqual(hook._blocked_click_count, 0)
+                self.assertEqual(hook._blocked_wheel_count, 0)
+                state.end_mouse_block()
+
+
+
 if __name__ == "__main__":
     unittest.main()
