@@ -1696,3 +1696,23 @@ le verrou restent absorbées, même si le worker s'arrête plus tôt.
 Réception Unity hors focus (MIRR-002), mesures p50/p95/p99 et essais
 réels Windows 1/2/4/6/8 (MIRR-005/ATQA-002) restent `PENDING/NOT_RUN`.
 Ne pas rendre la PR non-Draft.
+
+
+## 06/11/2026 — interruption des pauses Miroir après collision physique (P0, non certifié)
+
+- `MacroLock.wait(duration_ms, interrupted=...)` accepte un prédicat optionnel
+  et continue de recontrôler Stop, le bail générationnel et l'interruption
+  externe par tranches d'attente d'au plus 25 ms. Les appels existants sans
+  prédicat conservent le même contrat.
+- Pendant un blocage réel du pointeur, les pauses entre destinataires du
+  **Miroir clic/molette** passent `mouse_block_interrupted` comme prédicat :
+  la première pression ou molette absorbée annule le fan-out sans attendre
+  toute la pause réglée. Les pauses clavier et les macros classiques sont
+  inchangées ; pas de deuxième moteur, ni de replay différé.
+- Tests de logique `MacroLock` et tests simulés de diffusion clic/molette
+  à **2/4/6/8 comptes** ajoutés ; ces tests ne démontrent aucune latence
+  Windows ni réception Unity.
+- Limite conservée **MIRR-007 PENDING** : la première entrée physique sous
+  bail reste absorbée pour éviter un clic dans la mauvaise fenêtre. Le
+  prédicat limite l'attente **nominale** avant vérification, mais ne garantit
+  aucun p99 de bout en bout, et ne remplace pas la recette réelle #322.
