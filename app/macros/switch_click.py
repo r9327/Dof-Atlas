@@ -1066,6 +1066,15 @@ class SwitchClickMacro:
                     # the swallowed gesture as a completed mirror run.
                     if self.runtime.input_state.last_release_interrupted() is True:
                         pointer_collision = True
+                    # This is a per-lease count, not the throttled global
+                    # mouse-hook counter. Log only AFTER the pointer is free.
+                    blocked_count = self.runtime.input_state.last_release_blocked_count()
+                    if (mirror_started_at is not None
+                            and type(blocked_count) is int and blocked_count > 0):
+                        self.runtime.logger.info(
+                            "Miroir clic collisions_physiques=%s cibles=%s",
+                            blocked_count, target_total,
+                        )
                     self.runtime.logger.debug(
                         "%s souris physique débloquée: remaining=%s",
                         action_label,
