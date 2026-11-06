@@ -4582,8 +4582,15 @@ class OrganizerMirrorIntegrationTests(unittest.TestCase):
         timing.activate_retry_ms = 0
         timing.switch_click_down_ms = 30
         timing.switch_client_settle_ms = 0
-        runtime.macro_lock.should_stop.side_effect = [False, False, False, True]
-        runtime.macro_lock.wait.return_value = True
+        runtime.macro_lock.should_stop.return_value = False
+
+        def stop_during_key_hold(_duration_ms):
+            # Only the synthetic KEYDOWN-to-KEYUP hold triggers Stop; never
+            # rely on a fixed number of preliminary native guard calls.
+            runtime.macro_lock.should_stop.return_value = True
+            return True
+
+        runtime.macro_lock.wait.side_effect = stop_during_key_hold
         macro = MirrorInputMacro(runtime)
         events = []
         with (
