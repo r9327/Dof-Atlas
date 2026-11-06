@@ -2488,5 +2488,81 @@ class OrganizerSendInputTests(unittest.TestCase):
         self.assertFalse(hook._consumed_releases)
 
 
+    def test_native_release_callback_requires_a_matching_physical_down(self):
+        from app.input.input_state import InputState
+        from app.input.mouse_hooks import (
+            MouseHook, MSLLHOOKSTRUCT, WM_LBUTTONDOWN, WM_LBUTTONUP,
+            WM_RBUTTONDOWN, WM_RBUTTONUP, LLMHF_INJECTED,
+        )
+
+        for down, up, button in (
+            (WM_LBUTTONDOWN, WM_LBUTTONUP, "Left"),
+            (WM_RBUTTONDOWN, WM_RBUTTONUP, "Right"),
+        ):
+            with self.subTest(button=button):
+                released = Mock(return_value=True)
+                hook = MouseHook(
+                    InputState(), Mock(), Mock(), Mock(return_value=False),
+                    release_callback=released,
+                )
+                event = MSLLHOOKSTRUCT()
+                event.pt.x = 25
+                event.pt.y = 33
+                event.flags = 0
+                next_hook = Mock(return_value=37)
+                with patch.object(
+                    ctypes, "windll",
+                    SimpleNamespace(user32=SimpleNamespace(CallNextHookEx=next_hook)),
+                    create=True,
+                ):
+                    ptr = ctypes.addressof(event)
+                    # Stray UP cannot start replay or clear another gesture.
+                    self.assertEqual(hook._mouse_proc(0, up, ptr), 37)
+                    released.assert_not_called()
+                    self.assertEqual(hook._mouse_proc(0, down, ptr), 37)
+                    event.flags = LLMHF_INJECTED
+                    self.assertEqual(hook._mouse_proc(0, up, ptr), 37)
+                    released.assert_not_called()
+                    event.flags = 0
+                    self.assertEqual(hook._mouse_proc(0, up, ptr), 37)
+                    released.assert_called_once_with(button, 25, 33)
+                    self.assertEqual(hook._mouse_proc(0, up, ptr), 37)
+                    self.assertEqual(released.call_count, 1)
+                    self.assertFalse(hook._native_releases)
+
+    def test_stale_worker_thread_cannot_clear_new_pointer_collision_after_stop(self):
+        import threading
+        from app.input.input_state import InputState
+
+        state = InputState()
+        entered = threading.Event()
+        release = threading.Event()
+        old_end = []
+
+        def old_worker():
+            state.begin_mouse_block("old")
+            entered.set()
+            release.wait(3)
+            old_end.append(state.end_mouse_block())
+
+        worker = threading.Thread(target=old_worker, daemon=True)
+        worker.start()
+        try:
+            self.assertTrue(entered.wait(3))
+            state.clear_mouse_block()
+            state.begin_mouse_block("new")
+            self.assertTrue(state.note_blocked_physical_gesture())
+            release.set()
+            worker.join(3)
+            self.assertFalse(worker.is_alive())
+            self.assertEqual(old_end, [1])
+            self.assertTrue(state.is_mouse_blocked())
+            self.assertTrue(state.mouse_block_interrupted())
+        finally:
+            release.set()
+            worker.join(3)
+            state.clear_mouse_block()
+
+
 if __name__ == "__main__":
     unittest.main()
