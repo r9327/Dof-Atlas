@@ -1071,10 +1071,15 @@ class SwitchClickMacro:
                     blocked_count = self.runtime.input_state.last_release_blocked_count()
                     if (mirror_started_at is not None
                             and type(blocked_count) is int and blocked_count > 0):
-                        self.runtime.logger.info(
-                            "Miroir clic collisions_physiques=%s cibles=%s",
-                            blocked_count, target_total,
-                        )
+                        try:
+                            self.runtime.logger.info(
+                                "Miroir clic collisions_physiques=%s cibles=%s",
+                                blocked_count, target_total,
+                            )
+                        except Exception:
+                            # The pointer was already released. Optional
+                            # telemetry must never suppress the final status.
+                            pass
                     self.runtime.logger.debug(
                         "%s souris physique débloquée: remaining=%s",
                         action_label,
