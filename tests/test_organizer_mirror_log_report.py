@@ -7,7 +7,7 @@ import tempfile
 import unittest
 from pathlib import Path
 
-from tools.organizer_mirror_log_report import main, summarize
+from tools.organizer_mirror_log_report import compare_reports, main, summarize
 
 
 class OrganizerMirrorLogReportTests(unittest.TestCase):
@@ -80,6 +80,44 @@ class OrganizerMirrorLogReportTests(unittest.TestCase):
         result = summarize(lines(), 8)
         self.assertEqual(count, 500)
         self.assertEqual(result["metrics"]["click_pointer_block_ms"]["n"], 500)
+
+    def test_compare_p95_ratios_requires_five_samples_and_two_account_baseline(self):
+        reports = {}
+        for accounts, duration in ((2, 10), (4, 12), (6, 14), (8, 20)):
+            reports[accounts] = summarize(
+                (f"Miroir blocage_souris_ms={duration}.0 cibles={accounts}"
+                 for _ in range(5)), accounts,
+            )
+        comparison = compare_reports(reports)
+        self.assertEqual(
+            comparison["p95_ratio_vs_2_accounts"]["click_pointer_block_ms"],
+            {"2": 1.0, "4": 1.2, "6": 1.4, "8": 2.0},
+        )
+        self.assertEqual(comparison["minimum_samples_for_ratio"], 5)
+        reports[8] = summarize(["Miroir blocage_souris_ms=20 cibles=8"], 8)
+        self.assertIsNone(compare_reports(reports)["p95_ratio_vs_2_accounts"]
+                          ["click_pointer_block_ms"]["8"])
+        reports.pop(2)
+        self.assertIsNone(compare_reports(reports)["p95_ratio_vs_2_accounts"]
+                          ["click_pointer_block_ms"]["4"])
+
+    def test_compare_cli_reads_separate_logs_and_keeps_evidence_uncertified(self):
+        with tempfile.TemporaryDirectory() as directory:
+            args = []
+            for count in (2, 8):
+                path = Path(directory) / f"atlas_{count}.log"
+                path.write_text(
+                    (f"Miroir blocage_souris_ms={count * 10}.0 cibles={count}\n" * 5),
+                    encoding="utf-8",
+                )
+                args.extend(["--compare", f"{count}={path}"])
+            output = io.StringIO()
+            with contextlib.redirect_stdout(output):
+                self.assertEqual(main(args), 0)
+            result = json.loads(output.getvalue())
+            self.assertEqual(result["p95_ratio_vs_2_accounts"]
+                             ["click_pointer_block_ms"]["8"], 4.0)
+            self.assertEqual(result["evidence"], "LOG_ONLY_NOT_UNITY_CERTIFIED")
 
     def test_cli_emits_aggregates_without_exposing_raw_window_coordinates(self):
         with tempfile.TemporaryDirectory() as directory:
