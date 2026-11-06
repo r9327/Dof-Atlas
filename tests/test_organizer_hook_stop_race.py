@@ -100,6 +100,61 @@ class OrganizerKeyboardStopRaceTests(unittest.TestCase):
                         ({65} if event_type == WM_KEYDOWN else set()),
                     )
 
+    def test_consumed_keyboard_pair_stays_consumed_if_logger_fails(self):
+        for event_type in (WM_KEYDOWN, WM_KEYUP):
+            with self.subTest(event_type=event_type):
+                registry = self._registry()
+                registry._mirrored_key_ups.add(65)
+                registry.logger.exception.side_effect = RuntimeError("logging broken")
+                event = KBDLLHOOKSTRUCT()
+                event.vkCode = 65
+                next_hook = Mock(return_value=37)
+                with (
+                    patch.object(
+                        ctypes, "windll",
+                        SimpleNamespace(user32=SimpleNamespace(CallNextHookEx=next_hook)),
+                        create=True,
+                    ),
+                    patch.object(
+                        registry, "_dispatch_matching_hotkeys",
+                        side_effect=RuntimeError("shortcut callback failed"),
+                    ),
+                ):
+                    self.assertEqual(
+                        registry._keyboard_proc(
+                            0, event_type, ctypes.addressof(event),
+                        ),
+                        1,
+                    )
+                next_hook.assert_not_called()
+                self.assertEqual(
+                    registry._mirrored_key_ups,
+                    ({65} if event_type == WM_KEYDOWN else set()),
+                )
+
+    def test_unowned_keyboard_failure_passes_native_when_logger_fails(self):
+        registry = self._registry()
+        registry.logger.exception.side_effect = RuntimeError("logging broken")
+        event = KBDLLHOOKSTRUCT()
+        event.vkCode = 65
+        next_hook = Mock(return_value=37)
+        with (
+            patch.object(
+                ctypes, "windll",
+                SimpleNamespace(user32=SimpleNamespace(CallNextHookEx=next_hook)),
+                create=True,
+            ),
+            patch.object(
+                registry, "_dispatch_matching_hotkeys",
+                side_effect=RuntimeError("shortcut callback failed"),
+            ),
+        ):
+            self.assertEqual(
+                registry._keyboard_proc(0, WM_KEYUP, ctypes.addressof(event)),
+                37,
+            )
+        next_hook.assert_called_once()
+
     def test_unowned_key_still_passes_through_after_hotkey_failure(self):
         registry = self._registry()
         event = KBDLLHOOKSTRUCT()
