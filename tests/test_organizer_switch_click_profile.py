@@ -91,5 +91,38 @@ class SwitchClickProfileAdmissionTests(unittest.TestCase):
                 macro.runtime._spawn_macro.assert_not_called()
 
 
+    def test_single_client_native_noop_never_reads_roster_again(self):
+        class ReloadingProfile:
+            macro_mode = "macro"
+            primary_handle = 101
+
+            def __init__(self):
+                self.reads = 0
+
+            @property
+            def clients(self):
+                self.reads += 1
+                if self.reads <= 2:
+                    return (SimpleNamespace(handle=101),)
+                return (object(),)  # Reload after the accepted snapshot.
+
+        runtime = Mock()
+        runtime.settings = ReloadingProfile()
+        runtime.macro_lock.should_stop.return_value = False
+        macro = SwitchClickMacro(runtime)
+        context = SwitchClickContext(
+            source_hwnd=101, client_x=5, client_y=10,
+            x_ratio=0.5, y_ratio=0.5, reason="cursor",
+        )
+        self.assertTrue(macro.run_async(
+            "Left", 10, 20, 1, "Switch clique",
+            captured_context=context, physical_source_delivered=True,
+        ))
+        # The old implementation read a third roster, which could throw or
+        # introduce a different window into a physically delivered click.
+        self.assertEqual(runtime.settings.reads, 2)
+        runtime._spawn_macro.assert_not_called()
+
+
 if __name__ == "__main__":
     unittest.main()
