@@ -102,8 +102,15 @@ class MacroLock:
             self._logger.info("Macro fin: action=%s elapsed_ms=%s", label or active, elapsed)
 
     def request_stop(self, reason: str = "stop urgence") -> None:
+        # Wake native and Python waits immediately, even if a worker is
+        # finishing while holding the lease lock.
         self.stop_event.set()
         with self._lock:
+            # A concurrent try_begin_generation may clear the shared event
+            # between our first set() and the lock acquisition. Set it again
+            # under the same lock used by admission so Stop always wins that
+            # overlap. A genuinely NEW admission after Stop may clear it.
+            self.stop_event.set()
             active = self._lease.label if self._lease else ""
         self._logger.warning("Stop urgence: reason=%s active=%s", reason, active)
 

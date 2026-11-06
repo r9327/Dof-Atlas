@@ -281,5 +281,36 @@ class MacroGenerationOwnershipTests(unittest.TestCase):
 
 
 
+    def test_stop_reasserts_event_if_concurrent_start_clears_first_signal(self):
+        from unittest.mock import patch as mock_patch
+
+        for count in (2, 4, 6, 8):
+            with self.subTest(accounts=count):
+                lock = MacroLock(Mock())
+                native_set = lock.stop_event.set
+                calls = []
+
+                def interleaved_stop_signal():
+                    native_set()
+                    calls.append("set")
+                    if len(calls) == 1:
+                        # Simulate a scheduler switch before Stop acquires
+                        # the lease lock and before the final status report.
+                        self.assertIsInstance(
+                            lock.try_begin_generation("Miroir"), int,
+                        )
+                        self.assertFalse(lock.should_stop())
+
+                with mock_patch.object(
+                    lock.stop_event, "set", side_effect=interleaved_stop_signal,
+                ):
+                    lock.request_stop("raccourci")
+                self.assertEqual(calls, ["set", "set"])
+                self.assertTrue(lock.should_stop())
+                self.assertEqual(lock.active_label, "Miroir")
+                lock.end("Miroir", generation=lock.active_generation)
+
+
+
 if __name__ == "__main__":
     unittest.main()
