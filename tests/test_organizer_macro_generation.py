@@ -321,6 +321,39 @@ class MacroGenerationOwnershipTests(unittest.TestCase):
 
 
 
+    def test_pointer_collision_interrupts_bounded_settle_wait_2_4_6_8(self):
+        from app.input.input_state import InputState
+
+        for accounts in (2, 4, 6, 8):
+            with self.subTest(accounts=accounts):
+                lock = MacroLock(Mock())
+                state = InputState()
+                generation = lock.try_begin_generation("Miroir")
+                self.assertIs(type(generation), int)
+                state.begin_mouse_block("Miroir")
+                observed = []
+
+                def collide_after_first_slice(seconds):
+                    observed.append(seconds)
+                    state.note_blocked_physical_gesture()
+                    return False
+
+                try:
+                    with patch.object(
+                        lock.stop_event, "wait",
+                        side_effect=collide_after_first_slice,
+                    ):
+                        self.assertTrue(lock.wait(
+                            5000, interrupted=state.mouse_block_interrupted,
+                        ))
+                    self.assertEqual(len(observed), 1)
+                    self.assertLessEqual(observed[0], 0.025)
+                    self.assertTrue(lock.owns("Miroir", generation))
+                    self.assertFalse(lock.should_stop())
+                finally:
+                    state.end_mouse_block()
+                    lock.end("Miroir", generation=generation)
+
     def test_stop_reasserts_event_if_concurrent_start_clears_first_signal(self):
         from unittest.mock import patch as mock_patch
 
