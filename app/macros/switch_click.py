@@ -324,6 +324,12 @@ class SwitchClickMacro:
         mirror_focus_samples: list[float] = []
         targets = []
         frozen_handles: tuple[int, ...] = ()
+        def pointer_interrupted() -> bool:
+            # Mock-only test runtimes without a real InputState must not
+            # spuriously cancel their senders (a bare Mock is truthy).
+            check = getattr(self.runtime.input_state, "mouse_block_interrupted", None)
+            return bool(mouse_blocked and callable(check) and check() is True)
+
         initial_mode = getattr(settings_at_start, "macro_mode", None)
         initial_primary = getattr(settings_at_start, "primary_handle", None)
 
@@ -630,6 +636,13 @@ class SwitchClickMacro:
             )
 
             for index, (client, target_hwnd) in enumerate(zip(targets, frozen_handles)):
+                if pointer_interrupted():
+                    delivery_failed = True
+                    self.runtime.logger.warning(
+                        "%s interrompu: geste physique reçu pendant blocage souris.",
+                        action_label,
+                    )
+                    return
                 if not target_roster_intact():
                     delivery_failed = True
                     self.runtime.logger.warning(
@@ -686,6 +699,7 @@ class SwitchClickMacro:
                         action_label,
                         should_stop=lambda: (
                             self.runtime.macro_lock.should_stop()
+                            or pointer_interrupted()
                             or self.runtime.settings is not settings_at_start
                             or not target_roster_intact()
                         ),
@@ -721,6 +735,13 @@ class SwitchClickMacro:
 
                 # A successful SetForegroundWindow attempt can become stale
                 # before SendInput. Never click another application or client.
+                if pointer_interrupted():
+                    delivery_failed = True
+                    self.runtime.logger.warning(
+                        "%s interrompu: clic physique avant émission hwnd=%s",
+                        action_label, target_hwnd,
+                    )
+                    return
                 if not target_roster_intact():
                     delivery_failed = True
                     self.runtime.logger.warning(
@@ -817,6 +838,7 @@ class SwitchClickMacro:
                 # settle tick would scale poorly with eight Unity clients.
                 def send_interrupted() -> bool:
                     if (self.runtime.macro_lock.should_stop()
+                            or pointer_interrupted()
                             or not target_roster_intact()):
                         return True
                     return (
@@ -843,6 +865,13 @@ class SwitchClickMacro:
                     mirror_send_samples.append((perf_counter() - send_started_at) * 1000.0)
                 if delivered:
                     sent_count += 1
+                    if pointer_interrupted():
+                        delivery_failed = True
+                        self.runtime.logger.warning(
+                            "%s interrompu: nouveau geste physique après clic hwnd=%s",
+                            action_label, target_hwnd,
+                        )
+                        return
                     if mirror_started_at is not None:
                         last_emission_at = perf_counter()
                     if not target_roster_intact():
@@ -853,7 +882,13 @@ class SwitchClickMacro:
                         )
                         return
                 else:
-                    if (self.runtime.macro_lock.should_stop()
+                    if pointer_interrupted():
+                        delivery_failed = True
+                        self.runtime.logger.warning(
+                            "%s interrompu: nouveau geste physique pendant clic hwnd=%s",
+                            action_label, target_hwnd,
+                        )
+                    elif (self.runtime.macro_lock.should_stop()
                             or self.runtime.settings is not settings_at_start):
                         self.runtime.logger.info(
                             "%s clic interrompu par Stop ou rechargement hwnd=%s",
@@ -905,7 +940,7 @@ class SwitchClickMacro:
             # The user may already have selected another application.
             restore_after_worker = (
                 should_restore_preferred and not focus_lost
-                and not delivery_failed
+                and not delivery_failed and not pointer_interrupted()
                 and not self.runtime.macro_lock.should_stop()
                 and self.runtime.settings is settings_at_start
             )
@@ -991,6 +1026,7 @@ class SwitchClickMacro:
             # previous check passed before Stop arrived.
             if (restore_after_worker
                     and not self.runtime.macro_lock.should_stop()
+                    and not pointer_interrupted()
                     and self.runtime.settings is settings_at_start
                     and target_roster_intact()):
                 try:
