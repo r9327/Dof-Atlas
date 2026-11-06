@@ -39,6 +39,11 @@ DIRECT_OWNERS = {
         "tests.test_organizer_macro_reliability",
         "tests.test_organizer_mirror_ui",
     ),
+    # Only this reviewed development helper is allowed as a tool-side
+    # executable owner. The global PR FULL requirement is unaffected.
+    "tools/organizer_mirror_log_report.py": (
+        "tests.test_organizer_mirror_log_report",
+    ),
 }
 
 
@@ -94,7 +99,10 @@ def plan_lot(root: Path, *, lot_base: str, pr_base: str, head: str) -> dict:
                 path.startswith("docs/") and path.endswith(".md")):
             continue
         if (path in ci_scope_gate.FULL_ONLY_PATHS
-                or not (path.startswith("app/") or path.startswith("tests/"))
+                or not (
+                    path.startswith("app/") or path.startswith("tests/")
+                    or (path.startswith("tools/") and path in DIRECT_OWNERS)
+                )
                 or not path.endswith(".py")):
             unsupported.append(path)
             continue
