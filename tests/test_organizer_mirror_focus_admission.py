@@ -688,9 +688,11 @@ class MirrorFocusAdmissionTests(unittest.TestCase):
                 class FlippingProfile:
                     macro_mode = "mirror"
                     primary_handle = source
-                    client_by_handle = original.client_by_handle
 
                     def __init__(self):
+                        # Instance binding prevents a function-valued
+                        # resolver from becoming an implicit bound method.
+                        self.client_by_handle = original.client_by_handle
                         self.reads = 0
 
                     @property
