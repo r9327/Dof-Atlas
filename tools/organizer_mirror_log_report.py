@@ -70,6 +70,7 @@ def summarize(lines: Iterable[str], accounts: int) -> dict:
     previous = (0, 0)
     mismatched_roster_lines = 0
     observed_non_replayed = 0
+    profile_changed_after_send = 0
     for line in lines:
         match = BLOCKED_COUNTERS.search(line) or STOP_COUNTERS.search(line)
         if match:
@@ -88,10 +89,15 @@ def summarize(lines: Iterable[str], accounts: int) -> dict:
                 mismatched_roster_lines += 1
             elif status[1] == "interrompu":
                 statuses["interrupted"] += 1
-            elif status[1] == "incomplet" or sent != total:
+            elif (status[1] == "incomplet" or sent != total
+                  or "profil modifié après envoi" in line):
+                # A complete SendInput count with a changed Organizer profile
+                # is not a completed gesture under the original roster.
                 statuses["partial"] += 1
             else:
                 statuses["complete"] += 1
+            if total == accounts and "profil modifié après envoi" in line:
+                profile_changed_after_send += 1
             if total == accounts and "geste physique non rejoué" in line:
                 observed_non_replayed += 1
         for name, pattern in METRIC_PATTERNS.items():
@@ -119,6 +125,7 @@ def summarize(lines: Iterable[str], accounts: int) -> dict:
         "observed_blocked_physical_inputs": losses,
         "blocked_input_scope": "WHOLE_LOG",
         "non_replayed_statuses": observed_non_replayed,
+        "profile_changed_after_send": profile_changed_after_send,
         "roster_mismatch_lines": mismatched_roster_lines,
     }
 
