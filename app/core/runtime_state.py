@@ -544,11 +544,13 @@ class AtlasRuntime:
             finally:
                 if bound:
                     self.macro_lock.unbind_worker()
-                # An old worker must not reset the synthetic guard or unlock
-                # a fresh macro if Stop/restart reused the same action label.
-                if self.macro_lock.owns(label, generation):
-                    self.synthetic_guard.reset()
-                self.macro_lock.end(label, generation=generation)
+                # Atomic lease release + synthetic guard cleanup: Stop/restart
+                # cannot admit another worker between ownership validation
+                # and the reset of shared synthetic input state.
+                self.macro_lock.end(
+                    label, generation=generation,
+                    on_owner_end=self.synthetic_guard.reset if bound else None,
+                )
 
         thread = None
         try:

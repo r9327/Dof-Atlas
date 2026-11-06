@@ -327,5 +327,69 @@ class MacroGenerationOwnershipTests(unittest.TestCase):
 
 
 
+    def test_end_cleanup_blocks_reuse_until_old_owner_reset_finishes(self):
+        for accounts in (2, 4, 6, 8):
+            with self.subTest(accounts=accounts):
+                lock = MacroLock(Mock())
+                old = lock.try_begin_generation("Miroir")
+                inside_cleanup = threading.Event()
+                permit_cleanup = threading.Event()
+                new_admitted = threading.Event()
+                result = []
+
+                def slow_reset():
+                    inside_cleanup.set()
+                    self.assertTrue(permit_cleanup.wait(2))
+                    result.append("old_reset")
+
+                def old_cleanup():
+                    lock.end("Miroir", generation=old, on_owner_end=slow_reset)
+
+                def new_admission():
+                    generation = lock.try_begin_generation("Miroir")
+                    result.append(("new", generation))
+                    new_admitted.set()
+                    if generation is not None:
+                        lock.end("Miroir", generation=generation)
+
+                worker = threading.Thread(target=old_cleanup)
+                newcomer = threading.Thread(target=new_admission)
+                worker.start()
+                try:
+                    self.assertTrue(inside_cleanup.wait(2))
+                    newcomer.start()
+                    # A new macro cannot be admitted while the previous
+                    # owner's reset is still running under the lease lock.
+                    self.assertFalse(new_admitted.wait(0.02))
+                    permit_cleanup.set()
+                    worker.join(2)
+                    newcomer.join(2)
+                    self.assertFalse(worker.is_alive())
+                    self.assertFalse(newcomer.is_alive())
+                    self.assertEqual(result[0], "old_reset")
+                    self.assertEqual(result[1][0], "new")
+                    self.assertGreater(result[1][1], old)
+                finally:
+                    permit_cleanup.set()
+                    worker.join(2)
+                    if newcomer.ident is not None:
+                        newcomer.join(2)
+
+    def test_stale_worker_cleanup_cannot_reset_new_guard(self):
+        lock = MacroLock(Mock())
+        old = lock.try_begin_generation("Miroir")
+        lock.end("Miroir", generation=old)
+        current = lock.try_begin_generation("Miroir")
+        stale_reset = Mock(side_effect=AssertionError("old reset leaked"))
+        lock.end("Miroir", generation=old, on_owner_end=stale_reset)
+        stale_reset.assert_not_called()
+        self.assertTrue(lock.owns("Miroir", current))
+        good_reset = Mock()
+        lock.end("Miroir", generation=current, on_owner_end=good_reset)
+        good_reset.assert_called_once_with()
+        self.assertIsNone(lock.snapshot_active())
+
+
+
 if __name__ == "__main__":
     unittest.main()

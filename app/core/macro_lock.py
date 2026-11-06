@@ -4,6 +4,7 @@ import threading
 import time
 from dataclasses import dataclass
 from logging import Logger
+from typing import Callable
 
 
 @dataclass
@@ -83,7 +84,10 @@ class MacroLock:
         # Legacy callers still receive an unchanged boolean contract.
         return self.try_begin_generation(label) is not None
 
-    def end(self, label: str | None = None, *, generation: int | None = None) -> None:
+    def end(
+        self, label: str | None = None, *, generation: int | None = None,
+        on_owner_end: Callable[[], None] | None = None,
+    ) -> None:
         with self._lock:
             if self._lease is None:
                 return
@@ -104,7 +108,14 @@ class MacroLock:
                 )
                 return
             elapsed = int((time.monotonic() - self._lease.started_at) * 1000)
-            self._lease = None
+            # An old runner must never reset a NEW runner's synthetic input
+            # protection between owns() and end(). Perform its cleanup while
+            # holding the same admission lock, only for the exact owner.
+            try:
+                if on_owner_end is not None:
+                    on_owner_end()
+            finally:
+                self._lease = None
             self._logger.info("Macro fin: action=%s elapsed_ms=%s", label or active, elapsed)
 
     def request_stop(self, reason: str = "stop urgence") -> None:
