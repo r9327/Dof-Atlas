@@ -762,7 +762,14 @@ class AtlasRuntime:
                     # Do not broadcast it as an extra mirrored tap.
                     return False
         foreground = foreground_window()
-        if self.macro_lock.active_label:
+        busy_label = self.macro_lock.active_label
+        busy_generation = self.macro_lock.active_generation if busy_label else None
+        if busy_label and (
+            type(busy_generation) is not int
+            or not self.macro_lock.owns(busy_label, busy_generation)
+        ):
+            return False
+        if busy_label:
             # A worker may finish/Stop while native Win32 checks are running.
             # Only the exact original Organizer generation may suppress a
             # busy secondary key. Otherwise let the real key pass through.
@@ -781,7 +788,7 @@ class AtlasRuntime:
                         and self.settings is settings
                         and self._running and self._admin_ok
                         and settings.macro_mode == "mirror"
-                        and self.macro_lock.active_label
+                        and self.macro_lock.owns(busy_label, busy_generation)
                         and not self.macro_lock.should_stop()
                         and foreground_window() == foreground):
                     AtlasRuntime._report_mirror_busy_input(self, "clavier")
@@ -809,7 +816,7 @@ class AtlasRuntime:
                     and settings.macro_mode == "mirror"
                     and type(settings.primary_handle) is int
                     and settings.primary_handle == favorite_at_probe
-                    and self.macro_lock.active_label
+                    and self.macro_lock.owns(busy_label, busy_generation)
                     and not self.macro_lock.should_stop()
                     and isinstance(active, (list, tuple))
                     and tuple((type(c.handle), c.handle) for c in active) == frozen
@@ -875,7 +882,14 @@ class AtlasRuntime:
                     and self.macro_lock.should_stop())):
             return False
         foreground = foreground_window()
-        if self.macro_lock.active_label:
+        busy_label = self.macro_lock.active_label
+        busy_generation = self.macro_lock.active_generation if busy_label else None
+        if busy_label and (
+            type(busy_generation) is not int
+            or not self.macro_lock.owns(busy_label, busy_generation)
+        ):
+            return False
+        if busy_label:
             # A wheel tick on the still-focused favorite stays physical.
             # A busy worker cannot safely replay it to every client later.
             if foreground == settings.primary_handle:
@@ -892,7 +906,7 @@ class AtlasRuntime:
                         and self.settings is settings
                         and self._running and self._admin_ok
                         and settings.macro_mode == "mirror"
-                        and self.macro_lock.active_label
+                        and self.macro_lock.owns(busy_label, busy_generation)
                         and not self.macro_lock.should_stop()
                         and foreground_window() == foreground):
                     AtlasRuntime._report_mirror_busy_input(self, "molette")
@@ -920,7 +934,7 @@ class AtlasRuntime:
                     and settings.macro_mode == "mirror"
                     and type(settings.primary_handle) is int
                     and settings.primary_handle == favorite_at_probe
-                    and self.macro_lock.active_label
+                    and self.macro_lock.owns(busy_label, busy_generation)
                     and not self.macro_lock.should_stop()
                     and isinstance(active, (list, tuple))
                     and tuple((type(c.handle), c.handle) for c in active) == frozen

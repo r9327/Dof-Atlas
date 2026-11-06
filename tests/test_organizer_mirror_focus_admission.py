@@ -27,6 +27,11 @@ class MirrorFocusAdmissionTests(unittest.TestCase):
         runtime._running = True
         runtime._admin_ok = True
         runtime.macro_lock.active_label = ""
+        runtime.macro_lock.active_generation = 1
+        runtime.macro_lock.owns.side_effect = lambda label, generation: (
+            runtime.macro_lock.active_label == label
+            and runtime.macro_lock.active_generation == generation
+        )
         runtime.macro_lock.should_stop.return_value = False
         runtime._mirror_gesture_targets.side_effect = (
             lambda: AtlasRuntime._mirror_gesture_targets(runtime)
@@ -393,6 +398,53 @@ class MirrorFocusAdmissionTests(unittest.TestCase):
                 self.assertFalse(consumed)
                 identity.assert_not_called()
                 runtime._emit_status.assert_not_called()
+
+
+
+    def test_busy_secondary_new_same_named_worker_never_consumes_old_input(self):
+        from app.input.input_state import InputState
+
+        for count in (2, 4, 6, 8):
+            for gesture in ("key", "wheel"):
+                for mutation in ("probe", "status"):
+                    with self.subTest(count=count, gesture=gesture, mutation=mutation):
+                        runtime, source = self._runtime(count)
+                        runtime.input_state = InputState()
+                        runtime.input_state.begin_mouse_block("Miroir molette")
+                        runtime.macro_lock.active_label = "Miroir molette"
+                        runtime.macro_lock.active_generation = 42
+
+                        def during_probe(_hwnd):
+                            if mutation == "probe":
+                                runtime.macro_lock.active_generation = 43
+                            return True
+
+                        def during_status(_runtime, _kind):
+                            if mutation == "status":
+                                runtime.macro_lock.active_generation = 43
+
+                        with (
+                            patch("app.windows.unity_windows.foreground_window",
+                                  return_value=101),
+                            patch("app.macros.mirror_plan.is_dofus_unity_process",
+                                  side_effect=during_probe),
+                            patch.object(AtlasRuntime, "_report_mirror_busy_input",
+                                         side_effect=during_status) as notice,
+                        ):
+                            if gesture == "key":
+                                consumed = AtlasRuntime._handle_mirror_key(
+                                    runtime, 65, True,
+                                )
+                            else:
+                                consumed = AtlasRuntime._handle_mirror_wheel(
+                                    runtime, 120, 20, 25, False,
+                                )
+                        self.assertFalse(consumed)
+                        self.assertNotEqual(source, 101)
+                        self.assertEqual(notice.call_count, int(mutation == "status"))
+                        runtime.mirror_input.run_key.assert_not_called()
+                        runtime.mirror_input.run_wheel.assert_not_called()
+                        runtime.input_state.end_mouse_block()
 
 
 
