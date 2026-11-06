@@ -4747,6 +4747,7 @@ class OrganizerMacroReliabilityTests(unittest.TestCase):
                         SimpleNamespace(handle=101 + i) for i in range(count)
                     ]
                     runtime.settings.primary_handle = 101
+                    runtime.settings.clients = clients
                     runtime.switch_character.ordered_clients_from_source.return_value = clients
                     runtime.settings.client_by_handle.return_value = clients[0]
                     runtime.macro_lock.should_stop.return_value = False
