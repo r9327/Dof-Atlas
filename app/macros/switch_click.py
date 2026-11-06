@@ -904,7 +904,6 @@ class SwitchClickMacro:
                 and not delivery_failed
                 and not self.runtime.macro_lock.should_stop()
                 and self.runtime.settings is settings_at_start
-                and target_roster_intact()
             )
 
             def roster_allows_restore() -> bool:
