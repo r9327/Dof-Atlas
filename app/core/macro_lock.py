@@ -175,17 +175,25 @@ class MacroLock:
                 self._lease is None or self._lease.generation != worker
             )
 
-    def wait(self, duration_ms: int) -> bool:
-        # The same Event is reused across generations: a new start may clear
-        # it before a suspended OLD worker gets scheduled after Stop. Bound
-        # waits so stale threads recheck their generation in <= 25 ms, even
-        # if they miss the transient Event.set() notification.
+    def wait(
+        self, duration_ms: int, *,
+        interrupted: Callable[[], bool] | None = None,
+    ) -> bool:
+        # The stop Event is shared across generations; always recheck the
+        # actual worker token. An optional pointer collision signal lets
+        # Miroir relinquish the cursor during a client-settle delay instead
+        # of swallowing additional physical clicks for the whole duration.
+        def should_abort() -> bool:
+            return self.should_stop() or bool(
+                interrupted is not None and interrupted()
+            )
+
         deadline = time.monotonic() + max(0, int(duration_ms)) / 1000.0
         while True:
-            if self.should_stop():
+            if should_abort():
                 return True
             remaining = deadline - time.monotonic()
             if remaining <= 0:
-                return self.should_stop()
+                return should_abort()
             if self.stop_event.wait(min(remaining, 0.025)):
                 return True
