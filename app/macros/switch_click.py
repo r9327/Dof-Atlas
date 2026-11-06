@@ -330,20 +330,27 @@ class SwitchClickMacro:
         def roster_signature(clients: object) -> tuple[tuple[type, object], ...] | None:
             if not isinstance(clients, (list, tuple)):
                 return None
-            # Win32 session records can detach between worker checkpoints.
-            # Read a handle once, without raising from cleanup/finally.
-            handles = (getattr(client, "handle", None) for client in clients)
-            return tuple((type(hwnd), hwnd) for hwnd in handles)
+            # Do not let a concurrently destroyed client property throw out
+            # of the worker's finally block while it owns the pointer lease.
+            try:
+                handles = (getattr(client, "handle", None) for client in clients)
+                return tuple((type(hwnd), hwnd) for hwnd in handles)
+            except Exception:
+                return None
 
-        initial_roster = roster_signature(
-            getattr(settings_at_start, "clients", None)
+        initial_clients = getattr(settings_at_start, "clients", None)
+        initial_roster = roster_signature(initial_clients)
+        initial_roster_invalid = (
+            isinstance(initial_clients, (list, tuple))
+            and initial_roster is None
         )
 
         def target_roster_intact() -> bool:
             # Ordered clients contain mutable Organizer records. Use HWNDs
             # accepted before Win32 yields, never their reassigned values.
             return (
-                self.runtime.settings is settings_at_start
+                not initial_roster_invalid
+                and self.runtime.settings is settings_at_start
                 and (dispatch_guard is None or dispatch_guard())
                 and getattr(settings_at_start, "macro_mode", None) == initial_mode
                 and type(getattr(settings_at_start, "primary_handle", None)) is type(initial_primary)
@@ -361,6 +368,13 @@ class SwitchClickMacro:
             )
 
         try:
+            if initial_roster_invalid or (
+                mirror_target_handles is not None and initial_roster is None
+            ):
+                self.runtime.logger.warning(
+                    "%s annulé: roster illisible avant worker.", action_label,
+                )
+                return
             if (self.runtime.settings is not settings_at_start
                     or (dispatch_guard is not None and not dispatch_guard())):
                 self.runtime.logger.info(
