@@ -391,5 +391,23 @@ class MacroGenerationOwnershipTests(unittest.TestCase):
 
 
 
+    def test_owner_cleanup_exception_is_logged_and_does_not_stick_lease(self):
+        logger = Mock()
+        lock = MacroLock(logger)
+        old = lock.try_begin_generation("Miroir")
+        failed_reset = Mock(side_effect=RuntimeError("synthetic guard failure"))
+        lock.end("Miroir", generation=old, on_owner_end=failed_reset)
+        failed_reset.assert_called_once_with()
+        logger.exception.assert_called_once_with(
+            "Macro nettoyage propriétaire impossible: action=%s", "Miroir",
+        )
+        self.assertIsNone(lock.snapshot_active())
+        new = lock.try_begin_generation("Miroir")
+        self.assertGreater(new, old)
+        lock.end("Miroir", generation=new)
+        self.assertIsNone(lock.snapshot_active())
+
+
+
 if __name__ == "__main__":
     unittest.main()

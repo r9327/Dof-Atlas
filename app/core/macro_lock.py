@@ -114,6 +114,13 @@ class MacroLock:
             try:
                 if on_owner_end is not None:
                     on_owner_end()
+            except Exception:
+                # A failing synthetic-guard reset must be observable, but
+                # must not leave the exclusive macro lease permanently held.
+                self._logger.exception(
+                    "Macro nettoyage propriétaire impossible: action=%s",
+                    active,
+                )
             finally:
                 self._lease = None
             self._logger.info("Macro fin: action=%s elapsed_ms=%s", label or active, elapsed)
