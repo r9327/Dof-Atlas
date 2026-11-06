@@ -2,11 +2,32 @@ from __future__ import annotations
 
 import threading
 import unittest
+from unittest.mock import Mock
 
-from app.input.input_state import InputState
+from app.input.input_state import InputState, SyntheticInputGuard
 
 
 class OrganizerPointerLeaseEpochTests(unittest.TestCase):
+    def test_synthetic_guard_log_failure_cannot_strand_or_mask_release_2_to_8(self):
+        for accounts in (2, 4, 6, 8):
+            with self.subTest(accounts=accounts):
+                logger = Mock()
+                logger.debug.side_effect = RuntimeError("logger unavailable")
+                guard = SyntheticInputGuard(logger)
+                for _ in range(accounts):
+                    guard.begin(0)
+                self.assertEqual(guard._active_count, accounts)
+                self.assertTrue(guard.is_synthetic_window())
+                for _ in range(accounts):
+                    guard.end(0)
+                self.assertEqual(guard._active_count, 0)
+                self.assertFalse(guard.is_synthetic_window())
+                self.assertEqual(logger.debug.call_count, accounts * 2)
+                guard.begin(0)
+                guard.reset()
+                self.assertEqual(guard._active_count, 0)
+                self.assertFalse(guard.is_synthetic_window())
+
     def test_stale_worker_cannot_unblock_new_mirror_after_emergency_stop(self):
         for old_label, new_label in (
             ("Miroir molette", "Miroir"),
