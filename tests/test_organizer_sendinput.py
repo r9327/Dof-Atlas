@@ -1508,6 +1508,33 @@ class OrganizerSendInputTests(unittest.TestCase):
         click.assert_not_called()
         release.assert_not_called()
 
+    def test_consumed_mirror_down_does_not_leak_when_debug_logger_fails(self) -> None:
+        from app.input.input_state import InputState, SyntheticInputGuard
+        from app.input.mouse_hooks import (
+            MSLLHOOKSTRUCT, MouseHook, WM_LBUTTONDOWN, WM_LBUTTONUP,
+        )
+
+        logger = Mock()
+        logger.debug.side_effect = [None, RuntimeError("debug sink failed")]
+        click = Mock(return_value=True)
+        hook = MouseHook(
+            InputState(), SyntheticInputGuard(logger), logger, click,
+        )
+        event = MSLLHOOKSTRUCT()
+        user32 = Mock()
+        user32.CallNextHookEx.return_value = 77
+        with patch.object(
+            ctypes, "windll", SimpleNamespace(user32=user32), create=True,
+        ):
+            address = ctypes.addressof(event)
+            self.assertEqual(hook._mouse_proc(0, WM_LBUTTONDOWN, address), 1)
+            self.assertEqual(hook._consumed_releases, {WM_LBUTTONUP})
+            self.assertEqual(hook._mouse_proc(0, WM_LBUTTONUP, address), 1)
+        self.assertEqual(hook._consumed_releases, set())
+        click.assert_called_once_with("Left", 0, 0)
+        user32.CallNextHookEx.assert_not_called()
+        logger.exception.assert_not_called()
+
     def test_busy_mouse_hook_bursts_two_four_six_eight_are_counted(self) -> None:
         import logging
         from app.input.input_state import InputState, SyntheticInputGuard
