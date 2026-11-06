@@ -1055,9 +1055,12 @@ class AtlasRuntime:
         # the favorite's process probe. These native calls can yield, so a
         # later snapshot might silently adopt a changed roster and consume
         # the physical DOWN for the *old* gesture.
-        if not isinstance(settings.clients, (list, tuple)):
+        clients_at_dispatch = getattr(settings, "clients", None)
+        if not isinstance(clients_at_dispatch, (list, tuple)):
             return False
-        live_handles = tuple(getattr(client, "handle", None) for client in settings.clients)
+        live_handles = tuple(
+            getattr(client, "handle", None) for client in clients_at_dispatch
+        )
         if (not 2 <= len(live_handles) <= 8
                 or any(type(hwnd) is not int or not 0 < hwnd <= (2**64 - 1)
                        for hwnd in live_handles)
@@ -1097,6 +1100,7 @@ class AtlasRuntime:
         # settings object. An unchanged object reference is not sufficient
         # to consume the old physical DOWN.
         def roster_still_current() -> bool:
+            current_clients = getattr(settings, "clients", None)
             return (
                 self.settings is settings
                 and self._running and self._admin_ok
@@ -1105,9 +1109,9 @@ class AtlasRuntime:
                 and settings.primary_handle == source_hwnd
                 and type(getattr(favorite, "handle", None)) is int
                 and getattr(favorite, "handle", None) == source_hwnd
-                and isinstance(settings.clients, (list, tuple))
+                and isinstance(current_clients, (list, tuple))
                 and tuple((type(getattr(client, "handle", None)), getattr(client, "handle", None))
-                          for client in settings.clients)
+                          for client in current_clients)
                 == tuple((int, hwnd) for hwnd in live_handles)
             )
 
