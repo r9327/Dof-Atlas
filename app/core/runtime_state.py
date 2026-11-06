@@ -993,6 +993,14 @@ class AtlasRuntime:
         # alone: do not perform 2–8 expensive process probes inside the
         # low-level mouse hook merely to decide to pass a click through.
         busy = self.macro_lock.active_label
+        # A same-label Stop/restart can occur during slow Win32 probes.
+        # Bind this physical gesture to the actual worker generation.
+        busy_generation = self.macro_lock.active_generation if busy else None
+        if busy and (
+            type(busy_generation) is not int
+            or not self.macro_lock.owns(busy, busy_generation)
+        ):
+            return False
         if busy and not self.input_state.is_mouse_blocked():
             # A queued click worker is not yet moving the pointer. Preserve
             # ordinary native gestures until it actually acquires its mouse
@@ -1084,17 +1092,20 @@ class AtlasRuntime:
         if busy:
             # The native Win32 roster probe above can yield while a worker
             # completes, Stop is requested or Organizer switches modes.
-            # Never swallow a new physical DOWN on a stale pointer lease.
-            if (not self.input_state.is_mouse_blocked()
+            # Same label is NOT enough after Stop/restart.
+            if (not self.macro_lock.owns(busy, busy_generation)
+                    or not self.input_state.is_mouse_blocked()
                     or not self.macro_lock.active_label
                     or self.macro_lock.should_stop()
                     or not roster_still_current()):
                 return False
             AtlasRuntime._report_mirror_busy_input(self, "clic")
             # Publishing a status can also yield to Stop or a profile edit.
-            # Return true only while the SAME worker still owns the pointer.
+            # Return true only while the SAME worker generation still owns
+            # the pointer. A new Miroir with the same name is not that owner.
             return bool(
-                self.input_state.is_mouse_blocked()
+                self.macro_lock.owns(busy, busy_generation)
+                and self.input_state.is_mouse_blocked()
                 and self.macro_lock.active_label
                 and not self.macro_lock.should_stop()
                 and roster_still_current()

@@ -104,6 +104,11 @@ class OrganizerMirrorIntegrationTests(unittest.TestCase):
         runtime = Mock()
         runtime.settings = settings
         runtime.macro_lock.active_label = ""
+        runtime.macro_lock.active_generation = 1
+        runtime.macro_lock.owns.side_effect = lambda label, generation: (
+            runtime.macro_lock.active_label == label
+            and runtime.macro_lock.active_generation == generation
+        )
         runtime.macro_lock.should_stop.return_value = False
         runtime.switch_click.run_async.return_value = True
         return runtime
@@ -6987,6 +6992,79 @@ class OrganizerMirrorIntegrationTests(unittest.TestCase):
                     AtlasRuntime._mirror_gesture_targets(runtime),
                     (source, (source, *slots[:-1])),
                 )
+
+
+
+    def test_busy_mirror_restarted_with_same_label_during_status_keeps_click_native(self):
+        from app.core.runtime_state import AtlasRuntime
+
+        for count in (2, 4, 6, 8):
+            slots = tuple(range(101, 101 + count))
+            for source in (slots[0], slots[-1]):
+                with self.subTest(count=count, source=source):
+                    runtime = self._runtime(primary=source, handles=slots)
+                    runtime._running = True
+                    runtime._admin_ok = True
+                    runtime.macro_lock.active_label = "Miroir"
+                    runtime.macro_lock.active_generation = 11
+                    runtime.input_state.is_mouse_blocked.return_value = True
+
+                    def restart_during_status(_runtime, _kind):
+                        # Replaced worker has same label, same profile and a
+                        # fresh pointer block. The OLD gesture was never
+                        # admitted by this new worker.
+                        runtime.macro_lock.active_generation = 12
+
+                    with (
+                        patch("app.windows.unity_windows.foreground_window",
+                              return_value=source),
+                        patch("app.windows.unity_windows.find_known_client_from_point",
+                              return_value=source),
+                        patch("app.windows.unity_windows.is_unity_window",
+                              return_value=True),
+                        patch("app.macros.mirror_plan.is_dofus_unity_process",
+                              return_value=True),
+                        patch.object(AtlasRuntime, "_report_mirror_busy_input",
+                                     side_effect=restart_during_status) as report,
+                    ):
+                        self.assertFalse(AtlasRuntime._handle_mirror_click(
+                            runtime, "Left", 20, 30,
+                        ))
+                    report.assert_called_once_with(runtime, "clic")
+                    runtime.switch_click.run_async.assert_not_called()
+
+    def test_busy_mirror_restarted_during_process_probe_keeps_click_native(self):
+        from app.core.runtime_state import AtlasRuntime
+
+        for count in (2, 4, 6, 8):
+            slots = tuple(range(101, 101 + count))
+            runtime = self._runtime(primary=slots[0], handles=slots)
+            runtime._running = True
+            runtime._admin_ok = True
+            runtime.macro_lock.active_label = "Miroir"
+            runtime.macro_lock.active_generation = 21
+            runtime.input_state.is_mouse_blocked.return_value = True
+
+            def change_generation(_hwnd):
+                runtime.macro_lock.active_generation = 22
+                return True
+
+            with (
+                patch("app.windows.unity_windows.foreground_window",
+                      return_value=slots[0]),
+                patch("app.windows.unity_windows.find_known_client_from_point",
+                      return_value=slots[0]),
+                patch("app.windows.unity_windows.is_unity_window",
+                      return_value=True),
+                patch("app.macros.mirror_plan.is_dofus_unity_process",
+                      side_effect=change_generation),
+                patch.object(AtlasRuntime, "_report_mirror_busy_input") as report,
+            ):
+                self.assertFalse(AtlasRuntime._handle_mirror_click(
+                    runtime, "Right", 20, 30,
+                ))
+            report.assert_not_called()
+            runtime.switch_click.run_async.assert_not_called()
 
 
 
