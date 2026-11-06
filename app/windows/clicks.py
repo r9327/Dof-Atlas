@@ -259,10 +259,15 @@ def send_screen_click(
                         button_name,
                     )
             except Exception:
-                logger.exception(
-                    "Relachement souris de secours impossible: button=%s",
-                    button_name,
-                )
+                # The pointer guard must be released even when a failed UP
+                # and a broken diagnostic sink happen at the same time.
+                try:
+                    logger.exception(
+                        "Relachement souris de secours impossible: button=%s",
+                        button_name,
+                    )
+                except Exception:
+                    pass
         synthetic_guard.end(120)
 
 
