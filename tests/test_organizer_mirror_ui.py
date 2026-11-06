@@ -3447,6 +3447,53 @@ class OrganizerMirrorIntegrationTests(unittest.TestCase):
             "Miroir Clavier : 2/2 fenêtres."
         )
 
+    def test_mirror_keyup_retry_survives_failed_warning_logger_2_to_8(self):
+        from app.macros.mirror_input import MirrorInputMacro
+
+        for count in (2, 4, 6, 8):
+            with self.subTest(clients=count):
+                handles = tuple(101 + i for i in range(count))
+                runtime = self._runtime(primary=handles[0], handles=handles)
+                runtime.settings.clients = tuple(
+                    SimpleNamespace(handle=hwnd) for hwnd in handles
+                )
+                timings = runtime.settings.timings
+                timings.switch_background_pre_click_ms = 0
+                timings.activate_attempts = 1
+                timings.activate_retry_ms = 0
+                timings.switch_click_down_ms = 10
+                timings.switch_client_settle_ms = 0
+                runtime.macro_lock.should_stop.return_value = False
+                runtime.macro_lock.wait.return_value = False
+                runtime.logger.warning.side_effect = RuntimeError("log unavailable")
+                foreground = [handles[0]]
+
+                def activate(hwnd, *_args, **_kwargs):
+                    foreground[0] = hwnd
+                    return True
+
+                with (
+                    patch("app.macros.mirror_input.is_dofus_unity_process",
+                          return_value=True),
+                    patch("app.macros.mirror_input.activate_window",
+                          side_effect=activate),
+                    patch("app.macros.mirror_input.foreground_window",
+                          side_effect=lambda: foreground[0]),
+                    patch("app.macros.input_tools.key_down") as down,
+                    patch("app.macros.input_tools.key_up",
+                          side_effect=[OSError("first UP refused")]
+                          + [None] * count) as up,
+                ):
+                    MirrorInputMacro(runtime)._run(
+                        "key", 65, handles[0], handles,
+                    )
+                self.assertEqual(down.call_count, count)
+                self.assertEqual(up.call_count, count + 1)
+                up.assert_has_calls([call(65)] * (count + 1))
+                runtime._emit_status.assert_called_once_with(
+                    f"Miroir Clavier : {count}/{count} fenêtres."
+                )
+
     def test_mirror_wheel_send_failure_never_restores_favorite(self):
         from app.macros.mirror_input import MirrorInputMacro
 
