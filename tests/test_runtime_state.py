@@ -114,6 +114,35 @@ class RuntimeStopOwnerTests(unittest.TestCase):
                     "Stop urgence: macros Python arretees."
                 )
 
+    def test_hotkey_stop_runs_before_logger_and_survives_logging_failure(self):
+        # The native keyboard callback must never lose emergency Stop
+        # because an optional telemetry sink raises. Independent of roster.
+        for accounts in (2, 4, 6, 8):
+            with self.subTest(accounts=accounts):
+                runtime = _runtime()
+                order = []
+                runtime.macro_lock.request_stop.side_effect = (
+                    lambda reason: order.append(("stop", reason))
+                )
+                def broken_warning(*_args):
+                    order.append(("log", None))
+                    raise OSError("log unavailable")
+
+                runtime.logger.warning.side_effect = broken_warning
+                with patch(
+                    "app.core.runtime_state.release_common_inputs",
+                    return_value=True,
+                ) as common:
+                    runtime._handle_hotkey("stop_script", {})
+                self.assertEqual(order[0], ("stop", "raccourci"))
+                self.assertEqual(order[-1], ("log", None))
+                runtime.input_state.clear_mouse_block.assert_called_once()
+                runtime.synthetic_guard.reset.assert_called_once()
+                common.assert_called_once()
+                runtime._emit_status.assert_called_once_with(
+                    "Stop urgence: macros Python arretees."
+                )
+
 
 if __name__ == "__main__":
     unittest.main()

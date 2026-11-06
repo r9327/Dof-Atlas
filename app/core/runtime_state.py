@@ -608,8 +608,15 @@ class AtlasRuntime:
 
     def _handle_hotkey(self, action_id: str, payload: dict[str, object]) -> None:
         if action_id == "stop_script":
-            self.logger.warning("Stop urgence recu par raccourci.")
-            self.emergency_stop("raccourci")
+            # Latch Stop and release inputs BEFORE any optional diagnostic.
+            # A broken or slow log sink must never delay the emergency action.
+            try:
+                self.emergency_stop("raccourci")
+            finally:
+                try:
+                    self.logger.warning("Stop urgence recu par raccourci.")
+                except Exception:
+                    pass
             return
         if not self._running or not self._admin_ok:
             self.logger.debug(
