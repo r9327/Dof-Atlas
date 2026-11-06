@@ -318,6 +318,7 @@ class SwitchClickMacro:
         last_activated_hwnd: int | None = None
         focus_lost = False
         delivery_failed = False
+        pointer_probe_failed = False
         mirror_started_at = perf_counter() if action_label == "Miroir" else None
         last_emission_at: float | None = None
         mirror_send_samples: list[float] = []
@@ -325,10 +326,18 @@ class SwitchClickMacro:
         targets = []
         frozen_handles: tuple[int, ...] = ()
         def pointer_interrupted() -> bool:
-            # Mock-only test runtimes without a real InputState must not
-            # spuriously cancel their senders (a bare Mock is truthy).
-            check = getattr(self.runtime.input_state, "mouse_block_interrupted", None)
-            return bool(mouse_blocked and callable(check) and check() is True)
+            nonlocal pointer_probe_failed
+            # An unreadable pointer latch is NOT proof that a physical click
+            # occurred. Refuse more sends/restoration, but report a probe
+            # failure instead of falsely claiming an input was lost.
+            try:
+                check = getattr(
+                    self.runtime.input_state, "mouse_block_interrupted", None,
+                )
+                return bool(mouse_blocked and callable(check) and check() is True)
+            except Exception:
+                pointer_probe_failed = True
+                return True
 
         initial_mode = getattr(settings_at_start, "macro_mode", None)
         initial_primary = getattr(settings_at_start, "primary_handle", None)
@@ -1144,7 +1153,9 @@ class SwitchClickMacro:
                         else "Miroir"
                     )
                     suffix = (
-                        " (geste physique non rejoué)" if pointer_collision else ""
+                        " (contrôle souris indisponible)" if pointer_probe_failed
+                        else " (geste physique non rejoué)" if pointer_collision
+                        else ""
                     )
                     self.runtime._emit_status(
                         f"{label} : {sent_count}/{target_total} fenêtres{suffix}."
