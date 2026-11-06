@@ -63,6 +63,71 @@ class OrganizerKeyboardStopRaceTests(unittest.TestCase):
         # The owning thread finally block clears this set on actual exit.
 
 
+    def test_emergency_stop_survives_failed_warning_logger_2_to_8(self):
+        from app.input.hotkeys import HotkeyAction
+
+        for accounts in (2, 4, 6, 8):
+            with self.subTest(accounts=accounts):
+                registry = self._registry()
+                report = registry.register_hotkeys([
+                    HotkeyAction(
+                        action_id="stop_script", label="Stop urgence",
+                        hotkey_text="F12", kind="press",
+                    ),
+                ])
+                self.assertTrue(report.ok)
+                registry.logger.warning.side_effect = RuntimeError("log unavailable")
+                event = KBDLLHOOKSTRUCT()
+                event.vkCode = 0x7B  # F12
+                ptr = ctypes.addressof(event)
+                next_hook = Mock(return_value=37)
+                with patch.object(
+                    ctypes, "windll",
+                    SimpleNamespace(user32=SimpleNamespace(
+                        CallNextHookEx=next_hook,
+                    )),
+                    create=True,
+                ):
+                    self.assertEqual(registry._keyboard_proc(0, WM_KEYDOWN, ptr), 1)
+                    self.assertEqual(registry._keyboard_proc(0, WM_KEYDOWN, ptr), 1)
+                    registry.callback.assert_called_once_with("stop_script", {})
+                    self.assertEqual(registry._keyboard_proc(0, WM_KEYUP, ptr), 37)
+                    self.assertEqual(registry._keyboard_proc(0, WM_KEYDOWN, ptr), 1)
+                self.assertEqual(registry.callback.call_count, 2)
+                next_hook.assert_called_once()
+
+    def test_stop_binding_registers_with_broken_debug_logger_2_to_8(self):
+        from app.input.hotkeys import HotkeyAction
+
+        for accounts in (2, 4, 6, 8):
+            with self.subTest(accounts=accounts):
+                registry = self._registry()
+                registry.logger.debug.side_effect = RuntimeError("debug unavailable")
+                report = registry.register_hotkeys([
+                    HotkeyAction(
+                        action_id="stop_script", label="Stop urgence",
+                        hotkey_text="F12", kind="press",
+                    ),
+                ])
+                self.assertTrue(report.ok)
+                self.assertEqual(len(registry._stop_actions), 1)
+                event = KBDLLHOOKSTRUCT()
+                event.vkCode = 0x7B
+                next_hook = Mock(return_value=37)
+                with patch.object(
+                    ctypes, "windll",
+                    SimpleNamespace(user32=SimpleNamespace(
+                        CallNextHookEx=next_hook,
+                    )), create=True,
+                ):
+                    self.assertEqual(
+                        registry._keyboard_proc(
+                            0, WM_KEYDOWN, ctypes.addressof(event),
+                        ), 1,
+                    )
+                registry.callback.assert_called_once_with("stop_script", {})
+                next_hook.assert_not_called()
+
     def test_callback_exceptions_never_release_consumed_keyboard_pair(self):
         # A worker can change the active Unity client between the physical
         # DOWN and UP. Failing hotkey callbacks must not leak the original UP.

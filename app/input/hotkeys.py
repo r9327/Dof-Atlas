@@ -401,7 +401,14 @@ class HotkeyRegistry:
             )
             owner_by_key[spec.canonical] = action
             parsed.append(action)
-            self.logger.debug("Hotkey actif: %s action=%s", spec.canonical, action.action_id)
+            try:
+                self.logger.debug(
+                    "Hotkey actif: %s action=%s", spec.canonical, action.action_id,
+                )
+            except Exception:
+                # A diagnostic failure must not prevent the new emergency
+                # Stop binding from being installed during profile reload.
+                pass
         self._actions = tuple(parsed)
         self._switch_actions = tuple(action for action in parsed if action.kind == "switch")
         self._stop_actions = tuple(action for action in parsed if action.action_id == "stop_script")
@@ -608,7 +615,12 @@ class HotkeyRegistry:
             consumed = True
             if action.action_id in self._suppressed_until_release:
                 continue
-            self.logger.warning("Stop urgence prioritaire: %s", spec.canonical)
+            # Logging is non-critical: a broken warning sink must never
+            # prevent the emergency Stop callback from firing.
+            try:
+                self.logger.warning("Stop urgence prioritaire: %s", spec.canonical)
+            except Exception:
+                pass
             self.callback(action.action_id, action.payload)
             self._suppressed_until_release.add(action.action_id)
         return consumed
