@@ -7351,5 +7351,138 @@ class OrganizerMirrorIntegrationTests(unittest.TestCase):
                 )
 
 
+    def test_mirror_click_pointer_collision_during_settle_skips_remaining_clients(self):
+        from app.input.input_state import InputState
+        from app.macros.switch_click import SwitchClickMacro, SwitchClickContext
+
+        for count in (2, 4, 6, 8):
+            with self.subTest(clients=count):
+                handles = tuple(range(101, 101 + count))
+                runtime = self._runtime(primary=handles[0], handles=handles)
+                runtime.settings.clients = tuple(
+                    SimpleNamespace(handle=hwnd, display_name=str(hwnd))
+                    for hwnd in handles
+                )
+                runtime.settings.timings.switch_client_settle_ms = 180
+                runtime.input_state = InputState()
+                runtime.macro_lock.should_stop.return_value = False
+                runtime.switch_character.ordered_clients_from_source.return_value = [
+                    SimpleNamespace(handle=hwnd, display_name=str(hwnd))
+                    for hwnd in handles
+                ]
+                active = [handles[0]]
+                sent = []
+
+                def activate(hwnd, *_args, **_kwargs):
+                    active[0] = hwnd
+                    return True
+
+                def settle(ms, **kwargs):
+                    self.assertEqual(ms, 180)
+                    self.assertTrue(runtime.input_state.is_mouse_blocked())
+                    runtime.input_state.note_blocked_physical_gesture()
+                    self.assertTrue(kwargs["interrupted"]())
+                    return True
+
+                def click(hwnd, *_args, **_kwargs):
+                    sent.append(hwnd)
+                    return True
+
+                macro = SwitchClickMacro(runtime)
+                context = SwitchClickContext(
+                    handles[0], 20, 25, 0.5, 0.5, "cursor",
+                )
+                runtime.macro_lock.wait.side_effect = settle
+                with (
+                    patch.object(macro, "_validated_context", return_value=context),
+                    patch.object(macro, "_target_point", return_value=(20, 25)),
+                    patch("app.macros.switch_click.current_cursor_pos",
+                          return_value=(12, 14)),
+                    patch("app.macros.switch_click.is_unity_window",
+                          return_value=True),
+                    patch("app.macros.switch_click.is_dofus_unity_process",
+                          return_value=True),
+                    patch("app.macros.switch_click.activate_window",
+                          side_effect=activate),
+                    patch("app.macros.switch_click.foreground_window",
+                          side_effect=lambda: active[0]),
+                    patch("app.macros.switch_click.send_client_click",
+                          side_effect=click),
+                    patch("app.macros.switch_click.set_cursor_pos") as cursor,
+                ):
+                    macro._run(
+                        "Left", 1, "Miroir", context,
+                        exact_source_handle=handles[0],
+                        mirror_target_handles=handles,
+                    )
+                self.assertEqual(sent, [handles[0]])
+                cursor.assert_not_called()
+                runtime.switch_character.restore_preferred_client.assert_not_called()
+                self.assertFalse(runtime.input_state.is_mouse_blocked())
+                runtime._emit_status.assert_called_once_with(
+                    f"Miroir interrompu : 1/{count} fenêtres "
+                    "(geste physique non rejoué)."
+                )
+
+    def test_mirror_wheel_pointer_collision_during_settle_skips_remaining_clients(self):
+        from app.input.input_state import InputState
+        from app.macros.mirror_input import MirrorInputMacro
+
+        for count in (2, 4, 6, 8):
+            with self.subTest(clients=count):
+                handles = tuple(range(101, 101 + count))
+                runtime = self._runtime(primary=handles[0], handles=handles)
+                runtime.input_state = InputState()
+                runtime.settings.timings.switch_client_settle_ms = 180
+                runtime.macro_lock.should_stop.return_value = False
+                active = [handles[0]]
+                sends = [0]
+
+                def activate(hwnd, *_args, **_kwargs):
+                    active[0] = hwnd
+                    return True
+
+                def settle(ms, **kwargs):
+                    self.assertEqual(ms, 180)
+                    self.assertTrue(runtime.input_state.is_mouse_blocked())
+                    runtime.input_state.note_blocked_physical_gesture()
+                    self.assertTrue(kwargs["interrupted"]())
+                    return True
+
+                def wheel(*_args, **_kwargs):
+                    sends[0] += 1
+                    return True
+
+                runtime.macro_lock.wait.side_effect = settle
+                with (
+                    patch("app.macros.mirror_input.is_dofus_unity_process",
+                          return_value=True),
+                    patch("app.macros.mirror_input.current_cursor_pos",
+                          return_value=(12, 14)),
+                    patch("app.macros.mirror_input.activate_window",
+                          side_effect=activate),
+                    patch("app.macros.mirror_input.foreground_window",
+                          side_effect=lambda: active[0]),
+                    patch("app.macros.mirror_input.client_point_from_ratio",
+                          return_value=(8, 9)),
+                    patch("app.macros.mirror_input.client_to_screen",
+                          return_value=(80, 90)),
+                    patch("app.macros.mirror_input.set_cursor_pos") as cursor,
+                    patch("app.macros.mirror_input.send_screen_wheel",
+                          side_effect=wheel),
+                ):
+                    MirrorInputMacro(runtime)._run(
+                        "wheel", (120, False, 0.5, 0.5), handles[0], handles,
+                    )
+                self.assertEqual(sends[0], 1)
+                cursor.assert_called_once_with(80, 90)
+                runtime.switch_character.restore_preferred_client.assert_not_called()
+                self.assertFalse(runtime.input_state.is_mouse_blocked())
+                runtime._emit_status.assert_called_once_with(
+                    f"Miroir Molette interrompu : 1/{count} fenêtres "
+                    "(geste physique non rejoué)."
+                )
+
+
 if __name__ == "__main__":
     unittest.main()
