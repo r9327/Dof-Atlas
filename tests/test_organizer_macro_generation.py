@@ -412,5 +412,42 @@ class MacroGenerationOwnershipTests(unittest.TestCase):
 
 
 
+    def test_runtime_failed_synthetic_reset_keeps_next_macro_admissible(self):
+        import app.core.runtime_state as runtime_module
+
+        class ImmediateWorker:
+            def __init__(self, *, target, name, daemon):
+                self.target = target
+
+            def start(self):
+                self.target()
+
+            def is_alive(self):
+                return False
+
+        logger = Mock()
+        runtime = SimpleNamespace(
+            logger=logging.getLogger("macro-reset-failure-runtime"),
+            macro_lock=MacroLock(logger),
+            synthetic_guard=Mock(),
+            _threads=[],
+            _emit_status=Mock(),
+        )
+        runtime.synthetic_guard.reset.side_effect = RuntimeError("guard error")
+        completed = []
+        with patch.object(runtime_module.threading, "Thread", ImmediateWorker):
+            self.assertTrue(AtlasRuntime._spawn_macro(
+                runtime, "Miroir", lambda: completed.append("first"),
+            ))
+            self.assertIsNone(runtime.macro_lock.snapshot_active())
+            self.assertTrue(AtlasRuntime._spawn_macro(
+                runtime, "Miroir", lambda: completed.append("second"),
+            ))
+        self.assertEqual(completed, ["first", "second"])
+        self.assertIsNone(runtime.macro_lock.snapshot_active())
+        self.assertEqual(logger.exception.call_count, 2)
+
+
+
 if __name__ == "__main__":
     unittest.main()
