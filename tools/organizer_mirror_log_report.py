@@ -123,15 +123,68 @@ def summarize(lines: Iterable[str], accounts: int) -> dict:
     }
 
 
+
+def compare_reports(reports: dict[int, dict]) -> dict:
+    """Compare measured p95 to two accounts; never certify gameplay feel."""
+    baseline = reports.get(2, {}).get("metrics", {})
+    ratios: dict[str, dict[str, float | None]] = {}
+    for metric_name in METRIC_PATTERNS:
+        baseline_measurement = baseline.get(metric_name)
+        current: dict[str, float | None] = {}
+        for account_count, report in sorted(reports.items()):
+            measure = report["metrics"].get(metric_name)
+            # p95 based on one or two samples is too weak for a comparison.
+            if (not baseline_measurement or not measure
+                    or baseline_measurement["n"] < 5 or measure["n"] < 5
+                    or baseline_measurement["p95_ms"] <= 0):
+                current[str(account_count)] = None
+            else:
+                current[str(account_count)] = round(
+                    measure["p95_ms"] / baseline_measurement["p95_ms"], 3
+                )
+        ratios[metric_name] = current
+    return {
+        "evidence": "LOG_ONLY_NOT_UNITY_CERTIFIED",
+        "comparison_baseline_accounts": 2,
+        "minimum_samples_for_ratio": 5,
+        "p95_ratio_vs_2_accounts": ratios,
+        "reports": {str(count): result for count, result in sorted(reports.items())},
+    }
+
+
+def _read_report(path: Path, accounts: int, parser: argparse.ArgumentParser) -> dict:
+    if not path.is_file() or path.stat().st_size > MAX_LOG_BYTES:
+        parser.error(f"log file missing or larger than 64 MiB: {path}")
+    with path.open("r", encoding="utf-8", errors="replace") as stream:
+        return summarize(stream, accounts)
+
+
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--logs", required=True, type=Path)
-    parser.add_argument("--accounts", required=True, type=int, choices=ACCOUNTS)
+    group = parser.add_mutually_exclusive_group(required=True)
+    group.add_argument("--logs", type=Path)
+    group.add_argument("--compare", action="append", metavar="ACCOUNTS=LOGFILE")
+    parser.add_argument("--accounts", type=int, choices=ACCOUNTS)
     args = parser.parse_args(argv)
-    if not args.logs.is_file() or args.logs.stat().st_size > MAX_LOG_BYTES:
-        parser.error("log file missing or larger than 64 MiB")
-    with args.logs.open("r", encoding="utf-8", errors="replace") as stream:
-        data = summarize(stream, args.accounts)
+    if args.logs is not None:
+        if args.accounts is None:
+            parser.error("--accounts is required with --logs")
+        data = _read_report(args.logs, args.accounts, parser)
+    else:
+        if args.accounts is not None:
+            parser.error("use --accounts only with --logs")
+        reports: dict[int, dict] = {}
+        for argument in args.compare:
+            count_text, delimiter, path_text = argument.partition("=")
+            if not delimiter or not count_text.isascii() or not count_text.isdecimal():
+                parser.error("--compare expects ACCOUNTS=LOGFILE")
+            count = int(count_text)
+            if count not in ACCOUNTS or not path_text or count in reports:
+                parser.error("invalid, empty, or duplicate comparison run")
+            reports[count] = _read_report(Path(path_text), count, parser)
+        if len(reports) < 2:
+            parser.error("--compare requires at least two different account counts")
+        data = compare_reports(reports)
     print(json.dumps(data, indent=2, ensure_ascii=False, sort_keys=True))
     return 0
 
