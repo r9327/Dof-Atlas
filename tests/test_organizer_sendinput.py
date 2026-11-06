@@ -2407,7 +2407,14 @@ class OrganizerSendInputTests(unittest.TestCase):
                             )
                         self.assertFalse(state.mouse_block_interrupted())
                     hook.callback.assert_not_called()
-                    hook.wheel_callback.assert_not_called()
+                    if kind == "wheel":
+                        # This is the SECOND tick, after the block ended:
+                        # it should be forwarded as a normal native wheel.
+                        hook.wheel_callback.assert_called_once_with(
+                            120, 11, 22, False,
+                        )
+                    else:
+                        hook.wheel_callback.assert_not_called()
 
     def test_synthetic_mouse_and_physical_move_never_cancel_pointer_owner(self):
         from app.input.input_state import InputState, ATLAS_SYNTHETIC_MOUSE_EXTRA_INFO
