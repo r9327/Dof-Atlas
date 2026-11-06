@@ -1081,10 +1081,11 @@ class SwitchClickMacro:
                 if dispatch_at is not None:
                     self.runtime.logger.info(
                         "Miroir clic dispatch_to_worker_ms=%.2f "
-                        "dispatch_to_last_emit_ms=%s (envoi, pas rendu Unity)",
+                        "dispatch_to_last_emit_ms=%s cibles=%s (envoi, pas rendu Unity)",
                         max(0.0, (mirror_started_at - dispatch_at) * 1000.0),
                         (f"{max(0.0, (last_emission_at - dispatch_at) * 1000.0):.2f}"
                          if last_emission_at is not None else "NOT_MEASURED"),
+                        target_total,
                     )
                 if quantiles is None:
                     self.runtime.logger.info(
