@@ -185,6 +185,21 @@ class OnDemandWorkflowTests(unittest.TestCase):
         self.assertIn("Phase certified: **NO**", text)
         self.assertNotIn("phase-certification.yml", text)
 
+    def test_doctor_lot_ubuntu_egl_is_installed_before_pinned_pyside(self):
+        workflow = (ROOT / ".github/workflows/atlas-doctor-on-demand.yml").read_text(
+            encoding="utf-8"
+        )
+        egl_step = "      - name: Install Ubuntu EGL runtime required by PySide6"
+        qt_step = "      - name: Install pinned Qt runtime for developer-lot UI regression tests"
+        self.assertEqual(workflow.count(egl_step), 1)
+        self.assertLess(workflow.index(egl_step), workflow.index(qt_step))
+        section = workflow.split(egl_step, 1)[1].split(qt_step, 1)[0]
+        self.assertIn("if: env.MODE == 'doctor-lot'", section)
+        self.assertIn("set -euo pipefail", section)
+        self.assertIn("sudo apt-get install -y --no-install-recommends libegl1", section)
+        # This is just a developer-lot prerequisite. The default Doctor and
+        # Graphify routes must keep their independent execution contracts.
+
 
 if __name__ == "__main__":
     unittest.main()
