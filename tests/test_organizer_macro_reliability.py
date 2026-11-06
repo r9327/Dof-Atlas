@@ -4790,9 +4790,11 @@ class OrganizerMacroReliabilityTests(unittest.TestCase):
                         ):
                             DirectionMacro(runtime)._run("HOME")
                         key.assert_not_called()
+                        # The profile changes DURING the source process
+                        # probe. Direction rejects before its try/finally
+                        # sender loop, so there is no emission summary yet.
                         runtime.logger.info.assert_any_call(
-                            "Switch deplacement %s: envoyes=%s/%s",
-                            "interrompu", 0, count,
+                            "Switch deplacement ignore: fenetre active non Unity."
                         )
                     focus.assert_not_called()
                     runtime.switch_character.restore_preferred_client.assert_not_called()
