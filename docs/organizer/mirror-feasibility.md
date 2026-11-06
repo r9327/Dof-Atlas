@@ -1507,3 +1507,46 @@ produits lorsque le worker détient réellement le pointeur. Ne pas rejouer
 ces clics à l'aveugle vers un HWND potentiellement différent : les tests
 Windows/DOFUS Unity et une politique d'émission fiable sont indispensables.
 Ne pas changer la PR en Ready ni déclencher Phase Certification globale.
+
+
+## Lot P0 — courses de génération en entrée physique et Stop urgent (06/11/2026)
+
+Base : `cfe29e614076490d0414882603693b9a3e242329`.
+Les changements ci-dessous sont **locaux** au chemin Miroir/Stop et
+maintiennent le comportement non destructif lorsqu'un événement peut
+encore être transmis nativement sans toucher au pointeur. La PR reste
+Draft et MIRR-007 n'est **pas** considéré comme résolu.
+
+- `c6bb7667`, `cf695ecf` : lors d'un événement physique alors que le
+  worker est occupé, comparer **label + génération réelle du bail Macro**
+  au début, après les sondes Win32 et après le signalement d'un geste
+  non diffusé. Si un ancien worker finit et qu'un autre commence sous
+  le même nom pendant ces opérations, ne pas avaler le DOWN/clic,
+  la touche ou le cran de molette au titre du nouvel occupant.
+- `e8e74820` : `MacroLock.wait` vérifie son Stop / token de génération
+  par tranches d'au plus 25 ms pour ne pas manquer indéfiniment l'annulation
+  si un redémarrage efface le même `threading.Event`. C'est la limite
+  des **tranches de sommeil**, pas une latence p99 mesurée sous Windows.
+- `a9dd4ddb` : `MacroLock.request_stop` revalide le signal Stop
+  sous le verrou d'admission, en plus du premier signal immédiat ; ce
+  dernier ne peut plus être effacé silencieusement par un `try_begin`
+  concurrent avant la fin du Stop.
+- `f0674640` : les clics et les molettes perdus pendant un blocage
+  disposent de deux horloges de logs limitées séparément (400 ms),
+  avec leurs compteurs cumulés, pour qu'une rafale de molette ne masque
+  pas l'avertissement du clic perdu. Aucun événement n'est rejoué,
+  ni reclassé comme transmis.
+
+**Tests rédigés :** scénarios 2/4/6/8 pour changement de génération
+pendant les sondes natives, pendant la publication du statut, attente
+périmée et relance, entrelacement précis de Stop et d'un nouveau
+`try_begin_generation`, et limitation de fréquence indépendante des
+deux types d'entrées. Ces tests n'ont **pas** été exécutés sur Windows,
+PySide6 ni DOFUS Unity dans cet environnement.
+
+**Risques à certifier :** le hook physique continue à bloquer un
+DOWN quand un worker détient effectivement le pointeur ; MIRR-007
+nécessite une politique de conservation/repli reproductible sur Windows.
+Le support Unity sans focus (MIRR-002) et les mesures 2/4/6/8 (MIRR-005)
+restent sans preuve réelle. Pas de READY, de Phase Certification ni de
+fusion sur ce lot.
