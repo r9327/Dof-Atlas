@@ -1656,6 +1656,66 @@ class OrganizerSendInputTests(unittest.TestCase):
         callback.assert_not_called()
         self.assertEqual(hook._consumed_releases, set())
 
+    def test_delayed_hook_probe_does_not_cancel_next_worker_without_stop(self) -> None:
+        from app.input.input_state import InputState, SyntheticInputGuard
+        from app.input.mouse_hooks import (
+            MSLLHOOKSTRUCT, MouseHook, WM_LBUTTONDOWN,
+            WM_LBUTTONUP, WM_MOUSEWHEEL,
+        )
+
+        for accounts in (2, 4, 6, 8):
+            for gesture in (WM_LBUTTONDOWN, WM_MOUSEWHEEL):
+                with self.subTest(accounts=accounts, gesture=gesture):
+                    state = InputState()
+                    callback = Mock(return_value=False)
+                    hook = MouseHook(
+                        state, SyntheticInputGuard(Mock()), Mock(), callback,
+                    )
+                    event = MSLLHOOKSTRUCT()
+                    event.mouseData = 120 << 16
+                    pointer = ctypes.addressof(event)
+                    user32 = Mock()
+                    user32.CallNextHookEx.return_value = 57
+                    state.begin_mouse_block("ancien")
+                    original_epoch_probe = state.mouse_block_epoch_if_active
+                    old_epoch = original_epoch_probe()
+                    switched = [False]
+
+                    def probe_during_replacement():
+                        if not switched[0]:
+                            switched[0] = True
+                            # Emulate the previous worker finishing after
+                            # the native hook's first busy check. No Stop.
+                            self.assertEqual(state.end_mouse_block(), 0)
+                            state.begin_mouse_block("nouveau")
+                            return old_epoch
+                        return original_epoch_probe()
+
+                    with (
+                        patch.object(
+                            ctypes, "windll", SimpleNamespace(user32=user32),
+                            create=True,
+                        ),
+                        patch.object(
+                            state, "mouse_block_epoch_if_active",
+                            side_effect=probe_during_replacement,
+                        ),
+                    ):
+                        self.assertEqual(
+                            hook._mouse_proc(0, gesture, pointer), 1,
+                        )
+                        if gesture == WM_LBUTTONDOWN:
+                            self.assertEqual(
+                                hook._mouse_proc(0, WM_LBUTTONUP, pointer), 1,
+                            )
+                    self.assertTrue(switched[0])
+                    self.assertNotEqual(old_epoch, original_epoch_probe())
+                    self.assertFalse(state.mouse_block_interrupted())
+                    self.assertEqual(state.end_mouse_block(), 0)
+                    self.assertEqual(state.last_release_blocked_count(), 0)
+                    callback.assert_not_called()
+                    user32.CallNextHookEx.assert_not_called()
+
     def test_busy_mouse_hook_bursts_two_four_six_eight_are_counted(self) -> None:
         import logging
         from app.input.input_state import InputState, SyntheticInputGuard
