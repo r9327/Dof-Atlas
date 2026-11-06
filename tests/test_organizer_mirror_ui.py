@@ -2844,8 +2844,12 @@ class OrganizerMirrorIntegrationTests(unittest.TestCase):
                     move.assert_not_called()
                     runtime.switch_character.restore_preferred_client.assert_not_called()
                     runtime.input_state.end_mouse_block.assert_called_once()
-                    runtime.logger.info.assert_any_call(
-                        "%s: restauration ignorée, favori ou roster changé.", "Miroir",
+                    # The final send completed, but Organizer changed during
+                    # its native callback: the worker must report the drift
+                    # before any attempt to restore the old favorite.
+                    runtime.logger.warning.assert_any_call(
+                        "%s interrompu: roster modifié après clic hwnd=%s",
+                        "Miroir", handles[-1],
                     )
                     runtime._emit_status.assert_called_once_with(
                         f"Miroir interrompu : {count}/{count} fenêtres."
