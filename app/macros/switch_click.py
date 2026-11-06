@@ -935,6 +935,9 @@ class SwitchClickMacro:
                 ):
                     return
         finally:
+            # Retain the collision result even after releasing InputState's
+            # lease (which deliberately clears the interruption latch).
+            pointer_collision = pointer_interrupted()
             # Emergency Stop must never be followed by a late cursor or
             # favorite restoration from a worker that is winding down.
             # The user may already have selected another application.
@@ -989,7 +992,8 @@ class SwitchClickMacro:
             # initial restore decision. Never move the physical pointer on
             # the basis of an obsolete pre-Stop snapshot.
             if (original_cursor is not None and restore_after_worker
-                    and not self.runtime.macro_lock.should_stop()):
+                    and not self.runtime.macro_lock.should_stop()
+                    and not pointer_interrupted()):
                 try:
                     set_cursor_pos(*original_cursor)
                     # Cursor restoration may invoke native hooks and change
@@ -1040,6 +1044,8 @@ class SwitchClickMacro:
                     )
 
             if mouse_blocked:
+                # A click can arrive during the final Win32 cleanup probe.
+                pointer_collision = pointer_collision or pointer_interrupted()
                 remaining_blocks = self.runtime.input_state.end_mouse_block()
                 self.runtime.logger.debug(
                     "%s souris physique débloquée: remaining=%s",
@@ -1088,7 +1094,7 @@ class SwitchClickMacro:
             if target_total > 0:
                 stopped = self.runtime.macro_lock.should_stop()
                 state = (
-                    "interrompu" if (stopped or focus_lost
+                    "interrompu" if (stopped or focus_lost or pointer_collision
                                      or not target_roster_intact())
                     else "terminé" if sent_count == target_total
                     else "partiel"
@@ -1103,8 +1109,11 @@ class SwitchClickMacro:
                         else "Miroir incomplet" if state == "partiel"
                         else "Miroir"
                     )
+                    suffix = (
+                        " (geste physique non rejoué)" if pointer_collision else ""
+                    )
                     self.runtime._emit_status(
-                        f"{label} : {sent_count}/{target_total} fenêtres."
+                        f"{label} : {sent_count}/{target_total} fenêtres{suffix}."
                     )
 
     def _capture_trigger_context(
