@@ -221,11 +221,21 @@ class MirrorInputMacro:
         mouse_blocked = False
         mouse_block_started_at: float | None = None
         pointer_collision = False
+        pointer_probe_failed = False
 
         def pointer_interrupted() -> bool:
-            check = getattr(runtime.input_state, "mouse_block_interrupted", None)
-            return bool(kind == "wheel" and mouse_blocked
-                        and callable(check) and check() is True)
+            nonlocal pointer_probe_failed
+            if kind != "wheel" or not mouse_blocked:
+                return False
+            try:
+                check = getattr(runtime.input_state, "mouse_block_interrupted", None)
+                return bool(callable(check) and check() is True)
+            except Exception:
+                # Fail closed: never send another wheel tick into a window
+                # when the safety latch cannot be read. Keep the error
+                # distinct from a genuinely intercepted native gesture.
+                pointer_probe_failed = True
+                return True
 
         try:
             if (runtime.settings is not profile_at_start
@@ -610,9 +620,13 @@ class MirrorInputMacro:
             # completed gesture under the original profile generation.
             # Keep both facts visible without claiming Unity received input.
             if pointer_collision:
+                reason = (
+                    "contrôle souris indisponible" if pointer_probe_failed
+                    else "geste physique non rejoué"
+                )
                 runtime._emit_status(
                     f"Miroir {label} interrompu : {delivered}/{len(handles)} "
-                    "fenêtres (geste physique non rejoué)."
+                    f"fenêtres ({reason})."
                 )
             elif delivered != len(handles) or runtime.macro_lock.should_stop():
                 runtime._emit_status(
