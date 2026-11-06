@@ -68,6 +68,26 @@ class OrganizerMirrorLogReportTests(unittest.TestCase):
         self.assertIsNone(report["metrics"]["click_dispatch_to_last_emit_ms"])
         self.assertEqual(report["roster_mismatch_lines"], 1)
 
+    def test_click_dispatch_metric_requires_explicit_roster_size(self):
+        for count in (2, 4, 6, 8):
+            with self.subTest(count=count):
+                report = summarize([
+                    # Legacy unscoped diagnostic: its account count cannot be
+                    # reconstructed after a session's roster was changed.
+                    "Miroir clic dispatch_to_worker_ms=4.00 dispatch_to_last_emit_ms=999.00 (envoi, pas rendu Unity)",
+                    f"Miroir clic dispatch_to_worker_ms=3.00 dispatch_to_last_emit_ms=19.00 cibles={count} (envoi, pas rendu Unity)",
+                    "Miroir clic dispatch_to_worker_ms=2.00 dispatch_to_last_emit_ms=88.00 cibles=1 (envoi, pas rendu Unity)",
+                    f"Miroir clic dispatch_to_worker_ms=5.00 dispatch_to_last_emit_ms=NOT_MEASURED cibles={count} (envoi, pas rendu Unity)",
+                ], count)
+                self.assertEqual(
+                    report["metrics"]["click_dispatch_to_last_emit_ms"],
+                    {"n": 1, "p50_ms": 19.0, "p95_ms": 19.0, "p99_ms": 19.0},
+                )
+                self.assertEqual(report["roster_mismatch_lines"], 1)
+        self.assertIsNone(summarize([
+            "Miroir clic dispatch_to_worker_ms=4.00 dispatch_to_last_emit_ms=999.00 (envoi, pas rendu Unity)",
+        ], 8)["metrics"]["click_dispatch_to_last_emit_ms"])
+
     def test_profile_changed_after_full_send_is_not_reported_complete(self):
         # Runtime explicitly distinguishes delivery count from final profile
         # integrity. A full counter must never silently become a green action.
