@@ -188,13 +188,18 @@ def send_screen_click(
                 )
                 return False
 
-            logger.debug(
-                "Clic synthetique envoye: button=%s count=%s x=%s y=%s",
-                button_name,
-                index + 1,
-                screen_x,
-                screen_y,
-            )
+            try:
+                logger.debug(
+                    "Clic synthetique envoye: button=%s count=%s x=%s y=%s",
+                    button_name,
+                    index + 1,
+                    screen_x,
+                    screen_y,
+                )
+            except Exception:
+                # Logging cannot consume a native gesture already accepted
+                # by a mirror worker before its corresponding SendInput.
+                pass
 
             down_ok = _send_mouse_flag(down_flag)
             if not down_ok:
