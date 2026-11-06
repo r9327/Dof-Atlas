@@ -20,6 +20,7 @@ class InputState:
         # interrupt that worker. Do not enqueue/replay it onto an unknown
         # Unity foreground target.
         self._mouse_block_interrupted = False
+        self._mouse_block_gesture_count = 0
         # Emergency Stop revokes all prior pointer leases. Track ownership
         # per thread so a stale worker cannot decrement a NEW worker's block.
         # All canonical macro senders acquire/release on their worker thread.
@@ -61,8 +62,10 @@ class InputState:
             # The result of an earlier release must never contaminate this
             # worker's next lease after another macro was dispatched.
             self._mouse_block_owners.last_release_interrupted = False
+            self._mouse_block_owners.last_release_blocked_count = 0
             if self._mouse_block_count == 0:
                 self._mouse_block_interrupted = False
+                self._mouse_block_gesture_count = 0
             self._mouse_block_count += 1
             self._mouse_block_label = str(label or "macro")
             return self._mouse_block_count
@@ -74,6 +77,7 @@ class InputState:
             # decrement. A physical DOWN can arrive after a worker's last
             # independent collision probe but before this release.
             self._mouse_block_owners.last_release_interrupted = False
+            self._mouse_block_owners.last_release_blocked_count = 0
             if not owners:
                 # Never unlock a lease acquired by another worker thread.
                 return self._mouse_block_count
@@ -85,10 +89,14 @@ class InputState:
             self._mouse_block_owners.last_release_interrupted = (
                 self._mouse_block_interrupted
             )
+            self._mouse_block_owners.last_release_blocked_count = (
+                self._mouse_block_gesture_count
+            )
             self._mouse_block_count = max(0, self._mouse_block_count - 1)
             if self._mouse_block_count == 0:
                 self._mouse_block_label = ""
                 self._mouse_block_interrupted = False
+                self._mouse_block_gesture_count = 0
             return self._mouse_block_count
 
     def last_release_interrupted(self) -> bool:
@@ -101,6 +109,16 @@ class InputState:
             self._mouse_block_owners, "last_release_interrupted", False,
         ))
 
+    def last_release_blocked_count(self) -> int:
+        """Number of intercepted physical gestures in this worker's lease.
+
+        Recorded by the same atomic release as last_release_interrupted;
+        useful for exact-action diagnostics without blocking the mouse hook.
+        """
+        return int(getattr(
+            self._mouse_block_owners, "last_release_blocked_count", 0,
+        ))
+
     def clear_mouse_block(self) -> None:
         with self._lock:
             # The next worker's lease belongs to a distinct generation.
@@ -108,6 +126,7 @@ class InputState:
             self._mouse_block_count = 0
             self._mouse_block_label = ""
             self._mouse_block_interrupted = False
+            self._mouse_block_gesture_count = 0
 
     def note_blocked_physical_gesture(self) -> bool:
         """Request cancellation of the CURRENT pointer lease, never replay.
@@ -120,6 +139,7 @@ class InputState:
             if self._mouse_block_count <= 0:
                 return False
             self._mouse_block_interrupted = True
+            self._mouse_block_gesture_count += 1
             return True
 
     def mouse_block_interrupted(self) -> bool:
