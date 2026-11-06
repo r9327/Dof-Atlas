@@ -186,7 +186,16 @@ class MirrorInputMacro:
                 )
                 runtime._emit_status("Miroir non diffusé : focus source perdu.")
                 return
-        timings = profile_at_start.timings
+        # A profile reload can detach timing configuration after the
+        # gesture was admitted. Never let an uncaught attribute error
+        # escape a background worker before it can report the cancellation.
+        timings = getattr(profile_at_start, "timings", None)
+        if timings is None:
+            runtime.logger.warning(
+                "Miroir %s annulé: paramètres Organizer indisponibles.", kind,
+            )
+            runtime._emit_status("Miroir non diffusé : paramètres Organizer absents.")
+            return
         start = perf_counter()
         last_emission_at: float | None = None
         delivered = 0
