@@ -1738,3 +1738,9 @@ Ne pas rendre la PR non-Draft.
 - Le chemin chaud `WM_MOUSEMOVE` ne fait **aucun décodage ctypes** si la souris est libre dès le premier test. Lorsqu'un bail était actif au départ, le hook reverifie ce bail **après** le décodage de l'événement : un mouvement natif arrivé juste après sa libération n'est plus avalé en retard.
 - Un mouvement physique pendant le bail réellement actif reste protégé ; les mouvements marqués injectés passent sans déclencher les callbacks utilisateur. La vérification supplémentaire est limitée au chemin déjà bloqué.
 - Une régression simulée sur 2/4/6/8 clients force l'expiration du bail entre ces deux sondes. Cela ne mesure ni la latence réelle des hooks sur Windows ni le rendu Unity.
+
+### 06/11/2026 — garde en cas de lecture Win32 / génération de bail impossible
+
+- Les deux sondes d'epoch dans le chemin bloqué du hook souris sont protégées : si la génération courante est illisible, le hook **échoue en mode sûr** (ne laisse pas passer un DOWN physique vers un client potentiellement activé automatiquement), et conserve l'appariement de son UP.
+- Les logs d'erreur du hook ne sont pas autorisés à faire fuiter le DOWN/UP même si le logger échoue. Si le bail est réellement terminé et que cette fin est vérifiée, le comportement natif du lot précédent reste intact.
+- Scénarios simulés pour 2/4/6/8 fenêtres : erreur de première et seconde sonde, boutons gauche/droit/XBUTTON, molette, logger en panne et UP après un DOWN consommé. Ces tests ne prouvent pas les conditions réelles de l'OS ou de Unity.
