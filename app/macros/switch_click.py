@@ -324,12 +324,19 @@ class SwitchClickMacro:
         mirror_focus_samples: list[float] = []
         targets = []
         frozen_handles: tuple[int, ...] = ()
-        initial_mode = settings_at_start.macro_mode
-        initial_primary = settings_at_start.primary_handle
-        initial_clients = getattr(settings_at_start, "clients", None)
-        initial_roster = (
-            tuple((type(c.handle), c.handle) for c in initial_clients)
-            if isinstance(initial_clients, (list, tuple)) else None
+        initial_mode = getattr(settings_at_start, "macro_mode", None)
+        initial_primary = getattr(settings_at_start, "primary_handle", None)
+
+        def roster_signature(clients: object) -> tuple[tuple[type, object], ...] | None:
+            if not isinstance(clients, (list, tuple)):
+                return None
+            # Win32 session records can detach between worker checkpoints.
+            # Read a handle once, without raising from cleanup/finally.
+            handles = (getattr(client, "handle", None) for client in clients)
+            return tuple((type(hwnd), hwnd) for hwnd in handles)
+
+        initial_roster = roster_signature(
+            getattr(settings_at_start, "clients", None)
         )
 
         def target_roster_intact() -> bool:
@@ -338,20 +345,21 @@ class SwitchClickMacro:
             return (
                 self.runtime.settings is settings_at_start
                 and (dispatch_guard is None or dispatch_guard())
-                and settings_at_start.macro_mode == initial_mode
-                and type(settings_at_start.primary_handle) is type(initial_primary)
-                and settings_at_start.primary_handle == initial_primary
+                and getattr(settings_at_start, "macro_mode", None) == initial_mode
+                and type(getattr(settings_at_start, "primary_handle", None)) is type(initial_primary)
+                and getattr(settings_at_start, "primary_handle", None) == initial_primary
                 and (
                     initial_roster is None
-                    or (
-                        isinstance(getattr(settings_at_start, "clients", None), (list, tuple))
-                        and tuple((type(c.handle), c.handle)
-                                  for c in settings_at_start.clients) == initial_roster
-                    )
+                    or roster_signature(
+                        getattr(settings_at_start, "clients", None)
+                    ) == initial_roster
                 )
                 and len(targets) == len(frozen_handles)
-                and all(type(client.handle) is type(hwnd) and client.handle == hwnd
-                        for client, hwnd in zip(targets, frozen_handles))
+                and all(
+                    type(getattr(client, "handle", None)) is type(hwnd)
+                    and getattr(client, "handle", None) == hwnd
+                    for client, hwnd in zip(targets, frozen_handles)
+                )
             )
 
         try:
@@ -436,7 +444,9 @@ class SwitchClickMacro:
                 context.source_hwnd
             )
             target_total = len(targets)
-            frozen_handles = tuple(client.handle for client in targets)
+            frozen_handles = tuple(
+                getattr(client, "handle", None) for client in targets
+            )
             if not target_roster_intact():
                 delivery_failed = True
                 self.runtime.logger.warning(
@@ -479,15 +489,22 @@ class SwitchClickMacro:
 
                 def mirror_roster_is_current() -> bool:
                     settings = self.runtime.settings
-                    live = tuple(client.handle for client in settings.clients)
+                    if settings is not settings_at_start:
+                        return False
+                    live_records = roster_signature(
+                        getattr(settings, "clients", None)
+                    )
+                    if (live_records is None
+                            or any(kind is not int for kind, _ in live_records)):
+                        return False
+                    live = tuple(hwnd for _, hwnd in live_records)
                     ordered = (
                         context.source_hwnd,
                         *(hwnd for hwnd in live if hwnd != context.source_hwnd),
                     )
                     return (
-                        settings is settings_at_start
-                        and settings.macro_mode == "mirror"
-                        and settings.primary_handle == context.source_hwnd
+                        getattr(settings, "macro_mode", None) == "mirror"
+                        and getattr(settings, "primary_handle", None) == context.source_hwnd
                         and len(live) == len(captured_handles)
                         and ordered == captured_handles
                     )
@@ -502,7 +519,8 @@ class SwitchClickMacro:
             # was actually activated. Restore the favorite only after at
             # least one target has been confirmed in the foreground.
             if physical_source_delivered and not any(
-                client.handle == context.source_hwnd for client in targets
+                getattr(client, "handle", None) == context.source_hwnd
+                for client in targets
             ):
                 self.runtime.logger.warning(
                     "%s annulé: source physique absente des fenêtres.", action_label,
