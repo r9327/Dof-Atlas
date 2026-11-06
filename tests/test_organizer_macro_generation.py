@@ -11,6 +11,46 @@ from app.core.runtime_state import AtlasRuntime
 
 
 class MacroGenerationOwnershipTests(unittest.TestCase):
+    def test_macro_lock_state_survives_failed_logger_during_admission_stop_cleanup(self):
+        for accounts in (2, 4, 6, 8):
+            with self.subTest(accounts=accounts):
+                logger = Mock()
+                for level in ("debug", "info", "warning", "exception"):
+                    getattr(logger, level).side_effect = RuntimeError(
+                        "diagnostic sink unavailable"
+                    )
+                lock = MacroLock(logger)
+                first = lock.try_begin_generation("Miroir")
+                self.assertIs(type(first), int)
+                self.assertTrue(lock.owns("Miroir", first))
+                # Busy admission and stale completion are rejected even
+                # when their warning/debug sinks both raise.
+                self.assertIsNone(lock.try_begin_generation("Miroir"))
+                lock.end("Miroir", generation=first + 1)
+                lock.end("wrong label", generation=first)
+                self.assertTrue(lock.owns("Miroir", first))
+
+                lock.request_stop("test stop")
+                self.assertTrue(lock.should_stop())
+
+                def broken_cleanup():
+                    raise RuntimeError("synthetic guard cleanup failed")
+
+                lock.end(
+                    "Miroir", generation=first, on_owner_end=broken_cleanup,
+                )
+                self.assertIsNone(lock.snapshot_active())
+                self.assertEqual(lock.active_label, "")
+                # Even after Stop and failed cleanup logging, the next
+                # intentional admission owns a fresh generation.
+                second = lock.try_begin_generation("Miroir")
+                self.assertIs(type(second), int)
+                self.assertGreater(second, first)
+                self.assertFalse(lock.should_stop())
+                self.assertTrue(lock.owns("Miroir", second))
+                lock.end("Miroir", generation=second)
+                self.assertIsNone(lock.snapshot_active())
+
     def test_old_identically_named_worker_cannot_unlock_new_lease(self):
         for name in ("Miroir", "Miroir clavier", "Miroir molette", "Auto zaap"):
             with self.subTest(name=name):
