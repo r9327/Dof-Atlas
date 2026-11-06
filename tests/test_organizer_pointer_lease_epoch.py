@@ -28,6 +28,57 @@ class OrganizerPointerLeaseEpochTests(unittest.TestCase):
                 self.assertEqual(guard._active_count, 0)
                 self.assertFalse(guard.is_synthetic_window())
 
+    def test_release_collision_snapshot_is_atomic_for_2_to_8(self):
+        for accounts in (2, 4, 6, 8):
+            with self.subTest(accounts=accounts):
+                state = InputState()
+                self.assertFalse(state.last_release_interrupted())
+                state.begin_mouse_block("Miroir")
+                # The hook sees a new DOWN AFTER the worker's last poll,
+                # immediately before the lease release.
+                self.assertTrue(state.note_blocked_physical_gesture())
+                self.assertEqual(state.end_mouse_block(), 0)
+                self.assertFalse(state.is_mouse_blocked())
+                self.assertFalse(state.mouse_block_interrupted())
+                self.assertTrue(state.last_release_interrupted())
+                state.begin_mouse_block("Miroir suivant")
+                self.assertFalse(state.last_release_interrupted())
+                self.assertEqual(state.end_mouse_block(), 0)
+                self.assertFalse(state.last_release_interrupted())
+
+    def test_stale_epoch_and_foreign_thread_cannot_steal_collision_snapshot(self):
+        state = InputState()
+        state.begin_mouse_block("Ancien")
+        state.note_blocked_physical_gesture()
+        state.clear_mouse_block()
+        state.begin_mouse_block("Nouveau")
+        observed = []
+        def foreign():
+            observed.append((state.end_mouse_block(), state.last_release_interrupted()))
+        foreign_thread = threading.Thread(target=foreign)
+        foreign_thread.start()
+        foreign_thread.join(2)
+        self.assertEqual(observed, [(1, False)])
+        self.assertFalse(state.last_release_interrupted())
+        state.note_blocked_physical_gesture()
+        self.assertEqual(state.end_mouse_block(), 0)
+        self.assertTrue(state.last_release_interrupted())
+        # Stale previous generation is last on the current thread's stack.
+        self.assertEqual(state.end_mouse_block(), 0)
+        self.assertFalse(state.last_release_interrupted())
+
+    def test_nested_release_reports_collision_without_clearing_live_lease(self):
+        state = InputState()
+        state.begin_mouse_block("Miroir outer")
+        state.begin_mouse_block("Miroir inner")
+        state.note_blocked_physical_gesture()
+        self.assertEqual(state.end_mouse_block(), 1)
+        self.assertTrue(state.last_release_interrupted())
+        self.assertTrue(state.mouse_block_interrupted())
+        self.assertEqual(state.end_mouse_block(), 0)
+        self.assertTrue(state.last_release_interrupted())
+        self.assertFalse(state.mouse_block_interrupted())
+
     def test_stale_worker_cannot_unblock_new_mirror_after_emergency_stop(self):
         for old_label, new_label in (
             ("Miroir molette", "Miroir"),
