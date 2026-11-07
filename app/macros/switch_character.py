@@ -265,6 +265,8 @@ class SwitchCharacterMacro:
         primary_handle, client marqué primary, puis premier client configuré.
         """
         settings = self.runtime.settings
+        if settings is None:
+            return None
         favorite_at_start = settings.primary_handle
         mode_at_start = settings.macro_mode
         preferred = settings.preferred_client()
@@ -289,6 +291,8 @@ class SwitchCharacterMacro:
 
     def logical_active_client(self) -> "AtlasClient | None":
         settings = self.runtime.settings
+        if settings is None:
+            return None
         active = foreground_window()
         if (type(active) is int and 0 < active <= (2**64 - 1)
                 and is_unity_window(active) and is_dofus_unity_process(active)):
@@ -340,6 +344,8 @@ class SwitchCharacterMacro:
         source_hwnd: int = 0,
     ) -> list["AtlasClient"]:
         settings_at_start = self.runtime.settings
+        if settings_at_start is None:
+            return []
         clients: list["AtlasClient"] = []
         accepted_hwnds: list[tuple["AtlasClient", int]] = []
         seen_handles: set[int] = set()

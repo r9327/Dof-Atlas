@@ -5768,5 +5768,16 @@ class OrganizerDetachedProfileTests(unittest.TestCase):
                 self.assertFalse(run(runtime))
                 runtime._spawn_macro.assert_not_called()
 
+    def test_switch_character_helpers_are_safe_without_profile(self):
+        runtime = _runtime()
+        runtime.settings = None
+        macro = SwitchCharacterMacro(runtime)
+        with patch("app.macros.switch_character.foreground_window") as foreground:
+            self.assertIsNone(macro.preferred_client())
+            self.assertIsNone(macro.logical_active_client())
+            self.assertEqual(macro.ordered_clients_from_source(), [])
+        foreground.assert_not_called()
+        runtime._spawn_macro.assert_not_called()
+
 if __name__ == "__main__":
     unittest.main()
