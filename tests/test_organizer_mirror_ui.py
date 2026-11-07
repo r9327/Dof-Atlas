@@ -2243,6 +2243,67 @@ class OrganizerMirrorIntegrationTests(unittest.TestCase):
                     "Miroir", 101 if not successful_before_failure else 202,
                 )
 
+    def test_user_focus_change_between_click_recipients_cancels_reactivation(self):
+        from app.macros.switch_click import SwitchClickContext, SwitchClickMacro
+
+        for count in (2, 4, 6, 8):
+            with self.subTest(count=count):
+                handles = tuple(range(101, 101 + count))
+                runtime = self._runtime(primary=handles[0], handles=handles)
+                runtime.settings.clients = tuple(
+                    SimpleNamespace(handle=h, display_name=str(h))
+                    for h in handles
+                )
+                runtime.switch_character.ordered_clients_from_source.return_value = list(
+                    runtime.settings.clients
+                )
+                active = [handles[0]]
+                activated = []
+                emitted = []
+
+                def activate(hwnd, *_args, **_kwargs):
+                    activated.append(hwnd)
+                    active[0] = hwnd
+                    return True
+
+                def click(hwnd, *_args, **_kwargs):
+                    emitted.append(hwnd)
+                    active[0] = 999  # Focus stolen after first click.
+                    return True
+
+                macro = SwitchClickMacro(runtime)
+                context = SwitchClickContext(handles[0], 20, 25, 0.5, 0.5, "cursor")
+                with (
+                    patch.object(macro, "_validated_context", return_value=context),
+                    patch.object(macro, "_target_point", return_value=(20, 25)),
+                    patch("app.macros.switch_click.current_cursor_pos",
+                          return_value=(12, 14)),
+                    patch("app.macros.switch_click.is_unity_window",
+                          return_value=True),
+                    patch("app.macros.switch_click.is_dofus_unity_process",
+                          return_value=True),
+                    patch("app.macros.switch_click.activate_window",
+                          side_effect=activate),
+                    patch("app.macros.switch_click.foreground_window",
+                          side_effect=lambda: active[0]),
+                    patch("app.macros.switch_click.send_client_click",
+                          side_effect=click),
+                    patch("app.macros.switch_click.set_cursor_pos") as cursor,
+                ):
+                    macro._run(
+                        "Left", 1, "Miroir", context,
+                        exact_source_handle=handles[0],
+                        mirror_target_handles=handles,
+                    )
+                self.assertEqual(activated, [handles[0]])
+                self.assertEqual(emitted, [handles[0]])
+                cursor.assert_not_called()
+                runtime.switch_character.restore_preferred_client.assert_not_called()
+                runtime.input_state.end_mouse_block.assert_called_once()
+                runtime._emit_status.assert_called_once_with(
+                    f"Miroir interrompu : 1/{count} fenêtres."
+                )
+
     def test_switch_click_sender_refusal_after_focus_theft_never_restores(self):
         from app.macros.switch_click import SwitchClickMacro, SwitchClickContext
 
@@ -4173,6 +4234,71 @@ class OrganizerMirrorIntegrationTests(unittest.TestCase):
                 runtime._emit_status.assert_called_once_with(
                     "Miroir Molette incomplet : 0/2 fenêtres."
                 )
+
+    def test_user_focus_change_between_recipients_prevents_key_wheel_refocus(self):
+        from app.macros.mirror_input import MirrorInputMacro
+
+        for count in (2, 4, 6, 8):
+            for kind in ("key", "wheel"):
+                with self.subTest(count=count, kind=kind):
+                    handles = tuple(range(101, 101 + count))
+                    runtime = self._runtime(primary=handles[0], handles=handles)
+                    active = [handles[0]]
+                    activated = []
+
+                    def activate(hwnd, *_args, **_kwargs):
+                        activated.append(hwnd)
+                        active[0] = hwnd
+                        return True
+
+                    def user_switches_app(*_args, **_kwargs):
+                        # The first SendInput succeeded, but a browser took
+                        # foreground during the inter-client gap.
+                        active[0] = 999
+                        return True
+
+                    with (
+                        patch("app.macros.mirror_input.is_dofus_unity_process",
+                              return_value=True),
+                        patch("app.macros.mirror_input.activate_window",
+                              side_effect=activate),
+                        patch("app.macros.mirror_input.foreground_window",
+                              side_effect=lambda: active[0]),
+                        patch("app.macros.mirror_input.current_cursor_pos",
+                              return_value=(12, 14)),
+                        patch("app.macros.mirror_input.client_point_from_ratio",
+                              return_value=(8, 9)),
+                        patch("app.macros.mirror_input.client_to_screen",
+                              return_value=(80, 90)),
+                        patch("app.macros.mirror_input.set_cursor_pos") as cursor,
+                        patch("app.macros.mirror_input.send_screen_wheel",
+                              side_effect=user_switches_app) as wheel,
+                        patch("app.macros.input_tools.key_down") as down,
+                        patch("app.macros.input_tools.key_up",
+                              side_effect=user_switches_app) as up,
+                    ):
+                        MirrorInputMacro(runtime)._run(
+                            kind,
+                            65 if kind == "key" else (120, False, 0.5, 0.5),
+                            handles[0], handles,
+                        )
+                    self.assertEqual(activated, [handles[0]])
+                    runtime.switch_character.restore_preferred_client.assert_not_called()
+                    if kind == "key":
+                        down.assert_called_once_with(65)
+                        up.assert_called_once_with(65)
+                        wheel.assert_not_called()
+                        cursor.assert_not_called()
+                        runtime.input_state.end_mouse_block.assert_not_called()
+                    else:
+                        wheel.assert_called_once_with(120, horizontal=False)
+                        down.assert_not_called()
+                        cursor.assert_called_once_with(80, 90)
+                        runtime.input_state.end_mouse_block.assert_called_once()
+                    runtime._emit_status.assert_called_once_with(
+                        f"Miroir {'Clavier' if kind == 'key' else 'Molette'} "
+                        f"incomplet : 1/{count} fenêtres."
+                    )
 
     def test_mirror_key_process_probe_steals_focus_before_send(self):
         from app.macros.mirror_input import MirrorInputMacro
