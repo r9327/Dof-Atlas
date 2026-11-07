@@ -993,6 +993,9 @@ class ZaapWidget(QWidget):
         self.favorite_star_buttons: list[QToolButton] = []
         self.calibration_active = False
         self.launching_zaap = False
+        # An already-queued FocusIn/MousePress QTimer must not reopen the
+        # suggestion popup after selection. A fresh user edit/click may.
+        self._suppress_autoshow_after_launch = False
         self.search_input = QLineEdit()
         self.search_input.setObjectName("comboField")
         self.search_input.setPlaceholderText("Sélectionner un zaap")
@@ -1103,6 +1106,9 @@ class ZaapWidget(QWidget):
         self.refresh_results("")
 
     def refresh_results(self, text: str) -> None:
+        # This callback is connected to textEdited (user input), not setText.
+        # A genuinely new query re-enables suggestions after a selection.
+        self._suppress_autoshow_after_launch = False
         rows = self.search(text)
         self.filtered_zaaps = rows
         self.populate_suggestions(rows)
@@ -1242,6 +1248,8 @@ class ZaapWidget(QWidget):
         self.suggestion_popup.setCurrentItem(item)
 
     def show_suggestions(self) -> None:
+        if self._suppress_autoshow_after_launch:
+            return
         if not self.suggestion_popup.count():
             self.hide_suggestions()
             return
@@ -1302,11 +1310,16 @@ class ZaapWidget(QWidget):
                 self.launch_current_suggestion()
                 return True
             if key in (Qt.Key_Down, Qt.Key_Up):
+                self._suppress_autoshow_after_launch = False
                 if not self.suggestion_popup.isVisible() and self.suggestion_popup.count() and self.search_input.text().strip():
                     self.show_suggestions()
                 self.move_suggestion_selection(1 if key == Qt.Key_Down else -1)
                 return True
         if watched is self.search_input and event.type() in (QEvent.FocusIn, QEvent.MouseButtonPress):
+            if event.type() == QEvent.MouseButtonPress:
+                # Real user interaction may reopen suggestions; a delayed
+                # FocusIn emitted during launch is not equivalent to a click.
+                self._suppress_autoshow_after_launch = False
             if self.search_input.text().strip() and self.suggestion_popup.count():
                 self._schedule_owned_callback(0, self.show_suggestions)
         if watched is self.search_input and event.type() == QEvent.FocusOut:
@@ -1386,6 +1399,11 @@ class ZaapWidget(QWidget):
         self.launching_zaap = True
         label = self.suggestion_label(zaap)
         coords = row_coordinate_pair(zaap)
+        # Close immediately, before callbacks can reload the runtime or
+        # activate another window. The popup must never stay over DOFUS.
+        # Suppress previously scheduled show_suggestions() QTimer callbacks.
+        self._suppress_autoshow_after_launch = True
+        self.hide_suggestions()
         try:
             if coords is None:
                 LOGGER.warning("Auto zaap refuse: coordonnees absentes pour %s", label)
@@ -1394,12 +1412,31 @@ class ZaapWidget(QWidget):
             self.search_input.setText(label)
             if self.config_update_callback is not None:
                 self.config_update_callback()
-            if self.start_callback is not None:
-                command = f"/zaap {coords[0]},{coords[1]}"
-                invoke_compatible_callback(self.start_callback, command, None, None)
-            self.hide_suggestions()
-            LOGGER.info("Auto zaap selection: label=%s coords=%s", label, coords)
-            self.status_callback(f"Auto zaap lance: {label}")
+            if self.start_callback is None:
+                self.status_callback("Auto zaap indisponible : runtime non connecté.")
+                return
+            command = f"/zaap {coords[0]},{coords[1]}"
+            try:
+                accepted = invoke_compatible_callback(
+                    self.start_callback, command, None, None,
+                )
+            except Exception:
+                LOGGER.exception("Auto zaap: lancement du runtime impossible.")
+                self.status_callback(f"Auto zaap non lancé : {label}")
+                return
+            LOGGER.info(
+                "Auto zaap sélection: label=%s coords=%s accepté=%s",
+                label, coords, accepted is True,
+            )
+            if accepted is True:
+                self.status_callback(f"Auto zaap en cours : {label}")
+            elif accepted is False:
+                self.status_callback(
+                    f"Auto zaap non lancé : macro occupée ou runtime indisponible ({label})."
+                )
+            else:
+                # Legacy callbacks returning None do not prove acceptance.
+                self.status_callback(f"Auto zaap transmis (démarrage non confirmé) : {label}")
         finally:
             self._schedule_owned_callback(0, self.reset_launch_guard)
 

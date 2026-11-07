@@ -2037,6 +2037,7 @@ class AtlasWindow(QMainWindow):
             self.launch_zaap,
             sessions_changed_callback=self.refresh_global_characters,
             active_session_callback=self.on_organizer_active_window,
+            next_character_callback=self.launch_next_character,
         )
 
     def create_craft_page(self) -> QWidget:
@@ -2716,15 +2717,44 @@ class AtlasWindow(QMainWindow):
         self.reload_runtime()
         self._ensure_runtime().launch_guide_travel(text, tuple(character_keys or ()))
 
-    def launch_zaap(self, text: str, click_position=None, click_ratios=None) -> None:
+    def launch_zaap(self, text: str, click_position=None, click_ratios=None) -> bool:
+        if self.quit_requested or self._background_services_stopped:
+            return False
+        # Refreshing sessions invalidates the running worker's generation.
+        # Refuse a second launch BEFORE any reload, not after MacroLock fails.
+        runtime = self.runtime
+        if runtime is not None and runtime.macro_lock.active_label:
+            return False
         self.reload_runtime()
-        self._ensure_runtime().launch_zaap(
-            text, click_position=click_position, click_ratios=click_ratios
-        )
+        if self.quit_requested or self._background_services_stopped:
+            return False
+        return bool(self._ensure_runtime().launch_zaap(
+            text, click_position=click_position, click_ratios=click_ratios,
+        ))
 
-    def launch_auto_group(self, invite_entries: list[dict[str, object]]) -> None:
+    def launch_next_character(self) -> None:
+        """Direct Organizer action: reuse the live character-switching worker."""
+        if self.quit_requested or self._background_services_stopped:
+            return
+        runtime = self._ensure_runtime()
+        if self.quit_requested or self._background_services_stopped:
+            return
+        if runtime.macro_lock.active_label:
+            self.set_status("Personnage suivant indisponible : macro déjà en cours.")
+            return
+        if not runtime.switch_character.activate_next():
+            self.set_status("Personnage suivant : aucune autre fenêtre DOFUS activable.")
+
+    def launch_auto_group(self, invite_entries: list[dict[str, object]]) -> bool:
+        if self.quit_requested or self._background_services_stopped:
+            return False
+        runtime = self.runtime
+        if runtime is not None and runtime.macro_lock.active_label:
+            return False
         self.reload_runtime()
-        self._ensure_runtime().launch_auto_group(invite_entries)
+        if self.quit_requested or self._background_services_stopped:
+            return False
+        return bool(self._ensure_runtime().launch_auto_group(invite_entries))
 
     def _shutdown_background_services(self) -> None:
         if self._background_services_stopped:

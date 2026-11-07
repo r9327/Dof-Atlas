@@ -24,18 +24,24 @@ class ModularDomainRoutingTests(unittest.TestCase):
                                  "startup", "identity", "data", "organizer"},
             "app/core/profile_settings.py": {"organizer", "ui",
                                              "startup", "identity", "data"},
+            "app/core/settings.py": {"organizer", "ui",
+                                    "startup", "identity", "data"},
             "app/macros/zaap.py": {"organizer", "ui", "identity"},
             "app/macros/direction.py": {"organizer", "ui", "identity"},
             "app/macros/mirror_plan.py": {"organizer", "ui", "identity"},
+            "app/macros/mirror_input.py": {"organizer", "ui", "identity"},
             "app/pages/organizer/radial_selection.py": {"organizer", "ui", "identity"},
             "app/pages/organizer/radial_overlay.py": {"organizer", "ui", "identity"},
             "app/core/runtime_state.py": {"organizer", "ui", "startup", "identity"},
+            "app/input/mouse_hooks.py": {"organizer", "ui", "startup", "identity"},
             "app/pages/organizer_page.py": {"organizer", "ui", "startup", "identity"},
             "app/pages/organizer/character_sessions.py": {"organizer", "ui", "identity", "data"},
             "app/windows/clicks.py": {"organizer", "ui", "startup", "identity"},
             "tests/test_organizer_sendinput.py": {"organizer", "ui", "identity"},
             "tests/test_organizer_macro_reliability.py": {"organizer", "ui", "identity"},
+            "tests/test_organizer_favorite_inflight.py": {"organizer", "ui", "identity"},
             "tests/test_organizer_mirror_plan.py": {"organizer", "ui", "identity"},
+            "tests/test_organizer_mirror_ui.py": {"organizer", "ui", "identity"},
             "tests/test_organizer_radial_overlay.py": {"organizer", "ui", "identity"},
             "tests/test_organizer_hotkey_capture.py": {"organizer", "ui", "identity"},
             "docs/organizer/radial-selector.md": {"organizer", "ui", "identity"},
@@ -61,6 +67,97 @@ class ModularDomainRoutingTests(unittest.TestCase):
         generic_doc = "docs/organizer/unreviewed-contract.md"
         self.assertFalse(owners_for(generic_doc))
         self.assertNotIn("organizer", self.route([generic_doc])["domains"])
+
+    def test_shared_win32_and_storage_dependencies_keep_real_cross_domain_owners(self):
+        reviewed = {
+            "app/windows/focus.py":
+                {"organizer", "ui", "startup", "identity"},
+            "app/windows/unity_windows.py":
+                {"organizer", "ui", "startup", "identity"},
+            "app/storage.py":
+                {"craft", "quests", "guides", "ui", "startup",
+                 "identity", "data", "organizer"},
+        }
+        for path, expected in reviewed.items():
+            with self.subTest(path=path):
+                self.assertEqual(owners_for(path), frozenset(expected))
+                plan = self.route([path])
+                self.assertEqual(plan["status"], "READY_TO_EXECUTE")
+                self.assertEqual(plan["unknown_paths"], [])
+                self.assertEqual(set(plan["domains"]), expected)
+                self.assertFalse(plan["phase_certified"])
+        # No wildcard for future Win32 sender helpers or parallel stores.
+        for unknown in ("app/windows/new_injector.py",
+                        "app/windows/new_hooks.py",
+                        "app/storage_unreviewed.py"):
+            with self.subTest(path=unknown):
+                self.assertFalse(owners_for(unknown))
+                self.assertEqual(self.route([unknown])["status"], "BLOCKED")
+
+    def test_all_reviewed_organizer_p0_tests_get_explicit_ownership(self):
+        # These tests are real PR #325 files, not future hypothetical paths.
+        reviewed = (
+            "tests/test_character_hotkey_mapping.py",
+            "tests/test_organizer_focus_preflight.py",
+            "tests/test_organizer_focus_topmost.py",
+            "tests/test_organizer_hook_stop_race.py",
+            "tests/test_organizer_identity_overflow.py",
+            "tests/test_organizer_macro_generation.py",
+            "tests/test_organizer_mirror_focus_admission.py",
+            "tests/test_organizer_next_character.py",
+            "tests/test_organizer_numeric_hook_guards.py",
+            "tests/test_organizer_persisted_hwnd.py",
+            "tests/test_organizer_pointer_lease_epoch.py",
+            "tests/test_organizer_speed_lease.py",
+            "tests/test_organizer_speed_presets.py",
+            "tests/test_organizer_stop_hotkey_priority.py",
+            "tests/test_organizer_zaap_popup.py",
+        )
+        for path in reviewed:
+            with self.subTest(path=path):
+                self.assertEqual(
+                    owners_for(path), frozenset({"organizer", "ui", "identity"})
+                )
+                routed = self.route([path])
+                self.assertEqual(routed["status"], "READY_TO_EXECUTE")
+                self.assertEqual(routed["unknown_paths"], [])
+                self.assertEqual(
+                    routed["domains"], ["ui", "identity", "organizer"],
+                )
+        lazy = "tests/test_managed_hooks_lazy.py"
+        self.assertEqual(
+            owners_for(lazy),
+            frozenset({"organizer", "startup", "ui", "identity"}),
+        )
+        self.assertEqual(
+            self.route(list(reviewed) + [lazy])["status"],
+            "READY_TO_EXECUTE",
+        )
+        # Keep the intent of the strict closed-world owner registry intact.
+        for unreviewed in (
+            "tests/test_organizer_new_backend.py",
+            "tests/test_managed_hooks_unreviewed.py",
+            "app/input/new_win32_injector.py",
+        ):
+            with self.subTest(unreviewed=unreviewed):
+                self.assertFalse(owners_for(unreviewed))
+                self.assertEqual(
+                    self.route([unreviewed])["status"], "BLOCKED",
+                )
+
+    def test_new_organizer_ai_scope_manifests_have_exact_ci_owner(self):
+        manifests = (
+            ".ai/scopes/organizer.yaml",
+            ".ai/scopes/macro_runtime.yaml",
+            ".ai/scopes/persistence_identity.yaml",
+        )
+        for path in manifests:
+            with self.subTest(path=path):
+                self.assertEqual(owners_for(path), frozenset({"ci"}))
+                self.assertEqual(self.route([path])["status"], "READY_TO_EXECUTE")
+        self.assertEqual(self.route(list(manifests))["domains"], ["ci"])
+        self.assertFalse(owners_for(".ai/scopes/mirror_unreviewed.yaml"))
+        self.assertEqual(self.route([".ai/scopes/mirror_unreviewed.yaml"])["status"], "BLOCKED")
 
     def test_doctor_pr_on_demand_exact_owner_and_contract(self):
         # New on-demand runner is CI-only. Unknown sibling executables stay

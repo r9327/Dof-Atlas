@@ -77,6 +77,36 @@ class DevelopmentLotTests(unittest.TestCase):
         self.assertFalse(report["full_suite_waived"])
         self.assertEqual(report["execution"]["status"], "NOT_RUN")
 
+    def test_macro_lock_has_existing_generation_owner_without_weaking_full(self):
+        # Preserve exact source ownership for native Stop and pointer leases:
+        # no generic Organizer smoke or blanket module allowance.
+        source = self.root / "app/core/macro_lock.py"
+        source.parent.mkdir(parents=True, exist_ok=True)
+        source.write_text("pass\\n", encoding="utf-8")
+        owned = self.root / "tests/test_organizer_macro_generation.py"
+        owned.parent.mkdir(parents=True, exist_ok=True)
+        owned.write_text("pass\\n", encoding="utf-8")
+        self.paths = [
+            "app/core/macro_lock.py",
+            "tests/test_organizer_macro_generation.py",
+            ".ai/context_index.json",
+        ]
+        report = self.plan()
+        self.assertEqual(report["status"], "READY")
+        self.assertEqual(report["uncovered_paths"], [])
+        self.assertEqual(
+            report["test_modules"], ["tests.test_organizer_macro_generation"],
+        )
+        self.assertTrue(report["global_full_required"])
+        self.assertFalse(report["phase_certified"])
+        owned.unlink()
+        # An absent test must not itself be treated as a changed test file.
+        # The source-only lot still requires a concrete owner and REVIEWs.
+        self.paths = ["app/core/macro_lock.py", ".ai/context_index.json"]
+        missing = self.plan()
+        self.assertEqual(missing["status"], "REVIEW")
+        self.assertEqual(missing["uncovered_paths"], ["app/core/macro_lock.py"])
+
     def test_pointer_state_and_mirror_worker_have_real_test_owners(self):
         # These are production senders; a broad organizer-domain smoke
         # cannot substitute for an explicit, executable owner.

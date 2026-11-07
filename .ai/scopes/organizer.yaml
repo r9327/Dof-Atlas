@@ -4,6 +4,9 @@ kind: feature
 working_set:
   - app/pages/organizer_page.py
   - app/pages/organizer_icon_cache.py
+  - app/pages/organizer/
+  - tests/test_organizer_mirror_plan.py
+  - tests/test_organizer_mirror_ui.py
 shared_dependencies:
   - persistence_identity
   - network_capture
