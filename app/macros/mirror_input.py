@@ -320,18 +320,14 @@ class MirrorInputMacro:
                     break
                 focus_started_at = perf_counter()
                 try:
-                    # The source was already foreground at admission and
-                    # after roster preflight. There was no window switch to
-                    # settle on this first character; retain the normal
-                    # focus-settle delay for every secondary Unity client.
-                    settle_ms = (
-                        0 if index == 0 and hwnd == source
-                        else timings.switch_background_pre_click_ms
-                    )
+                    # Only skip a no-op settle if the source is STILL
+                    # foreground at native activation time, not merely
+                    # when the gesture was admitted on the hook thread.
                     activated = activate_window(
-                        hwnd, settle_ms,
+                        hwnd, timings.switch_background_pre_click_ms,
                         timings.activate_attempts, timings.activate_retry_ms,
                         runtime.logger, "Miroir " + kind,
+                        skip_settle_if_active=(index == 0 and hwnd == source),
                         should_stop=lambda: (
                             runtime.macro_lock.should_stop()
                             or pointer_interrupted()

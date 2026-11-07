@@ -676,7 +676,12 @@ class OrganizerMirrorIntegrationTests(unittest.TestCase):
                 self.assertEqual(activate.call_count, count)
                 self.assertEqual(
                     [call.args[1] for call in activate.call_args_list],
-                    [0] + [25] * (count - 1),
+                    [25] * count,
+                )
+                self.assertEqual(
+                    [call.kwargs["skip_settle_if_active"]
+                     for call in activate.call_args_list],
+                    [True] + [False] * (count - 1),
                 )
                 self.assertEqual(
                     [call.args[0] for call in activate.call_args_list],
@@ -728,7 +733,12 @@ class OrganizerMirrorIntegrationTests(unittest.TestCase):
                 self.assertEqual(activate.call_count, count)
                 self.assertEqual(
                     [call.args[1] for call in activate.call_args_list],
-                    [0] + [25] * (count - 1),
+                    [25] * count,
+                )
+                self.assertEqual(
+                    [call.kwargs["skip_settle_if_active"]
+                     for call in activate.call_args_list],
+                    [True] + [False] * (count - 1),
                 )
                 self.assertEqual(
                     [call.args[0] for call in activate.call_args_list],
@@ -2048,8 +2058,10 @@ class OrganizerMirrorIntegrationTests(unittest.TestCase):
                 active = [handles[0]]
                 sent = []
                 settle_values = []
+                skip_flags = []
                 def focus(hwnd, *_args, **_kwargs):
                     settle_values.append(_args[0])
+                    skip_flags.append(_kwargs["skip_settle_if_active"])
                     self.assertTrue(runtime.input_state.is_mouse_blocked())
                     active[0] = hwnd
                     return True
@@ -2105,7 +2117,10 @@ class OrganizerMirrorIntegrationTests(unittest.TestCase):
                     runtime._spawn_macro.call_args.args[1]()
                 self.assertEqual(sent, list(handles))
                 self.assertEqual(
-                    settle_values, [0] + [31] * (count - 1),
+                    settle_values, [31] * count,
+                )
+                self.assertEqual(
+                    skip_flags, [True] + [False] * (count - 1),
                 )
                 self.assertFalse(runtime.input_state.is_mouse_blocked())
 

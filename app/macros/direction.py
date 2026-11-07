@@ -192,28 +192,26 @@ class DirectionMacro:
                         target_hwnd,
                     )
                     return
-                # This exact source was foreground during preflight: no
-                # focus transition occurred on the first recipient. Keep
-                # the configured settle for every subsequent Unity window.
-                settle_ms = (
-                    0 if index == 0 and target_hwnd == source
-                    else timings.click_focus_settle_ms
-                )
+                # The first client skips the delay ONLY when the native
+                # activation helper confirms it is still foreground.
                 focus_started_at = perf_counter()
                 try:
                     activated = activate_window(
-                    target_hwnd,
-                    settle_ms,
-                    timings.activate_attempts,
-                    timings.activate_retry_ms,
-                    self.runtime.logger,
-                    "Switch deplacement",
-                    should_stop=lambda client=client, hwnd=target_hwnd: (
-                        self.runtime.macro_lock.should_stop()
-                        or self.runtime.settings is not settings_at_start
-                        or not frozen_roster_intact()
-                        or dispatch_context_changed()
-                    ),
+                        target_hwnd,
+                        timings.click_focus_settle_ms,
+                        timings.activate_attempts,
+                        timings.activate_retry_ms,
+                        self.runtime.logger,
+                        "Switch deplacement",
+                        skip_settle_if_active=(
+                            index == 0 and target_hwnd == source
+                        ),
+                        should_stop=lambda client=client, hwnd=target_hwnd: (
+                            self.runtime.macro_lock.should_stop()
+                            or self.runtime.settings is not settings_at_start
+                            or not frozen_roster_intact()
+                            or dispatch_context_changed()
+                        ),
                     )
                 finally:
                     focus_samples_ms.append(

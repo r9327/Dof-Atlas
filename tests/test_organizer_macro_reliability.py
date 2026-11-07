@@ -5809,11 +5809,16 @@ class OrganizerDetachedProfileTests(unittest.TestCase):
                     patch("app.macros.direction.is_dofus_unity_process",
                           return_value=True),
                     patch("app.macros.direction.activate_window",
-                          side_effect=focus),
+                          side_effect=focus) as focus_mock,
                     patch("app.macros.direction.press_key") as press,
                 ):
                     DirectionMacro(runtime)._run("HOME")
-                self.assertEqual(settle_values, [0] + [37] * (count - 1))
+                self.assertEqual(settle_values, [37] * count)
+                self.assertEqual(
+                    [call.kwargs["skip_settle_if_active"]
+                     for call in focus_mock.call_args_list],
+                    [True] + [False] * (count - 1),
+                )
                 self.assertEqual(press.call_count, count)
 
     def test_zaap_first_foreground_skips_settle_only_on_source_2_4_6_8(self):

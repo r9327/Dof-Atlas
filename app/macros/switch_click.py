@@ -703,20 +703,19 @@ class SwitchClickMacro:
 
                 focus_started_at = perf_counter() if mirror_started_at is not None else None
                 try:
-                    # The captured source needs no window-switch settle when
-                    # it is still the active foreground Unity client. Every
-                    # other client retains the configured activation delay.
-                    settle_ms = (
-                        0 if index == 0 and target_hwnd == context.source_hwnd
-                        else timings.switch_background_pre_click_ms
-                    )
+                    # Use the same native no-op optimization as other
+                    # macros: never skip the settle when this source lost
+                    # foreground between admission and activation.
                     activated = activate_window(
                         target_hwnd,
-                        settle_ms,
+                        timings.switch_background_pre_click_ms,
                         timings.activate_attempts,
                         timings.activate_retry_ms,
                         self.runtime.logger,
                         action_label,
+                        skip_settle_if_active=(
+                            index == 0 and target_hwnd == context.source_hwnd
+                        ),
                         should_stop=lambda: (
                             self.runtime.macro_lock.should_stop()
                             or pointer_interrupted()
