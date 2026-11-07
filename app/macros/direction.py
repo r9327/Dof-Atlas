@@ -65,6 +65,11 @@ class DirectionMacro:
         dispatch_context: tuple[object, object] | None = None,
     ) -> None:
         settings_at_start = self.runtime.settings
+        if settings_at_start is None:
+            self.runtime.logger.info(
+                "Switch deplacement annulé: profil Organizer détaché avant worker."
+            )
+            return
         if (profile_at_dispatch is not None
                 and settings_at_start is not profile_at_dispatch):
             self.runtime.logger.info(
@@ -213,6 +218,15 @@ class DirectionMacro:
                             or dispatch_context_changed()
                         ),
                     )
+                except Exception:
+                    # Native focus is untrustworthy after activation errors:
+                    # stop fan-out and never restore focus from this worker.
+                    focus_lost = True
+                    self.runtime.logger.exception(
+                        "Switch deplacement interrompu: activation native impossible hwnd=%s",
+                        target_hwnd,
+                    )
+                    return
                 finally:
                     focus_samples_ms.append(
                         max(0.0, (perf_counter() - focus_started_at) * 1000.0)
@@ -263,10 +277,11 @@ class DirectionMacro:
                             target_hwnd,
                         )
                         return
-                    finally:
-                        key_samples_ms.append(
-                            max(0.0, (perf_counter() - key_started_at) * 1000.0)
-                        )
+                    # Only a completed press/release counts as delivered
+                    # key-hold latency; OSError must not improve p50/p95.
+                    key_samples_ms.append(
+                        max(0.0, (perf_counter() - key_started_at) * 1000.0)
+                    )
                     # Count an input that completed before Stop was observed.
                     sent += 1
                     if not frozen_roster_intact():
@@ -313,6 +328,7 @@ class DirectionMacro:
             # context. A changed choice is not ours to reactivate.
             if (
                 not self.runtime.macro_lock.should_stop() and not focus_lost
+                and not restore_skipped
                 and self.runtime.settings.primary_handle != favorite_at_start
             ):
                 restore_skipped = True

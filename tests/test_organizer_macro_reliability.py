@@ -6230,5 +6230,136 @@ class OrganizerDetachedProfileTests(unittest.TestCase):
 
 
 
+    def test_direction_detached_profile_before_worker_does_not_probe_win32(self):
+        runtime = _runtime()
+        runtime.settings = None
+        with patch("app.macros.direction.foreground_window") as foreground:
+            DirectionMacro(runtime)._run("HOME")
+        foreground.assert_not_called()
+        runtime.switch_character.restore_preferred_client.assert_not_called()
+
+    def test_direction_profile_detach_during_key_never_restores_2_4_6_8(self):
+        for count in (2, 4, 6, 8):
+            with self.subTest(accounts=count):
+                runtime = _runtime()
+                handles = tuple(range(101, 101 + count))
+                runtime.settings.client_by_handle.return_value = object()
+                runtime.switch_character.ordered_clients_from_source.return_value = [
+                    SimpleNamespace(handle=h) for h in handles
+                ]
+                active = [handles[0]]
+
+                def focus(hwnd, *_args, **_kwargs):
+                    active[0] = hwnd
+                    return True
+
+                def detach_after_key(*_args, **_kwargs):
+                    runtime.settings = None
+
+                with (
+                    patch("app.macros.direction.foreground_window",
+                          side_effect=lambda: active[0]),
+                    patch("app.macros.direction.is_unity_window", return_value=True),
+                    patch("app.macros.direction.is_dofus_unity_process", return_value=True),
+                    patch("app.macros.direction.activate_window", side_effect=focus),
+                    patch("app.macros.direction.press_key",
+                          side_effect=detach_after_key) as press,
+                ):
+                    DirectionMacro(runtime)._run("HOME")
+                press.assert_called_once()
+                runtime.switch_character.restore_preferred_client.assert_not_called()
+                runtime.logger.info.assert_any_call(
+                    "Switch deplacement %s: envoyes=%s/%s", "interrompu", 1, count,
+                )
+
+    def test_direction_native_activation_exception_aborts_fanout_2_4_6_8(self):
+        for count in (2, 4, 6, 8):
+            with self.subTest(accounts=count):
+                runtime = _runtime()
+                handles = tuple(range(101, 101 + count))
+                runtime.settings.client_by_handle.return_value = object()
+                runtime.switch_character.ordered_clients_from_source.return_value = [
+                    SimpleNamespace(handle=h) for h in handles
+                ]
+                active = [handles[0]]
+                activated = []
+
+                def focus(hwnd, *_args, **_kwargs):
+                    activated.append(hwnd)
+                    if len(activated) == 2:
+                        raise OSError("native activation failed")
+                    active[0] = hwnd
+                    return True
+
+                with (
+                    patch("app.macros.direction.foreground_window",
+                          side_effect=lambda: active[0]),
+                    patch("app.macros.direction.is_unity_window", return_value=True),
+                    patch("app.macros.direction.is_dofus_unity_process", return_value=True),
+                    patch("app.macros.direction.activate_window", side_effect=focus),
+                    patch("app.macros.direction.press_key") as press,
+                ):
+                    DirectionMacro(runtime)._run("HOME")
+                self.assertEqual(activated, list(handles[:2]))
+                press.assert_called_once()
+                runtime.switch_character.restore_preferred_client.assert_not_called()
+                runtime.logger.exception.assert_any_call(
+                    "Switch deplacement interrompu: activation native impossible hwnd=%s",
+                    handles[1],
+                )
+                runtime.logger.info.assert_any_call(
+                    "Switch deplacement %s: envoyes=%s/%s", "interrompu", 1, count,
+                )
+
+    def test_direction_failed_key_is_excluded_from_emitted_latency_2_4_6_8(self):
+        for count in (2, 4, 6, 8):
+            for completed in (0, 1):
+                with self.subTest(accounts=count, completed=completed):
+                    runtime = _runtime()
+                    handles = tuple(range(101, 101 + count))
+                    runtime.settings.client_by_handle.return_value = object()
+                    runtime.switch_character.ordered_clients_from_source.return_value = [
+                        SimpleNamespace(handle=h) for h in handles
+                    ]
+                    active = [handles[0]]
+                    calls = [0]
+
+                    def focus(hwnd, *_args, **_kwargs):
+                        active[0] = hwnd
+                        return True
+
+                    def send(*_args, **_kwargs):
+                        calls[0] += 1
+                        if calls[0] == completed + 1:
+                            raise OSError("SendInput refused")
+
+                    with (
+                        patch("app.macros.direction.foreground_window",
+                              side_effect=lambda: active[0]),
+                        patch("app.macros.direction.is_unity_window", return_value=True),
+                        patch("app.macros.direction.is_dofus_unity_process", return_value=True),
+                        patch("app.macros.direction.activate_window", side_effect=focus),
+                        patch("app.macros.direction.press_key", side_effect=send) as key,
+                    ):
+                        DirectionMacro(runtime)._run("HOME")
+                    self.assertEqual(key.call_count, completed + 1)
+                    runtime.switch_character.restore_preferred_client.assert_not_called()
+                    calls_logged = [
+                        call.args for call in runtime.logger.info.call_args_list
+                        if call.args and "Switch deplacement latences:" in str(call.args[0])
+                    ]
+                    self.assertEqual(len(calls_logged), 1)
+                    key_metric = calls_logged[0][2]
+                    if completed:
+                        self.assertEqual(key_metric["n"], completed)
+                    else:
+                        self.assertEqual(key_metric, "NOT_MEASURED")
+                    self.assertEqual(calls_logged[0][1]["n"], completed + 1)
+                    runtime.logger.info.assert_any_call(
+                        "Switch deplacement %s: envoyes=%s/%s",
+                        "interrompu", completed, count,
+                    )
+
+
 if __name__ == "__main__":
     unittest.main()
