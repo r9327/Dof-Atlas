@@ -708,7 +708,6 @@ class SwitchClickMacro:
                     # other client retains the configured activation delay.
                     settle_ms = (
                         0 if index == 0 and target_hwnd == context.source_hwnd
-                        and foreground_window() == target_hwnd
                         else timings.switch_background_pre_click_ms
                     )
                     activated = activate_window(
