@@ -3569,5 +3569,177 @@ class OrganizerSendInputTests(unittest.TestCase):
         self.assertFalse(hook._consumed_releases)
         self.assertFalse(hook._consumed_release_duplicates)
 
+    def test_lost_blocked_up_then_native_down_preserves_new_up_2_4_6_8(self):
+        from app.input.input_state import InputState
+        from app.input.mouse_hooks import (
+            MouseHook, MSLLHOOKSTRUCT, WM_LBUTTONDOWN, WM_LBUTTONUP,
+            WM_RBUTTONDOWN, WM_RBUTTONUP, WM_MBUTTONDOWN, WM_MBUTTONUP,
+            WM_XBUTTONDOWN, WM_XBUTTONUP,
+        )
+        pairs = (
+            (WM_LBUTTONDOWN, WM_LBUTTONUP, 0),
+            (WM_RBUTTONDOWN, WM_RBUTTONUP, 0),
+            (WM_MBUTTONDOWN, WM_MBUTTONUP, 0),
+            (WM_XBUTTONDOWN, WM_XBUTTONUP, 1 << 16),
+            (WM_XBUTTONDOWN, WM_XBUTTONUP, 2 << 16),
+        )
+        for accounts in (2, 4, 6, 8):
+            for down, up, mouse_data in pairs:
+                with self.subTest(accounts=accounts, down=down, mouse_data=mouse_data):
+                    state = InputState()
+                    callback = Mock(return_value=False)
+                    release = Mock(return_value=False)
+                    hook = MouseHook(state, Mock(), Mock(), callback,
+                                     release_callback=release)
+                    event = MSLLHOOKSTRUCT()
+                    event.mouseData = mouse_data
+                    next_hook = Mock(return_value=53)
+                    with patch.object(
+                        ctypes, "windll",
+                        SimpleNamespace(user32=SimpleNamespace(
+                            CallNextHookEx=next_hook,
+                        )), create=True,
+                    ):
+                        ptr = ctypes.addressof(event)
+                        state.begin_mouse_block("Miroir")
+                        for _ in range(accounts):
+                            self.assertEqual(hook._mouse_proc(0, down, ptr), 1)
+                        state.clear_mouse_block()
+                        # An old physical release arrived, but the others
+                        # are absent (hook pause or lost native UP).
+                        self.assertEqual(hook._mouse_proc(0, up, ptr), 1)
+                        self.assertTrue(hook._consumed_releases)
+                        # This NEW DOWN actually reaches the application.
+                        self.assertEqual(hook._mouse_proc(0, down, ptr), 53)
+                        self.assertFalse(hook._consumed_releases)
+                        self.assertFalse(hook._consumed_release_duplicates)
+                        self.assertEqual(hook._mouse_proc(0, up, ptr), 53)
+                    if down in (WM_LBUTTONDOWN, WM_RBUTTONDOWN):
+                        callback.assert_called_once()
+                        release.assert_called_once()
+                    else:
+                        callback.assert_not_called()
+                        release.assert_not_called()
+
+    def test_lost_blocked_up_then_consumed_mirror_down_keeps_both_releases(self):
+        from app.input.input_state import InputState
+        from app.input.mouse_hooks import (
+            MouseHook, MSLLHOOKSTRUCT, WM_LBUTTONDOWN, WM_LBUTTONUP,
+        )
+        state = InputState()
+        callback = Mock(return_value=True)
+        release = Mock()
+        hook = MouseHook(state, Mock(), Mock(), callback,
+                         release_callback=release)
+        event = MSLLHOOKSTRUCT()
+        next_hook = Mock(return_value=53)
+        with patch.object(
+            ctypes, "windll",
+            SimpleNamespace(user32=SimpleNamespace(CallNextHookEx=next_hook)),
+            create=True,
+        ):
+            ptr = ctypes.addressof(event)
+            state.begin_mouse_block("Miroir")
+            self.assertEqual(hook._mouse_proc(0, WM_LBUTTONDOWN, ptr), 1)
+            state.end_mouse_block()
+            # The new physical DOWN is ALSO consumed by the callback.
+            self.assertEqual(hook._mouse_proc(0, WM_LBUTTONDOWN, ptr), 1)
+            self.assertEqual(hook._consumed_release_duplicates, {WM_LBUTTONUP: 1})
+            self.assertEqual(hook._mouse_proc(0, WM_LBUTTONUP, ptr), 1)
+            self.assertEqual(hook._mouse_proc(0, WM_LBUTTONUP, ptr), 1)
+            self.assertEqual(hook._mouse_proc(0, WM_LBUTTONUP, ptr), 53)
+        callback.assert_called_once()
+        release.assert_not_called()
+        self.assertFalse(hook._consumed_releases)
+
+    def test_stale_up_cleanup_does_not_touch_other_xbutton(self):
+        from app.input.input_state import InputState
+        from app.input.mouse_hooks import (
+            MouseHook, MSLLHOOKSTRUCT, WM_XBUTTONDOWN, WM_XBUTTONUP,
+        )
+        state = InputState()
+        hook = MouseHook(state, Mock(), Mock(), Mock())
+        event = MSLLHOOKSTRUCT()
+        x1 = WM_XBUTTONUP | (1 << 16)
+        x2 = WM_XBUTTONUP | (2 << 16)
+        with patch.object(
+            ctypes, "windll",
+            SimpleNamespace(user32=SimpleNamespace(
+                CallNextHookEx=Mock(return_value=53),
+            )), create=True,
+        ):
+            ptr = ctypes.addressof(event)
+            state.begin_mouse_block("Miroir")
+            event.mouseData = 1 << 16
+            self.assertEqual(hook._mouse_proc(0, WM_XBUTTONDOWN, ptr), 1)
+            event.mouseData = 2 << 16
+            self.assertEqual(hook._mouse_proc(0, WM_XBUTTONDOWN, ptr), 1)
+            state.clear_mouse_block()
+            event.mouseData = 1 << 16
+            self.assertEqual(hook._mouse_proc(0, WM_XBUTTONDOWN, ptr), 53)
+            self.assertEqual(hook._consumed_releases, {x2})
+            self.assertEqual(hook._mouse_proc(0, WM_XBUTTONUP, ptr), 53)
+            event.mouseData = 2 << 16
+            self.assertEqual(hook._mouse_proc(0, WM_XBUTTONUP, ptr), 1)
+            self.assertFalse(hook._consumed_releases)
+
+    def test_stale_up_cleanup_only_on_real_native_down_not_injected(self):
+        from app.input.input_state import InputState
+        from app.input.mouse_hooks import (
+            MouseHook, MSLLHOOKSTRUCT, LLMHF_INJECTED,
+            WM_LBUTTONDOWN, WM_LBUTTONUP,
+        )
+        state = InputState()
+        callback = Mock(return_value=False)
+        hook = MouseHook(state, Mock(), Mock(), callback)
+        event = MSLLHOOKSTRUCT()
+        with patch.object(
+            ctypes, "windll",
+            SimpleNamespace(user32=SimpleNamespace(
+                CallNextHookEx=Mock(return_value=53),
+            )), create=True,
+        ):
+            ptr = ctypes.addressof(event)
+            state.begin_mouse_block("Miroir")
+            self.assertEqual(hook._mouse_proc(0, WM_LBUTTONDOWN, ptr), 1)
+            state.end_mouse_block()
+            event.flags = LLMHF_INJECTED
+            self.assertEqual(hook._mouse_proc(0, WM_LBUTTONDOWN, ptr), 53)
+            self.assertEqual(hook._consumed_releases, {WM_LBUTTONUP})
+            event.flags = 0
+            self.assertEqual(hook._mouse_proc(0, WM_LBUTTONUP, ptr), 1)
+            self.assertFalse(hook._consumed_releases)
+        callback.assert_not_called()
+
+    def test_native_down_during_completed_epoch_probe_retires_stale_up(self):
+        from app.input.input_state import InputState
+        from app.input.mouse_hooks import (
+            MouseHook, MSLLHOOKSTRUCT, WM_RBUTTONDOWN, WM_RBUTTONUP,
+        )
+        state = InputState()
+        hook = MouseHook(state, Mock(), Mock(), Mock())
+        event = MSLLHOOKSTRUCT()
+        next_hook = Mock(return_value=53)
+        state.begin_mouse_block("Miroir")
+        hook._reserve_consumed_release(WM_RBUTTONUP)
+        def probe_after_release():
+            state.end_mouse_block()
+            return None
+        with (
+            patch.object(state, "mouse_block_epoch_if_active",
+                         side_effect=probe_after_release),
+            patch.object(
+                ctypes, "windll",
+                SimpleNamespace(user32=SimpleNamespace(
+                    CallNextHookEx=next_hook,
+                )), create=True,
+            ),
+        ):
+            ptr = ctypes.addressof(event)
+            self.assertEqual(hook._mouse_proc(0, WM_RBUTTONDOWN, ptr), 53)
+            self.assertFalse(hook._consumed_releases)
+            self.assertEqual(hook._mouse_proc(0, WM_RBUTTONUP, ptr), 53)
+        hook.callback.assert_not_called()
+
 if __name__ == "__main__":
     unittest.main()

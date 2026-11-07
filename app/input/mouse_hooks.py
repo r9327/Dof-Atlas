@@ -250,7 +250,17 @@ class MouseHook:
         else:
             self._consumed_releases.discard(token)
 
+    def _retire_stale_consumed_release(self, token: int) -> None:
+        """A newly forwarded native DOWN must keep its own matching UP.
+
+        Only call after the current physical DOWN has been accepted as native,
+        never before the click callback can choose to consume that DOWN.
+        """
+        self._consumed_releases.discard(token)
+        self._consumed_release_duplicates.pop(token, None)
+
     def _mouse_proc(self, n_code: int, w_param: int, l_param: int) -> int:
+        native_down_token: int | None = None
         try:
             if n_code >= 0 and w_param == WM_MOUSEMOVE:
                 # MOVE never owns a DOWN/UP pair and has no user callback.
@@ -318,6 +328,12 @@ class MouseHook:
                     injected
                     or extra_info == ATLAS_SYNTHETIC_MOUSE_EXTRA_INFO
                 )
+                if not atlas_synthetic:
+                    paired_up = BLOCKED_DOWN_TO_UP.get(w_param)
+                    if paired_up is not None:
+                        native_down_token = _physical_release_token(
+                            paired_up, int(event.mouseData),
+                        )
 
                 # A swallowed DOWN owns its matching physical UP. Never run
                 # native-release callbacks for that pair: an UP without its
@@ -410,6 +426,11 @@ class MouseHook:
                         except Exception:
                             pass
                     if lease_epoch is None and not epoch_probe_failed:
+                        # The pointer was freed during the native probe:
+                        # this DOWN is passed through, so its future UP
+                        # cannot belong to an older swallowed DOWN.
+                        if native_down_token is not None:
+                            self._retire_stale_consumed_release(native_down_token)
                         return ctypes.windll.user32.CallNextHookEx(
                             self._hook, n_code, w_param, l_param,
                         )
@@ -449,6 +470,8 @@ class MouseHook:
                                 except Exception:
                                     pass
                             if current_epoch is None:
+                                if native_down_token is not None:
+                                    self._retire_stale_consumed_release(native_down_token)
                                 return ctypes.windll.user32.CallNextHookEx(
                                     self._hook, n_code, w_param, l_param,
                                 )
@@ -534,6 +557,11 @@ class MouseHook:
             except Exception:
                 pass
 
+        # This DOWN is really being forwarded (including when the classic
+        # callback failed). A stale swallowed UP must never steal the UP
+        # paired with the newly native physical press.
+        if native_down_token is not None:
+            self._retire_stale_consumed_release(native_down_token)
         return ctypes.windll.user32.CallNextHookEx(
             self._hook,
             n_code,
