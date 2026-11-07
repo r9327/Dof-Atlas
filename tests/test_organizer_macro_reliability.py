@@ -4583,7 +4583,7 @@ class OrganizerMacroReliabilityTests(unittest.TestCase):
                         sender.handle = 999
                         return True
 
-                    def key(name, hold):
+                    def key(name, hold, **_kwargs):
                         sent.append(name)
                         sender.handle = 999
 
@@ -5335,7 +5335,7 @@ class OrganizerMacroReliabilityTests(unittest.TestCase):
                     active[0] = hwnd
                     return True
 
-                def send(*_args):
+                def send(*_args, **_kwargs):
                     emitted.append(True)
                     if len(emitted) == count:
                         runtime.settings.primary_handle = 101 + count - 1
