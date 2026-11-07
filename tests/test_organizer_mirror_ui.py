@@ -3874,7 +3874,12 @@ class OrganizerMirrorIntegrationTests(unittest.TestCase):
                     patch("app.macros.mirror_input.activate_window",
                           return_value=True) as activate,
                     patch("app.macros.mirror_input.foreground_window",
-                          side_effect=[*handles, handles[-1]]),
+                          side_effect=[
+                              handles[0],
+                              *(h for before, after in zip(handles, handles[1:])
+                                for h in (before, after)),
+                              handles[-1],
+                          ]),
                     patch("app.macros.input_tools.key_down",
                           side_effect=lambda vk: events.append(("down", vk))),
                     patch("app.macros.input_tools.key_up",
