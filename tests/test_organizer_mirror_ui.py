@@ -2254,6 +2254,7 @@ class OrganizerMirrorIntegrationTests(unittest.TestCase):
                     SimpleNamespace(handle=h, display_name=str(h))
                     for h in handles
                 )
+                runtime.settings.timings.switch_client_settle_ms = 10
                 runtime.switch_character.ordered_clients_from_source.return_value = list(
                     runtime.settings.clients
                 )
@@ -4243,6 +4244,7 @@ class OrganizerMirrorIntegrationTests(unittest.TestCase):
                 with self.subTest(count=count, kind=kind):
                     handles = tuple(range(101, 101 + count))
                     runtime = self._runtime(primary=handles[0], handles=handles)
+                    runtime.settings.timings.switch_client_settle_ms = 10
                     active = [handles[0]]
                     activated = []
 
