@@ -703,9 +703,17 @@ class SwitchClickMacro:
 
                 focus_started_at = perf_counter() if mirror_started_at is not None else None
                 try:
+                    # The captured source needs no window-switch settle when
+                    # it is still the active foreground Unity client. Every
+                    # other client retains the configured activation delay.
+                    settle_ms = (
+                        0 if index == 0 and target_hwnd == context.source_hwnd
+                        and foreground_window() == target_hwnd
+                        else timings.switch_background_pre_click_ms
+                    )
                     activated = activate_window(
                         target_hwnd,
-                        timings.switch_background_pre_click_ms,
+                        settle_ms,
                         timings.activate_attempts,
                         timings.activate_retry_ms,
                         self.runtime.logger,

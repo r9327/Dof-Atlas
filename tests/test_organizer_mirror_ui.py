@@ -2020,7 +2020,7 @@ class OrganizerMirrorIntegrationTests(unittest.TestCase):
                 runtime.macro_lock.should_stop.return_value = False
                 runtime.macro_lock.wait.return_value = False
                 runtime.settings.timings = SimpleNamespace(
-                    switch_background_pre_click_ms=0, activate_attempts=1,
+                    switch_background_pre_click_ms=31, activate_attempts=1,
                     activate_retry_ms=0, switch_click_down_ms=35,
                     input_double_gap_ms=5, switch_background_post_up_ms=0,
                     switch_client_settle_ms=0,
@@ -2047,7 +2047,9 @@ class OrganizerMirrorIntegrationTests(unittest.TestCase):
                 native = Mock(return_value=77)
                 active = [handles[0]]
                 sent = []
+                settle_values = []
                 def focus(hwnd, *_args, **_kwargs):
+                    settle_values.append(_args[0])
                     self.assertTrue(runtime.input_state.is_mouse_blocked())
                     active[0] = hwnd
                     return True
@@ -2102,6 +2104,9 @@ class OrganizerMirrorIntegrationTests(unittest.TestCase):
                     runtime._spawn_macro.assert_called_once()
                     runtime._spawn_macro.call_args.args[1]()
                 self.assertEqual(sent, list(handles))
+                self.assertEqual(
+                    settle_values, [0] + [31] * (count - 1),
+                )
                 self.assertFalse(runtime.input_state.is_mouse_blocked())
 
     def test_queued_mirror_click_rejected_preflight_never_leaks_native_up(self):

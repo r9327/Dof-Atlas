@@ -5884,5 +5884,44 @@ class OrganizerDetachedProfileTests(unittest.TestCase):
 
 
 
+    def test_zaap_chat_rejection_stops_later_clients_2_4_6_8(self):
+        for count in (2, 4, 6, 8):
+            for failing_at in (1, 2):
+                with self.subTest(count=count, failing_at=failing_at):
+                    runtime = _runtime()
+                    handles = tuple(range(101, 101 + count))
+                    runtime.switch_character.ordered_clients_from_source.return_value = [
+                        SimpleNamespace(handle=hwnd) for hwnd in handles
+                    ]
+                    active = [handles[0]]
+                    calls = []
+                    def focus(hwnd, *_args, **_kwargs):
+                        active[0] = hwnd
+                        return True
+                    def send(_command, *_args, **_kwargs):
+                        calls.append(active[0])
+                        return len(calls) != failing_at
+                    with (
+                        patch("app.macros.zaap.is_unity_window", return_value=True),
+                        patch("app.macros.zaap.is_dofus_unity_process",
+                              return_value=True),
+                        patch("app.macros.zaap.activate_window", side_effect=focus),
+                        patch("app.macros.zaap.foreground_window",
+                              side_effect=lambda: active[0]),
+                        patch("app.macros.zaap.send_chat_command", side_effect=send),
+                    ):
+                        ZaapMacro(runtime)._run("/zaap 10,20")
+                    self.assertEqual(calls, list(handles[:failing_at]))
+                    runtime.logger.warning.assert_any_call(
+                        "Auto zaap: commande non émise, arrêt après %s/%s clients.",
+                        failing_at - 1, count,
+                    )
+                    runtime._emit_status.assert_called_once_with(
+                        f"Auto zaap partiel : {failing_at - 1}/{count} commandes émises "
+                        "(réception DOFUS non vérifiée)."
+                    )
+
+
+
 if __name__ == "__main__":
     unittest.main()

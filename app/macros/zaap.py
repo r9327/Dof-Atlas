@@ -278,7 +278,14 @@ class ZaapMacro:
                             target_hwnd,
                         )
                         return
-                    continue
+                    # One rejected /zaap leaves its character out of sync.
+                    # Do not continue broadcasting to later clients while
+                    # the current command was not confirmed emitted.
+                    self.runtime.logger.warning(
+                        "Auto zaap: commande non émise, arrêt après %s/%s clients.",
+                        sent, len(clients),
+                    )
+                    break
                 sent += 1
                 if not frozen_roster_intact():
                     focus_lost = True
