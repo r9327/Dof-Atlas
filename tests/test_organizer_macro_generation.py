@@ -347,12 +347,60 @@ class MacroGenerationOwnershipTests(unittest.TestCase):
                             5000, interrupted=state.mouse_block_interrupted,
                         ))
                     self.assertEqual(len(observed), 1)
-                    self.assertLessEqual(observed[0], 0.025)
+                    self.assertGreater(observed[0], 0)
+                    self.assertLessEqual(observed[0], 0.005)
                     self.assertTrue(lock.owns("Miroir", generation))
                     self.assertFalse(lock.should_stop())
                 finally:
                     state.end_mouse_block()
                     lock.end("Miroir", generation=generation)
+
+    def test_mirror_collision_wait_is_fast_but_normal_wait_stays_bounded(self):
+        from app.input.input_state import InputState
+
+        for accounts in (1, 2, 4, 6, 8):
+            with self.subTest(accounts=accounts):
+                lock = MacroLock(Mock())
+                state = InputState()
+                generation = lock.try_begin_generation("Miroir")
+                state.begin_mouse_block("Miroir")
+                slices = []
+
+                def collect_slice(seconds):
+                    slices.append(seconds)
+                    if len(slices) == 1:
+                        state.note_blocked_physical_gesture()
+                    return False
+
+                try:
+                    with patch.object(lock.stop_event, "wait",
+                                      side_effect=collect_slice):
+                        self.assertTrue(lock.wait(
+                            2000, interrupted=state.mouse_block_interrupted,
+                        ))
+                    self.assertEqual(len(slices), 1)
+                    self.assertLessEqual(slices[0], 0.005)
+                    self.assertTrue(state.mouse_block_interrupted())
+                    self.assertTrue(lock.owns("Miroir", generation))
+                    self.assertFalse(lock.should_stop())
+                finally:
+                    state.end_mouse_block()
+                    lock.end("Miroir", generation=generation)
+
+        lock = MacroLock(Mock())
+        slices = []
+        original_wait = lock.stop_event.wait
+
+        def record_slice(seconds):
+            slices.append(seconds)
+            return original_wait(seconds)
+
+        with patch.object(lock.stop_event, "wait",
+                          side_effect=record_slice):
+            self.assertFalse(lock.wait(32))
+        self.assertTrue(slices)
+        self.assertGreater(slices[0], 0.005)
+        self.assertLessEqual(slices[0], 0.025)
 
     def test_stop_reasserts_event_if_concurrent_start_clears_first_signal(self):
         from unittest.mock import patch as mock_patch

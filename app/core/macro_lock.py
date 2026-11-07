@@ -195,5 +195,10 @@ class MacroLock:
             remaining = deadline - time.monotonic()
             if remaining <= 0:
                 return should_abort()
-            if self.stop_event.wait(min(remaining, 0.025)):
+            # The native hook can swallow another physical DOWN while a
+            # Miroir pointer lease is active. React within 5 ms instead of
+            # the ordinary 25 ms slice; keep the normal low-wakeup path for
+            # all waits without a collision probe.
+            slice_seconds = 0.005 if interrupted is not None else 0.025
+            if self.stop_event.wait(min(remaining, slice_seconds)):
                 return True
