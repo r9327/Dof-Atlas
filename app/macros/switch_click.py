@@ -884,6 +884,11 @@ class SwitchClickMacro:
                     mirror_send_samples.append((perf_counter() - send_started_at) * 1000.0)
                 if delivered:
                     sent_count += 1
+                    # A real click was already emitted. Preserve its
+                    # dispatch-to-last-send metric even if a new physical
+                    # gesture interrupts the fan-out right afterward.
+                    if mirror_started_at is not None:
+                        last_emission_at = perf_counter()
                     if pointer_interrupted():
                         delivery_failed = True
                         self.runtime.logger.warning(
@@ -891,8 +896,6 @@ class SwitchClickMacro:
                             action_label, target_hwnd,
                         )
                         return
-                    if mirror_started_at is not None:
-                        last_emission_at = perf_counter()
                     if not target_roster_intact():
                         delivery_failed = True
                         self.runtime.logger.warning(

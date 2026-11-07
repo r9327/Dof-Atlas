@@ -482,6 +482,11 @@ class MirrorInputMacro:
                         finally:
                             runtime.synthetic_guard.end(120)
                     delivered += 1
+                    # Count a completed physical emission even if the
+                    # pointer collision occurs immediately after SendInput.
+                    # The collision still aborts the remaining recipients.
+                    last_emission_at = perf_counter()
+                    send_samples_ms.append((last_emission_at - sent_at) * 1000.0)
                     if pointer_interrupted():
                         delivery_failed = True
                         runtime.logger.warning(
@@ -489,8 +494,6 @@ class MirrorInputMacro:
                             hwnd,
                         )
                         break
-                    last_emission_at = perf_counter()
-                    send_samples_ms.append((last_emission_at - sent_at) * 1000.0)
                 except Exception:
                     delivery_failed = True
                     runtime.logger.exception("Miroir %s: échec SendInput.", kind)

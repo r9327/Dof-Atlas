@@ -7585,6 +7585,7 @@ class OrganizerMirrorIntegrationTests(unittest.TestCase):
                 )
 
     def test_mirror_click_physical_collision_aborts_fanout_and_skips_restore_2_to_8(self):
+        from time import perf_counter
         from app.input.input_state import InputState
         from app.macros.switch_click import SwitchClickMacro, SwitchClickContext
 
@@ -7637,8 +7638,18 @@ class OrganizerMirrorIntegrationTests(unittest.TestCase):
                         "Left", 1, "Miroir", context,
                         exact_source_handle=handles[0],
                         mirror_target_handles=handles,
+                        dispatch_at=perf_counter() - 0.025,
                     )
                 self.assertEqual(attempts, [handles[0]])
+                # Last-emission metrics must include the successfully sent
+                # click even though the very next physical probe cancels.
+                dispatch_logs = [
+                    item for item in runtime.logger.info.call_args_list
+                    if item.args and "dispatch_to_last_emit_ms" in str(item.args[0])
+                ]
+                self.assertEqual(len(dispatch_logs), 1)
+                self.assertNotEqual(dispatch_logs[0].args[2], "NOT_MEASURED")
+                self.assertEqual(dispatch_logs[0].args[3], count)
                 cursor.assert_not_called()
                 runtime.switch_character.restore_preferred_client.assert_not_called()
                 self.assertFalse(runtime.input_state.is_mouse_blocked())
@@ -7653,6 +7664,7 @@ class OrganizerMirrorIntegrationTests(unittest.TestCase):
                 )
 
     def test_mirror_wheel_physical_collision_aborts_fanout_and_skips_restore_2_to_8(self):
+        from time import perf_counter
         from app.input.input_state import InputState
         from app.macros.mirror_input import MirrorInputMacro
 
@@ -7700,8 +7712,19 @@ class OrganizerMirrorIntegrationTests(unittest.TestCase):
                 ):
                     MirrorInputMacro(runtime)._run(
                         "wheel", (120, False, 0.5, 0.5), handles[0], handles,
+                        dispatch_at=perf_counter() - 0.025,
                     )
                 self.assertEqual(sends[0], 1)
+                # Record the one successful wheel emission before checking
+                # interruption; do not misreport it as NOT_MEASURED.
+                dispatch_logs = [
+                    item for item in runtime.logger.info.call_args_list
+                    if item.args and "dispatch_to_last_emit_ms" in str(item.args[0])
+                ]
+                self.assertEqual(len(dispatch_logs), 1)
+                self.assertEqual(dispatch_logs[0].args[1], "wheel")
+                self.assertNotEqual(dispatch_logs[0].args[3], "NOT_MEASURED")
+                self.assertEqual(dispatch_logs[0].args[4], count)
                 # The one initial cursor move belongs to the first send;
                 # no post-collision cursor restoration is allowed.
                 cursor.assert_called_once_with(80, 90)
