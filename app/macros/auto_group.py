@@ -367,6 +367,14 @@ class AutoGroupMacro:
                         or foreground_window() != int(sender_hwnd)
                     ),
                     )
+                except Exception:
+                    # An incomplete chat send is not an invitation. Stop the
+                    # fan-out, preserve the actual count and never refocus.
+                    focus_lost = True
+                    self.runtime.logger.exception(
+                        "Auto groupe interrompu: commande chat impossible."
+                    )
+                    break
                 finally:
                     chat_steps_ms.append(
                         max(0.0, (perf_counter() - chat_started_at) * 1000.0)
@@ -385,7 +393,11 @@ class AutoGroupMacro:
                             sender_hwnd,
                         )
                         return
-                    continue
+                    self.runtime.logger.warning(
+                        "Auto groupe: invitation non émise, arrêt après %s/%s clients.",
+                        sent, len(recipients),
+                    )
+                    break
                 # The command returned successful: retain this emission
                 # in telemetry even when Stop arrives immediately afterward.
                 sent += 1

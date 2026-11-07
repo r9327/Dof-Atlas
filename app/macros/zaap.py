@@ -257,6 +257,14 @@ class ZaapMacro:
                         or foreground_window() != int(hwnd)
                     ),
                     )
+                except Exception:
+                    # Clipboard/keyboard failures leave delivery uncertain:
+                    # keep prior emissions but never start a later target.
+                    focus_lost = True
+                    self.runtime.logger.exception(
+                        "Auto zaap interrompu: commande chat impossible."
+                    )
+                    break
                 finally:
                     chat_steps_ms.append(
                         max(0.0, (perf_counter() - chat_started_at) * 1000.0)

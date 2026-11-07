@@ -5925,5 +5925,103 @@ class OrganizerDetachedProfileTests(unittest.TestCase):
 
 
 
+    def test_chat_sender_exception_stops_fanout_2_4_6_8(self):
+        for count in (2, 4, 6, 8):
+            for macro_kind in ("zaap", "auto_group"):
+                for failing_at in (1, 2):
+                    with self.subTest(
+                        count=count, macro=macro_kind, failing_at=failing_at,
+                    ):
+                        runtime = _runtime()
+                        handles = tuple(range(101, 101 + count))
+                        runtime.settings.timings.auto_group_invite_gap_ms = 0
+                        runtime.switch_character.ordered_clients_from_source.return_value = [
+                            SimpleNamespace(handle=h) for h in handles
+                        ]
+                        runtime.switch_character.logical_active_client.return_value = (
+                            SimpleNamespace(handle=101, display_name="Leader")
+                        )
+                        focus = [101]
+                        calls = []
+                        def activate(hwnd, *_args, **_kwargs):
+                            focus[0] = hwnd
+                            return True
+                        def send(_text, *_args, **_kwargs):
+                            calls.append(_text)
+                            if len(calls) == failing_at:
+                                raise OSError("clipboard/sendinput unavailable")
+                            return True
+                        with (
+                            patch(f"app.macros.{macro_kind}.is_unity_window",
+                                  return_value=True),
+                            patch(f"app.macros.{macro_kind}.is_dofus_unity_process",
+                                  return_value=True),
+                            patch(f"app.macros.{macro_kind}.activate_window",
+                                  side_effect=activate),
+                            patch(f"app.macros.{macro_kind}.foreground_window",
+                                  side_effect=lambda: focus[0]),
+                            patch(f"app.macros.{macro_kind}.send_chat_command",
+                                  side_effect=send),
+                        ):
+                            if macro_kind == "zaap":
+                                ZaapMacro(runtime)._run("/zaap 10,20")
+                                expected_total = count
+                            else:
+                                AutoGroupMacro(runtime)._run([
+                                    {"name": f"Friend{i}", "handle": 101 + i}
+                                    for i in range(1, count)
+                                ])
+                                expected_total = count - 1
+                        self.assertEqual(len(calls), failing_at)
+                        runtime.switch_character.restore_preferred_client.assert_not_called()
+                        status = runtime._emit_status.call_args.args[0]
+                        self.assertIn("interrompu", status)
+                        self.assertIn(
+                            f"{failing_at - 1}/{expected_total}", status,
+                        )
+                        runtime.logger.exception.assert_any_call(
+                            ("Auto zaap interrompu: commande chat impossible."
+                             if macro_kind == "zaap" else
+                             "Auto groupe interrompu: commande chat impossible.")
+                        )
+
+    def test_auto_group_rejected_chat_never_attempts_later_invites_2_4_6_8(self):
+        for count in (2, 4, 6, 8):
+            with self.subTest(count=count):
+                runtime = _runtime()
+                runtime.settings.timings.auto_group_invite_gap_ms = 0
+                runtime.switch_character.logical_active_client.return_value = (
+                    SimpleNamespace(handle=101, display_name="Leader")
+                )
+                calls = []
+                def send(text, *_args, **_kwargs):
+                    calls.append(text)
+                    return len(calls) == 1
+                with (
+                    patch("app.macros.auto_group.is_unity_window",
+                          return_value=True),
+                    patch("app.macros.auto_group.is_dofus_unity_process",
+                          return_value=True),
+                    patch("app.macros.auto_group.activate_window",
+                          return_value=True),
+                    patch("app.macros.auto_group.foreground_window",
+                          return_value=101),
+                    patch("app.macros.auto_group.send_chat_command",
+                          side_effect=send),
+                ):
+                    AutoGroupMacro(runtime)._run([
+                        {"name": f"Friend{i}", "handle": 101 + i}
+                        for i in range(1, count)
+                    ])
+                self.assertEqual(len(calls), min(2, count - 1))
+                self.assertIn("partiel", runtime._emit_status.call_args.args[0])
+                if count >= 4:
+                    runtime.logger.warning.assert_any_call(
+                        "Auto groupe: invitation non émise, arrêt après %s/%s clients.",
+                        1, count - 1,
+                    )
+
+
+
 if __name__ == "__main__":
     unittest.main()
