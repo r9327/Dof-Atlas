@@ -11,6 +11,38 @@ from tools.organizer_mirror_log_report import compare_reports, main, summarize
 
 
 class OrganizerMirrorLogReportTests(unittest.TestCase):
+
+    def test_click_worker_status_from_real_engine_logs_without_ui_callback(self):
+        # SwitchClick logs these outcomes regardless of whether _emit_status
+        # is persisted by the UI. A failed action must not disappear from
+        # the latency comparison simply because there is no UI log entry.
+        for accounts in (2, 4, 6, 8):
+            with self.subTest(accounts=accounts):
+                result = summarize([
+                    f"Miroir terminé: envoyés={accounts}/{accounts}",
+                    f"Miroir partiel: envoyés=1/{accounts}",
+                    f"Miroir interrompu: envoyés=0/{accounts}",
+                    f"Miroir terminé: envoyés=1/{8 if accounts != 8 else 2}",
+                ], accounts)
+                self.assertEqual(result["actions"], {
+                    "complete": 1, "partial": 1, "interrupted": 1,
+                })
+                self.assertEqual(result["roster_mismatch_lines"], 1)
+                self.assertIn(
+                    "PARTIAL_OR_INTERRUPTED_ACTIONS",
+                    compare_reports({accounts: result})
+                    ["ratio_exclusion_reasons"][str(accounts)],
+                )
+
+    def test_click_worker_and_ui_status_do_not_double_count(self):
+        report = summarize([
+            "Miroir terminé: envoyés=2/2",
+            "Miroir : 2/2 fenêtres.",
+        ], 2)
+        self.assertEqual(report["actions"], {
+            "complete": 1, "partial": 0, "interrupted": 0,
+        })
+
     def test_real_sender_log_families_are_kept_separate_2_to_8(self):
         for count in (2, 4, 6, 8):
             with self.subTest(count=count):
