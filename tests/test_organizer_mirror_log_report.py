@@ -90,6 +90,48 @@ class OrganizerMirrorLogReportTests(unittest.TestCase):
         self.assertIsNone(compare_reports(reports)["p95_ratio_vs_2_accounts"]
                           ["key_dispatch_to_last_emit_ms"]["8"])
 
+
+    def test_click_worker_runtime_counts_only_actual_emission_2_to_8(self):
+        for count in (2, 4, 6, 8):
+            with self.subTest(accounts=count):
+                other = 8 if count != 8 else 2
+                report = summarize([
+                    # An early abort with no sent click must not look fast.
+                    f"Miroir mesures: n=0 total_ms=2.0 envoyés=0/{count}",
+                    f"Miroir mesures delivery_step: n={count} "
+                    f"p50_ms=5.0 p95_ms=7.0 p99_ms=7.0 "
+                    f"total_ms=80.0 envoyés={count}/{count}",
+                    f"Miroir mesures delivery_step: n=1 "
+                    f"p50_ms=2.0 p95_ms=2.0 p99_ms=2.0 "
+                    f"total_ms=90.0 envoyés=1/{count}",
+                    f"Miroir mesures delivery_step: n=1 "
+                    f"p50_ms=2.0 p95_ms=2.0 p99_ms=2.0 "
+                    f"total_ms=1.0 envoyés=1/{other}",
+                ], count)
+                self.assertEqual(report["metrics"]["click_worker_ms"], {
+                    "n": 2, "p50_ms": 80.0, "p95_ms": 90.0, "p99_ms": 90.0,
+                })
+                self.assertEqual(report["roster_mismatch_lines"], 1)
+                self.assertEqual(report["unity_render_latency"], "NOT_MEASURED")
+
+    def test_click_worker_comparison_excludes_partial_and_early_aborts(self):
+        clean = summarize([
+            "Miroir mesures delivery_step: n=2 p50_ms=5 p95_ms=8 "
+            "p99_ms=8 total_ms=20 envoyés=2/2"
+        ] * 5, 2)
+        faster = summarize([
+            "Miroir mesures delivery_step: n=8 p50_ms=5 p95_ms=8 "
+            "p99_ms=8 total_ms=10 envoyés=8/8"
+        ] * 5, 8)
+        comparison = compare_reports({2: clean, 8: faster})
+        self.assertEqual(comparison["p95_ratio_vs_2_accounts"]
+                         ["click_worker_ms"]["8"], 0.5)
+        faster = summarize([
+            "Miroir mesures: n=0 total_ms=1 envoyés=0/8",
+        ] * 5, 8)
+        self.assertIsNone(compare_reports({2: clean, 8: faster})
+                          ["p95_ratio_vs_2_accounts"]["click_worker_ms"]["8"])
+
     def test_counts_restarts_no_replay_and_rejects_foreign_rosters(self):
         lines = [
             "Organizer entrées physiques bloquées: clics=2 molettes=1",
@@ -138,7 +180,9 @@ class OrganizerMirrorLogReportTests(unittest.TestCase):
                     report["metrics"]["click_dispatch_to_last_emit_ms"],
                     {"n": 1, "p50_ms": 19.0, "p95_ms": 19.0, "p99_ms": 19.0},
                 )
-                self.assertEqual(report["roster_mismatch_lines"], 1)
+                # The worker and last-emission metrics both reject
+                # this foreign action; the count is per rejected metric.
+                self.assertEqual(report["roster_mismatch_lines"], 2)
         self.assertIsNone(summarize([
             "Miroir clic dispatch_to_worker_ms=4.00 dispatch_to_last_emit_ms=999.00 (envoi, pas rendu Unity)",
         ], 8)["metrics"]["click_dispatch_to_last_emit_ms"])

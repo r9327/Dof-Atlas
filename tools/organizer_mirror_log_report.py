@@ -1,6 +1,8 @@
 """Summarize Organizer Miroir diagnostics without exposing window/user data.
 
 Usage: python -m tools.organizer_mirror_log_report --logs logs/atlas.log --accounts 8
+Compare separate sessions (same SHA, Windows machine and settings):
+    python -m tools.organizer_mirror_log_report --compare 2=atlas_2.log --compare 4=atlas_4.log --compare 6=atlas_6.log --compare 8=atlas_8.log
 The result is log evidence only; it cannot certify Windows/Unity rendering.
 """
 from __future__ import annotations
@@ -52,6 +54,14 @@ METRIC_PATTERNS = {
         r"\bMiroir wheel: dispatch_to_worker_ms=\S+ "
         r"dispatch_to_last_emit_ms=(?P<value>\d+(?:\.\d+)?|NOT_MEASURED) "
         r"cibles=(?P<accounts>\d+)"
+    ),
+    "click_worker_ms": re.compile(
+        # A worker which emitted no synthetic clicks is not a latency
+        # sample for delivered actions; no fast abort may bias p95.
+        r"\bMiroir mesures delivery_step: n=[1-9]\d* "
+        r"p50_ms=\S+ p95_ms=\S+ p99_ms=\S+ "
+        r"total_ms=(?P<value>\d+(?:\.\d+)?) "
+        r"envoyés=\d+/(?P<accounts>\d+)"
     ),
     "key_worker_ms": re.compile(
         r"\bMiroir key: envoyés=\d+/(?P<accounts>\d+) worker_total_ms=(?P<value>\d+(?:\.\d+)?)"
