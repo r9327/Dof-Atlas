@@ -157,12 +157,12 @@
     },
     "tests": {
       "mode": "040000",
-      "sha": "d13d6f25adfaa29d6404ed8d130c88e07b6450e3",
+      "sha": "cb5424f4f434322b2e51c50fb15fb5afc62a85b3",
       "type": "tree"
     },
     "tools": {
       "mode": "040000",
-      "sha": "07ff95268a1ea9391cb9ec796e853bbf04be88cd",
+      "sha": "7f87e81b5a82c55c4d822df8d8444179f5c94a90",
       "type": "tree"
     },
     "ZERO_TRUST_RULES.md": {
