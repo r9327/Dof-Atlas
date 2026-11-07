@@ -141,6 +141,9 @@ class MouseHook:
         self._blocked_wheel_count = 0
         # A consumed DOWN must always swallow its matching physical UP.
         self._consumed_releases: set[int] = set()
+        # Only duplicates need extra bookkeeping: the set still reflects
+        # distinct outstanding UP tokens for existing hook consumers/tests.
+        self._consumed_release_duplicates: dict[int, int] = {}
         # Only DOWN events actually passed through this hook may trigger the
         # native UP dispatcher. An orphan UP must never start replay or
         # discharge another button's pending click.
@@ -175,6 +178,7 @@ class MouseHook:
         thread = self._thread
         if thread is None or not thread.is_alive():
             self._consumed_releases.clear()
+            self._consumed_release_duplicates.clear()
             self._native_releases.clear()
         else:
             self.logger.warning(
@@ -223,8 +227,28 @@ class MouseHook:
                 user32.DispatchMessageW(ctypes.byref(msg))
         finally:
             self._consumed_releases.clear()
+            self._consumed_release_duplicates.clear()
             self._native_releases.clear()
             self._hook_thread_id = 0
+
+    def _reserve_consumed_release(self, token: int) -> None:
+        """One physical UP must be swallowed for each intercepted DOWN."""
+        if token in self._consumed_releases:
+            self._consumed_release_duplicates[token] = (
+                self._consumed_release_duplicates.get(token, 0) + 1
+            )
+        else:
+            self._consumed_releases.add(token)
+
+    def _finish_consumed_release(self, token: int) -> None:
+        extra = self._consumed_release_duplicates.get(token, 0)
+        if extra > 0:
+            if extra == 1:
+                self._consumed_release_duplicates.pop(token, None)
+            else:
+                self._consumed_release_duplicates[token] = extra - 1
+        else:
+            self._consumed_releases.discard(token)
 
     def _mouse_proc(self, n_code: int, w_param: int, l_param: int) -> int:
         try:
@@ -307,7 +331,7 @@ class MouseHook:
                         w_param, int(event.mouseData),
                     )
                     if release_token in self._consumed_releases:
-                        self._consumed_releases.discard(release_token)
+                        self._finish_consumed_release(release_token)
                         return 1
 
                 # A native source DOWN that was NOT swallowed must keep its
@@ -337,7 +361,7 @@ class MouseHook:
                     except Exception:
                         paired_up = BLOCKED_DOWN_TO_UP.get(w_param)
                         if paired_up is not None:
-                            self._consumed_releases.add(
+                            self._reserve_consumed_release(
                                 _physical_release_token(
                                     paired_up, int(event.mouseData),
                                 ),
@@ -431,7 +455,7 @@ class MouseHook:
                     # Once interception is decided, own the matching UP even
                     # after Stop/restart. Never emit an orphaned release.
                     if paired_up is not None:
-                        self._consumed_releases.add(
+                        self._reserve_consumed_release(
                             _physical_release_token(paired_up, int(event.mouseData))
                         )
                     try:
@@ -477,7 +501,7 @@ class MouseHook:
                         )
                         consumed = bool(self.callback(button, x, y))
                         if consumed:
-                            self._consumed_releases.add(
+                            self._reserve_consumed_release(
                                 WM_LBUTTONUP if w_param == WM_LBUTTONDOWN else WM_RBUTTONUP
                             )
                             # Ownership is already recorded: a failing
