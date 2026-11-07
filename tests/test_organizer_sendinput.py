@@ -3876,7 +3876,10 @@ class OrganizerSendInputTests(unittest.TestCase):
                     self.assertFalse(hook._start_ok)
                     self.assertIsNone(hook._hook)
                     self.assertEqual(hook._hook_thread_id, 0)
-                    logger.exception.assert_called_once()
+                    logger.exception.assert_any_call(
+                        "Hook " + ("souris" if backend == "mouse" else "clavier")
+                        + ": erreur inattendue du thread Win32."
+                    )
                     if phase == "registration":
                         user32.UnhookWindowsHookEx.assert_not_called()
                     else:
