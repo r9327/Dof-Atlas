@@ -686,7 +686,8 @@ class SwitchClickMacro:
                 # DOFUS after the user focused another application in the
                 # inter-client wait. Check before the NEXT activation rather
                 # than only before each SendInput after focus was stolen.
-                if last_activated_hwnd is not None:
+                if (last_activated_hwnd is not None
+                        and timings.switch_client_settle_ms > 0):
                     try:
                         if foreground_window() != last_activated_hwnd:
                             focus_lost = True
