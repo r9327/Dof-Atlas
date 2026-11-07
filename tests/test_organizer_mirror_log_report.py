@@ -34,6 +34,21 @@ class OrganizerMirrorLogReportTests(unittest.TestCase):
                     ["ratio_exclusion_reasons"][str(accounts)],
                 )
 
+    def test_click_worker_fallback_is_not_hidden_by_key_or_wheel_ui(self):
+        report = summarize([
+            "Miroir Clavier : 4/4 fenêtres.",
+            "Miroir Molette incomplet : 2/4 fenêtres.",
+            "Miroir terminé: envoyés=4/4",
+            "Miroir partiel: envoyés=1/4",
+        ], 4)
+        self.assertEqual(report["actions"], {
+            "complete": 2, "partial": 2, "interrupted": 0,
+        })
+        self.assertIn(
+            "PARTIAL_OR_INTERRUPTED_ACTIONS",
+            compare_reports({4: report})["ratio_exclusion_reasons"]["4"],
+        )
+
     def test_click_worker_and_ui_status_do_not_double_count(self):
         report = summarize([
             "Miroir terminé: envoyés=2/2",
