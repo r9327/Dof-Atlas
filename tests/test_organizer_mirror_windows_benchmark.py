@@ -1,7 +1,14 @@
 from __future__ import annotations
 
+import contextlib
+import io
+import sys
+import tempfile
 import unittest
+from pathlib import Path
+from unittest.mock import patch
 
+from tools import benchmark_organizer_mirror_windows as benchmark
 from tools.benchmark_organizer_mirror_windows import (
     COUNTS, GESTURES, percentiles, summarize_fanout,
 )
@@ -56,6 +63,29 @@ class OrganizerMirrorWindowsBenchmarkTests(unittest.TestCase):
             with self.subTest(trials=trials, complete=complete, samples=samples):
                 with self.assertRaises(ValueError):
                     summarize_fanout(trials, complete, samples)
+
+    def test_runner_never_reports_missing_desktop_as_success(self):
+        # The former CLI returned zero for UNAVAILABLE_INTERACTIVE_DESKTOP
+        # and made a missing Win32 interactive session look like PASS.
+        with tempfile.TemporaryDirectory() as temporary:
+            path = Path(temporary) / "fixture.json"
+            for status, expected_code in (
+                ("PASS", 0),
+                ("FAIL", 1),
+                ("NOT_RUN", 1),
+                ("UNAVAILABLE_INTERACTIVE_DESKTOP", 1),
+            ):
+                with self.subTest(status=status):
+                    argv = [
+                        "bench", "--expected-sha", "a" * 40, "--iterations",
+                        "1", "--output", str(path),
+                    ]
+                    with (
+                        patch.object(sys, "argv", argv),
+                        patch.object(benchmark, "run", return_value={"status": status}),
+                        contextlib.redirect_stdout(io.StringIO()),
+                    ):
+                        self.assertEqual(benchmark.main(), expected_code)
 
     def test_tail_percentiles_use_nearest_rank(self):
         actual = percentiles([float(i) for i in range(1, 101)])
