@@ -151,25 +151,21 @@ def summarize(lines: Iterable[str], accounts: int) -> dict:
             if total != accounts:
                 mismatched_roster_lines += 1
             else:
-                # Do not count click worker logs again if the same UI family
-                # is already present. Clavier/Molette UI records are separate.
+                # A click UI result supersedes its matching engine result,
+                # while key/wheel status messages remain separate actions.
                 if status["kind"] is None:
                     ui_click_status_seen = True
-            if total != accounts:
-                pass
-            elif status["state"] == "interrompu":
-                statuses["interrupted"] += 1
-            elif (status["state"] == "incomplet" or sent != total
-                  or "profil modifié après envoi" in line):
-                # A complete SendInput count with a changed Organizer profile
-                # is not a completed gesture under the original roster.
-                statuses["partial"] += 1
-            else:
-                statuses["complete"] += 1
-            if total == accounts and "profil modifié après envoi" in line:
-                profile_changed_after_send += 1
-            if total == accounts and "geste physique non rejoué" in line:
-                observed_non_replayed += 1
+                if status["state"] == "interrompu":
+                    statuses["interrupted"] += 1
+                elif (status["state"] == "incomplet" or sent != total
+                      or "profil modifié après envoi" in line):
+                    statuses["partial"] += 1
+                else:
+                    statuses["complete"] += 1
+                if "profil modifié après envoi" in line:
+                    profile_changed_after_send += 1
+                if "geste physique non rejoué" in line:
+                    observed_non_replayed += 1
         for name, pattern in METRIC_PATTERNS.items():
             metric = pattern.search(line)
             if metric is None or metric.group("value") == "NOT_MEASURED":
