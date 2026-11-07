@@ -29,6 +29,30 @@ METRIC_PATTERNS = {
         r"dispatch_to_last_emit_ms=(?P<value>\d+(?:\.\d+)?|NOT_MEASURED) "
         r"cibles=(?P<accounts>\d+)"
     ),
+    "click_dispatch_to_worker_ms": re.compile(
+        r"\bMiroir clic dispatch_to_worker_ms=(?P<value>\d+(?:\.\d+)?) "
+        r"dispatch_to_last_emit_ms=\S+ cibles=(?P<accounts>\d+)"
+    ),
+    # Key and wheel delivery are measured at dispatch time, independently
+    # of worker/runtime duration. Only account-scoped logs are comparable.
+    "key_dispatch_to_worker_ms": re.compile(
+        r"\bMiroir key: dispatch_to_worker_ms=(?P<value>\d+(?:\.\d+)?) "
+        r"dispatch_to_last_emit_ms=\S+ cibles=(?P<accounts>\d+)"
+    ),
+    "key_dispatch_to_last_emit_ms": re.compile(
+        r"\bMiroir key: dispatch_to_worker_ms=\S+ "
+        r"dispatch_to_last_emit_ms=(?P<value>\d+(?:\.\d+)?|NOT_MEASURED) "
+        r"cibles=(?P<accounts>\d+)"
+    ),
+    "wheel_dispatch_to_worker_ms": re.compile(
+        r"\bMiroir wheel: dispatch_to_worker_ms=(?P<value>\d+(?:\.\d+)?) "
+        r"dispatch_to_last_emit_ms=\S+ cibles=(?P<accounts>\d+)"
+    ),
+    "wheel_dispatch_to_last_emit_ms": re.compile(
+        r"\bMiroir wheel: dispatch_to_worker_ms=\S+ "
+        r"dispatch_to_last_emit_ms=(?P<value>\d+(?:\.\d+)?|NOT_MEASURED) "
+        r"cibles=(?P<accounts>\d+)"
+    ),
     "key_worker_ms": re.compile(
         r"\bMiroir key: envoyés=\d+/(?P<accounts>\d+) worker_total_ms=(?P<value>\d+(?:\.\d+)?)"
     ),

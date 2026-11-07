@@ -609,10 +609,11 @@ class MirrorInputMacro:
                 # gesture has no last emission and must say NOT_MEASURED.
                 runtime.logger.info(
                     "Miroir %s: dispatch_to_worker_ms=%.2f "
-                    "dispatch_to_last_emit_ms=%s (envoi, pas rendu Unity)",
+                    "dispatch_to_last_emit_ms=%s cibles=%s (envoi, pas rendu Unity)",
                     kind, max(0.0, (start - dispatch_at) * 1000.0),
                     (f"{max(0.0, (last_emission_at - dispatch_at) * 1000.0):.2f}"
                      if last_emission_at is not None else "NOT_MEASURED"),
+                    len(handles),
                 )
             label = "Clavier" if kind == "key" else "Molette"
             # A completed SendInput count is still valid when Organizer

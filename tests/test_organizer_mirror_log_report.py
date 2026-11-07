@@ -35,6 +35,61 @@ class OrganizerMirrorLogReportTests(unittest.TestCase):
                 self.assertEqual(summary["metrics"]["wheel_worker_ms"]["p99_ms"], 95.0)
                 self.assertEqual(summary["unity_render_latency"], "NOT_MEASURED")
 
+
+    def test_key_and_wheel_dispatch_metrics_are_account_scoped_2_to_8(self):
+        for count in (2, 4, 6, 8):
+            with self.subTest(accounts=count):
+                foreign_count = 8 if count != 8 else 2
+                report = summarize([
+                    # These legacy records have no session size, so cannot
+                    # be attributed after an Organizer roster change.
+                    "Miroir key: dispatch_to_worker_ms=1.0 dispatch_to_last_emit_ms=999.0",
+                    "Miroir wheel: dispatch_to_worker_ms=1.0 dispatch_to_last_emit_ms=999.0",
+                    f"Miroir key: dispatch_to_worker_ms=3.0 "
+                    f"dispatch_to_last_emit_ms=40.0 cibles={count} (envoi, pas rendu Unity)",
+                    f"Miroir wheel: dispatch_to_worker_ms=4.0 "
+                    f"dispatch_to_last_emit_ms=50.0 cibles={count} (envoi, pas rendu Unity)",
+                    f"Miroir key: dispatch_to_worker_ms=5.0 "
+                    f"dispatch_to_last_emit_ms=NOT_MEASURED cibles={count}",
+                    f"Miroir wheel: dispatch_to_worker_ms=6.0 "
+                    f"dispatch_to_last_emit_ms=NOT_MEASURED cibles={count}",
+                    f"Miroir key: dispatch_to_worker_ms=1.0 "
+                    f"dispatch_to_last_emit_ms=999.0 cibles={foreign_count}",
+                ], count)
+                metrics = report["metrics"]
+                self.assertEqual(metrics["key_dispatch_to_worker_ms"]["n"], 2)
+                self.assertEqual(metrics["key_dispatch_to_worker_ms"]["p95_ms"], 5.0)
+                self.assertEqual(metrics["wheel_dispatch_to_worker_ms"]["p95_ms"], 6.0)
+                self.assertEqual(metrics["key_dispatch_to_last_emit_ms"], {
+                    "n": 1, "p50_ms": 40.0, "p95_ms": 40.0, "p99_ms": 40.0,
+                })
+                self.assertEqual(metrics["wheel_dispatch_to_last_emit_ms"]["p99_ms"], 50.0)
+                self.assertEqual(report["roster_mismatch_lines"], 2)
+                self.assertEqual(report["unity_render_latency"], "NOT_MEASURED")
+
+    def test_dispatch_to_last_emit_p95_compares_separate_keyboard_sessions(self):
+        reports = {
+            count: summarize([
+                f"Miroir key: dispatch_to_worker_ms=2.0 "
+                f"dispatch_to_last_emit_ms={delay}.0 cibles={count}"
+                for _ in range(5)
+            ], count)
+            for count, delay in ((2, 20), (4, 30), (6, 40), (8, 60))
+        }
+        compare = compare_reports(reports)
+        self.assertEqual(compare["p95_ratio_vs_2_accounts"]
+                         ["key_dispatch_to_last_emit_ms"], {
+                             "2": 1.0, "4": 1.5, "6": 2.0, "8": 3.0,
+                         })
+        # A missing final emission must never be interpreted as a fast input.
+        reports[8] = summarize([
+            "Miroir key: dispatch_to_worker_ms=2.0 "
+            "dispatch_to_last_emit_ms=NOT_MEASURED cibles=8"
+            for _ in range(5)
+        ], 8)
+        self.assertIsNone(compare_reports(reports)["p95_ratio_vs_2_accounts"]
+                          ["key_dispatch_to_last_emit_ms"]["8"])
+
     def test_counts_restarts_no_replay_and_rejects_foreign_rosters(self):
         lines = [
             "Organizer entrées physiques bloquées: clics=2 molettes=1",
