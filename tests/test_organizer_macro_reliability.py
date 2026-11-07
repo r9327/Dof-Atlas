@@ -5779,5 +5779,110 @@ class OrganizerDetachedProfileTests(unittest.TestCase):
         foreground.assert_not_called()
         runtime._spawn_macro.assert_not_called()
 
+    def test_direction_first_source_skips_focus_settle_2_4_6_8(self):
+        for count in (2, 4, 6, 8):
+            with self.subTest(count=count):
+                runtime = _runtime()
+                handles = tuple(range(101, 101 + count))
+                runtime.settings.timings.click_focus_settle_ms = 37
+                runtime.settings.client_by_handle.return_value = object()
+                runtime.switch_character.ordered_clients_from_source.return_value = [
+                    SimpleNamespace(handle=hwnd) for hwnd in handles
+                ]
+                current = [handles[0]]
+                settle_values = []
+                def focus(hwnd, settle_ms, *_args, **_kwargs):
+                    settle_values.append(settle_ms)
+                    current[0] = hwnd
+                    return True
+                with (
+                    patch("app.macros.direction.foreground_window",
+                          side_effect=lambda: current[0]),
+                    patch("app.macros.direction.is_unity_window",
+                          return_value=True),
+                    patch("app.macros.direction.is_dofus_unity_process",
+                          return_value=True),
+                    patch("app.macros.direction.activate_window",
+                          side_effect=focus),
+                    patch("app.macros.direction.press_key") as press,
+                ):
+                    DirectionMacro(runtime)._run("HOME")
+                self.assertEqual(settle_values, [0] + [37] * (count - 1))
+                self.assertEqual(press.call_count, count)
+
+    def test_zaap_first_foreground_skips_settle_only_on_source_2_4_6_8(self):
+        for count in (2, 4, 6, 8):
+            for initial_focus in (101, 999):
+                with self.subTest(count=count, initial_focus=initial_focus):
+                    runtime = _runtime()
+                    handles = tuple(range(101, 101 + count))
+                    runtime.settings.timings.travel_focus_settle_ms = 43
+                    runtime.switch_character.ordered_clients_from_source.return_value = [
+                        SimpleNamespace(handle=hwnd) for hwnd in handles
+                    ]
+                    current = [initial_focus]
+                    settle_values = []
+                    def focus(hwnd, settle_ms, *_args, **_kwargs):
+                        settle_values.append(settle_ms)
+                        current[0] = hwnd
+                        return True
+                    with (
+                        patch("app.macros.zaap.foreground_window",
+                              side_effect=lambda: current[0]),
+                        patch("app.macros.zaap.is_unity_window",
+                              return_value=True),
+                        patch("app.macros.zaap.is_dofus_unity_process",
+                              return_value=True),
+                        patch("app.macros.zaap.activate_window",
+                              side_effect=focus),
+                        patch("app.macros.zaap.send_chat_command",
+                              return_value=True) as send,
+                    ):
+                        ZaapMacro(runtime)._run("/zaap 10,20")
+                    self.assertEqual(
+                        settle_values,
+                        [0 if initial_focus == 101 else 43] + [43] * (count - 1),
+                    )
+                    self.assertEqual(send.call_count, count)
+
+    def test_auto_group_source_skips_settle_if_already_active_2_4_6_8(self):
+        for count in (2, 4, 6, 8):
+            for initial_focus in (101, 999):
+                with self.subTest(count=count, initial_focus=initial_focus):
+                    runtime = _runtime()
+                    runtime.settings.timings.travel_focus_settle_ms = 29
+                    runtime.switch_character.logical_active_client.return_value = (
+                        SimpleNamespace(handle=101, display_name="Leader")
+                    )
+                    entries = [
+                        {"name": f"Friend{i}", "handle": 101 + i}
+                        for i in range(1, count)
+                    ]
+                    current = [initial_focus]
+                    settle_values = []
+                    def focus(hwnd, settle_ms, *_args, **_kwargs):
+                        settle_values.append(settle_ms)
+                        current[0] = hwnd
+                        return True
+                    with (
+                        patch("app.macros.auto_group.foreground_window",
+                              side_effect=lambda: current[0]),
+                        patch("app.macros.auto_group.is_unity_window",
+                              return_value=True),
+                        patch("app.macros.auto_group.is_dofus_unity_process",
+                              return_value=True),
+                        patch("app.macros.auto_group.activate_window",
+                              side_effect=focus),
+                        patch("app.macros.auto_group.send_chat_command",
+                              return_value=True) as send,
+                    ):
+                        AutoGroupMacro(runtime)._run(entries)
+                    self.assertEqual(
+                        settle_values, [0 if initial_focus == 101 else 29],
+                    )
+                    self.assertEqual(send.call_count, count - 1)
+
+
+
 if __name__ == "__main__":
     unittest.main()

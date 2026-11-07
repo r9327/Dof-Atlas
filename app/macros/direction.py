@@ -158,7 +158,7 @@ class DirectionMacro:
                     "Switch deplacement refusé: liste Organizer invalide ou supérieure à huit."
                 )
                 return
-            for client, target_hwnd in zip(targets, target_handles):
+            for index, (client, target_hwnd) in enumerate(zip(targets, target_handles)):
                 if (self.runtime.macro_lock.should_stop()
                         or self.runtime.settings is not settings_at_start):
                     return
@@ -188,9 +188,16 @@ class DirectionMacro:
                         target_hwnd,
                     )
                     return
+                # This exact source was foreground during preflight: no
+                # focus transition occurred on the first recipient. Keep
+                # the configured settle for every subsequent Unity window.
+                settle_ms = (
+                    0 if index == 0 and target_hwnd == source
+                    else timings.click_focus_settle_ms
+                )
                 if activate_window(
                     target_hwnd,
-                    timings.click_focus_settle_ms,
+                    settle_ms,
                     timings.activate_attempts,
                     timings.activate_retry_ms,
                     self.runtime.logger,

@@ -138,7 +138,7 @@ class ZaapMacro:
         focus_steps_ms: list[float] = []
         chat_steps_ms: list[float] = []
         try:
-            for client, target_hwnd in zip(clients, target_handles):
+            for index, (client, target_hwnd) in enumerate(zip(clients, target_handles)):
                 if (self.runtime.macro_lock.should_stop()
                         or self.runtime.settings is not settings_at_start):
                     return
@@ -170,9 +170,16 @@ class ZaapMacro:
                     return
                 focus_started_at = perf_counter()
                 try:
+                    # The first DOFUS client needs no switch-settle if it
+                    # is already the physical foreground window. The focus
+                    # helper still revalidates the HWND before sending chat.
+                    settle_ms = (
+                        0 if index == 0 and foreground_window() == target_hwnd
+                        else timings.travel_focus_settle_ms
+                    )
                     activated = activate_window(
                         target_hwnd,
-                    timings.travel_focus_settle_ms,
+                        settle_ms,
                     timings.activate_attempts,
                     timings.activate_retry_ms,
                     self.runtime.logger,
