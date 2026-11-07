@@ -71,8 +71,9 @@ METRIC_PATTERNS = {
     ),
 }
 STATUS = re.compile(
-    r"\bMiroir(?: (?:Clavier|Molette))?"
-    r"(?: (interrompu|incomplet))? : (\d+)/(\d+) fenêtres"
+    r"\bMiroir(?: (?P<kind>Clavier|Molette))?"
+    r"(?: (?P<state>interrompu|incomplet))? : "
+    r"(?P<sent>\d+)/(?P<total>\d+) fenêtres"
 )
 BLOCKED_COUNTERS = re.compile(
     r"Organizer entrées physiques bloquées: clics=(\d+) molettes=(\d+)"
@@ -111,6 +112,7 @@ def summarize(lines: Iterable[str], accounts: int) -> dict:
     samples = {key: [] for key in METRIC_PATTERNS}
     statuses = {"complete": 0, "partial": 0, "interrupted": 0}
     logged_click_statuses = {"complete": 0, "partial": 0, "interrupted": 0}
+    ui_click_status_seen = False
     losses = {"clicks": 0, "wheel_ticks": 0}
     per_action_losses = {"click": 0, "wheel": 0}
     previous = (0, 0)
@@ -145,12 +147,19 @@ def summarize(lines: Iterable[str], accounts: int) -> dict:
                 logged_click_statuses[outcome] += 1
         status = STATUS.search(line)
         if status:
-            sent, total = int(status[2]), int(status[3])
+            sent, total = int(status["sent"]), int(status["total"])
             if total != accounts:
                 mismatched_roster_lines += 1
-            elif status[1] == "interrompu":
+            else:
+                # Do not count click worker logs again if the same UI family
+                # is already present. Clavier/Molette UI records are separate.
+                if status["kind"] is None:
+                    ui_click_status_seen = True
+            if total != accounts:
+                pass
+            elif status["state"] == "interrompu":
                 statuses["interrupted"] += 1
-            elif (status[1] == "incomplet" or sent != total
+            elif (status["state"] == "incomplet" or sent != total
                   or "profil modifié après envoi" in line):
                 # A complete SendInput count with a changed Organizer profile
                 # is not a completed gesture under the original roster.
@@ -180,7 +189,11 @@ def summarize(lines: Iterable[str], accounts: int) -> dict:
         "metrics": {k: _percentiles(v) for k, v in samples.items()},
         # Status messages may only reach the UI. The engine log provides
         # the same final click outcomes when those messages are absent.
-        "actions": statuses if any(statuses.values()) else logged_click_statuses,
+        "actions": {
+            state: statuses[state] + (0 if ui_click_status_seen
+                                      else logged_click_statuses[state])
+            for state in statuses
+        },
         "observed_blocked_physical_inputs": losses,
         "blocked_input_scope": "WHOLE_LOG",
         "observed_blocked_inputs_per_mirror_action": per_action_losses,
