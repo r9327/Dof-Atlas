@@ -682,6 +682,26 @@ class SwitchClickMacro:
                     )
                     return
 
+                # A completed recipient does not authorize reclaiming
+                # DOFUS after the user focused another application in the
+                # inter-client wait. Check before the NEXT activation rather
+                # than only before each SendInput after focus was stolen.
+                if last_activated_hwnd is not None:
+                    try:
+                        if foreground_window() != last_activated_hwnd:
+                            focus_lost = True
+                            self.runtime.logger.warning(
+                                "%s interrompu: focus utilisateur changé entre cibles.",
+                                action_label,
+                            )
+                            return
+                    except Exception:
+                        focus_lost = True
+                        self.runtime.logger.exception(
+                            "%s interrompu: focus illisible entre cibles.",
+                            action_label,
+                        )
+                        return
                 if (type(target_hwnd) is not int
                         or not 0 < target_hwnd <= (2**64 - 1)
                         or not is_unity_window(target_hwnd)
