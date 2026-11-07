@@ -316,7 +316,8 @@ class MirrorInputMacro:
                 # between two recipients. Without this check the next
                 # activate_window would steal focus back into DOFUS even
                 # though the previous emission was already complete.
-                if last_activated_hwnd is not None:
+                if (last_activated_hwnd is not None
+                        and timings.switch_client_settle_ms > 0):
                     try:
                         if foreground_window() != last_activated_hwnd:
                             focus_lost = True
