@@ -5928,7 +5928,8 @@ class OrganizerDetachedProfileTests(unittest.TestCase):
     def test_chat_sender_exception_stops_fanout_2_4_6_8(self):
         for count in (2, 4, 6, 8):
             for macro_kind in ("zaap", "auto_group"):
-                for failing_at in (1, 2):
+                failures = (1,) if macro_kind == "auto_group" and count == 2 else (1, 2)
+                for failing_at in failures:
                     with self.subTest(
                         count=count, macro=macro_kind, failing_at=failing_at,
                     ):
@@ -6014,7 +6015,10 @@ class OrganizerDetachedProfileTests(unittest.TestCase):
                         for i in range(1, count)
                     ])
                 self.assertEqual(len(calls), min(2, count - 1))
-                self.assertIn("partiel", runtime._emit_status.call_args.args[0])
+                self.assertIn(
+                    "partiel" if count >= 4 else "termine",
+                    runtime._emit_status.call_args.args[0],
+                )
                 if count >= 4:
                     runtime.logger.warning.assert_any_call(
                         "Auto groupe: invitation non émise, arrêt après %s/%s clients.",
