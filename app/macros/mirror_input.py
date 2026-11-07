@@ -320,8 +320,16 @@ class MirrorInputMacro:
                     break
                 focus_started_at = perf_counter()
                 try:
+                    # The source was already foreground at admission and
+                    # after roster preflight. There was no window switch to
+                    # settle on this first character; retain the normal
+                    # focus-settle delay for every secondary Unity client.
+                    settle_ms = (
+                        0 if index == 0 and hwnd == source
+                        else timings.switch_background_pre_click_ms
+                    )
                     activated = activate_window(
-                        hwnd, timings.switch_background_pre_click_ms,
+                        hwnd, settle_ms,
                         timings.activate_attempts, timings.activate_retry_ms,
                         runtime.logger, "Miroir " + kind,
                         should_stop=lambda: (

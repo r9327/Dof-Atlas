@@ -652,7 +652,7 @@ class OrganizerMirrorIntegrationTests(unittest.TestCase):
                 runtime = self._runtime(primary=favorite, handles=slots)
                 runtime.settings.timings = SimpleNamespace()
                 timings = runtime.settings.timings
-                timings.switch_background_pre_click_ms = 0
+                timings.switch_background_pre_click_ms = 25
                 timings.activate_attempts = 1
                 timings.activate_retry_ms = 0
                 timings.switch_click_down_ms = 10
@@ -675,6 +675,10 @@ class OrganizerMirrorIntegrationTests(unittest.TestCase):
                     MirrorInputMacro(runtime)._run("key", 65, favorite, handles)
                 self.assertEqual(activate.call_count, count)
                 self.assertEqual(
+                    [call.args[1] for call in activate.call_args_list],
+                    [0] + [25] * (count - 1),
+                )
+                self.assertEqual(
                     [call.args[0] for call in activate.call_args_list],
                     list(handles),
                 )
@@ -694,7 +698,7 @@ class OrganizerMirrorIntegrationTests(unittest.TestCase):
                 runtime = self._runtime(primary=favorite, handles=slots)
                 runtime.settings.timings = SimpleNamespace()
                 timings = runtime.settings.timings
-                timings.switch_background_pre_click_ms = 0
+                timings.switch_background_pre_click_ms = 25
                 timings.activate_attempts = 1
                 timings.activate_retry_ms = 0
                 timings.switch_client_settle_ms = 0
@@ -722,6 +726,10 @@ class OrganizerMirrorIntegrationTests(unittest.TestCase):
                         "wheel", (-120, False, 0.5, 0.5), favorite, handles,
                     )
                 self.assertEqual(activate.call_count, count)
+                self.assertEqual(
+                    [call.args[1] for call in activate.call_args_list],
+                    [0] + [25] * (count - 1),
+                )
                 self.assertEqual(
                     [call.args[0] for call in activate.call_args_list],
                     list(handles),
