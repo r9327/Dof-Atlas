@@ -3887,5 +3887,103 @@ class OrganizerSendInputTests(unittest.TestCase):
                     if backend == "mouse":
                         self.assertFalse(hook._consumed_releases)
 
+
+    def test_pointer_lease_handoff_interrupts_successor_on_intercepted_gesture(self):
+        from app.input.input_state import InputState
+        from app.input.mouse_hooks import (
+            MouseHook, MSLLHOOKSTRUCT, WM_LBUTTONDOWN, WM_LBUTTONUP,
+            WM_RBUTTONDOWN, WM_RBUTTONUP, WM_MBUTTONDOWN, WM_MBUTTONUP,
+            WM_MOUSEWHEEL, WM_MOUSEHWHEEL,
+        )
+        gestures = (
+            (WM_LBUTTONDOWN, WM_LBUTTONUP),
+            (WM_RBUTTONDOWN, WM_RBUTTONUP),
+            (WM_MBUTTONDOWN, WM_MBUTTONUP),
+            (WM_MOUSEWHEEL, None),
+            (WM_MOUSEHWHEEL, None),
+        )
+        for accounts in (2, 4, 6, 8):
+            for down, up in gestures:
+                with self.subTest(accounts=accounts, down=down):
+                    state = InputState()
+                    hook = MouseHook(state, Mock(), Mock(), Mock())
+                    event = MSLLHOOKSTRUCT()
+                    next_hook = Mock(return_value=53)
+                    original_note = state.note_blocked_physical_gesture
+                    state.begin_mouse_block("prior Miroir")
+                    old_epoch = state.mouse_block_epoch_if_active()
+                    calls = []
+
+                    def admit_after_handoff(*, expected_epoch=None):
+                        calls.append(expected_epoch)
+                        if len(calls) == 1:
+                            state.end_mouse_block()
+                            state.begin_mouse_block("successor Miroir")
+                        return original_note(expected_epoch=expected_epoch)
+
+                    with (
+                        patch.object(
+                            state, "note_blocked_physical_gesture",
+                            side_effect=admit_after_handoff,
+                        ),
+                        patch.object(
+                            ctypes, "windll",
+                            SimpleNamespace(user32=SimpleNamespace(
+                                CallNextHookEx=next_hook,
+                            )), create=True,
+                        ),
+                    ):
+                        ptr = ctypes.addressof(event)
+                        self.assertEqual(hook._mouse_proc(0, down, ptr), 1)
+                        new_epoch = state.mouse_block_epoch_if_active()
+                        self.assertNotEqual(old_epoch, new_epoch)
+                        self.assertEqual(calls, [old_epoch, new_epoch])
+                        self.assertTrue(state.mouse_block_interrupted())
+                        if up is not None:
+                            self.assertEqual(hook._mouse_proc(0, up, ptr), 1)
+                            self.assertFalse(hook._consumed_releases)
+                    self.assertEqual(state.end_mouse_block(), 0)
+                    self.assertTrue(state.last_release_interrupted())
+                    self.assertEqual(state.last_release_blocked_count(), 1)
+                    next_hook.assert_not_called()
+                    hook.callback.assert_not_called()
+
+    def test_pointer_handoff_repeated_transition_is_bounded_and_fail_closed(self):
+        from app.input.input_state import InputState
+        from app.input.mouse_hooks import (
+            MouseHook, MSLLHOOKSTRUCT, WM_LBUTTONDOWN, WM_LBUTTONUP,
+        )
+        state = InputState()
+        state.begin_mouse_block("worker one")
+        hook = MouseHook(state, Mock(), Mock(), Mock())
+        event = MSLLHOOKSTRUCT()
+        original_note = state.note_blocked_physical_gesture
+        calls = []
+
+        def roll_epoch(*, expected_epoch=None):
+            calls.append(expected_epoch)
+            state.end_mouse_block()
+            state.begin_mouse_block("replacement")
+            return original_note(expected_epoch=expected_epoch)
+
+        next_hook = Mock(return_value=53)
+        with (
+            patch.object(state, "note_blocked_physical_gesture",
+                         side_effect=roll_epoch),
+            patch.object(
+                ctypes, "windll",
+                SimpleNamespace(user32=SimpleNamespace(
+                    CallNextHookEx=next_hook,
+                )), create=True,
+            ),
+        ):
+            ptr = ctypes.addressof(event)
+            self.assertEqual(hook._mouse_proc(0, WM_LBUTTONDOWN, ptr), 1)
+            self.assertEqual(len(calls), 2)
+            self.assertEqual(hook._mouse_proc(0, WM_LBUTTONUP, ptr), 1)
+        next_hook.assert_not_called()
+        hook.callback.assert_not_called()
+        self.assertEqual(state.end_mouse_block(), 0)
+
 if __name__ == "__main__":
     unittest.main()
