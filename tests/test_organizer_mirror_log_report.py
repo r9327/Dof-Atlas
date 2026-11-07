@@ -97,6 +97,46 @@ class OrganizerMirrorLogReportTests(unittest.TestCase):
         })
         self.assertEqual(report["roster_mismatch_lines"], 0)
 
+    def test_key_and_wheel_workers_count_without_ui_2_to_8(self):
+        for accounts in (2, 4, 6, 8):
+            with self.subTest(accounts=accounts):
+                report = summarize([
+                    f"Miroir key: envoyés={accounts}/{accounts} worker_total_ms=21.0 "
+                    "delivery_step_ms=None focus_activation_ms=None",
+                    f"Miroir key: envoyés=1/{accounts} worker_total_ms=22.0 "
+                    "delivery_step_ms=None focus_activation_ms=None",
+                    f"Miroir wheel: envoyés=0/{accounts} worker_total_ms=13.0 "
+                    "delivery_step_ms=None focus_activation_ms=None",
+                    f"Miroir wheel: envoyés={accounts}/{accounts} worker_total_ms=30.0 "
+                    "delivery_step_ms=None focus_activation_ms=None",
+                    f"Miroir key: envoyés=7/{8 if accounts != 8 else 2} "
+                    "worker_total_ms=999.0",
+                ], accounts)
+                self.assertEqual(report["actions"], {
+                    "complete": 2, "partial": 2, "interrupted": 0,
+                })
+                self.assertEqual(report["roster_mismatch_lines"], 1)
+                self.assertIn(
+                    "PARTIAL_OR_INTERRUPTED_ACTIONS",
+                    compare_reports({accounts: report})
+                    ["ratio_exclusion_reasons"][str(accounts)],
+                )
+
+    def test_key_wheel_partial_ui_coverage_does_not_double_count(self):
+        report = summarize([
+            "Miroir key: envoyés=4/4 worker_total_ms=21.0",
+            "Miroir key: envoyés=4/4 worker_total_ms=22.0",
+            "Miroir wheel: envoyés=1/4 worker_total_ms=30.0",
+            "Miroir wheel: envoyés=2/4 worker_total_ms=31.0",
+            "Miroir Clavier : 4/4 fenêtres.",
+            "Miroir Molette incomplet : 1/4 fenêtres.",
+            "Miroir terminé: envoyés=4/4",
+            "Miroir : 4/4 fenêtres.",
+        ], 4)
+        self.assertEqual(report["actions"], {
+            "complete": 3, "partial": 2, "interrupted": 0,
+        })
+
     def test_real_sender_log_families_are_kept_separate_2_to_8(self):
         for count in (2, 4, 6, 8):
             with self.subTest(count=count):

@@ -90,6 +90,11 @@ ACTION_COLLISIONS = re.compile(
 CLICK_WORKER_STATUS = re.compile(
     r"\bMiroir (terminé|partiel|interrompu): envoyés=(\d+)/(\d+)\b"
 )
+# Keyboard and wheel workers log their final emission counts even when the
+# corresponding UI status is not persisted to the same diagnostic file.
+KEY_WHEEL_WORKER_STATUS = re.compile(
+    r"\bMiroir (key|wheel): envoyés=(\d+)/(\d+) worker_total_ms="
+)
 
 
 def _percentiles(values: list[float]) -> dict[str, float | int] | None:
@@ -113,8 +118,17 @@ def summarize(lines: Iterable[str], accounts: int) -> dict:
     statuses = {"complete": 0, "partial": 0, "interrupted": 0}
     logged_click_statuses = {"complete": 0, "partial": 0, "interrupted": 0}
     # Per-outcome reconciliation: UI logging can be partial even when
-    # every click worker wrote its terminal result.
+    # every worker wrote its terminal result. Keep the three gesture kinds
+    # separate so a UI click cannot hide an unlogged keyboard/wheel action.
     ui_click_statuses = {"complete": 0, "partial": 0, "interrupted": 0}
+    ui_other_statuses = {
+        kind: {"complete": 0, "partial": 0, "interrupted": 0}
+        for kind in ("key", "wheel")
+    }
+    worker_other_statuses = {
+        kind: {"complete": 0, "partial": 0, "interrupted": 0}
+        for kind in ("key", "wheel")
+    }
     losses = {"clicks": 0, "wheel_ticks": 0}
     per_action_losses = {"click": 0, "wheel": 0}
     previous = (0, 0)
@@ -147,6 +161,14 @@ def summarize(lines: Iterable[str], accounts: int) -> dict:
                 outcome = {"terminé": "complete", "partiel": "partial",
                            "interrompu": "interrupted"}[worker_status[1]]
                 logged_click_statuses[outcome] += 1
+        other_worker = KEY_WHEEL_WORKER_STATUS.search(line)
+        if other_worker:
+            sent, total = int(other_worker[2]), int(other_worker[3])
+            if total != accounts:
+                mismatched_roster_lines += 1
+            else:
+                outcome = "complete" if sent == total else "partial"
+                worker_other_statuses[other_worker[1]][outcome] += 1
         status = STATUS.search(line)
         if status:
             sent, total = int(status["sent"]), int(status["total"])
@@ -165,6 +187,9 @@ def summarize(lines: Iterable[str], accounts: int) -> dict:
                 statuses[outcome] += 1
                 if status["kind"] is None:
                     ui_click_statuses[outcome] += 1
+                else:
+                    kind = "key" if status["kind"] == "Clavier" else "wheel"
+                    ui_other_statuses[kind][outcome] += 1
                 if "profil modifié après envoi" in line:
                     profile_changed_after_send += 1
                 if "geste physique non rejoué" in line:
@@ -191,8 +216,12 @@ def summarize(lines: Iterable[str], accounts: int) -> dict:
         "actions": {
             # Keep worker-only results even if a different click had a UI
             # status, but never count both logs for the same outcome.
-            state: statuses[state] + max(
-                0, logged_click_statuses[state] - ui_click_statuses[state],
+            state: statuses[state]
+            + max(0, logged_click_statuses[state] - ui_click_statuses[state])
+            + sum(
+                max(0, worker_other_statuses[kind][state]
+                    - ui_other_statuses[kind][state])
+                for kind in ("key", "wheel")
             )
             for state in statuses
         },
