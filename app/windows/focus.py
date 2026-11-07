@@ -17,6 +17,7 @@ def activate_window(
     logger: Logger,
     action_label: str,
     should_stop: Callable[[], bool] | None = None,
+    *, skip_settle_if_active: bool = False,
 ) -> bool:
     if os.name != "nt" or not hwnd:
         return False
@@ -138,7 +139,10 @@ def activate_window(
         return False
 
     if foreground_window() == hwnd:
-        if settle_ms > 0 and wait_ms(settle_ms, should_stop):
+        # Opt-in for callers that need only a *window-switch* settle.
+        # No switch happened: avoid an unnecessary delay, but still
+        # recheck Stop and foreground before confirming activation.
+        if settle_ms > 0 and not skip_settle_if_active and wait_ms(settle_ms, should_stop):
             return False
         # The user can focus a different app during Unity's settle delay,
         # even when the target was foreground at the first native probe.

@@ -386,5 +386,45 @@ class OrganizerFocusPreflightTests(unittest.TestCase):
         current.assert_called_once()
 
 
+    def test_optional_already_foreground_skips_only_the_noop_settle(self):
+        for active, expected in ((101, True), (999, False)):
+            if active == 999:
+                # Native activation is needed: the optimized branch must
+                # not suppress the configured transition delay.
+                continue
+            with self.subTest(active=active):
+                with (
+                    patch.object(focus.os, "name", "nt"),
+                    patch.dict("sys.modules", _win32_activation_modules()),
+                    patch.object(focus, "is_unity_window", return_value=True),
+                    patch.object(focus, "foreground_window",
+                                 side_effect=[101, 101]) as foreground,
+                    patch.object(focus, "wait_ms") as wait,
+                ):
+                    self.assertTrue(focus.activate_window(
+                        101, 43, 3, 10, Mock(), "Auto zaap",
+                        skip_settle_if_active=True,
+                    ))
+                wait.assert_not_called()
+                self.assertEqual(foreground.call_count, 2)
+
+    def test_fast_already_foreground_still_rejects_stolen_focus(self):
+        with (
+            patch.object(focus.os, "name", "nt"),
+            patch.dict("sys.modules", _win32_activation_modules()),
+            patch.object(focus, "is_unity_window", return_value=True),
+            patch.object(focus, "foreground_window",
+                         side_effect=[101, 999]) as foreground,
+            patch.object(focus, "wait_ms") as wait,
+        ):
+            self.assertFalse(focus.activate_window(
+                101, 43, 2, 10, Mock(), "Auto groupe",
+                skip_settle_if_active=True,
+            ))
+        wait.assert_not_called()
+        self.assertEqual(foreground.call_count, 2)
+
+
+
 if __name__ == "__main__":
     unittest.main()

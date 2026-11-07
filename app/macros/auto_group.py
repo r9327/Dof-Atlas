@@ -271,20 +271,17 @@ class AutoGroupMacro:
             self.runtime._emit_status("Auto-groupe interrompu : session ou favori modifié.")
             return
         try:
-            # Auto-groupe always sends from one source. Do not pay a
-            # window-switch delay when it is already in the foreground.
-            # activate_window still verifies the HWND and current focus.
-            settle_ms = (
-                0 if foreground_window() == sender_hwnd
-                else timings.travel_focus_settle_ms
-            )
+            # Let the native helper skip the settle only when this source
+            # is already foreground. An actual activation still waits the
+            # configured interval and verifies the final focus.
             activated = activate_window(
                 sender_hwnd,
-                settle_ms,
+                timings.travel_focus_settle_ms,
                 timings.activate_attempts,
                 timings.activate_retry_ms,
                 self.runtime.logger,
                 "Auto groupe",
+                skip_settle_if_active=True,
                 should_stop=lambda: (
                     self.runtime.macro_lock.should_stop()
                     or self.runtime.settings is not settings_at_start

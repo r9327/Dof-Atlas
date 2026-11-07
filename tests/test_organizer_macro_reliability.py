@@ -5834,16 +5834,18 @@ class OrganizerDetachedProfileTests(unittest.TestCase):
                         patch("app.macros.zaap.is_dofus_unity_process",
                               return_value=True),
                         patch("app.macros.zaap.activate_window",
-                              side_effect=focus),
+                              side_effect=focus) as focus_mock,
                         patch("app.macros.zaap.send_chat_command",
                               return_value=True) as send,
                     ):
                         ZaapMacro(runtime)._run("/zaap 10,20")
-                    self.assertEqual(
-                        settle_values,
-                        [0 if initial_focus == 101 else 43] + [43] * (count - 1),
-                    )
+                    self.assertEqual(settle_values, [43] * count)
                     self.assertEqual(send.call_count, count)
+                    self.assertEqual(
+                        [call.kwargs["skip_settle_if_active"]
+                         for call in focus_mock.call_args_list],
+                        [True] + [False] * (count - 1),
+                    )
 
     def test_auto_group_source_skips_settle_if_already_active_2_4_6_8(self):
         for count in (2, 4, 6, 8):
@@ -5851,6 +5853,7 @@ class OrganizerDetachedProfileTests(unittest.TestCase):
                 with self.subTest(count=count, initial_focus=initial_focus):
                     runtime = _runtime()
                     runtime.settings.timings.travel_focus_settle_ms = 29
+                    runtime.settings.timings.auto_group_invite_gap_ms = 0
                     runtime.switch_character.logical_active_client.return_value = (
                         SimpleNamespace(handle=101, display_name="Leader")
                     )
@@ -5872,15 +5875,14 @@ class OrganizerDetachedProfileTests(unittest.TestCase):
                         patch("app.macros.auto_group.is_dofus_unity_process",
                               return_value=True),
                         patch("app.macros.auto_group.activate_window",
-                              side_effect=focus),
+                              side_effect=focus) as focus_mock,
                         patch("app.macros.auto_group.send_chat_command",
                               return_value=True) as send,
                     ):
                         AutoGroupMacro(runtime)._run(entries)
-                    self.assertEqual(
-                        settle_values, [0 if initial_focus == 101 else 29],
-                    )
+                    self.assertEqual(settle_values, [29])
                     self.assertEqual(send.call_count, count - 1)
+                    self.assertTrue(focus_mock.call_args.kwargs["skip_settle_if_active"])
 
 
 

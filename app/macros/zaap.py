@@ -170,20 +170,17 @@ class ZaapMacro:
                     return
                 focus_started_at = perf_counter()
                 try:
-                    # The first DOFUS client needs no switch-settle if it
-                    # is already the physical foreground window. The focus
-                    # helper still revalidates the HWND before sending chat.
-                    settle_ms = (
-                        0 if index == 0 and foreground_window() == target_hwnd
-                        else timings.travel_focus_settle_ms
-                    )
+                    # Native helper skips only a no-op foreground settle;
+                    # it must keep the configured delay when it actually
+                    # changes the focused DOFUS client.
                     activated = activate_window(
                         target_hwnd,
-                        settle_ms,
+                        timings.travel_focus_settle_ms,
                     timings.activate_attempts,
                     timings.activate_retry_ms,
                     self.runtime.logger,
                     "Auto zaap",
+                    skip_settle_if_active=(index == 0),
                     should_stop=lambda client=client, hwnd=target_hwnd: (
                         self.runtime.macro_lock.should_stop()
                         or self.runtime.settings is not settings_at_start
