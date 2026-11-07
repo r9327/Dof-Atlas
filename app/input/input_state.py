@@ -25,10 +25,6 @@ class InputState:
         # per thread so a stale worker cannot decrement a NEW worker's block.
         # All canonical macro senders acquire/release on their worker thread.
         self._mouse_block_epoch = 0
-        # Fallback for a swallowed DOWN/wheel whose normal collision report
-        # raises. The tuple atomically binds the fallback Event to one epoch;
-        # a delayed old hook can never cancel a replacement worker.
-        self._mouse_block_unconfirmed = (0, threading.Event())
         self._mouse_block_owners = threading.local()
 
     def set_key(self, vk_code: int, pressed: bool) -> None:
@@ -67,16 +63,12 @@ class InputState:
                 # without Stop. A delayed native-hook probe must not cancel
                 # the next worker simply because both ran between Stops.
                 self._mouse_block_epoch += 1
-                self._mouse_block_unconfirmed = (
-                    self._mouse_block_epoch, threading.Event(),
-                )
                 self._mouse_block_interrupted = False
                 self._mouse_block_gesture_count = 0
             owners.append(self._mouse_block_epoch)
             # The result of an earlier release must never contaminate this
             # worker's next lease after another macro was dispatched.
             self._mouse_block_owners.last_release_interrupted = False
-            self._mouse_block_owners.last_release_unconfirmed_event = None
             self._mouse_block_owners.last_release_blocked_count = 0
             self._mouse_block_count += 1
             self._mouse_block_label = str(label or "macro")
@@ -89,7 +81,6 @@ class InputState:
             # decrement. A physical DOWN can arrive after a worker's last
             # independent collision probe but before this release.
             self._mouse_block_owners.last_release_interrupted = False
-            self._mouse_block_owners.last_release_unconfirmed_event = None
             self._mouse_block_owners.last_release_blocked_count = 0
             if not owners:
                 # Never unlock a lease acquired by another worker thread.
@@ -99,19 +90,8 @@ class InputState:
                 # Stop invalidated this lease; another macro may already
                 # own a new block after the prior worker was interrupted.
                 return self._mouse_block_count
-            # Retain this epoch's Event on the worker thread. If the native
-            # hook's failed collision reporter completes just AFTER the
-            # atomic unlock, its delayed fallback is still observable before
-            # the worker publishes its final status. A new lease has a
-            # different Event and cannot be contaminated.
-            unconfirmed_epoch, unconfirmed_event = self._mouse_block_unconfirmed
-            if unconfirmed_epoch == epoch:
-                self._mouse_block_owners.last_release_unconfirmed_event = (
-                    unconfirmed_event
-                )
             self._mouse_block_owners.last_release_interrupted = (
                 self._mouse_block_interrupted
-                or unconfirmed_epoch == epoch and unconfirmed_event.is_set()
             )
             self._mouse_block_owners.last_release_blocked_count = (
                 self._mouse_block_gesture_count
@@ -129,13 +109,9 @@ class InputState:
         Snapshot set atomically by end_mouse_block; no cross-worker status
         contamination and no replay promise. Only read after the release.
         """
-        captured = bool(getattr(
+        return bool(getattr(
             self._mouse_block_owners, "last_release_interrupted", False,
         ))
-        late_event = getattr(
-            self._mouse_block_owners, "last_release_unconfirmed_event", None,
-        )
-        return captured or bool(late_event is not None and late_event.is_set())
 
     def last_release_blocked_count(self) -> int:
         """Number of intercepted physical gestures in this worker's lease.
@@ -151,9 +127,6 @@ class InputState:
         with self._lock:
             # The next worker's lease belongs to a distinct generation.
             self._mouse_block_epoch += 1
-            self._mouse_block_unconfirmed = (
-                self._mouse_block_epoch, threading.Event(),
-            )
             self._mouse_block_count = 0
             self._mouse_block_label = ""
             self._mouse_block_interrupted = False
@@ -184,24 +157,9 @@ class InputState:
             self._mouse_block_gesture_count += 1
             return True
 
-    def note_unconfirmed_physical_gesture(self, *, expected_epoch: int) -> None:
-        """Fail closed if normal collision reporting raises in the native hook.
-
-        No shared state lock: the original reporting failure could itself
-        involve that lock. A stale epoch can set only its old Event, never
-        the Event of a newly admitted pointer lease after Stop/restart.
-        """
-        epoch, interrupted = self._mouse_block_unconfirmed
-        if type(expected_epoch) is int and epoch == expected_epoch:
-            interrupted.set()
-
     def mouse_block_interrupted(self) -> bool:
         with self._lock:
-            epoch, unconfirmed = self._mouse_block_unconfirmed
-            return self._mouse_block_count > 0 and (
-                self._mouse_block_interrupted
-                or epoch == self._mouse_block_epoch and unconfirmed.is_set()
-            )
+            return self._mouse_block_count > 0 and self._mouse_block_interrupted
 
     def is_mouse_blocked(self) -> bool:
         with self._lock:

@@ -399,16 +399,6 @@ class MouseHook:
                             )
                         except Exception:
                             claimed = None
-                            # A swallowed physical gesture must ALSO cancel
-                            # this worker even if its normal report failed.
-                            # The epoch-bound fallback cannot cancel a newer
-                            # lease after Stop/restart and never replays input.
-                            try:
-                                self.input_state.note_unconfirmed_physical_gesture(
-                                    expected_epoch=lease_epoch,
-                                )
-                            except Exception:
-                                pass
                             # If the pointer status is now unverifiable,
                             # fail closed to avoid a DOWN landing in the
                             # previously activated Unity target.
