@@ -281,7 +281,7 @@ class OrganizerPointerLeaseEpochTests(unittest.TestCase):
         self.assertEqual(state.end_mouse_block(), 0)
 
 
-    def test_native_hook_handoff_interrupts_new_lease_on_swallowed_down(self):
+    def test_native_hook_handoff_does_not_cancel_new_lease(self):
         import ctypes
         from types import SimpleNamespace
         from unittest.mock import patch
@@ -317,13 +317,15 @@ class OrganizerPointerLeaseEpochTests(unittest.TestCase):
                 ):
                     ptr = ctypes.addressof(event)
                     self.assertEqual(hook._mouse_proc(0, WM_LBUTTONDOWN, ptr), 1)
-                    self.assertTrue(state.mouse_block_interrupted())
+                    self.assertFalse(state.mouse_block_interrupted())
                     self.assertEqual(hook._mouse_proc(0, WM_LBUTTONUP, ptr), 1)
+                # A stale hook event cannot interrupt an unrelated fresh lease.
+                # The intercepted source gesture remains a known MIRR-007 limit.
                 native.assert_not_called()
                 self.assertFalse(hook._consumed_releases)
                 self.assertEqual(state.end_mouse_block(), 0)
-                self.assertTrue(state.last_release_interrupted())
-                self.assertEqual(state.last_release_blocked_count(), 1)
+                self.assertFalse(state.last_release_interrupted())
+                self.assertEqual(state.last_release_blocked_count(), 0)
 
     def test_native_hook_handoff_keeps_click_if_old_lease_ended(self):
         import ctypes
