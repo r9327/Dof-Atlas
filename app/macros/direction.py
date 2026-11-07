@@ -1,9 +1,10 @@
 from __future__ import annotations
 
 from typing import TYPE_CHECKING
+from time import perf_counter
 
 from app.macros.input_tools import _vk, key_up, press_key
-from app.macros.mirror_plan import is_dofus_unity_process
+from app.macros.mirror_plan import is_dofus_unity_process, mirror_latency_percentiles_ms
 from app.windows.focus import activate_window
 from app.windows.unity_windows import foreground_window, is_unity_window
 
@@ -142,6 +143,9 @@ class DirectionMacro:
             )
 
         sent = 0
+        worker_started_at = perf_counter()
+        focus_samples_ms: list[float] = []
+        key_samples_ms: list[float] = []
         try:
             targets = self.runtime.switch_character.ordered_clients_from_source(source)
             # Keep a fixed HWND for each physical direction gesture. A mutable
@@ -195,7 +199,9 @@ class DirectionMacro:
                     0 if index == 0 and target_hwnd == source
                     else timings.click_focus_settle_ms
                 )
-                if activate_window(
+                focus_started_at = perf_counter()
+                try:
+                    activated = activate_window(
                     target_hwnd,
                     settle_ms,
                     timings.activate_attempts,
@@ -208,7 +214,12 @@ class DirectionMacro:
                         or not frozen_roster_intact()
                         or dispatch_context_changed()
                     ),
-                ):
+                    )
+                finally:
+                    focus_samples_ms.append(
+                        max(0.0, (perf_counter() - focus_started_at) * 1000.0)
+                    )
+                if activated:
                     # Validate native identity BEFORE the last focus check:
                     # a process probe may itself yield to a foreign window.
                     if (self.runtime.settings is not settings_at_start
@@ -233,6 +244,7 @@ class DirectionMacro:
                         )
                         return
                     last_activated_hwnd = int(target_hwnd)
+                    key_started_at = perf_counter()
                     try:
                         press_key(
                             key_name, timings.movement_key_hold_ms,
@@ -253,6 +265,10 @@ class DirectionMacro:
                             target_hwnd,
                         )
                         return
+                    finally:
+                        key_samples_ms.append(
+                            max(0.0, (perf_counter() - key_started_at) * 1000.0)
+                        )
                     # Count an input that completed before Stop was observed.
                     sent += 1
                     if not frozen_roster_intact():
@@ -345,6 +361,15 @@ class DirectionMacro:
             self.runtime.logger.info(
                 "Switch deplacement %s: envoyes=%s/%s",
                 state, sent, len(targets),
+            )
+            self.runtime.logger.info(
+                "Switch deplacement latences: focus_activation_ms=%s "
+                "key_hold_ms=%s worker_total_ms=%.2f cibles=%s "
+                "(emission, pas rendu Unity)",
+                mirror_latency_percentiles_ms(focus_samples_ms) or "NOT_MEASURED",
+                mirror_latency_percentiles_ms(key_samples_ms) or "NOT_MEASURED",
+                max(0.0, (perf_counter() - worker_started_at) * 1000.0),
+                len(targets),
             )
 
     def release_virtual_inputs(self) -> bool:

@@ -6149,5 +6149,81 @@ class OrganizerDetachedProfileTests(unittest.TestCase):
 
 
 
+    def test_direction_measures_focus_and_key_hold_for_2_4_6_8(self):
+        for count in (2, 4, 6, 8):
+            with self.subTest(count=count):
+                runtime = _runtime()
+                handles = tuple(range(101, 101 + count))
+                runtime.settings.client_by_handle.return_value = object()
+                runtime.switch_character.ordered_clients_from_source.return_value = [
+                    SimpleNamespace(handle=h) for h in handles
+                ]
+                active = [handles[0]]
+                def activate(hwnd, *_args, **_kwargs):
+                    active[0] = hwnd
+                    return True
+                with (
+                    patch("app.macros.direction.foreground_window",
+                          side_effect=lambda: active[0]),
+                    patch("app.macros.direction.is_unity_window", return_value=True),
+                    patch("app.macros.direction.is_dofus_unity_process", return_value=True),
+                    patch("app.macros.direction.activate_window", side_effect=activate),
+                    patch("app.macros.direction.press_key") as key,
+                ):
+                    DirectionMacro(runtime)._run("HOME")
+                self.assertEqual(key.call_count, count)
+                calls = [
+                    call.args for call in runtime.logger.info.call_args_list
+                    if call.args and "Switch deplacement latences:" in str(call.args[0])
+                ]
+                self.assertEqual(len(calls), 1)
+                self.assertEqual(calls[0][1]["n"], count)
+                self.assertEqual(calls[0][2]["n"], count)
+                self.assertGreaterEqual(calls[0][3], 0.0)
+                self.assertEqual(calls[0][4], count)
+                for measures in (calls[0][1], calls[0][2]):
+                    self.assertIn("p50", measures)
+                    self.assertIn("p95", measures)
+                    self.assertIn("p99", measures)
+                    self.assertLessEqual(measures["p50"], measures["p95"])
+                    self.assertLessEqual(measures["p95"], measures["p99"])
+                self.assertIn("pas rendu Unity", calls[0][0])
+
+    def test_direction_partial_stop_logs_only_emitted_key_samples(self):
+        runtime = _runtime()
+        handles = (101, 202, 303, 404)
+        runtime.settings.client_by_handle.return_value = object()
+        runtime.switch_character.ordered_clients_from_source.return_value = [
+            SimpleNamespace(handle=h) for h in handles
+        ]
+        active = [101]
+        stopped = [False]
+        runtime.macro_lock.should_stop.side_effect = lambda: stopped[0]
+        def activate(hwnd, *_args, **_kwargs):
+            active[0] = hwnd
+            return True
+        def send(*_args, **_kwargs):
+            stopped[0] = True
+        with (
+            patch("app.macros.direction.foreground_window",
+                  side_effect=lambda: active[0]),
+            patch("app.macros.direction.is_unity_window", return_value=True),
+            patch("app.macros.direction.is_dofus_unity_process", return_value=True),
+            patch("app.macros.direction.activate_window", side_effect=activate),
+            patch("app.macros.direction.press_key", side_effect=send) as key,
+        ):
+            DirectionMacro(runtime)._run("HOME")
+        key.assert_called_once()
+        calls = [
+            call.args for call in runtime.logger.info.call_args_list
+            if call.args and "Switch deplacement latences:" in str(call.args[0])
+        ]
+        self.assertEqual(len(calls), 1)
+        self.assertEqual(calls[0][1]["n"], 1)
+        self.assertEqual(calls[0][2]["n"], 1)
+        self.assertEqual(calls[0][4], 4)
+
+
+
 if __name__ == "__main__":
     unittest.main()
