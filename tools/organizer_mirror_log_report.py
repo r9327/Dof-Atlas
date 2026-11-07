@@ -83,6 +83,12 @@ STOP_COUNTERS = re.compile(
 ACTION_COLLISIONS = re.compile(
     r"\bMiroir (clic|molette) collisions_physiques=(\d+) cibles=(\d+)"
 )
+# Click workers log their terminal outcome even if the UI status callback is
+# not mirrored to the diagnostic file. Count this only as a fallback: some
+# hosts also log the UI message, and one click must not count twice.
+CLICK_WORKER_STATUS = re.compile(
+    r"\bMiroir (terminé|partiel|interrompu): envoyés=(\d+)/(\d+)\b"
+)
 
 
 def _percentiles(values: list[float]) -> dict[str, float | int] | None:
@@ -104,6 +110,7 @@ def summarize(lines: Iterable[str], accounts: int) -> dict:
         raise ValueError("accounts must be one of 1, 2, 4, 6, 8")
     samples = {key: [] for key in METRIC_PATTERNS}
     statuses = {"complete": 0, "partial": 0, "interrupted": 0}
+    logged_click_statuses = {"complete": 0, "partial": 0, "interrupted": 0}
     losses = {"clicks": 0, "wheel_ticks": 0}
     per_action_losses = {"click": 0, "wheel": 0}
     previous = (0, 0)
@@ -128,6 +135,14 @@ def summarize(lines: Iterable[str], accounts: int) -> dict:
             previous = counts
             if STOP_COUNTERS.search(line):
                 previous = (0, 0)
+        worker_status = CLICK_WORKER_STATUS.search(line)
+        if worker_status:
+            if int(worker_status[3]) != accounts:
+                mismatched_roster_lines += 1
+            else:
+                outcome = {"terminé": "complete", "partiel": "partial",
+                           "interrompu": "interrupted"}[worker_status[1]]
+                logged_click_statuses[outcome] += 1
         status = STATUS.search(line)
         if status:
             sent, total = int(status[2]), int(status[3])
@@ -163,7 +178,9 @@ def summarize(lines: Iterable[str], accounts: int) -> dict:
         "unity_render_latency": "NOT_MEASURED",
         "cpu_ram": "NOT_MEASURED",
         "metrics": {k: _percentiles(v) for k, v in samples.items()},
-        "actions": statuses,
+        # Status messages may only reach the UI. The engine log provides
+        # the same final click outcomes when those messages are absent.
+        "actions": statuses if any(statuses.values()) else logged_click_statuses,
         "observed_blocked_physical_inputs": losses,
         "blocked_input_scope": "WHOLE_LOG",
         "observed_blocked_inputs_per_mirror_action": per_action_losses,
