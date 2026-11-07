@@ -58,6 +58,45 @@ class OrganizerMirrorLogReportTests(unittest.TestCase):
             "complete": 1, "partial": 0, "interrupted": 0,
         })
 
+    def test_partial_click_ui_logging_keeps_unlogged_worker_outcomes_2_to_8(self):
+        # The UI logger may persist one result and omit later callbacks.
+        # A single UI line must not hide a failed worker from the report.
+        for accounts in (2, 4, 6, 8):
+            with self.subTest(accounts=accounts):
+                result = summarize([
+                    f"Miroir terminé: envoyés={accounts}/{accounts}",
+                    f"Miroir partiel: envoyés=1/{accounts}",
+                    f"Miroir interrompu: envoyés=0/{accounts}",
+                    f"Miroir : {accounts}/{accounts} fenêtres.",
+                ], accounts)
+                self.assertEqual(result["actions"], {
+                    "complete": 1, "partial": 1, "interrupted": 1,
+                })
+                self.assertIn(
+                    "PARTIAL_OR_INTERRUPTED_ACTIONS",
+                    compare_reports({accounts: result})
+                    ["ratio_exclusion_reasons"][str(accounts)],
+                )
+
+    def test_partial_ui_coverage_deduplicates_per_outcome(self):
+        report = summarize([
+            "Miroir terminé: envoyés=4/4",
+            "Miroir terminé: envoyés=4/4",
+            "Miroir terminé: envoyés=4/4",
+            "Miroir partiel: envoyés=1/4",
+            "Miroir partiel: envoyés=2/4",
+            "Miroir interrompu: envoyés=0/4",
+            "Miroir : 4/4 fenêtres.",
+            "Miroir incomplet : 1/4 fenêtres.",
+            "Miroir interrompu : 0/4 fenêtres.",
+            "Miroir Clavier : 4/4 fenêtres.",
+            "Miroir Molette incomplet : 2/4 fenêtres.",
+        ], 4)
+        self.assertEqual(report["actions"], {
+            "complete": 4, "partial": 3, "interrupted": 1,
+        })
+        self.assertEqual(report["roster_mismatch_lines"], 0)
+
     def test_real_sender_log_families_are_kept_separate_2_to_8(self):
         for count in (2, 4, 6, 8):
             with self.subTest(count=count):

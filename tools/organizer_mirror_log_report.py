@@ -112,7 +112,9 @@ def summarize(lines: Iterable[str], accounts: int) -> dict:
     samples = {key: [] for key in METRIC_PATTERNS}
     statuses = {"complete": 0, "partial": 0, "interrupted": 0}
     logged_click_statuses = {"complete": 0, "partial": 0, "interrupted": 0}
-    ui_click_status_seen = False
+    # Per-outcome reconciliation: UI logging can be partial even when
+    # every click worker wrote its terminal result.
+    ui_click_statuses = {"complete": 0, "partial": 0, "interrupted": 0}
     losses = {"clicks": 0, "wheel_ticks": 0}
     per_action_losses = {"click": 0, "wheel": 0}
     previous = (0, 0)
@@ -153,15 +155,16 @@ def summarize(lines: Iterable[str], accounts: int) -> dict:
             else:
                 # A click UI result supersedes its matching engine result,
                 # while key/wheel status messages remain separate actions.
-                if status["kind"] is None:
-                    ui_click_status_seen = True
                 if status["state"] == "interrompu":
-                    statuses["interrupted"] += 1
+                    outcome = "interrupted"
                 elif (status["state"] == "incomplet" or sent != total
                       or "profil modifié après envoi" in line):
-                    statuses["partial"] += 1
+                    outcome = "partial"
                 else:
-                    statuses["complete"] += 1
+                    outcome = "complete"
+                statuses[outcome] += 1
+                if status["kind"] is None:
+                    ui_click_statuses[outcome] += 1
                 if "profil modifié après envoi" in line:
                     profile_changed_after_send += 1
                 if "geste physique non rejoué" in line:
@@ -186,8 +189,11 @@ def summarize(lines: Iterable[str], accounts: int) -> dict:
         # Status messages may only reach the UI. The engine log provides
         # the same final click outcomes when those messages are absent.
         "actions": {
-            state: statuses[state] + (0 if ui_click_status_seen
-                                      else logged_click_statuses[state])
+            # Keep worker-only results even if a different click had a UI
+            # status, but never count both logs for the same outcome.
+            state: statuses[state] + max(
+                0, logged_click_statuses[state] - ui_click_statuses[state],
+            )
             for state in statuses
         },
         "observed_blocked_physical_inputs": losses,
