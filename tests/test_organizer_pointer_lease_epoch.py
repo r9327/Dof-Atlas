@@ -281,5 +281,87 @@ class OrganizerPointerLeaseEpochTests(unittest.TestCase):
         self.assertEqual(state.end_mouse_block(), 0)
 
 
+    def test_native_hook_handoff_interrupts_new_lease_on_swallowed_down(self):
+        import ctypes
+        from types import SimpleNamespace
+        from unittest.mock import patch
+        from app.input.mouse_hooks import (
+            MouseHook, MSLLHOOKSTRUCT, WM_LBUTTONDOWN, WM_LBUTTONUP,
+        )
+
+        for accounts in (2, 4, 6, 8):
+            with self.subTest(accounts=accounts):
+                state = InputState()
+                state.begin_mouse_block("ancien")
+                old_epoch = state.mouse_block_epoch_if_active()
+                original_note = state.note_blocked_physical_gesture
+
+                def switch_lease(*, expected_epoch=None):
+                    if expected_epoch == old_epoch:
+                        self.assertEqual(state.end_mouse_block(), 0)
+                        self.assertEqual(state.begin_mouse_block("nouveau"), 1)
+                    return original_note(expected_epoch=expected_epoch)
+
+                hook = MouseHook(state, Mock(), Mock(), Mock(return_value=False))
+                event = MSLLHOOKSTRUCT()
+                event.pt.x, event.pt.y = 20, 25
+                native = Mock(return_value=37)
+                with (
+                    patch.object(state, "note_blocked_physical_gesture",
+                                 side_effect=switch_lease),
+                    patch.object(
+                        ctypes, "windll",
+                        SimpleNamespace(user32=SimpleNamespace(CallNextHookEx=native)),
+                        create=True,
+                    ),
+                ):
+                    ptr = ctypes.addressof(event)
+                    self.assertEqual(hook._mouse_proc(0, WM_LBUTTONDOWN, ptr), 1)
+                    self.assertTrue(state.mouse_block_interrupted())
+                    self.assertEqual(hook._mouse_proc(0, WM_LBUTTONUP, ptr), 1)
+                native.assert_not_called()
+                self.assertFalse(hook._consumed_releases)
+                self.assertEqual(state.end_mouse_block(), 0)
+                self.assertTrue(state.last_release_interrupted())
+                self.assertEqual(state.last_release_blocked_count(), 1)
+
+    def test_native_hook_handoff_keeps_click_if_old_lease_ended(self):
+        import ctypes
+        from types import SimpleNamespace
+        from unittest.mock import patch
+        from app.input.mouse_hooks import (
+            MouseHook, MSLLHOOKSTRUCT, WM_LBUTTONDOWN, WM_LBUTTONUP,
+        )
+
+        state = InputState()
+        state.begin_mouse_block("ancien")
+        old_epoch = state.mouse_block_epoch_if_active()
+        original_note = state.note_blocked_physical_gesture
+
+        def release_before_claim(*, expected_epoch=None):
+            if expected_epoch == old_epoch:
+                self.assertEqual(state.end_mouse_block(), 0)
+            return original_note(expected_epoch=expected_epoch)
+
+        hook = MouseHook(state, Mock(), Mock(), Mock(return_value=False))
+        event = MSLLHOOKSTRUCT()
+        native = Mock(return_value=37)
+        with (
+            patch.object(state, "note_blocked_physical_gesture",
+                         side_effect=release_before_claim),
+            patch.object(
+                ctypes, "windll",
+                SimpleNamespace(user32=SimpleNamespace(CallNextHookEx=native)),
+                create=True,
+            ),
+        ):
+            ptr = ctypes.addressof(event)
+            self.assertEqual(hook._mouse_proc(0, WM_LBUTTONDOWN, ptr), 37)
+            self.assertEqual(hook._mouse_proc(0, WM_LBUTTONUP, ptr), 37)
+        self.assertFalse(hook._consumed_releases)
+        self.assertFalse(state.is_mouse_blocked())
+        self.assertEqual(native.call_count, 2)
+
+
 if __name__ == "__main__":
     unittest.main()
