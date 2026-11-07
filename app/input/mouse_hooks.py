@@ -473,6 +473,21 @@ class MouseHook:
                             pass
                     return 1
 
+                # A fresh physical DOWN with the pointer now free starts a
+                # new press. Any old swallowed DOWN of this SAME button that
+                # never received UP is obsolete: retaining its reservation
+                # would eat the new native UP and leave a real press stuck.
+                # Other buttons (including X1/X2) keep their own ownership.
+                if not atlas_synthetic:
+                    paired_up = BLOCKED_DOWN_TO_UP.get(w_param)
+                    if paired_up is not None:
+                        token = _physical_release_token(
+                            paired_up, int(event.mouseData),
+                        )
+                        if token in self._consumed_releases:
+                            self._consumed_releases.discard(token)
+                            self._consumed_release_duplicates.pop(token, None)
+
                 if w_param in (WM_MOUSEWHEEL, WM_MOUSEHWHEEL):
                     # Win32 marks injected mouse events explicitly. A time
                     # window after an earlier SendInput is not evidence that
