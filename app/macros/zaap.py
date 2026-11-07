@@ -46,6 +46,8 @@ class ZaapMacro:
             self.runtime.logger.info("Auto zaap refuse: commande /zaap invalide.")
             return False
         profile_at_dispatch = self.runtime.settings
+        if profile_at_dispatch is None:
+            return False
         dispatch_context = (
             profile_at_dispatch.primary_handle, profile_at_dispatch.macro_mode,
         )

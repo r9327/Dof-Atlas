@@ -19,6 +19,8 @@ class DirectionMacro:
         self, key_name: str, *, expected_profile: object | None = None,
     ) -> bool:
         profile_at_dispatch = self.runtime.settings
+        if profile_at_dispatch is None:
+            return False
         if (expected_profile is not None
                 and profile_at_dispatch is not expected_profile):
             self.runtime.logger.info(

@@ -20,6 +20,8 @@ class SwitchCharacterMacro:
         expected_context: tuple[object, object] | None = None,
     ) -> bool:
         settings = self.runtime.settings
+        if settings is None:
+            return False
         favorite_at_dispatch = settings.primary_handle
         mode_at_dispatch = settings.macro_mode
         if (expected_context is not None
@@ -174,6 +176,8 @@ class SwitchCharacterMacro:
         if self.runtime.macro_lock.should_stop():
             return False
         settings = self.runtime.settings
+        if settings is None:
+            return False
         favorite_at_dispatch = settings.primary_handle
         mode_at_dispatch = settings.macro_mode
 
@@ -406,6 +410,8 @@ class SwitchCharacterMacro:
 
     def restore_preferred_client(self, action_label: str) -> None:
         settings = self.runtime.settings
+        if settings is None:
+            return
         favorite_at_dispatch = settings.primary_handle
         mode_at_dispatch = settings.macro_mode
 

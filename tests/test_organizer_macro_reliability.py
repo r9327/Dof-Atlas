@@ -5749,5 +5749,24 @@ class OrganizerMacroReliabilityTests(unittest.TestCase):
 
 
 
+
+class OrganizerDetachedProfileTests(unittest.TestCase):
+    def test_macro_entrypoints_refuse_profile_detached_during_reload(self):
+        for name, run in (
+            ("Zaap", lambda runtime: ZaapMacro(runtime).run_async("/zaap 10,20")),
+            ("Auto-groupe", lambda runtime: AutoGroupMacro(runtime).run_async([
+                {"name": "Personnage"},
+            ])),
+            ("Direction", lambda runtime: DirectionMacro(runtime).run_async("HOME")),
+            ("Personnage", lambda runtime: SwitchCharacterMacro(runtime).activate_by_index(1)),
+            ("Personnage suivant", lambda runtime: SwitchCharacterMacro(runtime).activate_next()),
+            ("Restauration favori", lambda runtime: SwitchCharacterMacro(runtime).restore_preferred_client("Test")),
+        ):
+            with self.subTest(macro=name):
+                runtime = _runtime()
+                runtime.settings = None
+                self.assertFalse(run(runtime))
+                runtime._spawn_macro.assert_not_called()
+
 if __name__ == "__main__":
     unittest.main()

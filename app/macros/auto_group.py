@@ -60,6 +60,8 @@ class AutoGroupMacro:
             self.runtime.logger.info("Auto groupe non lancé : aucune session candidate.")
             return False
         profile_at_dispatch = self.runtime.settings
+        if profile_at_dispatch is None:
+            return False
         roster_at_dispatch = _client_handle_snapshot(profile_at_dispatch)
         if roster_at_dispatch is not None and (
                 not 1 <= len(roster_at_dispatch) <= 8
