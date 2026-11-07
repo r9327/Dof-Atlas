@@ -233,7 +233,18 @@ class DirectionMacro:
                         )
                         return
                     last_activated_hwnd = int(target_hwnd)
-                    press_key(key_name, timings.movement_key_hold_ms)
+                    try:
+                        press_key(key_name, timings.movement_key_hold_ms)
+                    except OSError:
+                        # SendInput refused the movement key or its UP.
+                        # Do not fan out to more clients or restore focus
+                        # from a partially completed native input.
+                        focus_lost = True
+                        self.runtime.logger.exception(
+                            "Switch deplacement interrompu: émission clavier impossible hwnd=%s",
+                            target_hwnd,
+                        )
+                        return
                     # Count an input that completed before Stop was observed.
                     sent += 1
                     if not frozen_roster_intact():

@@ -6026,6 +6026,49 @@ class OrganizerDetachedProfileTests(unittest.TestCase):
                     )
 
 
+    def test_direction_native_sendinput_refusal_stops_2_4_6_8(self):
+        for count in (2, 4, 6, 8):
+            for failure_index in (0, count - 1):
+                with self.subTest(count=count, failure_index=failure_index):
+                    runtime = _runtime()
+                    runtime.settings.client_by_handle.return_value = object()
+                    handles = tuple(range(101, 101 + count))
+                    runtime.switch_character.ordered_clients_from_source.return_value = [
+                        SimpleNamespace(handle=h) for h in handles
+                    ]
+                    active = [handles[0]]
+                    called = []
+                    def focus(hwnd, *_args, **_kwargs):
+                        active[0] = hwnd
+                        return True
+                    def press(_key, _hold):
+                        called.append(active[0])
+                        if len(called) - 1 == failure_index:
+                            raise OSError("SendInput refused")
+                    with (
+                        patch("app.macros.direction.foreground_window",
+                              side_effect=lambda: active[0]),
+                        patch("app.macros.direction.is_unity_window",
+                              return_value=True),
+                        patch("app.macros.direction.is_dofus_unity_process",
+                              return_value=True),
+                        patch("app.macros.direction.activate_window",
+                              side_effect=focus),
+                        patch("app.macros.direction.press_key", side_effect=press),
+                    ):
+                        DirectionMacro(runtime)._run("HOME")
+                    self.assertEqual(called, list(handles[:failure_index + 1]))
+                    runtime.switch_character.restore_preferred_client.assert_not_called()
+                    runtime.logger.info.assert_any_call(
+                        "Switch deplacement %s: envoyes=%s/%s",
+                        "interrompu", failure_index, count,
+                    )
+                    runtime.logger.exception.assert_any_call(
+                        "Switch deplacement interrompu: émission clavier impossible hwnd=%s",
+                        handles[failure_index],
+                    )
+
+
 
 if __name__ == "__main__":
     unittest.main()
