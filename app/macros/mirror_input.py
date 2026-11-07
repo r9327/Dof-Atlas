@@ -143,6 +143,13 @@ class MirrorInputMacro:
         dispatch_at: float | None = None,
     ) -> None:
         runtime = self.runtime
+
+        def note_preflight_abort() -> None:
+            # This worker accepted a physical key/wheel but never emitted it.
+            # The UI status callback need not be persisted in the log file.
+            runtime.logger.info(
+                "Miroir %s: refus_avant_envoi=1 cibles=%s", kind, len(handles),
+            )
         # A queued callback belongs to the profile that accepted the physical
         # gesture. Identical HWNDs after a reload are still a new generation.
         # Reject BEFORE cursor reads, process probes or focus changes.
@@ -155,6 +162,7 @@ class MirrorInputMacro:
             runtime._emit_status(
                 "Miroir non diffusé : profil Organizer modifié."
             )
+            note_preflight_abort()
             return
         # Dispatch-to-worker gaps can mutate the same in-memory Organizer
         # profile. Refuse the old key/wheel before even reading the cursor,
@@ -164,10 +172,12 @@ class MirrorInputMacro:
                 "Miroir %s annulé: favori ou roster modifié avant worker.", kind,
             )
             runtime._emit_status("Miroir non diffusé : profil Organizer modifié.")
+            note_preflight_abort()
             return
         if runtime.macro_lock.should_stop():
             runtime.logger.info("Miroir %s annulé: Stop avant worker.", kind)
             runtime._emit_status("Miroir non diffusé : Stop urgence.")
+            note_preflight_abort()
             return
         # A profile reload can detach timing configuration after the
         # gesture was admitted. Never let an uncaught attribute error
@@ -178,6 +188,7 @@ class MirrorInputMacro:
                 "Miroir %s annulé: paramètres Organizer indisponibles.", kind,
             )
             runtime._emit_status("Miroir non diffusé : paramètres Organizer absents.")
+            note_preflight_abort()
             return
         # An input was physically consumed on the favorite when admitted.
         # If the user changed applications before the queued worker starts,
@@ -189,12 +200,14 @@ class MirrorInputMacro:
                         "Miroir %s annulé: source non active avant worker.", kind,
                     )
                     runtime._emit_status("Miroir non diffusé : focus source perdu.")
+                    note_preflight_abort()
                     return
             except Exception:
                 runtime.logger.exception(
                     "Miroir %s annulé: focus source illisible avant worker.", kind,
                 )
                 runtime._emit_status("Miroir non diffusé : focus source perdu.")
+                note_preflight_abort()
                 return
         start = perf_counter()
         last_emission_at: float | None = None
@@ -214,6 +227,7 @@ class MirrorInputMacro:
                 runtime._emit_status(
                     f"Miroir Molette incomplet : 0/{len(handles)} fenêtres."
                 )
+                note_preflight_abort()
                 return
         # Keyboard-only replay never moves the pointer. Blocking the real
         # mouse here discards user clicks throughout the 2–8 client fan-out.

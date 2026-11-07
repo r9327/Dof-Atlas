@@ -3641,6 +3641,27 @@ class OrganizerMirrorIntegrationTests(unittest.TestCase):
             "Miroir Molette incomplet : 1/2 fenêtres."
         )
 
+    def test_key_preflight_profile_reload_logs_non_delivered_action_2_to_8(self):
+        from app.macros.mirror_input import MirrorInputMacro
+
+        for count in (2, 4, 6, 8):
+            with self.subTest(accounts=count):
+                handles = tuple(range(101, 101 + count))
+                runtime = self._runtime(primary=101, handles=handles)
+                previous_profile = object()
+                MirrorInputMacro(runtime)._run(
+                    "key", 0x41, 101, handles,
+                    profile_at_dispatch=previous_profile,
+                )
+                runtime.logger.info.assert_any_call(
+                    "Miroir %s: refus_avant_envoi=1 cibles=%s",
+                    "key", count,
+                )
+                runtime._emit_status.assert_called_once_with(
+                    "Miroir non diffusé : profil Organizer modifié."
+                )
+                runtime.input_state.begin_mouse_block.assert_not_called()
+
     def test_mirror_wheel_cursor_snapshot_failure_reports_incomplete(self):
         from app.macros.mirror_input import MirrorInputMacro
 

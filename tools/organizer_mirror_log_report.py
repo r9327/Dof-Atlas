@@ -95,6 +95,11 @@ CLICK_WORKER_STATUS = re.compile(
 KEY_WHEEL_WORKER_STATUS = re.compile(
     r"\bMiroir (key|wheel): envoyés=(\d+)/(\d+) worker_total_ms="
 )
+# Cancellations before the worker's normal finally log have no SendInput
+# timing; count them as not delivered, never as fast successful actions.
+KEY_WHEEL_PRE_SEND_ABORT = re.compile(
+    r"\bMiroir (key|wheel): refus_avant_envoi=1 cibles=(\d+)\b"
+)
 
 
 def _percentiles(values: list[float]) -> dict[str, float | int] | None:
@@ -169,6 +174,12 @@ def summarize(lines: Iterable[str], accounts: int) -> dict:
             if total == accounts:
                 outcome = "complete" if sent == total else "partial"
                 worker_other_statuses[other_worker[1]][outcome] += 1
+        early_abort = KEY_WHEEL_PRE_SEND_ABORT.search(line)
+        if early_abort:
+            if int(early_abort[2]) != accounts:
+                mismatched_roster_lines += 1
+            else:
+                worker_other_statuses[early_abort[1]]["partial"] += 1
         status = STATUS.search(line)
         if status:
             sent, total = int(status["sent"]), int(status["total"])

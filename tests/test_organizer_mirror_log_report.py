@@ -137,6 +137,35 @@ class OrganizerMirrorLogReportTests(unittest.TestCase):
             "complete": 3, "partial": 2, "interrupted": 0,
         })
 
+    def test_key_wheel_pre_send_aborts_are_visible_without_ui(self):
+        for accounts in (2, 4, 6, 8):
+            with self.subTest(accounts=accounts):
+                report = summarize([
+                    f"Miroir key: refus_avant_envoi=1 cibles={accounts}",
+                    f"Miroir wheel: refus_avant_envoi=1 cibles={accounts}",
+                    f"Miroir wheel: refus_avant_envoi=1 "
+                    f"cibles={8 if accounts != 8 else 2}",
+                ], accounts)
+                self.assertEqual(report["actions"], {
+                    "complete": 0, "partial": 2, "interrupted": 0,
+                })
+                self.assertEqual(report["roster_mismatch_lines"], 1)
+                self.assertIn(
+                    "PARTIAL_OR_INTERRUPTED_ACTIONS",
+                    compare_reports({accounts: report})
+                    ["ratio_exclusion_reasons"][str(accounts)],
+                )
+
+    def test_wheel_pre_send_abort_and_ui_callback_are_one_action(self):
+        report = summarize([
+            "Miroir wheel: refus_avant_envoi=1 cibles=4",
+            "Miroir Molette incomplet : 0/4 fenêtres.",
+        ], 4)
+        self.assertEqual(report["actions"], {
+            "complete": 0, "partial": 1, "interrupted": 0,
+        })
+        self.assertIsNone(report["metrics"]["wheel_worker_ms"])
+
     def test_real_sender_log_families_are_kept_separate_2_to_8(self):
         for count in (2, 4, 6, 8):
             with self.subTest(count=count):
