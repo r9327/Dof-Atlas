@@ -3831,5 +3831,58 @@ class OrganizerSendInputTests(unittest.TestCase):
                 self.assertIsNone(hook._hook)
                 user32.UnhookWindowsHookEx.assert_not_called()
 
+
+    def test_win32_hooks_unexpected_setup_and_pump_failures_wake_start(self):
+        from app.input.input_state import InputState
+        from app.input.hotkeys import HotkeyRegistry
+        from app.input.mouse_hooks import MouseHook, WM_LBUTTONUP
+
+        for backend in ("keyboard", "mouse"):
+            for phase in ("registration", "message_pump"):
+                with self.subTest(backend=backend, phase=phase):
+                    logger = Mock()
+                    state = InputState()
+                    hook = (
+                        MouseHook(state, Mock(), logger, Mock())
+                        if backend == "mouse"
+                        else HotkeyRegistry(state, logger, Mock())
+                    )
+                    if backend == "mouse":
+                        hook._reserve_consumed_release(WM_LBUTTONUP)
+                    user32 = Mock()
+                    user32.SetWindowsHookExW.return_value = 707
+                    user32.GetMessageW.return_value = 0
+                    if phase == "registration":
+                        user32.SetWindowsHookExW.side_effect = OSError("fixture install error")
+                    else:
+                        user32.GetMessageW.side_effect = OSError("fixture pump error")
+                    kernel32 = Mock()
+                    kernel32.GetModuleHandleW.return_value = 202
+                    with (
+                        patch.object(
+                            ctypes, "windll",
+                            SimpleNamespace(user32=user32, kernel32=kernel32),
+                            create=True,
+                        ),
+                        patch(
+                            "app.input." + (
+                                "mouse_hooks" if backend == "mouse"
+                                else "hotkeys"
+                            ) + "._configure_hook_api",
+                        ),
+                    ):
+                        hook._run_hook()
+                    self.assertTrue(hook._startup_event.is_set())
+                    self.assertFalse(hook._start_ok)
+                    self.assertIsNone(hook._hook)
+                    self.assertEqual(hook._hook_thread_id, 0)
+                    logger.exception.assert_called_once()
+                    if phase == "registration":
+                        user32.UnhookWindowsHookEx.assert_not_called()
+                    else:
+                        user32.UnhookWindowsHookEx.assert_called_once_with(707)
+                    if backend == "mouse":
+                        self.assertFalse(hook._consumed_releases)
+
 if __name__ == "__main__":
     unittest.main()

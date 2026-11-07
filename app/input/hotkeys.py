@@ -528,7 +528,13 @@ class HotkeyRegistry:
                     break
                 user32.TranslateMessage(ctypes.byref(msg))
                 user32.DispatchMessageW(ctypes.byref(msg))
+        except Exception:
+            # Native setup/message-pump failure must not leave start()
+            # waiting for the whole hook timeout without a ready signal.
+            self.logger.exception("Hook clavier: erreur inattendue du thread Win32.")
         finally:
+            # Also signal failures before SetWindowsHookExW returns.
+            self._startup_event.set()
             # When the Win32 loop dies without a requested Stop, teardown
             # the native hook ourselves: otherwise this thread may disappear
             # while the global low-level hook still references its callback.
