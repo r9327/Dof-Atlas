@@ -100,6 +100,9 @@ class DevelopmentLotTests(unittest.TestCase):
         self.assertTrue(report["global_full_required"])
         self.assertFalse(report["phase_certified"])
         owned.unlink()
+        # An absent test must not itself be treated as a changed test file.
+        # The source-only lot still requires a concrete owner and REVIEWs.
+        self.paths = ["app/core/macro_lock.py", ".ai/context_index.json"]
         missing = self.plan()
         self.assertEqual(missing["status"], "REVIEW")
         self.assertEqual(missing["uncovered_paths"], ["app/core/macro_lock.py"])
