@@ -428,26 +428,6 @@ class MouseHook:
                                 return ctypes.windll.user32.CallNextHookEx(
                                     self._hook, n_code, w_param, l_param,
                                 )
-                    # The hook sampled an OLD pointer lease, but a NEW one
-                    # may already own the cursor. If we swallow this DOWN,
-                    # the live worker must also receive its collision signal.
-                    # Re-admit against the currently active lease, not the
-                    # stale epoch; a released lease means the click stays native.
-                    if claimed is False and current_epoch is not None:
-                        try:
-                            if not self.input_state.note_blocked_physical_gesture():
-                                return ctypes.windll.user32.CallNextHookEx(
-                                    self._hook, n_code, w_param, l_param,
-                                )
-                        except Exception:
-                            # A failed collision probe is not authorization
-                            # to forward a DOWN into a worker's Unity target.
-                            try:
-                                self.logger.exception(
-                                    "Hook souris: interruption du nouveau verrou illisible.",
-                                )
-                            except Exception:
-                                pass
                     # Once interception is decided, own the matching UP even
                     # after Stop/restart. Never emit an orphaned release.
                     if paired_up is not None:
