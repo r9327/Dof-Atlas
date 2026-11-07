@@ -325,6 +325,9 @@ class SwitchClickMacro:
         mirror_focus_samples: list[float] = []
         targets = []
         frozen_handles: tuple[int, ...] = ()
+        # Cache the immutable target signature once per gesture. Live
+        # Organizer handles are still re-read before each native operation.
+        frozen_signature: tuple[tuple[type, object], ...] = ()
         def pointer_interrupted() -> bool:
             nonlocal pointer_probe_failed
             # An unreadable pointer latch is NOT proof that a physical click
@@ -377,9 +380,7 @@ class SwitchClickMacro:
                     ) == initial_roster
                 )
                 and len(targets) == len(frozen_handles)
-                and roster_signature(targets) == tuple(
-                    (type(hwnd), hwnd) for hwnd in frozen_handles
-                )
+                and roster_signature(targets) == frozen_signature
             )
 
         try:
@@ -480,6 +481,9 @@ class SwitchClickMacro:
             target_total = len(targets)
             frozen_handles = tuple(
                 getattr(client, "handle", None) for client in targets
+            )
+            frozen_signature = tuple(
+                (type(hwnd), hwnd) for hwnd in frozen_handles
             )
             if not target_roster_intact():
                 delivery_failed = True
