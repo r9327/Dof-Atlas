@@ -116,6 +116,11 @@ def run(expected_sha: str, iterations: int) -> dict:
         "render_unity": "NOT_RUN",
         "real_dofus_clients": "NOT_RUN",
         "input_hooks_e2e": "NOT_RUN",
+        "sequential_fanout_note": (
+            "Multiple individual SendInput calls across Tk fixtures; "
+            "includes foreground switching and 20ms compositor settling "
+            "per fixture, not the production Miroir worker or Unity rendering."
+        ),
         "results": {},
         "status": "NOT_RUN",
     }
@@ -168,16 +173,24 @@ def run(expected_sha: str, iterations: int) -> dict:
         wall_start = time.perf_counter()
         for roster_size in COUNTS:
             observed = []
+            fanout_observed = []
+            fanout_attempts = 0
+            fanout_acknowledged = 0
             attempts = 0
             acknowledged = 0
             outcomes = defaultdict(int)
-            # Every participant receives identical gesture types/iterations.
-            # The 1-client case checks native input, not mirrored delivery.
+            # Group each gesture across the full roster to measure the
+            # sequential source-to-LAST-fixture cost (not just per-window
+            # SendInput/Tk acknowledgment). These are independent synthetic
+            # sends, NOT the production Miroir hook or Unity rendering.
             for _ in range(iterations):
-                for index in range(roster_size):
-                    win = windows[index]
-                    hwnd = handles[index]
-                    for gesture in GESTURES:
+                for gesture in GESTURES:
+                    fanout_attempts += 1
+                    fanout_started = time.perf_counter()
+                    fanout_ok = True
+                    for index in range(roster_size):
+                        win = windows[index]
+                        hwnd = handles[index]
                         attempts += 1
                         attempts_total += 1
                         root.update()
@@ -188,6 +201,7 @@ def run(expected_sha: str, iterations: int) -> dict:
                         time.sleep(0.02)  # desktop compositor after foreground change
                         if int(user32.GetForegroundWindow() or 0) != hwnd:
                             outcomes["focus_refused"] += 1
+                            fanout_ok = False
                             if len(failures) < MAX_FAILURES:
                                 failures.append({
                                     "clients": roster_size, "gesture": gesture,
@@ -223,6 +237,7 @@ def run(expected_sha: str, iterations: int) -> dict:
                             sent = False
                         if not sent:
                             outcomes["send_refused"] += 1
+                            fanout_ok = False
                             if len(failures) < MAX_FAILURES:
                                 failures.append({
                                     "clients": roster_size, "gesture": gesture,
@@ -236,23 +251,35 @@ def run(expected_sha: str, iterations: int) -> dict:
                             if time.perf_counter() >= deadline:
                                 break
                             time.sleep(0.002)
-                        if counts[index]["left" if gesture == "double" else gesture] >= expected:
+                        received = counts[index]["left" if gesture == "double" else gesture]
+                        if received == expected:
                             observed.append((time.perf_counter() - started) * 1000)
                             acknowledged += 1
                             ack_total += 1
                         else:
-                            outcomes["unacknowledged"] += 1
+                            fanout_ok = False
+                            reason = "duplicate_callback" if received > expected else "unacknowledged"
+                            outcomes[reason] += 1
                             if len(failures) < MAX_FAILURES:
                                 failures.append({
                                     "clients": roster_size, "gesture": gesture,
-                                    "reason": "no_tk_callback",
+                                    "reason": reason,
                                 })
+                    if fanout_ok:
+                        fanout_acknowledged += 1
+                        fanout_observed.append(
+                            (time.perf_counter() - fanout_started) * 1000
+                        )
             report["results"][str(roster_size)] = {
                 "attempts": attempts,
                 "acknowledged": acknowledged,
                 "not_delivered": attempts - acknowledged,
                 "failure_reasons": dict(outcomes),
                 "sendinput_to_tk_ack_ms": percentiles(observed),
+                "sequential_fanout_trials": fanout_attempts,
+                "sequential_fanout_complete": fanout_acknowledged,
+                "sequential_fanout_incomplete": fanout_attempts - fanout_acknowledged,
+                "source_to_last_fixture_ack_ms": percentiles(fanout_observed),
             }
         wall_s = max(time.perf_counter() - wall_start, 0.001)
         report["total_attempts"] = attempts_total
