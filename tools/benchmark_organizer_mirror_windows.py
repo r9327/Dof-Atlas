@@ -307,9 +307,14 @@ def run(expected_sha: str, iterations: int) -> dict:
             100 * (time.process_time() - cpu_start) / wall_s, 2,
         )
         report["working_set_mb"] = working_set_mb()
+        report["all_fanouts_complete"] = all(
+            row["sequential_fanout_complete"] == row["sequential_fanout_trials"]
+            for row in report["results"].values()
+        )
         report["status"] = (
             "UNAVAILABLE_INTERACTIVE_DESKTOP" if not ack_total else
-            "PASS" if ack_total == attempts_total else "FAIL"
+            "PASS" if ack_total == attempts_total and report["all_fanouts_complete"]
+            else "FAIL"
         )
     finally:
         if original_cursor is not None:
@@ -348,7 +353,9 @@ def main() -> int:
     args.output.parent.mkdir(parents=True, exist_ok=True)
     args.output.write_text(json.dumps(result, indent=2) + "\n", encoding="utf-8")
     print(json.dumps(result, indent=2))
-    return 1 if result["status"] in ("FAIL", "NOT_RUN") else 0
+    # A Windows runner without an interactive desktop is NOT proof of
+    # success; do not turn unavailable fixtures into a green workflow.
+    return 0 if result["status"] == "PASS" else 1
 
 
 if __name__ == "__main__":
