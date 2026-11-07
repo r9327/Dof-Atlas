@@ -3741,5 +3741,95 @@ class OrganizerSendInputTests(unittest.TestCase):
             self.assertEqual(hook._mouse_proc(0, WM_RBUTTONUP, ptr), 53)
         hook.callback.assert_not_called()
 
+    def test_win32_hook_message_loop_error_unhooks_without_dispatch(self):
+        from app.input.input_state import InputState
+        from app.input.hotkeys import HotkeyRegistry
+        from app.input.mouse_hooks import MouseHook, WM_LBUTTONUP
+
+        for backend in ("keyboard", "mouse"):
+            for return_value in (-1, 0):
+                with self.subTest(backend=backend, getmessage=return_value):
+                    state = InputState()
+                    logger = Mock()
+                    if backend == "mouse":
+                        hook = MouseHook(state, Mock(), logger, Mock())
+                        hook._reserve_consumed_release(WM_LBUTTONUP)
+                    else:
+                        hook = HotkeyRegistry(state, logger, Mock())
+                    user32 = Mock()
+                    user32.SetWindowsHookExW.return_value = 707
+                    user32.GetMessageW.return_value = return_value
+                    kernel32 = Mock()
+                    kernel32.GetModuleHandleW.return_value = 202
+                    kernel32.GetLastError.return_value = 0
+                    with (
+                        patch.object(
+                            ctypes, "windll",
+                            SimpleNamespace(user32=user32, kernel32=kernel32),
+                            create=True,
+                        ),
+                        patch(
+                            "app.input." + (
+                                "mouse_hooks" if backend == "mouse"
+                                else "hotkeys"
+                            ) + "._configure_hook_api",
+                        ),
+                    ):
+                        hook._run_hook()
+                    self.assertFalse(hook._start_ok)
+                    self.assertIsNone(hook._hook)
+                    self.assertEqual(hook._hook_thread_id, 0)
+                    self.assertTrue(hook._startup_event.is_set())
+                    user32.UnhookWindowsHookEx.assert_called_once_with(707)
+                    user32.GetMessageW.assert_called_once()
+                    user32.TranslateMessage.assert_not_called()
+                    user32.DispatchMessageW.assert_not_called()
+                    if backend == "mouse":
+                        self.assertFalse(hook._consumed_releases)
+                    if return_value == -1:
+                        logger.error.assert_any_call(
+                            "Hook " + ("souris" if backend == "mouse"
+                                       else "clavier")
+                            + ": GetMessageW a échoué; arrêt de la boucle."
+                        )
+
+    def test_win32_hook_normal_stop_does_not_unhook_twice(self):
+        from app.input.input_state import InputState
+        from app.input.hotkeys import HotkeyRegistry
+        from app.input.mouse_hooks import MouseHook
+
+        for backend in ("keyboard", "mouse"):
+            with self.subTest(backend=backend):
+                hook = (
+                    MouseHook(InputState(), Mock(), Mock(), Mock())
+                    if backend == "mouse"
+                    else HotkeyRegistry(InputState(), Mock(), Mock())
+                )
+                user32 = Mock()
+                user32.SetWindowsHookExW.return_value = 707
+                def stop_from_loop(*_args):
+                    hook._stop_event.set()
+                    return 0
+                user32.GetMessageW.side_effect = stop_from_loop
+                kernel32 = Mock()
+                kernel32.GetModuleHandleW.return_value = 202
+                with (
+                    patch.object(
+                        ctypes, "windll",
+                        SimpleNamespace(user32=user32, kernel32=kernel32),
+                        create=True,
+                    ),
+                    patch(
+                        "app.input." + (
+                            "mouse_hooks" if backend == "mouse"
+                            else "hotkeys"
+                        ) + "._configure_hook_api",
+                    ),
+                ):
+                    hook._run_hook()
+                self.assertFalse(hook._start_ok)
+                self.assertIsNone(hook._hook)
+                user32.UnhookWindowsHookEx.assert_not_called()
+
 if __name__ == "__main__":
     unittest.main()

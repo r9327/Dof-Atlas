@@ -222,10 +222,31 @@ class MouseHook:
             self._startup_event.set()
             self.logger.info("Hook souris Python actif.")
             msg = ctypes.wintypes.MSG()
-            while not self._stop_event.is_set() and user32.GetMessageW(ctypes.byref(msg), None, 0, 0) != 0:
+            while not self._stop_event.is_set():
+                # GetMessageW returns -1 on failure, 0 for WM_QUIT,
+                # and a positive value for a dispatchable event.
+                result = int(user32.GetMessageW(ctypes.byref(msg), None, 0, 0))
+                if result <= 0:
+                    if result == -1:
+                        self.logger.error(
+                            "Hook souris: GetMessageW a échoué; arrêt de la boucle."
+                        )
+                    break
                 user32.TranslateMessage(ctypes.byref(msg))
                 user32.DispatchMessageW(ctypes.byref(msg))
         finally:
+            # When the Win32 loop dies without a requested Stop, teardown
+            # the native hook ourselves: otherwise this thread may disappear
+            # while the global low-level hook still references its callback.
+            if self._hook and not self._stop_event.is_set():
+                try:
+                    ctypes.windll.user32.UnhookWindowsHookEx(self._hook)
+                except Exception:
+                    self.logger.exception(
+                        "Hook souris: impossible de libérer le hook à la sortie."
+                    )
+            self._hook = None
+            self._start_ok = False
             self._consumed_releases.clear()
             self._consumed_release_duplicates.clear()
             self._native_releases.clear()
