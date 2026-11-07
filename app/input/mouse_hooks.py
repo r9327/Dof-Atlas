@@ -502,24 +502,6 @@ class MouseHook:
                                 return ctypes.windll.user32.CallNextHookEx(
                                     self._hook, n_code, w_param, l_param,
                                 )
-                            if current_epoch != lease_epoch:
-                                # A successor worker already owns the pointer.
-                                # The physical DOWN/wheel remains blocked: it
-                                # must interrupt THAT lease, not disappear as
-                                # an unreported action on the previous epoch.
-                                # One bounded retry only; another transition
-                                # is fail-closed with no stale replay.
-                                try:
-                                    self.input_state.note_blocked_physical_gesture(
-                                        expected_epoch=current_epoch,
-                                    )
-                                except Exception:
-                                    try:
-                                        self.logger.exception(
-                                            "Hook souris: interruption du nouveau bail impossible.",
-                                        )
-                                    except Exception:
-                                        pass
                     # Once interception is decided, own the matching UP even
                     # after Stop/restart. Never emit an orphaned release.
                     if paired_up is not None:
