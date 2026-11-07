@@ -164,9 +164,9 @@ def summarize(lines: Iterable[str], accounts: int) -> dict:
         other_worker = KEY_WHEEL_WORKER_STATUS.search(line)
         if other_worker:
             sent, total = int(other_worker[2]), int(other_worker[3])
-            if total != accounts:
-                mismatched_roster_lines += 1
-            else:
+            # The metric parser below already reports a foreign roster on
+            # this same worker line; never count that single line twice.
+            if total == accounts:
                 outcome = "complete" if sent == total else "partial"
                 worker_other_statuses[other_worker[1]][outcome] += 1
         status = STATUS.search(line)
