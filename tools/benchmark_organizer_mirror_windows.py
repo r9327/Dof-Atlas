@@ -38,6 +38,24 @@ def percentiles(samples: list[float]) -> dict[str, float | int] | None:
     }
 
 
+def summarize_fanout(trials: int, completed: int, samples_ms: list[float]) -> dict:
+    """Separate completed full-roster gestures from incomplete deliveries.
+
+    A per-window PASS is not enough to claim that a gesture reached the
+    last client. Latency samples exist only for entirely acknowledged fanouts.
+    """
+    if (type(trials) is not int or type(completed) is not int
+            or not 0 <= completed <= trials
+            or len(samples_ms) != completed):
+        raise ValueError("inconsistent full-roster fixture observations")
+    return {
+        "sequential_fanout_trials": trials,
+        "sequential_fanout_complete": completed,
+        "sequential_fanout_incomplete": trials - completed,
+        "source_to_last_fixture_ack_ms": percentiles(samples_ms),
+    }
+
+
 def working_set_mb() -> float | None:
     if sys.platform != "win32":
         return None
@@ -276,10 +294,9 @@ def run(expected_sha: str, iterations: int) -> dict:
                 "not_delivered": attempts - acknowledged,
                 "failure_reasons": dict(outcomes),
                 "sendinput_to_tk_ack_ms": percentiles(observed),
-                "sequential_fanout_trials": fanout_attempts,
-                "sequential_fanout_complete": fanout_acknowledged,
-                "sequential_fanout_incomplete": fanout_attempts - fanout_acknowledged,
-                "source_to_last_fixture_ack_ms": percentiles(fanout_observed),
+                **summarize_fanout(
+                    fanout_attempts, fanout_acknowledged, fanout_observed,
+                ),
             }
         wall_s = max(time.perf_counter() - wall_start, 0.001)
         report["total_attempts"] = attempts_total
