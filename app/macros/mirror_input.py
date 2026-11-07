@@ -312,6 +312,25 @@ class MirrorInputMacro:
                         or runtime.settings is not profile_at_start
                         or not self._still_current(source, handles)):
                     break
+                # A user can focus another app during the settle gap
+                # between two recipients. Without this check the next
+                # activate_window would steal focus back into DOFUS even
+                # though the previous emission was already complete.
+                if last_activated_hwnd is not None:
+                    try:
+                        if foreground_window() != last_activated_hwnd:
+                            focus_lost = True
+                            runtime.logger.warning(
+                                "Miroir %s: focus utilisateur changé entre cibles.",
+                                kind,
+                            )
+                            break
+                    except Exception:
+                        focus_lost = True
+                        runtime.logger.exception(
+                            "Miroir %s: focus illisible entre cibles.", kind,
+                        )
+                        break
                 if not is_dofus_unity_process(hwnd):
                     # A validated roster can change identity during fan-out.
                     # Never restore cursor/focus on a partial unsafe delivery.
