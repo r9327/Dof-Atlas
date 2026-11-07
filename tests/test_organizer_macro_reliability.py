@@ -6049,7 +6049,7 @@ class OrganizerDetachedProfileTests(unittest.TestCase):
                     def focus(hwnd, *_args, **_kwargs):
                         active[0] = hwnd
                         return True
-                    def press(_key, _hold):
+                    def press(_key, _hold, **_kwargs):
                         called.append(active[0])
                         if len(called) - 1 == failure_index:
                             raise OSError("SendInput refused")
@@ -6075,6 +6075,77 @@ class OrganizerDetachedProfileTests(unittest.TestCase):
                         "Switch deplacement interrompu: émission clavier impossible hwnd=%s",
                         handles[failure_index],
                     )
+
+
+
+    def test_direction_cancellable_hold_is_used_for_all_2_4_6_8(self):
+        for count in (2, 4, 6, 8):
+            with self.subTest(count=count):
+                runtime = _runtime()
+                runtime.settings.client_by_handle.return_value = object()
+                handles = tuple(range(101, 101 + count))
+                runtime.switch_character.ordered_clients_from_source.return_value = [
+                    SimpleNamespace(handle=h) for h in handles
+                ]
+                current = [handles[0]]
+                captured_stops = []
+                def activate(hwnd, *_args, **_kwargs):
+                    current[0] = hwnd
+                    return True
+                def send(key_name, hold_ms, *, should_stop):
+                    self.assertEqual(key_name, "HOME")
+                    self.assertFalse(should_stop())
+                    captured_stops.append(should_stop)
+                with (
+                    patch("app.macros.direction.foreground_window",
+                          side_effect=lambda: current[0]),
+                    patch("app.macros.direction.is_unity_window", return_value=True),
+                    patch("app.macros.direction.is_dofus_unity_process", return_value=True),
+                    patch("app.macros.direction.activate_window", side_effect=activate),
+                    patch("app.macros.direction.press_key", side_effect=send) as press,
+                ):
+                    DirectionMacro(runtime)._run("HOME")
+                self.assertEqual(press.call_count, count)
+                self.assertEqual(len(captured_stops), count)
+                runtime.logger.info.assert_any_call(
+                    "Switch deplacement %s: envoyes=%s/%s",
+                    "termine", count, count,
+                )
+
+    def test_direction_stop_during_hold_prevents_next_client_2_4_6_8(self):
+        for count in (2, 4, 6, 8):
+            with self.subTest(count=count):
+                runtime = _runtime()
+                runtime.settings.client_by_handle.return_value = object()
+                handles = tuple(range(101, 101 + count))
+                runtime.switch_character.ordered_clients_from_source.return_value = [
+                    SimpleNamespace(handle=h) for h in handles
+                ]
+                active = [handles[0]]
+                stopped = [False]
+                runtime.macro_lock.should_stop.side_effect = lambda: stopped[0]
+                def activate(hwnd, *_args, **_kwargs):
+                    active[0] = hwnd
+                    return True
+                def press(_key, _hold, *, should_stop):
+                    self.assertFalse(should_stop())
+                    stopped[0] = True
+                    self.assertTrue(should_stop())
+                with (
+                    patch("app.macros.direction.foreground_window",
+                          side_effect=lambda: active[0]),
+                    patch("app.macros.direction.is_unity_window", return_value=True),
+                    patch("app.macros.direction.is_dofus_unity_process", return_value=True),
+                    patch("app.macros.direction.activate_window", side_effect=activate),
+                    patch("app.macros.direction.press_key", side_effect=press) as send,
+                ):
+                    DirectionMacro(runtime)._run("HOME")
+                send.assert_called_once()
+                runtime.switch_character.restore_preferred_client.assert_not_called()
+                runtime.logger.info.assert_any_call(
+                    "Switch deplacement %s: envoyes=%s/%s",
+                    "interrompu", 1, count,
+                )
 
 
 

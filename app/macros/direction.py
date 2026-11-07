@@ -234,7 +234,15 @@ class DirectionMacro:
                         return
                     last_activated_hwnd = int(target_hwnd)
                     try:
-                        press_key(key_name, timings.movement_key_hold_ms)
+                        press_key(
+                            key_name, timings.movement_key_hold_ms,
+                            should_stop=lambda: (
+                                self.runtime.macro_lock.should_stop()
+                                or self.runtime.settings is not settings_at_start
+                                or not frozen_roster_intact()
+                                or dispatch_context_changed()
+                            ),
+                        )
                     except OSError:
                         # SendInput refused the movement key or its UP.
                         # Do not fan out to more clients or restore focus

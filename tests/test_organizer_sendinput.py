@@ -3399,5 +3399,60 @@ class OrganizerSendInputTests(unittest.TestCase):
         hook.callback.assert_not_called()
 
 
+    def test_direction_press_key_releases_immediately_on_stop_during_hold(self):
+        from app.macros import input_tools
+        for hold_ms in (25, 45, 150):
+            with self.subTest(hold_ms=hold_ms):
+                events = []
+                stopped = [False]
+                def stop():
+                    return stopped[0]
+                def interrupt(_duration, callback):
+                    self.assertIs(callback, stop)
+                    stopped[0] = True
+                    self.assertTrue(callback())
+                    return True
+                with (
+                    patch.object(input_tools, "_vk", return_value=0x24),
+                    patch.object(input_tools, "key_down",
+                                 side_effect=lambda code: events.append(("down", code))),
+                    patch.object(input_tools, "key_up",
+                                 side_effect=lambda code: events.append(("up", code))),
+                    patch.object(input_tools, "_sleep_ms",
+                                 side_effect=interrupt) as wait,
+                    patch.object(input_tools.time, "sleep",
+                                 side_effect=AssertionError("uncancellable hold")),
+                ):
+                    input_tools.press_key("HOME", hold_ms, should_stop=stop)
+                self.assertEqual(events, [("down", 0x24), ("up", 0x24)])
+                wait.assert_called_once_with(hold_ms, stop)
+
+    def test_direction_press_key_stopped_before_down_never_emits(self):
+        from app.macros import input_tools
+        with (
+            patch.object(input_tools, "_vk", return_value=0x24),
+            patch.object(input_tools, "key_down") as down,
+            patch.object(input_tools, "key_up") as up,
+        ):
+            input_tools.press_key("HOME", 45, should_stop=lambda: True)
+        down.assert_not_called()
+        up.assert_not_called()
+
+    def test_direction_press_key_releases_if_hold_probe_raises(self):
+        from app.macros import input_tools
+        with (
+            patch.object(input_tools, "_vk", return_value=0x24),
+            patch.object(input_tools, "key_down") as down,
+            patch.object(input_tools, "key_up") as up,
+            patch.object(input_tools, "_sleep_ms",
+                         side_effect=RuntimeError("stop check unavailable")),
+        ):
+            with self.assertRaisesRegex(RuntimeError, "stop check unavailable"):
+                input_tools.press_key("HOME", 45, should_stop=lambda: False)
+        down.assert_called_once_with(0x24)
+        up.assert_called_once_with(0x24)
+
+
+
 if __name__ == "__main__":
     unittest.main()

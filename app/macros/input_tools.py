@@ -107,14 +107,23 @@ def key_up(vk_code: int) -> None:
     _send_keyboard(vk_code, up=True)
 
 
-def press_key(key_name: str, hold_ms: int = 0) -> None:
+def press_key(
+    key_name: str, hold_ms: int = 0,
+    *, should_stop: Callable[[], bool] | None = None,
+) -> None:
     vk_code = _vk(key_name)
-    if not vk_code:
+    if not vk_code or (should_stop is not None and should_stop()):
         return
     key_down(vk_code)
     try:
         if hold_ms > 0:
-            time.sleep(hold_ms / 1000.0)
+            if should_stop is None:
+                # Preserve exact legacy timing for other one-shot callers.
+                time.sleep(hold_ms / 1000.0)
+            else:
+                # Direction holds must release early on Stop/profile change.
+                # This existing helper checks the predicate every <=10 ms.
+                _sleep_ms(hold_ms, should_stop)
     finally:
         original_error = sys.exc_info()[1]
         try:
