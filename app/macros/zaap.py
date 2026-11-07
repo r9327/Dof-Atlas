@@ -260,7 +260,8 @@ class ZaapMacro:
                 except Exception:
                     # Clipboard/keyboard failures leave delivery uncertain:
                     # keep prior emissions but never start a later target.
-                    focus_lost = True
+                    # Restore only through the existing checked cleanup;
+                    # chat failure alone does not prove the focus was stolen.
                     self.runtime.logger.exception(
                         "Auto zaap interrompu: commande chat impossible."
                     )

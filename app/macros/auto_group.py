@@ -370,7 +370,9 @@ class AutoGroupMacro:
                 except Exception:
                     # An incomplete chat send is not an invitation. Stop the
                     # fan-out, preserve the actual count and never refocus.
-                    focus_lost = True
+                    # Only a proven focus change forbids restoration.
+                    # A failed chat is reported partial; the existing
+                    # foreground check still guards the favorite restore.
                     self.runtime.logger.exception(
                         "Auto groupe interrompu: commande chat impossible."
                     )

@@ -1618,9 +1618,12 @@ class OrganizerMacroReliabilityTests(unittest.TestCase):
             patch("app.macros.auto_group.foreground_window", return_value=101),
             patch("app.macros.auto_group.send_chat_command", side_effect=RuntimeError("chat failed")),
         ):
-            with self.assertRaisesRegex(RuntimeError, "chat failed"):
-                AutoGroupMacro(runtime)._run([{"name": "Friend", "handle": 202}])
+            AutoGroupMacro(runtime)._run([{"name": "Friend", "handle": 202}])
         runtime.switch_character.restore_preferred_client.assert_called_once_with("Auto groupe")
+        self.assertIn("partiel", runtime._emit_status.call_args.args[0])
+        runtime.logger.exception.assert_any_call(
+            "Auto groupe interrompu: commande chat impossible."
+        )
 
     def test_auto_group_does_not_steal_focus_after_last_invite_on_2_4_6_8(self) -> None:
         for count in (2, 4, 6, 8):
@@ -3098,9 +3101,12 @@ class OrganizerMacroReliabilityTests(unittest.TestCase):
             patch("app.macros.zaap.foreground_window", return_value=101),
             patch("app.macros.zaap.send_chat_command", side_effect=RuntimeError("chat failed")),
         ):
-            with self.assertRaisesRegex(RuntimeError, "chat failed"):
-                ZaapMacro(runtime)._run("/zaap 1,2")
+            ZaapMacro(runtime)._run("/zaap 1,2")
         runtime.switch_character.restore_preferred_client.assert_called_once_with("Auto zaap")
+        self.assertIn("partiel", runtime._emit_status.call_args.args[0])
+        runtime.logger.exception.assert_any_call(
+            "Auto zaap interrompu: commande chat impossible."
+        )
 
     def test_zaap_never_refocuses_after_emergency_stop(self) -> None:
         runtime = _runtime()
@@ -5974,9 +5980,11 @@ class OrganizerDetachedProfileTests(unittest.TestCase):
                                 ])
                                 expected_total = count - 1
                         self.assertEqual(len(calls), failing_at)
-                        runtime.switch_character.restore_preferred_client.assert_not_called()
+                        runtime.switch_character.restore_preferred_client.assert_called_once_with(
+                            "Auto zaap" if macro_kind == "zaap" else "Auto groupe"
+                        )
                         status = runtime._emit_status.call_args.args[0]
-                        self.assertIn("interrompu", status)
+                        self.assertIn("partiel", status)
                         self.assertIn(
                             f"{failing_at - 1}/{expected_total}", status,
                         )
