@@ -101,6 +101,14 @@ KEY_WHEEL_WORKER_STATUS = re.compile(
 KEY_WHEEL_PRE_SEND_ABORT = re.compile(
     r"\bMiroir (key|wheel): refus_avant_envoi=1 cibles=(\d+)\b"
 )
+# Busy inputs may remain native, so they are neither failed worker sends nor
+# blocked physical inputs. They still make cross-account latency incomparable.
+# The existing runtime warning is rate limited and has no roster identity:
+# count only observed warnings, as a lower bound across the whole log.
+BUSY_INPUT_WARNING = re.compile(
+    r"\bMiroir occupe: entree physique (clic|clavier|molette) "
+    r"non synchronisee, sans replay\."
+)
 
 
 def _percentiles(values: list[float]) -> dict[str, float | int] | None:
@@ -137,11 +145,16 @@ def summarize(lines: Iterable[str], accounts: int) -> dict:
     }
     losses = {"clicks": 0, "wheel_ticks": 0}
     per_action_losses = {"click": 0, "wheel": 0}
+    busy_input_warnings = {"click": 0, "key": 0, "wheel": 0}
     previous = (0, 0)
     mismatched_roster_lines = 0
     observed_non_replayed = 0
     profile_changed_after_send = 0
     for line in lines:
+        busy_warning = BUSY_INPUT_WARNING.search(line)
+        if busy_warning:
+            kind = {"clic": "click", "clavier": "key", "molette": "wheel"}[busy_warning[1]]
+            busy_input_warnings[kind] += 1
         collision = ACTION_COLLISIONS.search(line)
         if collision:
             if int(collision[3]) != accounts:
@@ -239,6 +252,8 @@ def summarize(lines: Iterable[str], accounts: int) -> dict:
         },
         "observed_blocked_physical_inputs": losses,
         "blocked_input_scope": "WHOLE_LOG",
+        "observed_busy_input_warnings": busy_input_warnings,
+        "busy_input_warning_scope": "WHOLE_LOG_RATE_LIMITED_LOWER_BOUND",
         "observed_blocked_inputs_per_mirror_action": per_action_losses,
         "non_replayed_statuses": observed_non_replayed,
         "profile_changed_after_send": profile_changed_after_send,
@@ -250,6 +265,8 @@ def summarize(lines: Iterable[str], accounts: int) -> dict:
 def _comparison_exclusions(report: dict) -> list[str]:
     """Exclude fast-but-lost gestures from apparent responsiveness results."""
     reasons: list[str] = []
+    if any(report.get("observed_busy_input_warnings", {}).values()):
+        reasons.append("UNSYNCHRONIZED_PHYSICAL_INPUTS_IN_LOG")
     if report["actions"]["partial"] or report["actions"]["interrupted"]:
         reasons.append("PARTIAL_OR_INTERRUPTED_ACTIONS")
     if any(report["observed_blocked_physical_inputs"].values()):

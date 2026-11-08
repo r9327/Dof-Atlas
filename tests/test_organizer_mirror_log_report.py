@@ -12,6 +12,36 @@ from tools.organizer_mirror_log_report import compare_reports, main, summarize
 
 class OrganizerMirrorLogReportTests(unittest.TestCase):
 
+    def test_busy_native_inputs_exclude_ratios_without_inventing_worker_failures(self):
+        clean = summarize(["Miroir blocage_souris_ms=10 cibles=2"] * 5, 2)
+        for accounts in (2, 4, 6, 8):
+            for label, kind in (("clavier", "key"), ("molette", "wheel"), ("clic", "click")):
+                with self.subTest(accounts=accounts, kind=kind):
+                    report = summarize([
+                        f"Miroir blocage_souris_ms=5 cibles={accounts}",
+                    ] * 5 + [
+                        f"Miroir occupe: entree physique {label} non synchronisee, sans replay.",
+                    ], accounts)
+                    self.assertEqual(report["observed_busy_input_warnings"][kind], 1)
+                    self.assertEqual(sum(report["actions"].values()), 0)
+                    self.assertFalse(any(report["observed_blocked_physical_inputs"].values()))
+                    self.assertEqual(report["busy_input_warning_scope"], "WHOLE_LOG_RATE_LIMITED_LOWER_BOUND")
+                    comparison = compare_reports({2: clean, accounts: report})
+                    self.assertIsNone(comparison["p95_ratio_vs_2_accounts"]
+                                      ["click_pointer_block_ms"][str(accounts)])
+                    self.assertIn("UNSYNCHRONIZED_PHYSICAL_INPUTS_IN_LOG",
+                                  comparison["ratio_exclusion_reasons"][str(accounts)])
+                    self.assertEqual(report["metrics"]["click_pointer_block_ms"]["p95_ms"], 5)
+
+    def test_busy_baseline_disqualifies_otherwise_clean_comparison(self):
+        baseline = summarize(["Miroir blocage_souris_ms=10 cibles=2"] * 5 + [
+            "Miroir occupe: entree physique clavier non synchronisee, sans replay.",
+        ], 2)
+        candidate = summarize(["Miroir blocage_souris_ms=5 cibles=8"] * 5, 8)
+        result = compare_reports({2: baseline, 8: candidate})
+        self.assertIsNone(result["p95_ratio_vs_2_accounts"]["click_pointer_block_ms"]["8"])
+        self.assertEqual(candidate["observed_busy_input_warnings"], {"click": 0, "key": 0, "wheel": 0})
+
     def test_click_worker_status_from_real_engine_logs_without_ui_callback(self):
         # SwitchClick logs these outcomes regardless of whether _emit_status
         # is persisted by the UI. A failed action must not disappear from
