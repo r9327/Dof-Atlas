@@ -110,6 +110,7 @@ class PreloadWorkerDiagnosticTests(unittest.TestCase):
             with self.assertRaisesRegex(RuntimeError, "PermissionError: sharing violation") as error:
                 main._run_preload_module_status("worker.fixture")
         self.assertLess(len(str(error.exception)), 8400)
+        self.assertIn("PermissionError: sharing violation", str(error.exception)[:240])
 
 
 if __name__ == "__main__":

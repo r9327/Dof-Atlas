@@ -284,9 +284,12 @@ def _run_preload_module_status(module: str, *arguments: str) -> None:
             length = diagnostics.seek(0, os.SEEK_END)
             diagnostics.seek(max(0, length - 8192))
             detail = diagnostics.read(8192).decode("utf-8", errors="replace").strip()
+            # Doctor's compact preload reports retain the first 240 chars.
+            # Put the terminal exception before the traceback frames.
+            summary = detail.splitlines()[-1][:120] if detail else ""
             raise RuntimeError(
                 f"Worker preload en échec: {module} (code {exit_code})"
-                + (f": {detail}" if detail else "")
+                + (f": {summary}\n{detail}" if detail else "")
             )
 
 
