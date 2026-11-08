@@ -482,6 +482,26 @@ class DoctorOssRoutingTests(unittest.TestCase):
         self.assertEqual(report["unexpected_ids"], [])
         self.assertEqual(report["execution_witnesses"], 0)
 
+    def test_legacy_study_without_final_table_remains_inventory_only(self):
+        from tools.atlas_doctor_lib.oss_router import _open_source_inventory
+        study = self.root / "docs" / "roadmap"
+        study.mkdir(parents=True, exist_ok=True)
+        rows = [
+            f"| ATOSS-{number:02d} | [x](https://github.com/a/x) | ASSESS | Owner |"
+            for number in range(1, 30)
+        ] + [
+            f"| AT-SUP-{number:02d} | [x](https://github.com/a/x) | ASSESS | Owner |"
+            for number in range(1, 6)
+        ]
+        (study / "GITHUB_OPEN_SOURCE_INTEGRATION_2026-10-31.md").write_text(
+            "\n".join(rows) + "\n", encoding="utf-8")
+        report = _open_source_inventory(self.root)
+        self.assertEqual(report["status"], "INVENTORIED_NOT_CERTIFIED")
+        self.assertEqual(report["final_decision_status"], "NOT_RECORDED")
+        self.assertEqual(report["execution_witnesses"], 0)
+        self.assertTrue(all(row["final_decision"] is None for row in
+                            report["candidates"] + report["supplemental"]))
+
     def test_final_study_decisions_cover_all_ids_without_claiming_execution(self):
         from tools.tool_audit import ROOT
         from tools.atlas_doctor_lib.oss_router import _open_source_inventory
