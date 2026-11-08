@@ -418,6 +418,24 @@ class DoctorOssRoutingTests(unittest.TestCase):
         self.assertEqual(report["execution"]["status"], "CLEAN")
         self.assertEqual(report["execution_summary"]["confirmed_executions"], 1)
 
+    def test_internal_workflow_runner_rejects_unresolved_binary(self):
+        from tools.atlas_doctor_lib.oss_router import _execute_zizmor
+        files = [".github/workflows/ci.yml"]
+        with patch("tools.atlas_doctor_lib.oss_router.subprocess.run") as process:
+            invalid = _execute_zizmor(self.root, files, 5, binary="zizmor")
+        process.assert_not_called()
+        self.assertEqual(invalid["status"], "UNAVAILABLE")
+        binary = str((self.root / "trusted" / "zizmor").resolve())
+        with patch("tools.atlas_doctor_lib.oss_router.subprocess.run",
+                   return_value=SimpleNamespace(returncode=0, stdout="[]",
+                                               stderr="")) as process:
+            valid = _execute_zizmor(self.root, files, 5, binary=binary)
+        self.assertEqual(valid["status"], "CLEAN")
+        self.assertEqual(process.call_args.args[0][0], binary)
+        self.assertIn("--offline", process.call_args.args[0])
+        self.assertIn("--no-config", process.call_args.args[0])
+        self.assertNotIn("GITHUB_TOKEN", process.call_args.kwargs["env"])
+
     def test_timeout_is_not_a_fake_success(self):
         from subprocess import TimeoutExpired
         with (patch("tools.atlas_doctor_lib.oss_router.catalog", return_value={}),

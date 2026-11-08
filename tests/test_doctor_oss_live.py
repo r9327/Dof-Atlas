@@ -172,7 +172,7 @@ class DoctorLiveEvidenceTests(unittest.TestCase):
                     return_value=binary),
               patch("tools.atlas_doctor_lib.oss_router.subprocess.run",
                     return_value=SimpleNamespace(returncode=0,
-                                                stdout="zizmor 1.30.1\\n",
+                                                stdout="zizmor 1.30.1\n",
                                                 stderr="")) as run):
             self.assertEqual(_observed_tool_version(self.root, "zizmor"), "1.30.1")
         self.assertEqual(run.call_args.args[0], [binary, "--version"])
