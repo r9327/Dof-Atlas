@@ -36,7 +36,7 @@ class DoctorLiveEvidenceTests(unittest.TestCase):
                 {"tool": "zizmor", "status": "FINDINGS", "finding_count": 1},
             ],
             "oss_candidates": [
-                {"id": "ruff", "version_claim": "0.17.0"},
+                {"id": "ruff", "version_claim": "0.17.3"},
                 {"id": "zizmor", "version_claim": None},
             ],
             "execution_summary": {"gaps": []},
@@ -47,17 +47,39 @@ class DoctorLiveEvidenceTests(unittest.TestCase):
         with (patch("tools.atlas_doctor_lib.oss_router.route_oss",
                     return_value=self._valid()) as run,
               patch("tools.atlas_doctor_lib.oss_router._observed_tool_version",
-                    side_effect=lambda root, name: "1.8.0" if name == "zizmor" else "0.17.0")):
+                    side_effect=lambda root, name: "1.30.1" if name == "zizmor" else "0.17.3")):
             report = qualify_live(self.root, self.files, timeout_seconds=30)
         self.assertEqual(report["status"], "LIVE_PASS")
         self.assertEqual(report["actual_executions"], 2)
         self.assertTrue(report["input_files_unchanged"])
         self.assertEqual(len(report["input_sha256"]), 2)
-        self.assertEqual(report["versions_observed"]["ruff"], "0.17.0")
+        self.assertEqual(report["versions_observed"]["ruff"], "0.17.3")
+        self.assertTrue(report["versions_match_lock"])
+        self.assertEqual(report["versions_required"], {"ruff": "0.17.3", "zizmor": "1.30.1"})
         self.assertFalse(report["phase_certified"])
         self.assertFalse(report["network_verified_by_traffic_capture"])
         run.assert_called_once_with(self.root, self.files, run=True,
                                     timeout_seconds=30)
+
+    def test_mismatched_live_versions_cannot_qualify(self):
+        cases = (
+            ("ruff", {"ruff": "0.17.2", "zizmor": "1.30.1"}),
+            ("zizmor", {"ruff": "0.17.3", "zizmor": "1.31.0"}),
+        )
+        for tool, versions in cases:
+            with self.subTest(tool=tool):
+                with (patch("tools.atlas_doctor_lib.oss_router.route_oss",
+                            return_value=self._valid()),
+                      patch("tools.atlas_doctor_lib.oss_router._observed_tool_version",
+                            side_effect=lambda root, name: versions[name])):
+                    report = qualify_live(self.root, self.files)
+                self.assertEqual(report["status"], "REVIEW")
+                self.assertEqual(report["actual_executions"], 2)
+                self.assertTrue(report["input_files_unchanged"])
+                self.assertFalse(report["versions_match_lock"])
+                self.assertEqual(report["versions_observed"][tool], versions[tool])
+                self.assertFalse(report["windows_13_qualified"])
+                self.assertFalse(report["phase_certified"])
 
     def test_missing_zizmor_cannot_qualify_live(self):
         result = self._valid()
@@ -96,7 +118,7 @@ class DoctorLiveEvidenceTests(unittest.TestCase):
         with (patch("tools.atlas_doctor_lib.oss_router.route_oss",
                     return_value=self._valid()),
               patch("tools.atlas_doctor_lib.oss_router._observed_tool_version",
-                    side_effect=lambda root, name: "0.17.0" if name == "ruff" else None)):
+                    side_effect=lambda root, name: "0.17.3" if name == "ruff" else None)):
             report = qualify_live(self.root, self.files)
         self.assertEqual(report["status"], "REVIEW")
         self.assertEqual(report["actual_executions"], 2)

@@ -273,10 +273,12 @@ installé dans le Python actif et zizmor accessible via PATH ou le dossier
 `Scripts` du Python user-site Windows ; un outil
 manquant reste `REVIEW` avec un code retour non nul. Elle exécute les
 deux diagnostics en lecture seule, constate leurs réponses JSON, interroge
-leur version réelle et compare les empreintes SHA-256 des fichiers
-analysés avant/après. `LIVE_PASS` signifie seulement que ces deux outils
-ont réellement fonctionné pour ces fichiers sur **cette machine**, sans
-modifier ces fichiers. `windows_13_qualified` ne devient vrai que sur
+leur version réelle **aux versions verrouillées dans
+`tools.doctor_oss_wheels.PINS`** et compare les empreintes SHA-256 des
+fichiers analysés avant/après. Une version absente ou différente donne
+`REVIEW`, même si les deux scanners ont répondu correctement. `LIVE_PASS`
+signifie seulement que les deux outils aux versions choisies ont fonctionné
+pour ces fichiers sur **cette machine**, sans modifier ces fichiers. `windows_13_qualified` ne devient vrai que sur
 Windows et Python 3.13 avec ce constat.
 
 Cette qualification ne certifie pas l'absence de modifications d'autres

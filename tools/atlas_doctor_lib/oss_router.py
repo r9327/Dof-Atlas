@@ -348,17 +348,23 @@ def qualify_live(root: Path, paths: Iterable[str], *,
     ]
     witnesses = sum(status in {"CLEAN", "FINDINGS"} for status in statuses)
     all_executed = len(results) == len(expected) and witnesses == len(expected)
+    # Reuse the approved developer lock, imported only for an explicit live
+    # check. Valid output from an arbitrary older/newer tool is not qualified.
+    from tools.doctor_oss_wheels import PINS
     versions = ({tool: _observed_tool_version(root, tool) for tool in expected}
-                if all_executed else {})
-    intact = unchanged and all_executed and all(versions.get(tool) for tool in expected)
+                if unchanged and all_executed else {})
+    versions_match_lock = bool(
+        unchanged and all_executed
+        and all(versions.get(tool) == PINS[tool] for tool in expected))
+    intact = versions_match_lock
     # A local test on Linux/macOS is not a native Windows qualification.
     windows_13 = sys.platform == "win32" and sys.version_info[:2] == (3, 13)
     return {
         "schema_version": 1,
         "source": "tools.atlas_doctor_lib.oss_router.qualify_live",
         "status": "LIVE_PASS" if intact else "REVIEW" if unchanged else "FAIL",
-        "reason": ("All approved tools returned valid JSON on actual local inputs"
-                   if intact else "Input was modified or scanner execution incomplete"),
+        "reason": ("Both scanners returned valid results on unchanged inputs with locked versions"
+                   if intact else "Input changed, scanner incomplete, or tool version mismatched"),
         "requested_tools": list(expected),
         "actual_executions": witnesses,
         "tool_statuses": [{"tool": name,
@@ -373,7 +379,9 @@ def qualify_live(root: Path, paths: Iterable[str], *,
                            for row in diagnostic.get("oss_candidates", [])
                            if isinstance(row, dict)},
         "versions_observed": versions,
-        "version_proof": "Actual --version subprocesses; not license attestation",
+        "versions_required": {tool: PINS[tool] for tool in expected},
+        "versions_match_lock": versions_match_lock,
+        "version_proof": "Actual --version matched developer lock; not provenance or license",
         "gaps": diagnostic.get("execution_summary", {}).get("gaps", []),
         "phase_certified": False,
         "network_verified_by_traffic_capture": False,
