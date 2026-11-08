@@ -147,6 +147,64 @@ class DevelopmentLotTests(unittest.TestCase):
         self.assertEqual(report["execution"]["status"], "NOT_RUN")
         self.assertFalse(report["phase_certified"])
 
+    def test_reviewed_oss_tools_have_exact_test_owners_without_waiving_full(self):
+        cases = {
+            "tools/atlas_doctor_lib/oss_router.py": (
+                "tests.test_doctor_oss_routing",
+                "tests.test_doctor_oss_live",
+                "tests.test_doctor_oss_intelligence",
+            ),
+            "tools/atlas_doctor_lib/oss_intelligence.py": (
+                "tests.test_doctor_oss_intelligence",
+            ),
+            "tools/atlas_json_benchmark.py": (
+                "tests.test_atlas_json_benchmark",
+            ),
+            "tools/doctor_oss_wheels.py": (
+                "tests.test_doctor_oss_wheels",
+            ),
+        }
+        for source, modules in cases.items():
+            with self.subTest(source=source):
+                self.paths = [source, ".ai/context_index.json"]
+                for item in (source, *(module.replace(".", "/") + ".py"
+                                       for module in modules)):
+                    file = self.root / item
+                    file.parent.mkdir(parents=True, exist_ok=True)
+                    file.write_text("pass\\n", encoding="utf-8")
+                report = self.plan()
+                self.assertEqual(report["status"], "READY")
+                self.assertEqual(report["test_modules"], sorted(modules))
+                self.assertEqual(report["uncovered_paths"], [])
+                self.assertEqual(report["unsupported_paths"], [])
+                self.assertTrue(report["global_full_required"])
+                self.assertFalse(report["phase_certified"])
+
+    def test_oss_owner_missing_test_remains_review(self):
+        source = "tools/atlas_json_benchmark.py"
+        self.paths = [source, ".ai/context_index.json"]
+        file = self.root / source
+        file.parent.mkdir(parents=True, exist_ok=True)
+        file.write_text("pass\\n", encoding="utf-8")
+        report = self.plan()
+        self.assertEqual(report["status"], "REVIEW")
+        self.assertEqual(report["uncovered_paths"], [source])
+        self.assertEqual(report["test_modules"], [])
+        self.assertTrue(report["global_full_required"])
+
+    def test_unmapped_oss_tool_is_still_blocked(self):
+        source = "tools/atlas_doctor_lib/unknown_oss_adapter.py"
+        test = "tests/test_unknown_oss_adapter.py"
+        self.paths = [source, test]
+        for name in self.paths:
+            file = self.root / name
+            file.parent.mkdir(parents=True, exist_ok=True)
+            file.write_text("pass\\n", encoding="utf-8")
+        report = self.plan()
+        self.assertEqual(report["status"], "BLOCKED")
+        self.assertIn(source, report["unsupported_paths"])
+        self.assertTrue(report["global_full_required"])
+
     def test_unmapped_tool_remains_blocked_even_with_matching_test(self):
         self.paths = [
             "tools/unreviewed_mirror_sender.py",
