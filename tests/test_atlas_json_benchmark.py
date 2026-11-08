@@ -247,6 +247,49 @@ class AtlasJsonBenchmarkTests(unittest.TestCase):
             with self.assertRaises(ValueError):
                 compare_json_compression(path, max_bytes=0)
 
+    def test_optional_json_trials_refuse_changed_source_after_execution(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            path = Path(tmp) / "canonical.json"
+            original = '{"quests":{"1":{"required":1}}}'
+            altered = '{"quests":{"1":{"required":2}}}'
+
+            def mutating_parser(blob):
+                path.write_text(altered, encoding="utf-8")
+                return json.loads(blob)
+
+            path.write_text(original, encoding="utf-8")
+            with patch("tools.atlas_json_benchmark.importlib.import_module",
+                       return_value=SimpleNamespace(loads=mutating_parser)):
+                with self.assertRaisesRegex(ValueError, "Source changed"):
+                    compare_json_parsers(path, candidates=("orjson",))
+
+            def mutating_stream(stream, prefix, *, use_float):
+                path.write_text(altered, encoding="utf-8")
+                return iter(json.loads(stream.read())["quests"].items())
+
+            path.write_text(original, encoding="utf-8")
+            with patch("tools.atlas_json_benchmark.importlib.import_module",
+                       return_value=SimpleNamespace(kvitems=mutating_stream)):
+                with self.assertRaisesRegex(ValueError, "Source changed"):
+                    compare_json_streaming(path)
+
+            import zlib
+            def mutating_compressor(data):
+                path.write_text(altered, encoding="utf-8")
+                return zlib.compress(data)
+
+            fake_zstd = SimpleNamespace(
+                ZstdCompressor=lambda level: SimpleNamespace(
+                    compress=mutating_compressor),
+                ZstdDecompressor=lambda: SimpleNamespace(
+                    decompress=lambda data, max_output_size: zlib.decompress(data)),
+            )
+            path.write_text(original, encoding="utf-8")
+            with patch("tools.atlas_json_benchmark.importlib.import_module",
+                       return_value=fake_zstd):
+                with self.assertRaisesRegex(ValueError, "Source changed"):
+                    compare_json_compression(path)
+
     def test_invalid_sample_sizes_fail_closed(self) -> None:
         with self.assertRaises(ValueError):
             benchmark(Path("unused"), Path("unused"), sample_count=0)

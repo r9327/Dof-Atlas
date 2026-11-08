@@ -102,6 +102,19 @@ def benchmark(
 
 
 
+def _assert_source_bytes_still_match(path: Path, raw: bytes) -> None:
+    """Refuse stale offline benchmark results if the source changed mid-trial."""
+    try:
+        if path.is_symlink() or not path.is_file():
+            raise ValueError("Source is no longer a regular file")
+        with path.open("rb") as handle:
+            observed = hashlib.file_digest(handle, "sha256").digest()
+    except OSError:
+        raise ValueError("Source could not be verified after comparison") from None
+    if observed != hashlib.sha256(raw).digest():
+        raise ValueError("Source changed during comparison")
+
+
 def _identical_json_values(expected: object, actual: object) -> bool:
     """Compare parsed JSON without Python's bool/int/float equality shortcuts.
 
@@ -189,6 +202,7 @@ def compare_json_parsers(
             "min_ms": min(samples), "max_ms": max(samples),
             "measurements_ms": samples,
         })
+    _assert_source_bytes_still_match(path, raw)
     return {
         "schema_version": 1, "source": "tools.atlas_json_benchmark.compare_json_parsers",
         "source_sha256": hashlib.sha256(raw).hexdigest(),
@@ -251,6 +265,7 @@ def compare_json_streaming(source: Path, *, max_bytes: int = 128 * 1024 * 1024) 
         return {"schema_version": 1, "status": "ERROR", "tool": "ijson",
                 "error_type": type(exc).__name__,
                 "executed": True, "runtime_consumer_changed": False}
+    _assert_source_bytes_still_match(path, raw)
     return {
         "schema_version": 1, "status": "PARITY_PASS", "tool": "ijson",
         "executed": True, "record_count": len(seen),
@@ -315,6 +330,7 @@ def compare_json_compression(source: Path, *, max_bytes: int = 128 * 1024 * 1024
             "compress_ms": round(packed_ms, 6),
             "decompress_ms": round(unpacked_ms, 6),
         })
+    _assert_source_bytes_still_match(path, raw)
     return {
         "schema_version": 1,
         "source": "tools.atlas_json_benchmark.compare_json_compression",
