@@ -13,6 +13,18 @@ H = "b" * 40
 
 
 class ModularDomainRoutingTests(unittest.TestCase):
+    def test_shared_text_requires_all_product_domains_without_unknown_wildcard(self):
+        domains = {"craft", "quests", "guides", "ui", "startup",
+                   "identity", "data", "organizer"}
+        for path in ("app/core/text.py", "tests/test_core_text.py"):
+            with self.subTest(path=path):
+                self.assertEqual(owners_for(path), frozenset(domains))
+                plan = self.route([path])
+                self.assertEqual(set(plan["domains"]), domains)
+                self.assertEqual(plan["unknown_paths"], [])
+        self.assertEqual(owners_for("app/core/text_unreviewed.py"), frozenset())
+        self.assertEqual(self.route(["app/core/text_unreviewed.py"])["status"], "BLOCKED")
+
     def route(self, paths, deleted=()):
         return plan_domains(base_sha=B, candidate_sha=H, paths=paths, deleted=list(deleted))
 

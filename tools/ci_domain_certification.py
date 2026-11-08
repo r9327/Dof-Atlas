@@ -266,6 +266,11 @@ def owners_for(path: str) -> frozenset[str]:
     if path == "app/constants.py":
         return frozenset({"craft", "quests", "guides", "ui", "startup",
                           "identity", "data", "organizer"})
+    # Canonical text normalization is shared across product domains. Keep
+    # their complete baseline coverage; never infer an Organizer-only scope.
+    if path in {"app/core/text.py", "tests/test_core_text.py"}:
+        return frozenset({"craft", "quests", "guides", "ui", "startup",
+                          "identity", "data", "organizer"})
     # Organizer profile defaults are read by Qt/session startup and persisted
     # for character-bound input. Unknown app/core files still fail closed.
     if path == "app/core/profile_settings.py":
