@@ -77,6 +77,25 @@ class DevelopmentLotTests(unittest.TestCase):
         self.assertFalse(report["full_suite_waived"])
         self.assertEqual(report["execution"]["status"], "NOT_RUN")
 
+    def test_shared_text_owner_requires_existing_tests_and_preserves_full(self):
+        source = self.root / "app/core/text.py"
+        source.parent.mkdir(parents=True, exist_ok=True)
+        source.write_text("pass\n", encoding="utf-8")
+        owner = self.root / "tests/test_core_text.py"
+        owner.write_text("pass\n", encoding="utf-8")
+        self.paths = ["app/core/text.py", ".ai/context_index.json"]
+        report = self.plan()
+        self.assertEqual(report["status"], "READY")
+        self.assertEqual(report["test_modules"], ["tests.test_core_text"])
+        self.assertEqual(report["uncovered_paths"], [])
+        self.assertTrue(report["global_full_required"])
+        self.assertFalse(report["full_suite_waived"])
+        self.assertFalse(report["phase_certified"])
+        owner.unlink()
+        missing = self.plan()
+        self.assertEqual(missing["status"], "REVIEW")
+        self.assertEqual(missing["uncovered_paths"], ["app/core/text.py"])
+
     def test_macro_lock_has_existing_generation_owner_without_weaking_full(self):
         # Preserve exact source ownership for native Stop and pointer leases:
         # no generic Organizer smoke or blanket module allowance.

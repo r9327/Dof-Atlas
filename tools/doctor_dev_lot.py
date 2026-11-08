@@ -22,6 +22,9 @@ MAX_MODULES = 12
 # A direct owner is mandatory for executable files: domain smokes alone do not
 # prove a changed source. Extend this map only with existing, reviewed tests.
 DIRECT_OWNERS = {
+    # Shared name normalization has dedicated, Qt-free regression contracts.
+    # This development owner does not waive the global PR FULL requirement.
+    "app/core/text.py": ("tests.test_core_text",),
     # The canonical lease, stop and generation tests exercise this owner.
     # A domain-level Organizer smoke alone is not an adequate substitute.
     "app/core/macro_lock.py": (
