@@ -158,24 +158,27 @@ def _safe_files(root: Path, paths: Iterable[str]) -> list[str]:
 
 
 
-def _zizmor_executable() -> str | None:
-    """Resolve the approved executable, including Windows pip --user Scripts.
+def _zizmor_executable(root: Path | None = None) -> str | None:
+    """Resolve a regular absolute executable outside the scanned checkout.
 
-    A Windows Python user installation may not be included in PATH. Do not
-    probe arbitrary directories or run an unverified symlink.
+    Windows may search the current directory before PATH; a checkout-local
+    impostor, relative entry, symlink or batch script is never trusted.
     """
     from shutil import which
     found = which("zizmor")
-    if found:
-        candidate = Path(found)
-        # Avoid the Windows process search order: never pass a bare executable
-        # name or a relative PATH entry to a subprocess running in the repo.
-        if candidate.is_absolute() and candidate.is_file() and not candidate.is_symlink():
-            return str(candidate.resolve())
+    candidates = [Path(found)] if found else []
     if sys.platform == "win32":
-        candidate = Path(site.getuserbase()) / "Scripts" / "zizmor.exe"
-        if candidate.is_absolute() and candidate.is_file() and not candidate.is_symlink():
-            return str(candidate.resolve())
+        candidates.append(Path(site.getuserbase()) / "Scripts" / "zizmor.exe")
+    checkout = root.resolve() if root is not None else None
+    for candidate in candidates:
+        if (not candidate.is_absolute() or candidate.is_symlink()
+                or not candidate.is_file()
+                or (sys.platform == "win32" and candidate.suffix.casefold() != ".exe")):
+            continue
+        resolved = candidate.resolve()
+        if checkout is not None and resolved.is_relative_to(checkout):
+            continue
+        return str(resolved)
     return None
 
 
@@ -291,7 +294,7 @@ def _observed_tool_version(root: Path, name: str) -> str | None:
     # -P protects against loading a rogue ruff module from the checkout.
     # Unlike -s/PYTHONNOUSERSITE, it keeps pip --user installations visible.
     if name == "zizmor":
-        executable = _zizmor_executable()
+        executable = _zizmor_executable(root)
         if executable is None:
             return None
         command = [executable, "--version"]
@@ -580,7 +583,7 @@ def route_oss(root: Path, paths: Iterable[str], *, run: bool = False,
     # Preflight is discovery metadata, not proof of the executable to launch.
     # Resolve the same absolute file used for subsequent version attestation.
     workflow_executable = (
-        _zizmor_executable() if workflows and not preflight_error_type else None
+        _zizmor_executable(root) if workflows and not preflight_error_type else None
     )
     workflow_available = bool(workflow_executable)
     timeout_each = max(1, timeout_seconds // max(1, int(bool(python_files)) + int(bool(workflows))))

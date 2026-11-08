@@ -63,7 +63,9 @@ Pour zizmor, `--offline --no-config --no-progress --no-exit-codes
 chargement des configurations locales. Le scanner et sa vérification
 `--version` utilisent un chemin exécutable absolu résolu et régulier ;
 la détection seule sur PATH ne permet pas de lancer un nom nu depuis
-le répertoire du dépôt (notamment sous Windows). L'environnement du processus
+le répertoire du dépôt (notamment sous Windows). Un binaire trouvé
+**dans le dépôt analysé** est également refusé, et Windows n'accepte
+que l'exécutable `.exe` (pas de script `.cmd`). L'environnement du processus
 ne transmet ni tokens ni proxy. Les résultats sont des **compteurs**
 (`CLEAN`, `FINDINGS`, `NOT_AVAILABLE`, `ERROR`, `TIMEOUT`), sans
 contenu sensible. Aucune installation ni correction n'est réalisée.
