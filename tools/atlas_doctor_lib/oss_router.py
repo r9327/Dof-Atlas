@@ -96,7 +96,7 @@ def _open_source_inventory(root: Path) -> dict[str, Any]:
         if cid in final_rows:
             decision_errors.append("duplicate final decision")
         final_rows[cid] = cells[1]
-    decision_missing = sorted(expected - final_rows) if final_declared else []
+    decision_missing = sorted(expected - set(final_rows)) if final_declared else []
     decision_unexpected = sorted(set(final_rows) - expected)
     decision_ok = (not decision_errors and not decision_missing
                    and not decision_unexpected) if final_declared else False

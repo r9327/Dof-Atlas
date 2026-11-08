@@ -20,7 +20,7 @@ _SCOPES: dict[str, tuple[str, ...]] = {
     "qt": ("ATOSS-01", "ATOSS-02"),
     "guide": ("ATOSS-02", "ATOSS-15"),
     "launcher": ("ATOSS-03", "ATOSS-02", "ATOSS-14", "AT-SUP-02", "AT-SUP-03"),
-    "json": ("ATOSS-11", "ATOSS-12", "ATOSS-13", "AT-SUP-01", "AT-SUP-05"),
+    "json": ("ATOSS-11", "ATOSS-12", "ATOSS-13", "ATOSS-14", "AT-SUP-01", "AT-SUP-05"),
     "perf": ("ATOSS-06", "ATOSS-10", "ATOSS-07", "ATOSS-08", "ATOSS-09", "ATOSS-04", "ATOSS-25"),
     "assets": ("ATOSS-16", "ATOSS-17"),
     "dependencies": ("ATOSS-23", "AT-SUP-04"),
