@@ -250,6 +250,7 @@ def _run_preload_module_status(module: str, *arguments: str) -> None:
     # DEVNULL avoids parent-side capture buffers, while keeping every rich
     # catalogue/cache build inside the disposable child process.
     import subprocess
+    import tempfile
 
     root = str(Path(__file__).resolve().parent)
     environment = dict(os.environ)
@@ -270,15 +271,23 @@ def _run_preload_module_status(module: str, *arguments: str) -> None:
     if os.name == "nt":
         options["creationflags"] = getattr(subprocess, "CREATE_NO_WINDOW", 0)
 
-    completed = subprocess.run(
-        [sys.executable, "-m", module, *arguments],
-        **options,
-    )
-    exit_code = int(completed.returncode)
-    if exit_code != 0:
-        raise RuntimeError(
-            f"Worker preload en échec: {module} (code {exit_code})"
+    # Keep rich output outside Atlas' heap, but retain a bounded diagnostic
+    # when one of several concurrent disposable workers fails.
+    with tempfile.TemporaryFile() as diagnostics:
+        options["stderr"] = diagnostics
+        completed = subprocess.run(
+            [sys.executable, "-m", module, *arguments],
+            **options,
         )
+        exit_code = int(completed.returncode)
+        if exit_code != 0:
+            length = diagnostics.seek(0, os.SEEK_END)
+            diagnostics.seek(max(0, length - 8192))
+            detail = diagnostics.read(8192).decode("utf-8", errors="replace").strip()
+            raise RuntimeError(
+                f"Worker preload en échec: {module} (code {exit_code})"
+                + (f": {detail}" if detail else "")
+            )
 
 
 def _run_preload_module_result(module: str, *arguments: str) -> str:
