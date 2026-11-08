@@ -205,6 +205,19 @@ class DoctorOssIntelligenceTests(unittest.TestCase):
             self.assertFalse(routed[cid]["trial_executed"])
         self.assertFalse(summary["may_claim_full_certification"])
 
+    def test_final_policy_rejections_prohibit_optional_preflight(self):
+        inventory = study()
+        for row in inventory["candidates"]:
+            if row["id"] == "ATOSS-02":
+                row["final_decision"] = "REJECTED"
+        plan = intelligent_plan(["tests/test_doctor_auto_oss.py"], inventory)
+        selected = {r["id"]: r for r in plan["evaluated_candidates"]}
+        self.assertEqual(selected["ATOSS-02"]["decision"], "REJECTED")
+        self.assertEqual(selected["ATOSS-02"]["final_policy_decision"], "REJECTED")
+        self.assertNotIn("ATOSS-02",
+                         {probe["id"] for probe in plan["local_package_probes"]})
+        self.assertFalse(plan["certified"])
+
     def test_invalid_or_partial_study_cannot_claim_certification(self):
         plan = intelligent_plan(["tools/test_tool.py"], {"status": "REVIEW", "candidates": []})
         self.assertEqual(plan["status"], "REVIEW")

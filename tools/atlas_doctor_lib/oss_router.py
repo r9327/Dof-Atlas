@@ -33,7 +33,8 @@ def _open_source_inventory(root: Path) -> dict[str, Any]:
     candidates: list[dict[str, str]] = []
     supplements: list[dict[str, str]] = []
     seen: set[str] = set()
-    for line in study.read_text(encoding="utf-8").splitlines():
+    lines = study.read_text(encoding="utf-8").splitlines()
+    for line in lines:
         if not line.startswith(("| ATOSS-", "| AT-SUP-")):
             continue
         cells = [cell.strip() for cell in line.strip().strip("|").split("|")]
@@ -66,9 +67,55 @@ def _open_source_inventory(root: Path) -> dict[str, Any]:
     expected.update(f"AT-SUP-{number:02d}" for number in range(1, 6))
     missing = sorted(expected - seen)
     unexpected = sorted(seen - expected)
+    # The same canonical Markdown study includes an optional final-decision
+    # table. Never maintain a second Python registry or treat decisions as
+    # installation/execution witnesses. Missing/inconsistent decisions fail
+    # closed only when the final table has actually been declared.
+    final_declared = False
+    final_rows: dict[str, str] = {}
+    decision_errors = []
+    allowed = {"ADOPTED", "KEEP_EXISTING", "REJECTED",
+               "HOLDING_ONLY", "DEFERRED_WITH_REASON"}
+    for line in lines:
+        if line.startswith("### Décision de maintenance pour chacun des 34 candidats"):
+            if final_declared:
+                decision_errors.append("duplicate decision section")
+            final_declared = True
+            continue
+        if final_declared and line.startswith("### "):
+            break
+        if not final_declared or not line.startswith("| **"):
+            continue
+        cells = [cell.strip() for cell in line.strip().strip("|").split("|")]
+        match = re.fullmatch(r"\*\*(ATOSS-[0-9]{2}|AT-SUP-[0-9]{2})\*\*",
+                             cells[0] if cells else "")
+        if not match or len(cells) < 4 or cells[1] not in allowed:
+            decision_errors.append("malformed final decision row")
+            continue
+        cid = match.group(1)
+        if cid in final_rows:
+            decision_errors.append("duplicate final decision")
+        final_rows[cid] = cells[1]
+    decision_missing = sorted(expected - final_rows) if final_declared else []
+    decision_unexpected = sorted(set(final_rows) - expected)
+    decision_ok = (not decision_errors and not decision_missing
+                   and not decision_unexpected) if final_declared else False
+    for row in candidates + supplements:
+        row["final_decision"] = final_rows.get(row["id"])
+    decision_counts = {name: sum(v == name for v in final_rows.values())
+                       for name in sorted(allowed)}
     return {
         "status": ("INVENTORIED_NOT_CERTIFIED"
-                   if not missing and not unexpected else "REVIEW"),
+                   if not missing and not unexpected
+                   and (not final_declared or decision_ok) else "REVIEW"),
+        "final_decision_status": ("DOCUMENTED_NOT_QUALIFIED" if decision_ok
+                                  else "REVIEW" if final_declared
+                                  else "NOT_RECORDED"),
+        "final_decision_counts": decision_counts,
+        "final_decision_missing_ids": decision_missing,
+        "final_decision_unexpected_ids": decision_unexpected,
+        "final_decision_errors": decision_errors,
+        "final_decisions_are_execution_evidence": False,
         "count": len(candidates), "candidates": candidates,
         "supplemental_count": len(supplements), "supplemental": supplements,
         "missing_ids": missing, "unexpected_ids": unexpected,

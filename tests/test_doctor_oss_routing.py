@@ -482,6 +482,43 @@ class DoctorOssRoutingTests(unittest.TestCase):
         self.assertEqual(report["unexpected_ids"], [])
         self.assertEqual(report["execution_witnesses"], 0)
 
+    def test_final_study_decisions_cover_all_ids_without_claiming_execution(self):
+        from tools.tool_audit import ROOT
+        from tools.atlas_doctor_lib.oss_router import _open_source_inventory
+        report = _open_source_inventory(ROOT)
+        decisions = {row["id"]: row["final_decision"]
+                     for row in report["candidates"] + report["supplemental"]}
+        self.assertEqual(len(decisions), 34)
+        self.assertEqual(report["final_decision_status"],
+                         "DOCUMENTED_NOT_QUALIFIED")
+        self.assertEqual(sum(report["final_decision_counts"].values()), 34)
+        self.assertEqual(report["final_decision_counts"]["ADOPTED"], 1)
+        self.assertEqual(report["final_decision_counts"]["HOLDING_ONLY"], 2)
+        self.assertEqual(report["final_decision_counts"]["DEFERRED_WITH_REASON"], 7)
+        self.assertFalse(report["final_decisions_are_execution_evidence"])
+        self.assertEqual(report["execution_witnesses"], 0)
+        self.assertEqual(decisions["ATOSS-20"], "ADOPTED")
+        self.assertEqual(decisions["ATOSS-28"], "REJECTED")
+
+    def test_partial_final_decision_section_cannot_claim_complete(self):
+        from tools.atlas_doctor_lib.oss_router import _open_source_inventory
+        study_dir = self.root / "docs" / "roadmap"
+        study_dir.mkdir(parents=True, exist_ok=True)
+        original = "\n".join(
+            [f"| ATOSS-{i:02d} | [x](https://github.com/a/x) | ASSESS | Owner |"
+             for i in range(1, 30)] +
+            [f"| AT-SUP-{i:02d} | [x](https://github.com/a/x) | ASSESS | Owner |"
+             for i in range(1, 6)])
+        (study_dir / "GITHUB_OPEN_SOURCE_INTEGRATION_2026-10-31.md").write_text(
+            original + "\n### Décision de maintenance pour chacun des 34 candidats\n"
+            "| **ATOSS-01** | ADOPTED | reason | NOT_RUN |\n"
+            "### Exécution par gros lots\n", encoding="utf-8")
+        report = _open_source_inventory(self.root)
+        self.assertEqual(report["status"], "REVIEW")
+        self.assertEqual(report["final_decision_status"], "REVIEW")
+        self.assertEqual(len(report["final_decision_missing_ids"]), 33)
+        self.assertFalse(report["final_decisions_are_execution_evidence"])
+
     def test_catalog_reports_unready_tools_without_running_them(self):
         catalog = {"tool_count": 2, "agent_ready_count": 1,
                    "automation_ready_count": 1, "unguarded_mutator_count": 1,

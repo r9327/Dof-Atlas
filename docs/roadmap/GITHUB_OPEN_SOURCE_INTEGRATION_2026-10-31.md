@@ -1,7 +1,7 @@
 # DOFUS ATLAS — projets GitHub utiles, audit et raccordement canonique
 _Cadrage du 31/10/2026 — main étudié : `0ee44aeeb09358783dcceca799b743c6fb375299` ; issue de livraison [#311](https://github.com/r9327/Dof-Atlas/issues/311)._
 
-> **État : étude et plan de câblage, pas d'intégration effective.** Les 29 projets évalués ici ne sont pas 29 nouvelles dépendances proposées au binaire. Tout outil nouveau passe par l'owner canonique, un benchmark ou un test contradictoire, et une décision documentée ; les projets REDUNDANT/REJECT ne seront pas installés. L'analyse documentaire est exécutée ; Doctor, Graphify, tests Qt/Windows, benchmark, certification et essais DOFUS **NOT_RUN dans cette PR**.
+> **État au 8 novembre 2026 :** inventaire et décisions sur 34 candidats, avec intégrations optionnelles Doctor développées sur la PR #358. Ne pas confondre route implémentée, essai réellement exécuté et outil adopté. La seule exécution Ruff liée à cette PR a un témoin Ubuntu exact-SHA ; les recettes Windows réelles et la certification restent ouvertes. Aucune dépendance supplémentaire au binaire Atlas.
 
 ## 1. Pourquoi Atlas demande une approche différente de Holding
 
@@ -184,51 +184,50 @@ Ce lien de suivi ne change pas la portée documentaire de la PR #312.
 Cette section est un **plan d'exécution**, et non une nouvelle base de candidats : leurs identités, liens, priorités et décisions d'étude demeurent dans les deux tableaux originaux plus haut, consommés par `tools.atlas_doctor_lib.oss_router`.
 Ne pas répéter ici des lignes commençant par une cellule `ATOSS-`/`AT-SUP-`, pour ne pas modifier l'inventaire que Doctor extrait des tableaux canoniques.
 
-### Résultat attendu, outil par outil
+### Décision de maintenance pour chacun des 34 candidats — 8 novembre 2026
 
-Chaque ID a exactement une décision finale parmi `ADOPTED`, `KEEP_EXISTING`, `REJECTED`, `HOLDING_ONLY` ou `DEFERRED_WITH_REASON`.
-L'état initial ci-dessous est **un état de travail et non une preuve**.
-`PREEXISTING_NOT_RETESTED` signifie que le propriétaire est déjà raccordé, **pas** que l'exécutable a été lancé et qualifié à ce SHA.
-`TRIAL_NOT_RUN` impose essai, version/licence et mesure avant toute adoption.
-`EXCLUDE` interdit l'installation automatique dans Atlas ; `COMPARE` exige de choisir au plus une alternative utile.
-Les pré-requis sont communs à chaque candidat : propriétaire canonique, version Windows/Python 3.13 et licence par version, coût (RAM/CPU/CI), scénario réel de succès **et** d'échec, traces exact-SHA, et absence de mutation automatique non autorisée.
+Les 34 décisions sont **documentées**, pas 34 outils installés. `ADOPTED` est réservé à un adaptateur effectivement exécuté dans le périmètre du témoin ; `KEEP_EXISTING` conserve les outils natifs et interdit une nouvelle dépendance sans nouveau besoin ; `DEFERRED_WITH_REASON` n'autorise **aucune** installation implicite. Un essai opt-in disponible ne prouve ni l'installation, ni l'invocation, ni la compatibilité Windows, ni le droit de redistribution. Les décisions futures nécessitent de nouveaux tests et preuves.
 
-| Référence canonique | Direction de travail | Propriétaire concret et preuve attendue | État à cette étape |
+Preuves disponibles : [Ruff OSS sur HEAD `28f6c0b3`](https://github.com/r9327/Dof-Atlas/actions/runs/42519891344), [Doctor-lot 16 tests JSON PASS sur HEAD](https://github.com/r9327/Dof-Atlas/actions/runs/42519826715), [Doctor Graphify CI](https://github.com/r9327/Dof-Atlas/actions/runs/42519823771), [bench mémoire Windows CI, sans PC DOFUS](https://github.com/r9327/Dof-Atlas/actions/runs/42519892945). Les tests simulés ne sont pas des témoins d'exécution tiers. Tout outil non exécuté reste explicitement noté comme tel.
+
+| Référence canonique | Décision | Justification et owner conservé | Preuve / limite |
 |---|---|---|---|
-| **ATOSS-01** | TRIAL dev/CI | Tests Qt, signaux clic/validation/fermeture ; comparer PySide6 natif avant ajout | TRIAL_NOT_RUN |
-| **ATOSS-02** | TRIAL dev/CI | Tests de persistance/Guide/rollback à graines reproductibles ; zéro mutation persistante des fixtures | TRIAL_NOT_RUN |
-| **ATOSS-03** | TRIAL Windows | #285 Launcher et #325 Organizer, véritables fenêtres/UAC/installation/rollback sur VM Windows | TRIAL_NOT_RUN |
-| **ATOSS-04** | COMPARE, option | Doctor Perf Lab, microbenchmark **non concurrent** du benchmark process-tree | TRIAL_NOT_RUN |
-| **ATOSS-05** | COMPARE, option | Doctor tests, prouver isolation avant parallélisme ; jamais UI/persistance partagée sans isolation | TRIAL_NOT_RUN |
-| **ATOSS-06** | KEEP_EXISTING | Doctor Perf Lab : option py-spy déjà prévue ; preuve d'appel, overhead et trace à la demande | PREEXISTING_NOT_RETESTED |
-| **ATOSS-07** | COMPARE, option | Doctor Perf Lab : profiler ciblé uniquement sur freeze non expliqué par instrumentation existante | TRIAL_NOT_RUN |
-| **ATOSS-08** | COMPARE, option | Doctor Perf Lab : qualifier explicitement Windows/Python 3.13 et overhead ou rejeter | TRIAL_NOT_RUN |
-| **ATOSS-09** | COMPARE, option | Doctor Perf Lab : écarter si cProfile/py-spy suffisent ; pas de profiler supplémentaire au repos | TRIAL_NOT_RUN |
-| **ATOSS-10** | KEEP_EXISTING | Benchmark Phase 8 : collecteur process-tree existant à rejouer avec PID/RSS et enfants réels | PREEXISTING_NOT_RETESTED |
-| **ATOSS-11** | COMPARE JSON | Quest index/providers ; parité IDs/offsets/Unicode, cold/warm, pic mémoire avant tout runtime | TRIAL_NOT_RUN |
-| **ATOSS-12** | COMPARE JSON | `tools.atlas_json_benchmark` ; comparer même dataset à ATOSS-11 et stdlib, ne pas cumuler par défaut | TRIAL_NOT_RUN |
-| **ATOSS-13** | COMPARE JSON | JSON inventory/shards ; gain streaming sur fichiers réels sans relire intégralement les données | TRIAL_NOT_RUN |
-| **ATOSS-14** | COMPARE Launcher | #285 uniquement : taille/delta, reprise, hash, migration de format, CPU et rollback mesurés | TRIAL_NOT_RUN |
-| **ATOSS-15** | TRIAL audit Guide | Outils Ganymède, rapprochements consultatifs contrôlés par IDs/provenance, aucune validation automatique de quête | TRIAL_NOT_RUN |
-| **ATOSS-16** | TRIAL audit assets | Détection de doublons visuels avec faux positifs ; aucune suppression automatique | TRIAL_NOT_RUN |
-| **ATOSS-17** | TRIAL audit fonts | Couverture glyphes/versions/licences Unity sur Windows ; pas de redistribution de police sans droits | TRIAL_NOT_RUN |
-| **ATOSS-18** | TRIAL diagnostic | Consumer sites/Graphify : recherche AST ciblée, sans autorisation de refactor/suppression automatique | TRIAL_NOT_RUN |
-| **ATOSS-19** | TRIAL sécurité | Doctor/CI : scan borné, faux positifs, rapport expurgé, pas de nouveau gate automatique par défaut | TRIAL_NOT_RUN |
-| **ATOSS-20** | KEEP_EXISTING | Ruff : adapter Doctor approuvé, exécution réelle sous `agent check --run-tests` si installé, preuve par invocation | PREEXISTING_NOT_RETESTED |
-| **ATOSS-21** | KEEP_EXISTING | zizmor : adapter Doctor approuvé et offline, preuve d'exécution réelle/versions sur Windows | PREEXISTING_NOT_RETESTED |
-| **ATOSS-22** | TRIAL sécurité | Hooks/CI secrets : fixture de détection, rapport expurgé, pas de double scan caché | TRIAL_NOT_RUN |
-| **ATOSS-23** | COMPARE vulnérabilités | Lock de dépendances, **choix unique** face à AT-SUP-04, fraîcheur DB et réseau explicites | TRIAL_NOT_RUN |
-| **ATOSS-24** | DEFER | Évaluations d'agents seulement si scénarios concrets supplémentaires au Doctor existant, pas d'IA runtime | TRIAL_NOT_RUN |
-| **ATOSS-25** | DEFER | Télémétrie uniquement sur lacune mesurée, pas de collecte/diffusion ni coût au repos | TRIAL_NOT_RUN |
-| **ATOSS-26** | HOLDING_ONLY | Holding possède le pont Doctor CLI ; ne pas installer de serveur MCP dans l'EXE Atlas | EXCLUDE |
-| **ATOSS-27** | HOLDING_ONLY | Contrat de test du pont MCP à la charge de Holding, sans second orchestrateur Atlas | EXCLUDE |
-| **ATOSS-28** | REJECT | Icônes Unity déjà propriétaires : ne pas ajouter un deuxième thème/iconset | EXCLUDE |
-| **ATOSS-29** | REJECT | Thème Unity canonique : ne pas remplacer par thème générique Qt | EXCLUDE |
-| **AT-SUP-01** | TRIAL schémas | Tests JSON existants, cas invalides démontrant la valeur non couverte par les validateurs actuels | TRIAL_NOT_RUN |
-| **AT-SUP-02** | KEEP_EXISTING | Packager Windows existant : version et vrai build installé testés par #285, sans remplacement | PREEXISTING_NOT_RETESTED |
-| **AT-SUP-03** | REFERENCE_ONLY | Comparaison isolée Nuitka/PyInstaller uniquement si bénéfice réel, licence et antivirus qualifiés | EXCLUDE |
-| **AT-SUP-04** | COMPARE vulnérabilités | Lock de dépendances, **choix unique** face à ATOSS-23 et audit reproductible | TRIAL_NOT_RUN |
-| **AT-SUP-05** | DEFER | Ne pas dupliquer la validation JSON/actions si contrats natifs couvrent les invariants | TRIAL_NOT_RUN |
+| **AT-SUP-01** | KEEP_EXISTING | Contrats JSON et fixtures invalides existants conservés ; jsonschema supplémentaire sans valeur prouvée. | VALIDATION NATIVE ; pas de package |
+| **AT-SUP-02** | KEEP_EXISTING | Packager Windows propriétaire conservé (PyInstaller) ; aucun changement de binaire sans recette #285. | PACKAGING EXISTANT ; build non testé ici |
+| **AT-SUP-03** | REJECTED | Nuitka serait un remplacement lourd du packager sans A/B Windows, coût et licences établis. | EXCLU D'ATLAS |
+| **AT-SUP-04** | DEFERRED_WITH_REASON | pip-audit éventuel uniquement en diagnostic manuel de la lock, à comparer à OSV ; pas de double gate. | NON EXÉCUTÉ ; non adopté |
+| **AT-SUP-05** | REJECTED | Validation native des actions JSON couvre le besoin ; Pydantic imposerait des imports runtime sans bénéfice. | NON_INSTALLÉ |
+| **ATOSS-01** | KEEP_EXISTING | Conserver les QSignalSpy/helpers PySide6 propriétaires : pytest-qt non nécessaire tant qu'un test de signal manquant n'est pas démontré. | NATIF ; Windows E2E non effectué |
+| **ATOSS-02** | DEFERRED_WITH_REASON | Tests de propriétés Hypothesis opt-in branchés dans Doctor ; aucune preuve d'installation/exécution réelle de ce paquet au HEAD. | ROUTE_SEULE ; validation Windows à faire |
+| **ATOSS-03** | DEFERRED_WITH_REASON | pywinauto réservé à l'acceptation réelle Windows du Launcher #285 et d'Organizer #325 ; pas d'API automations installée ici. | NON_EXÉCUTÉ ; propriétaires non fusionnés |
+| **ATOSS-04** | REJECTED | Microbenchmark concurrent redondant avec Doctor Perf Lab ; aucun gain justifiant une seconde source de chiffres. | NON_INSTALLÉ |
+| **ATOSS-05** | REJECTED | Paralléliser les tests Qt/persistance avant isolation crée des interférences ; sélecteur unittest existant conservé. | NON_INSTALLÉ |
+| **ATOSS-06** | KEEP_EXISTING | Réutiliser l'option py-spy de Doctor Perf Lab ; pas de second profiler permanent. | EXISTANT ; trace live non produite |
+| **ATOSS-07** | REJECTED | VizTracer instrumente l'application et double py-spy/cProfile sans gel supplémentaire caractérisé. | NON_INSTALLÉ |
+| **ATOSS-08** | REJECTED | Scalene non qualifié sur Windows CPython 3.13 et surcharge non mesurée ; aucune raison de l'ajouter. | NON_INSTALLÉ |
+| **ATOSS-09** | REJECTED | pyinstrument ferait doublon avec cProfile et py-spy ; coût et besoin non démontrés. | NON_INSTALLÉ |
+| **ATOSS-10** | KEEP_EXISTING | Collecteur RSS process-tree existant conservé ; bench Windows offscreen #42519892945 exécuté sur HEAD #358. | WINDOWS CI ; pas de mesure PC utilisateur |
+| **ATOSS-11** | KEEP_EXISTING | Conserver QuestSources et ses offsets : msgspec ne remplace rien sans parité charge réelle et gain RSS démontré. | ESSAI PARSEUR SEUL ; pas d'adoption |
+| **ATOSS-12** | KEEP_EXISTING | stdlib JSON reste moteur runtime ; comparateur orjson opt-in implémenté, pas d'avantage de production attesté. | ESSAI DISPONIBLE ; pas de mesure orjson |
+| **ATOSS-13** | KEEP_EXISTING | Conserver l'index canonique ; comparaison ijson opt-in permet vérifier chaque ID sans migration runtime. | ESSAI DISPONIBLE ; pas de mesure ijson |
+| **ATOSS-14** | KEEP_EXISTING | Conserver zlib et format Launcher ; zstandard seulement comparateur hors ligne, migration risquerait delta/rollback. | ESSAI DISPONIBLE ; pas de mesure zstd |
+| **ATOSS-15** | DEFERRED_WITH_REASON | RapidFuzz serait consultatif dans le rapprochement des guides ; attendre l'owner Ganymède #363. | DÉPENDANCE #363 ; non exécuté |
+| **ATOSS-16** | DEFERRED_WITH_REASON | ImageHash possède un essai borné sans suppression ; aucune comparaison d'assets réels ni licence qualifiée. | ESSAI OPT-IN ; non exécuté sur assets |
+| **ATOSS-17** | DEFERRED_WITH_REASON | fontTools possède un essai de métadonnées borné ; rendu Unity Windows et droits de police non vérifiés. | ESSAI OPT-IN ; non exécuté sur fonts |
+| **ATOSS-18** | KEEP_EXISTING | Graphify AST existant fournit déjà les consommateurs ; ast-grep redondant sans lacune identifiée. | GRAPHIFY CI PASS ; ast-grep non ajouté |
+| **ATOSS-19** | REJECTED | Semgrep ferait doublon avec Ruff/zizmor/contrôles CI sans nouvelle règle démontrée. | NON_INSTALLÉ |
+| **ATOSS-20** | ADOPTED | Adaptateur Ruff approuvé, pin 0.17.3 et exécution Ubuntu réelle sur #42519891344, 86 findings sans auto-correction. | EXÉCUTÉ HEAD 28f6c0b3 ; Windows non qualifié |
+| **ATOSS-21** | KEEP_EXISTING | Adaptateur zizmor offline déjà approuvé, pin 1.30.1 ; aucun workflow du scope #358 analysé dans #42519891344. | EXISTANT ; E2E sur workflows non attesté ici |
+| **ATOSS-22** | REJECTED | Gitleaks non activé automatiquement : aucun test contradictoire de valeur supplémentaire face aux contrôles secrets. | NON_INSTALLÉ |
+| **ATOSS-23** | DEFERRED_WITH_REASON | OSV-Scanner non sélectionné : arbitrage unique et probe sur lock nécessaires face à pip-audit. | NON EXÉCUTÉ ; aucun scanner obligatoire ajouté |
+| **ATOSS-24** | REJECTED | Pydantic Evals créerait un second évaluateur IA sans scénarios hors Doctor établis. | NON_INSTALLÉ |
+| **ATOSS-25** | REJECTED | OpenTelemetry introduirait une télémétrie et une charge au repos non justifiées ; attribution Doctor conservée. | NON_INSTALLÉ ; pas de réseau |
+| **ATOSS-26** | HOLDING_ONLY | MCP Python SDK appartient au pont Holding, pas au runtime ou à Doctor local. | EXCLU D'ATLAS |
+| **ATOSS-27** | HOLDING_ONLY | MCP Inspector sert à qualifier le pont Holding uniquement ; pas un module Atlas. | EXCLU D'ATLAS |
+| **ATOSS-28** | REJECTED | Icônes Unity existantes : QtAwesome créerait un deuxième thème. | EXCLU D'ATLAS |
+| **ATOSS-29** | REJECTED | PyQtDarkTheme remplace la charte Unity et créerait des régressions UI. | EXCLU D'ATLAS |
+
+**Bilan contractuel OSR-001 / OSR-008 :** 34/34 décisions et motifs enregistrés dans la matrice canonique, sans seconde liste source. **Autres OSR :** ni Windows personnel, ni installation de tous les outils, ni benchmark comparatif requis ne sont déclarés réussis. La classification des outils ne constitue pas une certification de la PR.
 
 ### Exécution par gros lots (pas de CI FULL entre les commits)
 

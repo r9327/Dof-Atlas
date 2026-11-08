@@ -146,8 +146,13 @@ def intelligent_plan(paths: Iterable[str], inventory: dict[str, Any],
                  else "EVALUATION_REQUIRED")
         if "REJECT" in found.get("study_decision", ""):
             state = "REJECTED"
+        if found.get("final_decision") == "REJECTED":
+            state = "REJECTED"
+        elif found.get("final_decision") == "HOLDING_ONLY":
+            state = "EXTERNAL_OWNER"
         rows.append({
             "id": cid, "name": found.get("name"), "decision": state,
+            "final_policy_decision": found.get("final_decision"),
             "reason_scopes": sorted(reasons[cid]),
             "priority": priority[cid],
             "tool_executed": False,
@@ -262,6 +267,7 @@ def ai_tool_workflow(action: str, core_report: dict[str, Any],
     special = [
         {"tool_id": row.get("id"), "name": row.get("name"),
          "decision": row.get("decision"),
+         "final_policy_decision": row.get("final_policy_decision"),
          "reason_scopes": list(row.get("reason_scopes") or []),
          "shortlisted": row.get("id") in {
              item.get("id") for item in selection.get("recommended", [])
