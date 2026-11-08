@@ -417,6 +417,10 @@ def owners_for(path: str) -> frozenset[str]:
     if path in {"tests/test_unity_skin.py", "tests/test_theme_runtime_cache.py"}:
         # Canonical Unity palette / Qt stylesheet cache regression contracts.
         return frozenset({"ui"})
+    if path == "tests/test_runtime_regression_contracts.py":
+        # Existing contracts cover Zaap/Guide routing, identity, persistence,
+        # Qt callbacks and shutdown. A generic runtime wildcard is unsafe.
+        return frozenset({"organizer", "guides", "identity", "data", "ui", "startup"})
     if path == "tests/test_distribution_export.py":
         # Runtime export policy is both CI packaging integrity and startup.
         return frozenset({"ci", "startup"})

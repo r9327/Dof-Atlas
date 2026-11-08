@@ -13,6 +13,17 @@ H = "b" * 40
 
 
 class ModularDomainRoutingTests(unittest.TestCase):
+    def test_runtime_regression_contracts_keep_all_reviewed_consumers(self):
+        domains = {"organizer", "guides", "identity", "data", "ui", "startup"}
+        path = "tests/test_runtime_regression_contracts.py"
+        self.assertEqual(owners_for(path), frozenset(domains))
+        plan = self.route([path])
+        self.assertEqual(set(plan["domains"]), domains)
+        self.assertEqual(plan["unknown_paths"], [])
+        unknown = "tests/test_runtime_unreviewed_contracts.py"
+        self.assertEqual(owners_for(unknown), frozenset())
+        self.assertEqual(self.route([unknown])["status"], "BLOCKED")
+
     def test_shared_text_requires_all_product_domains_without_unknown_wildcard(self):
         domains = {"craft", "quests", "guides", "ui", "startup",
                    "identity", "data", "organizer"}
