@@ -9,6 +9,7 @@ os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
 from PySide6.QtCore import Qt
 from PySide6.QtGui import QGuiApplication
 from PySide6.QtWidgets import QApplication, QWidget
+from shiboken6 import delete, isValid
 
 from app.constants import (
     KEY_RADIAL_ENABLED, KEY_RADIAL_EXCLUDED, KEY_RADIAL_HOTKEY,
@@ -24,8 +25,9 @@ from app.pages.organizer.radial_overlay import (
 )
 
 
-class _Overlay:
+class _Overlay(QWidget):
     def __init__(self, selection: int | None = None):
+        super().__init__()
         self.visible = False
         self.opens = []
         self.finishes = []
@@ -259,6 +261,25 @@ class OrganizerRadialOverlayTests(unittest.TestCase):
         controller._timer.stop()
         controller.keys = frozenset({0x70})
         return widget, controller, launched
+
+    def test_destroyed_overlay_or_parent_cannot_poll_or_rebind(self):
+        for target in ("overlay", "parent"):
+            with self.subTest(target=target):
+                overlay = OrganizerRadialOverlay()
+                parent, controller, launched = self._controller(overlay, [True])
+                controller._timer.start()
+                delete(overlay if target == "overlay" else parent)
+                controller.key_reader = Mock(side_effect=AssertionError("Native poll after Qt deletion"))
+                controller.cancel()
+                controller.poll()
+                self.assertFalse(controller.set_shortcut("F6"))
+                controller.key_reader.assert_not_called()
+                self.assertEqual(launched, [])
+                if isValid(controller._timer):
+                    self.assertFalse(controller._timer.isActive())
+                for widget in (overlay, parent):
+                    if isValid(widget):
+                        delete(widget)
 
     def test_hold_shows_and_release_always_closes_with_no_selection(self):
         overlay = _Overlay(selection=None)

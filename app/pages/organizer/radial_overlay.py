@@ -15,6 +15,7 @@ from typing import Callable
 from PySide6.QtCore import QPoint, QPointF, Qt, QTimer
 from PySide6.QtGui import QColor, QCursor, QFont, QGuiApplication, QPainter, QPainterPath, QPen, QPixmap
 from PySide6.QtWidgets import QWidget
+from shiboken6 import isValid
 
 from app.constants import LOGO_PATH
 from app.ui.unity_skin import UNITY_PALETTE
@@ -238,6 +239,8 @@ class OrganizerRadialHoldController:
     def set_shortcut(self, text: str) -> bool:
         self.cancel()
         self.keys = frozenset()
+        if not isValid(self._timer) or not isValid(self.overlay):
+            return False
         self._timer.stop()
         # Rebinding is not a cancelled hold: the next deliberate press
         # should work immediately after the old shortcut is released.
@@ -260,10 +263,19 @@ class OrganizerRadialHoldController:
     def cancel(self) -> None:
         self._down = False
         self._cancel_until_release = True
+        # The page's destroyed signal can arrive after the standalone popup
+        # or the timer's C++ object has already been deleted by Qt.
+        if not isValid(self.overlay):
+            if isValid(self._timer):
+                self._timer.stop()
+            return
         if self.overlay.isVisible():
             self.overlay.finish([], cancel=True)
 
     def poll(self) -> None:
+        if not isValid(self._timer) or not isValid(self.overlay):
+            self.cancel()
+            return
         held = bool(self.keys) and self.key_reader(self.keys)
         if not held:
             cancelled = self._cancel_until_release
