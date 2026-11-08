@@ -5,6 +5,10 @@ on:
   pull_request:
     types: [opened, synchronize, reopened]
     paths:
+      - app/macros/mirror_input.py
+      - tools/organizer_mirror_log_report.py
+      - tests/test_organizer_mirror_log_report.py
+      - tests/test_organizer_mirror_ui.py
       - tools/benchmark_organizer_mirror_windows.py
       - tests/test_organizer_mirror_windows_benchmark.py
       - .github/workflows/organizer-mirror-windows-stress.yml
@@ -42,7 +46,9 @@ jobs:
       - name: Run existing input and pointer contract tests
         shell: pwsh
         run: |
-          python -m unittest -q tests.test_organizer_mirror_plan tests.test_organizer_sendinput tests.test_organizer_mirror_windows_benchmark
+          python -m unittest -q tests.test_organizer_mirror_plan tests.test_organizer_sendinput tests.test_organizer_mirror_windows_benchmark tests.test_organizer_mirror_log_report
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          python -m unittest -q tests.test_organizer_mirror_ui.OrganizerMirrorIntegrationTests.test_mirror_wheel_collision_inside_atomic_release_reports_lost_gesture_2_to_8
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
       - name: Probe native Windows fixture input (not Unity)
         shell: pwsh

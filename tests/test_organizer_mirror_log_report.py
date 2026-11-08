@@ -137,6 +137,23 @@ class OrganizerMirrorLogReportTests(unittest.TestCase):
             "complete": 3, "partial": 2, "interrupted": 0,
         })
 
+    def test_explicit_worker_outcome_survives_missing_ui_and_deduplicates(self):
+        for accounts in (2, 4, 6, 8):
+            for ui_logged in (False, True):
+                with self.subTest(accounts=accounts, ui_logged=ui_logged):
+                    lines = [
+                        f"Miroir wheel: envoyés=1/{accounts} worker_total_ms=20 outcome=interrupted",
+                        f"Miroir key: envoyés={accounts}/{accounts} worker_total_ms=20 outcome=partial",
+                    ]
+                    if ui_logged:
+                        lines += [
+                            f"Miroir Molette interrompu : 1/{accounts} fenêtres.",
+                            f"Miroir Clavier incomplet : {accounts}/{accounts} fenêtres.",
+                        ]
+                    self.assertEqual(summarize(lines, accounts)["actions"], {
+                        "complete": 0, "partial": 1, "interrupted": 1,
+                    })
+
     def test_key_wheel_pre_send_aborts_are_visible_without_ui(self):
         for accounts in (2, 4, 6, 8):
             with self.subTest(accounts=accounts):

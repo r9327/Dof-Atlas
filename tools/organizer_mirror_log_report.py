@@ -93,7 +93,8 @@ CLICK_WORKER_STATUS = re.compile(
 # Keyboard and wheel workers log their final emission counts even when the
 # corresponding UI status is not persisted to the same diagnostic file.
 KEY_WHEEL_WORKER_STATUS = re.compile(
-    r"\bMiroir (key|wheel): envoyés=(\d+)/(\d+) worker_total_ms="
+    r"\bMiroir (key|wheel): envoyés=(\d+)/(\d+) worker_total_ms=\S+"
+    r"(?: outcome=(complete|partial|interrupted)\b)?"
 )
 # Cancellations before the worker's normal finally log have no SendInput
 # timing; count them as not delivered, never as fast successful actions.
@@ -172,7 +173,7 @@ def summarize(lines: Iterable[str], accounts: int) -> dict:
             # The metric parser below already reports a foreign roster on
             # this same worker line; never count that single line twice.
             if total == accounts:
-                outcome = "complete" if sent == total else "partial"
+                outcome = other_worker[4] or ("complete" if sent == total else "partial")
                 worker_other_statuses[other_worker[1]][outcome] += 1
         early_abort = KEY_WHEEL_PRE_SEND_ABORT.search(line)
         if early_abort:

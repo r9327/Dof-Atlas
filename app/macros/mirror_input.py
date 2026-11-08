@@ -637,13 +637,7 @@ class MirrorInputMacro:
 
             latency = mirror_latency_percentiles_ms(send_samples_ms)
             focus_latency = mirror_latency_percentiles_ms(focus_samples_ms)
-            runtime.logger.info(
-                "Miroir %s: envoyés=%s/%s worker_total_ms=%.2f "
-                "delivery_step_ms=%s focus_activation_ms=%s",
-                kind, delivered, len(handles), (perf_counter() - start) * 1000.0,
-                latency if latency is not None else "NOT_MEASURED",
-                focus_latency if focus_latency is not None else "NOT_MEASURED",
-            )
+            worker_total_ms = (perf_counter() - start) * 1000.0
             if dispatch_at is not None:
                 # This measures scheduler start and last successful SendInput
                 # issuance, NOT the observed Unity response. A refused/preflight
@@ -666,21 +660,29 @@ class MirrorInputMacro:
                     "contrôle souris indisponible" if pointer_probe_failed
                     else "geste physique non rejoué"
                 )
-                runtime._emit_status(
+                outcome = "interrupted"
+                message = (
                     f"Miroir {label} interrompu : {delivered}/{len(handles)} "
                     f"fenêtres ({reason})."
                 )
             elif delivered != len(handles) or runtime.macro_lock.should_stop():
-                runtime._emit_status(
-                    f"Miroir {label} incomplet : {delivered}/{len(handles)} fenêtres."
-                )
+                outcome = "partial"
+                message = f"Miroir {label} incomplet : {delivered}/{len(handles)} fenêtres."
             elif (runtime.settings is not profile_at_start
                   or not self._still_current(source, handles)):
-                runtime._emit_status(
+                outcome = "partial"
+                message = (
                     f"Miroir {label} : {delivered}/{len(handles)} fenêtres "
                     "(profil modifié après envoi)."
                 )
             else:
-                runtime._emit_status(
-                    f"Miroir {label} : {delivered}/{len(handles)} fenêtres."
-                )
+                outcome = "complete"
+                message = f"Miroir {label} : {delivered}/{len(handles)} fenêtres."
+            runtime.logger.info(
+                "Miroir %s: envoyés=%s/%s worker_total_ms=%.2f outcome=%s "
+                "delivery_step_ms=%s focus_activation_ms=%s",
+                kind, delivered, len(handles), worker_total_ms, outcome,
+                latency if latency is not None else "NOT_MEASURED",
+                focus_latency if focus_latency is not None else "NOT_MEASURED",
+            )
+            runtime._emit_status(message)

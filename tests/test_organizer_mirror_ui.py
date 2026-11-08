@@ -7712,6 +7712,14 @@ class OrganizerMirrorIntegrationTests(unittest.TestCase):
                 runtime.logger.info.assert_any_call(
                     "Miroir molette collisions_physiques=%s cibles=%s", count, count,
                 )
+                worker_log = next(
+                    entry.args for entry in runtime.logger.info.call_args_list
+                    if "worker_total_ms=" in entry.args[0]
+                )
+                self.assertIn(
+                    f"envoyés={count}/{count}", worker_log[0] % worker_log[1:],
+                )
+                self.assertIn("outcome=interrupted", worker_log[0] % worker_log[1:])
                 runtime._emit_status.assert_called_once_with(
                     f"Miroir Molette interrompu : {count}/{count} fenêtres "
                     "(geste physique non rejoué)."
