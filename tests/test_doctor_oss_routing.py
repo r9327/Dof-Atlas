@@ -381,6 +381,44 @@ class DoctorOssRoutingTests(unittest.TestCase):
               patch("tools.atlas_doctor_lib.oss_router.sys.platform", "linux")):
             self.assertIsNone(_zizmor_executable())
 
+    def test_zizmor_rejects_checkout_local_path_even_if_discovered(self):
+        from tools.atlas_doctor_lib.oss_router import _zizmor_executable
+        candidate = self.root / "zizmor"
+        candidate.write_bytes(b"untrusted")
+        with (patch("shutil.which", return_value=str(candidate)),
+              patch("tools.atlas_doctor_lib.oss_router.sys.platform", "linux")):
+            self.assertIsNone(_zizmor_executable(self.root))
+        with (patch("shutil.which", return_value=str(candidate)),
+              patch("tools.atlas_doctor_lib.oss_router.sys.platform", "linux"),
+              patch("tools.atlas_doctor_lib.oss_router.catalog",
+                    return_value={"tools": []}),
+              patch("tools.atlas_doctor_lib.oss_router.select_tools",
+                    return_value={"tools": []}),
+              patch("tools.atlas_doctor_lib.oss_router.local_candidate_preflight",
+                    return_value={"results": [{"kind": "path_executable",
+                                               "name": "zizmor", "available": True}]}),
+              patch("tools.atlas_doctor_lib.oss_router.subprocess.run") as run):
+            report = route_oss(self.root, [".github/workflows/ci.yml"], run=True)
+        run.assert_not_called()
+        self.assertEqual(report["execution"]["status"], "NOT_AVAILABLE")
+
+    def test_zizmor_windows_batch_script_is_not_a_trusted_executable(self):
+        from tools.atlas_doctor_lib.oss_router import _zizmor_executable
+        with TemporaryDirectory() as outside:
+            script = Path(outside) / "zizmor.cmd"
+            script.write_text("@echo off", encoding="utf-8")
+            with (patch("shutil.which", return_value=str(script)),
+                  patch("tools.atlas_doctor_lib.oss_router.sys.platform", "win32"),
+                  patch("tools.atlas_doctor_lib.oss_router.site.getuserbase",
+                        return_value=str(self.root / "no_user_bin"))):
+                self.assertIsNone(_zizmor_executable(self.root))
+            executable = Path(outside) / "zizmor.exe"
+            executable.write_bytes(b"external-exe-fixture")
+            with (patch("shutil.which", return_value=str(executable)),
+                  patch("tools.atlas_doctor_lib.oss_router.sys.platform", "win32")):
+                self.assertEqual(_zizmor_executable(self.root),
+                                 str(executable.resolve()))
+
     def test_preflight_cannot_turn_unresolved_zizmor_into_execution(self):
         with (patch("tools.atlas_doctor_lib.oss_router.catalog",
                     return_value={"tools": []}),

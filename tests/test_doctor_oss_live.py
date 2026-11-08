@@ -159,6 +159,16 @@ class DoctorLiveEvidenceTests(unittest.TestCase):
         self.assertEqual(report["status"], "REVIEW")
         self.assertEqual(report["actual_executions"], 0)
 
+    def test_version_probe_rejects_checkout_local_zizmor(self):
+        from tools.atlas_doctor_lib.oss_router import _observed_tool_version
+        executable = self.root / "zizmor"
+        executable.write_bytes(b"fake-version")
+        with (patch("shutil.which", return_value=str(executable)),
+              patch("tools.atlas_doctor_lib.oss_router.sys.platform", "linux"),
+              patch("tools.atlas_doctor_lib.oss_router.subprocess.run") as run):
+            self.assertIsNone(_observed_tool_version(self.root, "zizmor"))
+        run.assert_not_called()
+
     def test_zizmor_version_probe_never_falls_back_to_cwd_executable(self):
         from types import SimpleNamespace
         from tools.atlas_doctor_lib.oss_router import _observed_tool_version
