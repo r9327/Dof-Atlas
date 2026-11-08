@@ -137,6 +137,21 @@ class DoctorLiveEvidenceTests(unittest.TestCase):
         self.assertEqual(report["input_sha256"], {})
         self.assertFalse(report["windows_13_qualified"])
 
+    def test_mutated_input_does_not_launch_additional_version_probes(self):
+        def altered(_root, _files, **_kwargs):
+            (self.root / self.files[0]).write_text("x = 42\\n", encoding="utf-8")
+            return self._valid()
+        with (patch("tools.atlas_doctor_lib.oss_router.route_oss",
+                    side_effect=altered),
+              patch("tools.atlas_doctor_lib.oss_router._observed_tool_version")
+                    as version):
+            report = qualify_live(self.root, self.files)
+        self.assertEqual(report["status"], "FAIL")
+        self.assertEqual(report["actual_executions"], 2)
+        self.assertFalse(report["versions_match_lock"])
+        self.assertFalse(report["input_files_unchanged"])
+        version.assert_not_called()
+
     def test_python_only_cannot_fake_two_tool_live_acceptance(self):
         with patch("tools.atlas_doctor_lib.oss_router.route_oss") as run:
             report = qualify_live(self.root, ["tools/probe.py"])
