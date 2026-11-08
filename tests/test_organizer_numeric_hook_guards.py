@@ -207,6 +207,7 @@ class OrganizerNumericHookGuardsTests(unittest.TestCase):
         for count in (2, 4, 6, 8):
             with self.subTest(clients=count):
                 runtime = Mock()
+                runtime.macro_lock.active_label = ""
                 runtime._running = True
                 runtime._admin_ok = True
                 profile = SimpleNamespace(

@@ -398,6 +398,8 @@ class OrganizerRadialRosterTests(unittest.TestCase):
 
     def test_untracked_dofus_window_cannot_open_radial_picker(self):
         page = Mock()
+        page.profiles = {}
+        page.hotkey_label.return_value = ""
         page.capture_target = None
         page.sessions = [{"nom": "Panda", "hwnd": 101, "pid": 1001}]
         with (

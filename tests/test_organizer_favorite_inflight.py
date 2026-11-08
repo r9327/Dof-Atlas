@@ -236,7 +236,7 @@ class OrganizerFavoriteInflightTests(unittest.TestCase):
                         "app.macros.auto_group.is_unity_window",
                         side_effect=AssertionError("Native probe after stale dispatch"),
                     ):
-                        self.assertTrue(AutoGroupMacro(runtime).run_async(
+                        self.assertFalse(AutoGroupMacro(runtime).run_async(
                             [{"name": "Friend", "handle": 202}]
                         ))
                     runtime.switch_character.logical_active_client.assert_not_called()
@@ -255,7 +255,7 @@ class OrganizerFavoriteInflightTests(unittest.TestCase):
                         return True
 
                     runtime._spawn_macro.side_effect = spawn
-                    self.assertTrue(ZaapMacro(runtime).run_async("/zaap 1,2"))
+                    self.assertFalse(ZaapMacro(runtime).run_async("/zaap 1,2"))
                     runtime.switch_character.ordered_clients_from_source.assert_not_called()
                     self.assertIn("interrompu", runtime._emit_status.call_args.args[0])
 
@@ -276,7 +276,7 @@ class OrganizerFavoriteInflightTests(unittest.TestCase):
                         "app.macros.direction.foreground_window",
                         side_effect=AssertionError("Native probe after stale dispatch"),
                     ):
-                        self.assertTrue(DirectionMacro(runtime).run_async("HOME"))
+                        self.assertFalse(DirectionMacro(runtime).run_async("HOME"))
                     runtime.switch_character.ordered_clients_from_source.assert_not_called()
 
     def test_auto_group_mode_switch_aborts_remaining_invitations(self):

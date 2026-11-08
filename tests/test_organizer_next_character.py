@@ -102,6 +102,7 @@ class NextCharacterTests(unittest.TestCase):
                         self.assertTrue(macro.activate_next())
                     activate.assert_called_once_with(
                         slot % count + 1, expected_profile=runtime.settings,
+                        expected_context=(runtime.settings.primary_handle, "macro"),
                     )
 
 
@@ -163,7 +164,10 @@ class NextCharacterTests(unittest.TestCase):
                     patch.object(macro, "activate_by_index", return_value=True) as activate,
                 ):
                     self.assertTrue(macro.activate_next())
-                    activate.assert_called_once_with(2, expected_profile=profile)
+                    activate.assert_called_once_with(
+                        2, expected_profile=profile,
+                        expected_context=(profile.primary_handle, "macro"),
+                    )
                     self.assertNotIn(999, [call.args[0] for call in unity.call_args_list])
                     # Two distinct authenticated clients claiming slot 1 make
                     # the character-cycle order ambiguous: never choose one.
@@ -239,6 +243,7 @@ class NextCharacterTests(unittest.TestCase):
             self.assertTrue(macro.activate_next())
         activate.assert_called_once_with(
             3, expected_profile=runtime.settings,
+            expected_context=(runtime.settings.primary_handle, "macro"),
         )
 
     def test_next_rejects_obsolete_callback_before_native_scan_2_to_8(self):

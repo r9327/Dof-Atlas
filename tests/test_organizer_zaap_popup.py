@@ -155,6 +155,7 @@ class OrganizerZaapPopupTests(unittest.TestCase):
         from app.core.runtime_state import AtlasRuntime
 
         runtime = Mock()
+        runtime.macro_lock.active_label = ""
         for accepted in (False, True):
             with self.subTest(accepted=accepted):
                 runtime.zaap.run_async.return_value = accepted
