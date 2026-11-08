@@ -228,6 +228,8 @@ class OrganizerUiMixin:
         self.click_clear = AtlasButton("x")
 
         control_size = QSize(138, BUTTON_HEIGHT)
+        # Two text lines must fit inside the Unity sprite's 8px borders.
+        radial_control_size = QSize(control_size.width(), 48)
         controls_panel_height = 206
         panel_inner_width = control_size.width() * 2 + 8
         panel_width = panel_inner_width + CARD_PADDING * 2
@@ -249,6 +251,7 @@ class OrganizerUiMixin:
             button.setFixedSize(control_size)
             button.setSizePolicy(QSizePolicy.Fixed, QSizePolicy.Fixed)
             button.setObjectName("secondaryButton")
+        self.radial_select_button.setFixedSize(radial_control_size)
         self.stop_script_button.setObjectName("dangerButton")
         self.stop_script_button.setFixedSize(stop_size)
         self.stop_script_button.setSizePolicy(QSizePolicy.Fixed, QSizePolicy.Fixed)
@@ -393,7 +396,7 @@ class OrganizerUiMixin:
         quick_grid.setHorizontalSpacing(8)
         quick_grid.setVerticalSpacing(8)
         quick_grid.addWidget(self.switch_fake, 0, 0)
-        quick_grid.addWidget(macro_cell(self.radial_select_button, self.radial_hotkey_button, self.radial_clear), 0, 1)
+        quick_grid.addWidget(macro_cell(self.radial_select_button, self.radial_hotkey_button, self.radial_clear, size=radial_control_size), 0, 1)
         # Primary Normal/Rapide choice is a single horizontal pair. Keep
         # Classique and Instantané available underneath for existing profiles
         # without changing any stored preset or actual timing.
