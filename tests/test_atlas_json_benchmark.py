@@ -84,6 +84,49 @@ class AtlasJsonBenchmarkTests(unittest.TestCase):
             self.assertEqual(result["results"][0]["status"], "PARITY_FAIL")
             self.assertEqual(result["status"], "REVIEW")
 
+    def test_parser_parity_requires_exact_json_scalar_types(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            source = Path(tmp) / "quests.json"
+            source.write_text(
+                '{"quests":{"1":{"value":1,"ratio":1.0,"active":true}}}',
+                encoding="utf-8")
+            payload = json.loads(source.read_text(encoding="utf-8"))
+            alternatives = [
+                {"quests": {"1": {"value": True, "ratio": 1.0, "active": True}}},
+                {"quests": {"1": {"value": 1, "ratio": 1, "active": True}}},
+                {"quests": {"1": {"value": 1, "ratio": 1.0, "active": 1}}},
+            ]
+            self.assertEqual(payload["quests"]["1"]["value"], True)
+            for replacement in alternatives:
+                with self.subTest(replacement=replacement):
+                    with patch("tools.atlas_json_benchmark.importlib.import_module",
+                               return_value=SimpleNamespace(loads=lambda _: replacement)):
+                        result = compare_json_parsers(source, candidates=("msgspec",))
+                    self.assertEqual(result["status"], "REVIEW")
+                    self.assertEqual(result["results"][0]["status"], "PARITY_FAIL")
+            # Reordering JSON object keys is equivalent; array order is not.
+            reordered = {"quests": {"1": {"active": True, "ratio": 1.0, "value": 1}}}
+            with patch("tools.atlas_json_benchmark.importlib.import_module",
+                       return_value=SimpleNamespace(loads=lambda _: reordered)):
+                result = compare_json_parsers(source, candidates=("orjson",))
+            self.assertEqual(result["results"][0]["status"], "PARITY_PASS")
+
+    def test_streaming_rejects_numeric_type_coercion_in_quest_values(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            source = Path(tmp) / "quests.json"
+            source.write_text('{"quests":{"1":{"required":1,"active":true}}}',
+                              encoding="utf-8")
+            for wrong in ({"required": True, "active": True},
+                          {"required": 1.0, "active": True},
+                          {"required": 1, "active": 1}):
+                with self.subTest(wrong=wrong):
+                    fake = SimpleNamespace(
+                        kvitems=lambda *_args, **_kwargs: iter([("1", wrong)]))
+                    with patch("tools.atlas_json_benchmark.importlib.import_module",
+                               return_value=fake):
+                        report = compare_json_streaming(source)
+                    self.assertEqual(report["status"], "PARITY_FAIL")
+
     def test_parser_trials_reject_input_symlinks(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
             original = Path(tmp) / "original.json"

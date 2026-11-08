@@ -101,6 +101,31 @@ def benchmark(
 
 
 
+
+def _identical_json_values(expected: object, actual: object) -> bool:
+    """Compare parsed JSON without Python's bool/int/float equality shortcuts.
+
+    Values and sequence order must match, including their exact JSON scalar
+    types. Iterative traversal avoids a second recursion depth limit on the
+    large quest catalogue. A missing key or malformed type is never PARITY_PASS.
+    """
+    pending = [(expected, actual)]
+    while pending:
+        left, right = pending.pop()
+        if type(left) is not type(right):
+            return False
+        if isinstance(left, dict):
+            if left.keys() != right.keys():
+                return False
+            pending.extend((value, right[key]) for key, value in left.items())
+        elif isinstance(left, list):
+            if len(left) != len(right):
+                return False
+            pending.extend(zip(left, right))
+        elif left != right:
+            return False
+    return True
+
 def compare_json_parsers(
     source: Path, *, candidates: tuple[str, ...] = ("stdlib", "orjson", "msgspec"),
     repeats: int = 3, max_bytes: int = 128 * 1024 * 1024,
@@ -146,7 +171,7 @@ def compare_json_parsers(
                 started = time.perf_counter_ns()
                 decoded = loads(raw)
                 duration = (time.perf_counter_ns() - started) / 1_000_000
-                if decoded != baseline:
+                if not _identical_json_values(baseline, decoded):
                     raise ValueError("Decoded JSON differs from stdlib")
                 samples.append(round(duration, 6))
         except (ValueError, TypeError, UnicodeError, OverflowError, RecursionError):
@@ -213,7 +238,8 @@ def compare_json_streaming(source: Path, *, max_bytes: int = 128 * 1024 * 1024) 
     started = time.perf_counter_ns()
     try:
         for quest_id, quest in ijson.kvitems(io.BytesIO(raw), "quests", use_float=True):
-            if quest_id in seen or quest_id not in quests or quests[quest_id] != quest:
+            if (quest_id in seen or quest_id not in quests
+                    or not _identical_json_values(quests[quest_id], quest)):
                 raise ValueError("Streaming quest ID/value mismatch")
             seen.add(quest_id)
         if len(seen) != len(quests):
