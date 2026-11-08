@@ -165,12 +165,17 @@ def _zizmor_executable() -> str | None:
     probe arbitrary directories or run an unverified symlink.
     """
     from shutil import which
-    if which("zizmor"):
-        return "zizmor"
+    found = which("zizmor")
+    if found:
+        candidate = Path(found)
+        # Avoid the Windows process search order: never pass a bare executable
+        # name or a relative PATH entry to a subprocess running in the repo.
+        if candidate.is_absolute() and candidate.is_file() and not candidate.is_symlink():
+            return str(candidate.resolve())
     if sys.platform == "win32":
         candidate = Path(site.getuserbase()) / "Scripts" / "zizmor.exe"
-        if candidate.is_file() and not candidate.is_symlink():
-            return str(candidate)
+        if candidate.is_absolute() and candidate.is_file() and not candidate.is_symlink():
+            return str(candidate.resolve())
     return None
 
 
@@ -282,8 +287,13 @@ def _observed_tool_version(root: Path, name: str) -> str | None:
         return None
     # -P protects against loading a rogue ruff module from the checkout.
     # Unlike -s/PYTHONNOUSERSITE, it keeps pip --user installations visible.
-    command = ([sys.executable, "-P", "-m", "ruff", "--version"]
-               if name == "ruff" else [_zizmor_executable() or "zizmor", "--version"])
+    if name == "zizmor":
+        executable = _zizmor_executable()
+        if executable is None:
+            return None
+        command = [executable, "--version"]
+    else:
+        command = [sys.executable, "-P", "-m", "ruff", "--version"]
     env = {key: value for key, value in os.environ.items()
            if key in {"PATH", "SYSTEMROOT", "WINDIR", "TEMP", "TMP", "HOME"}}
     env.update({"ZIZMOR_OFFLINE": "1", "PIP_NO_INDEX": "1",
@@ -564,11 +574,10 @@ def route_oss(root: Path, paths: Iterable[str], *, run: bool = False,
         preflight_error_type = type(exc).__name__
     detected = discovered.get(("python_distribution", "ruff"))
     available = bool(detected and detected["available"])
-    workflow_candidate = discovered.get(("path_executable", "zizmor"))
+    # Preflight is discovery metadata, not proof of the executable to launch.
+    # Resolve the same absolute file used for subsequent version attestation.
     workflow_executable = (
-        None if preflight_error_type else
-        "zizmor" if workflow_candidate and workflow_candidate["available"]
-        else _zizmor_executable() if workflows else None
+        _zizmor_executable() if workflows and not preflight_error_type else None
     )
     workflow_available = bool(workflow_executable)
     timeout_each = max(1, timeout_seconds // max(1, int(bool(python_files)) + int(bool(workflows))))
@@ -643,7 +652,7 @@ def route_oss(root: Path, paths: Iterable[str], *, run: bool = False,
                                   "reason": "Not installed; no installation attempted"}
         else:
             workflow_execution = _execute_zizmor(root, workflows, timeout_each,
-                                                 binary=workflow_executable or "zizmor")
+                                                 binary=workflow_executable)
         if not python_files:
             execution = workflow_execution
     inputs_modified = None

@@ -367,6 +367,57 @@ class DoctorOssRoutingTests(unittest.TestCase):
         self.assertFalse(report["phase_certified"])
         self.assertNotIn("sensitive local package path", json.dumps(report))
 
+    def test_zizmor_resolver_rejects_relative_and_linked_executables(self):
+        from tools.atlas_doctor_lib.oss_router import _zizmor_executable
+        executable = self.root / "zizmor"
+        executable.write_bytes(b"fake binary")
+        with patch("shutil.which", return_value=str(executable)):
+            self.assertEqual(_zizmor_executable(), str(executable.resolve()))
+        with (patch("shutil.which", return_value="./zizmor"),
+              patch("tools.atlas_doctor_lib.oss_router.sys.platform", "linux")):
+            self.assertIsNone(_zizmor_executable())
+        with (patch("shutil.which", return_value=str(executable)),
+              patch("pathlib.Path.is_symlink", return_value=True),
+              patch("tools.atlas_doctor_lib.oss_router.sys.platform", "linux")):
+            self.assertIsNone(_zizmor_executable())
+
+    def test_preflight_cannot_turn_unresolved_zizmor_into_execution(self):
+        with (patch("tools.atlas_doctor_lib.oss_router.catalog",
+                    return_value={"tools": []}),
+              patch("tools.atlas_doctor_lib.oss_router.select_tools",
+                    return_value={"tools": []}),
+              patch("tools.atlas_doctor_lib.oss_router.local_candidate_preflight",
+                    return_value={"results": [{"kind": "path_executable",
+                                               "name": "zizmor", "available": True}]}),
+              patch("tools.atlas_doctor_lib.oss_router._zizmor_executable",
+                    return_value=None),
+              patch("tools.atlas_doctor_lib.oss_router._execute_zizmor") as scan):
+            report = route_oss(self.root, [".github/workflows/ci.yml"], run=True)
+        scan.assert_not_called()
+        self.assertEqual(report["execution"]["status"], "NOT_AVAILABLE")
+        self.assertEqual(report["execution_count"], 0)
+        self.assertEqual(report["execution_summary"]["status"], "INCOMPLETE")
+
+    def test_workflow_scan_receives_only_resolved_absolute_binary(self):
+        absolute = str((self.root / "trusted" / "zizmor").resolve())
+        with (patch("tools.atlas_doctor_lib.oss_router.catalog",
+                    return_value={"tools": []}),
+              patch("tools.atlas_doctor_lib.oss_router.select_tools",
+                    return_value={"tools": []}),
+              patch("tools.atlas_doctor_lib.oss_router.local_candidate_preflight",
+                    return_value={"results": [{"kind": "path_executable",
+                                               "name": "zizmor", "available": True}]}),
+              patch("tools.atlas_doctor_lib.oss_router._zizmor_executable",
+                    return_value=absolute),
+              patch("tools.atlas_doctor_lib.oss_router._execute_zizmor",
+                    return_value={"tool": "zizmor", "status": "CLEAN",
+                                  "finding_count": 0}) as scan):
+            report = route_oss(self.root, [".github/workflows/ci.yml"], run=True)
+        scan.assert_called_once_with(
+            self.root, [".github/workflows/ci.yml"], 20, binary=absolute)
+        self.assertEqual(report["execution"]["status"], "CLEAN")
+        self.assertEqual(report["execution_summary"]["confirmed_executions"], 1)
+
     def test_timeout_is_not_a_fake_success(self):
         from subprocess import TimeoutExpired
         with (patch("tools.atlas_doctor_lib.oss_router.catalog", return_value={}),

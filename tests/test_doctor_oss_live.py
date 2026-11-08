@@ -159,6 +159,24 @@ class DoctorLiveEvidenceTests(unittest.TestCase):
         self.assertEqual(report["status"], "REVIEW")
         self.assertEqual(report["actual_executions"], 0)
 
+    def test_zizmor_version_probe_never_falls_back_to_cwd_executable(self):
+        from types import SimpleNamespace
+        from tools.atlas_doctor_lib.oss_router import _observed_tool_version
+        with (patch("tools.atlas_doctor_lib.oss_router._zizmor_executable",
+                    return_value=None),
+              patch("tools.atlas_doctor_lib.oss_router.subprocess.run") as run):
+            self.assertIsNone(_observed_tool_version(self.root, "zizmor"))
+        run.assert_not_called()
+        binary = str((self.root / "trusted" / "zizmor").resolve())
+        with (patch("tools.atlas_doctor_lib.oss_router._zizmor_executable",
+                    return_value=binary),
+              patch("tools.atlas_doctor_lib.oss_router.subprocess.run",
+                    return_value=SimpleNamespace(returncode=0,
+                                                stdout="zizmor 1.30.1\\n",
+                                                stderr="")) as run):
+            self.assertEqual(_observed_tool_version(self.root, "zizmor"), "1.30.1")
+        self.assertEqual(run.call_args.args[0], [binary, "--version"])
+
     def test_version_probe_is_bound_and_does_not_inherit_github_secrets(self):
         from types import SimpleNamespace
         from tools.atlas_doctor_lib.oss_router import _observed_tool_version
@@ -166,6 +184,8 @@ class DoctorLiveEvidenceTests(unittest.TestCase):
                     return_value=SimpleNamespace(returncode=0,
                                                 stdout="zizmor 1.32.0\n",
                                                 stderr="TOKEN")) as run,
+              patch("tools.atlas_doctor_lib.oss_router._zizmor_executable",
+                    return_value="/trusted/zizmor"),
               patch.dict("tools.atlas_doctor_lib.oss_router.os.environ",
                          {"GITHUB_TOKEN": "secret", "HTTP_PROXY": "localhost"},
                          clear=False)):
@@ -179,10 +199,12 @@ class DoctorLiveEvidenceTests(unittest.TestCase):
     def test_version_probe_does_not_trust_arbitrary_tool_output(self):
         from types import SimpleNamespace
         from tools.atlas_doctor_lib.oss_router import _observed_tool_version
-        with patch("tools.atlas_doctor_lib.oss_router.subprocess.run",
-                   return_value=SimpleNamespace(returncode=0,
-                                               stdout="zizmor 1.32.0 secret\n",
-                                               stderr="")):
+        with (patch("tools.atlas_doctor_lib.oss_router._zizmor_executable",
+                    return_value="/trusted/zizmor"),
+              patch("tools.atlas_doctor_lib.oss_router.subprocess.run",
+                    return_value=SimpleNamespace(returncode=0,
+                                                stdout="zizmor 1.32.0 secret\n",
+                                                stderr=""))):
             self.assertIsNone(_observed_tool_version(self.root, "zizmor"))
         self.assertIsNone(_observed_tool_version(self.root, "other-binary"))
 

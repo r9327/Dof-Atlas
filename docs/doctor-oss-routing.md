@@ -60,7 +60,10 @@ Avec `--run` ou `agent check --run-oss`, Doctor lance au plus
 pour les fichiers Python, zizmor pour les YAML GitHub Actions.
 Pour zizmor, `--offline --no-config --no-progress --no-exit-codes
 --format=json` empêche toute collecte GitHub en ligne et interdit le
-chargement des configurations locales. L'environnement du processus
+chargement des configurations locales. Le scanner et sa vérification
+`--version` utilisent un chemin exécutable absolu résolu et régulier ;
+la détection seule sur PATH ne permet pas de lancer un nom nu depuis
+le répertoire du dépôt (notamment sous Windows). L'environnement du processus
 ne transmet ni tokens ni proxy. Les résultats sont des **compteurs**
 (`CLEAN`, `FINDINGS`, `NOT_AVAILABLE`, `ERROR`, `TIMEOUT`), sans
 contenu sensible. Aucune installation ni correction n'est réalisée.
