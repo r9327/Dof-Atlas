@@ -127,6 +127,28 @@ class AtlasJsonBenchmarkTests(unittest.TestCase):
                         report = compare_json_streaming(source)
                     self.assertEqual(report["status"], "PARITY_FAIL")
 
+    def test_nested_json_arrays_keep_exact_types_and_order(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            source = Path(tmp) / "quests.json"
+            source.write_text(
+                '{"quests":{"1":{"steps":[1,true,3],"meta":{"kind":"A"}}}}',
+                encoding="utf-8")
+            altered = (
+                {"quests": {"1": {"steps": [1.0, True, 3],
+                                   "meta": {"kind": "A"}}}},
+                {"quests": {"1": {"steps": [3, True, 1],
+                                   "meta": {"kind": "A"}}}},
+                {"quests": {"1": {"steps": [1, True, 3],
+                                   "meta": {"kind": "B"}}}},
+            )
+            for replacement in altered:
+                with self.subTest(replacement=replacement):
+                    with patch("tools.atlas_json_benchmark.importlib.import_module",
+                               return_value=SimpleNamespace(loads=lambda _: replacement)):
+                        result = compare_json_parsers(
+                            source, candidates=("orjson",), repeats=1)
+                    self.assertEqual(result["results"][0]["status"], "PARITY_FAIL")
+
     def test_parser_trials_reject_input_symlinks(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
             original = Path(tmp) / "original.json"
