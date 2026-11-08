@@ -180,8 +180,11 @@ def _zizmor_executable() -> str | None:
 
 
 def _execute_zizmor(root: Path, files: list[str], timeout: int,
-                    *, binary: str = "zizmor") -> dict[str, Any]:
+                    *, binary: str) -> dict[str, Any]:
     """Run an installed workflow scanner, explicitly offline, without changes."""
+    if not isinstance(binary, str) or not Path(binary).is_absolute():
+        return {"status": "UNAVAILABLE", "tool": "zizmor",
+                "reason": "Scanner requires an absolute executable path"}
     # Strictly bound input volume; inputs are pre-validated regular files.
     if any((root / file).stat().st_size > 1024 * 1024 for file in files):
         return {"status": "NOT_APPLICABLE", "tool": "zizmor",
