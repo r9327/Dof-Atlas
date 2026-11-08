@@ -519,6 +519,30 @@ class DoctorOssRoutingTests(unittest.TestCase):
         self.assertEqual(len(report["final_decision_missing_ids"]), 33)
         self.assertFalse(report["final_decisions_are_execution_evidence"])
 
+    def test_corrupt_final_decision_cannot_be_silently_qualified(self):
+        from tools.atlas_doctor_lib.oss_router import _open_source_inventory
+        study_dir = self.root / "docs" / "roadmap"
+        study_dir.mkdir(parents=True, exist_ok=True)
+        lines = [
+            f"| ATOSS-{i:02d} | [x](https://github.com/a/x) | ASSESS | Owner |"
+            for i in range(1, 30)
+        ] + [
+            f"| AT-SUP-{i:02d} | [x](https://github.com/a/x) | ASSESS | Owner |"
+            for i in range(1, 6)
+        ]
+        lines.append("### Décision de maintenance pour chacun des 34 candidats")
+        lines.append("| **ATOSS-01** | SOMETHING_UNKNOWN | reason | NOT_RUN |")
+        lines.append("| **ATOSS-01** | ADOPTED | reason | NOT_RUN |")
+        lines.append("### Exécution par gros lots")
+        path = study_dir / "GITHUB_OPEN_SOURCE_INTEGRATION_2026-10-31.md"
+        path.write_text("\n".join(lines) + "\n", encoding="utf-8")
+        report = _open_source_inventory(self.root)
+        self.assertEqual(report["status"], "REVIEW")
+        self.assertEqual(report["final_decision_status"], "REVIEW")
+        self.assertIn("malformed final decision row",
+                      report["final_decision_errors"])
+        self.assertEqual(report["execution_witnesses"], 0)
+
     def test_catalog_reports_unready_tools_without_running_them(self):
         catalog = {"tool_count": 2, "agent_ready_count": 1,
                    "automation_ready_count": 1, "unguarded_mutator_count": 1,

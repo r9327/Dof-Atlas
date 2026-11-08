@@ -218,6 +218,22 @@ class DoctorOssIntelligenceTests(unittest.TestCase):
                          {probe["id"] for probe in plan["local_package_probes"]})
         self.assertFalse(plan["certified"])
 
+    def test_ai_workflow_shows_documented_decision_without_certifying(self):
+        from tools.atlas_doctor_lib.oss_intelligence import ai_tool_workflow
+        inventory = study()
+        for row in inventory["candidates"]:
+            if row["id"] == "ATOSS-02":
+                row["final_decision"] = "DEFERRED_WITH_REASON"
+        plan = intelligent_plan(["tests/test_doctor_auto_oss.py"], inventory)
+        report = ai_tool_workflow("plan", {"status": "REVIEW", "exit_code": 1}, plan)
+        details = {row["tool_id"]: row for row in report["oss_recommendations"]}
+        self.assertEqual(details["ATOSS-02"]["final_policy_decision"],
+                         "DEFERRED_WITH_REASON")
+        self.assertFalse(details["ATOSS-02"]["adoption_qualified"])
+        self.assertFalse(details["ATOSS-02"]["trial_executed"])
+        self.assertFalse(details["ATOSS-02"]["automatic_execution"])
+        self.assertFalse(report["may_claim_full_certification"])
+
     def test_invalid_or_partial_study_cannot_claim_certification(self):
         plan = intelligent_plan(["tools/test_tool.py"], {"status": "REVIEW", "candidates": []})
         self.assertEqual(plan["status"], "REVIEW")
