@@ -6361,5 +6361,55 @@ class OrganizerDetachedProfileTests(unittest.TestCase):
                     )
 
 
+    def test_direction_stop_before_keydown_never_counts_an_unemitted_key_2_to_8(self):
+        from app.macros import input_tools
+        for count in (2, 4, 6, 8):
+            with self.subTest(clients=count):
+                runtime = _runtime()
+                runtime.settings.client_by_handle.return_value = object()
+                runtime.settings.timings.movement_key_hold_ms = 0
+                handles = tuple(range(101, 101 + count))
+                runtime.switch_character.ordered_clients_from_source.return_value = [
+                    SimpleNamespace(handle=h) for h in handles
+                ]
+                stopped = [False]
+                runtime.macro_lock.should_stop.side_effect = lambda: stopped[0]
+                def resolve_key(_name):
+                    stopped[0] = True  # Stop after Direction's last guard.
+                    return 0x24
+                with (
+                    patch("app.macros.direction.foreground_window", return_value=101),
+                    patch("app.macros.direction.is_unity_window", return_value=True),
+                    patch("app.macros.direction.is_dofus_unity_process", return_value=True),
+                    patch("app.macros.direction.activate_window", return_value=True),
+                    patch.object(input_tools, "_vk", side_effect=resolve_key),
+                    patch.object(input_tools, "key_down") as down,
+                    patch.object(input_tools, "key_up") as up,
+                ):
+                    DirectionMacro(runtime)._run("HOME")
+                down.assert_not_called()
+                up.assert_not_called()
+                runtime.switch_character.restore_preferred_client.assert_not_called()
+                runtime.logger.info.assert_any_call(
+                    "Switch deplacement %s: envoyes=%s/%s", "interrompu", 0, count,
+                )
+                metric = next(c.args for c in runtime.logger.info.call_args_list
+                              if "key_hold_ms=" in c.args[0])
+                self.assertEqual(metric[2], "NOT_MEASURED")
+
+    def test_press_key_reports_only_a_balanced_physical_emission(self):
+        from app.macros import input_tools
+        for valid, stopped, expected in ((True, False, True), (True, True, False), (False, False, False)):
+            with (
+                self.subTest(valid=valid, stopped=stopped),
+                patch.object(input_tools, "_vk", return_value=0x24 if valid else 0),
+                patch.object(input_tools, "key_down") as down,
+                patch.object(input_tools, "key_up") as up,
+            ):
+                self.assertIs(input_tools.press_key("HOME", should_stop=lambda: stopped), expected)
+                self.assertEqual(down.call_count, int(expected))
+                self.assertEqual(up.call_count, int(expected))
+
+
 if __name__ == "__main__":
     unittest.main()

@@ -258,7 +258,7 @@ class DirectionMacro:
                     last_activated_hwnd = int(target_hwnd)
                     key_started_at = perf_counter()
                     try:
-                        press_key(
+                        emitted = press_key(
                             key_name, timings.movement_key_hold_ms,
                             should_stop=lambda: (
                                 self.runtime.macro_lock.should_stop()
@@ -267,6 +267,12 @@ class DirectionMacro:
                                 or dispatch_context_changed()
                             ),
                         )
+                        # Stop can arrive after our last guard but before
+                        # the sender's KEYDOWN. Do not invent an emission or
+                        # a fast latency sample for that cancelled input.
+                        if emitted is False:
+                            focus_lost = True
+                            return
                     except OSError:
                         # SendInput refused the movement key or its UP.
                         # Do not fan out to more clients or restore focus

@@ -110,10 +110,11 @@ def key_up(vk_code: int) -> None:
 def press_key(
     key_name: str, hold_ms: int = 0,
     *, should_stop: Callable[[], bool] | None = None,
-) -> None:
+) -> bool:
+    """Return False before any DOWN, True after its paired UP completed."""
     vk_code = _vk(key_name)
     if not vk_code or (should_stop is not None and should_stop()):
-        return
+        return False
     key_down(vk_code)
     try:
         if hold_ms > 0:
@@ -137,6 +138,7 @@ def press_key(
             logging.getLogger(__name__).exception(
                 "Relachement touche impossible apres une erreur d'entree"
             )
+    return True
 
 
 def press_hotkey(*key_names: str, hold_ms: int = 0) -> None:
