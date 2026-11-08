@@ -4,6 +4,7 @@ import json
 import os
 import tempfile
 import unittest
+from itertools import product
 from pathlib import Path
 from types import SimpleNamespace
 from unittest.mock import Mock, patch
@@ -16,6 +17,16 @@ from app.constants import KEY_ORGANIZER_MACRO_MODE, KEY_RADIAL_ENABLED
 from app.core.runtime_state import AtlasRuntime
 from app.input.hotkeys import build_hotkey_actions
 from app.pages.organizer_page import OrganizerPage
+
+
+def _recipient_focus_reads(handles, probes=1):
+    """Foreground before the next activation, then on the activated client."""
+    readings = []
+    for index, hwnd in enumerate(handles):
+        if index:
+            readings.append(handles[index - 1])
+        readings.extend([hwnd] * probes)
+    return readings
 
 
 class OrganizerMirrorIntegrationTests(unittest.TestCase):
@@ -600,7 +611,7 @@ class OrganizerMirrorIntegrationTests(unittest.TestCase):
                     patch("app.macros.mirror_input.activate_window",
                           return_value=True),
                     patch("app.macros.mirror_input.foreground_window",
-                          side_effect=[*handles, handles[-1]]),
+                          side_effect=[*_recipient_focus_reads(handles), handles[-1]]),
                     patch("app.macros.input_tools.key_down") as down,
                     patch("app.macros.input_tools.key_up") as up,
                 ):
@@ -666,7 +677,7 @@ class OrganizerMirrorIntegrationTests(unittest.TestCase):
                     patch("app.macros.mirror_input.activate_window",
                           return_value=True) as activate,
                     patch("app.macros.mirror_input.foreground_window",
-                          side_effect=[*handles, handles[-1]]),
+                          side_effect=[*_recipient_focus_reads(handles), handles[-1]]),
                     patch("app.macros.input_tools.key_down",
                           side_effect=lambda vk: events.append(("down", vk))),
                     patch("app.macros.input_tools.key_up",
@@ -709,7 +720,7 @@ class OrganizerMirrorIntegrationTests(unittest.TestCase):
                 timings.switch_client_settle_ms = 0
                 runtime.macro_lock.should_stop.return_value = False
                 runtime.macro_lock.wait.return_value = False
-                focus_sequence = [h for h in handles for _ in range(2)] + [handles[-1]] * 2
+                focus_sequence = _recipient_focus_reads(handles, probes=2) + [handles[-1]] * 2
                 with (
                     patch("app.macros.mirror_input.is_dofus_unity_process",
                           return_value=True),
@@ -1234,7 +1245,7 @@ class OrganizerMirrorIntegrationTests(unittest.TestCase):
                     patch("app.macros.mirror_input.activate_window",
                           return_value=True),
                     patch("app.macros.mirror_input.foreground_window",
-                          side_effect=[*handles, handles[-1]]),
+                          side_effect=[*_recipient_focus_reads(handles), handles[-1]]),
                     patch("app.macros.input_tools.key_down", side_effect=key_event),
                     patch("app.macros.input_tools.key_up", side_effect=key_event),
                 ):
@@ -1298,7 +1309,7 @@ class OrganizerMirrorIntegrationTests(unittest.TestCase):
                     patch("app.macros.mirror_input.activate_window",
                           side_effect=activate) as activator,
                     patch("app.macros.mirror_input.foreground_window",
-                          side_effect=[*(h for h in handles for _ in range(2)),
+                          side_effect=[*_recipient_focus_reads(handles, probes=2),
                                        handles[-1], handles[-1]]),
                     patch("app.macros.mirror_input.client_point_from_ratio",
                           return_value=(8, 9)),
@@ -1532,7 +1543,7 @@ class OrganizerMirrorIntegrationTests(unittest.TestCase):
                     patch("app.macros.switch_click.is_unity_window", return_value=True),
                     patch("app.macros.switch_click.is_dofus_unity_process", return_value=True),
                     patch("app.macros.switch_click.activate_window", return_value=True),
-                    patch("app.macros.switch_click.foreground_window", side_effect=list(handles)),
+                    patch("app.macros.switch_click.foreground_window", side_effect=_recipient_focus_reads(handles)),
                     patch("app.macros.switch_click.send_client_click", return_value=True) as sender,
                     patch.object(macro, "_target_point", return_value=(20, 30)),
                 ):
@@ -2210,7 +2221,7 @@ class OrganizerMirrorIntegrationTests(unittest.TestCase):
                 sent_results = [True] * successful_before_failure + [False]
                 focus_sequence = (
                     [101] if successful_before_failure == 0
-                    else [101, 202, 202]
+                    else [101, 101, 202, 202]
                 )
                 if successful_before_failure == 0:
                     focus_sequence.append(101)
@@ -2246,15 +2257,15 @@ class OrganizerMirrorIntegrationTests(unittest.TestCase):
     def test_user_focus_change_between_click_recipients_cancels_reactivation(self):
         from app.macros.switch_click import SwitchClickContext, SwitchClickMacro
 
-        for count in (2, 4, 6, 8):
-            with self.subTest(count=count):
+        for count, settle_ms, theft in product((2, 4, 6, 8), (0, 10), ("send", "probe")):
+            with self.subTest(count=count, settle_ms=settle_ms, theft=theft):
                 handles = tuple(range(101, 101 + count))
                 runtime = self._runtime(primary=handles[0], handles=handles)
                 runtime.settings.clients = tuple(
                     SimpleNamespace(handle=h, display_name=str(h))
                     for h in handles
                 )
-                runtime.settings.timings.switch_client_settle_ms = 10
+                runtime.settings.timings.switch_client_settle_ms = settle_ms
                 runtime.switch_character.ordered_clients_from_source.return_value = list(
                     runtime.settings.clients
                 )
@@ -2269,7 +2280,13 @@ class OrganizerMirrorIntegrationTests(unittest.TestCase):
 
                 def click(hwnd, *_args, **_kwargs):
                     emitted.append(hwnd)
-                    active[0] = 999  # Focus stolen after first click.
+                    if theft == "send":
+                        active[0] = 999  # Focus stolen after first click.
+                    return True
+
+                def trusted(_hwnd):
+                    if theft == "probe" and emitted:
+                        active[0] = 999  # Native identity probe yielded.
                     return True
 
                 macro = SwitchClickMacro(runtime)
@@ -2282,7 +2299,7 @@ class OrganizerMirrorIntegrationTests(unittest.TestCase):
                     patch("app.macros.switch_click.is_unity_window",
                           return_value=True),
                     patch("app.macros.switch_click.is_dofus_unity_process",
-                          return_value=True),
+                          side_effect=trusted),
                     patch("app.macros.switch_click.activate_window",
                           side_effect=activate),
                     patch("app.macros.switch_click.foreground_window",
@@ -2421,7 +2438,7 @@ class OrganizerMirrorIntegrationTests(unittest.TestCase):
             patch("app.macros.switch_click.is_unity_window", return_value=True),
             patch("app.macros.switch_click.is_dofus_unity_process", return_value=True),
             patch("app.macros.switch_click.activate_window", return_value=True),
-            patch("app.macros.switch_click.foreground_window", side_effect=[101, 999]),
+            patch("app.macros.switch_click.foreground_window", side_effect=[101, 101, 999]),
             patch("app.macros.switch_click.send_client_click", return_value=True) as sender,
             patch.object(macro, "_target_point", return_value=(20, 30)),
         ):
@@ -2784,7 +2801,7 @@ class OrganizerMirrorIntegrationTests(unittest.TestCase):
                     patch("app.macros.switch_click.activate_window",
                           return_value=True) as activate,
                     patch("app.macros.switch_click.foreground_window",
-                          side_effect=[*handles, handles[-1], handles[-1]]),
+                          side_effect=[*_recipient_focus_reads(handles), handles[-1], handles[-1]]),
                     patch("app.macros.switch_click.send_client_click",
                           return_value=True) as send,
                 ):
@@ -2848,7 +2865,7 @@ class OrganizerMirrorIntegrationTests(unittest.TestCase):
                     # After the last successful click, the user focuses
                     # another app before cleanup begins.
                     patch("app.macros.switch_click.foreground_window",
-                          side_effect=[*handles, 999]),
+                          side_effect=[*_recipient_focus_reads(handles), 999]),
                     patch("app.macros.switch_click.send_client_click",
                           return_value=True) as send,
                 ):
@@ -3141,7 +3158,7 @@ class OrganizerMirrorIntegrationTests(unittest.TestCase):
             patch("app.macros.switch_click.activate_window",
                   return_value=True),
             patch("app.macros.switch_click.foreground_window",
-                  side_effect=[101, 202, OSError("foreground refused")]),
+                  side_effect=[101, 101, 202, OSError("foreground refused")]),
             patch("app.macros.switch_click.send_client_click",
                   return_value=True) as send,
         ):
@@ -3523,7 +3540,7 @@ class OrganizerMirrorIntegrationTests(unittest.TestCase):
                   return_value=True),
             patch("app.macros.mirror_input.activate_window", return_value=True),
             patch("app.macros.mirror_input.foreground_window",
-                  side_effect=[101, 202, 202]),
+                  side_effect=[101, 101, 202, 202]),
             patch("app.macros.input_tools.key_down") as down,
             patch("app.macros.input_tools.key_up",
                   side_effect=[OSError("first KEYUP refused"), None, None]) as up,
@@ -3837,7 +3854,7 @@ class OrganizerMirrorIntegrationTests(unittest.TestCase):
         with (
             patch("app.macros.mirror_input.is_dofus_unity_process", return_value=True),
             patch("app.macros.mirror_input.activate_window", return_value=True),
-            patch("app.macros.mirror_input.foreground_window", side_effect=[101, 202, 202]),
+            patch("app.macros.mirror_input.foreground_window", side_effect=[101, 101, 202, 202]),
             patch("app.macros.input_tools.key_down", side_effect=lambda vk: events.append(("down", vk))),
             patch("app.macros.input_tools.key_up", side_effect=lambda vk: events.append(("up", vk))),
         ):
@@ -4244,14 +4261,15 @@ class OrganizerMirrorIntegrationTests(unittest.TestCase):
     def test_user_focus_change_between_recipients_prevents_key_wheel_refocus(self):
         from app.macros.mirror_input import MirrorInputMacro
 
-        for count in (2, 4, 6, 8):
+        for count, settle_ms, theft in product((2, 4, 6, 8), (0, 10), ("send", "probe")):
             for kind in ("key", "wheel"):
-                with self.subTest(count=count, kind=kind):
+                with self.subTest(count=count, kind=kind, settle_ms=settle_ms, theft=theft):
                     handles = tuple(range(101, 101 + count))
                     runtime = self._runtime(primary=handles[0], handles=handles)
-                    runtime.settings.timings.switch_client_settle_ms = 10
+                    runtime.settings.timings.switch_client_settle_ms = settle_ms
                     active = [handles[0]]
                     activated = []
+                    emitted = []
 
                     def activate(hwnd, *_args, **_kwargs):
                         activated.append(hwnd)
@@ -4261,12 +4279,19 @@ class OrganizerMirrorIntegrationTests(unittest.TestCase):
                     def user_switches_app(*_args, **_kwargs):
                         # The first SendInput succeeded, but a browser took
                         # foreground during the inter-client gap.
-                        active[0] = 999
+                        emitted.append(True)
+                        if theft == "send":
+                            active[0] = 999
+                        return True
+
+                    def trusted(_hwnd):
+                        if theft == "probe" and emitted:
+                            active[0] = 999
                         return True
 
                     with (
                         patch("app.macros.mirror_input.is_dofus_unity_process",
-                              return_value=True),
+                              side_effect=trusted),
                         patch("app.macros.mirror_input.activate_window",
                               side_effect=activate),
                         patch("app.macros.mirror_input.foreground_window",
@@ -4405,9 +4430,9 @@ class OrganizerMirrorIntegrationTests(unittest.TestCase):
                 runtime.macro_lock.should_stop.return_value = False
                 runtime.macro_lock.wait.return_value = False
                 focus_sequence = (
-                    [101, 202, OSError("focus unknown")]
+                    [101, 101, 202, OSError("focus unknown")]
                     if kind == "key"
-                    else [101, 101, 202, 202, OSError("focus unknown")]
+                    else [101, 101, 101, 202, 202, OSError("focus unknown")]
                 )
                 with (
                     patch("app.macros.mirror_input.is_dofus_unity_process",
@@ -4473,8 +4498,8 @@ class OrganizerMirrorIntegrationTests(unittest.TestCase):
                     # A new browser or other app is focused AFTER all
                     # synthetic deliveries but before the restoration.
                     foregrounds = (
-                        [*handles, 999] if kind == "key"
-                        else [h for h in handles for _ in range(2)] + [999]
+                        [*_recipient_focus_reads(handles), 999] if kind == "key"
+                        else _recipient_focus_reads(handles, probes=2) + [999]
                     )
                     with (
                         patch("app.macros.mirror_input.is_dofus_unity_process",
@@ -4618,7 +4643,7 @@ class OrganizerMirrorIntegrationTests(unittest.TestCase):
             patch("app.macros.mirror_input.activate_window",
                   return_value=True),
             patch("app.macros.mirror_input.foreground_window",
-                  side_effect=[101, 101, 202, 202, 202, 202]),
+                  side_effect=[101, 101, 101, 202, 202, 202, 202]),
             patch("app.macros.mirror_input.client_point_from_ratio",
                   return_value=(8, 9)),
             patch("app.macros.mirror_input.client_to_screen",
@@ -4669,7 +4694,7 @@ class OrganizerMirrorIntegrationTests(unittest.TestCase):
             patch("app.macros.mirror_input.activate_window",
                   return_value=True),
             patch("app.macros.mirror_input.foreground_window",
-                  side_effect=[101, 101, 202, 202, 202]),
+                  side_effect=[101, 101, 101, 202, 202, 202]),
             patch("app.macros.mirror_input.client_point_from_ratio",
                   return_value=(8, 9)),
             patch("app.macros.mirror_input.client_to_screen",
@@ -5303,7 +5328,7 @@ class OrganizerMirrorIntegrationTests(unittest.TestCase):
                 process_results = [True, False] if cause == "process" else True
                 focus_results = [True, False] if cause == "focus" else True
                 point_results = [(20, 30), None] if cause == "coordinates" else (20, 30)
-                foreground = [101, 202] if cause == "coordinates" else [101]
+                foreground = [101, 101, 202] if cause == "coordinates" else [101, 101]
                 with (
                     patch.object(macro, "_validated_context", return_value=context),
                     patch.object(macro, "_target_point", side_effect=(
@@ -5869,7 +5894,7 @@ class OrganizerMirrorIntegrationTests(unittest.TestCase):
                         patch("app.macros.mirror_input.activate_window",
                               return_value=True),
                         patch("app.macros.mirror_input.foreground_window",
-                              side_effect=[*handles, handles[-1]]),
+                              side_effect=[*_recipient_focus_reads(handles), handles[-1]]),
                         patch("app.macros.input_tools.key_down") as down,
                         patch("app.macros.input_tools.key_up") as up,
                     ):
@@ -5911,12 +5936,13 @@ class OrganizerMirrorIntegrationTests(unittest.TestCase):
                 runtime.macro_lock.wait.return_value = False
                 context = SwitchClickContext(101, 20, 30, 0.5, 0.5, "cursor")
                 probes = []
+                focus_sequence = _recipient_focus_reads(handles)
 
                 def foreground():
                     probes.append(True)
-                    if len(probes) == count + 1:
+                    if len(probes) == len(focus_sequence) + 1:
                         runtime.macro_lock.should_stop.return_value = True
-                    return handles[min(len(probes) - 1, count - 1)]
+                    return focus_sequence[min(len(probes) - 1, len(focus_sequence) - 1)]
 
                 macro = SwitchClickMacro(runtime)
                 with (
@@ -5942,7 +5968,7 @@ class OrganizerMirrorIntegrationTests(unittest.TestCase):
                         mirror_target_handles=handles,
                     )
                 self.assertEqual(send.call_count, count)
-                self.assertEqual(len(probes), count + 1)
+                self.assertEqual(len(probes), len(focus_sequence) + 1)
                 cursor.assert_not_called()
                 runtime.switch_character.restore_preferred_client.assert_not_called()
                 runtime.input_state.end_mouse_block.assert_called_once()
@@ -6624,9 +6650,9 @@ class OrganizerMirrorIntegrationTests(unittest.TestCase):
     def test_queued_mirror_aborts_when_source_loses_focus_during_native_scan(self):
         from app.macros.mirror_input import MirrorInputMacro
 
-        for count in (2, 4, 6, 8):
+        for count, stage in product((2, 4, 6, 8), ("roster", "source")):
             for kind in ("key", "wheel"):
-                with self.subTest(clients=count, kind=kind):
+                with self.subTest(clients=count, kind=kind, stage=stage):
                     handles = tuple(range(101, 101 + count))
                     runtime = self._runtime(primary=handles[0], handles=handles)
                     runtime.settings.timings = SimpleNamespace(
@@ -6640,7 +6666,7 @@ class OrganizerMirrorIntegrationTests(unittest.TestCase):
 
                     def probe(hwnd):
                         probes.append(hwnd)
-                        if len(probes) == count:
+                        if len(probes) == count + (stage == "source"):
                             focus[0] = 999
                         return True
 
@@ -6660,13 +6686,54 @@ class OrganizerMirrorIntegrationTests(unittest.TestCase):
                             handles[0], handles,
                             profile_at_dispatch=runtime.settings,
                         )
-                    self.assertEqual(probes, list(handles))
+                    self.assertEqual(probes, [*handles, *([handles[0]] if stage == "source" else [])])
                     activate.assert_not_called()
                     wheel.assert_not_called()
                     down.assert_not_called()
-                    runtime.input_state.begin_mouse_block.assert_not_called()
+                    if kind == "wheel" and stage == "source":
+                        runtime.input_state.begin_mouse_block.assert_called_once()
+                        runtime.input_state.end_mouse_block.assert_called_once()
+                    else:
+                        runtime.input_state.begin_mouse_block.assert_not_called()
                     runtime.switch_character.restore_preferred_client.assert_not_called()
                     self.assertIn("incomplet", runtime._emit_status.call_args.args[0])
+
+    def test_queued_mirror_click_checks_source_after_last_native_probe(self):
+        from app.macros.switch_click import SwitchClickContext, SwitchClickMacro
+
+        for count in (2, 4, 6, 8):
+            with self.subTest(clients=count):
+                handles = tuple(range(101, 101 + count))
+                runtime = self._runtime(primary=handles[0], handles=handles)
+                runtime.switch_character.ordered_clients_from_source.return_value = list(runtime.settings.clients)
+                focus = [handles[0]]
+
+                def trusted(_hwnd):
+                    focus[0] = 999
+                    return True
+
+                context = SwitchClickContext(handles[0], 20, 30, 0.5, 0.5, "cursor")
+                macro = SwitchClickMacro(runtime)
+                with (
+                    patch.object(macro, "_validated_context", return_value=context),
+                    patch.object(macro, "_target_point", return_value=(20, 30)),
+                    patch("app.macros.switch_click.current_cursor_pos", return_value=(12, 14)),
+                    patch("app.macros.switch_click.is_unity_window", return_value=True),
+                    patch("app.macros.switch_click.is_dofus_unity_process", side_effect=trusted) as probe,
+                    patch("app.macros.switch_click.foreground_window", side_effect=lambda: focus[0]),
+                    patch("app.macros.switch_click.activate_window") as activate,
+                    patch("app.macros.switch_click.send_client_click") as click,
+                    patch("app.macros.switch_click.set_cursor_pos") as cursor,
+                ):
+                    macro._run("Left", 1, "Miroir", context,
+                               exact_source_handle=handles[0], mirror_target_handles=handles,
+                               settings_at_dispatch=runtime.settings)
+                probe.assert_called_once_with(handles[0])
+                activate.assert_not_called()
+                click.assert_not_called()
+                cursor.assert_not_called()
+                runtime.input_state.end_mouse_block.assert_called_once()
+                runtime.switch_character.restore_preferred_client.assert_not_called()
 
 
 

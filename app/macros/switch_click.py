@@ -682,27 +682,6 @@ class SwitchClickMacro:
                     )
                     return
 
-                # A completed recipient does not authorize reclaiming
-                # DOFUS after the user focused another application in the
-                # inter-client wait. Check before the NEXT activation rather
-                # than only before each SendInput after focus was stolen.
-                if (last_activated_hwnd is not None
-                        and timings.switch_client_settle_ms > 0):
-                    try:
-                        if foreground_window() != last_activated_hwnd:
-                            focus_lost = True
-                            self.runtime.logger.warning(
-                                "%s interrompu: focus utilisateur changé entre cibles.",
-                                action_label,
-                            )
-                            return
-                    except Exception:
-                        focus_lost = True
-                        self.runtime.logger.exception(
-                            "%s interrompu: focus illisible entre cibles.",
-                            action_label,
-                        )
-                        return
                 if (type(target_hwnd) is not int
                         or not 0 < target_hwnd <= (2**64 - 1)
                         or not is_unity_window(target_hwnd)
@@ -722,6 +701,29 @@ class SwitchClickMacro:
                     delivery_failed = True
                     return
 
+                # Target identity probes can yield even with no settle delay.
+                # Check AFTER them, before activation: checking only before
+                # SendInput would allow stealing the user's foreground first.
+                expected_foreground = last_activated_hwnd
+                if (expected_foreground is None and settings_at_dispatch is not None
+                        and (mirror_target_handles is not None or physical_source_delivered)):
+                    expected_foreground = context.source_hwnd
+                if expected_foreground is not None:
+                    try:
+                        if foreground_window() != expected_foreground:
+                            focus_lost = True
+                            self.runtime.logger.warning(
+                                "%s interrompu: focus utilisateur changé entre cibles.",
+                                action_label,
+                            )
+                            return
+                    except Exception:
+                        focus_lost = True
+                        self.runtime.logger.exception(
+                            "%s interrompu: focus illisible entre cibles.",
+                            action_label,
+                        )
+                        return
                 focus_started_at = perf_counter() if mirror_started_at is not None else None
                 try:
                     # Use the same native no-op optimization as other
