@@ -205,6 +205,37 @@ class AtlasJsonBenchmarkTests(unittest.TestCase):
             with self.assertRaises(ValueError):
                 compare_json_streaming(path, max_bytes=1)
 
+    def test_streaming_failure_paths_also_detect_source_mutation(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            path = Path(tmp) / "quests.json"
+            original = '{"quests":{"1":{"required":1}}}'
+            changed = '{"quests":{"1":{"required":2}}}'
+
+            def unavailable(_name):
+                path.write_text(changed, encoding="utf-8")
+                raise ImportError("ijson absent after import side effect")
+
+            def invalid_stream(_stream, _prefix, *, use_float):
+                path.write_text(changed, encoding="utf-8")
+                return iter([("1", {"required": 3})])
+
+            def exploding_stream(_stream, _prefix, *, use_float):
+                path.write_text(changed, encoding="utf-8")
+                raise RuntimeError("backend failed after side effect")
+
+            scenarios = (
+                {"side_effect": unavailable},
+                {"return_value": SimpleNamespace(kvitems=invalid_stream)},
+                {"return_value": SimpleNamespace(kvitems=exploding_stream)},
+            )
+            for patched in scenarios:
+                with self.subTest(scenario=list(patched)):
+                    path.write_text(original, encoding="utf-8")
+                    with patch("tools.atlas_json_benchmark.importlib.import_module",
+                               **patched):
+                        with self.assertRaisesRegex(ValueError, "Source changed"):
+                            compare_json_streaming(path)
+
     def test_third_party_parser_crashes_are_explicit_errors(self) -> None:
         def crashed(_):
             raise RuntimeError("simulated third-party parser failure")
