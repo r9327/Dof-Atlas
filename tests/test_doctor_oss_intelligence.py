@@ -63,6 +63,18 @@ class DoctorOssIntelligenceTests(unittest.TestCase):
         self.assertIn("tools.atlas_doctor perf (single Perf Lab)",
                       result["native_routes"])
 
+    def test_json_compression_backend_is_in_json_scope_not_launcher_only(self):
+        paths = ["tools/atlas_json_benchmark.py", "data/test.json"]
+        result = intelligent_plan(paths, study())
+        observed = {row["id"]: row for row in result["evaluated_candidates"]}
+        self.assertIn("ATOSS-14", observed)
+        self.assertEqual(observed["ATOSS-14"]["decision"],
+                         "OPT_IN_TRIAL_AVAILABLE")
+        self.assertEqual(observed["ATOSS-14"]["opt_in_trial_route"],
+                         "tools.atlas_json_benchmark --compare-compression")
+        self.assertFalse(observed["ATOSS-14"]["trial_executed"])
+        self.assertFalse(observed["ATOSS-14"]["adoption_qualified"])
+
     def test_scope_policy_reaches_all_30_nonexcluded_candidates(self):
         from tools.atlas_doctor_lib.oss_intelligence import _SCOPES
         candidates = {key for values in _SCOPES.values() for key in values}
