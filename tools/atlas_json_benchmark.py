@@ -246,6 +246,7 @@ def compare_json_streaming(source: Path, *, max_bytes: int = 128 * 1024 * 1024) 
     try:
         ijson = importlib.import_module("ijson")
     except (ImportError, OSError):
+        _assert_source_bytes_still_match(path, raw)
         return {"schema_version": 1, "status": "NOT_AVAILABLE",
                 "tool": "ijson", "executed": False, "runtime_consumer_changed": False}
     seen = set()
@@ -259,9 +260,11 @@ def compare_json_streaming(source: Path, *, max_bytes: int = 128 * 1024 * 1024) 
         if len(seen) != len(quests):
             raise ValueError("Streaming quest coverage incomplete")
     except (ValueError, TypeError, UnicodeError, OverflowError):
+        _assert_source_bytes_still_match(path, raw)
         return {"schema_version": 1, "status": "PARITY_FAIL", "tool": "ijson",
                 "executed": True, "runtime_consumer_changed": False}
     except Exception as exc:
+        _assert_source_bytes_still_match(path, raw)
         return {"schema_version": 1, "status": "ERROR", "tool": "ijson",
                 "error_type": type(exc).__name__,
                 "executed": True, "runtime_consumer_changed": False}
