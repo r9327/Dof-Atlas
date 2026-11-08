@@ -12,7 +12,9 @@ from app.core.admin import audit_client_admin_rights
 from app.core.logger import get_runtime_logger, set_debug_logging
 from app.core.macro_lock import MacroLock
 from app.core.settings import AtlasSettings, load_settings
-from app.input.input_state import InputState, SyntheticInputGuard
+from app.input.input_state import (
+    DeferredMirrorGesture, InputState, MirrorPointerContext, MirrorPointerSnapshot, SyntheticInputGuard,
+)
 from app.input.managed_hooks import (
     ManagedHotkeyRegistry,
     ManagedMouseHook,
@@ -109,6 +111,7 @@ class AtlasRuntime:
         self._switch_character = None
         self._switch_click = None
         self._pending_physical_switch = None
+        self._mirror_drain_lock = threading.Lock()
         self._mirror_input = None
         self._direction = None
         self._travel = None
@@ -117,12 +120,14 @@ class AtlasRuntime:
         self.registry = ManagedHotkeyRegistry(
             self.input_state, self.logger, self._handle_hotkey,
             physical_key_callback=self._handle_mirror_key,
+            physical_key_release_callback=self._release_deferred_mirror_key,
         )
         self.mouse_hook = ManagedMouseHook(
             self.input_state, self.synthetic_guard, self.logger,
             self._handle_mouse_click,
             wheel_callback=self._handle_mirror_wheel,
             release_callback=self._handle_mouse_release,
+            blocked_callback=self._handle_blocked_mirror_pointer,
         )
         self.last_client_point = LastClientPoint()
         self.active_client_handle = 0
@@ -155,6 +160,9 @@ class AtlasRuntime:
             # A native DOWN from the previous Organizer generation must not
             # trigger replay when its physical UP arrives after reload.
             self._pending_physical_switch = None
+            state = self.__dict__.get("input_state")
+            if state is not None:
+                state.invalidate_deferred_mirror_pointer()
             self._settings = value
 
     @property
@@ -588,6 +596,7 @@ class AtlasRuntime:
                     label, generation=generation,
                     on_owner_end=self.synthetic_guard.reset if bound else None,
                 )
+                AtlasRuntime._drain_deferred_mirror_pointer(self)
 
         thread = None
         try:
@@ -780,6 +789,253 @@ class AtlasRuntime:
         ordered = (source, *(hwnd for hwnd in targets if hwnd != source))
         return source, ordered
 
+    def _note_deferred_mirror(self, message: str, *args: object) -> None:
+        try:
+            self.logger.info(message, *args)
+        except Exception:
+            # A diagnostic sink is not allowed to strand an admitted input.
+            pass
+
+    def _mirror_pointer_profile_is_current(self, context: MirrorPointerContext) -> bool:
+        if type(context) is not MirrorPointerContext or not self._running or not self._admin_ok:
+            return False
+        # A low-level hook must not invoke the lazy JSON loader during a
+        # detached-profile transition. Plain diagnostic runtimes expose the
+        # already-loaded settings directly instead of the cached property.
+        if "_settings" in self.__dict__:
+            with self._settings_lock:
+                settings = self._settings
+        else:
+            settings = self.settings
+        clients = getattr(settings, "clients", None)
+        if (settings is not context.profile
+                or getattr(settings, "macro_mode", None) != "mirror"
+                or type(getattr(settings, "primary_handle", None)) is not int
+                or settings.primary_handle != context.source
+                or not isinstance(clients, (list, tuple))):
+            return False
+        handles = tuple(getattr(c, "handle", None) for c in clients)
+        return (
+            all(type(h) is int for h in handles)
+            and len(handles) == len(context.handles)
+            and (context.source, *(h for h in handles if h != context.source)) == context.handles
+        )
+
+    def _deferred_mirror_is_current(self, gesture: DeferredMirrorGesture) -> bool:
+        return (
+            type(gesture) is DeferredMirrorGesture
+            and self.input_state.deferred_mirror_pointer_is_current(gesture)
+            and self._mirror_pointer_profile_is_current(gesture.context)
+            and not self.macro_lock.should_stop()
+        )
+
+    def _release_deferred_mirror_key(self, vk_code: int) -> None:
+        self.input_state.release_deferred_mirror_key(vk_code)
+        self._drain_deferred_mirror_pointer()
+
+    def _handoff_deferred_mirror_focus(
+        self, owner: DeferredMirrorGesture | MirrorPointerSnapshot,
+        allowed: tuple[int | None, ...], *, successful: bool,
+    ) -> None:
+        if type(owner) not in (DeferredMirrorGesture, MirrorPointerSnapshot):
+            return
+        def current() -> bool:
+            if type(owner) is DeferredMirrorGesture:
+                return self._deferred_mirror_is_current(owner)
+            return (self.input_state.mirror_pointer_snapshot_is_current(owner)
+                    and self._mirror_pointer_profile_is_current(owner.context)
+                    and not self.macro_lock.should_stop())
+        if not successful or not current():
+            return
+        from app.windows.unity_windows import foreground_window
+        from app.windows_embed import window_process_id
+        from app.macros.mirror_plan import is_dofus_unity_process
+        try:
+            foreground = foreground_window()
+            if (type(foreground) is int and foreground in allowed
+                    and window_process_id(foreground) == dict(owner.context.process_ids).get(foreground)
+                    and is_dofus_unity_process(foreground)
+                    and foreground_window() == foreground
+                    and current()):
+                self.input_state.note_deferred_mirror_focus_handoff(owner, foreground)
+        except (OSError, ValueError, TypeError, OverflowError):
+            self._note_deferred_mirror("Miroir geste différé: focus final non vérifiable")
+
+    def _defer_blocked_mirror_key(self, vk_code: int) -> bool:
+        snapshot = self.input_state.mirror_pointer_snapshot()
+        if type(snapshot) is not MirrorPointerSnapshot:
+            return False
+        epoch, context, generation, captured_foreground = snapshot
+        if (type(context) is not MirrorPointerContext
+                or not self._mirror_pointer_profile_is_current(context)
+                or not self.input_state.deferred_mirror_capacity_available()):
+            return False
+        captured_at = monotonic()
+        from app.windows.unity_windows import foreground_window
+        from app.windows_embed import window_process_id
+        foreground = foreground_window()
+        if (type(foreground) is not int or foreground != captured_foreground or foreground not in context.handles
+                or window_process_id(foreground) != dict(context.process_ids).get(foreground)
+                or foreground_window() != foreground
+                or not self._mirror_pointer_profile_is_current(context)):
+            return False
+        result = self.input_state.defer_mirror_pointer(
+            epoch, generation, context, foreground, "key", (vk_code,), captured_at=captured_at,
+        )
+        if result != "accepted":
+            return False
+        try:
+            self.input_state.note_blocked_physical_gesture(expected_epoch=epoch, interrupt=False)
+        except Exception:
+            # The key was already admitted. Preserve its ownership rather
+            # than leaking a native DOWN after an interruption-probe failure.
+            self._note_deferred_mirror("Miroir geste différé: interruption du pointeur indisponible")
+        self._note_deferred_mirror("Miroir geste différé: type=key admission=accepted")
+        return True
+
+    def _handle_blocked_mirror_pointer(
+        self, message: int, x: int, y: int, data: int,
+        snapshot: object, ambiguous: bool,
+    ) -> bool:
+        from app.input.mouse_hooks import (
+            WM_LBUTTONDOWN, WM_LBUTTONUP, WM_RBUTTONDOWN, WM_RBUTTONUP,
+            WM_MOUSEWHEEL, WM_MOUSEHWHEEL,
+        )
+        if message in (WM_LBUTTONUP, WM_RBUTTONUP):
+            self.input_state.release_deferred_mirror_pointer(
+                "Left" if message == WM_LBUTTONUP else "Right",
+            )
+            self._drain_deferred_mirror_pointer()
+            return False
+        if (message not in (WM_LBUTTONDOWN, WM_RBUTTONDOWN, WM_MOUSEWHEEL, WM_MOUSEHWHEEL)
+                or type(snapshot) is not MirrorPointerSnapshot):
+            return False
+        epoch, context, generation, captured_foreground = snapshot
+        if type(context) is not MirrorPointerContext or not self._mirror_pointer_profile_is_current(context):
+            return False
+        captured_at = monotonic()
+        if ambiguous and message in (WM_LBUTTONDOWN, WM_RBUTTONDOWN):
+            # Reject an overlapping pair before native probes. The state
+            # validates the old lease/Stop generation before cancelling it.
+            self.input_state.defer_mirror_pointer(
+                epoch, generation, context, context.source, "click",
+                ("Left" if message == WM_LBUTTONDOWN else "Right", 0, 0),
+                captured_at=captured_at, ambiguous=True,
+            )
+            return False
+        if not self.input_state.deferred_mirror_capacity_available():
+            return False
+        from app.windows.unity_windows import (
+            client_point_ratio, find_known_client_from_point, foreground_window,
+            screen_to_client,
+        )
+        from app.windows_embed import window_process_id
+
+        foreground = foreground_window()
+        if (type(foreground) is not int or foreground != captured_foreground or foreground not in context.handles
+                or window_process_id(foreground) != dict(context.process_ids).get(foreground)
+                or find_known_client_from_point(x, y, (foreground,)) != foreground):
+            return False
+        point = screen_to_client(foreground, x, y)
+        ratio = client_point_ratio(foreground, *point) if point is not None else None
+        if (ratio is None or foreground_window() != foreground
+                or not self._mirror_pointer_profile_is_current(context)):
+            return False
+        if message in (WM_LBUTTONDOWN, WM_RBUTTONDOWN):
+            kind = "click"
+            payload = ("Left" if message == WM_LBUTTONDOWN else "Right", *ratio)
+        else:
+            delta = (int(data) >> 16) & 0xFFFF
+            if delta & 0x8000:
+                delta -= 0x10000
+            kind = "wheel"
+            payload = (delta, message == WM_MOUSEHWHEEL, *ratio)
+        result = self.input_state.defer_mirror_pointer(
+            epoch, generation, context, foreground, kind, payload,
+            captured_at=captured_at, ambiguous=ambiguous,
+        )
+        self._note_deferred_mirror("Miroir geste différé: type=%s admission=%s", kind, result)
+        self._drain_deferred_mirror_pointer()
+        return result == "accepted"
+
+    def _drain_deferred_mirror_pointer(self) -> None:
+        # Legacy test/diagnostic runtimes may not have initialized a queue.
+        lock = self.__dict__.get("_mirror_drain_lock")
+        if lock is None or not lock.acquire(blocking=False):
+            return
+        dispatched = False
+        try:
+            from app.input.input_state import MIRROR_PENDING_CAPACITY
+
+            for _ in range(MIRROR_PENDING_CAPACITY):
+                if self.macro_lock.active_label or self.input_state.is_mouse_blocked():
+                    return
+                gesture = self.input_state.take_deferred_mirror_pointer()
+                if gesture is None:
+                    return
+                context = gesture.context
+                try:
+                    from app.macros.mirror_plan import is_dofus_unity_process
+                    from app.windows.unity_windows import (
+                        client_point_from_ratio, client_to_screen, foreground_window,
+                    )
+                    from app.windows_embed import window_process_id
+                    if (not self._deferred_mirror_is_current(gesture)
+                            or foreground_window() != self.input_state.deferred_mirror_expected_foreground(gesture)
+                            or not all(window_process_id(h) == pid and is_dofus_unity_process(h)
+                                       for h, pid in context.process_ids)):
+                        self._note_deferred_mirror("Miroir geste différé: refus=contexte_périmé")
+                        continue
+                    if gesture.kind == "click":
+                        from app.macros.switch_click import SwitchClickContext
+                        button, rx, ry = gesture.payload
+                        point = client_point_from_ratio(context.source, rx, ry)
+                        screen = client_to_screen(context.source, *point) if point is not None else None
+                        if screen is None:
+                            self._note_deferred_mirror("Miroir geste différé: refus=coordonnées")
+                            continue
+                        captured = SwitchClickContext(context.source, *point, rx, ry, "deferred")
+                        started = self.switch_click.run_async(
+                            button, *screen, 1, "Miroir",
+                            exact_source_handle=context.source,
+                            mirror_target_handles=context.handles,
+                            captured_context=captured, expected_profile=context.profile,
+                            deferred_gesture=gesture,
+                        )
+                    elif gesture.kind == "wheel":
+                        delta, horizontal, rx, ry = gesture.payload
+                        started = self.mirror_input.run_wheel(
+                            delta, horizontal, rx, ry, context.source, context.handles,
+                            expected_profile=context.profile, deferred_gesture=gesture,
+                        )
+                    else:
+                        started = self.mirror_input.run_key(
+                            gesture.payload[0], context.source, context.handles,
+                            expected_profile=context.profile, deferred_gesture=gesture,
+                        )
+                    dispatched = dispatched or bool(started)
+                    self._note_deferred_mirror("Miroir geste différé: type=%s lancé=%s", gesture.kind, bool(started))
+                except Exception:
+                    try:
+                        self.logger.exception("Miroir: lancement du geste différé impossible.")
+                    except Exception:
+                        pass
+        finally:
+            try:
+                counts = self.input_state.deferred_mirror_counts()
+                if any(counts.values()) and counts != self.__dict__.get("_last_deferred_mirror_counts"):
+                    self._note_deferred_mirror(
+                        "Miroir file: acceptés=%s expirés=%s annulés=%s pleine=%s ambigus=%s retirés=%s",
+                        *(counts[name] for name in ("accepted", "expired", "cancelled", "full", "ambiguous", "taken")),
+                    )
+                    self._last_deferred_mirror_counts = counts
+            finally:
+                lock.release()
+            # A worker can finish while this non-reentrant drain owns its
+            # lock. Cover that handoff; a still-running worker drains at end.
+            if dispatched and not self.macro_lock.active_label:
+                self._drain_deferred_mirror_pointer()
+
     def _report_mirror_busy_input(self, kind: str) -> None:
         """Bounded non-sensitive warning when an input cannot join a busy fan-out."""
         now = monotonic()
@@ -832,6 +1088,9 @@ class AtlasRuntime:
         ):
             return False
         if busy_label:
+            if (self.input_state.is_mouse_blocked()
+                    and AtlasRuntime._defer_blocked_mirror_key(self, vk_code)):
+                return True
             # A worker may finish/Stop while native Win32 checks are running.
             # Only the exact original Organizer generation may suppress a
             # busy secondary key. Otherwise let the real key pass through.

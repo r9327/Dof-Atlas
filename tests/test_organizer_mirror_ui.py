@@ -4677,11 +4677,12 @@ class OrganizerMirrorIntegrationTests(unittest.TestCase):
         runtime.macro_lock.wait.return_value = False
         macro = MirrorInputMacro(runtime)
         initial_check = macro._still_current
-        checks = [0]
+        emissions = []
+        restore_checks = []
 
         def check_current(source, handles):
-            checks[0] += 1
-            if checks[0] == 8:
+            if len(emissions) == 2:
+                restore_checks.append(True)
                 raise RuntimeError("runtime settings inaccessible during restore")
             return initial_check(source, handles)
 
@@ -4701,11 +4702,12 @@ class OrganizerMirrorIntegrationTests(unittest.TestCase):
                   return_value=(80, 90)),
             patch("app.macros.mirror_input.set_cursor_pos"),
             patch("app.macros.mirror_input.send_screen_wheel",
-                  return_value=True),
+                  side_effect=lambda *_a, **_k: emissions.append(True) or True),
         ):
             with self.assertRaisesRegex(RuntimeError, "during restore"):
                 macro._run("wheel", (120, False, 0.5, 0.5), 101, (101, 202))
-        self.assertEqual(checks[0], 8)
+        self.assertEqual(len(emissions), 2)
+        self.assertEqual(len(restore_checks), 1)
         runtime.input_state.end_mouse_block.assert_called_once()
         runtime.switch_character.restore_preferred_client.assert_not_called()
 
@@ -7703,7 +7705,7 @@ class OrganizerMirrorIntegrationTests(unittest.TestCase):
                 )
                 runtime._emit_status.assert_called_once_with(
                     f"Miroir interrompu : {count}/{count} fenêtres "
-                    "(geste physique non rejoué)."
+                    "(geste physique intercepté)."
                 )
 
     def test_mirror_wheel_collision_inside_atomic_release_reports_lost_gesture_2_to_8(self):
@@ -7789,7 +7791,7 @@ class OrganizerMirrorIntegrationTests(unittest.TestCase):
                 self.assertIn("outcome=interrupted", worker_log[0] % worker_log[1:])
                 runtime._emit_status.assert_called_once_with(
                     f"Miroir Molette interrompu : {count}/{count} fenêtres "
-                    "(geste physique non rejoué)."
+                    "(geste physique intercepté)."
                 )
 
     def test_mirror_click_physical_collision_aborts_fanout_and_skips_restore_2_to_8(self):
@@ -7868,7 +7870,7 @@ class OrganizerMirrorIntegrationTests(unittest.TestCase):
                 )
                 runtime._emit_status.assert_called_once_with(
                     f"Miroir interrompu : 1/{count} fenêtres "
-                    "(geste physique non rejoué)."
+                    "(geste physique intercepté)."
                 )
 
     def test_mirror_wheel_physical_collision_aborts_fanout_and_skips_restore_2_to_8(self):
@@ -7945,7 +7947,7 @@ class OrganizerMirrorIntegrationTests(unittest.TestCase):
                 )
                 runtime._emit_status.assert_called_once_with(
                     f"Miroir Molette interrompu : 1/{count} fenêtres "
-                    "(geste physique non rejoué)."
+                    "(geste physique intercepté)."
                 )
 
 
@@ -8019,7 +8021,7 @@ class OrganizerMirrorIntegrationTests(unittest.TestCase):
                 self.assertFalse(runtime.input_state.is_mouse_blocked())
                 runtime._emit_status.assert_called_once_with(
                     f"Miroir interrompu : 1/{count} fenêtres "
-                    "(geste physique non rejoué)."
+                    "(geste physique intercepté)."
                 )
 
     def test_mirror_wheel_pointer_collision_during_settle_skips_remaining_clients(self):
@@ -8078,8 +8080,713 @@ class OrganizerMirrorIntegrationTests(unittest.TestCase):
                 self.assertFalse(runtime.input_state.is_mouse_blocked())
                 runtime._emit_status.assert_called_once_with(
                     f"Miroir Molette interrompu : 1/{count} fenêtres "
-                    "(geste physique non rejoué)."
+                    "(geste physique intercepté)."
                 )
+
+
+class DeferredMirrorPointerTests(unittest.TestCase):
+    def test_native_input_revokes_the_pointer_context_even_while_lease_is_still_active(self):
+        from time import monotonic
+        from app.input.input_state import InputState
+        state = InputState()
+        context = self.context()
+        state.begin_mouse_block("Miroir", mirror_context=context)
+        original = state.mirror_pointer_snapshot()
+        self.assertTrue(state.set_mirror_pointer_target(102))
+        self.assertEqual(state.mirror_pointer_snapshot().foreground, 102)
+        state.invalidate_deferred_mirror_pointer()
+        self.assertTrue(state.is_mouse_blocked())
+        self.assertIsNone(state.mirror_pointer_snapshot())
+        self.assertFalse(state.set_mirror_pointer_target(101))
+        self.assertFalse(state.mirror_pointer_snapshot_is_current(original))
+        forged = original._replace(cancel_generation=state.mirror_gesture_generation())
+        self.assertFalse(state.mirror_pointer_snapshot_is_current(forged))
+        self.assertEqual(state.defer_mirror_pointer(
+            forged.epoch, forged.cancel_generation, context, 102, "wheel", (120, False, .2, .3),
+            captured_at=monotonic()), "obsolete")
+        state.end_mouse_block()
+
+    def test_deferred_dispatch_latency_includes_queue_wait_for_every_sender(self):
+        from app.core.runtime_state import AtlasRuntime
+        from app.input.input_state import InputState, MirrorPointerContext, DeferredMirrorGesture
+        from app.macros.switch_click import SwitchClickMacro, SwitchClickContext
+        from app.macros.mirror_input import MirrorInputMacro
+        for kind in ("click", "key", "wheel"):
+            with self.subTest(kind=kind):
+                runtime = OrganizerMirrorIntegrationTests()._runtime(primary=101, handles=(101, 102))
+                runtime.input_state = InputState()
+                runtime._running = runtime._admin_ok = True
+                runtime._mirror_pointer_profile_is_current = lambda c: AtlasRuntime._mirror_pointer_profile_is_current(runtime, c)
+                runtime._deferred_mirror_is_current = lambda g: AtlasRuntime._deferred_mirror_is_current(runtime, g)
+                runtime._spawn_macro.return_value = True
+                context = MirrorPointerContext(runtime.settings, 101, (101, 102), ((101, 1101), (102, 1102)))
+                payload = {"click": ("Left", .25, .5), "key": (65,), "wheel": (120, False, .25, .5)}[kind]
+                gesture = DeferredMirrorGesture(context, 102, kind, payload, 10.0, 0, True)
+                macro = SwitchClickMacro(runtime) if kind == "click" else MirrorInputMacro(runtime)
+                with (
+                    patch("app.input.input_state.time.monotonic", return_value=10.25),
+                    patch("app.macros.switch_click.perf_counter", return_value=100.0),
+                    patch("app.macros.mirror_input.perf_counter", return_value=100.0),
+                    patch.object(macro, "_run") as worker,
+                ):
+                    if kind == "click":
+                        accepted = macro.run_async("Left", 20, 25, 1, "Miroir", exact_source_handle=101,
+                            mirror_target_handles=(101, 102), expected_profile=context.profile,
+                            captured_context=SwitchClickContext(101, 20, 25, .25, .5, "deferred"), deferred_gesture=gesture)
+                    elif kind == "key":
+                        accepted = macro.run_key(65, 101, (101, 102), expected_profile=context.profile, deferred_gesture=gesture)
+                    else:
+                        accepted = macro.run_wheel(120, False, .25, .5, 101, (101, 102), expected_profile=context.profile, deferred_gesture=gesture)
+                    self.assertTrue(accepted)
+                    runtime._spawn_macro.call_args.args[1]()
+                    self.assertEqual(worker.call_args.kwargs["dispatch_at"], 99.75)
+
+    def test_deferred_capture_never_loads_detached_profile_from_hook(self):
+        from app.input.input_state import MirrorPointerContext
+        runtime, handles = self.runtime()
+        context = MirrorPointerContext(runtime.settings, handles[0], handles,
+                                       tuple((h, h + 1000) for h in handles))
+        runtime._settings = None
+        with patch("app.core.runtime_state.load_settings", side_effect=AssertionError("hook performed JSON I/O")) as load:
+            self.assertFalse(runtime._mirror_pointer_profile_is_current(context))
+        load.assert_not_called()
+
+    def test_deferred_keyboard_release_failure_never_leaks_original_up(self):
+        import ctypes
+        from app.input.hotkeys import HotkeyRegistry, KBDLLHOOKSTRUCT, WM_KEYUP
+        from app.input.input_state import InputState
+        for matching_fails in (False, True):
+            with self.subTest(matching_fails=matching_fails):
+                state = InputState()
+                logger = Mock()
+                logger.exception.side_effect = RuntimeError("logger failed")
+                registry = HotkeyRegistry(state, logger, Mock())
+                registry._mirrored_key_ups.add(65)
+                state.set_key(65, True)
+                registry.physical_key_release_callback = Mock(side_effect=RuntimeError("release callback failed"))
+                if matching_fails:
+                    registry._dispatch_matching_hotkeys = Mock(side_effect=RuntimeError("hotkey failed"))
+                event = KBDLLHOOKSTRUCT()
+                event.vkCode = 65
+                native = Mock(return_value=77)
+                with patch.object(ctypes, "windll", SimpleNamespace(user32=SimpleNamespace(CallNextHookEx=native)), create=True):
+                    self.assertEqual(registry._keyboard_proc(0, WM_KEYUP, ctypes.addressof(event)), 1)
+                registry.physical_key_release_callback.assert_called_once_with(65)
+                self.assertFalse(registry._mirrored_key_ups)
+                native.assert_not_called()
+
+    def test_accepted_busy_click_finishes_original_fanout_before_replaying_next_gesture(self):
+        import ctypes
+        from app.input.mouse_hooks import MouseHook, MSLLHOOKSTRUCT, WM_RBUTTONDOWN, WM_RBUTTONUP
+        from app.macros.switch_click import SwitchClickMacro, SwitchClickContext
+        for count in (2, 4, 6, 8):
+            with self.subTest(count=count):
+                runtime, handles = self.runtime(count)
+                runtime.settings.timings = OrganizerMirrorIntegrationTests()._runtime().settings.timings
+                runtime.settings.clients = tuple(SimpleNamespace(handle=h, display_name=str(h)) for h in handles)
+                runtime._switch_click = SwitchClickMacro(runtime)
+                runtime._switch_character = Mock()
+                runtime.switch_character.ordered_clients_from_source.return_value = list(runtime.settings.clients)
+                active, injected = [handles[0]], [False]
+                emissions = []
+                def focus(hwnd, *_a, **_k):
+                    active[0] = hwnd
+                    return True
+                runtime.switch_character.restore_preferred_client.side_effect = lambda *_: focus(handles[0])
+                def spawn(label, worker):
+                    generation = runtime.macro_lock.try_begin_generation(label)
+                    self.assertIsNotNone(generation)
+                    self.assertTrue(runtime.macro_lock.bind_worker(label, generation))
+                    try:
+                        worker()
+                    finally:
+                        runtime.macro_lock.unbind_worker()
+                        runtime.macro_lock.end(label, generation=generation)
+                        runtime._drain_deferred_mirror_pointer()
+                    return True
+                runtime._spawn_macro = spawn
+                hook = MouseHook(runtime.input_state, runtime.synthetic_guard, runtime.logger,
+                                 runtime._handle_mouse_click,
+                                 blocked_callback=runtime._handle_blocked_mirror_pointer)
+                event = MSLLHOOKSTRUCT()
+                event.pt.x, event.pt.y = 20, 25
+                native = Mock(return_value=77)
+                def send(hwnd, x, y, button, *_a, **_k):
+                    emissions.append((button, hwnd))
+                    if hwnd == handles[1] and not injected[0]:
+                        injected[0] = True
+                        self.assertEqual(hook._mouse_proc(0, WM_RBUTTONDOWN, ctypes.addressof(event)), 1)
+                        self.assertEqual(hook._mouse_proc(0, WM_RBUTTONUP, ctypes.addressof(event)), 1)
+                    return True
+                with (
+                    patch.object(ctypes, "windll", SimpleNamespace(user32=SimpleNamespace(CallNextHookEx=native)), create=True),
+                    patch("app.windows_embed.window_process_id", side_effect=lambda h: h + 1000),
+                    patch("app.macros.mirror_plan.is_dofus_unity_process", return_value=True),
+                    patch("app.windows.unity_windows.foreground_window", side_effect=lambda: active[0]),
+                    patch("app.windows.unity_windows.find_known_client_from_point", side_effect=lambda x, y, known: active[0] if active[0] in known else 0),
+                    patch("app.windows.unity_windows.screen_to_client", return_value=(20, 25)),
+                    patch("app.windows.unity_windows.client_point_ratio", return_value=(.25, .5)),
+                    patch("app.windows.unity_windows.client_point_from_ratio", return_value=(20, 25)),
+                    patch("app.windows.unity_windows.client_to_screen", return_value=(30, 40)),
+                    patch("app.macros.switch_click.is_unity_window", return_value=True),
+                    patch("app.macros.switch_click.is_dofus_unity_process", return_value=True),
+                    patch("app.macros.switch_click.foreground_window", side_effect=lambda: active[0]),
+                    patch("app.macros.switch_click.current_cursor_pos", return_value=(12, 14)),
+                    patch("app.macros.switch_click.set_cursor_pos"),
+                    patch("app.macros.switch_click.activate_window", side_effect=focus),
+                    patch.object(runtime.switch_click, "_target_point", return_value=(20, 25)),
+                    patch("app.macros.switch_click.send_client_click", side_effect=send),
+                ):
+                    self.assertTrue(runtime.switch_click.run_async(
+                        "Left", 20, 25, 1, "Miroir", exact_source_handle=handles[0],
+                        mirror_target_handles=handles, expected_profile=runtime.settings,
+                        captured_context=SwitchClickContext(handles[0], 20, 25, .25, .5, "cursor")))
+                self.assertEqual(emissions, [(button, h) for button in ("Left", "Right") for h in handles])
+                terminal = [call.args[2] for call in runtime.logger.info.call_args_list
+                            if call.args[0] == "%s %s: envoyés=%s/%s"]
+                self.assertEqual(terminal, ["terminé", "terminé"])
+                native.assert_not_called()
+                self.assertFalse(runtime.input_state.is_mouse_blocked())
+
+    def test_deferred_key_worker_rechecks_final_probe_and_always_releases_owned_down(self):
+        from app.core.runtime_state import AtlasRuntime
+        from app.input.input_state import InputState, MirrorPointerContext, DeferredMirrorGesture
+        from app.macros.mirror_input import MirrorInputMacro
+        for count in (2, 4, 6, 8):
+            for interruption in (None, "final_probe", "stop_after_down", "native_after_down"):
+                with self.subTest(count=count, interruption=interruption):
+                    handles = tuple(range(101, 101 + count))
+                    runtime = OrganizerMirrorIntegrationTests()._runtime(primary=handles[0], handles=handles)
+                    runtime.input_state = InputState()
+                    runtime._running = runtime._admin_ok = True
+                    runtime._mirror_pointer_profile_is_current = lambda c: AtlasRuntime._mirror_pointer_profile_is_current(runtime, c)
+                    runtime._deferred_mirror_is_current = lambda g: AtlasRuntime._deferred_mirror_is_current(runtime, g)
+                    context = MirrorPointerContext(runtime.settings, handles[0], handles,
+                                                   tuple((h, h + 1000) for h in handles))
+                    gesture = DeferredMirrorGesture(context, handles[-1], "key", (65,), 10.0, 0, True)
+                    macro = MirrorInputMacro(runtime)
+                    active = [handles[-1]]
+                    activated, downs, ups = [], [], []
+                    def focus(hwnd, *_args, **_kwargs):
+                        active[0] = hwnd
+                        activated.append(hwnd)
+                        return True
+                    def foreground():
+                        if activated and interruption == "final_probe":
+                            runtime.input_state.invalidate_deferred_mirror_pointer()
+                        return active[0]
+                    def down(vk):
+                        downs.append((vk, active[0]))
+                        if interruption == "stop_after_down":
+                            runtime.macro_lock.should_stop.return_value = True
+                            runtime.input_state.clear_mouse_block()
+                        elif interruption == "native_after_down":
+                            runtime.input_state.invalidate_deferred_mirror_pointer()
+                    with (
+                        patch("app.input.input_state.time.monotonic", return_value=10.0),
+                        patch("app.windows_embed.window_process_id", side_effect=lambda h: h + 1000),
+                        patch("app.macros.mirror_input.is_dofus_unity_process", return_value=True),
+                        patch("app.macros.mirror_input.foreground_window", side_effect=foreground),
+                        patch("app.macros.mirror_input.activate_window", side_effect=focus),
+                        patch("app.macros.input_tools.key_down", side_effect=down),
+                        patch("app.macros.input_tools.key_up", side_effect=lambda vk: ups.append((vk, active[0]))),
+                    ):
+                        self.assertTrue(macro.run_key(65, handles[0], handles,
+                                                      expected_profile=context.profile, deferred_gesture=gesture))
+                        runtime._spawn_macro.call_args.args[1]()
+                    expected = [(65, h) for h in handles] if interruption is None else (
+                        [] if interruption == "final_probe" else [(65, handles[0])])
+                    self.assertEqual(downs, expected)
+                    self.assertEqual(ups, expected)
+                    if interruption is not None:
+                        runtime.switch_character.restore_preferred_client.assert_not_called()
+
+    def test_actual_workers_drain_click_key_wheel_in_fifo_after_their_own_focus_restore(self):
+        from contextlib import ExitStack
+        from time import monotonic
+        from app.input.input_state import MirrorPointerContext
+        from app.macros.switch_click import SwitchClickMacro
+        from app.macros.mirror_input import MirrorInputMacro
+        for count in (2, 4, 6, 8):
+            with self.subTest(count=count):
+                runtime, handles = self.runtime(count)
+                runtime.settings.timings = OrganizerMirrorIntegrationTests()._runtime().settings.timings
+                runtime.settings.clients = tuple(SimpleNamespace(handle=h, display_name=str(h)) for h in handles)
+                runtime._switch_click = SwitchClickMacro(runtime)
+                runtime._mirror_input = MirrorInputMacro(runtime)
+                runtime._switch_character = Mock()
+                runtime.switch_character.ordered_clients_from_source.return_value = list(runtime.settings.clients)
+                active = [handles[-1]]
+                emissions = []
+                releases = []
+                def focus(hwnd, *_args, **_kwargs):
+                    active[0] = hwnd
+                    return True
+                runtime.switch_character.restore_preferred_client.side_effect = lambda *_: focus(handles[0])
+                def spawn(label, worker):
+                    generation = runtime.macro_lock.try_begin_generation(label)
+                    self.assertIsNotNone(generation)
+                    self.assertTrue(runtime.macro_lock.bind_worker(label, generation))
+                    try:
+                        worker()
+                    finally:
+                        runtime.macro_lock.unbind_worker()
+                        runtime.macro_lock.end(label, generation=generation)
+                        # Exercise completion while the outer drain owns its
+                        # non-reentrant lock, without starting a second sender.
+                        runtime._drain_deferred_mirror_pointer()
+                    return True
+                runtime._spawn_macro = spawn
+                context = MirrorPointerContext(runtime.settings, handles[0], handles,
+                                               tuple((h, h + 1000) for h in handles))
+                runtime.input_state.begin_mouse_block("Miroir", mirror_context=context)
+                epoch, _, generation, _ = runtime.input_state.mirror_pointer_snapshot()
+                for kind, payload in (("click", ("Left", .25, .5)), ("key", (65,)),
+                                      ("wheel", (-120, True, .25, .5))):
+                    self.assertEqual(runtime.input_state.defer_mirror_pointer(
+                        epoch, generation, context, handles[-1], kind, payload,
+                        captured_at=monotonic()), "accepted")
+                runtime.input_state.release_deferred_mirror_pointer("Left")
+                runtime.input_state.release_deferred_mirror_key(65)
+                runtime.input_state.end_mouse_block()
+                patches = (
+                    patch("app.windows_embed.window_process_id", side_effect=lambda h: h + 1000),
+                    patch("app.macros.mirror_plan.is_dofus_unity_process", return_value=True),
+                    patch("app.windows.unity_windows.foreground_window", side_effect=lambda: active[0]),
+                    patch("app.windows.unity_windows.client_point_from_ratio", return_value=(20, 25)),
+                    patch("app.windows.unity_windows.client_to_screen", return_value=(30, 40)),
+                    patch("app.macros.switch_click.is_unity_window", return_value=True),
+                    patch("app.macros.switch_click.is_dofus_unity_process", return_value=True),
+                    patch("app.macros.switch_click.foreground_window", side_effect=lambda: active[0]),
+                    patch("app.macros.switch_click.current_cursor_pos", return_value=(12, 14)),
+                    patch("app.macros.switch_click.set_cursor_pos"),
+                    patch("app.macros.switch_click.activate_window", side_effect=focus),
+                    patch.object(runtime.switch_click, "_target_point", return_value=(20, 25)),
+                    patch("app.macros.switch_click.send_client_click", side_effect=lambda h, *_a, **_k: emissions.append(("click", h)) or True),
+                    patch("app.macros.mirror_input.is_dofus_unity_process", return_value=True),
+                    patch("app.macros.mirror_input.foreground_window", side_effect=lambda: active[0]),
+                    patch("app.macros.mirror_input.current_cursor_pos", return_value=(12, 14)),
+                    patch("app.macros.mirror_input.set_cursor_pos"),
+                    patch("app.macros.mirror_input.activate_window", side_effect=focus),
+                    patch("app.macros.mirror_input.client_point_from_ratio", return_value=(20, 25)),
+                    patch("app.macros.mirror_input.client_to_screen", return_value=(30, 40)),
+                    patch("app.macros.mirror_input.send_screen_wheel", side_effect=lambda *_a, **_k: emissions.append(("wheel", active[0])) or True),
+                    patch("app.macros.input_tools.key_down", side_effect=lambda vk: emissions.append(("key", active[0]))),
+                    patch("app.macros.input_tools.key_up", side_effect=lambda vk: releases.append((vk, active[0]))),
+                )
+                with ExitStack() as scope:
+                    for cm in patches:
+                        scope.enter_context(cm)
+                    runtime._drain_deferred_mirror_pointer()
+                self.assertEqual(emissions, [(kind, h) for kind in ("click", "key", "wheel") for h in handles])
+                self.assertEqual(releases, [(65, h) for h in handles])
+                self.assertFalse(runtime.macro_lock.active_label)
+                self.assertFalse(runtime.input_state.is_mouse_blocked())
+
+    def test_busy_keyboard_hook_defers_real_down_up_and_ignores_injected_feedback(self):
+        import ctypes
+        from app.input.input_state import MirrorPointerContext
+        from app.input.hotkeys import (
+            HotkeyRegistry, KBDLLHOOKSTRUCT, WM_KEYDOWN, WM_KEYUP, LLKHF_INJECTED,
+        )
+        for count in (2, 4, 6, 8):
+            with self.subTest(count=count):
+                runtime, handles = self.runtime(count)
+                context = MirrorPointerContext(runtime.settings, handles[0], handles,
+                                               tuple((h, h + 1000) for h in handles))
+                generation = runtime.macro_lock.try_begin_generation("Miroir")
+                runtime.input_state.begin_mouse_block("Miroir", mirror_context=context)
+                runtime.input_state.set_mirror_pointer_target(handles[-1])
+                registry = HotkeyRegistry(runtime.input_state, runtime.logger, runtime._handle_hotkey)
+                registry.physical_key_callback = runtime._handle_mirror_key
+                registry.physical_key_release_callback = getattr(runtime, "_release_deferred_mirror_key", None)
+                event = KBDLLHOOKSTRUCT()
+                event.vkCode = 65
+                native = Mock(return_value=77)
+                with (
+                    patch.object(ctypes, "windll", SimpleNamespace(user32=SimpleNamespace(
+                        CallNextHookEx=native)), create=True),
+                    patch("app.windows.unity_windows.foreground_window", return_value=handles[-1]),
+                    patch("app.windows_embed.window_process_id", side_effect=lambda h: h + 1000),
+                    patch("app.macros.mirror_plan.is_dofus_unity_process", return_value=True),
+                ):
+                    pointer = ctypes.addressof(event)
+                    self.assertEqual(registry._keyboard_proc(0, WM_KEYDOWN, pointer), 1)
+                    runtime.mirror_input.run_key.assert_not_called()
+                    self.assertEqual(registry._mirrored_key_ups, {65})
+                    event.flags = LLKHF_INJECTED
+                    self.assertEqual(registry._keyboard_proc(0, WM_KEYUP, pointer), 77)
+                    self.assertEqual(registry._mirrored_key_ups, {65})
+                    event.flags = 0
+                    runtime.input_state.end_mouse_block()
+                    runtime.macro_lock.end("Miroir", generation=generation)
+                    runtime._drain_deferred_mirror_pointer()
+                    runtime.mirror_input.run_key.assert_not_called()
+                    self.assertEqual(registry._keyboard_proc(0, WM_KEYUP, pointer), 1)
+                    runtime.mirror_input.run_key.assert_called_once()
+                    args, kwargs = runtime.mirror_input.run_key.call_args
+                    self.assertEqual(args, (65, handles[0], handles))
+                    self.assertEqual(kwargs["deferred_gesture"].kind, "key")
+                    self.assertEqual(kwargs["deferred_gesture"].foreground, handles[-1])
+                    self.assertFalse(registry._mirrored_key_ups)
+                    self.assertFalse(runtime.input_state.snapshot())
+                    self.assertEqual(native.call_count, 1)
+
+    def test_deferred_wheel_worker_preserves_order_and_rechecks_last_native_probe(self):
+        from app.core.runtime_state import AtlasRuntime
+        from app.input.input_state import InputState, MirrorPointerContext, DeferredMirrorGesture
+        from app.macros.mirror_input import MirrorInputMacro
+        for count in (2, 4, 6, 8):
+            for interruption in (None, "stop", "expired", "pid", "focus", "profile", "native_input", "final_probe"):
+                for settle in (0, 10):
+                    with self.subTest(count=count, interruption=interruption, settle=settle):
+                        handles = tuple(range(101, 101 + count))
+                        runtime = OrganizerMirrorIntegrationTests()._runtime(primary=handles[0], handles=handles)
+                        runtime.input_state = InputState()
+                        runtime.settings.timings.switch_client_settle_ms = settle
+                        runtime._running = runtime._admin_ok = True
+                        runtime._mirror_pointer_profile_is_current = lambda c: AtlasRuntime._mirror_pointer_profile_is_current(runtime, c)
+                        runtime._deferred_mirror_is_current = lambda g: AtlasRuntime._deferred_mirror_is_current(runtime, g)
+                        runtime._spawn_macro.return_value = True
+                        context = MirrorPointerContext(runtime.settings, handles[0], handles,
+                                                       tuple((h, h + 1000) for h in handles))
+                        gesture = DeferredMirrorGesture(context, handles[-1], "wheel",
+                                                         (-120, True, .25, .5), 10.0, 0, True)
+                        macro = MirrorInputMacro(runtime)
+                        active = [handles[-1]]
+                        clock = [10.0]
+                        pids = dict(context.process_ids)
+                        moved = [False]
+                        sent, activated = [], []
+                        def focus(hwnd, *_args, **_kwargs):
+                            active[0] = hwnd
+                            activated.append(hwnd)
+                            return True
+                        def foreground():
+                            if moved[0] and interruption == "final_probe":
+                                runtime.input_state.invalidate_deferred_mirror_pointer()
+                            return active[0]
+                        def send(delta, **kwargs):
+                            self.assertEqual((delta, kwargs), (-120, {"horizontal": True}))
+                            sent.append(active[0])
+                            if len(sent) == 1:
+                                if interruption == "stop":
+                                    runtime.input_state.clear_mouse_block()
+                                    runtime.macro_lock.should_stop.return_value = True
+                                elif interruption == "expired":
+                                    clock[0] = 13.0
+                                elif interruption == "pid":
+                                    pids[handles[1]] += 100
+                                elif interruption == "focus":
+                                    active[0] = 999
+                                elif interruption == "profile":
+                                    runtime.settings = SimpleNamespace(**vars(context.profile))
+                                elif interruption == "native_input":
+                                    runtime.input_state.set_key(65, True)
+                            return True
+                        with (
+                            patch("app.input.input_state.time.monotonic", side_effect=lambda: clock[0]),
+                            patch("app.windows_embed.window_process_id", side_effect=lambda h: pids.get(h, 0)),
+                            patch("app.macros.mirror_input.is_dofus_unity_process", return_value=True),
+                            patch("app.macros.mirror_input.foreground_window", side_effect=foreground),
+                            patch("app.macros.mirror_input.current_cursor_pos", return_value=(12, 14)),
+                            patch("app.macros.mirror_input.set_cursor_pos", side_effect=lambda *_: moved.__setitem__(0, True)),
+                            patch("app.macros.mirror_input.client_point_from_ratio", return_value=(20, 25)),
+                            patch("app.macros.mirror_input.client_to_screen", return_value=(30, 40)),
+                            patch("app.macros.mirror_input.activate_window", side_effect=focus),
+                            patch("app.macros.mirror_input.send_screen_wheel", side_effect=send),
+                        ):
+                            self.assertTrue(macro.run_wheel(
+                                -120, True, .25, .5, handles[0], handles,
+                                expected_profile=context.profile, deferred_gesture=gesture))
+                            runtime._spawn_macro.call_args.args[1]()
+                        expected = list(handles) if interruption is None else ([] if interruption == "final_probe" else [handles[0]])
+                        self.assertEqual(sent, expected)
+                        self.assertEqual(activated, list(handles) if interruption is None else [handles[0]])
+                        self.assertFalse(runtime.input_state.is_mouse_blocked())
+                        if interruption is not None:
+                            runtime.switch_character.restore_preferred_client.assert_not_called()
+
+    def test_deferred_click_worker_uses_secondary_foreground_then_stops_on_invalidation(self):
+        from app.core.runtime_state import AtlasRuntime
+        from app.input.input_state import InputState, MirrorPointerContext, DeferredMirrorGesture
+        from app.macros.switch_click import SwitchClickMacro, SwitchClickContext
+        for count in (2, 4, 6, 8):
+            for interruption in (None, "stop", "expired", "pid", "focus", "profile", "native_input"):
+                with self.subTest(count=count, interruption=interruption):
+                    handles = tuple(range(101, 101 + count))
+                    runtime = OrganizerMirrorIntegrationTests()._runtime(primary=handles[0], handles=handles)
+                    runtime.input_state = InputState()
+                    runtime._running = runtime._admin_ok = True
+                    runtime._mirror_pointer_profile_is_current = lambda c: AtlasRuntime._mirror_pointer_profile_is_current(runtime, c)
+                    runtime._deferred_mirror_is_current = lambda g: AtlasRuntime._deferred_mirror_is_current(runtime, g)
+                    runtime._spawn_macro.return_value = True
+                    runtime.switch_character.ordered_clients_from_source.return_value = [
+                        SimpleNamespace(handle=h, display_name=str(h)) for h in handles]
+                    context = MirrorPointerContext(runtime.settings, handles[0], handles,
+                                                   tuple((h, h + 1000) for h in handles))
+                    gesture = DeferredMirrorGesture(context, handles[-1], "click",
+                                                     ("Left", .25, .5), 10.0, 0, True)
+                    captured = SwitchClickContext(handles[0], 20, 25, .25, .5, "deferred")
+                    macro = SwitchClickMacro(runtime)
+                    active = [handles[-1]]
+                    clock = [10.0]
+                    pids = dict(context.process_ids)
+                    sent = []
+                    activated = []
+                    def focus(hwnd, *_args, **_kwargs):
+                        active[0] = hwnd
+                        activated.append(hwnd)
+                        return True
+                    def send(hwnd, *_args, **kwargs):
+                        self.assertFalse(kwargs["should_stop"]())
+                        sent.append(hwnd)
+                        if len(sent) == 1:
+                            if interruption == "stop":
+                                runtime.input_state.clear_mouse_block()
+                                runtime.macro_lock.should_stop.return_value = True
+                            elif interruption == "expired":
+                                clock[0] = 13.0
+                            elif interruption == "pid":
+                                pids[handles[1]] += 100
+                            elif interruption == "focus":
+                                active[0] = 999
+                            elif interruption == "profile":
+                                runtime.settings = SimpleNamespace(**vars(context.profile))
+                            elif interruption == "native_input":
+                                runtime.input_state.invalidate_deferred_mirror_pointer()
+                        return True
+                    with (
+                        patch("app.input.input_state.time.monotonic", side_effect=lambda: clock[0]),
+                        patch("app.windows_embed.window_process_id", side_effect=lambda h: pids.get(h, 0)),
+                        patch.object(macro, "_validated_context", return_value=captured),
+                        patch.object(macro, "_target_point", return_value=(20, 25)),
+                        patch("app.macros.switch_click.is_unity_window", return_value=True),
+                        patch("app.macros.switch_click.is_dofus_unity_process", return_value=True),
+                        patch("app.macros.switch_click.foreground_window", side_effect=lambda: active[0]),
+                        patch("app.macros.switch_click.current_cursor_pos", return_value=(12, 14)),
+                        patch("app.macros.switch_click.set_cursor_pos"),
+                        patch("app.macros.switch_click.activate_window", side_effect=focus),
+                        patch("app.macros.switch_click.send_client_click", side_effect=send),
+                    ):
+                        self.assertTrue(macro.run_async(
+                            "Left", 20, 25, 1, "Miroir", exact_source_handle=handles[0],
+                            mirror_target_handles=handles, captured_context=captured,
+                            expected_profile=context.profile, deferred_gesture=gesture))
+                        runtime._spawn_macro.call_args.args[1]()
+                    self.assertEqual(sent, list(handles) if interruption is None else [handles[0]])
+                    self.assertEqual(activated, list(handles) if interruption is None else [handles[0]])
+                    self.assertFalse(runtime.input_state.is_mouse_blocked())
+                    if interruption is not None:
+                        runtime.switch_character.restore_preferred_client.assert_not_called()
+
+    def runtime(self, count=2):
+        from app.core.runtime_state import AtlasRuntime
+        with patch("app.core.runtime_state.get_runtime_logger", return_value=Mock()):
+            runtime = AtlasRuntime()
+        handles = tuple(range(101, 101 + count))
+        clients = tuple(SimpleNamespace(handle=h) for h in handles)
+        runtime.settings = SimpleNamespace(
+            macro_mode="mirror", primary_handle=handles[0],
+            clients=clients,
+            client_by_handle=lambda h: next((c for c in clients if c.handle == h), None),
+        )
+        runtime._running = True
+        runtime._switch_click = Mock()
+        runtime._switch_click.run_async.return_value = True
+        runtime._mirror_input = Mock()
+        runtime._mirror_input.run_wheel.return_value = True
+        return runtime, handles
+
+    def test_actual_hook_defers_click_until_up_then_uses_captured_client_ratios_2_to_8(self):
+        import ctypes
+        from app.input.input_state import MirrorPointerContext
+        from app.input.mouse_hooks import MouseHook, MSLLHOOKSTRUCT, WM_LBUTTONDOWN, WM_LBUTTONUP
+        for count in (2, 4, 6, 8):
+            with self.subTest(count=count):
+                runtime, handles = self.runtime(count)
+                context = MirrorPointerContext(runtime.settings, handles[0], handles,
+                                               tuple((h, h + 1000) for h in handles))
+                generation = runtime.macro_lock.try_begin_generation("Miroir")
+                runtime.input_state.begin_mouse_block("Miroir", mirror_context=context)
+                runtime.input_state.set_mirror_pointer_target(handles[-1])
+                hook = MouseHook(runtime.input_state, runtime.synthetic_guard, runtime.logger,
+                                 runtime._handle_mouse_click,
+                                 blocked_callback=runtime._handle_blocked_mirror_pointer)
+                event = MSLLHOOKSTRUCT()
+                event.pt.x, event.pt.y = 900, 700
+                native = Mock(return_value=77)
+                with (
+                    patch.object(ctypes, "windll", SimpleNamespace(user32=SimpleNamespace(
+                        CallNextHookEx=native)), create=True),
+                    patch("app.windows.unity_windows.foreground_window", return_value=handles[-1]),
+                    patch("app.windows.unity_windows.find_known_client_from_point", return_value=handles[-1]),
+                    patch("app.windows.unity_windows.screen_to_client", return_value=(200, 300)),
+                    patch("app.windows.unity_windows.client_point_ratio", return_value=(.25, .75)),
+                    patch("app.windows.unity_windows.client_point_from_ratio", return_value=(20, 60)),
+                    patch("app.windows.unity_windows.client_to_screen", return_value=(30, 70)),
+                    patch("app.windows_embed.window_process_id", side_effect=lambda h: h + 1000),
+                    patch("app.macros.mirror_plan.is_dofus_unity_process", return_value=True),
+                ):
+                    pointer = ctypes.addressof(event)
+                    self.assertEqual(hook._mouse_proc(0, WM_LBUTTONDOWN, pointer), 1)
+                    self.assertFalse(runtime.input_state.mouse_block_interrupted())
+                    runtime.switch_click.run_async.assert_not_called()
+                    runtime.input_state.end_mouse_block()
+                    runtime.macro_lock.end("Miroir", generation=generation)
+                    runtime._drain_deferred_mirror_pointer()
+                    runtime.switch_click.run_async.assert_not_called()
+                    self.assertEqual(hook._mouse_proc(0, WM_LBUTTONUP, pointer), 1)
+                    runtime.switch_click.run_async.assert_called_once()
+                    args, kwargs = runtime.switch_click.run_async.call_args
+                    self.assertEqual(args, ("Left", 30, 70, 1, "Miroir"))
+                    self.assertEqual(kwargs["mirror_target_handles"], handles)
+                    self.assertEqual(kwargs["captured_context"].reason, "deferred")
+                    self.assertEqual(kwargs["deferred_gesture"].foreground, handles[-1])
+                    self.assertEqual(kwargs["deferred_gesture"].payload, ("Left", .25, .75))
+                    self.assertIs(kwargs["expected_profile"], context.profile)
+                    native.assert_not_called()
+                    self.assertFalse(hook._consumed_releases)
+
+    def test_deferred_runtime_rejects_changed_context_before_dispatch(self):
+        from app.input.input_state import MirrorPointerContext
+        for change in ("stop", "profile", "mode", "favorite", "roster", "pid", "focus", "expired"):
+            with self.subTest(change=change):
+                runtime, handles = self.runtime(4)
+                context = MirrorPointerContext(runtime.settings, handles[0], handles,
+                                               tuple((h, h + 1000) for h in handles))
+                runtime.input_state.begin_mouse_block("Miroir", mirror_context=context)
+                epoch, _, generation, _ = runtime.input_state.mirror_pointer_snapshot()
+                with patch("app.input.input_state.time.monotonic", return_value=10.0):
+                    self.assertEqual(runtime.input_state.defer_mirror_pointer(
+                        epoch, generation, context, handles[-1], "wheel",
+                        (120, False, .2, .3), captured_at=10.0), "accepted")
+                runtime.input_state.end_mouse_block()
+                if change == "stop":
+                    runtime.emergency_stop()
+                elif change == "profile":
+                    runtime.settings = SimpleNamespace(**vars(context.profile))
+                elif change == "mode":
+                    runtime.settings.macro_mode = "macro"
+                elif change == "favorite":
+                    runtime.settings.primary_handle = handles[-1]
+                elif change == "roster":
+                    runtime.settings.clients = tuple(reversed(runtime.settings.clients))
+                with (
+                    patch("app.input.input_state.time.monotonic", return_value=13.0 if change == "expired" else 10.0),
+                    patch("app.windows.unity_windows.foreground_window", return_value=999 if change == "focus" else handles[-1]),
+                    patch("app.windows_embed.window_process_id", side_effect=lambda h: h + (2000 if change == "pid" else 1000)),
+                    patch("app.macros.mirror_plan.is_dofus_unity_process", return_value=True),
+                ):
+                    runtime._drain_deferred_mirror_pointer()
+                runtime.switch_click.run_async.assert_not_called()
+                runtime.mirror_input.run_wheel.assert_not_called()
+
+    def context(self, count=2):
+        from app.input.input_state import MirrorPointerContext
+        handles = tuple(range(101, 101 + count))
+        return MirrorPointerContext(object(), handles[0], handles,
+                                    tuple((h, h + 1000) for h in handles))
+
+    def test_blocked_click_waits_for_its_release_and_pointer_cleanup(self):
+        from app.input.input_state import InputState
+        state = InputState()
+        context = self.context()
+        state.begin_mouse_block("Miroir", mirror_context=context)
+        epoch, captured, generation, _ = state.mirror_pointer_snapshot()
+        self.assertIs(captured, context)
+        with patch("app.input.input_state.time.monotonic", return_value=10.0):
+            self.assertEqual(state.defer_mirror_pointer(
+                epoch, generation, context, 102, "click", ("Left", .2, .3),
+                captured_at=10.0), "accepted")
+            self.assertIsNone(state.take_deferred_mirror_pointer())
+            state.end_mouse_block()
+            self.assertIsNone(state.take_deferred_mirror_pointer())
+            state.release_deferred_mirror_pointer("Right")
+            self.assertIsNone(state.take_deferred_mirror_pointer())
+            state.release_deferred_mirror_pointer("Left")
+            gesture = state.take_deferred_mirror_pointer()
+            self.assertEqual(gesture.payload, ("Left", .2, .3))
+            self.assertTrue(state.deferred_mirror_pointer_is_current(gesture))
+            self.assertIsNone(state.take_deferred_mirror_pointer())
+
+    def test_deferred_pointer_order_capacity_and_expiration_2_to_8(self):
+        from app.input.input_state import InputState, MIRROR_PENDING_CAPACITY
+        for count in (2, 4, 6, 8):
+            with self.subTest(count=count):
+                state = InputState()
+                context = self.context(count)
+                state.begin_mouse_block("Miroir", mirror_context=context)
+                epoch, _, generation, _ = state.mirror_pointer_snapshot()
+                with patch("app.input.input_state.time.monotonic", return_value=10.0):
+                    for index in range(MIRROR_PENDING_CAPACITY):
+                        kind = "click" if index == 0 else "wheel"
+                        payload = ("Left", .2, .3) if index == 0 else (120, False, .2, .3)
+                        self.assertEqual(state.defer_mirror_pointer(
+                            epoch, generation, context, context.handles[-1], kind,
+                            payload, captured_at=10.0), "accepted")
+                    self.assertEqual(state.defer_mirror_pointer(
+                        epoch, generation, context, context.handles[-1], "wheel",
+                        (120, False, .2, .3), captured_at=10.0), "full")
+                    state.end_mouse_block()
+                    self.assertIsNone(state.take_deferred_mirror_pointer())
+                    state.release_deferred_mirror_pointer("Left")
+                    gestures = [state.take_deferred_mirror_pointer()
+                                for _ in range(MIRROR_PENDING_CAPACITY)]
+                    self.assertEqual([g.kind for g in gestures],
+                                     ["click"] + ["wheel"] * (MIRROR_PENDING_CAPACITY - 1))
+                with patch("app.input.input_state.time.monotonic", return_value=13.0):
+                    self.assertFalse(state.deferred_mirror_pointer_is_current(gestures[0]))
+
+    def test_stop_invalidates_admission_and_already_taken_gesture(self):
+        from app.input.input_state import InputState
+        state = InputState()
+        context = self.context()
+        state.begin_mouse_block("Miroir", mirror_context=context)
+        epoch, _, generation, _ = state.mirror_pointer_snapshot()
+        with patch("app.input.input_state.time.monotonic", return_value=10.0):
+            self.assertEqual(state.defer_mirror_pointer(
+                epoch, generation, context, 102, "wheel", (120, False, .2, .3),
+                captured_at=10.0), "accepted")
+            state.end_mouse_block()
+            gesture = state.take_deferred_mirror_pointer()
+            state.clear_mouse_block()
+            self.assertFalse(state.deferred_mirror_pointer_is_current(gesture))
+            self.assertEqual(state.defer_mirror_pointer(
+                epoch, generation, context, 102, "wheel", (120, False, .2, .3),
+                captured_at=10.0), "obsolete")
+
+    def test_late_capture_after_release_is_allowed_but_successor_lease_is_not(self):
+        from app.input.input_state import InputState
+        state = InputState()
+        context = self.context()
+        state.begin_mouse_block("Miroir", mirror_context=context)
+        epoch, _, generation, _ = state.mirror_pointer_snapshot()
+        state.end_mouse_block()
+        with patch("app.input.input_state.time.monotonic", return_value=10.0):
+            self.assertEqual(state.defer_mirror_pointer(
+                epoch, generation, context, 102, "wheel", (120, False, .2, .3),
+                captured_at=10.0), "accepted")
+            state.begin_mouse_block("Successeur", mirror_context=context)
+            self.assertEqual(state.defer_mirror_pointer(
+                epoch, generation, context, 102, "wheel", (120, False, .2, .3),
+                captured_at=10.0), "obsolete")
+            self.assertFalse(state.mouse_block_interrupted())
+
+    def test_ambiguous_second_down_cannot_replay_the_first_click(self):
+        from app.input.input_state import InputState
+        state = InputState()
+        context = self.context()
+        state.begin_mouse_block("Miroir", mirror_context=context)
+        epoch, _, generation, _ = state.mirror_pointer_snapshot()
+        with patch("app.input.input_state.time.monotonic", return_value=10.0):
+            args = (epoch, generation, context, 102, "click", ("Left", .2, .3))
+            self.assertEqual(state.defer_mirror_pointer(*args, captured_at=10.0), "accepted")
+            self.assertEqual(state.defer_mirror_pointer(*args, captured_at=10.0,
+                                                       ambiguous=True), "ambiguous")
+            state.release_deferred_mirror_pointer("Left")
+            state.end_mouse_block()
+            self.assertIsNone(state.take_deferred_mirror_pointer())
 
 
 if __name__ == "__main__":

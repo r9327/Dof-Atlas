@@ -11,6 +11,34 @@ from tools.organizer_mirror_log_report import compare_reports, main, summarize
 
 
 class OrganizerMirrorLogReportTests(unittest.TestCase):
+    def test_deferred_admission_is_not_delivery_and_cannot_produce_a_latency_gain(self):
+        baseline = summarize(["Miroir blocage_souris_ms=10 cibles=2"] * 5, 2)
+        for count in (2, 4, 6, 8):
+            for kind in ("click", "key", "wheel"):
+                with self.subTest(count=count, kind=kind):
+                    report = summarize([f"Miroir blocage_souris_ms=5 cibles={count}"] * 5 + [
+                        f"Miroir geste différé: type={kind} admission=accepted",
+                    ], count)
+                    self.assertEqual(report["observed_deferred_admissions"][kind], 1)
+                    self.assertFalse(any(report["actions"].values()))
+                    self.assertFalse(any(report["observed_blocked_physical_inputs"].values()))
+                    comparison = compare_reports({2: baseline, count: report})
+                    self.assertIsNone(comparison["p95_ratio_vs_2_accounts"]["click_pointer_block_ms"][str(count)])
+                    self.assertIn("DEFERRED_INPUTS_IN_LOG", comparison["ratio_exclusion_reasons"][str(count)])
+                    self.assertEqual(report["metrics"]["click_pointer_block_ms"]["p95_ms"], 5)
+
+    def test_queue_counters_are_max_observations_not_invented_losses(self):
+        report = summarize([
+            "Miroir file: acceptés=4 expirés=1 annulés=1 pleine=1 ambigus=0 retirés=2",
+            "Miroir file: acceptés=2 expirés=0 annulés=0 pleine=3 ambigus=1 retirés=1",
+        ], 8)
+        self.assertEqual(report["observed_deferred_queue_counters"], {
+            "accepted": 4, "expired": 1, "cancelled": 1, "full": 3, "ambiguous": 1, "taken": 2,
+        })
+        self.assertFalse(any(report["observed_blocked_physical_inputs"].values()))
+        self.assertFalse(any(report["actions"].values()))
+        self.assertEqual(report["deferred_queue_counter_scope"], "WHOLE_LOG_MAX_NOT_DELIVERY")
+
 
     def test_busy_native_inputs_exclude_ratios_without_inventing_worker_failures(self):
         clean = summarize(["Miroir blocage_souris_ms=10 cibles=2"] * 5, 2)

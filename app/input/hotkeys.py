@@ -370,6 +370,7 @@ class HotkeyRegistry:
         self._start_ok = False
         self._suppressed_until_release: set[str] = set()
         self.physical_key_callback: PhysicalKeyCallback | None = None
+        self.physical_key_release_callback: Callable[[int], None] | None = None
         self._mirrored_key_ups: set[int] = set()
 
     def register_hotkeys(self, actions: list[HotkeyAction]) -> HotkeyReport:
@@ -553,6 +554,7 @@ class HotkeyRegistry:
             self._hook_thread_id = 0
 
     def _keyboard_proc(self, n_code: int, w_param: int, l_param: int) -> int:
+        physical_key_event = n_code >= 0 and w_param in (WM_KEYDOWN, WM_SYSKEYDOWN, WM_KEYUP, WM_SYSKEYUP)
         try:
             if n_code >= 0:
                 event = ctypes.cast(ctypes.c_void_p(l_param), ctypes.POINTER(KBDLLHOOKSTRUCT)).contents
@@ -569,7 +571,12 @@ class HotkeyRegistry:
                     if released and mirrored_pair:
                         self._mirrored_key_ups.discard(vk_code)
                     try:
-                        self.input_state.set_key(vk_code, pressed)
+                        if self.physical_key_release_callback is not None:
+                            # The final native/consumed decision below owns
+                            # cancellation, so queued keys can retain order.
+                            self.input_state.set_key(vk_code, pressed, preserve_deferred=True)
+                        else:
+                            self.input_state.set_key(vk_code, pressed)
                     except Exception:
                         if mirrored_pair:
                             try:
@@ -586,6 +593,8 @@ class HotkeyRegistry:
                         self._dispatch_matching_hotkeys()
                     except Exception:
                         if mirrored_pair:
+                            if released:
+                                self._release_deferred_key(vk_code)
                             # A failed logger cannot revoke ownership of a
                             # physical key already mirrored to other windows.
                             try:
@@ -599,6 +608,8 @@ class HotkeyRegistry:
                     # A mirrored physical DOWN is a short, balanced injected
                     # tap; swallow its original UP even after the worker ends.
                     if mirrored_pair and (released or pressed):
+                        if released and self.physical_key_release_callback is not None:
+                            self._release_deferred_key(vk_code)
                         return 1  # also suppress physical autorepeat
                     # Never intercept global combinations, modifiers, or the
                     # emergency-stop key. In particular preserve Alt+Tab.
@@ -622,7 +633,20 @@ class HotkeyRegistry:
                 self.logger.exception("Hook clavier: erreur callback.")
             except Exception:
                 pass
+        if physical_key_event and self.physical_key_release_callback is not None:
+            self.input_state.invalidate_deferred_mirror_pointer()
         return ctypes.windll.user32.CallNextHookEx(self._hook, n_code, w_param, l_param)
+
+    def _release_deferred_key(self, vk_code: int) -> None:
+        if self.physical_key_release_callback is None:
+            return
+        try:
+            self.physical_key_release_callback(vk_code)
+        except Exception:
+            try:
+                self.logger.exception("Miroir: fin du geste clavier différé impossible.")
+            except Exception:
+                pass
 
     def _dispatch_priority_stop(self, vk_code: int, pressed: bool) -> bool:
         if not self._stop_actions:

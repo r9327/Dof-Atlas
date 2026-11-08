@@ -109,6 +109,14 @@ BUSY_INPUT_WARNING = re.compile(
     r"\bMiroir occupe: entree physique (clic|clavier|molette) "
     r"non synchronisee, sans replay\."
 )
+DEFERRED_ADMISSION = re.compile(
+    r"\bMiroir geste différé: type=(click|key|wheel) admission=accepted\b"
+)
+DEFERRED_QUEUE_COUNTERS = re.compile(
+    r"\bMiroir file: acceptés=(?P<accepted>\d+) expirés=(?P<expired>\d+) "
+    r"annulés=(?P<cancelled>\d+) pleine=(?P<full>\d+) "
+    r"ambigus=(?P<ambiguous>\d+) retirés=(?P<taken>\d+)\b"
+)
 
 
 def _percentiles(values: list[float]) -> dict[str, float | int] | None:
@@ -146,11 +154,22 @@ def summarize(lines: Iterable[str], accounts: int) -> dict:
     losses = {"clicks": 0, "wheel_ticks": 0}
     per_action_losses = {"click": 0, "wheel": 0}
     busy_input_warnings = {"click": 0, "key": 0, "wheel": 0}
+    deferred_admissions = {"click": 0, "key": 0, "wheel": 0}
+    deferred_counters = dict(accepted=0, expired=0, cancelled=0, full=0, ambiguous=0, taken=0)
     previous = (0, 0)
     mismatched_roster_lines = 0
     observed_non_replayed = 0
     profile_changed_after_send = 0
     for line in lines:
+        deferred = DEFERRED_ADMISSION.search(line)
+        if deferred:
+            deferred_admissions[deferred[1]] += 1
+        queue_counters = DEFERRED_QUEUE_COUNTERS.search(line)
+        if queue_counters:
+            # Snapshots may be reordered or reset by another runtime. They
+            # are bounds on observed policy decisions, not delivery/loss.
+            for name in deferred_counters:
+                deferred_counters[name] = max(deferred_counters[name], int(queue_counters[name]))
         busy_warning = BUSY_INPUT_WARNING.search(line)
         if busy_warning:
             kind = {"clic": "click", "clavier": "key", "molette": "wheel"}[busy_warning[1]]
@@ -167,7 +186,8 @@ def summarize(lines: Iterable[str], accounts: int) -> dict:
             counts = (int(match[1]), int(match[2]))
             for i, name in enumerate(("clicks", "wheel_ticks")):
                 # Counters reset on hook restart; a lower number starts a new
-                # session. Only observed losses are counted, never invented.
+                # session. Count interceptions, never infer delivery/loss in
+                # Unity: an intercepted gesture may now enter the queue.
                 losses[name] += counts[i] if counts[i] < previous[i] else counts[i] - previous[i]
             previous = counts
             if STOP_COUNTERS.search(line):
@@ -254,6 +274,10 @@ def summarize(lines: Iterable[str], accounts: int) -> dict:
         "blocked_input_scope": "WHOLE_LOG",
         "observed_busy_input_warnings": busy_input_warnings,
         "busy_input_warning_scope": "WHOLE_LOG_RATE_LIMITED_LOWER_BOUND",
+        "observed_deferred_admissions": deferred_admissions,
+        "deferred_admission_scope": "WHOLE_LOG_OBSERVED_NOT_DELIVERY",
+        "observed_deferred_queue_counters": deferred_counters,
+        "deferred_queue_counter_scope": "WHOLE_LOG_MAX_NOT_DELIVERY",
         "observed_blocked_inputs_per_mirror_action": per_action_losses,
         "non_replayed_statuses": observed_non_replayed,
         "profile_changed_after_send": profile_changed_after_send,
@@ -265,6 +289,9 @@ def summarize(lines: Iterable[str], accounts: int) -> dict:
 def _comparison_exclusions(report: dict) -> list[str]:
     """Exclude fast-but-lost gestures from apparent responsiveness results."""
     reasons: list[str] = []
+    if (any(report.get("observed_deferred_admissions", {}).values())
+            or any(report.get("observed_deferred_queue_counters", {}).values())):
+        reasons.append("DEFERRED_INPUTS_IN_LOG")
     if any(report.get("observed_busy_input_warnings", {}).values()):
         reasons.append("UNSYNCHRONIZED_PHYSICAL_INPUTS_IN_LOG")
     if report["actions"]["partial"] or report["actions"]["interrupted"]:

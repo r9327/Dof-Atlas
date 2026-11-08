@@ -1,7 +1,47 @@
 # Organizer — Miroir expérimental, issue #321
 
-**État : interface, clics, clavier court et molette séquentiels intégrés, NON certifiés.**
+**État : intégration séquentielle en développement ; comportement DOFUS Unity NON certifié.**
 Compatibilité Windows/Dofus réelle NOT_RUN (issue #322).
+
+## Gestes reçus pendant une diffusion
+
+Les hooks canoniques peuvent différer **quatre gestes au maximum**, pendant
+**deux secondes depuis leur capture**. Les clics gauche/droit et les touches
+brèves attendent leur véritable UP ; un cran de molette vertical/horizontal
+constitue un geste complet. Les événements injectés et les répétitions d'une
+touche déjà interceptée ne créent pas d'entrée supplémentaire.
+
+La capture conserve le profil, le favori, l'ordre des HWND, leurs PID et le
+destinataire courant de la diffusion. Un clic/molette conserve sa position
+relative dans la fenêtre vérifiée sous le pointeur, puis la remappe vers le
+favori logique. Une fenêtre différente pendant les sondes natives rend cette
+capture irrecevable. Aucun geste refusé n'est envoyé vers une autre application.
+
+Un geste admis **n'interrompt pas la diffusion précédente** : celle-ci termine
+ses émissions avant de libérer le verrou. La file utilise ensuite les mêmes
+SwitchClickMacro/MirrorInputMacro et SendInput, dans l'ordre de capture ; elle
+n'ajoute ni hook, ni injecteur, ni thread d'attente. Le retour au favori effectué
+par un worker achevé peut être transmis au geste suivant du même contexte,
+après contrôle du focus et des PID. Il n'autorise pas à reprendre le focus volé
+par l'utilisateur.
+
+Stop, remplacement du profil, changement de favori/roster/mode et nouveau geste
+laissé natif invalident les anciens rejeux. Une file pleine, un geste expiré,
+une paire ambiguë ou une identité devenue illisible sont refusés explicitement ;
+une capture refusée sous bail actif interrompt la diffusion plutôt que de
+laisser une impulsion arriver dans une fenêtre temporairement activée.
+Les boutons non pris en charge, maintiens, combinaisons et glisser-déposer ne
+deviennent pas pris en charge par cette file.
+
+Les compteurs `acceptés/expirés/annulés/pleine/ambigus/retirés` décrivent la
+politique de file, **pas la réception dans Unity**. « Retiré » signifie sorti
+de la file, pas envoyé. La latence dispatch → dernière émission inclut l'attente
+en file ; les séances contenant des admissions différées sont exclues des
+ratios de performance. Les simulations 2/4/6/8 et la certification Windows ne
+remplacent pas la recette réelle #322 ni ne démontrent zéro perte en jeu.
+
+Les notes de lots ci-dessous conservent leur contexte historique : les mentions
+d'absence de file concernent les anciens candidats décrits dans ces notes.
 
 ## Interface
 - Dans la carte Macro : sélecteur compact Macro | Miroir sur le titre.
@@ -43,8 +83,9 @@ Compatibilité Windows/Dofus réelle NOT_RUN (issue #322).
 - PostMessage ciblé en arrière-plan et compatibilité réelle avec Unity
   NON PROUVÉS ; pas de diffusion simultanée annoncée.
 - Scénarios 1/2/4/6/8 fenêtres en jeu et mesures p50/p95/p99 : NOT_RUN (#322).
-- Exigences MIRR-001/002/003/004/005 et certification indépendante non
-  closes : PR Draft. Ne pas fusionner avant implémentation et preuves finales.
+- Le rapport exact-SHA de la PR suit les exigences. Compatibilité Unity et
+  recette #322 restent ouvertes ; conserver la PR Draft tant que les preuves
+  requises pour le candidat final ne sont pas réunies.
 
 
 ## Raccordement incrémental des entrées discrètes (PR #325)

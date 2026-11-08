@@ -88,6 +88,31 @@ def is_dofus_unity_process(hwnd: int) -> bool:
         return False
 
 
+def mirror_pointer_context(profile: object, source: int, handles: tuple[int, ...]):
+    """Freeze process identities on the worker, never scan the roster in a hook."""
+    from app.input.input_state import MirrorPointerContext
+    from app.windows_embed import window_process_id
+
+    if (type(source) is not int or type(handles) is not tuple
+            or not 2 <= len(handles) <= 8 or handles[0] != source
+            or any(type(h) is not int or not 0 < h <= 2**64 - 1 for h in handles)
+            or len(set(handles)) != len(handles)):
+        return None
+    try:
+        identities = tuple((h, window_process_id(h)) for h in handles)
+    except (OSError, ValueError, TypeError, OverflowError):
+        return None
+    if any(type(pid) is not int or not 0 < pid <= 2**32 - 1 for _, pid in identities):
+        return None
+    try:
+        if not all(is_dofus_unity_process(h) and window_process_id(h) == pid
+                   for h, pid in identities):
+            return None
+    except (OSError, ValueError, TypeError, OverflowError):
+        return None
+    return MirrorPointerContext(profile, source, handles, identities)
+
+
 def mirror_targets(
     configured_handles: Iterable[int],
     explicitly_selected_handles: Collection[int],

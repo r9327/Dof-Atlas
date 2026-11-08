@@ -9,6 +9,7 @@ from __future__ import annotations
 import math
 from time import perf_counter
 from typing import TYPE_CHECKING
+from app.input.input_state import DeferredMirrorGesture, MirrorPointerContext
 
 from app.macros.mirror_plan import is_dofus_unity_process
 from app.windows.focus import activate_window
@@ -28,6 +29,7 @@ class MirrorInputMacro:
     def run_key(
         self, vk_code: int, source: int, handles: tuple[int, ...],
         *, expected_profile: object | None = None,
+        deferred_gesture: DeferredMirrorGesture | None = None,
     ) -> bool:
         from app.input.hotkeys import MIRROR_DISCRETE_KEYS
 
@@ -36,17 +38,37 @@ class MirrorInputMacro:
         profile_at_dispatch = self.runtime.settings
         if (expected_profile is not None and profile_at_dispatch is not expected_profile):
             return False
+        if deferred_gesture is not None and (
+            type(deferred_gesture) is not DeferredMirrorGesture
+            or type(deferred_gesture.context) is not MirrorPointerContext
+            or deferred_gesture.kind != "key"
+            or deferred_gesture.context.profile is not profile_at_dispatch
+            or expected_profile is not profile_at_dispatch
+            or deferred_gesture.context.handles != handles
+            or deferred_gesture.context.source != source
+            or deferred_gesture.payload != (vk_code,)
+            or not self.runtime._deferred_mirror_is_current(deferred_gesture)
+        ):
+            return False
         # No native probes here: a bounded 2-8 HWND roster check is enough to
         # refuse an obsolete physical gesture before the hook consumes it.
         if not self._still_current(source, handles):
             return False
         dispatch_at = perf_counter()
+        gesture_generation = self.runtime.input_state.mirror_gesture_generation()
+        if deferred_gesture is not None:
+            queue_age = self.runtime.input_state.deferred_mirror_queue_age(deferred_gesture)
+            if queue_age is None:
+                return False
+            dispatch_at -= queue_age
         started = self.runtime._spawn_macro(
             "Miroir clavier",
             lambda: self._run(
                 "key", vk_code, source, handles,
                 profile_at_dispatch=profile_at_dispatch,
                 dispatch_at=dispatch_at,
+                **({"deferred_gesture": deferred_gesture} if deferred_gesture is not None else {}),
+                **({"gesture_generation": gesture_generation} if type(gesture_generation) is int else {}),
             ),
         )
         # The native hook must pass through the physical key if a profile
@@ -62,6 +84,7 @@ class MirrorInputMacro:
         self, delta: int, horizontal: bool, x_ratio: float, y_ratio: float,
         source: int, handles: tuple[int, ...],
         *, expected_profile: object | None = None,
+        deferred_gesture: DeferredMirrorGesture | None = None,
     ) -> bool:
         if (type(delta) is not int or delta == 0 or abs(delta) > 32767
                 or type(horizontal) is not bool
@@ -73,15 +96,35 @@ class MirrorInputMacro:
         profile_at_dispatch = self.runtime.settings
         if (expected_profile is not None and profile_at_dispatch is not expected_profile):
             return False
+        if deferred_gesture is not None and (
+            type(deferred_gesture) is not DeferredMirrorGesture
+            or type(deferred_gesture.context) is not MirrorPointerContext
+            or deferred_gesture.kind != "wheel"
+            or deferred_gesture.context.profile is not profile_at_dispatch
+            or expected_profile is not profile_at_dispatch
+            or deferred_gesture.context.handles != handles
+            or deferred_gesture.context.source != source
+            or deferred_gesture.payload != (delta, horizontal, x_ratio, y_ratio)
+            or not self.runtime._deferred_mirror_is_current(deferred_gesture)
+        ):
+            return False
         if not self._still_current(source, handles):
             return False
         dispatch_at = perf_counter()
+        gesture_generation = self.runtime.input_state.mirror_gesture_generation()
+        if deferred_gesture is not None:
+            queue_age = self.runtime.input_state.deferred_mirror_queue_age(deferred_gesture)
+            if queue_age is None:
+                return False
+            dispatch_at -= queue_age
         started = self.runtime._spawn_macro(
             "Miroir molette",
             lambda: self._run(
                 "wheel", (delta, horizontal, x_ratio, y_ratio), source, handles,
                 profile_at_dispatch=profile_at_dispatch,
                 dispatch_at=dispatch_at,
+                **({"deferred_gesture": deferred_gesture} if deferred_gesture is not None else {}),
+                **({"gesture_generation": gesture_generation} if type(gesture_generation) is int else {}),
             ),
         )
         # Reject a newly obsolete wheel before the hook swallows its native
@@ -141,8 +184,37 @@ class MirrorInputMacro:
         self, kind: str, payload: object, source: int, handles: tuple[int, ...],
         *, profile_at_dispatch: object | None = None,
         dispatch_at: float | None = None,
+        deferred_gesture: DeferredMirrorGesture | None = None,
+        gesture_generation: int | None = None,
     ) -> None:
         runtime = self.runtime
+        initial_foreground = (runtime.input_state.deferred_mirror_expected_foreground(deferred_gesture)
+                              if deferred_gesture is not None else source)
+
+        def still_current() -> bool:
+            return self._still_current(source, handles) and (
+                deferred_gesture is None or runtime._deferred_mirror_is_current(deferred_gesture)
+            ) and (
+                gesture_generation is None
+                or runtime.input_state.mirror_gesture_generation() == gesture_generation
+            )
+
+        pointer_context = None
+
+        def target_pid_is_current(hwnd: int) -> bool:
+            context = deferred_gesture.context if deferred_gesture is not None else pointer_context
+            if context is None:
+                return True
+            from app.windows_embed import window_process_id
+            try:
+                pid = window_process_id(hwnd)
+                return type(pid) is int and pid == dict(context.process_ids).get(hwnd)
+            except (OSError, ValueError, TypeError, OverflowError):
+                return False
+
+        def target_process_is_current(hwnd: int) -> bool:
+            return is_dofus_unity_process(hwnd) and target_pid_is_current(hwnd)
+
 
         def note_preflight_abort() -> None:
             # This worker accepted a physical key/wheel but never emitted it.
@@ -167,7 +239,7 @@ class MirrorInputMacro:
         # Dispatch-to-worker gaps can mutate the same in-memory Organizer
         # profile. Refuse the old key/wheel before even reading the cursor,
         # not only when the settings object was replaced.
-        if profile_at_dispatch is not None and not self._still_current(source, handles):
+        if profile_at_dispatch is not None and not still_current():
             runtime.logger.warning(
                 "Miroir %s annulé: favori ou roster modifié avant worker.", kind,
             )
@@ -195,7 +267,7 @@ class MirrorInputMacro:
         # replaying it now would steal focus for a stale gesture.
         if profile_at_dispatch is not None:
             try:
-                if foreground_window() != source:
+                if foreground_window() != initial_foreground:
                     runtime.logger.info(
                         "Miroir %s annulé: source non active avant worker.", kind,
                     )
@@ -233,6 +305,7 @@ class MirrorInputMacro:
         # mouse here discards user clicks throughout the 2–8 client fan-out.
         # Wheel replay does move the pointer and needs the native guard.
         mouse_blocked = False
+        pointer_snapshot = None
         mouse_block_started_at: float | None = None
         pointer_collision = False
         pointer_probe_failed = False
@@ -253,7 +326,7 @@ class MirrorInputMacro:
 
         try:
             if (runtime.settings is not profile_at_start
-                    or not self._still_current(source, handles)):
+                    or not still_current()):
                 runtime.logger.warning("Miroir %s annulé: profil, favori ou sessions modifiés.", kind)
                 return
             # Fail closed before the first emission if ANY configured HWND
@@ -261,7 +334,7 @@ class MirrorInputMacro:
             # by a foreign/stale handle discovered halfway through a gesture.
             if not all(
                 not runtime.macro_lock.should_stop()
-                and is_dofus_unity_process(hwnd)
+                and target_process_is_current(hwnd)
                 for hwnd in handles
             ):
                 if runtime.macro_lock.should_stop():
@@ -283,7 +356,7 @@ class MirrorInputMacro:
             # activating a target or blocking the physical pointer.
             if profile_at_dispatch is not None:
                 try:
-                    if foreground_window() != source:
+                    if foreground_window() != initial_foreground:
                         focus_lost = True
                         runtime.logger.warning(
                             "Miroir %s annulé: source perdue pendant preflight.", kind,
@@ -298,7 +371,17 @@ class MirrorInputMacro:
             # Authenticate the entire roster before taking a mouse block.
             # This keeps slow Win32 process probes outside the blocked interval.
             if kind == "wheel":
-                runtime.input_state.begin_mouse_block("Miroir molette")
+                from app.macros.mirror_plan import mirror_pointer_context
+                pointer_context = mirror_pointer_context(profile_at_start, source, handles)
+                if pointer_context is None:
+                    runtime.input_state.begin_mouse_block("Miroir molette")
+                else:
+                    runtime.input_state.begin_mouse_block(
+                        "Miroir molette", mirror_context=pointer_context, mirror_generation=gesture_generation,
+                    )
+                if pointer_context is not None:
+                    runtime.input_state.set_mirror_pointer_target(initial_foreground)
+                    pointer_snapshot = runtime.input_state.mirror_pointer_snapshot()
                 mouse_blocked = True
                 mouse_block_started_at = perf_counter()
             for index, hwnd in enumerate(handles):
@@ -310,9 +393,9 @@ class MirrorInputMacro:
                     break
                 if (runtime.macro_lock.should_stop()
                         or runtime.settings is not profile_at_start
-                        or not self._still_current(source, handles)):
+                        or not still_current()):
                     break
-                if not is_dofus_unity_process(hwnd):
+                if not target_process_is_current(hwnd):
                     # A validated roster can change identity during fan-out.
                     # Never restore cursor/focus on a partial unsafe delivery.
                     delivery_failed = True
@@ -323,7 +406,7 @@ class MirrorInputMacro:
                 # so a user focus change aborts instead of being overwritten.
                 expected_foreground = last_activated_hwnd
                 if expected_foreground is None and profile_at_dispatch is not None:
-                    expected_foreground = source
+                    expected_foreground = initial_foreground
                 if expected_foreground is not None:
                     try:
                         if foreground_window() != expected_foreground:
@@ -353,7 +436,7 @@ class MirrorInputMacro:
                             runtime.macro_lock.should_stop()
                             or pointer_interrupted()
                             or runtime.settings is not profile_at_start
-                            or not self._still_current(source, handles)
+                            or not still_current()
                         ),
                     )
                 except Exception:
@@ -383,14 +466,14 @@ class MirrorInputMacro:
                 # exact roster and Win32 process identity AFTER focus changes,
                 # not only before activating the target.
                 if (runtime.settings is not profile_at_start
-                        or not self._still_current(source, handles)):
+                        or not still_current()):
                     delivery_failed = True
                     runtime.logger.warning(
                         "Miroir %s: favori ou roster changé après activation hwnd=%s.",
                         kind, hwnd,
                     )
                     break
-                if not is_dofus_unity_process(hwnd):
+                if not target_process_is_current(hwnd):
                     delivery_failed = True
                     runtime.logger.warning(
                         "Miroir %s: processus DOFUS remplacé après activation hwnd=%s.",
@@ -404,6 +487,8 @@ class MirrorInputMacro:
                     runtime.logger.warning("Miroir %s: focus volé avant envoi hwnd=%s.", kind, hwnd)
                     break
                 last_activated_hwnd = hwnd
+                if pointer_snapshot is not None:
+                    runtime.input_state.set_mirror_pointer_target(hwnd)
                 if runtime.macro_lock.should_stop():
                     break
                 if pointer_interrupted():
@@ -418,6 +503,12 @@ class MirrorInputMacro:
                     if kind == "key":
                         from app.macros.input_tools import key_down, key_up
                         vk = int(payload)
+                        # The final foreground probe can yield to Stop,
+                        # reload or another native gesture. Recheck pure
+                        # ownership after it, immediately before KEYDOWN.
+                        if runtime.settings is not profile_at_start or not still_current():
+                            delivery_failed = True
+                            break
                         # Only a successful DOWN owns a matching synthetic
                         # UP. If Windows refused DOWN, an orphaned UP could
                         # affect a different foreground application.
@@ -471,13 +562,13 @@ class MirrorInputMacro:
                                 )
                                 break
                             if (runtime.settings is not profile_at_start
-                                    or not self._still_current(source, handles)):
+                                    or not still_current()):
                                 delivery_failed = True
                                 runtime.logger.warning(
                                     "Miroir molette: roster changé après déplacement hwnd=%s.", hwnd,
                                 )
                                 break
-                            if not is_dofus_unity_process(hwnd):
+                            if not target_process_is_current(hwnd):
                                 delivery_failed = True
                                 runtime.logger.warning(
                                     "Miroir molette: processus remplacé après déplacement hwnd=%s.", hwnd,
@@ -494,6 +585,9 @@ class MirrorInputMacro:
                             if runtime.macro_lock.should_stop():
                                 break
                             if pointer_interrupted():
+                                delivery_failed = True
+                                break
+                            if runtime.settings is not profile_at_start or not still_current():
                                 delivery_failed = True
                                 break
                             if not send_screen_wheel(delta, horizontal=horizontal):
@@ -567,7 +661,7 @@ class MirrorInputMacro:
                     and not runtime.macro_lock.should_stop()
                     and not pointer_interrupted()
                     and runtime.settings is profile_at_start
-                    and self._still_current(source, handles)
+                    and still_current()
                 ):
                     try:
                         set_cursor_pos(*cursor)
@@ -592,13 +686,13 @@ class MirrorInputMacro:
                         and not runtime.macro_lock.should_stop()
                         and not pointer_interrupted()
                         and runtime.settings is profile_at_start
-                        and self._still_current(source, handles)
-                        and is_dofus_unity_process(source)
+                        and still_current()
+                        and target_process_is_current(source)
                         # Native process checks can invoke hooks or release the
                         # GIL. A changed favorite, roster, mode or Stop must
                         # never restore a different client's foreground.
                         and runtime.settings is profile_at_start
-                        and self._still_current(source, handles)
+                        and still_current()
                         and not runtime.macro_lock.should_stop()):
                     try:
                         runtime.switch_character.restore_preferred_client("Miroir " + kind)
@@ -617,6 +711,14 @@ class MirrorInputMacro:
                     # per-worker release snapshot to preserve that evidence.
                     if runtime.input_state.last_release_interrupted() is True:
                         pointer_collision = True
+                    handoff_owner = deferred_gesture if deferred_gesture is not None else pointer_snapshot
+                    if handoff_owner is not None:
+                        runtime._handoff_deferred_mirror_focus(
+                            handoff_owner, (source, last_activated_hwnd),
+                            successful=(delivered == len(handles) and not delivery_failed
+                                        and not focus_lost and not pointer_collision
+                                        and still_current()),
+                        )
                     blocked_count = runtime.input_state.last_release_blocked_count()
                     if type(blocked_count) is int and blocked_count > 0:
                         try:
@@ -634,6 +736,12 @@ class MirrorInputMacro:
                             max(0.0, (perf_counter() - mouse_block_started_at) * 1000.0),
                             len(handles),
                         )
+            if kind == "key" and deferred_gesture is not None:
+                runtime._handoff_deferred_mirror_focus(
+                    deferred_gesture, (source, last_activated_hwnd),
+                    successful=(delivered == len(handles) and not delivery_failed
+                                and not focus_lost and still_current()),
+                )
             from app.macros.mirror_plan import mirror_latency_percentiles_ms
 
             latency = mirror_latency_percentiles_ms(send_samples_ms)
@@ -659,7 +767,7 @@ class MirrorInputMacro:
             if pointer_collision:
                 reason = (
                     "contrôle souris indisponible" if pointer_probe_failed
-                    else "geste physique non rejoué"
+                    else "geste physique intercepté"
                 )
                 outcome = "interrupted"
                 message = (
@@ -670,7 +778,7 @@ class MirrorInputMacro:
                 outcome = "partial"
                 message = f"Miroir {label} incomplet : {delivered}/{len(handles)} fenêtres."
             elif (runtime.settings is not profile_at_start
-                  or not self._still_current(source, handles)):
+                  or not still_current()):
                 outcome = "partial"
                 message = (
                     f"Miroir {label} : {delivered}/{len(handles)} fenêtres "

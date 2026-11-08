@@ -9,7 +9,9 @@ from logging import Logger
 from typing import Callable
 
 from app.input.hook_lifecycle import current_native_thread_id, stop_message_hook
-from app.input.input_state import ATLAS_SYNTHETIC_MOUSE_EXTRA_INFO, InputState, SyntheticInputGuard
+from app.input.input_state import (
+    ATLAS_SYNTHETIC_MOUSE_EXTRA_INFO, InputState, MirrorPointerSnapshot, SyntheticInputGuard,
+)
 
 WH_MOUSE_LL = 14
 WM_MOUSEMOVE = 0x0200
@@ -33,10 +35,13 @@ BLOCKED_DOWN_TO_UP = {
     WM_MBUTTONDOWN: WM_MBUTTONUP,
     WM_XBUTTONDOWN: WM_XBUTTONUP,
 }
+POINTER_BUTTON_MESSAGES = frozenset((*BLOCKED_DOWN_TO_UP, *BLOCKED_DOWN_TO_UP.values()))
+POINTER_GESTURE_MESSAGES = POINTER_BUTTON_MESSAGES | {WM_MOUSEWHEEL, WM_MOUSEHWHEEL}
 
 MouseCallback = Callable[[str, int, int], bool]
 WheelCallback = Callable[[int, int, int, bool], bool]
 MouseReleaseCallback = Callable[[str, int, int], bool]
+BlockedMouseCallback = Callable[[int, int, int, int, object, bool], bool]
 
 
 def _physical_release_token(up_message: int, mouse_data: int) -> int:
@@ -119,6 +124,7 @@ class MouseHook:
         callback: MouseCallback,
         wheel_callback: WheelCallback | None = None,
         release_callback: MouseReleaseCallback | None = None,
+        blocked_callback: BlockedMouseCallback | None = None,
     ):
         self.input_state = input_state
         self.synthetic_guard = synthetic_guard
@@ -126,6 +132,7 @@ class MouseHook:
         self.callback = callback
         self.wheel_callback = wheel_callback
         self.release_callback = release_callback
+        self.blocked_callback = blocked_callback
         self._hook = None
         self._callback_ref = None
         self._thread: threading.Thread | None = None
@@ -288,6 +295,7 @@ class MouseHook:
 
     def _mouse_proc(self, n_code: int, w_param: int, l_param: int) -> int:
         native_down_token: int | None = None
+        atlas_synthetic = False
         try:
             if n_code >= 0 and w_param == WM_MOUSEMOVE:
                 # MOVE never owns a DOWN/UP pair and has no user callback.
@@ -361,6 +369,11 @@ class MouseHook:
                         native_down_token = _physical_release_token(
                             paired_up, int(event.mouseData),
                         )
+                        self.input_state.set_physical_mouse_button(native_down_token, True)
+                    elif w_param in (WM_LBUTTONUP, WM_RBUTTONUP, WM_MBUTTONUP, WM_XBUTTONUP):
+                        self.input_state.set_physical_mouse_button(
+                            _physical_release_token(w_param, int(event.mouseData)), False,
+                        )
 
                 # A swallowed DOWN owns its matching physical UP. Never run
                 # native-release callbacks for that pair: an UP without its
@@ -375,6 +388,7 @@ class MouseHook:
                     )
                     if release_token in self._consumed_releases:
                         self._finish_consumed_release(release_token)
+                        self._notify_blocked_event(w_param, x, y, int(event.mouseData))
                         return 1
 
                 # A native source DOWN that was NOT swallowed must keep its
@@ -387,6 +401,8 @@ class MouseHook:
                     # the callback can start a new worker and block input,
                     # but the real UP must still reach its original window.
                     self._native_releases.discard(w_param)
+                    if self.blocked_callback is not None:
+                        self.input_state.invalidate_deferred_mirror_pointer()
                     if self.release_callback is not None:
                         button = "Left" if w_param == WM_LBUTTONUP else "Right"
                         if self.release_callback(button, x, y):
@@ -462,12 +478,25 @@ class MouseHook:
                             self._hook, n_code, w_param, l_param,
                         )
                     paired_up = BLOCKED_DOWN_TO_UP.get(w_param)
+                    # Capture BEFORE the collision wakes the worker. Native
+                    # coordinate probes may finish after its lease closes.
+                    pending_snapshot = None
+                    if self.blocked_callback is not None and not epoch_probe_failed:
+                        try:
+                            snapshot = self.input_state.mirror_pointer_snapshot()
+                            if (type(snapshot) is MirrorPointerSnapshot and snapshot.epoch == lease_epoch):
+                                pending_snapshot = snapshot
+                        except Exception:
+                            # Deferred capture is optional; failure must not
+                            # bypass DOWN/UP ownership of a blocking lease.
+                            pending_snapshot = None
                     if (not epoch_probe_failed
                             and (paired_up is not None
                                  or w_param in (WM_MOUSEWHEEL, WM_MOUSEHWHEEL))):
                         try:
                             claimed = self.input_state.note_blocked_physical_gesture(
                                 expected_epoch=lease_epoch,
+                                **({"interrupt": False} if pending_snapshot is not None else {}),
                             )
                         except Exception:
                             claimed = None
@@ -504,12 +533,29 @@ class MouseHook:
                                 )
                     # Once interception is decided, own the matching UP even
                     # after Stop/restart. Never emit an orphaned release.
+                    ambiguous = paired_up is not None and _physical_release_token(
+                        paired_up, int(event.mouseData),
+                    ) in self._consumed_releases
                     if paired_up is not None:
                         self._reserve_consumed_release(
                             _physical_release_token(paired_up, int(event.mouseData))
                         )
+                    deferred = self._notify_blocked_event(
+                        w_param, x, y, int(event.mouseData), pending_snapshot, ambiguous,
+                    )
+                    if pending_snapshot is not None and not deferred:
+                        try:
+                            self.input_state.interrupt_mouse_block(expected_epoch=lease_epoch)
+                        except Exception:
+                            try:
+                                self.logger.exception("Miroir: interruption après refus impossible.")
+                            except Exception:
+                                pass
                     try:
-                        self._log_blocked_event(w_param, x, y)
+                        if deferred:
+                            self._log_blocked_event(w_param, x, y, deferred=True)
+                        else:
+                            self._log_blocked_event(w_param, x, y)
                     except Exception:
                         # Keep the physical DOWN/UP pair intercepted even if
                         # the logger itself fails. Returning to the outer
@@ -528,6 +574,8 @@ class MouseHook:
                     # window after an earlier SendInput is not evidence that
                     # the NEXT physical wheel tick is synthetic.
                     if not atlas_synthetic and self.wheel_callback is not None:
+                        if self.blocked_callback is not None:
+                            self.input_state.invalidate_deferred_mirror_pointer()
                         delta = ctypes.c_short((int(event.mouseData) >> 16) & 0xFFFF).value
                         if delta and self.wheel_callback(
                             delta, x, y, w_param == WM_MOUSEHWHEEL,
@@ -543,6 +591,8 @@ class MouseHook:
                             injected,
                         )
                     else:
+                        if self.blocked_callback is not None:
+                            self.input_state.invalidate_deferred_mirror_pointer()
                         self.logger.debug(
                             "Clic utilisateur détecté: button=%s x=%s y=%s",
                             button,
@@ -589,12 +639,32 @@ class MouseHook:
         # paired with the newly native physical press.
         if native_down_token is not None:
             self._retire_stale_consumed_release(native_down_token)
+        if (n_code >= 0 and self.blocked_callback is not None
+                and not atlas_synthetic and w_param in POINTER_GESTURE_MESSAGES):
+            self.input_state.invalidate_deferred_mirror_pointer()
         return ctypes.windll.user32.CallNextHookEx(
             self._hook,
             n_code,
             w_param,
             l_param,
         )
+
+    def _notify_blocked_event(
+        self, message: int, x: int, y: int, data: int,
+        snapshot: object = None, ambiguous: bool = False,
+    ) -> bool:
+        if self.blocked_callback is None:
+            return False
+        try:
+            return self.blocked_callback(message, x, y, data, snapshot, ambiguous) is True
+        except Exception:
+            # Ownership of DOWN/UP remains with this hook even if capture or
+            # diagnostics fail. Never leak an orphan UP to another account.
+            try:
+                self.logger.exception("Miroir: capture du geste différé impossible.")
+            except Exception:
+                pass
+            return False
 
     def _log_move_probe_error(self, probe: str) -> None:
         # MOVE can arrive thousands of times a second. A failed pointer
@@ -612,7 +682,7 @@ class MouseHook:
             # Neither time nor a damaged logger may reopen the native hook.
             pass
 
-    def _log_blocked_event(self, w_param: int, x: int, y: int) -> None:
+    def _log_blocked_event(self, w_param: int, x: int, y: int, *, deferred: bool = False) -> None:
         # MouseMove floods the low-level hook. It must not hide a subsequent
         # user click from the throttled diagnostic, nor spam logs at 8 clients.
         if w_param in (
@@ -663,7 +733,9 @@ class MouseHook:
             WM_XBUTTONDOWN: "x_down",
             WM_XBUTTONUP: "x_up",
         }.get(int(w_param), str(int(w_param)))
-        if w_param in (WM_LBUTTONDOWN, WM_RBUTTONDOWN, WM_MBUTTONDOWN, WM_XBUTTONDOWN):
+        if deferred:
+            self.logger.info("Miroir geste physique différé: event=%s", event_name)
+        elif w_param in (WM_LBUTTONDOWN, WM_RBUTTONDOWN, WM_MBUTTONDOWN, WM_XBUTTONDOWN):
             # A blocked DOWN can represent a genuinely lost native gesture.
             # Keep it visible at a bounded rate until the busy-event policy
             # is validated on Windows; never claim it was replayed.

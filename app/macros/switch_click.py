@@ -5,6 +5,7 @@ from dataclasses import dataclass
 import math
 from time import perf_counter
 from typing import TYPE_CHECKING
+from app.input.input_state import DeferredMirrorGesture, MirrorPointerContext
 
 from app.macros.mirror_plan import is_dofus_unity_process
 from app.windows.clicks import current_cursor_pos, send_client_click, set_cursor_pos
@@ -56,6 +57,7 @@ class SwitchClickMacro:
         captured_context: SwitchClickContext | None = None,
         physical_source_delivered: bool = False,
         expected_profile: object | None = None,
+        deferred_gesture: DeferredMirrorGesture | None = None,
     ) -> bool:
         settings_at_dispatch = self.runtime.settings
         if settings_at_dispatch is None:
@@ -79,6 +81,28 @@ class SwitchClickMacro:
         dispatch_roster = roster_snapshot(original_clients)
         dispatch_mode = getattr(settings_at_dispatch, "macro_mode", None)
         dispatch_primary = getattr(settings_at_dispatch, "primary_handle", None)
+        gesture_generation = (
+            self.runtime.input_state.mirror_gesture_generation()
+            if mirror_target_handles is not None else None
+        )
+        if type(gesture_generation) is not int:
+            gesture_generation = None
+        if deferred_gesture is not None and (
+            type(deferred_gesture) is not DeferredMirrorGesture
+            or type(deferred_gesture.context) is not MirrorPointerContext
+            or deferred_gesture.kind != "click"
+            or deferred_gesture.context.profile is not settings_at_dispatch
+            or expected_profile is not settings_at_dispatch
+            or mirror_target_handles != deferred_gesture.context.handles
+            or exact_source_handle != deferred_gesture.context.source
+            or captured_context is None or captured_context.reason != "deferred"
+            or deferred_gesture.payload != (
+                "Right" if str(button).casefold() == "right" else "Left",
+                captured_context.x_ratio, captured_context.y_ratio,
+            )
+            or not self.runtime._deferred_mirror_is_current(deferred_gesture)
+        ):
+            return False
         if dispatch_mode not in ("macro", "mirror"):
             # Partial profile reload: an unknown mode can never authorize
             # swallowing the physical source gesture.
@@ -100,6 +124,12 @@ class SwitchClickMacro:
             return False
 
         def dispatch_is_current() -> bool:
+            if (gesture_generation is not None
+                    and self.runtime.input_state.mirror_gesture_generation() != gesture_generation):
+                return False
+            if (deferred_gesture is not None
+                    and not self.runtime._deferred_mirror_is_current(deferred_gesture)):
+                return False
             active_mode = getattr(settings_at_dispatch, "macro_mode", None)
             active_primary = getattr(settings_at_dispatch, "primary_handle", None)
             if (self.runtime.settings is not settings_at_dispatch
@@ -195,7 +225,7 @@ class SwitchClickMacro:
         if exact_source_handle is not None and (
             context is None
             or context.source_hwnd != exact_source_handle
-            or context.reason != "cursor"
+            or context.reason != ("deferred" if deferred_gesture is not None else "cursor")
         ):
             self.runtime.logger.warning(
                 "%s ignore: clic hors du favori explicite hwnd=%s",
@@ -254,6 +284,13 @@ class SwitchClickMacro:
         # Count from admission to the last successful *emission*, including
         # scheduler delay. This is never a measure of Unity rendering.
         dispatch_at = perf_counter() if action_label == "Miroir" else None
+        if deferred_gesture is not None:
+            queue_age = self.runtime.input_state.deferred_mirror_queue_age(deferred_gesture)
+            if queue_age is None:
+                return False
+            # Convert a duration, not epochs between two different clocks.
+            # Dispatch latency must include time spent in the pending queue.
+            dispatch_at = perf_counter() - queue_age
         # A low-level hook callback must never reserve the physical mouse
         # while a worker is merely queued. The worker validates the source
         # and exact roster before taking ownership of the pointer.
@@ -279,6 +316,8 @@ class SwitchClickMacro:
                 settings_at_dispatch=settings_at_dispatch,
                 dispatch_guard=dispatch_is_current,
                 dispatch_at=dispatch_at,
+                **({"deferred_gesture": deferred_gesture} if deferred_gesture is not None else {}),
+                **({"gesture_generation": gesture_generation} if gesture_generation is not None else {}),
             )
 
         started = self.runtime._spawn_macro(action_label, worker)
@@ -304,15 +343,39 @@ class SwitchClickMacro:
         settings_at_dispatch: object | None = None,
         dispatch_guard: Callable[[], bool] | None = None,
         dispatch_at: float | None = None,
+        deferred_gesture: DeferredMirrorGesture | None = None,
+        gesture_generation: int | None = None,
     ) -> None:
         settings_at_start = (
             settings_at_dispatch if settings_at_dispatch is not None
             else self.runtime.settings
         )
+        initial_foreground = (
+            self.runtime.input_state.deferred_mirror_expected_foreground(deferred_gesture)
+            if deferred_gesture is not None else exact_source_handle
+        )
+
+        pointer_context = None
+
+        def target_pid_is_current(hwnd: int) -> bool:
+            context = deferred_gesture.context if deferred_gesture is not None else pointer_context
+            if context is None:
+                return True
+            from app.windows_embed import window_process_id
+            try:
+                pid = window_process_id(hwnd)
+                return type(pid) is int and pid == dict(context.process_ids).get(hwnd)
+            except (OSError, ValueError, TypeError, OverflowError):
+                return False
+
+        def target_process_is_current(hwnd: int) -> bool:
+            return is_dofus_unity_process(hwnd) and target_pid_is_current(hwnd)
+
         original_cursor: tuple[int, int] | None = None
         sent_count = 0
         target_total = 0
         mouse_blocked = mouse_block_started
+        pointer_snapshot = None
         mouse_block_started_at: float | None = None
         should_restore_preferred = False
         last_activated_hwnd: int | None = None
@@ -404,7 +467,7 @@ class SwitchClickMacro:
                     and mirror_target_handles is not None
                     and exact_source_handle is not None):
                 try:
-                    if foreground_window() != exact_source_handle:
+                    if foreground_window() != initial_foreground:
                         self.runtime.logger.info(
                             "%s annulé: source non active avant worker.", action_label,
                         )
@@ -594,7 +657,7 @@ class SwitchClickMacro:
                     and mirror_target_handles is not None
                     and exact_source_handle is not None):
                 try:
-                    if foreground_window() != exact_source_handle:
+                    if foreground_window() != initial_foreground:
                         focus_lost = True
                         self.runtime.logger.warning(
                             "%s interrompu: source perdue pendant preflight.",
@@ -626,7 +689,7 @@ class SwitchClickMacro:
             if (physical_source_delivered and mirror_target_handles is not None
                     and exact_source_handle is not None):
                 try:
-                    if foreground_window() != exact_source_handle:
+                    if foreground_window() != initial_foreground:
                         focus_lost = True
                         self.runtime.logger.info(
                             "%s annulé: source perdue durant attente native.", action_label,
@@ -641,7 +704,22 @@ class SwitchClickMacro:
             if not mouse_blocked:
                 # Own the pointer only for actual client activation/sending
                 # and restoration; the shared native hook stays unchanged.
-                self.runtime.input_state.begin_mouse_block(action_label)
+                from app.macros.mirror_plan import mirror_pointer_context
+                pointer_context = (
+                    mirror_pointer_context(settings_at_start, context.source_hwnd, mirror_target_handles)
+                    if mirror_target_handles is not None else None
+                )
+                if pointer_context is None:
+                    self.runtime.input_state.begin_mouse_block(action_label)
+                else:
+                    self.runtime.input_state.begin_mouse_block(
+                        action_label, mirror_context=pointer_context, mirror_generation=gesture_generation,
+                    )
+                if pointer_context is not None:
+                    self.runtime.input_state.set_mirror_pointer_target(
+                        initial_foreground if initial_foreground is not None else context.source_hwnd,
+                    )
+                    pointer_snapshot = self.runtime.input_state.mirror_pointer_snapshot()
                 mouse_blocked = True
                 mouse_block_started_at = perf_counter()
             self.runtime.logger.debug(
@@ -685,7 +763,7 @@ class SwitchClickMacro:
                 if (type(target_hwnd) is not int
                         or not 0 < target_hwnd <= (2**64 - 1)
                         or not is_unity_window(target_hwnd)
-                        or not is_dofus_unity_process(target_hwnd)):
+                        or not target_process_is_current(target_hwnd)):
                     self.runtime.logger.info(
                         "%s fenêtre introuvable/non Unity: hwnd=%s",
                         action_label,
@@ -707,7 +785,7 @@ class SwitchClickMacro:
                 expected_foreground = last_activated_hwnd
                 if (expected_foreground is None and settings_at_dispatch is not None
                         and (mirror_target_handles is not None or physical_source_delivered)):
-                    expected_foreground = context.source_hwnd
+                    expected_foreground = (initial_foreground if deferred_gesture is not None else context.source_hwnd)
                 if expected_foreground is not None:
                     try:
                         if foreground_window() != expected_foreground:
@@ -807,6 +885,8 @@ class SwitchClickMacro:
                     return
                 should_restore_preferred = True
                 last_activated_hwnd = int(target_hwnd)
+                if pointer_snapshot is not None:
+                    self.runtime.input_state.set_mirror_pointer_target(int(target_hwnd))
 
                 target = self._target_point(target_hwnd, context)
                 if not target_roster_intact():
@@ -840,7 +920,7 @@ class SwitchClickMacro:
                 # Classic SwitchClick needs the same late process guard as
                 # Miroir. A recycled HWND may still be a valid Unity window
                 # while belonging to another game or application.
-                if not is_dofus_unity_process(target_hwnd):
+                if not target_process_is_current(target_hwnd):
                     delivery_failed = True
                     self.runtime.logger.warning(
                         "%s interrompu: processus remplacé avant clic hwnd=%s",
@@ -881,7 +961,9 @@ class SwitchClickMacro:
                 def send_interrupted() -> bool:
                     if (self.runtime.macro_lock.should_stop()
                             or pointer_interrupted()
-                            or not target_roster_intact()):
+                            or not target_roster_intact()
+                            or ((deferred_gesture is not None or pointer_context is not None)
+                                and not target_pid_is_current(target_hwnd))):
                         return True
                     return (
                         mirror_target_handles is not None
@@ -1113,6 +1195,14 @@ class SwitchClickMacro:
                         pointer_collision = True
                     # This is a per-lease count, not the throttled global
                     # mouse-hook counter. Log only AFTER the pointer is free.
+                    handoff_owner = deferred_gesture if deferred_gesture is not None else pointer_snapshot
+                    if handoff_owner is not None:
+                        self.runtime._handoff_deferred_mirror_focus(
+                            handoff_owner, (context.source_hwnd, last_activated_hwnd),
+                            successful=(sent_count == target_total and not delivery_failed
+                                        and not focus_lost and not pointer_collision
+                                        and target_roster_intact()),
+                        )
                     blocked_count = self.runtime.input_state.last_release_blocked_count()
                     if (mirror_started_at is not None
                             and type(blocked_count) is int and blocked_count > 0):
@@ -1190,7 +1280,7 @@ class SwitchClickMacro:
                     )
                     suffix = (
                         " (contrôle souris indisponible)" if pointer_probe_failed
-                        else " (geste physique non rejoué)" if pointer_collision
+                        else " (geste physique intercepté)" if pointer_collision
                         else ""
                     )
                     self.runtime._emit_status(
