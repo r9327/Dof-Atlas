@@ -9,10 +9,19 @@ on:
       - "tools/atlas_tools_on_demand.py"
       - "tools/doctor_pr_on_demand.py"
       - "tools/doctor_dev_lot.py"
+      - "tools/doctor_oss_wheels.py"
+      - "tools/atlas_doctor_lib/oss_router.py"
+      - "tools/atlas_doctor_lib/oss_intelligence.py"
+      - "tools/setup_doctor_oss.ps1"
       - "tests/test_atlas_tools_on_demand.py"
       - "tests/test_doctor_pr_on_demand.py"
       - "tests/test_doctor_dev_lot.py"
       - "tests/test_ci_domain_certification.py"
+      - "tests/test_doctor_oss_wheels.py"
+      - "tests/test_doctor_oss_routing.py"
+      - "tests/test_doctor_oss_live.py"
+      - "tests/test_doctor_oss_intelligence.py"
+      - "tests/test_doctor_auto_oss.py"
       - ".github/workflows/atlas-tools-on-demand.yml"
       - ".github/workflows/atlas-tools-on-demand-contracts.yml"
 
@@ -56,6 +65,15 @@ jobs:
           python -m unittest discover -s tests -p test_doctor_pr_on_demand.py -v
           python -m unittest discover -s tests -p test_doctor_dev_lot.py -v
           python -m unittest discover -s tests -p test_ci_domain_certification.py -v
+      - name: Test opted-in Doctor OSS adapters without installing packages
+        shell: bash
+        run: |
+          set -euo pipefail
+          python -m unittest discover -s tests -p test_doctor_oss_wheels.py -v
+          python -m unittest discover -s tests -p test_doctor_oss_routing.py -v
+          python -m unittest discover -s tests -p test_doctor_oss_live.py -v
+          python -m unittest discover -s tests -p test_doctor_oss_intelligence.py -v
+          python -m unittest discover -s tests -p test_doctor_auto_oss.py -v
       - name: State evidence boundary
         if: always()
         env:
