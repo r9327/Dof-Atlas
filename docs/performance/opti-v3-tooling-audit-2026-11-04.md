@@ -1,7 +1,7 @@
 # DOFUS ATLAS — Opti V3 : audit transversal des outils IA/OSS et des limites de charge
 _Date : 2026-11-04 — complément du contrat [#366](https://github.com/r9327/Dof-Atlas/issues/366) et du plan [Opti V3](opti-v3-global-2026-11-04.md)._
 
-> **AUDIT STATIQUE / NOT_RUN** : revue de sources et de contrat uniquement ; aucune installation, invocation de modèle, exécution Windows ou certification Doctor ne peut être inférée de ce fichier. Le contrat de 43 exigences de l'issue source #366 reste inchangé.
+> **AUDIT STATIQUE / NOT_RUN** : revue de sources et de contrat uniquement ; aucune installation, invocation de modèle, exécution Windows ou certification Doctor ne peut être inférée de ce fichier. Cet audit du 4 novembre ne modifiait pas les 43 exigences de #366. La révision approuvée du 9 novembre précise leurs critères dans le [plan canonique](opti-v3-global-2026-11-04.md#compléments-approuvés-le-9-novembre--critères-concrets-dans-les-12-lots), en conservant les IDs et types.
 
 ## Règle centrale
 

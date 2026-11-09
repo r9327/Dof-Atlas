@@ -189,6 +189,82 @@ Parcours cible : **issue bornée → scope canonique → plan Doctor → changem
 
 ### État et contrat après cette révision
 
-**PLAN_ONLY / NOT_IMPLEMENTED** : C01..C12 restent à exécuter ; aucun gain, refactor, score 18/20 ou test Windows n'est déclaré livré par ce document. Les 43 IDs OPTV de #366 restent inchangés. Les correspondances ci-dessus rendent leur exécution concrète ; les sujets supplémentaires sont des objectifs explicites de coordination et doivent faire l'objet d'une révision humaine du contrat avant toute extension d'implémentation hors scope. Aucun critère source n'est supprimé, aucun report n'est autorisé implicitement, aucun gate nouveau n'est créé.
+**PLAN_ONLY / NOT_IMPLEMENTED** : C01..C12 restent à exécuter ; aucun gain, refactor, score 18/20 ou test Windows n'est déclaré livré par ce document. Les 43 IDs et types OPTV de #366 sont conservés. Les critères concernés sont précisés dans la révision approuvée du 9 novembre ci-dessous et dans le contrat source ; les autres sujets restent chez leurs propriétaires, sans transfert implicite de leur implémentation. Aucun critère source n'est supprimé, aucun report n'est autorisé implicitement, aucun gate nouveau n'est créé.
 
-Le présent changement documentaire s'arrête à l'ajout du plan. La PR reste **Draft** ; le rapport final `ATLAS_DELIVERY_REPORT` et la certification attendront les véritables commits de développement et leurs preuves au SHA exact.
+Les changements documentaires de cadrage s'arrêtent au plan et à ses critères d’acceptation. La PR reste **Draft** ; le rapport final `ATLAS_DELIVERY_REPORT` et la certification attendront les véritables commits de développement et leurs preuves au SHA exact.
+
+
+## Compléments approuvés le 9 novembre — critères concrets dans les 12 lots
+
+Cette révision répond à l'accord utilisateur sur les compléments de l'audit. **Périmètre documentaire uniquement** : aucun scénario ci-dessous n'est déclaré exécuté par son ajout au plan. Les 12 lots C01..C12 restent les mêmes. Les précisions sont portées dans #366 sous les IDs existants **OPTV-011, 033, 038, 039, 040, 041, 042 et 043** ; les 43 IDs, types et contraintes précédents sont préservés, sans nouveau gate ou report implicite.
+
+### Correspondance des 20 constats avec leurs preuves de résolution
+
+Les numéros reprennent le Top 20 de l'audit du 9 novembre sur `main@ac656f6069e0820ddf90c320244ebfda06f63316`. Cette table est le suivi intégré au plan, **pas un second registre machine**. Les preuves futures doivent indiquer SHA, fichier/test/artifact, environnement, résultat et limites. Tous les points restent ouverts à la réévaluation de C01 ; une suspicion ou un risque peut être écarté par une preuve, sans correction artificielle.
+
+| N° audit / constat | Lot / exigence source | Propriétaire et preuve attendue pour clôturer |
+| --- | --- | --- |
+| 1 — Zaap après perte de focus | C09 / OPTV-039,041 | #398/#322 : régression échouant sur base, passant sur candidat ; absence d'activation/émission suivante ; preuve native séparée |
+| 2 — Exception de focus Miroir | C09 / OPTV-039,041 | #398/#322 : lecture Win32 en erreur traitée sans replay/restauration indue ; tests puis scénario natif |
+| 3 — Home au-dessus de 100 Mio | C04/C05/C07 / OPTV-033,036,038 | #367/#297 : Home stabilisé <100 Mio sur les parcours, machine et caches définis ; mémoire conservée expliquée |
+| 4 — Préchargement de 36 s | C04/C07 / OPTV-033,038 | #367 : première action utile et preload mesurés séparément ; budget fixé en C01 puis respecté sur essais comparables |
+| 5 — Premier détail Succès coûteux | C06 / OPTV-032,033,035 | #367 : A/B source/frozen sur détail froid, contenu identique, gain répété et RAM bornée |
+| 6 — Premier détail Quête coûteux | C06 / OPTV-032,033,035 | #367 : phases de compilation mesurées, recalculs éliminés sur preuve, parité métier et caches invalidés correctement |
+| 7 — Widgets conservés après Guide | C05 / OPTV-034,036 | #367 : propriétaires et durée de vie identifiés ; comptage après fermeture/annulation et cycles longs ; fuite illimitée non présumée |
+| 8 — Réception DOFUS non certifiée | C09/C12 / OPTV-039,041 | #322/#334 : vrais comptes 2/4/6/8, focus/collisions/arrêt et réception observés ; fixtures explicitement distinctes |
+| 9 — Sélection de tests divergente | C02 / OPTV-037,039,040 | #367/#358 : plan/check/lot/CI choisissent les mêmes suites spécifiques et les dépendances nécessaires |
+| 10 — Risque de paire JSON/INI incohérente | C09 / OPTV-039,041 | #331 : interruption entre écritures, reprise cohérente, profils/bindings/ordre conservés ; risque non présenté comme perte déjà survenue |
+| 11 — Méthodes macro très longues | C08/C09 / OPTV-036,039 | Propriétaires macro : changement structurel coordonné après correctif focus ; traces et comportements préservés ; surface de modification réduite |
+| 12 — Main/Guide/providers concentrés | C08 / OPTV-032,036,039 | #367 : responsabilités et consommateurs confirmés, changements plus locaux sur tâches représentatives, pas de nouvelle couche sans besoin |
+| 13 — Fonctions annoncées non livrées | C01/C10/C12 / OPTV-039,043 | État précis de Bestiaire, Almanax, Chasse, Ocre, Tutoriels et builder natif ; fonction livrée avec preuve ou décision produit explicite ; un placeholder ne rapporte pas de point de fonctionnalité |
+| 14 — Compatibilité Stuffs surtout destinée aux tests | C10 / OPTV-011,039 | #365, coordination V3 : tests du comportement externe migrés avant retrait des faux loaders ; ouverture refusée/acceptée et navigation préservées |
+| 15 — WebEngine encore requis/emballé | C10 / OPTV-011,042 | #285 : consommateurs vérifiés, décision de packaging explicite et comparaison du vrai bundle ; aucun retrait aveugle |
+| 16 — Delta réseau mais coût disque NTFS | C04/C09/C10 / OPTV-038,042 | #285/#287 : octets téléchargés/lus/écrits et temps séparés ; NTFS/ReFS distingués ; hashes/isolation/rollback conservés |
+| 17 — Campagnes courtes et pic sous-agrégé | C04/C12 / OPTV-038,041 | #297 : pic >= instantanés applicables, provenance commune et effectifs publiés ; aucun p99 représentatif déduit de trois échantillons |
+| 18 — Branche CI spéciale PR 303 | C03 / OPTV-040 | #367/#358 : sélection par scope et dépendances ; cas docs/JSON/workflow testés, sans FULL documentaire inutile |
+| 19 — État de livraison dispersé | C01/C03/C12 / OPTV-040,043 | #269 : exigence → owner/PR → code → preuve → reste ; ne pas déduire la livraison du seul statut merged |
+| 20 — Bootstrap/tests purs dépendants de Qt | C03 / OPTV-039,040 | #367/#358 : environnements pur Python/Qt/Windows reproductibles ; suites réellement pures exécutables sans Qt, ordre d'initialisation UI préservé |
+
+### Temps jusqu'à la première action utile — C01/C04/C07
+
+- Définir en C01 la machine Windows de référence (CPU, RAM, disque, version Windows), les données, l'état des caches et les étapes du parcours. Mesurer séparément lancement → fenêtre peinte, première action acceptée, résultat utile affiché et fin du preload ; un bouton activé sans résultat disponible ne suffit pas.
+- **Fixer et versionner avant optimisation un budget numérique pour lancement → première action utile**, en froid et en chaud, avec effectifs et statistique retenue. La baseline observée à 36,07 s est celle du preload, pas un temps utilisateur interchangeable. Le budget reste à déterminer en C01 ; il ne peut pas être déclaré satisfait tant qu'il n'est pas fixé et mesuré.
+- Conserver les seuils indépendants Home <100 Mio, pic arbre <=250 Mio et contenu utilisable <=10 s par module testé. Une baisse du preload ne doit pas déplacer le coût sur le premier clic ni augmenter la RAM sans bénéfice justifié.
+
+### Légèreté disque et coût réel des updates — C04/C07/C10
+
+- Relever taille du téléchargement, taille installée, caches disque, logs, temporaires et versions conservées, avant/après navigation, update et relance ; distinguer données source, état utilisateur et données reconstructibles.
+- Publier les limites/rétentions existantes, puis un budget adapté en C01 pour chaque catégorie modifiée. Réutiliser rotation/purge déjà présentes ; aucune suppression de profils, progression, sauvegardes utiles ni version nécessaire au rollback pour gagner artificiellement de la place.
+- Mesurer séparément réseau, lectures, écritures, temps et espace temporaire maximal d'une mise à jour sur **NTFS** et **ReFS** lorsqu'ils sont disponibles. Un delta réseau ne vaut pas économie d'I/O ; COW absent ou impossible doit rester visible. Plateforme indisponible = NOT_RUN, pas extrapolation.
+
+### Reprise après incidents et sauvegardes — C09/C12
+
+- Sur les chemins réellement concernés, prévoir des injections ciblées : **disque plein**, accès refusé/lecture seule, **fichier verrouillé**, arrêt pendant écriture ou update, paire JSON/INI de générations différentes, migration depuis un ancien format et restauration d'une sauvegarde. Le comportement concurrent est vérifié si plusieurs instances peuvent écrire la même donnée.
+- Acceptation : erreur diagnostiquable, état ancien ou nouveau cohérent, reprise/rollback documenté, absence de perte des profils, bindings, ordre et progression ; sauvegarde restaurée et relue par l'application. Aucun fichier utilisateur réel n'est utilisé comme fixture destructive.
+- Réutiliser #331 et #285/#287. Les cas purs peuvent être simulés localement ; les comportements Windows de verrouillage et de l'application installée exigent leur preuve native. Il s'agit de scénarios à vérifier, **pas de nouveaux bugs déclarés**.
+
+### Navigation simple et accessibilité — C10/C12
+
+- Avec #365/#333, vérifier les parcours fréquents choisis en C01 : retrouver/reprendre un guide, ouvrir un détail, changer de personnage, revenir Home et ouvrir un outil disponible. Relever les actions, détours et états d'attente avant/après ; automatiser une répétition seulement si le comportement utile est préservé.
+- Recette ciblée : clavier seul, ordre et visibilité du focus, libellés utiles aux technologies d'assistance, petite fenêtre supportée et DPI Windows **100/125/150/200 %** sur les écrans concernés. Documenter les configurations réellement testées ; pas de certification d'accessibilité globale déduite d'une capture.
+- Acceptation : aucune action essentielle inaccessible, aucun contrôle essentiel coupé, retours et états indisponibles cohérents ; la clarification d'un module en préparation ne vaut pas livraison de sa logique métier.
+
+### Dépendances, packaging et diagnostics — C09/C10
+
+- Réutiliser le verrou, les manifests et vérifications existants : versions/hashes, origine des dépendances et fichiers réellement embarqués, ressources LFS nécessaires, plugins Qt et workers gelés. Examiner les vulnérabilités pertinentes avec les moyens disponibles ; une analyse absente n'est pas « zéro vulnérabilité » et ne justifie pas l'installation automatique d'un nouveau service.
+- Conserver la recette reproductible : SHA, dépendances, outils de build, entrées et commande. Lors d'une campagne de livraison, comparer les manifests/hashes de deux builds isolés si possible, expliquer les variations ; ne pas annoncer un binaire identique octet pour octet sans preuve. Ne pas doubler les builds à chaque commit documentaire.
+- Vérifier que les diagnostics exportés excluent secrets et données personnelles non nécessaires ; réutiliser les mécanismes locaux/volontaires et d’expurgation lorsqu’ils existent, et vérifier leur résultat. Ne pas activer de télémétrie. Une identité/signature d'éditeur ne se déduit pas du seul hash de contenu.
+
+### GitHub et deux tâches IA reproductibles — C03/C12
+
+- Vérifier en lecture la configuration effective des contrôles requis, règles de branche et triggers, en lien avec **#266** ; la présence du YAML ne prouve pas l'activation du contrôle distant. Absence de droit admin = état non vérifié explicite, sans contournement ni modification des permissions dans ce lot documentaire.
+- **Tâche A : corriger un petit bug.** Partir de l'issue, retrouver le propriétaire, reproduire, modifier le minimum, lancer les tests pertinents puis produire le résumé de PR au SHA exact.
+- **Tâche B : ajouter une petite fonctionnalité** dans un module existant, avec réutilisation d'un composant/service, préservation des contrats et validation ciblée. C01 choisit et fige deux cas concrets représentatifs, puis compare l'ancien et le nouveau workflow avec mêmes cas et environnement.
+- Pour chaque cas : fichiers consultés/modifiés, commandes, durée setup/tests/CI et contexte nécessaire à une reprise par un autre agent ; séparer attente CI et travail de l'agent. Garder un handoff court dans le mécanisme existant. Aucun quota arbitraire de tokens, aucune économie chiffrée sans observation.
+- Acceptation : même sélection canonique agent/Doctor/CI, environnement propre reproductible, échec relié au bon test/SHA et reprise possible sans relire tout l'historique ; contrôles requis effectifs ou blocage identifié, jamais annoncés actifs sans preuve.
+
+### Alignement avec #366 et état de livraison
+
+La demande utilisateur « ajoute ça à la PR » valide l'ajout de ces précisions au plan et l'alignement du contrat source annoncé lors de la revue. Les descriptions **OPTV-011,033,038,039,040,041,042,043** sont complétées sans retirer leur texte initial, changer leurs types, autoriser un report ou modifier les critères restants. OPTV-043 porte la correspondance des 20 constats et le bilan des cinq axes ; les preuves manuelles restent attachées aux exigences manuelles.
+
+**Statut : PLAN_ONLY / NOT_IMPLEMENTED.** Les contrôles de ce changement portent sur le document, la cohérence de ses références et le contrat ; aucun gain, scénario natif, build reproductible, sécurité complète ni note >=18/20 n'est acquis. La PR reste Draft. Les budgets encore à fixer en C01 et les preuves manquantes restent visibles jusqu'à résolution.
