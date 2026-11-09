@@ -4,6 +4,9 @@ import contextlib
 import io
 import hashlib
 import json
+import os
+import subprocess
+import sys
 import tempfile
 import unittest
 from types import SimpleNamespace
@@ -443,6 +446,21 @@ class AtlasJsonBenchmarkTests(unittest.TestCase):
             self.assertEqual(exit_code, 1)
             self.assertEqual(json.loads(report.read_text(encoding="utf-8")),
                              response)
+
+    def test_parser_worker_import_avoids_quest_index_and_shard_pipeline(self) -> None:
+        root = Path(__file__).resolve().parents[1]
+        command = [
+            sys.executable, "-P", "-c",
+            "import sys; import tools.atlas_json_benchmark; "
+            "print(int('app.quest_source_index' in sys.modules)); "
+            "print(int('tools.atlas_json_shards' in sys.modules))",
+        ]
+        env = os.environ.copy()
+        env["PYTHONPATH"] = str(root)
+        result = subprocess.run(command, cwd=root, env=env, capture_output=True,
+                                text=True, timeout=20, check=False)
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertEqual(result.stdout.strip().splitlines(), ["0", "0"])
 
     def test_process_trial_runs_real_stdlib_in_isolated_python(self) -> None:
         from tools.atlas_json_benchmark import compare_json_processes
