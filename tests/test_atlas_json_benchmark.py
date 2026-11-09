@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import contextlib
+import io
 import json
 import tempfile
 import unittest
@@ -379,6 +381,67 @@ class AtlasJsonBenchmarkTests(unittest.TestCase):
                        return_value=fake_zstd):
                 with self.assertRaisesRegex(ValueError, "Source changed"):
                     compare_json_compression(path)
+
+    def test_comparison_cli_exit_codes_are_not_fake_success(self) -> None:
+        from tools.atlas_json_benchmark import main
+        scenarios = (
+            ("--compare-parsers", "compare_json_parsers",
+             {"status": "COMPARE_COMPLETE", "results": []}, 0),
+            ("--compare-parsers", "compare_json_parsers",
+             {"status": "REVIEW", "results": [
+                 {"status": "NOT_AVAILABLE"}]}, 1),
+            ("--compare-parsers", "compare_json_parsers",
+             {"status": "REVIEW", "results": [
+                 {"status": "PARITY_FAIL"}]}, 2),
+            ("--compare-parsers", "compare_json_parsers",
+             {"status": "REVIEW", "results": [
+                 {"status": "ERROR"}]}, 2),
+            ("--compare-streaming", "compare_json_streaming",
+             {"status": "PARITY_PASS"}, 0),
+            ("--compare-streaming", "compare_json_streaming",
+             {"status": "NOT_AVAILABLE"}, 1),
+            ("--compare-streaming", "compare_json_streaming",
+             {"status": "PARITY_FAIL"}, 2),
+            ("--compare-streaming", "compare_json_streaming",
+             {"status": "ERROR"}, 2),
+            ("--compare-compression", "compare_json_compression",
+             {"status": "COMPARE_COMPLETE", "results": []}, 0),
+            ("--compare-compression", "compare_json_compression",
+             {"status": "REVIEW", "results": [
+                 {"status": "NOT_AVAILABLE"}]}, 1),
+            ("--compare-compression", "compare_json_compression",
+             {"status": "REVIEW", "results": [
+                 {"status": "ERROR"}]}, 2),
+            ("--compare-parsers", "compare_json_parsers",
+             {"status": "UNEXPECTED"}, 1),
+        )
+        for flag, function, response, expected in scenarios:
+            with self.subTest(flag=flag, response=response):
+                out = io.StringIO()
+                with (patch("sys.argv", ["atlas_json_benchmark", flag]),
+                      patch(f"tools.atlas_json_benchmark.{function}",
+                            return_value=response) as trial,
+                      contextlib.redirect_stdout(out)):
+                    exit_code = main()
+                self.assertEqual(exit_code, expected)
+                self.assertEqual(json.loads(out.getvalue()), response)
+                trial.assert_called_once()
+
+    def test_json_cli_emits_error_report_file_even_on_failure(self) -> None:
+        from tools.atlas_json_benchmark import main
+        with tempfile.TemporaryDirectory() as tmp:
+            report = Path(tmp) / "result.json"
+            response = {"status": "REVIEW", "results": [
+                {"name": "zstandard", "status": "NOT_AVAILABLE"}]}
+            with (patch("sys.argv", [
+                    "atlas_json_benchmark", "--compare-compression",
+                    "--output", str(report)]),
+                  patch("tools.atlas_json_benchmark.compare_json_compression",
+                        return_value=response)):
+                exit_code = main()
+            self.assertEqual(exit_code, 1)
+            self.assertEqual(json.loads(report.read_text(encoding="utf-8")),
+                             response)
 
     def test_invalid_sample_sizes_fail_closed(self) -> None:
         with self.assertRaises(ValueError):
