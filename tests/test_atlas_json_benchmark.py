@@ -564,6 +564,73 @@ class AtlasJsonBenchmarkTests(unittest.TestCase):
                 _compare_process_metrics(rows)
                 self.assertNotIn("relative_to_stdlib", rows[1])
 
+    def test_process_worker_cannot_claim_pass_with_missing_or_fake_measurements(self) -> None:
+        from tools.atlas_json_benchmark import compare_json_processes
+        from subprocess import CompletedProcess
+        with tempfile.TemporaryDirectory() as tmp:
+            source = Path(tmp) / "source.json"
+            source.write_text('{"id":1}', encoding="utf-8")
+            payload = source.read_bytes()
+            canonical = hashlib.sha256(b'{"id":1}').hexdigest()
+            valid = {
+                "status": "PARITY_CANDIDATE", "candidate": "stdlib",
+                "source_sha256": hashlib.sha256(payload).hexdigest(),
+                "decoded_sha256": canonical, "executed": True,
+                "repeats": 2, "first_decode_ms": 1.0,
+                "warm_median_ms": 0.5, "rss_status": "OBSERVED",
+                "rss_before_bytes": 100, "rss_after_first_bytes": 200,
+                "rss_after_warm_bytes": 220,
+            }
+            malformed = (
+                {"first_decode_ms": None}, {"first_decode_ms": float("nan")},
+                {"first_decode_ms": True}, {"warm_median_ms": None},
+                {"repeats": 1}, {"executed": False}, {"executed": "yes"},
+                {"rss_status": "OBSERVED", "rss_after_warm_bytes": None},
+                {"rss_status": "OBSERVED", "rss_before_bytes": 0},
+                {"rss_status": "OBSERVED", "rss_before_bytes": True},
+                {"rss_status": "UNAVAILABLE"},
+                {"rss_status": "NOT_AVAILABLE", "rss_after_warm_bytes": 100},
+            )
+            cases = [valid, *(dict(valid, **override) for override in malformed)]
+            for n, row in enumerate(cases):
+                with self.subTest(case=n):
+                    done = CompletedProcess([], 0, stdout=json.dumps(row),
+                                            stderr="")
+                    with patch("tools.atlas_json_benchmark.subprocess.run",
+                               return_value=done):
+                        result = compare_json_processes(
+                            source, candidates=("stdlib",), repeats=2)
+                    if n == 0:
+                        self.assertEqual(result["status"], "COMPARE_COMPLETE")
+                        self.assertEqual(result["results"][0]["status"], "PARITY_PASS")
+                    else:
+                        self.assertEqual(result["status"], "REVIEW")
+                        self.assertEqual(result["results"][0]["status"], "ERROR")
+
+    def test_isolated_parser_allows_parity_without_optional_rss_but_not_complete(self) -> None:
+        from tools.atlas_json_benchmark import compare_json_processes
+        from subprocess import CompletedProcess
+        with tempfile.TemporaryDirectory() as tmp:
+            source = Path(tmp) / "sample.json"
+            source.write_text('{"id":1}', encoding="utf-8")
+            row = {
+                "status": "PARITY_CANDIDATE", "candidate": "stdlib",
+                "source_sha256": hashlib.sha256(source.read_bytes()).hexdigest(),
+                "decoded_sha256": hashlib.sha256(b'{"id":1}').hexdigest(),
+                "executed": True, "repeats": 1, "first_decode_ms": 1.0,
+                "warm_median_ms": None, "rss_status": "NOT_AVAILABLE",
+                "rss_before_bytes": None, "rss_after_first_bytes": None,
+                "rss_after_warm_bytes": None,
+            }
+            done = CompletedProcess([], 0, stdout=json.dumps(row), stderr="")
+            with patch("tools.atlas_json_benchmark.subprocess.run",
+                       return_value=done):
+                report = compare_json_processes(
+                    source, candidates=("stdlib",), repeats=1)
+            self.assertEqual(report["status"], "REVIEW")
+            self.assertEqual(report["results"][0]["status"], "PARITY_PASS")
+            self.assertEqual(report["results"][0]["rss_status"], "NOT_AVAILABLE")
+
     def test_process_comparison_fails_closed_on_worker_impersonation(self) -> None:
         from tools.atlas_json_benchmark import compare_json_processes
         from subprocess import CompletedProcess
