@@ -64,5 +64,49 @@ class OrganizerZaapFocusFailureTests(unittest.TestCase):
                         )
 
 
+    def test_focus_stolen_between_clients_never_activates_next_window(self) -> None:
+        for count in (2, 4, 6, 8):
+            with self.subTest(clients=count):
+                runtime = Mock()
+                runtime.settings.primary_handle = 101
+                runtime.settings.macro_mode = "macro"
+                runtime.macro_lock.should_stop.return_value = False
+                runtime.switch_character.ordered_clients_from_source.return_value = [
+                    SimpleNamespace(handle=101 + i) for i in range(count)
+                ]
+                focused = [101]
+
+                def activate(hwnd, *_args, **_kwargs) -> bool:
+                    focused[0] = hwnd
+                    return True
+
+                def chat(_command, _logger, **_kwargs) -> bool:
+                    # Physical user switches to a non-DOFUS window between
+                    # commands. The remaining 1..7 clients must be untouched.
+                    focused[0] = 999
+                    return True
+
+                with (
+                    patch("app.macros.zaap.is_unity_window", return_value=True),
+                    patch("app.macros.zaap.is_dofus_unity_process", return_value=True),
+                    patch("app.macros.zaap.activate_window", side_effect=activate) as focus,
+                    patch("app.macros.zaap.foreground_window",
+                          side_effect=lambda: focused[0]),
+                    patch("app.macros.zaap.send_chat_command", side_effect=chat) as send,
+                ):
+                    ZaapMacro(runtime)._run("/zaap 1,2")
+
+                focus.assert_called_once()
+                send.assert_called_once()
+                runtime.switch_character.restore_preferred_client.assert_not_called()
+                runtime._emit_status.assert_called_once_with(
+                    f"Auto zaap interrompu : 1/{count} commandes émises "
+                    "(réception DOFUS non vérifiée)."
+                )
+                runtime.logger.warning.assert_any_call(
+                    "Auto zaap interrompu: focus utilisateur changé entre clients."
+                )
+
+
 if __name__ == "__main__":
     unittest.main()
