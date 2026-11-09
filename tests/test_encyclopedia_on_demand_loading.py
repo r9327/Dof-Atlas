@@ -60,6 +60,36 @@ class EncyclopediaOnDemandTests(unittest.TestCase):
         Shell.start_preload.assert_any_call("encyclopedia", user_requested=True)
         build_quest_preload.assert_not_called()
 
+    def test_guide_deeplink_restores_encyclopedia_group_after_bestiary(self) -> None:
+        calls = []
+
+        class Shell:
+            pending_guide_target = None
+
+            def open_encyclopedia_tab(self, tab) -> None:
+                calls.append(("tab", tab))
+
+            def show_page(self, page) -> None:
+                raise AssertionError("Direct show_page bypasses Bestiary tab filter")
+
+            def _schedule_owned_callback(self, delay, callback) -> None:
+                calls.append(("scheduled", delay, callback))
+
+            finish_pending_guide_target = main.AtlasWindow.finish_pending_guide_target
+
+        shell = Shell()
+        main.AtlasWindow.open_guide_progress(shell, "guide_complet", quest_id="42")
+        self.assertEqual(shell.pending_guide_target, ("guide_complet", 42))
+        self.assertEqual(calls, [
+            ("tab", GUIDES_TAB),
+            ("scheduled", 0, shell.finish_pending_guide_target),
+        ])
+
+        calls.clear()
+        main.AtlasWindow.open_guide_progress(shell, "dofus_sylvestre", quest_id="invalid")
+        self.assertEqual(shell.pending_guide_target, ("dofus_sylvestre", None))
+        self.assertEqual(calls[0], ("tab", GUIDES_TAB))
+
     def test_canonical_factory_reuses_only_valid_loaded_preloads(self) -> None:
         class CapturedPage:
             def __init__(self, _status_callback, **kwargs) -> None:

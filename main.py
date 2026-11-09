@@ -1589,7 +1589,9 @@ class AtlasWindow(QMainWindow):
         except (TypeError, ValueError):
             resolved_quest = None
         self.pending_guide_target = (str(guide_id), resolved_quest)
-        self.show_page("Quetes")
+        # Deep links must restore the Encyclopedia tab group, even after a
+        # Bestiary visit hid Guide/Quest/Success tabs in the shared shell.
+        self.open_encyclopedia_tab(GUIDES_TAB)
         self._schedule_owned_callback(0, self.finish_pending_guide_target)
 
     def finish_pending_guide_target(self) -> None:
