@@ -214,6 +214,61 @@ class ImportedSourceRuntimeTests(unittest.TestCase):
         service.set_manual_checked("character:1", key, True)
         self.assertTrue(service.manual_checked("character:1", key))
 
+    def test_foreign_copied_card_cannot_inject_sections_or_evaluator_payload(self):
+        route = _source_route()
+        route["steps"][0]["hard_runtime_gates"] = [
+            {"kind": "alignment", "expected": "Bonta"},
+        ]
+        evaluated = []
+
+        def evaluate(character_key, card):
+            evaluated.append((character_key, card["manual_sections"]["now"][0]["text"]))
+            return card["manual_sections"]["now"][0]["text"] == "Parler au PNJ fictif"
+
+        service = ImportedSourceManualRuntimeService(
+            self.others, self.others, self.guide_progress, route=route,
+            gate_evaluator=evaluate,
+        )
+        service.set_authorization_guard(lambda *_: True)
+        copied = copy.deepcopy(service.cards[0])
+        copied["manual_sections"]["now"][0]["text"] = "FAUX OBJECTIF"
+        copied["hard_runtime_gates"] = []
+        self.assertEqual(
+            service.manual_sections_for_card("character:1", copied),
+            service.cards[0]["manual_sections"],
+        )
+        self.assertEqual(
+            service.manual_lines_for_card("character:1", copied),
+            service.cards[0]["manual_sections"]["now"],
+        )
+        self.assertFalse(service.manual_order_choice_blocking("character:1", copied))
+        service.set_page_checked("character:1", copied, 0, True)
+        self.assertTrue(service.page_checked("character:1", service.cards[0]))
+        self.assertEqual(evaluated, [
+            ("character:1", "Parler au PNJ fictif"),
+            ("character:1", "Parler au PNJ fictif"),
+        ])
+
+    def test_single_gate_evaluation_per_page_write_and_fail_closed(self):
+        route = _source_route()
+        route["steps"][0]["hard_runtime_gates"] = [
+            {"kind": "alignment", "expected": "Bonta"},
+        ]
+        calls = []
+        service = ImportedSourceManualRuntimeService(
+            self.others, self.others, self.guide_progress, route=route,
+            gate_evaluator=lambda key, card: (calls.append((key, card)), False)[1],
+        )
+        service.set_authorization_guard(lambda *_: True)
+        service.set_page_checked("character:1", service.cards[0], 0, True)
+        self.assertEqual(len(calls), 1)
+        self.assertIs(calls[0][1], service.cards[0])
+        self.assertFalse(self.progress_path.exists())
+        with self.assertRaisesRegex(ValueError, "Unknown source step"):
+            service.manual_order_choice_blocking(
+                "character:1", {"manual_stage_id": "source:foreign:first"},
+            )
+
     def test_source_quest_name_never_auto_completes_uncertified_action(self):
         route = _source_route()
         service = self._runtime(route)

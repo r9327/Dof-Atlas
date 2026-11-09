@@ -153,14 +153,10 @@ class ImportedSourceManualRuntimeService(GuideUltimeGeneratedService):
         self, character_key: str, card: dict[str, Any],
         fallback_index: int, checked: bool,
     ) -> None:
-        key = self.page_key(card, fallback_index)
-        # A copied card cannot remove its real prerequisite gates and then
-        # validate under the identity of the canonical source step.
-        if checked and self.manual_order_choice_blocking(
-            character_key, self._canonical_cards[key],
-        ):
-            return
-        self.set_manual_checked(character_key, key, checked)
+        # The public writer below owns the canonical gate exactly once.
+        self.set_manual_checked(
+            character_key, self.page_key(card, fallback_index), checked,
+        )
 
     def card_automatic_values(
         self, character_key: str, card: dict[str, Any],
@@ -190,14 +186,15 @@ class ImportedSourceManualRuntimeService(GuideUltimeGeneratedService):
     def manual_sections_for_card(
         self, character_key: str, card: dict[str, Any],
     ) -> dict[str, Any]:
-        self.page_key(card)
-        return card["manual_sections"]
+        key = self.page_key(card)
+        # Never trust the caller's copied/editable UI payload for a known ID.
+        return self._canonical_cards[key]["manual_sections"]
 
     def manual_lines_for_card(
         self, character_key: str, card: dict[str, Any],
     ) -> list[dict[str, Any]]:
-        self.page_key(card)
-        return list(card["manual_sections"].get("now", ()))
+        key = self.page_key(card)
+        return list(self._canonical_cards[key]["manual_sections"].get("now", ()))
 
     def manual_order_choice_blocking(
         self, character_key: str, card: dict[str, Any],
@@ -206,12 +203,13 @@ class ImportedSourceManualRuntimeService(GuideUltimeGeneratedService):
         # Never treat them as satisfied merely because the universal reader
         # lacks a corresponding validator. Every guide can inject its own
         # independently qualified evaluator; unknown/failing means blocked.
-        if not card.get("hard_runtime_gates"):
+        canonical = self._canonical_cards[self.page_key(card)]
+        if not canonical.get("hard_runtime_gates"):
             return False
         if not callable(self._gate_evaluator):
             return True
         try:
-            return self._gate_evaluator(character_key, card) is not True
+            return self._gate_evaluator(character_key, canonical) is not True
         except Exception:
             return True
 
