@@ -28,8 +28,9 @@ def _verify_delta_members(path: Path, manifest) -> None:
     This is a publishing preflight, not an authorization to activate an update.
     """
     assert manifest.delta is not None
+    changed_paths = set(manifest.delta.paths)
     expected = {entry.path: entry for entry in manifest.files
-                if entry.path in manifest.delta.paths}
+                if entry.path in changed_paths}
     try:
         with zipfile.ZipFile(path) as archive:
             members = archive.infolist()
