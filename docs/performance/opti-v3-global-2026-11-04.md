@@ -383,3 +383,60 @@ Vérification ciblée des consommateurs sur `main@2ce1f5b4f65f435b5ceabec95590cf
 **Contrainte C05 réévaluée avant correction** : `tests/test_encyclopedia_cold_worker_release.py` teste explicitement la destruction Qt d'une page pendant que le worker Guide est en cours et sa libération Python après la fin. Le `destroyed → thread.join()` illimité reste un risque de gel ; **une suppression brute du join ou un délai arbitraire ne peut pas être validé à l'aveugle**. Préparer un test spécifique Home/Qt réellement non bloquant, examiner l'ownership des signaux et la réponse obsolète, puis modifier le chemin étroit avec preuve Windows quand disponible.
 
 **À faire C04** : confirmer l'écart `checkpoint_exceeds_reported_tree_peak` sur une campagne réelle Windows, horodater la provenance, mesurer première action utile et réévaluer le budget sans changer silencieusement le gate. Les 43 exigences OPTV et les cinq scores ≥18/20 restent **NON CERTIFIÉS**.
+
+## Itération 7 — audit **seul**, reprise du 9 novembre 2026
+
+**Référence examinée :** `#367@a244086cb6458223127f673432cb72d8d5d4365a`, `main@2ce1f5b4f65f435b5ceabec95590cfd8da02f7dc`, même version du code applicatif examiné pour les chemins ci-dessous. **Aucun code, test, configuration CI ni seuil modifié dans cette itération.** Les observations sont statiques, les campagnes de performance Windows et Graphify étant non exécutées ici.
+
+### Vérifications factuelles supplémentaires
+
+1. **Registre RAM exhaustif du point de vue des références, pas des preuves :** le JSON `docs/performance/atlas-ram-inventory-v1.json` contient **50 IDs RAM-01..RAM-50 sans trou ni doublon**, **23 chemins de fichiers propriétaires distincts**, et **23/23 existent à ce HEAD** (vérification de disponibilité via GitHub). Statuts conservés de l'inventaire historique : **16 `measured`**, **4 `instrumented`**, **30 `todo`** ; aucune de ces 16 mentions historiques ne devient un nouveau `PASS` sur le HEAD. `tools/atlas_doctor_lib/ram_inventory.py:275-319` prévoit bien `PARTIAL` tant qu'il reste des items à traiter et refuse d'inférer l'allocation native Qt.
+2. **36 OPT historiques :** les lignes `OPT-P0-01..06`, `OPT-P1-07..14`, `OPT-P2-15..24`, `OPT-P3-25..36` existent dans `docs/performance/atlas-full-optimization-backlog-20261030.md:91-150`. Les chiffres initiaux, notamment 307,7 Mio et 22,91 s, restent des **baselines historiques**. Leur résolution code et tests A/B ne sont **pas vérifiés individuellement** par la seule existence du registre.
+3. **Différence majeure entre objectif produit et contrôle CI :** `.github/workflows/phase8-memory-benchmark.yml:227-271` traite **Home 100 MB en simple avertissement** et non en échec. Le même workflow, lignes 274-287, impose **220 MB de pic arbre cible avec plafond dur 231 MB** (marge 5 % dans `tools/phase8_memory_tolerance.py`), soit plus strict que le plafond produit ≤250 Mio. **Une CI verte ne prouve pas « Home <100 Mio »** ; inversement les unités/conditions des budgets et du produit doivent rester distinguées. Ne pas affaiblir/renforcer le gate avant arbitrage et A/B. Le nouveau `checkpoint_tree_peak_rss_mb` de C04 est uniquement **diagnostique** et n'entre pas dans le gate actuel.
+4. **Dépendances :** `requirements-pyside.txt:6-16` inclut explicitement **PySide6_WebEngine** et **PySide6_Pdf**, hashés, alors que `app/pages/equipment_page.py:15-36,137-158` n'instancie en production **aucun navigateur WebEngine intégré** et ouvre Huzounet via `QDesktopServices`. **Ne pas conclure que les wheels sont dans le bundle final** ni qu'ils sont inutilisés ailleurs : rechercher consommateurs et contenu réel de l'EXE chez #285 avant recommandation de retrait. Il existe une opportunité d'audit du poids de la dépendance, pas de gain prouvé.
+5. **Fermeture Qt, vraie limite de la couverture actuelle :** `encyclopedia_page.py:141-145,612-643` bloque sans timeout pour joindre les threads ; `main.py:1840-1858,1896-1931` supprime la page et flush ses `DeferredDelete` au retour Home. `tests/test_encyclopedia_cold_worker_release.py` couvre la **libération finale** quand le worker termine, mais **pas une garantie de réactivité du retour Home pendant une charge lente**. Ce risque P0 est **confirmé en structure**, durée/blocage utilisateur non reproduit ; ne pas annoncer un bug mesuré ou supprimer le join à l'aveugle.
+6. **CI HEAD courant :** `Scoped PR Feedback` du run `42650095985` **SUCCESS (feedback stdlib/targeted)**, `Phase Certification` `SKIPPED` (Draft), `Atlas Delivery Guard` du run `42650177689` **FAIL** parce que les 43 exigences ne sont pas clôturées via le format contractuel. Ce dernier garde-fou n'est **pas à contourner** ; un audit en cours ne peut déclarer ses 43 lignes `DONE` ni `DEFERRED` sans preuves et autorisation.
+
+### Qualification initiale de chacune des 31 règles (non certification)
+
+`PARTIAL_STATIC` signifie que **seul un mécanisme ou sous-périmètre** est attesté en lecture, pas une règle entièrement close. `N/A_*` correspond au concept web/serveur strictement sans objet, **pas** à la dispense de tester son équivalent desktop. `UNVERIFIED_RUNTIME`, `OWNER_NOT_RUN` et `NATIVE_NOT_RUN` restent ouverts.
+
+| ID | Qualification actuelle | Source technique/raison | Preuve manquante |
+| --- | --- | --- | --- |
+| OPTV-001 | PARTIAL_STATIC | `encyclopedia_page.py` (EncyclopediaWarmupView) | État et interaction réellement utiles encore non mesurés |
+| OPTV-002 | PARTIAL_STATIC | `image_service.py:104-145` (QImageReader à taille cible) | Autres surfaces et vrais assets Unity non exhaustifs |
+| OPTV-003 | PARTIAL_STATIC | `quest_catalog_details.py` (cache signé), providers | Déduplication de chaque source concurrente non démontrée |
+| OPTV-004 | PARTIAL_STATIC | `craft_page.py` (minuterie de recherche 120 ms) | Quêtes/Succès et événements obsolètes à retester |
+| OPTV-005 | PARTIAL_STATIC | `craft_page.py` (lots bornés et SQLite lazy) | Catalogues Quêtes/Succès/Guide à profiler |
+| OPTV-006 | N/A_WEB | Runtime Qt/local, assets empaquetés | Vérifier packaging offline, pas déployer un CDN |
+| OPTV-007 | RISK_REVIEW | `encyclopedia_page.py:141-145,612-643`; `world_scan_panel.py:340-388` | Attente `Thread.join()` illimitée à reproduire sur Home |
+| OPTV-008 | UNVERIFIED_RUNTIME | `quest_catalog_details.py:215-275` (SELECT direct) | Aucun décompte N+1/EXPLAIN actuel |
+| OPTV-009 | N/A_WEB | Pas de livraison du runtime par HTTP | Coûts du launcher à garder chez #285 |
+| OPTV-010 | N/A_SERVER | Caches SQLite/LRU locaux existants | Aucun Redis à ajouter |
+| OPTV-011 | PARTIAL_STATIC | `requirements-pyside.txt:6-16` (Qt WebEngine et Pdf verrouillés) | Consommateurs réels + contenu bundle non audités |
+| OPTV-012 | OWNER_NOT_RUN | Launcher #285, réseau optionnel distinct | Timeout/offline, erreurs natives et rollback à prouver |
+| OPTV-013 | N/A_CURRENT_SCOPE | Pas de génération IA distante dans le parcours analysé | Réévaluer uniquement si un service IA actif apparaît |
+| OPTV-014 | UNVERIFIED_RUNTIME | `app/core/json_store.py` (écriture atomique unitaire) | Cohérence UI/progression et paires JSON/INI via #331 |
+| OPTV-015 | PARTIAL_STATIC | `world_scan_panel.py:960-972`, `image_service.py` | Hors Guides Ganymède ; mémoire image carte/Unity non mesurée |
+| OPTV-016 | PARTIAL_STATIC | `main.py:2195-2450` (séquence preload) | CPU/pics, premier clic et bénéfice parallélisme non mesurés |
+| OPTV-017 | PARTIAL_STATIC | `quest_catalog_details.py:215-275` (id lookup) | Index réels, EXPLAIN et coûts autres bases non audités |
+| OPTV-018 | N/A_BACKEND | Doctor local et journalisation déjà existants | Pas d'OpenTelemetry distant imposé |
+| OPTV-019 | N/A_SERVER | SQLite sur poste utilisateur | Reprises/disques Windows à vérifier |
+| OPTV-020 | N/A_WEB | Application Qt sans SSR/SSG | Ne pas introduire un serveur de rendu |
+| OPTV-021 | PARTIAL_STATIC | `main.py` (services différés) | Imports secondaires et coûts de package non mesurés |
+| OPTV-022 | PARTIAL_STATIC | `main.py:1902-2055` (page_factories et lazy) | Non-régression tous onglets et widgets froids non vérifiée |
+| OPTV-023 | PARTIAL_STATIC | `craft_page.py:629-685` et lots de résultats | Virtualisation réellement adaptée aux grands catalogues à confirmer |
+| OPTV-024 | PARTIAL_STATIC | `quest_catalog_details.py:215-275` (SELECT detail) | Autres parcours SQL/SELECT * non passés en revue complète |
+| OPTV-025 | N/A_SERVER | Connexions SQLite courtes (`quest_catalog_details.py`) | Concurrence/locks SQLite à mesurer, pas de pool serveur |
+| OPTV-026 | PARTIAL_STATIC | Signatures + caches SQLite/UI existants | Rerenders Qt, retour Home et hit/miss non profilés |
+| OPTV-027 | N/A_WEB | Caches versionnés, pas de Cache-Control HTTP | Expiration et invalidation locales à tester |
+| OPTV-028 | N/A_SERVER | Mono-poste, stress Doctor multi-processus | 2–8 vrais comptes DOFUS ≠ 8 Atlas offscreen |
+| OPTV-029 | N/A_WOFF2 | `app/ui/theme.py` / polices Qt locales | Assets/fonts packaging, fallback et DPI non certifiés |
+| OPTV-030 | PARTIAL_STATIC | `benchmark_phase8_memory.py` + Doctor RAM | Mesures réelles native GUI/p95/p99 NON_RUN |
+| OPTV-031 | NATIVE_NOT_RUN | Scénarios Windows faible PC exigés par #366 | DPI 100/125/150/200, disque lent, I/O et temps natifs manquent |
+
+### Verdict de reprise et prochain périmètre d'audit
+
+- **Vérifié :** inventaire 43/31/36/50 sur l'existence documentaire, 23/23 owners RAM présents, pratiques réellement déjà en place sur les modules cités, écarts Home/pic dans les contrôles CI, comportement exact du loader Stuffs.
+- **Non clos :** audit statique exhaustif de chaque source SQLite, de l'usage des packages WebEngine/Pdf et du packaging, intégration #363, tests de fermeture pendant chargement, distribution Windows/NTFS, tests des 43 exigences, Graphify exact SHA, premier clic utile, p50/p95/p99 et réception 2/4/6/8 vrais comptes DOFUS.
+- **Priorité audit suivante** : (1) consommation/visibilité des threads Encyclopédie + test spécifique de non-blocage, (2) provenance et validité des campagnes RAM/C04, (3) dépendances du vrai bundle et outils CI/Doctor, (4) index SQL et retours Home répétés. **Pas de code applicatif dans cette phase.**
