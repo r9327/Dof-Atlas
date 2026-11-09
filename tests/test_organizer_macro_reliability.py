@@ -3704,7 +3704,10 @@ class OrganizerMacroReliabilityTests(unittest.TestCase):
             patch("app.macros.zaap.is_unity_window", return_value=True),
             patch("app.macros.zaap.is_dofus_unity_process", return_value=True),
             patch("app.macros.zaap.activate_window", return_value=True),
-            patch("app.macros.zaap.foreground_window", side_effect=[101, 202, 202]),
+            # After first send, the first client must still own foreground
+            # BEFORE we activate the second: this is a nominal partial send.
+            patch("app.macros.zaap.foreground_window",
+                  side_effect=[101, 101, 202, 202, 202]),
             patch("app.macros.zaap.send_chat_command", side_effect=[True, False]),
         ):
             ZaapMacro(runtime)._run("/zaap 1,2")
@@ -4482,7 +4485,8 @@ class OrganizerMacroReliabilityTests(unittest.TestCase):
             patch("app.macros.zaap.is_unity_window", return_value=True),
             patch("app.macros.zaap.is_dofus_unity_process", return_value=True),
             patch("app.macros.zaap.activate_window", return_value=True),
-            patch("app.macros.zaap.foreground_window", side_effect=[101, 202]),
+            # First client's focus is rechecked before activating second.
+            patch("app.macros.zaap.foreground_window", side_effect=[101, 101, 202]),
             patch("app.macros.zaap.send_chat_command", side_effect=stop_after_last_chat) as send,
         ):
             ZaapMacro(runtime)._run("/zaap 1,2")
