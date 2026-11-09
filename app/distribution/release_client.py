@@ -18,7 +18,9 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Callable
 
-from .manifest import MAX_MANIFEST_BYTES, ManifestError, ReleaseFile, ReleaseManifest, parse_manifest, verify_file
+from .manifest import (MAX_MANIFEST_BYTES, REPO_UPDATE_POINTER_LIMIT, ManifestError,
+                       ReleaseFile, ReleaseManifest, RepoUpdatePointer,
+                       parse_manifest, parse_repo_update_pointer, verify_file)
 from .archive_parts import assemble_archive_parts
 from .startup_trace import record_startup_event
 
@@ -26,6 +28,7 @@ REPO = "r9327/Dof-Atlas-App"
 API_URL = f"https://api.github.com/repos/{REPO}/releases/latest"
 WEB_LATEST_URL = f"https://github.com/{REPO}/releases/latest"
 CHANNEL_URL = f"https://github.com/{REPO}/releases/latest/download/atlas-channel.json"
+REPO_UPDATE_POINTER_URL = f"https://raw.githubusercontent.com/{REPO}/main/updates/stable.json"
 CHANNEL_LIMIT = 4096
 _DOWNLOAD_ATTEMPTS = 4
 # Small releases stay sequential; large multipart bundles use bounded parallel I/O.
@@ -40,6 +43,7 @@ MAX_ARCHIVE_BYTES = 2 * 1024**3 - 1
 _ALLOWED_REDIRECT_HOSTS = frozenset({
     "github.com", "api.github.com", "release-assets.githubusercontent.com",
     "objects.githubusercontent.com", "github-releases.githubusercontent.com",
+    "raw.githubusercontent.com",
 })
 _AGENT = "DofusAtlas-Updater/1"
 Progress = Callable[[int, int], None]
@@ -66,6 +70,11 @@ def _safe_url(url: str, *, asset: bool = False) -> str:
         raise UpdateError("Untrusted update URL")
     if (parts.hostname or "").lower() not in _ALLOWED_REDIRECT_HOSTS:
         raise UpdateError("Unexpected update host")
+    # The unpinned APP branch is metadata-only, never an asset source.
+    # Immutable package paths need a separate, certified integration.
+    if (parts.hostname or "").lower() == "raw.githubusercontent.com":
+        if url != REPO_UPDATE_POINTER_URL:
+            raise UpdateError("Unexpected repository update URL")
     if asset:
         if (parts.hostname or "").lower() != "github.com":
             raise UpdateError("Update assets must come from the official GitHub release")
@@ -114,6 +123,29 @@ def _read_limited(url: str, limit: int, *, timeout: float = 20) -> bytes:
     if len(data) > limit:
         raise UpdateError("Metadata exceeds allowed size")
     return data
+
+
+def probe_repo_update(installed_source_sha: str) -> RepoUpdatePointer | None:
+    """Read one small stable pointer; never install or authorize its payload.
+
+    A missing/invalid installed SHA belongs to the existing Release
+    bootstrap. A matching SHA skips all ZIP and manifest requests. A
+    different base must be handled by a future certified multi-hop path.
+    This read-only probe is deliberately NOT called by the live launcher.
+    """
+    if (not isinstance(installed_source_sha, str)
+            or not re.fullmatch(r"[a-f0-9]{40}", installed_source_sha)):
+        return None
+    raw = _read_limited(REPO_UPDATE_POINTER_URL, REPO_UPDATE_POINTER_LIMIT, timeout=5)
+    try:
+        pointer = parse_repo_update_pointer(raw)
+    except ManifestError as exc:
+        raise UpdateError("Invalid repository update pointer") from exc
+    if pointer.source_sha == installed_source_sha:
+        return None
+    if pointer.base_source_sha != installed_source_sha:
+        raise UpdateError("Repository update does not support this installed base")
+    return pointer
 
 
 def _is_offline_failure(exc: BaseException) -> bool:

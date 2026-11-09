@@ -110,6 +110,60 @@ class RepoUpdatePointerTests(unittest.TestCase):
 
 
 
+class RepoUpdateProbeTests(unittest.TestCase):
+    def test_noop_uses_one_small_request_and_no_zip(self) -> None:
+        from app.distribution.release_client import (
+            REPO_UPDATE_POINTER_URL, probe_repo_update,
+        )
+        from app.distribution.manifest import REPO_UPDATE_POINTER_LIMIT
+
+        with patch("app.distribution.release_client._read_limited",
+                   return_value=_pointer()) as read:
+            candidate = probe_repo_update(BASE)
+            unchanged = probe_repo_update(SRC)
+        self.assertEqual(candidate.source_sha, SRC)
+        self.assertIsNone(unchanged)
+        self.assertEqual(read.call_count, 2)
+        read.assert_any_call(
+            REPO_UPDATE_POINTER_URL, REPO_UPDATE_POINTER_LIMIT, timeout=5,
+        )
+
+    def test_missing_installed_sha_stays_on_release_bootstrap(self) -> None:
+        from app.distribution.release_client import probe_repo_update
+
+        with patch("app.distribution.release_client._read_limited") as read:
+            self.assertIsNone(probe_repo_update(None))
+            self.assertIsNone(probe_repo_update("main"))
+        read.assert_not_called()
+
+    def test_incompatible_or_malformed_pointer_is_not_a_valid_update(self) -> None:
+        from app.distribution.release_client import UpdateError, probe_repo_update
+
+        for installed, payload in (
+            ("0" * 40, _pointer()),
+            (BASE, b"not-json"),
+            (BASE, _pointer(archive_url="https://example.com/malware.zip")),
+        ):
+            with self.subTest(installed=installed, payload=payload[:50]):
+                with patch("app.distribution.release_client._read_limited",
+                           return_value=payload):
+                    with self.assertRaises(UpdateError):
+                        probe_repo_update(installed)
+
+    def test_raw_update_transport_rejects_unreviewed_paths(self) -> None:
+        from app.distribution.release_client import (
+            REPO_UPDATE_POINTER_URL, UpdateError, _safe_url,
+        )
+        self.assertEqual(_safe_url(REPO_UPDATE_POINTER_URL), REPO_UPDATE_POINTER_URL)
+        for url in (
+            "https://raw.githubusercontent.com/r9327/Dof-Atlas-App/main/main.py",
+            "https://raw.githubusercontent.com/r9327/Dof-Atlas-App/main/updates/stable.json?alt=1",
+            "https://raw.githubusercontent.com/attacker/repo/main/updates/stable.json",
+        ):
+            with self.subTest(url=url), self.assertRaises(UpdateError):
+                _safe_url(url)
+
+
 class RepoUpdatePublisherTests(unittest.TestCase):
     def test_builder_accepts_only_real_verified_frozen_delta(self) -> None:
         from pathlib import Path

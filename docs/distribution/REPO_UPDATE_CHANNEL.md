@@ -19,6 +19,21 @@ n'ajoutent pas de nouvel installeur. Elles **ne sont pas encore reliées
 au réseau, au launcher ou au workflow de publication**. Aucune activation
 ou publication nouvelle ne découle de leur présence.
 
+## Sonde légère en lecture seule (NRU-002 partiel)
+
+`app.distribution.release_client.probe_repo_update(installed_source_sha)`
+peut maintenant lire **un seul pointeur de 4 Kio maximum** depuis l'adresse
+APP codée en dur, avec un timeout de 5 secondes. Un SHA identique renvoie
+`None` sans demander de manifeste ni de ZIP ; une base différente ou un
+pointeur invalide bloque la sonde, sans modifier l'installation.
+Une installation sans SHA valide reste sur le bootstrap Release.
+
+**Cette sonde n'est pas branchée au launcher** : le pointeur sur `APP/main`
+ne constitue pas à lui seul une attestation de certification. L'activation,
+les preuves de publication de paquets immuables, le multi-sauts, le rollback
+natif et la recette Windows restent nécessaires avant toute mise à jour
+automatique par ce canal. Aucun nouveau téléchargement applicatif.
+
 ## Publication cible (NON ENCORE ACTIVÉE)
 
 1. `Dof-Atlas/main` passe les tests d'intégration et la certification
