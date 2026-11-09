@@ -34,10 +34,9 @@ TOOL_SPEC = {
     "target_scopes": ["json_data", "quest_data", "quality_ci"],
 }
 
-from app.quest_source_index import QuestSources
-from tools.atlas_json_shards import (
-    ROOT, current_directory, read_by_id, verify,
-)
+# Keep the subprocess JSON decoder trials independent of the Quest shard/index
+# pipeline. Importing the latter at module load biases process startup and RSS.
+ROOT = Path(__file__).resolve().parents[1]
 
 
 def benchmark(
@@ -45,6 +44,10 @@ def benchmark(
 ) -> dict:
     if not 1 <= sample_count <= 1000:
         raise ValueError("sample_count hors limites")
+    # Only the offsets-vs-shards benchmark needs the Quest indexing pipeline.
+    # JSON process trials avoid loading it before their measurements.
+    from app.quest_source_index import QuestSources
+    from tools.atlas_json_shards import current_directory, read_by_id, verify
     source, output_root = Path(source).resolve(), Path(output_root).resolve()
     directory = current_directory(output_root)
 
