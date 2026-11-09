@@ -217,6 +217,29 @@ class DoctorOssIntelligenceTests(unittest.TestCase):
             self.assertFalse(routed[cid]["trial_executed"])
         self.assertFalse(summary["may_claim_full_certification"])
 
+    def test_json_parser_recommendation_uses_isolated_rss_owner(self):
+        from tools.atlas_doctor_lib.oss_intelligence import ai_tool_workflow
+        plan = intelligent_plan(["tools/atlas_json_benchmark.py"], study())
+        evaluated = {row["id"]: row for row in plan["evaluated_candidates"]}
+        for candidate in ("ATOSS-11", "ATOSS-12"):
+            with self.subTest(candidate=candidate):
+                self.assertEqual(
+                    evaluated[candidate]["opt_in_trial_route"],
+                    "tools.atlas_json_benchmark --compare-process")
+                self.assertFalse(evaluated[candidate]["trial_executed"])
+                self.assertFalse(evaluated[candidate]["adoption_qualified"])
+        self.assertEqual(evaluated["ATOSS-13"]["opt_in_trial_route"],
+                         "tools.atlas_json_benchmark --compare-streaming")
+        self.assertEqual(evaluated["ATOSS-14"]["opt_in_trial_route"],
+                         "tools.atlas_json_benchmark --compare-compression")
+        output = ai_tool_workflow("plan", {"status": "REVIEW", "exit_code": 1}, plan)
+        routes = {row["tool_id"]: row for row in output["oss_recommendations"]}
+        for candidate in ("ATOSS-11", "ATOSS-12"):
+            self.assertEqual(routes[candidate]["opt_in_trial_route"],
+                             "tools.atlas_json_benchmark --compare-process")
+            self.assertFalse(routes[candidate]["tool_executed"])
+        self.assertFalse(output["may_claim_full_certification"])
+
     def test_final_policy_rejections_prohibit_optional_preflight(self):
         inventory = study()
         for row in inventory["candidates"]:
