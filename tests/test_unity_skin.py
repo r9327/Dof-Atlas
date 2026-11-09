@@ -250,5 +250,79 @@ class UnitySkinTests(unittest.TestCase):
                 self.assertIn("border-image", style)
 
 
+class EncyclopediaQuestLoadingUITests(unittest.TestCase):
+    """Shared Qt UI regression: abandoned Quest hydration remains inert."""
+
+    def test_abandoned_quest_result_never_mounts_inactive_view(self) -> None:
+        from queue import Queue
+        from unittest.mock import Mock
+        from app.modules.encyclopedia.views.encyclopedia_page import (
+            EncyclopediaPage, _QuestRuntimePayload,
+        )
+
+        class Probe:
+            _collect_quest_runtime = EncyclopediaPage._collect_quest_runtime
+
+            def __init__(self) -> None:
+                self._quest_load_queue = Queue(maxsize=1)
+                self._quest_load_timer = Mock()
+                self._quest_load_started = True
+                self._quest_load_abandoned = True
+                self._quest_graph = None
+                self.quest_page = None
+                self.status_callback = Mock()
+
+            def _build_quests_page_progressive(self):
+                raise AssertionError("Obsolete Quests must not hydrate")
+
+        probe = Probe()
+        probe._quest_load_queue.put(_QuestRuntimePayload(object()))
+        probe._collect_quest_runtime()
+        self.assertFalse(probe._quest_load_started)
+        self.assertFalse(probe._quest_load_abandoned)
+        self.assertIsNone(probe._quest_graph)
+        self.assertTrue(probe._quest_load_queue.empty())
+        probe._quest_load_timer.stop.assert_called_once()
+        probe.status_callback.assert_not_called()
+
+    def test_quest_worker_result_is_reused_if_user_returns_early(self) -> None:
+        from app.modules.encyclopedia.constants import GUIDES_TAB, QUESTS_TAB
+        from app.modules.encyclopedia.views.encyclopedia_page import EncyclopediaPage
+
+        class Tabs:
+            label = GUIDES_TAB
+            def tabText(self, _index: int) -> str:
+                return self.label
+
+        class Probe:
+            _on_tab_changed_indexed_runtime = (
+                EncyclopediaPage._on_tab_changed_indexed_runtime
+            )
+            def __init__(self):
+                self.tabs = Tabs()
+                self._initializing = False
+                self._quest_load_started = True
+                self._quest_load_abandoned = False
+                self._pending_lazy_tab = ""
+                self._pending_guide_id = ""
+                self._pending_achievement_context_id = None
+                self.guides_view = None
+                self._related_ready = False
+                self._achievement_ready = False
+                self.actions = []
+            def _start_full_guide_runtime(self):
+                self.actions.append("guide-runtime")
+            def _on_tab_changed_indexed(self, index: int):
+                self.actions.append(("quest-indexed", index))
+
+        probe = Probe()
+        probe._on_tab_changed_indexed_runtime(0)
+        self.assertTrue(probe._quest_load_abandoned)
+        probe.tabs.label = QUESTS_TAB
+        probe._on_tab_changed_indexed_runtime(0)
+        self.assertFalse(probe._quest_load_abandoned)
+        self.assertEqual(probe.actions, ["guide-runtime", ("quest-indexed", 0)])
+
+
 if __name__ == "__main__":
     unittest.main()
