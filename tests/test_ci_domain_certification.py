@@ -984,6 +984,26 @@ class ModularDomainRoutingTests(unittest.TestCase):
         self.assertFalse(plan["phase_certified"])
 
 
+    def test_repo_update_protocol_has_exact_distribution_ownership(self):
+        # Only the reviewed pointer reader, offline producer, and its tests
+        # are owned. No scripts/windows/* or app/distribution/* wildcard.
+        files = (
+            "app/distribution/manifest.py",
+            "scripts/windows/build_repo_update_pointer.py",
+            "tests/test_distribution_repo_update_pointer.py",
+        )
+        for path in files:
+            with self.subTest(path=path):
+                self.assertEqual(owners_for(path),
+                                 frozenset({"ci", "startup", "data"}))
+        plan = self.route(files)
+        self.assertEqual(plan["status"], "READY_TO_EXECUTE")
+        self.assertEqual(plan["unknown_paths"], [])
+        for path in ("app/distribution/repo_update_unreviewed.py",
+                     "scripts/windows/rogue_pointer_publisher.py",
+                     "tests/test_distribution_unreviewed_pointer.py"):
+            self.assertEqual(owners_for(path), frozenset())
+
     def test_unicode_install_relocation_has_exact_distribution_ownership(self):
         path = "tests/test_distribution_install_location.py"
         self.assertEqual(owners_for(path), frozenset({"ci", "startup", "data"}))
