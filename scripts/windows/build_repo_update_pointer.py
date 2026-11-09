@@ -9,6 +9,8 @@ from __future__ import annotations
 import argparse
 import hashlib
 import json
+import stat
+import zipfile
 from pathlib import Path
 
 from app.distribution.manifest import (
@@ -16,6 +18,43 @@ from app.distribution.manifest import (
     parse_manifest, parse_repo_update_pointer, valid_source_sha,
     verify_file, verify_repo_update_manifest,
 )
+
+
+def _verify_delta_members(path: Path, manifest) -> None:
+    """Check the actual ZIP members against the frozen manifest before publication.
+
+    The archive SHA binds ZIP bytes; this also proves the ZIP can supply every
+    changed file and cannot contain extra paths, links or corrupt file payloads.
+    This is a publishing preflight, not an authorization to activate an update.
+    """
+    assert manifest.delta is not None
+    expected = {entry.path: entry for entry in manifest.files
+                if entry.path in manifest.delta.paths}
+    try:
+        with zipfile.ZipFile(path) as archive:
+            members = archive.infolist()
+            if len(members) != len(expected) or {i.filename for i in members} != set(expected):
+                raise ManifestError("Repository delta ZIP members differ from manifest")
+            for member in members:
+                entry = expected[member.filename]
+                mode = member.external_attr >> 16
+                if (member.is_dir() or member.flag_bits & 1
+                        or stat.S_ISLNK(mode)
+                        or (stat.S_IFMT(mode) and not stat.S_ISREG(mode))
+                        or member.file_size != entry.size):
+                    raise ManifestError("Repository delta ZIP contains unsafe file metadata")
+                digest = hashlib.sha256()
+                length = 0
+                with archive.open(member) as source:
+                    for block in iter(lambda: source.read(1024 * 1024), b""):
+                        length += len(block)
+                        if length > entry.size:
+                            raise ManifestError("Repository delta ZIP expands beyond manifest")
+                        digest.update(block)
+                if length != entry.size or digest.hexdigest() != entry.sha256:
+                    raise ManifestError("Repository delta ZIP file integrity mismatch")
+    except (OSError, RuntimeError, zipfile.BadZipFile, EOFError) as exc:
+        raise ManifestError("Repository delta ZIP cannot be verified") from exc
 
 
 def build_pointer(manifest_path: Path, delta_path: Path, app_commit_sha: str) -> bytes:
@@ -42,6 +81,7 @@ def build_pointer(manifest_path: Path, delta_path: Path, app_commit_sha: str) ->
         raise ManifestError("Repository update exceeds safe Git file size")
     if not verify_file(delta_path, ReleaseFile(delta_path.name, delta.archive_size, delta.archive_sha256)):
         raise ManifestError("Repository update payload does not match manifest")
+    _verify_delta_members(delta_path, manifest)
     doc = {
         "protocol_version": 1,
         "channel": "stable",
