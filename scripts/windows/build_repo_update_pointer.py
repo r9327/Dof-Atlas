@@ -65,6 +65,15 @@ def main() -> int:
     parser.add_argument("--app-commit-sha", required=True)
     parser.add_argument("--output", type=Path, required=True)
     args = parser.parse_args()
+    # The CLI must never replace either input with the generated pointer,
+    # including via a relative path, symlink or pre-existing hard link.
+    sources = (args.manifest, args.delta)
+    if args.output.is_symlink() or any(
+        args.output.resolve() == source.resolve()
+        or (args.output.exists() and args.output.samefile(source))
+        for source in sources
+    ):
+        raise ManifestError("Pointer output overlaps a source artifact")
     result = build_pointer(args.manifest, args.delta, args.app_commit_sha)
     # Only the reviewed publishing CI may move the stable pointer. Never
     # write a token or an unverified external URL into this artifact.
