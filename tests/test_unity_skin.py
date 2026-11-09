@@ -209,6 +209,38 @@ class UnitySkinTests(unittest.TestCase):
         self.assertIn('lambda _checked=False, chosen=tab:', main_source)
         self.assertIn("if icon_path:", main_source)
 
+    def test_home_tracking_icons_preserve_local_alpha_and_fallback(self) -> None:
+        from PySide6.QtWidgets import QLabel
+        from app.pages.home_page import HomeTrackingRow
+
+        app = QApplication.instance() or QApplication([])
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / "quest.png"
+            image = QImage(16, 16, QImage.Format_ARGB32)
+            image.fill(QColor(0, 0, 0, 0))
+            image.setPixelColor(8, 8, QColor(250, 200, 80, 255))
+            self.assertTrue(image.save(str(path)))
+            with patch("app.pages.home_page.sprite_icon_path", return_value=path) as lookup:
+                row = HomeTrackingRow("◆", "Quêtes", sprite_key="quest")
+            try:
+                lookup.assert_called_once_with("quest")
+                icon = row.findChild(QLabel, "HomeTrackingIcon")
+                self.assertIsNotNone(icon)
+                self.assertFalse(icon.pixmap().isNull())
+                self.assertEqual(icon.pixmap().toImage().pixelColor(0, 0).alpha(), 0)
+            finally:
+                row.deleteLater()
+
+            with patch("app.pages.home_page.sprite_icon_path", return_value=None):
+                fallback = HomeTrackingRow("◆", "Quêtes", sprite_key="quest")
+            try:
+                self.assertEqual(
+                    fallback.findChild(QLabel, "HomeTrackingIcon").text(), "◆",
+                )
+            finally:
+                fallback.deleteLater()
+        app.processEvents()
+
     def test_home_uses_canonical_transparent_logo_not_raw_png(self) -> None:
         home_source = (Path(__file__).resolve().parents[1] / "app/pages/home_page.py").read_text(
             encoding="utf-8"

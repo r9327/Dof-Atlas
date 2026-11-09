@@ -23,6 +23,7 @@ from PySide6.QtWidgets import (
 from app.constants import LOGO_PATH, QUEST_PROGRESS_FILE, ROOT_DIR
 from app.network.application_coordinator import NetworkApplicationStatus
 from app.ui.components import atlas_application_icon
+from app.ui.unity_skin import sprite_icon_path
 from app.ui.network_bridge import network_ui_bridge
 
 if TYPE_CHECKING:
@@ -153,7 +154,10 @@ class HomeBannerLabel(QLabel):
 
 
 class HomeTrackingRow(QWidget):
-    def __init__(self, icon: str, label: str, parent: QWidget | None = None) -> None:
+    def __init__(
+        self, icon: str, label: str, parent: QWidget | None = None,
+        *, sprite_key: str | None = None,
+    ) -> None:
         super().__init__(parent)
         self.setObjectName("HomeTrackingRow")
         layout = QHBoxLayout(self)
@@ -164,6 +168,15 @@ class HomeTrackingRow(QWidget):
         icon_label.setObjectName("HomeTrackingIcon")
         icon_label.setAlignment(Qt.AlignCenter)
         icon_label.setFixedWidth(20)
+        # Reuse the same local-only Unity pictograms as the application shell.
+        # An absent or damaged user asset keeps the readable legacy glyph.
+        icon_path = sprite_icon_path(sprite_key) if sprite_key else None
+        if icon_path is not None:
+            pixmap = QPixmap(str(icon_path))
+            if not pixmap.isNull():
+                icon_label.setPixmap(pixmap.scaled(
+                    18, 18, Qt.KeepAspectRatio, Qt.SmoothTransformation,
+                ))
         layout.addWidget(icon_label)
 
         name = QLabel(label)
@@ -307,16 +320,16 @@ class HomePage(QWidget):
         self._add_card_title(tracking_layout, "Progression globale")
         tracking_layout.addSpacing(3)
         self.tracking_rows: dict[str, HomeTrackingRow] = {}
-        for key, icon, label in (
-            ("quests", "◆", "Quêtes"),
-            ("achievement_quests", "✦", "Succès (Quêtes)"),
-            ("achievement_monsters", "●", "Succès (Monstres)"),
-            ("achievement_dungeons", "▥", "Succès (Donjons)"),
-            ("dungeons", "▣", "Donjons"),
-            ("dofus", "◉", "Dofus"),
-            ("alignment", "★", "Alignement"),
+        for key, icon, label, sprite_key in (
+            ("quests", "◆", "Quêtes", "quest"),
+            ("achievement_quests", "✦", "Succès (Quêtes)", "success"),
+            ("achievement_monsters", "●", "Succès (Monstres)", "success"),
+            ("achievement_dungeons", "▥", "Succès (Donjons)", "success"),
+            ("dungeons", "▣", "Donjons", None),
+            ("dofus", "◉", "Dofus", "dofus"),
+            ("alignment", "★", "Alignement", None),
         ):
-            row = HomeTrackingRow(icon, label)
+            row = HomeTrackingRow(icon, label, sprite_key=sprite_key)
             self.tracking_rows[key] = row
             tracking_layout.addWidget(row)
 
