@@ -273,3 +273,26 @@ Les numéros reprennent le Top 20 de l'audit du 9 novembre sur `main@ac656f6069e
 La demande utilisateur « ajoute ça à la PR » valide l'ajout de ces précisions au plan et l'alignement du contrat source annoncé lors de la revue. Les descriptions **OPTV-011,033,038,039,040,041,042,043** sont complétées sans retirer leur texte initial, changer leurs types, autoriser un report ou modifier les critères restants. OPTV-043 porte la correspondance des 20 constats et le bilan des cinq axes ; les preuves manuelles restent attachées aux exigences manuelles.
 
 **Statut : PLAN_ONLY / NOT_IMPLEMENTED.** Les contrôles de ce changement portent sur le document, la cohérence de ses références et le contrat ; aucun gain, scénario natif, build reproductible, sécurité complète ni note >=18/20 n'est acquis. La PR reste Draft. Les budgets encore à fixer en C01 et les preuves manquantes restent visibles jusqu'à résolution.
+## Audit complémentaire vérifié — 9 novembre 2026 (itération 1)
+
+> **Document de diagnostic, pas résultat runtime.** Audit en lecture sur \`main@2ce1f5b4f65f435b5ceabec95590cfd8da02f7dc\` et \`#367@2cf5aaa7f3148531e99df75fb2c3517822afd6e5\`. Ces SHA datent de l'observation, pas d'une future baseline A/B. **Aucun test, Graphify, Doctor ni essai Windows exécuté dans cette itération.** Les informations historiques ci-dessus restent de l'historique et ne doivent pas être traitées comme état actuel.
+
+### Préparation impérative avant C01
+
+- La comparaison GitHub \`main...#367\` est **DIVERGED : 993 commits behind / 5 ahead**, merge-base \`060803282269098dfc6919e6e85f24309d2c485f\`. Le diff V3 actuel ne contient que \`.ai/context_index.json\` et les deux documents Opti V3 : **aucune optimisation applicative nouvelle**. Ne pas développer sur cette vieille base comme si elle était récente.
+- Avant toute synchronisation, relever **les deux nouveaux SHA**, inspecter les modifications des trois chemins V3, sauvegarder le HEAD de la branche et préférer l'intégration non destructive de \`main\` (merge avec résolution auditée des conflits) ; **pas de reset, force-push ni cherry-pick massif**. Recalculer ensuite la divergence, Doctor/Integrity ciblé, puis figer une nouvelle baseline. Un ancien run \`main@ac656f60\` ne certifie pas \`main@2ce1f5b4\` ni la future branche synchronisée.
+- **PR propriétaires au moment de la vérification** : #325 et **#398 fusionnées**, ainsi que #303/#310 ; #285, #358, #363, #365, #306 sont ouvertes en Draft. #297, #322, #331, #333, #334, #346, #266, #287, #336 et #269 sont des **issues**, non des PR ; leur ouverture n'est pas une preuve d'implémentation. Les références historiques à « #398 ouverte » ci-dessus sont périmées.
+- La PR #367 demeure **Draft / PLAN_ONLY / NOT_IMPLEMENTED** : aucune des 43 exigences n'est certifiée par le texte, et les cinq scores cible ≥18/20 ne sont pas acquis.
+
+### Ordre d'exécution amendé, sans nouveau lot ni nouveau gate
+
+**Synchronisation sûre → C01 (budget et traçabilité) → C04 (fiabilité des mesures) → C02 (routage canonique des tests) → C05/C06 (hotspots prouvés) → C07 (startup) → C03 (en parallèle : workflow IA et CI) → C08 (simplification mesurée) → C09/C10 (intégrations/packaging) → C11 (facultatif) → C12 (recette finale).** C03 peut démarrer parallèlement à C04 après les propriétaires C02 pertinents ; éviter qu'un chantier de documentation IA retarde la résolution des latences utilisateur. C09 démarre en coordination avec les issues propriétaires sans recopier leur implémentation. Les lots C05/C06 ne sont indépendants que si fichiers/consommateurs et tests ne se chevauchent pas.
+
+**Début de C01** : versionner avant optimisation machine Windows, données, caches froid/chaud, seuil numérique première action utile et méthode de mesure séparant fenêtre peinte, clic accepté, résultat utile et preload fini ; distinguer performances source/offscreen, EXE natif et tests réels DOFUS. **C04 avant modifications de performance** : corriger la provenance du pic échantillonné vs instantanés et vérifier la cohérence du banc existant. Les durées anciennes (preload 36,07 s ; Succès 7,00 s ; Home après Guide 103,07 Mio) sont des points d'enquête, **pas** des résultats du HEAD actuel.
+
+### Règles de décision contre la surarchitecture
+
+1. Chaque amélioration proposée a : \`ID(s)\`, fichier/ligne, SHA, cause mesurée, coût/bénéfice, risque, test ciblé, A/B comparable et propriétaire. Relier plusieurs OPT/RAM/OPTV au **même défaut réel**, sans fabriquer 117 sous-projets.
+2. Ne pas recréer les mécanismes déjà présents (SQLite signé et reconstruit, LRU d'images de l'Encyclopédie, lazy factories, travaux d'annulation ou écriture atomique) ; vérifier leurs **consommateurs**, limites et efficacité avant de les changer.
+3. **Ne pas confondre les huit processus de \`tools/atlas_doctor_lib/parallel_app.py\` avec huit interfaces Windows natives** : le runner utilise des profils isolés et des probes Qt offscreen, tandis que \`app/windows/single_instance.py\` définit un mutex mono-instance dans le lancement réel. La recette DOFUS 2/4/6/8 reste propriétaire de #322/#334.
+4. La qualité « ≥18/20 » exige des preuves par critère, avec \`NOT_RUN/BLOCKED\` explicites : aucune moyenne ne compense un axe insuffisant ; ne pas attribuer de nouvelle note produit sans nouvelle campagne représentative.
