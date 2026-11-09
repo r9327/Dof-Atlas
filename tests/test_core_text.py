@@ -35,6 +35,12 @@ class CoreTextTests(unittest.TestCase):
         self.assertEqual(clean_auto_group_name("  Alice  - Dofus  "), "Alice")
         self.assertEqual(clean_auto_group_name("Alice\n- Dofus"), "Alice")
 
+    def test_empty_window_name_is_not_an_invitation_target(self):
+        for title in (" - Dofus", "- Dofus", "\n- Dofus  "):
+            with self.subTest(title=title):
+                self.assertEqual(clean_auto_group_name(title), "")
+        self.assertEqual(clean_auto_group_name("Alice-Bob - Dofus"), "Alice-Bob")
+
     def test_core_text_is_qt_and_ui_free(self):
         modules = imported_modules(ROOT_DIR / "app" / "core" / "text.py")
         self.assertFalse(any(module.startswith("PySide6") for module in modules))

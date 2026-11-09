@@ -27,12 +27,12 @@
     },
     ".github": {
       "mode": "040000",
-      "sha": "42ef48dbb395f28d893a0f0afe3dfe4519782f46",
+      "sha": "227c521cf0125bde581376fe11d7811fe7efbcab",
       "type": "tree"
     },
     ".gitignore": {
       "mode": "100644",
-      "sha": "3a8da6d0e841fdd8e0f1ee1dc32940d574970c21",
+      "sha": "52502f3339edad8c427d7ab006fd286dd5e9eaa5",
       "type": "blob"
     },
     ".graphifyignore": {
@@ -42,7 +42,7 @@
     },
     "AGENTS.md": {
       "mode": "100644",
-      "sha": "00bee3ed058dcd3fea38b7fdda4abccad6c6c314",
+      "sha": "644213d944126be0bd9a96c1b1f8029cc4796248",
       "type": "blob"
     },
     "AI_CONTEXT.md": {
@@ -52,7 +52,7 @@
     },
     "AI_ENTRYPOINT.md": {
       "mode": "100644",
-      "sha": "931ffb72c0b9d0b5955280b96c4105484716a3ef",
+      "sha": "5875ff39d487189de6f1766f5d4146cd36eee94d",
       "type": "blob"
     },
     "CLAUDE.md": {
@@ -82,7 +82,7 @@
     },
     "GRAPHIFY.md": {
       "mode": "100644",
-      "sha": "9d7864b60257ee12d353706b563253a331e7ec47",
+      "sha": "e3b7ea3615de3d765a4839624e71e8df018bf1ef",
       "type": "blob"
     },
     "GUIDE_ULTIME_STATUS.md": {
@@ -117,7 +117,7 @@
     },
     "app": {
       "mode": "040000",
-      "sha": "4078460b4aa43027ad4988ac137cbcfca9bf4e8b",
+      "sha": "f3c7def129a6b320d425a3281f771a8d18ada538",
       "type": "tree"
     },
     "data": {
@@ -127,7 +127,7 @@
     },
     "docs": {
       "mode": "040000",
-      "sha": "4ef5b0280952b59e1154445282073d1c5d3ad8f1",
+      "sha": "474de084d7a3778c1c13eb3ed9d594933ada59db",
       "type": "tree"
     },
     "launch.py": {
@@ -142,7 +142,7 @@
     },
     "main.py": {
       "mode": "100644",
-      "sha": "20ad53159bae086b92ce7a8442e74301d655d387",
+      "sha": "651cfb1dc807328dc17d8ea6b27d6333e2070a20",
       "type": "blob"
     },
     "requirements-pyside.txt": {
@@ -162,12 +162,12 @@
     },
     "tests": {
       "mode": "040000",
-      "sha": "5163bcdf475718f80a79e0d40372bd7fc5387364",
+      "sha": "1abc323ec04c8219cdc7db1ed4a8ef38e72a2717",
       "type": "tree"
     },
     "tools": {
       "mode": "040000",
-      "sha": "42a818bde4d5fc07cf0fc99d957a05ee8634264e",
+      "sha": "fb0083b8a49deaca0d88c1f6a813b0cd5f714307",
       "type": "tree"
     }
   },

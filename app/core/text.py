@@ -18,7 +18,7 @@ def strip_accents(value: Any) -> str:
 
 def clean_auto_group_name(value: Any) -> str:
     text = re.sub(r"\s+", " ", str(value or "").replace("\r", " ").replace("\n", " ")).strip()
-    return re.split(r"\s+-\s+", text, maxsplit=1)[0].strip()
+    return re.split(r"(?:^|\s+)-\s+", text, maxsplit=1)[0].strip()
 
 
 __all__ = ["clean_auto_group_name", "normalize_key", "strip_accents"]
