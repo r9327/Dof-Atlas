@@ -78,7 +78,5 @@ class DifferentialDistributionTests(unittest.TestCase):
             self.assertTrue(install_release(target, new_zip, latest))
 
 
-
-
 if __name__ == "__main__":
     unittest.main()
