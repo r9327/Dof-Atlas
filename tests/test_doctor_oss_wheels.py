@@ -80,6 +80,38 @@ class DoctorOssWheelsTests(unittest.TestCase):
                 wheels.published_wheel_digest("ruff", "0.17.3", "../evil.whl")
         fetch.assert_not_called()
 
+    def test_malformed_metadata_stays_a_controlled_value_error(self):
+        wheel = "ruff-0.17.3-py3-none-win_amd64.whl"
+        url = "https://pypi.org/pypi/ruff/0.17.3/json"
+        digest = hashlib.sha256(b"content").hexdigest()
+        valid = {"filename": wheel, "packagetype": "bdist_wheel",
+                 "yanked": False, "digests": {"sha256": digest}}
+        malformed = (
+            [], "not an object", None,
+            {"info": [], "urls": [valid]},
+            {"info": {"version": "0.17.3"}, "urls": "not a list"},
+            {"info": {"version": "0.17.3"}, "urls": [None]},
+            {"info": {"version": "0.17.3"}, "urls": [{**valid, "digests": []}]},
+            {"info": {"version": "0.17.3"}, "urls": [{**valid, "yanked": "false"}]},
+        )
+        for data in malformed:
+            with self.subTest(metadata=data):
+                with patch.object(wheels, "urlopen",
+                                  return_value=_Response(data, url)):
+                    with self.assertRaises(ValueError):
+                        wheels.published_wheel_digest("ruff", "0.17.3", wheel)
+
+    def test_installer_cli_reports_malformed_metadata_failure_without_traceback(self):
+        with (patch.object(wheels, "install_approved_wheels",
+                           side_effect=ValueError("malformed metadata /private/path")),
+              patch("sys.stdout", new_callable=io.StringIO) as out):
+            self.assertEqual(wheels.main(["--install"]), 1)
+        report = json.loads(out.getvalue())
+        self.assertEqual(report["status"], "ERROR")
+        self.assertEqual(report["error_type"], "ValueError")
+        self.assertNotIn("/private/path", out.getvalue())
+        self.assertFalse(report["tools_installed_verified"])
+
     def test_exact_wheels_are_hash_checked_before_pip_install(self):
         filenames = ["ruff-0.17.3-py3-none-win_amd64.whl",
                      "zizmor-1.30.1-py3-none-win_amd64.whl"]

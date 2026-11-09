@@ -57,17 +57,29 @@ def published_wheel_digest(name: str, version: str, filename: str) -> str:
         raw = response.read(MAX_METADATA + 1)
     if len(raw) > MAX_METADATA:
         raise ValueError("PyPI metadata response exceeds bounded size")
-    document = json.loads(raw)
-    if document.get("info", {}).get("version") != version:
+    try:
+        document = json.loads(raw)
+    except (UnicodeDecodeError, json.JSONDecodeError) as exc:
+        raise ValueError("Invalid official PyPI metadata JSON") from exc
+    if not isinstance(document, dict):
+        raise ValueError("PyPI metadata must be a JSON object")
+    info = document.get("info")
+    if not isinstance(info, dict) or info.get("version") != version:
         raise ValueError("PyPI metadata version mismatch")
+    urls = document.get("urls")
+    if not isinstance(urls, list) or not all(isinstance(row, dict) for row in urls):
+        raise ValueError("Malformed PyPI wheel inventory")
     matching = [
-        row for row in document.get("urls", [])
+        row for row in urls
         if row.get("filename") == filename and row.get("packagetype") == "bdist_wheel"
-        and row.get("yanked") is not True
+        and row.get("yanked") is False
     ]
     if len(matching) != 1:
         raise ValueError("Exact wheel missing/ambiguous in PyPI metadata")
-    digest = matching[0].get("digests", {}).get("sha256")
+    digests = matching[0].get("digests")
+    if not isinstance(digests, dict):
+        raise ValueError("Malformed PyPI wheel digest object")
+    digest = digests.get("sha256")
     if not isinstance(digest, str) or SHA256.fullmatch(digest) is None:
         raise ValueError("Invalid official wheel SHA-256")
     return digest
