@@ -5,6 +5,11 @@ _Date : 2026-11-04 — source : issue #366 — état : cadrage uniquement, **auc
 
 Réduire le temps jusqu'au premier contenu réellement utilisable et les blocages Qt dans **tous les modules existants** ; conserver la RAM et les coûts CPU/IO bornés ; rendre les règles anti-régression **applicables aux prochaines modifications et fonctionnalités**, à travers les propriétaires de règles/Doctor/CI déjà présents. L'utilisateur demande une Opti V3 globale. La révision du 9 novembre ajoute une cible **18/20 minimum sur chacun des cinq axes**, avec des priorités d'exécution fondées sur l'audit ; aucun axe n'est exclu. L'implémentation est organisée en lots cohérents vérifiables, pas en grandes réécritures aveugles.
 
+**Objectif transversal — coûts, maintenabilité et développement multi-IA :** cette PR ne se limite ni à la performance brute ni à Codex. Elle vise à diminuer les coûts réels de fonctionnement et de développement (CPU, RAM, I/O, stockage, temps machine et humain, durée et fréquence de CI, éventuels appels payants), tout en gardant Atlas rapide, fiable, simple à utiliser et à faire évoluer. Les contributions futures doivent être compréhensibles, testables et reprenables par un humain ou plusieurs assistants/agents IA, notamment ChatGPT, Codex ou d'autres, **en local comme directement sur GitHub** et sans dépendance à un modèle, un outil ou un lieu d'exécution unique. Comparer les coûts avant/après sur scénarios identiques ; ne pas prétendre à une économie financière ou de tokens sans mesure. Préserver les fonctionnalités et les protections existantes ; ne pas installer un nouveau cadre d'agents ou un service pour ce seul objectif.
+
+**Contrôle au début de chaque lot :** lire le HEAD et les changements concurrents, vérifier les exigences concernées et lancer le préflight/plan Doctor approprié avant toute édition ; ne lancer ensuite que les tests ciblés et mesures A/B utiles à la modification, puis auditer le diff et le commit. La certification complète est réservée au HEAD final ; pas de FULL systématique par lot.
+
+
 ### Sources de vérité à lire avant chaque lot
 
 - `AI_ENTRYPOINT.md`, `AGENTS.md`, `tools/AGENTS.md`, `ZERO_TRUST_RULES.md`, `DEVELOPMENT_GUARDRAILS.md`, `PERFORMANCE_GUARDRAILS.md`, `PHASE_CERTIFICATION.md`, `GRAPHIFY.md`, `docs/delivery/DELIVERY_GUARD.md`.
