@@ -482,7 +482,15 @@ class MirrorInputMacro:
                     break
                 # The native identity probe can yield to another window.
                 # Make foreground the LAST Win32 check before input.
-                if foreground_window() != hwnd:
+                try:
+                    foreground_confirmed = foreground_window() == hwnd
+                except Exception:
+                    focus_lost = True
+                    runtime.logger.exception(
+                        "Miroir %s: focus illisible avant envoi hwnd=%s.", kind, hwnd,
+                    )
+                    break
+                if not foreground_confirmed:
                     focus_lost = True
                     runtime.logger.warning("Miroir %s: focus volé avant envoi hwnd=%s.", kind, hwnd)
                     break
@@ -576,7 +584,15 @@ class MirrorInputMacro:
                                 break
                             # Final focus check occurs AFTER identity/roster
                             # validation and immediately before SendInput.
-                            if foreground_window() != hwnd:
+                            try:
+                                foreground_confirmed = foreground_window() == hwnd
+                            except Exception:
+                                focus_lost = True
+                                runtime.logger.exception(
+                                    "Miroir molette: focus illisible après déplacement hwnd=%s.", hwnd,
+                                )
+                                break
+                            if not foreground_confirmed:
                                 focus_lost = True
                                 runtime.logger.warning(
                                     "Miroir molette: focus volé après déplacement hwnd=%s.", hwnd,
