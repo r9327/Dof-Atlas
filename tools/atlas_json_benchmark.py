@@ -12,6 +12,7 @@ import hashlib
 import importlib
 import io
 import json
+import os
 import statistics
 import subprocess
 import sys
@@ -462,7 +463,7 @@ def compare_json_processes(
         command = [sys.executable, "-P", "-m", "tools.atlas_json_benchmark",
                    "--worker-parser", candidate, "--source", str(path),
                    "--parser-repeats", str(repeats)]
-        env = {key: value for key, value in __import__("os").environ.items()
+        env = {key: value for key, value in os.environ.items()
                if key in {"PATH", "SYSTEMROOT", "WINDIR", "TEMP", "TMP",
                           "HOME", "USERPROFILE", "APPDATA", "LOCALAPPDATA"}}
         env.update({"PYTHONPATH": str(ROOT), "PIP_NO_INDEX": "1", "NO_COLOR": "1"})

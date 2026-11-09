@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import contextlib
 import io
+import hashlib
 import json
 import tempfile
 import unittest
@@ -442,6 +443,158 @@ class AtlasJsonBenchmarkTests(unittest.TestCase):
             self.assertEqual(exit_code, 1)
             self.assertEqual(json.loads(report.read_text(encoding="utf-8")),
                              response)
+
+    def test_process_trial_runs_real_stdlib_in_isolated_python(self) -> None:
+        from tools.atlas_json_benchmark import compare_json_processes
+        with tempfile.TemporaryDirectory() as tmp:
+            source = Path(tmp) / "quests.json"
+            source.write_text(
+                '{"quests":{"1":{"name":"Astuce","steps":[1,true,3]},'
+                '"2":{"items":[]}}}', encoding="utf-8")
+            report = compare_json_processes(
+                source, candidates=("stdlib",), repeats=2, timeout_seconds=30)
+        self.assertEqual(report["source"], "tools.atlas_json_benchmark.compare_json_processes")
+        self.assertFalse(report["runtime_consumer_changed"])
+        self.assertFalse(report["phase_certified"])
+        self.assertFalse(report["cold_start_certified"])
+        self.assertEqual(len(report["results"]), 1)
+        entry = report["results"][0]
+        self.assertEqual(entry["candidate"], "stdlib")
+        self.assertEqual(entry["status"], "PARITY_PASS")
+        self.assertTrue(entry["executed"])
+        self.assertEqual(entry["repeats"], 2)
+        self.assertGreaterEqual(entry["first_decode_ms"], 0)
+        self.assertGreaterEqual(entry["warm_median_ms"], 0)
+        self.assertIn(entry["rss_status"], ("OBSERVED", "NOT_AVAILABLE"))
+        self.assertGreaterEqual(entry["total_child_wall_ms"], 0)
+        if entry["rss_status"] == "OBSERVED":
+            self.assertGreater(entry["rss_before_bytes"], 0)
+            self.assertGreater(entry["rss_after_first_bytes"], 0)
+            self.assertGreater(entry["rss_after_warm_bytes"], 0)
+            self.assertEqual(report["status"], "COMPARE_COMPLETE")
+        else:
+            self.assertEqual(report["status"], "REVIEW")
+
+    def test_process_worker_resolves_msgspec_json_decode_with_real_type_parity(self) -> None:
+        from tools.atlas_json_benchmark import _parser_process_worker
+        with tempfile.TemporaryDirectory() as tmp:
+            source = Path(tmp) / "sample.json"
+            source.write_text('{"id":1,"active":true}', encoding="utf-8")
+            calls = []
+            def fake_import(name):
+                calls.append(name)
+                if name == "msgspec.json":
+                    return SimpleNamespace(decode=json.loads)
+                if name == "psutil":
+                    return SimpleNamespace(Process=lambda: SimpleNamespace(
+                        memory_info=lambda: SimpleNamespace(rss=123456)))
+                raise ImportError(name)
+            with patch("tools.atlas_json_benchmark.importlib.import_module",
+                       side_effect=fake_import):
+                result = _parser_process_worker(source, "msgspec", 2)
+        self.assertEqual(calls, ["msgspec.json", "psutil"])
+        self.assertEqual(result["status"], "PARITY_CANDIDATE")
+        self.assertEqual(result["rss_status"], "OBSERVED")
+        self.assertEqual(result["rss_before_bytes"], 123456)
+        self.assertEqual(result["decoded_sha256"],
+                         hashlib.sha256(
+                             b'{"active":true,"id":1}').hexdigest())
+
+    def test_process_comparison_fails_closed_on_worker_impersonation(self) -> None:
+        from tools.atlas_json_benchmark import compare_json_processes
+        from subprocess import CompletedProcess
+        with tempfile.TemporaryDirectory() as tmp:
+            source = Path(tmp) / "source.json"
+            source.write_text('{"id":1}', encoding="utf-8")
+            raw_sha = hashlib.sha256(source.read_bytes()).hexdigest()
+            def fake_worker(status, candidate, digest, code):
+                return CompletedProcess([], code, stdout=json.dumps({
+                    "status": status, "candidate": candidate,
+                    "source_sha256": digest, "decoded_sha256": "invalid",
+                    "rss_status": "OBSERVED"}), stderr="")
+            for output in (
+                fake_worker("PARITY_CANDIDATE", "orjson", raw_sha, 0),
+                fake_worker("PARITY_CANDIDATE", "stdlib", "0" * 64, 0),
+                fake_worker("PARITY_CANDIDATE", "stdlib", raw_sha, 2),
+                fake_worker("UNRECOGNIZED", "stdlib", raw_sha, 0),
+            ):
+                with self.subTest(output=output.stdout):
+                    with patch("tools.atlas_json_benchmark.subprocess.run",
+                               return_value=output) as process:
+                        report = compare_json_processes(
+                            source, candidates=("stdlib",), repeats=1)
+                    self.assertEqual(report["status"], "REVIEW")
+                    self.assertIn(report["results"][0]["status"],
+                                  ("ERROR", "PARITY_FAIL"))
+                    self.assertNotIn("GITHUB_TOKEN", process.call_args.kwargs["env"])
+                    self.assertNotIn("HTTP_PROXY", process.call_args.kwargs["env"])
+                    self.assertEqual(process.call_args.args[0][1:4],
+                                     ["-P", "-m", "tools.atlas_json_benchmark"])
+                    self.assertIn("--worker-parser", process.call_args.args[0])
+                    self.assertEqual(process.call_args.kwargs["check"], False)
+
+    def test_process_comparison_timeout_or_modified_input_never_succeeds(self) -> None:
+        from tools.atlas_json_benchmark import compare_json_processes
+        from subprocess import TimeoutExpired
+        with tempfile.TemporaryDirectory() as tmp:
+            source = Path(tmp) / "source.json"
+            source.write_text('{"id":1}', encoding="utf-8")
+            with patch("tools.atlas_json_benchmark.subprocess.run",
+                       side_effect=TimeoutExpired("python", 5)):
+                report = compare_json_processes(
+                    source, candidates=("stdlib",), repeats=1,
+                    timeout_seconds=5)
+            self.assertEqual(report["status"], "REVIEW")
+            self.assertEqual(report["results"][0]["status"], "TIMEOUT")
+            def mutation(*_args, **_kwargs):
+                source.write_text('{"id":2}', encoding="utf-8")
+                return SimpleNamespace(returncode=1, stdout=json.dumps({
+                    "status": "NOT_AVAILABLE", "candidate": "stdlib"
+                }), stderr="")
+            with patch("tools.atlas_json_benchmark.subprocess.run",
+                       side_effect=mutation):
+                with self.assertRaisesRegex(ValueError, "Source changed"):
+                    compare_json_processes(source, candidates=("stdlib",),
+                                           repeats=1)
+
+    def test_process_trial_has_strict_budgets_and_safe_inputs(self) -> None:
+        from tools.atlas_json_benchmark import compare_json_processes
+        with tempfile.TemporaryDirectory() as tmp:
+            source = Path(tmp) / "source.json"
+            source.write_text('{"id":1}', encoding="utf-8")
+            for options in ({"repeats": 0}, {"repeats": 8},
+                            {"timeout_seconds": 4}, {"timeout_seconds": 121},
+                            {"max_bytes": 0}, {"max_bytes": 1},
+                            {"candidates": ("stdlib", "stdlib")},
+                            {"candidates": ("unknown",)}, {"candidates": ()}):
+                with self.subTest(options=options):
+                    with self.assertRaises(ValueError):
+                        compare_json_processes(source, **options)
+            alias = Path(tmp) / "alias.json"
+            try:
+                alias.symlink_to(source)
+            except (OSError, NotImplementedError):
+                pass
+            else:
+                with self.assertRaisesRegex(ValueError, "symlink"):
+                    compare_json_processes(alias)
+
+    def test_process_cli_preserves_report_and_failure_exit_codes(self) -> None:
+        from tools.atlas_json_benchmark import main
+        for status, expected_exit in (("COMPARE_COMPLETE", 0), ("REVIEW", 1)):
+            with self.subTest(status=status):
+                report = {"status": status, "results": [
+                    {"status": "PARITY_PASS" if status == "COMPARE_COMPLETE"
+                     else "NOT_AVAILABLE"}]}
+                stream = io.StringIO()
+                with (patch("sys.argv", [
+                        "atlas_json_benchmark", "--compare-process"]),
+                      patch("tools.atlas_json_benchmark.compare_json_processes",
+                            return_value=report) as trial,
+                      contextlib.redirect_stdout(stream)):
+                    self.assertEqual(main(), expected_exit)
+                self.assertEqual(json.loads(stream.getvalue()), report)
+                trial.assert_called_once()
 
     def test_invalid_sample_sizes_fail_closed(self) -> None:
         with self.assertRaises(ValueError):
