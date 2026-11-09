@@ -209,6 +209,34 @@ class UnitySkinTests(unittest.TestCase):
         self.assertIn('lambda _checked=False, chosen=tab:', main_source)
         self.assertIn("if icon_path:", main_source)
 
+    def test_deep_link_uses_encyclopedia_filter_after_bestiary(self) -> None:
+        import main
+        from app.modules.encyclopedia.constants import GUIDES_TAB
+
+        calls = []
+
+        class Shell:
+            pending_guide_target = None
+            def open_encyclopedia_tab(self, tab) -> None:
+                calls.append(("tab", tab))
+            def show_page(self, page) -> None:
+                raise AssertionError("Bypassing the Encyclopedia tab group")
+            def _schedule_owned_callback(self, delay, callback) -> None:
+                calls.append(("scheduled", delay, callback))
+            finish_pending_guide_target = main.AtlasWindow.finish_pending_guide_target
+
+        shell = Shell()
+        main.AtlasWindow.open_guide_progress(shell, "guide_complet", quest_id="42")
+        self.assertEqual(shell.pending_guide_target, ("guide_complet", 42))
+        self.assertEqual(calls, [
+            ("tab", GUIDES_TAB),
+            ("scheduled", 0, shell.finish_pending_guide_target),
+        ])
+        calls.clear()
+        main.AtlasWindow.open_guide_progress(shell, "dofus_sylvestre", quest_id="bad")
+        self.assertEqual(shell.pending_guide_target, ("dofus_sylvestre", None))
+        self.assertEqual(calls[0], ("tab", GUIDES_TAB))
+
     def test_home_tracking_icons_preserve_local_alpha_and_fallback(self) -> None:
         from PySide6.QtWidgets import QLabel
         from app.pages.home_page import HomeTrackingRow
