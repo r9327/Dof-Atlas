@@ -185,6 +185,14 @@ class ZaapMacro:
                         target_hwnd,
                     )
                     return
+                # The user can switch apps after one successful /zaap. Never
+                # activate the next client over their newly chosen window.
+                if (last_activated_handle is not None
+                        and not foreground_confirmed(last_activated_handle)):
+                    self.runtime.logger.warning(
+                        "Auto zaap interrompu: focus utilisateur changé entre clients."
+                    )
+                    return
                 focus_started_at = perf_counter()
                 try:
                     # Native helper skips only a no-op foreground settle;
