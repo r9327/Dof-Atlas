@@ -122,6 +122,81 @@ class OrganizerRadialSelectionTests(unittest.TestCase):
             (1, 2),
         )
 
+    def test_corrupt_or_overflowing_handles_never_select_another_character(self):
+        cases = [True, False, float("inf"), float("nan"), 12.5, 2**64, "invalid"]
+        valid = {"nom": "Panda", "hwnd": 12, "pid": 125}
+        for invalid in cases:
+            with self.subTest(invalid=repr(invalid)):
+                self.assertEqual(
+                    visible_characters([valid], [invalid]), [],
+                )
+                self.assertEqual(
+                    visible_characters([
+                        {"nom": "Corrupt", "hwnd": invalid},
+                        valid,
+                    ], [12]),
+                    [valid],
+                )
+                self.assertEqual(radial_roster_key(
+                    {"nom": "Corrupt", "hwnd": invalid, "pid": 125}
+                ), "")
+                self.assertIsNone(confirmed_radial_target(
+                    [{"nom": "Corrupt", "hwnd": invalid, "pid": 125}],
+                    [valid], 0,
+                ))
+
+
+    def test_fractional_numeric_objects_cannot_alias_radial_hwnd_or_pid(self):
+        from decimal import Decimal
+        from fractions import Fraction
+
+        valid = {"nom": "Panda", "hwnd": 12, "pid": 125}
+        for alias in (Decimal("12.9"), Fraction(25, 2), complex(12, 0)):
+            with self.subTest(alias=repr(alias)):
+                self.assertEqual(visible_characters([valid], [alias]), [])
+                self.assertEqual(
+                    visible_characters([{"nom": "Alias", "hwnd": alias}], [12]), [],
+                )
+                self.assertEqual(
+                    radial_roster_key({"nom": "Alias", "hwnd": alias, "pid": 125}), "",
+                )
+                self.assertIsNone(confirmed_radial_target(
+                    [{"nom": "Alias", "hwnd": alias}], [valid], 0,
+                ))
+                self.assertIsNone(confirmed_radial_target(
+                    [{"nom": "Panda", "hwnd": 12}],
+                    [{"nom": "Panda", "hwnd": alias}], 0,
+                ))
+        for pid in (Decimal("125.9"), Fraction(251, 2), complex(125, 0)):
+            with self.subTest(pid=repr(pid)):
+                self.assertEqual(
+                    radial_roster_key({"nom": "Panda", "hwnd": 12, "pid": pid}), "",
+                )
+        # Preserve legacy cached integer-as-text handles and PIDs.
+        self.assertEqual(
+            visible_characters([{"nom": "Panda", "hwnd": "12"}], ["12"]),
+            [{"nom": "Panda", "hwnd": "12"}],
+        )
+
+    def test_pid_overflow_cannot_reuse_unverified_radial_identity(self):
+        for invalid in (float("inf"), float("nan"), 2**32, -1, True, 17.5):
+            with self.subTest(pid=repr(invalid)):
+                self.assertEqual(radial_roster_key(
+                    {"nom": "Panda", "hwnd": 12, "pid": invalid},
+                ), "")
+        self.assertEqual(
+            radial_roster_key({"nom": "Panda", "hwnd": "12", "pid": "125"}),
+            "unverified:panda:125",
+        )
+
+    def test_bad_selected_index_never_activates_a_character(self):
+        snapshot = [{"hwnd": 12, "nom": "Panda"}]
+        for invalid in (True, False, 1.0, "0", -1, 1):
+            with self.subTest(index=repr(invalid)):
+                self.assertIsNone(
+                    confirmed_radial_target(snapshot, snapshot, invalid)
+                )
+
     def test_center_and_empty_selection_cancel(self) -> None:
         self.assertIsNone(selected_slice(0, 0, 8))
         self.assertIsNone(selected_slice(15, 15, 4))
@@ -135,6 +210,70 @@ class OrganizerRadialSelectionTests(unittest.TestCase):
         self.assertEqual([row["nom"] for row in visible], ["Beta", "Alpha"])
         self.assertEqual(visible[selected_slice(0, -100, 2)]["nom"], "Beta")
         self.assertEqual(visible[selected_slice(0, 100, 2)]["nom"], "Alpha")
+
+
+    def test_decimal_like_aliases_cannot_select_a_different_window_2_4_6_8(self):
+        for count in (2, 4, 6, 8):
+            valid = [{"nom": f"Perso {i}", "hwnd": 101 + i,
+                      "pid": 300 + i} for i in range(count)]
+            for bad in ("101.0", "1.01e2", "+101", "١٠١",
+                        "9" * 5000, " 101.0 ", 101.0, 101.9):
+                with self.subTest(count=count, bad=repr(bad)):
+                    self.assertEqual(visible_characters(valid, [bad]), [])
+                    snapshot = [dict(valid[0], hwnd=bad)]
+                    self.assertIsNone(confirmed_radial_target(
+                        snapshot, valid, 0,
+                    ))
+                    self.assertEqual(radial_roster_key(
+                        dict(valid[0], hwnd=bad)
+                    ), "")
+
+    def test_valid_ascii_decimal_strings_keep_radial_compatibility(self):
+        for hwnd in (101, "101", " 101 "):
+            with self.subTest(hwnd=repr(hwnd)):
+                entry = {"nom": "Panda", "hwnd": hwnd, "pid": " 42 "}
+                self.assertEqual(
+                    visible_characters([entry], [101]), [entry],
+                )
+                self.assertEqual(radial_roster_key(entry), "unverified:panda:42")
+                self.assertEqual(
+                    confirmed_radial_target([entry], [entry], 0), 101,
+                )
+
+    def test_corrupt_snapshot_entry_and_pid_alias_fail_closed(self):
+        current = [{"nom": "Panda", "hwnd": 101, "pid": 42}]
+        for malformed in (None, False, True, object(), "bad"):
+            with self.subTest(snapshot=repr(malformed)):
+                self.assertIsNone(confirmed_radial_target(
+                    [malformed], current, 0,
+                ))
+        for pid in ("42.0", "+42", "-42", "٤٢", 42.9):
+            with self.subTest(pid=repr(pid)):
+                self.assertEqual(radial_roster_key({
+                    "nom": "Panda", "hwnd": 101, "pid": pid,
+                }), "")
+
+
+
+    def test_corrupt_pid_never_confirms_radial_release_even_if_unchanged(self):
+        for pid in (True, False, 42.0, 42.9, "42.0", "+42", "٤٢",
+                    -1, 2**32):
+            with self.subTest(pid=repr(pid)):
+                snapshot = [{"hwnd": 101, "pid": pid, "nom": "Panda"}]
+                self.assertIsNone(confirmed_radial_target(
+                    snapshot, snapshot, 0,
+                ))
+
+    def test_current_pid_corruption_never_matches_trusted_snapshot(self):
+        trusted = [{"hwnd": 101, "pid": 42, "nom": "Panda"}]
+        for corrupted in (True, 42.0, "42.0", -1, 2**32):
+            with self.subTest(pid=repr(corrupted)):
+                changed = [dict(trusted[0], pid=corrupted)]
+                self.assertIsNone(confirmed_radial_target(
+                    trusted, changed, 0,
+                ))
+        self.assertEqual(confirmed_radial_target(trusted, trusted, 0), 101)
+
 
 
 if __name__ == "__main__":

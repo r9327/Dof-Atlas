@@ -101,5 +101,17 @@ class StartupResourceContractTests(unittest.TestCase):
         self.assertIsNone(page.kwargs["quest_graph"])
 
 
+class PreloadWorkerDiagnosticTests(unittest.TestCase):
+    def test_failed_worker_retains_only_bounded_stderr_tail(self):
+        def fail(*args, **kwargs):
+            kwargs["stderr"].write(b"x" * 20000 + b"\nPermissionError: sharing violation")
+            return Mock(returncode=1)
+        with patch("subprocess.run", side_effect=fail):
+            with self.assertRaisesRegex(RuntimeError, "PermissionError: sharing violation") as error:
+                main._run_preload_module_status("worker.fixture")
+        self.assertLess(len(str(error.exception)), 8400)
+        self.assertIn("PermissionError: sharing violation", str(error.exception)[:240])
+
+
 if __name__ == "__main__":
     unittest.main()

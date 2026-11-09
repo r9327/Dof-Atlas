@@ -170,7 +170,8 @@ def find_known_client_from_point(
     for handle in handles:
         try:
             hwnd = int(handle or 0)
-        except (TypeError, ValueError):
+        except (TypeError, ValueError, OverflowError):
+            # An invalid Organizer HWND must never abort the native hook.
             continue
         if hwnd > 0:
             known_handles.add(hwnd)
