@@ -44,7 +44,15 @@ taille sont comparés au pointeur. Un SHA déjà installé entraîne une seule
 requête de pointeur et **zéro requête de manifeste/ZIP**. Les URL raw
 arbitraires, les sources Python et les ZIP restent refusés.
 
-Aucune installation, extraction, activation ni téléchargement de delta :
+Un outil explicitement invoqué peut ensuite appeler
+`download_repo_update_delta(pointer, raw_manifest, directory)` : il
+réutilise le téléchargeur et le cache delta déjà présents, ses contrôles
+HTTP Range et l'empreinte SHA-256 du ZIP. Le chemin raw est toujours
+limité au fichier ZIP immuable étiqueté par le commit APP et le SHA DEV.
+Un ZIP corrompu est supprimé, un 404 refuse la préparation, et aucun slot
+d'installation ni sauvegarde n'est modifié. Ceci **n'installe pas Atlas**.
+
+Aucune installation, extraction ou activation automatique :
 la signature de certification indépendante, les droits, la publication
 réelle et le rollback Windows restent à construire. Cette méthode n'est
 pas appelée automatiquement par le lanceur.

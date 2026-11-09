@@ -218,7 +218,8 @@ class RepoUpdateManifestInspectionTests(unittest.TestCase):
         manifest_url = ptr.pinned_asset_url(manifest=True)
         self.assertEqual(_safe_url(manifest_url), manifest_url)
         for url in (
-            ptr.pinned_asset_url(),
+            ptr.pinned_asset_url() + "?raw=1",
+            ptr.pinned_asset_url().replace(APP_COMMIT, "main"),
             manifest_url + "?raw=1",
             manifest_url + "#frag",
             manifest_url.replace(APP_COMMIT, "main"),
@@ -228,6 +229,82 @@ class RepoUpdateManifestInspectionTests(unittest.TestCase):
         ):
             with self.subTest(url=url), self.assertRaises(UpdateError):
                 _safe_url(url)
+
+
+class RepoUpdateDeltaDownloadTests(unittest.TestCase):
+    @staticmethod
+    def _verified_package():
+        import zipfile
+
+        output = io.BytesIO()
+        with zipfile.ZipFile(output, "w") as bundle:
+            bundle.writestr("AtlasApp/AtlasApp.exe", b"test")
+        archive = output.getvalue()
+        manifest_doc = json.loads(_manifest())
+        manifest_doc["delta"]["archive_sha256"] = hashlib.sha256(archive).hexdigest()
+        manifest_doc["delta"]["archive_size"] = len(archive)
+        raw = json.dumps(manifest_doc, separators=(",", ":")).encode()
+        pointer_doc = json.loads(_pointer())
+        pointer_doc.update({
+            "manifest_sha256": hashlib.sha256(raw).hexdigest(),
+            "delta_sha256": hashlib.sha256(archive).hexdigest(),
+            "delta_size": len(archive),
+        })
+        pointer = parse_repo_update_pointer(json.dumps(pointer_doc).encode())
+        return pointer, raw, archive
+
+    def test_delta_is_pinned_hash_verified_and_reuses_existing_cache(self) -> None:
+        from tempfile import TemporaryDirectory
+        from pathlib import Path
+        from app.distribution.release_client import download_repo_update_delta
+
+        pointer, raw, archive = self._verified_package()
+        with TemporaryDirectory() as tmp:
+            dest = Path(tmp)
+            with patch("app.distribution.release_client._open",
+                       return_value=io.BytesIO(archive)) as open_url:
+                downloaded = download_repo_update_delta(pointer, raw, dest)
+            open_url.assert_called_once_with(pointer.pinned_asset_url(), {})
+            self.assertEqual(downloaded.read_bytes(), archive)
+            with patch("app.distribution.release_client._open",
+                       side_effect=AssertionError("cached delta should not download")):
+                self.assertEqual(
+                    download_repo_update_delta(pointer, raw, dest), downloaded,
+                )
+
+    def test_corrupt_or_unpublished_delta_cannot_activate_any_slot(self) -> None:
+        from tempfile import TemporaryDirectory
+        from pathlib import Path
+        from app.distribution.release_client import UpdateError, download_repo_update_delta
+
+        pointer, raw, archive = self._verified_package()
+        with TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            with patch("app.distribution.release_client._open",
+                       return_value=io.BytesIO(archive[:-1] + b"X")):
+                with self.assertRaises(UpdateError):
+                    download_repo_update_delta(pointer, raw, root)
+            self.assertEqual(list(root.glob("*.part")), [])
+            self.assertFalse((root / "versions").exists())
+            with patch("app.distribution.release_client._open",
+                       side_effect=OSError("404 unavailable")):
+                with self.assertRaises(UpdateError):
+                    download_repo_update_delta(pointer, raw, root)
+            self.assertFalse((root / "versions").exists())
+
+    def test_tampered_manifest_is_rejected_without_network_or_disk_writes(self) -> None:
+        from tempfile import TemporaryDirectory
+        from pathlib import Path
+        from app.distribution.release_client import UpdateError, download_repo_update_delta
+
+        pointer, raw, _ = self._verified_package()
+        with TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            with patch("app.distribution.release_client._open") as network:
+                with self.assertRaises(UpdateError):
+                    download_repo_update_delta(pointer, raw + b" ", root)
+            network.assert_not_called()
+            self.assertEqual(list(root.iterdir()), [])
 
 
 class RepoUpdatePublisherTests(unittest.TestCase):

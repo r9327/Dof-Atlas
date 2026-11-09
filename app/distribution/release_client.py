@@ -30,8 +30,9 @@ API_URL = f"https://api.github.com/repos/{REPO}/releases/latest"
 WEB_LATEST_URL = f"https://github.com/{REPO}/releases/latest"
 CHANNEL_URL = f"https://github.com/{REPO}/releases/latest/download/atlas-channel.json"
 REPO_UPDATE_POINTER_URL = f"https://raw.githubusercontent.com/{REPO}/main/updates/stable.json"
-_PINNED_REPO_MANIFEST_PATH = re.compile(
-    rf"/{re.escape(REPO)}/[a-f0-9]{{40}}/updates/[a-f0-9]{{40}}/atlas-manifest[.]json\Z"
+_PINNED_REPO_PACKAGE_PATH = re.compile(
+    rf"/{re.escape(REPO)}/[a-f0-9]{{40}}/updates/[a-f0-9]{{40}}/"
+    rf"(?:atlas-manifest[.]json|atlas-delta[.]zip)\Z"
 )
 CHANNEL_LIMIT = 4096
 _DOWNLOAD_ATTEMPTS = 4
@@ -74,12 +75,13 @@ def _safe_url(url: str, *, asset: bool = False) -> str:
         raise UpdateError("Untrusted update URL")
     if (parts.hostname or "").lower() not in _ALLOWED_REDIRECT_HOSTS:
         raise UpdateError("Unexpected update host")
-    # Only the small stable pointer or an immutable manifest can be read
-    # from APP. No raw Python, ZIP or unpinned payload can use this transport.
+    # Only the small stable pointer and immutable package paths are allowed.
+    # A ZIP is inert until the independent certified publisher activates it.
+    # Never accept raw Python, a branch ZIP or arbitrary user-supplied URLs.
     if (parts.hostname or "").lower() == "raw.githubusercontent.com":
         if (parts.query or parts.fragment or
                 not (url == REPO_UPDATE_POINTER_URL
-                     or _PINNED_REPO_MANIFEST_PATH.fullmatch(parts.path))):
+                     or _PINNED_REPO_PACKAGE_PATH.fullmatch(parts.path))):
             raise UpdateError("Unexpected repository update URL")
     if asset:
         if (parts.hostname or "").lower() != "github.com":
@@ -174,6 +176,32 @@ def inspect_repo_update(
     except ManifestError as exc:
         raise UpdateError("Repository update manifest failed integrity check") from exc
     return pointer, manifest
+
+
+def download_repo_update_delta(
+    pointer: RepoUpdatePointer,
+    manifest_raw: bytes,
+    directory: Path,
+    progress: Progress | None = None,
+) -> Path:
+    """Fetch only the verified immutable delta using the existing downloader.
+
+    This explicit operation cannot install, switch a slot or mark the source
+    certified. Its caller must first authenticate publishing/approval evidence;
+    the live launcher does not invoke it.
+    """
+    try:
+        manifest = verify_repo_update_manifest(pointer, manifest_raw)
+    except ManifestError as exc:
+        raise UpdateError("Unverified repository update package") from exc
+    release = RemoteRelease(
+        tag=f"repo-{pointer.source_sha[:12]}",
+        archive_url="",
+        archive_size=0,
+        manifest=manifest,
+        delta_url=pointer.pinned_asset_url(),
+    )
+    return download_archive(release, directory, progress, differential=True)
 
 
 def _is_offline_failure(exc: BaseException) -> bool:
