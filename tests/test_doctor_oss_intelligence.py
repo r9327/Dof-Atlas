@@ -279,6 +279,7 @@ class DoctorOssIntelligenceTests(unittest.TestCase):
             intelligent_plan(["tools/test_tool.py"], study(), limit=0)
 
     def test_only_preselected_installed_workflow_tool_runs_with_offline_flags(self):
+        binary = str((self.root.parent / "trusted_zizmor").resolve())
         output = SimpleNamespace(returncode=0, stdout=json.dumps([
             {"ident": "artipacked", "message": "possible secret"}]), stderr="secret")
         probe = {"results": [{"kind": "path_executable", "name": "zizmor",
@@ -290,11 +291,13 @@ class DoctorOssIntelligenceTests(unittest.TestCase):
                     return_value=study()),
               patch("tools.atlas_doctor_lib.oss_router.local_candidate_preflight",
                     return_value=probe),
+              patch("tools.atlas_doctor_lib.oss_router._zizmor_executable",
+                    return_value=binary),
               patch("tools.atlas_doctor_lib.oss_router.subprocess.run",
                     return_value=output) as run):
             result = route_oss(self.root, [".github/workflows/check.yml"], run=True)
         args = run.call_args.args[0]
-        self.assertEqual(args[0], "zizmor")
+        self.assertEqual(args[0], binary)
         for flag in ("--offline", "--no-config", "--no-progress", "--no-exit-codes"):
             self.assertIn(flag, args)
         self.assertEqual(args[-2:], ["--", ".github/workflows/check.yml"])
@@ -323,6 +326,7 @@ class DoctorOssIntelligenceTests(unittest.TestCase):
 
     def test_workflow_invalid_output_and_timeout_cannot_pass(self):
         from subprocess import TimeoutExpired
+        binary = str((self.root.parent / "trusted_zizmor").resolve())
         with (patch("tools.atlas_doctor_lib.oss_router.catalog", return_value={}),
               patch("tools.atlas_doctor_lib.oss_router.select_tools",
                     side_effect=self._native),
@@ -331,6 +335,8 @@ class DoctorOssIntelligenceTests(unittest.TestCase):
               patch("tools.atlas_doctor_lib.oss_router.local_candidate_preflight",
                     return_value={"results": [{"kind": "path_executable", "name": "zizmor",
                                                "available": True}]}),
+              patch("tools.atlas_doctor_lib.oss_router._zizmor_executable",
+                    return_value=binary),
               patch("tools.atlas_doctor_lib.oss_router.subprocess.run",
                     side_effect=TimeoutExpired("zizmor", 2))):
             result = route_oss(self.root, [".github/workflows/check.yml"], run=True)
