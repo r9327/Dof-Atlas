@@ -12,7 +12,7 @@ import json
 from pathlib import Path
 
 from app.distribution.manifest import (
-    ManifestError, REPO_UPDATE_MAX_DELTA, RepoUpdatePointer, ReleaseFile,
+    ManifestError, MAX_MANIFEST_BYTES, REPO_UPDATE_MAX_DELTA, RepoUpdatePointer, ReleaseFile,
     parse_manifest, parse_repo_update_pointer, valid_source_sha,
     verify_file, verify_repo_update_manifest,
 )
@@ -23,7 +23,17 @@ def build_pointer(manifest_path: Path, delta_path: Path, app_commit_sha: str) ->
     commit = valid_source_sha(app_commit_sha)
     if manifest_path.is_symlink() or delta_path.is_symlink():
         raise ManifestError("Repository update package cannot contain symlinks")
-    raw = manifest_path.read_bytes()
+    # A stat alone is not a bound: another process can grow the manifest
+    # before it is read. Never allocate an arbitrary-sized input first.
+    try:
+        if manifest_path.stat().st_size > MAX_MANIFEST_BYTES:
+            raise ManifestError("Repository update manifest exceeds safe size")
+        with manifest_path.open("rb") as stream:
+            raw = stream.read(MAX_MANIFEST_BYTES + 1)
+    except OSError as exc:
+        raise ManifestError("Repository update manifest cannot be read") from exc
+    if len(raw) > MAX_MANIFEST_BYTES or manifest_path.is_symlink():
+        raise ManifestError("Repository update manifest exceeds safe size")
     manifest = parse_manifest(raw)
     delta = manifest.delta
     if delta is None:

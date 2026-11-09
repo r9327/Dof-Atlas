@@ -2,9 +2,11 @@
 from __future__ import annotations
 
 import hashlib
+import io
 import json
 import unittest
 from dataclasses import replace
+from unittest.mock import patch
 
 from app.distribution.manifest import (
     ManifestError, REPO_UPDATE_MAX_DELTA, RepoUpdatePointer,
@@ -134,6 +136,35 @@ class RepoUpdatePublisherTests(unittest.TestCase):
             delta.write_bytes(b"tampered")
             with self.assertRaises(ManifestError):
                 build_pointer(manifest, delta, APP_COMMIT)
+
+    def test_builder_bounded_manifest_read_refuses_concurrent_growth(self) -> None:
+        from pathlib import Path
+        from tempfile import TemporaryDirectory
+        from scripts.windows.build_repo_update_pointer import build_pointer
+
+        with TemporaryDirectory() as tmp:
+            manifest = Path(tmp) / "atlas-manifest.json"
+            delta = Path(tmp) / "atlas-delta.zip"
+            original = _manifest()
+            manifest.write_bytes(original)
+            delta.write_bytes(b"synthetic")
+            limit = len(original) + 16
+            original_open = Path.open
+
+            def growing_file(path, *args, **kwargs):
+                if path == manifest:
+                    return io.BytesIO(b"x" * (limit + 1))
+                return original_open(path, *args, **kwargs)
+
+            # Stat sees the original small manifest. The concurrent writer
+            # makes the stream exceed the cap only after that preflight.
+            with (
+                patch("scripts.windows.build_repo_update_pointer.MAX_MANIFEST_BYTES", limit),
+                patch.object(Path, "open", autospec=True,
+                             side_effect=growing_file),
+            ):
+                with self.assertRaises(ManifestError):
+                    build_pointer(manifest, delta, APP_COMMIT)
 
     def test_builder_refuses_missing_or_invalid_package(self) -> None:
         from pathlib import Path
