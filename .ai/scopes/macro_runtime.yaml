@@ -3,10 +3,16 @@ scope: macro_runtime
 kind: shared_infrastructure
 working_set:
   - app/macros/input_tools.py
+  - tests/test_organizer_macro_reliability.py
   - app/macros/switch_character.py
   - app/macros/switch_click.py
   - app/macros/direction.py
   - app/macros/auto_group.py
+  - app/macros/mirror_plan.py
+  - app/macros/mirror_input.py
+  - app/core/runtime_state.py
+  - app/core/settings.py
+  - app/constants.py
 shared_dependencies:
   - input_hotkeys
   - windows_qt_runtime

@@ -12,7 +12,7 @@ os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
 
 from PySide6.QtCore import QRect, Qt
 from PySide6.QtTest import QTest
-from PySide6.QtWidgets import QApplication, QBoxLayout, QListView, QLineEdit
+from PySide6.QtWidgets import QApplication, QBoxLayout, QGraphicsDropShadowEffect, QListView, QLineEdit, QListWidget
 
 from app.modules.encyclopedia.models.guide import Guide
 from app.modules.encyclopedia.views.guide_catalog_view import GuideCatalogView
@@ -92,10 +92,10 @@ class GuideLibraryHomeTests(unittest.TestCase):
                     )
                     self.assertEqual(view.library_right.objectName(), "GuideLibraryResults")
                     for card in view.featured_cards.values():
-                        self.assertIn("rgba(27, 39, 70, 0.88)", card.styleSheet())
-                    self.assertIn(
-                        "rgba(27, 39, 70, 0.88)",
-                        view.home_metadata_list.styleSheet(),
+                        self.assertIn("qlineargradient(", card.styleSheet())
+                        self.assertIn("stop:0 #354971", card.styleSheet())
+                    self.assertIsNone(
+                        view.findChild(QListWidget, "GuideLibraryUnavailableList")
                     )
                 finally:
                     view.deleteLater()
@@ -161,11 +161,41 @@ class GuideLibraryHomeTests(unittest.TestCase):
                     self.assertEqual(set(view.featured_cards), {
                         "guide_complet", "dofus_sylvestre",
                     })
-                    self.assertEqual(view.optimized_pair.pair_layout.direction(),
-                                     QBoxLayout.LeftToRight)
+                    # The agreed home keeps featured routes and Alignements
+                    # together on the left, with the Dofus grid on the right.
+                    self.assertIs(
+                        view.home_columns.layout().itemAt(0).widget(), view.library_left
+                    )
+                    self.assertIs(
+                        view.home_columns.layout().itemAt(1).widget(), view.library_right
+                    )
+                    self.assertIs(view.optimized_pair.parentWidget(), view.library_left)
+                    self.assertIs(view.library_categories.parentWidget(), view.library_left)
+                    self.assertLessEqual(view.library_left.width(), 295)
+                    self.assertGreater(view.library_right.width(), view.library_left.width() * 2.3)
+                    self.assertIsInstance(view.library_categories.graphicsEffect(), QGraphicsDropShadowEffect)
+                    self.assertTrue(all(isinstance(card.graphicsEffect(), QGraphicsDropShadowEffect)
+                                        for card in view.featured_cards.values()))
+                    self.assertEqual(view.library_category, "dofus")
+                    # Responsive layout follows the actual LEFT width; cards
+                    # stay compact whether two fit alongside or must stack.
+                    expected = (QBoxLayout.LeftToRight
+                                if view.optimized_pair.width() >= 580
+                                else QBoxLayout.TopToBottom)
+                    self.assertEqual(view.optimized_pair.pair_layout.direction(), expected)
+                    for card in view.featured_cards.values():
+                        self.assertLessEqual(card.maximumHeight(), 90)
+                        self.assertTrue(card.open_button.isHidden())
                     self.assertTrue(view.featured_cards["guide_complet"].isVisibleTo(view))
                     self.assertIsNone(view.findChild(QLineEdit, "GuideLibrarySearch"))
-                    self.assertEqual(view._category_nodes["alignements"].childCount(), 2)
+                    alignments = view._category_nodes["alignements"]
+                    playable = [
+                        alignments.child(i)
+                        for i in range(alignments.childCount())
+                        if alignments.child(i).data(0, Qt.UserRole + 1)
+                    ]
+                    self.assertEqual(len(playable), 2)
+                    self.assertGreaterEqual(alignments.childCount(), len(playable))
                     self.assertEqual(view.home_dofus_list.viewMode(), QListView.IconMode)
                     requested = []
                     view.guideRequested.connect(requested.append)
@@ -175,13 +205,29 @@ class GuideLibraryHomeTests(unittest.TestCase):
                     requested.clear()
                     view.library_categories.setCurrentItem(alignments.child(0))
                     self.assertEqual(requested, ["alignement_bonta"])
-                    view.library_categories.setCurrentItem(view._category_nodes["dimensions"])
+                    view.library_categories.itemActivated.emit(alignments.child(0), 0)
+                    self.assertEqual(requested, ["alignement_bonta"])
+                    dimensions = view._category_nodes["dimensions"]
+                    view.library_categories.setCurrentItem(dimensions)
                     self.assertEqual(view.library_category, "dimensions")
-                    self.assertGreater(view.home_metadata_list.count(), 0)
+                    self.assertGreater(dimensions.childCount(), 0)
                     self.assertTrue(all(
-                        not (view.home_metadata_list.item(i).flags() & Qt.ItemIsEnabled)
-                        for i in range(view.home_metadata_list.count())
+                        not (dimensions.child(i).flags() & Qt.ItemIsEnabled)
+                        for i in range(dimensions.childCount())
                     ))
+                    view._toggle_library_category(dimensions, 0)
+                    self.assertTrue(dimensions.isExpanded())
+                    requested.clear()
+                    # A catalogued-only reference must not launch a real guide.
+                    view._on_category_changed(dimensions.child(0))
+                    self.assertEqual(requested, [])
+                    view.refresh_home()
+                    self.assertTrue(dimensions.isExpanded())
+                    self.assertEqual(view.library_results_title.text(), "DOFUS")
+                    self.assertTrue(view.home_dofus_list.isVisible())
+                    self.assertIsNone(
+                        view.findChild(QListWidget, "GuideLibraryUnavailableList")
+                    )
                     alignments.setExpanded(False)
                     view.set_search_text("no-matching-library-entry")
                     self.assertTrue(view.featured_cards["guide_complet"].isVisibleTo(view))

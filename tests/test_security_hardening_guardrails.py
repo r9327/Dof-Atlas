@@ -38,11 +38,35 @@ class SecurityHardeningGuardrailsTests(unittest.TestCase):
                 self.assertEqual(checkout_count, source.count("persist-credentials: false"))
 
     def test_workflow_tokens_remain_read_only_and_pr_target_is_forbidden(self) -> None:
+        write_pattern = r"(?m)^\s+([A-Za-z_-]+):\s*write\s*$"
         for path in sorted(WORKFLOWS.glob("*.yml")):
             source = path.read_text(encoding="utf-8")
             with self.subTest(path=path.name):
                 self.assertNotIn("pull_request_target:", source)
-                self.assertNotRegex(source, r"(?m)^\s+[A-Za-z_-]+:\s*write\s*$")
+                writes = re.findall(write_pattern, source)
+                if path.name == "atlas-tools-on-demand.yml":
+                    # Exactly one trusted job can write PR run receipts. The PR
+                    # execution jobs, including Windows benchmarks, stay read-only.
+                    before, marker, freshness = source.partition("\n  freshness:\n")
+                    self.assertTrue(marker, "Missing isolated trusted freshness job")
+                    self.assertEqual(writes, ["pull-requests"])
+                    self.assertEqual(re.findall(write_pattern, freshness), ["pull-requests"])
+                    self.assertNotRegex(before, write_pattern)
+                    self.assertIn("    permissions:\n      contents: read\n      pull-requests: write", freshness)
+                    self.assertNotIn("issues: write", freshness)
+                    self.assertIn("needs: [resolve, light, windows_bench]", freshness)
+                    self.assertIn("needs.resolve.result == 'success'", freshness)
+                    self.assertIn('gh api --include "repos/$GITHUB_REPOSITORY/issues/$PR_NUMBER/comments"', freshness)
+                    self.assertIn("This receipt is NOT a PASS or certification", freshness)
+                    self.assertIn("delivery=COMMENT_UNAVAILABLE", freshness)
+                    self.assertIn("atlas-tools-receipt-${{ github.run_id }}", freshness)
+                    self.assertIn("if gh api --include", freshness)
+                    self.assertIn("receipt_http_status", freshness)
+                    self.assertIn("receipt_request_id", freshness)
+                    self.assertNotIn("continue-on-error: true", freshness)
+                    self.assertNotIn("uses: actions/checkout@", freshness)
+                else:
+                    self.assertEqual(writes, [], "Unexpected GitHub write permission")
                 if "permissions:" in source:
                     self.assertIn("contents: read", source)
 

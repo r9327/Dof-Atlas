@@ -25,6 +25,8 @@ TESTS = (
     # Developer-facing diagnosis only: tested but never application-certified.
     'atlas_doctor_capabilities', 'atlas_doctor_capability_evidence',
     'atlas_doctor_agent_protocol',
+    'doctor_pr_on_demand',  # Executed whenever CI tooling scope is certified.
+    'atlas_tools_on_demand',  # Safe read-only and Windows benchmark allowlist.
 )
 OWNERS = frozenset({
     'tools/atlas_doctor.py', 'tools/atlas_doctor_lib/ci_orchestrator.py',

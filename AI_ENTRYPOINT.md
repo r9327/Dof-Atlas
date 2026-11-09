@@ -12,9 +12,69 @@ py -3.13 -X utf8 -m tools.atlas_doctor agent check <paths> --base-ref HEAD --run
 py -3.13 -X utf8 -m tools.atlas_doctor agent validate <paths> --base-ref HEAD --json
 ```
 
+Doctor's check is the canonical opt-in execution stage: `--run-tests` now
+also runs approved **local, scoped, read-only** OSS analyzers automatically
+when present (Ruff for Python; zizmor offline for workflows). Absent tools
+are explicitly reported, not installed and not counted as PASS.
+`--run-oss` remains the explicit OSS-only option; `--no-oss` skips
+third-party diagnostics without skipping required Doctor tests. The
+`oss_selection` field in every Agent action describes suggestions but does
+not authorize any other external executable. See `docs/doctor-oss-routing.md`.
+
+For **other repository tools and Windows benchmarks** on a PR Draft, see
+`docs/atlas-tools-on-demand.md`: an exact-SHA, trusted-comment route for
+`/atlas tools`, `/atlas audit`, `/atlas ponytail`, `/atlas oss` and the
+bounded `/atlas bench ...` modes. Execution and freshness evidence is
+mandatory; benchmark results are not Phase Certification or real DOFUS 8-account proof.
+
+On GitHub-only sessions without a Python checkout, use the authorized
+on-demand PR command and read its exact-SHA artifacts as documented in
+`docs/doctor-on-demand-pr.md`. Do not claim Doctor/Graphify execution merely
+because a tool source, GitHub workflow, or old artifact is visible. The
+fallback does not provide a Windows/DOFUS environment or certify a phase.
+
 Use `--structural` for moves, deletion, dependency, cycle or architecture work.
 That route requires exact-SHA Graphify evidence. Use `agent explain` when a
 route is unclear; do not guess around `REVIEW` or `BLOCKED`.
+
+## Machine-readable tool execution contract
+
+Every non-trivial coding agent **must consume** `ai_tool_workflow` in
+`tools.atlas_doctor agent plan/check/validate --json`, not merely skim the
+project documentation. This object names the required phases, relevant
+native owners, approved OSS scanner executions and explicit gaps.
+
+- **Before editing:** run `agent plan <paths> --json` and inspect
+  `status`, `edit_contract`, `selected_checks`, `ai_tool_workflow` and
+  `oss_selection`. If status is REVIEW/BLOCKED, resolve the reason.
+  Use exact-SHA Graphify before structural edits.
+- **After editing:** run `agent check <paths> --run-tests --json`. Read
+  `execution` and `ai_tool_workflow.approved_oss_execution.tools`.
+  `CLEAN` and `FINDINGS` are actual scanner responses; `NOT_RUN`,
+  `NOT_AVAILABLE`, `TIMEOUT`, `ERROR` are not PASS.
+- **Before proposing fusion:** run `agent validate`, then audit each
+  commit and the integrated PR. Only the existing exact-SHA Phase
+  Certification provides phase certification.
+- **Specialist routes:** `ai_tool_workflow.native_routes` describes
+  existing owners to consult; `native_routes_executed_by_selection=false`
+  means their **recommendation is never an execution witness**.
+  Before selecting a tool, inspect the canonical `tools.tool_catalog` and
+  `tools/skills/dofus-atlas-tools/SKILL.md`:
+
+  ```powershell
+  py -3.13 -m tools.tool_catalog --preferred-only --safe-only --ready-only --json
+  ```
+
+  A catalog entry or a selected native route is not proof of invocation.
+  Record actual owner/scanner execution evidence and its status separately.
+- **Windows scanner qualification:** `tools/setup_doctor_oss.ps1` checks
+  local Ruff/zizmor without installation by default. `-Install` is a
+  separate, explicit developer-only step. Neither command is a runtime
+  dependency. `docs/doctor-oss-routing.md` has the full procedure.
+
+34 catalogued third-party candidates do **not** mean 34 installed tools.
+Only approved adapters may run automatically. Keep open #313 for selective
+tool integrations and #346 for the user's real-PC Windows evidence.
 
 ## Required PR review
 

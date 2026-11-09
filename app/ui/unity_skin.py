@@ -9,7 +9,7 @@ from pathlib import Path
 
 from PySide6.QtCore import QRectF
 from PySide6.QtGui import QColor, QFontDatabase, QLinearGradient, QPainter, QPixmap
-from PySide6.QtWidgets import QWidget
+from PySide6.QtWidgets import QGraphicsDropShadowEffect, QWidget
 
 
 _ASSETS = Path(__file__).resolve().parents[1] / "assets" / "themes" / "dofus_unity"
@@ -39,6 +39,17 @@ UNITY_PALETTE = {
     "GREEN_HOVER": "#B1DC64",
     "GREEN_DARK": "#497332",
     "GREEN_BORDER": "#94BA62",
+    "GUIDE_PREPARATION_BORDER": "#8299C0",
+    "GUIDE_PREPARATION_TEXT": "#FFFFFF",
+    "GUIDE_ITEM_TEXT": "#F6F8FE",
+    "GUIDE_STATUS_TEXT": "#E4EDFC",
+    "GUIDE_NAV_BORDER": "#6B87B3",
+    "GUIDE_TOGGLE_TOP": "#445B89",
+    "GUIDE_TOGGLE_BOTTOM": "#273A62",
+    "GUIDE_TOGGLE_BORDER": "#8098BF",
+    "GUIDE_TOGGLE_ACTIVE": "#536F9D",
+    "GUIDE_TOGGLE_ACTIVE_BORDER": "#B8CBE8",
+    "GUIDE_TOGGLE_HOVER": "#516EA0",
     "SHELL_GRADIENT": "qlineargradient(x1:0, y1:0, x2:1, y2:0, stop:0 #192657, stop:1 #151821)",
     "PANEL_GRADIENT": "qlineargradient(x1:0, y1:0, x2:1, y2:1, stop:0 #24395F, stop:1 #192657)",
     "ACTIVE_GRADIENT": "qlineargradient(x1:0, y1:0, x2:0, y2:1, stop:0 #6E9B41, stop:1 #497332)",
@@ -96,6 +107,19 @@ def register_unity_fonts() -> tuple[str, ...]:
             if font_id >= 0:
                 families.extend(QFontDatabase.applicationFontFamilies(font_id))
     return tuple(dict.fromkeys(families))
+
+
+def apply_unity_panel_shadow(widget: QWidget, *, blur: int = 18, vertical: int = 4) -> None:
+    """A real Qt shadow for a few fixed Guide panels, never list rows.
+
+    Qt stylesheets cannot render box-shadow. This effect is intentionally
+    reserved for lightweight, static panels to protect scrolling performance.
+    """
+    effect = QGraphicsDropShadowEffect(widget)
+    effect.setBlurRadius(blur)
+    effect.setOffset(0, vertical)
+    effect.setColor(QColor(0, 0, 0, 195))
+    widget.setGraphicsEffect(effect)
 
 
 def unity_skin_stylesheet() -> str:
@@ -157,6 +181,44 @@ def unity_skin_stylesheet() -> str:
         "QFrame#GuideCompactHeader, QFrame#GuideSheetHeader, "
         "QFrame#GuidePreparationPanel { "
         "background: rgba(24, 37, 70, 0.93); border: 1px solid #475F89; }",
+        # Small bevels and stronger contrast for the real guide surfaces.
+        # QSS has no native box-shadow; personal 9-slice sprites can supply
+        # the game-native depth when installed.
+        "QFrame#GuidePreparationSummary, QFrame#GuideManualWarningSection { "
+        "background: qlineargradient(x1:0,y1:0,x2:0,y2:1, "
+        "stop:0 rgba(69, 91, 140, 0.97), stop:1 rgba(24, 38, 74, 0.97)); "
+        "border: 1px solid %s; border-radius: 5px; color: %s; }" % (
+            UNITY_PALETTE["GUIDE_PREPARATION_BORDER"], UNITY_PALETTE["GUIDE_PREPARATION_TEXT"],
+        ),
+        "QFrame#GuidePreparationRow, QFrame#GuidePreparationDetails { "
+        "background: rgba(31, 48, 87, 0.92); "
+        "border: 1px solid rgba(114, 149, 196, 0.65); border-radius: 5px; }",
+        "QPushButton#GuidePreparationItemCopy { "
+        "text-align: left; background: transparent; border: none; "
+        "color: %s; padding: 3px; }" % UNITY_PALETTE["GUIDE_ITEM_TEXT"],
+        "QPushButton#GuidePreparationItemCopy:hover { "
+        "background: rgba(102, 139, 196, 0.30); border-radius: 4px; }",
+        "QLabel#GuidePreparationRowStatus, QLabel#GuidePreparationParticipantNeed { "
+        "color: %s; font-weight: 600; }" % UNITY_PALETTE["GUIDE_STATUS_TEXT"],
+        "QFrame#GuideManualNav { "
+        "background: rgba(19, 31, 59, 0.94); border-top: 1px solid %s; }" % UNITY_PALETTE["GUIDE_NAV_BORDER"],
+        "QToolButton#GuidePreparationToggle, QToolButton#GuideSummaryButton, "
+        "QToolButton#GuideParticipantsButton { "
+        "background: qlineargradient(x1:0,y1:0,x2:0,y2:1, "
+        "stop:0 %s, stop:1 %s); "
+        "color: %s; border: 1px solid %s; "
+        "border-radius: 5px; padding: 3px 8px; }" % (
+            UNITY_PALETTE["GUIDE_TOGGLE_TOP"], UNITY_PALETTE["GUIDE_TOGGLE_BOTTOM"],
+            UNITY_PALETTE["GUIDE_PREPARATION_TEXT"], UNITY_PALETTE["GUIDE_TOGGLE_BORDER"],
+        ),
+        "QToolButton#GuidePreparationToggle:checked, QToolButton#GuideSummaryButton:checked, "
+        "QToolButton#GuideParticipantsButton:checked { "
+        "background: %s; border: 1px solid %s; }" % (
+            UNITY_PALETTE["GUIDE_TOGGLE_ACTIVE"], UNITY_PALETTE["GUIDE_TOGGLE_ACTIVE_BORDER"],
+        ),
+        "QToolButton#GuidePreparationToggle:hover, QToolButton#GuideSummaryButton:hover, "
+        "QToolButton#GuideParticipantsButton:hover { "
+        "background: %s; }" % UNITY_PALETTE["GUIDE_TOGGLE_HOVER"],
         "QDialog#AtlasDialog, QMenu { "
         "background: rgba(25, 38, 75, 0.98); color: #F1F6FB; "
         "border: 1px solid #617CA6; }",
@@ -199,6 +261,17 @@ def unity_skin_stylesheet() -> str:
         "btn_yellow2", 8,
     )
     sprites_for_states(
+        "QPushButton#GuideManualPageCheck",
+        "btn_green", 8,
+    )
+    # The tiny green button sprite turns the whole Guide header neon yellow
+    # at Windows DPI. Keep the dark-stone beveled QSS above for secondary
+    # toggles; reserve green action sprites for the actual Valider command.
+    add_border(
+        "QFrame#GuidePreparationPanel, QFrame#GuideSummaryPanel, QFrame#GuideParticipantsPanel",
+        "Assets_UI_Themes_darkStone_common_bg_small_border_light-png.png", 6,
+    )
+    sprites_for_states(
         "QPushButton#GuideManualNavButton",
         "btn_arrow_pagination", 5,
     )
@@ -230,7 +303,7 @@ def unity_skin_stylesheet() -> str:
     focus_button_names = (
         "PrimaryActionButton", "primaryButton", "HomeContinueButton",
         "FeaturedGuideOpen", "SecondaryButton", "secondaryButton",
-        "GuideManualNavButton", "TopNavSettings",
+        "GuideManualNavButton", "GuideManualPageCheck", "TopNavSettings",
     )
     rules.append(
         ", ".join(f"QPushButton#{name}:focus" for name in focus_button_names)

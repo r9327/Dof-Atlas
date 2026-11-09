@@ -70,6 +70,11 @@ The `Graphify Code Map` workflow builds an AST-only map for pull-request candida
 
 This keeps an exact-SHA structural map available to GitHub-based agents without committing generated graph data to the repository.
 
+For Draft PRs, a collaborator can request an explicit exact-SHA map using
+`/atlas graphify [SHA]` on the PR after the on-demand workflow is merged on
+`main`. See `docs/doctor-on-demand-pr.md` for authorization, report retrieval
+and missing/stale artifact states. This does not trigger final certification.
+
 ## Safety / project integration
 
 Do **not** run `graphify hook install`. Dofus Atlas already owns repository-local Git hooks and AI instructions, so Graphify must integrate with those mechanisms rather than replacing them.

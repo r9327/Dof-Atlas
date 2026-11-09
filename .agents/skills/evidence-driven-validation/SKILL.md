@@ -14,4 +14,13 @@ Use before finishing non-trivial edits, when tests fail and when preparing a PR 
 5. Keep PRs Draft until all scoped implementation and self-review is complete; existing exact-SHA Phase Certification, not a green PR, is the only FULL certification evidence.
 6. State the difference between executed tests, static checks, UI/runtime observations and remaining uncertainty.
 
+For each run inspect the structured `ai_tool_workflow` response:
+`required_phases`, `native_routes`,
+`approved_oss_execution.tools`, `gaps` and `doctor_status`.
+A specialist being selected is **not** evidence of execution.
+For Windows qualification use `tools/setup_doctor_oss.ps1`; only a
+machine-specific `LIVE_PASS` plus `windows_13_qualified=true` proves
+these two scanners ran on that machine. Never attribute a hosted runner's
+result to the user's workstation.
+
 Skipped, blocked, stale or unavailable validation is never PASS.

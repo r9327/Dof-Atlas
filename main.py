@@ -251,6 +251,7 @@ def _run_preload_module_status(module: str, *arguments: str) -> None:
     # DEVNULL avoids parent-side capture buffers, while keeping every rich
     # catalogue/cache build inside the disposable child process.
     import subprocess
+    import tempfile
 
     root = str(Path(__file__).resolve().parent)
     environment = dict(os.environ)
@@ -271,15 +272,26 @@ def _run_preload_module_status(module: str, *arguments: str) -> None:
     if os.name == "nt":
         options["creationflags"] = getattr(subprocess, "CREATE_NO_WINDOW", 0)
 
-    completed = subprocess.run(
-        [sys.executable, "-m", module, *arguments],
-        **options,
-    )
-    exit_code = int(completed.returncode)
-    if exit_code != 0:
-        raise RuntimeError(
-            f"Worker preload en échec: {module} (code {exit_code})"
+    # Keep rich output outside Atlas' heap, but retain a bounded diagnostic
+    # when one of several concurrent disposable workers fails.
+    with tempfile.TemporaryFile() as diagnostics:
+        options["stderr"] = diagnostics
+        completed = subprocess.run(
+            [sys.executable, "-m", module, *arguments],
+            **options,
         )
+        exit_code = int(completed.returncode)
+        if exit_code != 0:
+            length = diagnostics.seek(0, os.SEEK_END)
+            diagnostics.seek(max(0, length - 8192))
+            detail = diagnostics.read(8192).decode("utf-8", errors="replace").strip()
+            # Doctor's compact preload reports retain the first 240 chars.
+            # Put the terminal exception before the traceback frames.
+            summary = detail.splitlines()[-1][:120] if detail else ""
+            raise RuntimeError(
+                f"Worker preload en échec: {module} (code {exit_code})"
+                + (f": {summary}\n{detail}" if detail else "")
+            )
 
 
 def _run_preload_module_result(module: str, *arguments: str) -> str:
@@ -2071,6 +2083,7 @@ class AtlasWindow(QMainWindow):
             self.launch_zaap,
             sessions_changed_callback=self.refresh_global_characters,
             active_session_callback=self.on_organizer_active_window,
+            next_character_callback=self.launch_next_character,
         )
 
     def create_craft_page(self) -> QWidget:
@@ -2752,15 +2765,44 @@ class AtlasWindow(QMainWindow):
         self.reload_runtime()
         self._ensure_runtime().launch_guide_travel(text, tuple(character_keys or ()))
 
-    def launch_zaap(self, text: str, click_position=None, click_ratios=None) -> None:
+    def launch_zaap(self, text: str, click_position=None, click_ratios=None) -> bool:
+        if self.quit_requested or self._background_services_stopped:
+            return False
+        # Refreshing sessions invalidates the running worker's generation.
+        # Refuse a second launch BEFORE any reload, not after MacroLock fails.
+        runtime = self.runtime
+        if runtime is not None and runtime.macro_lock.active_label:
+            return False
         self.reload_runtime()
-        self._ensure_runtime().launch_zaap(
-            text, click_position=click_position, click_ratios=click_ratios
-        )
+        if self.quit_requested or self._background_services_stopped:
+            return False
+        return bool(self._ensure_runtime().launch_zaap(
+            text, click_position=click_position, click_ratios=click_ratios,
+        ))
 
-    def launch_auto_group(self, invite_entries: list[dict[str, object]]) -> None:
+    def launch_next_character(self) -> None:
+        """Direct Organizer action: reuse the live character-switching worker."""
+        if self.quit_requested or self._background_services_stopped:
+            return
+        runtime = self._ensure_runtime()
+        if self.quit_requested or self._background_services_stopped:
+            return
+        if runtime.macro_lock.active_label:
+            self.set_status("Personnage suivant indisponible : macro déjà en cours.")
+            return
+        if not runtime.switch_character.activate_next():
+            self.set_status("Personnage suivant : aucune autre fenêtre DOFUS activable.")
+
+    def launch_auto_group(self, invite_entries: list[dict[str, object]]) -> bool:
+        if self.quit_requested or self._background_services_stopped:
+            return False
+        runtime = self.runtime
+        if runtime is not None and runtime.macro_lock.active_label:
+            return False
         self.reload_runtime()
-        self._ensure_runtime().launch_auto_group(invite_entries)
+        if self.quit_requested or self._background_services_stopped:
+            return False
+        return bool(self._ensure_runtime().launch_auto_group(invite_entries))
 
     def _shutdown_background_services(self) -> None:
         if self._background_services_stopped:
@@ -2833,8 +2875,6 @@ def main() -> int:
         app.setWindowIcon(atlas_application_icon())
         splash = None
         splash_started_at = None
-        # When launched from the visible standalone updater, do not open a
-        # second splash or Qt progress window; Tk stays visible until Home.
         if LOGO_PATH.exists() and os.environ.get("DOFUS_ATLAS_LAUNCHER_HANDOFF") != "1":
             pixmap = splash_logo_pixmap()
             splash = QSplashScreen(pixmap, Qt.Window | Qt.FramelessWindowHint | Qt.WindowDoesNotAcceptFocus)
@@ -2862,8 +2902,8 @@ def main() -> int:
         window = AtlasWindow(initial_preload=initial_preload)
         record_startup_event("atlas_window_created")
         LOGGER.info("[main] AtlasWindow created visible=%s title=%r", window.isVisible(), window.windowTitle())
-        # Direct Atlas launch shows Qt preload. Under the Tk handoff, the
-        # popup runs silently, but its completion still reveals Home.
+        # Show only the standalone loading dialog. The normal Qt event loop
+        # continues to process workers and progress without displaying Home.
         window.preload_popup.begin(dict(window.preload_states))
         record_startup_event("preload_dialog_active")
         from app.distribution.health import announce_ready
