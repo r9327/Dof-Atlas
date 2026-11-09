@@ -44,8 +44,10 @@ _PRIORITY = {
 # This table routes policy; the ATOSS study remains the candidate inventory.
 _OPTIONAL_TRIAL_ROUTES = {
     "ATOSS-02": "tools.ai_context.recommended_tests (Hypothesis installed; scoped tests only)",
-    "ATOSS-11": "tools.atlas_json_benchmark --compare-parsers",
-    "ATOSS-12": "tools.atlas_json_benchmark --compare-parsers",
+    # Select the isolated parser/RSS trial for performance decisions. The
+    # original warm-only --compare-parsers stays available as a manual probe.
+    "ATOSS-11": "tools.atlas_json_benchmark --compare-process",
+    "ATOSS-12": "tools.atlas_json_benchmark --compare-process",
     "ATOSS-13": "tools.atlas_json_benchmark --compare-streaming",
     "ATOSS-14": "tools.atlas_json_benchmark --compare-compression",
     "ATOSS-16": "tools.atlas_doctor oss --asset-trial (manual-only ImageHash)",
