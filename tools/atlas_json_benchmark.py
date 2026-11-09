@@ -12,6 +12,7 @@ import hashlib
 import importlib
 import io
 import json
+import math
 import os
 import statistics
 import subprocess
@@ -433,6 +434,43 @@ def _parser_process_worker(source: Path, candidate: str, repeats: int) -> dict:
     }
 
 
+def _compare_process_metrics(results: list[dict]) -> None:
+    """Annotate comparable, successful decoders against the same stdlib source.
+
+    Speedup is only a descriptive within-run ratio; no score is an adoption
+    verdict. RSS deltas compare observations inside each child process.
+    """
+    baseline = next((row for row in results
+                     if row.get("candidate") == "stdlib"
+                     and row.get("status") == "PARITY_PASS"), None)
+    if baseline is None:
+        return
+
+    def positive_number(value: object) -> bool:
+        return (type(value) in (int, float)
+                and math.isfinite(value) and value > 0)
+
+    for row in results:
+        if row.get("candidate") == "stdlib" or row.get("status") != "PARITY_PASS":
+            continue
+        ratios: dict[str, float] = {}
+        for field, label in (("first_decode_ms", "first_use_speedup"),
+                             ("warm_median_ms", "warm_decode_speedup")):
+            ref, trial = baseline.get(field), row.get(field)
+            if positive_number(ref) and positive_number(trial):
+                ratios[label] = round(ref / trial, 3)
+        if (baseline.get("rss_status") == row.get("rss_status") == "OBSERVED"
+                and all(type(e.get(key)) is int and e[key] >= 0
+                        for e in (baseline, row)
+                        for key in ("rss_before_bytes", "rss_after_warm_bytes"))):
+            ratios["stdlib_rss_delta_bytes"] = (
+                baseline["rss_after_warm_bytes"] - baseline["rss_before_bytes"])
+            ratios["candidate_rss_delta_bytes"] = (
+                row["rss_after_warm_bytes"] - row["rss_before_bytes"])
+        if ratios:
+            row["relative_to_stdlib"] = ratios
+
+
 def compare_json_processes(
     source: Path, *, candidates: tuple[str, ...] = ("stdlib", "orjson", "msgspec"),
     repeats: int = 3, timeout_seconds: int = 45,
@@ -504,6 +542,7 @@ def compare_json_processes(
             (time.perf_counter_ns() - start) / 1_000_000, 6)
         results.append(result)
     _assert_source_bytes_still_match(path, raw)
+    _compare_process_metrics(results)
     complete = all(row.get("status") == "PARITY_PASS"
                    and row.get("rss_status") == "OBSERVED" for row in results)
     return {
@@ -518,6 +557,8 @@ def compare_json_processes(
             "RSS observations are process-wide snapshots, not peak process-tree RSS",
             "Wall time includes Python startup and imports; decoder timings exclude them",
             "Independent subprocesses; not an Atlas Qt launch, Windows UI or install benchmark",
+            "Relative timing ratios compare successful decoders within this one run only",
+            "RSS deltas are per-process snapshots, not comparable peak memory",
             "No runtime parser migration or automatic optional package installation",
         ],
     }
