@@ -367,6 +367,39 @@ class DoctorOssRoutingTests(unittest.TestCase):
         self.assertFalse(report["phase_certified"])
         self.assertNotIn("sensitive local package path", json.dumps(report))
 
+    def test_malformed_ruff_preflight_fails_closed_without_scanner(self):
+        invalid_rows = (
+            {"name": "ruff", "available": "false", "version": "0.17.3"},
+            {"name": "ruff", "available": True},
+            {"name": "ruff", "available": True, "version": {"raw": "0.17.3"}},
+        )
+        for row in invalid_rows:
+            with self.subTest(row=row):
+                with (patch("tools.atlas_doctor_lib.oss_router.catalog",
+                            return_value={"tools": []}),
+                      patch("tools.atlas_doctor_lib.oss_router.select_tools",
+                            return_value={"tools": []}),
+                      patch("tools.atlas_doctor_lib.oss_router.local_candidate_preflight",
+                            return_value={"results": [row]}),
+                      patch("tools.atlas_doctor_lib.oss_router._zizmor_executable") as resolver,
+                      patch("tools.atlas_doctor_lib.oss_router.subprocess.run") as run):
+                    report = route_oss(
+                        self.root,
+                        ["tools/example.py", ".github/workflows/ci.yml"],
+                        run=True,
+                    )
+                run.assert_not_called()
+                resolver.assert_not_called()
+                self.assertEqual(report["local_preflight_status"], "ERROR")
+                self.assertEqual(report["local_preflight_error_type"], "ValueError")
+                self.assertEqual(
+                    [item["status"] for item in report["execution_results"]],
+                    ["ERROR", "ERROR"],
+                )
+                self.assertEqual(report["execution_count"], 0)
+                self.assertEqual(report["execution_summary"]["status"], "INCOMPLETE")
+                self.assertFalse(report["phase_certified"])
+
     def test_zizmor_resolver_rejects_relative_and_linked_executables(self):
         from tools.atlas_doctor_lib.oss_router import _zizmor_executable
         executable = self.root / "zizmor"

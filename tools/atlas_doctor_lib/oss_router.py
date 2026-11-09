@@ -588,6 +588,16 @@ def route_oss(root: Path, paths: Iterable[str], *, run: bool = False,
             binaries=["zizmor"] if workflows else [])
         discovered = {((row.get("kind") or "python_distribution"), row["name"].casefold()): row
                       for row in probe["results"]}
+        # Optional package metadata is untrusted: a string such as "false"
+        # must not be truthy evidence that Ruff is installed. Missing or
+        # malformed version metadata must not crash Doctor after preflight.
+        detected_ruff = discovered.get(("python_distribution", "ruff"))
+        if detected_ruff is not None and (
+                not isinstance(detected_ruff.get("available"), bool)
+                or "version" not in detected_ruff
+                or (detected_ruff["version"] is not None
+                    and not isinstance(detected_ruff["version"], str))):
+            raise ValueError("Malformed Ruff preflight metadata")
     except (OSError, ValueError, TypeError, KeyError, AttributeError, RuntimeError) as exc:
         discovered = {}
         preflight_error_type = type(exc).__name__
