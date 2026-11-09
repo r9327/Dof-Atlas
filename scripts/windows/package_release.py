@@ -80,6 +80,10 @@ def package_release(payload_dir: Path, output_dir: Path, source_sha: str, app_ve
     output_dir.mkdir(parents=True, exist_ok=True)
     archive_path = output_dir / "atlas-windows.zip"
     manifest_path = output_dir / "atlas-manifest.json"
+    # A reused build folder must never publish a stale delta from an older
+    # candidate when this build has no compatible or worthwhile delta.
+    delta_archive = output_dir / "atlas-delta.zip"
+    delta_archive.unlink(missing_ok=True)
     entries = []
     paths = sorted((p for p in payload_dir.rglob("*") if p.is_file()), key=lambda p: str(p).casefold())
     with zipfile.ZipFile(archive_path, "w", zipfile.ZIP_DEFLATED, compresslevel=6, allowZip64=True) as archive:
@@ -161,7 +165,6 @@ def package_release(payload_dir: Path, output_dir: Path, source_sha: str, app_ve
                        (entry["size"], entry["sha256"]) !=
                        (old[entry["path"]].size, old[entry["path"]].sha256)]
             if changed:
-                delta_archive = output_dir / "atlas-delta.zip"
                 with zipfile.ZipFile(delta_archive, "w", zipfile.ZIP_DEFLATED,
                                      compresslevel=6, allowZip64=True) as archive:
                     for entry in changed:
