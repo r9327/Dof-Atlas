@@ -33,8 +33,15 @@ class AutomaticDoctorOssTests(unittest.TestCase):
             patch("tools.atlas_doctor_lib.oss_router._open_source_inventory",
                   return_value={"status": "INVENTORIED_NOT_CERTIFIED",
                                 "count": 29, "supplemental_count": 5,
-                                "candidates": [{"id": "ATOSS-20", "name": "Ruff",
-                                                "study_decision": "ASSESS"},
+                                "candidates": [{"id": "ATOSS-18", "name": "ast-grep",
+                                                "study_decision": "ASSESS",
+                                                "final_decision": "KEEP_EXISTING"},
+                                               {"id": "ATOSS-19", "name": "Semgrep",
+                                                "study_decision": "ASSESS",
+                                                "final_decision": "REJECTED"},
+                                               {"id": "ATOSS-20", "name": "Ruff",
+                                                "study_decision": "ASSESS",
+                                                "final_decision": "ADOPTED"},
                                                {"id": "ATOSS-21", "name": "zizmor",
                                                 "study_decision": "ASSESS"}],
                                 "supplemental": []}),
@@ -61,9 +68,10 @@ class AutomaticDoctorOssTests(unittest.TestCase):
         self.assertEqual(p["oss_advisory"]["status"], "ADVISORY_ONLY")
 
     def test_plan_reports_relevant_installed_metadata_without_execution(self):
-        candidates = {"ruff": {"name": "ruff", "available": True, "version": "0.17.3"},
-                      "semgrep": {"name": "semgrep", "available": False, "version": None}}
+        candidates = {"ruff": {"name": "ruff", "available": True, "version": "0.17.3"}}
         def preflight(*, packages=(), binaries=()):
+            # Rejected Semgrep is visible in recommendations but never probed.
+            self.assertEqual(packages, ["ruff"])
             self.assertEqual(binaries, ["ast-grep"])
             rows = [{"kind": "python_distribution", **candidates[name]}
                     for name in packages]
@@ -79,14 +87,15 @@ class AutomaticDoctorOssTests(unittest.TestCase):
                          "OBSERVED_NOT_QUALIFIED")
         self.assertFalse(report["oss_local_preflight"]["network_used"])
         self.assertEqual({x["id"] for x in report["oss_local_preflight"]["tools"]},
-                         {"ATOSS-20", "ATOSS-19", "ATOSS-18"})
+                         {"ATOSS-20", "ATOSS-18"})
         self.assertTrue(all(not row["license_verified"] and
                             not row["execution_verified"]
                             for row in report["oss_local_preflight"]["tools"]))
         statuses = {row["tool_id"]: row for row in
                     report["ai_tool_workflow"]["oss_recommendations"]}
         self.assertTrue(statuses["ATOSS-20"]["locally_available"])
-        self.assertFalse(statuses["ATOSS-19"]["locally_available"])
+        self.assertEqual(statuses["ATOSS-19"]["decision"], "REJECTED")
+        self.assertIsNone(statuses["ATOSS-19"]["locally_available"])
         self.assertFalse(statuses["ATOSS-18"]["locally_available"])
         self.assertEqual(statuses["ATOSS-18"]["local_binary"], "ast-grep")
         self.assertEqual(statuses["ATOSS-20"]["installed_version_claim"], "0.17.3")
@@ -99,6 +108,12 @@ class AutomaticDoctorOssTests(unittest.TestCase):
         core = {"status": "READY", "exit_code": 0,
                 "certification": {"full_certified": False}}
         with (patch.object(agent_protocol, "run_agent_action", return_value=core),
+              patch("tools.atlas_doctor_lib.oss_router._open_source_inventory",
+                    return_value={"status": "INVENTORIED_NOT_CERTIFIED",
+                                  "candidates": [{"id": "ATOSS-20", "name": "Ruff",
+                                                  "study_decision": "ASSESS",
+                                                  "final_decision": "ADOPTED"}],
+                                  "supplemental": [], "count": 1}),
               patch("tools.tool_catalog.local_candidate_preflight",
                     side_effect=OSError("sensitive local path"))):
             result = command_agent(self.root, args)
