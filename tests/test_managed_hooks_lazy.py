@@ -106,11 +106,16 @@ class ManagedHooksLazyTests(unittest.TestCase):
         instances = []
 
         class FakeMouseHook:
-            def __init__(self, input_state, synthetic_guard, logger, callback):
+            def __init__(
+                self, input_state, synthetic_guard, logger, callback,
+                wheel_callback=None, release_callback=None,
+            ):
                 self.input_state = input_state
                 self.synthetic_guard = synthetic_guard
                 self.logger = logger
                 self.callback = callback
+                self.wheel_callback = wheel_callback
+                self.release_callback = release_callback
                 self.calls = []
                 instances.append(self)
 
@@ -122,11 +127,15 @@ class ManagedHooksLazyTests(unittest.TestCase):
                 self.calls.append("stop")
 
         module.MouseHook = FakeMouseHook
+        wheel = lambda *_args: False
+        released = lambda *_args: False
         hook = ManagedMouseHook(
             InputState(),
             _SyntheticGuard(),
             _Logger(),
             lambda *_args: False,
+            wheel_callback=wheel,
+            release_callback=released,
         )
         self.assertIsNone(hook._backend)
         hook.stop()
@@ -139,6 +148,8 @@ class ManagedHooksLazyTests(unittest.TestCase):
 
         self.assertEqual(len(instances), 1)
         self.assertIs(hook._backend, instances[0])
+        self.assertIs(instances[0].wheel_callback, wheel)
+        self.assertIs(instances[0].release_callback, released)
         self.assertEqual(instances[0].calls, ["start", "stop", "start"])
 
     def test_hotkey_action_builder_import_is_deferred_until_call(self) -> None:

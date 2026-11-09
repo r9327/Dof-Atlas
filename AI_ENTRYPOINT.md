@@ -21,6 +21,18 @@ third-party diagnostics without skipping required Doctor tests. The
 `oss_selection` field in every Agent action describes suggestions but does
 not authorize any other external executable. See `docs/doctor-oss-routing.md`.
 
+For **other repository tools and Windows benchmarks** on a PR Draft, see
+`docs/atlas-tools-on-demand.md`: an exact-SHA, trusted-comment route for
+`/atlas tools`, `/atlas audit`, `/atlas ponytail`, `/atlas oss` and the
+bounded `/atlas bench ...` modes. Execution and freshness evidence is
+mandatory; benchmark results are not Phase Certification or real DOFUS 8-account proof.
+
+On GitHub-only sessions without a Python checkout, use the authorized
+on-demand PR command and read its exact-SHA artifacts as documented in
+`docs/doctor-on-demand-pr.md`. Do not claim Doctor/Graphify execution merely
+because a tool source, GitHub workflow, or old artifact is visible. The
+fallback does not provide a Windows/DOFUS environment or certify a phase.
+
 Use `--structural` for moves, deletion, dependency, cycle or architecture work.
 That route requires exact-SHA Graphify evidence. Use `agent explain` when a
 route is unclear; do not guess around `REVIEW` or `BLOCKED`.
