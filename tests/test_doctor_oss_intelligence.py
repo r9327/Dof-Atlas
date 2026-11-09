@@ -237,7 +237,8 @@ class DoctorOssIntelligenceTests(unittest.TestCase):
         for candidate in ("ATOSS-11", "ATOSS-12"):
             self.assertEqual(routes[candidate]["opt_in_trial_route"],
                              "tools.atlas_json_benchmark --compare-process")
-            self.assertFalse(routes[candidate]["tool_executed"])
+            self.assertFalse(routes[candidate]["trial_executed"])
+            self.assertFalse(routes[candidate]["automatic_execution"])
         self.assertFalse(output["may_claim_full_certification"])
 
     def test_final_policy_rejections_prohibit_optional_preflight(self):
