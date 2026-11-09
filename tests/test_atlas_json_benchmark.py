@@ -518,6 +518,52 @@ class AtlasJsonBenchmarkTests(unittest.TestCase):
                          hashlib.sha256(
                              b'{"active":true,"id":1}').hexdigest())
 
+    def test_process_relative_timings_and_rss_require_real_stdlib_baseline(self) -> None:
+        from tools.atlas_json_benchmark import _compare_process_metrics
+        baseline = {"candidate": "stdlib", "status": "PARITY_PASS",
+                    "first_decode_ms": 10.0, "warm_median_ms": 4.0,
+                    "rss_status": "OBSERVED", "rss_before_bytes": 100,
+                    "rss_after_warm_bytes": 300}
+        optimized = {"candidate": "orjson", "status": "PARITY_PASS",
+                     "first_decode_ms": 2.5, "warm_median_ms": 1.0,
+                     "rss_status": "OBSERVED", "rss_before_bytes": 80,
+                     "rss_after_warm_bytes": 160}
+        missing = {"candidate": "msgspec", "status": "NOT_AVAILABLE"}
+        results = [baseline, optimized, missing]
+        _compare_process_metrics(results)
+        self.assertNotIn("relative_to_stdlib", baseline)
+        self.assertNotIn("relative_to_stdlib", missing)
+        self.assertEqual(optimized["relative_to_stdlib"], {
+            "first_use_speedup": 4.0,
+            "warm_decode_speedup": 4.0,
+            "stdlib_rss_delta_bytes": 200,
+            "candidate_rss_delta_bytes": 80,
+        })
+        no_baseline = [dict(optimized, relative_to_stdlib=None)]
+        _compare_process_metrics(no_baseline)
+        self.assertIsNone(no_baseline[0]["relative_to_stdlib"])
+        invalid = [dict(baseline, first_decode_ms=0,
+                        warm_median_ms=None, rss_status="NOT_AVAILABLE"),
+                   {"candidate": "orjson", "status": "PARITY_PASS",
+                    "first_decode_ms": 1.0, "warm_median_ms": 1.0,
+                    "rss_status": "OBSERVED"}]
+        _compare_process_metrics(invalid)
+        self.assertNotIn("relative_to_stdlib", invalid[1])
+
+    def test_process_relative_metrics_ignore_failed_or_unsafe_worker_numbers(self) -> None:
+        from tools.atlas_json_benchmark import _compare_process_metrics
+        for incorrect in (float("nan"), -3.0, 0.0, "9", True):
+            with self.subTest(value=incorrect):
+                rows = [
+                    {"candidate": "stdlib", "status": "PARITY_PASS",
+                     "first_decode_ms": 4.0, "warm_median_ms": 3.0},
+                    {"candidate": "orjson", "status": "PARITY_PASS",
+                     "first_decode_ms": incorrect,
+                     "warm_median_ms": incorrect},
+                ]
+                _compare_process_metrics(rows)
+                self.assertNotIn("relative_to_stdlib", rows[1])
+
     def test_process_comparison_fails_closed_on_worker_impersonation(self) -> None:
         from tools.atlas_json_benchmark import compare_json_processes
         from subprocess import CompletedProcess
