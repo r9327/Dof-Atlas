@@ -157,6 +157,11 @@ des données compressées est vérifiée. La troisième compare le ratio et
 les temps zlib/zstandard, sans modifier les formats du Launcher, du pack
 de release ni les installations existantes. Ces micro-comparaisons ne
 prouvent pas la RAM process-tree ni l'intérêt d'une migration runtime.
+L'essai `msgspec` utilise précisément `msgspec.json.decode`, et non
+une API `loads` inexistante. Les comparaisons retournent **0** seulement
+si tous les résultats demandés sont conformes, **1** si une dépendance est
+indisponible ou si le résultat est à examiner, et **2** sur parité rompue
+ou erreur d'exécution, tout en conservant le rapport JSON pour diagnostic.
 
 **État de développement :** brancher une recommandation ou observer un
 paquet disponible ne valide pas OSR-002..010. Les intégrations propres

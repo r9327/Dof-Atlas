@@ -396,7 +396,19 @@ def main() -> int:
         args.output.write_text(serialized, encoding="utf-8")
     else:
         print(serialized, end="")
-    return 0
+    if not (args.compare_parsers or args.compare_streaming
+            or args.compare_compression):
+        return 0  # Existing offsets/shards benchmark raises on parity failure.
+    if result.get("status") in {"COMPARE_COMPLETE", "PARITY_PASS"}:
+        return 0
+    # An optional comparison is not successful just because its JSON report
+    # was serialized. Distinguish unavailable/partial from actual bad parity.
+    failures = {"PARITY_FAIL", "ERROR", "FAIL", "BLOCKED"}
+    if (result.get("status") in failures
+            or any(isinstance(row, dict) and row.get("status") in failures
+                   for row in result.get("results", []))):
+        return 2
+    return 1  # REVIEW / NOT_AVAILABLE / unknown evidence
 
 
 if __name__ == "__main__":
