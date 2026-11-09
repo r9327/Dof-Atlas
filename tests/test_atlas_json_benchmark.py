@@ -58,7 +58,7 @@ class AtlasJsonBenchmarkTests(unittest.TestCase):
             original = '{"quests":{"7":{"name":"Étoile","n":8},"12":{"s":"\\\\u00e9"}}}'
             source.write_text(original, encoding="utf-8")
             with patch("tools.atlas_json_benchmark.importlib.import_module",
-                       return_value=SimpleNamespace(loads=json.loads)):
+                       return_value=SimpleNamespace(loads=json.loads, decode=json.loads)):
                 result = compare_json_parsers(source, repeats=2)
             self.assertEqual(result["status"], "COMPARE_COMPLETE")
             self.assertEqual([x["name"] for x in result["results"]],
@@ -67,6 +67,43 @@ class AtlasJsonBenchmarkTests(unittest.TestCase):
             self.assertTrue(all(len(x["measurements_ms"]) == 2 for x in result["results"]))
             self.assertFalse(result["runtime_consumer_changed"])
             self.assertEqual(source.read_text(encoding="utf-8"), original)
+
+    def test_msgspec_uses_actual_json_decode_api_not_nonexistent_loads(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            source = Path(tmp) / "quests.json"
+            source.write_text('{"quests":{"1":{"name":"Etude","n":8}}}',
+                              encoding="utf-8")
+            calls = []
+            def load(module_name):
+                calls.append(module_name)
+                if module_name != "msgspec.json":
+                    raise AssertionError("Wrong optional parser import")
+                return SimpleNamespace(decode=json.loads)
+
+            with patch("tools.atlas_json_benchmark.importlib.import_module",
+                       side_effect=load):
+                result = compare_json_parsers(
+                    source, candidates=("msgspec",), repeats=2)
+            self.assertEqual(calls, ["msgspec.json"])
+            self.assertEqual(result["status"], "COMPARE_COMPLETE")
+            self.assertEqual(result["results"][0]["name"], "msgspec")
+            self.assertEqual(result["results"][0]["status"], "PARITY_PASS")
+            self.assertEqual(result["results"][0]["repeats"], 2)
+
+    def test_msgspec_missing_decoder_or_uncallable_decoder_is_not_pass(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            source = Path(tmp) / "s.json"
+            source.write_text('{"id":7}', encoding="utf-8")
+            for bad_module in (SimpleNamespace(loads=json.loads),
+                               SimpleNamespace(decode=None)):
+                with self.subTest(module=bad_module):
+                    with patch("tools.atlas_json_benchmark.importlib.import_module",
+                               return_value=bad_module):
+                        result = compare_json_parsers(
+                            source, candidates=("msgspec",))
+                    self.assertEqual(result["status"], "REVIEW")
+                    self.assertEqual(result["results"][0]["status"], "NOT_AVAILABLE")
+                    self.assertFalse(result["results"][0]["executed"])
 
     def test_missing_and_incorrect_parser_cannot_claim_parity(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
@@ -79,7 +116,7 @@ class AtlasJsonBenchmarkTests(unittest.TestCase):
                              ["PARITY_PASS", "NOT_AVAILABLE"])
             self.assertEqual(result["status"], "REVIEW")
             with patch("tools.atlas_json_benchmark.importlib.import_module",
-                       return_value=SimpleNamespace(loads=lambda _: {"id": 8})):
+                       return_value=SimpleNamespace(decode=lambda _: {"id": 8})):
                 result = compare_json_parsers(source, candidates=("msgspec",))
             self.assertEqual(result["results"][0]["status"], "PARITY_FAIL")
             self.assertEqual(result["status"], "REVIEW")
@@ -100,7 +137,7 @@ class AtlasJsonBenchmarkTests(unittest.TestCase):
             for replacement in alternatives:
                 with self.subTest(replacement=replacement):
                     with patch("tools.atlas_json_benchmark.importlib.import_module",
-                               return_value=SimpleNamespace(loads=lambda _: replacement)):
+                               return_value=SimpleNamespace(decode=lambda _: replacement)):
                         result = compare_json_parsers(source, candidates=("msgspec",))
                     self.assertEqual(result["status"], "REVIEW")
                     self.assertEqual(result["results"][0]["status"], "PARITY_FAIL")
