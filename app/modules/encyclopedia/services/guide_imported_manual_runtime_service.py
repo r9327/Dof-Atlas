@@ -7,6 +7,9 @@ from app.modules.encyclopedia.services.guide_ultime_generated_service import (
     GuideUltimeGeneratedService,
     GuideUltimeProgress,
 )
+from app.modules.encyclopedia.services.guide_shared_route_contract import (
+    _identifier as _canonical_source_identifier,
+)
 
 
 class ImportedSourceManualRuntimeService(GuideUltimeGeneratedService):
@@ -39,8 +42,9 @@ class ImportedSourceManualRuntimeService(GuideUltimeGeneratedService):
         if not isinstance(route_id, str) or not route_id.startswith("source_guide:"):
             raise ValueError("Canonical source_guide:<id> required")
         source_id = route_id.removeprefix("source_guide:")
-        if not source_id or ":" in source_id:
-            raise ValueError("Invalid source Guide identity")
+        # The projector and the reader must apply the same canonical ID
+        # grammar: no whitespace, control characters, traversal or aliases.
+        _canonical_source_identifier(source_id, "source guide ID")
         if route.get("source_compliance") != "NOT_CERTIFIED":
             # A staged source projection must not claim certification. The
             # publisher and independent witness control activation externally.
@@ -56,9 +60,10 @@ class ImportedSourceManualRuntimeService(GuideUltimeGeneratedService):
             key = card.get("manual_stage_id")
             if not isinstance(stage, str) or not stage:
                 raise ValueError("Source step must have a stable identity")
+            _canonical_source_identifier(stage, "source step ID")
             if key != f"source:{source_id}:{stage}" or key in known:
                 raise ValueError("Duplicate or mismatched source stage identity")
-            if card.get("index") != index:
+            if type(card.get("index")) is not int or card["index"] != index:
                 raise ValueError("Unexpected source step ordering")
             if not isinstance(card.get("manual_sections"), dict):
                 raise ValueError("Source step needs canonical shared UI sections")

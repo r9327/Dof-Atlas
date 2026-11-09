@@ -356,6 +356,32 @@ class ImportedSourceRuntimeTests(unittest.TestCase):
         self.assertEqual(rebuilt.first_incomplete_index("character:1"), 0)
         self.assertFalse(rebuilt.page_checked("character:2", rebuilt.cards[2], 2))
 
+    def test_direct_injection_rejects_unsafe_projected_ids_and_boolean_indexes(self):
+        baseline = _source_route()
+        bad_guides = (
+            "..", "with spaces", "slash/path", ".",
+            "control\n", "x" * 121, "colon:id",
+        )
+        for bad in bad_guides:
+            with self.subTest(guide=bad):
+                route = copy.deepcopy(baseline)
+                route["id"] = "source_guide:" + bad
+                with self.assertRaises(ValueError):
+                    self._runtime(route)
+                self.assertFalse(self.progress_path.exists())
+        for bad in ("..", "space in step", "escape/step", "weird:step", "x" * 121):
+            with self.subTest(step=bad):
+                route = copy.deepcopy(baseline)
+                route["steps"][0]["source_step_id"] = bad
+                route["steps"][0]["manual_stage_id"] = f"source:fictional-route:{bad}"
+                with self.assertRaises(ValueError):
+                    self._runtime(route)
+                self.assertFalse(self.progress_path.exists())
+        route = copy.deepcopy(baseline)
+        route["steps"][0]["index"] = True
+        with self.assertRaisesRegex(ValueError, "ordering"):
+            self._runtime(route)
+
     def test_rejects_mismatched_duplicate_or_unprojected_cards_before_navigation(self):
         baseline = _source_route()
         mutations = (
