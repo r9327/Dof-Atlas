@@ -306,7 +306,15 @@ def ai_tool_workflow(action: str, core_report: dict[str, Any],
         and (advisory or {}).get("status") == "ADVISORY_ONLY"
         and (advisory or {}).get("input_integrity_verified") is True
         and (advisory or {}).get("files_modified") is False
-        and summary.get("status") in {"COMPLETE", "INCOMPLETE"}
+        # Contradictory summaries must never attest a diagnostic: each
+        # COMPLETE requires every named tool to have executed. A genuine
+        # INCOMPLETE scan may still retain individual real tool witnesses.
+        and summary.get("status") == (
+            "COMPLETE" if all(
+                isinstance(row, dict) and row.get("status") in {"CLEAN", "FINDINGS"}
+                for row in reported_rows
+            ) else "INCOMPLETE"
+        )
         and summary.get("expected_tools") == expected
         and len(reported_rows) == len(expected)
         and all(isinstance(row, dict) and row.get("tool") == expected[i]

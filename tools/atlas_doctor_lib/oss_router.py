@@ -282,7 +282,20 @@ def _file_digests(root: Path, files: list[str]) -> dict[str, str]:
         target = root / name
         if target.is_symlink() or not target.is_file() or target.stat().st_size > 2_000_000:
             raise ValueError("Unverifiable or oversized diagnostic input")
-        digests[name] = hashlib.sha256(target.read_bytes()).hexdigest()
+        # The earlier stat is only a preflight: the file can grow between
+        # stat and read. Stream in bounded chunks so a concurrent writer
+        # cannot force an unbounded allocation or smuggle oversized input.
+        hasher = hashlib.sha256()
+        total = 0
+        with target.open("rb") as handle:
+            while chunk := handle.read(256 * 1024):
+                total += len(chunk)
+                if total > 2_000_000:
+                    raise ValueError("Unverifiable or oversized diagnostic input")
+                hasher.update(chunk)
+        if target.is_symlink():
+            raise ValueError("Unverifiable or oversized diagnostic input")
+        digests[name] = hasher.hexdigest()
     return digests
 
 

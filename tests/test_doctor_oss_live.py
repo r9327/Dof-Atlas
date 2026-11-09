@@ -43,6 +43,31 @@ class DoctorLiveEvidenceTests(unittest.TestCase):
             "phase_certified": False,
         }
 
+    def test_file_digest_is_streamed_and_rejects_growth_after_stat(self):
+        from tools.atlas_doctor_lib.oss_router import _file_digests
+        import hashlib
+
+        filename = "tools/probe.py"
+        source = self.root / filename
+        expected_hash = hashlib.sha256(source.read_bytes()).hexdigest()
+        with patch.object(Path, "read_bytes",
+                          side_effect=AssertionError("unbounded read forbidden")):
+            result = _file_digests(self.root, [filename])
+        self.assertEqual(result[filename], expected_hash)
+
+        original_open = Path.open
+
+        def growing_during_read(path, *args, **kwargs):
+            if path == source:
+                return io.BytesIO(b"x" * (2_000_000 + 1))
+            return original_open(path, *args, **kwargs)
+
+        # Stat still sees the original small file; the stream itself is
+        # larger. The second size check must reject this raced snapshot.
+        with patch.object(Path, "open", autospec=True, side_effect=growing_during_read):
+            with self.assertRaises(ValueError):
+                _file_digests(self.root, [filename])
+
     def test_two_real_adapters_are_required_for_a_live_attestation(self):
         with (patch("tools.atlas_doctor_lib.oss_router.route_oss",
                     return_value=self._valid()) as run,

@@ -132,6 +132,16 @@ class DoctorOssIntelligenceTests(unittest.TestCase):
         self.assertTrue(result["approved_oss_execution"]["witness_integrity_verified"])
         self.assertTrue(result["approved_oss_execution"]["tools"][0]["executed"])
 
+        # An inconsistent summary is not proof of a successful scan,
+        # even if individual results claim CLEAN.
+        for bogus_status in ("INCOMPLETE", "NOT_RUN"):
+            bogus = dict(complete, execution_summary={
+                "status": bogus_status, "expected_tools": ["ruff"],
+            })
+            proof = ai_tool_workflow("check", core, plan, advisory=bogus)
+            self.assertFalse(proof["approved_oss_execution"]["all_executed"])
+            self.assertFalse(proof["approved_oss_execution"]["witness_integrity_verified"])
+
         for bad in (dict(complete, files_modified=True),
                     dict(complete, input_integrity_verified=False),
                     dict(complete, execution_results=[
@@ -168,6 +178,13 @@ class DoctorOssIntelligenceTests(unittest.TestCase):
         self.assertEqual(proof["gaps"], [
             {"tool": "zizmor", "status": "NOT_AVAILABLE"},
         ])
+        contradictory = dict(advisory, execution_summary={
+            "status": "COMPLETE", "expected_tools": ["ruff", "zizmor"],
+        })
+        bad = ai_tool_workflow("check", {"status": "REVIEW", "exit_code": 1},
+                               plan, advisory=contradictory)
+        self.assertFalse(bad["approved_oss_execution"]["witness_integrity_verified"])
+        self.assertFalse(bad["approved_oss_execution"]["all_executed"])
 
     def test_guide_dev_and_json_trials_use_existing_owners_without_certify(self):
         scope = ["tools/ganymede_guide.py",
