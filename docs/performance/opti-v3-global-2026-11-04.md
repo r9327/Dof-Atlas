@@ -440,3 +440,130 @@ Vérification ciblée des consommateurs sur `main@2ce1f5b4f65f435b5ceabec95590cf
 - **Vérifié :** inventaire 43/31/36/50 sur l'existence documentaire, 23/23 owners RAM présents, pratiques réellement déjà en place sur les modules cités, écarts Home/pic dans les contrôles CI, comportement exact du loader Stuffs.
 - **Non clos :** audit statique exhaustif de chaque source SQLite, de l'usage des packages WebEngine/Pdf et du packaging, intégration #363, tests de fermeture pendant chargement, distribution Windows/NTFS, tests des 43 exigences, Graphify exact SHA, premier clic utile, p50/p95/p99 et réception 2/4/6/8 vrais comptes DOFUS.
 - **Priorité audit suivante** : (1) consommation/visibilité des threads Encyclopédie + test spécifique de non-blocage, (2) provenance et validité des campagnes RAM/C04, (3) dépendances du vrai bundle et outils CI/Doctor, (4) index SQL et retours Home répétés. **Pas de code applicatif dans cette phase.**
+
+
+## Itération 9 — clôture de l'inventaire **d'audit statique** (9 novembre 2026)
+
+**Champ :** 31 règles web + 36 pistes OPT + 50 items RAM + 12 exigences complémentaires OPTV-032..043, tous réconciliés **en lecture seule** avec les mécanismes identifiés. Audit au `#367@0a7b3d5d3712996a0208340813adea009ffd714c`. Cela **ne clôt pas** les exigences produit ni les tests de performance ; un `measured` historique n'est jamais un PASS récent. Les chemins et commandes sont des preuves de présence et d'intention, pas de résultats d'exécution.
+
+### 36/36 pistes historiques — verdict de tri par cause/propriétaire
+
+| Piste | Statut audit (non livraison) | Mécanisme, propriétaire ou dette constatée | Preuve encore nécessaire |
+| --- | --- | --- | --- |
+| OPT-P0-01 | HORS_V3_OWNER | Launcher #285; pipeline install/update | Recette Windows EXE, 75–100 %, rollback, SHA |
+| OPT-P0-02 | MECANISME_PRESENT | main.py: start_preload séquentiel + _reveal_after_preload | A/B première action utile froide/chaude |
+| OPT-P0-03 | HISTORIQUE_GUIDE | Ancien ensure_catalog_manual_view; remplacement #363 Ganymède | Requalifier sur routes Ganymède ; éviter réoptimisation legacy |
+| OPT-P0-04 | MECANISME_PRESENT | app/quest_catalog_details.py: phases et détail lazy | Froid/chaud sur même ID, contenu identique |
+| OPT-P0-05 | MECANISME_PRESENT | Encyclopédie: Success runtime différé + instrumentable | Tracer détail Succès natif froid/chaud |
+| OPT-P0-06 | MECANISME_PRESENT | tools/benchmark_phase8_preload.py | Comparer chemin réel main() vs bench offscreen |
+| OPT-P1-07 | MESURE_HISTORIQUE | Pic Guides ancien, source #363 en remplacement | Pic arbre nouveau Guide, mêmes caches/données |
+| OPT-P1-08 | ECART_CI_PRODUIT | Home 100 MiB advisory dans workflow RAM | Mesures 10/20/50 retours + objectif <100 MiB |
+| OPT-P1-09 | A_REQUALIFIER | Workers preload sérialisés actuellement dans main.py | Attribution PID et pic concurrent natif |
+| OPT-P1-10 | A_VERIFIER | Widgets et graphes Guide retenus : cause non attribuée | Weakref/Qt natif, comparer pages après Home |
+| OPT-P1-11 | RISQUE_CONFIRME_STATIQUE | encyclopedia_page.py: join() sans timeout pendant destruction | Reproduire freeze Qt sur Home puis corriger dans lot ultérieur |
+| OPT-P1-12 | HISTORIQUE_GUIDE | p95/p99 des anciennes routes V5 | Campagne Ganymède 52/52 si applicable, scénario réel |
+| OPT-P1-13 | MECANISME_PRESENT | doctor_quick_app_probe: cycles 1/2/3/5/10 | Étendre 20/50 sur protocole séparé mesuré |
+| OPT-P1-14 | OUTIL_PRESENT | tools/atlas_perf_attribution.py: SpanAttributor + CPU/IO | Preuve A/B et observer-effect mesuré |
+| OPT-P2-15 | MECANISME_PRESENT | app/quest_catalog_details.py: QuestSources disk_backed, source_offsets | Contrôler rebuilds par source et cache hit |
+| OPT-P2-16 | MECANISME_PRESENT | SQLite détail Quêtes et signature source | Invalidation/corruption et premier enrichissement froid |
+| OPT-P2-17 | MECANISME_PRESENT | DeferredQuestRecord, champs riches à la demande | Parité des étapes/combats selon Guide Ganymède |
+| OPT-P2-18 | HISTORIQUE_GUIDE | Ancien vues longues : #363 propriétaire du remplacement | Benchmark cartes Ganymède et widgets actuels uniquement |
+| OPT-P2-19 | MECANISME_PRESENT | signature + SQLite détail + LRU borné | Invalidate et relance froide/chaude, ne pas recréer cache |
+| OPT-P2-20 | MECANISME_PRESENT | main.py: préload ordonné quests→encyclopedia→craft | CPU/latence premier clic/pic RAM réel |
+| OPT-P2-21 | HORS_V3_OWNER | #285 delta launcher | Comparatif réseau+disque, hash et rollback |
+| OPT-P2-22 | HORS_V3_OWNER | #285 archive multipart | Coût vérification, suppression de doublon prouvée |
+| OPT-P2-23 | HORS_V3_OWNER | #285 parcours launcher Unity | Installation Windows path custom + relance |
+| OPT-P2-24 | HORS_V3_OWNER | #285 no-op version identique | Chrono sans réseau, version SHA identique |
+| OPT-P3-25 | HORS_V3_OWNER | #285 installation/release | Vraie installation et mise à jour native |
+| OPT-P3-26 | NATIF_NON_EXECUTE | Doctor offscreen/un cœur ≠ PC faible natif | CPU/RAM/disque/DPI sur Windows réel |
+| OPT-P3-27 | OUTIL_PRESENT | parallel_app.py lance 8 instances Atlas isolées | Mesurer PID, pas confondre avec 8 comptes DOFUS |
+| OPT-P3-28 | FONCTION_NON_LIVREE | main.py: show_placeholder Chasse/Ocre, Stuffs externe | Produits vrais vs placeholder ; propriétaire fonctionnel distinct |
+| OPT-P3-29 | NATIF_NON_EXECUTE | Qt offscreen et tests unitaires existants | Clic→paint DPI et GPU UI Windows |
+| OPT-P3-30 | HISTORIQUE_NON_REVERIFIE | 19 exceptions silencieuses du backlog ancien | Cas source + erreur réellement remontée |
+| OPT-P3-31 | GRAPHIFY_NON_EXECUTE | Moteur et workflow Graphify existants | Artefact + impact graph exact SHA, pas de suppression aveugle |
+| OPT-P3-32 | OUTIL_PRESENT | tool_catalog AST + Doctor/Graphify existants | Dédup runtime/data à prouver consommateur par consommateur |
+| OPT-P3-33 | OUTIL_PRESENT | atlas_perf_attribution, ram_forensics et cost_attribution | Chiffrer coûts CPU/IO per module sans attribution inventée |
+| OPT-P3-34 | CI_CIBLEE_VERIFIEE | Scoped PR Feedback PASS au SHA observé | Delivery Guard et Phase toujours bloqués/en Draft |
+| OPT-P3-35 | ECART_CI_PRODUIT | CI Home advisory ; pic target 220 MB +5 % hard 231 MB | Clarifier métriques/unités, ne pas modifier seuil sans A/B |
+| OPT-P3-36 | NON_CERTIFIE | PR Draft, 43 exigences Delivery Guard ouvertes | Audit commits+Graphify+Windows puis validation finale |
+
+### 50/50 points RAM — inventaire et réévaluation sur code
+
+Le registre canonique historique classe **16 `measured`, 4 `instrumented`, 30 `todo`**. Les 23 chemins propriétaires distincts sont toujours présents. **La colonne « Historique » est copiée du registre source**, tandis que la dernière colonne est la réévaluation actuelle ; certains `todo` possèdent déjà une *instrumentation partielle* à ne pas recréer. Les 50 cases restent à valider dans leurs scénarios propres ; pas de score « 50/50 PASS ».
+
+| Item | Historique | Priorité | Owner canonique | Réévaluation statique / vérification restante |
+| --- | --- | --- | --- | --- |
+| RAM-01 | MEASURED | P0 | tools/benchmark_phase8_memory.py | Sampler arbre présent ; campagnes au HEAD non exécutées |
+| RAM-02 | MEASURED | P0 | tools/doctor_quick_app_probe.py | Cycles et delta Home présents ; <100 MiB non prouvé |
+| RAM-03 | MEASURED | P0 | tools/doctor_quick_app_probe.py | Snapshots par module présents ; effet causal non confirmé |
+| RAM-04 | INSTRUMENTED | P0 | tools/atlas_doctor_lib/ram_inventory.py | Compteur QWidget Doctor présent ; natif Qt non attribué |
+| RAM-05 | INSTRUMENTED | P0 | tools/atlas_doctor_lib/ram_inventory.py | Chaîne owner des widgets Doctor présente ; hors-parent distinct |
+| RAM-06 | INSTRUMENTED | P0 | tools/atlas_doctor_lib/ram_inventory.py | États pages LAZY/LOADED Doctor présents |
+| RAM-07 | TODO | P0 | tools/doctor_quick_app_probe.py | ram_forensics + tracemalloc et mémoire privée existent PARTIELLEMENT ; heap C++ manque |
+| RAM-08 | TODO | P1 | tools/atlas_doctor.py | tracemalloc opt-in dans ram_forensics présent ; sans run |
+| RAM-09 | TODO | P1 | tools/atlas_doctor.py | shiboken/Qt native heap hors tracemalloc ; essai manquant |
+| RAM-10 | TODO | P1 | main.py | Tests weakref et destruction existent ; cycles Home longs à mesurer |
+| RAM-11 | TODO | P1 | main.py | Timers/signaux + delayed delete à recenser ; freeze potentiel join |
+| RAM-12 | TODO | P1 | app/ui/world_scan_panel.py | Map génération et résultat différé présents ; test d'IO lent natif à faire |
+| RAM-13 | TODO | P1 | app/pages/organizer/organizer_ui.py | Organizer cartes UI : rafraîchissements non profilés |
+| RAM-14 | TODO | P1 | app/pages/organizer_page.py | Organizer watcher : propriétaire #325/#398, cycle native non prouvé |
+| RAM-15 | MEASURED | P1 | main.py | Réutilisation Home historique ; nouvel A/B non exécuté |
+| RAM-16 | TODO | P2 | main.py | Sous-navigation deleteLater dans main ; widget churn à mesurer |
+| RAM-17 | MEASURED | P1 | app/ui/world_scan_panel.py | Éviction des pixels Map cachée présente ; RSS native non mesurée |
+| RAM-18 | MEASURED | P1 | app/ui/world_scan_panel.py | Résultats carte tardifs filtrés/différés ; robustesse à stresser |
+| RAM-19 | TODO | P2 | app/cartography/world_service.py | world_db.py : index SQLite + SELECT * ; EXPLAIN/débit manquants |
+| RAM-20 | TODO | P1 | app/modules/encyclopedia/views/guides_view.py | Ancienne fiche Guide, attendre cutover #363 avant verdict |
+| RAM-21 | TODO | P0 | app/modules/encyclopedia/views/guides_view.py | 134/267 concerne route legacy ; requalifier nouveau Guide |
+| RAM-22 | MEASURED | P1 | app/modules/encyclopedia/services/image_service.py | LRU 8 MiB/64 entrées existant ; vérifier consommateurs Bestiaire/UI |
+| RAM-23 | TODO | P1 | app/modules/encyclopedia/views/guides_view.py | Anciennes images de contenu Ganymède hors scope ; Unity/Map distinctes |
+| RAM-24 | INSTRUMENTED | P1 | tools/atlas_doctor_lib/ram_inventory.py | QPixmapCache.cacheLimit mesuré, occupation native inconnue |
+| RAM-25 | MEASURED | P1 | app/modules/encyclopedia/services/guide_catalog_prebuilt_route.py | Cache ancien itinéraire existant ; maintien selon #363 |
+| RAM-26 | MEASURED | P1 | app/quest_catalog_details.py | Quêtes SQLite lazy/offsets existent, pas de gain certifié |
+| RAM-27 | TODO | P1 | app/quest_catalog_details.py | LRU de détails 32 présent dans QuestDetails ; hits/retention non mesurés |
+| RAM-28 | TODO | P1 | app/modules/encyclopedia/views/encyclopedia_page.py | Succès providers différés ; graphes en vie à mesurer |
+| RAM-29 | TODO | P1 | app/modules/encyclopedia/views/encyclopedia_page.py | Graphes _quest_graph réutilisés dans shell ; duplication non prouvée |
+| RAM-30 | MEASURED | P2 | app/pages/craft_page.py | Craft release_runtime arrête timers et libère listes/adapters |
+| RAM-31 | TODO | P2 | app/pages/craft_page.py | Craft debounce/recherche batch déjà présents ; no need duplicate |
+| RAM-32 | TODO | P2 | tools/doctor_quick_app_probe.py | Bestiaire : tester fonctionnalité réelle vs onglet/placeholder |
+| RAM-33 | MEASURED | P2 | app/pages/equipment_page.py | Stuffs ouvre URL externe : aucun Chromium embedded runtime |
+| RAM-34 | TODO | P2 | app/ui/theme.py | theme.py Qt QSS volumineux, aucun profilage paint récent |
+| RAM-35 | TODO | P0 | app/startup_cache_warmup.py | Préload séquentiel existant, peak par PID encore à mesurer |
+| RAM-36 | TODO | P1 | launch.py | EXE propre Windows dépend de #285 / test natif non exécuté |
+| RAM-37 | TODO | P0 | tools/benchmark_phase8_memory.py | Working Set et PrivateUsage présents via ram_forensics ; partage/GPU absent |
+| RAM-38 | MEASURED | P1 | tools/benchmark_atlas_exhaustive.py | Benchmark exhaustif existe ; nouvelles routes Ganymède à profiler |
+| RAM-39 | MEASURED | P1 | tools/atlas_doctor_lib/parallel_app.py | 8 processus Atlas offscreen disponibles, ≠ 8 DOFUS |
+| RAM-40 | TODO | P1 | tools/doctor_quick_app_probe.py | Doctor quick cycles max 10 ; essai 20/50 manquant |
+| RAM-41 | TODO | P2 | tools/atlas_doctor.py | Affinité 1 coeur disponible, ≠ PC réel lent/DPI |
+| RAM-42 | TODO | P1 | tools/atlas_doctor_lib/ram_inventory.py | Cache LRU et owners visibles ; hit/miss global non comparé |
+| RAM-43 | MEASURED | P1 | tools/atlas_doctor.py | CI exact SHA + statuts honnêtes ; tests Windows manquants |
+| RAM-44 | TODO | P2 | docs/performance/atlas-full-optimization-backlog-20261030.md | Aucun retrait avant consommateurs Graphify/packaging |
+| RAM-45 | TODO | P2 | app/pages/home_page.py | Services Home/network en différé ; RAM inactive non attribuée |
+| RAM-46 | MEASURED | P2 | main.py | Persistance/identités préservées par contrat ; conflit #331 encore à tester |
+| RAM-47 | TODO | P2 | tools/doctor_quick_app_probe.py | GC/Home et heap CPython observables, interprétation/native à confirmer |
+| RAM-48 | MEASURED | P2 | app/modules/encyclopedia/services/image_service.py | QImageReader.setScaledSize + LRU existants, Unity/Map séparés |
+| RAM-49 | TODO | P3 | app/ui/theme.py | Polices ressources QSS, pas de profilage natif |
+| RAM-50 | TODO | P3 | launch.py | Launcher RAM owner #285 ; installation native NON_RUN |
+
+### 43/43 exigences OPTV — frontière audit / livraison
+
+- `OPTV-001..031` (**31/31**) : état et preuve manquante **qualifiés individuellement** dans l'itération 7 ; les N/A « web » doivent conserver leurs équivalents desktop appropriés, sans nouvelle infrastructure.
+- `OPTV-032..040` (**9 exigences code**) : aucune ne doit recevoir `DONE` à partir d'un inventaire, d'un plan, de 3 tests C04 ou d'un mécanisme ancien. Pistes : caches/Qt/startup, requêtes, images Unity hors Guides Ganymède, workers, règles futures, perf Doctor, tests/CI.
+- `OPTV-041..042` (**2 exigences manuelles**) : Windows faible PC, DPI, 2/4/6/8 DOFUS et vraie distribution/livraison ; **NON_RUN** par cet audit et indispensables avant réception.
+- `OPTV-043` (**1 exigence documentation**) : les 31/36/50, 20 constats, 5 notes et propriétaires sont désormais inventoriés ; l'exigence n'est **pas DONE**, car elle réclame également preuve des écarts traités et réévaluation avec mesures.
+- **Total = 31 + 9 + 2 + 1 = 43**, IDs source inchangés, aucun report autorisé inventé. `Atlas Delivery Guard` est bloquant tant que les 43 états obligatoires ne sont pas valides ; ne pas lui fournir de rapport fictif.
+
+### Constats critiques priorisés — audit prêt pour décision de développement ultérieure
+
+| Priorité | Constat | Niveau de preuve | Décision après audit |
+| --- | --- | --- | --- |
+| P0 | `EncyclopediaPage` sur destruction Qt attend ses workers par `Thread.join()` non borné (`encyclopedia_page.py:141-145,612-643`), alors que retour Home détruit la page (`main.py:1840-1856,1896-1930`). | **Chemin de blocage confirmé statiquement** ; durée de gel et incidence non mesurées | Ajouter un test de réactivité Qt avec worker lent + preuve de libération sûre ; corriger ensuite sans data race |
+| P0 | Démarrage utilisateur réel (`main.py:2815-2860`, fenêtre masquée avant Quêtes) ≠ `doctor_quick_app_probe.py:260-300` (`window.show()` immédiat) et benchmark mémoire offscreen. | **Écart de scénario confirmé** ; premier clic utile native non mesuré | Deux métriques distinctes + chronos froid/chaud et lancement réel |
+| P0 | L'objectif Home `<100 MiB` n'est **qu'advisory** dans le workflow mémoire ; le pic workflow cible `220 MB` avec limite `231 MB`, plus strict que l'objectif produit `≤250 MiB`. | **Configuration CI vérifiée** (`.github/workflows/phase8-memory-benchmark.yml:227-287`) | Distinguer unités / seuils produits et gates ; décisions sur preuve et non sur un simple PASS CI |
+| P1 | `world_db.py:362-407,570-605` et `_map_select_clause()` utilisent `SELECT *`/`maps.*`. Mais index `map_views(parent_view_key)`, `maps(view_key,x,y)` et autres existent (`:185-189`) ; connexions SQLite sont fermées via `connection_scope()` (`:61-82`). | **Requêtes confirmées, aucun coût excessif confirmé** | EXPLAIN/compteur tailles lignes + profile avant une réduction de colonnes ; ne pas ajouter de pool serveur |
+| P1 | `requirements-pyside.txt:6-16` inclut WebEngine/Pdf mais `equipment_page.py:20-38,91-103,137-160` n'instancie pas Chromium en production. | **Présence dépendances/verrou + absence dans Stuffs** confirmées ; autres consommateurs/bundle non prouvés | Inventaire packaging réel #285, source → wheel → bundle → taille installée avant toute suppression |
+| P1 | Historiques `OPT-P0-03,P1-12,P2-18` et `RAM-20,21,23,25,38` concernent des fiches/images de parcours Guide anciens ; #363 Ganymède est encore Draft. | **Risque de travail inutile** | Ne pas optimiser/détruire les anciens contenus : requalifier juste après cutover certifié #363, préserver pictos Unity/Bestiaire/Map |
+| P1 | `ram_forensics.py`, `atlas_perf_attribution.py`, `doctor_quick_app_probe.py` existent et offrent `tracemalloc`, private commit, working set, CPU/IO/attribution. | **Instrumentation confirmée** ; résultats Windows non exécutés | Réutiliser les modes off/on distincts ; combler seulement le vrai manque d'attribution native Qt |
+| P1 | `main.py:1650-1705` montre encore des pages `Chasse au trésor`/`Ocre` en préparation, `equipment_page.py` ouvre Stuffs à l'extérieur. | **Limites fonctionnelles confirmées** | Distinguer route navigable de fonctionnalité livrée ; transférer développement au propriétaire produit, pas à V3 |
+| P2 | Les caches LRU, chargements différés, Qt cleanup, retry, scopes Doctor/Graphify et outils 8 Atlas offscreen sont déjà présents. | **Existence confirmée** | Conserver et mesurer ; aucun framework/orchestrateur/caches doublons |
+
+**Conclusion d'audit au HEAD initial 0a7b3d5d3712996a0208340813adea009ffd714c: INVENTAIRE_STATIQUE_CLOS, PERFORMANCE_NON_CERTIFIEE, DEVELOPPEMENT_HORS_PERIMETRE_ACTUEL.** Aucun bench, Graphify ou test Windows/DOFUS nouveau n'a été lancé au cours de cette itération. Les preuves de certification et l'implémentation doivent être traitées séparément, avec des SHA ultérieurs. Les constats sont prêts à être priorisés sans faux `DONE`.
