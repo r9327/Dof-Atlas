@@ -381,6 +381,39 @@ class RepoUpdatePublisherTests(unittest.TestCase):
                         build_pointer(manifest, delta, APP_COMMIT)
 
 
+    def test_reused_package_folder_cannot_publish_stale_delta(self) -> None:
+        from pathlib import Path
+        from tempfile import TemporaryDirectory
+        from os import urandom
+        from scripts.windows.package_release import package_release
+
+        with TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            app = root / "AtlasApp"
+            app.mkdir()
+            (app / "AtlasApp.exe").write_bytes(b"MZ-frozen")
+            data = app / "_internal" / "data"
+            data.mkdir(parents=True)
+            (data / "unchanged.bin").write_bytes(urandom(16 * 1024))
+            catalog = data / "quests.json"
+            catalog.write_text('{"quests":[1]}', encoding="utf-8")
+            _, base = package_release(app, root / "base", "a" * 40,
+                                      "1.0", "v1", 1)
+
+            catalog.write_text('{"quests":[1,2]}', encoding="utf-8")
+            output = root / "reused"
+            _, second = package_release(app, output, "b" * 40,
+                                        "1.1", "v2", 1, base_manifest=base)
+            self.assertIsNotNone(
+                parse_manifest(second.read_bytes()).delta
+            )
+            self.assertTrue((output / "atlas-delta.zip").is_file())
+
+            _, third = package_release(app, output, "c" * 40,
+                                       "1.2", "v3", 1)
+            self.assertIsNone(parse_manifest(third.read_bytes()).delta)
+            self.assertFalse((output / "atlas-delta.zip").exists())
+
     def test_builder_bounded_manifest_read_refuses_concurrent_growth(self) -> None:
         from pathlib import Path
         from tempfile import TemporaryDirectory
