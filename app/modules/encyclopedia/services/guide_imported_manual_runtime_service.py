@@ -93,7 +93,7 @@ class ImportedSourceManualRuntimeService(GuideUltimeGeneratedService):
         if guard is None:
             return False
         try:
-            return bool(guard(self.guide_id, self.route))
+            return guard(self.guide_id, self.route) is True
         except Exception:
             # Authorization can be revoked while a Guide is visible. Never
             # allow a stale page to write just because it was opened earlier.
@@ -132,6 +132,12 @@ class ImportedSourceManualRuntimeService(GuideUltimeGeneratedService):
             # Header and preparation have scoped UI keys; other writes must
             # target a canonical step of this exact imported source guide.
             raise ValueError("Unknown or foreign source progress key")
+        # Both the page button and the shared UI call this public writer.
+        # A direct write must never bypass the canonical per-guide gate.
+        if checked and key in self._known_stage_ids and self.manual_order_choice_blocking(
+            character_key, self._canonical_cards[key],
+        ):
+            return
         if not self.can_write_progress():
             return
         self.guide_progress.set_manual_step_completed(
@@ -205,7 +211,7 @@ class ImportedSourceManualRuntimeService(GuideUltimeGeneratedService):
         if not callable(self._gate_evaluator):
             return True
         try:
-            return not bool(self._gate_evaluator(character_key, card))
+            return self._gate_evaluator(character_key, card) is not True
         except Exception:
             return True
 

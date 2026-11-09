@@ -172,6 +172,48 @@ class ImportedSourceRuntimeTests(unittest.TestCase):
         denied.set_authorization_guard(lambda *_: True)
         self.assertTrue(denied.manual_order_choice_blocking("character:2", denied.cards[0]))
 
+    def test_direct_progress_write_cannot_skip_hard_prerequisites(self):
+        route = _source_route()
+        route["steps"][0]["hard_runtime_gates"] = [
+            {"kind": "alignment", "expected": "Bonta"},
+        ]
+        service = self._runtime(route)
+        key = service.cards[0]["manual_stage_id"]
+        # Shared UI can write by key, not only through set_page_checked().
+        service.set_manual_checked("character:1", key, True)
+        self.assertFalse(service.manual_checked("character:1", key))
+        self.assertFalse(self.progress_path.exists())
+        # Removing a precondition on an external copy never changes authority.
+        forged = copy.deepcopy(service.cards[0])
+        forged["hard_runtime_gates"] = []
+        service.set_page_checked("character:1", forged, 0, True)
+        self.assertFalse(self.progress_path.exists())
+
+    def test_only_literal_true_from_authorizer_and_gate_can_write(self):
+        route = _source_route()
+        route["steps"][0]["hard_runtime_gates"] = [
+            {"kind": "alignment", "expected": "Bonta"},
+        ]
+        service = ImportedSourceManualRuntimeService(
+            self.others, self.others, self.guide_progress, route=route,
+            gate_evaluator=lambda *_: "yes",
+        )
+        service.set_authorization_guard(lambda *_: 1)
+        key = service.cards[0]["manual_stage_id"]
+        self.assertFalse(service.can_write_progress())
+        service.set_manual_checked("character:1", key, True)
+        self.assertFalse(self.progress_path.exists())
+        service.set_authorization_guard(lambda *_: True)
+        self.assertTrue(service.can_write_progress())
+        self.assertTrue(service.manual_order_choice_blocking(
+            "character:1", service.cards[0],
+        ))
+        service.set_manual_checked("character:1", key, True)
+        self.assertFalse(self.progress_path.exists())
+        service._gate_evaluator = lambda *_: True
+        service.set_manual_checked("character:1", key, True)
+        self.assertTrue(service.manual_checked("character:1", key))
+
     def test_source_quest_name_never_auto_completes_uncertified_action(self):
         route = _source_route()
         service = self._runtime(route)
