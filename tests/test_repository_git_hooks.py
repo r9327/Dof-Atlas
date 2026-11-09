@@ -18,6 +18,21 @@ ROOT = Path(__file__).resolve().parents[1]
 
 
 class RepositoryGitHooksTests(unittest.TestCase):
+    def test_validation_journal_is_ignored_without_hiding_other_jsonl_evidence(self):
+        clean = {key: value for key, value in os.environ.items() if not key.startswith("GIT_")}
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            (root / ".gitignore").write_bytes((ROOT / ".gitignore").read_bytes())
+            subprocess.run(["git", "init", "-q"], cwd=root, env=clean, check=True)
+            paths = ["logs/atlas_validation.jsonl", "logs/atlas_validation.jsonl.old",
+                     "logs/review-evidence.jsonl"]
+            result = subprocess.run(
+                ["git", "-c", f"core.excludesFile={os.devnull}", "check-ignore", "--no-index", "--", *paths],
+                cwd=root, env=clean, capture_output=True, text=True, check=False,
+            )
+            self.assertEqual(result.returncode, 0, result.stderr)
+            self.assertEqual(result.stdout.splitlines(), paths[:2])
+
     def test_pre_push_test_repositories_cannot_modify_the_repository_being_pushed(self) -> None:
         # Fixture setup itself must be safe even under the broken old hook.
         clean = {key: value for key, value in os.environ.items() if not key.startswith("GIT_")}

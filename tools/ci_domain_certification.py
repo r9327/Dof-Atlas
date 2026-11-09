@@ -46,6 +46,10 @@ REVIEWED_CI_INSTRUCTION_PATHS = frozenset({
     # Additional reviewed AI guidance and skills; exact paths only.
     ".ai/context-map.yaml",
     ".ai/scopes/quality_ci.yaml",
+    # Reviewed Organizer Mirror scope manifests, not a broad scope wildcard.
+    ".ai/scopes/organizer.yaml",
+    ".ai/scopes/macro_runtime.yaml",
+    ".ai/scopes/persistence_identity.yaml",
     "tests/test_ai_workflow_skills.py",
     ".agents/skills/codebase-navigation/SKILL.md",
     ".agents/skills/dofus-data-provenance/SKILL.md",
@@ -123,6 +127,7 @@ ORGANIZER_MACRO_PATHS = frozenset({
     "app/macros/input_tools.py", "app/macros/switch_character.py",
     "app/macros/switch_click.py", "app/macros/travel.py",
     "app/macros/zaap.py", "app/macros/mirror_plan.py",
+    "app/macros/mirror_input.py",
 })
 ORGANIZER_UI_PATHS = frozenset({
     "app/pages/organizer_page.py", "app/pages/organizer/__init__.py",
@@ -137,6 +142,7 @@ ORGANIZER_RUNTIME_PATHS = frozenset({
     "app/core/runtime_state.py", "app/core/macro_lock.py",
     "app/input/input_state.py", "app/input/managed_hooks.py",
     "app/input/hotkeys.py", "app/windows/clicks.py",
+    "app/input/mouse_hooks.py",
 })
 ORGANIZER_TEST_PATHS = frozenset({
     "tests/test_organizer_character_order.py",
@@ -144,15 +150,37 @@ ORGANIZER_TEST_PATHS = frozenset({
     "tests/test_organizer_icon_cache.py",
     "tests/test_organizer_shutdown_guard.py",
     "tests/test_organizer_macro_reliability.py",
+    "tests/test_organizer_favorite_inflight.py",
     "tests/test_organizer_radial_selection.py",
     "tests/test_organizer_radial_overlay.py",
     "tests/test_organizer_mirror_plan.py",
+    "tests/test_organizer_mirror_ui.py",
     "tests/test_organizer_sendinput.py",
     "tests/test_organizer_hotkey_capture.py",
     "tests/test_runtime_lazy_macros.py",
     "tests/test_runtime_hook_lifecycle.py",
+    "tests/test_direction.py",
     "tests/test_direction_macro.py",
+    "tests/test_input_tools.py",
     "tests/test_zaap_shortcut_import_boundary.py",
+    # Explicit P0 tests reviewed with Organizer #325. Do not broaden to a
+    # tests/test_organizer* wildcard: unknown backends must remain BLOCKED.
+    "tests/test_character_hotkey_mapping.py",
+    "tests/test_organizer_focus_preflight.py",
+    "tests/test_organizer_focus_topmost.py",
+    "tests/test_organizer_hook_stop_race.py",
+    "tests/test_organizer_identity_overflow.py",
+    "tests/test_organizer_macro_generation.py",
+    "tests/test_organizer_mirror_focus_admission.py",
+    "tests/test_organizer_next_character.py",
+    "tests/test_organizer_numeric_hook_guards.py",
+    "tests/test_organizer_persisted_hwnd.py",
+    "tests/test_organizer_pointer_lease_epoch.py",
+    "tests/test_organizer_speed_lease.py",
+    "tests/test_organizer_speed_presets.py",
+    "tests/test_organizer_stop_hotkey_priority.py",
+    "tests/test_organizer_switch_click_profile.py",
+    "tests/test_organizer_zaap_popup.py",
 })
 
 CRAFT_PATHS = frozenset({
@@ -256,10 +284,29 @@ def owners_for(path: str) -> frozenset[str]:
     if path == "app/constants.py":
         return frozenset({"craft", "quests", "guides", "ui", "startup",
                           "identity", "data", "organizer"})
+    # Canonical text normalization is shared across product domains. Keep
+    # their complete baseline coverage; never infer an Organizer-only scope.
+    if path in {"app/core/text.py", "tests/test_core_text.py"}:
+        return frozenset({"craft", "quests", "guides", "ui", "startup",
+                          "identity", "data", "organizer"})
     # Organizer profile defaults are read by Qt/session startup and persisted
     # for character-bound input. Unknown app/core files still fail closed.
     if path == "app/core/profile_settings.py":
         return frozenset({"organizer", "ui", "startup", "identity", "data"})
+    # Organizer reads the persisted UI/session registry from runtime settings.
+    if path == "app/core/settings.py":
+        return frozenset({"organizer", "ui", "startup", "identity", "data"})
+    if path in {"app/windows/focus.py", "app/windows/unity_windows.py"}:
+        # These canonical Win32 helpers route focus/Unity identity for the
+        # Organizer workers AND the initial session scan. Do not classify
+        # every app/windows module by name: unreviewed injection stays blocked.
+        return frozenset({"organizer", "ui", "startup", "identity"})
+    if path == "app/storage.py":
+        # Shared Qt, profile, craft, quest, persistence and launcher service.
+        # Its Graphify consumer graph reaches those domains; never treat
+        # the central storage facade as an Organizer-only change.
+        return frozenset({"craft", "quests", "guides", "ui", "startup",
+                          "identity", "data", "organizer"})
     if path in ORGANIZER_RUNTIME_PATHS or path == "app/pages/organizer_page.py":
         # OrganizerPage creates the native watcher, Qt timers and startup scan.
         return frozenset({"organizer", "startup", "ui", "identity"})
@@ -270,6 +317,21 @@ def owners_for(path: str) -> frozenset[str]:
         return frozenset({"organizer", "ui", "identity"})
     if path in ORGANIZER_TEST_PATHS:
         return frozenset({"organizer", "ui", "identity"})
+    if path in {
+        "tests/test_hotkeys.py",
+        "tests/test_managed_hooks_lazy.py",
+        "tests/test_runtime_state.py",
+    }:
+        # Shared Win32 hooks and runtime lifecycle also affect startup.
+        return frozenset({"organizer", "startup", "ui", "identity"})
+    if path in {
+        "tools/benchmark_organizer_mirror_windows.py",
+        "tests/test_organizer_mirror_windows_benchmark.py",
+        "tools/organizer_mirror_log_report.py",
+        "tests/test_organizer_mirror_log_report.py",
+    }:
+        # Development-only synthetic benchmark and offline log analysis.
+        return frozenset({"ci", "organizer"})
     if path in CRAFT_PATHS or path.startswith("app/pages/craft_"):
         return frozenset({"craft"})
     if path.startswith("app/modules/encyclopedia/services/guide_"):
@@ -373,6 +435,10 @@ def owners_for(path: str) -> frozenset[str]:
     if path in {"tests/test_unity_skin.py", "tests/test_theme_runtime_cache.py"}:
         # Canonical Unity palette / Qt stylesheet cache regression contracts.
         return frozenset({"ui"})
+    if path == "tests/test_runtime_regression_contracts.py":
+        # Existing contracts cover Zaap/Guide routing, identity, persistence,
+        # Qt callbacks and shutdown. A generic runtime wildcard is unsafe.
+        return frozenset({"organizer", "guides", "identity", "data", "ui", "startup"})
     if path == "tests/test_distribution_export.py":
         # Runtime export policy is both CI packaging integrity and startup.
         return frozenset({"ci", "startup"})
