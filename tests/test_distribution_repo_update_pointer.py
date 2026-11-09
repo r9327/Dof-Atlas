@@ -4,7 +4,9 @@ from __future__ import annotations
 import hashlib
 import io
 import json
+import stat
 import unittest
+import zipfile
 from dataclasses import replace
 from unittest.mock import patch
 
@@ -39,6 +41,23 @@ def _manifest() -> bytes:
             "paths": ["AtlasApp/AtlasApp.exe"],
         },
     }, separators=(",", ":")).encode()
+
+
+def _valid_delta_zip_bytes(*, file_bytes: bytes = b"test", extra: bool = False,
+                           symlink: bool = False, missing: bool = False) -> bytes:
+    memory = io.BytesIO()
+    with zipfile.ZipFile(memory, "w") as archive:
+        if not missing:
+            if symlink:
+                link = zipfile.ZipInfo("AtlasApp/AtlasApp.exe")
+                link.create_system = 3
+                link.external_attr = (stat.S_IFLNK | 0o777) << 16
+                archive.writestr(link, file_bytes)
+            else:
+                archive.writestr("AtlasApp/AtlasApp.exe", file_bytes)
+        if extra:
+            archive.writestr("AtlasApp/unexpected.txt", b"extra")
+    return memory.getvalue()
 
 
 def _pointer(**changes: object) -> bytes:
@@ -315,7 +334,7 @@ class RepoUpdatePublisherTests(unittest.TestCase):
 
         with TemporaryDirectory() as tmp:
             root = Path(tmp)
-            body = b"valid-win-delta"
+            body = _valid_delta_zip_bytes()
             manifest_doc = json.loads(_manifest())
             manifest_doc["delta"]["archive_sha256"] = hashlib.sha256(body).hexdigest()
             manifest_doc["delta"]["archive_size"] = len(body)
@@ -333,6 +352,34 @@ class RepoUpdatePublisherTests(unittest.TestCase):
             delta.write_bytes(b"tampered")
             with self.assertRaises(ManifestError):
                 build_pointer(manifest, delta, APP_COMMIT)
+
+
+    def test_builder_rejects_matching_zip_hash_with_unsafe_members(self) -> None:
+        from pathlib import Path
+        from tempfile import TemporaryDirectory
+        from scripts.windows.build_repo_update_pointer import build_pointer
+
+        cases = {
+            "different-bytes": _valid_delta_zip_bytes(file_bytes=b"evil"),
+            "extra-file": _valid_delta_zip_bytes(extra=True),
+            "missing-file": _valid_delta_zip_bytes(missing=True),
+            "symlink": _valid_delta_zip_bytes(symlink=True),
+            "invalid-zip": b"not a ZIP",
+        }
+        with TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            manifest = root / "atlas-manifest.json"
+            delta = root / "atlas-delta.zip"
+            for label, body in cases.items():
+                with self.subTest(label=label):
+                    doc = json.loads(_manifest())
+                    doc["delta"]["archive_size"] = len(body)
+                    doc["delta"]["archive_sha256"] = hashlib.sha256(body).hexdigest()
+                    manifest.write_text(json.dumps(doc), encoding="utf-8")
+                    delta.write_bytes(body)
+                    with self.assertRaisesRegex(ManifestError, "Repository delta ZIP"):
+                        build_pointer(manifest, delta, APP_COMMIT)
+
 
     def test_builder_bounded_manifest_read_refuses_concurrent_growth(self) -> None:
         from pathlib import Path
@@ -388,7 +435,7 @@ class RepoUpdatePublisherTests(unittest.TestCase):
 
         with TemporaryDirectory() as tmp:
             root = Path(tmp)
-            payload = b"verified-offline-delta"
+            payload = _valid_delta_zip_bytes()
             document = json.loads(_manifest())
             document["delta"]["archive_size"] = len(payload)
             document["delta"]["archive_sha256"] = hashlib.sha256(payload).hexdigest()
