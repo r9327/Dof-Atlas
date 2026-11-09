@@ -173,7 +173,14 @@ def compare_json_parsers(
             loads = json.loads
         else:
             try:
-                loads = importlib.import_module(name).loads
+                # orjson exposes loads; msgspec deliberately uses a different
+                # public API, msgspec.json.decode. Treating both as .loads
+                # made the msgspec trial permanently NOT_AVAILABLE.
+                module = importlib.import_module(
+                    "msgspec.json" if name == "msgspec" else name)
+                loads = getattr(module, "decode" if name == "msgspec" else "loads")
+                if not callable(loads):
+                    raise AttributeError("Parser has no callable decoder")
             except (ImportError, AttributeError, OSError):
                 reports.append({"name": name, "status": "NOT_AVAILABLE",
                                 "executed": False})
