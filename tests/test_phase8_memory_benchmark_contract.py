@@ -1,10 +1,12 @@
 from __future__ import annotations
 
 import ast
+import math
 import unittest
 from collections import namedtuple
 from pathlib import Path
 from types import SimpleNamespace
+from typing import Any
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -290,3 +292,62 @@ class WindowsProcessLineageTests(unittest.TestCase):
         workflow = WORKFLOW.read_text(encoding="utf-8")
         self.assertIn("peak_target_mb = 220.0", workflow)
         self.assertIn("peak_hard_limit_mb = hard_limit(peak_target_mb)", workflow)
+
+class CheckpointTreePeakTests(unittest.TestCase):
+    """Pure-Python probe: do not import the full Qt memory benchmark."""
+
+    @staticmethod
+    def selector():
+        tree = ast.parse(BENCHMARK.read_text(encoding="utf-8"))
+        method = next(
+            node for node in tree.body
+            if isinstance(node, ast.FunctionDef)
+            and node.name == "_largest_checkpoint_tree_sample"
+        )
+        namespace = {"math": math, "Any": Any}
+        exec(
+            compile(ast.Module(body=[method], type_ignores=[]), str(BENCHMARK), "exec"),
+            namespace,
+        )
+        return namespace["_largest_checkpoint_tree_sample"]
+
+    def test_uses_largest_instantaneous_tree_without_summing_unrelated_peaks(self):
+        find = self.selector()
+        peak, evidence = find([
+            {
+                "label": "warmup", "tree_rss_mb": 215.2,
+                "process_rss_mb": 135.0, "child_rss_mb": 50.0,
+                "warmup_rss_mb": 30.2, "child_count": 1,
+            },
+            {
+                "label": "guide_home", "tree_rss_mb": 233.75,
+                "process_rss_mb": 210.0, "child_rss_mb": 23.75,
+                "warmup_rss_mb": 0.0, "child_count": 1,
+            },
+        ])
+        self.assertEqual(peak, 233.75)
+        self.assertEqual(evidence["label"], "guide_home")
+        self.assertEqual(evidence["process_rss_mb"], 210.0)
+        self.assertEqual(evidence["warmup_rss_mb"], 0.0)
+
+    def test_ignores_invalid_or_nonfinite_observations(self):
+        find = self.selector()
+        self.assertEqual(find([]), (0.0, {}))
+        peak, sample = find([
+            {"label": "nan", "tree_rss_mb": math.nan},
+            {"label": "infinite", "tree_rss_mb": math.inf},
+            {"label": "negative", "tree_rss_mb": -4.0},
+            {"label": "bool", "tree_rss_mb": True},
+            {"label": "missing"},
+            {"label": "string", "tree_rss_mb": "300"},
+            {"label": "valid", "tree_rss_mb": 121.119},
+        ])
+        self.assertEqual(peak, 121.12)
+        self.assertEqual(sample["label"], "valid")
+
+    def test_new_evidence_does_not_replace_the_existing_ci_peak_gate(self):
+        source = BENCHMARK.read_text(encoding="utf-8")
+        self.assertIn('"peak_tree_rss_mb": round(sampler.peak_tree_rss_mb, 2)', source)
+        self.assertIn('"checkpoint_tree_peak_rss_mb": checkpoint_peak_mb', source)
+        self.assertIn('"checkpoint_exceeds_reported_tree_peak": (', source)
+
