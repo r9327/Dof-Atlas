@@ -165,7 +165,9 @@ canonique à types conservés, premier décodage, médiane des décodages suivan
 RSS du processus avant/après (via psutil quand disponible), temps total
 avec imports/démarrage et limite de 45 secondes **par moteur**. Un module
 absent, un résultat modifié ou un RSS indisponible donne `REVIEW`, jamais
-une adoption automatique. Les mesures RSS sont des **instantanés du
+une adoption automatique. Un sous-processus ne peut pas déclarer un essai
+réussi si ses durées, son nombre d'itérations ou ses trois instantanés RSS
+annoncés manquent ou ne sont pas des valeurs valides. Les mesures RSS sont des **instantanés du
 processus**, pas des pics de l'arbre des processus. Le premier décodage
 n'atteste ni cache disque froid ni démarrage Qt/Atlas : ces preuves doivent
 venir du benchmark Windows canonique.

@@ -471,6 +471,33 @@ def _compare_process_metrics(results: list[dict]) -> None:
             row["relative_to_stdlib"] = ratios
 
 
+def _valid_isolated_parser_measurements(report: dict, repeats: int) -> bool:
+    """Require real, finite timing and RSS fields before trusting a worker PASS."""
+    if report.get("executed") is not True or type(report.get("repeats")) is not int:
+        return False
+    if report["repeats"] != repeats:
+        return False
+
+    first = report.get("first_decode_ms")
+    if type(first) not in (int, float) or not math.isfinite(first) or first < 0:
+        return False
+    warm = report.get("warm_median_ms")
+    if repeats == 1:
+        if warm is not None:
+            return False
+    elif type(warm) not in (int, float) or not math.isfinite(warm) or warm < 0:
+        return False
+
+    rss_fields = ("rss_before_bytes", "rss_after_first_bytes",
+                  "rss_after_warm_bytes")
+    if report.get("rss_status") == "OBSERVED":
+        return all(type(report.get(key)) is int and report[key] > 0
+                   for key in rss_fields)
+    if report.get("rss_status") == "NOT_AVAILABLE":
+        return all(report.get(key) is None for key in rss_fields)
+    return False
+
+
 def compare_json_processes(
     source: Path, *, candidates: tuple[str, ...] = ("stdlib", "orjson", "msgspec"),
     repeats: int = 3, timeout_seconds: int = 45,
@@ -522,6 +549,8 @@ def compare_json_processes(
             if done.returncode == 0 and status == "PARITY_CANDIDATE":
                 if observed.get("source_sha256") != source_sha:
                     raise ValueError("Worker input digest mismatch")
+                if not _valid_isolated_parser_measurements(observed, repeats):
+                    raise ValueError("Worker measurement evidence is incomplete")
                 result = {
                     **observed,
                     "status": ("PARITY_PASS" if observed.get("decoded_sha256") == expected
