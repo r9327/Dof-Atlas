@@ -93,7 +93,7 @@ class GanymedeCatalogActivationTests(unittest.TestCase):
         checked.add("ganymede_2205_step_10000")
         self.assertEqual(manual_source_completed_count(
             progress, "character:1", "dofus_cawotte", 2205, 10000,
-        ), 3)
+        ), 4)  # Existing canonical step 9999 is now in range as well.
 
     def test_twenty_source_trusted_dofus_routes_are_integrity_gated(self) -> None:
         catalogue = json.loads((GUIDES / "catalog.json").read_text(encoding="utf-8"))
