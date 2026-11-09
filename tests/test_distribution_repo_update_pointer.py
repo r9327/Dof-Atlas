@@ -385,6 +385,7 @@ class RepoUpdatePublisherTests(unittest.TestCase):
         from pathlib import Path
         from tempfile import TemporaryDirectory
         from os import urandom
+        from app.distribution.manifest import parse_manifest
         from scripts.windows.package_release import package_release
 
         with TemporaryDirectory() as tmp:
