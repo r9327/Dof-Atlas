@@ -579,6 +579,37 @@ class AtlasJsonBenchmarkTests(unittest.TestCase):
                 with self.assertRaisesRegex(ValueError, "symlink"):
                     compare_json_processes(alias)
 
+    def test_process_worker_reports_missing_optional_decoder_explicitly(self) -> None:
+        from tools.atlas_json_benchmark import _parser_process_worker
+        with tempfile.TemporaryDirectory() as tmp:
+            source = Path(tmp) / "sample.json"
+            source.write_text('{"id":1}', encoding="utf-8")
+            with patch("tools.atlas_json_benchmark.importlib.import_module",
+                       side_effect=ImportError("msgspec not installed")):
+                report = _parser_process_worker(source, "msgspec", 2)
+            self.assertEqual(report["status"], "NOT_AVAILABLE")
+            self.assertFalse(report["executed"])
+            self.assertEqual(report["candidate"], "msgspec")
+            self.assertEqual(report["source_sha256"],
+                             hashlib.sha256(source.read_bytes()).hexdigest())
+
+    def test_process_comparison_rejects_invalid_or_oversized_worker_output(self) -> None:
+        from tools.atlas_json_benchmark import compare_json_processes
+        from subprocess import CompletedProcess
+        with tempfile.TemporaryDirectory() as tmp:
+            source = Path(tmp) / "sample.json"
+            source.write_text('{"id":1}', encoding="utf-8")
+            for value in ("not JSON", "a" * 16_385, "[]",
+                          '{"status":"PARITY_CANDIDATE","candidate":"wrong"}'):
+                with self.subTest(output=value[:25]):
+                    fake = CompletedProcess([], 0, stdout=value, stderr="")
+                    with patch("tools.atlas_json_benchmark.subprocess.run",
+                               return_value=fake):
+                        report = compare_json_processes(
+                            source, candidates=("stdlib",), repeats=1)
+                    self.assertEqual(report["status"], "REVIEW")
+                    self.assertEqual(report["results"][0]["status"], "ERROR")
+
     def test_process_cli_preserves_report_and_failure_exit_codes(self) -> None:
         from tools.atlas_json_benchmark import main
         for status, expected_exit in (("COMPARE_COMPLETE", 0), ("REVIEW", 1)):
