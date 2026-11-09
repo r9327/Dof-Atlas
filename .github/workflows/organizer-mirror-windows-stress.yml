@@ -1,0 +1,65 @@
+name: Organizer Miroir — Windows fixture stress (development only)
+
+# A scoped diagnostic. Does not replace Doctor, FULL, Phase or live DOFUS tests.
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+    paths:
+      - app/macros/mirror_input.py
+      - tools/organizer_mirror_log_report.py
+      - tests/test_organizer_mirror_log_report.py
+      - tests/test_organizer_mirror_ui.py
+      - tools/benchmark_organizer_mirror_windows.py
+      - tests/test_organizer_mirror_windows_benchmark.py
+      - .github/workflows/organizer-mirror-windows-stress.yml
+
+permissions:
+  contents: read
+
+jobs:
+  windows-fixtures:
+    runs-on: windows-latest
+    timeout-minutes: 25
+    env:
+      PYTHONUTF8: "1"
+      PYTHONUNBUFFERED: "1"
+      QT_QPA_PLATFORM: offscreen
+      QT_OPENGL: software
+    steps:
+      - name: Checkout exact PR HEAD without credentials
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          persist-credentials: false
+          lfs: false
+      - name: Set up pinned Python
+        uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version: "3.13"
+          cache: pip
+          cache-dependency-path: requirements-pyside.txt
+      - name: Install canonical Atlas dependencies
+        shell: pwsh
+        run: |
+          python -m pip install --require-hashes --no-deps -r requirements-pyside.txt
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+      - name: Run existing input and pointer contract tests
+        shell: pwsh
+        run: |
+          python -m unittest -q tests.test_organizer_mirror_plan tests.test_organizer_sendinput tests.test_organizer_mirror_windows_benchmark tests.test_organizer_mirror_log_report
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          python -m unittest -q tests.test_organizer_mirror_ui.OrganizerMirrorIntegrationTests.test_mirror_wheel_collision_inside_atomic_release_reports_lost_gesture_2_to_8
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+      - name: Probe native Windows fixture input (not Unity)
+        shell: pwsh
+        run: |
+          python -m tools.benchmark_organizer_mirror_windows --expected-sha "${{ github.event.pull_request.head.sha }}" --iterations 6 --output artifacts/organizer_windows_stress.json
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+      - name: Archive results even on failure
+        if: always()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: organizer-windows-fixtures-${{ github.event.pull_request.head.sha }}
+          path: artifacts/organizer_windows_stress.json
+          if-no-files-found: warn
+          retention-days: 7

@@ -14,6 +14,10 @@ if TYPE_CHECKING:
 
 HotkeyCallback = Callable[[str, dict[str, object]], None]
 MouseCallback = Callable[[str, int, int], bool]
+PhysicalKeyCallback = Callable[[int, bool], bool]
+WheelCallback = Callable[[int, int, int, bool], bool]
+MouseReleaseCallback = Callable[[str, int, int], bool]
+BlockedMouseCallback = Callable[[int, int, int, int, object, bool], bool]
 
 
 def build_runtime_hotkey_actions(settings):
@@ -37,10 +41,16 @@ class ManagedHotkeyRegistry:
     semantics remain exactly those of ``HotkeyRegistry``.
     """
 
-    def __init__(self, input_state: InputState, logger: Logger, callback: HotkeyCallback):
+    def __init__(
+        self, input_state: InputState, logger: Logger, callback: HotkeyCallback,
+        physical_key_callback: PhysicalKeyCallback | None = None,
+        physical_key_release_callback: Callable[[int], None] | None = None,
+    ):
         self.input_state = input_state
         self.logger = logger
         self.callback = callback
+        self.physical_key_callback = physical_key_callback
+        self.physical_key_release_callback = physical_key_release_callback
         self._backend: HotkeyRegistry | None = None
         self._backend_lock = threading.Lock()
 
@@ -54,6 +64,8 @@ class ManagedHotkeyRegistry:
                 from app.input.hotkeys import HotkeyRegistry
 
                 backend = HotkeyRegistry(self.input_state, self.logger, self.callback)
+                backend.physical_key_callback = self.physical_key_callback
+                backend.physical_key_release_callback = self.physical_key_release_callback
                 self._backend = backend
         return backend
 
@@ -102,11 +114,17 @@ class ManagedMouseHook:
         synthetic_guard: SyntheticInputGuard,
         logger: Logger,
         callback: MouseCallback,
+        wheel_callback: WheelCallback | None = None,
+        release_callback: MouseReleaseCallback | None = None,
+        blocked_callback: BlockedMouseCallback | None = None,
     ):
         self.input_state = input_state
         self.synthetic_guard = synthetic_guard
         self.logger = logger
         self.callback = callback
+        self.wheel_callback = wheel_callback
+        self.release_callback = release_callback
+        self.blocked_callback = blocked_callback
         self._backend: MouseHook | None = None
         self._backend_lock = threading.Lock()
 
@@ -119,11 +137,18 @@ class ManagedMouseHook:
             if backend is None:
                 from app.input.mouse_hooks import MouseHook
 
+                deferred_kwargs = (
+                    {"blocked_callback": self.blocked_callback}
+                    if self.blocked_callback is not None else {}
+                )
                 backend = MouseHook(
                     self.input_state,
                     self.synthetic_guard,
                     self.logger,
                     self.callback,
+                    wheel_callback=self.wheel_callback,
+                    release_callback=self.release_callback,
+                    **deferred_kwargs,
                 )
                 self._backend = backend
         return backend

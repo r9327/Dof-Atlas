@@ -42,6 +42,35 @@ py -3.13 -m tools.tool_catalog --capability validation --safe-only --json
 
 Use `--max-cost` and `--limit` when the task calls for a bounded/cheap discovery pass.
 
+## Mandatory Doctor/AI execution loop
+
+When coding, **consume** the `ai_tool_workflow` object returned by
+`py -3.13 -m tools.atlas_doctor agent plan <paths> --json` before edits.
+After edits, use the same paths with `agent check --run-tests --json`,
+inspect the individual `approved_oss_execution.tools` statuses, then
+`agent validate`. If scope expands, replan.
+
+For tools beyond Doctor and Graphify, the authorized command and artifact
+route is `docs/atlas-tools-on-demand.md`. Use `/atlas tools` to discover the
+canonical catalog, and the exact approved `audit`, `ponytail`, `oss` or
+`bench` modes when the agent has no checkout; do not invent an arbitrary
+remote tool-execution command or treat a simulated eight-process bench as
+live DOFUS evidence.
+
+If the agent has **GitHub-only access** (no executable checkout), it may
+request Doctor or Graphify on an open PR (including Draft) using the authorized
+on-demand workflow described in `docs/doctor-on-demand-pr.md`. Read the
+report/artifact for the exact current PR HEAD, not just the workflow definition.
+Do not claim local tests or Windows behavior from a remote Ubuntu diagnostic.
+
+The `native_routes` are recommendations for calling the existing owners;
+they are not proof that a tool ran. `oss_recommendations` may contain
+evaluated or rejected projects that must **not** be launched. Only the
+approved, already-installed Ruff and zizmor adapters may run automatically.
+An absent scanner remains a reported gap. Local Windows readiness uses
+`tools/setup_doctor_oss.ps1` in check-only mode by default; installation
+requires the explicit `-Install` switch. Follow #346 for real-PC proof.
+
 ## Routing rules
 
 - Broad repository health or post-change verification: select the current Doctor contract through `tools.tool_catalog` and follow its declared modes/costs.

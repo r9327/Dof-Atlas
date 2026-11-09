@@ -44,9 +44,10 @@ class RuntimeRegressionContractTests(unittest.TestCase):
             calls.append((search, position, ratios))
             raise TypeError("bug inside callback")
 
-        widget = storage.ZaapWidget(lambda _text: None, callback)
+        statuses = []
+        widget = storage.ZaapWidget(statuses.append, callback)
         try:
-            with self.assertRaisesRegex(TypeError, "bug inside callback"):
+            with self.assertLogs(storage.LOGGER, level="ERROR") as diagnostic:
                 widget.launch_zaap(
                     {
                         "label": "Cité d'Astrub [5,-18]",
@@ -57,6 +58,8 @@ class RuntimeRegressionContractTests(unittest.TestCase):
                 )
             self.assertEqual(len(calls), 1)
             self.assertEqual(calls[0], ("/zaap 5,-18", None, None))
+            self.assertIn("non lancé", statuses[-1])
+            self.assertTrue(any("bug inside callback" in line for line in diagnostic.output))
         finally:
             # Reset only this widget. A global processEvents() here also runs
             # unrelated callbacks left by earlier Qt tests and can make the

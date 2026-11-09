@@ -6,19 +6,71 @@ from PySide6.QtWidgets import QPushButton
 from app.constants import (
     KEY_CLICK_HOTKEY,
     KEY_DEBUG_MODE,
+    KEY_ORGANIZER_MACRO_MODE,
     KEY_DOUBLE_CLICK_HOTKEY,
     KEY_SCRIPT_SPEED,
+    KEY_SCRIPT_SPEED_SCHEMA,
     KEY_RADIAL_HOTKEY,
+    KEY_RADIAL_ENABLED,
+    KEY_NEXT_CHARACTER_HOTKEY,
     KEY_STOP_SCRIPT_HOTKEY,
     KEY_SWITCH_CLICK,
     KEY_SWITCH_DOUBLE_CLICK,
     KEY_SWITCH_MOVEMENT,
 )
 from app.storage import invoke_compatible_callback, key_sequence_to_hotkey, profile_bool
+from app.core.settings import normalize_script_speed
 from .common import SESSION_SLOT_COUNT, client_slot_hotkey_key
 
 
 class OrganizerHotkeysMixin:
+    def set_macro_mode(self, value: str) -> None:
+        mode = "mirror" if value == "mirror" else "macro"
+        if mode == self.profiles.get(KEY_ORGANIZER_MACRO_MODE, "macro"):
+            return
+        # Do not let an active classic macro survive the mode change.
+        if callable(self.stop_runtime_callback):
+            self.stop_runtime_callback()
+        self.profiles[KEY_ORGANIZER_MACRO_MODE] = mode
+        self.save_profiles(self.profiles)
+        self.export_client_index()
+        self.update_macro_mode_buttons()
+        self.update_switch_buttons()
+        self.reload_runtime_callback()
+        self.status_callback(
+            "Miroir : clics, touches courtes et molette recopiés séquentiellement."
+            if mode == "mirror" else "Macros classiques réactivées."
+        )
+
+    def toggle_radial_enabled(self) -> None:
+        enabled = not profile_bool(self.profiles, KEY_RADIAL_ENABLED, True)
+        self.profiles[KEY_RADIAL_ENABLED] = enabled
+        if enabled:
+            self.ensure_radial_participants()
+            self.sync_radial_participants(persist=False)
+        # Persist ON/OFF + inclusion changes in one profile transaction.
+        self.save_profiles(self.profiles)
+        # If this key is shared with a slot, changing the active owner
+        # requires rebuilding only the runtime hotkey registry.
+        binding = self.hotkey_label(KEY_RADIAL_HOTKEY)
+        shared_slot = bool(binding) and any(
+            self.hotkey_label(client_slot_hotkey_key(slot)) == binding
+            for slot in range(SESSION_SLOT_COUNT)
+        )
+        if shared_slot:
+            self.reload_runtime_callback()
+        controller = getattr(self, "_radial_controller", None)
+        if controller is not None:
+            controller.cancel()
+            controller.set_shortcut(
+                self.hotkey_label(KEY_RADIAL_HOTKEY) if enabled else ""
+            )
+        self.update_global_buttons()
+        self.status_callback(
+            "Sélection personnage activée." if enabled
+            else "Sélection personnage désactivée."
+        )
+
     def toggle_profile_bool(self, key: str) -> None:
         self.set_profile_bool(key, not profile_bool(self.profiles, key, False))
 
@@ -77,23 +129,45 @@ class OrganizerHotkeysMixin:
             (KEY_DOUBLE_CLICK_HOTKEY, "Switch clic x2"),
             (KEY_STOP_SCRIPT_HOTKEY, "Stop script"),
             (KEY_RADIAL_HOTKEY, "Sélection personnage"),
+            (KEY_NEXT_CHARACTER_HOTKEY, "Personnage suivant"),
         ):
             if value == self.hotkey_label(key):
                 return label
         return ""
 
     def script_speed(self) -> str:
-        speed = str(self.profiles.get(KEY_SCRIPT_SPEED, "normal")).strip().casefold()
-        return "rapide" if speed in ("rapide", "fast") else "normal"
+        return normalize_script_speed(
+            self.profiles.get(KEY_SCRIPT_SPEED, "normal"),
+            legacy=str(self.profiles.get(KEY_SCRIPT_SPEED_SCHEMA, "1")) != "2",
+        )
 
     def set_script_speed(self, speed: str) -> None:
-        resolved = "rapide" if str(speed).strip().casefold() in ("rapide", "fast") else "normal"
+        resolved = normalize_script_speed(speed)
+        schema_v2 = str(self.profiles.get(KEY_SCRIPT_SPEED_SCHEMA, "1")) == "2"
+        previous = normalize_script_speed(
+            self.profiles.get(KEY_SCRIPT_SPEED, "normal"),
+            legacy=not schema_v2,
+        )
+        # Re-selecting the active v2 preset must not reload Organizer or
+        # cancel a live 2–8 client worker without changing any effective delay.
+        if previous == resolved and schema_v2:
+            return
+        # Both a speed change and an old-profile schema migration replace the
+        # runtime settings generation. Stop the worker before persisting.
+        if callable(getattr(self, "stop_runtime_callback", None)):
+            self.stop_runtime_callback()
         self.profiles[KEY_SCRIPT_SPEED] = resolved
+        # Persist the schema together with the chosen preset. Otherwise a
+        # future reload would reinterpret a v2 Rapide as legacy v1 Rapide.
+        self.profiles[KEY_SCRIPT_SPEED_SCHEMA] = 2
         self.save_profiles(self.profiles)
         self.export_client_index()
         self.update_script_speed_buttons()
         self.reload_runtime_callback()
-        label = "Rapide" if resolved == "rapide" else "Normal"
+        label = {
+            "classique": "Classique", "normal": "Normal",
+            "rapide": "Rapide", "instantane": "Instantané",
+        }[resolved]
         self.status_callback(f"Vitesse script : {label}.")
 
     def stop_script(self) -> None:
@@ -171,6 +245,8 @@ class OrganizerHotkeysMixin:
             self.stop_script_hotkey_button.setText("...")
         elif kind == "radial":
             self.radial_hotkey_button.setText("...")
+        elif kind == "next_character":
+            self.next_character_hotkey_button.setText("...")
         self.setFocus(Qt.ShortcutFocusReason)
         self.status_callback("En attente d'une touche...")
 
@@ -194,14 +270,26 @@ class OrganizerHotkeysMixin:
             self.render_sessions()
             return
         kind = target.get("kind")
-        if kind != "radial" and hotkey == self.hotkey_label(KEY_RADIAL_HOTKEY):
+        if kind not in {"radial", "client"} and hotkey == self.hotkey_label(KEY_RADIAL_HOTKEY):
             self.update_global_buttons()
             self.render_sessions()
             self.status_callback("Raccourci déjà utilisé par Sélection personnage.")
             return
-        if kind == "client" and target.get("slot") is not None:
-            slot_index = int(target["slot"])
-            owner = self.global_hotkey_owner(hotkey) or self.client_hotkey_owner(hotkey, exclude_slot=slot_index)
+        if kind == "client":
+            # A malformed or stale capture target must never silently bind a
+            # shortcut to a different character (int(1.9) == 1, True == 1).
+            slot_index = target.get("slot")
+            if type(slot_index) is not int or not 0 <= slot_index < SESSION_SLOT_COUNT:
+                self.update_global_buttons()
+                self.render_sessions()
+                self.status_callback("Raccourci ignoré : slot personnage invalide.")
+                return
+            owner = self.global_hotkey_owner(hotkey)
+            if owner == "Sélection personnage":
+                owner = ""  # explicit wheel-over-slot priority
+            owner = owner or self.client_hotkey_owner(
+                hotkey, exclude_slot=slot_index,
+            )
             if owner:
                 self.update_global_buttons()
                 self.render_sessions()
@@ -216,10 +304,12 @@ class OrganizerHotkeysMixin:
                 self.render_sessions()
                 self.status_callback("Touche déjà utilisée par Switch Déplacement.")
                 return
-            owner = self.client_hotkey_owner(hotkey)
-            existing_global = self.global_hotkey_owner(hotkey)
-            if existing_global and existing_global != "Sélection personnage":
-                owner = existing_global
+            # A slot binding is allowed: the radial wheel owns the key
+            # only while enabled, while Stop and other global hotkeys remain
+            # exclusive even when the radial wheel is disabled.
+            owner = self.global_hotkey_owner(hotkey)
+            if owner == "Sélection personnage":
+                owner = ""
             if owner:
                 self.update_global_buttons()
                 self.render_sessions()
@@ -227,6 +317,26 @@ class OrganizerHotkeysMixin:
                 return
             self.ensure_radial_participants()
             self.profiles[KEY_RADIAL_HOTKEY] = hotkey
+        elif kind == "next_character":
+            if (hotkey in {"HOME", "DELETE", "END", "PAGEDOWN"}
+                    and profile_bool(self.profiles, KEY_SWITCH_MOVEMENT, False)):
+                self.update_global_buttons()
+                self.render_sessions()
+                self.status_callback("Touche déjà utilisée par Switch Déplacement.")
+                return
+            owner = self.global_hotkey_owner(hotkey)
+            if owner and owner != "Personnage suivant":
+                self.update_global_buttons()
+                self.render_sessions()
+                self.status_callback(f"Raccourci déjà utilisé par {owner}.")
+                return
+            owner = self.client_hotkey_owner(hotkey)
+            if owner:
+                self.update_global_buttons()
+                self.render_sessions()
+                self.status_callback(f"Raccourci déjà utilisé par {owner}.")
+                return
+            self.profiles[KEY_NEXT_CHARACTER_HOTKEY] = hotkey
         elif kind == "click":
             if hotkey == self.hotkey_label(KEY_DOUBLE_CLICK_HOTKEY):
                 self.update_global_buttons()
@@ -237,6 +347,11 @@ class OrganizerHotkeysMixin:
                 self.update_global_buttons()
                 self.render_sessions()
                 self.status_callback("Raccourci déjà utilisé par Stop script.")
+                return
+            if hotkey == self.hotkey_label(KEY_NEXT_CHARACTER_HOTKEY):
+                self.update_global_buttons()
+                self.render_sessions()
+                self.status_callback("Raccourci déjà utilisé par Personnage suivant.")
                 return
             owner = self.client_hotkey_owner(hotkey)
             if owner:
@@ -256,6 +371,11 @@ class OrganizerHotkeysMixin:
                 self.render_sessions()
                 self.status_callback("Raccourci déjà utilisé par Stop script.")
                 return
+            if hotkey == self.hotkey_label(KEY_NEXT_CHARACTER_HOTKEY):
+                self.update_global_buttons()
+                self.render_sessions()
+                self.status_callback("Raccourci déjà utilisé par Personnage suivant.")
+                return
             owner = self.client_hotkey_owner(hotkey)
             if owner:
                 self.update_global_buttons()
@@ -274,6 +394,11 @@ class OrganizerHotkeysMixin:
                 self.render_sessions()
                 self.status_callback("Raccourci déjà utilisé par Switch clic x2.")
                 return
+            if hotkey == self.hotkey_label(KEY_NEXT_CHARACTER_HOTKEY):
+                self.update_global_buttons()
+                self.render_sessions()
+                self.status_callback("Raccourci déjà utilisé par Personnage suivant.")
+                return
             owner = self.client_hotkey_owner(hotkey)
             if owner:
                 self.update_global_buttons()
@@ -287,6 +412,17 @@ class OrganizerHotkeysMixin:
         self.render_sessions()
         controller = getattr(self, "_radial_controller", None)
         if controller is not None:
-            controller.set_shortcut(self.hotkey_label(KEY_RADIAL_HOTKEY))
+            controller.set_shortcut(
+                self.hotkey_label(KEY_RADIAL_HOTKEY)
+                if profile_bool(self.profiles, KEY_RADIAL_ENABLED, True) else ""
+            )
         self.reload_runtime_callback()
-        self.status_callback(f"Raccourci {hotkey} enregistré.")
+        shared = (
+            kind in {"radial", "client"}
+            and hotkey == self.hotkey_label(KEY_RADIAL_HOTKEY)
+            and bool(self.client_hotkey_owner(hotkey))
+        )
+        self.status_callback(
+            f"Raccourci {hotkey} enregistré : roue prioritaire lorsqu'elle est active."
+            if shared else f"Raccourci {hotkey} enregistré."
+        )

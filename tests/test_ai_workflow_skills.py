@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import re
+import subprocess
 import unittest
 from pathlib import Path
 
@@ -18,7 +19,39 @@ NEW_SKILLS = {
 }
 
 
+def _committed_text(path: str) -> str:
+    """Read exact-HEAD instructions even in an intentional sparse CI checkout.
+
+    Missing or untracked paths still fail instead of being silently skipped.
+    """
+    return subprocess.check_output(
+        ["git", "show", f"HEAD:{path}"], cwd=ROOT, text=True,
+        encoding="utf-8", timeout=15,
+    )
+
+
 class AiWorkflowSkillsTests(unittest.TestCase):
+    def test_macro_reliability_has_an_exact_owner_without_a_test_wildcard(self):
+        from tools import agent
+        path = "tests/test_organizer_macro_reliability.py"
+        report = agent.impact_payload(ROOT, [path])
+        self.assertEqual(report["unowned_paths"], [])
+        self.assertEqual(report["ownership"][path]["primary_scope"], "macro_runtime")
+        self.assertIn("tests.test_direction_macro", report["scope_tests"])
+        unknown = "tests/test_organizer_unreviewed_sender.py"
+        self.assertEqual(agent.ownership_payload(ROOT, [unknown])["unowned_paths"], [unknown])
+
+    def test_mirror_document_has_an_exact_organizer_owner_without_a_docs_wildcard(self):
+        from tools import agent
+        path = "docs/organizer/mirror-feasibility.md"
+        report = agent.impact_payload(ROOT, [path])
+        self.assertEqual(report["unowned_paths"], [])
+        self.assertEqual(report["ambiguous_paths"], [])
+        self.assertEqual(report["ownership"][path]["primary_scope"], "organizer")
+        self.assertIn("tests.test_organizer_shutdown_guard", report["scope_tests"])
+        unknown = "docs/organizer/unreviewed-acceptance.md"
+        self.assertEqual(agent.ownership_payload(ROOT, [unknown])["unowned_paths"], [unknown])
+
     def test_discoverable_skills_have_unique_valid_frontmatter(self) -> None:
         skills = sorted((ROOT / ".agents/skills").glob("*/SKILL.md"))
         self.assertTrue(NEW_SKILLS.issubset({p.parent.name for p in skills}))
@@ -61,6 +94,35 @@ class AiWorkflowSkillsTests(unittest.TestCase):
         self.assertIn("tests.test_ai_workflow_skills", scopes)
         workflow = (ROOT / ".github/workflows/ai-context-ci.yml").read_text(encoding="utf-8")
         self.assertIn("test_ai_workflow_skills.py", workflow)
+
+    def test_provider_instructions_route_to_doctor_and_catalog(self) -> None:
+        """A provider must request the actual tool workflow, not merely name Doctor."""
+        providers = [
+            "CLAUDE.md", ".github/copilot-instructions.md",
+            ".cursor/rules/atlas-doctor.mdc", "AI_CONTEXT.md",
+        ]
+        for name in providers:
+            with self.subTest(name=name):
+                content = _committed_text(name)
+                for anchor in (
+                    "AI_ENTRYPOINT.md", "ai_tool_workflow",
+                    "agent plan", "agent check --run-tests", "agent validate",
+                    "tools.tool_catalog", "tools/skills/dofus-atlas-tools/SKILL.md",
+                ):
+                    self.assertIn(anchor, content)
+        canonical = _committed_text("AI_ENTRYPOINT.md")
+        self.assertIn("--preferred-only --safe-only --ready-only", canonical)
+        self.assertIn("native_routes_executed_by_selection=false", canonical)
+
+    def test_oss_docs_do_not_require_manual_enable_on_normal_check(self) -> None:
+        docs = _committed_text("docs/doctor-oss-routing.md")
+        self.assertIn("agent check --run-tests", docs)
+        self.assertIn("automatiquement", docs)
+        self.assertIn("--verify-live", docs)
+        self.assertIn("NOT_AVAILABLE", docs)
+        self.assertNotIn(
+            "agent check tools/tool_catalog.py --run-tests --run-oss", docs
+        )
 
 
 if __name__ == "__main__":

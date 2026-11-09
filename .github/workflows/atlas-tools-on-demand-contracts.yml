@@ -1,0 +1,71 @@
+name: Atlas Tools — Targeted Contracts
+
+# Small stdlib-only PR verification. It never launches a benchmark, never
+# certifies a Phase and does not change the on-demand workflow's triggers.
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - "tools/atlas_tools_on_demand.py"
+      - "tools/doctor_pr_on_demand.py"
+      - "tools/doctor_dev_lot.py"
+      - "tests/test_atlas_tools_on_demand.py"
+      - "tests/test_doctor_pr_on_demand.py"
+      - "tests/test_doctor_dev_lot.py"
+      - "tests/test_ci_domain_certification.py"
+      - ".github/workflows/atlas-tools-on-demand.yml"
+      - ".github/workflows/atlas-tools-on-demand-contracts.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  contracts:
+    if: github.event.pull_request.head.repo.full_name == github.repository
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - name: Checkout exact PR candidate with no credentials
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          persist-credentials: false
+          lfs: false
+          fetch-depth: 0
+      - name: Verify immutable candidate SHA
+        env:
+          EXPECTED_SHA: ${{ github.event.pull_request.head.sha }}
+        shell: bash
+        run: test "$(git rev-parse HEAD)" = "$EXPECTED_SHA"
+      - name: Set up stdlib-only Python 3.13
+        uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version: "3.13"
+      - name: Validate on-demand workflows using pinned actionlint
+        shell: bash
+        run: |
+          set -euo pipefail
+          go run github.com/rhysd/actionlint/cmd/actionlint@v1.7.12 \
+            .github/workflows/atlas-tools-on-demand.yml \
+            .github/workflows/atlas-tools-on-demand-contracts.yml
+      - name: Exercise strict command router and authorized exact-SHA modes
+        shell: bash
+        run: |
+          set -euo pipefail
+          python -m unittest discover -s tests -p test_atlas_tools_on_demand.py -v
+          python -m unittest discover -s tests -p test_doctor_pr_on_demand.py -v
+          python -m unittest discover -s tests -p test_doctor_dev_lot.py -v
+          python -m unittest discover -s tests -p test_ci_domain_certification.py -v
+      - name: State evidence boundary
+        if: always()
+        env:
+          SOURCE_SHA: ${{ github.event.pull_request.head.sha }}
+        shell: bash
+        run: |
+          {
+            echo "## Atlas Tools — contract tests only"
+            echo "- Candidate SHA: $SOURCE_SHA"
+            echo "- No application/Qt/Windows runtime executed"
+            echo "- No Doctor Phase Certification or benchmarks executed"
+            echo "- PR Draft status does not grant certification"
+          } >> "$GITHUB_STEP_SUMMARY"

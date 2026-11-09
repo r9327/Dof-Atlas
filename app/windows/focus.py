@@ -17,8 +17,14 @@ def activate_window(
     logger: Logger,
     action_label: str,
     should_stop: Callable[[], bool] | None = None,
+    *, skip_settle_if_active: bool = False,
 ) -> bool:
     if os.name != "nt" or not hwnd:
+        return False
+    # Stop is authoritative before importing pywin32, checking windows or
+    # changing foreground. A currently active HWND is not an exception.
+    if should_stop is not None and should_stop():
+        logger.info("%s activation stoppee avant preflight hwnd=%s", action_label, hwnd)
         return False
     try:
         import win32con
@@ -96,10 +102,30 @@ def activate_window(
                     exc,
                 )
 
-    hwnd = int(hwnd)
-    attempt_count = max(1, int(attempts))
-    settle_ms = max(0, int(settle_ms))
-    retry_ms = max(0, int(retry_ms))
+    try:
+        hwnd = int(hwnd)
+        # Both normal/fast Organizer profiles use at most eight retries.
+        # Bound corrupted/oversized values instead of looping indefinitely.
+        attempt_count = max(1, min(8, int(attempts)))
+        settle_ms = max(0, int(settle_ms))
+        retry_ms = max(0, int(retry_ms))
+    except (TypeError, ValueError, OverflowError):
+        # A corrupted timing profile must not tear down a macro worker
+        # outside its cancellable SendInput/Stop cleanup path.
+        logger.warning(
+            "%s activation refusee: temporisations ou hwnd invalides.", action_label,
+        )
+        return False
+
+    # Normal/fast profiles are below 30 ms. A finite but corrupt timer could
+    # otherwise hold a blocked macro for hours, especially at eight clients.
+    # Refuse clearly invalid settings instead of silently changing timings.
+    if settle_ms > 1000 or retry_ms > 1000:
+        logger.warning(
+            "%s activation refusee: temporisation excessive settle=%s retry=%s.",
+            action_label, settle_ms, retry_ms,
+        )
+        return False
 
     try:
         if not win32gui.IsWindow(hwnd):
@@ -113,9 +139,17 @@ def activate_window(
         return False
 
     if foreground_window() == hwnd:
-        if settle_ms > 0 and wait_ms(settle_ms, should_stop):
+        # Opt-in for callers that need only a *window-switch* settle.
+        # No switch happened: avoid an unnecessary delay, but still
+        # recheck Stop and foreground before confirming activation.
+        if settle_ms > 0 and not skip_settle_if_active and wait_ms(settle_ms, should_stop):
             return False
-        return True
+        # The user can focus a different app during Unity's settle delay,
+        # even when the target was foreground at the first native probe.
+        # Do not report success on an obsolete foreground snapshot.
+        if should_stop is not None and should_stop():
+            return False
+        return foreground_window() == hwnd
 
     for attempt in range(attempt_count):
         if should_stop is not None and should_stop():
@@ -138,13 +172,36 @@ def activate_window(
                 )
 
             attached = attach_threads()
+            # This pre-activation check matters on a slow desktop: the
+            # emergency Stop may arrive while AttachThreadInput is running.
+            # The surrounding finally must detach even on early return.
+            if should_stop is not None and should_stop():
+                logger.info(
+                    "%s activation stoppee avant manipulation hwnd=%s",
+                    action_label, hwnd,
+                )
+                return False
 
             if win32gui.IsIconic(hwnd):
                 win32gui.ShowWindow(hwnd, win32con.SW_RESTORE)
             else:
                 win32gui.ShowWindow(hwnd, win32con.SW_SHOW)
 
+            if should_stop is not None and should_stop():
+                logger.info(
+                    "%s activation stoppee apres ShowWindow hwnd=%s",
+                    action_label, hwnd,
+                )
+                return False
+
             win32gui.BringWindowToTop(hwnd)
+            if should_stop is not None and should_stop():
+                logger.info(
+                    "%s activation stoppee apres BringWindowToTop hwnd=%s",
+                    action_label, hwnd,
+                )
+                return False
+
             win32gui.SetWindowPos(
                 hwnd,
                 win32con.HWND_TOP,
@@ -157,6 +214,15 @@ def activate_window(
                 | win32con.SWP_SHOWWINDOW,
             )
 
+            # ShowWindow/SetWindowPos can yield to an emergency Stop. Do not
+            # initiate a new foreground change once the owner cancelled.
+            if should_stop is not None and should_stop():
+                logger.info(
+                    "%s activation stoppee avant foreground hwnd=%s",
+                    action_label, hwnd,
+                )
+                return False
+
             try:
                 win32gui.SetActiveWindow(hwnd)
             except Exception as exc:
@@ -168,6 +234,15 @@ def activate_window(
                 )
 
             win32gui.SetForegroundWindow(hwnd)
+
+            # A cancelled action must not issue an additional SetFocus after
+            # SetForegroundWindow yields to another desktop thread.
+            if should_stop is not None and should_stop():
+                logger.info(
+                    "%s activation stoppee avant SetFocus hwnd=%s",
+                    action_label, hwnd,
+                )
+                return False
 
             try:
                 win32gui.SetFocus(hwnd)
@@ -185,29 +260,57 @@ def activate_window(
                 attempt == attempt_count - 1
                 and foreground_window() != hwnd
             ):
+                # The final TOPMOST/not-TOPMOST fallback must not override
+                # an emergency Stop that arrived during the native attempt.
+                if should_stop is not None and should_stop():
+                    logger.info(
+                        "%s activation stoppee avant topmost hwnd=%s",
+                        action_label, hwnd,
+                    )
+                    return False
                 flags = (
                     win32con.SWP_NOMOVE
                     | win32con.SWP_NOSIZE
                     | win32con.SWP_SHOWWINDOW
                 )
-                win32gui.SetWindowPos(
-                    hwnd,
-                    win32con.HWND_TOPMOST,
-                    0,
-                    0,
-                    0,
-                    0,
-                    flags,
-                )
-                win32gui.SetWindowPos(
-                    hwnd,
-                    win32con.HWND_NOTOPMOST,
-                    0,
-                    0,
-                    0,
-                    0,
-                    flags,
-                )
+                try:
+                    win32gui.SetWindowPos(
+                        hwnd, win32con.HWND_TOPMOST,
+                        0, 0, 0, 0, flags,
+                    )
+                finally:
+                    # Even a raised SetWindowPos may have partially applied
+                    # TOPMOST. Always attempt NOTOPMOST before leaving the
+                    # worker, including on Stop or a native API exception.
+                    try:
+                        win32gui.SetWindowPos(
+                            hwnd, win32con.HWND_NOTOPMOST,
+                            0, 0, 0, 0, flags,
+                        )
+                    except Exception:
+                        logger.exception(
+                            "%s: retrait topmost echec hwnd=%s, nouvel essai.",
+                            action_label, hwnd,
+                        )
+                        # Exactly one bounded retry; if it fails too the
+                        # outer handler refuses the final foreground step.
+                        try:
+                            win32gui.SetWindowPos(
+                                hwnd, win32con.HWND_NOTOPMOST,
+                                0, 0, 0, 0, flags,
+                            )
+                        except Exception:
+                            logger.error(
+                                "%s: fenetre potentiellement bloquee topmost hwnd=%s.",
+                                action_label, hwnd,
+                            )
+                            raise
+                if should_stop is not None and should_stop():
+                    logger.info(
+                        "%s activation stoppee apres topmost hwnd=%s",
+                        action_label, hwnd,
+                    )
+                    return False
                 win32gui.SetForegroundWindow(hwnd)
         except Exception as exc:
             logger.debug(
@@ -229,6 +332,14 @@ def activate_window(
 
         foreground = foreground_window()
         if foreground == hwnd:
+            # Stop can arrive after SetForegroundWindow succeeds but before
+            # this worker is allowed to send any virtual input. Don't certify
+            # an activation that the owner already cancelled.
+            if should_stop is not None and should_stop():
+                logger.info(
+                    "%s activation stoppee apres tentative hwnd=%s", action_label, hwnd,
+                )
+                return False
             logger.debug(
                 "%s activation reussie hwnd=%s tentative=%s/%s",
                 action_label,

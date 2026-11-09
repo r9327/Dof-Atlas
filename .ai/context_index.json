@@ -2,7 +2,7 @@
   "entries": {
     ".agents": {
       "mode": "040000",
-      "sha": "ec188f3191a0067e5139c6d34b88be4ed9398df6",
+      "sha": "e20c3281fb8199fc820a45b600831819ed7fa324",
       "type": "tree"
     },
     ".codex": {
@@ -12,7 +12,7 @@
     },
     ".cursor": {
       "mode": "040000",
-      "sha": "45ea194fa76ce6aedad186f024467966b7c1c9fd",
+      "sha": "162101ed7fb7f31a0cf44aa07df7d9d36a4adb86",
       "type": "tree"
     },
     ".gitattributes": {
@@ -27,12 +27,12 @@
     },
     ".github": {
       "mode": "040000",
-      "sha": "501d27297a23c25bf09b1888ddbde268ed3f080f",
+      "sha": "2cfff33f0f70706f866f50f5aa9b5764880d1a7e",
       "type": "tree"
     },
     ".gitignore": {
       "mode": "100644",
-      "sha": "3a8da6d0e841fdd8e0f1ee1dc32940d574970c21",
+      "sha": "52502f3339edad8c427d7ab006fd286dd5e9eaa5",
       "type": "blob"
     },
     ".graphifyignore": {
@@ -42,22 +42,22 @@
     },
     "AGENTS.md": {
       "mode": "100644",
-      "sha": "00bee3ed058dcd3fea38b7fdda4abccad6c6c314",
+      "sha": "644213d944126be0bd9a96c1b1f8029cc4796248",
       "type": "blob"
     },
     "AI_CONTEXT.md": {
       "mode": "100644",
-      "sha": "21797f68af70490bb9459d2029678c8e273e64ff",
+      "sha": "957e8fbb658d331f0fc1604c49771a2ea75a66d6",
       "type": "blob"
     },
     "AI_ENTRYPOINT.md": {
       "mode": "100644",
-      "sha": "451afb153bc6a70a5741de8551964741b76e2dc8",
+      "sha": "5875ff39d487189de6f1766f5d4146cd36eee94d",
       "type": "blob"
     },
     "CLAUDE.md": {
       "mode": "100644",
-      "sha": "80ceaca71cb653324ad58d0893d6c966ae646d96",
+      "sha": "81c0b216ee5c04a818c6037ffcbf515d2da256d3",
       "type": "blob"
     },
     "DEVELOPMENT_GUARDRAILS.md": {
@@ -82,7 +82,7 @@
     },
     "GRAPHIFY.md": {
       "mode": "100644",
-      "sha": "9d7864b60257ee12d353706b563253a331e7ec47",
+      "sha": "e3b7ea3615de3d765a4839624e71e8df018bf1ef",
       "type": "blob"
     },
     "GUIDE_ULTIME_STATUS.md": {
@@ -102,7 +102,7 @@
     },
     "README.md": {
       "mode": "100644",
-      "sha": "4fe91f8598397d350a1b184e2f91beb551351b40",
+      "sha": "3f9b8acd174ea202821ff86910ad90d73d6e66f2",
       "type": "blob"
     },
     "ROAD_IA.md": {
@@ -117,7 +117,7 @@
     },
     "app": {
       "mode": "040000",
-      "sha": "4078460b4aa43027ad4988ac137cbcfca9bf4e8b",
+      "sha": "f3c7def129a6b320d425a3281f771a8d18ada538",
       "type": "tree"
     },
     "data": {
@@ -127,7 +127,7 @@
     },
     "docs": {
       "mode": "040000",
-      "sha": "838b7fa255123106ca0c2eed0c44c838cd13f99a",
+      "sha": "474de084d7a3778c1c13eb3ed9d594933ada59db",
       "type": "tree"
     },
     "launch.py": {
@@ -142,7 +142,7 @@
     },
     "main.py": {
       "mode": "100644",
-      "sha": "20ad53159bae086b92ce7a8442e74301d655d387",
+      "sha": "651cfb1dc807328dc17d8ea6b27d6333e2070a20",
       "type": "blob"
     },
     "requirements-pyside.txt": {
@@ -162,12 +162,12 @@
     },
     "tests": {
       "mode": "040000",
-      "sha": "b6b0d93784c58bc9fdc2a996e3b7e00dc77a04b2",
+      "sha": "3a49c289272a9adf3e6c2b4f4dca182edbc45ce2",
       "type": "tree"
     },
     "tools": {
       "mode": "040000",
-      "sha": "b01fa015594f8aeb1d0cc5e4c08f885aefc9bf35",
+      "sha": "fb0083b8a49deaca0d88c1f6a813b0cd5f714307",
       "type": "tree"
     }
   },

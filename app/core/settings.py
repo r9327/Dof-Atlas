@@ -1,17 +1,22 @@
 from __future__ import annotations
 
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from pathlib import Path
 from typing import Any
 
 from app.constants import (
     CLIENT_INDEX_JSON,
     KEY_CLICK_HOTKEY,
+    KEY_ORGANIZER_MACRO_MODE,
     KEY_DEBUG_MODE,
     KEY_DOUBLE_CLICK_HOTKEY,
     KEY_PRIMARY_WINDOW,
     KEY_SCRIPT_SPEED,
     KEY_STOP_SCRIPT_HOTKEY,
+    KEY_SCRIPT_SPEED_SCHEMA,
+    KEY_NEXT_CHARACTER_HOTKEY,
+    KEY_RADIAL_ENABLED,
+    KEY_RADIAL_HOTKEY,
     KEY_SWITCH_CHARACTER,
     KEY_SWITCH_CLICK,
     KEY_SWITCH_DOUBLE_CLICK,
@@ -101,10 +106,31 @@ class AtlasSettings:
     zaap_click_ratios: tuple[float, float] | None
     timings: MacroTimings
     zaap_timings: ZaapTimings
+    macro_mode: str = "macro"
+    next_character_hotkey: str = ""
+    radial_hotkey: str = ""
+    radial_enabled: bool = True
 
     def client_by_handle(self, hwnd: int) -> AtlasClient | None:
+        # The persisted compatibility roster can contain corrupt HWNDs.
+        # Reject ambiguous/overflowing values without losing other clients.
+        if isinstance(hwnd, (bool, float)):
+            return None
+        try:
+            sought = int(hwnd)
+        except (TypeError, ValueError, OverflowError):
+            return None
+        if not 0 < sought <= (2**64 - 1):
+            return None
         for client in self.clients:
-            if int(client.handle) == int(hwnd):
+            raw = client.handle
+            if isinstance(raw, (bool, float)):
+                continue
+            try:
+                handle = int(raw)
+            except (TypeError, ValueError, OverflowError):
+                continue
+            if handle == sought:
                 return client
         return None
 
@@ -119,12 +145,54 @@ class AtlasSettings:
         return self.clients[0] if self.clients else None
 
 
-def normalize_script_speed(value: Any) -> str:
-    return "rapide" if str(value or "").strip().casefold() in {"rapide", "fast"} else "normal"
+def normalize_script_speed(value: Any, *, legacy: bool = False) -> str:
+    """Normalize persisted v1 speed names without speeding up old profiles.
+
+    Legacy Normal was deliberately conservative -> Classique.
+    Legacy Rapide used the v1 fast preset -> new Normal (same timings).
+    Versioned v2 labels are unambiguous and do not need conversion.
+    """
+    name = str(value or "").strip().casefold()
+    if legacy and name in {"rapide", "fast"}:
+        return "normal"
+    if legacy and name in {"normal", ""}:
+        return "classique"
+    if name in {"instantane", "instantané", "instant"}:
+        return "instantane"
+    if name in {"rapide", "fast"}:
+        return "rapide"
+    if name == "normal":
+        return "normal"
+    return "classique"
 
 
 def timings_for_speed(speed: str) -> MacroTimings:
-    if normalize_script_speed(speed) == "rapide":
+    mode = normalize_script_speed(speed)
+    if mode == "instantane":
+        # Unity click reliability remains protected by sender-side 35ms DOWN
+        # and 50ms hover floors even in this optional fastest preset.
+        return replace(
+            timings_for_speed("normal"),
+            click_focus_settle_ms=4, input_double_gap_ms=4,
+            travel_focus_settle_ms=6, activate_min_settle_ms=5,
+            activate_retry_ms=8, activate_attempts=5,
+            switch_background_pre_click_ms=10, switch_background_post_up_ms=2,
+            auto_group_chat_open_ms=25, auto_group_key_step_ms=8,
+            auto_group_paste_settle_ms=25, auto_group_invite_gap_ms=65,
+            movement_key_hold_ms=16,
+        )
+    if mode == "rapide":
+        return replace(
+            timings_for_speed("normal"),
+            click_focus_settle_ms=6, input_double_gap_ms=4,
+            travel_focus_settle_ms=10, activate_min_settle_ms=6,
+            activate_retry_ms=10, activate_attempts=6,
+            switch_background_pre_click_ms=14, switch_background_post_up_ms=3,
+            auto_group_chat_open_ms=35, auto_group_key_step_ms=10,
+            auto_group_paste_settle_ms=35, auto_group_invite_gap_ms=100,
+            movement_key_hold_ms=17,
+        )
+    if mode == "normal":
         return MacroTimings(
             click_focus_settle_ms=8,
             input_click_down_ms=1,
@@ -176,7 +244,7 @@ def read_json_file(path: Path, default: Any) -> Any:
 def int_value(value: Any, default: int = 0) -> int:
     try:
         return int(value)
-    except (TypeError, ValueError):
+    except (TypeError, ValueError, OverflowError):
         return default
 
 
@@ -218,15 +286,47 @@ def load_settings() -> AtlasSettings:
     if not isinstance(global_hotkeys, dict):
         global_hotkeys = {}
 
-    speed = normalize_script_speed(global_hotkeys.get("script_speed", profile.get(KEY_SCRIPT_SPEED, "normal")))
+    speed_schema = int_value(
+        global_hotkeys.get("script_speed_schema", profile.get(KEY_SCRIPT_SPEED_SCHEMA)), 1,
+    )
+    speed = normalize_script_speed(
+        global_hotkeys.get("script_speed", profile.get(KEY_SCRIPT_SPEED, "normal")),
+        legacy=speed_schema < 2,
+    )
     clients: list[AtlasClient] = []
-    for raw in index_payload.get("clients", []):
+    # A partially written/corrupt index must not crash runtime startup.
+    raw_clients = index_payload.get("clients", ())
+    if not isinstance(raw_clients, (list, tuple)):
+        raw_clients = ()
+    for raw in raw_clients:
         if not isinstance(raw, dict):
             continue
-        handle = int_value(raw.get("handle"))
-        if handle <= 0:
+        raw_handle = raw.get("handle")
+        # Never coerce 202.9, True or scientific notation to a native HWND:
+        # the truncated value could alias another live DOFUS window.
+        if type(raw_handle) is int:
+            handle = raw_handle
+        elif type(raw_handle) is str:
+            token = raw_handle.strip()
+            if not token or not token.isascii() or not token.isdecimal():
+                continue
+            handle = int_value(token)
+        else:
             continue
-        index = int_value(raw.get("index"), len(clients) + 1)
+        if not 0 < handle <= (2**64 - 1):
+            continue
+        raw_index = raw.get("index")
+        if type(raw_index) is int and 1 <= raw_index <= 8:
+            index = raw_index
+        elif type(raw_index) is str:
+            token = raw_index.strip()
+            index = int_value(token) if (
+                token.isascii() and token.isdecimal()
+            ) else 0
+            if not 1 <= index <= 8:
+                index = len(clients) + 1
+        else:
+            index = len(clients) + 1
         binding = str(raw.get("binding") or "").strip().upper()
         binding_explicit = bool_value(raw.get("binding_explicit"), bool(binding))
         clients.append(
@@ -241,11 +341,24 @@ def load_settings() -> AtlasSettings:
             )
         )
 
-    primary_handle = int_value(global_hotkeys.get("primary_handle"))
-    if primary_handle <= 0:
+    raw_primary = global_hotkeys.get("primary_handle")
+    if type(raw_primary) is int:
+        primary_handle = raw_primary
+    elif type(raw_primary) is str and (
+        raw_primary.strip().isascii() and raw_primary.strip().isdecimal()
+    ):
+        primary_handle = int_value(raw_primary.strip())
+    else:
+        primary_handle = 0
+    if not 0 < primary_handle <= (2**64 - 1):
+        primary_handle = 0
         primary_token = str(profile.get(KEY_PRIMARY_WINDOW, "")).strip()
         if primary_token.startswith("hwnd:"):
-            primary_handle = int_value(primary_token[5:])
+            token = primary_token[5:]
+            if token.isascii() and token.isdecimal():
+                candidate = int_value(token)
+                if 0 < candidate <= (2**64 - 1):
+                    primary_handle = candidate
 
     zaap_position = parse_zaap_click_position(
         profile.get(KEY_ZAAP_CLICK_POSITION),
@@ -284,6 +397,12 @@ def load_settings() -> AtlasSettings:
         zaap_click_ratios=read_zaap_button_ratios(),
         timings=timings_for_speed(speed),
         zaap_timings=ZaapTimings(),
+        macro_mode="mirror" if profile.get(KEY_ORGANIZER_MACRO_MODE) == "mirror" else "macro",
+        next_character_hotkey=str(
+            global_hotkeys.get("next_character_hotkey") or profile.get(KEY_NEXT_CHARACTER_HOTKEY, "")
+        ).strip().upper(),
+        radial_hotkey=str(profile.get(KEY_RADIAL_HOTKEY) or "").strip().upper(),
+        radial_enabled=profile_bool(profile, KEY_RADIAL_ENABLED, True),
     )
 
 
