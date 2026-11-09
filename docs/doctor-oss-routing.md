@@ -147,6 +147,7 @@ L'owner JSON existant peut effectuer des essais ciblés :
 py -3.13 -m tools.atlas_json_benchmark --compare-parsers
 py -3.13 -m tools.atlas_json_benchmark --compare-streaming
 py -3.13 -m tools.atlas_json_benchmark --compare-compression
+py -3.13 -m tools.atlas_json_benchmark --compare-process
 ```
 
 Les trois commandes nécessitent les données locales Quêtes ; elles
@@ -157,6 +158,17 @@ des données compressées est vérifiée. La troisième compare le ratio et
 les temps zlib/zstandard, sans modifier les formats du Launcher, du pack
 de release ni les installations existantes. Ces micro-comparaisons ne
 prouvent pas la RAM process-tree ni l'intérêt d'une migration runtime.
+
+`--compare-process` lance explicitement trois processus Python indépendants
+(stdlib, orjson, msgspec, si installés) sur les mêmes octets : SHA-256
+canonique à types conservés, premier décodage, médiane des décodages suivants,
+RSS du processus avant/après (via psutil quand disponible), temps total
+avec imports/démarrage et limite de 45 secondes **par moteur**. Un module
+absent, un résultat modifié ou un RSS indisponible donne `REVIEW`, jamais
+une adoption automatique. Les mesures RSS sont des **instantanés du
+processus**, pas des pics de l'arbre des processus. Le premier décodage
+n'atteste ni cache disque froid ni démarrage Qt/Atlas : ces preuves doivent
+venir du benchmark Windows canonique.
 L'essai `msgspec` utilise précisément `msgspec.json.decode`, et non
 une API `loads` inexistante. Les comparaisons retournent **0** seulement
 si tous les résultats demandés sont conformes, **1** si une dépendance est
