@@ -380,5 +380,60 @@ class RepoUpdatePublisherTests(unittest.TestCase):
                 build_pointer(manifest, delta, "main")
 
 
+    def test_pointer_cli_never_overwrites_manifest_or_delta(self) -> None:
+        import sys
+        from pathlib import Path
+        from tempfile import TemporaryDirectory
+        from scripts.windows.build_repo_update_pointer import main
+
+        with TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            payload = b"verified-offline-delta"
+            document = json.loads(_manifest())
+            document["delta"]["archive_size"] = len(payload)
+            document["delta"]["archive_sha256"] = hashlib.sha256(payload).hexdigest()
+            original_manifest = json.dumps(document).encode()
+            manifest_path = root / "atlas-manifest.json"
+            delta_path = root / "atlas-delta.zip"
+            manifest_path.write_bytes(original_manifest)
+            delta_path.write_bytes(payload)
+            source_args = [
+                "--manifest", str(manifest_path), "--delta", str(delta_path),
+                "--app-commit-sha", APP_COMMIT,
+            ]
+            for output in (manifest_path, delta_path):
+                with self.subTest(output=output.name):
+                    with patch.object(sys, "argv", [
+                        "build_repo_update_pointer", *source_args,
+                        "--output", str(output),
+                    ]):
+                        with self.assertRaisesRegex(ManifestError, "overlaps"):
+                            main()
+                    self.assertEqual(manifest_path.read_bytes(), original_manifest)
+                    self.assertEqual(delta_path.read_bytes(), payload)
+
+            # A different filename may still target the same inode.
+            alias = root / "pointer-alias.json"
+            try:
+                alias.hardlink_to(manifest_path)
+            except OSError:
+                pass  # Host does not support creation of hard links.
+            else:
+                with patch.object(sys, "argv", [
+                    "build_repo_update_pointer", *source_args,
+                    "--output", str(alias),
+                ]):
+                    with self.assertRaisesRegex(ManifestError, "overlaps"):
+                        main()
+                self.assertEqual(manifest_path.read_bytes(), original_manifest)
+
+            output = root / "stable.json"
+            with patch.object(sys, "argv", [
+                "build_repo_update_pointer", *source_args, "--output", str(output),
+            ]):
+                self.assertEqual(main(), 0)
+            self.assertEqual(parse_repo_update_pointer(output.read_bytes()).source_sha, SRC)
+
+
 if __name__ == "__main__":
     unittest.main()
