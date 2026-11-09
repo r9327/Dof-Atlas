@@ -53,7 +53,7 @@ jobs:
           python -m unittest -q tests.test_organizer_mirror_ui.OrganizerMirrorIntegrationTests.test_mirror_wheel_collision_inside_atomic_release_reports_lost_gesture_2_to_8
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           # Cover the precise Win32 focus failures fixed by PR #398 on 2/4/6/8 clients.
-          python -m unittest -q tests.test_organizer_mirror_ui.OrganizerMirrorIntegrationTests.test_mirror_unreadable_final_focus_probes_never_send_to_unknown_window tests.test_organizer_macro_reliability.OrganizerMacroReliabilityTests.test_focus_probe_failure_or_recovery_never_sends_to_later_clients tests.test_organizer_macro_reliability.OrganizerMacroReliabilityTests.test_focus_stolen_between_clients_never_activates_next_window
+          python -m unittest -q tests.test_organizer_mirror_ui.OrganizerMirrorIntegrationTests.test_mirror_unreadable_final_focus_probes_never_send_to_unknown_window tests.test_organizer_macro_reliability.OrganizerMacroReliabilityTests.test_focus_probe_failure_or_recovery_never_sends_to_later_clients tests.test_organizer_macro_reliability.OrganizerMacroReliabilityTests.test_focus_stolen_between_clients_never_activates_next_window tests.test_organizer_macro_reliability.OrganizerMacroReliabilityTests.test_transient_focus_loss_after_sender_accepts_never_reaches_next_client
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
       - name: Probe native Windows fixture input (not Unity)
         shell: pwsh

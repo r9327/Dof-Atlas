@@ -318,6 +318,15 @@ class ZaapMacro:
                     )
                     break
                 sent += 1
+                # send_chat_command is a separate native sender: if its stop
+                # callback observed a transient focus theft, even a late
+                # accepted=True must never authorize another client.
+                if focus_lost:
+                    self.runtime.logger.warning(
+                        "Auto zaap interrompu: focus perdu pendant le chat hwnd=%s.",
+                        target_hwnd,
+                    )
+                    return
                 if not frozen_roster_intact():
                     focus_lost = True
                     self.runtime.logger.warning(

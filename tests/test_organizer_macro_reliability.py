@@ -2067,6 +2067,49 @@ class OrganizerMacroReliabilityTests(unittest.TestCase):
                         )
 
 
+    def test_transient_focus_loss_after_sender_accepts_never_reaches_next_client(self) -> None:
+        # A late accepted=True from the native sender does not undo a
+        # should_stop() observation that focus was stolen, then restored.
+        for count in (2, 4, 6, 8):
+            with self.subTest(clients=count):
+                runtime = Mock()
+                runtime.settings.primary_handle = 101
+                runtime.settings.macro_mode = "macro"
+                runtime.macro_lock.should_stop.return_value = False
+                runtime.switch_character.ordered_clients_from_source.return_value = [
+                    SimpleNamespace(handle=101 + i) for i in range(count)
+                ]
+                foreground = [101]
+
+                def late_success(_command, _logger, **kwargs) -> bool:
+                    foreground[0] = 999
+                    self.assertTrue(kwargs["should_stop"]())
+                    # Window reactivates before the sender returns, but the
+                    # previous loss must remain latched for the whole run.
+                    foreground[0] = 101
+                    return True
+
+                with (
+                    patch("app.macros.zaap.is_unity_window", return_value=True),
+                    patch("app.macros.zaap.is_dofus_unity_process", return_value=True),
+                    patch("app.macros.zaap.activate_window", return_value=True) as activate,
+                    patch("app.macros.zaap.foreground_window",
+                          side_effect=lambda: foreground[0]),
+                    patch("app.macros.zaap.send_chat_command", side_effect=late_success) as send,
+                ):
+                    ZaapMacro(runtime)._run("/zaap 1,2")
+
+                activate.assert_called_once()
+                send.assert_called_once()
+                runtime.switch_character.restore_preferred_client.assert_not_called()
+                runtime._emit_status.assert_called_once_with(
+                    f"Auto zaap interrompu : 1/{count} commandes émises "
+                    "(réception DOFUS non vérifiée)."
+                )
+                runtime.logger.warning.assert_any_call(
+                    "Auto zaap interrompu: focus perdu pendant le chat hwnd=%s.", 101,
+                )
+
     def test_focus_stolen_between_clients_never_activates_next_window(self) -> None:
         for count in (2, 4, 6, 8):
             with self.subTest(clients=count):
