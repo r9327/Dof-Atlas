@@ -164,9 +164,14 @@ class GuideCatalogView(QWidget):
             "background: #344978; color: #F1F6FB; }"
         )
         self._category_nodes = {}
-        for category_key, text in CATEGORIES:
-            # These categories already have their own featured/Dofus columns.
-            if category_key in {"optimized", "dofus"}:
+        # Dofus is the default, selectable category; events come last.
+        # Featured optimized routes stay in their own permanent left column.
+        for category_key, text in sorted(
+            CATEGORIES, key=lambda entry: (
+                entry[0] != "dofus", entry[0] == "events",
+            ),
+        ):
+            if category_key == "optimized":
                 continue
             node = QTreeWidgetItem((text,))
             node.setData(0, Qt.UserRole, category_key)
@@ -175,7 +180,7 @@ class GuideCatalogView(QWidget):
                 node.setIcon(0, QIcon(str(art)))
             self.library_categories.addTopLevelItem(node)
             self._category_nodes[category_key] = node
-        self.library_categories.setCurrentItem(self._category_nodes["alignements"])
+        self.library_categories.setCurrentItem(self._category_nodes["dofus"])
         self.library_categories.currentItemChanged.connect(self._on_category_changed)
         self.library_categories.itemClicked.connect(self._toggle_library_category)
         self.library_categories.itemActivated.connect(self._activate_library_item)
@@ -401,6 +406,7 @@ class GuideCatalogView(QWidget):
         category = item.data(0, Qt.UserRole)
         if category:
             self.library_category = str(category)
+            self.refresh_home()
 
     def _toggle_library_category(self, item: QTreeWidgetItem, _column: int) -> None:
         if item.data(0, Qt.UserRole) and item.childCount():
@@ -421,10 +427,17 @@ class GuideCatalogView(QWidget):
         self.result_model.set_home_column(matched, "left")
         self._apply_catalog_overrides()
 
-        # Browsing the left menu does not replace the permanent Dofus grid.
+        # The right column reflects the selected category. Disabled external
+        # references remain in the left tree and are never fabricated as
+        # clickable progress cards.
+        category = self.library_category
         shown_guides = [
             guide for guide in matched
-            if guide.category == "dofus" and guide.id not in featured_ids
+            if (
+                ("adventures" if guide.category == "aventure" else guide.category)
+                == category
+                and str(guide.id) not in featured_ids
+            )
         ]
 
         # Read progress only for rendered cards; no eager per-guide widget creation.
@@ -442,10 +455,16 @@ class GuideCatalogView(QWidget):
 
         self.home_dofus_model.set_home_column(shown_guides, "catalog")
         self.home_dofus_model.set_progress(progress)
-        self.library_results_title.setText("DOFUS")
+        self.library_results_title.setText(
+            dict(CATEGORIES).get(category, "Dofus").upper()
+        )
         self.home_dofus_list.setVisible(bool(shown_guides))
 
-        self.home_empty.setText("Aucun Dofus disponible.")
+        self.home_empty.setText(
+            "Aucun Dofus disponible."
+            if category == "dofus"
+            else "Aucun parcours disponible pour cette catégorie."
+        )
         self.home_empty.setVisible(not shown_guides)
         self._sync_grid_columns()
 

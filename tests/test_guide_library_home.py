@@ -177,6 +177,16 @@ class GuideLibraryHomeTests(unittest.TestCase):
                     self.assertTrue(all(isinstance(card.graphicsEffect(), QGraphicsDropShadowEffect)
                                         for card in view.featured_cards.values()))
                     self.assertEqual(view.library_category, "dofus")
+                    self.assertEqual(
+                        view.library_categories.topLevelItem(0).data(0, Qt.UserRole),
+                        "dofus",
+                    )
+                    self.assertEqual(
+                        view.library_categories.topLevelItem(
+                            view.library_categories.topLevelItemCount() - 1
+                        ).data(0, Qt.UserRole),
+                        "events",
+                    )
                     # Responsive layout follows the actual LEFT width; cards
                     # stay compact whether two fit alongside or must stack.
                     expected = (QBoxLayout.LeftToRight
@@ -223,8 +233,10 @@ class GuideLibraryHomeTests(unittest.TestCase):
                     self.assertEqual(requested, [])
                     view.refresh_home()
                     self.assertTrue(dimensions.isExpanded())
-                    self.assertEqual(view.library_results_title.text(), "DOFUS")
-                    self.assertTrue(view.home_dofus_list.isVisible())
+                    self.assertEqual(view.library_results_title.text(), "DIMENSIONS DIVINES")
+                    self.assertFalse(view.home_dofus_list.isVisible())
+                    self.assertTrue(view.home_empty.isVisible())
+                    self.assertIn("Aucun parcours", view.home_empty.text())
                     self.assertIsNone(
                         view.findChild(QListWidget, "GuideLibraryUnavailableList")
                     )
