@@ -1,10 +1,14 @@
 from __future__ import annotations
 
 import importlib
+from queue import Queue
 import unittest
+from unittest.mock import Mock
 
-from app.modules.encyclopedia.constants import ACHIEVEMENTS_TAB, GUIDES_TAB
-from app.modules.encyclopedia.views.encyclopedia_page import EncyclopediaPage
+from app.modules.encyclopedia.constants import ACHIEVEMENTS_TAB, GUIDES_TAB, QUESTS_TAB
+from app.modules.encyclopedia.views.encyclopedia_page import (
+    EncyclopediaPage, _QuestRuntimePayload,
+)
 
 
 class _Tabs:
@@ -67,6 +71,43 @@ class EncyclopediaDemandLoadingTests(unittest.TestCase):
         page.on_tab_changed(0)
         self.assertEqual(page._pending_lazy_tab, ACHIEVEMENTS_TAB)
         self.assertEqual(page.calls, ["open-pending"])
+
+    def test_leaving_quests_marks_pending_worker_obsolete_without_stopping_it(self) -> None:
+        page = _PageProbe(GUIDES_TAB)
+        page._quest_load_started = True
+        page._quest_load_abandoned = False
+        page.on_tab_changed(0)
+        self.assertTrue(page._quest_load_abandoned)
+        page.tabs.label = QUESTS_TAB
+        page.on_tab_changed(0)
+        self.assertFalse(page._quest_load_abandoned)
+        self.assertEqual(page.calls[-1], ("indexed", 0))
+
+    def test_completed_abandoned_quest_worker_does_not_mount_heavy_page(self) -> None:
+        class QuestResultProbe:
+            _collect_quest_runtime = EncyclopediaPage._collect_quest_runtime
+
+            def __init__(self) -> None:
+                self._quest_load_queue = Queue(maxsize=1)
+                self._quest_load_timer = Mock()
+                self._quest_load_started = True
+                self._quest_load_abandoned = True
+                self._quest_graph = None
+                self.quest_page = None
+                self.status_callback = Mock()
+
+            def _build_quests_page_progressive(self):
+                raise AssertionError("Abandoned Quests must not hydrate")
+
+        page = QuestResultProbe()
+        page._quest_load_queue.put(_QuestRuntimePayload(object()))
+        page._collect_quest_runtime()
+        self.assertFalse(page._quest_load_started)
+        self.assertFalse(page._quest_load_abandoned)
+        self.assertIsNone(page._quest_graph)
+        self.assertTrue(page._quest_load_queue.empty())
+        page._quest_load_timer.stop.assert_called_once()
+        page.status_callback.assert_not_called()
 
     def test_obsolete_light_index_entry_points_are_removed(self) -> None:
         obsolete = (

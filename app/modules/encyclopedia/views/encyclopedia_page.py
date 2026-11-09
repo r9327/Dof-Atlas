@@ -607,6 +607,7 @@ class EncyclopediaPage(QWidget):
 
         self._quest_load_queue: Queue[object] = Queue(maxsize=1)
         self._quest_load_started = False
+        self._quest_load_abandoned = False
         self._achievement_load_started = False
         self._achievement_ready = False
         self._catalog_context_published = False
@@ -785,7 +786,10 @@ class EncyclopediaPage(QWidget):
         if self.quest_page is not None:
             return
         if self._quest_load_started:
+            # A user who returned before the worker finished still wants it.
+            self._quest_load_abandoned = False
             return
+        self._quest_load_abandoned = False
         self._quest_load_started = True
         provider = self.quest_provider
         results = self._quest_load_queue
@@ -810,6 +814,11 @@ class EncyclopediaPage(QWidget):
             return
         self._quest_load_timer.stop()
         self._quest_load_started = False
+        if self._quest_load_abandoned:
+            # Worker cannot be forcibly interrupted; discard only the stale
+            # result, without mounting a heavy Quest widget off-screen.
+            self._quest_load_abandoned = False
+            return
         if isinstance(result, Exception):
             self.status_callback(f"Chargement Quêtes impossible : {result}")
             return
@@ -903,6 +912,11 @@ class EncyclopediaPage(QWidget):
         if self._initializing:
             self._on_tab_changed_indexed(index)
             return
+
+        if getattr(self, "_quest_load_started", False):
+            # Let the worker finish safely, but never hydrate Quests after
+            # its tab was abandoned. Returning before completion reuses it.
+            self._quest_load_abandoned = label != QUESTS_TAB
 
         # A background Success/Guide load must never steal focus back after the
         # player explicitly switches to another Encyclopedia tab.
