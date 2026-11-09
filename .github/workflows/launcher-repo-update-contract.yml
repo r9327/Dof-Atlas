@@ -1,0 +1,50 @@
+name: Launcher Repo Update — Scoped Contract
+
+# A light, exact-SHA Ubuntu/Windows test for the optional repository pointer.
+# No package publication, application install, FULL or Phase Certification.
+on:
+  pull_request:
+    branches: [main]
+    types: [opened, synchronize, reopened]
+    paths:
+      - app/distribution/manifest.py
+      - scripts/windows/build_repo_update_pointer.py
+      - tests/test_distribution_repo_update_pointer.py
+      - .github/workflows/launcher-repo-update-contract.yml
+
+permissions:
+  contents: read
+
+jobs:
+  repo-pointer-contract:
+    if: github.event.pull_request.head.repo.full_name == github.repository
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 8
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+    steps:
+      - name: Checkout exact candidate without credentials
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          persist-credentials: false
+          lfs: false
+      - name: Python 3.13
+        uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
+        with:
+          python-version: "3.13"
+      - name: Verify checkout SHA
+        env:
+          EXPECTED_SHA: ${{ github.event.pull_request.head.sha }}
+        run: python -c "import os,subprocess; assert subprocess.check_output(['git','rev-parse','HEAD'],text=True).strip() == os.environ['EXPECTED_SHA']"
+      - name: Run strict repo update pointer regressions
+        run: python -X faulthandler -m unittest -v tests.test_distribution_repo_update_pointer
+      - name: State proof boundaries
+        if: always()
+        env:
+          SHA: ${{ github.event.pull_request.head.sha }}
+        run: |
+          echo "Repo update pointer contract for $SHA"
+          echo "No delta published, installer invoked or Windows Unity app certified"
