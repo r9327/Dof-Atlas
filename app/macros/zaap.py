@@ -133,6 +133,23 @@ class ZaapMacro:
         )
         sent = 0
         focus_lost = False
+
+        def foreground_confirmed(hwnd: int) -> bool:
+            """Fail closed on an unreadable foreground, including mid-chat."""
+            nonlocal focus_lost
+            try:
+                confirmed = foreground_window() == int(hwnd)
+            except Exception:
+                focus_lost = True
+                self.runtime.logger.exception(
+                    "Auto zaap interrompu: focus Windows illisible hwnd=%s.", hwnd,
+                )
+                return False
+            if not confirmed:
+                # Do not restore a favorite after any observed user focus loss,
+                # even if a later native probe sees that target again.
+                focus_lost = True
+            return confirmed
         last_activated_handle: int | None = None
         action_started_at = perf_counter()
         focus_steps_ms: list[float] = []
@@ -166,6 +183,14 @@ class ZaapMacro:
                     self.runtime.logger.warning(
                         "Auto zaap interrompu: roster muté pendant contrôle natif hwnd=%s",
                         target_hwnd,
+                    )
+                    return
+                # The user can switch apps after one successful /zaap. Never
+                # activate the next client over their newly chosen window.
+                if (last_activated_handle is not None
+                        and not foreground_confirmed(last_activated_handle)):
+                    self.runtime.logger.warning(
+                        "Auto zaap interrompu: focus utilisateur changé entre clients."
                     )
                     return
                 focus_started_at = perf_counter()
@@ -220,7 +245,7 @@ class ZaapMacro:
                 # can yield focus during a multi-window Unity sequence.
                 if (self.runtime.settings is not settings_at_start
                         or not is_dofus_unity_process(target_hwnd)
-                        or foreground_window() != int(target_hwnd)
+                        or not foreground_confirmed(target_hwnd)
                         or not frozen_roster_intact()
                         or dispatch_context_changed()):
                     focus_lost = True
@@ -254,7 +279,7 @@ class ZaapMacro:
                         or self.runtime.settings is not settings_at_start
                         or not frozen_roster_intact()
                         or dispatch_context_changed()
-                        or foreground_window() != int(hwnd)
+                        or not foreground_confirmed(hwnd)
                     ),
                     )
                 except Exception:
@@ -275,7 +300,7 @@ class ZaapMacro:
                             or self.runtime.settings is not settings_at_start):
                         return
                     if (not is_dofus_unity_process(target_hwnd)
-                            or foreground_window() != int(target_hwnd)
+                            or not foreground_confirmed(target_hwnd)
                             or not frozen_roster_intact()
                             or dispatch_context_changed()):
                         focus_lost = True
@@ -293,6 +318,15 @@ class ZaapMacro:
                     )
                     break
                 sent += 1
+                # send_chat_command is a separate native sender: if its stop
+                # callback observed a transient focus theft, even a late
+                # accepted=True must never authorize another client.
+                if focus_lost:
+                    self.runtime.logger.warning(
+                        "Auto zaap interrompu: focus perdu pendant le chat hwnd=%s.",
+                        target_hwnd,
+                    )
+                    return
                 if not frozen_roster_intact():
                     focus_lost = True
                     self.runtime.logger.warning(
