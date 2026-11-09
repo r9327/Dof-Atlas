@@ -40,7 +40,7 @@ jobs:
           EXPECTED_SHA: ${{ github.event.pull_request.head.sha }}
         run: python -c "import os,subprocess; assert subprocess.check_output(['git','rev-parse','HEAD'],text=True).strip() == os.environ['EXPECTED_SHA']"
       - name: Run strict repo update pointer regressions
-        run: python -X faulthandler -m unittest -v tests.test_distribution_repo_update_pointer
+        run: python -X faulthandler -m unittest discover -s tests -p test_distribution_repo_update_pointer.py -v
       - name: State proof boundaries
         if: always()
         env:
