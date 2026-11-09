@@ -4,6 +4,7 @@ import argparse
 import ctypes
 from ctypes import wintypes
 import json
+import math
 import os
 import sys
 import threading
@@ -570,6 +571,36 @@ def _home_rss_drift(samples: list[dict[str, Any]]) -> float | None:
     return round(float(last) - float(first), 2)
 
 
+def _largest_checkpoint_tree_sample(
+    stages: list[dict[str, Any]],
+) -> tuple[float, dict[str, Any]]:
+    """Independent observed peak from instantaneous process-tree checkpoints.
+
+    A parent high-water RSS is not simultaneous with child high-water RSS.
+    Compare already captured tree snapshots; never add unrelated per-process
+    peaks or call their sum an observed peak.
+    """
+    largest_mb = 0.0
+    evidence: dict[str, Any] = {}
+    for stage in stages:
+        value = stage.get("tree_rss_mb")
+        if isinstance(value, bool) or not isinstance(value, (int, float)):
+            continue
+        measured = float(value)
+        if not math.isfinite(measured) or measured < 0 or measured <= largest_mb:
+            continue
+        largest_mb = measured
+        evidence = {
+            "label": str(stage.get("label") or ""),
+            "tree_rss_mb": round(measured, 2),
+            "process_rss_mb": stage.get("process_rss_mb"),
+            "child_rss_mb": stage.get("child_rss_mb"),
+            "warmup_rss_mb": stage.get("warmup_rss_mb"),
+            "child_count": stage.get("child_count"),
+        }
+    return round(largest_mb, 2), evidence
+
+
 def measure(*, navigation_cycles: int = 2, include_heavy_views: bool = False) -> dict[str, Any]:
     if not 2 <= navigation_cycles <= 10:
         raise ValueError("navigation_cycles must be between 2 and 10")
@@ -827,6 +858,7 @@ def measure(*, navigation_cycles: int = 2, include_heavy_views: bool = False) ->
     guide_home_stable_tree = float(after_guide_home_stable.get("tree_rss_mb") or 0.0)
     craft_home_tree = float(after_craft_home.get("tree_rss_mb") or 0.0)
 
+    checkpoint_peak_mb, checkpoint_peak_sample = _largest_checkpoint_tree_sample(stages)
     return {
         "git_head": git_head(),
         "timings": timings,
@@ -834,6 +866,12 @@ def measure(*, navigation_cycles: int = 2, include_heavy_views: bool = False) ->
         "peak_process_rss_mb": round(sampler.peak_process_rss_mb, 2),
         "peak_tree_rss_mb": round(sampler.peak_tree_rss_mb, 2),
         "peak_tree_sample": sampler.peak_tree_sample,
+        # Supplemental C04 evidence; existing CI peak budget remains unchanged.
+        "checkpoint_tree_peak_rss_mb": checkpoint_peak_mb,
+        "checkpoint_tree_peak_sample": checkpoint_peak_sample,
+        "checkpoint_exceeds_reported_tree_peak": (
+            checkpoint_peak_mb > round(sampler.peak_tree_rss_mb, 2)
+        ),
         "navigation_cycles": navigation_cycles,
         "include_heavy_views": include_heavy_views,
         "round_trip_home_drift_mb": {
