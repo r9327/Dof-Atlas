@@ -1,6 +1,7 @@
 """End-to-end changed-file ZIP tests using fake frozen Windows binaries."""
 from __future__ import annotations
 
+import os
 import tempfile
 import unittest
 import zipfile
@@ -76,6 +77,35 @@ class DifferentialDistributionTests(unittest.TestCase):
                 install_release(root / "other", root / "second" / "atlas-delta.zip",
                                 latest, delta=True)
             self.assertTrue(install_release(target, new_zip, latest))
+
+
+    def test_reused_package_folder_cannot_publish_stale_delta(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            app = root / "AtlasApp"
+            app.mkdir()
+            (app / "AtlasApp.exe").write_bytes(b"MZ-frozen")
+            data = app / "_internal" / "data"
+            data.mkdir(parents=True)
+            (data / "unchanged.bin").write_bytes(os.urandom(16 * 1024))
+            catalog = data / "quests.json"
+            catalog.write_text('{"quests":[1]}', encoding="utf-8")
+            _, base = package_release(app, root / "base", "a" * 40,
+                                      "1.0", "v1", 1)
+
+            catalog.write_text('{"quests":[1,2]}', encoding="utf-8")
+            output = root / "reused"
+            _, second = package_release(app, output, "b" * 40,
+                                        "1.1", "v2", 1, base_manifest=base)
+            self.assertIsNotNone(parse_manifest(second.read_bytes()).delta)
+            self.assertTrue((output / "atlas-delta.zip").is_file())
+
+            # Same directory, no compatible base: the previous delta must
+            # disappear rather than be shipped with the new full manifest.
+            _, third = package_release(app, output, "c" * 40,
+                                       "1.2", "v3", 1)
+            self.assertIsNone(parse_manifest(third.read_bytes()).delta)
+            self.assertFalse((output / "atlas-delta.zip").exists())
 
 
 if __name__ == "__main__":
