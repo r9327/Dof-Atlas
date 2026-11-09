@@ -117,7 +117,8 @@ class DoctorOssIntelligenceTests(unittest.TestCase):
         core = {"status": "REVIEW", "exit_code": 1}
         fake = {"execution_results": [{"tool": "ruff", "status": "CLEAN"}],
                 "execution_summary": {"status": "COMPLETE",
-                                      "expected_tools": ["ruff"]},
+                                      "expected_tools": ["ruff"],
+                                      "confirmed_executions": 1, "gaps": []},
                 "status": "ADVISORY_ONLY"}
         result = ai_tool_workflow("check", core, plan, advisory=fake)
         self.assertFalse(result["approved_oss_execution"]["all_executed"])
@@ -139,6 +140,21 @@ class DoctorOssIntelligenceTests(unittest.TestCase):
                 "status": bogus_status, "expected_tools": ["ruff"],
             })
             proof = ai_tool_workflow("check", core, plan, advisory=bogus)
+            self.assertFalse(proof["approved_oss_execution"]["all_executed"])
+            self.assertFalse(proof["approved_oss_execution"]["witness_integrity_verified"])
+
+        for inconsistent in (
+            dict(complete, execution_summary={
+                "status": "COMPLETE", "expected_tools": ["ruff"],
+                "confirmed_executions": 0, "gaps": [],
+            }),
+            dict(complete, execution_summary={
+                "status": "COMPLETE", "expected_tools": ["ruff"],
+                "confirmed_executions": 1,
+                "gaps": [{"tool": "ruff", "status": "ERROR"}],
+            }),
+        ):
+            proof = ai_tool_workflow("check", core, plan, advisory=inconsistent)
             self.assertFalse(proof["approved_oss_execution"]["all_executed"])
             self.assertFalse(proof["approved_oss_execution"]["witness_integrity_verified"])
 
@@ -166,6 +182,8 @@ class DoctorOssIntelligenceTests(unittest.TestCase):
             "execution_summary": {
                 "status": "INCOMPLETE",
                 "expected_tools": ["ruff", "zizmor"],
+                "confirmed_executions": 1,
+                "gaps": [{"tool": "zizmor", "status": "NOT_AVAILABLE"}],
             },
         }
         result = ai_tool_workflow("check", {"status": "REVIEW", "exit_code": 1},

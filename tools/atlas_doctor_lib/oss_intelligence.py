@@ -316,6 +316,19 @@ def ai_tool_workflow(action: str, core_report: dict[str, Any],
             ) else "INCOMPLETE"
         )
         and summary.get("expected_tools") == expected
+        # The actual Doctor adapter reports both totals and individual gaps.
+        # Reject contradictory counters instead of trusting a COMPLETE flag.
+        and type(summary.get("confirmed_executions")) is int
+        and summary["confirmed_executions"] == sum(
+            isinstance(row, dict) and row.get("status") in {"CLEAN", "FINDINGS"}
+            for row in reported_rows
+        )
+        and summary.get("gaps") == [
+            {"tool": row.get("tool"), "status": row.get("status")}
+            for row in reported_rows
+            if not isinstance(row, dict)
+            or row.get("status") not in {"CLEAN", "FINDINGS"}
+        ]
         and len(reported_rows) == len(expected)
         and all(isinstance(row, dict) and row.get("tool") == expected[i]
                 for i, row in enumerate(reported_rows))
