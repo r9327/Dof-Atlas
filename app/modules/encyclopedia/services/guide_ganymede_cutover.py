@@ -286,7 +286,19 @@ def manual_source_completed_count(
     if not is_character_key(character_key):
         return 0
     checked = progress_service.manual_steps(character_key, guide_id)
-    return sum(
-        f"ganymede_{source_id}_step_{position:04d}" in checked
-        for position in range(1, total + 1)
-    )
+    # Home is rendered repeatedly. Count saved flags, not every position in
+    # every route; preserve exact canonical IDs and ignore legacy/foreign flags.
+    prefix = f"ganymede_{source_id}_step_"
+    max_width = max(4, len(str(total)))
+    count = 0
+    for key in checked:
+        if not isinstance(key, str) or not key.startswith(prefix):
+            continue
+        suffix = key[len(prefix):]
+        if (not 4 <= len(suffix) <= max_width
+                or not suffix.isascii() or not suffix.isdecimal()):
+            continue
+        position = int(suffix)
+        if 1 <= position <= total and suffix == f"{position:04d}":
+            count += 1
+    return count

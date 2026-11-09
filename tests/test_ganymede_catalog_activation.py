@@ -68,6 +68,33 @@ class GanymedeCatalogActivationTests(unittest.TestCase):
             ), 0,
         )
 
+    def test_home_count_rejects_lookalike_step_ids_and_scales_with_saved_flags(self) -> None:
+        checked = {
+            "ganymede_2205_step_0001",
+            "ganymede_2205_step_0042",
+            "ganymede_2205_step_0000",
+            "ganymede_2205_step_01",
+            "ganymede_2205_step_00001",
+            "ganymede_2205_step_٠٠٠٢",
+            "ganymede_2205_step_9999",
+            "ganymede_22050_step_0001",
+            "ganymede_2205_step_0002_extra",
+        }
+        calls = []
+        def manual_steps(character_key, guide_id):
+            calls.append((character_key, guide_id))
+            return checked
+        progress = SimpleNamespace(manual_steps=manual_steps)
+        self.assertEqual(manual_source_completed_count(
+            progress, "character:1", "dofus_cawotte", 2205, 64,
+        ), 2)
+        self.assertEqual(calls, [("character:1", "dofus_cawotte")])
+        # 5-digit step IDs are valid only once the route actually has >9999 steps.
+        checked.add("ganymede_2205_step_10000")
+        self.assertEqual(manual_source_completed_count(
+            progress, "character:1", "dofus_cawotte", 2205, 10000,
+        ), 3)
+
     def test_twenty_source_trusted_dofus_routes_are_integrity_gated(self) -> None:
         catalogue = json.loads((GUIDES / "catalog.json").read_text(encoding="utf-8"))
         manifest = json.loads(
