@@ -20,7 +20,8 @@ from typing import Callable
 
 from .manifest import (MAX_MANIFEST_BYTES, REPO_UPDATE_POINTER_LIMIT, ManifestError,
                        ReleaseFile, ReleaseManifest, RepoUpdatePointer,
-                       parse_manifest, parse_repo_update_pointer, verify_file)
+                       parse_manifest, parse_repo_update_pointer, verify_file,
+                       verify_repo_update_manifest)
 from .archive_parts import assemble_archive_parts
 from .startup_trace import record_startup_event
 
@@ -29,6 +30,9 @@ API_URL = f"https://api.github.com/repos/{REPO}/releases/latest"
 WEB_LATEST_URL = f"https://github.com/{REPO}/releases/latest"
 CHANNEL_URL = f"https://github.com/{REPO}/releases/latest/download/atlas-channel.json"
 REPO_UPDATE_POINTER_URL = f"https://raw.githubusercontent.com/{REPO}/main/updates/stable.json"
+_PINNED_REPO_MANIFEST_PATH = re.compile(
+    rf"/{re.escape(REPO)}/[a-f0-9]{{40}}/updates/[a-f0-9]{{40}}/atlas-manifest[.]json\Z"
+)
 CHANNEL_LIMIT = 4096
 _DOWNLOAD_ATTEMPTS = 4
 # Small releases stay sequential; large multipart bundles use bounded parallel I/O.
@@ -70,10 +74,12 @@ def _safe_url(url: str, *, asset: bool = False) -> str:
         raise UpdateError("Untrusted update URL")
     if (parts.hostname or "").lower() not in _ALLOWED_REDIRECT_HOSTS:
         raise UpdateError("Unexpected update host")
-    # The unpinned APP branch is metadata-only, never an asset source.
-    # Immutable package paths need a separate, certified integration.
+    # Only the small stable pointer or an immutable manifest can be read
+    # from APP. No raw Python, ZIP or unpinned payload can use this transport.
     if (parts.hostname or "").lower() == "raw.githubusercontent.com":
-        if url != REPO_UPDATE_POINTER_URL:
+        if (parts.query or parts.fragment or
+                not (url == REPO_UPDATE_POINTER_URL
+                     or _PINNED_REPO_MANIFEST_PATH.fullmatch(parts.path))):
             raise UpdateError("Unexpected repository update URL")
     if asset:
         if (parts.hostname or "").lower() != "github.com":
@@ -146,6 +152,28 @@ def probe_repo_update(installed_source_sha: str) -> RepoUpdatePointer | None:
     if pointer.base_source_sha != installed_source_sha:
         raise UpdateError("Repository update does not support this installed base")
     return pointer
+
+
+def inspect_repo_update(
+    installed_source_sha: str,
+) -> tuple[RepoUpdatePointer, ReleaseManifest] | None:
+    """Validate a pinned manifest without downloading or installing any ZIP.
+
+    The publisher must independently certify both the source SHA and its APP
+    package commit. Manifest/hash agreement alone never enables this channel.
+    This is an explicit development-only probe, not called by run_update().
+    """
+    pointer = probe_repo_update(installed_source_sha)
+    if pointer is None:
+        return None
+    raw = _read_limited(
+        pointer.pinned_asset_url(manifest=True), MAX_MANIFEST_BYTES, timeout=10,
+    )
+    try:
+        manifest = verify_repo_update_manifest(pointer, raw)
+    except ManifestError as exc:
+        raise UpdateError("Repository update manifest failed integrity check") from exc
+    return pointer, manifest
 
 
 def _is_offline_failure(exc: BaseException) -> bool:

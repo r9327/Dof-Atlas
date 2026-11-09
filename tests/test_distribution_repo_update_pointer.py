@@ -164,6 +164,72 @@ class RepoUpdateProbeTests(unittest.TestCase):
                 _safe_url(url)
 
 
+class RepoUpdateManifestInspectionTests(unittest.TestCase):
+    def test_changed_base_reads_only_pointer_and_pinned_manifest(self) -> None:
+        from app.distribution.release_client import (
+            REPO_UPDATE_POINTER_URL, inspect_repo_update,
+        )
+        from app.distribution.manifest import MAX_MANIFEST_BYTES, REPO_UPDATE_POINTER_LIMIT
+
+        url = parse_repo_update_pointer(_pointer()).pinned_asset_url(manifest=True)
+        reads = []
+        def read(address, limit, *, timeout):
+            reads.append((address, limit, timeout))
+            if address == REPO_UPDATE_POINTER_URL:
+                return _pointer()
+            if address == url:
+                return _manifest()
+            raise AssertionError("unexpected network request")
+        with patch("app.distribution.release_client._read_limited", side_effect=read):
+            result = inspect_repo_update(BASE)
+        self.assertIsNotNone(result)
+        pointer, manifest = result
+        self.assertEqual(pointer.source_sha, SRC)
+        self.assertEqual(manifest.source_sha, SRC)
+        self.assertEqual(reads, [
+            (REPO_UPDATE_POINTER_URL, REPO_UPDATE_POINTER_LIMIT, 5),
+            (url, MAX_MANIFEST_BYTES, 10),
+        ])
+
+    def test_installed_sha_noop_skips_manifest_and_all_asset_downloads(self) -> None:
+        from app.distribution.release_client import (
+            REPO_UPDATE_POINTER_URL, inspect_repo_update,
+        )
+        with patch("app.distribution.release_client._read_limited",
+                   return_value=_pointer()) as read:
+            self.assertIsNone(inspect_repo_update(SRC))
+        self.assertEqual(read.call_count, 1)
+        self.assertEqual(read.call_args.args[0], REPO_UPDATE_POINTER_URL)
+
+    def test_bad_manifest_and_publication_race_fail_closed(self) -> None:
+        from app.distribution.release_client import UpdateError, inspect_repo_update
+        corrupt = json.loads(_manifest())
+        corrupt["source_sha"] = "f" * 40
+        for payload in (b"missing", json.dumps(corrupt).encode(), b"{}"):
+            with self.subTest(payload=payload[:30]):
+                with patch("app.distribution.release_client._read_limited",
+                           side_effect=[_pointer(), payload]):
+                    with self.assertRaises(UpdateError):
+                        inspect_repo_update(BASE)
+
+    def test_read_only_transport_accepts_exact_commit_manifest_not_python_or_zip(self) -> None:
+        from app.distribution.release_client import UpdateError, _safe_url
+        ptr = parse_repo_update_pointer(_pointer())
+        manifest_url = ptr.pinned_asset_url(manifest=True)
+        self.assertEqual(_safe_url(manifest_url), manifest_url)
+        for url in (
+            ptr.pinned_asset_url(),
+            manifest_url + "?raw=1",
+            manifest_url + "#frag",
+            manifest_url.replace(APP_COMMIT, "main"),
+            manifest_url.replace(SRC, "latest"),
+            manifest_url.replace("atlas-manifest.json", "main.py"),
+            manifest_url.replace("Dof-Atlas-App", "Other-Repo"),
+        ):
+            with self.subTest(url=url), self.assertRaises(UpdateError):
+                _safe_url(url)
+
+
 class RepoUpdatePublisherTests(unittest.TestCase):
     def test_builder_accepts_only_real_verified_frozen_delta(self) -> None:
         from pathlib import Path

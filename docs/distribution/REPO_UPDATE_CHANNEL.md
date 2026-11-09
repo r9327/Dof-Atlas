@@ -34,6 +34,21 @@ les preuves de publication de paquets immuables, le multi-sauts, le rollback
 natif et la recette Windows restent nécessaires avant toute mise à jour
 automatique par ce canal. Aucun nouveau téléchargement applicatif.
 
+### Vérification de manifeste épinglé (NRU-002, NRU-005 partiels)
+
+La fonction explicite `inspect_repo_update(installed_source_sha)`
+réutilise la sonde du pointeur puis lit au maximum un manifeste immuable
+`APP/<app_commit_sha>/updates/<source_sha>/atlas-manifest.json`.
+Le SHA-256 du manifeste, l'identité source/base, le delta annoncé et sa
+taille sont comparés au pointeur. Un SHA déjà installé entraîne une seule
+requête de pointeur et **zéro requête de manifeste/ZIP**. Les URL raw
+arbitraires, les sources Python et les ZIP restent refusés.
+
+Aucune installation, extraction, activation ni téléchargement de delta :
+la signature de certification indépendante, les droits, la publication
+réelle et le rollback Windows restent à construire. Cette méthode n'est
+pas appelée automatiquement par le lanceur.
+
 ## Publication cible (NON ENCORE ACTIVÉE)
 
 1. `Dof-Atlas/main` passe les tests d'intégration et la certification
