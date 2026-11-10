@@ -46,7 +46,7 @@ jobs:
       - name: Run strict repo update pointer regressions
         run: python -X faulthandler -m unittest discover -s tests -p test_distribution_repo_update_pointer.py -v
       - name: Validate opt-in startup trace clocks and report (native Windows API)
-        run: python -X faulthandler -m unittest tests.test_startup_trace tests.test_startup_trace_report -v
+        run: python -X faulthandler -m unittest discover -s tests -p 'test_startup_trace*.py' -v
       - name: State proof boundaries
         if: always()
         env:
