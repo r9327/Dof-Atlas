@@ -59,6 +59,31 @@ class OrganizerRadialOverlayTests(unittest.TestCase):
     def setUpClass(cls):
         cls.app = QApplication.instance() or QApplication([])
 
+    def test_single_character_wheel_is_a_circle_not_a_polygon(self):
+        # Halfway between the old polygon's points, a nearly-edge pixel
+        # lies inside a true circle but outside the old 18-sided path.
+        import math
+        from PySide6.QtCore import QPointF
+        from app.pages.organizer import radial_overlay as wheel
+
+        overlay = OrganizerRadialOverlay()
+        try:
+            overlay._characters = [{"nom": "Panda", "hwnd": 101}]
+            with patch.object(wheel, "QPainter") as painter_type:
+                overlay.paintEvent(None)
+            shape = painter_type.return_value.drawPath.call_args.args[0]
+            centre = QPointF(overlay.width() / 2, overlay.height() / 2)
+            radius = wheel.RADIUS * 0.995
+            angle = math.radians(10)
+            near_edge = QPointF(
+                centre.x() + radius * math.cos(angle),
+                centre.y() + radius * math.sin(angle),
+            )
+            self.assertTrue(shape.contains(near_edge))
+        finally:
+            overlay.hide()
+            overlay.deleteLater()
+
     def test_popup_is_centered_on_screen_not_cursor(self):
         overlay = OrganizerRadialOverlay()
         try:
