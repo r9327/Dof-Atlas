@@ -310,3 +310,41 @@ LV2 dans le rapport de PR, certification de phase au HEAD final, build gelé
 au même SHA, recette humaine #287 et Release APP publiée uniquement ensuite.
 Un résultat `TRACKED_PARTIAL` du Delivery Guard est un inventaire
 comptable, pas une permission de fusion ni de publication.
+
+## Audit d'intégration — HEAD exact #285
+
+Revue logique du 10 novembre 2026 pour la préparation du gate final :
+**232/232 commits** retournés par la liste de la PR #285, du premier commit
+au HEAD `6aa0db82deb49b9e086633597c6a5f81b9a7522e` ; continuité des parents vérifiée (**0 rupture**), y
+compris le merge de #358 (parent `51aef07f383ad23b0c014effef780944c8ea36ad`).
+Cette vérification de structure **n'est pas** un examen ligne par ligne
+des 232 patches. Le diff intégré couvre **40 fichiers** et les
+propriétaires CI conflictuels ont été réconciliés : aucun remplacement
+silencieux du code Doctor certifié #358.
+
+Points sensibles examinés dans le diff final : `install.py`
+(staging, hash, rollback), `release_client.py` (HTTPS, deltas, reprise),
+`install_location.py` (déplacement, symlinks/reparse), `setup.py`
+(prérequis avant écriture, raccourci utilisateur), `launcher.py`
+(ACK Home/Qt, verrouillage, handoff), `health.py` (rejet de succès
+prématurés), `startup_trace.py` (profilage désactivé par défaut),
+`manifest.py` et les scripts de publication/repository pointer.
+Tests source associés dans `tests/test_distribution_*.py`,
+`tests/test_startup_trace*.py`, plus suites CI de domaine.
+Ce relevé **ne vaut ni exécution du binaire sur un PC vierge ni certificat**.
+
+Preuves déjà recueillies sur l'ancien HEAD `d60caeba83c5f4c678788154dd8b8f6e6e6c05c1` :
+[Launcher Scoped Contract #42846670999](https://github.com/r9327/Dof-Atlas/actions/runs/42846670999)
+PASS Ubuntu/Windows ; [Phase #42846672643](https://github.com/r9327/Dof-Atlas/actions/runs/42846672643)
+a ses jobs Windows bundle et tests terminés mais sa conclusion globale
+est **FAILURE**. Ces résultats **ne peuvent pas** être transférés au
+HEAD post-merge ni transformés en PASS. La Phase, le Delivery Guard,
+l'inspection de la liste de checks et les tests de prérequis Windows
+doivent être relancés et examinés au SHA exact après cet audit.
+
+**Sortie DEV → APP** : attendre un SHA `main` fusionné et certifié,
+puis candidate Windows hashée et recette de l'opérateur décrite dans
+[l'issue #287](https://github.com/r9327/Dof-Atlas/issues/287).
+Une simulation de panne ou un runner Windows ne remplace pas cette
+recette. Pas de publication Stable, pas de promotion de release et
+pas d'affirmation d'optimisation (comparatifs réservés à #404 / #367).
