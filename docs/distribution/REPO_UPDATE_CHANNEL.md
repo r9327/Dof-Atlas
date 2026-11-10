@@ -81,6 +81,26 @@ qualification sur un jeu en cours d'exécution. La route automatique du launcher
 reste inchangée ; le nouvel endpoint APP ne devient pas autorité à partir de
 ces tests. Les exigences LV2/NRU et contrôles de certification demeurent ouverts.
 
+## Candidat gelé Windows — vérification du delta sans publication
+
+Le job Windows existant `atlas-windows-distribution.yml`, en mode
+`full_candidate` ou après passage explicite `ready_for_review`, peut lire
+**sans jeton de publication APP** le manifeste de la dernière Release
+certifiée. Lorsqu'il dispose d'une base compatible, le même packager
+construit `atlas-delta.zip` avec le vrai bundle PyInstaller, puis le job
+vérifie sa taille, son SHA-256 et chaque membre contre le manifeste
+candidat **avant** d'archiver cet éventuel delta avec le ZIP et les EXE.
+Si aucune base n'est accessible ou si le différentiel n'est pas pertinent,
+la preuve consigne `DELTA_NOT_GENERATED` ; la présence d'une archive
+différentielle n'est jamais présumée.
+
+Ceci permet une inspection sur un artefact Windows réel au SHA candidat
+**sans publier** dans `Dof-Atlas-App` et sans franchir les conditions de
+Release stable. Les builds intégraux sont toujours déclenchés uniquement
+par les événements déjà autorisés. Un artefact candidat non fusionné
+n'est **pas** une preuve de provenance finale, de publication immuable
+APP ou de mise à jour chez l'utilisateur.
+
 ## Publication cible (NON ENCORE ACTIVÉE)
 
 1. `Dof-Atlas/main` passe les tests d'intégration et la certification
