@@ -139,10 +139,15 @@ def relocate_runtime(target: Path, progress=None) -> Path:
     # downloads or quarantine of damaged slots (potentially many gigabytes).
     # The entire original folder remains intact for recovery/resumable caches.
     excluded = {".health", ".launcher.lock", "downloads", "quarantine"}
+    # Do not migrate obsolete release slots. Their bytes are still retained in
+    # the old location; only current and rollback slots are needed in the new.
+    retained_slots = {slot for slot in (state.get("active"), state.get("previous")) if slot}
     for base, directories, names in os.walk(source, followlinks=False):
         where = Path(base)
         if where == source:
             directories[:] = [name for name in directories if name not in excluded]
+        elif where == source / "versions":
+            directories[:] = [name for name in directories if name in retained_slots]
         if any(_linked(where / name) for name in directories):
             raise UpdateError("Impossible de deplacer une installation contenant des liens")
         for name in names:
@@ -166,6 +171,8 @@ def relocate_runtime(target: Path, progress=None) -> Path:
         # link inside the new runtime (copytree uses symlinks=True).
         where = Path(directory)
         ignored = set(names) & excluded if where == source else set()
+        if where == source / "versions":
+            ignored.update(name for name in names if name not in retained_slots)
         if (_linked(where) or any(
             _linked(where / name) for name in names if name not in ignored
         )):
