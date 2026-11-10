@@ -151,9 +151,12 @@ sans ces preuves.
 
 Lorsqu'un **paquet complet** a déjà créé un nouveau slot dont tous les
 fichiers correspondent au manifeste SHA-256, mais que l'écriture atomique
-de `state.json` échoue (disque plein, arrêt, verrou), une tentative
-ultérieure réutilise ce slot vérifié et finalise la transaction sans
-réouvrir le ZIP ni recopier les fichiers. Un slot de même nom mais
+de `state.json` échoue (disque plein, arrêt, verrou), le lanceur peut
+consulter le manifeste distant puis réutiliser directement le slot vérifié :
+**aucun nouveau téléchargement d'archive, aucune décompression, aucune copie
+d'EXE ni de données inchangées**. Le contrôle d'intégrité du slot reste
+obligatoire et le lancement n'est déclaré sain qu'après le protocole
+Qt/Home habituel. Un slot de même nom mais
 endommagé est rejeté **avant** la décompression : l'ancien actif et les
 données utilisateur restent inchangés.
 
