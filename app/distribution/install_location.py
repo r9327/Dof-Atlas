@@ -5,6 +5,7 @@ Only the multi-gigabyte, versioned, replaceable payload is user-selectable.
 """
 from __future__ import annotations
 
+import hashlib
 import json
 import os
 import tempfile
@@ -36,6 +37,18 @@ def _valid_root(value: str | Path) -> Path:
     path = path.resolve()
     if path == Path(path.anchor) or (path.exists() and not path.is_dir()):
         raise UpdateError("Dossier d'installation invalide")
+    # The replaceable runtime must never be installed over the permanent
+    # profile, logs or personal theme. The default APP_DATA/runtime is valid,
+    # but choosing APP_DATA itself or its ancestors would mix file ownership
+    # and make cleanup/rollback potentially destructive.
+    app_data = APP_DATA.resolve()
+    if path == app_data or path in app_data.parents:
+        raise UpdateError("Choisissez un dossier distinct des donnees personnelles Atlas")
+    protected = (app_data / "user", app_data / "logs",
+                 app_data / "themes", app_data / "runtime")
+    if any(path == root or root in path.parents for root in protected
+           if path != app_data / "runtime"):
+        raise UpdateError("Ce dossier est reserve aux donnees personnelles Atlas")
     return path
 
 
@@ -51,8 +64,31 @@ def runtime_root() -> Path:
         raise UpdateError("Emplacement Atlas enregistre invalide; corrigez installation.json") from exc
 
 
+def _preflight_runtime_permissions(location: Path) -> None:
+    """Test the nearest existing directory without creating the runtime.
+
+    Windows ACLs and removable drives can reject a selected path even when
+    it is syntactically valid. An ephemeral write test avoids replacing the
+    last working installation.json with an unusable location.
+    """
+    ancestor = location
+    while not ancestor.exists():
+        if ancestor == ancestor.parent:
+            raise UpdateError("Le disque d'installation selectionne est inaccessible")
+        ancestor = ancestor.parent
+    if not ancestor.is_dir():
+        raise UpdateError("Le dossier d'installation choisi est inaccessible")
+    try:
+        with tempfile.TemporaryFile(prefix=".atlas-probe-", dir=ancestor) as probe:
+            probe.write(b"Atlas")
+            probe.flush()
+    except OSError as exc:
+        raise UpdateError("Le dossier d'installation choisi n'est pas accessible en ecriture") from exc
+
+
 def set_runtime_root(root: Path) -> Path:
     location = _valid_root(root)
+    _preflight_runtime_permissions(location)
     APP_DATA.mkdir(parents=True, exist_ok=True)
     fd, name = tempfile.mkstemp(prefix=".atlas-location-", dir=APP_DATA)
     try:
@@ -98,10 +134,15 @@ def relocate_runtime(target: Path, progress=None) -> Path:
         raise UpdateError("Installation existante incomplete; reparation necessaire")
 
     total = 0
+    # Only versioned runtime files belong on the new disk. Keep verified
+    # active/rollback slots and state, but do not recopy expendable archive
+    # downloads or quarantine of damaged slots (potentially many gigabytes).
+    # The entire original folder remains intact for recovery/resumable caches.
+    excluded = {".health", ".launcher.lock", "downloads", "quarantine"}
     for base, directories, names in os.walk(source, followlinks=False):
         where = Path(base)
-        directories[:] = [name for name in directories
-                          if not (where == source and name == ".health")]
+        if where == source:
+            directories[:] = [name for name in directories if name not in excluded]
         if any(_linked(where / name) for name in directories):
             raise UpdateError("Impossible de deplacer une installation contenant des liens")
         for name in names:
@@ -119,16 +160,38 @@ def relocate_runtime(target: Path, progress=None) -> Path:
     copied = 0
 
     def ignore(directory, names):
-        if Path(directory) == source:
-            return {name for name in names if name in (".health", ".launcher.lock")}
-        return set()
+        # The disk preflight and actual copy are separate filesystem walks.
+        # Recheck reparse points when copytree reaches each directory; a
+        # junction inserted after the first walk must not be preserved as a
+        # link inside the new runtime (copytree uses symlinks=True).
+        where = Path(directory)
+        ignored = set(names) & excluded if where == source else set()
+        if (_linked(where) or any(
+            _linked(where / name) for name in names if name not in ignored
+        )):
+            raise UpdateError("Impossible de deplacer une installation contenant des liens")
+        return ignored
 
     def copy_checked(src, dst):
         nonlocal copied
+        if _linked(Path(src)):
+            raise UpdateError("Impossible de deplacer une installation contenant des liens")
         shutil.copy2(src, dst)
-        size = Path(src).stat().st_size
-        if Path(dst).stat().st_size != size:
+        source, copied_file = Path(src), Path(dst)
+        size = source.stat().st_size
+        if copied_file.stat().st_size != size:
             raise UpdateError("Copie Atlas incomplete; ancien disque preserve")
+        # A same-length damaged file would pass the old size-only check.
+        # Verify each copied file before switching the persistent location.
+        def digest(path: Path) -> bytes:
+            value = hashlib.sha256()
+            with path.open("rb") as stream:
+                for block in iter(lambda: stream.read(1024 * 1024), b""):
+                    value.update(block)
+            return value.digest()
+
+        if digest(source) != digest(copied_file):
+            raise UpdateError("Copie Atlas corrompue; ancien disque preserve")
         copied += size
         if progress:
             progress(copied, max(total, 1))
@@ -136,6 +199,14 @@ def relocate_runtime(target: Path, progress=None) -> Path:
     try:
         shutil.copytree(source, stage, dirs_exist_ok=True, symlinks=True,
                         ignore=ignore, copy_function=copy_checked)
+        # A source link can also appear between copytree's ignore callback
+        # and the individual file operation. Verify the private staged tree
+        # itself before it becomes the install location. Directory checks do
+        # not reread multi-gigabyte payload bytes already SHA-256 verified.
+        for base, directories, names in os.walk(stage, followlinks=False):
+            where = Path(base)
+            if any(_linked(where / name) for name in (*directories, *names)):
+                raise UpdateError("La copie Atlas contient un lien non autorise")
         if read_state(stage) != state or active_executable(stage) is None:
             raise UpdateError("La copie Atlas n'a pas pu etre validee")
         os.replace(stage, destination)

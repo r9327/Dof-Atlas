@@ -6,6 +6,7 @@ from unittest.mock import Mock, patch
 
 os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
 
+from PySide6.QtCore import QEvent
 from PySide6.QtWidgets import QApplication
 
 import main
@@ -58,6 +59,41 @@ class StartupResourceContractTests(unittest.TestCase):
                 window.home_page,
             )
             self.assertIn("Organizer", window.page_factories)
+        finally:
+            window.quit_requested = True
+            window.close()
+            window.deleteLater()
+            self.app.processEvents()
+
+    def test_home_health_ack_retries_after_transient_visibility_and_only_once(self) -> None:
+        with patch.object(main.AtlasWindow, "setup_tray", return_value=None):
+            window = main.AtlasWindow()
+        try:
+            # A first painted Home can be temporarily hidden/switched before
+            # the next event-loop callback, so it must remain eligible later.
+            window._home_first_paint_recorded = True
+            window._home_ready_acknowledged = False
+            with (
+                patch.object(window, "isVisible", return_value=True),
+                patch.object(main.QTimer, "singleShot") as timer,
+            ):
+                window.eventFilter(window.home_page, QEvent(QEvent.Paint))
+                self.assertEqual(timer.call_count, 1)
+                window.eventFilter(window.home_page, QEvent(QEvent.Show))
+                self.assertEqual(timer.call_count, 2)
+            with (
+                patch.object(window, "isVisible", side_effect=[False, True, True]),
+                patch.object(window.home_page, "isVisible", return_value=True),
+                patch("app.distribution.health.announce_home_ready") as ack,
+                patch.object(main, "record_startup_event") as trace,
+            ):
+                window._ack_home_after_first_paint()
+                ack.assert_not_called()
+                window._ack_home_after_first_paint()
+                window._ack_home_after_first_paint()
+                ack.assert_called_once_with()
+                trace.assert_called_once_with("home_event_loop")
+            self.assertTrue(window._home_ready_acknowledged)
         finally:
             window.quit_requested = True
             window.close()

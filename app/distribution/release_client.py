@@ -18,13 +18,22 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Callable
 
-from .manifest import MAX_MANIFEST_BYTES, ManifestError, ReleaseFile, ReleaseManifest, parse_manifest, verify_file
+from .manifest import (MAX_MANIFEST_BYTES, REPO_UPDATE_POINTER_LIMIT, ManifestError,
+                       ReleaseFile, ReleaseManifest, RepoUpdatePointer,
+                       parse_manifest, parse_repo_update_pointer, verify_file,
+                       verify_repo_update_manifest)
 from .archive_parts import assemble_archive_parts
+from .startup_trace import record_startup_event
 
 REPO = "r9327/Dof-Atlas-App"
 API_URL = f"https://api.github.com/repos/{REPO}/releases/latest"
 WEB_LATEST_URL = f"https://github.com/{REPO}/releases/latest"
 CHANNEL_URL = f"https://github.com/{REPO}/releases/latest/download/atlas-channel.json"
+REPO_UPDATE_POINTER_URL = f"https://raw.githubusercontent.com/{REPO}/main/updates/stable.json"
+_PINNED_REPO_PACKAGE_PATH = re.compile(
+    rf"/{re.escape(REPO)}/[a-f0-9]{{40}}/updates/[a-f0-9]{{40}}/"
+    rf"(?:atlas-manifest[.]json|atlas-delta[.]zip)\Z"
+)
 CHANNEL_LIMIT = 4096
 _DOWNLOAD_ATTEMPTS = 4
 # Small releases stay sequential; large multipart bundles use bounded parallel I/O.
@@ -39,6 +48,7 @@ MAX_ARCHIVE_BYTES = 2 * 1024**3 - 1
 _ALLOWED_REDIRECT_HOSTS = frozenset({
     "github.com", "api.github.com", "release-assets.githubusercontent.com",
     "objects.githubusercontent.com", "github-releases.githubusercontent.com",
+    "raw.githubusercontent.com",
 })
 _AGENT = "DofusAtlas-Updater/1"
 Progress = Callable[[int, int], None]
@@ -65,6 +75,14 @@ def _safe_url(url: str, *, asset: bool = False) -> str:
         raise UpdateError("Untrusted update URL")
     if (parts.hostname or "").lower() not in _ALLOWED_REDIRECT_HOSTS:
         raise UpdateError("Unexpected update host")
+    # Only the small stable pointer and immutable package paths are allowed.
+    # A ZIP is inert until the independent certified publisher activates it.
+    # Never accept raw Python, a branch ZIP or arbitrary user-supplied URLs.
+    if (parts.hostname or "").lower() == "raw.githubusercontent.com":
+        if (parts.query or parts.fragment or
+                not (url == REPO_UPDATE_POINTER_URL
+                     or _PINNED_REPO_PACKAGE_PATH.fullmatch(parts.path))):
+            raise UpdateError("Unexpected repository update URL")
     if asset:
         if (parts.hostname or "").lower() != "github.com":
             raise UpdateError("Update assets must come from the official GitHub release")
@@ -113,6 +131,77 @@ def _read_limited(url: str, limit: int, *, timeout: float = 20) -> bytes:
     if len(data) > limit:
         raise UpdateError("Metadata exceeds allowed size")
     return data
+
+
+def probe_repo_update(installed_source_sha: str) -> RepoUpdatePointer | None:
+    """Read one small stable pointer; never install or authorize its payload.
+
+    A missing/invalid installed SHA belongs to the existing Release
+    bootstrap. A matching SHA skips all ZIP and manifest requests. A
+    different base must be handled by a future certified multi-hop path.
+    This read-only probe is deliberately NOT called by the live launcher.
+    """
+    if (not isinstance(installed_source_sha, str)
+            or not re.fullmatch(r"[a-f0-9]{40}", installed_source_sha)):
+        return None
+    raw = _read_limited(REPO_UPDATE_POINTER_URL, REPO_UPDATE_POINTER_LIMIT, timeout=5)
+    try:
+        pointer = parse_repo_update_pointer(raw)
+    except ManifestError as exc:
+        raise UpdateError("Invalid repository update pointer") from exc
+    if pointer.source_sha == installed_source_sha:
+        return None
+    if pointer.base_source_sha != installed_source_sha:
+        raise UpdateError("Repository update does not support this installed base")
+    return pointer
+
+
+def inspect_repo_update(
+    installed_source_sha: str,
+) -> tuple[RepoUpdatePointer, bytes, ReleaseManifest] | None:
+    """Verify and retain one pinned manifest for a later explicit delta fetch.
+
+    Returning the exact raw bytes avoids a second manifest request, and lets
+    download_repo_update_delta verify that the original pinned digest still
+    matches. This is development-only and never authorizes live installation.
+    """
+    pointer = probe_repo_update(installed_source_sha)
+    if pointer is None:
+        return None
+    raw = _read_limited(
+        pointer.pinned_asset_url(manifest=True), MAX_MANIFEST_BYTES, timeout=10,
+    )
+    try:
+        manifest = verify_repo_update_manifest(pointer, raw)
+    except ManifestError as exc:
+        raise UpdateError("Repository update manifest failed integrity check") from exc
+    return pointer, raw, manifest
+
+
+def download_repo_update_delta(
+    pointer: RepoUpdatePointer,
+    manifest_raw: bytes,
+    directory: Path,
+    progress: Progress | None = None,
+) -> Path:
+    """Fetch only the verified immutable delta using the existing downloader.
+
+    This explicit operation cannot install, switch a slot or mark the source
+    certified. Its caller must first authenticate publishing/approval evidence;
+    the live launcher does not invoke it.
+    """
+    try:
+        manifest = verify_repo_update_manifest(pointer, manifest_raw)
+    except ManifestError as exc:
+        raise UpdateError("Unverified repository update package") from exc
+    release = RemoteRelease(
+        tag=f"repo-{pointer.source_sha[:12]}",
+        archive_url="",
+        archive_size=0,
+        manifest=manifest,
+        delta_url=pointer.pinned_asset_url(),
+    )
+    return download_archive(release, directory, progress, differential=True)
 
 
 def _is_offline_failure(exc: BaseException) -> bool:
@@ -374,7 +463,8 @@ def latest_release(*, installed_source_sha: str | None = None) -> RemoteRelease 
                 ) from web_failure
 
 def _download_multipart(release: RemoteRelease, directory: Path,
-                        progress: Progress | None) -> Path:
+                        progress: Progress | None,
+                        *, assemble_progress: Progress | None = None) -> Path:
     """Download independent verified release parts concurrently, with safe resume.
 
     At most three large assets are transferred at once. Each part owns its own
@@ -390,6 +480,8 @@ def _download_multipart(release: RemoteRelease, directory: Path,
     ):
         if progress:
             progress(manifest.archive_size, manifest.archive_size)
+        record_startup_event("multipart_archive_ready", archive_bytes=manifest.archive_size,
+                             network_bytes=0, cached_bytes=manifest.archive_size)
         return target
     target.unlink(missing_ok=True)
     parts_dir = directory / (manifest.source_sha[:20] + "-parts")
@@ -397,6 +489,8 @@ def _download_multipart(release: RemoteRelease, directory: Path,
     total = manifest.archive_size
     pieces = manifest.archive_parts
     transferred = [0] * len(pieces)
+    network_read = [0] * len(pieces)
+    cache_used = [0] * len(pieces)
     progress_lock = threading.Lock()
     cancelled = threading.Event()
     last_reported = -1
@@ -416,10 +510,14 @@ def _download_multipart(release: RemoteRelease, directory: Path,
         finished = parts_dir / part.name
         entry = ReleaseFile(part.name, part.size, part.sha256)
         if verify_file(finished, entry):
+            cache_used[index] = part.size
             update(index, part.size)
             return
         finished.unlink(missing_ok=True)
         partial = parts_dir / (part.name + ".download")
+        # Cache accounting is for data left by an earlier launch, never data
+        # downloaded earlier in *this* invocation during an HTTP retry.
+        initial_cached = partial.stat().st_size if partial.is_file() else 0
 
         for attempt in range(_DOWNLOAD_ATTEMPTS):
             if cancelled.is_set():
@@ -428,10 +526,18 @@ def _download_multipart(release: RemoteRelease, directory: Path,
             if offset == part.size:
                 if verify_file(partial, entry):
                     partial.replace(finished)
+                    # An HTTP retry may have written the whole part earlier in
+                    # THIS launch before the connection raised on its next read.
+                    # Only bytes present when fetch_one began count as cache.
+                    cache_used[index] = min(part.size, initial_cached)
                     update(index, part.size)
                     return
+                # A complete but corrupted partial is not usable cache. Repair
+                # it during this launch, with the existing bounded attempt
+                # budget, instead of forcing a fallback to the full updater.
                 partial.unlink(missing_ok=True)
-                raise UpdateError(f"Corrupted release part: {part.name}")
+                initial_cached = 0
+                continue
             if offset > part.size:
                 partial.unlink(missing_ok=True)
                 raise UpdateError(f"Downloaded release part exceeded size: {part.name}")
@@ -446,6 +552,13 @@ def _download_multipart(release: RemoteRelease, directory: Path,
                     elif status != 200:
                         raise UpdateError("Unexpected multipart HTTP status")
                     done = offset if resumed else 0
+                    # If the server ignores Range, the local prefix was
+                    # discarded. If it honors Range, count only bytes already
+                    # present before this invocation (not from an earlier
+                    # retry attempt in the same invocation).
+                    cache_used[index] = min(offset, initial_cached) if resumed else 0
+                    if not resumed:
+                        initial_cached = 0
                     update(index, done)
                     with partial.open("ab" if resumed else "wb") as output:
                         while not cancelled.is_set():
@@ -455,6 +568,7 @@ def _download_multipart(release: RemoteRelease, directory: Path,
                             done += len(block)
                             if done > part.size:
                                 raise UpdateError("Multipart download exceeded asset size")
+                            network_read[index] += len(block)
                             output.write(block)
                             update(index, done)
                         output.flush()
@@ -506,20 +620,26 @@ def _download_multipart(release: RemoteRelease, directory: Path,
                     future.cancel()
                 raise
     try:
-        assemble_archive_parts(manifest, parts_dir, target)
+        assemble_archive_parts(manifest, parts_dir, target, progress=assemble_progress)
     except (OSError, ValueError) as exc:
         raise UpdateError("Unable to verify assembled multipart ZIP") from exc
     for part in pieces:
         (parts_dir / part.name).unlink(missing_ok=True)
+    # Count all bytes actually fetched in this invocation, including retry
+    # attempts; progress reports logical bytes and is not a network metric.
+    record_startup_event("multipart_archive_ready", archive_bytes=manifest.archive_size,
+                         network_bytes=sum(network_read), cached_bytes=sum(cache_used))
     return target
 
 
 def download_archive(release: RemoteRelease, directory: Path, progress: Progress | None = None,
-                     *, differential: bool = False) -> Path:
+                     *, differential: bool = False,
+                     assemble_progress: Progress | None = None) -> Path:
     """Resume HTTP downloads only after validating the server's Content-Range."""
     directory.mkdir(parents=True, exist_ok=True)
     if not differential and release.manifest.archive_parts:
-        return _download_multipart(release, directory, progress)
+        return _download_multipart(release, directory, progress,
+                                   assemble_progress=assemble_progress)
     if differential and (release.delta_url is None or release.manifest.delta is None):
         raise UpdateError("No differential archive available")
     size = release.manifest.delta.archive_size if differential else release.archive_size
@@ -527,9 +647,21 @@ def download_archive(release: RemoteRelease, directory: Path, progress: Progress
     suffix = ".delta.zip.part" if differential else ".zip.part"
     target = directory / (release.manifest.source_sha[:20] + suffix)
     previous = target.stat().st_size if target.is_file() else 0
+    network_bytes = 0
+    resumed_bytes = 0
     if previous > size:
         target.unlink()
         previous = 0
+    cached_delta_verified = False
+    if differential and previous == size:
+        # A complete but corrupted cached delta must be replaced here, not
+        # retried forever or force a multi-GB full-release fallback.
+        entry = ReleaseFile(target.name, size, release.manifest.delta.archive_sha256)
+        if verify_file(target, entry):
+            cached_delta_verified = True
+        else:
+            target.unlink(missing_ok=True)
+            previous = 0
     if previous != size:
         headers = {"Range": f"bytes={previous}-"} if previous else {}
         try:
@@ -544,6 +676,7 @@ def download_archive(release: RemoteRelease, directory: Path, progress: Progress
                 elif status != 200:
                     raise UpdateError("Unexpected HTTP response")
                 done = previous if ranged else 0
+                resumed_bytes = previous if ranged else 0
                 with target.open("ab" if ranged else "wb") as output:
                     while True:
                         block = response.read(1024 * 1024)
@@ -552,6 +685,7 @@ def download_archive(release: RemoteRelease, directory: Path, progress: Progress
                         done += len(block)
                         if done > size:
                             raise UpdateError("Download exceeds declared size")
+                        network_bytes += len(block)
                         output.write(block)
                         if progress:
                             progress(done, size)
@@ -561,7 +695,7 @@ def download_archive(release: RemoteRelease, directory: Path, progress: Progress
             raise UpdateError(f"Release download interrupted: {exc}") from exc
     elif progress:
         progress(previous, size)
-    if differential:
+    if differential and not cached_delta_verified:
         digest = hashlib.sha256()
         with target.open("rb") as stream:
             for block in iter(lambda: stream.read(1024 * 1024), b""):
@@ -569,4 +703,9 @@ def download_archive(release: RemoteRelease, directory: Path, progress: Progress
         if digest.hexdigest() != release.manifest.delta.archive_sha256:
             target.unlink(missing_ok=True)
             raise UpdateError("Differential archive SHA-256 mismatch")
+    record_startup_event(
+        "download_archive_ready", network_bytes=network_bytes,
+        archive_bytes=size, resumed_bytes=resumed_bytes,
+        differential=int(differential),
+    )
     return target

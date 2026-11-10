@@ -13,6 +13,7 @@ from pathlib import Path
 from typing import Callable
 
 from .manifest import ManifestError, ReleaseFile, ReleaseManifest, verify_file, valid_path, valid_sha
+from .startup_trace import record_startup_event
 from .release_client import UpdateError
 from .file_clone import clone_unchanged_cow
 
@@ -67,6 +68,13 @@ def active_executable(root: Path) -> Path | None:
     slot = doc.get("active")
     if not slot:
         return None
+    # Old first-install rollbacks left an unacknowledged EXE active while
+    # marking its source blocked. Treat that legacy state as unusable even
+    # before the launcher has a chance to migrate state.json.
+    if (not doc.get("pending") and not doc.get("previous")
+            and doc.get("source_sha")
+            and doc.get("blocked_source_sha") == doc["source_sha"]):
+        return None
     # entrypoint is committed by the verified installer, never fetched as a URL.
     relative = doc.get("entrypoint")
     if not isinstance(relative, str):
@@ -93,21 +101,66 @@ def active_executable(root: Path) -> Path | None:
 
 def rollback_pending(root: Path) -> bool:
     state = read_state(root)
-    if not state["pending"]:
+    # Compatibility: older launchers could persist a failed first candidate
+    # with pending=False and blocked_source_sha equal to the *active* SHA.
+    # It must be deactivated before any new network/update path uses its
+    # files as a supposedly healthy installed base.
+    legacy_failed_first = (
+        not state["pending"] and bool(state.get("active"))
+        and not state.get("previous") and bool(state.get("source_sha"))
+        and state.get("blocked_source_sha") == state["source_sha"]
+    )
+    if not state["pending"] and not legacy_failed_first:
         return False
     old = state.get("previous")
     if old and slot_path(root, old).is_dir():
+        # A rollback is not safe merely because the directory still exists.
+        # Refuse to point the active state at a missing/corrupt previous EXE.
+        # Modern releases carry size and SHA-256; legacy slots at least need
+        # a regular executable before the fallback can be attempted.
+        entrypoint = state.get("previous_entrypoint") or "AtlasApp/AtlasApp.exe"
+        try:
+            valid_path(entrypoint)
+            if not entrypoint.casefold().endswith(".exe"):
+                raise ManifestError("Previous executable path is not an EXE")
+        except ManifestError as exc:
+            raise UpdateError("Previous rollback executable path is invalid") from exc
+        previous_exe = slot_path(root, old) / entrypoint
+        if previous_exe.is_symlink() or not previous_exe.is_file():
+            raise UpdateError("Previous rollback executable is missing or unsafe")
+        metadata = state.get("previous_metadata") or {}
+        if not isinstance(metadata, dict):
+            raise UpdateError("Previous rollback metadata is invalid")
+        size, digest = metadata.get("entrypoint_size"), metadata.get("entrypoint_sha256")
+        if size is not None or digest is not None:
+            try:
+                if type(size) is not int or size < 0:
+                    raise ManifestError("Previous binary size invalid")
+                valid_sha(digest)
+            except ManifestError as exc:
+                raise UpdateError("Previous rollback digest metadata is invalid") from exc
+            if not verify_file(previous_exe, ReleaseFile(entrypoint, size, digest)):
+                raise UpdateError("Previous rollback executable is corrupt")
         blocked = state.get("source_sha")
-        restored = dict(state.get("previous_metadata") or {})
+        restored = dict(metadata)
         state.update(active=old, previous=None, pending=False,
                      entrypoint=state.get("previous_entrypoint") or "AtlasApp/AtlasApp.exe",
                      blocked_source_sha=blocked, **restored)
         state.pop("previous_metadata", None)
         _write_state(root, state)
         return True
-    # First install has no earlier known-good version; do not fabricate one.
-    state["pending"] = False
-    state["blocked_source_sha"] = state.get("source_sha")
+    # A failed first install has no known-good version to restore. Never
+    # leave the unacknowledged candidate as the active executable: otherwise
+    # a later offline/no-op launch would start the same failed EXE again.
+    # Keep its slot on disk for diagnosis, and the bad source SHA so the
+    # updater refuses that candidate until a different release is published.
+    blocked = state.get("source_sha")
+    state.update(active=None, previous=None, pending=False,
+                 blocked_source_sha=blocked)
+    for key in ("entrypoint", "previous_entrypoint", "entrypoint_size",
+                "entrypoint_sha256", "previous_metadata", "source_sha",
+                "app_version", "data_version", "schema_version"):
+        state.pop(key, None)
     _write_state(root, state)
     return False
 
@@ -232,6 +285,57 @@ def _write_local_file_index(stage: Path, manifest: ReleaseManifest) -> None:
     )
 
 
+def _commit_verified_slot(root: Path, state: dict, slot: str,
+                          manifest: ReleaseManifest, *, same_active: bool) -> None:
+    """Commit a fully verified slot; caller already checked every file digest."""
+    prior = state.get("previous") if same_active else state.get("active")
+    old_meta = state.get("previous_metadata") if same_active else {
+        key: state[key] for key in (
+            "app_version", "data_version", "schema_version", "source_sha",
+            "entrypoint_size", "entrypoint_sha256",
+        ) if key in state
+    }
+    old_entrypoint = state.get("previous_entrypoint") if same_active else state.get("entrypoint")
+    entrypoint_file = next(item for item in manifest.files if item.path == manifest.entrypoint)
+    _write_state(root, {
+        "active": slot, "previous": prior, "pending": True,
+        "entrypoint": manifest.entrypoint,
+        "previous_entrypoint": old_entrypoint if prior else None,
+        "app_version": manifest.app_version,
+        "data_version": manifest.data_version,
+        "schema_version": manifest.schema_version,
+        "source_sha": manifest.source_sha,
+        "entrypoint_size": entrypoint_file.size,
+        "entrypoint_sha256": entrypoint_file.sha256,
+        "previous_metadata": old_meta or {},
+    })
+    record_startup_event("install_activation_committed")
+
+
+def resume_verified_full_slot(root: Path, manifest: ReleaseManifest) -> bool:
+    """Commit a complete orphaned full-release slot without opening an archive.
+
+    Only a trusted, parsed remote manifest can authorize this path. No delta
+    base verification is bypassed by install_release(delta=True).
+    """
+    if manifest.schema_version != 1:
+        raise UpdateError("Unsupported data schema; updater upgrade required")
+    state = read_state(root)
+    slot = f"{manifest.app_version}-{manifest.source_sha[:12]}".replace("+", "_")
+    if state.get("pending") or state.get("active") == slot:
+        return False
+    target = slot_path(root, slot)
+    if not target.exists():
+        return False
+    if target.is_symlink() or not target.is_dir() or not all(
+        verify_file(target / entry.path, entry) for entry in manifest.files
+    ):
+        raise UpdateError("Conflicting existing installation slot")
+    _commit_verified_slot(root, state, slot, manifest, same_active=False)
+    record_startup_event("install_orphan_slot_reused", verified_files=len(manifest.files))
+    return True
+
+
 def install_release(root: Path, archive_path: Path, manifest: ReleaseManifest,
                     progress: Progress | None = None, *, delta: bool = False) -> bool:
     """Stage, verify every byte, then atomically activate the new version.
@@ -251,12 +355,20 @@ def install_release(root: Path, archive_path: Path, manifest: ReleaseManifest,
     if same_active:
         current = slot_path(root, slot)
         if current.is_dir() and all(verify_file(current / item.path, item) for item in manifest.files):
+            record_startup_event("install_noop_verified", verified_files=len(manifest.files))
             return False
         # A missing or corrupt active slot is rebuilt in a fresh stage below.
     versions = root / "versions"
     versions.mkdir(parents=True, exist_ok=True)
     target = slot_path(root, slot)
+    if not delta and not same_active and target.exists():
+        # Reuse a verified orphan instead of re-copying a full release.
+        # Delta installations always check the base in their normal path.
+        if resume_verified_full_slot(root, manifest):
+            return True
+        raise UpdateError("Conflicting existing installation slot")
     stage = Path(tempfile.mkdtemp(prefix=".atlas-install-", dir=root))
+    record_startup_event("install_stage_begin", delta=int(delta))
     previous_file_index = (
         _read_local_file_index(slot_path(root, state["active"]), state.get("source_sha"))
         if not delta and not same_active and state.get("active") else {}
@@ -267,6 +379,10 @@ def install_release(root: Path, archive_path: Path, manifest: ReleaseManifest,
                                         set(manifest.delta.paths) if delta else None)
             total = sum(f.size for f in manifest.files)
             done = 0
+            reused_bytes = 0
+            reused_files = 0
+            extracted_bytes = 0
+            extracted_files = 0
             last_percent = -1
 
             def report_copied(complete: int) -> None:
@@ -288,6 +404,8 @@ def install_release(root: Path, archive_path: Path, manifest: ReleaseManifest,
                         lambda copied: report_copied(done + copied),
                     )
                     done += entry.size
+                    reused_bytes += entry.size
+                    reused_files += 1
                     report_copied(done)
                     continue
                 # A full ZIP may still contain files identical to the previous
@@ -306,6 +424,8 @@ def install_release(root: Path, archive_path: Path, manifest: ReleaseManifest,
                             destination.unlink(missing_ok=True)
                         else:
                             done += entry.size
+                            reused_bytes += entry.size
+                            reused_files += 1
                             report_copied(done)
                             continue
                 digest = hashlib.sha256()
@@ -324,9 +444,16 @@ def install_release(root: Path, archive_path: Path, manifest: ReleaseManifest,
                         report_copied(done)
                 if count != entry.size or digest.hexdigest() != entry.sha256:
                     raise UpdateError("Release file SHA-256 validation failed")
+                extracted_bytes += count
+                extracted_files += 1
         if not (stage / manifest.entrypoint).is_file():
             raise UpdateError("Missing packaged application")
         _write_local_file_index(stage, manifest)
+        record_startup_event(
+            "install_stage_verified", reused_bytes=reused_bytes,
+            reused_files=reused_files, decompressed_bytes=extracted_bytes,
+            extracted_files=extracted_files, staged_bytes=reused_bytes + extracted_bytes,
+        )
         if target.exists():
             if same_active:
                 quarantine = root / "quarantine"
@@ -342,25 +469,7 @@ def install_release(root: Path, archive_path: Path, manifest: ReleaseManifest,
                 raise UpdateError("Conflicting existing installation slot")
         else:
             os.replace(stage, target)
-        prior = state.get("previous") if same_active else state.get("active")
-        old_meta = state.get("previous_metadata") if same_active else {
-            key: state[key] for key in ("app_version", "data_version", "schema_version", "source_sha",
-                                  "entrypoint_size", "entrypoint_sha256")
-            if key in state
-        }
-        old_entrypoint = state.get("previous_entrypoint") if same_active else state.get("entrypoint")
-        _write_state(root, {
-            "active": slot, "previous": prior, "pending": True,
-            "entrypoint": manifest.entrypoint,
-            "previous_entrypoint": old_entrypoint if prior else None,
-            "app_version": manifest.app_version,
-            "data_version": manifest.data_version,
-            "schema_version": manifest.schema_version,
-            "source_sha": manifest.source_sha,
-            "entrypoint_size": next(e.size for e in manifest.files if e.path == manifest.entrypoint),
-            "entrypoint_sha256": next(e.sha256 for e in manifest.files if e.path == manifest.entrypoint),
-            "previous_metadata": old_meta or {},
-        })
+        _commit_verified_slot(root, state, slot, manifest, same_active=same_active)
     except (OSError, zipfile.BadZipFile, RuntimeError) as exc:
         if isinstance(exc, UpdateError):
             raise

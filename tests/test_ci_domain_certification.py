@@ -712,6 +712,8 @@ class ModularDomainRoutingTests(unittest.TestCase):
             "app/distribution/file_clone.py",
             "app/distribution/cleanup.py",
             "app/distribution/install_location.py",
+            "app/distribution/setup.py",
+            "tests/test_distribution_setup.py",
             "tests/test_distribution_disk_space.py",
             "tests/test_distribution_smart_update.py",
             "tests/test_distribution_packaging.py",
@@ -1013,6 +1015,96 @@ class ModularDomainRoutingTests(unittest.TestCase):
         plan = self.route(["docs/readme.md", ".ai/context_index.json"])
         self.assertEqual(plan["domains"], ["metadata"])
         self.assertFalse(plan["phase_certified"])
+
+
+    def test_repo_update_protocol_has_exact_distribution_ownership(self):
+        # Only the reviewed pointer reader, offline producer, and its tests
+        # are owned. No scripts/windows/* or app/distribution/* wildcard.
+        files = (
+            "app/distribution/manifest.py",
+            "scripts/windows/build_repo_update_pointer.py",
+            "tests/test_distribution_repo_update_pointer.py",
+        )
+        for path in files:
+            with self.subTest(path=path):
+                self.assertEqual(owners_for(path),
+                                 frozenset({"ci", "startup", "data"}))
+        # The static B/H domain fixture predates NRU. Only test exact
+        # ownership here; actual head diff is checked by CI on real SHA.
+        for path in ("app/distribution/repo_update_unreviewed.py",
+                     "scripts/windows/rogue_pointer_publisher.py",
+                     "tests/test_distribution_unreviewed_pointer.py"):
+            self.assertEqual(owners_for(path), frozenset())
+
+    def test_unicode_install_relocation_has_exact_distribution_ownership(self):
+        path = "tests/test_distribution_install_location.py"
+        self.assertEqual(owners_for(path), frozenset({"ci", "startup", "data"}))
+        plan = self.route([path])
+        self.assertEqual(plan["status"], "READY_TO_EXECUTE")
+        self.assertEqual(plan["domains"], ["ci", "startup", "data"])
+        self.assertEqual(plan["unknown_paths"], [])
+        self.assertFalse(owners_for("tests/test_distribution_unknown_location.py"))
+        self.assertEqual(
+            self.route(["tests/test_distribution_unknown_location.py"])["status"],
+            "BLOCKED",
+        )
+
+
+    def test_pr285_startup_trace_paths_are_reviewed_without_wildcard(self):
+        expected = {
+            "app/distribution/startup_trace.py": {"startup", "ui"},
+            "app/distribution/health.py": {"startup", "ui"},
+            "tests/test_distribution_health.py": {"startup", "ui"},
+            "tools/startup_trace_report.py": {"ci", "startup"},
+            "tools/analyze_startup.py": {"ci", "startup"},
+        }
+        for path, owners in expected.items():
+            with self.subTest(path=path):
+                self.assertEqual(owners_for(path), frozenset(owners))
+        plan = self.route([
+            *expected,
+            "tests/test_startup_trace.py",
+            "tests/test_startup_trace_report.py",
+        ])
+        self.assertEqual(plan["status"], "READY_TO_EXECUTE")
+        self.assertEqual(plan["unknown_paths"], [])
+        self.assertEqual(plan["domains"], ["ci", "ui", "startup"])
+        self.assertFalse(plan["phase_certified"])
+        self.assertFalse(plan["merge_authorized"])
+        for path in (
+            "app/distribution/unreviewed_startup_helper.py",
+            "app/distribution/health_unknown.py",
+            "tests/test_distribution_health_unknown.py",
+            "tools/startup_trace_unknown.py",
+        ):
+            self.assertEqual(owners_for(path), frozenset(), path)
+            self.assertEqual(self.route([path])["status"], "BLOCKED")
+
+
+    def test_first_boot_integrity_regressions_have_only_reviewed_distribution_owner(self):
+        # A real first-boot regression modifies the Launcher, verified slot
+        # and bundled data. Keep the complete shared consumer closure instead
+        # of silently skipping this changed test or opening a broad wildcard.
+        owner = frozenset({"ci", "startup", "data"})
+        path = "tests/test_distribution_first_boot.py"
+        self.assertEqual(owners_for(path), owner)
+        plan = self.route([path])
+        self.assertEqual(plan["status"], "READY_TO_EXECUTE")
+        self.assertEqual(plan["domains"], ["ci", "startup", "data"])
+        self.assertEqual(plan["unknown_paths"], [])
+        self.assertEqual(
+            owners_for("tests/test_distribution_unreviewed_first_boot.py"),
+            frozenset(),
+        )
+
+    def test_multipart_assembler_has_strict_distribution_ownership(self):
+        paths = ["app/distribution/archive_parts.py", "tests/test_distribution_multipart.py"]
+        for path in paths:
+            self.assertEqual(owners_for(path), frozenset({"ci", "startup", "data"}))
+        result = self.route(paths)
+        self.assertEqual(result["status"], "READY_TO_EXECUTE")
+        self.assertEqual(result["unknown_paths"], [])
+        self.assertFalse(owners_for("app/distribution/unreviewed_archive.py"))
 
 
 if __name__ == "__main__":
