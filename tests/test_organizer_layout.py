@@ -836,6 +836,29 @@ class OrganizerLayoutTests(unittest.TestCase):
                 self.assertIsNotNone(page.zaap.suggestion_popup)
                 self.assertTrue(page.zaap.show_favorites)
 
+    def test_mirror_requires_explicit_arm_and_navigation_buttons_share_row(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            with self.organizer_page(Path(temporary)) as page:
+                self.app.processEvents()
+                self.assertTrue(page.mirror_arm_button.isHidden() is False)
+                self.assertFalse(page.mirror_arm_button.isEnabled())
+                page.profiles[organizer.KEY_ORGANIZER_MACRO_MODE] = "mirror"
+                page.update_macro_mode_buttons()
+                self.assertTrue(page.mirror_arm_button.isEnabled())
+                self.assertEqual(page.mirror_arm_button.text(), "Activer Miroir")
+                page.set_mirror_arm_active(True)
+                self.assertEqual(page.mirror_arm_button.text(), "Arrêter Miroir")
+                page.set_mirror_arm_active(False)
+                self.assertEqual(page.mirror_arm_button.text(), "Activer Miroir")
+                self.assertEqual(page.previous_character.parent(), page.next_character.parent())
+                self.assertEqual(page.previous_character.y(), page.next_character.y())
+                self.assertLess(page.previous_character.x(), page.next_character.x())
+                self.assertEqual(page.previous_character.height(), page.next_character.height())
+                self.assertIs(
+                    page.mirror_arm_button.parentWidget(),
+                    page.mirror_toggle_hotkey_button.parentWidget(),
+                )
+
     def test_three_visible_speed_presets_and_compact_controls(self):
         with tempfile.TemporaryDirectory() as temporary:
             with self.organizer_page(Path(temporary)) as page:
