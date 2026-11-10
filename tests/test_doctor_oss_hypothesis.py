@@ -20,6 +20,59 @@ except ImportError:
             self.fail("Hypothesis was not installed")
 else:
     class DoctorOssHypothesisTests(unittest.TestCase):
+        @settings(max_examples=24, deadline=None)
+        @given(st.lists(st.text(alphabet="abc123", min_size=1, max_size=10),
+                        min_size=1, max_size=12, unique=True))
+        def test_guide_manual_steps_keep_characters_isolated(self, steps):
+            from app.modules.encyclopedia.services.guide_progress_service import (
+                GuideProgressService,
+            )
+            with TemporaryDirectory() as directory:
+                path = Path(directory) / "guide_progress.json"
+                service = GuideProgressService(path)
+                for step in steps:
+                    service.set_manual_step_completed(
+                        "character:1", "hypothesis-route", step, True)
+                service.set_manual_step_completed(
+                    "character:2", "hypothesis-route", "other", True)
+                self.assertEqual(
+                    service.manual_steps("character:1", "hypothesis-route"),
+                    set(steps))
+                self.assertEqual(
+                    service.manual_steps("character:2", "hypothesis-route"),
+                    {"other"})
+                # A fresh service must preserve per-character persisted state.
+                fresh = GuideProgressService(path)
+                self.assertEqual(
+                    fresh.manual_steps("character:1", "hypothesis-route"),
+                    set(steps))
+                self.assertEqual(
+                    fresh.manual_steps("character:2", "hypothesis-route"),
+                    {"other"})
+
+        @settings(max_examples=40, deadline=None)
+        @given(
+            st.lists(st.integers(min_value=1, max_value=2**32 - 1),
+                     min_size=2, max_size=8, unique=True),
+            st.lists(st.booleans(), min_size=8, max_size=8),
+        )
+        def test_organizer_mirror_never_replays_unselected_or_source(self, handles, choices):
+            from app.macros.mirror_plan import mirror_targets, mirror_delivery_targets
+
+            selected = {hwnd for hwnd, yes in zip(handles, choices) if yes}
+            source = handles[0]
+            others = tuple(hwnd for hwnd in handles[1:] if hwnd in selected)
+            self.assertEqual(mirror_targets(handles, selected, source), others)
+            self.assertEqual(
+                mirror_delivery_targets(
+                    handles, selected, source, source_was_consumed=False),
+                others if selected else ())
+            self.assertEqual(
+                mirror_delivery_targets(
+                    handles, selected, source, source_was_consumed=True),
+                tuple(hwnd for hwnd in handles
+                      if hwnd == source or hwnd in selected) if selected else ())
+
         @settings(max_examples=40, deadline=None)
         @given(st.lists(st.integers(min_value=0, max_value=100000),
                         min_size=0, max_size=16),
