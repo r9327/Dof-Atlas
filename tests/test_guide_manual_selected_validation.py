@@ -577,6 +577,16 @@ class ImportedSourceSharedManualUiTests(unittest.TestCase):
                 )
                 service.plan_verified_zaap_travel = verified_plan
                 button.click()
+                self.assertEqual(len(launched), 1)  # Character 2 is offline.
+
+                # Bring only the two selected test accounts online. The
+                # production guard must keep refusing character 3.
+                participants.available_characters = lambda: (
+                    SimpleNamespace(key="character:1", label="Alpha", connected=True),
+                    SimpleNamespace(key="character:2", label="Beta", connected=True),
+                    SimpleNamespace(key="character:3", label="Gamma", connected=False),
+                )
+                button.click()
                 self.assertEqual(launched[-1], (
                     "/zaap 1,1 ; /travel -5,2",
                     ("character:1", "character:2"),
