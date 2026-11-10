@@ -80,6 +80,60 @@ class StartupTraceTests(unittest.TestCase):
         self.assertGreaterEqual(elapsed, 0.0)
         self.assertLess(elapsed, 30 * 60 * 1000)
 
+    def test_tree_rss_is_optional_and_only_sampled_at_handoff(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            target = Path(directory) / "trace.jsonl"
+            with patch.dict(os.environ, {
+                "DOFUS_ATLAS_STARTUP_PROFILE": "1",
+                "DOFUS_ATLAS_STARTUP_PROFILE_FILE": str(target),
+            }, clear=True), patch.object(
+                startup_trace, "_windows_process_tree_rss", return_value=(20_000, 2),
+            ) as sample:
+                startup_trace.record_startup_event("launcher_entry")
+                startup_trace.record_startup_event("app_health_ack")
+                startup_trace.record_startup_event("app_home_ack")
+            rows = [json.loads(x) for x in target.read_text().splitlines()]
+            self.assertEqual(sample.call_count, 2)
+            self.assertNotIn("process_tree_rss_bytes", rows[0])
+            for row in rows[1:]:
+                self.assertEqual(row["process_tree_rss_bytes"], 20_000)
+                self.assertEqual(row["process_tree_count"], 2)
+
+    def test_tree_rss_failure_stays_missing_not_zero(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            target = Path(directory) / "trace.jsonl"
+            with patch.dict(os.environ, {
+                "DOFUS_ATLAS_STARTUP_PROFILE": "1",
+                "DOFUS_ATLAS_STARTUP_PROFILE_FILE": str(target),
+            }, clear=True), patch.object(
+                startup_trace, "_windows_process_tree_rss", return_value=None,
+            ):
+                startup_trace.record_startup_event("app_home_ack")
+            self.assertNotIn(
+                "process_tree_rss_bytes", json.loads(target.read_text()),
+            )
+
+    @unittest.skipUnless(os.name == "nt", "Win32 Toolhelp snapshot only on Windows")
+    def test_windows_native_tree_includes_live_child_process(self) -> None:
+        import subprocess
+        import sys
+        import time
+
+        child = subprocess.Popen([
+            sys.executable, "-c", "import time; time.sleep(5)",
+        ])
+        try:
+            time.sleep(0.2)
+            self.assertIsNone(child.poll())
+            sample = startup_trace._windows_process_tree_rss()
+            self.assertIsNotNone(sample, "Windows snapshot unavailable")
+            total, count = sample
+            self.assertGreaterEqual(count, 2)
+            self.assertGreater(total, startup_trace._windows_rss_bytes())
+        finally:
+            child.terminate()
+            child.wait(timeout=5)
+
     def test_unwritable_trace_path_does_not_break_startup(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
             with patch.dict(os.environ, {
