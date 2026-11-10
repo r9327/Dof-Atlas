@@ -263,6 +263,9 @@ class OrganizerUiMixin:
             button.setSizePolicy(QSizePolicy.Fixed, QSizePolicy.Fixed)
             button.setObjectName("secondaryButton")
         self.radial_select_button.setFixedSize(radial_control_size)
+        # The Mirror action occupies a full-width row, like Stop. Its
+        # shortcut badge overlays the same button instead of leaving a gap.
+        self.mirror_arm_button.setFixedSize(panel_inner_width, BUTTON_HEIGHT)
         self.stop_script_button.setObjectName("dangerButton")
         self.stop_script_button.setFixedSize(stop_size)
         self.stop_script_button.setSizePolicy(QSizePolicy.Fixed, QSizePolicy.Fixed)
@@ -550,10 +553,17 @@ class OrganizerUiMixin:
         ):
             button.setObjectName("segmentedButtonActive" if selected else "segmentedButton")
             self.restyle_button(button)
-        self.macro_grid_host.setEnabled(not mirror)
+        self.macro_grid_host.setEnabled(True)
+        for button in (
+            self.switch_character, self.switch_click, self.switch_movement,
+            self.switch_double_click, self.click_button, self.click_clear,
+            self.double_click_button, self.double_click_clear,
+        ):
+            button.setEnabled(not mirror)
         self.mirror_arm_button.setEnabled(mirror)
-        if not mirror:
-            self.set_mirror_arm_active(False)
+        self.set_mirror_arm_active(
+            bool(mirror and getattr(self, "_mirror_arm_active", False))
+        )
         self.mirror_mode_button.setToolTip(
             "Miroir : clics, touches courtes, molette. Favori étoilé = source ; pas de glisser ou maintien continu."
         )
@@ -562,6 +572,16 @@ class OrganizerUiMixin:
         button = getattr(self, "mirror_arm_button", None)
         if button is None or not isValid(button):
             return
+        active = active is True and self.profiles.get(KEY_ORGANIZER_MACRO_MODE) == "mirror"
+        self._mirror_arm_active = active
+        can_navigate = (profile_bool(self.profiles, KEY_SWITCH_CHARACTER, True)
+                        and not active)
+        for control in (
+            self.next_character, self.previous_character,
+            self.next_character_hotkey_button, self.previous_character_hotkey_button,
+            self.next_character_clear, self.previous_character_clear,
+        ):
+            control.setEnabled(can_navigate)
         button.setText("Arrêter Miroir" if active else "Activer Miroir")
         button.setObjectName("primaryButton" if active else "secondaryButton")
         button.setToolTip(
