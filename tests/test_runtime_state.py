@@ -28,6 +28,23 @@ def _runtime() -> AtlasRuntime:
 
 
 class RuntimeStopOwnerTests(unittest.TestCase):
+    def test_disarmed_mirror_never_probes_or_consumes_native_input(self):
+        from types import SimpleNamespace
+        from app.core.macro_lock import MacroLock
+        fake = SimpleNamespace(
+            _mirror_armed=False, _running=True, _admin_ok=True,
+            settings=SimpleNamespace(
+                macro_mode="mirror", primary_handle=101,
+                clients=[SimpleNamespace(handle=101), SimpleNamespace(handle=102)],
+            ),
+            macro_lock=MacroLock(Mock()),
+        )
+        with patch("app.windows.unity_windows.foreground_window") as native:
+            self.assertFalse(AtlasRuntime._handle_mirror_click(fake, "left", 10, 20))
+            self.assertFalse(AtlasRuntime._handle_mirror_key(fake, 0x41, True))
+            self.assertFalse(AtlasRuntime._handle_mirror_wheel(fake, 120, 10, 20, False))
+        native.assert_not_called()
+
     def test_zaap_and_auto_group_reject_latched_stop_before_native_actions(self):
         from app.core.macro_lock import MacroLock
 
