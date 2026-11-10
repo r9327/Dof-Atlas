@@ -387,6 +387,7 @@ class HotkeyRegistry:
         self.physical_key_callback: PhysicalKeyCallback | None = None
         self.physical_key_release_callback: Callable[[int], None] | None = None
         self._mirrored_key_ups: set[int] = set()
+        self._mirror_toggle_ups: set[int] = set()
 
     def register_hotkeys(self, actions: list[HotkeyAction]) -> HotkeyReport:
         parsed: list[HotkeyAction] = []
@@ -503,6 +504,7 @@ class HotkeyRegistry:
         thread = self._thread
         if thread is None or not thread.is_alive():
             self._mirrored_key_ups.clear()
+            self._mirror_toggle_ups.clear()
         elif self._mirrored_key_ups:
             self.logger.warning(
                 "Hook clavier encore actif après stop: relâchements réservés=%s",
@@ -606,6 +608,25 @@ class HotkeyRegistry:
                         if self._dispatch_priority_stop(vk_code, pressed):
                             return 1
                         self._dispatch_matching_hotkeys()
+                        # The activation hotkey is a command, not a DOFUS
+                        # keystroke. Own its full physical DOWN/UP pair.
+                        if released and vk_code in self._mirror_toggle_ups:
+                            self._mirror_toggle_ups.discard(vk_code)
+                            return 1
+                        if pressed and (
+                            vk_code in self._mirror_toggle_ups
+                            or any(
+                                action.action_id == "mirror_toggle"
+                                and action.spec is not None
+                                and vk_code in (action.spec.keys - MODIFIER_VKS)
+                                and action.spec.matches(self.input_state.snapshot())
+                                and (self.input_state.snapshot() & MODIFIER_VKS)
+                                == (action.spec.keys & MODIFIER_VKS)
+                                for action in self._actions
+                            )
+                        ):
+                            self._mirror_toggle_ups.add(vk_code)
+                            return 1
                     except Exception:
                         if mirrored_pair:
                             if released:
@@ -630,7 +651,8 @@ class HotkeyRegistry:
                     # emergency-stop key. In particular preserve Alt+Tab.
                     reserved = any(
                         action.spec and vk_code in action.spec.keys
-                        for action in self._stop_actions
+                        for action in self._actions
+                        if action.action_id in {"stop_script", "mirror_toggle"}
                     )
                     modifier_down = bool(
                         self.input_state.snapshot().intersection(MODIFIER_VKS)
@@ -697,6 +719,11 @@ class HotkeyRegistry:
             if action.spec is None:
                 continue
             active = action.spec.matches(pressed)
+            if action.action_id == "mirror_toggle":
+                # No implicit activation inside another CTRL/ALT/WIN chord.
+                active = active and (pressed & MODIFIER_VKS) == (
+                    action.spec.keys & MODIFIER_VKS
+                )
             if action.kind == "switch":
                 continue
             changed_to_active = self.input_state.mark_hotkey_active(action.action_id, active)
