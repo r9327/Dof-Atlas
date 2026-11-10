@@ -15,6 +15,43 @@ class StartupTraceReportTests(unittest.TestCase):
         sessions = collect([json.dumps(x) for x in rows] + ["corrupt"])
         self.assertEqual(durations_ms(sessions, "launcher_entry", "home_event_loop"), [2.0])
 
+    def test_native_process_creation_estimate_adds_bootstrap_only_when_measured(self) -> None:
+        rows = [
+            {"session": "win", "event": "launcher_entry",
+             "t_ns": 200_000_000, "process_age_ms": 75.0},
+            {"session": "win", "event": "home_event_loop", "t_ns": 500_000_000},
+            {"session": "unknown", "event": "launcher_entry", "t_ns": 200_000_000},
+            {"session": "unknown", "event": "home_event_loop", "t_ns": 500_000_000},
+        ]
+        data = summarize([json.dumps(item) for item in rows])["segments"]
+        native = data[
+            "launcher_process_created_estimate_to_home_event_loop"
+        ]
+        self.assertEqual(native["n"], 1)
+        self.assertEqual(native["p50_ms"], 375.0)
+        self.assertEqual(
+            data["launcher_entry_to_home_event_loop"]["p50_ms"], 300.0,
+        )
+
+    def test_native_process_creation_rejects_unusable_estimates(self) -> None:
+        bad = (None, -1, True, float("nan"), float("inf"), "42", 2_000_000)
+        for age in bad:
+            with self.subTest(age=age):
+                lines = [
+                    json.dumps({"session": "s", "event": "launcher_entry",
+                                "t_ns": 100_000_000,
+                                "process_age_ms": age}),
+                    json.dumps({"session": "s", "event": "home_event_loop",
+                                "t_ns": 120_000_000}),
+                ]
+                self.assertIsNone(summarize(lines)["segments"][
+                    "launcher_process_created_estimate_to_home_event_loop"
+                ])
+        # Missing native bootstrap never counts as a zero-latency sample.
+        self.assertIsNone(summarize([])["segments"][
+            "launcher_process_created_estimate_to_home_event_loop"
+        ])
+
     def test_rejects_backwards_clocks(self) -> None:
         rows = [
             {"session": "one", "event": "launcher_entry", "t_ns": 100},
