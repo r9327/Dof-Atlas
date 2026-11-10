@@ -114,6 +114,27 @@ class RuntimeStopOwnerTests(unittest.TestCase):
         self.assertFalse(runtime.mirror_armed)
         self.assertTrue(runtime.macro_lock.emergency_latched)
 
+    def test_stop_latch_blocks_mirror_navigation_without_even_loading_settings(self):
+        from types import SimpleNamespace
+        from app.core.macro_lock import MacroLock
+
+        runtime = SimpleNamespace(
+            _running=True, _admin_ok=True, macro_lock=MacroLock(Mock()),
+            switch_character=SimpleNamespace(
+                activate_next=Mock(), activate_previous=Mock(),
+            ),
+            _emit_status=Mock(),
+        )
+        runtime.macro_lock.request_stop("bouton stop", latch=True)
+        # No "settings" is deliberately supplied: a latched Stop should
+        # refuse all commands before expensive lazy profile loading.
+        for action_id in ("mirror_toggle", "next_character", "previous_character"):
+            with self.subTest(action=action_id):
+                AtlasRuntime._handle_hotkey(runtime, action_id, {})
+        runtime.switch_character.activate_next.assert_not_called()
+        runtime.switch_character.activate_previous.assert_not_called()
+        runtime._emit_status.assert_not_called()
+
     def test_organizer_shortcut_keys_are_never_duplicated_as_mirror_taps(self):
         from types import SimpleNamespace
         from app.core.macro_lock import MacroLock
