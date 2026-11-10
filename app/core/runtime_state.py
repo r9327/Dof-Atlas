@@ -270,6 +270,9 @@ class AtlasRuntime:
             self.status_callback(str(text))
 
     def _emit_active(self, active: bool) -> None:
+        # Emergency Stop owns the existing red/green runtime indicator.
+        # A routine hooks reload may not turn it green before Relancer.
+        active = bool(active) and getattr(self.macro_lock, "emergency_latched", False) is not True
         bridge = self._callback_bridge
         if bridge is not None:
             bridge.publish_active(bool(active))
@@ -512,8 +515,8 @@ class AtlasRuntime:
         self.settings = load_settings()
         return bool(self.auto_group.run_async(invite_entries))
 
-    def emergency_stop(self, reason: str = "stop urgence") -> None:
-        self.macro_lock.request_stop(reason)
+    def emergency_stop(self, reason: str = "stop urgence", *, latch: bool = True) -> None:
+        self.macro_lock.request_stop(reason, latch=latch)
         self._pending_physical_switch = None
         failures: list[str] = []
 
@@ -561,6 +564,8 @@ class AtlasRuntime:
                 self.logger.warning("Stop urgence Python: etats internes remis a zero.")
         except Exception:
             pass
+        if latch:
+            self._emit_active(False)
         self._emit_status(
             "Stop urgence: interruption demandée, relâchements à vérifier."
             if failures else "Stop urgence: macros Python arretees."
@@ -626,6 +631,9 @@ class AtlasRuntime:
                     self.logger.warning("Stop urgence recu par raccourci.")
                 except Exception:
                     pass
+            return
+        if getattr(self.macro_lock, "emergency_latched", False) is True:
+            # Stop remains authoritative even if hooks are still running.
             return
         if not self._running or not self._admin_ok:
             self.logger.debug(
@@ -710,7 +718,8 @@ class AtlasRuntime:
         settings = self.settings
         if (not self._running or not self._admin_ok
                 or settings is None
-                or getattr(settings, "macro_mode", None) != "mirror"):
+                or getattr(settings, "macro_mode", None) != "mirror"
+                or getattr(self.macro_lock, "emergency_latched", False) is True):
             return None
         source = getattr(settings, "primary_handle", None)
         if type(source) is not int or not 0 < source <= (2**64 - 1):
@@ -746,10 +755,8 @@ class AtlasRuntime:
             return (
                 self.settings is settings
                 and self._running and self._admin_ok
-                # MacroLock keeps Stop latched once a worker ends. A fresh
-                # gesture may start a new lease, which clears that old latch.
-                and not (self.macro_lock.active_label
-                         and self.macro_lock.should_stop())
+                # No gesture is admitted after an emergency Stop until Relancer.
+                and not self.macro_lock.should_stop()
                 and getattr(settings, "macro_mode", None) == "mirror"
                 and type(getattr(settings, "primary_handle", None)) is int
                 and getattr(settings, "primary_handle", None) == source
