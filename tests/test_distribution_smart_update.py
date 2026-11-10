@@ -363,6 +363,48 @@ class ReuseInstallerTests(unittest.TestCase):
             self.assertIsNone(read_state(runtime)["active"])
             self.assertEqual(read_state(runtime)["blocked_source_sha"], candidate.source_sha)
 
+    def test_legacy_blocked_first_install_is_not_launched_as_healthy(self):
+        from app.distribution import launcher
+
+        with tempfile.TemporaryDirectory() as d:
+            root = Path(d)
+            runtime = root / "runtime"
+            package, candidate = self._package(root, "a" * 40, "v1", change=b"bad")
+            install_release(runtime, package, candidate)
+            legacy = read_state(runtime)
+            legacy["pending"] = False
+            legacy["blocked_source_sha"] = legacy["source_sha"]
+            install._write_state(runtime, legacy)
+            self.assertIsNone(install.active_executable(runtime))
+            profile = runtime / "user" / "characters.json"
+            profile.parent.mkdir()
+            profile.write_bytes(b'{"dofus":2}')
+            remote = RemoteRelease("v1", "https://example.invalid/unused",
+                                   package.stat().st_size, candidate)
+            messages = []
+            with (
+                patch.object(launcher, "ROOT", runtime),
+                patch.object(launcher, "_logger", return_value=MagicMock()),
+                patch.object(launcher, "_run_lock", return_value=MagicMock()),
+                patch.object(launcher, "SingleInstanceGuard") as guard,
+                patch.object(launcher, "recover_data_packs_on_launch"),
+                patch.object(launcher, "latest_release", return_value=remote),
+                patch.object(launcher, "download_archive",
+                             side_effect=AssertionError("blocked version cannot download")),
+                patch.object(launcher, "_launch_with_health",
+                             side_effect=AssertionError("blocked EXE cannot spawn")),
+            ):
+                guard.return_value.acquire.return_value = True
+                with self.assertRaisesRegex(UpdateError, "a deja echoue"):
+                    launcher.run_update(lambda label, _pct: messages.append(label))
+            self.assertIn("Version non validee bloquee", messages)
+            state = read_state(runtime)
+            self.assertIsNone(state["active"])
+            self.assertFalse(state["pending"])
+            self.assertEqual(state["blocked_source_sha"], candidate.source_sha)
+            self.assertEqual(profile.read_bytes(), b'{"dofus":2}')
+            self.assertFalse(rollback_pending(runtime))
+
     def test_rollback_rejects_damaged_old_exe_without_changing_state(self):
         with tempfile.TemporaryDirectory() as d:
             root = Path(d)
