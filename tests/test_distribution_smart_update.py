@@ -11,7 +11,7 @@ import tempfile
 import threading
 import unittest
 from pathlib import Path
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 
 from app.distribution import install, release_client
 from app.distribution.install import (
@@ -166,6 +166,55 @@ class ReuseInstallerTests(unittest.TestCase):
             self.assertTrue(rollback_pending(runtime))
             self.assertEqual(read_state(runtime)["active"], before["active"])
             self.assertEqual(progress.read_text(encoding="utf-8"), '{"achievement":7}')
+
+    def test_launcher_recovers_verified_full_slot_without_network_or_extraction(self):
+        from app.distribution import launcher
+
+        with tempfile.TemporaryDirectory() as d:
+            root = Path(d)
+            first, original = self._package(root, "a" * 40, "v1", change=b"old")
+            runtime = root / "runtime"
+            install_release(runtime, first, original)
+            mark_healthy(runtime)
+            stable_slot = read_state(runtime)["active"]
+            profile = runtime / "user" / "character-progress.json"
+            profile.parent.mkdir()
+            profile.write_bytes(b'{"quest":99}')
+            second, newer = self._package(root, "b" * 40, "v2", change=b"new")
+            with patch.object(install, "_write_state", side_effect=OSError("disk full")):
+                with self.assertRaises(UpdateError):
+                    install_release(runtime, second, newer)
+            self.assertEqual(read_state(runtime)["active"], stable_slot)
+            steps: list[tuple[str, int]] = []
+            remote = RemoteRelease("v2", "https://example.invalid/unused",
+                                   second.stat().st_size, newer)
+            with (
+                patch.object(launcher, "ROOT", runtime),
+                patch.object(launcher, "_LOCATION_ERROR", None),
+                patch.object(launcher, "_logger", return_value=MagicMock()),
+                patch.object(launcher, "_run_lock", return_value=MagicMock()),
+                patch.object(launcher, "SingleInstanceGuard") as guard,
+                patch.object(launcher, "recover_data_packs_on_launch"),
+                patch.object(launcher, "latest_release", return_value=remote),
+                patch.object(launcher, "download_archive",
+                             side_effect=AssertionError("redundant network transfer")),
+                patch.object(launcher, "ensure_space",
+                             side_effect=AssertionError("redundant space reservation")),
+                patch.object(launcher, "install_release",
+                             side_effect=AssertionError("redundant extraction")),
+                patch.object(launcher, "_launch_with_health", return_value=True) as launched,
+                patch.object(launcher, "schedule_launcher_upgrade"),
+                patch.object(launcher, "cleanup_verified_runtime", return_value=(0, 0)),
+            ):
+                guard.return_value.acquire.return_value = True
+                launcher.run_update(lambda title, pct: steps.append((title, pct)))
+            self.assertEqual(read_state(runtime)["source_sha"], newer.source_sha)
+            self.assertFalse(read_state(runtime)["pending"])
+            self.assertEqual(read_state(runtime)["previous"], stable_slot)
+            self.assertTrue(any("recuperee" in title for title, _ in steps))
+            self.assertEqual(steps[-1][1], 100)
+            launched.assert_called_once()
+            self.assertEqual(profile.read_bytes(), b'{"quest":99}')
 
     def test_orphan_slot_must_be_fully_verified_before_reuse(self):
         with tempfile.TemporaryDirectory() as d:
