@@ -9,6 +9,8 @@ from pathlib import Path
 from statistics import median
 
 SEGMENTS = (
+    ("launcher_process_created_estimate", "home_event_loop",
+     "Estimated Windows process creation -> Home event loop"),
     ("launcher_entry", "home_event_loop", "Launcher entry -> Home event loop"),
     ("launcher_entry", "home_first_paint", "Launcher entry -> first Home paint"),
     ("atlas_window_create_begin", "atlas_window_created", "AtlasWindow construction"),
@@ -36,6 +38,17 @@ def collect(lines: list[str]) -> dict[str, dict[str, int]]:
             if (not isinstance(session, str) or not isinstance(event, str)
                     or not isinstance(stamp, int) or isinstance(stamp, bool)):
                 continue
+            if event == "launcher_entry":
+                age_ms = row.get("process_age_ms")
+                if (type(age_ms) in (int, float) and math.isfinite(age_ms)
+                        and 0 <= age_ms <= 30 * 60 * 1000):
+                    # OS creation is a derived estimate (FILETIME -> monotonic
+                    # checkpoint), not an independently observed Python event.
+                    estimated = stamp - round(age_ms * 1_000_000)
+                    if estimated >= 0:
+                        sessions[session].setdefault(
+                            "launcher_process_created_estimate", estimated,
+                        )
             sessions[session].setdefault(event, stamp)
         except (ValueError, TypeError):
             continue
