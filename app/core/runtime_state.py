@@ -862,7 +862,9 @@ class AtlasRuntime:
             pass
 
     def _mirror_pointer_profile_is_current(self, context: MirrorPointerContext) -> bool:
-        if type(context) is not MirrorPointerContext or not self._running or not self._admin_ok:
+        if (type(context) is not MirrorPointerContext or not self._running
+                or not self._admin_ok
+                or getattr(self, "_mirror_armed", True) is not True):
             return False
         # A low-level hook must not invoke the lazy JSON loader during a
         # detached-profile transition. Plain diagnostic runtimes expose the
@@ -1484,6 +1486,7 @@ class AtlasRuntime:
                 self.settings is settings
                 and self._running and self._admin_ok
                 and settings.macro_mode == "mirror"
+                and getattr(self, "_mirror_armed", True) is True
                 and type(settings.primary_handle) is int
                 and settings.primary_handle == source_hwnd
                 and type(getattr(favorite, "handle", None)) is int
