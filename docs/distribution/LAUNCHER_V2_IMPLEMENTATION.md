@@ -147,6 +147,18 @@ fichiers ouverts**. Verrouillage antivirus, manque d'espace et interruption
 physique demandent une validation native ; ne pas déclarer LV2-004 terminé
 sans ces preuves.
 
+### Refus de rollback vers un binaire précédent corrompu
+
+`rollback_pending()` vérifie désormais la présence d'un EXE régulier
+dans le slot précédent et, lorsque les métadonnées modernes existent,
+sa taille et son SHA-256 **avant** de changer le pointeur `state.json`.
+Si l'ancien EXE a disparu ou a été altéré, la transaction reste en attente
+et signale une erreur ; elle ne rétablit pas silencieusement un slot connu
+endommagé. Les tests avec EXE absent/corrompu vérifient que le pointeur,
+la version en attente et la progression utilisateur restent inchangés.
+Cela améliore LV2-004, mais **ne prouve pas** une restauration après coupure
+réelle ni le comportement de l'antivirus sur la machine cible.
+
 ## Handoff Tk → Qt → Home
 
 `DofusAtlas.exe` affiche son panneau Tk minimal (statut et progression)
