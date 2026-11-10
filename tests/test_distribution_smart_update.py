@@ -91,6 +91,51 @@ class ReuseInstallerTests(unittest.TestCase):
             self.assertTrue(rollback_pending(target))
             self.assertEqual(read_state(target)["active"], old_slot)
 
+    def test_antivirus_locked_slot_activation_keeps_active_release_and_progress(self):
+        """An OS sharing violation must never switch active state or lose data."""
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            first, original = self._package(root, "a" * 40, "v1", change=b"old")
+            runtime = root / "runtime"
+            self.assertTrue(install_release(runtime, first, original))
+            mark_healthy(runtime)
+            before = read_state(runtime)
+            progress = runtime / "user" / "quest_progress.json"
+            progress.parent.mkdir(parents=True)
+            progress.write_bytes(b'{"quest":42}')
+
+            second, newer = self._package(root, "b" * 40, "v2", change=b"new")
+            original_replace = install.os.replace
+
+            def deny_locked_activation(source, destination):
+                candidate = Path(source)
+                installed = Path(destination)
+                if (candidate.name.startswith(".atlas-install-")
+                        and installed.parent == runtime / "versions"):
+                    raise PermissionError("WinError 32: antivirus holds target")
+                return original_replace(source, destination)
+
+            with patch.object(install.os, "replace", side_effect=deny_locked_activation):
+                with self.assertRaises(UpdateError):
+                    install_release(runtime, second, newer)
+
+            self.assertEqual(read_state(runtime), before)
+            self.assertEqual(progress.read_bytes(), b'{"quest":42}')
+            self.assertEqual(
+                (slot_path(runtime, before["active"]) / "AtlasApp/changed.dat").read_bytes(),
+                b"old",
+            )
+            self.assertFalse(list(runtime.glob(".atlas-install-*")))
+            self.assertFalse(
+                slot_path(runtime, f"{newer.app_version}-{newer.source_sha[:12]}").exists()
+            )
+
+            # Releasing the lock allows a normal retry; no corrupted slot was
+            # promoted and no rollback/progress metadata was sacrificed.
+            self.assertTrue(install_release(runtime, second, newer))
+            self.assertEqual(read_state(runtime)["previous"], before["active"])
+            self.assertEqual(progress.read_bytes(), b'{"quest":42}')
+
     def test_invalid_new_zip_preserves_active_state_and_progress(self):
         with tempfile.TemporaryDirectory() as d:
             root = Path(d)
