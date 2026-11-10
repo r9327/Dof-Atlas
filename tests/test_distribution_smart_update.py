@@ -795,6 +795,13 @@ class FrozenCandidateWorkflowTests(unittest.TestCase):
         self.assertIn("Upload unmerged full Windows distribution candidate", workflow)
         self.assertIn("github.event.action == 'ready_for_review'", workflow)
         self.assertIn("atlas-windows-full-candidate-", workflow)
+        # Draft/ready-for-review may only read the previous public manifest.
+        # Actual frozen delta must be independently checked and preserved as a
+        # candidate artifact, never published from a review branch.
+        self.assertIn("github.event_name == 'workflow_run' && secrets.ATLAS_DISTRIBUTION_TOKEN || github.token", workflow)
+        self.assertIn("DELTA_NOT_GENERATED:", workflow)
+        self.assertIn("_verify_delta_members(delta_path, manifest)", workflow)
+        self.assertIn("            dist-release/atlas-delta.zip", workflow)
         self.assertIn("if: github.event_name == 'workflow_run'", workflow)
         self.assertIn("--repo r9327/Dof-Atlas-App", workflow)
 
