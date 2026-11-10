@@ -8,8 +8,12 @@ on:
     types: [opened, synchronize, reopened]
     paths:
       - app/distribution/manifest.py
+      - app/distribution/startup_trace.py
+      - tools/startup_trace_report.py
       - scripts/windows/build_repo_update_pointer.py
       - tests/test_distribution_repo_update_pointer.py
+      - tests/test_startup_trace.py
+      - tests/test_startup_trace_report.py
       - .github/workflows/launcher-repo-update-contract.yml
 
 permissions:
@@ -41,6 +45,8 @@ jobs:
         run: python -c "import os,subprocess; assert subprocess.check_output(['git','rev-parse','HEAD'],text=True).strip() == os.environ['EXPECTED_SHA']"
       - name: Run strict repo update pointer regressions
         run: python -X faulthandler -m unittest discover -s tests -p test_distribution_repo_update_pointer.py -v
+      - name: Validate opt-in startup trace clocks and report (native Windows API)
+        run: python -X faulthandler -m unittest tests.test_startup_trace tests.test_startup_trace_report -v
       - name: State proof boundaries
         if: always()
         env:
