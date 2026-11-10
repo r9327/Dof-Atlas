@@ -388,19 +388,29 @@ class OrganizerPage(
             return False
         if self.capture_target is not None:
             return False
-        from app.windows.unity_windows import foreground_window, is_unity_window
+        from app.windows.unity_windows import foreground_window
         hwnd = foreground_window()
-        # A foreign/untracked Dofus window is not an Organizer session and
-        # must not trigger a focus-changing radial picker.
-        return bool(
-            is_unity_window(hwnd)
-            and any(
-                session_is_detected(row) and session_hwnd(row) == hwnd
-                for row in getattr(self, "sessions", [])
-            )
-        )
+        # The selection shortcut is global: the source can be any existing
+        # Windows foreground window, not only an active DOFUS Unity client.
+        # The targets, by contrast, must still be verified Organizer sessions.
+        if type(hwnd) is not int or hwnd <= 0:
+            return False
+        if not any(session_is_detected(row) for row in getattr(self, "sessions", [])):
+            return False
+        overlay = getattr(self, "_radial_overlay", None)
+        if isinstance(overlay, QWidget) and overlay.isVisible():
+            # Do not activate a game after Alt+Tab or focus theft while held.
+            return hwnd == getattr(self, "_radial_origin_hwnd", None)
+        self._radial_origin_hwnd = hwnd
+        return True
 
     def _activate_radial_handle(self, handle: int) -> None:
+        # Closing the overlay must not move focus if another app took over.
+        origin = getattr(self, "_radial_origin_hwnd", None)
+        if type(origin) is int and origin > 0:
+            from app.windows.unity_windows import foreground_window
+            if foreground_window() != origin:
+                return
         if handle == 0:
             # Centre: open the existing Atlas window, never another instance.
             window = self.window()
