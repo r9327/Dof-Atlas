@@ -86,6 +86,70 @@ class FixtureService:
         self.path.write_text(json.dumps(self.progress))
 
 
+class GuideLogicalRowOracleTests(unittest.TestCase):
+    @classmethod
+    def setUpClass(cls):
+        cls.app = QApplication.instance() or QApplication([])
+
+    def test_position_and_zaap_preserve_one_logical_action(self):
+        from PySide6.QtWidgets import QHBoxLayout, QLabel
+        from tools.atlas_doctor_lib.doctor_ui_qt import mounted_action_line_html
+
+        sheet = QFrame()
+        row = QFrame(sheet)
+        row.setObjectName("GuideManualLineRow")
+        layout = QHBoxLayout(row)
+        coordinate = QLabel("• <a href='travel-copy:1,2'><b>[1,2]</b></a>", row)
+        coordinate.setObjectName("GuideManualPositionCopy")
+        icon = QToolButton(row)
+        icon.setObjectName("GuideManualZaapShortcut")
+        action = QLabel("— Parler au PNJ fictif", row)
+        layout.addWidget(coordinate)
+        layout.addWidget(icon)
+        layout.addWidget(action)
+        self.assertEqual(
+            mounted_action_line_html(sheet),
+            ["• <a href='travel-copy:1,2'><b>[1,2]</b></a> — Parler au PNJ fictif"],
+        )
+        # Without the required visible shortcut, two disconnected labels must
+        # not be laundered into one oracle PASS.
+        icon.setParent(None)
+        self.assertEqual(
+            mounted_action_line_html(sheet),
+            [coordinate.text(), action.text()],
+        )
+        icon.deleteLater()
+        sheet.deleteLater()
+
+    def test_plain_rows_and_duplicate_position_stay_fail_closed(self):
+        from PySide6.QtWidgets import QHBoxLayout, QLabel
+        from tools.atlas_doctor_lib.doctor_ui_qt import mounted_action_line_html
+
+        sheet = QFrame()
+        plain = QFrame(sheet)
+        plain.setObjectName("GuideManualLineRow")
+        QLabel("• Sans position", plain)
+        paired = QFrame(sheet)
+        paired.setObjectName("GuideManualLineRow")
+        layout = QHBoxLayout(paired)
+        for name, text in (
+            ("GuideManualPositionCopy", "• [1,2]"),
+            ("GuideManualPositionCopy", "• [1,2]"),
+            ("GuideManualLine", "— Dubious duplicate"),
+        ):
+            item = QLabel(text, paired)
+            item.setObjectName(name)
+            layout.addWidget(item)
+        shortcut = QToolButton(paired)
+        shortcut.setObjectName("GuideManualZaapShortcut")
+        layout.addWidget(shortcut)
+        self.assertEqual(
+            mounted_action_line_html(sheet),
+            ["• Sans position", "• [1,2]", "• [1,2]", "— Dubious duplicate"],
+        )
+        sheet.deleteLater()
+
+
 class DoctorUiQtFaultTests(unittest.TestCase):
     @classmethod
     def setUpClass(cls):

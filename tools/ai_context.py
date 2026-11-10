@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import argparse
+from importlib import metadata
 import json
 import subprocess
 from pathlib import Path
@@ -214,6 +215,40 @@ def recommended_tests(root: Path, paths: Iterable[str]) -> list[str]:
             if (root / exact).is_file():
                 modules.append(".".join(exact.with_suffix("").parts))
 
+    # Scope-to-test ownership: Doctor's existing targeted unittest runner
+    # must reach the OSS adapter tests when those modules change. Do not add
+    # another test executor or run a full suite for a small router edit.
+    if any(path in {
+            "app/distribution/disk_space.py",
+            "app/distribution/install_location.py",
+        } for path in normalized_paths):
+        # The launcher owner can exercise the existing stdlib and optional
+        # generative property tests; this never invokes Qt or an installer.
+        try:
+            metadata.version("hypothesis")
+        except metadata.PackageNotFoundError:
+            pass
+        else:
+            modules.append("tests.test_doctor_oss_hypothesis")
+    if any(path == "tools/atlas_doctor_lib/oss_router.py"
+           for path in normalized_paths):
+        modules.extend(("tests.test_doctor_oss_routing",
+                        "tests.test_doctor_oss_live",
+                        "tests.test_doctor_auto_oss"))
+        # Run real generative route checks only in an environment where the
+        # optional dev dependency is installed; absent is not a hidden PASS.
+        try:
+            metadata.version("hypothesis")
+        except metadata.PackageNotFoundError:
+            pass
+        else:
+            modules.append("tests.test_doctor_oss_hypothesis")
+    if any(path == "tools/atlas_doctor_lib/oss_intelligence.py"
+           for path in normalized_paths):
+        modules.extend(("tests.test_doctor_oss_intelligence",
+                        "tests.test_doctor_auto_oss"))
+    if any(path == "tools/atlas_doctor.py" for path in normalized_paths):
+        modules.append("tests.test_doctor_auto_oss")
     domains = {classify_path(path) for path in normalized_paths}
     for domain in sorted(domains):
         modules.extend(DOMAIN_TEST_MODULES.get(domain, ()))
