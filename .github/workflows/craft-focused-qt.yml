@@ -46,6 +46,10 @@ jobs:
           if ((git rev-parse HEAD).Trim() -ne $env:CANDIDATE_SHA) {
             throw "Craft test checkout differs from PR HEAD"
           }
+          Write-Host 'ATLAS_ROOT_TREE_BEGIN'
+          git ls-tree HEAD
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          Write-Host 'ATLAS_ROOT_TREE_END'
       - name: Python 3.13
         uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
         with:
