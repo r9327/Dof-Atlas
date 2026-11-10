@@ -9,7 +9,9 @@ from __future__ import annotations
 import argparse
 import hashlib
 import json
+import os
 import stat
+import tempfile
 import zipfile
 from pathlib import Path
 
@@ -116,9 +118,20 @@ def main() -> int:
     ):
         raise ManifestError("Pointer output overlaps a source artifact")
     result = build_pointer(args.manifest, args.delta, args.app_commit_sha)
-    # Only the reviewed publishing CI may move the stable pointer. Never
-    # write a token or an unverified external URL into this artifact.
-    args.output.write_bytes(result)
+    # The output is an offline candidate: a failed write must not truncate a
+    # previously validated pointer. Publication to APP remains a separate,
+    # independently authorized CI operation.
+    fd, staging = tempfile.mkstemp(prefix=".atlas-pointer-", suffix=".tmp",
+                                   dir=args.output.parent)
+    try:
+        with os.fdopen(fd, "wb") as stream:
+            stream.write(result)
+            stream.flush()
+            os.fsync(stream.fileno())
+        os.replace(staging, args.output)
+    finally:
+        if os.path.exists(staging):
+            os.unlink(staging)
     print("VALIDATED_REPO_UPDATE_POINTER_ONLY; NOT_PUBLISHED")
     return 0
 
