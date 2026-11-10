@@ -567,6 +567,34 @@ class ImportedSourceSharedManualUiTests(unittest.TestCase):
                 button.click()
                 self.assertEqual(QApplication.clipboard().text(), "/travel -5,2")
                 self.assertEqual(len(launched), 1)
+
+                # A typed plan for exactly the same selected identities is
+                # still unsafe if it reverses the Organizer recipient order.
+                participants.save_selected_keys(("character:1", "character:2"))
+                self.assertEqual(
+                    view.selected_participant_keys(),
+                    ("character:1", "character:2"),
+                )
+                service.plan_verified_zaap_travel = verified_plan
+                button.click()
+                self.assertEqual(launched[-1], (
+                    "/zaap 1,1 ; /travel -5,2",
+                    ("character:1", "character:2"),
+                ))
+                self.assertEqual(len(launched), 2)
+
+                service.plan_verified_zaap_travel = lambda _xy, keys: GuideTravelPlan(
+                    mode=TravelMode.ZAAP_THEN_TRAVEL,
+                    destination=RouteLocation(x=-5, y=2),
+                    participant_keys=tuple(reversed(keys)),
+                    world="fictional-world",
+                    zaap=RouteLocation(x=1, y=1),
+                    evidence="fictional-independent-zaap-proof",
+                )
+                QApplication.clipboard().setText("before")
+                button.click()
+                self.assertEqual(QApplication.clipboard().text(), "/travel -5,2")
+                self.assertEqual(len(launched), 2)
             finally:
                 view.close()
                 view.deleteLater()
