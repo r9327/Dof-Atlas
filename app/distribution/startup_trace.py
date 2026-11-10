@@ -49,6 +49,106 @@ def _windows_rss_bytes() -> int | None:
     return None
 
 
+def _windows_process_tree_rss() -> tuple[int, int] | None:
+    """Sample launcher and live descendants; unavailable is not zero.
+
+    Profiling-only Win32 snapshot, never part of update/health decisions.
+    Returns None if any visible descendant cannot be read reliably.
+    """
+    if os.name != "nt":
+        return None
+    try:
+        import ctypes
+        from ctypes import wintypes
+
+        class ProcessEntry(ctypes.Structure):
+            _fields_ = [
+                ("dwSize", wintypes.DWORD),
+                ("cntUsage", wintypes.DWORD),
+                ("th32ProcessID", wintypes.DWORD),
+                ("th32DefaultHeapID", ctypes.c_void_p),
+                ("th32ModuleID", wintypes.DWORD),
+                ("cntThreads", wintypes.DWORD),
+                ("th32ParentProcessID", wintypes.DWORD),
+                ("pcPriClassBase", wintypes.LONG),
+                ("dwFlags", wintypes.DWORD),
+                ("szExeFile", wintypes.WCHAR * 260),
+            ]
+
+        class MemoryCounters(ctypes.Structure):
+            _fields_ = [
+                ("cb", wintypes.DWORD), ("PageFaultCount", wintypes.DWORD),
+                ("PeakWorkingSetSize", ctypes.c_size_t),
+                ("WorkingSetSize", ctypes.c_size_t),
+                ("QuotaPeakPagedPoolUsage", ctypes.c_size_t),
+                ("QuotaPagedPoolUsage", ctypes.c_size_t),
+                ("QuotaPeakNonPagedPoolUsage", ctypes.c_size_t),
+                ("QuotaNonPagedPoolUsage", ctypes.c_size_t),
+                ("PagefileUsage", ctypes.c_size_t),
+                ("PeakPagefileUsage", ctypes.c_size_t),
+            ]
+
+        kernel = ctypes.windll.kernel32
+        psapi = ctypes.windll.psapi
+        kernel.CreateToolhelp32Snapshot.argtypes = [wintypes.DWORD, wintypes.DWORD]
+        kernel.CreateToolhelp32Snapshot.restype = wintypes.HANDLE
+        kernel.Process32FirstW.argtypes = [wintypes.HANDLE, ctypes.POINTER(ProcessEntry)]
+        kernel.Process32FirstW.restype = wintypes.BOOL
+        kernel.Process32NextW.argtypes = [wintypes.HANDLE, ctypes.POINTER(ProcessEntry)]
+        kernel.Process32NextW.restype = wintypes.BOOL
+        kernel.CloseHandle.argtypes = [wintypes.HANDLE]
+        kernel.CloseHandle.restype = wintypes.BOOL
+        kernel.OpenProcess.argtypes = [wintypes.DWORD, wintypes.BOOL, wintypes.DWORD]
+        kernel.OpenProcess.restype = wintypes.HANDLE
+        psapi.GetProcessMemoryInfo.argtypes = [
+            wintypes.HANDLE, ctypes.c_void_p, wintypes.DWORD,
+        ]
+        psapi.GetProcessMemoryInfo.restype = wintypes.BOOL
+
+        snapshot = kernel.CreateToolhelp32Snapshot(0x00000002, 0)
+        if snapshot == ctypes.c_void_p(-1).value or not snapshot:
+            return None
+        parents: dict[int, int] = {}
+        try:
+            entry = ProcessEntry()
+            entry.dwSize = ctypes.sizeof(entry)
+            if not kernel.Process32FirstW(snapshot, ctypes.byref(entry)):
+                return None
+            while True:
+                parents[int(entry.th32ProcessID)] = int(entry.th32ParentProcessID)
+                if not kernel.Process32NextW(snapshot, ctypes.byref(entry)):
+                    break
+        finally:
+            kernel.CloseHandle(snapshot)
+
+        tracked = {os.getpid()}
+        if os.getpid() not in parents:
+            return None
+        while True:
+            descendants = {pid for pid, parent in parents.items() if parent in tracked}
+            if descendants <= tracked:
+                break
+            tracked.update(descendants)
+        total = 0
+        for pid in tracked:
+            handle = kernel.OpenProcess(0x0400 | 0x0010, False, pid)
+            if not handle:
+                return None
+            try:
+                info = MemoryCounters()
+                info.cb = ctypes.sizeof(info)
+                if not psapi.GetProcessMemoryInfo(
+                    handle, ctypes.byref(info), ctypes.sizeof(info),
+                ):
+                    return None
+                total += int(info.WorkingSetSize)
+            finally:
+                kernel.CloseHandle(handle)
+        return total, len(tracked)
+    except (AttributeError, OSError, TypeError, ValueError, OverflowError):
+        return None
+
+
 def _windows_process_age_ms() -> float | None:
     """Approximate time already spent in the frozen launcher bootstrap.
 
@@ -131,6 +231,13 @@ def record_startup_event(event: str, **metrics: int | float) -> None:
         rss = _windows_rss_bytes()
         if rss is not None:
             fields["process_rss_bytes"] = rss
+        # A process-tree snapshot is expensive: take it only for two measured
+        # handoff checkpoints, and never when profiling is off.
+        if event in {"app_health_ack", "app_home_ack"}:
+            tree = _windows_process_tree_rss()
+            if tree is not None:
+                fields["process_tree_rss_bytes"] = tree[0]
+                fields["process_tree_count"] = tree[1]
         line = json.dumps({"session": session, "event": event, "t_ns": time.perf_counter_ns(),
                            "pid": os.getpid(), **fields}, separators=(",", ":")) + "\n"
         if len(line) > 1024:
