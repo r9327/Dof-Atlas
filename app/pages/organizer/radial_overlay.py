@@ -288,12 +288,14 @@ class OrganizerRadialHoldController:
                 self._down = False
                 if self.overlay.isVisible():
                     self.overlay.track_cursor()
-                    # Close before any session resolution or Windows focus work.
+                    # Read the source focus *before* hiding the wheel:
+                    # Organizer's focus guard compares the live popup's
+                    # originating application with the current foreground.
+                    # Hiding first could mistakenly accept a changed focus.
+                    still_allowed = self.can_open()
                     self.overlay.hide()
-                    # A focus loss between key polls must never refocus a
-                    # Dofus window on release (e.g. Alt+Tab to another app).
                     handle = self.overlay.finish(
-                        self.participants(), cancel=cancelled or not self.can_open()
+                        self.participants(), cancel=cancelled or not still_allowed
                     )
                 else:
                     handle = None
