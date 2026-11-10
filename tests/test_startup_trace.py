@@ -72,6 +72,14 @@ class StartupTraceTests(unittest.TestCase):
                 "process_age_ms", json.loads(target.read_text()),
             )
 
+    @unittest.skipUnless(os.name == "nt", "Native FILETIME is Windows-only")
+    def test_windows_process_creation_clock_returns_elapsed_time(self) -> None:
+        # Real Windows CI, not a mocked API: verifies the typed ctypes call.
+        elapsed = startup_trace._windows_process_age_ms()
+        self.assertIsNotNone(elapsed)
+        self.assertGreaterEqual(elapsed, 0.0)
+        self.assertLess(elapsed, 30 * 60 * 1000)
+
     def test_unwritable_trace_path_does_not_break_startup(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
             with patch.dict(os.environ, {
