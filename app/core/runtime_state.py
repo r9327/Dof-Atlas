@@ -1072,6 +1072,7 @@ class AtlasRuntime:
         if (not self._running or not self._admin_ok
                 or settings is None
                 or getattr(settings, "macro_mode", None) != "mirror"
+                or getattr(self.macro_lock, "emergency_latched", False) is True
                 or (self.macro_lock.active_label
                     and self.macro_lock.should_stop())):
             return False
@@ -1207,6 +1208,7 @@ class AtlasRuntime:
         if (not self._running or not self._admin_ok
                 or settings is None
                 or getattr(settings, "macro_mode", None) != "mirror"
+                or getattr(self.macro_lock, "emergency_latched", False) is True
                 or (self.macro_lock.active_label
                     and self.macro_lock.should_stop())):
             return False
@@ -1484,6 +1486,9 @@ class AtlasRuntime:
             return False
 
     def _handle_mouse_click(self, button: str, screen_x: int, screen_y: int) -> bool:
+        # Unarmed or stopped Organizer must never swallow native clicks.
+        if getattr(self.macro_lock, "emergency_latched", False) is True:
+            return False
         if not self._running or not self._admin_ok:
             self.logger.debug(
                 "Clic ignore: runtime actif=%s admin_ok=%s button=%s x=%s y=%s",
