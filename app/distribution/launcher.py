@@ -410,6 +410,12 @@ def run_update(report, *, verify_installation: bool = False,
                 raise UpdateError(
                     f"Premiere installation impossible : {update_failure}"
                 ) from update_failure
+            if (remote is not None and
+                    prior.get("blocked_source_sha") == remote.manifest.source_sha):
+                raise UpdateError(
+                    "Atlas ne peut pas demarrer : cette version a deja echoue "
+                    "au premier lancement et aucune version saine n'est disponible"
+                )
             raise UpdateError("Premiere installation impossible : aucune version disponible")
         was_pending = final_state["pending"]
         if not _launch_with_health(executable, report,
