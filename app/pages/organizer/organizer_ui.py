@@ -206,7 +206,7 @@ class OrganizerUiMixin:
         self.switch_movement = AtlasButton("")
         self.next_character = AtlasButton("Perso suivant")
         self.switch_fake = AtlasButton("Auto-groupe")
-        self.radial_select_button = AtlasButton("Sélection\npersonnage")
+        self.radial_select_button = AtlasButton("Sélection perso")
         self.radial_select_button.setAccessibleName("Sélection personnage")
         self.click_button = AtlasButton("")
         self.double_click_button = AtlasButton("")
@@ -217,7 +217,7 @@ class OrganizerUiMixin:
         self.next_character_clear = AtlasButton("x")
         self.reload_runtime_button = AtlasButton("Relancer scripts")
         self.debug_button = AtlasButton("Debug")
-        self.script_speed_title = QLabel("Vitesse script")
+        self.script_speed_title = QLabel("Vitesse :")
         self.script_speed_legacy = AtlasButton("Classique")
         self.script_speed_normal = AtlasButton("Normal")
         self.script_speed_fast = AtlasButton("Rapide")
@@ -228,13 +228,14 @@ class OrganizerUiMixin:
         self.click_clear = AtlasButton("x")
 
         control_size = QSize(138, BUTTON_HEIGHT)
-        # Two text lines must fit inside the Unity sprite's 8px borders.
-        radial_control_size = QSize(control_size.width(), 48)
+        # Use the same one-line control height as neighboring modules.
+        radial_control_size = control_size
         controls_panel_height = 206
         panel_inner_width = control_size.width() * 2 + 8
         panel_width = panel_inner_width + CARD_PADDING * 2
         stop_hotkey_size = QSize(52, STOP_BUTTON_HEIGHT)
-        stop_size = QSize(panel_inner_width - stop_hotkey_size.width() - 8, STOP_BUTTON_HEIGHT)
+        stop_size = QSize(panel_inner_width, STOP_BUTTON_HEIGHT)
+        speed_control_size = QSize((panel_inner_width - 16) // 3, BUTTON_HEIGHT)
         shortcut_size = QSize(42, KEY_BADGE_HEIGHT)
 
         for button in (
@@ -270,14 +271,13 @@ class OrganizerUiMixin:
         self.radial_clear.setAccessibleName("Supprimer le raccourci du camembert")
         self.next_character_hotkey_button.setAccessibleName("Raccourci personnage suivant")
         self.script_speed_title.setObjectName("MutedLabel")
-        self.script_speed_title.setFixedSize(stop_size.width(), 0)
+        self.script_speed_title.setFixedSize(panel_inner_width, 20)
         self.script_speed_title.setAlignment(Qt.AlignLeft | Qt.AlignVCenter)
-        self.script_speed_title.hide()
         for button in (
             self.script_speed_legacy, self.script_speed_normal,
             self.script_speed_fast, self.script_speed_instant,
         ):
-            button.setFixedSize(control_size)
+            button.setFixedSize(speed_control_size)
             button.setSizePolicy(QSizePolicy.Fixed, QSizePolicy.Fixed)
             button.setObjectName("segmentedButton")
         self.click_button.setToolTip("Raccourci Switch Clique")
@@ -397,26 +397,38 @@ class OrganizerUiMixin:
         quick_grid.setVerticalSpacing(8)
         quick_grid.addWidget(self.switch_fake, 0, 0)
         quick_grid.addWidget(macro_cell(self.radial_select_button, self.radial_hotkey_button, self.radial_clear, size=radial_control_size), 0, 1)
-        # Primary Normal/Rapide choice is a single horizontal pair. Keep
-        # Classique and Instantané available underneath for existing profiles
-        # without changing any stored preset or actual timing.
-        quick_grid.addWidget(self.script_speed_normal, 1, 0)
-        quick_grid.addWidget(self.script_speed_fast, 1, 1)
-        quick_grid.addWidget(self.script_speed_legacy, 2, 0)
-        quick_grid.addWidget(self.script_speed_instant, 2, 1)
+        quick_grid.addWidget(self.script_speed_title, 1, 0, 1, 2)
+        speed_row = QWidget()
+        speed_row.setFixedSize(panel_inner_width, BUTTON_HEIGHT)
+        speed_row_layout = QHBoxLayout(speed_row)
+        speed_row_layout.setContentsMargins(0, 0, 0, 0)
+        speed_row_layout.setSpacing(8)
+        for button in (
+            self.script_speed_normal, self.script_speed_fast,
+            self.script_speed_instant,
+        ):
+            speed_row_layout.addWidget(button)
+        quick_grid.addWidget(speed_row, 2, 0, 1, 2)
+        # Preserve an existing Classique profile without silently accelerating
+        # it. This legacy-only choice is no longer offered to the user.
+        quick_grid.addWidget(self.script_speed_legacy, 3, 0)
+        self.script_speed_legacy.hide()
         stop_row = QWidget()
         stop_row.setFixedSize(panel_inner_width, STOP_BUTTON_HEIGHT)
         stop_row.setSizePolicy(QSizePolicy.Fixed, QSizePolicy.Fixed)
         stop_row_layout = QHBoxLayout(stop_row)
         stop_row_layout.setContentsMargins(0, 0, 0, 0)
         stop_row_layout.setSpacing(8)
-        stop_row_layout.addWidget(self.stop_script_button)
-        stop_row_layout.addWidget(macro_cell(self.stop_script_hotkey_button, None, self.stop_script_clear, stop_hotkey_size))
+        # The emergency hotkey badge is inside the Stop button, not beside it.
+        stop_row_layout.addWidget(macro_cell(
+            self.stop_script_button, self.stop_script_hotkey_button,
+            self.stop_script_clear, size=stop_size,
+        ))
         for column in range(2):
             quick_grid.setColumnMinimumWidth(column, control_size.width())
             quick_grid.setColumnStretch(column, 0)
         quick_grid.setRowMinimumHeight(0, BUTTON_HEIGHT)
-        quick_grid.setRowMinimumHeight(1, BUTTON_HEIGHT)
+        quick_grid.setRowMinimumHeight(1, 20)
         quick_grid.setRowMinimumHeight(2, BUTTON_HEIGHT)
         quick_layout.addWidget(quick_grid_host, alignment=Qt.AlignLeft)
 
