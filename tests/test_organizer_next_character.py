@@ -155,6 +155,25 @@ class NextCharacterTests(unittest.TestCase):
         owner.previous_character_callback.assert_called_once_with()
         owner.status_callback.assert_not_called()
 
+    def test_previous_without_known_foreground_selects_last_verified_client(self):
+        for count in (2, 4, 6, 8):
+            with self.subTest(count=count):
+                runtime = Mock()
+                runtime.settings = settings(count)
+                runtime.macro_lock.should_stop.return_value = False
+                macro = SwitchCharacterMacro(runtime)
+                with (
+                    patch("app.macros.switch_character.is_unity_window", return_value=True),
+                    patch("app.macros.switch_character.is_dofus_unity_process", return_value=True),
+                    patch.object(macro, "logical_active_client", return_value=None),
+                    patch.object(macro, "activate_by_index", return_value=True) as activate,
+                ):
+                    self.assertTrue(macro.activate_previous())
+                activate.assert_called_once_with(
+                    count, expected_profile=runtime.settings,
+                    expected_context=(runtime.settings.primary_handle, "macro"),
+                )
+
     def test_mirror_activation_hotkey_fires_once_per_press_and_exact_modifiers(self):
         from app.input.hotkeys import HotkeyRegistry
         from app.input.input_state import InputState
