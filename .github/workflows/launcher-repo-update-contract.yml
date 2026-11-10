@@ -16,6 +16,10 @@ on:
       - app/distribution/install.py
       - app/distribution/launcher.py
       - tests/test_distribution_launcher_noop_offline.py
+      - app/distribution/install_location.py
+      - tests/test_distribution_install_location.py
+      - app/distribution/health.py
+      - tests/test_distribution_health.py
       - tests/test_startup_trace.py
       - tests/test_startup_trace_report.py
       - .github/workflows/launcher-repo-update-contract.yml
@@ -53,6 +57,10 @@ jobs:
         run: python -X faulthandler -m unittest discover -s tests -p 'test_distribution_smart_update.py' -v
       - name: Verify unchanged/offline launcher startup and binary hash reuse
         run: python -X faulthandler -m unittest discover -s tests -p 'test_distribution_launcher_noop_offline.py' -v
+      - name: Verify existing runtime relocation and Windows link protections
+        run: python -X faulthandler -m unittest discover -s tests -p 'test_distribution_install_location.py' -v
+      - name: Verify single-window Qt handoff and failed-launch recovery
+        run: python -X faulthandler -m unittest discover -s tests -p 'test_distribution_health.py' -v
       - name: Validate opt-in startup trace clocks and report (native Windows API)
         run: python -X faulthandler -m unittest discover -s tests -p 'test_startup_trace*.py' -v
       - name: State proof boundaries
