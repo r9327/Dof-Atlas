@@ -23,6 +23,7 @@ def _runtime() -> AtlasRuntime:
     runtime._direction = Mock()
     runtime._pending_physical_switch = object()
     runtime._emit_status = Mock()
+    runtime._emit_active = Mock()
     return runtime
 
 
@@ -41,7 +42,7 @@ class RuntimeStopOwnerTests(unittest.TestCase):
                     side_effect=OSError("mouse"),
                 ) as common:
                     runtime.emergency_stop("P0")
-                runtime.macro_lock.request_stop.assert_called_once_with("P0")
+                runtime.macro_lock.request_stop.assert_called_once_with("P0", latch=True)
                 runtime.input_state.reset_armed.assert_called_once()
                 runtime.input_state.clear_mouse_block.assert_called_once()
                 runtime.synthetic_guard.reset.assert_called_once()
@@ -52,6 +53,7 @@ class RuntimeStopOwnerTests(unittest.TestCase):
                 runtime._emit_status.assert_called_once_with(
                     "Stop urgence: interruption demandée, relâchements à vérifier."
                 )
+                runtime._emit_active.assert_called_once_with(False)
 
     def test_native_release_false_reports_incomplete_stop_without_exception(self):
         for accounts in (2, 4, 6, 8):
@@ -63,7 +65,7 @@ class RuntimeStopOwnerTests(unittest.TestCase):
                     return_value=False,
                 ) as common:
                     runtime.emergency_stop("P0")
-                runtime.macro_lock.request_stop.assert_called_once_with("P0")
+                runtime.macro_lock.request_stop.assert_called_once_with("P0", latch=True)
                 runtime.input_state.clear_mouse_block.assert_called_once()
                 runtime.synthetic_guard.reset.assert_called_once()
                 runtime._direction.release_virtual_inputs.assert_called_once()
@@ -90,7 +92,7 @@ class RuntimeStopOwnerTests(unittest.TestCase):
                 runtime._direction = None
                 events = []
                 runtime.macro_lock.request_stop.side_effect = (
-                    lambda _: events.append("stop")
+                    lambda _reason, **_kwargs: events.append("stop")
                 )
                 runtime.input_state.reset_armed.side_effect = (
                     lambda: events.append("armed")
@@ -122,7 +124,7 @@ class RuntimeStopOwnerTests(unittest.TestCase):
                 runtime = _runtime()
                 order = []
                 runtime.macro_lock.request_stop.side_effect = (
-                    lambda reason: order.append(("stop", reason))
+                    lambda reason, **_kwargs: order.append(("stop", reason))
                 )
                 def broken_warning(*_args):
                     order.append(("log", None))
