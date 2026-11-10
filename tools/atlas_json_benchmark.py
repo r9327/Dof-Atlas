@@ -39,6 +39,15 @@ TOOL_SPEC = {
 # pipeline. Importing the latter at module load biases process startup and RSS.
 ROOT = Path(__file__).resolve().parents[1]
 
+def _read_bounded_source(path: Path, max_bytes: int) -> bytes:
+    """Keep a growing benchmark input within the advertised memory budget."""
+    with path.open("rb") as handle:
+        raw = handle.read(max_bytes + 1)
+    if len(raw) > max_bytes:
+        raise ValueError("Source exceeded the size budget while reading")
+    return raw
+
+
 
 def benchmark(
     source: Path, output_root: Path, *, sample_count: int = 64,
@@ -170,7 +179,7 @@ def compare_json_parsers(
     path = supplied.resolve(strict=True)
     if not path.is_file() or path.stat().st_size > max_bytes:
         raise ValueError("Parser source missing, linked or exceeds size budget")
-    raw = path.read_bytes()
+    raw = _read_bounded_source(path, max_bytes)
     if len(raw) > max_bytes:
         raise ValueError("Parser source changed during read")
     baseline = json.loads(raw)
@@ -250,7 +259,7 @@ def compare_json_streaming(source: Path, *, max_bytes: int = 128 * 1024 * 1024) 
     path = supplied.resolve(strict=True)
     if not path.is_file() or path.stat().st_size > max_bytes:
         raise ValueError("Invalid or oversized streaming input")
-    raw = path.read_bytes()
+    raw = _read_bounded_source(path, max_bytes)
     if len(raw) > max_bytes:
         raise ValueError("Streaming source grew during read")
     baseline = json.loads(raw)
@@ -307,7 +316,7 @@ def compare_json_compression(source: Path, *, max_bytes: int = 128 * 1024 * 1024
     path = supplied.resolve(strict=True)
     if not path.is_file() or path.stat().st_size > max_bytes:
         raise ValueError("Compression input missing or oversized")
-    raw = path.read_bytes()
+    raw = _read_bounded_source(path, max_bytes)
     if len(raw) > max_bytes:
         raise ValueError("Compression input grew during read")
     reports: list[dict] = []
@@ -379,7 +388,7 @@ def _parser_process_worker(source: Path, candidate: str, repeats: int) -> dict:
         raise ValueError("Unsupported process trial configuration")
     if source.is_symlink() or not source.is_file() or source.stat().st_size > 128 * 1024 * 1024:
         raise ValueError("Source is missing, linked or oversized")
-    raw = source.read_bytes()
+    raw = _read_bounded_source(source, 128 * 1024 * 1024)
     if len(raw) > 128 * 1024 * 1024:
         raise ValueError("Source exceeded bounded trial size")
     source_sha = hashlib.sha256(raw).hexdigest()
@@ -519,7 +528,7 @@ def compare_json_processes(
     path = supplied.resolve(strict=True)
     if not path.is_file() or path.stat().st_size > max_bytes:
         raise ValueError("Source missing or too large for process comparison")
-    raw = path.read_bytes()
+    raw = _read_bounded_source(path, max_bytes)
     if len(raw) > max_bytes:
         raise ValueError("Source grew while reading")
     expected = _canonical_json_hash(json.loads(raw))

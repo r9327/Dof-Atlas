@@ -31,6 +31,36 @@ class AtlasJsonBenchmarkTests(unittest.TestCase):
         self.assertIn("tests.test_atlas_json_benchmark",
                       spec["recommended_tests"])
 
+    def test_bounded_source_read_rejects_growth_without_unlimited_read(self) -> None:
+        from tools.atlas_json_benchmark import _read_bounded_source
+
+        class RecordingReader(io.BytesIO):
+            def __init__(self, value: bytes):
+                super().__init__(value)
+                self.requested = []
+
+            def read(self, size: int = -1) -> bytes:
+                self.requested.append(size)
+                if size < 0:
+                    raise AssertionError("unbounded read attempted")
+                return super().read(size)
+
+        reader = RecordingReader(b"0123456789")
+        with patch.object(Path, "open", return_value=reader):
+            with self.assertRaisesRegex(ValueError, "size budget"):
+                _read_bounded_source(Path("not-used.json"), 4)
+        self.assertEqual(reader.requested, [5])
+
+        with tempfile.TemporaryDirectory() as tmp:
+            source = Path(tmp) / "sample.json"
+            source.write_text('{"id":1}', encoding="utf-8")
+            self.assertEqual(_read_bounded_source(source, 8), b'{"id":1}')
+            with patch.object(Path, "read_bytes", side_effect=AssertionError(
+                    "benchmark must not read an entire path without bound")):
+                result = compare_json_parsers(
+                    source, candidates=("stdlib",), repeats=1, max_bytes=8)
+            self.assertEqual(result["status"], "COMPARE_COMPLETE")
+
     def test_compare_both_strategies_without_mutating_source(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)
