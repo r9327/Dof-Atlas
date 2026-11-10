@@ -28,6 +28,23 @@ def _runtime() -> AtlasRuntime:
 
 
 class RuntimeStopOwnerTests(unittest.TestCase):
+    def test_zaap_and_auto_group_reject_latched_stop_before_native_actions(self):
+        from app.core.macro_lock import MacroLock
+
+        runtime = object.__new__(AtlasRuntime)
+        runtime.macro_lock = MacroLock(Mock())
+        runtime._zaap = Mock()
+        runtime._auto_group = Mock()
+        runtime._emit_status = Mock()
+        runtime.logger = Mock()
+        runtime.macro_lock.request_stop("bouton stop", latch=True)
+        self.assertFalse(runtime.launch_zaap("/zaap 1,2"))
+        self.assertFalse(runtime.launch_auto_group([{"name": "Panda", "handle": 101}]))
+        runtime._zaap.run_async.assert_not_called()
+        runtime._auto_group.run_async.assert_not_called()
+        self.assertEqual(runtime._emit_status.call_count, 2)
+        self.assertIn("Stop urgence actif", runtime._emit_status.call_args.args[0])
+
     def test_runtime_indicator_remains_red_during_emergency_latch(self):
         from app.core.macro_lock import MacroLock
 
