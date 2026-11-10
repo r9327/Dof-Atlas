@@ -154,6 +154,11 @@ class RuntimeLocationTests(unittest.TestCase):
             rollback = source / "versions" / "v0" / "AtlasApp" / "old.dat"
             rollback.parent.mkdir(parents=True)
             rollback.write_bytes(b"previous release")
+            # Stale multi-GB release folders are not part of the active or
+            # rollback contract; they must not inflate relocation I/O.
+            stale = source / "versions" / "v-obsolete" / "AtlasApp" / "archive.bin"
+            stale.parent.mkdir(parents=True)
+            stale.write_bytes(b"old cached release" * 4096)
             cache = source / "downloads" / ("a" * 20 + ".zip")
             cache.parent.mkdir()
             cache.write_bytes(b"re-downloadable archive" * 1024)
@@ -185,14 +190,16 @@ class RuntimeLocationTests(unittest.TestCase):
                 self.assertTrue(executable.exists(), "Previous working version must remain available")
                 self.assertEqual((target / "versions" / "v0" / "AtlasApp" / "old.dat").read_bytes(),
                                  b"previous release")
+                self.assertFalse((target / "versions" / "v-obsolete").exists())
+                self.assertTrue(stale.exists(), "Obsolete release stays at old location")
                 self.assertEqual((target / "state.json").read_bytes(),
                                  (source / "state.json").read_bytes())
                 for skipped in ("downloads", "quarantine", ".health", ".launcher.lock"):
                     self.assertFalse((target / skipped).exists(), skipped)
                     self.assertTrue((source / skipped).exists(), "Old runtime is retained")
                 self.assertTrue(updates)
-                # Cached ZIPs and quarantined files do not inflate the
-                # disk preflight estimate or progress denominator.
+                # Old release slots, cached ZIPs and quarantined files do
+                # not inflate disk preflight or progress denominator.
                 expected = (len(binary) + len(b"previous release")
                             + (source / "state.json").stat().st_size)
                 self.assertEqual(updates[-1], (expected, expected))
