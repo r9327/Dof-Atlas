@@ -180,17 +180,22 @@ class CraftResourceDialog(QDialog):
         for checkbox in self.resource_checks:
             checkbox.setChecked(checked)
 
-    def reject(self) -> None:
-        """Escape must not dismiss the resource window without confirmation."""
-        answer = QMessageBox.question(
-            self,
-            "Fermer les ressources ?",
-            "Voulez-vous vraiment fermer la fenêtre des ressources craft ?",
-            QMessageBox.Yes | QMessageBox.No,
-            QMessageBox.No,
-        )
-        if answer == QMessageBox.Yes:
-            super().reject()
+    def keyPressEvent(self, event) -> None:
+        # Only Escape asks for confirmation. Programmatic close() during Craft
+        # reload/cleanup must never spawn a modal question and block shutdown.
+        if event.key() == Qt.Key_Escape:
+            answer = QMessageBox.question(
+                self,
+                "Fermer les ressources ?",
+                "Voulez-vous vraiment fermer la fenêtre des ressources craft ?",
+                QMessageBox.Yes | QMessageBox.No,
+                QMessageBox.No,
+            )
+            if answer == QMessageBox.Yes:
+                self.reject()
+            event.accept()
+            return
+        super().keyPressEvent(event)
 
 
 class ItemSetDialog(QDialog):
