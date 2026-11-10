@@ -351,8 +351,14 @@ class RuntimeLocationTests(unittest.TestCase):
                           patch.object(loc, "DEFAULT_RUNTIME", source)):
                         loc.set_runtime_root(source)
                         with patch("shutil.copytree", side_effect=inject_after_scan):
-                            with self.assertRaisesRegex(UpdateError, "liens"):
+                            try:
                                 loc.relocate_runtime(target)
+                            except UpdateError as exc:
+                                self.assertRegex(str(exc), "liens")
+                            else:
+                                self.fail(f"Late injected link escaped: linked={loc._linked(late)}, "
+                                          f"exists={late.exists()}, root_entries="
+                                          f"{[x.name for x in source.iterdir()]}")
                         self.assertTrue(called)
                         self.assertEqual(loc.runtime_root(), source.resolve())
                         self.assertEqual(executable.read_bytes(), payload)
@@ -457,8 +463,14 @@ class RuntimeLocationTests(unittest.TestCase):
                   patch.object(loc, "DEFAULT_RUNTIME", source)):
                 loc.set_runtime_root(source)
                 with patch("shutil.copytree", side_effect=modify_after_ignore):
-                    with self.assertRaisesRegex(UpdateError, "lien"):
+                    try:
                         loc.relocate_runtime(target)
+                    except UpdateError as exc:
+                        self.assertRegex(str(exc), "lien")
+                    else:
+                        self.fail(f"Late file link escaped: linked={loc._linked(mutable)}, "
+                                  f"exists={mutable.exists()}, root_entries="
+                                  f"{[x.name for x in source.iterdir()]}")
                 self.assertTrue(changed, "Race was injected after ignore")
                 self.assertEqual(loc.runtime_root(), source.resolve())
                 self.assertEqual(executable.read_bytes(), payload)
