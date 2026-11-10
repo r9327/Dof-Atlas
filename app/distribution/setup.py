@@ -38,6 +38,25 @@ $link.Save()
 """
 
 
+def _verify_frozen_platform() -> None:
+    """Check the only OS prerequisite before writing a frozen installation.
+
+    Qt 6.12 x64 requires Windows 10 1809+; Python/Qt themselves are
+    bundled by PyInstaller and must never be installed by Setup.
+    Source/legacy bootstrap owns its separate Python installation path.
+    """
+    if not getattr(sys, "frozen", False):
+        return
+    if sys.maxsize <= 2**32:
+        raise RuntimeError("Dofus Atlas requiert Windows 64 bits")
+    version_reader = getattr(sys, "getwindowsversion", None)
+    if not callable(version_reader):
+        raise RuntimeError("Version de Windows non verifiable")
+    version = version_reader()
+    if (version.major, version.minor, version.build) < (10, 0, 17763):
+        raise RuntimeError("Dofus Atlas requiert Windows 10 version 1809 ou plus recent")
+
+
 def embedded_launcher() -> Path:
     """Find the launcher contained in the PyInstaller setup image."""
     packed = getattr(sys, "_MEIPASS", None)
@@ -321,6 +340,7 @@ def main(argv: list[str] | None = None) -> int:
     try:
         if os.name != "nt":
             raise RuntimeError("Dofus Atlas Setup fonctionne uniquement sur Windows")
+        _verify_frozen_platform()
         if args.finish_upgrade:
             if args.candidate is None or args.sha256 is None or args.parent_pid is None:
                 raise ValueError("Incomplete maintenance request")

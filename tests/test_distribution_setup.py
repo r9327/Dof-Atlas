@@ -12,6 +12,35 @@ from app.distribution.setup import install_launcher, install_maintenance_helper
 
 
 class SetupTests(unittest.TestCase):
+    def test_frozen_platform_requires_windows_10_1809_and_64_bit(self):
+        with (patch.object(atlas_setup.sys, "frozen", True, create=True),
+              patch.object(atlas_setup.sys, "getwindowsversion",
+                           return_value=SimpleNamespace(
+                               major=10, minor=0, build=17763), create=True)):
+            atlas_setup._verify_frozen_platform()
+        with (patch.object(atlas_setup.sys, "frozen", True, create=True),
+              patch.object(atlas_setup.sys, "getwindowsversion",
+                           return_value=SimpleNamespace(
+                               major=10, minor=0, build=17134), create=True)):
+            with self.assertRaisesRegex(RuntimeError, "1809"):
+                atlas_setup._verify_frozen_platform()
+        with (patch.object(atlas_setup.sys, "frozen", True, create=True),
+              patch.object(atlas_setup.sys, "getwindowsversion",
+                           return_value=SimpleNamespace(
+                               major=11, minor=0, build=26000), create=True),
+              patch.object(atlas_setup.sys, "maxsize", 2**31 - 1)):
+            with self.assertRaisesRegex(RuntimeError, "64 bits"):
+                atlas_setup._verify_frozen_platform()
+
+    def test_source_setup_does_not_probe_or_install_python_or_qt(self):
+        with (patch.object(atlas_setup.sys, "frozen", False, create=True),
+              patch.object(atlas_setup.sys, "getwindowsversion",
+                           side_effect=AssertionError("source mode must not probe"),
+                           create=True) as version):
+            atlas_setup._verify_frozen_platform()
+        version.assert_not_called()
+
+
     def test_setup_existing_installation_defers_move_to_launcher_mutex(self):
         with tempfile.TemporaryDirectory() as directory:
             current = Path(directory) / "runtime"

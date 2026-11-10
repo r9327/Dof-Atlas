@@ -57,8 +57,23 @@ via des voies Windows en cas d'absence de Python adéquat. Cela ne doit pas
 déclarées dans `requirements-pyside.txt`; le packaging Windows épingle
 PyInstaller 6.16.0. La disponibilité des bibliothèques système, les
 permissions réelles et le comportement antivirus restent à certifier sur un
-Windows vierge. Les prérequis de plateforme non inventoriés demeurent
-explicitement **LV2-006 PENDING**.
+Windows vierge. Le Setup gelé contrôle avant toute écriture le support Windows x64
+et Windows 10 1809+ (build 17763) selon
+[Qt 6.12, plateformes Windows](https://doc.qt.io/qt-6.12/windows.html).
+Ni Python, ni PySide6/Qt, ni PyInstaller ne sont réinstallés : ces composants
+sont fournis par les exécutables et le dossier `_internal` construits.
+Le bootstrap source/legacy reste une voie distincte qui peut installer
+Python explicitement et conditionnellement. L'installation d'un composant
+système inconnu **n'est pas tentée automatiquement** : fail-closed en cas
+de version Windows non vérifiable.
+
+Le build candidat Windows hébergé [Phase #42822392341](https://github.com/r9327/Dof-Atlas/actions/runs/42822392341)
+a lancé Setup, Launcher et AtlasApp gelés, mais **ne prouve pas** un
+Windows vierge utilisateur. PyInstaller signale sur le runner une résolution
+statique absente de `api-ms-win-core-path-l1-1-0.dll` ; ce signalement
+n'est pas à lui seul la preuve qu'un redistribuable externe est nécessaire.
+Le contrôle de l'OS et les tests de non-installation restent à certifier
+au HEAD courant. **LV2-006 demeure PENDING** jusqu'à cette qualification.
 
 La racine des données persistantes est `%LOCALAPPDATA%/DofusAtlas/`.
 `app/distribution/install_location.py` stocke le dossier choisi dans
