@@ -2803,6 +2803,9 @@ class AtlasWindow(QMainWindow):
         runtime = self._ensure_runtime()
         if self.quit_requested or self._background_services_stopped:
             return
+        if getattr(runtime, "mirror_armed", False) is True:
+            self.set_status("Arrêter Miroir avant de changer de personnage.")
+            return
         if runtime.macro_lock.active_label:
             self.set_status("Personnage suivant indisponible : macro déjà en cours.")
             return
@@ -2814,6 +2817,11 @@ class AtlasWindow(QMainWindow):
         if self.quit_requested or self._background_services_stopped:
             return
         runtime = self._ensure_runtime()
+        if self.quit_requested or self._background_services_stopped:
+            return
+        if getattr(runtime, "mirror_armed", False) is True:
+            self.set_status("Arrêter Miroir avant de changer de personnage.")
+            return
         if runtime.macro_lock.active_label:
             self.set_status("Personnage précédent indisponible : macro déjà en cours.")
             return
