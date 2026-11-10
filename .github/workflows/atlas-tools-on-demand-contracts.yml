@@ -94,3 +94,44 @@ jobs:
             echo "- No Doctor Phase Certification or benchmarks executed"
             echo "- PR Draft status does not grant certification"
           } >> "$GITHUB_STEP_SUMMARY"
+
+  windows-oss:
+    # Explicit developer/CI verification only; no Atlas runtime install.
+    if: github.event.pull_request.head.repo.full_name == github.repository
+    runs-on: windows-latest
+    timeout-minutes: 18
+    steps:
+      - name: Checkout exact PR candidate without stored credentials
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          persist-credentials: false
+          lfs: false
+      - name: Set up Python 3.13 x64
+        uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version: "3.13"
+          architecture: x64
+      - name: Check exact candidate and wheel-safety tests
+        shell: pwsh
+        env:
+          EXPECTED_SHA: ${{ github.event.pull_request.head.sha }}
+        run: |
+          if ((git rev-parse HEAD) -ne $env:EXPECTED_SHA) { throw "Stale checkout" }
+          python -m unittest discover -s tests -p test_doctor_oss_wheels.py -v
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+      - name: Exercise explicit pinned hash-verified developer install and live diagnostics
+        shell: pwsh
+        run: |
+          ./tools/setup_doctor_oss.ps1 -Install
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+      - name: Record the certification boundary
+        if: always()
+        shell: pwsh
+        env:
+          CANDIDATE_SHA: ${{ github.event.pull_request.head.sha }}
+        run: |
+          "- Exact PR SHA: $env:CANDIDATE_SHA" >> $env:GITHUB_STEP_SUMMARY
+          "- Windows hosted runner / Python 3.13 (NOT user's Windows PC)" >> $env:GITHUB_STEP_SUMMARY
+          "- Installed only developer Ruff/zizmor into ephemeral CI; not Atlas runtime" >> $env:GITHUB_STEP_SUMMARY
+          "- No DOFUS client, GUI recipe, Phase Certification, or benchmark claim" >> $env:GITHUB_STEP_SUMMARY
