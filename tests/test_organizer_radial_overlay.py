@@ -102,6 +102,21 @@ class OrganizerRadialOverlayTests(unittest.TestCase):
             overlay.hide()
             overlay.deleteLater()
 
+    def test_radial_labels_hide_class_names_but_preserve_character_names(self):
+        from app.pages.organizer.radial_selection import radial_display_label
+
+        cases = (
+            ({"nom": "Witsis - Pandawa", "hwnd": 101}, "Witsis"),
+            ({"nom": "Lokidor - Huppermage", "hwnd": 102}, "Lokidor"),
+            ({"nom": "Pandawa", "hwnd": 103}, ""),
+            ({"nom": "Écaflip", "hwnd": 104}, ""),
+            ({"nom": "Classe - Enutrof", "character_name": "Flooky"}, "Flooky"),
+            ({"nom": "Jokhair", "hwnd": 105}, "Jokhair"),
+        )
+        for session, expected in cases:
+            with self.subTest(name=session["nom"]):
+                self.assertEqual(radial_display_label(session), expected)
+
     def test_real_overlay_always_closes_even_without_mouse_movement(self):
         overlay = OrganizerRadialOverlay()
         try:
