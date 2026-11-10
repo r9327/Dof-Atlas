@@ -12,7 +12,7 @@ import math
 import os
 from typing import Callable
 
-from PySide6.QtCore import QPoint, QPointF, Qt, QTimer
+from PySide6.QtCore import QPoint, QPointF, QRectF, Qt, QTimer
 from PySide6.QtGui import QColor, QCursor, QFont, QGuiApplication, QPainter, QPainterPath, QPen, QPixmap
 from PySide6.QtWidgets import QWidget
 from shiboken6 import isValid
@@ -62,6 +62,28 @@ def escape_pressed() -> bool:
         return bool(ctypes.windll.user32.GetAsyncKeyState(0x1B) & 0x8000)
     except (AttributeError, OSError, ValueError):
         return False
+
+
+def circular_sector_path(centre: QPointF, start: float, end: float, count: int) -> QPainterPath:
+    """True circular boundary for every wheel cardinality (no polygon chords).
+
+    sector_layout angles follow screen-clockwise radians; Qt uses
+    counterclockwise degrees, hence both angle signs are inverted.
+    """
+    shape = QPainterPath()
+    if count < 1:
+        return shape
+    if count == 1:
+        shape.addEllipse(centre, RADIUS, RADIUS)
+        return shape
+    circle = QRectF(
+        centre.x() - RADIUS, centre.y() - RADIUS, 2 * RADIUS, 2 * RADIUS,
+    )
+    shape.moveTo(centre)
+    shape.lineTo(centre + QPointF(RADIUS * math.cos(start), RADIUS * math.sin(start)))
+    shape.arcTo(circle, -math.degrees(start), -math.degrees(end - start))
+    shape.closeSubpath()
+    return shape
 
 
 class OrganizerRadialOverlay(QWidget):
@@ -160,19 +182,7 @@ class OrganizerRadialOverlay(QWidget):
         centre = QPointF(self.width() / 2, self.height() / 2)
         count = len(self._characters)
         for index, (start, end, label_x, label_y) in enumerate(sector_layout(count, 93)):
-            points = [centre]
-            for step in range(19):
-                angle = start + (end - start) * step / 18
-                points.append(centre + QPointF(RADIUS * math.cos(angle), RADIUS * math.sin(angle)))
-            shape = QPainterPath()
-            if count == 1:
-                # A full-turn polygon still has visible straight edges.
-                shape.addEllipse(centre, RADIUS, RADIUS)
-            else:
-                shape.moveTo(points[0])
-                for pt in points[1:]:
-                    shape.lineTo(pt)
-                shape.closeSubpath()
+            shape = circular_sector_path(centre, start, end, count)
             painter.setPen(QPen(QColor(UNITY_PALETTE["BORDER_STRONG"]), 1.4))
             painter.setBrush(QColor(
                 UNITY_PALETTE["PANEL_ACTIVE"] if index == self._hovered
