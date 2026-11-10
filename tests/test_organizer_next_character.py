@@ -251,6 +251,35 @@ class NextCharacterTests(unittest.TestCase):
                     "Arrêter Miroir avant de changer de personnage."
                 )
 
+    def test_mirror_mode_next_action_is_available_only_while_disarmed(self):
+        for count in (2, 4, 6, 8):
+            with self.subTest(accounts=count):
+                profile = settings(count, mode="mirror")
+                runtime = SimpleNamespace(
+                    settings=profile, _running=True, _admin_ok=True,
+                    _mirror_armed=True, _emit_status=Mock(),
+                    macro_lock=SimpleNamespace(
+                        emergency_latched=False, active_label="",
+                    ),
+                    switch_character=SimpleNamespace(
+                        activate_next=Mock(return_value=True),
+                    ),
+                )
+                AtlasRuntime._handle_hotkey(runtime, "next_character", {})
+                runtime.switch_character.activate_next.assert_not_called()
+                runtime._emit_status.assert_called_once_with(
+                    "Arrêter Miroir avant de changer de personnage."
+                )
+                runtime._mirror_armed = False
+                AtlasRuntime._handle_hotkey(runtime, "next_character", {})
+                runtime.switch_character.activate_next.assert_called_once_with(
+                    expected_profile=profile,
+                )
+                runtime.switch_character.activate_next.reset_mock()
+                profile.switch_character_enabled = False
+                AtlasRuntime._handle_hotkey(runtime, "next_character", {})
+                runtime.switch_character.activate_next.assert_not_called()
+
     def test_direct_activation_ignores_corrupt_numeric_slot_aliases_2_to_8(self):
         for count in (2, 4, 6, 8):
             with self.subTest(clients=count):
