@@ -505,6 +505,22 @@ class ImportedSourceSharedManualUiTests(unittest.TestCase):
                 zaap.click()
                 self.assertEqual(QApplication.clipboard().text(), "/travel -5,2")
                 self.assertEqual(launches, [])
+
+                # A broken or non-boolean planner is never permission to
+                # launch a macro; preserve the classic copy action instead.
+                def broken_planner(_destination):
+                    raise RuntimeError("offline planner unavailable")
+
+                sheet.zaap_travel_callback = broken_planner
+                QApplication.clipboard().setText("before")
+                zaap.click()
+                self.assertEqual(QApplication.clipboard().text(), "/travel -5,2")
+                self.assertEqual(launches, [])
+                sheet.zaap_travel_callback = lambda _destination: 1
+                QApplication.clipboard().setText("before")
+                zaap.click()
+                self.assertEqual(QApplication.clipboard().text(), "/travel -5,2")
+                self.assertEqual(launches, [])
             finally:
                 sheet.close()
                 sheet.deleteLater()
