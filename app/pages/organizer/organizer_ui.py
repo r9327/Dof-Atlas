@@ -243,7 +243,7 @@ class OrganizerUiMixin:
         panel_width = panel_inner_width + CARD_PADDING * 2
         stop_hotkey_size = QSize(52, STOP_BUTTON_HEIGHT)
         stop_size = QSize(panel_inner_width, STOP_BUTTON_HEIGHT)
-        speed_control_size = QSize((panel_inner_width - 16) // 3, BUTTON_HEIGHT)
+        speed_control_size = QSize(71, BUTTON_HEIGHT)
         shortcut_size = QSize(42, KEY_BADGE_HEIGHT)
 
         for button in (
@@ -288,7 +288,7 @@ class OrganizerUiMixin:
         self.previous_character_hotkey_button.setAccessibleName("Raccourci personnage précédent")
         self.mirror_toggle_hotkey_button.setAccessibleName("Raccourci activation Miroir")
         self.script_speed_title.setObjectName("MutedLabel")
-        self.script_speed_title.setFixedSize(panel_inner_width, 20)
+        self.script_speed_title.setFixedSize(52, BUTTON_HEIGHT)
         self.script_speed_title.setAlignment(Qt.AlignLeft | Qt.AlignVCenter)
         for button in (
             self.script_speed_legacy, self.script_speed_normal,
@@ -297,6 +297,8 @@ class OrganizerUiMixin:
             button.setFixedSize(speed_control_size)
             button.setSizePolicy(QSizePolicy.Fixed, QSizePolicy.Fixed)
             button.setObjectName("segmentedButton")
+        # Keep the full Instantané caption visible in the compact row.
+        self.script_speed_instant.setFixedSize(78, BUTTON_HEIGHT)
         self.click_button.setToolTip("Raccourci Switch Clique")
         self.double_click_button.setToolTip("Raccourci Switch clic x2")
         self.stop_script_hotkey_button.setToolTip("Raccourci Stop script")
@@ -423,21 +425,23 @@ class OrganizerUiMixin:
         quick_grid.setVerticalSpacing(8)
         quick_grid.addWidget(self.switch_fake, 0, 0)
         quick_grid.addWidget(macro_cell(self.radial_select_button, self.radial_hotkey_button, self.radial_clear, size=radial_control_size), 0, 1)
-        quick_grid.addWidget(self.script_speed_title, 1, 0, 1, 2)
+        # One compact line: Vitesse : Normal | Rapide | Instantané.
+        # Widths total 52 + 71 + 71 + 78 + 3 * 4 = 284px.
         speed_row = QWidget()
         speed_row.setFixedSize(panel_inner_width, BUTTON_HEIGHT)
         speed_row_layout = QHBoxLayout(speed_row)
         speed_row_layout.setContentsMargins(0, 0, 0, 0)
-        speed_row_layout.setSpacing(8)
+        speed_row_layout.setSpacing(4)
+        speed_row_layout.addWidget(self.script_speed_title)
         for button in (
             self.script_speed_normal, self.script_speed_fast,
             self.script_speed_instant,
         ):
             speed_row_layout.addWidget(button)
-        quick_grid.addWidget(speed_row, 2, 0, 1, 2)
+        quick_grid.addWidget(speed_row, 1, 0, 1, 2)
         # Preserve an existing Classique profile without silently accelerating
         # it. This legacy-only choice is no longer offered to the user.
-        quick_grid.addWidget(self.script_speed_legacy, 3, 0)
+        quick_grid.addWidget(self.script_speed_legacy, 2, 0)
         self.script_speed_legacy.hide()
         stop_row = QWidget()
         stop_row.setFixedSize(panel_inner_width, STOP_BUTTON_HEIGHT)
@@ -454,8 +458,7 @@ class OrganizerUiMixin:
             quick_grid.setColumnMinimumWidth(column, control_size.width())
             quick_grid.setColumnStretch(column, 0)
         quick_grid.setRowMinimumHeight(0, BUTTON_HEIGHT)
-        quick_grid.setRowMinimumHeight(1, 20)
-        quick_grid.setRowMinimumHeight(2, BUTTON_HEIGHT)
+        quick_grid.setRowMinimumHeight(1, BUTTON_HEIGHT)
         quick_layout.addWidget(quick_grid_host, alignment=Qt.AlignLeft)
 
         self.controls_panel = QFrame()
