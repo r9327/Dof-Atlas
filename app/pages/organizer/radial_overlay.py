@@ -163,10 +163,14 @@ class OrganizerRadialOverlay(QWidget):
                 angle = start + (end - start) * step / 18
                 points.append(centre + QPointF(RADIUS * math.cos(angle), RADIUS * math.sin(angle)))
             shape = QPainterPath()
-            shape.moveTo(points[0])
-            for pt in points[1:]:
-                shape.lineTo(pt)
-            shape.closeSubpath()
+            if count == 1:
+                # A full-turn polygon still has visible straight edges.
+                shape.addEllipse(centre, RADIUS, RADIUS)
+            else:
+                shape.moveTo(points[0])
+                for pt in points[1:]:
+                    shape.lineTo(pt)
+                shape.closeSubpath()
             painter.setPen(QPen(QColor(UNITY_PALETTE["BORDER_STRONG"]), 1.4))
             painter.setBrush(QColor(
                 UNITY_PALETTE["PANEL_ACTIVE"] if index == self._hovered
