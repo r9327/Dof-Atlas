@@ -133,9 +133,18 @@ def rollback_pending(root: Path) -> bool:
         state.pop("previous_metadata", None)
         _write_state(root, state)
         return True
-    # First install has no earlier known-good version; do not fabricate one.
-    state["pending"] = False
-    state["blocked_source_sha"] = state.get("source_sha")
+    # A failed first install has no known-good version to restore. Never
+    # leave the unacknowledged candidate as the active executable: otherwise
+    # a later offline/no-op launch would start the same failed EXE again.
+    # Keep its slot on disk for diagnosis, and the bad source SHA so the
+    # updater refuses that candidate until a different release is published.
+    blocked = state.get("source_sha")
+    state.update(active=None, previous=None, pending=False,
+                 blocked_source_sha=blocked)
+    for key in ("entrypoint", "previous_entrypoint", "entrypoint_size",
+                "entrypoint_sha256", "previous_metadata", "source_sha",
+                "app_version", "data_version", "schema_version"):
+        state.pop(key, None)
     _write_state(root, state)
     return False
 
