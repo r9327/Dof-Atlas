@@ -158,12 +158,12 @@ def probe_repo_update(installed_source_sha: str) -> RepoUpdatePointer | None:
 
 def inspect_repo_update(
     installed_source_sha: str,
-) -> tuple[RepoUpdatePointer, ReleaseManifest] | None:
-    """Validate a pinned manifest without downloading or installing any ZIP.
+) -> tuple[RepoUpdatePointer, bytes, ReleaseManifest] | None:
+    """Verify and retain one pinned manifest for a later explicit delta fetch.
 
-    The publisher must independently certify both the source SHA and its APP
-    package commit. Manifest/hash agreement alone never enables this channel.
-    This is an explicit development-only probe, not called by run_update().
+    Returning the exact raw bytes avoids a second manifest request, and lets
+    download_repo_update_delta verify that the original pinned digest still
+    matches. This is development-only and never authorizes live installation.
     """
     pointer = probe_repo_update(installed_source_sha)
     if pointer is None:
@@ -175,7 +175,7 @@ def inspect_repo_update(
         manifest = verify_repo_update_manifest(pointer, raw)
     except ManifestError as exc:
         raise UpdateError("Repository update manifest failed integrity check") from exc
-    return pointer, manifest
+    return pointer, raw, manifest
 
 
 def download_repo_update_delta(
