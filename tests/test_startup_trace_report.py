@@ -52,6 +52,31 @@ class StartupTraceReportTests(unittest.TestCase):
             "launcher_process_created_estimate_to_home_event_loop"
         ])
 
+    def test_process_tree_memory_counts_only_complete_windows_samples(self) -> None:
+        rows = [
+            {"session": "a", "event": "app_health_ack",
+             "process_tree_rss_bytes": 1000, "process_tree_count": 2},
+            {"session": "a", "event": "app_home_ack",
+             "process_tree_rss_bytes": 1400, "process_tree_count": 3},
+            {"session": "a", "event": "app_home_ack",
+             "process_tree_rss_bytes": 9999, "process_tree_count": 3},
+            {"session": "b", "event": "app_home_ack",
+             "process_tree_rss_bytes": 2000, "process_tree_count": 2},
+            {"session": "missing", "event": "app_home_ack",
+             "process_tree_rss_bytes": 0, "process_tree_count": 2},
+            {"session": "partial", "event": "app_home_ack",
+             "process_tree_rss_bytes": 90},
+            {"session": "c", "event": "home_event_loop",
+             "process_tree_rss_bytes": 100000, "process_tree_count": 4},
+        ]
+        summary = summarize([json.dumps(row) for row in rows])["process_tree_point_samples"]
+        self.assertEqual(summary["app_home_ack"]["n"], 2)
+        self.assertEqual(summary["app_home_ack"]["p50_bytes"], 1700)
+        self.assertEqual(summary["app_home_ack"]["p95_bytes"], 2000)
+        self.assertEqual(summary["app_health_ack"]["p50_bytes"], 1000)
+        self.assertNotIn("home_event_loop", summary)
+        self.assertEqual(summarize([])["process_tree_point_samples"], {})
+
     def test_rejects_backwards_clocks(self) -> None:
         rows = [
             {"session": "one", "event": "launcher_entry", "t_ns": 100},
