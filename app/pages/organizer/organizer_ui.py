@@ -528,6 +528,12 @@ class OrganizerUiMixin:
     def set_runtime_active(self, connected: bool) -> None:
         if not isValid(self):
             return
+        if not connected:
+            # Stop urgence owns the radial popup too; never keep a live
+            # selection on screen after the runtime has been stopped.
+            controller = getattr(self, "_radial_controller", None)
+            if controller is not None:
+                controller.cancel()
         status_dot = getattr(self, "runtime_status_dot", None)
         if status_dot is None or not isValid(status_dot):
             return
