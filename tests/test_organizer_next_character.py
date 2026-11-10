@@ -106,6 +106,55 @@ class NextCharacterTests(unittest.TestCase):
                     )
 
 
+    def test_previous_wraps_in_order_for_two_four_six_eight(self):
+        for count in (2, 4, 6, 8):
+            for slot in range(1, count + 1):
+                with self.subTest(count=count, slot=slot):
+                    runtime = Mock()
+                    runtime.settings = settings(count)
+                    runtime.macro_lock.should_stop.return_value = False
+                    macro = SwitchCharacterMacro(runtime)
+                    with (
+                        patch("app.macros.switch_character.is_unity_window", return_value=True),
+                        patch("app.macros.switch_character.is_dofus_unity_process", return_value=True),
+                        patch.object(macro, "logical_active_client",
+                                     return_value=runtime.settings.clients[slot - 1]),
+                        patch.object(macro, "activate_by_index", return_value=True) as activate,
+                    ):
+                        self.assertTrue(macro.activate_previous())
+                    activate.assert_called_once_with(
+                        (slot - 2) % count + 1, expected_profile=runtime.settings,
+                        expected_context=(runtime.settings.primary_handle, "macro"),
+                    )
+
+    def test_previous_and_mirror_hotkeys_do_not_enable_passive_mirror(self):
+        config = settings(4)
+        config.previous_character_hotkey = "F8"
+        self.assertEqual(
+            [action.action_id for action in build_hotkey_actions(config)],
+            ["next_character", "previous_character"],
+        )
+        config.macro_mode = "mirror"
+        config.mirror_toggle_hotkey = "CTRL+F8"
+        self.assertEqual(
+            [action.action_id for action in build_hotkey_actions(config)],
+            ["mirror_toggle"],
+        )
+        config.stop_hotkey = "F12"
+        self.assertEqual(
+            [action.action_id for action in build_hotkey_actions(config)],
+            ["stop_script", "mirror_toggle"],
+        )
+
+    def test_previous_button_uses_existing_runtime_callback(self):
+        from app.pages.organizer_page import OrganizerPage
+        owner = SimpleNamespace(
+            previous_character_callback=Mock(), status_callback=Mock(),
+        )
+        OrganizerPage.activate_previous_character(owner)
+        owner.previous_character_callback.assert_called_once_with()
+        owner.status_callback.assert_not_called()
+
     def test_direct_activation_ignores_corrupt_numeric_slot_aliases_2_to_8(self):
         for count in (2, 4, 6, 8):
             with self.subTest(clients=count):
