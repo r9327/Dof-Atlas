@@ -63,6 +63,15 @@ produit network_bytes=0. Aucun zéro n'est déduit d'un marqueur absent. Les té
 comme complets. `process_cpu_ms` est un temps CPU propre au processus,
 et `process_rss_bytes` sa mémoire résidente sur Windows (si accessible) :
 ni l'un ni l'autre ne représente tout l'arbre de processus.
+Avec le profilage activé, aux événements `app_health_ack` et `app_home_ack`,
+le launcher énumère aussi son processus et ses descendants directs/indirects
+par snapshot natif Windows. Il somme leurs working sets en
+`process_tree_rss_bytes` et consigne `process_tree_count`. Si un processus
+du snapshot ne peut pas être lu, aucune somme partielle n'est conservée.
+Le rapport affiche `process_tree_point_samples` (p50/p95/p99 par checkpoint
+avec effectifs réels) : **mesure ponctuelle**, pas pic de RAM process-tree
+ni consommation stabilisée après navigation. Les tests de seuil et de pic
+sur une session complète restent des exigences distinctes.
 
 Le rapport `--json` (schéma 1) fournit les effectifs, p50, p95 et extrema
 des segments et compteurs effectivement présents. L'analyseur historique
