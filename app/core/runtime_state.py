@@ -663,18 +663,28 @@ class AtlasRuntime:
             self._emit_status("Miroir désactivé : entrées non recopiées.")
             return False
         if (not self._running or not self._admin_ok
+                or getattr(self, "_runtime_bindings_available", True) is False
                 or self.macro_lock.emergency_latched):
-            self._emit_status("Miroir indisponible : runtime arrêté ou Stop urgence actif.")
+            self._emit_status("Miroir indisponible : runtime arrêté, sans sessions ou Stop urgence actif.")
             return False
         if not self.macro_lock.resume_after_stop():
             self._emit_status("Miroir indisponible : macro précédente encore active.")
             return False
         settings = self.settings
-        handles = tuple(getattr(item, "handle", None) for item in settings.clients)
-        if (len(handles) < 2 or len(handles) > 8
+        clients = getattr(settings, "clients", None)
+        if not isinstance(clients, (list, tuple)):
+            self._emit_status("Miroir indisponible : liste des personnages illisible.")
+            return False
+        handles = tuple(getattr(item, "handle", None) for item in clients)
+        if (not 2 <= len(handles) <= 8
+                or any(type(hwnd) is not int or not 0 < hwnd <= (2**64 - 1)
+                       for hwnd in handles)
+                or len(set(handles)) != len(handles)
                 or type(settings.primary_handle) is not int
                 or settings.primary_handle not in handles):
-            self._emit_status("Miroir indisponible : sélectionner un favori parmi 2 à 8 personnages.")
+            # Do not claim the relay is armed on malformed/duplicate native
+            # windows: the actual sender would reject this roster immediately.
+            self._emit_status("Miroir indisponible : 2 à 8 fenêtres uniques et un favori valides requis.")
             return False
         self._mirror_arm_epoch = self.__dict__.get("_mirror_arm_epoch", 0) + 1
         self._mirror_armed = True
