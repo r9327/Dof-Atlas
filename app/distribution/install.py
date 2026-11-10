@@ -68,6 +68,13 @@ def active_executable(root: Path) -> Path | None:
     slot = doc.get("active")
     if not slot:
         return None
+    # Old first-install rollbacks left an unacknowledged EXE active while
+    # marking its source blocked. Treat that legacy state as unusable even
+    # before the launcher has a chance to migrate state.json.
+    if (not doc.get("pending") and not doc.get("previous")
+            and doc.get("source_sha")
+            and doc.get("blocked_source_sha") == doc["source_sha"]):
+        return None
     # entrypoint is committed by the verified installer, never fetched as a URL.
     relative = doc.get("entrypoint")
     if not isinstance(relative, str):
@@ -94,7 +101,16 @@ def active_executable(root: Path) -> Path | None:
 
 def rollback_pending(root: Path) -> bool:
     state = read_state(root)
-    if not state["pending"]:
+    # Compatibility: older launchers could persist a failed first candidate
+    # with pending=False and blocked_source_sha equal to the *active* SHA.
+    # It must be deactivated before any new network/update path uses its
+    # files as a supposedly healthy installed base.
+    legacy_failed_first = (
+        not state["pending"] and bool(state.get("active"))
+        and not state.get("previous") and bool(state.get("source_sha"))
+        and state.get("blocked_source_sha") == state["source_sha"]
+    )
+    if not state["pending"] and not legacy_failed_first:
         return False
     old = state.get("previous")
     if old and slot_path(root, old).is_dir():
