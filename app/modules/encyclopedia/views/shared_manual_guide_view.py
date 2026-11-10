@@ -2770,8 +2770,7 @@ class SharedGuideManualView(GuideUltimeManualView):
             not isinstance(plan, GuideTravelPlan)
             or plan.mode is not TravelMode.ZAAP_THEN_TRAVEL
             or (plan.destination.x, plan.destination.y) != (x, y)
-            or set(plan.participant_keys) != set(selected)
-            or len(plan.participant_keys) != len(selected)
+            or tuple(plan.participant_keys) != tuple(selected)
         ):
             return False
         # The macro may reject the command after route validation. Never
