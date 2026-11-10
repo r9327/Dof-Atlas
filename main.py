@@ -2084,6 +2084,8 @@ class AtlasWindow(QMainWindow):
             sessions_changed_callback=self.refresh_global_characters,
             active_session_callback=self.on_organizer_active_window,
             next_character_callback=self.launch_next_character,
+            previous_character_callback=self.launch_previous_character,
+            mirror_arm_callback=self.toggle_mirror,
         )
 
     def create_craft_page(self) -> QWidget:
@@ -2707,6 +2709,11 @@ class AtlasWindow(QMainWindow):
         organizer = self.page_widgets.get("Organizer") if hasattr(self, "page_widgets") else None
         if hasattr(organizer, "set_runtime_active"):
             organizer.set_runtime_active(bool(connected))
+        if hasattr(organizer, "set_mirror_arm_active"):
+            runtime = getattr(self, "runtime", None)
+            organizer.set_mirror_arm_active(
+                getattr(runtime, "mirror_armed", False) is True
+            )
 
     def _ensure_runtime(self) -> AtlasRuntime:
         if self.runtime is None:
@@ -2801,6 +2808,29 @@ class AtlasWindow(QMainWindow):
             return
         if not runtime.switch_character.activate_next():
             self.set_status("Personnage suivant : aucune autre fenêtre DOFUS activable.")
+
+    def launch_previous_character(self) -> None:
+        """Use the same protected Organizer worker as Personnage suivant."""
+        if self.quit_requested or self._background_services_stopped:
+            return
+        runtime = self._ensure_runtime()
+        if runtime.macro_lock.active_label:
+            self.set_status("Personnage précédent indisponible : macro déjà en cours.")
+            return
+        if not runtime.switch_character.activate_previous():
+            self.set_status("Personnage précédent : aucune autre fenêtre DOFUS activable.")
+
+    def toggle_mirror(self) -> bool:
+        """User gesture: the tab alone never authorizes Mirror delivery."""
+        if self.quit_requested or self._background_services_stopped:
+            return False
+        runtime = self.runtime
+        if runtime is None:
+            self.set_status("Miroir indisponible : runtime pas encore démarré.")
+            return False
+        armed = runtime.toggle_mirror()
+        self.update_runtime_badge(bool(runtime._running and runtime._admin_ok))
+        return armed is True
 
     def launch_auto_group(self, invite_entries: list[dict[str, object]]) -> bool:
         if self.quit_requested or self._background_services_stopped:
