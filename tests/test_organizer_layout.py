@@ -706,6 +706,36 @@ class OrganizerLayoutTests(unittest.TestCase):
                     fake, "/zaap 1,2",
                 ), accepted)
 
+    def test_refused_mirror_toggle_never_turns_emergency_led_green(self):
+        from unittest.mock import Mock
+        import main as app_main
+
+        shell = Mock()
+        shell.quit_requested = False
+        shell._background_services_stopped = False
+        organizer = Mock()
+        shell.page_widgets = {"Organizer": organizer}
+        shell.runtime._running = True
+        shell.runtime._admin_ok = True
+        shell.runtime.mirror_armed = False
+        shell.runtime.macro_lock.emergency_latched = True
+        shell.runtime.toggle_mirror.return_value = False
+        shell.update_runtime_badge.side_effect = (
+            lambda connected: app_main.AtlasWindow.update_runtime_badge(
+                shell, connected,
+            )
+        )
+        self.assertFalse(app_main.AtlasWindow.toggle_mirror(shell))
+        organizer.set_runtime_active.assert_called_with(False)
+        organizer.set_mirror_arm_active.assert_called_with(False)
+        # Only a real Relancer/runtime-ready state can turn the badge green.
+        shell.runtime.macro_lock.emergency_latched = False
+        app_main.AtlasWindow.update_runtime_badge(shell, True)
+        organizer.set_runtime_active.assert_called_with(True)
+        shell.runtime._admin_ok = False
+        self.assertFalse(app_main.AtlasWindow.toggle_mirror(shell))
+        organizer.set_runtime_active.assert_called_with(False)
+
     def test_emergency_stop_and_reconfiguration_are_distinct(self):
         from unittest.mock import Mock
         import main as app_main
