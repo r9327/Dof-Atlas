@@ -139,44 +139,19 @@ def relocate_runtime(target: Path, progress=None) -> Path:
     # downloads or quarantine of damaged slots (potentially many gigabytes).
     # The entire original folder remains intact for recovery/resumable caches.
     excluded = {".health", ".launcher.lock", "downloads", "quarantine"}
-    # Remember the actual filesystem entries, not just their filenames.
-    # On Windows a file may be atomically replaced by a reparse point while
-    # shutil.copytree is using a stale os.DirEntry from its initial scan.
-    expected_names: dict[Path, frozenset[str]] = {}
-    expected_entries: dict[Path, tuple[int, int, int, int | None, int | None]] = {}
-
-    def identity(entry: Path) -> tuple[int, int, int, int | None, int | None]:
-        try:
-            if _linked(entry):
-                raise UpdateError("Impossible de deplacer une installation contenant des liens")
-            info = entry.lstat()
-        except OSError as exc:
-            raise UpdateError("Source Atlas modifiee pendant la copie : liens refuses") from exc
-        # Directory mtimes reflect unrelated cache activity; file identity,
-        # size and mtime must remain stable for the full transaction.
-        is_dir = entry.is_dir()
-        return (info.st_dev, info.st_ino, info.st_mode,
-                None if is_dir else info.st_size,
-                None if is_dir else info.st_mtime_ns)
-
-    def unchanged(entry: Path) -> bool:
-        try:
-            return expected_entries.get(entry) == identity(entry)
-        except UpdateError:
-            return False
-
     for base, directories, names in os.walk(source, followlinks=False):
         where = Path(base)
         if where == source:
             directories[:] = [name for name in directories if name not in excluded]
-        retained_files = [name for name in names
-                          if not (where == source and name == ".launcher.lock")]
-        expected_names[where] = frozenset((*directories, *retained_files))
-        for name in (*directories, *retained_files):
+        if any(_linked(where / name) for name in directories):
+            raise UpdateError("Impossible de deplacer une installation contenant des liens")
+        for name in names:
+            if where == source and name == ".launcher.lock":
+                continue
             entry = where / name
-            expected_entries[entry] = identity(entry)
-        for name in retained_files:
-            total += (where / name).stat().st_size
+            if _linked(entry):
+                raise UpdateError("Impossible de deplacer une installation contenant des liens")
+            total += entry.stat().st_size
     destination.parent.mkdir(parents=True, exist_ok=True)
     if shutil.disk_usage(destination.parent).free < total + 256 * 1024**2:
         raise UpdateError("Espace insuffisant sur le disque choisi pour copier Atlas")
@@ -191,24 +166,19 @@ def relocate_runtime(target: Path, progress=None) -> Path:
         # link inside the new runtime (copytree uses symlinks=True).
         where = Path(directory)
         ignored = set(names) & excluded if where == source else set()
-        included = set(names) - ignored
-        # Reject added or substituted entries even if a cached Windows
-        # DirEntry incorrectly reports the original file type.
-        if (expected_names.get(where) != frozenset(included)
-                or _linked(where)
-                or any(not unchanged(where / name) for name in included)):
-            raise UpdateError("Source Atlas modifiee pendant la copie : liens refuses")
+        if (_linked(where) or any(
+            _linked(where / name) for name in names if name not in ignored
+        )):
+            raise UpdateError("Impossible de deplacer une installation contenant des liens")
         return ignored
 
     def copy_checked(src, dst):
         nonlocal copied
-        source_entry, copied_file = Path(src), Path(dst)
-        if not unchanged(source_entry):
-            raise UpdateError("Source Atlas modifiee pendant la copie : liens refuses")
+        if _linked(Path(src)):
+            raise UpdateError("Impossible de deplacer une installation contenant des liens")
         shutil.copy2(src, dst)
-        if not unchanged(source_entry):
-            raise UpdateError("Source Atlas modifiee pendant la copie : liens refuses")
-        size = source_entry.stat().st_size
+        source, copied_file = Path(src), Path(dst)
+        size = source.stat().st_size
         if copied_file.stat().st_size != size:
             raise UpdateError("Copie Atlas incomplete; ancien disque preserve")
         # A same-length damaged file would pass the old size-only check.
@@ -220,10 +190,8 @@ def relocate_runtime(target: Path, progress=None) -> Path:
                     value.update(block)
             return value.digest()
 
-        if digest(source_entry) != digest(copied_file):
+        if digest(source) != digest(copied_file):
             raise UpdateError("Copie Atlas corrompue; ancien disque preserve")
-        if not unchanged(source_entry):
-            raise UpdateError("Source Atlas modifiee pendant la copie : liens refuses")
         copied += size
         if progress:
             progress(copied, max(total, 1))
@@ -239,18 +207,6 @@ def relocate_runtime(target: Path, progress=None) -> Path:
             where = Path(base)
             if any(_linked(where / name) for name in (*directories, *names)):
                 raise UpdateError("La copie Atlas contient un lien non autorise")
-        # Final identity check catches replacements made after the copytree
-        # scan (including reparse-point races) without rehashing large files.
-        for base, directories, names in os.walk(source, followlinks=False):
-            where = Path(base)
-            if where == source:
-                directories[:] = [name for name in directories if name not in excluded]
-            retained_files = [name for name in names
-                              if not (where == source and name == ".launcher.lock")]
-            present = frozenset((*directories, *retained_files))
-            if (expected_names.get(where) != present
-                    or any(not unchanged(where / name) for name in present)):
-                raise UpdateError("Source Atlas modifiee pendant la copie : liens refuses")
         if read_state(stage) != state or active_executable(stage) is None:
             raise UpdateError("La copie Atlas n'a pas pu etre validee")
         os.replace(stage, destination)
