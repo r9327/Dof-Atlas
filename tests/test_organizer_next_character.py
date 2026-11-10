@@ -181,6 +181,31 @@ class NextCharacterTests(unittest.TestCase):
         registry._dispatch_matching_hotkeys()
         self.assertEqual(callback.call_count, 2)
 
+    def test_runtime_routes_previous_and_mirror_toggle_without_implicit_capture(self):
+        for count in (2, 4, 6, 8):
+            with self.subTest(count=count):
+                profile = settings(count)
+                runtime = SimpleNamespace(
+                    settings=profile, _running=True, _admin_ok=True,
+                    macro_lock=SimpleNamespace(
+                        emergency_latched=False, active_label="",
+                    ),
+                    switch_character=SimpleNamespace(
+                        activate_previous=Mock(return_value=True),
+                    ),
+                    toggle_mirror=Mock(return_value=True),
+                )
+                AtlasRuntime._handle_hotkey(runtime, "previous_character", {})
+                runtime.switch_character.activate_previous.assert_called_once_with(
+                    expected_profile=profile,
+                )
+                profile.macro_mode = "mirror"
+                AtlasRuntime._handle_hotkey(runtime, "mirror_toggle", {})
+                runtime.toggle_mirror.assert_called_once_with()
+                runtime.switch_character.activate_previous.reset_mock()
+                AtlasRuntime._handle_hotkey(runtime, "previous_character", {})
+                runtime.switch_character.activate_previous.assert_not_called()
+
     def test_direct_activation_ignores_corrupt_numeric_slot_aliases_2_to_8(self):
         for count in (2, 4, 6, 8):
             with self.subTest(clients=count):
