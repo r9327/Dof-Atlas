@@ -28,6 +28,22 @@ def _runtime() -> AtlasRuntime:
 
 
 class RuntimeStopOwnerTests(unittest.TestCase):
+    def test_runtime_indicator_remains_red_during_emergency_latch(self):
+        from app.core.macro_lock import MacroLock
+
+        runtime = object.__new__(AtlasRuntime)
+        runtime.macro_lock = MacroLock(Mock())
+        runtime._callback_bridge = None
+        runtime.active_callback = Mock()
+        runtime._emit_active(True)
+        runtime.active_callback.assert_called_with(True)
+        runtime.macro_lock.request_stop("bouton stop", latch=True)
+        runtime._emit_active(True)  # A routine hotkey reload cannot turn green.
+        runtime.active_callback.assert_called_with(False)
+        self.assertTrue(runtime.macro_lock.resume_after_stop())
+        runtime._emit_active(True)
+        runtime.active_callback.assert_called_with(True)
+
     def test_stop_runs_every_cleanup_after_failed_previous_cleanup_2_to_8(self):
         for accounts in (2, 4, 6, 8):
             with self.subTest(accounts=accounts):
