@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import hashlib
+import logging
 import html
 import re
 from urllib.parse import quote
@@ -47,6 +48,8 @@ from app.ui.unity_skin import apply_unity_panel_shadow, sprite_icon_path
 from app.constants import DATA_DIR
 from app.modules.encyclopedia.services.image_service import ENCYCLOPEDIA_IMAGE_SERVICE
 from app.ui.theme import PALETTE
+
+LOGGER = logging.getLogger(__name__)
 
 
 @lru_cache(maxsize=1)
@@ -562,7 +565,14 @@ class SharedGuideManualCard(GuideUltimeManualCard):
         another application or character.
         """
         callback = getattr(self, "zaap_travel_callback", None)
-        if callable(callback) and bool(callback(destination)):
+        requested = False
+        if callable(callback):
+            try:
+                # Only a verified explicit acknowledgment authorizes the route.
+                requested = callback(destination) is True
+            except Exception:
+                LOGGER.exception("Guide: planificateur Zaap indisponible au clic.")
+        if requested:
             QToolTip.showText(QCursor.pos(), "Trajet Zaap demandé", self)
         else:
             QApplication.clipboard().setText(f"/travel {destination}")
