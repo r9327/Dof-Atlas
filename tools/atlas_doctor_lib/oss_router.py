@@ -14,6 +14,7 @@ import re
 import site
 import subprocess
 import sys
+import sysconfig
 from typing import Any, Iterable
 
 from tools.tool_catalog import catalog, local_candidate_preflight, select_tools
@@ -182,6 +183,30 @@ def _zizmor_executable(root: Path | None = None) -> str | None:
     return None
 
 
+def _ruff_command(root: Path) -> list[str] | None:
+    """Resolve a real Ruff binary without trusting the checkout or PATH.
+
+    A Windows pip --user installation has its own Scripts directory; the
+    python -m ruff wrapper can incorrectly search global Scripts instead.
+    """
+    if sys.platform != "win32":
+        return [sys.executable, "-P", "-m", "ruff"]
+    candidates = (
+        Path(sysconfig.get_path("scripts", scheme=sysconfig.get_preferred_scheme("user"))),
+        Path(sysconfig.get_path("scripts")),
+    )
+    checkout = root.resolve()
+    for directory in candidates:
+        executable = directory / "ruff.exe"
+        if (not executable.is_absolute() or executable.is_symlink()
+                or not executable.is_file()):
+            continue
+        resolved = executable.resolve()
+        if not resolved.is_relative_to(checkout):
+            return [str(resolved)]
+    return None
+
+
 def _execute_zizmor(root: Path, files: list[str], timeout: int,
                     *, binary: str) -> dict[str, Any]:
     """Run an installed workflow scanner, explicitly offline, without changes."""
@@ -312,7 +337,10 @@ def _observed_tool_version(root: Path, name: str) -> str | None:
             return None
         command = [executable, "--version"]
     else:
-        command = [sys.executable, "-P", "-m", "ruff", "--version"]
+        command = _ruff_command(root)
+        if command is None:
+            return None
+        command = [*command, "--version"]
     env = {key: value for key, value in os.environ.items()
            if key in {"PATH", "SYSTEMROOT", "WINDIR", "TEMP", "TMP", "HOME"}}
     env.update({"ZIZMOR_OFFLINE": "1", "PIP_NO_INDEX": "1",
@@ -633,10 +661,13 @@ def route_oss(root: Path, paths: Iterable[str], *, run: bool = False,
     elif run and not available:
         execution = {"status": "NOT_AVAILABLE", "tool": "ruff",
                      "reason": "Ruff not installed; no auto-install"}
+    elif run and (ruff_command := _ruff_command(root)) is None:
+        execution = {"status": "NOT_AVAILABLE", "tool": "ruff",
+                     "reason": "No trusted Ruff binary for the active Python"}
     elif run:
-        # Fixed argv and Python interpreter: never evaluate a PATH binary or shell.
+        # Interpreter-derived binary: no PATH or checkout executable.
         # Ruff's --isolated/--no-cache/--no-fix forbid configuration-driven writes.
-        command = [sys.executable, "-P", "-m", "ruff", "check", "--isolated",
+        command = [*ruff_command, "check", "--isolated",
                    "--no-cache", "--no-fix", "--output-format", "json",
                    "--target-version", "py313", "--", *python_files]
         env = {key: value for key, value in os.environ.items()

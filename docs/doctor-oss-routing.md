@@ -20,6 +20,11 @@ L'étude des 29 projets (+ 5 annexes) reste dans
   sans désactiver les installations `pip --user` proposées par
   `tools/setup_doctor_oss.ps1` ; la découverte et le diagnostic Ruff
   utilisent donc le même environnement Python utilisateur.
+  Sous Windows, Ruff utilise le binaire `ruff.exe` du répertoire Scripts
+  déterminé par le schéma de l'interpréteur Python (utilisateur ou global)
+  : le wrapper `python -m ruff` peut sinon chercher le mauvais répertoire
+  après une installation `pip --user`. Aucun binaire issu du PATH arbitraire
+  ou du dépôt analysé n'est accepté.
   Les règles sont isolées de la configuration locale. La version observée
   est une simple *déclaration*, pas une qualification Windows/3.13.
 - **pytest-qt, Hypothesis, pywinauto, ast-grep, Semgrep, Gitleaks,

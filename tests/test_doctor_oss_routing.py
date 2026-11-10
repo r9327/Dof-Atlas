@@ -51,7 +51,9 @@ class DoctorOssRoutingTests(unittest.TestCase):
         with (patch("tools.atlas_doctor_lib.oss_router.catalog", return_value={}),
               patch("tools.atlas_doctor_lib.oss_router.select_tools", side_effect=self._native),
               patch("tools.atlas_doctor_lib.oss_router.local_candidate_preflight", side_effect=self._probe),
-              patch("tools.atlas_doctor_lib.oss_router.subprocess.run", return_value=sample) as run):
+              patch("tools.atlas_doctor_lib.oss_router.subprocess.run", return_value=sample) as run,
+              patch("tools.atlas_doctor_lib.oss_router._ruff_command",
+                    return_value=["python", "-P", "-m", "ruff"])):
             payload = route_oss(self.root, ["tools/example.py"], run=True)
         args = run.call_args.args[0]
         self.assertIn("--no-fix", args)
@@ -66,6 +68,31 @@ class DoctorOssRoutingTests(unittest.TestCase):
         self.assertEqual(payload["execution"]["status"], "FINDINGS")
         self.assertEqual(payload["execution"]["rule_counts"]["F401"], 1)
         self.assertFalse(payload["phase_certified"])
+
+    def test_windows_ruff_binary_uses_only_python_scripts_not_path(self):
+        from tools.atlas_doctor_lib.oss_router import _ruff_command
+        with TemporaryDirectory() as directory:
+            outside = Path(directory) / "Scripts"
+            outside.mkdir()
+            binary = outside / "ruff.exe"
+            binary.write_bytes(b"MZ")
+            with (patch("tools.atlas_doctor_lib.oss_router.sys.platform", "win32"),
+                  patch("tools.atlas_doctor_lib.oss_router.sysconfig.get_path",
+                        return_value=str(outside)),
+                  patch("tools.atlas_doctor_lib.oss_router.sysconfig.get_preferred_scheme",
+                        return_value="nt_user")):
+                self.assertEqual(_ruff_command(self.root), [str(binary.resolve())])
+                binary.unlink()
+                self.assertIsNone(_ruff_command(self.root))
+            candidate = self.root / "Scripts"
+            candidate.mkdir()
+            (candidate / "ruff.exe").write_bytes(b"MZ")
+            with (patch("tools.atlas_doctor_lib.oss_router.sys.platform", "win32"),
+                  patch("tools.atlas_doctor_lib.oss_router.sysconfig.get_path",
+                        return_value=str(candidate)),
+                  patch("tools.atlas_doctor_lib.oss_router.sysconfig.get_preferred_scheme",
+                        return_value="nt_user")):
+                self.assertIsNone(_ruff_command(self.root))
 
     def test_ruff_inconsistent_exit_and_json_never_claim_clean(self):
         from types import SimpleNamespace
@@ -127,8 +154,10 @@ class DoctorOssRoutingTests(unittest.TestCase):
     def test_ruff_version_probe_uses_user_site_but_not_project_cwd(self):
         from tools.atlas_doctor_lib.oss_router import _observed_tool_version
         sample = SimpleNamespace(returncode=0, stdout="ruff 0.17.3\n", stderr="")
-        with patch("tools.atlas_doctor_lib.oss_router.subprocess.run",
-                   return_value=sample) as run:
+        with (patch("tools.atlas_doctor_lib.oss_router.subprocess.run",
+                    return_value=sample) as run,
+              patch("tools.atlas_doctor_lib.oss_router._ruff_command",
+                    return_value=["python", "-P", "-m", "ruff"])):
             version = _observed_tool_version(self.root, "ruff")
         self.assertEqual(version, "0.17.3")
         self.assertEqual(run.call_args.args[0][1:4], ["-P", "-m", "ruff"])
