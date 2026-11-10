@@ -842,7 +842,8 @@ class OrganizerLayoutTests(unittest.TestCase):
                 self.app.processEvents()
                 self.assertTrue(page.mirror_arm_button.isHidden() is False)
                 self.assertFalse(page.mirror_arm_button.isEnabled())
-                page.profiles[organizer.KEY_ORGANIZER_MACRO_MODE] = "mirror"
+                from app.constants import KEY_ORGANIZER_MACRO_MODE
+                page.profiles[KEY_ORGANIZER_MACRO_MODE] = "mirror"
                 page.update_macro_mode_buttons()
                 self.assertTrue(page.mirror_arm_button.isEnabled())
                 self.assertEqual(page.mirror_arm_button.text(), "Activer Miroir")
