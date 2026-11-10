@@ -59,6 +59,37 @@ class OrganizerRadialOverlayTests(unittest.TestCase):
     def setUpClass(cls):
         cls.app = QApplication.instance() or QApplication([])
 
+    def test_every_radial_cardinality_uses_real_circular_arcs_not_polygons(self):
+        import math
+        from PySide6.QtCore import QPointF
+        from PySide6.QtGui import QPainterPath
+        from app.pages.organizer.radial_overlay import RADIUS, circular_sector_path
+        from app.pages.organizer.radial_selection import sector_layout
+
+        centre = QPointF(180.0, 180.0)
+        for count in range(1, 9):
+            for index, (start, end, _lx, _ly) in enumerate(sector_layout(count)):
+                with self.subTest(count=count, sector=index):
+                    shape = circular_sector_path(centre, start, end, count)
+                    self.assertFalse(shape.isEmpty())
+                    # A painter path with only MoveTo/LineTo segments is a
+                    # polygon, even if the corners are barely visible.
+                    self.assertTrue(any(
+                        shape.elementAt(i).type == QPainterPath.ElementType.CurveToElement
+                        for i in range(shape.elementCount())
+                    ))
+                    middle = (start + end) / 2
+                    inside = QPointF(
+                        centre.x() + RADIUS * 0.98 * math.cos(middle),
+                        centre.y() + RADIUS * 0.98 * math.sin(middle),
+                    )
+                    outside = QPointF(
+                        centre.x() + RADIUS * 1.02 * math.cos(middle),
+                        centre.y() + RADIUS * 1.02 * math.sin(middle),
+                    )
+                    self.assertTrue(shape.contains(inside))
+                    self.assertFalse(shape.contains(outside))
+
     def test_single_character_wheel_is_a_circle_not_a_polygon(self):
         # Halfway between the old polygon's points, a nearly-edge pixel
         # lies inside a true circle but outside the old 18-sided path.
