@@ -40,9 +40,12 @@ La fonction explicite `inspect_repo_update(installed_source_sha)`
 réutilise la sonde du pointeur puis lit au maximum un manifeste immuable
 `APP/<app_commit_sha>/updates/<source_sha>/atlas-manifest.json`.
 Le SHA-256 du manifeste, l'identité source/base, le delta annoncé et sa
-taille sont comparés au pointeur. Un SHA déjà installé entraîne une seule
+taille sont comparés au pointeur. L'inspection renvoie le pointeur, les
+**octets exacts du manifeste vérifié** et le manifeste interprété : les
+octets peuvent être remis directement à `download_repo_update_delta()`
+sans seconde requête de manifeste. Un SHA déjà installé entraîne une seule
 requête de pointeur et **zéro requête de manifeste/ZIP**. Les URL raw
-arbitraires, les sources Python et les ZIP restent refusés.
+arbitraires et les sources Python non épinglées restent refusés.
 
 Un outil explicitement invoqué peut ensuite appeler
 `download_repo_update_delta(pointer, raw_manifest, directory)` : il
