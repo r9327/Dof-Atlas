@@ -96,6 +96,33 @@ class DevelopmentLotTests(unittest.TestCase):
         self.assertEqual(missing["status"], "REVIEW")
         self.assertEqual(missing["uncovered_paths"], ["app/core/text.py"])
 
+    def test_radial_painter_and_geometry_have_direct_existing_owner(self):
+        # The same UI test module renders Qt paths and checks pure
+        # 1..8-character sector geometry; both sources require this owner.
+        wheel = [
+            "app/pages/organizer/radial_overlay.py",
+            "app/pages/organizer/radial_selection.py",
+        ]
+        test = self.root / "tests/test_organizer_radial_overlay.py"
+        test.write_text("pass\n", encoding="utf-8")
+        for source in wheel:
+            path = self.root / source
+            path.parent.mkdir(parents=True, exist_ok=True)
+            path.write_text("pass\n", encoding="utf-8")
+        self.paths = wheel
+        report = self.plan()
+        self.assertEqual(report["status"], "READY")
+        self.assertEqual(report["test_modules"], ["tests.test_organizer_radial_overlay"])
+        self.assertEqual(report["uncovered_paths"], [])
+        self.assertTrue(report["global_full_required"])
+        self.assertFalse(report["phase_certified"])
+
+        test.unlink()
+        without_owner = self.plan()
+        self.assertEqual(without_owner["status"], "REVIEW")
+        self.assertEqual(without_owner["uncovered_paths"], wheel)
+        self.assertEqual(without_owner["test_modules"], [])
+
     def test_macro_lock_has_existing_generation_owner_without_weaking_full(self):
         # Preserve exact source ownership for native Stop and pointer leases:
         # no generic Organizer smoke or blanket module allowance.
