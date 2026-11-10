@@ -431,6 +431,11 @@ class RuntimeLocationTests(unittest.TestCase):
             changed = []
 
             def modify_after_ignore(src, dst, *args, **kwargs):
+                # Windows shutil.copytree may recurse through this patched
+                # public function with positional arguments, not kwargs.
+                # Intercept only the top-level copy where ignore is supplied.
+                if Path(src) != source:
+                    return original_copytree(src, dst, *args, **kwargs)
                 original_ignore = kwargs["ignore"]
 
                 def checked_then_changed(directory, names):
