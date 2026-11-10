@@ -214,6 +214,21 @@ def relocate_runtime(target: Path, progress=None) -> Path:
             where = Path(base)
             if any(_linked(where / name) for name in (*directories, *names)):
                 raise UpdateError("La copie Atlas contient un lien non autorise")
+        # Recheck the source paths that will actually move. A link inserted
+        # after the first os.walk or after copytree's ignore callback can be
+        # absent from the staged tree but still indicate a changed source.
+        # Do not walk excluded caches or obsolete slots.
+        for base, directories, names in os.walk(source, followlinks=False):
+            where = Path(base)
+            if where == source:
+                directories[:] = [name for name in directories if name not in excluded]
+                names = [name for name in names if name != ".launcher.lock"]
+            elif where == source / "versions":
+                directories[:] = [name for name in directories if name in retained_slots]
+            if _linked(where) or any(
+                _linked(where / name) for name in (*directories, *names)
+            ):
+                raise UpdateError("Source Atlas modifiee pendant la copie : liens refuses")
         if read_state(stage) != state or active_executable(stage) is None:
             raise UpdateError("La copie Atlas n'a pas pu etre validee")
         os.replace(stage, destination)
