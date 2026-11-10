@@ -114,6 +114,35 @@ class RuntimeStopOwnerTests(unittest.TestCase):
         self.assertFalse(runtime.mirror_armed)
         self.assertTrue(runtime.macro_lock.emergency_latched)
 
+    def test_organizer_shortcut_keys_are_never_duplicated_as_mirror_taps(self):
+        from types import SimpleNamespace
+        from app.core.macro_lock import MacroLock
+
+        settings = SimpleNamespace(
+            macro_mode="mirror", stop_hotkey="F6",
+            mirror_toggle_hotkey="CTRL+F8",
+            next_character_hotkey="F9",
+            previous_character_hotkey="F10",
+            radial_enabled=True, radial_hotkey="F11",
+        )
+        runtime = SimpleNamespace(
+            settings=settings, _running=True, _admin_ok=True,
+            _mirror_armed=True, macro_lock=MacroLock(Mock()),
+        )
+        with patch("app.windows.unity_windows.foreground_window") as foreground:
+            for code in (0x75, 0x77, 0x78, 0x79, 0x7A):
+                with self.subTest(key_code=code):
+                    self.assertFalse(
+                        AtlasRuntime._handle_mirror_key(runtime, code, True)
+                    )
+            foreground.assert_not_called()
+        # Even when the wheel is disabled the other global hotkeys remain
+        # reserved; disabling the wheel alone releases only its own key.
+        settings.radial_enabled = False
+        with patch("app.windows.unity_windows.foreground_window") as foreground:
+            self.assertFalse(AtlasRuntime._handle_mirror_key(runtime, 0x77, True))
+            foreground.assert_not_called()
+
     def test_disarmed_mirror_never_probes_or_consumes_native_input(self):
         from types import SimpleNamespace
         from app.core.macro_lock import MacroLock
