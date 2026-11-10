@@ -151,13 +151,44 @@ class ReuseInstallerTests(unittest.TestCase):
                 b"old",
             )
             self.assertFalse(list(runtime.glob(".atlas-install-*")))
-            # A fully staged but not activated version may exist: retry must
-            # verify the orphaned target instead of discarding user state.
-            self.assertTrue(install_release(runtime, second, newer))
+            # The fully verified orphaned slot is reused directly: no second
+            # decompress, no ZIP read and no multi-GB file copy.
+            orphan = slot_path(runtime, f"{newer.app_version}-{newer.source_sha[:12]}")
+            self.assertTrue(orphan.is_dir())
+            with (
+                patch.object(install.zipfile, "ZipFile",
+                             side_effect=AssertionError("redundant archive extraction")),
+                patch.object(install, "_copy_unchanged_verified",
+                             side_effect=AssertionError("redundant staging copy")),
+            ):
+                self.assertTrue(install_release(runtime, second, newer))
             self.assertTrue(read_state(runtime)["pending"])
             self.assertTrue(rollback_pending(runtime))
             self.assertEqual(read_state(runtime)["active"], before["active"])
             self.assertEqual(progress.read_text(encoding="utf-8"), '{"achievement":7}')
+
+    def test_orphan_slot_must_be_fully_verified_before_reuse(self):
+        with tempfile.TemporaryDirectory() as d:
+            root = Path(d)
+            first, original = self._package(root, "a" * 40, "v1", change=b"old")
+            runtime = root / "runtime"
+            self.assertTrue(install_release(runtime, first, original))
+            mark_healthy(runtime)
+            stable = read_state(runtime)
+            profile = runtime / "user" / "progress.json"
+            profile.parent.mkdir()
+            profile.write_text('{"quests":42}', encoding="utf-8")
+            second, newer = self._package(root, "b" * 40, "v2", change=b"new")
+            with patch.object(install, "_write_state", side_effect=OSError("disk full")):
+                with self.assertRaises(UpdateError):
+                    install_release(runtime, second, newer)
+            orphan = slot_path(runtime, f"{newer.app_version}-{newer.source_sha[:12]}")
+            # Same-size corruption must not pass a size-only shortcut.
+            (orphan / "AtlasApp/changed.dat").write_bytes(b"bad")
+            with self.assertRaisesRegex(UpdateError, "Conflicting existing installation slot"):
+                install_release(runtime, second, newer)
+            self.assertEqual(read_state(runtime), stable)
+            self.assertEqual(profile.read_text(encoding="utf-8"), '{"quests":42}')
 
     def test_pending_rollback_is_idempotent_and_restores_metadata(self):
         with tempfile.TemporaryDirectory() as d:
