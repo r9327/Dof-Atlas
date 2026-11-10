@@ -67,4 +67,6 @@ jobs:
         if: always()
         run: |
           echo "Repo update pointer contract for ${{ github.event.pull_request.head.sha }}"
+          echo "Source top-level Git tree fingerprints (for context index verification):"
+          git ls-tree HEAD
           echo "No delta published, installer invoked or Windows Unity app certified"
