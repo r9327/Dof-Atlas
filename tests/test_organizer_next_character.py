@@ -155,6 +155,32 @@ class NextCharacterTests(unittest.TestCase):
         owner.previous_character_callback.assert_called_once_with()
         owner.status_callback.assert_not_called()
 
+    def test_mirror_activation_hotkey_fires_once_per_press_and_exact_modifiers(self):
+        from app.input.hotkeys import HotkeyRegistry
+        from app.input.input_state import InputState
+
+        config = settings(4, mode="mirror")
+        config.mirror_toggle_hotkey = "CTRL+F8"
+        state = InputState()
+        callback = Mock()
+        registry = HotkeyRegistry(state, Mock(), callback)
+        registry.register_hotkeys(build_hotkey_actions(config))
+        # Extra ALT is not a valid consent gesture for CTRL+F8.
+        for vk in (0x11, 0x12, 0x77):
+            state.set_key(vk, True)
+        registry._dispatch_matching_hotkeys()
+        callback.assert_not_called()
+        state.set_key(0x12, False)
+        registry._dispatch_matching_hotkeys()
+        callback.assert_called_once_with("mirror_toggle", {})
+        registry._dispatch_matching_hotkeys()
+        callback.assert_called_once()
+        state.set_key(0x77, False)
+        registry._dispatch_matching_hotkeys()
+        state.set_key(0x77, True)
+        registry._dispatch_matching_hotkeys()
+        self.assertEqual(callback.call_count, 2)
+
     def test_direct_activation_ignores_corrupt_numeric_slot_aliases_2_to_8(self):
         for count in (2, 4, 6, 8):
             with self.subTest(clients=count):
