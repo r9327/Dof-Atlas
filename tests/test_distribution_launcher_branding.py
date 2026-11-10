@@ -34,6 +34,28 @@ class LauncherBrandingTests(unittest.TestCase):
         ]
         self.assertFalse(any(name.startswith(("PySide6", "app.ui")) for name in imports))
 
+    def test_dpi_multiplier_preserves_100_percent_and_enlarges_125_150(self):
+        window = MagicMock()
+        for tk_scaling, expected in (
+            (96 / 72, 1.0), (120 / 72, 1.25), (144 / 72, 1.5),
+        ):
+            with self.subTest(tk_scaling=tk_scaling):
+                window.tk.call.return_value = tk_scaling
+                self.assertAlmostEqual(launcher_ui.dpi_multiplier(window), expected)
+        for invalid in ("invalid", -1, float("nan"), float("inf")):
+            window.tk.call.return_value = invalid
+            self.assertEqual(launcher_ui.dpi_multiplier(window), 1.0)
+        window.tk.call.side_effect = RuntimeError("Tcl scaling unavailable")
+        self.assertEqual(launcher_ui.dpi_multiplier(window), 1.0)
+
+    def test_launcher_geometry_uses_dpi_scale_not_fixed_size(self):
+        source = inspect.getsource(launcher.main)
+        self.assertIn("dpi_multiplier(window)", source)
+        self.assertIn("round(base_width * ui_scale)", source)
+        self.assertIn("round(base_height * ui_scale)", source)
+        self.assertIn("wraplength=round(420 * ui_scale)", source)
+        self.assertIn("length=round(408 * ui_scale)", source)
+
     def test_launcher_does_not_allow_legacy_palette(self):
         self.assertFalse(hasattr(launcher_ui, "ATLAS_PALETTE"))
         self.assertFalse(hasattr(launcher_ui, "palette_for_theme"))

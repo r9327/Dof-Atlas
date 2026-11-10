@@ -27,7 +27,7 @@ from .data_pack_plan import InvalidDataPack
 from .launch_pack_recovery import recover_data_packs_on_launch
 from .startup_trace import record_startup_event
 from .launcher_ui import (COLORS, FONT_FAMILY, add_header, button_options,
-                          display_message, progress_style)
+                          display_message, progress_style, dpi_multiplier)
 from app.windows.single_instance import SingleInstanceGuard
 
 APP_DIR = Path(os.environ.get("LOCALAPPDATA") or Path.home() / ".local" / "share") / "DofusAtlas"
@@ -533,7 +533,9 @@ def main() -> int:
                         and ("--atlas-configure" in sys.argv
                              or not installed or not has_saved_location()))
     chosen_root = {"path": ROOT}
-    window.geometry("520x425" if choosing_install else "470x252")
+    ui_scale = dpi_multiplier(window)
+    base_width, base_height = (520, 425) if choosing_install else (470, 252)
+    window.geometry(f"{round(base_width * ui_scale)}x{round(base_height * ui_scale)}")
     window.resizable(False, False)
     window.configure(bg=COLORS["background"])
     try:
@@ -549,7 +551,8 @@ def main() -> int:
                  fg=COLORS["text"], font=("Segoe UI", 9, "bold")).pack()
         chosen = tk.StringVar(value=str(ROOT))
         tk.Label(selection, textvariable=chosen, bg=COLORS["background"],
-                 fg=COLORS["muted"], font=("Segoe UI", 9), wraplength=515).pack()
+                 fg=COLORS["muted"], font=("Segoe UI", 9),
+                  wraplength=round(515 * ui_scale)).pack()
 
         def choose_install_folder():
             from tkinter import filedialog, messagebox
@@ -571,14 +574,15 @@ def main() -> int:
     status = tk.StringVar(value="Confirmez le disque de l'installation Atlas."
                           if choosing_install else "Initialisation...")
     tk.Label(window, textvariable=status, bg=COLORS["background"], fg=COLORS["text"],
-             font=(FONT_FAMILY, 10), wraplength=420, justify="center", anchor="center").pack(
+             font=(FONT_FAMILY, 10), wraplength=round(420 * ui_scale),
+              justify="center", anchor="center").pack(
                  fill="x", padx=24, pady=(20, 12))
     style = ttk.Style(window)
     progress_style(style)
     percent = tk.IntVar(value=0)
     bar = ttk.Progressbar(window, orient="horizontal", mode="determinate", maximum=100,
                           variable=percent, style="Atlas.Horizontal.TProgressbar",
-                          length=408)
+                          length=round(408 * ui_scale))
     bar.pack(pady=(0, 6))
     numeric = tk.StringVar(value="0 %")
     tk.Label(window, textvariable=numeric, bg=COLORS["background"], fg=COLORS["muted"],

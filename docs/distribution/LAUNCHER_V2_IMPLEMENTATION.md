@@ -124,6 +124,17 @@ le launcher continue et affiche directement les erreurs dans sa fenêtre.
 Le journal rotatif n'est remplacé par un `NullHandler` qu'en cas d'échec
 d'ouverture ; les écritures de release/progression ne dépendent pas de lui.
 
+## Interface Launcher et échelles DPI
+
+L'interface Tk conserve le thème Unity existant, les couleurs et l'icône
+locale. La géométrie, les longueurs de texte et la barre de progression
+s'ajustent désormais à la valeur Tcl `tk scaling` (1×, 1,25×, 1,5×),
+avec limites et repli 1× si la mesure est absente/invalide. La logique
+d'installation, les contrôles de hachage et le signal Home ACK ne changent
+pas. Les tests ciblés vérifient la formule sur Ubuntu/Windows ; la recette
+visuelle des DPI 100/125/150 % sur PC Windows physique demeure **LV2-013
+NOT_RUN** et le critère LV2-007 reste PENDING jusqu'à preuve de rendu.
+
 ## Vérification, cache et installation transactionnelle
 
 `app/distribution/launcher.py` prend un verrou de mise à jour et vérifie
