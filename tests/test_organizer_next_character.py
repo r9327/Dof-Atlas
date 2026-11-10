@@ -490,8 +490,12 @@ class NextCharacterTests(unittest.TestCase):
             expected_profile=runtime.settings,
         )
         runtime.settings.macro_mode = "mirror"
+        # Mode alone is not consent. A still-armed relay, not merely the
+        # selected tab, blocks changing the current DOFUS source.
+        runtime._mirror_armed = True
         AtlasRuntime._handle_hotkey(runtime, "next_character", {})
         runtime.switch_character.activate_next.assert_called_once()
+        runtime._mirror_armed = False
         runtime.settings.macro_mode = "macro"
         runtime.settings.switch_character_enabled = False
         AtlasRuntime._handle_hotkey(runtime, "next_character", {})
