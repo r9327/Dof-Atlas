@@ -39,12 +39,19 @@ class CraftFixesTests(unittest.TestCase):
             patch.object(page, "find_job_resource", return_value={"name": "Fer"}),
             patch.object(page, "open_leveling_dialog") as open_dialog,
         ):
+            page.show()
+            page.refresh_jobs()
+            QApplication.processEvents()
             for job in ("Mineur", "Forgeron"):
                 with self.subTest(job=job):
-                    page.set_job(job)
+                    buttons = [page.job_buttons_layout.itemAt(index).widget()
+                               for index in range(page.job_buttons_layout.count())]
+                    button = next(button for button in buttons if button.text() == job)
+                    QTest.mouseClick(button, Qt.LeftButton)
                     QTest.qWait(35)
                     open_dialog.assert_called_with(job)
             self.assertEqual(open_dialog.call_count, 2)
+            page.close()
 
     def test_missing_leveling_is_explicit_not_silent(self):
         page = self.make_page()
@@ -100,6 +107,53 @@ class CraftFixesTests(unittest.TestCase):
             result = craft_image_item(item, root=root)
             self.assertEqual(Path(result["image_path"]), icon)
             self.assertEqual(item["image_path"], "data/images/items/987.png")
+
+    def test_existing_guide_constructs_and_shows_leveling_dialog(self):
+        page = self.make_page()
+        page.guides = {"guides": {"Forgeron": {"entries": [{"craft": {"name": "Épée"}}]}}}
+        with patch("app.pages.craft_page.LevelingDialog") as dialog:
+            page.open_leveling_dialog("Forgeron")
+        dialog.assert_called_once()
+        dialog.return_value.exec.assert_called_once()
+
+    def test_text_search_filters_typographic_and_ascii_apostrophes(self):
+        page = self.make_page()
+        page._runtime_ready = True
+        page.items = [{
+            "name": "L’Épée d’Âme", "type": "Épée",
+            "_search_name": "l_epee_d_ame", "_craft_category": "equipment",
+        }]
+        page.search.setText("L'EPÉE D'AME")
+        page.search_timer.stop()
+        page.refresh_results()
+        page.result_batch_timer.stop()
+        self.assertEqual(len(page._pending_result_items), 1)
+
+    def test_previous_resource_dialog_finish_does_not_clear_new_dialog(self):
+        page = self.make_page()
+        page.selection = {42: {"item": {"ankama_id": 42, "name": "Épée"}, "quantity": 1}}
+        recipe = {"found": True, "ingredients": [{
+            "name": "Fer", "quantity": 2, "image_path": "",
+        }]}
+        with patch("app.pages.craft_page.local_data_cache.get_recipe_for_item", return_value=recipe):
+            page.show_resources()
+            previous = page.resource_dialog
+            page.show_resources()
+            current = page.resource_dialog
+            self.assertIsNot(previous, current)
+            previous.finished.emit(0)
+            self.assertIs(page.resource_dialog, current)
+            current.accept()
+
+    def test_image_fallback_does_not_guess_between_duplicate_sprites(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            for directory in ("armes", "divers"):
+                folder = root / "data" / "images" / "items" / directory
+                folder.mkdir(parents=True)
+                (folder / "777.png").write_bytes(b"fixture")
+            item = {"type": "Objet mystère", "image_path": "data/images/items/777.png"}
+            self.assertIs(craft_image_item(item, root=root), item)
 
     def test_craft_category_identifies_weapon_types_without_name_false_positives(self):
         for kind in ("Épée", "Arc", "Dagues", "Marteau", "Pelle", "Baguette"):
