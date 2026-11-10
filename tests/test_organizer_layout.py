@@ -999,6 +999,12 @@ class OrganizerLayoutTests(unittest.TestCase):
                 classic = page.script_speed_legacy
                 self.assertTrue(page.script_speed_title.isVisible())
                 self.assertEqual(page.script_speed_title.text(), "Vitesse :")
+                self.assertIs(page.script_speed_title.parentWidget(), normal.parentWidget())
+                self.assertEqual(page.script_speed_title.y(), normal.y())
+                self.assertLess(page.script_speed_title.x(), normal.x())
+                self.assertLessEqual(
+                    instant.x() + instant.width(), instant.parentWidget().width(),
+                )
                 self.assertTrue(classic.isHidden())
                 self.assertEqual(normal.parent(), rapid.parent())
                 self.assertEqual(normal.parent(), instant.parent())
