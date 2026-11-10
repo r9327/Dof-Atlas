@@ -498,6 +498,9 @@ class AtlasRuntime:
         self.travel.run_async(text, tuple(character_keys or ()))
 
     def launch_zaap(self, text: str, click_position=None, click_ratios=None) -> bool:
+        if getattr(self.macro_lock, "emergency_latched", False) is True:
+            self._emit_status("Zaap bloqué : Stop urgence actif. Cliquer sur Relancer.")
+            return False
         # A rejected concurrent launch must not reload Organizer while the
         # first worker is still sending actions to its captured roster.
         if self.macro_lock.active_label:
@@ -509,6 +512,9 @@ class AtlasRuntime:
         ))
 
     def launch_auto_group(self, invite_entries: list[dict[str, object]]) -> bool:
+        if getattr(self.macro_lock, "emergency_latched", False) is True:
+            self._emit_status("Auto-groupe bloqué : Stop urgence actif. Cliquer sur Relancer.")
+            return False
         if self.macro_lock.active_label:
             self.logger.info("Auto groupe refusé: macro déjà active.")
             return False
