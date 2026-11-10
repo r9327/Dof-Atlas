@@ -174,6 +174,19 @@ class NextCharacterTests(unittest.TestCase):
                     expected_context=(runtime.settings.primary_handle, "macro"),
                 )
 
+    def test_stop_blocks_both_directions_before_native_window_probes(self):
+        for count in (2, 4, 6, 8):
+            with self.subTest(count=count):
+                runtime = Mock()
+                runtime.settings = settings(count)
+                runtime.macro_lock.should_stop.return_value = True
+                macro = SwitchCharacterMacro(runtime)
+                with patch("app.macros.switch_character.is_unity_window") as unity:
+                    self.assertFalse(macro.activate_next())
+                    self.assertFalse(macro.activate_previous())
+                unity.assert_not_called()
+                runtime._spawn_macro.assert_not_called()
+
     def test_mirror_activation_hotkey_fires_once_per_press_and_exact_modifiers(self):
         from app.input.hotkeys import HotkeyRegistry
         from app.input.input_state import InputState
