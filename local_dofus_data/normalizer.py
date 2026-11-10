@@ -11,7 +11,13 @@ def craft_category_for_item(item: dict[str, Any]) -> str:
     tokens = set(slugify(" ".join(str(item.get(key, "")) for key in (
         "name", "type", "family", "category",
     ))).split("_"))
-    if tokens & {"trophee", "trophees", "prysma", "prysmaradite", "prysmaradites"}:
+    # A descriptive item name is never stronger than its explicit type:
+    # "Épée du Trophée" remains a weapon, not a trophy.
+    declared_type = set(slugify(str(item.get("type") or "")).split("_"))
+    trophy_types = {"trophee", "trophees", "prysma", "prysmaradite", "prysmaradites"}
+    if declared_type & {"ressource", "ressources", "resource", "resources"}:
+        return "resource"
+    if declared_type & trophy_types:
         return "trophy_prysma"
     equipment = {
         "arme", "armes", "epee", "epees", "arc", "arcs", "dagues", "dague",
@@ -22,6 +28,10 @@ def craft_category_for_item(item: dict[str, Any]) -> str:
         "botte", "bottes", "bouclier", "boucliers", "dofus", "equipement",
         "equipment", "weapon",
     }
+    if declared_type & equipment:
+        return "equipment"
+    if tokens & trophy_types:
+        return "trophy_prysma"
     return "equipment" if tokens & equipment else "resource"
 
 
