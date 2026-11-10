@@ -306,15 +306,20 @@ class ReuseInstallerTests(unittest.TestCase):
             root = Path(d)
             runtime = root / "runtime"
             package, candidate = self._package(root, "a" * 40, "v1", change=b"bad")
-            install_release(runtime, package, candidate)
-            self.assertTrue(read_state(runtime)["pending"])
+            remote = RemoteRelease("v1", "https://example.invalid/unused",
+                                   package.stat().st_size, candidate)
+            # Model the real *first* run: no pending slot at startup, then
+            # download/install creates pending before the child crashes.
+            self.assertIsNone(read_state(runtime)["active"])
             with (
                 patch.object(launcher, "ROOT", runtime),
                 patch.object(launcher, "_logger", return_value=MagicMock()),
                 patch.object(launcher, "_run_lock", return_value=MagicMock()),
                 patch.object(launcher, "SingleInstanceGuard") as guard,
                 patch.object(launcher, "recover_data_packs_on_launch"),
-                patch.object(launcher, "latest_release", return_value=None),
+                patch.object(launcher, "latest_release", return_value=remote),
+                patch.object(launcher, "ensure_space"),
+                patch.object(launcher, "download_archive", return_value=package) as download,
                 patch.object(launcher, "_launch_with_health", return_value=False) as launch,
                 patch.object(launcher, "mark_healthy",
                              side_effect=AssertionError("crash is never healthy")),
@@ -322,6 +327,7 @@ class ReuseInstallerTests(unittest.TestCase):
                 guard.return_value.acquire.return_value = True
                 with self.assertRaisesRegex(UpdateError, "n'a pas confirme son demarrage"):
                     launcher.run_update(lambda *_: None)
+            download.assert_called_once()
             launch.assert_called_once()
             state = read_state(runtime)
             self.assertIsNone(state["active"])
