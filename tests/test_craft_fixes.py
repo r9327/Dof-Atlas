@@ -52,6 +52,26 @@ class CraftFixesTests(unittest.TestCase):
             self.assertEqual(open_dialog.call_count, 2)
             page.close()
 
+    def test_empty_preload_uses_real_local_leveling_catalogue(self):
+        page = self.make_page()
+        on_disk = {"guides": {
+            "Mineur": {"entries": [{"craft": {"name": "Fer"}}]},
+        }}
+        for placeholder in ({}, {"guides": {}}, None):
+            with self.subTest(placeholder=placeholder):
+                page.preload = {"guides": placeholder}
+                with patch("app.pages.craft_page.read_json", return_value=on_disk) as read:
+                    page.load_leveling_guides()
+                self.assertEqual(page.guide_for_job("Mineur"), on_disk["guides"]["Mineur"])
+                read.assert_called_once()
+
+        # A successfully preloaded guide is already authoritative and must
+        # not trigger a second disk read on the Qt UI thread.
+        page.preload = {"guides": on_disk}
+        with patch("app.pages.craft_page.read_json", side_effect=AssertionError("unexpected disk read")):
+            page.load_leveling_guides()
+        self.assertIs(page.guides, on_disk)
+
     def test_missing_leveling_is_explicit_not_silent(self):
         page = self.make_page()
         page.guides = {"guides": {}}
