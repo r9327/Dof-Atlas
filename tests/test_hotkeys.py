@@ -6,7 +6,7 @@ from types import SimpleNamespace
 from unittest.mock import Mock, patch
 
 from app.input.hotkeys import (
-    HotkeyRegistry, KBDLLHOOKSTRUCT, WM_KEYDOWN, WM_KEYUP,
+    HotkeyAction, HotkeyRegistry, KBDLLHOOKSTRUCT, WM_KEYDOWN, WM_KEYUP,
 )
 from app.input.input_state import InputState
 
@@ -140,6 +140,36 @@ class HotkeyRegistryOwnershipTests(unittest.TestCase):
                 1,
             )
         self.assertEqual(registry._mirror_toggle_ups, {0x77})
+        next_hook.assert_not_called()
+
+    def test_first_mirror_toggle_down_remains_owned_if_callback_raises(self):
+        registry = self._registry()
+        report = registry.register_hotkeys([HotkeyAction(
+            action_id="mirror_toggle", label="Activer Miroir",
+            hotkey_text="F8", kind="press",
+        )])
+        self.assertTrue(report.ok)
+        registry.callback.side_effect = RuntimeError("activation partial failure")
+        event = KBDLLHOOKSTRUCT()
+        event.vkCode = 0x77
+        next_hook = Mock(return_value=37)
+        with patch.object(
+            ctypes, "windll",
+            SimpleNamespace(user32=SimpleNamespace(
+                CallNextHookEx=next_hook,
+            )),
+            create=True,
+        ):
+            self.assertEqual(
+                registry._keyboard_proc(0, WM_KEYDOWN, ctypes.addressof(event)),
+                1,
+            )
+            self.assertEqual(registry._mirror_toggle_ups, {0x77})
+            self.assertEqual(
+                registry._keyboard_proc(0, WM_KEYUP, ctypes.addressof(event)),
+                1,
+            )
+        self.assertEqual(registry._mirror_toggle_ups, set())
         next_hook.assert_not_called()
 
     def test_unowned_key_state_failure_remains_native(self):
