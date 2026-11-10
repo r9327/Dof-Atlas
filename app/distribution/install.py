@@ -260,6 +260,33 @@ def _write_local_file_index(stage: Path, manifest: ReleaseManifest) -> None:
     )
 
 
+def _commit_verified_slot(root: Path, state: dict, slot: str,
+                          manifest: ReleaseManifest, *, same_active: bool) -> None:
+    """Commit a fully verified slot; caller already checked every file digest."""
+    prior = state.get("previous") if same_active else state.get("active")
+    old_meta = state.get("previous_metadata") if same_active else {
+        key: state[key] for key in (
+            "app_version", "data_version", "schema_version", "source_sha",
+            "entrypoint_size", "entrypoint_sha256",
+        ) if key in state
+    }
+    old_entrypoint = state.get("previous_entrypoint") if same_active else state.get("entrypoint")
+    entrypoint_file = next(item for item in manifest.files if item.path == manifest.entrypoint)
+    _write_state(root, {
+        "active": slot, "previous": prior, "pending": True,
+        "entrypoint": manifest.entrypoint,
+        "previous_entrypoint": old_entrypoint if prior else None,
+        "app_version": manifest.app_version,
+        "data_version": manifest.data_version,
+        "schema_version": manifest.schema_version,
+        "source_sha": manifest.source_sha,
+        "entrypoint_size": entrypoint_file.size,
+        "entrypoint_sha256": entrypoint_file.sha256,
+        "previous_metadata": old_meta or {},
+    })
+    record_startup_event("install_activation_committed")
+
+
 def install_release(root: Path, archive_path: Path, manifest: ReleaseManifest,
                     progress: Progress | None = None, *, delta: bool = False) -> bool:
     """Stage, verify every byte, then atomically activate the new version.
@@ -285,6 +312,17 @@ def install_release(root: Path, archive_path: Path, manifest: ReleaseManifest,
     versions = root / "versions"
     versions.mkdir(parents=True, exist_ok=True)
     target = slot_path(root, slot)
+    if not same_active and target.is_dir() and not target.is_symlink():
+        # Power loss or state.json write failure may leave a fully staged,
+        # immutable candidate behind. SHA-verify it directly and finish the
+        # state transaction without copying gigabytes from the ZIP again.
+        if all(verify_file(target / entry.path, entry) for entry in manifest.files):
+            _commit_verified_slot(root, state, slot, manifest, same_active=False)
+            record_startup_event("install_orphan_slot_reused",
+                                 verified_files=len(manifest.files))
+            return True
+        # A partially extracted candidate must not be mistaken for a full
+        # release or replaced in place; the existing conflict path rejects it.
     stage = Path(tempfile.mkdtemp(prefix=".atlas-install-", dir=root))
     record_startup_event("install_stage_begin", delta=int(delta))
     previous_file_index = (
@@ -387,26 +425,7 @@ def install_release(root: Path, archive_path: Path, manifest: ReleaseManifest,
                 raise UpdateError("Conflicting existing installation slot")
         else:
             os.replace(stage, target)
-        prior = state.get("previous") if same_active else state.get("active")
-        old_meta = state.get("previous_metadata") if same_active else {
-            key: state[key] for key in ("app_version", "data_version", "schema_version", "source_sha",
-                                  "entrypoint_size", "entrypoint_sha256")
-            if key in state
-        }
-        old_entrypoint = state.get("previous_entrypoint") if same_active else state.get("entrypoint")
-        _write_state(root, {
-            "active": slot, "previous": prior, "pending": True,
-            "entrypoint": manifest.entrypoint,
-            "previous_entrypoint": old_entrypoint if prior else None,
-            "app_version": manifest.app_version,
-            "data_version": manifest.data_version,
-            "schema_version": manifest.schema_version,
-            "source_sha": manifest.source_sha,
-            "entrypoint_size": next(e.size for e in manifest.files if e.path == manifest.entrypoint),
-            "entrypoint_sha256": next(e.sha256 for e in manifest.files if e.path == manifest.entrypoint),
-            "previous_metadata": old_meta or {},
-        })
-        record_startup_event("install_activation_committed")
+        _commit_verified_slot(root, state, slot, manifest, same_active=same_active)
     except (OSError, zipfile.BadZipFile, RuntimeError) as exc:
         if isinstance(exc, UpdateError):
             raise
