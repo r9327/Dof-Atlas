@@ -14,6 +14,8 @@ on:
       - tests/test_distribution_repo_update_pointer.py
       - tests/test_distribution_smart_update.py
       - app/distribution/install.py
+      - app/distribution/launcher.py
+      - tests/test_distribution_launcher_noop_offline.py
       - tests/test_startup_trace.py
       - tests/test_startup_trace_report.py
       - .github/workflows/launcher-repo-update-contract.yml
@@ -49,6 +51,8 @@ jobs:
         run: python -X faulthandler -m unittest discover -s tests -p test_distribution_repo_update_pointer.py -v
       - name: Verify transactional slots, rollback and unchanged file reuse
         run: python -X faulthandler -m unittest discover -s tests -p 'test_distribution_smart_update.py' -v
+      - name: Verify unchanged/offline launcher startup and binary hash reuse
+        run: python -X faulthandler -m unittest discover -s tests -p 'test_distribution_launcher_noop_offline.py' -v
       - name: Validate opt-in startup trace clocks and report (native Windows API)
         run: python -X faulthandler -m unittest discover -s tests -p 'test_startup_trace*.py' -v
       - name: State proof boundaries
