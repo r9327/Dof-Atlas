@@ -57,6 +57,27 @@ la signature de certification indépendante, les droits, la publication
 réelle et le rollback Windows restent à construire. Cette méthode n'est
 pas appelée automatiquement par le lanceur.
 
+## Qualification synthétique hors ligne du canal candidat
+
+La suite `tests.test_distribution_repo_update_pointer` couvre désormais :
+- le pointeur écrit atomiquement : en cas de verrouillage ou d'échec
+  d'`os.replace`, la version précédente et les fichiers sources restent intacts ;
+- le contrôle strict des membres ZIP contre le manifeste (taille, SHA-256,
+  contenu, liens, fichiers inattendus) avant construction du pointeur ;
+- le nettoyage des anciens `atlas-delta.zip` et
+  `atlas-windows.partNNNN` lors d'un build dans un répertoire réutilisé ;
+- avec **des binaires et données fictifs seulement**, le chemin existant
+  téléchargement du delta → `install_release(delta=True)` → slot en attente
+  → absence d'ACK/rollback → préservation d'un profil utilisateur ;
+  puis refus d'une base locale corrompue et confirmation d'un slot sain.
+
+Commande ciblée : `python -m unittest tests.test_distribution_repo_update_pointer -v`.
+Cette suite peut être exécutée sur les runners Ubuntu/Windows, mais ne constitue
+**ni une preuve de publication APP**, ni une recette d'EXE Windows, ni une
+qualification sur un jeu en cours d'exécution. La route automatique du launcher
+reste inchangée ; le nouvel endpoint APP ne devient pas autorité à partir de
+ces tests. Les exigences LV2/NRU et contrôles de certification demeurent ouverts.
+
 ## Publication cible (NON ENCORE ACTIVÉE)
 
 1. `Dof-Atlas/main` passe les tests d'intégration et la certification
