@@ -337,7 +337,7 @@ class RuntimeLocationTests(unittest.TestCase):
                     called = []
 
                     def inject_after_scan(src, dst, *args, **kwargs):
-                        if Path(src) == source:
+                        if Path(src).resolve() == source.resolve():
                             late.symlink_to(referent, target_is_directory=linked_directory)
                             self.assertTrue(loc._linked(late), "Injected link must exist")
                             called.append(True)
@@ -432,13 +432,13 @@ class RuntimeLocationTests(unittest.TestCase):
             def modify_after_ignore(src, dst, *args, **kwargs):
                 # The Windows copytree implementation recurses through this
                 # patched public function using positional arguments.
-                if Path(src) != source:
+                if Path(src).resolve() != source.resolve():
                     return original_copytree(src, dst, *args, **kwargs)
                 original_ignore = kwargs["ignore"]
 
                 def checked_then_changed(directory, names):
                     skipped = original_ignore(directory, names)
-                    if Path(directory) == source:
+                    if Path(directory).resolve() == source.resolve():
                         # Use an atomic rename instead of unlink/recreate on
                         # the same name, which races deferred NTFS deletion.
                         replacement = source / "late-replacement-symlink"
