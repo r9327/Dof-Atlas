@@ -49,6 +49,48 @@ def _windows_rss_bytes() -> int | None:
     return None
 
 
+def _windows_process_age_ms() -> float | None:
+    """Approximate time already spent in the frozen launcher bootstrap.
+
+    The Windows kernel records process creation before PyInstaller and Python
+    imports. Use the same Windows FILETIME clock for both timestamps; a
+    missing API or clock discontinuity means no sample, never a zero.
+    """
+    if os.name != "nt":
+        return None
+    try:
+        import ctypes
+        from ctypes import wintypes
+
+        kernel = ctypes.windll.kernel32
+        kernel.GetCurrentProcess.restype = wintypes.HANDLE
+        kernel.GetProcessTimes.argtypes = [
+            wintypes.HANDLE, ctypes.POINTER(wintypes.FILETIME),
+            ctypes.POINTER(wintypes.FILETIME), ctypes.POINTER(wintypes.FILETIME),
+            ctypes.POINTER(wintypes.FILETIME),
+        ]
+        kernel.GetProcessTimes.restype = wintypes.BOOL
+        kernel.GetSystemTimeAsFileTime.argtypes = [ctypes.POINTER(wintypes.FILETIME)]
+        kernel.GetSystemTimeAsFileTime.restype = None
+
+        created = wintypes.FILETIME()
+        exited = wintypes.FILETIME()
+        kernel_time = wintypes.FILETIME()
+        user_time = wintypes.FILETIME()
+        if not kernel.GetProcessTimes(
+            kernel.GetCurrentProcess(), ctypes.byref(created), ctypes.byref(exited),
+            ctypes.byref(kernel_time), ctypes.byref(user_time),
+        ):
+            return None
+        now = wintypes.FILETIME()
+        kernel.GetSystemTimeAsFileTime(ctypes.byref(now))
+        as_ticks = lambda stamp: (stamp.dwHighDateTime << 32) | stamp.dwLowDateTime
+        age_ms = (as_ticks(now) - as_ticks(created)) / 10_000
+        return round(age_ms, 3) if 0 <= age_ms <= 30 * 60 * 1000 else None
+    except (AttributeError, OSError, TypeError, ValueError):
+        return None
+
+
 def record_startup_event(event: str, **metrics: int | float) -> None:
     """Append one small JSONL event, or silently skip when profiling is disabled.
 
@@ -79,6 +121,12 @@ def record_startup_event(event: str, **metrics: int | float) -> None:
                     fields[key] = value
             except (ValueError, OverflowError):
                 continue
+        # Only the first launcher checkpoint estimates the native EXE
+        # bootstrap before Python. It is not a fabricated double-click time.
+        if event == "launcher_entry":
+            process_age = _windows_process_age_ms()
+            if process_age is not None:
+                fields["process_age_ms"] = process_age
         fields["process_cpu_ms"] = round(time.process_time_ns() / 1_000_000, 3)
         rss = _windows_rss_bytes()
         if rss is not None:
