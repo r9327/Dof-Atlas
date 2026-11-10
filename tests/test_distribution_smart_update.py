@@ -178,6 +178,49 @@ class ReuseInstallerTests(unittest.TestCase):
             self.assertFalse(rollback_pending(runtime))
             self.assertEqual(read_state(runtime), rolled_back)
 
+    def test_rollback_rejects_damaged_old_exe_without_changing_state(self):
+        with tempfile.TemporaryDirectory() as d:
+            root = Path(d)
+            first, original = self._package(root, "a" * 40, "v1", change=b"old")
+            runtime = root / "runtime"
+            install_release(runtime, first, original)
+            mark_healthy(runtime)
+            stable = read_state(runtime)
+            profile = runtime / "user" / "progress.json"
+            profile.parent.mkdir()
+            profile.write_bytes(b'{"quests":23}')
+            second, newer = self._package(root, "b" * 40, "v2", change=b"new")
+            install_release(runtime, second, newer)
+            pending = read_state(runtime)
+            prior_exe = slot_path(runtime, stable["active"]) / "AtlasApp/AtlasApp.exe"
+            original_bytes = prior_exe.read_bytes()
+            try:
+                prior_exe.write_bytes(b"MZ-corrupt")
+                with self.assertRaisesRegex(UpdateError, "Previous rollback executable is corrupt"):
+                    rollback_pending(runtime)
+                self.assertEqual(read_state(runtime), pending)
+                self.assertEqual(profile.read_bytes(), b'{"quests":23}')
+            finally:
+                prior_exe.write_bytes(original_bytes)
+            self.assertTrue(rollback_pending(runtime))
+            self.assertEqual(read_state(runtime)["active"], stable["active"])
+
+    def test_rollback_rejects_missing_previous_exe(self):
+        with tempfile.TemporaryDirectory() as d:
+            root = Path(d)
+            first, original = self._package(root, "a" * 40, "v1", change=b"old")
+            runtime = root / "runtime"
+            install_release(runtime, first, original)
+            mark_healthy(runtime)
+            old = read_state(runtime)["active"]
+            second, newer = self._package(root, "b" * 40, "v2", change=b"new")
+            install_release(runtime, second, newer)
+            pending = read_state(runtime)
+            (slot_path(runtime, old) / "AtlasApp/AtlasApp.exe").unlink()
+            with self.assertRaisesRegex(UpdateError, "Previous rollback executable is missing"):
+                rollback_pending(runtime)
+            self.assertEqual(read_state(runtime), pending)
+
     def test_legacy_slot_without_index_avoids_speculative_full_copies(self):
         with tempfile.TemporaryDirectory() as d:
             root = Path(d)
