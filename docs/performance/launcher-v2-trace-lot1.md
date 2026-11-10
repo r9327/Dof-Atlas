@@ -19,8 +19,17 @@ seulement lorsque les deux événements existent. Les événements `qt_event_loo
 Home réellement utilisable. `home_visible` est enregistré après `show()` et
 `home_event_loop` lors d'un callback ultérieur ; un test de réactivité et de paint
 Windows reste indispensable pour attester Home interactive. Le premier événement
-commence à l'entrée Python du launcher, **pas au double-clic natif** ; il manque
-encore l'instrumentation de la phase bootstrap/packaging pour le temps complet.
+commence à l'entrée Python du launcher, **pas au double-clic natif**.
+La sonde opt-in Windows `launcher_entry.process_age_ms` utilise les deux
+horodatages natifs FILETIME (création du processus et lecture courante) pour
+estimer la durée du bootstrap EXE/PyInstaller et des imports **avant** Python.
+Le rapport ajoute `launcher_process_created_estimate_to_home_event_loop`,
+distinct du segment Python `launcher_entry_to_home_event_loop`. Un échec de
+l'API, une horloge incohérente ou une trace historique sans cette mesure
+produisent **NOT RUN**, jamais une durée zéro. C'est une estimation depuis
+la création du processus Windows, **pas le temps de double-clic de l'OS**, ni
+la preuve d'un Home réellement interactif. La validation Windows native,
+les scénarios froid/chaud et la mesure complète de session restent nécessaires.
 
 Les traces sont limitées à 2 MiB, n'enregistrent ni chemin, ni token, ni données
 personnelles dans les lignes JSONL et ne sont pas utilisées pour le succès du
@@ -88,6 +97,11 @@ réutilisés et présents **avant le lancement courant**. Les octets télécharg
 puis repris après une erreur dans ce même lancement appartiennent au
 `network_bytes`, pas au cache. Si le serveur répond 200 à une requête Range,
 le préfixe abandonné n'est pas compté comme réutilisé.
+
+Pour comparer les versions à froid/chaud, vérifier séparément les effectifs
+`n` du nouveau segment Windows : les campagnes Linux ou les anciennes traces
+n'ont pas de `process_age_ms`. La métrique reste facultative et n'affecte
+ni le lancement normal, ni l'ACK Home.
 
 Un fragment de longueur complète mais dont le SHA-256 est invalide est
 supprimé, puis retéléchargé dans le même lancement avec le nombre de tentatives
