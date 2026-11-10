@@ -1089,8 +1089,19 @@ class CraftPage(QWidget):
 
     def load_leveling_guides(self) -> None:
         payload = self.preload.get("guides")
-        if not isinstance(payload, dict):
-            payload = read_json(LEVELING_FILE, {"source": "gamosaurus", "offline_runtime": True, "guides": {}})
+        entries = payload.get("guides") if isinstance(payload, dict) else None
+        if not isinstance(entries, dict) or not entries:
+            # An empty placeholder from the asynchronous preload must not
+            # hide a legitimate local guide catalogue already on disk.
+            disk = read_json(
+                LEVELING_FILE,
+                {"source": "gamosaurus", "offline_runtime": True, "guides": {}},
+            )
+            disk_entries = disk.get("guides") if isinstance(disk, dict) else None
+            if isinstance(disk_entries, dict) and disk_entries:
+                payload = disk
+            elif not isinstance(entries, dict):
+                payload = disk
         self.guides = payload if isinstance(payload, dict) else {"guides": {}}
 
     def load_jobs(self) -> None:
