@@ -706,6 +706,31 @@ class OrganizerLayoutTests(unittest.TestCase):
                     fake, "/zaap 1,2",
                 ), accepted)
 
+    def test_stop_button_cancels_radial_before_runtime_callback(self):
+        from unittest.mock import Mock
+        from app.pages.organizer.organizer_hotkeys import OrganizerHotkeysMixin
+
+        events = []
+        page = SimpleNamespace(
+            _radial_controller=Mock(),
+            stop_runtime_callback=lambda: events.append("runtime_stop"),
+            status_callback=Mock(),
+        )
+        page._radial_controller.cancel.side_effect = lambda: events.append("radial_cancel")
+        OrganizerHotkeysMixin.stop_script(page)
+        self.assertEqual(events, ["radial_cancel", "runtime_stop"])
+        page.status_callback.assert_not_called()
+
+    def test_runtime_red_indicator_cancels_held_radial_controller(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            with self.organizer_page(Path(temporary)) as page:
+                controller = page._radial_controller
+                with patch.object(controller, "cancel", wraps=controller.cancel) as cancel:
+                    page.set_runtime_active(True)
+                    cancel.assert_not_called()
+                    page.set_runtime_active(False)
+                    cancel.assert_called_once_with()
+
     def test_refused_mirror_toggle_never_turns_emergency_led_green(self):
         from unittest.mock import Mock
         import main as app_main
