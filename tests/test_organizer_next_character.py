@@ -74,12 +74,15 @@ class NextCharacterTests(unittest.TestCase):
                 owner.save_profiles.assert_not_called()
                 owner.status_callback.assert_called_once()
 
-    def test_hotkey_registered_only_in_macro_with_enabled_setting(self):
+    def test_hotkey_registered_when_enabled_in_macro_or_disarmed_mirror(self):
         config = settings(4)
         actions = build_hotkey_actions(config)
         self.assertEqual([action.action_id for action in actions], ["next_character"])
         self.assertEqual(actions[0].hotkey_text, "F9")
-        self.assertEqual(build_hotkey_actions(settings(4, mode="mirror")), [])
+        self.assertEqual(
+            [action.action_id for action in build_hotkey_actions(settings(4, mode="mirror"))],
+            ["next_character"],
+        )
         self.assertEqual(build_hotkey_actions(settings(4, hotkey="")), [])
         config.switch_character_enabled = False
         self.assertEqual(build_hotkey_actions(config), [])
@@ -138,12 +141,12 @@ class NextCharacterTests(unittest.TestCase):
         config.mirror_toggle_hotkey = "CTRL+F8"
         self.assertEqual(
             [action.action_id for action in build_hotkey_actions(config)],
-            ["mirror_toggle"],
+            ["mirror_toggle", "next_character", "previous_character"],
         )
         config.stop_hotkey = "F12"
         self.assertEqual(
             [action.action_id for action in build_hotkey_actions(config)],
-            ["stop_script", "mirror_toggle"],
+            ["stop_script", "mirror_toggle", "next_character", "previous_character"],
         )
 
     def test_previous_button_uses_existing_runtime_callback(self):
@@ -226,6 +229,7 @@ class NextCharacterTests(unittest.TestCase):
                         activate_previous=Mock(return_value=True),
                     ),
                     toggle_mirror=Mock(return_value=True),
+                    _mirror_armed=False, _emit_status=Mock(),
                 )
                 AtlasRuntime._handle_hotkey(runtime, "previous_character", {})
                 runtime.switch_character.activate_previous.assert_called_once_with(
@@ -236,7 +240,16 @@ class NextCharacterTests(unittest.TestCase):
                 runtime.toggle_mirror.assert_called_once_with()
                 runtime.switch_character.activate_previous.reset_mock()
                 AtlasRuntime._handle_hotkey(runtime, "previous_character", {})
+                runtime.switch_character.activate_previous.assert_called_once_with(
+                    expected_profile=profile,
+                )
+                runtime.switch_character.activate_previous.reset_mock()
+                runtime._mirror_armed = True
+                AtlasRuntime._handle_hotkey(runtime, "previous_character", {})
                 runtime.switch_character.activate_previous.assert_not_called()
+                runtime._emit_status.assert_called_once_with(
+                    "Arrêter Miroir avant de changer de personnage."
+                )
 
     def test_direct_activation_ignores_corrupt_numeric_slot_aliases_2_to_8(self):
         for count in (2, 4, 6, 8):
