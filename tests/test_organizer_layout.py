@@ -729,6 +729,12 @@ class OrganizerLayoutTests(unittest.TestCase):
                     self.assertEqual(geometry.height(), organizer.CHARACTER_SLOT_HEIGHT)
                     self.assertGreaterEqual(geometry.top(), content_rect.top())
                     self.assertLessEqual(geometry.bottom(), content_rect.bottom())
+                    # No unexplained circular per-character selector.
+                    from PySide6.QtWidgets import QPushButton
+                    self.assertFalse(any(
+                        button.text() in {"◉", "○"}
+                        for button in widget.findChildren(QPushButton)
+                    ))
 
     def test_hidden_organizer_evicts_only_slots_and_preserves_live_watcher(self):
         from PySide6.QtCore import QCoreApplication, QEvent
