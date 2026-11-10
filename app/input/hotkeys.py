@@ -401,7 +401,8 @@ class HotkeyRegistry:
         self.physical_key_callback: PhysicalKeyCallback | None = None
         self.physical_key_release_callback: Callable[[int], None] | None = None
         self._mirrored_key_ups: set[int] = set()
-        self._mirror_toggle_ups: set[int] = set()
+        # Key-UP leases for Stop, Mirror and navigation commands.
+        self._command_key_ups: set[int] = set()
 
     def register_hotkeys(self, actions: list[HotkeyAction]) -> HotkeyReport:
         parsed: list[HotkeyAction] = []
@@ -518,7 +519,7 @@ class HotkeyRegistry:
         thread = self._thread
         if thread is None or not thread.is_alive():
             self._mirrored_key_ups.clear()
-            self._mirror_toggle_ups.clear()
+            self._command_key_ups.clear()
         elif self._mirrored_key_ups:
             self.logger.warning(
                 "Hook clavier encore actif après stop: relâchements réservés=%s",
@@ -582,7 +583,7 @@ class HotkeyRegistry:
             # Clear ownership only when this hook thread can no longer
             # intercept a matching native UP. Repeated stop() is idempotent.
             self._mirrored_key_ups.clear()
-            self._mirror_toggle_ups.clear()
+            self._command_key_ups.clear()
             self._hook_thread_id = 0
 
     def _keyboard_proc(self, n_code: int, w_param: int, l_param: int) -> int:
@@ -600,11 +601,11 @@ class HotkeyRegistry:
                     # state: even a failed state update must not leak the
                     # physical UP of a previously consumed mirror DOWN.
                     mirrored_pair = vk_code in self._mirrored_key_ups
-                    toggle_pair = vk_code in self._mirror_toggle_ups
+                    command_pair = vk_code in self._command_key_ups
                     if released and mirrored_pair:
                         self._mirrored_key_ups.discard(vk_code)
-                    if released and toggle_pair:
-                        self._mirror_toggle_ups.discard(vk_code)
+                    if released and command_pair:
+                        self._command_key_ups.discard(vk_code)
                     try:
                         if self.physical_key_release_callback is not None:
                             # The final native/consumed decision below owns
@@ -613,7 +614,7 @@ class HotkeyRegistry:
                         else:
                             self.input_state.set_key(vk_code, pressed)
                     except Exception:
-                        if mirrored_pair or toggle_pair:
+                        if mirrored_pair or command_pair:
                             try:
                                 self.logger.exception(
                                     "Hook clavier: état indisponible, paire clavier réservée."
@@ -622,37 +623,50 @@ class HotkeyRegistry:
                                 pass
                             return 1
                         raise
-                    mirror_command_owned = False
+                    command_owned = False
                     try:
-                        # An activation DOWN already swallowed by Organizer
-                        # owns its UP even when the registry is reloaded
-                        # while the physical key is still held.
-                        if released and toggle_pair:
-                            return 1
-                        if self._dispatch_priority_stop(vk_code, pressed):
+                        # Organizer command keys are not DOFUS keystrokes.
+                        # Own their full physical DOWN/UP pair across callback
+                        # errors, profile reloads and macro focus changes.
+                        if released and command_pair:
+                            for action in self._actions:
+                                if (action.action_id in {
+                                        "stop_script", "mirror_toggle",
+                                        "next_character", "previous_character",
+                                    } and action.spec is not None
+                                        and vk_code in action.spec.keys):
+                                    # Without rearming here, a consumed UP
+                                    # leaves the action active forever and a
+                                    # second physical tap never fires.
+                                    self._suppressed_until_release.discard(action.action_id)
+                                    self.input_state.mark_hotkey_active(action.action_id, False)
                             return 1
                         if pressed:
                             snapshot = self.input_state.snapshot()
-                            mirror_command_owned = (
-                                vk_code in self._mirror_toggle_ups
+                            command_owned = (
+                                vk_code in self._command_key_ups
                                 or any(
-                                    action.action_id == "mirror_toggle"
+                                    action.action_id in {
+                                        "stop_script", "mirror_toggle",
+                                        "next_character", "previous_character",
+                                    }
                                     and action.spec is not None
                                     and vk_code in (action.spec.keys - MODIFIER_VKS)
                                     and action.spec.matches(snapshot)
                                     for action in self._actions
                                 )
                             )
-                            # Claim DOWN before a callback may activate Mirror
-                            # and then throw. Never let a consumed command leak
-                            # to DOFUS or lose its eventual physical UP.
-                            if mirror_command_owned:
-                                self._mirror_toggle_ups.add(vk_code)
+                            # Claim before callback: a failed/partial callback
+                            # must never leak DOWN or the later orphan UP.
+                            if command_owned:
+                                self._command_key_ups.add(vk_code)
+                        if self._dispatch_priority_stop(vk_code, pressed):
+                            return 1
                         self._dispatch_matching_hotkeys()
-                        if mirror_command_owned:
+                        if command_owned:
                             return 1
                     except Exception:
-                        if mirrored_pair or toggle_pair or mirror_command_owned:
+                        if mirrored_pair or command_pair or command_owned:
                             if mirrored_pair and released:
                                 self._release_deferred_key(vk_code)
                             # A failed logger cannot revoke ownership of a
