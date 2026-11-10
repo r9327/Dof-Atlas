@@ -263,6 +263,42 @@ class ReuseInstallerTests(unittest.TestCase):
             self.assertFalse(rollback_pending(runtime))
             self.assertEqual(read_state(runtime), rolled_back)
 
+    def test_failed_first_install_never_remains_active_and_keeps_user_data(self):
+        with tempfile.TemporaryDirectory() as d:
+            root = Path(d)
+            runtime = root / "runtime"
+            package, candidate = self._package(root, "a" * 40, "v1", change=b"bad")
+            self.assertTrue(install_release(runtime, package, candidate))
+            pending = read_state(runtime)
+            unacknowledged = slot_path(runtime, pending["active"])
+            self.assertTrue(unacknowledged.is_dir())
+            self.assertTrue(pending["pending"])
+            profile = runtime / "user" / "characters.json"
+            profile.parent.mkdir()
+            profile.write_bytes(b'{"level":200}')
+
+            self.assertFalse(rollback_pending(runtime))
+            failed = read_state(runtime)
+            self.assertIsNone(failed["active"])
+            self.assertIsNone(failed["previous"])
+            self.assertFalse(failed["pending"])
+            self.assertEqual(failed["blocked_source_sha"], candidate.source_sha)
+            self.assertNotIn("entrypoint", failed)
+            self.assertNotIn("source_sha", failed)
+            self.assertIsNone(install.active_executable(runtime))
+            self.assertTrue(unacknowledged.is_dir(), "Failed EXE remains for diagnosis")
+            self.assertEqual(profile.read_bytes(), b'{"level":200}')
+            self.assertFalse(rollback_pending(runtime))
+            self.assertEqual(read_state(runtime), failed)
+
+            corrected, fixed = self._package(root, "b" * 40, "v2", change=b"fixed")
+            self.assertTrue(install_release(runtime, corrected, fixed))
+            self.assertEqual(read_state(runtime)["source_sha"], fixed.source_sha)
+            self.assertEqual(read_state(runtime)["previous"], None)
+            mark_healthy(runtime)
+            self.assertFalse(read_state(runtime)["pending"])
+            self.assertEqual(profile.read_bytes(), b'{"level":200}')
+
     def test_rollback_rejects_damaged_old_exe_without_changing_state(self):
         with tempfile.TemporaryDirectory() as d:
             root = Path(d)
