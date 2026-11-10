@@ -96,6 +96,30 @@ def collect_counters(lines: list[str]) -> dict[str, dict[str, int]]:
     return totals
 
 
+def collect_process_tree_samples(lines: list[str]) -> dict[str, dict[str, int]]:
+    """One snapshot per session/checkpoint, no fabricated peaks or zeroes."""
+    samples: dict[str, dict[str, int]] = defaultdict(dict)
+    for raw in lines:
+        try:
+            row = json.loads(raw)
+            if not isinstance(row, dict):
+                continue
+            event = row.get("event")
+            if event not in {"app_health_ack", "app_home_ack"}:
+                continue
+            session = row.get("session")
+            rss = row.get("process_tree_rss_bytes")
+            count = row.get("process_tree_count")
+            if (not isinstance(session, str) or not session
+                    or type(rss) is not int or rss <= 0
+                    or type(count) is not int or count <= 0):
+                continue
+            samples[event].setdefault(session, rss)
+        except (ValueError, TypeError):
+            continue
+    return samples
+
+
 def summarize(lines: list[str]) -> dict[str, object]:
     sessions = collect(lines)
     counters = collect_counters(lines)
@@ -116,8 +140,18 @@ def summarize(lines: list[str]) -> dict[str, object]:
             "p95": percentile(values, 95), "p99": percentile(values, 99),
             "min": min(values), "max": max(values),
         }
+    tree_points = {}
+    for event, by_session in collect_process_tree_samples(lines).items():
+        values = list(by_session.values())
+        tree_points[event] = {
+            "n": len(values), "p50_bytes": median(values),
+            "p95_bytes": percentile(values, 95),
+            "p99_bytes": percentile(values, 99),
+            "min_bytes": min(values), "max_bytes": max(values),
+        }
     return {"schema_version": 1, "sessions": len(sessions),
-            "segments": segments, "completed_operation_counters": measured}
+            "segments": segments, "completed_operation_counters": measured,
+            "process_tree_point_samples": tree_points}
 
 
 def compare_traces(baseline: list[str], candidate: list[str],
@@ -190,6 +224,9 @@ def main(argv: list[str] | None = None) -> int:
         print("Baseline comparison (advisory, same PC/scenario required):")
         for name, value in data["comparison"]["segments"].items():
             print(f"  {name}: {value['status']} (n={value['baseline_n']}/{value['candidate_n']})")
+    print("Point-in-time Windows process-tree RSS (not peak RAM):")
+    for name, summary in data["process_tree_point_samples"].items():
+        print(f"  {name}: n={summary['n']} p50={summary['p50_bytes']}B p95={summary['p95_bytes']}B")
     print("Counters from completed operations only (not process-tree totals):")
     for name, summary in data["completed_operation_counters"].items():
         print(f"  {name}: n={summary['n']} p50={summary['p50']} p95={summary['p95']} p99={summary['p99']}")
