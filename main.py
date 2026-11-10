@@ -2730,10 +2730,15 @@ class AtlasWindow(QMainWindow):
             return
         self._ensure_runtime().start()
 
-    def stop_runtime(self) -> None:
+    def stop_runtime(self, temporary: bool = False) -> None:
         runtime = self.runtime
         if runtime is not None:
-            runtime.emergency_stop("bouton stop")
+            # Profile/speed changes cancel the current worker but are not
+            # user-triggered emergency shutdowns.
+            runtime.emergency_stop(
+                "reconfiguration Organizer" if temporary else "bouton stop",
+                latch=not temporary,
+            )
 
     def refresh_runtime_sessions(self) -> None:
         organizer = self.page_widgets.get("Organizer") if hasattr(self, "page_widgets") else None
@@ -2752,6 +2757,10 @@ class AtlasWindow(QMainWindow):
         if self.quit_requested or self._background_services_stopped:
             return
         runtime = self._ensure_runtime()
+        if force_restart and not runtime.macro_lock.resume_after_stop():
+            self.update_runtime_badge(False)
+            self.set_status("Relancer impossible : attendre l'arrêt de la macro en cours.")
+            return
         if not getattr(runtime, "_running", False):
             runtime.start()
         else:
