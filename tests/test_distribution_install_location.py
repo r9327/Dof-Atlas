@@ -341,6 +341,7 @@ class RuntimeLocationTests(unittest.TestCase):
                     def inject_after_scan(src, dst, *args, **kwargs):
                         if Path(src) == source:
                             late.symlink_to(referent, target_is_directory=linked_directory)
+                            self.assertTrue(loc._linked(late), "Injected Windows link was not recognized")
                             called.append(True)
                         return original(src, dst, *args, **kwargs)
 
@@ -443,6 +444,7 @@ class RuntimeLocationTests(unittest.TestCase):
                     if Path(directory) == source:
                         mutable.unlink()
                         mutable.symlink_to(executable)
+                        self.assertTrue(loc._linked(mutable), "Injected Windows file link was not recognized")
                         changed.append(True)
                     return skipped
 
