@@ -116,6 +116,7 @@ class AtlasRuntime:
         # Volatile: selecting the Miroir tab never arms physical input relay.
         # Each Atlas startup and settings reload begins disarmed.
         self._mirror_armed = False
+        self._mirror_arm_epoch = 0
         self._direction = None
         self._travel = None
         self._zaap = None
@@ -457,10 +458,15 @@ class AtlasRuntime:
             )
 
     def reload_hotkeys(self, force_restart: bool = False) -> None:
-        # Changes of roster, favorite, mode or shortcut invalidate explicit
-        # Mirror consent. Re-arm only by its dedicated action/hotkey.
+        # A harmless refresh (including Zaap/Auto-groupe launch) must not
+        # silently turn off an explicitly activated Mirror. A changed roster,
+        # favorite, mode or any runtime binding still invalidates consent.
+        previous_settings = self.__dict__.get("_settings")
+        was_armed = getattr(self, "_mirror_armed", False) is True
+        arm_epoch = self.__dict__.get("_mirror_arm_epoch", 0)
         self._mirror_armed = False
-        self.settings = load_settings()
+        refreshed_settings = load_settings()
+        self.settings = refreshed_settings
         set_debug_logging(self.settings.debug_enabled)
         if not self.settings.clients:
             # No client means no keyboard/mouse action can target Dofus. Avoid
@@ -479,6 +485,13 @@ class AtlasRuntime:
         self._admin_ok = admin_audit.ok
         self.synthetic_guard.reset()
         self.input_state.reset_armed()
+        if (was_armed and previous_settings is not None
+                and previous_settings == refreshed_settings
+                and getattr(refreshed_settings, "macro_mode", None) == "mirror"
+                and self._running and self._admin_ok
+                and self.__dict__.get("_mirror_arm_epoch", 0) == arm_epoch
+                and not self.macro_lock.should_stop()):
+            self._mirror_armed = True
         # The activity badge represents real hook execution, not configuration
         # readiness. A bad optional/individual binding can warn without claiming
         # that an already-running hook runtime has stopped.
@@ -529,6 +542,7 @@ class AtlasRuntime:
 
     def emergency_stop(self, reason: str = "stop urgence", *, latch: bool = True) -> None:
         self._mirror_armed = False
+        self._mirror_arm_epoch = self.__dict__.get("_mirror_arm_epoch", 0) + 1
         self.macro_lock.request_stop(reason, latch=latch)
         self._pending_physical_switch = None
         failures: list[str] = []
@@ -662,6 +676,7 @@ class AtlasRuntime:
                 or settings.primary_handle not in handles):
             self._emit_status("Miroir indisponible : sélectionner un favori parmi 2 à 8 personnages.")
             return False
+        self._mirror_arm_epoch = self.__dict__.get("_mirror_arm_epoch", 0) + 1
         self._mirror_armed = True
         self._emit_active(True)
         self._emit_status("Miroir activé à la demande : arrêter avec le raccourci ou le bouton.")
