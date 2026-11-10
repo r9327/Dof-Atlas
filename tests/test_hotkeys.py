@@ -116,6 +116,32 @@ class HotkeyRegistryOwnershipTests(unittest.TestCase):
         dispatch.assert_not_called()
         next_hook.assert_not_called()
 
+    def test_owned_toggle_down_cannot_leak_after_dispatch_failure(self):
+        registry = self._registry()
+        registry._mirror_toggle_ups.add(0x77)
+        event = KBDLLHOOKSTRUCT()
+        event.vkCode = 0x77
+        next_hook = Mock(return_value=37)
+        with (
+            patch.object(
+                registry, "_dispatch_matching_hotkeys",
+                side_effect=RuntimeError("hotkey dispatch failed"),
+            ),
+            patch.object(
+                ctypes, "windll",
+                SimpleNamespace(user32=SimpleNamespace(
+                    CallNextHookEx=next_hook,
+                )),
+                create=True,
+            ),
+        ):
+            self.assertEqual(
+                registry._keyboard_proc(0, WM_KEYDOWN, ctypes.addressof(event)),
+                1,
+            )
+        self.assertEqual(registry._mirror_toggle_ups, {0x77})
+        next_hook.assert_not_called()
+
     def test_unowned_key_state_failure_remains_native(self):
         registry = self._registry()
         event = KBDLLHOOKSTRUCT()
