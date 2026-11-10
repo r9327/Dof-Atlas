@@ -135,7 +135,11 @@ class CraftFixesTests(unittest.TestCase):
         recipe = {"found": True, "ingredients": [{
             "name": "Fer", "quantity": 2, "image_path": "",
         }]}
-        with patch("app.pages.craft_page.local_data_cache.get_recipe_for_item", return_value=recipe):
+        with (
+            patch("app.pages.craft_page.local_data_cache.get_recipe_for_item", return_value=recipe),
+            patch("app.pages.craft_page.QMessageBox.question",
+                  side_effect=AssertionError("Programmatic close must not prompt")) as question,
+        ):
             page.show_resources()
             previous = page.resource_dialog
             page.show_resources()
@@ -144,6 +148,7 @@ class CraftFixesTests(unittest.TestCase):
             previous.finished.emit(0)
             self.assertIs(page.resource_dialog, current)
             current.accept()
+            question.assert_not_called()
 
     def test_image_fallback_does_not_guess_between_duplicate_sprites(self):
         with tempfile.TemporaryDirectory() as tmp:
