@@ -274,9 +274,16 @@ def run_update(report, *, verify_installation: bool = False,
             except (InvalidDataPack, OSError) as exc:
                 log.error("Pending Atlas data-pack recovery refused: %s", exc)
                 raise UpdateError("Recuperation des donnees non validees impossible") from exc
-            if read_state(ROOT).get("pending"):
-                rollback_pending(ROOT)
-                report("Version precedente restauree", 3)
+            start_state = read_state(ROOT)
+            legacy_failed_first = (
+                bool(start_state.get("active")) and not start_state.get("pending")
+                and not start_state.get("previous") and bool(start_state.get("source_sha"))
+                and start_state.get("blocked_source_sha") == start_state["source_sha"]
+            )
+            if start_state.get("pending") or legacy_failed_first:
+                restored = rollback_pending(ROOT)
+                report("Version precedente restauree" if restored
+                       else "Version non validee bloquee", 3)
         finally:
             instance_probe.release()
         prior = read_state(ROOT)
@@ -471,7 +478,7 @@ def _requires_updater_window(message: str) -> bool:
     return message.startswith((
         "Lancement de Dofus Atlas", "Telechargement", "Differentiel", "Installation",
         "Verification complete", "Verification et installation",
-        "Copie vers", "Version precedente restauree",
+        "Copie vers", "Version precedente restauree", "Version non validee bloquee",
         "Demarrage echoue", "Paquets de donnees precedents restaures",
     ))
 
