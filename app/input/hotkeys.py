@@ -582,6 +582,7 @@ class HotkeyRegistry:
             # Clear ownership only when this hook thread can no longer
             # intercept a matching native UP. Repeated stop() is idempotent.
             self._mirrored_key_ups.clear()
+            self._mirror_toggle_ups.clear()
             self._hook_thread_id = 0
 
     def _keyboard_proc(self, n_code: int, w_param: int, l_param: int) -> int:
@@ -599,8 +600,11 @@ class HotkeyRegistry:
                     # state: even a failed state update must not leak the
                     # physical UP of a previously consumed mirror DOWN.
                     mirrored_pair = vk_code in self._mirrored_key_ups
+                    toggle_pair = vk_code in self._mirror_toggle_ups
                     if released and mirrored_pair:
                         self._mirrored_key_ups.discard(vk_code)
+                    if released and toggle_pair:
+                        self._mirror_toggle_ups.discard(vk_code)
                     try:
                         if self.physical_key_release_callback is not None:
                             # The final native/consumed decision below owns
@@ -609,24 +613,26 @@ class HotkeyRegistry:
                         else:
                             self.input_state.set_key(vk_code, pressed)
                     except Exception:
-                        if mirrored_pair:
+                        if mirrored_pair or toggle_pair:
                             try:
                                 self.logger.exception(
-                                    "Hook clavier: état indisponible, paire miroir préservée."
+                                    "Hook clavier: état indisponible, paire clavier réservée."
                                 )
                             except Exception:
                                 pass
                             return 1
                         raise
                     try:
+                        # An activation DOWN already swallowed by Organizer
+                        # owns its UP even when the registry is reloaded
+                        # while the physical key is still held.
+                        if released and toggle_pair:
+                            return 1
                         if self._dispatch_priority_stop(vk_code, pressed):
                             return 1
                         self._dispatch_matching_hotkeys()
                         # The activation hotkey is a command, not a DOFUS
                         # keystroke. Own its full physical DOWN/UP pair.
-                        if released and vk_code in self._mirror_toggle_ups:
-                            self._mirror_toggle_ups.discard(vk_code)
-                            return 1
                         if pressed and (
                             vk_code in self._mirror_toggle_ups
                             or any(
@@ -642,11 +648,11 @@ class HotkeyRegistry:
                             self._mirror_toggle_ups.add(vk_code)
                             return 1
                     except Exception:
-                        if mirrored_pair:
-                            if released:
+                        if mirrored_pair or toggle_pair:
+                            if mirrored_pair and released:
                                 self._release_deferred_key(vk_code)
                             # A failed logger cannot revoke ownership of a
-                            # physical key already mirrored to other windows.
+                            # physical key already consumed by Organizer.
                             try:
                                 self.logger.exception(
                                     "Hook clavier: callback échoué, paire miroir préservée."
