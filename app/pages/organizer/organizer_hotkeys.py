@@ -175,6 +175,9 @@ class OrganizerHotkeysMixin:
         self.status_callback(f"Vitesse script : {label}.")
 
     def stop_script(self) -> None:
+        controller = getattr(self, "_radial_controller", None)
+        if controller is not None:
+            controller.cancel()
         if callable(self.stop_runtime_callback):
             self.stop_runtime_callback()
         else:
