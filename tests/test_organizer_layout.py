@@ -851,9 +851,11 @@ class OrganizerLayoutTests(unittest.TestCase):
                 self.assertEqual(page.mirror_arm_button.text(), "Arrêter Miroir")
                 page.set_mirror_arm_active(False)
                 self.assertEqual(page.mirror_arm_button.text(), "Activer Miroir")
-                self.assertEqual(page.previous_character.parent(), page.next_character.parent())
-                self.assertEqual(page.previous_character.y(), page.next_character.y())
-                self.assertLess(page.previous_character.x(), page.next_character.x())
+                previous_cell = page.previous_character.parentWidget()
+                next_cell = page.next_character.parentWidget()
+                self.assertIs(previous_cell.parentWidget(), next_cell.parentWidget())
+                self.assertEqual(previous_cell.y(), next_cell.y())
+                self.assertLess(previous_cell.x(), next_cell.x())
                 self.assertEqual(page.previous_character.height(), page.next_character.height())
                 self.assertIs(
                     page.mirror_arm_button.parentWidget(),
