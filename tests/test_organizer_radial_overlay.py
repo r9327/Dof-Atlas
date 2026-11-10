@@ -442,22 +442,29 @@ class OrganizerRadialRosterTests(unittest.TestCase):
             [101, 102],
         )
 
-    def test_untracked_dofus_window_cannot_open_radial_picker(self):
+    def test_radial_opens_from_any_window_but_rejects_focus_change(self):
+        QApplication.instance() or QApplication([])
         page = Mock()
-        page.profiles = {}
+        page.profiles = {KEY_RADIAL_ENABLED: True}
         page.hotkey_label.return_value = ""
         page.capture_target = None
         page.sessions = [{"nom": "Panda", "hwnd": 101, "pid": 1001}]
-        with (
-            patch("app.windows.unity_windows.is_unity_window", return_value=True),
-            patch("app.windows.unity_windows.foreground_window", return_value=999),
-        ):
-            self.assertFalse(OrganizerPage._radial_can_open(page))
-        with (
-            patch("app.windows.unity_windows.is_unity_window", return_value=True),
-            patch("app.windows.unity_windows.foreground_window", return_value=101),
-        ):
-            self.assertTrue(OrganizerPage._radial_can_open(page))
+        overlay = _Overlay()
+        page._radial_overlay = overlay
+        try:
+            with patch("app.windows.unity_windows.foreground_window", return_value=999):
+                self.assertTrue(OrganizerPage._radial_can_open(page))
+            self.assertEqual(page._radial_origin_hwnd, 999)
+            overlay.visible = True
+            with patch("app.windows.unity_windows.foreground_window", return_value=1001):
+                self.assertFalse(OrganizerPage._radial_can_open(page))
+            with patch("app.windows.unity_windows.foreground_window", return_value=999):
+                self.assertTrue(OrganizerPage._radial_can_open(page))
+            page.sessions = []
+            with patch("app.windows.unity_windows.foreground_window", return_value=999):
+                self.assertFalse(OrganizerPage._radial_can_open(page))
+        finally:
+            overlay.deleteLater()
 
     def test_new_detected_client_syncs_without_manual_slot_selection(self):
         page = Mock()
