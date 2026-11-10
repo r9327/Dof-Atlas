@@ -11,6 +11,58 @@ from app.core.runtime_state import AtlasRuntime
 
 
 class MacroGenerationOwnershipTests(unittest.TestCase):
+    def test_mirror_stays_disarmed_until_click_or_shortcut_and_disarms_after_stop(self):
+        for count in (2, 4, 6, 8):
+            with self.subTest(count=count):
+                clients = [SimpleNamespace(handle=101 + index) for index in range(count)]
+                settings = SimpleNamespace(
+                    macro_mode="mirror", primary_handle=101, clients=clients,
+                )
+                runtime = SimpleNamespace(
+                    settings=settings, _mirror_armed=False, _running=True,
+                    _admin_ok=True, macro_lock=MacroLock(Mock()),
+                    _emit_active=Mock(), _emit_status=Mock(),
+                )
+                runtime.emergency_stop = lambda reason, *, latch=False: (
+                    setattr(runtime, "_mirror_armed", False),
+                    runtime.macro_lock.request_stop(reason, latch=latch),
+                )
+                # Opening the mode is never authorization to mirror input.
+                with patch("app.windows.unity_windows.foreground_window") as native:
+                    self.assertFalse(AtlasRuntime._handle_mirror_key(
+                        runtime, 0x41, True,
+                    ))
+                native.assert_not_called()
+                self.assertTrue(AtlasRuntime.toggle_mirror(runtime))
+                self.assertTrue(runtime._mirror_armed)
+                self.assertFalse(AtlasRuntime.toggle_mirror(runtime))
+                self.assertFalse(runtime._mirror_armed)
+                self.assertTrue(runtime.macro_lock.should_stop())
+                self.assertTrue(AtlasRuntime.toggle_mirror(runtime))
+                self.assertTrue(runtime._mirror_armed)
+                runtime.macro_lock.request_stop("urgence", latch=True)
+                self.assertFalse(AtlasRuntime.toggle_mirror(runtime))
+                self.assertFalse(runtime._mirror_armed)
+
+    def test_mirror_requires_valid_favorite_and_runtime_ready(self):
+        settings = SimpleNamespace(
+            macro_mode="mirror", primary_handle=999,
+            clients=[SimpleNamespace(handle=101), SimpleNamespace(handle=102)],
+        )
+        runtime = SimpleNamespace(
+            settings=settings, _mirror_armed=False, _running=True, _admin_ok=True,
+            macro_lock=MacroLock(Mock()),
+            _emit_active=Mock(), _emit_status=Mock(),
+        )
+        self.assertFalse(AtlasRuntime.toggle_mirror(runtime))
+        self.assertFalse(runtime._mirror_armed)
+        settings.primary_handle = 101
+        runtime._running = False
+        self.assertFalse(AtlasRuntime.toggle_mirror(runtime))
+        runtime._emit_active.assert_not_called()
+        runtime._running = True
+        self.assertTrue(AtlasRuntime.toggle_mirror(runtime))
+
     def test_emergency_stop_stays_latched_until_safe_explicit_resume(self):
         for accounts in (1, 2, 4, 6, 8):
             with self.subTest(accounts=accounts):
