@@ -12,6 +12,8 @@ on:
       - tools/startup_trace_report.py
       - scripts/windows/build_repo_update_pointer.py
       - tests/test_distribution_repo_update_pointer.py
+      - tests/test_distribution_smart_update.py
+      - app/distribution/install.py
       - tests/test_startup_trace.py
       - tests/test_startup_trace_report.py
       - .github/workflows/launcher-repo-update-contract.yml
@@ -45,6 +47,8 @@ jobs:
         run: python -c "import os,subprocess; assert subprocess.check_output(['git','rev-parse','HEAD'],text=True).strip() == os.environ['EXPECTED_SHA']"
       - name: Run strict repo update pointer regressions
         run: python -X faulthandler -m unittest discover -s tests -p test_distribution_repo_update_pointer.py -v
+      - name: Verify transactional slots, rollback and unchanged file reuse
+        run: python -X faulthandler -m unittest discover -s tests -p 'test_distribution_smart_update.py' -v
       - name: Validate opt-in startup trace clocks and report (native Windows API)
         run: python -X faulthandler -m unittest discover -s tests -p 'test_startup_trace*.py' -v
       - name: State proof boundaries
