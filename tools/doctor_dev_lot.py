@@ -43,6 +43,14 @@ DIRECT_OWNERS = {
     "app/macros/mirror_input.py": (
         "tests.test_organizer_mirror_ui",
     ),
+    # Existing Qt and pure-geometry tests directly exercise both wheel
+    # owners. Do not require unrelated FULL smoke to approve a local lot.
+    "app/pages/organizer/radial_overlay.py": (
+        "tests.test_organizer_radial_overlay",
+    ),
+    "app/pages/organizer/radial_selection.py": (
+        "tests.test_organizer_radial_overlay",
+    ),
     "app/macros/switch_click.py": (
         "tests.test_organizer_macro_reliability",
         "tests.test_organizer_mirror_ui",
