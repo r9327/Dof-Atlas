@@ -281,6 +281,7 @@ def run_update(report, *, verify_installation: bool = False,
             instance_probe.release()
         prior = read_state(ROOT)
         remote = None
+        current_exe: Path | None = None
         update_failure: UpdateError | OSError | None = None
         try:
             report("Verification des mises a jour...", 5)
@@ -395,16 +396,22 @@ def run_update(report, *, verify_installation: bool = False,
         except (UpdateError, OSError) as exc:
             update_failure = exc
             log.warning("Update unavailable, trying last installed version: %s", exc, exc_info=True)
-            if active_executable(ROOT) is not None:
+            if current_exe is not None and read_state(ROOT) == prior:
                 report("Mise a jour indisponible — mode hors ligne", 90)
-        executable = active_executable(ROOT)
+        # Reuse the verified EXE on an unchanged/no-op or offline installation.
+        # New installations, rollbacks and changed state must be re-validated.
+        final_state = read_state(ROOT)
+        executable = (
+            current_exe if current_exe is not None and final_state == prior
+            else active_executable(ROOT)
+        )
         if executable is None:
             if update_failure is not None:
                 raise UpdateError(
                     f"Premiere installation impossible : {update_failure}"
                 ) from update_failure
             raise UpdateError("Premiere installation impossible : aucune version disponible")
-        was_pending = read_state(ROOT)["pending"]
+        was_pending = final_state["pending"]
         if not _launch_with_health(executable, report,
                                    settle_seconds=2.0 if was_pending else 0):
             if was_pending:
