@@ -696,16 +696,39 @@ def route_oss(root: Path, paths: Iterable[str], *, run: bool = False,
                 if bool(findings) != (result.returncode == 1):
                     raise ValueError("Ruff result and exit code disagree")
                 counts: dict[str, int] = {}
+                # Only expose allowlisted repository-relative paths and line
+                # numbers for actionable rules. Never include Ruff messages,
+                # host absolute paths or arbitrary tool output.
+                allowed = {str((root / name).resolve()): name for name in python_files}
+                actionable: list[dict[str, Any]] = []
                 for item in findings:
                     if not isinstance(item, dict):
                         raise ValueError("unexpected diagnostic item")
                     code = item.get("code")
                     if isinstance(code, str) and re.fullmatch(r"[A-Z0-9]{1,10}", code):
                         counts[code] = counts.get(code, 0) + 1
+                    if code not in {"B023", "BLE001", "F401", "F841", "RUF046"}:
+                        continue
+                    if len(actionable) >= 32:
+                        continue
+                    filename = item.get("filename")
+                    position = item.get("location")
+                    if not isinstance(filename, str) or not isinstance(position, dict):
+                        continue
+                    row = position.get("row")
+                    if type(row) is not int or row < 1 or row > 10_000_000:
+                        continue
+                    try:
+                        relative = allowed.get(str(Path(filename).resolve()))
+                    except (OSError, ValueError, RuntimeError):
+                        continue
+                    if relative:
+                        actionable.append({"file": relative, "line": row, "code": code})
                 execution = {"status": "FINDINGS" if findings else "CLEAN",
                              "exit_code": result.returncode,
                              "finding_count": len(findings),
                              "rule_counts": counts,
+                             "actionable_locations": actionable,
                              "tool": "ruff"}
             except (ValueError, TypeError, json.JSONDecodeError):
                 execution = {"status": "ERROR", "tool": "ruff",

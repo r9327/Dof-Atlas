@@ -94,6 +94,34 @@ class DoctorOssRoutingTests(unittest.TestCase):
                         return_value="nt_user")):
                 self.assertIsNone(_ruff_command(self.root))
 
+    def test_actionable_ruff_locations_do_not_expose_host_paths_or_messages(self):
+        valid = str(self.root / "tools" / "example.py")
+        sample = SimpleNamespace(returncode=1, stdout=json.dumps([
+            {"code": "B023", "filename": valid,
+             "location": {"row": 42, "column": 7},
+             "message": "SECRET_FROM_SOURCE"},
+            {"code": "B023", "filename": "/tmp/private-secret.py",
+             "location": {"row": 5, "column": 1},
+             "message": "not allowlisted"},
+            {"code": "I001", "filename": valid,
+             "location": {"row": 1, "column": 1},
+             "message": "style only"},
+        ]), stderr="some-host-path")
+        with (patch("tools.atlas_doctor_lib.oss_router.catalog", return_value={}),
+              patch("tools.atlas_doctor_lib.oss_router.select_tools",
+                    side_effect=self._native),
+              patch("tools.atlas_doctor_lib.oss_router.local_candidate_preflight",
+                    side_effect=self._probe),
+              patch("tools.atlas_doctor_lib.oss_router.subprocess.run",
+                    return_value=sample)):
+            result = route_oss(self.root, ["tools/example.py"], run=True)
+        self.assertEqual(result["execution"]["status"], "FINDINGS")
+        self.assertEqual(result["execution"]["actionable_locations"],
+                         [{"file": "tools/example.py", "line": 42, "code": "B023"}])
+        self.assertEqual(result["execution"]["rule_counts"]["B023"], 2)
+        self.assertNotIn("SECRET_FROM_SOURCE", json.dumps(result))
+        self.assertNotIn(str(self.root), json.dumps(result))
+
     def test_ruff_inconsistent_exit_and_json_never_claim_clean(self):
         from types import SimpleNamespace
         for returncode, findings in ((1, []), (0, [{"code": "F401"}])):
