@@ -284,7 +284,9 @@ class DoctorLiveEvidenceTests(unittest.TestCase):
               patch("tools.atlas_doctor_lib.oss_router.local_candidate_preflight",
                     return_value=probe),
               patch("tools.atlas_doctor_lib.oss_router.subprocess.run",
-                    return_value=SimpleNamespace(returncode=0, stdout="[]", stderr=""))):
+                    return_value=SimpleNamespace(returncode=0, stdout="[]", stderr="")),
+              patch("tools.atlas_doctor_lib.oss_router._ruff_command",
+                    return_value=["python", "-P", "-m", "ruff"])):
             result = route_oss(self.root, self.files, run=True)
         summary = result["execution_summary"]
         self.assertEqual(summary["expected_tools"], ["ruff", "zizmor"])

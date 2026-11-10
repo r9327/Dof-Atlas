@@ -113,7 +113,9 @@ class DoctorOssRoutingTests(unittest.TestCase):
               patch("tools.atlas_doctor_lib.oss_router.local_candidate_preflight",
                     side_effect=self._probe),
               patch("tools.atlas_doctor_lib.oss_router.subprocess.run",
-                    return_value=sample)):
+                    return_value=sample),
+              patch("tools.atlas_doctor_lib.oss_router._ruff_command",
+                    return_value=["python", "-P", "-m", "ruff"])):
             result = route_oss(self.root, ["tools/example.py"], run=True)
         self.assertEqual(result["execution"]["status"], "FINDINGS")
         self.assertEqual(result["execution"]["actionable_locations"],
@@ -135,7 +137,9 @@ class DoctorOssRoutingTests(unittest.TestCase):
                       patch("tools.atlas_doctor_lib.oss_router.local_candidate_preflight",
                             side_effect=self._probe),
                       patch("tools.atlas_doctor_lib.oss_router.subprocess.run",
-                            return_value=fake)):
+                            return_value=fake),
+              patch("tools.atlas_doctor_lib.oss_router._ruff_command",
+                    return_value=["python", "-P", "-m", "ruff"])):
                     report = route_oss(self.root, ["tools/example.py"], run=True)
                 self.assertEqual(report["execution"]["status"], "ERROR")
                 self.assertEqual(report["execution"]["tool"], "ruff")
@@ -155,7 +159,9 @@ class DoctorOssRoutingTests(unittest.TestCase):
               patch("tools.atlas_doctor_lib.oss_router.local_candidate_preflight",
                     side_effect=self._probe),
               patch("tools.atlas_doctor_lib.oss_router.subprocess.run",
-                    side_effect=alter_input)):
+                    side_effect=alter_input),
+              patch("tools.atlas_doctor_lib.oss_router._ruff_command",
+                    return_value=["python", "-P", "-m", "ruff"])):
             payload = route_oss(self.root, ["tools/example.py"], run=True)
         self.assertEqual(payload["execution"]["status"], "ERROR")
         self.assertTrue(payload["files_modified"])
@@ -464,8 +470,16 @@ class DoctorOssRoutingTests(unittest.TestCase):
         from tools.atlas_doctor_lib.oss_router import _zizmor_executable
         executable = self.root / "zizmor"
         executable.write_bytes(b"fake binary")
-        with patch("shutil.which", return_value=str(executable)):
+        with (patch("shutil.which", return_value=str(executable)),
+              patch("tools.atlas_doctor_lib.oss_router.sys.platform", "linux")):
             self.assertEqual(_zizmor_executable(), str(executable.resolve()))
+        # Windows strictly requires an .exe: the same Unix-style fake is
+        # intentionally rejected, rather than weakening the resolver.
+        with (patch("shutil.which", return_value=str(executable)),
+              patch("tools.atlas_doctor_lib.oss_router.sys.platform", "win32"),
+              patch("tools.atlas_doctor_lib.oss_router.site.getuserbase",
+                    return_value=str(self.root / "missing-userbase"))):
+            self.assertIsNone(_zizmor_executable())
         with (patch("shutil.which", return_value="./zizmor"),
               patch("tools.atlas_doctor_lib.oss_router.sys.platform", "linux")):
             self.assertIsNone(_zizmor_executable())
@@ -573,7 +587,9 @@ class DoctorOssRoutingTests(unittest.TestCase):
               patch("tools.atlas_doctor_lib.oss_router.select_tools", side_effect=self._native),
               patch("tools.atlas_doctor_lib.oss_router.local_candidate_preflight", side_effect=self._probe),
               patch("tools.atlas_doctor_lib.oss_router.subprocess.run",
-                    side_effect=TimeoutExpired("ruff", 1))):
+                    side_effect=TimeoutExpired("ruff", 1)),
+              patch("tools.atlas_doctor_lib.oss_router._ruff_command",
+                    return_value=["python", "-P", "-m", "ruff"])):
             payload = route_oss(self.root, ["tools/example.py"], run=True, timeout_seconds=1)
         self.assertEqual(payload["execution"]["status"], "TIMEOUT")
         self.assertFalse(payload["phase_certified"])
