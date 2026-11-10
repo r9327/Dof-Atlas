@@ -622,6 +622,7 @@ class HotkeyRegistry:
                                 pass
                             return 1
                         raise
+                    mirror_command_owned = False
                     try:
                         # An activation DOWN already swallowed by Organizer
                         # owns its UP even when the registry is reloaded
@@ -630,25 +631,28 @@ class HotkeyRegistry:
                             return 1
                         if self._dispatch_priority_stop(vk_code, pressed):
                             return 1
-                        self._dispatch_matching_hotkeys()
-                        # The activation hotkey is a command, not a DOFUS
-                        # keystroke. Own its full physical DOWN/UP pair.
-                        if pressed and (
-                            vk_code in self._mirror_toggle_ups
-                            or any(
-                                action.action_id == "mirror_toggle"
-                                and action.spec is not None
-                                and vk_code in (action.spec.keys - MODIFIER_VKS)
-                                and action.spec.matches(self.input_state.snapshot())
-                                and (self.input_state.snapshot() & MODIFIER_VKS)
-                                == (action.spec.keys & MODIFIER_VKS)
-                                for action in self._actions
+                        if pressed:
+                            snapshot = self.input_state.snapshot()
+                            mirror_command_owned = (
+                                vk_code in self._mirror_toggle_ups
+                                or any(
+                                    action.action_id == "mirror_toggle"
+                                    and action.spec is not None
+                                    and vk_code in (action.spec.keys - MODIFIER_VKS)
+                                    and action.spec.matches(snapshot)
+                                    for action in self._actions
+                                )
                             )
-                        ):
-                            self._mirror_toggle_ups.add(vk_code)
+                            # Claim DOWN before a callback may activate Mirror
+                            # and then throw. Never let a consumed command leak
+                            # to DOFUS or lose its eventual physical UP.
+                            if mirror_command_owned:
+                                self._mirror_toggle_ups.add(vk_code)
+                        self._dispatch_matching_hotkeys()
+                        if mirror_command_owned:
                             return 1
                     except Exception:
-                        if mirrored_pair or toggle_pair:
+                        if mirrored_pair or toggle_pair or mirror_command_owned:
                             if mirrored_pair and released:
                                 self._release_deferred_key(vk_code)
                             # A failed logger cannot revoke ownership of a
