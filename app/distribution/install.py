@@ -287,6 +287,30 @@ def _commit_verified_slot(root: Path, state: dict, slot: str,
     record_startup_event("install_activation_committed")
 
 
+def resume_verified_full_slot(root: Path, manifest: ReleaseManifest) -> bool:
+    """Commit a complete orphaned full-release slot without opening an archive.
+
+    Only a trusted, parsed remote manifest can authorize this path. No delta
+    base verification is bypassed by install_release(delta=True).
+    """
+    if manifest.schema_version != 1:
+        raise UpdateError("Unsupported data schema; updater upgrade required")
+    state = read_state(root)
+    slot = f"{manifest.app_version}-{manifest.source_sha[:12]}".replace("+", "_")
+    if state.get("pending") or state.get("active") == slot:
+        return False
+    target = slot_path(root, slot)
+    if not target.exists():
+        return False
+    if target.is_symlink() or not target.is_dir() or not all(
+        verify_file(target / entry.path, entry) for entry in manifest.files
+    ):
+        raise UpdateError("Conflicting existing installation slot")
+    _commit_verified_slot(root, state, slot, manifest, same_active=False)
+    record_startup_event("install_orphan_slot_reused", verified_files=len(manifest.files))
+    return True
+
+
 def install_release(root: Path, archive_path: Path, manifest: ReleaseManifest,
                     progress: Progress | None = None, *, delta: bool = False) -> bool:
     """Stage, verify every byte, then atomically activate the new version.
@@ -313,18 +337,11 @@ def install_release(root: Path, archive_path: Path, manifest: ReleaseManifest,
     versions.mkdir(parents=True, exist_ok=True)
     target = slot_path(root, slot)
     if not delta and not same_active and target.exists():
-        # Power loss or a state.json write failure may leave a full-release
-        # slot. Reuse only after SHA verification. A delta must always verify
-        # its installed base first: a valid orphan must never conceal local
-        # corruption of unchanged delta files.
-        if target.is_symlink() or not target.is_dir() or not all(
-            verify_file(target / entry.path, entry) for entry in manifest.files
-        ):
-            raise UpdateError("Conflicting existing installation slot")
-        _commit_verified_slot(root, state, slot, manifest, same_active=False)
-        record_startup_event("install_orphan_slot_reused",
-                             verified_files=len(manifest.files))
-        return True
+        # Reuse a verified orphan instead of re-copying a full release.
+        # Delta installations always check the base in their normal path.
+        if resume_verified_full_slot(root, manifest):
+            return True
+        raise UpdateError("Conflicting existing installation slot")
     stage = Path(tempfile.mkdtemp(prefix=".atlas-install-", dir=root))
     record_startup_event("install_stage_begin", delta=int(delta))
     previous_file_index = (
