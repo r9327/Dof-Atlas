@@ -709,7 +709,11 @@ class AtlasRuntime:
         if action_id == "mirror_toggle":
             self.toggle_mirror()
             return
-        if settings.macro_mode == "mirror":
+        if action_id in {"next_character", "previous_character"} and (
+                settings.macro_mode == "mirror"
+                and getattr(self, "_mirror_armed", False) is True):
+            # Never change game focus under an active Mirror source.
+            self._emit_status("Arrêter Miroir avant de changer de personnage.")
             return
         if action_id == "next_character":
             # A busy MacroLock would reject the eventual activation worker.
@@ -724,6 +728,8 @@ class AtlasRuntime:
                     and self.settings is settings
                     and not self.macro_lock.active_label):
                 self.switch_character.activate_previous(expected_profile=settings)
+            return
+        if settings.macro_mode == "mirror":
             return
         if action_id.startswith("client:"):
             raw_index = payload.get("client_index", 0)
@@ -1152,15 +1158,24 @@ class AtlasRuntime:
                 or (self.macro_lock.active_label
                     and self.macro_lock.should_stop())):
             return False
+        # Any Organizer command key is reserved even when its shortcut is
+        # not currently matched (e.g. CTRL+F8 vs plain F8). This prevents
+        # the activation DOWN from becoming a mirrored DOFUS keystroke.
+        from app.input.hotkeys import parsed_hotkey_keys
+        reserved_hotkeys = (
+            getattr(settings, "stop_hotkey", ""),
+            getattr(settings, "mirror_toggle_hotkey", ""),
+            getattr(settings, "next_character_hotkey", ""),
+            getattr(settings, "previous_character_hotkey", ""),
+        )
         if getattr(settings, "radial_enabled", False) is True:
-            radial_text = getattr(settings, "radial_hotkey", "")
-            if type(radial_text) is str and radial_text:
-                from app.input.hotkeys import parsed_hotkey_keys
-
-                if vk_code in parsed_hotkey_keys(radial_text):
-                    # The radial hold-controller owns this physical key.
-                    # Do not broadcast it as an extra mirrored tap.
-                    return False
+            reserved_hotkeys += (getattr(settings, "radial_hotkey", ""),)
+        if any(
+            vk_code in parsed_hotkey_keys(binding)
+            for binding in reserved_hotkeys
+            if type(binding) is str and binding
+        ):
+            return False
         # Capture the active worker BEFORE the native foreground query,
         # which can yield to a Stop/restart with the same action label.
         owner = self.macro_lock.snapshot_active()
