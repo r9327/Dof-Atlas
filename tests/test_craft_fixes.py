@@ -168,6 +168,15 @@ class CraftFixesTests(unittest.TestCase):
         self.assertEqual(craft_category_for_item({
             "name": "Parchemin", "type": "Ressource", "category": "Divers",
         }), "resource")
+        self.assertEqual(craft_category_for_item({
+            "name": "Épée du Trophée", "type": "Épée", "category": "Divers",
+        }), "equipment")
+        self.assertEqual(craft_category_for_item({
+            "name": "Parchemin de Trophée", "type": "Ressource",
+        }), "resource")
+        self.assertEqual(craft_category_for_item({
+            "name": "Grand Trophée", "type": "Trophée",
+        }), "trophy_prysma")
 
 
 if __name__ == "__main__":
