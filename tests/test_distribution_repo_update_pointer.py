@@ -526,11 +526,19 @@ class RepoUpdatePublisherTests(unittest.TestCase):
                 parse_manifest(second.read_bytes()).delta
             )
             self.assertTrue((output / "atlas-delta.zip").is_file())
+            # Simulate an old oversized build using the same output folder.
+            for index in (1, 2):
+                (output / f"atlas-windows.part{index:04d}").write_bytes(b"stale")
+            unrelated = output / "atlas-windows.partnotes"
+            unrelated.write_bytes(b"not a release part")
 
             _, third = package_release(app, output, "c" * 40,
                                        "1.2", "v3", 1)
             self.assertIsNone(parse_manifest(third.read_bytes()).delta)
             self.assertFalse((output / "atlas-delta.zip").exists())
+            self.assertFalse((output / "atlas-windows.part0001").exists())
+            self.assertFalse((output / "atlas-windows.part0002").exists())
+            self.assertEqual(unrelated.read_bytes(), b"not a release part")
 
     def test_builder_bounded_manifest_read_refuses_concurrent_growth(self) -> None:
         from pathlib import Path
