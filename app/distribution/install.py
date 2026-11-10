@@ -312,17 +312,18 @@ def install_release(root: Path, archive_path: Path, manifest: ReleaseManifest,
     versions = root / "versions"
     versions.mkdir(parents=True, exist_ok=True)
     target = slot_path(root, slot)
-    if not same_active and target.is_dir() and not target.is_symlink():
-        # Power loss or state.json write failure may leave a fully staged,
-        # immutable candidate behind. SHA-verify it directly and finish the
-        # state transaction without copying gigabytes from the ZIP again.
-        if all(verify_file(target / entry.path, entry) for entry in manifest.files):
-            _commit_verified_slot(root, state, slot, manifest, same_active=False)
-            record_startup_event("install_orphan_slot_reused",
-                                 verified_files=len(manifest.files))
-            return True
-        # A partially extracted candidate must not be mistaken for a full
-        # release or replaced in place; the existing conflict path rejects it.
+    if not same_active and target.exists():
+        # Power loss or a state.json write failure may leave a complete slot.
+        # A SHA-verified slot is safe to activate without decompression; an
+        # incomplete or unsafe one cannot be overwritten by a fresh stage.
+        if target.is_symlink() or not target.is_dir() or not all(
+            verify_file(target / entry.path, entry) for entry in manifest.files
+        ):
+            raise UpdateError("Conflicting existing installation slot")
+        _commit_verified_slot(root, state, slot, manifest, same_active=False)
+        record_startup_event("install_orphan_slot_reused",
+                             verified_files=len(manifest.files))
+        return True
     stage = Path(tempfile.mkdtemp(prefix=".atlas-install-", dir=root))
     record_startup_event("install_stage_begin", delta=int(delta))
     previous_file_index = (
