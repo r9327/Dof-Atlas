@@ -83,6 +83,9 @@ class DoctorOssRoutingTests(unittest.TestCase):
                             return_value=fake)):
                     report = route_oss(self.root, ["tools/example.py"], run=True)
                 self.assertEqual(report["execution"]["status"], "ERROR")
+                self.assertEqual(report["execution"]["tool"], "ruff")
+                self.assertEqual(report["execution"]["exit_code"], returncode)
+                self.assertEqual(report["execution"]["stderr_present"], False)
                 self.assertEqual(report["execution_count"], 0)
                 self.assertEqual(report["execution_summary"]["status"], "INCOMPLETE")
 

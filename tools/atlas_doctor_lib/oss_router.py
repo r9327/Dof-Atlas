@@ -621,7 +621,8 @@ def route_oss(root: Path, paths: Iterable[str], *, run: bool = False,
     elif run and not python_files:
         execution = {"status": "NOT_APPLICABLE", "reason": "No approved workflow OSS executor"}
     elif run and not available:
-        execution = {"status": "NOT_AVAILABLE", "reason": "Ruff not installed; no auto-install"}
+        execution = {"status": "NOT_AVAILABLE", "tool": "ruff",
+                     "reason": "Ruff not installed; no auto-install"}
     elif run:
         # Fixed argv and Python interpreter: never evaluate a PATH binary or shell.
         # Ruff's --isolated/--no-cache/--no-fix forbid configuration-driven writes.
@@ -637,9 +638,11 @@ def route_oss(root: Path, paths: Iterable[str], *, run: bool = False,
                                     capture_output=True, text=True,
                                     timeout=timeout_each, check=False)
         except subprocess.TimeoutExpired:
-            execution = {"status": "TIMEOUT", "reason": "Bounded OSS diagnostic timed out"}
+            execution = {"status": "TIMEOUT", "tool": "ruff",
+                         "reason": "Bounded OSS diagnostic timed out"}
         except OSError:
-            execution = {"status": "UNAVAILABLE", "reason": "Cannot start local Ruff module"}
+            execution = {"status": "UNAVAILABLE", "tool": "ruff",
+                         "reason": "Cannot start local Ruff module"}
         else:
             try:
                 if len(result.stdout) > 2_000_000:
@@ -664,7 +667,11 @@ def route_oss(root: Path, paths: Iterable[str], *, run: bool = False,
                              "rule_counts": counts,
                              "tool": "ruff"}
             except (ValueError, TypeError, json.JSONDecodeError):
-                execution = {"status": "ERROR", "reason": "Unexpected Ruff response"}
+                execution = {"status": "ERROR", "tool": "ruff",
+                             "reason": "Unexpected Ruff response",
+                             "exit_code": result.returncode,
+                             "stdout_bytes": len(result.stdout),
+                             "stderr_present": bool(result.stderr)}
     workflow_execution = None
     if workflows:
         if not run:
