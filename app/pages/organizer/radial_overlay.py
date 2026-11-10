@@ -21,7 +21,9 @@ from app.constants import LOGO_PATH
 from app.ui.unity_skin import UNITY_PALETTE
 
 from .common import class_icon_path_for_window_name
-from .radial_selection import confirmed_radial_target, selected_slice, sector_layout
+from .radial_selection import (
+    confirmed_radial_target, radial_display_label, selected_slice, sector_layout,
+)
 
 LOG = logging.getLogger(__name__)
 RADIUS = 145
@@ -187,7 +189,7 @@ class OrganizerRadialOverlay(QWidget):
             font.setPointSize(9)
             font.setBold(index == self._hovered)
             painter.setFont(font)
-            label = str(self._characters[index].get("nom") or "")[:17]
+            label = radial_display_label(self._characters[index])
             painter.drawText(int(x - 55), int(y + 6), 110, 35, Qt.AlignCenter | Qt.TextWordWrap, label)
         painter.setPen(QPen(QColor(
             UNITY_PALETTE["GREEN"] if self._center_hovered
