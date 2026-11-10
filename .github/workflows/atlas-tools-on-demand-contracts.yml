@@ -10,6 +10,7 @@ on:
       - "tools/doctor_pr_on_demand.py"
       - "tools/doctor_dev_lot.py"
       - "tools/doctor_oss_wheels.py"
+      - "tools/atlas_json_benchmark.py"
       - "tools/atlas_doctor_lib/oss_router.py"
       - "tools/atlas_doctor_lib/oss_intelligence.py"
       - "tools/setup_doctor_oss.ps1"
@@ -18,6 +19,7 @@ on:
       - "tests/test_doctor_dev_lot.py"
       - "tests/test_ci_domain_certification.py"
       - "tests/test_doctor_oss_wheels.py"
+      - "tests/test_atlas_json_benchmark.py"
       - "tests/test_doctor_oss_routing.py"
       - "tests/test_doctor_oss_live.py"
       - "tests/test_doctor_oss_intelligence.py"
@@ -74,6 +76,11 @@ jobs:
           python -m unittest discover -s tests -p test_doctor_oss_live.py -v
           python -m unittest discover -s tests -p test_doctor_oss_intelligence.py -v
           python -m unittest discover -s tests -p test_doctor_auto_oss.py -v
+      - name: Verify opt-in JSON comparison parity and bounded reads
+        shell: bash
+        run: |
+          set -euo pipefail
+          python -m unittest discover -s tests -p test_atlas_json_benchmark.py -v
       - name: State evidence boundary
         if: always()
         env:
