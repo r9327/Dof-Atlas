@@ -37,6 +37,28 @@ L'étude des 29 projets (+ 5 annexes) reste dans
   Unity. Les SDK MCP sont à évaluer côté Holding, pas dans l'EXE Atlas.
 
 
+## Vérification des dépendances développeur épinglées
+
+Sur le runner Windows hébergé (Python 3.13.17), [la campagne
+#42831727894](https://github.com/r9327/Dof-Atlas/actions/runs/42831727894)
+a téléchargé les wheels officiels PyPI et validé leur SHA-256 avant
+installation explicite : Ruff 0.17.3
+(`56b8ffb3f3b3cbccb8b76b71b38261b7ed982ef5d20f5b447b1b61a7f4949b24`)
+et zizmor 1.30.1
+(`06e039fae8e185e2a1a8b002f2d95a6f5c3b548048bdd79e004dcb501fcd0868`).
+Les deux projets indiquent une licence MIT sur
+[PyPI Ruff](https://pypi.org/project/ruff/0.17.3/) et
+[PyPI zizmor](https://pypi.org/project/zizmor/1.30.1/).
+Le test live a obtenu `LIVE_PASS` avec deux diagnostics réels
+`FINDINGS` ; il ne certifie ni l'absence de vulnérabilité, ni
+le poste utilisateur, ni la redistribution des binaires.
+
+Les tests de propriétés Hypothesis sont **uniquement côté CI/dev**,
+sur versions épinglées (`hypothesis==6.170.15`,
+`sortedcontainers==2.4.0`), sans ajout au runtime.
+La qualification Hypothesis doit être constatée sur l'exécution
+des suites ciblées, jamais par la seule présence dans ce document.
+
 ## Sélection contextuelle : même Doctor, pas un second orchestrateur
 
 Doctor choisit les **capacités utiles** en fonction des fichiers explicites :

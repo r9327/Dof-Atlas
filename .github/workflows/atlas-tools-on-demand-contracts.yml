@@ -19,6 +19,7 @@ on:
       - "tests/test_doctor_dev_lot.py"
       - "tests/test_ci_domain_certification.py"
       - "tests/test_doctor_oss_wheels.py"
+      - "tests/test_doctor_oss_hypothesis.py"
       - "tests/test_atlas_json_benchmark.py"
       - "tests/test_doctor_oss_routing.py"
       - "tests/test_doctor_oss_live.py"
@@ -119,6 +120,13 @@ jobs:
         run: |
           if ((git rev-parse HEAD) -ne $env:EXPECTED_SHA) { throw "Stale checkout" }
           python -m unittest discover -s tests -p test_doctor_oss_wheels.py -v
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+      - name: Exercise pinned optional Hypothesis property tests (developer only)
+        shell: pwsh
+        run: |
+          python -m pip install --disable-pip-version-check --only-binary=:all: --no-input "hypothesis==6.170.15" "sortedcontainers==2.4.0"
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          python -m unittest discover -s tests -p test_doctor_oss_hypothesis.py -v
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
       - name: Exercise explicit pinned hash-verified developer install and live diagnostics
         shell: pwsh
