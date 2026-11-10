@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import contextlib
 import io
+import json
 from pathlib import Path
 from tempfile import TemporaryDirectory
 from unittest.mock import patch
@@ -36,28 +37,96 @@ class DoctorLiveEvidenceTests(unittest.TestCase):
                 {"tool": "zizmor", "status": "FINDINGS", "finding_count": 1},
             ],
             "oss_candidates": [
-                {"id": "ruff", "version_claim": "0.17.0"},
+                {"id": "ruff", "version_claim": "0.17.3"},
                 {"id": "zizmor", "version_claim": None},
             ],
             "execution_summary": {"gaps": []},
             "phase_certified": False,
         }
 
+    def test_file_digest_is_streamed_and_rejects_growth_after_stat(self):
+        from tools.atlas_doctor_lib.oss_router import _file_digests
+        import hashlib
+
+        filename = "tools/probe.py"
+        source = self.root / filename
+        expected_hash = hashlib.sha256(source.read_bytes()).hexdigest()
+        with patch.object(Path, "read_bytes",
+                          side_effect=AssertionError("unbounded read forbidden")):
+            result = _file_digests(self.root, [filename])
+        self.assertEqual(result[filename], expected_hash)
+
+        original_open = Path.open
+
+        def growing_during_read(path, *args, **kwargs):
+            if path == source:
+                return io.BytesIO(b"x" * (2_000_000 + 1))
+            return original_open(path, *args, **kwargs)
+
+        # Stat still sees the original small file; the stream itself is
+        # larger. The second size check must reject this raced snapshot.
+        with patch.object(Path, "open", autospec=True, side_effect=growing_during_read):
+            with self.assertRaises(ValueError):
+                _file_digests(self.root, [filename])
+
     def test_two_real_adapters_are_required_for_a_live_attestation(self):
         with (patch("tools.atlas_doctor_lib.oss_router.route_oss",
                     return_value=self._valid()) as run,
               patch("tools.atlas_doctor_lib.oss_router._observed_tool_version",
-                    side_effect=lambda root, name: "1.8.0" if name == "zizmor" else "0.17.0")):
+                    side_effect=lambda root, name: "1.30.1" if name == "zizmor" else "0.17.3")):
             report = qualify_live(self.root, self.files, timeout_seconds=30)
         self.assertEqual(report["status"], "LIVE_PASS")
         self.assertEqual(report["actual_executions"], 2)
         self.assertTrue(report["input_files_unchanged"])
         self.assertEqual(len(report["input_sha256"]), 2)
-        self.assertEqual(report["versions_observed"]["ruff"], "0.17.0")
+        self.assertEqual(report["versions_observed"]["ruff"], "0.17.3")
+        self.assertTrue(report["versions_match_lock"])
+        self.assertEqual(report["versions_required"], {"ruff": "0.17.3", "zizmor": "1.30.1"})
         self.assertFalse(report["phase_certified"])
         self.assertFalse(report["network_verified_by_traffic_capture"])
         run.assert_called_once_with(self.root, self.files, run=True,
                                     timeout_seconds=30)
+
+    def test_failed_scanner_reports_only_safe_bounded_diagnostics(self):
+        reported = self._valid()
+        reported["execution_results"][0] = {
+            "tool": "ruff", "status": "ERROR", "exit_code": 2,
+            "stdout_bytes": 113, "stderr_present": True,
+            "reason": "private path and log should not leak",
+        }
+        with (patch("tools.atlas_doctor_lib.oss_router.route_oss",
+                    return_value=reported),
+              patch("tools.atlas_doctor_lib.oss_router._observed_tool_version")
+                    as probe):
+            result = qualify_live(self.root, self.files)
+        probe.assert_not_called()
+        self.assertEqual(result["status"], "REVIEW")
+        self.assertEqual(result["scanner_errors"], [{
+            "tool": "ruff", "status": "ERROR", "exit_code": 2,
+            "stdout_bytes": 113, "stderr_present": True,
+        }])
+        self.assertNotIn("private path", json.dumps(result))
+        self.assertEqual(result["actual_executions"], 1)
+
+    def test_mismatched_live_versions_cannot_qualify(self):
+        cases = (
+            ("ruff", {"ruff": "0.17.2", "zizmor": "1.30.1"}),
+            ("zizmor", {"ruff": "0.17.3", "zizmor": "1.31.0"}),
+        )
+        for tool, versions in cases:
+            with self.subTest(tool=tool):
+                with (patch("tools.atlas_doctor_lib.oss_router.route_oss",
+                            return_value=self._valid()),
+                      patch("tools.atlas_doctor_lib.oss_router._observed_tool_version",
+                            side_effect=lambda root, name, known=versions: known[name])):
+                    report = qualify_live(self.root, self.files)
+                self.assertEqual(report["status"], "REVIEW")
+                self.assertEqual(report["actual_executions"], 2)
+                self.assertTrue(report["input_files_unchanged"])
+                self.assertFalse(report["versions_match_lock"])
+                self.assertEqual(report["versions_observed"][tool], versions[tool])
+                self.assertFalse(report["windows_13_qualified"])
+                self.assertFalse(report["phase_certified"])
 
     def test_missing_zizmor_cannot_qualify_live(self):
         result = self._valid()
@@ -72,11 +141,31 @@ class DoctorLiveEvidenceTests(unittest.TestCase):
         self.assertEqual(report["gaps"][0]["tool"], "zizmor")
         self.assertFalse(report["windows_13_qualified"])
 
+    def test_live_proof_rejects_swapped_or_impersonated_adapter_identity(self):
+        for impostor in (
+            ["zizmor", "ruff"],
+            ["ruff", "ruff"],
+        ):
+            with self.subTest(ids=impostor):
+                result = self._valid()
+                result["execution_results"][0]["tool"] = impostor[0]
+                result["execution_results"][1]["tool"] = impostor[1]
+                with (patch("tools.atlas_doctor_lib.oss_router.route_oss",
+                            return_value=result),
+                      patch("tools.atlas_doctor_lib.oss_router._observed_tool_version")
+                            as version):
+                    report = qualify_live(self.root, self.files)
+                self.assertEqual(report["status"], "REVIEW")
+                self.assertLess(report["actual_executions"], 2)
+                self.assertFalse(report["windows_13_qualified"])
+                self.assertFalse(report["phase_certified"])
+                version.assert_not_called()
+
     def test_live_scan_with_missing_version_is_not_fully_qualified(self):
         with (patch("tools.atlas_doctor_lib.oss_router.route_oss",
                     return_value=self._valid()),
               patch("tools.atlas_doctor_lib.oss_router._observed_tool_version",
-                    side_effect=lambda root, name: "0.17.0" if name == "ruff" else None)):
+                    side_effect=lambda root, name: "0.17.3" if name == "ruff" else None)):
             report = qualify_live(self.root, self.files)
         self.assertEqual(report["status"], "REVIEW")
         self.assertEqual(report["actual_executions"], 2)
@@ -95,12 +184,55 @@ class DoctorLiveEvidenceTests(unittest.TestCase):
         self.assertEqual(report["input_sha256"], {})
         self.assertFalse(report["windows_13_qualified"])
 
+    def test_mutated_input_does_not_launch_additional_version_probes(self):
+        def altered(_root, _files, **_kwargs):
+            (self.root / self.files[0]).write_text("x = 42\\n", encoding="utf-8")
+            return self._valid()
+        with (patch("tools.atlas_doctor_lib.oss_router.route_oss",
+                    side_effect=altered),
+              patch("tools.atlas_doctor_lib.oss_router._observed_tool_version")
+                    as version):
+            report = qualify_live(self.root, self.files)
+        self.assertEqual(report["status"], "FAIL")
+        self.assertEqual(report["actual_executions"], 2)
+        self.assertFalse(report["versions_match_lock"])
+        self.assertFalse(report["input_files_unchanged"])
+        version.assert_not_called()
+
     def test_python_only_cannot_fake_two_tool_live_acceptance(self):
         with patch("tools.atlas_doctor_lib.oss_router.route_oss") as run:
             report = qualify_live(self.root, ["tools/probe.py"])
         run.assert_not_called()
         self.assertEqual(report["status"], "REVIEW")
         self.assertEqual(report["actual_executions"], 0)
+
+    def test_version_probe_rejects_checkout_local_zizmor(self):
+        from tools.atlas_doctor_lib.oss_router import _observed_tool_version
+        executable = self.root / "zizmor"
+        executable.write_bytes(b"fake-version")
+        with (patch("shutil.which", return_value=str(executable)),
+              patch("tools.atlas_doctor_lib.oss_router.sys.platform", "linux"),
+              patch("tools.atlas_doctor_lib.oss_router.subprocess.run") as run):
+            self.assertIsNone(_observed_tool_version(self.root, "zizmor"))
+        run.assert_not_called()
+
+    def test_zizmor_version_probe_never_falls_back_to_cwd_executable(self):
+        from types import SimpleNamespace
+        from tools.atlas_doctor_lib.oss_router import _observed_tool_version
+        with (patch("tools.atlas_doctor_lib.oss_router._zizmor_executable",
+                    return_value=None),
+              patch("tools.atlas_doctor_lib.oss_router.subprocess.run") as run):
+            self.assertIsNone(_observed_tool_version(self.root, "zizmor"))
+        run.assert_not_called()
+        binary = str((self.root / "trusted" / "zizmor").resolve())
+        with (patch("tools.atlas_doctor_lib.oss_router._zizmor_executable",
+                    return_value=binary),
+              patch("tools.atlas_doctor_lib.oss_router.subprocess.run",
+                    return_value=SimpleNamespace(returncode=0,
+                                                stdout="zizmor 1.30.1\n",
+                                                stderr="")) as run):
+            self.assertEqual(_observed_tool_version(self.root, "zizmor"), "1.30.1")
+        self.assertEqual(run.call_args.args[0], [binary, "--version"])
 
     def test_version_probe_is_bound_and_does_not_inherit_github_secrets(self):
         from types import SimpleNamespace
@@ -109,6 +241,8 @@ class DoctorLiveEvidenceTests(unittest.TestCase):
                     return_value=SimpleNamespace(returncode=0,
                                                 stdout="zizmor 1.32.0\n",
                                                 stderr="TOKEN")) as run,
+              patch("tools.atlas_doctor_lib.oss_router._zizmor_executable",
+                    return_value="/trusted/zizmor"),
               patch.dict("tools.atlas_doctor_lib.oss_router.os.environ",
                          {"GITHUB_TOKEN": "secret", "HTTP_PROXY": "localhost"},
                          clear=False)):
@@ -122,10 +256,12 @@ class DoctorLiveEvidenceTests(unittest.TestCase):
     def test_version_probe_does_not_trust_arbitrary_tool_output(self):
         from types import SimpleNamespace
         from tools.atlas_doctor_lib.oss_router import _observed_tool_version
-        with patch("tools.atlas_doctor_lib.oss_router.subprocess.run",
-                   return_value=SimpleNamespace(returncode=0,
-                                               stdout="zizmor 1.32.0 secret\n",
-                                               stderr="")):
+        with (patch("tools.atlas_doctor_lib.oss_router._zizmor_executable",
+                    return_value="/trusted/zizmor"),
+              patch("tools.atlas_doctor_lib.oss_router.subprocess.run",
+                    return_value=SimpleNamespace(returncode=0,
+                                                stdout="zizmor 1.32.0 secret\n",
+                                                stderr=""))):
             self.assertIsNone(_observed_tool_version(self.root, "zizmor"))
         self.assertIsNone(_observed_tool_version(self.root, "other-binary"))
 
@@ -148,7 +284,9 @@ class DoctorLiveEvidenceTests(unittest.TestCase):
               patch("tools.atlas_doctor_lib.oss_router.local_candidate_preflight",
                     return_value=probe),
               patch("tools.atlas_doctor_lib.oss_router.subprocess.run",
-                    return_value=SimpleNamespace(returncode=0, stdout="[]", stderr=""))):
+                    return_value=SimpleNamespace(returncode=0, stdout="[]", stderr="")),
+              patch("tools.atlas_doctor_lib.oss_router._ruff_command",
+                    return_value=["python", "-P", "-m", "ruff"])):
             result = route_oss(self.root, self.files, run=True)
         summary = result["execution_summary"]
         self.assertEqual(summary["expected_tools"], ["ruff", "zizmor"])

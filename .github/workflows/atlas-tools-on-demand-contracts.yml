@@ -9,10 +9,22 @@ on:
       - "tools/atlas_tools_on_demand.py"
       - "tools/doctor_pr_on_demand.py"
       - "tools/doctor_dev_lot.py"
+      - "tools/doctor_oss_wheels.py"
+      - "tools/atlas_json_benchmark.py"
+      - "tools/atlas_doctor_lib/oss_router.py"
+      - "tools/atlas_doctor_lib/oss_intelligence.py"
+      - "tools/setup_doctor_oss.ps1"
       - "tests/test_atlas_tools_on_demand.py"
       - "tests/test_doctor_pr_on_demand.py"
       - "tests/test_doctor_dev_lot.py"
       - "tests/test_ci_domain_certification.py"
+      - "tests/test_doctor_oss_wheels.py"
+      - "tests/test_doctor_oss_hypothesis.py"
+      - "tests/test_atlas_json_benchmark.py"
+      - "tests/test_doctor_oss_routing.py"
+      - "tests/test_doctor_oss_live.py"
+      - "tests/test_doctor_oss_intelligence.py"
+      - "tests/test_doctor_auto_oss.py"
       - ".github/workflows/atlas-tools-on-demand.yml"
       - ".github/workflows/atlas-tools-on-demand-contracts.yml"
 
@@ -56,6 +68,20 @@ jobs:
           python -m unittest discover -s tests -p test_doctor_pr_on_demand.py -v
           python -m unittest discover -s tests -p test_doctor_dev_lot.py -v
           python -m unittest discover -s tests -p test_ci_domain_certification.py -v
+      - name: Test opted-in Doctor OSS adapters without installing packages
+        shell: bash
+        run: |
+          set -euo pipefail
+          python -m unittest discover -s tests -p test_doctor_oss_wheels.py -v
+          python -m unittest discover -s tests -p test_doctor_oss_routing.py -v
+          python -m unittest discover -s tests -p test_doctor_oss_live.py -v
+          python -m unittest discover -s tests -p test_doctor_oss_intelligence.py -v
+          python -m unittest discover -s tests -p test_doctor_auto_oss.py -v
+      - name: Verify opt-in JSON comparison parity and bounded reads
+        shell: bash
+        run: |
+          set -euo pipefail
+          python -m unittest discover -s tests -p test_atlas_json_benchmark.py -v
       - name: State evidence boundary
         if: always()
         env:
@@ -69,3 +95,51 @@ jobs:
             echo "- No Doctor Phase Certification or benchmarks executed"
             echo "- PR Draft status does not grant certification"
           } >> "$GITHUB_STEP_SUMMARY"
+
+  windows-oss:
+    # Explicit developer/CI verification only; no Atlas runtime install.
+    if: github.event.pull_request.head.repo.full_name == github.repository
+    runs-on: windows-latest
+    timeout-minutes: 18
+    steps:
+      - name: Checkout exact PR candidate without stored credentials
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          persist-credentials: false
+          lfs: false
+      - name: Set up Python 3.13 x64
+        uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version: "3.13"
+          architecture: x64
+      - name: Check exact candidate and wheel-safety tests
+        shell: pwsh
+        env:
+          EXPECTED_SHA: ${{ github.event.pull_request.head.sha }}
+        run: |
+          if ((git rev-parse HEAD) -ne $env:EXPECTED_SHA) { throw "Stale checkout" }
+          python -m unittest discover -s tests -p test_doctor_oss_wheels.py -v
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+      - name: Exercise pinned optional Hypothesis property tests (developer only)
+        shell: pwsh
+        run: |
+          python -m pip install --disable-pip-version-check --only-binary=:all: --no-input "hypothesis==6.170.15" "sortedcontainers==2.4.0"
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          python -m unittest discover -s tests -p test_doctor_oss_hypothesis.py -v
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+      - name: Exercise explicit pinned hash-verified developer install and live diagnostics
+        shell: pwsh
+        run: |
+          ./tools/setup_doctor_oss.ps1 -Install
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+      - name: Record the certification boundary
+        if: always()
+        shell: pwsh
+        env:
+          CANDIDATE_SHA: ${{ github.event.pull_request.head.sha }}
+        run: |
+          "- Exact PR SHA: $env:CANDIDATE_SHA" >> $env:GITHUB_STEP_SUMMARY
+          "- Windows hosted runner / Python 3.13 (NOT user's Windows PC)" >> $env:GITHUB_STEP_SUMMARY
+          "- Installed only developer Ruff/zizmor into ephemeral CI; not Atlas runtime" >> $env:GITHUB_STEP_SUMMARY
+          "- No DOFUS client, GUI recipe, Phase Certification, or benchmark claim" >> $env:GITHUB_STEP_SUMMARY

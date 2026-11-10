@@ -19,10 +19,10 @@ try {
     }
 
     if ($Install) {
-        Write-Host "Developer opt-in: installing pinned wheels for Ruff and zizmor."
-        & py -3.13 -m pip install --user --only-binary=:all: "ruff==0.17.3" "zizmor==1.30.1"
+        Write-Host "Developer opt-in: validating Windows x64 wheels against official PyPI metadata and SHA256."
+        & py -3.13 -X utf8 -m tools.doctor_oss_wheels --install
         if ($LASTEXITCODE -ne 0) {
-            throw "Python wheel installation failed; no qualification performed."
+            throw "Verified developer tool install failed; no qualification performed."
         }
     }
 

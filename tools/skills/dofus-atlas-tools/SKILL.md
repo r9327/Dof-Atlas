@@ -71,6 +71,38 @@ An absent scanner remains a reported gap. Local Windows readiness uses
 `tools/setup_doctor_oss.ps1` in check-only mode by default; installation
 requires the explicit `-Install` switch. Follow #346 for real-PC proof.
 
+### Integration paths actually implemented
+
+The Doctor agent result now exposes `oss_local_preflight` and
+`oss_selection.local_package_probes/local_binary_probes` for *relevant*
+candidate IDs. These read installed package metadata or PATH only. They do not
+install, import, execute, license, or qualify the detected candidates.
+
+- Python or workflow edits: the existing `agent check --run-tests` owns scoped
+  unit tests and the already approved Ruff/zizmor subprocesses. Keep their
+  individual `CLEAN/FINDINGS/NOT_AVAILABLE/ERROR` states intact.
+- Changes to the OSS router: the canonical `tools.ai_context.recommended_tests`
+  now routes its actual Doctor OSS tests into the **existing** unittest runner.
+  When Hypothesis is locally installed, the same selector additionally runs
+  `tests.test_doctor_oss_hypothesis`. A missing dependency is not PASS.
+- JSON data evaluation: the canonical catalog now advertises
+  `tools.atlas_json_benchmark` with explicit `--compare-parsers`
+  (stdlib/orjson/msgspec), `--compare-streaming` (ijson quest parity) and
+  `--compare-compression` (zlib/zstandard round-trip). These are **manual
+  offline trials**, not a runtime parser/installer migration or RAM proof.
+- Local visual/font assets: Doctor can propose `oss --asset-trial` to compare
+  *explicit* image files using ImageHash, or `oss --font-trial` to inspect
+  selected Unity TTF/OTF using fontTools. Both commands are read-only, opt-in,
+  bounded, and do not demonstrate safe deletion, licence or Qt rendering.
+- Hypothesis: select the existing targeted test owner when the package is
+  installed; missing is not PASS. Qt/Launcher/Organizer/Guide specialists use
+  their established owners and branch-specific sources, never a fabricated
+  common runtime or third-party scanner.
+- An `OPT_IN_TRIAL_AVAILABLE` candidate means a tested invocation path has
+  been *implemented*, **not** that its dependency is present, the command ran,
+  or the backend has been approved for runtime. `locally_available=true`
+  does not authorize any new binary. Preserve independent Windows-only proofs.
+
 ## Routing rules
 
 - Broad repository health or post-change verification: select the current Doctor contract through `tools.tool_catalog` and follow its declared modes/costs.

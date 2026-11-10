@@ -52,6 +52,22 @@ DIRECT_OWNERS = {
     "tools/organizer_mirror_log_report.py": (
         "tests.test_organizer_mirror_log_report",
     ),
+    # Reviewed developer-only OSS owners: narrow exact paths, never a
+    # tools/ wildcard. Missing modules still block or require review.
+    "tools/atlas_doctor_lib/oss_router.py": (
+        "tests.test_doctor_oss_routing",
+        "tests.test_doctor_oss_live",
+        "tests.test_doctor_oss_intelligence",
+    ),
+    "tools/atlas_doctor_lib/oss_intelligence.py": (
+        "tests.test_doctor_oss_intelligence",
+    ),
+    "tools/atlas_json_benchmark.py": (
+        "tests.test_atlas_json_benchmark",
+    ),
+    "tools/doctor_oss_wheels.py": (
+        "tests.test_doctor_oss_wheels",
+    ),
 }
 
 
