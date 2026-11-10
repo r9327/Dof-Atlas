@@ -7,13 +7,22 @@ from .utils import image_basename_from_url, normalize_text, repair_mojibake, saf
 
 
 def craft_category_for_item(item: dict[str, Any]) -> str:
-    """One pure category policy shared by Craft search, adapter and display."""
-    text = slugify(" ".join(str(item.get(key, "")) for key in ("name", "type", "family", "category")))
-    if any(token in text for token in ("trophee", "prysma", "prysmaradite")):
+    """One category policy shared by Craft search, adapter and display."""
+    tokens = set(slugify(" ".join(str(item.get(key, "")) for key in (
+        "name", "type", "family", "category",
+    ))).split("_"))
+    if tokens & {"trophee", "trophees", "prysma", "prysmaradite", "prysmaradites"}:
         return "trophy_prysma"
-    equipment = ("arme", "coiffe", "cape", "ceinture", "anneau", "collier",
-                 "amulette", "botte", "bouclier", "dofus")
-    return "equipment" if any(token in text for token in equipment) else "resource"
+    equipment = {
+        "arme", "armes", "epee", "epees", "arc", "arcs", "dagues", "dague",
+        "baton", "batons", "baguette", "baguettes", "pelle", "pelles",
+        "marteau", "marteaux", "hache", "haches", "faux", "lance", "lances",
+        "coiffe", "coiffes", "cape", "capes", "ceinture", "ceintures",
+        "anneau", "anneaux", "collier", "colliers", "amulette", "amulettes",
+        "botte", "bottes", "bouclier", "boucliers", "dofus", "equipement",
+        "equipment", "weapon",
+    }
+    return "equipment" if tokens & equipment else "resource"
 
 
 RESOURCE_HINTS = {

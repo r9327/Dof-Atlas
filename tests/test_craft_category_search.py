@@ -50,6 +50,21 @@ class CraftCategorySearchTests(unittest.TestCase):
         self.assertEqual(len(self.items.search_craft_legacy("Commun", limit=3, category="equipment")), 3)
         self.assertEqual(self.items.search_craft_legacy("Commun", limit=0, category="resource"), [])
 
+    def test_french_apostrophe_accent_and_case_are_searchable_in_sqlite(self):
+        self.store.execute(
+            "INSERT INTO items (ankama_id,name_fr,type,level,updated_at) VALUES (?,?,?,?,?)",
+            (990, "L’Épée d’Âme", "Épée", 100, "fixture"),
+        )
+        self.store.execute(
+            "INSERT INTO recipes (result_ankama_id,result_name_fr,updated_at) VALUES (?,?,?)",
+            (990, "L’Épée d’Âme", "fixture"),
+        )
+        self.store.connect().commit()
+        for query in ("L'EPÉE D'AME", "l’épée d’âme", "EPEE DAME", "épée"):
+            with self.subTest(query=query):
+                rows = self.items.search_craft_legacy(query, limit=10, category="equipment")
+                self.assertIn(990, [row["ankama_id"] for row in rows])
+
     def test_real_craft_page_forwards_its_selected_category_to_sqlite_search(self):
         page = craft_page.CraftPage(lambda _status: None, defer_runtime=True)
         try:
