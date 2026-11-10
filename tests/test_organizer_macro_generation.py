@@ -63,6 +63,47 @@ class MacroGenerationOwnershipTests(unittest.TestCase):
         runtime._running = True
         self.assertTrue(AtlasRuntime.toggle_mirror(runtime))
 
+    def test_mirror_refuses_malformed_or_duplicate_native_rosters_before_arm(self):
+        candidates = (
+            (101, 101),
+            (101, True),
+            (101, 101.0),
+            (101, 2**64),
+            (101, None),
+            (101, "202"),
+            (101,),
+            tuple(range(101, 110)),
+        )
+        for handles in candidates:
+            with self.subTest(handles=handles):
+                profile = SimpleNamespace(
+                    macro_mode="mirror", primary_handle=101,
+                    clients=[SimpleNamespace(handle=hwnd) for hwnd in handles],
+                )
+                runtime = SimpleNamespace(
+                    settings=profile, _mirror_armed=False, _running=True,
+                    _admin_ok=True, macro_lock=MacroLock(Mock()),
+                    _emit_active=Mock(), _emit_status=Mock(),
+                )
+                self.assertFalse(AtlasRuntime.toggle_mirror(runtime))
+                self.assertFalse(runtime._mirror_armed)
+                runtime._emit_active.assert_not_called()
+                self.assertIn("Miroir indisponible", runtime._emit_status.call_args.args[0])
+
+    def test_mirror_refuses_empty_runtime_bindings_even_if_stale_roster_remains(self):
+        runtime = SimpleNamespace(
+            settings=SimpleNamespace(
+                macro_mode="mirror", primary_handle=101,
+                clients=[SimpleNamespace(handle=101), SimpleNamespace(handle=202)],
+            ),
+            _mirror_armed=False, _running=True, _admin_ok=True,
+            _runtime_bindings_available=False,
+            macro_lock=MacroLock(Mock()), _emit_active=Mock(), _emit_status=Mock(),
+        )
+        self.assertFalse(AtlasRuntime.toggle_mirror(runtime))
+        self.assertFalse(runtime._mirror_armed)
+        runtime._emit_active.assert_not_called()
+
     def test_emergency_stop_stays_latched_until_safe_explicit_resume(self):
         for accounts in (1, 2, 4, 6, 8):
             with self.subTest(accounts=accounts):
