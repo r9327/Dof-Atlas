@@ -98,8 +98,35 @@ def rollback_pending(root: Path) -> bool:
         return False
     old = state.get("previous")
     if old and slot_path(root, old).is_dir():
+        # A rollback is not safe merely because the directory still exists.
+        # Refuse to point the active state at a missing/corrupt previous EXE.
+        # Modern releases carry size and SHA-256; legacy slots at least need
+        # a regular executable before the fallback can be attempted.
+        entrypoint = state.get("previous_entrypoint") or "AtlasApp/AtlasApp.exe"
+        try:
+            valid_path(entrypoint)
+            if not entrypoint.casefold().endswith(".exe"):
+                raise ManifestError("Previous executable path is not an EXE")
+        except ManifestError as exc:
+            raise UpdateError("Previous rollback executable path is invalid") from exc
+        previous_exe = slot_path(root, old) / entrypoint
+        if previous_exe.is_symlink() or not previous_exe.is_file():
+            raise UpdateError("Previous rollback executable is missing or unsafe")
+        metadata = state.get("previous_metadata") or {}
+        if not isinstance(metadata, dict):
+            raise UpdateError("Previous rollback metadata is invalid")
+        size, digest = metadata.get("entrypoint_size"), metadata.get("entrypoint_sha256")
+        if size is not None or digest is not None:
+            try:
+                if type(size) is not int or size < 0:
+                    raise ManifestError("Previous binary size invalid")
+                valid_sha(digest)
+            except ManifestError as exc:
+                raise UpdateError("Previous rollback digest metadata is invalid") from exc
+            if not verify_file(previous_exe, ReleaseFile(entrypoint, size, digest)):
+                raise UpdateError("Previous rollback executable is corrupt")
         blocked = state.get("source_sha")
-        restored = dict(state.get("previous_metadata") or {})
+        restored = dict(metadata)
         state.update(active=old, previous=None, pending=False,
                      entrypoint=state.get("previous_entrypoint") or "AtlasApp/AtlasApp.exe",
                      blocked_source_sha=blocked, **restored)
