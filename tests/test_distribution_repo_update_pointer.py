@@ -509,11 +509,29 @@ class RepoUpdatePublisherTests(unittest.TestCase):
                 self.assertEqual(manifest_path.read_bytes(), original_manifest)
 
             output = root / "stable.json"
+            # Simulate an interrupted/offline publishing preparation: the
+            # earlier pointer must survive unchanged, without orphan temp files.
+            previous_pointer = b"previous-candidate"
+            output.write_bytes(previous_pointer)
+            with (
+                patch.object(sys, "argv", [
+                    "build_repo_update_pointer", *source_args, "--output", str(output),
+                ]),
+                patch("scripts.windows.build_repo_update_pointer.os.replace",
+                      side_effect=OSError("simulated Windows file lock")),
+            ):
+                with self.assertRaises(OSError):
+                    main()
+            self.assertEqual(output.read_bytes(), previous_pointer)
+            self.assertEqual(list(root.glob(".atlas-pointer-*.tmp")), [])
+            self.assertEqual(manifest_path.read_bytes(), original_manifest)
+            self.assertEqual(delta_path.read_bytes(), payload)
             with patch.object(sys, "argv", [
                 "build_repo_update_pointer", *source_args, "--output", str(output),
             ]):
                 self.assertEqual(main(), 0)
             self.assertEqual(parse_repo_update_pointer(output.read_bytes()).source_sha, SRC)
+            self.assertEqual(list(root.glob(".atlas-pointer-*.tmp")), [])
 
 
 if __name__ == "__main__":
