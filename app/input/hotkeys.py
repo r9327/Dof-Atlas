@@ -260,14 +260,22 @@ def parsed_hotkey_keys(text: str) -> frozenset[int]:
 
 
 def build_hotkey_actions(settings: AtlasSettings) -> list[HotkeyAction]:
-    # Mutually exclusive macro modes; emergency stop always takes priority.
+    # Mutually exclusive modes. Mirror begins disarmed, and its explicit
+    # activation shortcut is the only non-emergency macro action in this mode.
     if settings.macro_mode == "mirror":
-        return ([HotkeyAction(
-            action_id="stop_script",
-            label="Stop urgence",
-            hotkey_text=settings.stop_hotkey,
-            kind="press",
-        )] if settings.stop_hotkey else [])
+        actions: list[HotkeyAction] = []
+        if settings.stop_hotkey:
+            actions.append(HotkeyAction(
+                action_id="stop_script", label="Stop urgence",
+                hotkey_text=settings.stop_hotkey, kind="press",
+            ))
+        mirror_hotkey = getattr(settings, "mirror_toggle_hotkey", "")
+        if mirror_hotkey:
+            actions.append(HotkeyAction(
+                action_id="mirror_toggle", label="Activer / arrêter Miroir",
+                hotkey_text=mirror_hotkey, kind="press",
+            ))
+        return actions
     actions: list[HotkeyAction] = []
     if settings.switch_click_enabled or settings.switch_click_hotkey:
         actions.append(
@@ -312,6 +320,13 @@ def build_hotkey_actions(settings: AtlasSettings) -> list[HotkeyAction]:
             action_id="next_character",
             label="Personnage suivant",
             hotkey_text=settings.next_character_hotkey,
+            kind="press",
+        ))
+    if settings.switch_character_enabled and getattr(settings, "previous_character_hotkey", ""):
+        actions.append(HotkeyAction(
+            action_id="previous_character",
+            label="Personnage précédent",
+            hotkey_text=settings.previous_character_hotkey,
             kind="press",
         ))
     radial_spec = None
