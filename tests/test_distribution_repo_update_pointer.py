@@ -202,8 +202,9 @@ class RepoUpdateManifestInspectionTests(unittest.TestCase):
         with patch("app.distribution.release_client._read_limited", side_effect=read):
             result = inspect_repo_update(BASE)
         self.assertIsNotNone(result)
-        pointer, manifest = result
+        pointer, raw_manifest, manifest = result
         self.assertEqual(pointer.source_sha, SRC)
+        self.assertEqual(raw_manifest, _manifest())
         self.assertEqual(manifest.source_sha, SRC)
         self.assertEqual(reads, [
             (REPO_UPDATE_POINTER_URL, REPO_UPDATE_POINTER_LIMIT, 5),
@@ -290,6 +291,54 @@ class RepoUpdateDeltaDownloadTests(unittest.TestCase):
                 self.assertEqual(
                     download_repo_update_delta(pointer, raw, dest), downloaded,
                 )
+
+    def test_inspection_feeds_download_without_duplicate_manifest_request(self) -> None:
+        from tempfile import TemporaryDirectory
+        from pathlib import Path
+        from app.distribution.release_client import (
+            REPO_UPDATE_POINTER_URL, inspect_repo_update, download_repo_update_delta,
+        )
+
+        pointer, manifest_raw, archive = self._verified_package()
+        pointer_raw = json.loads(_pointer())
+        pointer_raw.update({
+            "manifest_sha256": pointer.manifest_sha256,
+            "delta_sha256": pointer.delta_sha256,
+            "delta_size": pointer.delta_size,
+        })
+        encoded_pointer = json.dumps(pointer_raw).encode()
+        urls = [
+            REPO_UPDATE_POINTER_URL,
+            pointer.pinned_asset_url(manifest=True),
+        ]
+
+        with TemporaryDirectory() as tmp:
+            requests = []
+            def read_once(address, _limit, *, timeout):
+                requests.append(address)
+                if address == urls[0]:
+                    return encoded_pointer
+                if address == urls[1]:
+                    return manifest_raw
+                raise AssertionError("Unexpected metadata request")
+
+            with patch("app.distribution.release_client._read_limited",
+                       side_effect=read_once) as metadata:
+                result = inspect_repo_update(BASE)
+                self.assertIsNotNone(result)
+                found_pointer, frozen_manifest_raw, parsed_manifest = result
+                self.assertEqual(found_pointer, pointer)
+                self.assertEqual(frozen_manifest_raw, manifest_raw)
+                self.assertEqual(parsed_manifest.source_sha, SRC)
+                with patch("app.distribution.release_client._open",
+                           return_value=io.BytesIO(archive)) as transfer:
+                    delta = download_repo_update_delta(
+                        found_pointer, frozen_manifest_raw, Path(tmp),
+                    )
+                self.assertEqual(delta.read_bytes(), archive)
+            self.assertEqual(metadata.call_count, 2)
+            self.assertEqual(requests, urls)
+            transfer.assert_called_once_with(pointer.pinned_asset_url(), {})
 
     def test_corrupt_or_unpublished_delta_cannot_activate_any_slot(self) -> None:
         from tempfile import TemporaryDirectory
