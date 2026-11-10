@@ -247,6 +247,7 @@ def owners_for(path: str) -> frozenset[str]:
         "tests/test_distribution_setup.py",
         "tests/test_distribution_disk_space.py",
         "tests/test_distribution_smart_update.py",
+        "tests/test_distribution_first_boot.py",
         "tests/test_distribution_packaging.py",
     }:
         return frozenset({"ci", "startup", "data"})

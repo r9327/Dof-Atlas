@@ -1081,6 +1081,22 @@ class ModularDomainRoutingTests(unittest.TestCase):
             self.assertEqual(self.route([path])["status"], "BLOCKED")
 
 
+    def test_first_boot_integrity_regressions_have_only_reviewed_distribution_owner(self):
+        # A real first-boot regression modifies the Launcher, verified slot
+        # and bundled data. Keep the complete shared consumer closure instead
+        # of silently skipping this changed test or opening a broad wildcard.
+        owner = frozenset({"ci", "startup", "data"})
+        path = "tests/test_distribution_first_boot.py"
+        self.assertEqual(owners_for(path), owner)
+        plan = self.route([path])
+        self.assertEqual(plan["status"], "READY_TO_EXECUTE")
+        self.assertEqual(plan["domains"], ["ci", "startup", "data"])
+        self.assertEqual(plan["unknown_paths"], [])
+        self.assertEqual(
+            owners_for("tests/test_distribution_unreviewed_first_boot.py"),
+            frozenset(),
+        )
+
     def test_multipart_assembler_has_strict_distribution_ownership(self):
         paths = ["app/distribution/archive_parts.py", "tests/test_distribution_multipart.py"]
         for path in paths:
