@@ -84,6 +84,12 @@ def package_release(payload_dir: Path, output_dir: Path, source_sha: str, app_ve
     # candidate when this build has no compatible or worthwhile delta.
     delta_archive = output_dir / "atlas-delta.zip"
     delta_archive.unlink(missing_ok=True)
+    # A prior oversized build may leave multipart pieces. A smaller new
+    # build must not accidentally ship any of those obsolete release assets.
+    for stale in output_dir.glob("atlas-windows.part[0-9][0-9][0-9][0-9]"):
+        if stale.is_dir():
+            raise ValueError("Multipart output path is a directory")
+        stale.unlink()
     entries = []
     paths = sorted((p for p in payload_dir.rglob("*") if p.is_file()), key=lambda p: str(p).casefold())
     with zipfile.ZipFile(archive_path, "w", zipfile.ZIP_DEFLATED, compresslevel=6, allowZip64=True) as archive:
