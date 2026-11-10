@@ -13,6 +13,8 @@ from app.constants import (
     KEY_RADIAL_HOTKEY,
     KEY_RADIAL_ENABLED,
     KEY_NEXT_CHARACTER_HOTKEY,
+    KEY_PREVIOUS_CHARACTER_HOTKEY,
+    KEY_MIRROR_TOGGLE_HOTKEY,
     KEY_STOP_SCRIPT_HOTKEY,
     KEY_SWITCH_CLICK,
     KEY_SWITCH_DOUBLE_CLICK,
@@ -130,6 +132,8 @@ class OrganizerHotkeysMixin:
             (KEY_STOP_SCRIPT_HOTKEY, "Stop script"),
             (KEY_RADIAL_HOTKEY, "Sélection personnage"),
             (KEY_NEXT_CHARACTER_HOTKEY, "Personnage suivant"),
+            (KEY_PREVIOUS_CHARACTER_HOTKEY, "Personnage précédent"),
+            (KEY_MIRROR_TOGGLE_HOTKEY, "Activation Miroir"),
         ):
             if value == self.hotkey_label(key):
                 return label
@@ -247,6 +251,10 @@ class OrganizerHotkeysMixin:
             self.radial_hotkey_button.setText("...")
         elif kind == "next_character":
             self.next_character_hotkey_button.setText("...")
+        elif kind == "previous_character":
+            self.previous_character_hotkey_button.setText("...")
+        elif kind == "mirror_toggle":
+            self.mirror_toggle_hotkey_button.setText("...")
         self.setFocus(Qt.ShortcutFocusReason)
         self.status_callback("En attente d'une touche...")
 
@@ -270,6 +278,20 @@ class OrganizerHotkeysMixin:
             self.render_sessions()
             return
         kind = target.get("kind")
+        # All global actions (including legacy profiles) must remain mutually
+        # exclusive; in particular, Stop, wheel and Mirror cannot share keys.
+        own_label = {
+            "click": "Switch Clique", "double_click": "Switch clic x2",
+            "stop_script": "Stop script", "next_character": "Personnage suivant",
+            "previous_character": "Personnage précédent",
+            "mirror_toggle": "Activation Miroir",
+        }.get(kind)
+        owner = self.global_hotkey_owner(hotkey)
+        if own_label and owner and owner != own_label:
+            self.update_global_buttons()
+            self.render_sessions()
+            self.status_callback(f"Raccourci déjà utilisé par {owner}.")
+            return
         if kind not in {"radial", "client"} and hotkey == self.hotkey_label(KEY_RADIAL_HOTKEY):
             self.update_global_buttons()
             self.render_sessions()
@@ -317,7 +339,7 @@ class OrganizerHotkeysMixin:
                 return
             self.ensure_radial_participants()
             self.profiles[KEY_RADIAL_HOTKEY] = hotkey
-        elif kind == "next_character":
+        elif kind in {"next_character", "previous_character", "mirror_toggle"}:
             if (hotkey in {"HOME", "DELETE", "END", "PAGEDOWN"}
                     and profile_bool(self.profiles, KEY_SWITCH_MOVEMENT, False)):
                 self.update_global_buttons()
@@ -325,7 +347,7 @@ class OrganizerHotkeysMixin:
                 self.status_callback("Touche déjà utilisée par Switch Déplacement.")
                 return
             owner = self.global_hotkey_owner(hotkey)
-            if owner and owner != "Personnage suivant":
+            if owner and owner != own_label:
                 self.update_global_buttons()
                 self.render_sessions()
                 self.status_callback(f"Raccourci déjà utilisé par {owner}.")
@@ -336,7 +358,12 @@ class OrganizerHotkeysMixin:
                 self.render_sessions()
                 self.status_callback(f"Raccourci déjà utilisé par {owner}.")
                 return
-            self.profiles[KEY_NEXT_CHARACTER_HOTKEY] = hotkey
+            target_key = {
+                "next_character": KEY_NEXT_CHARACTER_HOTKEY,
+                "previous_character": KEY_PREVIOUS_CHARACTER_HOTKEY,
+                "mirror_toggle": KEY_MIRROR_TOGGLE_HOTKEY,
+            }[kind]
+            self.profiles[target_key] = hotkey
         elif kind == "click":
             if hotkey == self.hotkey_label(KEY_DOUBLE_CLICK_HOTKEY):
                 self.update_global_buttons()
