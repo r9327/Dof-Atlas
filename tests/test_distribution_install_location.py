@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import json
 import hashlib
+import os
 import tempfile
 import unittest
 from pathlib import Path
@@ -323,17 +324,22 @@ class RuntimeLocationTests(unittest.TestCase):
                     }), encoding="utf-8")
                     late = source / ("late-folder" if linked_directory else "late-file")
                     referent = executable.parent if linked_directory else executable
+                    # Probe with a different filename: Windows may defer
+                    # deletion of a reparse point for a short interval.
+                    probe = source / "symlink-probe"
                     try:
-                        late.symlink_to(referent, target_is_directory=linked_directory)
+                        probe.symlink_to(referent, target_is_directory=linked_directory)
                     except (OSError, NotImplementedError):
                         self.skipTest("File/directory symlinks unavailable on host")
-                    late.unlink()  # First preflight sees no links.
+                    probe.unlink()
+                    self.assertFalse(late.exists())  # No link at preflight.
                     original = shutil.copytree
                     called = []
 
                     def inject_after_scan(src, dst, *args, **kwargs):
                         if Path(src) == source:
                             late.symlink_to(referent, target_is_directory=linked_directory)
+                            self.assertTrue(loc._linked(late), "Injected link must exist")
                             called.append(True)
                         return original(src, dst, *args, **kwargs)
 
@@ -424,13 +430,22 @@ class RuntimeLocationTests(unittest.TestCase):
             changed = []
 
             def modify_after_ignore(src, dst, *args, **kwargs):
+                # The Windows copytree implementation recurses through this
+                # patched public function using positional arguments.
+                if Path(src) != source:
+                    return original_copytree(src, dst, *args, **kwargs)
                 original_ignore = kwargs["ignore"]
 
                 def checked_then_changed(directory, names):
                     skipped = original_ignore(directory, names)
                     if Path(directory) == source:
-                        mutable.unlink()
-                        mutable.symlink_to(executable)
+                        # Use an atomic rename instead of unlink/recreate on
+                        # the same name, which races deferred NTFS deletion.
+                        replacement = source / "late-replacement-symlink"
+                        replacement.symlink_to(executable)
+                        os.replace(replacement, mutable)
+                        self.assertTrue(loc._linked(mutable),
+                                        "Replacement must be a live link")
                         changed.append(True)
                     return skipped
 
