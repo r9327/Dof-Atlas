@@ -166,6 +166,21 @@ s'il existe un slot candidat apparemment complet. Les tests couvrent la
 récupération après écriture d'état ratée, le rejet anticipé d'un slot
 corrompu et le refus d'une base delta modifiée.
 
+### Première installation sans version de secours
+
+Lorsqu'un premier Atlas installé en slot `pending` échoue avant son ACK
+de démarrage, il n'existe **aucune version précédente** à restaurer. Le
+rollback invalide alors `active` et ses métadonnées EXE, tout en conservant
+`blocked_source_sha` et le dossier gelé échoué pour diagnostic. Le
+launcher refuse explicitement de démarrer ce même binaire, y compris
+après redémarrage ou sans réseau. Les profils et progressions ne sont
+pas modifiés. Une nouvelle Release de SHA différent peut être installée
+normalement et devient saine uniquement après l'ACK habituel.
+
+Tests synthétiques : premier échec de processus, seconde tentative
+bloquée sans nouveau téléchargement ni exécution, puis installation
+d'une version corrigée. Cela ne remplace pas une recette sur EXE Windows.
+
 ### Refus de rollback vers un binaire précédent corrompu
 
 `rollback_pending()` vérifie désormais la présence d'un EXE régulier
