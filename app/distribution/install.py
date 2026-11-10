@@ -312,10 +312,11 @@ def install_release(root: Path, archive_path: Path, manifest: ReleaseManifest,
     versions = root / "versions"
     versions.mkdir(parents=True, exist_ok=True)
     target = slot_path(root, slot)
-    if not same_active and target.exists():
-        # Power loss or a state.json write failure may leave a complete slot.
-        # A SHA-verified slot is safe to activate without decompression; an
-        # incomplete or unsafe one cannot be overwritten by a fresh stage.
+    if not delta and not same_active and target.exists():
+        # Power loss or a state.json write failure may leave a full-release
+        # slot. Reuse only after SHA verification. A delta must always verify
+        # its installed base first: a valid orphan must never conceal local
+        # corruption of unchanged delta files.
         if target.is_symlink() or not target.is_dir() or not all(
             verify_file(target / entry.path, entry) for entry in manifest.files
         ):
