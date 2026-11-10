@@ -42,6 +42,36 @@ class StartupTraceTests(unittest.TestCase):
             self.assertGreaterEqual(rows[1]["t_ns"], rows[0]["t_ns"])
             self.assertEqual(rows[0]["pid"], os.getpid())
 
+    def test_native_bootstrap_age_only_on_launcher_checkpoint(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            target = Path(directory) / "trace.jsonl"
+            with patch.dict(os.environ, {
+                "DOFUS_ATLAS_STARTUP_PROFILE": "1",
+                "DOFUS_ATLAS_STARTUP_PROFILE_FILE": str(target),
+            }, clear=True), patch.object(
+                startup_trace, "_windows_process_age_ms", return_value=125.5,
+            ) as process_age:
+                startup_trace.record_startup_event("launcher_entry")
+                startup_trace.record_startup_event("home_event_loop")
+            rows = [json.loads(row) for row in target.read_text().splitlines()]
+            self.assertEqual(process_age.call_count, 1)
+            self.assertEqual(rows[0]["process_age_ms"], 125.5)
+            self.assertNotIn("process_age_ms", rows[1])
+
+    def test_native_bootstrap_unavailable_does_not_imply_zero_time(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            target = Path(directory) / "trace.jsonl"
+            with patch.dict(os.environ, {
+                "DOFUS_ATLAS_STARTUP_PROFILE": "1",
+                "DOFUS_ATLAS_STARTUP_PROFILE_FILE": str(target),
+            }, clear=True), patch.object(
+                startup_trace, "_windows_process_age_ms", return_value=None,
+            ):
+                startup_trace.record_startup_event("launcher_entry")
+            self.assertNotIn(
+                "process_age_ms", json.loads(target.read_text()),
+            )
+
     def test_unwritable_trace_path_does_not_break_startup(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
             with patch.dict(os.environ, {
