@@ -8,6 +8,9 @@ from __future__ import annotations
 import math
 from typing import Collection, Mapping, Any
 
+from app.core.text import clean_auto_group_name, normalize_key
+from .common import DOFUS_CLASS_DEFINITIONS
+
 
 def _exact_native_id(value: object, maximum: int, *, allow_zero: bool = False) -> int | None:
     """Accept only real Win32 integer IDs or persisted ASCII decimal text."""
@@ -78,6 +81,29 @@ def visible_characters(
         seen.add(handle)
         found.append(dict(session))
     return found[:8]
+
+
+def radial_display_label(session: Mapping[str, Any]) -> str:
+    """Use the character name, never a redundant breed/class-only title.
+
+    Window titles sometimes append a breed after " - ". The class
+    portrait already identifies the breed, so keep only the actual name.
+    No change to the HWND/roster identity used for selection.
+    """
+    if not isinstance(session, Mapping):
+        return ""
+    raw = session.get("character_name") or session.get("nom") or ""
+    if not isinstance(raw, str):
+        return ""
+    label = clean_auto_group_name(raw)
+    key = normalize_key(label)
+    if key in DOFUS_CLASS_DEFINITIONS or any(
+        key == normalize_key(alias)
+        for definition in DOFUS_CLASS_DEFINITIONS.values()
+        for alias in definition["aliases"]
+    ):
+        return ""
+    return label[:17]
 
 
 def slice_count(characters: Collection[object]) -> int:
