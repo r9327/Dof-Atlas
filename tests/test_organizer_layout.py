@@ -544,6 +544,28 @@ class OrganizerLayoutTests(unittest.TestCase):
                     "Personnage suivant indisponible : macro déjà en cours."
                 )
 
+    def test_armed_mirror_blocks_both_shell_navigation_buttons(self):
+        from unittest.mock import Mock
+        import main as app_main
+
+        for label, method in (
+            ("suivant", app_main.AtlasWindow.launch_next_character),
+            ("précédent", app_main.AtlasWindow.launch_previous_character),
+        ):
+            with self.subTest(action=label):
+                shell = Mock()
+                shell.quit_requested = False
+                shell._background_services_stopped = False
+                runtime = shell._ensure_runtime.return_value
+                runtime.mirror_armed = True
+                runtime.macro_lock.active_label = ""
+                method(shell)
+                runtime.switch_character.activate_next.assert_not_called()
+                runtime.switch_character.activate_previous.assert_not_called()
+                shell.set_status.assert_called_once_with(
+                    "Arrêter Miroir avant de changer de personnage."
+                )
+
     def test_next_button_never_resurrects_runtime_during_shutdown(self):
         from unittest.mock import Mock
         import main as app_main
