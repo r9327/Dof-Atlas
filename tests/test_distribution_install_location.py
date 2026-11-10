@@ -343,7 +343,11 @@ class RuntimeLocationTests(unittest.TestCase):
                             late.symlink_to(referent, target_is_directory=linked_directory)
                             self.assertTrue(loc._linked(late), "Injected Windows link was not recognized")
                             called.append(True)
-                        return original(src, dst, *args, **kwargs)
+                        result = original(src, dst, *args, **kwargs)
+                        if Path(src) == source:
+                            self.assertTrue(loc._linked(late),
+                                            "Injected source link vanished during Windows copytree")
+                        return result
 
                     target = Path(temp) / "OtherDisk" / "runtime"
                     with (patch.object(loc, "APP_DATA", user),
@@ -455,7 +459,10 @@ class RuntimeLocationTests(unittest.TestCase):
                     return skipped
 
                 kwargs["ignore"] = checked_then_changed
-                return original_copytree(src, dst, *args, **kwargs)
+                result = original_copytree(src, dst, *args, **kwargs)
+                self.assertTrue(loc._linked(mutable),
+                                "Injected source file link vanished during Windows copytree")
+                return result
 
             target = Path(temp) / "OtherDisk" / "runtime"
             with (patch.object(loc, "APP_DATA", user),
