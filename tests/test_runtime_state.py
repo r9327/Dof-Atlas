@@ -181,6 +181,28 @@ class RuntimeStopOwnerTests(unittest.TestCase):
             self.assertFalse(AtlasRuntime._handle_mirror_wheel(fake, 120, 10, 20, False))
         native.assert_not_called()
 
+    def test_missing_mirror_consent_state_is_fail_closed_before_win32(self):
+        # A stale/partially initialized runtime must not intercept normal
+        # keyboard or pointer input simply because a boolean is absent.
+        from types import SimpleNamespace
+        from app.core.macro_lock import MacroLock
+
+        runtime = SimpleNamespace(
+            _running=True, _admin_ok=True,
+            settings=SimpleNamespace(
+                macro_mode="mirror", primary_handle=101,
+                clients=[SimpleNamespace(handle=101), SimpleNamespace(handle=102)],
+            ),
+            macro_lock=MacroLock(Mock()),
+        )
+        self.assertFalse(hasattr(runtime, "_mirror_armed"))
+        with patch("app.windows.unity_windows.foreground_window") as foreground:
+            self.assertIsNone(AtlasRuntime._mirror_gesture_targets(runtime))
+            self.assertFalse(AtlasRuntime._handle_mirror_key(runtime, 0x41, True))
+            self.assertFalse(AtlasRuntime._handle_mirror_wheel(runtime, 120, 10, 20, False))
+            self.assertFalse(AtlasRuntime._handle_mirror_click(runtime, "left", 10, 20))
+            foreground.assert_not_called()
+
     def test_zaap_and_auto_group_reject_latched_stop_before_native_actions(self):
         from app.core.macro_lock import MacroLock
 
