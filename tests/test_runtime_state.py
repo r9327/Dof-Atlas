@@ -28,6 +28,92 @@ def _runtime() -> AtlasRuntime:
 
 
 class RuntimeStopOwnerTests(unittest.TestCase):
+    def test_noop_runtime_reload_preserves_mirror_consent_but_profile_change_revokes_it(self):
+        from types import SimpleNamespace
+        from app.core.macro_lock import MacroLock
+
+        runtime = object.__new__(AtlasRuntime)
+        runtime._settings_lock = threading.RLock()
+        initial = SimpleNamespace(
+            macro_mode="mirror", primary_handle=101, debug_enabled=False,
+            mirror_toggle_hotkey="F8",
+            clients=(
+                SimpleNamespace(index=1, handle=101),
+                SimpleNamespace(index=2, handle=202),
+            ),
+        )
+        runtime._settings = initial
+        runtime._mirror_armed = True
+        runtime._mirror_arm_epoch = 1
+        runtime._running = True
+        runtime._admin_ok = True
+        runtime.registry = Mock()
+        runtime.registry.register_hotkeys.return_value = SimpleNamespace(errors=[])
+        runtime.synthetic_guard = Mock()
+        runtime.input_state = Mock()
+        runtime.macro_lock = MacroLock(Mock())
+        runtime.logger = Mock()
+        runtime._emit_active = Mock()
+        runtime._emit_status = Mock()
+        runtime._pending_physical_switch = None
+        identical = SimpleNamespace(**initial.__dict__)
+        changed = SimpleNamespace(**{**initial.__dict__, "primary_handle": 202})
+
+        with (
+            patch("app.core.runtime_state.load_settings", side_effect=[identical, changed]),
+            patch("app.core.runtime_state.set_debug_logging"),
+            patch("app.core.runtime_state.build_runtime_hotkey_actions", return_value=[]),
+            patch("app.core.runtime_state.audit_client_admin_rights",
+                  return_value=SimpleNamespace(ok=True)),
+        ):
+            runtime.reload_hotkeys()
+            self.assertTrue(runtime.mirror_armed)
+            self.assertIs(runtime.settings, identical)
+            runtime.reload_hotkeys()
+            self.assertFalse(runtime.mirror_armed)
+            self.assertIs(runtime.settings, changed)
+
+    def test_reload_does_not_rearm_mirror_after_concurrent_stop_epoch_change(self):
+        from types import SimpleNamespace
+        from app.core.macro_lock import MacroLock
+
+        runtime = object.__new__(AtlasRuntime)
+        runtime._settings_lock = threading.RLock()
+        profile = SimpleNamespace(
+            macro_mode="mirror", primary_handle=101, debug_enabled=False,
+            clients=(SimpleNamespace(handle=101), SimpleNamespace(handle=202)),
+        )
+        runtime._settings = profile
+        runtime._mirror_armed = True
+        runtime._mirror_arm_epoch = 3
+        runtime._running = True
+        runtime._admin_ok = True
+        runtime.registry = Mock()
+        runtime.registry.register_hotkeys.return_value = SimpleNamespace(errors=[])
+        runtime.synthetic_guard = Mock()
+        runtime.input_state = Mock()
+        runtime.macro_lock = MacroLock(Mock())
+        runtime.logger = Mock()
+        runtime._emit_active = Mock()
+        runtime._emit_status = Mock()
+
+        def concurrent_stop():
+            runtime._mirror_arm_epoch += 1
+            runtime._mirror_armed = False
+            runtime.macro_lock.request_stop("bouton stop", latch=True)
+            return SimpleNamespace(**profile.__dict__)
+
+        with (
+            patch("app.core.runtime_state.load_settings", side_effect=concurrent_stop),
+            patch("app.core.runtime_state.set_debug_logging"),
+            patch("app.core.runtime_state.build_runtime_hotkey_actions", return_value=[]),
+            patch("app.core.runtime_state.audit_client_admin_rights",
+                  return_value=SimpleNamespace(ok=True)),
+        ):
+            runtime.reload_hotkeys()
+        self.assertFalse(runtime.mirror_armed)
+        self.assertTrue(runtime.macro_lock.emergency_latched)
+
     def test_disarmed_mirror_never_probes_or_consumes_native_input(self):
         from types import SimpleNamespace
         from app.core.macro_lock import MacroLock
