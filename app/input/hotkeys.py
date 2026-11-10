@@ -275,6 +275,20 @@ def build_hotkey_actions(settings: AtlasSettings) -> list[HotkeyAction]:
                 action_id="mirror_toggle", label="Activer / arrêter Miroir",
                 hotkey_text=mirror_hotkey, kind="press",
             ))
+        # The selected tab is not consent to mirror. When disarmed, users
+        # still need to navigate their existing Organizer clients.
+        if settings.switch_character_enabled:
+            for action_id, label, binding in (
+                ("next_character", "Personnage suivant",
+                 getattr(settings, "next_character_hotkey", "")),
+                ("previous_character", "Personnage précédent",
+                 getattr(settings, "previous_character_hotkey", "")),
+            ):
+                if binding:
+                    actions.append(HotkeyAction(
+                        action_id=action_id, label=label,
+                        hotkey_text=binding, kind="press",
+                    ))
         return actions
     actions: list[HotkeyAction] = []
     if settings.switch_click_enabled or settings.switch_click_hotkey:
