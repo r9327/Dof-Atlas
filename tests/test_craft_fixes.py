@@ -13,8 +13,7 @@ from PySide6.QtCore import Qt
 from PySide6.QtTest import QTest
 from PySide6.QtWidgets import QApplication, QMessageBox
 
-from app.core.craft_images import craft_image_item
-from app.pages.craft_page import CraftPage, CraftResourceDialog
+from app.pages.craft_page import CraftPage, CraftResourceDialog, craft_image_item
 from local_dofus_data.normalizer import craft_category_for_item
 
 
