@@ -185,8 +185,13 @@ class ReuseInstallerTests(unittest.TestCase):
             orphan = slot_path(runtime, f"{newer.app_version}-{newer.source_sha[:12]}")
             # Same-size corruption must not pass a size-only shortcut.
             (orphan / "AtlasApp/changed.dat").write_bytes(b"bad")
-            with self.assertRaisesRegex(UpdateError, "Conflicting existing installation slot"):
+            with (
+                patch.object(install.zipfile, "ZipFile",
+                             side_effect=AssertionError("must reject before extraction")),
+                self.assertRaisesRegex(UpdateError, "Conflicting existing installation slot"),
+            ):
                 install_release(runtime, second, newer)
+            self.assertFalse(list(runtime.glob(".atlas-install-*")))
             self.assertEqual(read_state(runtime), stable)
             self.assertEqual(profile.read_text(encoding="utf-8"), '{"quests":42}')
 
