@@ -352,7 +352,7 @@ class ReuseInstallerTests(unittest.TestCase):
                              side_effect=AssertionError("failed EXE must not start")),
             ):
                 guard.return_value.acquire.return_value = True
-                with self.assertRaisesRegex(UpdateError, "aucune version disponible"):
+                with self.assertRaisesRegex(UpdateError, "a deja echoue"):
                     launcher.run_update(lambda *_: None)
             self.assertIsNone(read_state(runtime)["active"])
             self.assertEqual(read_state(runtime)["blocked_source_sha"], candidate.source_sha)
