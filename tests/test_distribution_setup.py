@@ -73,7 +73,8 @@ class SetupTests(unittest.TestCase):
                 self.assertEqual(atlas_setup.main([]), 0)
             launch.assert_called_once_with(
                 [str(target), "--atlas-configure"],
-                cwd=str(target.parent), creationflags=0,
+                cwd=str(target.parent),
+                creationflags=getattr(atlas_setup.subprocess, "CREATE_NO_WINDOW", 0),
             )
 
     def test_unattended_setup_does_not_open_picker_or_auto_start_launcher(self):
