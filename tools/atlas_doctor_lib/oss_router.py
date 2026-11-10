@@ -412,6 +412,16 @@ def qualify_live(root: Path, paths: Iterable[str], *,
         "versions_match_lock": versions_match_lock,
         "version_proof": "Actual --version matched developer lock; not provenance or license",
         "gaps": diagnostic.get("execution_summary", {}).get("gaps", []),
+        # Bounded metadata to debug a failed scanner without exposing its
+        # diagnostic output, scanned paths, stderr, or credentials.
+        "scanner_errors": [
+            {"tool": tool, "status": row.get("status"),
+             "exit_code": row.get("exit_code") if type(row.get("exit_code")) is int else None,
+             "stdout_bytes": row.get("stdout_bytes") if type(row.get("stdout_bytes")) is int else None,
+             "stderr_present": row.get("stderr_present") is True}
+            for tool, row in zip(expected, results)
+            if isinstance(row, dict) and row.get("status") not in {"CLEAN", "FINDINGS"}
+        ],
         "phase_certified": False,
         "network_verified_by_traffic_capture": False,
         "scope_limit": "Source-file hashes only; no proof of unrelated file or network effects",

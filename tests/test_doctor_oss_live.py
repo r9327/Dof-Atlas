@@ -86,6 +86,27 @@ class DoctorLiveEvidenceTests(unittest.TestCase):
         run.assert_called_once_with(self.root, self.files, run=True,
                                     timeout_seconds=30)
 
+    def test_failed_scanner_reports_only_safe_bounded_diagnostics(self):
+        reported = self._valid()
+        reported["execution_results"][0] = {
+            "tool": "ruff", "status": "ERROR", "exit_code": 2,
+            "stdout_bytes": 113, "stderr_present": True,
+            "reason": "private path and log should not leak",
+        }
+        with (patch("tools.atlas_doctor_lib.oss_router.route_oss",
+                    return_value=reported),
+              patch("tools.atlas_doctor_lib.oss_router._observed_tool_version")
+                    as probe):
+            result = qualify_live(self.root, self.files)
+        probe.assert_not_called()
+        self.assertEqual(result["status"], "REVIEW")
+        self.assertEqual(result["scanner_errors"], [{
+            "tool": "ruff", "status": "ERROR", "exit_code": 2,
+            "stdout_bytes": 113, "stderr_present": True,
+        }])
+        self.assertNotIn("private path", json.dumps(result))
+        self.assertEqual(result["actual_executions"], 1)
+
     def test_mismatched_live_versions_cannot_qualify(self):
         cases = (
             ("ruff", {"ruff": "0.17.2", "zizmor": "1.30.1"}),
