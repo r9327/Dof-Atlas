@@ -8,6 +8,7 @@ import tempfile
 import unittest
 import urllib.error
 from pathlib import Path
+from types import SimpleNamespace
 from unittest.mock import MagicMock, patch
 
 from app.distribution import launcher, release_client
@@ -88,6 +89,89 @@ class OfflineProbeTests(unittest.TestCase):
             ):
                 launcher.run_update(lambda *_: None)
                 started.assert_called_once()
+
+
+    def test_noop_launch_hashes_existing_exe_only_once(self):
+        state = {"active": "v1", "previous": None, "pending": False,
+                 "source_sha": "a" * 40}
+        exe = Path("versions/v1/AtlasApp/AtlasApp.exe")
+        with (
+            patch.object(launcher, "_logger", return_value=MagicMock()),
+            patch.object(launcher, "_run_lock", return_value=MagicMock()),
+            patch.object(launcher, "SingleInstanceGuard") as guard,
+            patch.object(launcher, "recover_data_packs_on_launch"),
+            patch.object(launcher, "read_state", return_value=state),
+            patch.object(launcher, "active_executable", return_value=exe) as validated,
+            patch.object(launcher, "latest_release", return_value=None),
+            patch.object(launcher, "_launch_with_health", return_value=True) as launch,
+            patch.object(launcher, "cleanup_verified_runtime", return_value=(0, 0)),
+        ):
+            guard.return_value.acquire.return_value = True
+            launcher.run_update(lambda *_: None)
+        validated.assert_called_once()
+        launch.assert_called_once_with(exe, unittest.mock.ANY, settle_seconds=0)
+
+    def test_offline_launch_does_not_rehash_existing_exe(self):
+        state = {"active": "v1", "previous": None, "pending": False,
+                 "source_sha": "a" * 40}
+        exe = Path("versions/v1/AtlasApp/AtlasApp.exe")
+        seen = []
+        with (
+            patch.object(launcher, "_logger", return_value=MagicMock()),
+            patch.object(launcher, "_run_lock", return_value=MagicMock()),
+            patch.object(launcher, "SingleInstanceGuard") as guard,
+            patch.object(launcher, "recover_data_packs_on_launch"),
+            patch.object(launcher, "read_state", return_value=state),
+            patch.object(launcher, "active_executable", return_value=exe) as validated,
+            patch.object(launcher, "latest_release",
+                         side_effect=UpdateError("network down")),
+            patch.object(launcher, "_launch_with_health", return_value=True) as launch,
+            patch.object(launcher, "cleanup_verified_runtime", return_value=(0, 0)),
+        ):
+            guard.return_value.acquire.return_value = True
+            launcher.run_update(lambda label, _pct: seen.append(label))
+        validated.assert_called_once()
+        launch.assert_called_once()
+        self.assertTrue(any("hors ligne" in label for label in seen))
+
+    def test_revalidates_exe_if_installed_state_changes(self):
+        state = {"active": "v1", "previous": None, "pending": False,
+                 "source_sha": "a" * 40}
+        exe_v1 = Path("versions/v1/AtlasApp/AtlasApp.exe")
+        exe_v2 = Path("versions/v2/AtlasApp/AtlasApp.exe")
+        candidate = SimpleNamespace(
+            manifest=SimpleNamespace(source_sha="b" * 40, delta=None),
+            archive_size=1024,
+        )
+
+        def installed(*_args, **_kwargs):
+            state.update(active="v2", previous="v1", pending=True,
+                         source_sha="b" * 40)
+            return True
+
+        with (
+            patch.object(launcher, "_logger", return_value=MagicMock()),
+            patch.object(launcher, "_run_lock", return_value=MagicMock()),
+            patch.object(launcher, "SingleInstanceGuard") as guard,
+            patch.object(launcher, "recover_data_packs_on_launch"),
+            patch.object(launcher, "read_state", side_effect=lambda *_: dict(state)),
+            patch.object(launcher, "active_executable",
+                         side_effect=[exe_v1, exe_v2]) as validated,
+            patch.object(launcher, "latest_release", return_value=candidate),
+            patch.object(launcher, "resume_verified_full_slot", return_value=False),
+            patch.object(launcher, "ensure_space"),
+            patch.object(launcher, "download_archive", return_value=Path("candidate.zip")),
+            patch.object(launcher, "install_release", side_effect=installed),
+            patch.object(launcher, "_launch_with_health", return_value=True) as launch,
+            patch.object(launcher, "mark_healthy", side_effect=lambda *_: state.update(pending=False)),
+            patch.object(launcher, "schedule_launcher_upgrade"),
+            patch.object(launcher, "cleanup_verified_runtime", return_value=(0, 0)),
+        ):
+            guard.return_value.acquire.return_value = True
+            launcher.run_update(lambda *_: None)
+        self.assertEqual(validated.call_count, 2)
+        launch.assert_called_once_with(exe_v2, unittest.mock.ANY, settle_seconds=2.0)
+
 
 
 class _Variable:
