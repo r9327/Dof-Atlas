@@ -32,6 +32,32 @@ class SetupTests(unittest.TestCase):
             with self.assertRaisesRegex(RuntimeError, "64 bits"):
                 atlas_setup._verify_frozen_platform()
 
+    def test_frozen_setup_rejects_unsupported_windows_before_mutation(self):
+        # The real Setup must fail before resolving the embedded binary,
+        # invoking the installer, or creating a desktop shortcut.
+        with (patch.object(atlas_setup.os, "name", "nt"),
+              patch.object(atlas_setup.sys, "frozen", True, create=True),
+              patch.object(atlas_setup.sys, "getwindowsversion",
+                           return_value=SimpleNamespace(
+                               major=10, minor=0, build=17134), create=True),
+              patch.object(atlas_setup, "embedded_launcher") as embedded,
+              patch.object(atlas_setup, "install_launcher") as install,
+              patch.object(atlas_setup, "install_maintenance_helper") as helper,
+              patch.object(atlas_setup, "choose_runtime_before_setup") as chooser,
+              patch.object(atlas_setup.subprocess, "Popen") as launch):
+            self.assertEqual(atlas_setup.main(["--no-launch"]), 1)
+        embedded.assert_not_called()
+        install.assert_not_called()
+        helper.assert_not_called()
+        chooser.assert_not_called()
+        launch.assert_not_called()
+
+    def test_frozen_platform_rejects_unknown_windows_version(self):
+        with (patch.object(atlas_setup.sys, "frozen", True, create=True),
+              patch.object(atlas_setup.sys, "getwindowsversion", None, create=True)):
+            with self.assertRaisesRegex(RuntimeError, "non verifiable"):
+                atlas_setup._verify_frozen_platform()
+
     def test_source_setup_does_not_probe_or_install_python_or_qt(self):
         with (patch.object(atlas_setup.sys, "frozen", False, create=True),
               patch.object(atlas_setup.sys, "getwindowsversion",

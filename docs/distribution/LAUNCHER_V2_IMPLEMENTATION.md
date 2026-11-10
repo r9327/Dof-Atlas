@@ -73,7 +73,21 @@ Windows vierge utilisateur. PyInstaller signale sur le runner une résolution
 statique absente de `api-ms-win-core-path-l1-1-0.dll` ; ce signalement
 n'est pas à lui seul la preuve qu'un redistribuable externe est nécessaire.
 Le contrôle de l'OS et les tests de non-installation restent à certifier
-au HEAD courant. **LV2-006 demeure PENDING** jusqu'à cette qualification.
+au HEAD courant : l'exigence LV2-006 (code) demande une preuve CI exacte
+après réconciliation des branches, distincte de la recette humaine LV2-013.
+
+| Prérequis réel | Détection / décision | Installation | Provenance / limites |
+|---|---|---|---|
+| Windows x64 | `sys.maxsize` contrôlé avant toute écriture dans le Setup gelé | Aucune élévation ni installation automatique | Test 32 bits = erreur explicite |
+| Windows 10 1809 (build 17763) ou plus récent | `sys.getwindowsversion()` comparé à `(10,0,17763)` ; version indisponible = refus | Mise à jour de l'OS laissée à l'utilisateur | Compatibilité [Qt 6.12 Windows](https://doc.qt.io/qt-6.12/windows.html) |
+| Python / Qt / QtWebEngine | Déjà inclus dans les binaires PyInstaller gelés / `_internal` | **Jamais** de `pip`, `winget` ou installeur Qt depuis le Setup | Build Windows, `requirements-pyside.txt` à SHA-256 ; provenance des artefacts contrôlée en CI |
+| Accès dossier utilisateur / Bureau / profil | Tentatives de création des fichiers et du raccourci, erreurs explicites | Pas de modification UAC/policy, pas de permission admin exigée | Tests automatisés ; ACL réelles sur Windows propre restent à tester |
+| Bibliothèques système et antivirus | Pas d'inférence abusive depuis les messages d'analyse statique PyInstaller | Aucun redistribuable arbitraire installé | `api-ms-win-core-path-l1-1-0.dll` est un avertissement de scanner, pas une dépendance externe démontrée ; recette #287 |
+
+La liste concerne **le packaging vérifié actuellement** ; elle ne
+transforme pas les bibliothèques système non observables sur un PC vierge
+en dépendances inventées. La recette utilisateur reste `NOT_RUN`.
+
 
 La racine des données persistantes est `%LOCALAPPDATA%/DofusAtlas/`.
 `app/distribution/install_location.py` stocke le dossier choisi dans
