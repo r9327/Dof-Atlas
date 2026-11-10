@@ -13,7 +13,8 @@ from logging.handlers import RotatingFileHandler
 from pathlib import Path
 
 from .install import (
-    active_executable, install_release, mark_healthy, read_state, rollback_pending, slot_path,
+    active_executable, install_release, mark_healthy, read_state, rollback_pending,
+    resume_verified_full_slot, slot_path,
 )
 from .release_client import UpdateError, download_archive, latest_release
 from .disk_space import ensure_space, ensure_delta_space
@@ -311,7 +312,6 @@ def run_update(report, *, verify_installation: bool = False,
             elif remote is not None and (
                 prior.get("source_sha") != remote.manifest.source_sha or current_exe is None
             ):
-                delta_installed = False
                 can_delta = (
                     remote.manifest.delta is not None
                     and remote.delta_url is not None
@@ -320,6 +320,15 @@ def run_update(report, *, verify_installation: bool = False,
                     and prior.get("source_sha") == remote.manifest.delta.base_source_sha
                     and not prior.get("pending")
                 )
+                # A previously verified FULL release may already have been
+                # unpacked before state.json failed to commit. Avoid another
+                # multi-GB transfer entirely; never skip the delta base
+                # validation when the differential path is available.
+                delta_installed = False
+                if not can_delta:
+                    delta_installed = resume_verified_full_slot(ROOT, remote.manifest)
+                    if delta_installed:
+                        report("Installation complete recuperee et verifiee", 96)
                 if can_delta:
                     report("Telechargement des fichiers modifies...", 10)
                     archive = None
