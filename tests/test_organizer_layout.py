@@ -684,6 +684,49 @@ class OrganizerLayoutTests(unittest.TestCase):
                     fake, "/zaap 1,2",
                 ), accepted)
 
+    def test_emergency_stop_and_reconfiguration_are_distinct(self):
+        from unittest.mock import Mock
+        import main as app_main
+
+        shell = Mock()
+        shell.runtime = Mock()
+        app_main.AtlasWindow.stop_runtime(shell)
+        shell.runtime.emergency_stop.assert_called_once_with(
+            "bouton stop", latch=True,
+        )
+        shell.runtime.emergency_stop.reset_mock()
+        app_main.AtlasWindow.stop_runtime(shell, True)
+        shell.runtime.emergency_stop.assert_called_once_with(
+            "reconfiguration Organizer", latch=False,
+        )
+
+    def test_explicit_relancer_refuses_busy_workers_before_green_light(self):
+        from unittest.mock import Mock
+        import main as app_main
+
+        for allowed in (False, True):
+            with self.subTest(allowed=allowed):
+                shell = Mock()
+                shell.quit_requested = False
+                shell._background_services_stopped = False
+                runtime = shell._ensure_runtime.return_value
+                runtime._running = True
+                runtime.macro_lock.resume_after_stop.return_value = allowed
+                app_main.AtlasWindow.reload_runtime(shell, True)
+                runtime.macro_lock.resume_after_stop.assert_called_once()
+                if allowed:
+                    runtime.reload_hotkeys.assert_called_once_with(True)
+                    shell.update_runtime_badge.assert_not_called()
+                else:
+                    runtime.reload_hotkeys.assert_not_called()
+                    shell.update_runtime_badge.assert_called_once_with(False)
+                    shell.set_status.assert_called_once()
+                runtime.macro_lock.resume_after_stop.reset_mock()
+                runtime.reload_hotkeys.reset_mock()
+                app_main.AtlasWindow.reload_runtime(shell, False)
+                runtime.macro_lock.resume_after_stop.assert_not_called()
+                runtime.reload_hotkeys.assert_called_once_with(False)
+
     def test_character_slots_panel_calculates_height_from_grid_geometry(self):
         refresh = QFrame()
         refresh.setFixedSize(32, organizer.BUTTON_HEIGHT)
