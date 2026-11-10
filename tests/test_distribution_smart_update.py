@@ -299,6 +299,35 @@ class ReuseInstallerTests(unittest.TestCase):
             self.assertFalse(read_state(runtime)["pending"])
             self.assertEqual(profile.read_bytes(), b'{"level":200}')
 
+    def test_launcher_refuses_blocked_first_install_without_launch_or_download(self):
+        from app.distribution import launcher
+
+        with tempfile.TemporaryDirectory() as d:
+            root = Path(d)
+            runtime = root / "runtime"
+            package, candidate = self._package(root, "a" * 40, "v1", change=b"bad")
+            install_release(runtime, package, candidate)
+            self.assertFalse(rollback_pending(runtime))
+            remote = RemoteRelease("v1", "https://example.invalid/unused",
+                                   package.stat().st_size, candidate)
+            with (
+                patch.object(launcher, "ROOT", runtime),
+                patch.object(launcher, "_logger", return_value=MagicMock()),
+                patch.object(launcher, "_run_lock", return_value=MagicMock()),
+                patch.object(launcher, "SingleInstanceGuard") as guard,
+                patch.object(launcher, "recover_data_packs_on_launch"),
+                patch.object(launcher, "latest_release", return_value=remote),
+                patch.object(launcher, "download_archive",
+                             side_effect=AssertionError("blocked release must not download")),
+                patch.object(launcher, "_launch_with_health",
+                             side_effect=AssertionError("failed EXE must not start")),
+            ):
+                guard.return_value.acquire.return_value = True
+                with self.assertRaisesRegex(UpdateError, "aucune version disponible"):
+                    launcher.run_update(lambda *_: None)
+            self.assertIsNone(read_state(runtime)["active"])
+            self.assertEqual(read_state(runtime)["blocked_source_sha"], candidate.source_sha)
+
     def test_rollback_rejects_damaged_old_exe_without_changing_state(self):
         with tempfile.TemporaryDirectory() as d:
             root = Path(d)
