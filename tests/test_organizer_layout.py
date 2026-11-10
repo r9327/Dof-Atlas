@@ -722,6 +722,42 @@ class OrganizerLayoutTests(unittest.TestCase):
             "reconfiguration Organizer", latch=False,
         )
 
+    def test_runtime_badge_cannot_turn_green_while_emergency_stop_is_latched(self):
+        from unittest.mock import Mock
+        import main as app_main
+
+        shell = Mock()
+        organizer_widget = Mock()
+        shell.page_widgets = {"Organizer": organizer_widget}
+        shell.runtime = SimpleNamespace(
+            macro_lock=SimpleNamespace(emergency_latched=True),
+            mirror_armed=False,
+        )
+        app_main.AtlasWindow.update_runtime_badge(shell, True)
+        organizer_widget.set_runtime_active.assert_called_once_with(False)
+        organizer_widget.set_mirror_arm_active.assert_called_once_with(False)
+
+        organizer_widget.reset_mock()
+        shell.runtime.macro_lock.emergency_latched = False
+        app_main.AtlasWindow.update_runtime_badge(shell, True)
+        organizer_widget.set_runtime_active.assert_called_once_with(True)
+
+    def test_mirror_toggle_refusal_after_stop_cannot_reenable_green_badge(self):
+        from unittest.mock import Mock
+        import main as app_main
+
+        shell = Mock()
+        shell.quit_requested = False
+        shell._background_services_stopped = False
+        runtime = shell.runtime
+        runtime._running = True
+        runtime._admin_ok = True
+        runtime.macro_lock.emergency_latched = True
+        runtime.toggle_mirror.return_value = False
+        self.assertFalse(app_main.AtlasWindow.toggle_mirror(shell))
+        shell.update_runtime_badge.assert_called_once_with(False)
+        runtime.toggle_mirror.assert_called_once_with()
+
     def test_explicit_relancer_refuses_busy_workers_before_green_light(self):
         from unittest.mock import Mock
         import main as app_main
