@@ -326,6 +326,123 @@ class RepoUpdateDeltaDownloadTests(unittest.TestCase):
             self.assertEqual(list(root.iterdir()), [])
 
 
+class RepoUpdateOfflineInstallTests(unittest.TestCase):
+    def test_verified_repository_delta_uses_existing_slots_and_rollback(self) -> None:
+        """Synthetic-only NRU transaction; never authorizes the live channel."""
+        import os
+        from pathlib import Path
+        from tempfile import TemporaryDirectory
+
+        from app.distribution.install import (
+            install_release, mark_healthy, read_state, rollback_pending, slot_path,
+        )
+        from app.distribution.manifest import parse_manifest
+        from app.distribution.release_client import UpdateError, download_repo_update_delta
+        from scripts.windows.build_repo_update_pointer import build_pointer
+        from scripts.windows.package_release import package_release
+
+        with TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            frozen = root / "AtlasApp"
+            raw_data = frozen / "_internal" / "data" / "raw"
+            raw_data.mkdir(parents=True)
+            executable = frozen / "AtlasApp.exe"
+            executable.write_bytes(b"MZ-verified-unchanged-app")
+            unchanged = os.urandom(64 * 1024)
+            (raw_data / "fixed.bin").write_bytes(unchanged)
+            catalog = raw_data / "quests.json"
+            catalog.write_text('{"quests":[1]}', encoding="utf-8")
+            first_zip, first_meta = package_release(
+                frozen, root / "baseline", BASE, "1.0", "v1", 1,
+            )
+            installation = root / "runtime"
+            self.assertTrue(install_release(
+                installation, first_zip, parse_manifest(first_meta.read_bytes()),
+            ))
+            mark_healthy(installation)
+            first_state = read_state(installation)
+            self.assertEqual(first_state["source_sha"], BASE)
+            old_slot = first_state["active"]
+            profile = installation / "profiles" / "character-progress.json"
+            profile.parent.mkdir()
+            profile.write_bytes(b'{"character:123":3}')
+
+            catalog.write_text('{"quests":[1,2]}', encoding="utf-8")
+            _, new_meta = package_release(
+                frozen, root / "candidate", SRC, "1.1", "v2", 1,
+                base_manifest=first_meta,
+            )
+            manifest_raw = new_meta.read_bytes()
+            manifest = parse_manifest(manifest_raw)
+            self.assertIsNotNone(manifest.delta)
+            self.assertEqual(
+                set(manifest.delta.paths),
+                {"AtlasApp/_internal/data/raw/quests.json"},
+            )
+            delta = root / "candidate" / "atlas-delta.zip"
+            pointer = parse_repo_update_pointer(
+                build_pointer(new_meta, delta, APP_COMMIT),
+            )
+            self.assertEqual(
+                verify_repo_update_manifest(pointer, manifest_raw), manifest,
+            )
+
+            # Only the pinned, hash-verified ZIP enters the existing installer.
+            with patch("app.distribution.release_client._open",
+                       return_value=io.BytesIO(delta.read_bytes())) as fetch:
+                archive = download_repo_update_delta(
+                    pointer, manifest_raw, installation / "downloads",
+                )
+            fetch.assert_called_once_with(pointer.pinned_asset_url(), {})
+            self.assertTrue(install_release(
+                installation, archive, manifest, delta=True,
+            ))
+            pending = read_state(installation)
+            self.assertTrue(pending["pending"])
+            self.assertEqual(pending["previous"], old_slot)
+            updated_slot = slot_path(installation, pending["active"])
+            self.assertEqual(
+                (updated_slot / "AtlasApp/AtlasApp.exe").read_bytes(),
+                b"MZ-verified-unchanged-app",
+            )
+            self.assertEqual(
+                (updated_slot / "AtlasApp/_internal/data/raw/quests.json").read_text(),
+                '{"quests":[1,2]}',
+            )
+            self.assertEqual(profile.read_bytes(), b'{"character:123":3}')
+
+            # No Home health ACK: the old healthy slot is restored, not deleted.
+            self.assertTrue(rollback_pending(installation))
+            recovered = read_state(installation)
+            self.assertFalse(recovered["pending"])
+            self.assertEqual(recovered["active"], old_slot)
+            self.assertEqual(recovered["source_sha"], BASE)
+            self.assertEqual(
+                (slot_path(installation, old_slot) /
+                 "AtlasApp/_internal/data/raw/quests.json").read_text(),
+                '{"quests":[1]}',
+            )
+            self.assertEqual(profile.read_bytes(), b'{"character:123":3}')
+
+            # A corrupted unchanged base must not be copied into a new slot.
+            fixed = slot_path(installation, old_slot) / "AtlasApp/_internal/data/raw/fixed.bin"
+            fixed.write_bytes(b"corrupt")
+            with self.assertRaises(UpdateError):
+                install_release(installation, archive, manifest, delta=True)
+            self.assertEqual(read_state(installation), recovered)
+            self.assertEqual(profile.read_bytes(), b'{"character:123":3}')
+
+            # After repairing the test base, an ACK finalizes the new version.
+            fixed.write_bytes(unchanged)
+            self.assertTrue(install_release(
+                installation, archive, manifest, delta=True,
+            ))
+            mark_healthy(installation)
+            self.assertEqual(read_state(installation)["source_sha"], SRC)
+            self.assertFalse(read_state(installation)["pending"])
+            self.assertEqual(profile.read_bytes(), b'{"character:123":3}')
+
+
 class RepoUpdatePublisherTests(unittest.TestCase):
     def test_builder_accepts_only_real_verified_frozen_delta(self) -> None:
         from pathlib import Path
