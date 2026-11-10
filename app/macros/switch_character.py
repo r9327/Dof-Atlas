@@ -245,7 +245,12 @@ class SwitchCharacterMacro:
             (i for i, (_item, _slot, hwnd) in enumerate(accepted)
              if hwnd == current_hwnd), -1,
         )
-        chosen, index, hwnd = accepted[(position + step) % len(accepted)]
+        # No tracked foreground: forward starts at the first client, while
+        # reverse starts at the last (never the penultimate by -1 indexing).
+        target_position = (position + step) % len(accepted) if position >= 0 else (
+            0 if step > 0 else len(accepted) - 1
+        )
+        chosen, index, hwnd = accepted[target_position]
         if (type(chosen.index) is not int or chosen.index != index
                 or type(chosen.handle) is not int or chosen.handle != hwnd
                 or not accepted_unchanged()):
