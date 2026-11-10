@@ -1273,8 +1273,13 @@ def exercise_quest_links(session, page, owner):
             button = buttons[0]
             spy = QSignalSpy(sheet.questRequested)
             click = click_target(page, button, view.scroll)
-            settle(lambda: first_quest_failure(quest_outcome(
-                page, quest_id, [spy.at(i) for i in range(spy.count())])) is None, timeout=5)
+            settle(
+                lambda current_page=page, current_quest_id=quest_id, current_spy=spy:
+                first_quest_failure(quest_outcome(
+                    current_page, current_quest_id,
+                    [current_spy.at(i) for i in range(current_spy.count())])) is None,
+                timeout=5,
+            )
             observed = quest_outcome(page, quest_id, [spy.at(i) for i in range(spy.count())])
             failure = first_quest_failure(observed)
             observed.update(click=click, first_failed_transition=failure)

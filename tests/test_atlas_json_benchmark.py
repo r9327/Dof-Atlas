@@ -173,7 +173,7 @@ class AtlasJsonBenchmarkTests(unittest.TestCase):
             for replacement in alternatives:
                 with self.subTest(replacement=replacement):
                     with patch("tools.atlas_json_benchmark.importlib.import_module",
-                               return_value=SimpleNamespace(decode=lambda _: replacement)):
+                               return_value=SimpleNamespace(decode=lambda _, value=replacement: value)):
                         result = compare_json_parsers(source, candidates=("msgspec",))
                     self.assertEqual(result["status"], "REVIEW")
                     self.assertEqual(result["results"][0]["status"], "PARITY_FAIL")
@@ -194,7 +194,7 @@ class AtlasJsonBenchmarkTests(unittest.TestCase):
                           {"required": 1, "active": 1}):
                 with self.subTest(wrong=wrong):
                     fake = SimpleNamespace(
-                        kvitems=lambda *_args, **_kwargs: iter([("1", wrong)]))
+                        kvitems=lambda *_args, value=wrong, **_kwargs: iter([("1", value)]))
                     with patch("tools.atlas_json_benchmark.importlib.import_module",
                                return_value=fake):
                         report = compare_json_streaming(source)
@@ -217,7 +217,7 @@ class AtlasJsonBenchmarkTests(unittest.TestCase):
             for replacement in altered:
                 with self.subTest(replacement=replacement):
                     with patch("tools.atlas_json_benchmark.importlib.import_module",
-                               return_value=SimpleNamespace(loads=lambda _: replacement)):
+                               return_value=SimpleNamespace(loads=lambda _, value=replacement: value)):
                         result = compare_json_parsers(
                             source, candidates=("orjson",), repeats=1)
                     self.assertEqual(result["results"][0]["status"], "PARITY_FAIL")

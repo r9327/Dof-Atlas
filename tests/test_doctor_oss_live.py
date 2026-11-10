@@ -118,7 +118,7 @@ class DoctorLiveEvidenceTests(unittest.TestCase):
                 with (patch("tools.atlas_doctor_lib.oss_router.route_oss",
                             return_value=self._valid()),
                       patch("tools.atlas_doctor_lib.oss_router._observed_tool_version",
-                            side_effect=lambda root, name: versions[name])):
+                            side_effect=lambda root, name, known=versions: known[name])):
                     report = qualify_live(self.root, self.files)
                 self.assertEqual(report["status"], "REVIEW")
                 self.assertEqual(report["actual_executions"], 2)
