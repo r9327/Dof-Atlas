@@ -147,6 +147,22 @@ fichiers ouverts**. Verrouillage antivirus, manque d'espace et interruption
 physique demandent une validation native ; ne pas déclarer LV2-004 terminé
 sans ces preuves.
 
+### Reprise sans réextraction après interruption de `state.json`
+
+Lorsqu'un **paquet complet** a déjà créé un nouveau slot dont tous les
+fichiers correspondent au manifeste SHA-256, mais que l'écriture atomique
+de `state.json` échoue (disque plein, arrêt, verrou), une tentative
+ultérieure réutilise ce slot vérifié et finalise la transaction sans
+réouvrir le ZIP ni recopier les fichiers. Un slot de même nom mais
+endommagé est rejeté **avant** la décompression : l'ancien actif et les
+données utilisateur restent inchangés.
+
+Cette reprise rapide n'est **pas** utilisée sur les installations delta :
+une archive différentielle doit encore contrôler sa base locale, même
+s'il existe un slot candidat apparemment complet. Les tests couvrent la
+récupération après écriture d'état ratée, le rejet anticipé d'un slot
+corrompu et le refus d'une base delta modifiée.
+
 ### Refus de rollback vers un binaire précédent corrompu
 
 `rollback_pending()` vérifie désormais la présence d'un EXE régulier
