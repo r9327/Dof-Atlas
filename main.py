@@ -2706,6 +2706,11 @@ class AtlasWindow(QMainWindow):
             self.settings_topmost_check.blockSignals(False)
 
     def update_runtime_badge(self, connected: bool) -> None:
+        # UI-side callbacks (including Mirror toggle) must never override
+        # the latched red emergency indicator while hooks remain installed.
+        runtime = getattr(self, "runtime", None)
+        lock = getattr(runtime, "macro_lock", None) if runtime is not None else None
+        connected = bool(connected) and getattr(lock, "emergency_latched", False) is not True
         organizer = self.page_widgets.get("Organizer") if hasattr(self, "page_widgets") else None
         if hasattr(organizer, "set_runtime_active"):
             organizer.set_runtime_active(bool(connected))
@@ -2837,7 +2842,10 @@ class AtlasWindow(QMainWindow):
             self.set_status("Miroir indisponible : runtime pas encore démarré.")
             return False
         armed = runtime.toggle_mirror()
-        self.update_runtime_badge(bool(runtime._running and runtime._admin_ok))
+        self.update_runtime_badge(bool(
+            runtime._running and runtime._admin_ok
+            and getattr(runtime.macro_lock, "emergency_latched", False) is not True
+        ))
         return armed is True
 
     def launch_auto_group(self, invite_entries: list[dict[str, object]]) -> bool:
