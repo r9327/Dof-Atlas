@@ -11,6 +11,37 @@ from app.core.runtime_state import AtlasRuntime
 
 
 class MacroGenerationOwnershipTests(unittest.TestCase):
+    def test_emergency_stop_stays_latched_until_safe_explicit_resume(self):
+        for accounts in (1, 2, 4, 6, 8):
+            with self.subTest(accounts=accounts):
+                lock = MacroLock(Mock())
+                first = lock.try_begin_generation("Miroir")
+                self.assertIs(type(first), int)
+                lock.request_stop("bouton stop", latch=True)
+                self.assertTrue(lock.emergency_latched)
+                self.assertTrue(lock.should_stop())
+                self.assertIsNone(lock.try_begin_generation("Auto zaap"))
+                # A live worker cannot be revived while it is finishing.
+                self.assertFalse(lock.resume_after_stop())
+                self.assertTrue(lock.emergency_latched)
+                lock.end("Miroir", generation=first)
+                self.assertIsNone(lock.try_begin_generation("Auto groupe"))
+                self.assertTrue(lock.resume_after_stop())
+                self.assertFalse(lock.emergency_latched)
+                self.assertFalse(lock.should_stop())
+                second = lock.try_begin_generation("Auto zaap")
+                self.assertIs(type(second), int)
+                self.assertGreater(second, first)
+                lock.end("Auto zaap", generation=second)
+
+    def test_temporary_reconfiguration_stop_keeps_legacy_restart_semantics(self):
+        lock = MacroLock(Mock())
+        first = lock.try_begin_generation("Miroir")
+        lock.request_stop("changement profil")
+        self.assertFalse(lock.emergency_latched)
+        lock.end("Miroir", generation=first)
+        self.assertIs(type(lock.try_begin_generation("Miroir")), int)
+
     def test_macro_lock_state_survives_failed_logger_during_admission_stop_cleanup(self):
         for accounts in (2, 4, 6, 8):
             with self.subTest(accounts=accounts):
