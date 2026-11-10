@@ -787,38 +787,56 @@ class OrganizerLayoutTests(unittest.TestCase):
                 self.assertIsNotNone(page.zaap.suggestion_popup)
                 self.assertTrue(page.zaap.show_favorites)
 
-    def test_normal_rapid_speed_is_horizontal_and_legacy_modes_remain_accessible(self):
+    def test_three_visible_speed_presets_and_compact_controls(self):
         with tempfile.TemporaryDirectory() as temporary:
             with self.organizer_page(Path(temporary)) as page:
                 self.app.processEvents()
                 normal = page.script_speed_normal
                 rapid = page.script_speed_fast
-                classic = page.script_speed_legacy
                 instant = page.script_speed_instant
+                classic = page.script_speed_legacy
+                self.assertTrue(page.script_speed_title.isVisible())
+                self.assertEqual(page.script_speed_title.text(), "Vitesse :")
+                self.assertTrue(classic.isHidden())
                 self.assertEqual(normal.parent(), rapid.parent())
-                self.assertEqual(classic.parent(), instant.parent())
+                self.assertEqual(normal.parent(), instant.parent())
                 self.assertEqual(normal.y(), rapid.y())
+                self.assertEqual(rapid.y(), instant.y())
                 self.assertLess(normal.x(), rapid.x())
-                self.assertEqual(classic.y(), instant.y())
-                self.assertLess(classic.x(), instant.x())
-                self.assertGreater(classic.y(), normal.y())
-                for button in (normal, rapid, classic, instant):
-                    self.assertTrue(button.isVisible())
+                self.assertLess(rapid.x(), instant.x())
+                self.assertTrue(all(button.isVisible() for button in (normal, rapid, instant)))
+                self.assertEqual(page.radial_select_button.height(), page.switch_fake.height())
+                self.assertEqual(page.radial_select_button.text(), "Sélection perso")
+                self.assertIs(page.stop_script_button.parentWidget(),
+                              page.stop_script_hotkey_button.parentWidget())
+                self.assertGreaterEqual(page.stop_script_hotkey_button.x(), 0)
+                self.assertLessEqual(
+                    page.stop_script_hotkey_button.x() + page.stop_script_hotkey_button.width(),
+                    page.stop_script_button.width(),
+                )
                 from app.constants import KEY_SCRIPT_SPEED, KEY_SCRIPT_SPEED_SCHEMA
                 for value, selected in (
                     ("normal", normal), ("rapide", rapid),
-                    ("classique", classic), ("instantane", instant),
+                    ("instantane", instant),
                 ):
                     page.profiles[KEY_SCRIPT_SPEED] = value
                     page.profiles[KEY_SCRIPT_SPEED_SCHEMA] = 2
                     page.update_script_speed_buttons()
-                    for button in (normal, rapid, classic, instant):
+                    for button in (normal, rapid, instant):
                         self.assertEqual(
                             button.objectName(),
                             "segmentedButtonActive" if button is selected
                             else "segmentedButton",
                         )
-
+                # Legacy profiles retain their slower timing, but Classique
+                # is never displayed or misrepresented as Normal.
+                page.profiles[KEY_SCRIPT_SPEED] = "classique"
+                page.update_script_speed_buttons()
+                self.assertTrue(classic.isHidden())
+                self.assertTrue(all(
+                    button.objectName() == "segmentedButton"
+                    for button in (normal, rapid, instant)
+                ))
 
 
 if __name__ == "__main__":
