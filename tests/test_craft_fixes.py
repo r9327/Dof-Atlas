@@ -77,11 +77,49 @@ class CraftFixesTests(unittest.TestCase):
         page.guides = {"guides": {}}
         with (
             patch("app.pages.craft_page.LEVELING_FILE", Path("/missing/metiers_leveling.json")),
+            patch("app.craft_preload.build_local_leveling_suggestions", return_value=None),
             patch("app.pages.craft_page.QMessageBox.warning", return_value=QMessageBox.Ok) as warning,
         ):
             page.open_leveling_dialog("Mineur")
             warning.assert_called_once()
             self.assertIn("Fichier de guides absent", warning.call_args.args[2])
+
+    def test_base_is_not_a_leveling_profession(self):
+        page = self.make_page()
+        page.preload = {"jobs": [
+            {"name": "Base"}, {"name": "Mineur"}, {"name": "Forgeron"},
+        ]}
+        page.load_jobs()
+        self.assertEqual({job["name"] for job in page.jobs}, {"Mineur", "Forgeron"})
+
+    def test_missing_editorial_json_uses_real_offline_catalogue(self):
+        page = self.make_page()
+        page.guides = {"guides": {}}
+        fallback = {"source": "atlas-local", "kind": "craft", "entries": [
+            {"level_range": "Niv. 20+", "craft": {"name": "Épée", "quantity": 1}},
+        ]}
+        with (
+            patch("app.craft_preload.build_local_leveling_suggestions", return_value=fallback) as generate,
+            patch("app.pages.craft_page.LevelingDialog") as dialog,
+            patch("app.pages.craft_page.QMessageBox.warning") as warning,
+        ):
+            page.open_leveling_dialog("Forgeron")
+        generate.assert_called_once_with("Forgeron")
+        self.assertIs(dialog.call_args.args[1], fallback)
+        dialog.return_value.exec.assert_called_once()
+        warning.assert_not_called()
+
+    def test_existing_curated_guide_keeps_priority_over_generated_suggestions(self):
+        page = self.make_page()
+        official = {"entries": [{"craft": {"name": "Épée"} }]}
+        page.guides = {"guides": {"Forgeron": official}}
+        with (
+            patch("app.craft_preload.build_local_leveling_suggestions") as generate,
+            patch("app.pages.craft_page.LevelingDialog") as dialog,
+        ):
+            page.open_leveling_dialog("Forgeron")
+        generate.assert_not_called()
+        self.assertIs(dialog.call_args.args[1], official)
 
     def test_selection_order_and_scroll_survive_append(self):
         page = self.make_page()

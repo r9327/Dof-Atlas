@@ -7,6 +7,8 @@ from pathlib import Path
 
 from app.constants import (
     CRAFT_SELECTION_FILE,
+    HARVEST_JOBS,
+    JOB_ORDER,
     JOB_RESOURCE_GROUPS,
     LEVELING_FILE,
 )
@@ -14,6 +16,81 @@ from local_dofus_data.config import DEFAULT_CONFIG
 from app.core.item_identity import item_id
 from app.core.json_store import read_json_resilient as read_json
 from app.core.text import normalize_key
+
+
+
+def build_local_leveling_suggestions(
+    job_name: str, *, database_path: Path | None = None,
+) -> dict[str, object] | None:
+    """Offline, explicitly non-optimized alternative when curated guides are absent.
+
+    Read only already-installed, public Craft data. Do not infer XP gains or
+    present a single sample craft as the quantity needed to gain 20 levels.
+    Called on an explicit job click, never during Craft/Home preload.
+    """
+    job_key = normalize_key(job_name)
+    if job_key not in JOB_ORDER:
+        return None
+
+    if job_key in HARVEST_JOBS:
+        for name, resources in JOB_RESOURCE_GROUPS.items():
+            if normalize_key(name) == job_key and resources:
+                return {
+                    "source": "atlas-local",
+                    "kind": "harvest",
+                    "entries": [
+                        {
+                            "level_range": f"Étape {index}",
+                            "craft": {"name": resource_name, "quantity": 1},
+                        }
+                        for index, (resource_name, _tag) in enumerate(resources, 1)
+                    ],
+                }
+        return None
+
+    path = database_path if database_path is not None else DEFAULT_CONFIG.sqlite_path
+    if not path.is_file():
+        return None
+    try:
+        # The public Craft seed, installed on first launch, is canonical.
+        # Opening in read-only mode prevents sidecar files or user-data writes.
+        with sqlite3.connect(path.resolve().as_uri() + "?mode=ro", uri=True) as db:
+            candidates = db.execute(
+                """
+                SELECT r.level, r.result_name_fr, COUNT(ri.id) AS ingredient_count
+                FROM recipes AS r
+                JOIN recipe_ingredients AS ri ON ri.recipe_id = r.id
+                WHERE r.job_name = ? COLLATE NOCASE
+                  AND r.level BETWEEN 1 AND 200
+                  AND r.result_name_fr <> ''
+                GROUP BY r.id, r.level, r.result_name_fr
+                ORDER BY r.level, ingredient_count, r.result_name_fr
+                """,
+                (job_name,),
+            ).fetchall()
+    except (OSError, sqlite3.Error, ValueError):
+        return None
+
+    entries = []
+    previous_name = None
+    # Only suggest a recipe once its real required level has been reached.
+    for level in (1, 20, 40, 60, 80, 100, 120, 140, 160, 180, 200):
+        available = [row for row in candidates if row[0] <= level]
+        if not available:
+            continue
+        recipe_level, recipe_name, ingredient_count = min(
+            available, key=lambda row: (-row[0], row[2], row[1])
+        )
+        if recipe_name == previous_name:
+            continue
+        previous_name = recipe_name
+        entries.append({
+            "level_range": f"Niv. {level}+",
+            "craft": {"name": recipe_name, "quantity": 1},
+            "recipe_level": recipe_level,
+            "ingredient_types": ingredient_count,
+        })
+    return {"source": "atlas-local", "kind": "craft", "entries": entries} if entries else None
 
 
 def build_compact_craft_preload() -> dict[str, object]:
