@@ -2757,13 +2757,20 @@ class SharedGuideManualView(GuideUltimeManualView):
         if not (match and callable(provider) and callable(callback)
                 and callable(available)):
             return False
-        connected = {
-            str(getattr(row, "key", "") or "")
-            for row in (available() or ())
-            if bool(getattr(row, "connected", False))
-            and str(getattr(row, "key", "") or "")
-        }
-        selected = self.selected_participant_keys()
+        def connected_keys() -> set[str]:
+            return {
+                str(getattr(row, "key", "") or "")
+                for row in (available() or ())
+                if bool(getattr(row, "connected", False))
+                and str(getattr(row, "key", "") or "")
+            }
+
+        try:
+            selected = self.selected_participant_keys()
+            connected = connected_keys()
+        except Exception:
+            LOGGER.exception("Guide: impossible de vérifier les participants Zaap.")
+            return False
         # The command acts on a whole group: never quietly drop offline
         # participants or choose another character in their place.
         if not selected or any(key not in connected for key in selected):
@@ -2774,7 +2781,8 @@ class SharedGuideManualView(GuideUltimeManualView):
         x, y = int(match.group(1)), int(match.group(2))
         try:
             plan = provider((x, y), selected)
-        except (TypeError, ValueError, KeyError):
+        except Exception:
+            LOGGER.exception("Guide: erreur du planificateur Zaap vérifié.")
             return False
         if (
             not isinstance(plan, GuideTravelPlan)
@@ -2783,9 +2791,24 @@ class SharedGuideManualView(GuideUltimeManualView):
             or tuple(plan.participant_keys) != tuple(selected)
         ):
             return False
-        # The macro may reject the command after route validation. Never
-        # report a dispatch as successful when it explicitly returns False.
-        return callback(plan.to_chat_command(), plan.participant_keys) is not False
+        # Planning may involve callbacks or I/O: the selected roster and
+        # connection inventory can change before dispatch. Never reuse the
+        # earlier eligibility snapshot for a possibly different live team.
+        try:
+            if (self.selected_participant_keys() != selected
+                    or any(key not in connected_keys() for key in selected)):
+                return False
+        except Exception:
+            LOGGER.exception("Guide: participants Zaap indisponibles avant l'envoi.")
+            return False
+        try:
+            acknowledged = callback(plan.to_chat_command(), plan.participant_keys)
+        except Exception:
+            LOGGER.exception("Guide: échec du callback de trajet Zaap.")
+            return False
+        # Existing Guide launchers are fire-and-forget (return None). A strict
+        # False/0 rejection is not evidence of successful dispatch.
+        return acknowledged is None or acknowledged is True
 
     def _render_window(self, *, reset_scroll: bool = False) -> None:
         self._catalog_prefetch_timer.stop()
