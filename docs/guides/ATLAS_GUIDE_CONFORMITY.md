@@ -487,6 +487,35 @@ restent cohérents ; de même une génération dont le SHA-256 a été
 recalculé sur un JSON ambigu. Aucun contenu n'est promu, certifié
 ou chargé dans le lecteur pour contourner ces vérifications.
 
+### Écriture, rollback et reprise de staging (11 novembre 2026)
+
+Le magasin `tools.atlas_guide_candidate_store` reste un **staging local non
+activable**, distinct de l'installation d'Atlas et des sauvegardes. Sur
+`publish_candidate()`, le remplacement atomique du pointeur `selected.json`
+est inclus dans la transaction surveillée : même si le remplacement a
+effectivement réussi puis qu'une erreur d'E/S remonte, le magasin rétablit
+l'ancienne sélection. Après écriture, il relit le pointeur exact, puis vérifie
+la génération SHA-256 choisie. Le rollback `rollback_candidate()` applique
+désormais les mêmes contrôles après sélection de la génération restaurée.
+
+Si l'intégrité du résultat ne peut être prouvée, la tentative **échoue
+sans annoncer SUCCESS**. Une restauration du pointeur initial est effectuée,
+puis elle-même contrôlée. Si le disque empêche aussi cette restauration,
+l'erreur exige une **revue manuelle** : ne pas utiliser la sélection comme
+preuve, ne pas réactiver un guide ni supprimer des fichiers de staging
+à l'aveugle. Une génération immuable restée sur disque ne constitue
+ni une installation ni un certificat.
+
+Suite synthétique de référence :
+
+    py -3.13 -m unittest tests.test_atlas_guide_candidate_store -v
+
+Les tests simulent une corruption après sélection, un `os.replace` ayant
+réussi avant de lever une exception, une reprise normale et un échec de
+récupération nécessitant une revue manuelle. Ils ne valident ni un installateur
+Windows réel, ni la provenance des guides, ni le jeu DOFUS/Unity. GIMP-004
+et GIMP-011 restent **PENDING** jusqu'à ces preuves supplémentaires.
+
 ### AVANT/APRÈS : identité d'anomalie liée au motif (3 novembre 2026)
 
 Deux diagnostics différents peuvent partager `issue_code` et `field_path` :
