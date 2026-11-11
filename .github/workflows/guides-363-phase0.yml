@@ -17,6 +17,11 @@ on:
       - 'tests/test_atlas_guide_*.py'
       - 'tests/test_guide_shared_route_contract.py'
       - 'tests/test_guide_imported_manual_runtime_ui.py'
+      - 'tests/test_guide_progress_persistence.py'
+      - 'tests/test_guide_imported_manual_runtime_service.py'
+      - 'tests/test_guide_entity_identity.py'
+      - 'tests/test_guide_preparation_model.py'
+      - 'tests/test_guide_preparation_model_qt.py'
 
 permissions:
   contents: read
@@ -50,6 +55,9 @@ jobs:
       - name: Run synthetic import, conformity, storage and sequence gates
         run: |
           python -X faulthandler -m unittest discover -v -s tests -p 'test_atlas_guide_*.py'
+      - name: Run cross-guide persistence, isolated identity and preparation proofs
+        run: |
+          python -X faulthandler -m unittest -v tests.test_guide_progress_persistence tests.test_guide_imported_manual_runtime_service tests.test_guide_entity_identity tests.test_guide_preparation_model
 
   guide-qt:
     name: Guides / Phase 0 Qt UI (Windows, synthetic)
