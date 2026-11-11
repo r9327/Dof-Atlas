@@ -72,7 +72,7 @@ class OrganizerMirrorIntegrationTests(unittest.TestCase):
                     self.assertTrue(page.macro_panel.isAncestorOf(page.switch_click))
                     self.assertTrue(page.quick_actions_panel.isAncestorOf(page.switch_fake))
                     self.assertTrue(page.quick_actions_panel.isAncestorOf(page.radial_select_button))
-                    self.assertTrue(page.quick_actions_panel.isAncestorOf(page.script_speed_fast))
+                    self.assertTrue(page.macro_panel.isAncestorOf(page.script_speed_fast))
                     self.assertTrue(page.controls_panel.isAncestorOf(page.reload_runtime_button))
                     self.assertTrue(page.controls_panel.isAncestorOf(page.debug_button))
                     self.assertTrue(page.controls_panel.isAncestorOf(page.stop_script_button))
