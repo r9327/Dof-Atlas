@@ -96,6 +96,11 @@ class CharacterSlotsPanel(QFrame):
         header.addWidget(accent, alignment=Qt.AlignVCenter)
         header.addWidget(self.title, alignment=Qt.AlignVCenter)
         header.addStretch(1)
+        self.expand_button = AtlasButton("Afficher 8 slots")
+        self.expand_button.setObjectName("secondaryButton")
+        self.expand_button.setFixedHeight(24)
+        self.expand_button.setToolTip("Afficher les slots vides pour déplacer un personnage")
+        header.addWidget(self.expand_button, alignment=Qt.AlignVCenter)
         header.addWidget(refresh_button, alignment=Qt.AlignVCenter)
         self.panel_layout.addLayout(header)
 
@@ -518,11 +523,17 @@ class OrganizerUiMixin:
         self.sessions_refresh_button.setFixedSize(32, BUTTON_HEIGHT)
         self.sessions_refresh_button.setToolTip("Scanner les fenêtres Dofus")
         self.sessions_panel = CharacterSlotsPanel(self.sessions_refresh_button)
+        self._session_slots_expanded = False
+        self.sessions_panel.expand_button.clicked.connect(self.toggle_session_slots_expanded)
         self.sessions_content = self.sessions_panel.content
         self.sessions_grid = self.sessions_panel.grid
         self.apply_card_shadow(self.sessions_panel)
         root.addWidget(self.sessions_panel)
         root.addStretch(1)
+
+    def toggle_session_slots_expanded(self) -> None:
+        self._session_slots_expanded = not self._session_slots_expanded
+        self.render_sessions()
 
     def apply_card_shadow(self, frame: QFrame) -> None:
         shadow = QGraphicsDropShadowEffect(frame)
@@ -714,8 +725,24 @@ class OrganizerUiMixin:
         slot_count = self.session_slot_count()
         while len(self.sessions) < slot_count:
             self.sessions.append(empty_session_slot())
+        last_occupied = max(
+            (index + 1 for index, session in enumerate(self.sessions[:slot_count])
+             if not session_is_empty(session)),
+            default=0,
+        )
+        visible_count = slot_count if self._session_slots_expanded else min(
+            slot_count, max(2, last_occupied)
+        )
+        self.sessions_panel.slot_count = visible_count
+        self.sessions_panel.row_height = 46 if visible_count <= 4 else CHARACTER_SLOT_HEIGHT
+        self.sessions_panel.expand_button.setText(
+            "Réduire" if self._session_slots_expanded else "Afficher 8 slots"
+        )
+        self.sessions_panel.expand_button.setVisible(
+            visible_count < slot_count or self._session_slots_expanded
+        )
 
-        for index in range(slot_count):
+        for index in range(visible_count):
             session = self.sessions[index]
             name = session_name(session)
             hwnd = session_hwnd(session)
@@ -732,7 +759,7 @@ class OrganizerUiMixin:
                 slot = QFrame()
                 slot.setAttribute(Qt.WA_Hover, True)
                 slot.setObjectName("characterSlotDropTarget" if index == self.drag_hover_index else "characterSlotEmpty")
-                slot.setFixedHeight(CHARACTER_SLOT_HEIGHT)
+                slot.setFixedHeight(self.sessions_panel.row_height)
                 slot.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
                 slot_layout = QHBoxLayout(slot)
                 slot_layout.setContentsMargins(8, 0, 8, 0)
@@ -760,7 +787,7 @@ class OrganizerUiMixin:
                 row.setObjectName("characterSlot")
             else:
                 row.setObjectName("characterSlotMissing")
-            row.setFixedHeight(CHARACTER_SLOT_HEIGHT)
+            row.setFixedHeight(self.sessions_panel.row_height)
             row.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
             layout = QHBoxLayout(row)
             layout.setContentsMargins(8, 0, 8, 0)
@@ -861,4 +888,6 @@ class OrganizerUiMixin:
             self.bind_session_drag_events(row, index, row)
             self.session_row_widgets.append((row, index))
             self.session_slot_widgets.append((row, index))
+        self.sessions_panel.content.setFixedHeight(self.sessions_panel.slot_grid_height())
+        self.sessions_panel.setFixedHeight(self.sessions_panel.calculated_height())
         self._sessions_render_dirty = False

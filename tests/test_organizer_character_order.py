@@ -84,6 +84,36 @@ class OrganizerCharacterOrderTests(unittest.TestCase):
                     ("alpha", "beta", "gamma"),
                 )
 
+    def test_sparse_slot_seven_survives_rescan_without_changing_slot_hotkeys(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            with self.organizer_page(Path(temporary)) as (page, profile, index):
+                page.sessions = page.build_session_slots([
+                    {"nom": "Alpha - Iop", "hwnd": 101},
+                    {"nom": "Beta - Cra", "hwnd": 202},
+                ])
+                page.render_sessions()
+                self.assertEqual(len(page.session_slot_widgets), 2)
+                page.sessions_panel.expand_button.click()
+                self.assertEqual(len(page.session_slot_widgets), 8)
+                page.sessions_panel.expand_button.click()
+                page.reorder_session(0, 7)
+                self.assertEqual(organizer.session_name(page.sessions[7]), "Alpha - Iop")
+                self.assertEqual(len(page.session_slot_widgets), 8)
+                self.assertEqual(
+                    json.loads(index.read_text(encoding="utf-8"))["clients"][-1]["slot"], 8
+                )
+                page.profiles = page.load_profiles()
+                page.sessions = page.build_session_slots([
+                    {"nom": "Beta - Cra", "hwnd": 303},
+                    {"nom": "Alpha - Iop", "hwnd": 404},
+                ])
+                self.assertEqual(organizer.session_name(page.sessions[7]), "Alpha - Iop")
+                self.assertEqual(organizer.session_name(page.sessions[1]), "Beta - Cra")
+                self.assertEqual(
+                    json.loads(profile.read_text(encoding="utf-8"))
+                    ["__organizer_slot_assignments__"][7], "alpha",
+                )
+
     def test_apply_saved_order_uses_canonical_order_without_clearing_current_sessions(self):
         with tempfile.TemporaryDirectory() as temporary:
             root = Path(temporary)
