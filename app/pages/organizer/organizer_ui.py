@@ -201,7 +201,7 @@ class OrganizerUiMixin:
         self.macro_mode_button = AtlasButton("Macro")
         self.mirror_mode_button = AtlasButton("Miroir")
         for button in (self.macro_mode_button, self.mirror_mode_button):
-            button.setFixedSize(138, BUTTON_HEIGHT)
+            button.setFixedSize(110 if button is self.macro_mode_button else 138, BUTTON_HEIGHT)
             button.setToolTip("Choisir le mode des macros")
         self.quick_actions_title = QLabel("Actions rapides")
         self.quick_actions_title.setObjectName("cardTitle")
