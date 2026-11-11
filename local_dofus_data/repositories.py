@@ -8,7 +8,12 @@ from typing import Any
 from .config import DEFAULT_CONFIG, LocalDataConfig
 from .data_store import DataStore
 from .normalizer import craft_category_for_item
-from .utils import normalize_text
+from .utils import normalize_text, slugify
+
+
+def _craft_compact(value: Any) -> str:
+    """Accent/case/apostrophe-independent Craft lookup key."""
+    return slugify(value).replace("_", "")
 
 
 def _decode_json_fields(row: dict[str, Any] | None) -> dict[str, Any] | None:
@@ -116,36 +121,40 @@ class ItemRepository(BaseRepository):
         return [item for item in (_legacy_item(row, self.config) for row in self.search_by_name(query, limit)) if item]
 
     def search_craft_legacy(self, query: str, limit: int = 80, *, category: str | None = None) -> list[dict[str, Any]]:
-        """Search only recipe outputs without materializing the Craft catalogue."""
+        """Search recipe outputs without materializing the Craft catalogue.
 
-        needle = normalize_text(query)
+        SQLite LIKE on the original French names misses accent/apostrophe
+        variants before Python's normalization can see those rows.
+        """
+        needle = _craft_compact(query)
         limit = max(0, int(limit))
         if not needle or not limit:
             return []
         if category not in (None, "equipment", "trophy_prysma", "resource"):
             raise ValueError("Unknown Craft category")
+        connection = self.store.connect()
+        connection.create_function("atlas_craft_compact", 1, _craft_compact, deterministic=True)
         sql = """
             SELECT DISTINCT i.*
             FROM items i
             JOIN recipes r ON r.result_ankama_id = i.ankama_id
-            WHERE (i.name_fr LIKE ? OR i.name_en LIKE ?)
+            WHERE (atlas_craft_compact(i.name_fr) LIKE ?
+                   OR atlas_craft_compact(i.name_en) LIKE ?)
             """
-        params = (f"%{query}%", f"%{query}%")
+        params = (f"%{needle}%", f"%{needle}%")
         if category is not None:
-            self.store.connect().create_function("atlas_craft_category", 4, _sqlite_craft_category,
-                                                  deterministic=True)
+            connection.create_function(
+                "atlas_craft_category", 4, _sqlite_craft_category, deterministic=True,
+            )
             sql += " AND atlas_craft_category(COALESCE(NULLIF(i.name_fr,''),i.name_en),i.type,i.family,i.category)=?"
             params += (category,)
         sql += " ORDER BY i.level IS NULL, i.level, i.name_fr LIMIT ?"
         params += (max(limit * 4, limit),)
         result: list[dict[str, Any]] = []
-        # SQL applies the canonical category policy before LIMIT. Iterate its
-        # bounded result instead of materializing a catalogue in the UI process.
         with closing(self.store.execute(sql, params)) as cursor:
             for raw in cursor:
                 row = dict(raw)
-                haystack = normalize_text(f"{row.get('name_fr', '')} {row.get('name_en', '')}")
-                if needle not in haystack:
+                if needle not in _craft_compact(f"{row.get('name_fr', '')} {row.get('name_en', '')}"):
                     continue
                 item = _legacy_item(row, self.config)
                 if not item:

@@ -2,6 +2,8 @@ from __future__ import annotations
 
 import difflib
 import logging
+from functools import lru_cache
+from pathlib import Path
 from datetime import datetime
 from typing import Any, Callable
 
@@ -20,6 +22,7 @@ from PySide6.QtWidgets import (
     QListWidget,
     QListWidgetItem,
     QMenu,
+    QMessageBox,
     QPushButton,
     QScrollArea,
     QSizePolicy,
@@ -37,6 +40,7 @@ from app.constants import (
     JOB_ORDER,
     JOB_RESOURCE_GROUPS,
     LEVELING_FILE,
+    ROOT_DIR,
 )
 from app.storage import (
     IconCache,
@@ -57,6 +61,59 @@ from app.ui.components import AtlasButton
 LOGGER = logging.getLogger(__name__)
 
 _RESULT_BATCH_SIZE = 8
+
+
+_WEAPON_TYPES = {
+    "arme", "armes", "epee", "epees", "arc", "arcs", "dague", "dagues",
+    "baton", "batons", "baguette", "baguettes", "pelle", "pelles",
+    "marteau", "marteaux", "hache", "haches", "lance", "lances",
+    "faux",
+}
+_GROUPS = (
+    ({"anneau", "anneaux"}, "anneaux"),
+    ({"coiffe", "coiffes"}, "coiffes"),
+    ({"cape", "capes"}, "capes"),
+    ({"botte", "bottes"}, "bottes"),
+    ({"ceinture", "ceintures"}, "ceintures"),
+    ({"collier", "colliers", "amulette", "amulettes"}, "colliers"),
+    ({"bouclier", "boucliers"}, "boucliers"),
+    ({"trophee", "trophees"}, "trophees"),
+    ({"prysmaradite", "prysmaradites"}, "prysmaradite"),
+    (_WEAPON_TYPES, "armes"),
+)
+
+
+@lru_cache(maxsize=4096)
+def _find_nested_image(directory: str, filename: str, family: str) -> str:
+    root = Path(directory)
+    parts = set(family.split("_"))
+    for types, folder in _GROUPS:
+        if parts & types:
+            candidate = root / folder / filename
+            if candidate.is_file():
+                return str(candidate)
+    # Only use a generic fallback if there is a unique asset for that ID.
+    # Several categories may contain the same numeric sprite basename.
+    matches = list(root.glob("*/" + filename))
+    return str(matches[0]) if len(matches) == 1 else ""
+
+
+def craft_image_item(item: dict[str, Any], *, root: Path = ROOT_DIR) -> dict[str, Any]:
+    raw = item.get("image_path") or item.get("local_image_path")
+    if not raw:
+        return item
+    path = Path(str(raw))
+    absolute = path if path.is_absolute() else root / path
+    if absolute.is_file():
+        return item
+    directory = root / "data" / "images" / "items"
+    if absolute.parent != directory or absolute.suffix.lower() not in {".png", ".webp"}:
+        return item
+    family = normalize_key(" ".join(str(item.get(key) or "") for key in (
+        "type", "family", "category",
+    )))
+    found = _find_nested_image(str(directory), absolute.name, family)
+    return {**item, "image_path": found} if found else item
 
 
 def quantity_spinbox(value: int, maximum: int = 999) -> QSpinBox:
@@ -139,7 +196,7 @@ class CraftResourceDialog(QDialog):
             icon.setFixedSize(28, 28)
             icon.setAlignment(Qt.AlignCenter)
             item_info = info.get("item") if isinstance(info.get("item"), dict) else {"name": name, "image_path": info.get("image_path", "")}
-            resource_icon = self.icon_cache.icon_for_item(item_info).pixmap(24, 24)
+            resource_icon = self.icon_cache.icon_for_item(craft_image_item(item_info)).pixmap(24, 24)
             if not resource_icon.isNull():
                 icon.setPixmap(resource_icon)
             label = QPushButton(name)
@@ -177,6 +234,23 @@ class CraftResourceDialog(QDialog):
     def set_all_checked(self, checked: bool) -> None:
         for checkbox in self.resource_checks:
             checkbox.setChecked(checked)
+
+    def keyPressEvent(self, event) -> None:
+        # Only Escape asks for confirmation. Programmatic close() during Craft
+        # reload/cleanup must never spawn a modal question and block shutdown.
+        if event.key() == Qt.Key_Escape:
+            answer = QMessageBox.question(
+                self,
+                "Fermer les ressources ?",
+                "Voulez-vous vraiment fermer la fenêtre des ressources craft ?",
+                QMessageBox.Yes | QMessageBox.No,
+                QMessageBox.No,
+            )
+            if answer == QMessageBox.Yes:
+                self.reject()
+            event.accept()
+            return
+        super().keyPressEvent(event)
 
 
 class ItemSetDialog(QDialog):
@@ -216,7 +290,7 @@ class ItemSetDialog(QDialog):
             row.setObjectName("ListRow")
             layout = QHBoxLayout(row)
             icon = QLabel()
-            icon.setPixmap(self.icon_cache.icon_for_item(item).pixmap(28, 28))
+            icon.setPixmap(self.icon_cache.icon_for_item(craft_image_item(item)).pixmap(28, 28))
             layout.addWidget(icon)
             layout.addWidget(QLabel(f"{item.get('name', 'Objet')}  Lvl {item.get('level', '?')}"), 1)
             add = AtlasButton("+")
@@ -279,7 +353,7 @@ class LevelingDialog(QDialog):
             icon.setFixedSize(30, 30)
             icon.setAlignment(Qt.AlignCenter)
             if item:
-                icon.setPixmap(self.icon_cache.icon_for_item(item).pixmap(28, 28))
+                icon.setPixmap(self.icon_cache.icon_for_item(craft_image_item(item)).pixmap(28, 28))
             layout.addWidget(icon)
             level = QLabel(str(entry.get("level_range", "")))
             level.setObjectName("LevelBadge")
@@ -793,7 +867,7 @@ class CraftPage(QWidget):
         self._result_generation += 1
         self.result_batch_timer.stop()
         raw_query = self.search.text().strip()
-        query = normalize_key(raw_query)
+        query = normalize_key(raw_query).replace("_", "")
         self.results.clear()
         self._pending_result_items = []
         if not self._runtime_ready or len(query) < 2:
@@ -819,7 +893,7 @@ class CraftPage(QWidget):
             if category not in {"equipment", "trophy_prysma", "resource"}:
                 category = self.category_for_item(item)
                 item["_craft_category"] = category
-            if category != self.category or query not in search_name:
+            if category != self.category or query not in search_name.replace("_", ""):
                 continue
             self._pending_result_items.append(item)
             if len(self._pending_result_items) >= 80:
@@ -837,7 +911,7 @@ class CraftPage(QWidget):
             if generation != self._result_generation:
                 return
             entry = QListWidgetItem(
-                self.icon_cache.icon_for_item(item),
+                self.icon_cache.icon_for_item(craft_image_item(item)),
                 f"{item.get('name', 'Objet')} | Lvl {item.get('level', '?')} | {item.get('type', '')}",
             )
             entry.setData(Qt.UserRole, item)
@@ -927,36 +1001,45 @@ class CraftPage(QWidget):
         self.status_callback("Sélection vidée.")
 
     def refresh_selection(self) -> None:
-        self.selection_list.clear()
-        for ident, row in sorted(self.selection.items(), key=lambda pair: str(pair[1]["item"].get("name", "")).casefold()):
-            item = row["item"]
-            entry = QListWidgetItem()
-            entry.setData(Qt.UserRole, ident)
-            entry.setSizeHint(QSize(240, 46))
-            self.selection_list.addItem(entry)
-            widget = QFrame()
-            widget.setObjectName("SelectionRow")
-            layout = QHBoxLayout(widget)
-            layout.setContentsMargins(4, 2, 4, 2)
-            icon = QLabel()
-            icon.setPixmap(self.icon_cache.icon_for_item(item).pixmap(24, 24))
-            layout.addWidget(icon)
-            label = QLabel(str(item.get("name", "Objet")))
-            label.setWordWrap(False)
-            layout.addWidget(label, 1)
-            qty = quantity_spinbox(int(row["quantity"]))
-            delete = AtlasButton("x")
-            delete.setObjectName("CraftRemoveSelectionItem")
-            accessible_label = f"Retirer {item.get('name', 'Objet')} de la sélection"
-            delete.setToolTip(accessible_label)
-            delete.setAccessibleName(accessible_label)
-            delete.setFocusPolicy(Qt.StrongFocus)
-            delete.setMaximumWidth(30)
-            qty.valueChanged.connect(lambda value, target=ident: self.set_selection_quantity(target, value))
-            delete.clicked.connect(lambda _checked=False, target=ident: self.remove_selection_item(target))
-            layout.addWidget(qty)
-            layout.addWidget(delete)
-            self.selection_list.setItemWidget(entry, widget)
+        # The dict's insertion order is the user's craft order, including after
+        # save/load. Keep the viewport stable when a new item is appended.
+        scrollbar = self.selection_list.verticalScrollBar()
+        scroll_position = scrollbar.value()
+        self.selection_list.setUpdatesEnabled(False)
+        try:
+            self.selection_list.clear()
+            for ident, row in self.selection.items():
+                item = row["item"]
+                entry = QListWidgetItem()
+                entry.setData(Qt.UserRole, ident)
+                entry.setSizeHint(QSize(240, 46))
+                self.selection_list.addItem(entry)
+                widget = QFrame()
+                widget.setObjectName("SelectionRow")
+                layout = QHBoxLayout(widget)
+                layout.setContentsMargins(4, 2, 4, 2)
+                icon = QLabel()
+                icon.setPixmap(self.icon_cache.icon_for_item(craft_image_item(item)).pixmap(24, 24))
+                layout.addWidget(icon)
+                label = QLabel(str(item.get("name", "Objet")))
+                label.setWordWrap(False)
+                layout.addWidget(label, 1)
+                qty = quantity_spinbox(int(row["quantity"]))
+                delete = AtlasButton("x")
+                delete.setObjectName("CraftRemoveSelectionItem")
+                accessible_label = f"Retirer {item.get('name', 'Objet')} de la sélection"
+                delete.setToolTip(accessible_label)
+                delete.setAccessibleName(accessible_label)
+                delete.setFocusPolicy(Qt.StrongFocus)
+                delete.setMaximumWidth(30)
+                qty.valueChanged.connect(lambda value, target=ident: self.set_selection_quantity(target, value))
+                delete.clicked.connect(lambda _checked=False, target=ident: self.remove_selection_item(target))
+                layout.addWidget(qty)
+                layout.addWidget(delete)
+                self.selection_list.setItemWidget(entry, widget)
+        finally:
+            self.selection_list.setUpdatesEnabled(True)
+        scrollbar.setValue(min(scroll_position, scrollbar.maximum()))
 
     def save_selection(self) -> None:
         payload = {
@@ -1006,8 +1089,19 @@ class CraftPage(QWidget):
 
     def load_leveling_guides(self) -> None:
         payload = self.preload.get("guides")
-        if not isinstance(payload, dict):
-            payload = read_json(LEVELING_FILE, {"source": "gamosaurus", "offline_runtime": True, "guides": {}})
+        entries = payload.get("guides") if isinstance(payload, dict) else None
+        if not isinstance(entries, dict) or not entries:
+            # An empty placeholder from the asynchronous preload must not
+            # hide a legitimate local guide catalogue already on disk.
+            disk = read_json(
+                LEVELING_FILE,
+                {"source": "gamosaurus", "offline_runtime": True, "guides": {}},
+            )
+            disk_entries = disk.get("guides") if isinstance(disk, dict) else None
+            if isinstance(disk_entries, dict) and disk_entries:
+                payload = disk
+            elif not isinstance(entries, dict):
+                payload = disk
         self.guides = payload if isinstance(payload, dict) else {"guides": {}}
 
     def load_jobs(self) -> None:
@@ -1234,7 +1328,7 @@ class CraftPage(QWidget):
                 button.setToolButtonStyle(Qt.ToolButtonTextUnderIcon)
                 button.setText(short_label(label, 10))
                 button.setToolTip(label)
-                button.setIcon(self.icon_cache.icon_for_item(item))
+                button.setIcon(self.icon_cache.icon_for_item(craft_image_item(item)))
                 button.setIconSize(QSize(16, 16))
                 button.setFixedSize(56, 42)
                 button.clicked.connect(lambda _checked=False, job=job_name, target=item: self.show_route(job, target))
@@ -1248,15 +1342,27 @@ class CraftPage(QWidget):
     def set_job(self, job_name: str) -> None:
         self.selected_job = job_name
         self.refresh_jobs()
-        if not self.is_harvest_job(job_name):
-            guide = self.guide_for_job(job_name)
-            if guide and guide.get("entries"):
-                QTimer.singleShot(20, lambda: self.open_leveling_dialog(job_name))
+        # Defer until Qt finishes the button-click signal (refresh_jobs rebuilds
+        # its sender). Harvest and crafting jobs use the same single-click flow.
+        QTimer.singleShot(
+            20,
+            lambda selected=job_name: (
+                self.open_leveling_dialog(selected)
+                if self.selected_job == selected else None
+            ),
+        )
 
     def open_leveling_dialog(self, job_name: str) -> None:
         guide = self.guide_for_job(job_name)
-        if not guide:
-            self.status_callback(f"Aucun guide leveling local pour {job_name}.")
+        if not isinstance(guide, dict) or not guide.get("entries"):
+            if not LEVELING_FILE.is_file():
+                detail = f"Fichier de guides absent : {LEVELING_FILE}"
+            else:
+                detail = f"Guide absent ou vide pour {job_name} dans {LEVELING_FILE.name}."
+            message = f"Leveling indisponible pour {job_name}. {detail}"
+            LOGGER.warning("%s", message)
+            self.status_callback(message)
+            QMessageBox.warning(self, "Leveling indisponible", message)
             return
         dialog = LevelingDialog(job_name, guide, self.find_item_by_name, self.add_leveling_craft, self)
         dialog.exec()
@@ -1306,7 +1412,12 @@ class CraftPage(QWidget):
             self.resource_dialog.close()
         dialog = CraftResourceDialog(resources, missing)
         dialog.setModal(False)
-        dialog.finished.connect(lambda _result: setattr(self, "resource_dialog", None))
+        dialog.finished.connect(
+            lambda _result, current=dialog: (
+                setattr(self, "resource_dialog", None)
+                if self.resource_dialog is current else None
+            )
+        )
         self.resource_dialog = dialog
         dialog.show()
         dialog.raise_()
