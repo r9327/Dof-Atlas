@@ -477,13 +477,14 @@ def publish_candidate(
             # no generation or a complete one, while selection stays old.
             _atomic_file(target, payload)
         selection_path = store / _SELECTED
-        _atomic_file(selection_path, _json_bytes({
-            "format": _FORMAT, "candidate_sha256": digest,
-            "runtime_activation": False,
-        }))
-        # A successful replace is not yet proof that the selected candidate
-        # is readable and intact. Check it under the same publisher lock.
+        # Even when os.replace() succeeds, an I/O wrapper can raise before
+        # returning. The pointer may already have moved: restoration must
+        # cover the write itself, not only the subsequent integrity check.
         try:
+            _atomic_file(selection_path, _json_bytes({
+                "format": _FORMAT, "candidate_sha256": digest,
+                "runtime_activation": False,
+            }))
             if _selection(store) != digest:
                 raise GuideRouteContractError("post-write candidate selection mismatch")
             _verify_generation(store, digest)
@@ -652,10 +653,33 @@ def rollback_candidate(
             raise GuideRouteContractError("stale rollback; selection changed")
         if restore_sha256 != _NO_SELECTION:
             _verify_generation(store, restore_sha256)
-        _atomic_file(store / _SELECTED, _json_bytes({
-            "format": _FORMAT, "candidate_sha256": restore_sha256,
-            "runtime_activation": False,
-        }))
+        selection_path = store / _SELECTED
+        try:
+            _atomic_file(selection_path, _json_bytes({
+                "format": _FORMAT, "candidate_sha256": restore_sha256,
+                "runtime_activation": False,
+            }))
+            # A rollback is also a publication of the selection pointer.
+            # Re-read exact selected bytes, then verify their generation.
+            if _selection(store) != restore_sha256:
+                raise GuideRouteContractError("rollback post-write selection mismatch")
+            _verify_generation(store, restore_sha256)
+        except (GuideRouteContractError, OSError) as exc:
+            try:
+                _atomic_file(selection_path, _json_bytes({
+                    "format": _FORMAT, "candidate_sha256": actual,
+                    "runtime_activation": False,
+                }))
+                if _selection(store) != actual:
+                    raise GuideRouteContractError("rollback recovery selection mismatch")
+                _verify_generation(store, actual)
+            except (GuideRouteContractError, OSError) as recovery_exc:
+                raise GuideRouteContractError(
+                    "rollback and recovery failed; manual review required"
+                ) from recovery_exc
+            raise GuideRouteContractError(
+                "rollback verification failed; original selection restored"
+            ) from exc
     return {"status": "CANDIDATE_ROLLED_BACK_NOT_ACTIVE",
             "candidate_sha256": restore_sha256, "certified": False}
 
