@@ -24,6 +24,21 @@ class ModularDomainRoutingTests(unittest.TestCase):
         self.assertEqual(owners_for(unknown), frozenset())
         self.assertEqual(self.route([unknown])["status"], "BLOCKED")
 
+    def test_inherited_pyside_shell_base_keeps_all_real_consumer_owners(self):
+        fixture = "tests/_pyside_shell_base.py"
+        domains = {"craft", "quests", "guides", "ui", "startup",
+                   "identity", "data", "organizer"}
+        self.assertEqual(owners_for(fixture), frozenset(domains))
+        plan = self.route([fixture])
+        self.assertEqual(plan["status"], "READY_TO_EXECUTE")
+        self.assertEqual(set(plan["domains"]), domains)
+        self.assertEqual(plan["unknown_paths"], [])
+        # Only this audited inherited shell fixture is allowed; future
+        # private test helpers must still fail closed.
+        unknown = "tests/_pyside_unreviewed_base.py"
+        self.assertEqual(owners_for(unknown), frozenset())
+        self.assertEqual(self.route([unknown])["status"], "BLOCKED")
+
     def test_shared_text_requires_all_product_domains_without_unknown_wildcard(self):
         domains = {"craft", "quests", "guides", "ui", "startup",
                    "identity", "data", "organizer"}
