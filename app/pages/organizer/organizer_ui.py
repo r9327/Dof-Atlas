@@ -61,6 +61,7 @@ class CharacterSlotsPanel(QFrame):
         self,
         refresh_button: QWidget,
         *,
+        add_button: QWidget | None = None,
         slot_count: int = SESSION_SLOT_COUNT,
         row_height: int = CHARACTER_SLOT_HEIGHT,
         columns: int = 2,
@@ -96,6 +97,8 @@ class CharacterSlotsPanel(QFrame):
         header.addWidget(accent, alignment=Qt.AlignVCenter)
         header.addWidget(self.title, alignment=Qt.AlignVCenter)
         header.addStretch(1)
+        if add_button is not None:
+            header.addWidget(add_button, alignment=Qt.AlignVCenter)
         header.addWidget(refresh_button, alignment=Qt.AlignVCenter)
         self.panel_layout.addLayout(header)
 
@@ -108,6 +111,13 @@ class CharacterSlotsPanel(QFrame):
         for column in range(self.columns):
             self.grid.setColumnStretch(column, 1)
         self.panel_layout.addWidget(self.content)
+        self.content.setFixedHeight(self.slot_grid_height())
+        self.setFixedHeight(self.calculated_height())
+
+    def resize_slot_grid(self, slot_count: int, row_height: int) -> None:
+        """Resize only the visible presentation; all eight session IDs stay intact."""
+        self.slot_count = max(0, int(slot_count))
+        self.row_height = max(0, int(row_height))
         self.content.setFixedHeight(self.slot_grid_height())
         self.setFixedHeight(self.calculated_height())
 
@@ -191,9 +201,9 @@ class OrganizerUiMixin:
         self.macro_mode_button = AtlasButton("Macro")
         self.mirror_mode_button = AtlasButton("Miroir")
         for button in (self.macro_mode_button, self.mirror_mode_button):
-            button.setFixedSize(66, 24)
+            button.setFixedSize(138, BUTTON_HEIGHT)
             button.setToolTip("Choisir le mode des macros")
-        self.quick_actions_title = QLabel("Action rapide")
+        self.quick_actions_title = QLabel("Actions rapides")
         self.quick_actions_title.setObjectName("cardTitle")
         self.quick_actions_title.setFixedHeight(20)
         self.runtime_status_dot = QLabel("●")
@@ -236,51 +246,33 @@ class OrganizerUiMixin:
         self.click_clear = AtlasButton("x")
 
         control_size = QSize(138, BUTTON_HEIGHT)
-        # Use the same one-line control height as neighboring modules.
-        radial_control_size = control_size
-        controls_panel_height = 246
         panel_inner_width = control_size.width() * 2 + 8
-        panel_width = panel_inner_width + CARD_PADDING * 2
-        stop_hotkey_size = QSize(52, STOP_BUTTON_HEIGHT)
         stop_size = QSize(panel_inner_width, STOP_BUTTON_HEIGHT)
-        speed_control_size = QSize(71, BUTTON_HEIGHT)
         shortcut_size = QSize(42, KEY_BADGE_HEIGHT)
 
         for button in (
-            self.switch_character,
-            self.switch_click,
-            self.switch_double_click,
-            self.switch_movement,
-            self.switch_fake,
-            self.radial_select_button,
-            self.next_character,
-            self.previous_character,
-            self.mirror_arm_button,
-            self.reload_runtime_button,
-            self.debug_button,
+            self.switch_character, self.switch_click, self.switch_double_click,
+            self.switch_movement, self.switch_fake, self.radial_select_button,
+            self.next_character, self.previous_character, self.mirror_arm_button,
+            self.reload_runtime_button, self.debug_button,
         ):
-            button.setFixedSize(control_size)
-            button.setSizePolicy(QSizePolicy.Fixed, QSizePolicy.Fixed)
+            button.setMinimumHeight(BUTTON_HEIGHT)
+            button.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
             button.setObjectName("secondaryButton")
-        self.radial_select_button.setFixedSize(radial_control_size)
-        # The Mirror action occupies a full-width row, like Stop. Its
-        # shortcut badge overlays the same button instead of leaving a gap.
-        self.mirror_arm_button.setFixedSize(panel_inner_width, BUTTON_HEIGHT)
         self.stop_script_button.setObjectName("dangerButton")
-        self.stop_script_button.setFixedSize(stop_size)
-        self.stop_script_button.setSizePolicy(QSizePolicy.Fixed, QSizePolicy.Fixed)
-        for button in (self.click_button, self.double_click_button, self.radial_hotkey_button,
-                       self.next_character_hotkey_button, self.previous_character_hotkey_button,
-                       self.mirror_toggle_hotkey_button):
+        self.stop_script_button.setFixedHeight(STOP_BUTTON_HEIGHT)
+        self.stop_script_button.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
+        for button in (
+            self.click_button, self.double_click_button, self.radial_hotkey_button,
+            self.next_character_hotkey_button, self.previous_character_hotkey_button,
+            self.mirror_toggle_hotkey_button,
+        ):
             button.setObjectName("keyBadge")
             button.setFixedSize(shortcut_size)
             button.setSizePolicy(QSizePolicy.Fixed, QSizePolicy.Fixed)
         self.stop_script_hotkey_button.setObjectName("iconButton")
-        self.stop_script_hotkey_button.setFixedSize(stop_hotkey_size)
+        self.stop_script_hotkey_button.setFixedSize(52, KEY_BADGE_HEIGHT)
         self.stop_script_hotkey_button.setSizePolicy(QSizePolicy.Fixed, QSizePolicy.Fixed)
-        self.radial_select_button.setToolTip(
-            "Activer ou désactiver la roue ; régler la touche avec le badge."
-        )
         self.radial_hotkey_button.setToolTip("Configurer la touche maintenue pour sélectionner un personnage")
         self.radial_hotkey_button.setAccessibleName("Raccourci du camembert")
         self.radial_clear.setAccessibleName("Supprimer le raccourci du camembert")
@@ -294,10 +286,9 @@ class OrganizerUiMixin:
             self.script_speed_legacy, self.script_speed_normal,
             self.script_speed_fast, self.script_speed_instant,
         ):
-            button.setFixedSize(speed_control_size)
+            button.setFixedSize(71, BUTTON_HEIGHT)
             button.setSizePolicy(QSizePolicy.Fixed, QSizePolicy.Fixed)
             button.setObjectName("segmentedButton")
-        # Keep the full Instantané caption visible in the compact row.
         self.script_speed_instant.setFixedSize(78, BUTTON_HEIGHT)
         self.click_button.setToolTip("Raccourci Switch Clique")
         self.double_click_button.setToolTip("Raccourci Switch clic x2")
@@ -313,9 +304,11 @@ class OrganizerUiMixin:
         self.mirror_arm_button.setToolTip("Le mode Miroir est désarmé tant que vous ne l'activez pas ici.")
         self.next_character_hotkey_button.setToolTip("Raccourci personnage suivant")
         self.stop_script_button.setToolTip("Arreter immediatement les macros Python")
-        for button in (self.click_clear, self.double_click_clear, self.stop_script_clear,
-                       self.radial_clear, self.next_character_clear, self.previous_character_clear,
-                       self.mirror_toggle_clear):
+        for button in (
+            self.click_clear, self.double_click_clear, self.stop_script_clear,
+            self.radial_clear, self.next_character_clear, self.previous_character_clear,
+            self.mirror_toggle_clear,
+        ):
             button.setObjectName("iconButtonDanger")
             button.setFixedSize(14, 14)
             button.setToolTip("Supprimer le raccourci")
@@ -327,12 +320,12 @@ class OrganizerUiMixin:
             size: QSize = control_size,
         ) -> QWidget:
             wrapper = QWidget()
-            wrapper.setFixedSize(size)
-            wrapper.setSizePolicy(QSizePolicy.Fixed, QSizePolicy.Fixed)
+            wrapper.setMinimumSize(size)
+            wrapper.setFixedHeight(size.height())
+            wrapper.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
             cell = QGridLayout(wrapper)
             cell.setContentsMargins(0, 0, 0, 0)
-            cell.setHorizontalSpacing(0)
-            cell.setVerticalSpacing(0)
+            cell.setSpacing(0)
             cell.addWidget(action, 0, 0)
             if shortcut is not None:
                 cell.addWidget(shortcut, 0, 0, alignment=Qt.AlignRight | Qt.AlignVCenter)
@@ -342,179 +335,171 @@ class OrganizerUiMixin:
                 clear.raise_()
             return wrapper
 
-        def make_card_header(
-            title_label: QLabel,
-            trailing: QWidget | None = None,
-            after_title: QWidget | None = None,
-        ) -> QHBoxLayout:
-            layout = QHBoxLayout()
-            layout.setContentsMargins(0, 0, 0, 0)
-            layout.setSpacing(8)
-            title_accent = QFrame()
-            title_accent.setObjectName("CardTitleAccent")
-            title_accent.setFixedSize(3, 16)
-            layout.addWidget(title_accent, alignment=Qt.AlignVCenter)
-            layout.addWidget(title_label, alignment=Qt.AlignVCenter)
-            if after_title is not None:
-                layout.addWidget(after_title, alignment=Qt.AlignVCenter)
-            layout.addStretch(1)
-            if trailing is not None:
-                layout.addWidget(trailing, alignment=Qt.AlignVCenter)
-            return layout
+        def make_card_header(title_label: QLabel) -> QHBoxLayout:
+            row = QHBoxLayout()
+            row.setContentsMargins(0, 0, 0, 0)
+            row.setSpacing(8)
+            accent_label = QFrame()
+            accent_label.setObjectName("CardTitleAccent")
+            accent_label.setFixedSize(3, 16)
+            row.addWidget(accent_label, alignment=Qt.AlignVCenter)
+            row.addWidget(title_label, alignment=Qt.AlignVCenter)
+            row.addStretch(1)
+            return row
+
+        # Full-width command bar. Its stop shortcut stays INSIDE the red action.
+        self.controls_panel = QFrame()
+        self.controls_panel.setObjectName("card")
+        self.controls_panel.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
+        self.apply_card_shadow(self.controls_panel)
+        control_layout = QHBoxLayout(self.controls_panel)
+        control_layout.setContentsMargins(CARD_PADDING, CARD_PADDING, CARD_PADDING, CARD_PADDING)
+        control_layout.setSpacing(8)
+        controls_title = QLabel("Contrôles")
+        controls_title.setObjectName("cardTitle")
+        control_layout.addLayout(make_card_header(controls_title), 1)
+        self.reload_runtime_button.setFixedWidth(138)
+        self.debug_button.setFixedWidth(138)
+        control_layout.addWidget(self.reload_runtime_button)
+        control_layout.addWidget(self.debug_button)
+        self.stop_cell = macro_cell(
+            self.stop_script_button, self.stop_script_hotkey_button,
+            self.stop_script_clear, size=stop_size,
+        )
+        self.stop_cell.setFixedWidth(stop_size.width())
+        control_layout.addWidget(self.stop_cell)
+        root.addWidget(self.controls_panel)
+
+        # Two owner panels: Macro (toggles, speed, arm) and Actions rapides
+        # (auto-group, radial selection and previous/next). No duplicated actions.
+        self.macro_panel = QFrame()
+        self.macro_panel.setObjectName("card")
+        self.macro_panel.setMinimumWidth(panel_inner_width + CARD_PADDING * 2)
+        self.macro_panel.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
+        self.apply_card_shadow(self.macro_panel)
+        macro_layout = QVBoxLayout(self.macro_panel)
+        macro_layout.setContentsMargins(CARD_PADDING, CARD_PADDING, CARD_PADDING, CARD_PADDING)
+        macro_layout.setSpacing(8)
+        macro_title = QLabel("Macro")
+        macro_title.setObjectName("cardTitle")
+        macro_layout.addLayout(make_card_header(macro_title))
+        mode_row = QHBoxLayout()
+        mode_row.setContentsMargins(0, 0, 0, 0)
+        mode_row.setSpacing(8)
+        mode_row.addWidget(self.macro_mode_button)
+        # The existing mirror activation shortcut is visible on the Miroir
+        # mode selector. Arm/disarm remains a separate explicit action.
+        self.mirror_mode_cell = macro_cell(
+            self.mirror_mode_button, self.mirror_toggle_hotkey_button,
+            self.mirror_toggle_clear,
+        )
+        self.mirror_mode_cell.setFixedWidth(control_size.width())
+        mode_row.addWidget(self.mirror_mode_cell)
+        mode_row.addWidget(self.runtime_status_dot)
+        mode_row.addStretch(1)
+        macro_layout.addLayout(mode_row)
 
         controls_grid_host = QWidget()
-        controls_grid_host.setFixedWidth(panel_inner_width)
-        controls_grid_host.setSizePolicy(QSizePolicy.Fixed, QSizePolicy.Fixed)
+        controls_grid_host.setMinimumWidth(panel_inner_width)
+        controls_grid_host.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
         controls_grid = QGridLayout(controls_grid_host)
         controls_grid.setContentsMargins(0, 0, 0, 0)
         controls_grid.setHorizontalSpacing(8)
         controls_grid.setVerticalSpacing(8)
+        controls_grid.setColumnStretch(0, 1)
+        controls_grid.setColumnStretch(1, 1)
         self.macro_grid_host = controls_grid_host
         controls_grid.addWidget(macro_cell(self.switch_character), 0, 0)
-        controls_grid.addWidget(macro_cell(self.switch_click, self.click_button, self.click_clear), 0, 1)
+        controls_grid.addWidget(macro_cell(
+            self.switch_click, self.click_button, self.click_clear), 0, 1)
         controls_grid.addWidget(macro_cell(self.switch_movement), 1, 0)
-        controls_grid.addWidget(macro_cell(self.switch_double_click, self.double_click_button, self.double_click_clear), 1, 1)
-        controls_grid.addWidget(macro_cell(self.next_character, self.next_character_hotkey_button, self.next_character_clear), 2, 1)
-        controls_grid.addWidget(macro_cell(self.previous_character, self.previous_character_hotkey_button, self.previous_character_clear), 2, 0)
-        for column in range(2):
-            controls_grid.setColumnMinimumWidth(column, control_size.width())
-            controls_grid.setColumnStretch(column, 0)
-        for row in range(3):
-            controls_grid.setRowMinimumHeight(row, BUTTON_HEIGHT)
-
-        self.macro_panel = QFrame()
-        self.macro_panel.setObjectName("card")
-        self.macro_panel.setFixedSize(panel_width, controls_panel_height)
-        self.macro_panel.setSizePolicy(QSizePolicy.Fixed, QSizePolicy.Fixed)
-        self.apply_card_shadow(self.macro_panel)
-        macro_layout = QVBoxLayout(self.macro_panel)
-        macro_layout.setContentsMargins(CARD_PADDING, CARD_PADDING, CARD_PADDING, CARD_PADDING)
-        macro_layout.setSpacing(CARD_SPACING)
-        macro_title_row = QHBoxLayout()
-        macro_title_row.setSpacing(5)
-        macro_accent = QFrame()
-        macro_accent.setObjectName("CardTitleAccent")
-        macro_accent.setFixedSize(3, 16)
-        macro_title_row.addWidget(macro_accent)
-        macro_title_row.addWidget(self.macro_mode_button)
-        macro_title_row.addWidget(self.mirror_mode_button)
-        macro_title_row.addStretch(1)
-        macro_title_row.addWidget(self.runtime_status_dot)
-        macro_layout.addLayout(macro_title_row)
-        macro_layout.addWidget(controls_grid_host, alignment=Qt.AlignLeft)
-        macro_layout.addWidget(macro_cell(
-            self.mirror_arm_button, self.mirror_toggle_hotkey_button,
-            self.mirror_toggle_clear, size=QSize(panel_inner_width, BUTTON_HEIGHT),
-        ), alignment=Qt.AlignLeft)
-
-        self.quick_actions_panel = QFrame()
-        self.quick_actions_panel.setObjectName("card")
-        self.quick_actions_panel.setFixedSize(panel_width, controls_panel_height)
-        self.quick_actions_panel.setSizePolicy(QSizePolicy.Fixed, QSizePolicy.Fixed)
-        self.apply_card_shadow(self.quick_actions_panel)
-        quick_layout = QVBoxLayout(self.quick_actions_panel)
-        quick_layout.setContentsMargins(CARD_PADDING, CARD_PADDING, CARD_PADDING, CARD_PADDING)
-        quick_layout.setSpacing(CARD_SPACING)
-        quick_layout.addLayout(make_card_header(self.quick_actions_title))
-        quick_grid_host = QWidget()
-        quick_grid_host.setFixedWidth(panel_inner_width)
-        quick_grid_host.setSizePolicy(QSizePolicy.Fixed, QSizePolicy.Fixed)
-        quick_grid = QGridLayout(quick_grid_host)
-        quick_grid.setContentsMargins(0, 0, 0, 0)
-        quick_grid.setHorizontalSpacing(8)
-        quick_grid.setVerticalSpacing(8)
-        quick_grid.addWidget(self.switch_fake, 0, 0)
-        quick_grid.addWidget(macro_cell(self.radial_select_button, self.radial_hotkey_button, self.radial_clear, size=radial_control_size), 0, 1)
-        # One compact line: Vitesse : Normal | Rapide | Instantané.
-        # Widths total 52 + 71 + 71 + 78 + 3 * 4 = 284px.
-        speed_row = QWidget()
-        speed_row.setFixedSize(panel_inner_width, BUTTON_HEIGHT)
-        speed_row_layout = QHBoxLayout(speed_row)
-        speed_row_layout.setContentsMargins(0, 0, 0, 0)
-        speed_row_layout.setSpacing(4)
-        speed_row_layout.addWidget(self.script_speed_title)
+        controls_grid.addWidget(macro_cell(
+            self.switch_double_click, self.double_click_button,
+            self.double_click_clear), 1, 1)
+        macro_layout.addWidget(controls_grid_host)
+        macro_layout.addWidget(macro_cell(self.mirror_arm_button, size=stop_size))
+        speed_row = QHBoxLayout()
+        speed_row.setContentsMargins(0, 0, 0, 0)
+        speed_row.setSpacing(4)
+        speed_row.addWidget(self.script_speed_title)
         for button in (
             self.script_speed_normal, self.script_speed_fast,
             self.script_speed_instant,
         ):
-            speed_row_layout.addWidget(button)
-        quick_grid.addWidget(speed_row, 1, 0, 1, 2)
-        # Preserve an existing Classique profile without silently accelerating
-        # it. This legacy-only choice is no longer offered to the user.
-        quick_grid.addWidget(self.script_speed_legacy, 2, 0)
+            speed_row.addWidget(button)
+        speed_row.addStretch(1)
+        macro_layout.addLayout(speed_row)
+        # Keep legacy timing readable in profile data, but never offer it.
         self.script_speed_legacy.hide()
-        stop_row = QWidget()
-        stop_row.setFixedSize(panel_inner_width, STOP_BUTTON_HEIGHT)
-        stop_row.setSizePolicy(QSizePolicy.Fixed, QSizePolicy.Fixed)
-        stop_row_layout = QHBoxLayout(stop_row)
-        stop_row_layout.setContentsMargins(0, 0, 0, 0)
-        stop_row_layout.setSpacing(8)
-        # The emergency hotkey badge is inside the Stop button, not beside it.
-        stop_row_layout.addWidget(macro_cell(
-            self.stop_script_button, self.stop_script_hotkey_button,
-            self.stop_script_clear, size=stop_size,
-        ))
-        for column in range(2):
-            quick_grid.setColumnMinimumWidth(column, control_size.width())
-            quick_grid.setColumnStretch(column, 0)
-        quick_grid.setRowMinimumHeight(0, BUTTON_HEIGHT)
-        quick_grid.setRowMinimumHeight(1, BUTTON_HEIGHT)
-        quick_layout.addWidget(quick_grid_host, alignment=Qt.AlignLeft)
 
-        self.controls_panel = QFrame()
-        self.controls_panel.setObjectName("card")
-        self.controls_panel.setFixedSize(panel_width, controls_panel_height)
-        self.controls_panel.setSizePolicy(QSizePolicy.Fixed, QSizePolicy.Fixed)
-        self.apply_card_shadow(self.controls_panel)
-        control_layout = QVBoxLayout(self.controls_panel)
-        control_layout.setContentsMargins(CARD_PADDING, CARD_PADDING, CARD_PADDING, CARD_PADDING)
-        control_layout.setSpacing(CARD_SPACING)
-        controls_title = QLabel("Contrôles")
-        controls_title.setObjectName("cardTitle")
-        controls_title.setFixedHeight(20)
-        control_layout.addLayout(make_card_header(controls_title))
-        controls_host = QWidget()
-        controls_host.setFixedWidth(panel_inner_width)
-        control_grid = QGridLayout(controls_host)
-        control_grid.setContentsMargins(0, 0, 0, 0)
-        control_grid.setHorizontalSpacing(8)
-        control_grid.setVerticalSpacing(8)
-        control_grid.addWidget(self.reload_runtime_button, 0, 0)
-        control_grid.addWidget(self.debug_button, 0, 1)
-        control_grid.addWidget(stop_row, 1, 0, 1, 2)
-        for column in range(2):
-            control_grid.setColumnMinimumWidth(column, control_size.width())
-        control_layout.addWidget(controls_host, alignment=Qt.AlignLeft)
+        self.quick_actions_panel = QFrame()
+        self.quick_actions_panel.setObjectName("card")
+        self.quick_actions_panel.setMinimumWidth(panel_inner_width + CARD_PADDING * 2)
+        self.quick_actions_panel.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
+        self.apply_card_shadow(self.quick_actions_panel)
+        quick_layout = QVBoxLayout(self.quick_actions_panel)
+        quick_layout.setContentsMargins(CARD_PADDING, CARD_PADDING, CARD_PADDING, CARD_PADDING)
+        quick_layout.setSpacing(8)
+        quick_layout.addLayout(make_card_header(self.quick_actions_title))
+        quick_grid_host = QWidget()
+        quick_grid_host.setMinimumWidth(panel_inner_width)
+        quick_grid_host.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
+        quick_grid = QGridLayout(quick_grid_host)
+        quick_grid.setContentsMargins(0, 0, 0, 0)
+        quick_grid.setSpacing(8)
+        quick_grid.setColumnStretch(0, 1)
+        quick_grid.setColumnStretch(1, 1)
+        quick_grid.addWidget(self.switch_fake, 0, 0)
+        quick_grid.addWidget(macro_cell(
+            self.radial_select_button, self.radial_hotkey_button,
+            self.radial_clear), 0, 1)
+        quick_grid.addWidget(macro_cell(
+            self.previous_character, self.previous_character_hotkey_button,
+            self.previous_character_clear), 1, 0)
+        quick_grid.addWidget(macro_cell(
+            self.next_character, self.next_character_hotkey_button,
+            self.next_character_clear), 1, 1)
+        quick_layout.addWidget(quick_grid_host)
 
-        controls_panels_row = QHBoxLayout()
-        controls_panels_row.setContentsMargins(0, 0, 0, 0)
-        controls_panels_row.setSpacing(8)
-        controls_panels_row.addWidget(self.macro_panel)
-        controls_panels_row.addWidget(self.quick_actions_panel)
-        controls_panels_row.addWidget(self.controls_panel)
-        controls_panels_row.addStretch(1)
-        root.addLayout(controls_panels_row)
-
+        # Right column stacks the compact Zaap card under quick actions,
+        # instead of leaving a half-page of unused space under the buttons.
         self.zaap_panel = QFrame()
         self.zaap_panel.setObjectName("card")
-        self.zaap_panel.setMaximumHeight(124)
         self.zaap_panel.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
         self.apply_card_shadow(self.zaap_panel)
         zaap_layout = QVBoxLayout(self.zaap_panel)
         zaap_layout.setContentsMargins(CARD_PADDING, CARD_PADDING, CARD_PADDING, CARD_PADDING)
-        zaap_layout.setSpacing(CARD_SPACING)
+        zaap_layout.setSpacing(8)
         zaap_title = QLabel("Zaap")
         zaap_title.setObjectName("cardTitle")
-        zaap_title.setFixedHeight(20)
         zaap_layout.addLayout(make_card_header(zaap_title))
-        zaap_layout.addWidget(self.zaap, 1)
-        root.addWidget(self.zaap_panel)
+        zaap_layout.addWidget(self.zaap)
+
+        right_column = QVBoxLayout()
+        right_column.setContentsMargins(0, 0, 0, 0)
+        right_column.setSpacing(8)
+        right_column.addWidget(self.quick_actions_panel)
+        right_column.addWidget(self.zaap_panel)
+        right_column.addStretch(1)
+        modules_row = QHBoxLayout()
+        modules_row.setContentsMargins(0, 0, 0, 0)
+        modules_row.setSpacing(8)
+        modules_row.addWidget(self.macro_panel, 1, Qt.AlignTop)
+        modules_row.addLayout(right_column, 1)
+        root.addLayout(modules_row)
 
         self.sessions_refresh_button = AtlasButton("⟳")
         self.sessions_refresh_button.setObjectName("iconButton")
         self.sessions_refresh_button.setFixedSize(32, BUTTON_HEIGHT)
         self.sessions_refresh_button.setToolTip("Scanner les fenêtres Dofus")
-        self.sessions_panel = CharacterSlotsPanel(self.sessions_refresh_button)
+        self.sessions_expand_button = AtlasButton("+ Ajouter")
+        self.sessions_expand_button.setObjectName("secondaryButton")
+        self.sessions_expand_button.setFixedHeight(BUTTON_HEIGHT)
+        self.sessions_expand_button.setToolTip("Afficher un emplacement supplémentaire")
+        self.sessions_expand_button.clicked.connect(self.reveal_next_session_slot)
+        self.sessions_panel = CharacterSlotsPanel(
+            self.sessions_refresh_button, add_button=self.sessions_expand_button,
+        )
         self.sessions_content = self.sessions_panel.content
         self.sessions_grid = self.sessions_panel.grid
         self.apply_card_shadow(self.sessions_panel)
@@ -700,6 +685,12 @@ class OrganizerUiMixin:
             self._sessions_render_dirty = True
         super().hideEvent(event)
 
+    def reveal_next_session_slot(self) -> None:
+        total = self.session_slot_count()
+        visible = self.sessions_panel.slot_count
+        self._manual_visible_slots = min(total, visible + 1)
+        self.render_sessions()
+
     def render_sessions(self) -> None:
         self.sessions_panel.clear_slots()
         self.session_row_widgets = []
@@ -712,7 +703,21 @@ class OrganizerUiMixin:
         while len(self.sessions) < slot_count:
             self.sessions.append(empty_session_slot())
 
-        for index in range(slot_count):
+        # Use active/manual positions to choose the visible grid, not the
+        # persisted capacity (still eight). A single Add action reveals more.
+        occupied = max(
+            (index + 1 for index, session in enumerate(self.sessions[:slot_count])
+             if not session_is_empty(session)),
+            default=0,
+        )
+        visible_count = min(
+            slot_count, max(2, occupied, getattr(self, "_manual_visible_slots", 2)),
+        )
+        slot_height = 48 if visible_count <= 4 else CHARACTER_SLOT_HEIGHT
+        self.sessions_panel.resize_slot_grid(visible_count, slot_height)
+        self.sessions_expand_button.setVisible(visible_count < slot_count)
+
+        for index in range(visible_count):
             session = self.sessions[index]
             name = session_name(session)
             hwnd = session_hwnd(session)
@@ -729,7 +734,7 @@ class OrganizerUiMixin:
                 slot = QFrame()
                 slot.setAttribute(Qt.WA_Hover, True)
                 slot.setObjectName("characterSlotDropTarget" if index == self.drag_hover_index else "characterSlotEmpty")
-                slot.setFixedHeight(CHARACTER_SLOT_HEIGHT)
+                slot.setFixedHeight(slot_height)
                 slot.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
                 slot_layout = QHBoxLayout(slot)
                 slot_layout.setContentsMargins(8, 0, 8, 0)
@@ -757,7 +762,7 @@ class OrganizerUiMixin:
                 row.setObjectName("characterSlot")
             else:
                 row.setObjectName("characterSlotMissing")
-            row.setFixedHeight(CHARACTER_SLOT_HEIGHT)
+            row.setFixedHeight(slot_height)
             row.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
             layout = QHBoxLayout(row)
             layout.setContentsMargins(8, 0, 8, 0)
