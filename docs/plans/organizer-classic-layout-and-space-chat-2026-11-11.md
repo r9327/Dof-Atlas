@@ -1,10 +1,10 @@
-# Organizer — cahier des charges à valider (aucun développement dans cette PR)
+# Organizer #416 — cahier des charges et lots de développement
 
 État de référence : `main@4a540582d5f725575609665acbf1909c51454eb9` (11 novembre 2026). Références : [Organizer UI](../../app/pages/organizer/organizer_ui.py), [moteur clavier](../../app/macros/input_tools.py), [vitesses](../../app/core/settings.py), [Auto-groupe](../../app/macros/auto_group.py), [Zaap](../../app/macros/zaap.py), [tests des vitesses](../../tests/test_organizer_speed_presets.py). La PR #325 est fusionnée ; la recette Windows/Unity #322 reste ouverte.
 
-> **Cadrage uniquement.** Aucun correctif de code, aucun refactor, aucun benchmark et aucun nouveau raccourci ne sont autorisés par ce document sans feu vert explicite. Conserver le moteur Macro/Miroir/Zaap et ses protections actuelles.
+> **Décision du 11 novembre 2026 : développement autorisé par le propriétaire.** Le contrat documentaire initial est conservé en référence. Les sections B/C/D décrivent les constats avant les commits ; la section G distingue code livré et recette native à faire. Aucun nouveau raccourci ni second moteur, protections Stop/focus conservées.
 
-## A — Organisation approuvée à implémenter ultérieurement
+## A — Organisation approuvée (développement commencé)
 
 1. **Contrôles — barre horizontale pleine largeur en tête** : Relancer scripts, Debug, Stop urgence rouge avec **badge du raccourci configuré à l'intérieur** du bouton. Garder son action et la suppression de raccourci ; n'inventer aucune touche par défaut.
 2. **Module Macro — colonne gauche** : boutons Macro/Miroir avec raccourci de bascule Miroir intégré, état actif explicite ; **Activer/Arrêter Miroir demeure une action distincte** pour éviter un armement implicite ; Switch personnage, Switch déplacement, Switch clic, Switch clic ×2, leurs raccourcis existants, puis Vitesse Normal / Rapide / Instantané. Conserver le profil historique « Classique » non affiché pour compatibilité.
@@ -25,10 +25,10 @@
 | `input_double_gap_ms` | 5 | 4 | 4 |
 | `switch_background_pre_click_ms` | 18 | 14 | 10 |
 | `switch_background_post_up_ms` | 5 | 3 | 2 |
-| `auto_group_chat_open_ms` | 45 | 35 | 25 |
-| `auto_group_key_step_ms` | 12 | 10 | 8 |
-| `auto_group_paste_settle_ms` | 45 | 35 | 25 |
-| `auto_group_invite_gap_ms` | 140 | 100 | 65 |
+| `auto_group_chat_open_ms` | 45 | 45 | 45 |
+| `auto_group_key_step_ms` | 12 | 12 | 12 |
+| `auto_group_paste_settle_ms` | 45 | 45 | 45 |
+| `auto_group_invite_gap_ms` | 140 | 140 | 140 |
 | `movement_key_hold_ms` | 18 | 17 | 16 |
 
 D'autres paramètres restent identiques dans les trois modes, notamment `switch_click_down_ms=1`, `switch_client_settle_ms=0` et `switch_humanize_min_ms=4/max_ms=9`. Dans le moteur Switch clic, des planchers de fiabilité **35 ms de DOWN** et **50 ms de survol** restent en vigueur même en Instantané. Le mode « Classique » historique dispose de délais plus lents, conservés pour migration v1→v2. Ces valeurs représentent des **temporisations**, et non les performances p50/p95/p99 mesurées du jeu.
@@ -37,7 +37,7 @@ Les tests `test_organizer_speed_presets.py` injectent des appels simulés `send_
 
 ## B2 — Règle cible des trois vitesses (décision utilisateur du 11 novembre 2026)
 
-**Objectif prioritaire : les modes Normal / Rapide / Instantané pilotent les actions de switch et de clic, et non les scripts de chat.** La table B décrit **l'implémentation actuelle** ; ce paragraphe B2 est la **spécification future**, non développée.
+**Objectif prioritaire : les modes Normal / Rapide / Instantané pilotent les actions de switch et de clic, et non les scripts de chat.** La table B décrit les valeurs configurées sur la branche #416 ; B2 reste la cible de performance réelle, non certifiée sur Unity.
 
 | Action existante | Politique cible | Exigence |
 |---|---|---|
@@ -59,7 +59,7 @@ Les tests `test_organizer_speed_presets.py` injectent des appels simulés `send_
 - Les trois modes doivent agir sur le temps **commande physique → réaction visible du dernier client**, pas uniquement sur les valeurs de temporisation. Préserver Stop urgence, identité HWND/PID, garde de focus et événements DOWN/UP, y compris à 8 comptes.
 - Les planchers actuels de clic (survol >=50 ms, maintien >=35 ms et double-clic >=60 ms dans certains chemins) expliquent pourquoi diminuer les seules valeurs du preset ne change pas beaucoup le ressenti. **Ne pas supprimer ces planchers sans preuve de réception Unity**, et ne pas afficher « instantané » comme une promesse de zéro délai.
 - Le moteur actuel utilise `SetForegroundWindow` et des activations successives. **Aucune entrée Unity fiable en arrière-plan n'est établie** : étudier la faisabilité et mesurer, sans introduire injection de processus, réseau ou nouvelle méthode risquée/non prouvée.
-- Les délais du chat Auto-groupe/Zaap/Travel sont aujourd'hui dérivés de `timings_for_speed` ; la règle cible demande de les dissocier et de réutiliser un seul profil de fiabilité commun. **Ne pas créer de second moteur, de quatrième vitesse ou de réglage UI supplémentaire.** Réparer d'abord la non-réception de `SPACE` constatée par l'utilisateur.
+- Les champs de chat restent exposés par `timings_for_speed`, mais leur **valeur est identique pour tous les profils** et consommée via le sender existant ; cela n'atteste pas l'ouverture réelle du chat Unity. **Ne pas créer de second moteur, de quatrième vitesse ou de réglage UI supplémentaire.** Réparer d'abord la non-réception de `SPACE` constatée par l'utilisateur.
 
 ### Critères d'acceptation des vitesses (à prouver après autorisation de développer)
 
@@ -76,8 +76,8 @@ Les tests `test_organizer_speed_presets.py` injectent des appels simulés `send_
 **Code commun confirmé :** `AutoGroupMacro`, `ZaapMacro` et `TravelMacro` appellent `send_chat_command()` dans `app/macros/input_tools.py`, puis `replace_chat_text_with_clipboard()`, qui exécute :
 
 ```text
-press_key("SPACE") ; attendre 25/35/45 ms ; CTRL+A ; DEL ;
-CTRL+V ; attendre 25/35/45 ms ; ENTER [ENTER supplémentaire pour Zaap/Travel]
+press_key("SPACE") ; attendre 45 ms ; CTRL+A ; DEL ;
+CTRL+V ; attendre 45 ms ; ENTER [ENTER supplémentaire pour Zaap/Travel]
 ```
 
 **Hypothèses par priorité :**
@@ -97,12 +97,12 @@ CTRL+V ; attendre 25/35/45 ms ; ENTER [ENTER supplémentaire pour Zaap/Travel]
 ## D — Défauts fonctionnels connus / limites de preuve
 
 - **Confirmé dans le code :** Espace est imposé et l'ouverture du chat n'est pas attestée avant la suite du clavier.
-- **Confirmé dans le code :** les trois vitesses ajustent actuellement aussi Auto-groupe/Zaap ; **c'est contraire à la politique cible** (chat à vitesse automatique fiable, switches/clics pilotés par les trois modes). Les temps physiques et la prise en compte Unity ne sont pas certifiés.
+- **Historique avant le développement :** les vitesses ajustaient Auto-groupe/Zaap. **Corrigé côté configuration par #416 :** tous les modes utilisent désormais le même délai de chat. Les temps physiques et la prise en compte Unity ne sont pas certifiés.
 - **Confirmé dans le code :** Miroir exige une activation explicite ; la diffusion clavier/souris sans focus n'est pas prouvée. Les planchers 35/50 ms empêchent la latence théorique nulle.
 - **Constat utilisateur non reproduit ici :** Auto-groupe et Zaap ne fonctionnent pas.
 - **Recette restante :** #321 / #322 : Windows/DOFUS réel, 1/2/4/6/8 comptes, p50/p95/p99, Stop, chemin clavier, sélection roue, Miroir, focus et clipboard ; ne pas confondre tests simulés et jeu.
 
-## F — Audit de fiabilité et critères anti-régression (ajout du 11/11, cadrage seulement)
+## F — Audit de fiabilité et critères anti-régression (référence de développement)
 
 Relecture croisée avec `app/pages/organizer/organizer_ui.py`, `character_sessions.py`, `organizer_drag_drop.py`, `organizer_hotkeys.py`, `app/storage.py`, `app/input/hotkeys.py`, `app/macros/input_tools.py`, `app/macros/mirror_input.py` et le contrat historique #321. **Ce sont des exigences de fiabilisation à vérifier / implémenter uniquement après autorisation de développer ; pas des défaillances toutes reproduites ni des travaux déjà livrés.**
 
@@ -132,9 +132,9 @@ Relecture croisée avec `app/pages/organizer/organizer_ui.py`, `character_sessio
 - **Ce qui est connu dans le code :** le widget affiche actuellement jusqu'à huit favoris, mais la capacité d'affichage compact n'est pas justifiée ; **la nouvelle cible est d'afficher directement tous les favoris acceptés, sans menu caché**, avec une limite d'ajout adaptée à la place disponible. Huit positions backend restent **réorganisables par glisser-déposer**, raccourcis attachés aux index des slots, widgets Qt avec dimensions fixes, fonction chat `SPACE` sans vérification d'ouverture, modes vitesse affectant actuellement aussi les pauses de chat.
 - **Ce qui est déjà protégé / à préserver :** priorité Stop, exclusions partielles de raccourcis, vérifications focus/HWND, clavier DOWN/UP, cleanup et anti-replay ; ne pas déclarer ces protections absentes à partir du seul cahier des charges.
 - **Ce qui reste à prouver :** panne Espace exacte, fiabilité du Miroir saturé sur jeu réel, objectif quasi invisible d'Instantané, différences de vitesse perceptibles, validation 2/4/6/8, captures et temps de réaction Unity.
-- **Règle de périmètre :** aucun développement demandé dans la PR #416 à ce stade ; cette section est un audit documentaire / une liste de tests et non une livraison.
+- **Règle de périmètre actualisée :** l'interdiction initiale de développement a été levée le 11/11 par le propriétaire. Les constats initiaux restent archivés ; le code et ses preuves se trouvent en section G.
 
-## E — Lots futurs uniquement après autorisation de développer
+## E — Lots autorisés, avec recette native encore nécessaire
 
 1. **LOT P0 :** diagnostic exact-SHA de la chaîne Espace→chat, reproduction et test de non-régression, puis correctif minimal à la cause prouvée ; conserver ensuite le rythme de chat commun indépendant des trois vitesses.
 2. **LOT VITESSES :** mesurer les vraies latences de switch, clic, clic ×2, déplacement et Miroir, identifier leurs seuils/planchers et rendre les trois modes perceptiblement différents sans contourner les protections ; intégrer les scénarios réels 2/4/6/8 et les cas sans gain possible.
@@ -143,4 +143,15 @@ Relecture croisée avec `app/pages/organizer/organizer_ui.py`, `character_sessio
 5. **LOT SLOTS :** adaptation visuelle 2→8 avec **ordre librement modifiable par drag/drop vers n'importe quel slot**, destinations masquées accessibles, raccourcis par position et ordre sauvegardé ; tests synthétiques et captures.
 6. **LOT CERTIF :** Doctor ciblé, CI propriétaire, revue exacte du diff puis validation réelle Windows/DOFUS ; benchmarks seulement si nécessaires à la fiabilité.
 
-**Statut actuel : PROPOSITION UNIQUEMENT — 0 développement / 0 test de réception Unity.**
+## G — Implémentation versionnée sur #416 (11 novembre 2026)
+
+| Lot | État du code | Preuve ciblée et limite |
+|---|---|---|
+| UI classique | Implémenté en branche | `organizer_ui.py`, tests de structure et Qt ; captures à DPI réels non certifiées |
+| Trois vitesses | Politique chat dissociée | `settings.py`, `test_organizer_speed_presets.py` ; latences visibles Unity non mesurées |
+| Chat/Espace | Diagnostic d'étape ajouté, **cause réelle non corrigée** | `input_tools.py`, tests Stop/SPACE/CTRL+V ; un ACK Win32 n'atteste pas le focus du chat |
+| Zaap | Tous favoris visibles par retour à la ligne ; ajout borné selon largeur | `storage.py`, tests Qt ; vérifier visuellement à plusieurs DPI |
+| Slots | 8 slots internes, vues compactes 2–8, expansion explicite et déplacement/sauvegarde de slots épars | `character_sessions.py`, `organizer_ui.py`, tests Qt et persistance |
+| Stop/Miroir | Moteur existant préservé, **non réécrit** | Régressions propriétaires Windows synthétiques ; #418 requise pour validation DOFUS |
+
+**Condition de sortie :** aucune certification Windows/Unity réelle, aucun p50/p95/p99 2/4/6/8 et aucun correctif de l'ouverture de chat non reproduite ne sont revendiqués. La PR reste Draft tant que la recette #418 et les contrôles finaux ne sont pas traités. Le Delivery Guard est lié à son rapport exact-SHA dans la description de PR, pas à ce document.
