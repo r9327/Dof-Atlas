@@ -9,6 +9,8 @@ on:
     types: [opened, synchronize, reopened, ready_for_review]
     paths:
       - '.github/workflows/guides-363-phase0.yml'
+      # AI fingerprint-only commits must still get exact-SHA Phase 0 coverage.
+      - '.ai/context_index.json'
       - 'tools/atlas_guide_*.py'
       - 'app/modules/encyclopedia/services/guide_*.py'
       - 'app/modules/encyclopedia/views/shared_manual_guide_view.py'
