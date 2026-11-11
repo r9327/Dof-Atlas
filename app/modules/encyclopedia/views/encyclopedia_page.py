@@ -188,6 +188,10 @@ class EncyclopediaPage(QWidget):
         related_data_ready_callback: Callable[[AchievementProvider, GuideProvider], None] | None = None,
         initial_tab: str = DEFAULT_TAB,
     ) -> None:
+        # Reject an unapproved imported Guide before any provider/graph I/O.
+        # Constructing the ordinary Encyclopedia must remain safe and lazy.
+        if imported_source_services and not callable(imported_source_authorizer):
+            raise ValueError("Imported Guides require an independent authorizer")
         super().__init__(parent)
         self.setObjectName("EncyclopediaPage")
         self.status_callback = status_callback
@@ -232,8 +236,6 @@ class EncyclopediaPage(QWidget):
         # A future certified installer must explicitly inject its services
         # together with a separate authorization witness.
         self._imported_source_services = dict(imported_source_services or {})
-        if self._imported_source_services and not callable(imported_source_authorizer):
-            raise ValueError("Imported Guides require an independent authorizer")
         self._imported_source_authorizer = imported_source_authorizer
         self._related_data_ready_callback = related_data_ready_callback
         self._lazy_slots: dict[str, QWidget] = {}
