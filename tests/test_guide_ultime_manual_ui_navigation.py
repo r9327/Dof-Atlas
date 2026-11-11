@@ -330,7 +330,7 @@ class GuideUltimeManualUiNavigationTests(unittest.TestCase):
             self.assertEqual(QApplication.clipboard().text(), "/travel 1,-1")
             legend = current_sheet.findChild(QFrame, "GuideManualLegendCard")
             texts = [label.text() for label in legend.findChildren(QLabel)]
-            self.assertTrue(any("participants sélectionnés" in text for text in texts))
+            self.assertTrue(any("cliquer copie /travel x,y" in text for text in texts))
         finally:
             view.close()
 
