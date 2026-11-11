@@ -15,6 +15,8 @@ from app.constants import (
     KEY_STOP_SCRIPT_HOTKEY,
     KEY_SCRIPT_SPEED_SCHEMA,
     KEY_NEXT_CHARACTER_HOTKEY,
+    KEY_PREVIOUS_CHARACTER_HOTKEY,
+    KEY_MIRROR_TOGGLE_HOTKEY,
     KEY_RADIAL_ENABLED,
     KEY_RADIAL_HOTKEY,
     KEY_SWITCH_CHARACTER,
@@ -108,6 +110,8 @@ class AtlasSettings:
     zaap_timings: ZaapTimings
     macro_mode: str = "macro"
     next_character_hotkey: str = ""
+    previous_character_hotkey: str = ""
+    mirror_toggle_hotkey: str = ""
     radial_hotkey: str = ""
     radial_enabled: bool = True
 
@@ -400,6 +404,12 @@ def load_settings() -> AtlasSettings:
         macro_mode="mirror" if profile.get(KEY_ORGANIZER_MACRO_MODE) == "mirror" else "macro",
         next_character_hotkey=str(
             global_hotkeys.get("next_character_hotkey") or profile.get(KEY_NEXT_CHARACTER_HOTKEY, "")
+        ).strip().upper(),
+        previous_character_hotkey=str(
+            global_hotkeys.get("previous_character_hotkey") or profile.get(KEY_PREVIOUS_CHARACTER_HOTKEY, "")
+        ).strip().upper(),
+        mirror_toggle_hotkey=str(
+            global_hotkeys.get("mirror_toggle_hotkey") or profile.get(KEY_MIRROR_TOGGLE_HOTKEY, "")
         ).strip().upper(),
         radial_hotkey=str(profile.get(KEY_RADIAL_HOTKEY) or "").strip().upper(),
         radial_enabled=profile_bool(profile, KEY_RADIAL_ENABLED, True),

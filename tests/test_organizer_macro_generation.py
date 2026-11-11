@@ -11,6 +11,130 @@ from app.core.runtime_state import AtlasRuntime
 
 
 class MacroGenerationOwnershipTests(unittest.TestCase):
+    def test_mirror_stays_disarmed_until_click_or_shortcut_and_disarms_after_stop(self):
+        for count in (2, 4, 6, 8):
+            with self.subTest(count=count):
+                clients = [SimpleNamespace(handle=101 + index) for index in range(count)]
+                settings = SimpleNamespace(
+                    macro_mode="mirror", primary_handle=101, clients=clients,
+                )
+                runtime = SimpleNamespace(
+                    settings=settings, _mirror_armed=False, _running=True,
+                    _admin_ok=True, macro_lock=MacroLock(Mock()),
+                    _emit_active=Mock(), _emit_status=Mock(),
+                )
+                runtime.emergency_stop = lambda reason, *, latch=False: (
+                    setattr(runtime, "_mirror_armed", False),
+                    runtime.macro_lock.request_stop(reason, latch=latch),
+                )
+                # Opening the mode is never authorization to mirror input.
+                with patch("app.windows.unity_windows.foreground_window") as native:
+                    self.assertFalse(AtlasRuntime._handle_mirror_key(
+                        runtime, 0x41, True,
+                    ))
+                native.assert_not_called()
+                self.assertTrue(AtlasRuntime.toggle_mirror(runtime))
+                self.assertTrue(runtime._mirror_armed)
+                self.assertFalse(AtlasRuntime.toggle_mirror(runtime))
+                self.assertFalse(runtime._mirror_armed)
+                self.assertTrue(runtime.macro_lock.should_stop())
+                self.assertTrue(AtlasRuntime.toggle_mirror(runtime))
+                self.assertTrue(runtime._mirror_armed)
+                runtime.macro_lock.request_stop("urgence", latch=True)
+                self.assertFalse(AtlasRuntime.toggle_mirror(runtime))
+                self.assertFalse(runtime._mirror_armed)
+
+    def test_mirror_requires_valid_favorite_and_runtime_ready(self):
+        settings = SimpleNamespace(
+            macro_mode="mirror", primary_handle=999,
+            clients=[SimpleNamespace(handle=101), SimpleNamespace(handle=102)],
+        )
+        runtime = SimpleNamespace(
+            settings=settings, _mirror_armed=False, _running=True, _admin_ok=True,
+            macro_lock=MacroLock(Mock()),
+            _emit_active=Mock(), _emit_status=Mock(),
+        )
+        self.assertFalse(AtlasRuntime.toggle_mirror(runtime))
+        self.assertFalse(runtime._mirror_armed)
+        settings.primary_handle = 101
+        runtime._running = False
+        self.assertFalse(AtlasRuntime.toggle_mirror(runtime))
+        runtime._emit_active.assert_not_called()
+        runtime._running = True
+        self.assertTrue(AtlasRuntime.toggle_mirror(runtime))
+
+    def test_mirror_refuses_malformed_or_duplicate_native_rosters_before_arm(self):
+        candidates = (
+            (101, 101),
+            (101, True),
+            (101, 101.0),
+            (101, 2**64),
+            (101, None),
+            (101, "202"),
+            (101,),
+            tuple(range(101, 110)),
+        )
+        for handles in candidates:
+            with self.subTest(handles=handles):
+                profile = SimpleNamespace(
+                    macro_mode="mirror", primary_handle=101,
+                    clients=[SimpleNamespace(handle=hwnd) for hwnd in handles],
+                )
+                runtime = SimpleNamespace(
+                    settings=profile, _mirror_armed=False, _running=True,
+                    _admin_ok=True, macro_lock=MacroLock(Mock()),
+                    _emit_active=Mock(), _emit_status=Mock(),
+                )
+                self.assertFalse(AtlasRuntime.toggle_mirror(runtime))
+                self.assertFalse(runtime._mirror_armed)
+                runtime._emit_active.assert_not_called()
+                self.assertIn("Miroir indisponible", runtime._emit_status.call_args.args[0])
+
+    def test_mirror_refuses_empty_runtime_bindings_even_if_stale_roster_remains(self):
+        runtime = SimpleNamespace(
+            settings=SimpleNamespace(
+                macro_mode="mirror", primary_handle=101,
+                clients=[SimpleNamespace(handle=101), SimpleNamespace(handle=202)],
+            ),
+            _mirror_armed=False, _running=True, _admin_ok=True,
+            _runtime_bindings_available=False,
+            macro_lock=MacroLock(Mock()), _emit_active=Mock(), _emit_status=Mock(),
+        )
+        self.assertFalse(AtlasRuntime.toggle_mirror(runtime))
+        self.assertFalse(runtime._mirror_armed)
+        runtime._emit_active.assert_not_called()
+
+    def test_emergency_stop_stays_latched_until_safe_explicit_resume(self):
+        for accounts in (1, 2, 4, 6, 8):
+            with self.subTest(accounts=accounts):
+                lock = MacroLock(Mock())
+                first = lock.try_begin_generation("Miroir")
+                self.assertIs(type(first), int)
+                lock.request_stop("bouton stop", latch=True)
+                self.assertTrue(lock.emergency_latched)
+                self.assertTrue(lock.should_stop())
+                self.assertIsNone(lock.try_begin_generation("Auto zaap"))
+                # A live worker cannot be revived while it is finishing.
+                self.assertFalse(lock.resume_after_stop())
+                self.assertTrue(lock.emergency_latched)
+                lock.end("Miroir", generation=first)
+                self.assertIsNone(lock.try_begin_generation("Auto groupe"))
+                self.assertTrue(lock.resume_after_stop())
+                self.assertFalse(lock.emergency_latched)
+                self.assertFalse(lock.should_stop())
+                second = lock.try_begin_generation("Auto zaap")
+                self.assertIs(type(second), int)
+                self.assertGreater(second, first)
+                lock.end("Auto zaap", generation=second)
+
+    def test_temporary_reconfiguration_stop_keeps_legacy_restart_semantics(self):
+        lock = MacroLock(Mock())
+        first = lock.try_begin_generation("Miroir")
+        lock.request_stop("changement profil")
+        self.assertFalse(lock.emergency_latched)
+        lock.end("Miroir", generation=first)
+        self.assertIs(type(lock.try_begin_generation("Miroir")), int)
+
     def test_macro_lock_state_survives_failed_logger_during_admission_stop_cleanup(self):
         for accounts in (2, 4, 6, 8):
             with self.subTest(accounts=accounts):

@@ -21,6 +21,8 @@ from app.constants import (
     KEY_RADIAL_ENABLED,
     KEY_RADIAL_EXCLUDED,
     KEY_NEXT_CHARACTER_HOTKEY,
+    KEY_PREVIOUS_CHARACTER_HOTKEY,
+    KEY_MIRROR_TOGGLE_HOTKEY,
     KEY_RADIAL_PARTICIPANTS,
     KEY_SWITCH_CHARACTER,
     KEY_SWITCH_CLICK,
@@ -139,6 +141,8 @@ class OrganizerPage(
         sessions_changed_callback=None,
         active_session_callback=None,
         next_character_callback=None,
+        previous_character_callback=None,
+        mirror_arm_callback=None,
     ) -> None:
         super().__init__(parent)
         self.setObjectName("organizerPage")
@@ -151,6 +155,8 @@ class OrganizerPage(
         self.sessions_changed_callback = sessions_changed_callback
         self.active_session_callback = active_session_callback
         self.next_character_callback = next_character_callback
+        self.previous_character_callback = previous_character_callback
+        self.mirror_arm_callback = mirror_arm_callback
         self._last_notified_session_signature: tuple[tuple[int, str, int, int], ...] | None = None
         self._sessions_render_dirty = False
         self.release_retry_index = 0
@@ -268,6 +274,12 @@ class OrganizerPage(
         self.next_character.clicked.connect(self.activate_next_character)
         self.next_character_hotkey_button.clicked.connect(lambda: self.begin_capture("next_character"))
         self.next_character_clear.clicked.connect(lambda: self.clear_global_hotkey(KEY_NEXT_CHARACTER_HOTKEY))
+        self.previous_character.clicked.connect(self.activate_previous_character)
+        self.previous_character_hotkey_button.clicked.connect(lambda: self.begin_capture("previous_character"))
+        self.previous_character_clear.clicked.connect(lambda: self.clear_global_hotkey(KEY_PREVIOUS_CHARACTER_HOTKEY))
+        self.mirror_arm_button.clicked.connect(self.toggle_mirror_armed)
+        self.mirror_toggle_hotkey_button.clicked.connect(lambda: self.begin_capture("mirror_toggle"))
+        self.mirror_toggle_clear.clicked.connect(lambda: self.clear_global_hotkey(KEY_MIRROR_TOGGLE_HOTKEY))
         self.reload_runtime_button.clicked.connect(self.reload_runtime)
         self.debug_button.clicked.connect(self.toggle_debug_mode)
         self.sessions_refresh_button.clicked.connect(self.scan_sessions)
@@ -288,6 +300,20 @@ class OrganizerPage(
             callback()
         else:
             self.status_callback("Personnage suivant : runtime indisponible.")
+
+    def activate_previous_character(self) -> None:
+        callback = self.previous_character_callback
+        if callable(callback):
+            callback()
+        else:
+            self.status_callback("Personnage précédent : runtime indisponible.")
+
+    def toggle_mirror_armed(self) -> None:
+        callback = self.mirror_arm_callback
+        if callable(callback):
+            self.set_mirror_arm_active(callback() is True)
+        else:
+            self.status_callback("Activation Miroir indisponible : runtime absent.")
 
     def ensure_radial_participants(self) -> None:
         # Snapshot the current Organizer roster when the shortcut is first
@@ -388,19 +414,29 @@ class OrganizerPage(
             return False
         if self.capture_target is not None:
             return False
-        from app.windows.unity_windows import foreground_window, is_unity_window
+        from app.windows.unity_windows import foreground_window
         hwnd = foreground_window()
-        # A foreign/untracked Dofus window is not an Organizer session and
-        # must not trigger a focus-changing radial picker.
-        return bool(
-            is_unity_window(hwnd)
-            and any(
-                session_is_detected(row) and session_hwnd(row) == hwnd
-                for row in getattr(self, "sessions", [])
-            )
-        )
+        # The selection shortcut is global: the source can be any existing
+        # Windows foreground window, not only an active DOFUS Unity client.
+        # The targets, by contrast, must still be verified Organizer sessions.
+        if type(hwnd) is not int or hwnd <= 0:
+            return False
+        if not any(session_is_detected(row) for row in getattr(self, "sessions", [])):
+            return False
+        overlay = getattr(self, "_radial_overlay", None)
+        if isinstance(overlay, QWidget) and overlay.isVisible():
+            # Do not activate a game after Alt+Tab or focus theft while held.
+            return hwnd == getattr(self, "_radial_origin_hwnd", None)
+        self._radial_origin_hwnd = hwnd
+        return True
 
     def _activate_radial_handle(self, handle: int) -> None:
+        # Closing the overlay must not move focus if another app took over.
+        origin = getattr(self, "_radial_origin_hwnd", None)
+        if type(origin) is int and origin > 0:
+            from app.windows.unity_windows import foreground_window
+            if foreground_window() != origin:
+                return
         if handle == 0:
             # Centre: open the existing Atlas window, never another instance.
             window = self.window()

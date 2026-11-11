@@ -113,6 +113,10 @@ class AtlasRuntime:
         self._pending_physical_switch = None
         self._mirror_drain_lock = threading.Lock()
         self._mirror_input = None
+        # Volatile: selecting the Miroir tab never arms physical input relay.
+        # Each Atlas startup and settings reload begins disarmed.
+        self._mirror_armed = False
+        self._mirror_arm_epoch = 0
         self._direction = None
         self._travel = None
         self._zaap = None
@@ -270,6 +274,9 @@ class AtlasRuntime:
             self.status_callback(str(text))
 
     def _emit_active(self, active: bool) -> None:
+        # Emergency Stop owns the existing red/green runtime indicator.
+        # A routine hooks reload may not turn it green before Relancer.
+        active = bool(active) and getattr(self.macro_lock, "emergency_latched", False) is not True
         bridge = self._callback_bridge
         if bridge is not None:
             bridge.publish_active(bool(active))
@@ -451,7 +458,15 @@ class AtlasRuntime:
             )
 
     def reload_hotkeys(self, force_restart: bool = False) -> None:
-        self.settings = load_settings()
+        # A harmless refresh (including Zaap/Auto-groupe launch) must not
+        # silently turn off an explicitly activated Mirror. A changed roster,
+        # favorite, mode or any runtime binding still invalidates consent.
+        previous_settings = self.__dict__.get("_settings")
+        was_armed = getattr(self, "_mirror_armed", False) is True
+        arm_epoch = self.__dict__.get("_mirror_arm_epoch", 0)
+        self._mirror_armed = False
+        refreshed_settings = load_settings()
+        self.settings = refreshed_settings
         set_debug_logging(self.settings.debug_enabled)
         if not self.settings.clients:
             # No client means no keyboard/mouse action can target Dofus. Avoid
@@ -470,6 +485,13 @@ class AtlasRuntime:
         self._admin_ok = admin_audit.ok
         self.synthetic_guard.reset()
         self.input_state.reset_armed()
+        if (was_armed and previous_settings is not None
+                and previous_settings == refreshed_settings
+                and getattr(refreshed_settings, "macro_mode", None) == "mirror"
+                and self._running and self._admin_ok
+                and self.__dict__.get("_mirror_arm_epoch", 0) == arm_epoch
+                and not self.macro_lock.should_stop()):
+            self._mirror_armed = True
         # The activity badge represents real hook execution, not configuration
         # readiness. A bad optional/individual binding can warn without claiming
         # that an already-running hook runtime has stopped.
@@ -495,6 +517,9 @@ class AtlasRuntime:
         self.travel.run_async(text, tuple(character_keys or ()))
 
     def launch_zaap(self, text: str, click_position=None, click_ratios=None) -> bool:
+        if getattr(self.macro_lock, "emergency_latched", False) is True:
+            self._emit_status("Zaap bloqué : Stop urgence actif. Cliquer sur Relancer.")
+            return False
         # A rejected concurrent launch must not reload Organizer while the
         # first worker is still sending actions to its captured roster.
         if self.macro_lock.active_label:
@@ -506,14 +531,19 @@ class AtlasRuntime:
         ))
 
     def launch_auto_group(self, invite_entries: list[dict[str, object]]) -> bool:
+        if getattr(self.macro_lock, "emergency_latched", False) is True:
+            self._emit_status("Auto-groupe bloqué : Stop urgence actif. Cliquer sur Relancer.")
+            return False
         if self.macro_lock.active_label:
             self.logger.info("Auto groupe refusé: macro déjà active.")
             return False
         self.settings = load_settings()
         return bool(self.auto_group.run_async(invite_entries))
 
-    def emergency_stop(self, reason: str = "stop urgence") -> None:
-        self.macro_lock.request_stop(reason)
+    def emergency_stop(self, reason: str = "stop urgence", *, latch: bool = True) -> None:
+        self._mirror_armed = False
+        self._mirror_arm_epoch = self.__dict__.get("_mirror_arm_epoch", 0) + 1
+        self.macro_lock.request_stop(reason, latch=latch)
         self._pending_physical_switch = None
         failures: list[str] = []
 
@@ -561,6 +591,8 @@ class AtlasRuntime:
                 self.logger.warning("Stop urgence Python: etats internes remis a zero.")
         except Exception:
             pass
+        if latch:
+            self._emit_active(False)
         self._emit_status(
             "Stop urgence: interruption demandée, relâchements à vérifier."
             if failures else "Stop urgence: macros Python arretees."
@@ -615,6 +647,51 @@ class AtlasRuntime:
             return False
         return True
 
+    @property
+    def mirror_armed(self) -> bool:
+        return self._mirror_armed is True
+
+    def toggle_mirror(self) -> bool:
+        """Explicit, volatile opt-in; physical input remains native by default."""
+        if self.settings.macro_mode != "mirror":
+            self._emit_status("Miroir indisponible : sélectionner le mode Miroir.")
+            return False
+        if self._mirror_armed:
+            self._mirror_armed = False
+            self.emergency_stop("Miroir désactivé", latch=False)
+            self._emit_active(bool(self._running and self._admin_ok))
+            self._emit_status("Miroir désactivé : entrées non recopiées.")
+            return False
+        if (not self._running or not self._admin_ok
+                or getattr(self, "_runtime_bindings_available", True) is False
+                or self.macro_lock.emergency_latched):
+            self._emit_status("Miroir indisponible : runtime arrêté, sans sessions ou Stop urgence actif.")
+            return False
+        if not self.macro_lock.resume_after_stop():
+            self._emit_status("Miroir indisponible : macro précédente encore active.")
+            return False
+        settings = self.settings
+        clients = getattr(settings, "clients", None)
+        if not isinstance(clients, (list, tuple)):
+            self._emit_status("Miroir indisponible : liste des personnages illisible.")
+            return False
+        handles = tuple(getattr(item, "handle", None) for item in clients)
+        if (not 2 <= len(handles) <= 8
+                or any(type(hwnd) is not int or not 0 < hwnd <= (2**64 - 1)
+                       for hwnd in handles)
+                or len(set(handles)) != len(handles)
+                or type(settings.primary_handle) is not int
+                or settings.primary_handle not in handles):
+            # Do not claim the relay is armed on malformed/duplicate native
+            # windows: the actual sender would reject this roster immediately.
+            self._emit_status("Miroir indisponible : 2 à 8 fenêtres uniques et un favori valides requis.")
+            return False
+        self._mirror_arm_epoch = self.__dict__.get("_mirror_arm_epoch", 0) + 1
+        self._mirror_armed = True
+        self._emit_active(True)
+        self._emit_status("Miroir activé à la demande : arrêter avec le raccourci ou le bouton.")
+        return True
+
     def _handle_hotkey(self, action_id: str, payload: dict[str, object]) -> None:
         if action_id == "stop_script":
             # Latch Stop and release inputs BEFORE any optional diagnostic.
@@ -627,6 +704,9 @@ class AtlasRuntime:
                 except Exception:
                     pass
             return
+        if getattr(self.macro_lock, "emergency_latched", False) is True:
+            # Stop remains authoritative even if hooks are still running.
+            return
         if not self._running or not self._admin_ok:
             self.logger.debug(
                 "Raccourci ignore: runtime actif=%s admin_ok=%s action=%s",
@@ -636,7 +716,14 @@ class AtlasRuntime:
             )
             return
         settings = self.settings
-        if settings.macro_mode == "mirror":
+        if action_id == "mirror_toggle":
+            self.toggle_mirror()
+            return
+        if action_id in {"next_character", "previous_character"} and (
+                settings.macro_mode == "mirror"
+                and getattr(self, "_mirror_armed", False) is True):
+            # Never change game focus under an active Mirror source.
+            self._emit_status("Arrêter Miroir avant de changer de personnage.")
             return
         if action_id == "next_character":
             # A busy MacroLock would reject the eventual activation worker.
@@ -645,6 +732,14 @@ class AtlasRuntime:
                     and self.settings is settings
                     and not self.macro_lock.active_label):
                 self.switch_character.activate_next(expected_profile=settings)
+            return
+        if action_id == "previous_character":
+            if (settings.switch_character_enabled
+                    and self.settings is settings
+                    and not self.macro_lock.active_label):
+                self.switch_character.activate_previous(expected_profile=settings)
+            return
+        if settings.macro_mode == "mirror":
             return
         if action_id.startswith("client:"):
             raw_index = payload.get("client_index", 0)
@@ -710,7 +805,9 @@ class AtlasRuntime:
         settings = self.settings
         if (not self._running or not self._admin_ok
                 or settings is None
-                or getattr(settings, "macro_mode", None) != "mirror"):
+                or getattr(settings, "macro_mode", None) != "mirror"
+                or getattr(self, "_mirror_armed", False) is not True
+                or getattr(self.macro_lock, "emergency_latched", False) is True):
             return None
         source = getattr(settings, "primary_handle", None)
         if type(source) is not int or not 0 < source <= (2**64 - 1):
@@ -746,11 +843,10 @@ class AtlasRuntime:
             return (
                 self.settings is settings
                 and self._running and self._admin_ok
-                # MacroLock keeps Stop latched once a worker ends. A fresh
-                # gesture may start a new lease, which clears that old latch.
-                and not (self.macro_lock.active_label
-                         and self.macro_lock.should_stop())
+                # No gesture is admitted after an emergency Stop until Relancer.
+                and not self.macro_lock.should_stop()
                 and getattr(settings, "macro_mode", None) == "mirror"
+                and getattr(self, "_mirror_armed", False) is True
                 and type(getattr(settings, "primary_handle", None)) is int
                 and getattr(settings, "primary_handle", None) == source
                 and type(getattr(favorite, "handle", None)) is int
@@ -797,7 +893,9 @@ class AtlasRuntime:
             pass
 
     def _mirror_pointer_profile_is_current(self, context: MirrorPointerContext) -> bool:
-        if type(context) is not MirrorPointerContext or not self._running or not self._admin_ok:
+        if (type(context) is not MirrorPointerContext or not self._running
+                or not self._admin_ok
+                or getattr(self, "_mirror_armed", False) is not True):
             return False
         # A low-level hook must not invoke the lazy JSON loader during a
         # detached-profile transition. Plain diagnostic runtimes expose the
@@ -1065,18 +1163,29 @@ class AtlasRuntime:
         if (not self._running or not self._admin_ok
                 or settings is None
                 or getattr(settings, "macro_mode", None) != "mirror"
+                or getattr(self, "_mirror_armed", False) is not True
+                or getattr(self.macro_lock, "emergency_latched", False) is True
                 or (self.macro_lock.active_label
                     and self.macro_lock.should_stop())):
             return False
+        # Any Organizer command key is reserved even when its shortcut is
+        # not currently matched (e.g. CTRL+F8 vs plain F8). This prevents
+        # the activation DOWN from becoming a mirrored DOFUS keystroke.
+        from app.input.hotkeys import parsed_hotkey_keys
+        reserved_hotkeys = (
+            getattr(settings, "stop_hotkey", ""),
+            getattr(settings, "mirror_toggle_hotkey", ""),
+            getattr(settings, "next_character_hotkey", ""),
+            getattr(settings, "previous_character_hotkey", ""),
+        )
         if getattr(settings, "radial_enabled", False) is True:
-            radial_text = getattr(settings, "radial_hotkey", "")
-            if type(radial_text) is str and radial_text:
-                from app.input.hotkeys import parsed_hotkey_keys
-
-                if vk_code in parsed_hotkey_keys(radial_text):
-                    # The radial hold-controller owns this physical key.
-                    # Do not broadcast it as an extra mirrored tap.
-                    return False
+            reserved_hotkeys += (getattr(settings, "radial_hotkey", ""),)
+        if any(
+            vk_code in parsed_hotkey_keys(binding)
+            for binding in reserved_hotkeys
+            if type(binding) is str and binding
+        ):
+            return False
         # Capture the active worker BEFORE the native foreground query,
         # which can yield to a Stop/restart with the same action label.
         owner = self.macro_lock.snapshot_active()
@@ -1200,6 +1309,8 @@ class AtlasRuntime:
         if (not self._running or not self._admin_ok
                 or settings is None
                 or getattr(settings, "macro_mode", None) != "mirror"
+                or getattr(self, "_mirror_armed", False) is not True
+                or getattr(self.macro_lock, "emergency_latched", False) is True
                 or (self.macro_lock.active_label
                     and self.macro_lock.should_stop())):
             return False
@@ -1321,6 +1432,8 @@ class AtlasRuntime:
         )
         from app.macros.mirror_plan import mirror_delivery_targets, is_dofus_unity_process
 
+        if getattr(self, "_mirror_armed", False) is not True:
+            return False
         if (type(button) is not str or button.casefold() not in {"left", "right"}
                 or type(screen_x) is not int or type(screen_y) is not int
                 or not -(2**31) <= screen_x < 2**31
@@ -1413,6 +1526,7 @@ class AtlasRuntime:
                 self.settings is settings
                 and self._running and self._admin_ok
                 and settings.macro_mode == "mirror"
+                and getattr(self, "_mirror_armed", False) is True
                 and type(settings.primary_handle) is int
                 and settings.primary_handle == source_hwnd
                 and type(getattr(favorite, "handle", None)) is int
@@ -1477,6 +1591,9 @@ class AtlasRuntime:
             return False
 
     def _handle_mouse_click(self, button: str, screen_x: int, screen_y: int) -> bool:
+        # Unarmed or stopped Organizer must never swallow native clicks.
+        if getattr(self.macro_lock, "emergency_latched", False) is True:
+            return False
         if not self._running or not self._admin_ok:
             self.logger.debug(
                 "Clic ignore: runtime actif=%s admin_ok=%s button=%s x=%s y=%s",

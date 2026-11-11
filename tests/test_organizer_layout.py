@@ -544,6 +544,28 @@ class OrganizerLayoutTests(unittest.TestCase):
                     "Personnage suivant indisponible : macro déjà en cours."
                 )
 
+    def test_armed_mirror_blocks_both_shell_navigation_buttons(self):
+        from unittest.mock import Mock
+        import main as app_main
+
+        for label, method in (
+            ("suivant", app_main.AtlasWindow.launch_next_character),
+            ("précédent", app_main.AtlasWindow.launch_previous_character),
+        ):
+            with self.subTest(action=label):
+                shell = Mock()
+                shell.quit_requested = False
+                shell._background_services_stopped = False
+                runtime = shell._ensure_runtime.return_value
+                runtime.mirror_armed = True
+                runtime.macro_lock.active_label = ""
+                method(shell)
+                runtime.switch_character.activate_next.assert_not_called()
+                runtime.switch_character.activate_previous.assert_not_called()
+                shell.set_status.assert_called_once_with(
+                    "Arrêter Miroir avant de changer de personnage."
+                )
+
     def test_next_button_never_resurrects_runtime_during_shutdown(self):
         from unittest.mock import Mock
         import main as app_main
@@ -684,6 +706,140 @@ class OrganizerLayoutTests(unittest.TestCase):
                     fake, "/zaap 1,2",
                 ), accepted)
 
+    def test_stop_button_cancels_radial_before_runtime_callback(self):
+        from unittest.mock import Mock
+        from app.pages.organizer.organizer_hotkeys import OrganizerHotkeysMixin
+
+        events = []
+        page = SimpleNamespace(
+            _radial_controller=Mock(),
+            stop_runtime_callback=lambda: events.append("runtime_stop"),
+            status_callback=Mock(),
+        )
+        page._radial_controller.cancel.side_effect = lambda: events.append("radial_cancel")
+        OrganizerHotkeysMixin.stop_script(page)
+        self.assertEqual(events, ["radial_cancel", "runtime_stop"])
+        page.status_callback.assert_not_called()
+
+    def test_runtime_red_indicator_cancels_held_radial_controller(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            with self.organizer_page(Path(temporary)) as page:
+                controller = page._radial_controller
+                with patch.object(controller, "cancel", wraps=controller.cancel) as cancel:
+                    page.set_runtime_active(True)
+                    cancel.assert_not_called()
+                    page.set_runtime_active(False)
+                    cancel.assert_called_once_with()
+
+    def test_refused_mirror_toggle_never_turns_emergency_led_green(self):
+        from unittest.mock import Mock
+        import main as app_main
+
+        shell = Mock()
+        shell.quit_requested = False
+        shell._background_services_stopped = False
+        organizer = Mock()
+        shell.page_widgets = {"Organizer": organizer}
+        shell.runtime._running = True
+        shell.runtime._admin_ok = True
+        shell.runtime.mirror_armed = False
+        shell.runtime.macro_lock.emergency_latched = True
+        shell.runtime.toggle_mirror.return_value = False
+        shell.update_runtime_badge.side_effect = (
+            lambda connected: app_main.AtlasWindow.update_runtime_badge(
+                shell, connected,
+            )
+        )
+        self.assertFalse(app_main.AtlasWindow.toggle_mirror(shell))
+        organizer.set_runtime_active.assert_called_with(False)
+        organizer.set_mirror_arm_active.assert_called_with(False)
+        # Only a real Relancer/runtime-ready state can turn the badge green.
+        shell.runtime.macro_lock.emergency_latched = False
+        app_main.AtlasWindow.update_runtime_badge(shell, True)
+        organizer.set_runtime_active.assert_called_with(True)
+        shell.runtime._admin_ok = False
+        self.assertFalse(app_main.AtlasWindow.toggle_mirror(shell))
+        organizer.set_runtime_active.assert_called_with(False)
+
+    def test_emergency_stop_and_reconfiguration_are_distinct(self):
+        from unittest.mock import Mock
+        import main as app_main
+
+        shell = Mock()
+        shell.runtime = Mock()
+        app_main.AtlasWindow.stop_runtime(shell)
+        shell.runtime.emergency_stop.assert_called_once_with(
+            "bouton stop", latch=True,
+        )
+        shell.runtime.emergency_stop.reset_mock()
+        app_main.AtlasWindow.stop_runtime(shell, True)
+        shell.runtime.emergency_stop.assert_called_once_with(
+            "reconfiguration Organizer", latch=False,
+        )
+
+    def test_runtime_badge_cannot_turn_green_while_emergency_stop_is_latched(self):
+        from unittest.mock import Mock
+        import main as app_main
+
+        shell = Mock()
+        organizer_widget = Mock()
+        shell.page_widgets = {"Organizer": organizer_widget}
+        shell.runtime = SimpleNamespace(
+            macro_lock=SimpleNamespace(emergency_latched=True),
+            mirror_armed=False,
+        )
+        app_main.AtlasWindow.update_runtime_badge(shell, True)
+        organizer_widget.set_runtime_active.assert_called_once_with(False)
+        organizer_widget.set_mirror_arm_active.assert_called_once_with(False)
+
+        organizer_widget.reset_mock()
+        shell.runtime.macro_lock.emergency_latched = False
+        app_main.AtlasWindow.update_runtime_badge(shell, True)
+        organizer_widget.set_runtime_active.assert_called_once_with(True)
+
+    def test_mirror_toggle_refusal_after_stop_cannot_reenable_green_badge(self):
+        from unittest.mock import Mock
+        import main as app_main
+
+        shell = Mock()
+        shell.quit_requested = False
+        shell._background_services_stopped = False
+        runtime = shell.runtime
+        runtime._running = True
+        runtime._admin_ok = True
+        runtime.macro_lock.emergency_latched = True
+        runtime.toggle_mirror.return_value = False
+        self.assertFalse(app_main.AtlasWindow.toggle_mirror(shell))
+        shell.update_runtime_badge.assert_called_once_with(False)
+        runtime.toggle_mirror.assert_called_once_with()
+
+    def test_explicit_relancer_refuses_busy_workers_before_green_light(self):
+        from unittest.mock import Mock
+        import main as app_main
+
+        for allowed in (False, True):
+            with self.subTest(allowed=allowed):
+                shell = Mock()
+                shell.quit_requested = False
+                shell._background_services_stopped = False
+                runtime = shell._ensure_runtime.return_value
+                runtime._running = True
+                runtime.macro_lock.resume_after_stop.return_value = allowed
+                app_main.AtlasWindow.reload_runtime(shell, True)
+                runtime.macro_lock.resume_after_stop.assert_called_once()
+                if allowed:
+                    runtime.reload_hotkeys.assert_called_once_with(True)
+                    shell.update_runtime_badge.assert_not_called()
+                else:
+                    runtime.reload_hotkeys.assert_not_called()
+                    shell.update_runtime_badge.assert_called_once_with(False)
+                    shell.set_status.assert_called_once()
+                runtime.macro_lock.resume_after_stop.reset_mock()
+                runtime.reload_hotkeys.reset_mock()
+                app_main.AtlasWindow.reload_runtime(shell, False)
+                runtime.macro_lock.resume_after_stop.assert_not_called()
+                runtime.reload_hotkeys.assert_called_once_with(False)
+
     def test_character_slots_panel_calculates_height_from_grid_geometry(self):
         refresh = QFrame()
         refresh.setFixedSize(32, organizer.BUTTON_HEIGHT)
@@ -729,6 +885,12 @@ class OrganizerLayoutTests(unittest.TestCase):
                     self.assertEqual(geometry.height(), organizer.CHARACTER_SLOT_HEIGHT)
                     self.assertGreaterEqual(geometry.top(), content_rect.top())
                     self.assertLessEqual(geometry.bottom(), content_rect.bottom())
+                    # No unexplained circular per-character selector.
+                    from PySide6.QtWidgets import QPushButton
+                    self.assertFalse(any(
+                        button.text() in {"◉", "○"}
+                        for button in widget.findChildren(QPushButton)
+                    ))
 
     def test_hidden_organizer_evicts_only_slots_and_preserves_live_watcher(self):
         from PySide6.QtCore import QCoreApplication, QEvent
@@ -787,38 +949,102 @@ class OrganizerLayoutTests(unittest.TestCase):
                 self.assertIsNotNone(page.zaap.suggestion_popup)
                 self.assertTrue(page.zaap.show_favorites)
 
-    def test_normal_rapid_speed_is_horizontal_and_legacy_modes_remain_accessible(self):
+    def test_mirror_requires_explicit_arm_and_navigation_buttons_share_row(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            with self.organizer_page(Path(temporary)) as page:
+                self.app.processEvents()
+                self.assertTrue(page.mirror_arm_button.isHidden() is False)
+                self.assertFalse(page.mirror_arm_button.isEnabled())
+                from app.constants import KEY_ORGANIZER_MACRO_MODE
+                page.profiles[KEY_ORGANIZER_MACRO_MODE] = "mirror"
+                page.update_macro_mode_buttons()
+                self.assertTrue(page.mirror_arm_button.isEnabled())
+                self.assertEqual(page.mirror_arm_button.text(), "Activer Miroir")
+                self.assertEqual(
+                    page.mirror_arm_button.width(),
+                    page.stop_script_button.width(),
+                )
+                self.assertFalse(page.switch_character.isEnabled())
+                self.assertFalse(page.switch_click.isEnabled())
+                self.assertTrue(page.next_character.isEnabled())
+                self.assertTrue(page.previous_character.isEnabled())
+                self.assertTrue(page.next_character_hotkey_button.isEnabled())
+                self.assertTrue(page.previous_character_hotkey_button.isEnabled())
+                page.set_mirror_arm_active(True)
+                self.assertEqual(page.mirror_arm_button.text(), "Arrêter Miroir")
+                self.assertFalse(page.next_character.isEnabled())
+                self.assertFalse(page.previous_character.isEnabled())
+                page.set_mirror_arm_active(False)
+                self.assertEqual(page.mirror_arm_button.text(), "Activer Miroir")
+                self.assertTrue(page.next_character.isEnabled())
+                self.assertTrue(page.previous_character.isEnabled())
+                previous_cell = page.previous_character.parentWidget()
+                next_cell = page.next_character.parentWidget()
+                self.assertIs(previous_cell.parentWidget(), next_cell.parentWidget())
+                self.assertEqual(previous_cell.y(), next_cell.y())
+                self.assertLess(previous_cell.x(), next_cell.x())
+                self.assertEqual(page.previous_character.height(), page.next_character.height())
+                self.assertIs(
+                    page.mirror_arm_button.parentWidget(),
+                    page.mirror_toggle_hotkey_button.parentWidget(),
+                )
+
+    def test_three_visible_speed_presets_and_compact_controls(self):
         with tempfile.TemporaryDirectory() as temporary:
             with self.organizer_page(Path(temporary)) as page:
                 self.app.processEvents()
                 normal = page.script_speed_normal
                 rapid = page.script_speed_fast
-                classic = page.script_speed_legacy
                 instant = page.script_speed_instant
+                classic = page.script_speed_legacy
+                self.assertTrue(page.script_speed_title.isVisible())
+                self.assertEqual(page.script_speed_title.text(), "Vitesse :")
+                self.assertIs(page.script_speed_title.parentWidget(), normal.parentWidget())
+                self.assertEqual(page.script_speed_title.y(), normal.y())
+                self.assertLess(page.script_speed_title.x(), normal.x())
+                self.assertLessEqual(
+                    instant.x() + instant.width(), instant.parentWidget().width(),
+                )
+                self.assertTrue(classic.isHidden())
                 self.assertEqual(normal.parent(), rapid.parent())
-                self.assertEqual(classic.parent(), instant.parent())
+                self.assertEqual(normal.parent(), instant.parent())
                 self.assertEqual(normal.y(), rapid.y())
+                self.assertEqual(rapid.y(), instant.y())
                 self.assertLess(normal.x(), rapid.x())
-                self.assertEqual(classic.y(), instant.y())
-                self.assertLess(classic.x(), instant.x())
-                self.assertGreater(classic.y(), normal.y())
-                for button in (normal, rapid, classic, instant):
-                    self.assertTrue(button.isVisible())
+                self.assertLess(rapid.x(), instant.x())
+                self.assertTrue(all(button.isVisible() for button in (normal, rapid, instant)))
+                self.assertEqual(page.radial_select_button.height(), page.switch_fake.height())
+                self.assertEqual(page.radial_select_button.text(), "Sélection perso")
+                self.assertIs(page.stop_script_button.parentWidget(),
+                              page.stop_script_hotkey_button.parentWidget())
+                self.assertGreaterEqual(page.stop_script_hotkey_button.x(), 0)
+                self.assertLessEqual(
+                    page.stop_script_hotkey_button.x() + page.stop_script_hotkey_button.width(),
+                    page.stop_script_button.width(),
+                )
                 from app.constants import KEY_SCRIPT_SPEED, KEY_SCRIPT_SPEED_SCHEMA
                 for value, selected in (
                     ("normal", normal), ("rapide", rapid),
-                    ("classique", classic), ("instantane", instant),
+                    ("instantane", instant),
                 ):
                     page.profiles[KEY_SCRIPT_SPEED] = value
                     page.profiles[KEY_SCRIPT_SPEED_SCHEMA] = 2
                     page.update_script_speed_buttons()
-                    for button in (normal, rapid, classic, instant):
+                    for button in (normal, rapid, instant):
                         self.assertEqual(
                             button.objectName(),
                             "segmentedButtonActive" if button is selected
                             else "segmentedButton",
                         )
-
+                # Legacy profiles retain their slower timing, but Classique
+                # is never displayed or misrepresented as Normal.
+                page.profiles[KEY_SCRIPT_SPEED] = "classique"
+                page.update_script_speed_buttons()
+                self.assertTrue(classic.isHidden())
+                self.assertTrue(all(
+                    button.objectName() == "segmentedButton"
+                    for button in (normal, rapid, instant)
+                ))
 
 
 if __name__ == "__main__":

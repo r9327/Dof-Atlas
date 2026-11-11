@@ -16,6 +16,8 @@ from app.constants import (
     KEY_SESSION_ORDER,
     KEY_STOP_SCRIPT_HOTKEY,
     KEY_NEXT_CHARACTER_HOTKEY,
+    KEY_PREVIOUS_CHARACTER_HOTKEY,
+    KEY_MIRROR_TOGGLE_HOTKEY,
     KEY_SWITCH_CHARACTER,
     KEY_SWITCH_CLICK,
     KEY_SWITCH_DOUBLE_CLICK,
@@ -735,6 +737,8 @@ class CharacterSessionsMixin:
         double_click_hotkey = str(self.profiles.get(KEY_DOUBLE_CLICK_HOTKEY, "")).strip() if double_click_enabled else ""
         stop_script_hotkey = str(self.profiles.get(KEY_STOP_SCRIPT_HOTKEY, "")).strip()
         next_character_hotkey = str(self.profiles.get(KEY_NEXT_CHARACTER_HOTKEY, "")).strip()
+        previous_character_hotkey = str(self.profiles.get(KEY_PREVIOUS_CHARACTER_HOTKEY, "")).strip()
+        mirror_toggle_hotkey = str(self.profiles.get(KEY_MIRROR_TOGGLE_HOTKEY, "")).strip()
         script_speed = self.script_speed()
         debug_enabled = profile_bool(self.profiles, KEY_DEBUG_MODE, False)
         if double_click_enabled and click_hotkey and double_click_hotkey and click_hotkey == double_click_hotkey:
@@ -760,7 +764,8 @@ class CharacterSessionsMixin:
             binding = self.resolve_client_binding(
                 slot_index,
                 used_client_bindings,
-                {click_hotkey, double_click_hotkey, stop_script_hotkey, next_character_hotkey},
+                {click_hotkey, double_click_hotkey, stop_script_hotkey, next_character_hotkey,
+                 previous_character_hotkey, mirror_toggle_hotkey},
             )
             clients.append(
                 {
@@ -795,6 +800,8 @@ class CharacterSessionsMixin:
                 "movement_enabled": profile_bool(self.profiles, KEY_SWITCH_MOVEMENT, False),
                 "stop_script_hotkey": stop_script_hotkey,
                 "next_character_hotkey": next_character_hotkey,
+                "previous_character_hotkey": previous_character_hotkey,
+                "mirror_toggle_hotkey": mirror_toggle_hotkey,
                 "script_speed": script_speed,
                 "script_speed_schema": 2,
                 "debug_enabled": debug_enabled,

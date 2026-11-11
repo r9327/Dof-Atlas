@@ -12,6 +12,56 @@ from app.windows import clicks
 
 class OrganizerSendInputTests(unittest.TestCase):
 
+    def test_chat_open_space_refusal_never_deletes_or_pastes(self) -> None:
+        with (
+            patch.object(input_tools, "press_key", return_value=False) as press,
+            patch.object(input_tools, "press_hotkey") as chord,
+            patch.object(input_tools, "_sleep_ms") as wait,
+        ):
+            self.assertFalse(input_tools.replace_chat_text_with_clipboard())
+        press.assert_called_once_with("SPACE")
+        chord.assert_not_called()
+        wait.assert_not_called()
+
+    def test_chat_delete_refusal_never_pastes_or_submits(self) -> None:
+        with (
+            patch.object(input_tools, "press_key", side_effect=[True, False]) as press,
+            patch.object(input_tools, "press_hotkey") as chord,
+            patch.object(input_tools, "_sleep_ms", return_value=False),
+        ):
+            self.assertFalse(input_tools.replace_chat_text_with_clipboard())
+        self.assertEqual(press.call_args_list, [call("SPACE"), call("DELETE")])
+        chord.assert_called_once_with("CTRL", "A")
+
+    def test_chat_first_enter_refusal_does_not_claim_command_sent(self) -> None:
+        logger = Mock()
+        with (
+            patch.object(input_tools, "clipboard_text"),
+            patch.object(input_tools, "replace_chat_text_with_clipboard", return_value=True),
+            patch.object(input_tools, "press_key", return_value=False) as press,
+        ):
+            self.assertFalse(input_tools.send_chat_command("/invite Friend", logger))
+        press.assert_called_once_with("ENTER")
+        logger.warning.assert_any_call(
+            "Commande chat non émise : première validation ENTER refusée."
+        )
+
+    def test_zaap_second_enter_refusal_is_partial_not_complete(self) -> None:
+        logger = Mock()
+        with (
+            patch.object(input_tools, "clipboard_text"),
+            patch.object(input_tools, "replace_chat_text_with_clipboard", return_value=True),
+            patch.object(input_tools, "_sleep_ms", return_value=False),
+            patch.object(input_tools, "press_key", side_effect=[True, False]) as press,
+        ):
+            self.assertFalse(input_tools.send_chat_command(
+                "/zaap 1,2", logger, submit_twice=True,
+            ))
+        self.assertEqual(press.call_args_list, [call("ENTER"), call("ENTER")])
+        logger.warning.assert_any_call(
+            "Commande chat partielle : seconde validation ENTER refusée."
+        )
+
     def test_chat_refuses_stale_clipboard_after_windows_clipboard_lock_timeout(self) -> None:
         clipboard = Mock()
         clipboard.GetClipboardSequenceNumber.return_value = 100

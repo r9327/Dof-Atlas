@@ -68,6 +68,62 @@ class OrganizerSpeedPresetsTests(unittest.TestCase):
         self.assertEqual(loaded.script_speed, "instantane")
         self.assertEqual(loaded.timings.auto_group_chat_open_ms, 25)
 
+    def test_zaap_and_auto_group_consume_all_three_actual_speed_presets_in_both_modes(self):
+        from app.macros.auto_group import AutoGroupMacro
+        from app.macros.zaap import ZaapMacro
+        from tests.test_organizer_macro_reliability import _runtime
+
+        for mode in ("macro", "mirror"):
+            for speed in ("normal", "rapide", "instantane"):
+                with self.subTest(mode=mode, speed=speed):
+                    timing = settings.timings_for_speed(speed)
+                    zaap = _runtime()
+                    zaap.settings.macro_mode = mode
+                    zaap.settings.timings = timing
+                    zaap.switch_character.ordered_clients_from_source.return_value = [
+                        SimpleNamespace(handle=101)
+                    ]
+                    with (
+                        patch("app.macros.zaap.is_unity_window", return_value=True),
+                        patch("app.macros.zaap.is_dofus_unity_process", return_value=True),
+                        patch("app.macros.zaap.activate_window", return_value=True),
+                        patch("app.macros.zaap.foreground_window", return_value=101),
+                        patch("app.macros.zaap.send_chat_command", return_value=True) as send_zaap,
+                    ):
+                        ZaapMacro(zaap)._run("/zaap 1,2")
+                    send_zaap.assert_called_once()
+                    self.assertEqual(send_zaap.call_args.args[0], "/zaap 1,2")
+                    for key, value in (
+                        ("chat_open_ms", timing.auto_group_chat_open_ms),
+                        ("key_step_ms", timing.auto_group_key_step_ms),
+                        ("paste_settle_ms", timing.auto_group_paste_settle_ms),
+                    ):
+                        self.assertEqual(send_zaap.call_args.kwargs[key], value)
+                    self.assertTrue(send_zaap.call_args.kwargs["submit_twice"])
+
+                    group = _runtime()
+                    group.settings.macro_mode = mode
+                    group.settings.timings = timing
+                    group.switch_character.logical_active_client.return_value = (
+                        SimpleNamespace(handle=101, display_name="Leader")
+                    )
+                    with (
+                        patch("app.macros.auto_group.is_unity_window", return_value=True),
+                        patch("app.macros.auto_group.is_dofus_unity_process", return_value=True),
+                        patch("app.macros.auto_group.activate_window", return_value=True),
+                        patch("app.macros.auto_group.foreground_window", return_value=101),
+                        patch("app.macros.auto_group.send_chat_command", return_value=True) as send_group,
+                    ):
+                        AutoGroupMacro(group)._run([{"name": "Friend", "handle": 202}])
+                    send_group.assert_called_once()
+                    self.assertEqual(send_group.call_args.args[0], "/invite Friend")
+                    for key, value in (
+                        ("chat_open_ms", timing.auto_group_chat_open_ms),
+                        ("key_step_ms", timing.auto_group_key_step_ms),
+                        ("paste_settle_ms", timing.auto_group_paste_settle_ms),
+                    ):
+                        self.assertEqual(send_group.call_args.kwargs[key], value)
+
     def test_organizer_switch_saves_schema_and_refreshes_once(self):
         from app.pages.organizer.organizer_hotkeys import OrganizerHotkeysMixin
         owner = SimpleNamespace(

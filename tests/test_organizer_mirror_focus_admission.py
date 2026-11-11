@@ -24,6 +24,8 @@ class MirrorFocusAdmissionTests(unittest.TestCase):
         )
         runtime = Mock()
         runtime.settings = settings
+        # Every focus-admission fixture models a consented, armed session.
+        runtime._mirror_armed = True
         runtime._running = True
         runtime._admin_ok = True
         runtime.macro_lock.active_label = ""

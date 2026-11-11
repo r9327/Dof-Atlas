@@ -12,7 +12,8 @@ from app.pages.organizer.organizer_hotkeys import OrganizerHotkeysMixin
 class OrganizerSpeedAndLeaseTests(unittest.TestCase):
     def _owner(self, initial="normal"):
         events = []
-        def on_stop():
+        def on_stop(temporary=False):
+            self.assertIs(temporary, True)
             events.append("stop")
         def save(_profiles):
             events.append("save")
@@ -41,7 +42,7 @@ class OrganizerSpeedAndLeaseTests(unittest.TestCase):
                 OrganizerHotkeysMixin.set_script_speed(owner, changed)
                 self.assertEqual(events, ["stop", "save", "export", "reload"])
                 self.assertEqual(owner.profiles[KEY_SCRIPT_SPEED], changed)
-                owner.stop_runtime_callback.assert_called_once()
+                owner.stop_runtime_callback.assert_called_once_with(True)
 
     def test_reselecting_same_speed_does_not_interrupt_inflight_macro(self):
         for speed in ("classique", "normal", "rapide", "instantane"):
@@ -60,7 +61,7 @@ class OrganizerSpeedAndLeaseTests(unittest.TestCase):
         OrganizerHotkeysMixin.set_script_speed(owner, "normal")
         self.assertEqual(events, ["stop", "save", "export", "reload"])
         self.assertEqual(owner.profiles[KEY_SCRIPT_SPEED_SCHEMA], 2)
-        owner.stop_runtime_callback.assert_called_once()
+        owner.stop_runtime_callback.assert_called_once_with(True)
 
     def test_wrong_owner_cannot_release_active_macro_lease(self):
         for current in ("Miroir clavier", "Miroir molette", "Auto zaap"):

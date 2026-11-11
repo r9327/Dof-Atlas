@@ -59,6 +59,62 @@ class OrganizerRadialOverlayTests(unittest.TestCase):
     def setUpClass(cls):
         cls.app = QApplication.instance() or QApplication([])
 
+    def test_every_radial_cardinality_uses_real_circular_arcs_not_polygons(self):
+        import math
+        from PySide6.QtCore import QPointF
+        from PySide6.QtGui import QPainterPath
+        from app.pages.organizer.radial_overlay import RADIUS, circular_sector_path
+        from app.pages.organizer.radial_selection import sector_layout
+
+        centre = QPointF(180.0, 180.0)
+        for count in range(1, 9):
+            for index, (start, end, _lx, _ly) in enumerate(sector_layout(count)):
+                with self.subTest(count=count, sector=index):
+                    shape = circular_sector_path(centre, start, end, count)
+                    self.assertFalse(shape.isEmpty())
+                    # A painter path with only MoveTo/LineTo segments is a
+                    # polygon, even if the corners are barely visible.
+                    self.assertTrue(any(
+                        shape.elementAt(i).type == QPainterPath.ElementType.CurveToElement
+                        for i in range(shape.elementCount())
+                    ))
+                    middle = (start + end) / 2
+                    inside = QPointF(
+                        centre.x() + RADIUS * 0.98 * math.cos(middle),
+                        centre.y() + RADIUS * 0.98 * math.sin(middle),
+                    )
+                    outside = QPointF(
+                        centre.x() + RADIUS * 1.02 * math.cos(middle),
+                        centre.y() + RADIUS * 1.02 * math.sin(middle),
+                    )
+                    self.assertTrue(shape.contains(inside))
+                    self.assertFalse(shape.contains(outside))
+
+    def test_single_character_wheel_is_a_circle_not_a_polygon(self):
+        # Halfway between the old polygon's points, a nearly-edge pixel
+        # lies inside a true circle but outside the old 18-sided path.
+        import math
+        from PySide6.QtCore import QPointF
+        from app.pages.organizer import radial_overlay as wheel
+
+        overlay = OrganizerRadialOverlay()
+        try:
+            overlay._characters = [{"nom": "Panda", "hwnd": 101}]
+            with patch.object(wheel, "QPainter") as painter_type:
+                overlay.paintEvent(None)
+            shape = painter_type.return_value.drawPath.call_args.args[0]
+            centre = QPointF(overlay.width() / 2, overlay.height() / 2)
+            radius = wheel.RADIUS * 0.995
+            angle = math.radians(10)
+            near_edge = QPointF(
+                centre.x() + radius * math.cos(angle),
+                centre.y() + radius * math.sin(angle),
+            )
+            self.assertTrue(shape.contains(near_edge))
+        finally:
+            overlay.hide()
+            overlay.deleteLater()
+
     def test_popup_is_centered_on_screen_not_cursor(self):
         overlay = OrganizerRadialOverlay()
         try:
@@ -76,6 +132,21 @@ class OrganizerRadialOverlayTests(unittest.TestCase):
         finally:
             overlay.hide()
             overlay.deleteLater()
+
+    def test_radial_labels_hide_class_names_but_preserve_character_names(self):
+        from app.pages.organizer.radial_selection import radial_display_label
+
+        cases = (
+            ({"nom": "Witsis - Pandawa", "hwnd": 101}, "Witsis"),
+            ({"nom": "Lokidor - Huppermage", "hwnd": 102}, "Lokidor"),
+            ({"nom": "Pandawa", "hwnd": 103}, ""),
+            ({"nom": "Écaflip", "hwnd": 104}, ""),
+            ({"nom": "Classe - Enutrof", "character_name": "Flooky"}, "Flooky"),
+            ({"nom": "Jokhair", "hwnd": 105}, "Jokhair"),
+        )
+        for session, expected in cases:
+            with self.subTest(name=session["nom"]):
+                self.assertEqual(radial_display_label(session), expected)
 
     def test_real_overlay_always_closes_even_without_mouse_movement(self):
         overlay = OrganizerRadialOverlay()
@@ -417,22 +488,29 @@ class OrganizerRadialRosterTests(unittest.TestCase):
             [101, 102],
         )
 
-    def test_untracked_dofus_window_cannot_open_radial_picker(self):
+    def test_radial_opens_from_any_window_but_rejects_focus_change(self):
+        QApplication.instance() or QApplication([])
         page = Mock()
-        page.profiles = {}
+        page.profiles = {KEY_RADIAL_ENABLED: True}
         page.hotkey_label.return_value = ""
         page.capture_target = None
         page.sessions = [{"nom": "Panda", "hwnd": 101, "pid": 1001}]
-        with (
-            patch("app.windows.unity_windows.is_unity_window", return_value=True),
-            patch("app.windows.unity_windows.foreground_window", return_value=999),
-        ):
-            self.assertFalse(OrganizerPage._radial_can_open(page))
-        with (
-            patch("app.windows.unity_windows.is_unity_window", return_value=True),
-            patch("app.windows.unity_windows.foreground_window", return_value=101),
-        ):
-            self.assertTrue(OrganizerPage._radial_can_open(page))
+        overlay = _Overlay()
+        page._radial_overlay = overlay
+        try:
+            with patch("app.windows.unity_windows.foreground_window", return_value=999):
+                self.assertTrue(OrganizerPage._radial_can_open(page))
+            self.assertEqual(page._radial_origin_hwnd, 999)
+            overlay.visible = True
+            with patch("app.windows.unity_windows.foreground_window", return_value=1001):
+                self.assertFalse(OrganizerPage._radial_can_open(page))
+            with patch("app.windows.unity_windows.foreground_window", return_value=999):
+                self.assertTrue(OrganizerPage._radial_can_open(page))
+            page.sessions = []
+            with patch("app.windows.unity_windows.foreground_window", return_value=999):
+                self.assertFalse(OrganizerPage._radial_can_open(page))
+        finally:
+            overlay.deleteLater()
 
     def test_new_detected_client_syncs_without_manual_slot_selection(self):
         page = Mock()

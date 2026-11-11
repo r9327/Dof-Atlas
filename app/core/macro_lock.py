@@ -22,11 +22,17 @@ class MacroLock:
         self._generation = 0
         self._worker_generation = threading.local()
         self.stop_event = threading.Event()
+        self._emergency_latched = False
 
     @property
     def active_label(self) -> str:
         lease = self._lease
         return lease.label if lease is not None else ""
+
+    @property
+    def emergency_latched(self) -> bool:
+        with self._lock:
+            return self._emergency_latched
 
     @property
     def active_generation(self) -> int | None:
@@ -68,9 +74,9 @@ class MacroLock:
     def try_begin_generation(self, label: str) -> int | None:
         """Atomically reserve a macro worker and return its exact lease ID."""
         with self._lock:
-            if self._lease is not None:
+            if self._lease is not None or self._emergency_latched:
                 try:
-                    self._logger.debug("%s ignore: boucle macro deja en cours active=%s", label, self._lease.label)
+                    self._logger.debug("%s ignore: macro occupée ou Stop urgence verrouillé active=%s", label, self._lease.label if self._lease else "")
                 except Exception:
                     # A faulty diagnostic sink must not escape admission.
                     pass
@@ -146,7 +152,7 @@ class MacroLock:
                 # Cleanup has already completed, regardless of diagnostics.
                 pass
 
-    def request_stop(self, reason: str = "stop urgence") -> None:
+    def request_stop(self, reason: str = "stop urgence", *, latch: bool = False) -> None:
         # Wake native and Python waits immediately, even if a worker is
         # finishing while holding the lease lock.
         self.stop_event.set()
@@ -156,6 +162,8 @@ class MacroLock:
             # under the same lock used by admission so Stop always wins that
             # overlap. A genuinely NEW admission after Stop may clear it.
             self.stop_event.set()
+            if latch:
+                self._emergency_latched = True
             active = self._lease.label if self._lease else ""
         try:
             self._logger.warning("Stop urgence: reason=%s active=%s", reason, active)
@@ -163,6 +171,15 @@ class MacroLock:
             # Stop is already latched under the admission lock; do not
             # rethrow into a physical hotkey hook.
             pass
+
+    def resume_after_stop(self) -> bool:
+        """Explicit Relancer only: never resurrect an interrupted live worker."""
+        with self._lock:
+            if self._lease is not None:
+                return False
+            self._emergency_latched = False
+            self.stop_event.clear()
+            return True
 
     def should_stop(self) -> bool:
         if self.stop_event.is_set():

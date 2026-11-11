@@ -91,10 +91,11 @@ class OrganizerKeyboardStopRaceTests(unittest.TestCase):
                     self.assertEqual(registry._keyboard_proc(0, WM_KEYDOWN, ptr), 1)
                     self.assertEqual(registry._keyboard_proc(0, WM_KEYDOWN, ptr), 1)
                     registry.callback.assert_called_once_with("stop_script", {})
-                    self.assertEqual(registry._keyboard_proc(0, WM_KEYUP, ptr), 37)
+                    # Organizer now owns the full Stop DOWN/UP key pair.
+                    self.assertEqual(registry._keyboard_proc(0, WM_KEYUP, ptr), 1)
                     self.assertEqual(registry._keyboard_proc(0, WM_KEYDOWN, ptr), 1)
                 self.assertEqual(registry.callback.call_count, 2)
-                next_hook.assert_called_once()
+                next_hook.assert_not_called()
 
     def test_stop_binding_registers_with_broken_debug_logger_2_to_8(self):
         from app.input.hotkeys import HotkeyAction
