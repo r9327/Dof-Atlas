@@ -84,5 +84,19 @@ jobs:
         run: |
           python -X faulthandler -m unittest -v tests.test_pyside_shell.PySideShellTests.test_organizer_exports_switch_double_click_hotkey tests.test_pyside_shell.PySideShellTests.test_organizer_quick_actions_reload_and_debug tests.test_character_pyside_diagnostics.CharacterPySideDiagnosticsTests.test_legacy_character_pyside_contracts_emit_full_tracebacks
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+      - name: Capture actual Organizer Qt UI on Windows
+        shell: pwsh
+        env:
+          ATLAS_ORGANIZER_SCREENSHOT_DIR: artifacts/organizer-ui
+        run: |
+          python -X faulthandler -m tests.capture_organizer_ui
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+      - name: Upload Organizer screenshot (real Qt widget; no DOFUS session)
+        if: always()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: organizer-qt-screenshot-${{ env.CANDIDATE_SHA }}
+          path: artifacts/organizer-ui/*.png
+          if-no-files-found: warn
       # Native Windows offscreen fixtures do not prove delivery in DOFUS Unity,
       # focus race outcomes on real machines, or 1/2/4/6/8-account latency.
