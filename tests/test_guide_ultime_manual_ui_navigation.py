@@ -284,7 +284,7 @@ class GuideUltimeManualUiNavigationTests(unittest.TestCase):
         finally:
             view.close()
 
-    def test_participants_are_persistent_and_coordinate_launches_once(self) -> None:
+    def test_participants_are_persistent_and_coordinate_only_copies(self) -> None:
         service = _FakeManualUiService()
         participants = _FakeParticipantService()
         calls: list[tuple[str, tuple[str, ...]]] = []
@@ -322,8 +322,12 @@ class GuideUltimeManualUiNavigationTests(unittest.TestCase):
             portraits[1].click()
             self.assertEqual(participants.selected_keys(), ("character:1",))
             current_sheet = view.cards_layout.itemAt(0).widget()
+            QApplication.clipboard().setText("before")
             current_sheet._copy_link_target("travel-copy:1,-1")
-            self.assertEqual(calls, [("/travel 1,-1", ("character:1",))])
+            # Coordinates never dispatch, even when the selected team is
+            # fully online; only the separate explicit control may send.
+            self.assertEqual(calls, [])
+            self.assertEqual(QApplication.clipboard().text(), "/travel 1,-1")
             legend = current_sheet.findChild(QFrame, "GuideManualLegendCard")
             texts = [label.text() for label in legend.findChildren(QLabel)]
             self.assertTrue(any("participants sélectionnés" in text for text in texts))
