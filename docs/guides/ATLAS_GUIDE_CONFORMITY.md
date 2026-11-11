@@ -1,8 +1,11 @@
 # Atlas Guide Conformity — clean candidate
 
 Status: prototype under development. No certification is claimed.
-PR #363 branch: feat/atlas-guide-importer-pr337-20261102, independently based on main@060803282269098dfc6919e6e85f24309d2c485f.
-The final PR diff is independent of abandoned PR #337; no #337 commit, file, module or runtime implementation was imported.
+PR #363 branch: feat/atlas-guide-importer-pr337-20261102, rebuilt as a
+single-parent clean commit on main@fa3ecd08b413824856febb918074a625f0387c78
+(after #406 Organizer). It does not carry the old #337 commit history.
+Its code and documentation diff was checked against the clean #363 candidate;
+shared CI ownership rules from Organizer and Guides were reconciled.
 PR #363 remains Draft. No real guide route is staged, activated, or certified.
 
 ## Scope
@@ -33,18 +36,30 @@ the user is authorized to consult. Do not publish protected source text in logs.
     py -3.13 -m unittest tests.test_atlas_guide_conformity -v
     py -3.13 -m tools.atlas_guide_conformity --reference reference_authorized.json --before before_atlas.json --after after_atlas.json --output-dir artifacts/guide_conformity
 
-## Remaining mandatory checks (not done)
+## Evidence available and checks still mandatory
 
-- Build an authorized real-source extractor for all 95 guides and every step.
-- Validate independence and completeness of each source, then per-guide compliance.
-- Add one secure transactional publisher with crash recovery, no bypass.
-- Attach only to already-existing main UI services without copying PR #337.
-- Run Doctor/Graphify at exact SHA before any structural or destructive changes.
-- Run repository tests, Qt/Windows/DOFUS manual verification, benchmarks and CI.
-- Complete GIMP-001 through GIMP-011 and exact-SHA delivery evidence.
+**Completed, synthetic-only evidence on previous exact HEAD
+`400c80152917e31be5ee11e0146e1ea36183cf0f`:**
 
-Current proof: GitHub clean branch creation and ancestry review only.
-Local Doctor, Graphify and automated tests remain NOT_RUN in this session.
+- Phase 0 stdlib Linux and Qt Windows: [run #43023319786](https://github.com/r9327/Dof-Atlas/actions/runs/43023319786), PASS.
+- Doctor visual Windows campaign: [run #43023319897](https://github.com/r9327/Dof-Atlas/actions/runs/43023319897), PASS.
+- Existing Graphify/Doctor bridge: [run #43023311623](https://github.com/r9327/Dof-Atlas/actions/runs/43023311623), PASS.
+- Every subsequent source commit requires its own exact-SHA tests. A PASS
+  on an earlier HEAD is **not** automatically a PASS on a later HEAD.
+
+**Still NOT_CERTIFIED / NOT_RUN as applicable:**
+
+- Rights-cleared real-source extraction, independent verification and complete
+  95-guide inventory; no authorized real source has been processed.
+- Protected publication/activation with complete install, rollback and
+  integrity evidence, beyond synthetic staging.
+- Full Windows/DOFUS Unity gameplay, real characters and performance/
+  memory measurements; preservation of the two optimized guide routes.
+- Independent manual comparison of the single future Cawotte pilot, and only
+  then guide-by-guide certification. All GIMP criteria require honest evidence.
+
+The library CLI and 95/7705 fixtures exercise the **tool contract** only.
+The GitHub Delivery Guard remains blocking while GIMP criteria are PENDING.
 
 
 ## Création structurée et utilisation commune (PR #363)
@@ -65,7 +80,7 @@ une seule source JSON v1 autorisée, `guides` ordonnés, IDs stables
 ils ne constituent jamais une preuve indépendante de droits ou de fidélité.**
 
     py -3.13 -m tools.atlas_guide_importer --source authorized_export.json
-    py -3.13 -m tools.atlas_guide_importer --source authorized_export.json --output preview.json
+    py -3.13 -m tools.atlas_guide_importer --source authorized_export.json --output artifacts/guide_preview/preview.json
 
 Le mode complet exige exactement **95 guides et 7 705 étapes**.
 `--partial` est disponible uniquement pour des lots explicitement incomplets,
@@ -83,8 +98,9 @@ Commandes de test ciblé :
 
     py -3.13 -m unittest tests.test_atlas_guide_importer_preview tests.test_guide_shared_route_contract tests.test_atlas_guide_conformity -v
 
-L'extracteur de source externe, le publieur protégé/transactionnel,
-la preuve Graphify exact-SHA et la recette Windows/DOFUS ne sont pas livrés :
+L'extracteur de source réelle autorisée, la publication live certifiée et
+la recette Windows/DOFUS ne sont pas terminés. Les preuves Graphify et
+CI citées plus haut portent uniquement sur la qualification synthétique ;
 **tous les guides restent NOT_CERTIFIED**.
 
 ## Ordre obligatoire de livraison — zéro guide réel avant qualification
