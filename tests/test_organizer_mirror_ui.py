@@ -7419,7 +7419,7 @@ class OrganizerMirrorIntegrationTests(unittest.TestCase):
                                 expected_profile=runtime.settings,
                             )
 
-    def test_mirror_snapshot_is_available_after_old_stop_lease_has_ended(self):
+    def test_mirror_snapshot_waits_for_explicit_resume_after_stop(self):
         from app.core.runtime_state import AtlasRuntime
 
         for count in (2, 4, 6, 8):
@@ -7436,6 +7436,10 @@ class OrganizerMirrorIntegrationTests(unittest.TestCase):
                 patch("app.macros.mirror_plan.is_dofus_unity_process",
                       return_value=True),
             ):
+                # No automatic re-entry after Stop, even if the previous
+                # macro worker has released its lease.
+                self.assertIsNone(AtlasRuntime._mirror_gesture_targets(runtime))
+                runtime.macro_lock.should_stop.return_value = False
                 self.assertEqual(
                     AtlasRuntime._mirror_gesture_targets(runtime),
                     (source, (source, *slots[:-1])),
@@ -8660,6 +8664,9 @@ class DeferredMirrorPointerTests(unittest.TestCase):
             client_by_handle=lambda h: next((c for c in clients if c.handle == h), None),
         )
         runtime._running = True
+        # These native deferred-delivery fixtures represent a Miroir
+        # explicitly armed by the user, not the unarmed runtime default.
+        runtime._mirror_armed = True
         runtime._switch_click = Mock()
         runtime._switch_click.run_async.return_value = True
         runtime._mirror_input = Mock()
