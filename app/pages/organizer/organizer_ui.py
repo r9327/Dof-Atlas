@@ -472,7 +472,7 @@ class OrganizerUiMixin:
 
         self.controls_panel = QFrame()
         self.controls_panel.setObjectName("card")
-        self.controls_panel.setFixedHeight(84)
+        self.controls_panel.setFixedHeight(100)
         self.controls_panel.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
         self.apply_card_shadow(self.controls_panel)
         control_layout = QVBoxLayout(self.controls_panel)
