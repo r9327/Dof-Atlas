@@ -313,11 +313,17 @@ class GuideUltimeManualUiNavigationTests(unittest.TestCase):
             )
 
             current_sheet = view.cards_layout.itemAt(0).widget()
+            QApplication.clipboard().setText("before")
             current_sheet._copy_link_target("travel-copy:1,-1")
-            self.assertEqual(
-                calls,
-                [("/travel 1,-1", ("character:1",))],
-            )
+            # Beta is selected but offline. A partial dispatch to Alpha is
+            # forbidden: copy the requested destination without sending it.
+            self.assertEqual(calls, [])
+            self.assertEqual(QApplication.clipboard().text(), "/travel 1,-1")
+            portraits[1].click()
+            self.assertEqual(participants.selected_keys(), ("character:1",))
+            current_sheet = view.cards_layout.itemAt(0).widget()
+            current_sheet._copy_link_target("travel-copy:1,-1")
+            self.assertEqual(calls, [("/travel 1,-1", ("character:1",))])
             legend = current_sheet.findChild(QFrame, "GuideManualLegendCard")
             texts = [label.text() for label in legend.findChildren(QLabel)]
             self.assertTrue(any("participants sélectionnés" in text for text in texts))
@@ -542,8 +548,11 @@ class GuideUltimeManualUiNavigationTests(unittest.TestCase):
             self.assertEqual(len(groups), 1)
             grouped_rows = groups[0].findChildren(QFrame, "GuideManualLineRow")
             self.assertEqual(len(grouped_rows), 2)
+            # A row contains a separate clickable coordinate label and
+            # its action label; never infer text from the first child only.
             row_texts = [
-                unescape(row.findChild(QLabel).text()) for row in grouped_rows
+                " ".join(unescape(label.text()) for label in row.findChildren(QLabel))
+                for row in grouped_rows
             ]
             self.assertIn("Parler au PNJ", row_texts[0])
             self.assertIn("Prendre l'objet", row_texts[1])
