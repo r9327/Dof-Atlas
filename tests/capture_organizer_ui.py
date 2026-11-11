@@ -19,8 +19,7 @@ from app.ui.theme import atlas_stylesheet
 from tests.test_organizer_layout import OrganizerLayoutTests
 
 
-def main() -> None:
-    app = QApplication.instance() or QApplication([])
+def configure_capture_fonts(app: QApplication) -> None:
     # Do not create false all-square evidence if the offscreen plugin cannot
     # resolve the Unity multi-family QSS. Use an actually available Qt family.
     families = QFontDatabase.families()
@@ -41,6 +40,11 @@ def main() -> None:
                    atlas_stylesheet())
     app.setFont(QFont(selected, 10))
     app.setStyleSheet(style)
+
+
+def main() -> None:
+    app = QApplication.instance() or QApplication([])
+    configure_capture_fonts(app)
     OrganizerLayoutTests.app = app
     fixture = OrganizerLayoutTests(
         "test_session_ids_refuse_fractional_boolean_and_corrupt_native_values"
