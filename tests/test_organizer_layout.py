@@ -867,22 +867,22 @@ class OrganizerLayoutTests(unittest.TestCase):
             panel.deleteLater()
             self.app.processEvents()
 
-    def test_organizer_renders_exactly_eight_non_clipped_slots_without_internal_scroll_area(self):
+    def test_organizer_renders_only_visible_slots_without_internal_scroll_area(self):
         with tempfile.TemporaryDirectory() as temporary:
             with self.organizer_page(Path(temporary)) as page:
                 self.assertEqual(page.session_slot_count(), 8)
-                self.assertEqual(len(page.session_slot_widgets), 8)
+                self.assertEqual(len(page.session_slot_widgets), 2)
                 self.assertEqual(page.sessions_panel.findChildren(QScrollArea), [])
                 self.assertEqual(
                     sorted(page.sessions_panel.grid_position(index) for _widget, index in page.session_slot_widgets),
-                    [(0, 0), (0, 1), (1, 0), (1, 1), (2, 0), (2, 1), (3, 0), (3, 1)],
+                    [(0, 0), (0, 1)],
                 )
                 self.assertGreaterEqual(page.sessions_panel.height(), page.sessions_panel.calculated_height())
                 self.assertEqual(page.sessions_content.height(), page.sessions_panel.slot_grid_height())
                 content_rect = page.sessions_content.rect()
                 for widget, _index in page.session_slot_widgets:
                     geometry = widget.geometry()
-                    self.assertEqual(geometry.height(), organizer.CHARACTER_SLOT_HEIGHT)
+                    self.assertEqual(geometry.height(), 48)
                     self.assertGreaterEqual(geometry.top(), content_rect.top())
                     self.assertLessEqual(geometry.bottom(), content_rect.bottom())
                     # No unexplained circular per-character selector.
@@ -892,12 +892,66 @@ class OrganizerLayoutTests(unittest.TestCase):
                         for button in widget.findChildren(QPushButton)
                     ))
 
+    def test_organizer_dynamic_slots_keep_all_eight_internal_identities(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            with self.organizer_page(Path(temporary)) as page:
+                self.assertEqual(page.session_slot_count(), 8)
+                self.assertEqual(len(page.session_slot_widgets), 2)
+                page.reveal_next_session_slot()
+                self.assertEqual(len(page.session_slot_widgets), 3)
+                for count in (2, 4, 6, 8):
+                    with self.subTest(count=count):
+                        page._manual_visible_slots = 2
+                        page.sessions = page.build_session_slots([
+                            {"nom": f"Perso{i}", "hwnd": 100 + i, "pid": 1000 + i}
+                            for i in range(count)
+                        ])
+                        page.render_sessions()
+                        self.app.processEvents()
+                        self.assertEqual(len(page.sessions), 8)
+                        self.assertEqual(len(page.session_slot_widgets), count)
+                        self.assertEqual(page.sessions_panel.slot_count, count)
+                        self.assertEqual(page.sessions_panel.row_count(), (count + 1) // 2)
+                        expected_height = 48 if count <= 4 else organizer.CHARACTER_SLOT_HEIGHT
+                        self.assertEqual(page.sessions_panel.row_height, expected_height)
+                        self.assertEqual(
+                            page.sessions_content.height(), page.sessions_panel.slot_grid_height(),
+                        )
+                        self.assertEqual(page.sessions_expand_button.isVisible(), count < 8)
+
+    def test_classic_organizer_controls_and_quick_actions_have_single_owners(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            with self.organizer_page(Path(temporary)) as page:
+                self.app.processEvents()
+                self.assertEqual(page.quick_actions_title.text(), "Actions rapides")
+                self.assertEqual(page.controls_panel.width(), page.width() - 24)
+                self.assertIs(page.stop_script_button.parentWidget(),
+                              page.stop_script_hotkey_button.parentWidget())
+                self.assertIs(page.mirror_mode_button.parentWidget(),
+                              page.mirror_toggle_hotkey_button.parentWidget())
+                self.assertIs(page.previous_character.parentWidget().parentWidget(),
+                              page.next_character.parentWidget().parentWidget())
+                self.assertIs(page.switch_fake.parentWidget(), page.quick_actions_panel)
+                self.assertIs(page.script_speed_normal.parentWidget(), page.macro_panel)
+
+    def test_compact_zaap_favorites_offer_overflow_without_clipping(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            with self.organizer_page(Path(temporary)) as page:
+                names = ["Cité d'Astrub", "Tainéla", "Amakna", "Bonta", "Brâkmar"]
+                page.zaap.zaaps = [{"name": name, "label": name} for name in names]
+                page.zaap.favorite_names = names
+                page.zaap.refresh_favorite_chips()
+                self.app.processEvents()
+                self.assertEqual(len(page.zaap.favorite_buttons), 2)
+                self.assertEqual(page.zaap.more_favorites_button.text(), "+3")
+                self.assertEqual(len(page.zaap.more_favorites_button.menu().actions()), 3)
+
     def test_hidden_organizer_evicts_only_slots_and_preserves_live_watcher(self):
         from PySide6.QtCore import QCoreApplication, QEvent
 
         with tempfile.TemporaryDirectory() as temporary:
             with self.organizer_page(Path(temporary)) as page:
-                self.assertEqual(len(page.session_slot_widgets), 8)
+                self.assertEqual(len(page.session_slot_widgets), 2)
                 watcher = page.session_event_watcher
                 previous_sessions = list(page.sessions)
                 page.hide()
@@ -909,8 +963,8 @@ class OrganizerLayoutTests(unittest.TestCase):
                 self.assertEqual(page.sessions, previous_sessions)
                 page.show()
                 self.app.processEvents()
-                self.assertEqual(page.sessions_panel.grid.count(), 8)
-                self.assertEqual(len(page.session_slot_widgets), 8)
+                self.assertEqual(page.sessions_panel.grid.count(), 2)
+                self.assertEqual(len(page.session_slot_widgets), 2)
                 self.assertIs(page.session_event_watcher, watcher)
 
     def test_reorder_keeps_exactly_eight_slots_and_persists_detected_order(self):
@@ -960,9 +1014,13 @@ class OrganizerLayoutTests(unittest.TestCase):
                 page.update_macro_mode_buttons()
                 self.assertTrue(page.mirror_arm_button.isEnabled())
                 self.assertEqual(page.mirror_arm_button.text(), "Activer Miroir")
-                self.assertEqual(
-                    page.mirror_arm_button.width(),
-                    page.stop_script_button.width(),
+                self.assertIs(
+                    page.mirror_mode_button.parentWidget(),
+                    page.mirror_toggle_hotkey_button.parentWidget(),
+                )
+                self.assertIs(
+                    page.stop_script_button.parentWidget(),
+                    page.stop_script_hotkey_button.parentWidget(),
                 )
                 self.assertFalse(page.switch_character.isEnabled())
                 self.assertFalse(page.switch_click.isEnabled())
@@ -984,7 +1042,7 @@ class OrganizerLayoutTests(unittest.TestCase):
                 self.assertEqual(previous_cell.y(), next_cell.y())
                 self.assertLess(previous_cell.x(), next_cell.x())
                 self.assertEqual(page.previous_character.height(), page.next_character.height())
-                self.assertIs(
+                self.assertIsNot(
                     page.mirror_arm_button.parentWidget(),
                     page.mirror_toggle_hotkey_button.parentWidget(),
                 )
