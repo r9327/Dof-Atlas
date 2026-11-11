@@ -142,6 +142,75 @@ def main() -> None:
                     finally:
                         manifest["screens"].append(record)
                         print("ATLAS_UI_CAPTURE=" + json.dumps(record, ensure_ascii=False))
+                # Actual Organizer variants: change mode but never arm Mirror.
+                try:
+                    window.show_page("Organizer")
+                    for _ in range(4):
+                        app.processEvents()
+                    organizer_page = window.page_widgets.get("Organizer")
+                    if organizer_page is not None and type(organizer_page).__name__ == "OrganizerPage":
+                        variants = (
+                            ("18-organizer-mirror", lambda: organizer_page.mirror_mode_button.click()),
+                            ("19-organizer-eight-slots", lambda: organizer_page.sessions_panel.expand_button.click()),
+                            ("20-organizer-narrow", lambda: window.resize(1000, 740)),
+                        )
+                        for slug, effect in variants:
+                            record = {"slug": slug, "page": "Organizer",
+                                      "status": "NOT_RUN", "file": None}
+                            try:
+                                effect()
+                                for _ in range(3):
+                                    app.processEvents()
+                                shot = window.grab()
+                                target = dest / f"{slug}.png"
+                                if shot.isNull() or not shot.save(str(target), "PNG"):
+                                    raise RuntimeError("Real Organizer variant screenshot missing")
+                                record.update(status="CAPTURED", file=target.name,
+                                              size=[shot.width(), shot.height()],
+                                              widget_class=type(organizer_page).__name__)
+                            except Exception as error:
+                                record.update(status="ERROR", detail=str(error))
+                            finally:
+                                manifest["screens"].append(record)
+                                print("ATLAS_UI_CAPTURE=" + json.dumps(record, ensure_ascii=False))
+                except Exception as error:
+                    manifest["not_captured"].append(f"Organizer variants: {error}")
+
+                # Actual CharacterPage standalone QWidget (not a shell tab).
+                record = {"slug": "21-character-standalone", "page": "Personnage",
+                          "status": "NOT_RUN", "file": None}
+                character = None
+                try:
+                    from app.pages.character_page import CharacterPage
+                    character = CharacterPage(
+                        profile_path=Path(td) / "profiles.json",
+                        client_index_path=Path(td) / "clients.json",
+                        binding_path=Path(td) / "bindings.json",
+                    )
+                    character.resize(1120, 820)
+                    character.show()
+                    app.processEvents()
+                    shot = character.grab()
+                    target = dest / "21-character-standalone.png"
+                    if shot.isNull() or not shot.save(str(target), "PNG"):
+                        raise RuntimeError("CharacterPage Qt capture missing")
+                    record.update(status="CAPTURED", file=target.name,
+                                  size=[shot.width(), shot.height()],
+                                  widget_class=type(character).__name__,
+                                  note="Standalone real Qt page, not AtlasWindow navigation")
+                    manifest["not_captured"] = [
+                        name for name in manifest["not_captured"]
+                        if not name.startswith("Personnage (")
+                    ]
+                except Exception as error:
+                    record.update(status="ERROR", detail=f"{type(error).__name__}: {error}")
+                finally:
+                    if character is not None:
+                        character.close()
+                        character.deleteLater()
+                        app.processEvents()
+                    manifest["screens"].append(record)
+                    print("ATLAS_UI_CAPTURE=" + json.dumps(record, ensure_ascii=False))
             finally:
                 if window is not None:
                     window.quit_requested = True
