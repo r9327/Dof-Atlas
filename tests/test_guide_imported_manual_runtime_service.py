@@ -249,6 +249,64 @@ class ImportedSourceRuntimeTests(unittest.TestCase):
             ("character:1", "Parler au PNJ fictif"),
         ])
 
+    def test_shared_reader_getters_never_leak_mutable_canonical_source(self):
+        service = self._runtime(_source_route())
+        card = service.cards[0]
+        original_text = card["manual_sections"]["now"][0]["text"]
+
+        sections = service.manual_sections_for_card("character:1", card)
+        lines = service.manual_lines_for_card("character:1", card)
+        self.assertIsNot(sections, card["manual_sections"])
+        self.assertIsNot(lines[0], card["manual_sections"]["now"][0])
+        sections["now"][0]["text"] = "UI overwritten action"
+        sections["now"].append({"kind": "action", "text": "UI injected action"})
+        lines[0]["text"] = "UI overwritten line"
+
+        self.assertEqual(card["manual_sections"]["now"][0]["text"], original_text)
+        self.assertEqual(len(card["manual_sections"]["now"]), 1)
+        self.assertEqual(
+            service.manual_sections_for_card("character:1", card)["now"][0]["text"],
+            original_text,
+        )
+        self.assertEqual(
+            service.manual_lines_for_card("character:1", card)[0]["text"],
+            original_text,
+        )
+        self.assertFalse(self.progress_path.exists())
+
+    def test_buggy_runtime_evaluator_cannot_clear_future_source_gates(self):
+        route = _source_route()
+        route["steps"][0]["hard_runtime_gates"] = [
+            {"kind": "alignment", "expected": "Bonta"},
+        ]
+        evaluated = []
+
+        def corrupting_evaluator(character_key, supplied_card):
+            evaluated.append(character_key)
+            supplied_card["hard_runtime_gates"].clear()
+            supplied_card["manual_sections"]["now"][0]["text"] = "TAMPERED"
+            return False
+
+        service = ImportedSourceManualRuntimeService(
+            self.others, self.others, self.guide_progress,
+            route=route, gate_evaluator=corrupting_evaluator,
+        )
+        service.set_authorization_guard(lambda *_: True)
+        key = service.page_key(service.cards[0])
+        for _ in range(2):
+            service.set_manual_checked("character:1", key, True)
+            self.assertFalse(service.manual_checked("character:1", key))
+        self.assertEqual(evaluated, ["character:1", "character:1"])
+        self.assertEqual(
+            service.cards[0]["hard_runtime_gates"],
+            [{"kind": "alignment", "expected": "Bonta"}],
+        )
+        self.assertEqual(
+            service.cards[0]["manual_sections"]["now"][0]["text"],
+            "Parler au PNJ fictif",
+        )
+        self.assertFalse(self.progress_path.exists())
+
     def test_single_gate_evaluation_per_page_write_and_fail_closed(self):
         route = _source_route()
         route["steps"][0]["hard_runtime_gates"] = [
@@ -262,7 +320,8 @@ class ImportedSourceRuntimeTests(unittest.TestCase):
         service.set_authorization_guard(lambda *_: True)
         service.set_page_checked("character:1", service.cards[0], 0, True)
         self.assertEqual(len(calls), 1)
-        self.assertIs(calls[0][1], service.cards[0])
+        self.assertEqual(calls[0][1], service.cards[0])
+        self.assertIsNot(calls[0][1], service.cards[0])
         self.assertFalse(self.progress_path.exists())
         with self.assertRaisesRegex(ValueError, "Unknown source step"):
             service.manual_order_choice_blocking(
