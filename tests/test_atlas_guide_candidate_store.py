@@ -1077,6 +1077,38 @@ class CandidateStoreTests(unittest.TestCase):
         self.assertFalse(forbidden.parent.exists())
 
 
+    def test_junctioned_candidate_root_or_parent_is_rejected_before_write(self) -> None:
+        # A Windows junction can redirect artifacts/ into application data,
+        # even though Path.is_symlink() reports False for that directory.
+        for redirected in (self.root, self.root.parent):
+            with self.subTest(redirected=str(redirected)):
+                with patch.object(
+                    Path, "is_junction", autospec=True,
+                    side_effect=lambda path, blocked=redirected: path == blocked,
+                ):
+                    with self.assertRaisesRegex(
+                        GuideRouteContractError, "symlink",
+                    ):
+                        publish_candidate(self.preview, root=self.root)
+                self.assertFalse(self.root.exists())
+
+    def test_junctioned_generation_folder_rejects_read_and_publish(self) -> None:
+        receipt = publish_candidate(self.preview, root=self.root)
+        selected = receipt["candidate_sha256"]
+        generation_folder = self.root / "generations"
+        with patch.object(
+            Path, "is_junction", autospec=True,
+            side_effect=lambda path: path == generation_folder,
+        ):
+            with self.assertRaisesRegex(GuideRouteContractError, "symlink"):
+                selected_candidate(self.root)
+            with self.assertRaisesRegex(GuideRouteContractError, "symlink"):
+                publish_candidate(
+                    self.preview, root=self.root, expected_selected=selected,
+                )
+        self.assertEqual(selected_candidate(self.root), selected)
+        self.assertFalse((self.root / ".writer.lock").exists())
+
     def test_source_quantity_scope_round_trip_is_verified_in_candidate(self) -> None:
         source = {
             "schema_version": 1, "rights_verified": True,
