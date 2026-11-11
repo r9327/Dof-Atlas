@@ -98,5 +98,20 @@ jobs:
           name: organizer-qt-screenshot-${{ env.CANDIDATE_SHA }}
           path: artifacts/organizer-ui/*.png
           if-no-files-found: warn
+      - name: Capture Atlas UI modules for #365 comparison
+        if: always()
+        shell: pwsh
+        env:
+          ATLAS_UI_CAPTURE_DIR: artifacts/atlas-ui-screens
+        run: |
+          python -X faulthandler -m tests.capture_atlas_ui
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+      - name: Upload actual Atlas UI screenshots and manifest
+        if: always()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: atlas-ui-screens-${{ env.CANDIDATE_SHA }}
+          path: artifacts/atlas-ui-screens/*
+          if-no-files-found: warn
       # Native Windows offscreen fixtures do not prove delivery in DOFUS Unity,
       # focus race outcomes on real machines, or 1/2/4/6/8-account latency.
