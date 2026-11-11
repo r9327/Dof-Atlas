@@ -11,6 +11,7 @@ from pathlib import Path
 
 os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
 
+from PySide6.QtGui import QFont, QFontDatabase
 from PySide6.QtWidgets import QApplication
 
 from app.ui.theme import atlas_stylesheet
@@ -19,7 +20,16 @@ from tests.test_organizer_layout import OrganizerLayoutTests
 
 def main() -> None:
     app = QApplication.instance() or QApplication([])
-    app.setStyleSheet(atlas_stylesheet())
+    # Hosted Windows offscreen Qt can resolve the multi-family Lexend QSS
+    # declaration to a missing font and render every glyph as a tofu square.
+    # Select the installed Segoe UI fallback explicitly for the capture only.
+    style = atlas_stylesheet().replace(
+        'font-family: "Lexend", "Segoe UI", Arial;',
+        'font-family: "Segoe UI";',
+    )
+    app.setFont(QFont("Segoe UI", 10))
+    app.setStyleSheet(style)
+    print(f"ORGANIZER_CAPTURE_FONT_AVAILABLE={'Segoe UI' in QFontDatabase.families()}")
     OrganizerLayoutTests.app = app
     fixture = OrganizerLayoutTests(
         "test_session_ids_refuse_fractional_boolean_and_corrupt_native_values"
