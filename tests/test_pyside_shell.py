@@ -142,7 +142,9 @@ class PySideShellTests(_base.PySideShellTests):
                 page.export_client_index()
 
                 self.assertEqual(len(page.sessions), 8)
-                self.assertEqual(len(page.session_slot_widgets), 8)
+                # Eight logical slots remain; a single live client needs only
+                # two compact visible targets until the user expands the card.
+                self.assertEqual(len(page.session_slot_widgets), 2)
                 self.assertEqual(page.sessions[0]["nom"], "Bob - Pandawa")
                 self.assertTrue(all(not page.sessions[index]["nom"] for index in range(1, 8)))
                 self.assertEqual(page.profiles[KEY_SESSION_ORDER], ["bob"])
