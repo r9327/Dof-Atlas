@@ -1161,8 +1161,11 @@ class ZaapWidget(QWidget):
         """Maximum *new* favorites fitting in one visible Organizer row."""
         if not self.compact_favorites:
             return 8
-        usable = max(320, self.width()) - self.favorites_label.width() - 16
-        return max(1, usable // (190 + 8))
+        # Count the real grid gaps: one between the label and each chip.
+        # Never use a fictional minimum width when the window shrinks.
+        spacing = self.favorites_layout.horizontalSpacing()
+        available = max(0, self.width() - self.favorites_label.width())
+        return max(1, available // (190 + spacing))
 
     def resizeEvent(self, event) -> None:
         super().resizeEvent(event)
@@ -1224,12 +1227,18 @@ class ZaapWidget(QWidget):
                 break
         columns = self.favorite_capacity()
         self._favorite_columns = columns
+        if self.compact_favorites:
+            spacing = self.favorites_layout.horizontalSpacing()
+            available = max(
+                0, self.width() - self.favorites_label.width() - columns * spacing
+            )
+            chip_width = min(190, max(40, available // columns))
         for index, (name, row) in enumerate(rows):
             chip = QWidget(self.favorites_row)
             chip.setObjectName("favoriteChip")
             chip.setAttribute(Qt.WA_Hover, True)
             chip.setFixedHeight(28)
-            chip.setMaximumWidth(190)
+            chip.setMaximumWidth(chip_width if self.compact_favorites else 190)
             chip.setSizePolicy(QSizePolicy.Maximum, QSizePolicy.Fixed)
             chip_layout = QHBoxLayout(chip)
             chip_layout.setContentsMargins(8, 0, 10, 0)
@@ -1243,7 +1252,9 @@ class ZaapWidget(QWidget):
             button = QPushButton(short_label(name, 24), chip)
             button.setObjectName("favoriteChipName")
             button.setFixedHeight(26)
-            button.setMaximumWidth(152)
+            button.setMaximumWidth(
+                min(152, max(1, chip_width - 38)) if self.compact_favorites else 152
+            )
             button.setCursor(Qt.PointingHandCursor)
             button.setToolTip(name)
             star_button.clicked.connect(lambda _checked=False, value=row: self.toggle_favorite(value))
