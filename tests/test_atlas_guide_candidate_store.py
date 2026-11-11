@@ -608,6 +608,102 @@ class CandidateStoreTests(unittest.TestCase):
         self.assertEqual(selected_candidate(self.root), previous)
         self.assertFalse((self.root / ".writer.lock").exists())
 
+    def test_publish_recovers_when_replace_commits_then_raises(self) -> None:
+        from tools import atlas_guide_candidate_store as store
+
+        initial = publish_candidate(self.preview, root=self.root)
+        previous = initial["candidate_sha256"]
+        real_replace = store.os.replace
+        injected = False
+
+        def replace_then_fail(src, dst):
+            nonlocal injected
+            real_replace(src, dst)
+            if Path(dst).name == "selected.json" and not injected:
+                injected = True
+                raise OSError("synthetic post-commit error")
+
+        with patch.object(store.os, "replace", side_effect=replace_then_fail):
+            with self.assertRaisesRegex(
+                GuideRouteContractError, "previous selection restored"
+            ):
+                publish_candidate(
+                    candidate(step_title="Publication incertaine"),
+                    root=self.root, expected_selected=previous,
+                )
+        self.assertTrue(injected)
+        self.assertEqual(selected_candidate(self.root), previous)
+        self.assertFalse((self.root / ".writer.lock").exists())
+
+    def test_rollback_corrupted_post_write_pointer_restores_current(self) -> None:
+        from tools import atlas_guide_candidate_store as store
+
+        first = publish_candidate(self.preview, root=self.root)
+        second = publish_candidate(
+            candidate(step_title="Seconde génération"),
+            root=self.root, expected_selected=first["candidate_sha256"],
+        )
+        active = second["candidate_sha256"]
+        real_atomic = store._atomic_file
+        injected = False
+
+        def corrupt_rollback_pointer(path, contents):
+            nonlocal injected
+            real_atomic(path, contents)
+            if path.name == "selected.json" and not injected:
+                injected = True
+                path.write_text('{"wrong": true}', encoding="utf-8")
+
+        with patch.object(store, "_atomic_file", side_effect=corrupt_rollback_pointer):
+            with self.assertRaisesRegex(
+                GuideRouteContractError,
+                "rollback verification failed; original selection restored",
+            ):
+                rollback_candidate(
+                    root=self.root, expected_selected=active,
+                    restore_sha256=first["candidate_sha256"],
+                )
+        self.assertTrue(injected)
+        self.assertEqual(selected_candidate(self.root), active)
+        self.assertFalse((self.root / ".writer.lock").exists())
+        result = rollback_candidate(
+            root=self.root, expected_selected=active,
+            restore_sha256=first["candidate_sha256"],
+        )
+        self.assertEqual(selected_candidate(self.root), result["candidate_sha256"])
+
+    def test_rollback_recovers_when_replace_commits_then_raises(self) -> None:
+        from tools import atlas_guide_candidate_store as store
+
+        first = publish_candidate(self.preview, root=self.root)
+        second = publish_candidate(
+            candidate(step_title="Nouvelle génération"),
+            root=self.root, expected_selected=first["candidate_sha256"],
+        )
+        active = second["candidate_sha256"]
+        real_replace = store.os.replace
+        injected = False
+
+        def replace_then_fail(src, dst):
+            nonlocal injected
+            real_replace(src, dst)
+            if Path(dst).name == "selected.json" and not injected:
+                injected = True
+                raise OSError("synthetic rollback post-commit error")
+
+        with patch.object(store.os, "replace", side_effect=replace_then_fail):
+            with self.assertRaisesRegex(
+                GuideRouteContractError,
+                "rollback verification failed; original selection restored",
+            ):
+                rollback_candidate(
+                    root=self.root, expected_selected=active,
+                    restore_sha256=first["candidate_sha256"],
+                )
+        self.assertTrue(injected)
+        self.assertEqual(selected_candidate(self.root), active)
+        self.assertFalse((self.root / ".writer.lock").exists())
+
     def test_generation_validation_parses_the_exact_hashed_bytes(self) -> None:
         first = publish_candidate(self.preview, root=self.root)
         digest = first["candidate_sha256"]
