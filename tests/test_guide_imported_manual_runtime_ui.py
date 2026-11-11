@@ -94,6 +94,58 @@ class ImportedSourceRouterQtTests(unittest.TestCase):
         self.view.deleteLater()
         QApplication.processEvents()
 
+    def test_encyclopedia_shell_forwards_authorized_sources_only_on_guide_open(self):
+        from app.modules.encyclopedia.views.encyclopedia_page import (
+            EncyclopediaPage,
+        )
+
+        root = Path(self.tmp.name)
+        with self.assertRaisesRegex(ValueError, "independent authorizer"):
+            orphan = EncyclopediaPage(
+                self.messages.append,
+                quest_provider=self.quests,
+                achievement_provider=self.achievements,
+                guide_provider=self.provider,
+                progress_path=root / "quest_progress.json",
+                achievement_progress_path=root / "achievements.json",
+                guide_progress_path=self.progress_path,
+                profile_path=root / "profiles.json",
+                client_index_path=root / "clients.json",
+                imported_source_services={self.service.guide_id: self.service},
+            )
+            orphan.close()
+
+        shell = EncyclopediaPage(
+            self.messages.append,
+            quest_provider=self.quests,
+            achievement_provider=self.achievements,
+            guide_provider=self.provider,
+            progress_path=root / "quest_progress.json",
+            achievement_progress_path=root / "achievements.json",
+            guide_progress_path=self.progress_path,
+            profile_path=root / "profiles.json",
+            client_index_path=root / "clients.json",
+            imported_source_services={self.service.guide_id: self.service},
+            imported_source_authorizer=lambda _key, _route: self.approved,
+        )
+        try:
+            # No Guide source service is constructed or fetched at Home.
+            self.assertIsNone(shell.guides_view)
+            self.assertFalse(self.progress_path.exists())
+            shell.current_character_key = "character:1"
+            reader = shell.ensure_full_guides_view()
+            self.assertIs(reader._imported_source_services[self.service.guide_id], self.service)
+            self.assertFalse(reader.select_guide(self.service.guide_id))
+            self.assertIsNone(reader.current_guide_id)
+            self.approved = True
+            self.assertTrue(reader.select_guide(self.service.guide_id))
+            self.assertIsInstance(reader.stack.currentWidget(), SharedGuideManualView)
+            self.assertFalse(self.progress_path.exists())
+        finally:
+            shell.close()
+            shell.deleteLater()
+            QApplication.processEvents()
+
     def test_missing_registry_and_untrusted_registration_never_select_source(self):
         with self.assertRaisesRegex(ValueError, "independent authorizer"):
             ManualRouteGuidesView(
