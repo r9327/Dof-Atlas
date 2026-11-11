@@ -1,6 +1,7 @@
 """Offline Craft leveling suggestions: no missing editorial JSON and no invented XP."""
 from __future__ import annotations
 
+from contextlib import closing
 import sqlite3
 import tempfile
 import unittest
@@ -31,7 +32,7 @@ class OfflineLevelingTests(unittest.TestCase):
     def test_craft_suggests_only_recipes_unlocked_at_current_level(self):
         with tempfile.TemporaryDirectory() as root:
             database = Path(root) / "craft.sqlite"
-            with sqlite3.connect(database) as con:
+            with closing(sqlite3.connect(database)) as con:
                 con.executescript("""
                     CREATE TABLE recipes (
                         id INTEGER PRIMARY KEY, level INTEGER,
