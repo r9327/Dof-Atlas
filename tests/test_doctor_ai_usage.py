@@ -58,11 +58,20 @@ class DoctorAiUsageContractTests(unittest.TestCase):
     def test_check_records_only_real_successful_scanner_responses(self):
         plan = self._selection()
         status = {
+            "source": "tools.atlas_doctor_lib.oss_router.route_oss",
+            "status": "ADVISORY_ONLY",
+            "input_integrity_verified": True,
+            "files_modified": False,
             "execution_results": [
                 {"tool": "ruff", "status": "CLEAN"},
                 {"tool": "zizmor", "status": "NOT_AVAILABLE"},
             ],
-            "execution_summary": {"status": "INCOMPLETE"},
+            "execution_summary": {
+                "status": "INCOMPLETE",
+                "expected_tools": ["ruff", "zizmor"],
+                "confirmed_executions": 1,
+                "gaps": [{"tool": "zizmor", "status": "NOT_AVAILABLE"}],
+            },
         }
         result = ai_tool_workflow(
             "check", {"status": "REVIEW", "exit_code": 1}, plan,
@@ -143,7 +152,9 @@ class DoctorAiUsageContractTests(unittest.TestCase):
               patch("tools.atlas_doctor_lib.oss_router.sys.platform", "win32"),
               patch("tools.atlas_doctor_lib.oss_router.site.getuserbase",
                     return_value=str(self.root))):
-            self.assertEqual(_zizmor_executable(), str(exe))
+            found = _zizmor_executable()
+            self.assertIsNotNone(found)
+            self.assertTrue(Path(found).samefile(exe))
         exe.unlink()
         with (patch("shutil.which", return_value=None),
               patch("tools.atlas_doctor_lib.oss_router.sys.platform", "win32"),
@@ -165,9 +176,12 @@ class DoctorAiUsageContractTests(unittest.TestCase):
         script = (root / "tools/setup_doctor_oss.ps1").read_text(encoding="utf-8")
         self.assertIn("param([switch]$Install)", script)
         self.assertIn("--verify-live", script)
-        self.assertIn("--only-binary=:all:", script)
-        self.assertIn("ruff==0.17.3", script)
-        self.assertIn("zizmor==1.30.1", script)
+        self.assertIn("tools.doctor_oss_wheels --install", script)
+        installer = (root / "tools/doctor_oss_wheels.py").read_text(encoding="utf-8")
+        self.assertIn("--only-binary=:all:", installer)
+        self.assertIn('"ruff": "0.17.3"', installer)
+        self.assertIn('"zizmor": "1.30.1"', installer)
+        self.assertIn("--require-hashes", installer)
 
 
 if __name__ == "__main__":
