@@ -305,6 +305,13 @@ def owners_for(path: str) -> frozenset[str]:
     if path in {"app/core/text.py", "tests/test_core_text.py"}:
         return frozenset({"craft", "quests", "guides", "ui", "startup",
                           "identity", "data", "organizer"})
+    if path == "tests/_pyside_shell_base.py":
+        # This inherited Qt fixture is executed via tests.test_pyside_shell.
+        # It covers Craft, Quest, the shell/startup lifecycle, Organizer,
+        # per-character identity and data persistence. Keep its exact path
+        # reviewed; unrelated private test helpers must remain unowned.
+        return frozenset({"craft", "quests", "guides", "ui", "startup",
+                          "identity", "data", "organizer"})
     # Organizer profile defaults are read by Qt/session startup and persisted
     # for character-bound input. Unknown app/core files still fail closed.
     if path == "app/core/profile_settings.py":
