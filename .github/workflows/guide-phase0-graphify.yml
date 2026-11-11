@@ -1,7 +1,8 @@
 name: Guides Phase 0 - exact SHA Graphify evidence
 
 # Narrow, exact-SHA architecture proof for PR #363, using the existing
-# Graphify/Doctor workflow. Ordinary Guide pushes never trigger an AST rebuild.
+# Graphify/Doctor workflow. Refresh after Phase 0 persistence/identity test
+# coverage expansion; ordinary Guide pushes never trigger an AST rebuild.
 # This bridge can also be run manually for the current exact branch HEAD.
 on:
   workflow_dispatch:
