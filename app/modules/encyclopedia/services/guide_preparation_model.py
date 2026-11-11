@@ -13,6 +13,8 @@ import zlib
 from dataclasses import dataclass
 from typing import Any, Iterable
 
+from app.core.entity_identity import canonical_entity_key
+
 _COMPACT_DECODE_LIMIT = 4 * 1024 * 1024
 _COMPACT_PREPARATION_FIELDS = (
     "preparation", "a_preparer", "resource_plan", "resources",
@@ -58,7 +60,10 @@ def normalized_name(text: str) -> str:
 
 
 def item_identity(item_id: int | None, name: str) -> str:
-    return f"item:{item_id}" if item_id is not None else f"name:{normalized_name(name)}"
+    return (
+        canonical_entity_key("item", item_id) if item_id is not None
+        else f"name:{normalized_name(name)}"
+    )
 
 
 def _positive_int(value: Any) -> int | None:
@@ -138,6 +143,14 @@ def _gate_labels(raw: Any) -> Iterable[str]:
             yield from _gate_labels(value)
 
 
+def _quantity_scope(record: dict[str, Any]) -> str:
+    """An explicit common-team requirement must not be multiplied by the team."""
+    value = record.get("quantity_scope", "per_character")
+    if value in ("per_character", "party_shared"):
+        return value
+    return "unverified"
+
+
 def _consumption(record: dict[str, Any]) -> str:
     # No default: without a proven reusable/consumed status the amount across
     # multiple stages is ambiguous. Do not assume every displayed mention is use.
@@ -160,6 +173,9 @@ class PreparationClaim:
     source: str
     stage_id: str
     occurrence: str
+    scope: str = "per_character"
+    profession_id: int | None = None
+    required_level: int | None = None
 
 
 @dataclass(frozen=True, slots=True)
@@ -172,6 +188,9 @@ class PreparationNeed:
     confidence: str
     claim_count: int
     sources: tuple[str, ...]
+    scope: str = "per_character"
+    profession_id: int | None = None
+    required_level: int | None = None
 
 
 def card_claims(
@@ -227,7 +246,7 @@ def card_claims(
     stage = str(card.get("manual_stage_id") or "")
     claims: list[PreparationClaim] = []
     structured_keys: set[tuple[str, int | None]] = set()
-    exact_rows: set[tuple[str, int | None, str, str]] = set()
+    exact_rows: set[tuple[str, int | None, str, str, str]] = set()
     for index, raw in enumerate(_structured_entries(card.get("a_preparer", ()) or ())):
         name = str(
             raw.get("name") or raw.get("label") or raw.get("item") or raw.get("resource") or ""
@@ -239,15 +258,17 @@ def card_claims(
         identity = item_identity(item_id, name)
         source = str(raw.get("_source_field") or "a_preparer")
         occurrence = str(raw.get("occurrence_id") or raw.get("source_step_id") or "")
+        scope = _quantity_scope(raw)
         # Without an independently identified occurrence, duplicated identical
         # source rows are display mirrors, not proof of two purchases.
-        signature = (identity, quantity, source, occurrence)
+        signature = (identity, quantity, source, occurrence, scope)
         if signature in exact_rows:
             continue
         exact_rows.add(signature)
         claims.append(PreparationClaim(
             identity, item_id, name, category_for(name, str(raw.get("category") or "")),
             quantity, _consumption(raw), source, stage, occurrence or f"structured:{index}",
+            scope,
         ))
         structured_keys.add((item_identity(None, name), quantity))
     src_sections = sections if sections is not None else card.get("manual_sections", {})
@@ -279,23 +300,68 @@ def card_claims(
         ).strip()
         if not name:
             continue
-        identity = f"profession:{normalized_name(name)}"
-        if any(claim.identity == identity for claim in claims):
+        profession_id = (
+            _positive_int(raw.get("profession_id")) if isinstance(raw, dict) else None
+        )
+        required_level = (
+            _positive_int(raw.get("level") or raw.get("required_level"))
+            if isinstance(raw, dict) else None
+        )
+        identity = (
+            canonical_entity_key("profession", profession_id)
+            if profession_id is not None else f"profession:{normalized_name(name)}"
+        )
+        if any(claim.identity == identity and claim.required_level == required_level
+               for claim in claims):
             continue
         claims.append(PreparationClaim(
             identity, None, name, "Métiers", None, "reusable",
             "profession_gates", stage, f"profession:{index}",
+            profession_id=profession_id, required_level=required_level,
         ))
     seen_gates: set[str] = set()
-    for index, name in enumerate(_gate_labels(card.get("hard_runtime_gates", ()) or ())):
-        identity = f"gate:{normalized_name(name)}"
-        if identity in seen_gates or identity == "gate:":
-            continue
-        seen_gates.add(identity)
-        claims.append(PreparationClaim(
-            identity, None, name, "Prérequis", None, "reusable",
-            "hard_runtime_gates", stage, f"gate:{index}",
-        ))
+    gates = card.get("hard_runtime_gates", ()) or ()
+    # Source data may encode one object or a list; never treat dict keys as
+    # separate prose gates. Typed quest/success identities trump display names.
+    if not isinstance(gates, (list, tuple)):
+        gates = (gates,)
+    typed_labels = {
+        normalized_name(title)
+        for raw in gates if isinstance(raw, dict)
+        and (_positive_int(raw.get("quest_id")) is not None
+             or _positive_int(raw.get("achievement_id")) is not None)
+        for title in _gate_labels(raw)
+    }
+    for index, raw in enumerate(gates):
+        typed: list[tuple[str, str]] = []
+        if isinstance(raw, dict):
+            for field, kind, label in (
+                ("quest_id", "quest", "Quête"),
+                ("achievement_id", "achievement", "Succès"),
+            ):
+                game_id = _positive_int(raw.get(field))
+                if game_id is not None:
+                    title = next(iter(_gate_labels(raw)), "")
+                    typed.append((
+                        canonical_entity_key(kind, game_id),
+                        f"{label} : {title}" if title
+                        else f"{label} #{game_id} (nom à vérifier)",
+                    ))
+        if typed:
+            entries = typed
+        else:
+            entries = [(f"gate:{normalized_name(label)}", label)
+                       for label in _gate_labels(raw)]
+        for identity, name in entries:
+            if (identity in seen_gates or identity == "gate:"
+                    or (identity.startswith("gate:")
+                        and normalized_name(name) in typed_labels)):
+                continue
+            seen_gates.add(identity)
+            claims.append(PreparationClaim(
+                identity, None, name, "Prérequis", None, "reusable",
+                "hard_runtime_gates", stage, f"gate:{index}",
+            ))
     return tuple(claims)
 
 
@@ -317,7 +383,7 @@ def aggregate_remaining(
         str(card.get("manual_chapter_id") or "")
         for card, complete in rows if not complete
     }
-    grouped: dict[tuple[str, str], list[PreparationClaim]] = {}
+    grouped: dict[tuple[str, str, str], list[PreparationClaim]] = {}
     for card, complete in rows:
         chapter = str(card.get("manual_chapter_id") or "")
         if complete and (not chapter or chapter not in incomplete_chapters):
@@ -326,12 +392,15 @@ def aggregate_remaining(
         for claim in card_claims(card, sections=sections):
             if complete and claim.source != "chapter_preparation":
                 continue
-            grouped.setdefault((claim.identity, claim.category), []).append(claim)
+            grouped.setdefault((claim.identity, claim.category, claim.scope), []).append(claim)
     needs = []
-    for (identity, category), group in sorted(grouped.items()):
+    for (identity, category, scope), group in sorted(grouped.items()):
         quantities = [claim.quantity for claim in group]
         usages = {claim.consumption for claim in group}
-        if None in quantities:
+        if scope == "unverified":
+            quantity = None
+            confidence = "scope_unverified"
+        elif None in quantities:
             quantity = None
             confidence = "quantity_unverified"
         elif len(group) == 1:
@@ -347,10 +416,18 @@ def aggregate_remaining(
             quantity = None
             confidence = "multiple_uses_ambiguous"
         first = group[0]
+        # An authored job threshold is a gate, never a countable item.
+        # A partially known sequence must not invent a confirmed maximum.
+        job_levels = [claim.required_level for claim in group]
+        job_maximum = (
+            max(job_levels) if category == "Métiers"
+            and all(level is not None for level in job_levels) else None
+        )
         needs.append(PreparationNeed(
             identity, first.item_id, first.name, category, quantity,
             confidence, len(group),
             tuple(dict.fromkeys(f"{claim.stage_id}:{claim.source}" for claim in group)),
+            scope, first.profession_id, job_maximum,
         ))
     return tuple(needs)
 

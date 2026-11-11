@@ -1,0 +1,80 @@
+name: Guides 363 / Phase-0 branch qualification
+
+on:
+  push:
+    branches:
+      - 'feat/atlas-guide-importer-pr337-20261102'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: atlas-guide363-phase0-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  guide-core:
+    name: Guides / Phase 0 stdlib parity (exact SHA)
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    env:
+      CANDIDATE_SHA: ${{ github.sha }}
+      PYTHONUTF8: '1'
+    steps:
+      - name: Checkout exact branch commit
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ env.CANDIDATE_SHA }}
+          persist-credentials: false
+          lfs: false
+      - name: Check exact SHA
+        shell: bash
+        run: test "$(git rev-parse HEAD)" = "$CANDIDATE_SHA"
+      - name: Python 3.13
+        uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
+        with:
+          python-version: '3.13'
+      - name: Run synthetic import, conformity, storage and sequence gates
+        run: |
+          python -X faulthandler -m unittest discover -v -s tests -p 'test_atlas_guide_*.py'
+          python -X faulthandler -m unittest -v tests.test_guide_shared_route_contract
+
+  guide-qt:
+    name: Guides / Phase 0 Qt UI (Windows, synthetic)
+    runs-on: windows-latest
+    timeout-minutes: 20
+    env:
+      CANDIDATE_SHA: ${{ github.sha }}
+      QT_QPA_PLATFORM: offscreen
+      QTWEBENGINE_CHROMIUM_FLAGS: --disable-gpu --no-sandbox
+      QTWEBENGINE_DISABLE_SANDBOX: '1'
+      PYTHONUTF8: '1'
+    steps:
+      - name: Checkout exact branch commit
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ env.CANDIDATE_SHA }}
+          persist-credentials: false
+          lfs: false
+      - name: Check exact SHA
+        shell: pwsh
+        run: |
+          if ((git rev-parse HEAD).Trim() -ne $env:CANDIDATE_SHA) {
+            throw "Guide Phase 0 checkout differs from branch SHA"
+          }
+      - name: Python 3.13
+        uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
+        with:
+          python-version: '3.13'
+      - name: Install pinned runtime
+        shell: pwsh
+        run: |
+          python -m pip install --require-hashes --no-deps -r requirements-pyside.txt
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+      - name: Exercise shared Guide UI with fictional guide fixtures
+        shell: pwsh
+        run: |
+          python -X faulthandler -m unittest -v tests.test_guide_manual_selected_validation tests.test_guide_imported_manual_runtime_ui tests.test_guide_preparation_model_qt
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+      # Never import, preview, certify or publish a real source guide.
+      # These tests are not Ganymède provenance or DOFUS gameplay evidence.
