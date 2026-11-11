@@ -7,9 +7,11 @@ on:
     paths:
       - '.github/workflows/craft-focused-qt.yml'
       - 'app/pages/craft_page.py'
+      - 'app/craft_preload.py'
       - 'local_dofus_data/normalizer.py'
       - 'local_dofus_data/repositories.py'
       - 'tests/test_craft_fixes.py'
+      - 'tests/test_craft_leveling_offline.py'
       - 'tests/test_craft_category_search.py'
       - 'tests/test_craft_minimal_lazy.py'
       - 'tests/test_craft_compatibility_adapter.py'
@@ -62,7 +64,7 @@ jobs:
       - name: Execute Craft regressions against exact SHA
         shell: pwsh
         run: |
-          python -X faulthandler -m unittest -v tests.test_craft_fixes tests.test_craft_category_search tests.test_craft_minimal_lazy tests.test_craft_compatibility_adapter
+          python -X faulthandler -m unittest -v tests.test_craft_fixes tests.test_craft_leveling_offline tests.test_craft_category_search tests.test_craft_minimal_lazy tests.test_craft_compatibility_adapter
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
       # Synthetic offscreen tests prove code paths, not availability of real
       # leveling JSON, Git LFS sprites, a clean install or DOFUS interactions.

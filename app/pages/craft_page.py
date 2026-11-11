@@ -319,16 +319,28 @@ class LevelingDialog(QDialog):
         self.add_craft_callback = add_craft_callback
         self.icon_cache = IconCache(28)
         self.setObjectName("LevelingDialog")
-        self.setWindowTitle(f"{job_name} 0-200")
+        local = guide.get("source") == "atlas-local"
+        harvest = local and guide.get("kind") == "harvest"
+        self.setWindowTitle(f"{job_name} — Repères locaux" if local else f"{job_name} 0-200")
         self.resize(660, 560)
         self.setWindowFlag(Qt.WindowStaysOnTopHint, True)
 
         root = QVBoxLayout(self)
         root.setContentsMargins(14, 12, 14, 12)
         root.setSpacing(8)
-        title = QLabel(f"{job_name} 0-200")
+        title = QLabel(f"{job_name} — Repères locaux" if local else f"{job_name} 0-200")
         title.setObjectName("DialogTitle")
         root.addWidget(title)
+        if local:
+            note = QLabel(
+                "Ressources classées par progression, sans palier XP ni quantité garantie."
+                if harvest else
+                "Recettes du catalogue local accessibles par niveau. "
+                "1 exemplaire est proposé par défaut : ce n'est pas une route XP optimisée."
+            )
+            note.setObjectName("MutedLabel")
+            note.setWordWrap(True)
+            root.addWidget(note)
         area = QScrollArea()
         area.setWidgetResizable(True)
         area.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
@@ -360,14 +372,23 @@ class LevelingDialog(QDialog):
             level.setFixedWidth(88)
             level.setAlignment(Qt.AlignCenter)
             layout.addWidget(level)
-            recipe = QLabel(f"{craft.get('quantity', 1)} x {craft.get('name', '')}")
+            recipe = QLabel(
+                f"Récolter : {craft.get('name', '')}" if harvest
+                else f"{craft.get('quantity', 1)} x {craft.get('name', '')}"
+            )
             recipe.setObjectName("CompactLabel")
             recipe.setWordWrap(False)
             layout.addWidget(recipe, 1)
-            add = AtlasButton("+")
+            add = AtlasButton("Copier" if harvest else "+")
             add.setObjectName("PrimaryActionButton")
-            add.setFixedSize(38, 28)
-            add.clicked.connect(lambda _checked=False, target=craft: self.add_craft_callback(target))
+            add.setFixedSize(64 if harvest else 38, 28)
+            if harvest:
+                add.clicked.connect(
+                    lambda _checked=False, name=craft.get("name", ""):
+                    QApplication.clipboard().setText(name)
+                )
+            else:
+                add.clicked.connect(lambda _checked=False, target=craft: self.add_craft_callback(target))
             layout.addWidget(add)
             rows.addWidget(row)
         rows.addStretch(1)
@@ -1123,7 +1144,7 @@ class CraftPage(QWidget):
         clean = []
         for job in jobs:
             key = normalize_key(job.get("name"))
-            if not key or "mage" in key or "bestiologue" in key:
+            if not key or key == "base" or "mage" in key or "bestiologue" in key:
                 continue
             clean.append(job)
         self.jobs = sorted(clean, key=lambda job: (JOB_ORDER.get(normalize_key(job.get("name")), 100), normalize_key(job.get("name"))))
@@ -1354,6 +1375,12 @@ class CraftPage(QWidget):
 
     def open_leveling_dialog(self, job_name: str) -> None:
         guide = self.guide_for_job(job_name)
+        if not isinstance(guide, dict) or not guide.get("entries"):
+            # The editorial JSON is not tracked in Git. Prefer the real guide
+            # when present, otherwise derive visible, honest suggestions
+            # from the canonical local Craft catalogue already installed.
+            from app.craft_preload import build_local_leveling_suggestions
+            guide = build_local_leveling_suggestions(job_name)
         if not isinstance(guide, dict) or not guide.get("entries"):
             if not LEVELING_FILE.is_file():
                 detail = f"Fichier de guides absent : {LEVELING_FILE}"
