@@ -55,6 +55,40 @@ jobs:
       - name: Run synthetic import, conformity, storage and sequence gates
         run: |
           python -X faulthandler -m unittest discover -v -s tests -p 'test_atlas_guide_*.py'
+      - name: Record machine-readable Linux Phase 0 test evidence
+        shell: bash
+        run: |
+          python - <<'PY'
+          import datetime, json, os, pathlib, subprocess
+          actual = subprocess.check_output(["git", "rev-parse", "HEAD"], text=True).strip()
+          expected = os.environ["CANDIDATE_SHA"]
+          if actual != expected:
+              raise SystemExit("Phase 0 evidence SHA does not match checked-out source")
+          payload = {
+              "schema_version": 1,
+              "kind": "atlas_guide_phase0_synthetic_test_evidence",
+              "status": "PASS_SYNTHETIC_TESTS_ONLY",
+              "head_sha": actual,
+              "utc": datetime.datetime.now(datetime.timezone.utc).isoformat(),
+              "runner_os": os.environ.get("RUNNER_OS"),
+              "run_id": os.environ.get("GITHUB_RUN_ID"),
+              "run_attempt": os.environ.get("GITHUB_RUN_ATTEMPT"),
+              "test_suites": ["test_atlas_guide_*.py"],
+              "real_guide_count": 0,
+              "certified": False,
+              "source_rights_verified": False,
+              "dofus_unity_gameplay_tested": False,
+          }
+          out = pathlib.Path("artifacts/guide_phase0/linux.json")
+          out.parent.mkdir(parents=True, exist_ok=True)
+          out.write_text(json.dumps(payload, ensure_ascii=False, sort_keys=True, indent=2) + "\n", encoding="utf-8")
+          PY
+      - name: Upload synthetic Linux Guide Phase 0 evidence
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: atlas-guide-phase0-linux-${{ env.CANDIDATE_SHA }}
+          path: artifacts/guide_phase0/linux.json
+          if-no-files-found: error
 
   guide-qt:
     name: Guides / Phase 0 Qt UI (Windows, synthetic)
@@ -98,5 +132,40 @@ jobs:
         run: |
           python -X faulthandler -m unittest -v tests.test_guide_progress_persistence tests.test_guide_imported_manual_runtime_service tests.test_guide_entity_identity tests.test_guide_preparation_model
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+      - name: Record machine-readable Windows Phase 0 test evidence
+        shell: pwsh
+        run: |
+          @'
+          import datetime, json, os, pathlib, subprocess
+          actual = subprocess.check_output(["git", "rev-parse", "HEAD"], text=True).strip()
+          expected = os.environ["CANDIDATE_SHA"]
+          if actual != expected:
+              raise SystemExit("Phase 0 evidence SHA does not match checked-out source")
+          payload = {
+              "schema_version": 1,
+              "kind": "atlas_guide_phase0_synthetic_test_evidence",
+              "status": "PASS_SYNTHETIC_TESTS_ONLY",
+              "head_sha": actual,
+              "utc": datetime.datetime.now(datetime.timezone.utc).isoformat(),
+              "runner_os": os.environ.get("RUNNER_OS"),
+              "run_id": os.environ.get("GITHUB_RUN_ID"),
+              "run_attempt": os.environ.get("GITHUB_RUN_ATTEMPT"),
+              "test_suites": ["tests.test_guide_shared_route_contract","tests.test_guide_manual_selected_validation","tests.test_guide_imported_manual_runtime_ui","tests.test_guide_preparation_model_qt","tests.test_guide_progress_persistence","tests.test_guide_imported_manual_runtime_service","tests.test_guide_entity_identity","tests.test_guide_preparation_model"],
+              "real_guide_count": 0,
+              "certified": False,
+              "source_rights_verified": False,
+              "dofus_unity_gameplay_tested": False,
+          }
+          out = pathlib.Path("artifacts/guide_phase0/windows.json")
+          out.parent.mkdir(parents=True, exist_ok=True)
+          out.write_text(json.dumps(payload, ensure_ascii=False, sort_keys=True, indent=2) + "\n", encoding="utf-8")
+          '@ | python -
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+      - name: Upload synthetic Windows Guide Phase 0 evidence
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: atlas-guide-phase0-windows-${{ env.CANDIDATE_SHA }}
+          path: artifacts/guide_phase0/windows.json
+          if-no-files-found: error
       # Never import, preview, certify or publish a real source guide.
       # These tests are not Ganymède provenance or DOFUS gameplay evidence.
