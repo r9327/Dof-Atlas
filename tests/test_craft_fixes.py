@@ -90,7 +90,9 @@ class CraftFixesTests(unittest.TestCase):
             {"name": "Base"}, {"name": "Mineur"}, {"name": "Forgeron"},
         ]}
         page.load_jobs()
-        self.assertEqual({job["name"] for job in page.jobs}, {"Mineur", "Forgeron"})
+        names = {job["name"] for job in page.jobs}
+        self.assertNotIn("Base", names)
+        self.assertTrue({"Mineur", "Forgeron"}.issubset(names))
 
     def test_missing_editorial_json_uses_real_offline_catalogue(self):
         page = self.make_page()

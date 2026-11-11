@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+from contextlib import closing
 import sqlite3
 import sys
 from pathlib import Path
@@ -54,7 +55,7 @@ def build_local_leveling_suggestions(
     try:
         # The public Craft seed, installed on first launch, is canonical.
         # Opening in read-only mode prevents sidecar files or user-data writes.
-        with sqlite3.connect(path.resolve().as_uri() + "?mode=ro", uri=True) as db:
+        with closing(sqlite3.connect(path.resolve().as_uri() + "?mode=ro", uri=True)) as db:
             candidates = db.execute(
                 """
                 SELECT r.level, r.result_name_fr, COUNT(ri.id) AS ingredient_count
