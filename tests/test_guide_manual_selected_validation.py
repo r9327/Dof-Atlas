@@ -626,6 +626,134 @@ class ImportedSourceSharedManualUiTests(unittest.TestCase):
                 view.deleteLater()
                 QApplication.processEvents()
 
+    def test_zaap_checks_connections_and_selection_again_after_planning(self) -> None:
+        from PySide6.QtWidgets import QToolButton
+        from app.modules.encyclopedia.services.adventure_route_engine import RouteLocation
+        from app.modules.encyclopedia.services.guide_route_planner import (
+            GuideTravelPlan, TravelMode,
+        )
+
+        with tempfile.TemporaryDirectory() as temp:
+            route = project_authorized_guide(self._source())
+            service = self._service(Path(temp) / "progress.json", route)
+            participants = _ThreeParticipants()
+            participants.save_selected_keys(("character:1",))
+            launched = []
+            def verified_plan(_destination, keys):
+                return GuideTravelPlan(
+                    mode=TravelMode.ZAAP_THEN_TRAVEL,
+                    destination=RouteLocation(x=-5, y=2),
+                    participant_keys=keys, world="fictional-world",
+                    zaap=RouteLocation(x=1, y=1),
+                    evidence="fictional-independent-zaap-proof",
+                )
+            service.plan_verified_zaap_travel = verified_plan
+            view = SharedGuideManualView(
+                service, character_key="character:1",
+                participant_service=participants,
+                travel_callback=lambda command, keys: launched.append((command, keys)),
+            )
+            try:
+                view._show_index(0)
+                QApplication.processEvents()
+                button = view.findChild(QToolButton, "GuideManualZaapShortcut")
+                self.assertIsNotNone(button)
+
+                # The participant disconnects while the provider is computing.
+                calls = []
+                def changing_inventory():
+                    calls.append(True)
+                    return (SimpleNamespace(
+                        key="character:1", label="Alpha", connected=len(calls) == 1,
+                    ),)
+                participants.available_characters = changing_inventory
+                QApplication.clipboard().setText("before")
+                button.click()
+                self.assertEqual(len(calls), 2)
+                self.assertEqual(launched, [])
+                self.assertEqual(QApplication.clipboard().text(), "/travel -5,2")
+
+                # A provider-side selection change is also a hard stop.
+                participants.available_characters = lambda: (
+                    SimpleNamespace(key="character:1", label="Alpha", connected=True),
+                )
+                def mutated_selection(destination, keys):
+                    participants.save_selected_keys(("character:1", "character:2"))
+                    return verified_plan(destination, keys)
+                service.plan_verified_zaap_travel = mutated_selection
+                QApplication.clipboard().setText("before")
+                button.click()
+                self.assertEqual(launched, [])
+                self.assertEqual(QApplication.clipboard().text(), "/travel -5,2")
+            finally:
+                view.close()
+                view.deleteLater()
+                QApplication.processEvents()
+
+    def test_zaap_external_failures_and_ambiguous_callback_fail_closed(self) -> None:
+        from PySide6.QtWidgets import QToolButton
+        from app.modules.encyclopedia.services.adventure_route_engine import RouteLocation
+        from app.modules.encyclopedia.services.guide_route_planner import (
+            GuideTravelPlan, TravelMode,
+        )
+
+        with tempfile.TemporaryDirectory() as temp:
+            route = project_authorized_guide(self._source())
+            service = self._service(Path(temp) / "progress.json", route)
+            participants = _ThreeParticipants()
+            participants.save_selected_keys(("character:1",))
+            launched = []
+            def verified_plan(_destination, keys):
+                return GuideTravelPlan(
+                    mode=TravelMode.ZAAP_THEN_TRAVEL,
+                    destination=RouteLocation(x=-5, y=2),
+                    participant_keys=keys, world="fictional-world",
+                    zaap=RouteLocation(x=1, y=1),
+                    evidence="fictional-independent-zaap-proof",
+                )
+            service.plan_verified_zaap_travel = verified_plan
+            view = SharedGuideManualView(
+                service, character_key="character:1",
+                participant_service=participants,
+                travel_callback=lambda command, keys: launched.append((command, keys)),
+            )
+            try:
+                view._show_index(0)
+                QApplication.processEvents()
+                button = view.findChild(QToolButton, "GuideManualZaapShortcut")
+                self.assertIsNotNone(button)
+
+                def fail(*_args):
+                    raise RuntimeError("synthetic unavailable service")
+
+                service.plan_verified_zaap_travel = fail
+                QApplication.clipboard().setText("before")
+                button.click()
+                self.assertEqual(QApplication.clipboard().text(), "/travel -5,2")
+                self.assertEqual(launched, [])
+
+                # Callback errors and an integer response are not success.
+                service.plan_verified_zaap_travel = verified_plan
+                view.travel_callback = fail
+                QApplication.clipboard().setText("before")
+                button.click()
+                self.assertEqual(QApplication.clipboard().text(), "/travel -5,2")
+                view.travel_callback = lambda command, keys: 0
+                QApplication.clipboard().setText("before")
+                button.click()
+                self.assertEqual(QApplication.clipboard().text(), "/travel -5,2")
+
+                # No live inventory means no plan and no macro invocation.
+                participants.available_characters = fail
+                QApplication.clipboard().setText("before")
+                button.click()
+                self.assertEqual(QApplication.clipboard().text(), "/travel -5,2")
+                self.assertEqual(launched, [])
+            finally:
+                view.close()
+                view.deleteLater()
+                QApplication.processEvents()
+
     def test_preview_preserves_source_sections_and_clickable_roles(self) -> None:
         with tempfile.TemporaryDirectory() as temp:
             route = project_authorized_guide(self._source())
