@@ -6,6 +6,7 @@ and not evidence that native Unity input works.
 from __future__ import annotations
 
 import os
+import re
 import tempfile
 from pathlib import Path
 
@@ -20,16 +21,26 @@ from tests.test_organizer_layout import OrganizerLayoutTests
 
 def main() -> None:
     app = QApplication.instance() or QApplication([])
-    # Hosted Windows offscreen Qt can resolve the multi-family Lexend QSS
-    # declaration to a missing font and render every glyph as a tofu square.
-    # Select the installed Segoe UI fallback explicitly for the capture only.
-    style = atlas_stylesheet().replace(
-        'font-family: "Lexend", "Segoe UI", Arial;',
-        'font-family: "Segoe UI";',
-    )
-    app.setFont(QFont("Segoe UI", 10))
+    # Do not create false all-square evidence if the offscreen plugin cannot
+    # resolve the Unity multi-family QSS. Use an actually available Qt family.
+    families = QFontDatabase.families()
+    print(f"ORGANIZER_CAPTURE_FONT_FAMILIES={families[:60]!r}")
+    for candidate in ("C:/Windows/Fonts/arial.ttf",
+                      "C:/Windows/Fonts/segoeui.ttf"):
+        if os.path.isfile(candidate):
+            font_id = QFontDatabase.addApplicationFont(candidate)
+            print(f"ORGANIZER_REGISTER_FONT={candidate}:{font_id}")
+    families = QFontDatabase.families()
+    selected = next((family for family in ("Arial", "Segoe UI", "Tahoma",
+                     "DejaVu Sans", "Liberation Sans") if family in families),
+                    QFont().family())
+    if selected not in families:
+        raise RuntimeError(f"No working font on Windows Qt runner: {families!r}")
+    print(f"ORGANIZER_CAPTURE_SELECTED_FONT={selected}")
+    style = re.sub(r"font-family:\\s*[^;]+;", f'font-family: "{selected}";',
+                   atlas_stylesheet())
+    app.setFont(QFont(selected, 10))
     app.setStyleSheet(style)
-    print(f"ORGANIZER_CAPTURE_FONT_AVAILABLE={'Segoe UI' in QFontDatabase.families()}")
     OrganizerLayoutTests.app = app
     fixture = OrganizerLayoutTests(
         "test_session_ids_refuse_fractional_boolean_and_corrupt_native_values"
@@ -48,6 +59,11 @@ def main() -> None:
             raise RuntimeError("Organizer PNG was not written correctly")
         print(f"ORGANIZER_SCREENSHOT={target.as_posix()}")
         print(f"ORGANIZER_CAPTURE_PIXELS={capture.width()}x{capture.height()}")
+        from tools.atlas_doctor_lib.doctor_ui_qt import glyph_legibility_probe
+        probe = glyph_legibility_probe(page, screenshots=[target])
+        print(f"ORGANIZER_CAPTURE_FONT_CHECK={probe['status']}:{probe['reason']}")
+        if probe["status"] != "PASS":
+            raise RuntimeError("Organizer Qt capture rejected: missing or square glyphs")
         print("ORGANIZER_CAPTURE_CONTEXT=actual Qt page, Windows runner, no DOFUS clients")
 
 
