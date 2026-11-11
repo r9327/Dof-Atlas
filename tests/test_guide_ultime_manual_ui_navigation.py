@@ -340,13 +340,89 @@ class GuideUltimeManualUiNavigationTests(unittest.TestCase):
             self.assertEqual(sends, [])
             self.assertEqual(QApplication.clipboard().text(), "/travel 4,-8")
 
+            # A mixed online/offline selection must not silently send only
+            # to character:1: this is an all-or-nothing user command.
             participants.selected = ["character:1", "character:2", "character:999"]
+            self.assertFalse(view._launch_travel_command("/travel 4,-8"))
+            self.assertEqual(sends, [])
+            self.assertEqual(QApplication.clipboard().text(), "/travel 4,-8")
+
+            participants.selected = ["character:1"]
             self.assertTrue(view._launch_travel_command("/travel 4,-8"))
             self.assertEqual(sends, [("/travel 4,-8", ("character:1",))])
 
             self.assertFalse(view._launch_travel_command("/zaap 4,-8"))
             self.assertEqual(sends, [("/travel 4,-8", ("character:1",))])
             self.assertEqual(QApplication.clipboard().text(), "/zaap 4,-8")
+        finally:
+            view.close()
+
+    def test_direct_travel_checks_team_again_before_dispatch(self) -> None:
+        service = _FakeManualUiService()
+        participants = _FakeParticipantService()
+        sends: list[tuple[str, tuple[str, ...]]] = []
+        view = SharedGuideManualView(
+            service, character_key="character:1",
+            participant_service=participants,
+            travel_callback=lambda command, keys: sends.append((command, keys)),
+        )
+        try:
+            calls = []
+            def disconnect_on_second_inventory():
+                calls.append(True)
+                return (SimpleNamespace(
+                    key="character:1", connected=len(calls) == 1,
+                ),)
+            participants.available_characters = disconnect_on_second_inventory
+            QApplication.clipboard().setText("before")
+            self.assertFalse(view._launch_travel_command("/travel -5,2"))
+            self.assertEqual(sends, [])
+            self.assertEqual(QApplication.clipboard().text(), "/travel -5,2")
+            self.assertEqual(len(calls), 2)
+
+            participants.available_characters = lambda: (
+                SimpleNamespace(key="character:1", connected=True),
+            )
+            selected_calls = []
+            def changing_selection():
+                selected_calls.append(True)
+                return ("character:1",) if len(selected_calls) == 1 else (
+                    "character:1", "character:2",
+                )
+            participants.selected_keys = changing_selection
+            self.assertFalse(view._launch_travel_command("/travel -5,2"))
+            self.assertEqual(sends, [])
+            participants.selected_keys = lambda: ("character:1",)
+
+            def broken_inventory():
+                raise RuntimeError("synthetic identity scanner failure")
+            participants.available_characters = broken_inventory
+            self.assertFalse(view._launch_travel_command("/travel -5,2"))
+            self.assertEqual(sends, [])
+        finally:
+            view.close()
+
+    def test_direct_travel_callback_failure_does_not_claim_success(self) -> None:
+        service = _FakeManualUiService()
+        participants = _FakeParticipantService()
+        view = SharedGuideManualView(
+            service, character_key="character:1",
+            participant_service=participants,
+            travel_callback=lambda command, keys: False,
+        )
+        try:
+            for refused in (False, 0, "not-started"):
+                view.travel_callback = lambda _cmd, _keys, value=refused: value
+                QApplication.clipboard().setText("before")
+                self.assertFalse(view._launch_travel_command("/travel 4,-8"))
+                self.assertEqual(QApplication.clipboard().text(), "/travel 4,-8")
+            def failed_callback(_cmd, _keys):
+                raise RuntimeError("synthetic macro error")
+            view.travel_callback = failed_callback
+            self.assertFalse(view._launch_travel_command("/travel 4,-8"))
+            self.assertEqual(QApplication.clipboard().text(), "/travel 4,-8")
+            view.travel_callback = lambda _cmd, _keys: None
+            self.assertTrue(view._launch_travel_command("/travel 4,-8"))
         finally:
             view.close()
 
