@@ -547,6 +547,67 @@ class CandidateStoreTests(unittest.TestCase):
         )
         self.assertNotEqual(result["candidate_sha256"], first["candidate_sha256"])
 
+    def test_corrupted_post_write_pointer_restores_previous_selection(self) -> None:
+        from tools import atlas_guide_candidate_store as store
+
+        first = publish_candidate(self.preview, root=self.root)
+        previous = first["candidate_sha256"]
+        real_atomic = store._atomic_file
+        injected = False
+
+        def corrupt_once(path, contents):
+            nonlocal injected
+            real_atomic(path, contents)
+            if path.name == "selected.json" and not injected:
+                injected = True
+                path.write_text('{"invalid": true}', encoding="utf-8")
+
+        with patch.object(store, "_atomic_file", side_effect=corrupt_once):
+            with self.assertRaisesRegex(
+                GuideRouteContractError, "post-write verification failed; previous selection restored"
+            ):
+                publish_candidate(
+                    candidate(step_title="Après panne de pointeur"),
+                    root=self.root, expected_selected=previous,
+                )
+        self.assertTrue(injected)
+        self.assertEqual(selected_candidate(self.root), previous)
+        self.assertFalse((self.root / ".writer.lock").exists())
+        # The same new generation is retryable after its pointer was rolled back.
+        retry = publish_candidate(
+            candidate(step_title="Après panne de pointeur"),
+            root=self.root, expected_selected=previous,
+        )
+        self.assertEqual(selected_candidate(self.root), retry["candidate_sha256"])
+
+    def test_corrupted_post_write_generation_keeps_previous_selection(self) -> None:
+        from tools import atlas_guide_candidate_store as store
+
+        first = publish_candidate(self.preview, root=self.root)
+        previous = first["candidate_sha256"]
+        real_atomic = store._atomic_file
+        injected = False
+
+        def tamper_generation_after_selection(path, contents):
+            nonlocal injected
+            real_atomic(path, contents)
+            if path.name == "selected.json" and not injected:
+                injected = True
+                new_digest = json.loads(contents)["candidate_sha256"]
+                (self.root / "generations" / (new_digest + ".json")).write_bytes(b"tampered")
+
+        with patch.object(store, "_atomic_file", side_effect=tamper_generation_after_selection):
+            with self.assertRaisesRegex(
+                GuideRouteContractError, "post-write verification failed; previous selection restored"
+            ):
+                publish_candidate(
+                    candidate(step_title="Après panne de génération"),
+                    root=self.root, expected_selected=previous,
+                )
+        self.assertTrue(injected)
+        self.assertEqual(selected_candidate(self.root), previous)
+        self.assertFalse((self.root / ".writer.lock").exists())
+
     def test_generation_validation_parses_the_exact_hashed_bytes(self) -> None:
         first = publish_candidate(self.preview, root=self.root)
         digest = first["candidate_sha256"]
