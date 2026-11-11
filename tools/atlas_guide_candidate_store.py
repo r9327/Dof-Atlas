@@ -44,6 +44,15 @@ _ROOT_MARKER = ".atlas-guide-candidates-v1.json"
 _SELECTED = "selected.json"
 _FORBIDDEN_PARTS = frozenset({".git", ".cache", "data", "saves", "profiles", "user_data"})
 _NO_SELECTION = "NONE"
+
+
+def _is_redirected(path: Path) -> bool:
+    """Reject symlinks and Windows directory junctions at trust boundaries."""
+    # Python 3.13 Path.is_junction() catches Windows reparse points that
+    # is_symlink() deliberately does not classify as symbolic links.
+    return path.is_symlink() or path.is_junction()
+
+
 _PREVIEW_FIELDS = frozenset({
     "schema_version", "mode", "status", "certified", "source_sha256",
     "guide_count", "step_count", "action_count", "expected_guide_count",
@@ -263,7 +272,7 @@ def _safe_root(root: Path) -> Path:
     if ".." in Path(root).parts:
         raise GuideRouteContractError("parent traversal in candidate root")
     candidate = Path(root).absolute()
-    if candidate.is_symlink() or any(part.casefold() in _FORBIDDEN_PARTS
+    if _is_redirected(candidate) or any(part.casefold() in _FORBIDDEN_PARTS
                                     for part in candidate.parts):
         raise GuideRouteContractError("candidate root must not be an Atlas data/save/cache directory")
     # An explicit staging root may be outside the checkout or inside its
@@ -286,7 +295,7 @@ def _safe_root(root: Path) -> Path:
     if candidate.is_file():
         raise GuideRouteContractError("candidate root is a file")
     for parent in candidate.parents:
-        if parent.is_symlink():
+        if _is_redirected(parent):
             raise GuideRouteContractError("symlinked parent is not supported")
     return candidate
 
@@ -299,7 +308,7 @@ def _sync_file(path: Path, contents: bytes) -> None:
 
 
 def _atomic_file(path: Path, content: bytes) -> None:
-    if path.is_symlink() or path.parent.is_symlink():
+    if _is_redirected(path) or _is_redirected(path.parent):
         raise GuideRouteContractError("symlink in candidate output path")
     # Same directory guarantees a same-volume os.replace on Windows.
     fd, name = tempfile.mkstemp(prefix=".atlas-stage-", suffix=".tmp", dir=path.parent)
@@ -315,7 +324,7 @@ def _atomic_file(path: Path, content: bytes) -> None:
 
 
 def _read_json(path: Path, *, verified_payload: bytes | None = None) -> dict[str, Any]:
-    if path.is_symlink():
+    if _is_redirected(path):
         raise GuideRouteContractError(f"symlinked candidate metadata: {path.name}")
 
     def no_duplicate_keys(pairs: list[tuple[str, Any]]) -> dict[str, Any]:
@@ -395,7 +404,7 @@ def _checked_pointer(value: Any, label: str) -> str:
 def _selection(root: Path) -> str:
     path = root / _SELECTED
     # A dangling symlink reports exists() == False; it is NOT an empty store.
-    if path.is_symlink():
+    if _is_redirected(path):
         raise GuideRouteContractError("symlinked candidate selection")
     if not path.exists():
         return _NO_SELECTION
@@ -417,7 +426,7 @@ def _verify_generation(root: Path, digest: str) -> dict[str, Any] | None:
     if digest == _NO_SELECTION:
         return None
     path = _candidate_file(root, digest)
-    if path.is_symlink() or path.parent.is_symlink():
+    if _is_redirected(path) or _is_redirected(path.parent):
         raise GuideRouteContractError("symlinked candidate generation")
     try:
         payload = path.read_bytes()
@@ -455,7 +464,7 @@ def publish_candidate(
         if old != expected_selected:
             raise GuideRouteContractError("stale candidate selection; compare-and-swap rejected")
         folder = store / "generations"
-        if folder.is_symlink():
+        if _is_redirected(folder):
             raise GuideRouteContractError("symlinked candidate generations directory")
         folder.mkdir(exist_ok=True)
         target = _candidate_file(store, digest)
