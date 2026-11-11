@@ -260,14 +260,36 @@ def parsed_hotkey_keys(text: str) -> frozenset[int]:
 
 
 def build_hotkey_actions(settings: AtlasSettings) -> list[HotkeyAction]:
-    # Mutually exclusive macro modes; emergency stop always takes priority.
+    # Mutually exclusive modes. Mirror begins disarmed, and its explicit
+    # activation shortcut is the only non-emergency macro action in this mode.
     if settings.macro_mode == "mirror":
-        return ([HotkeyAction(
-            action_id="stop_script",
-            label="Stop urgence",
-            hotkey_text=settings.stop_hotkey,
-            kind="press",
-        )] if settings.stop_hotkey else [])
+        actions: list[HotkeyAction] = []
+        if settings.stop_hotkey:
+            actions.append(HotkeyAction(
+                action_id="stop_script", label="Stop urgence",
+                hotkey_text=settings.stop_hotkey, kind="press",
+            ))
+        mirror_hotkey = getattr(settings, "mirror_toggle_hotkey", "")
+        if mirror_hotkey:
+            actions.append(HotkeyAction(
+                action_id="mirror_toggle", label="Activer / arrêter Miroir",
+                hotkey_text=mirror_hotkey, kind="press",
+            ))
+        # The selected tab is not consent to mirror. When disarmed, users
+        # still need to navigate their existing Organizer clients.
+        if settings.switch_character_enabled:
+            for action_id, label, binding in (
+                ("next_character", "Personnage suivant",
+                 getattr(settings, "next_character_hotkey", "")),
+                ("previous_character", "Personnage précédent",
+                 getattr(settings, "previous_character_hotkey", "")),
+            ):
+                if binding:
+                    actions.append(HotkeyAction(
+                        action_id=action_id, label=label,
+                        hotkey_text=binding, kind="press",
+                    ))
+        return actions
     actions: list[HotkeyAction] = []
     if settings.switch_click_enabled or settings.switch_click_hotkey:
         actions.append(
@@ -312,6 +334,13 @@ def build_hotkey_actions(settings: AtlasSettings) -> list[HotkeyAction]:
             action_id="next_character",
             label="Personnage suivant",
             hotkey_text=settings.next_character_hotkey,
+            kind="press",
+        ))
+    if settings.switch_character_enabled and getattr(settings, "previous_character_hotkey", ""):
+        actions.append(HotkeyAction(
+            action_id="previous_character",
+            label="Personnage précédent",
+            hotkey_text=settings.previous_character_hotkey,
             kind="press",
         ))
     radial_spec = None
@@ -372,6 +401,8 @@ class HotkeyRegistry:
         self.physical_key_callback: PhysicalKeyCallback | None = None
         self.physical_key_release_callback: Callable[[int], None] | None = None
         self._mirrored_key_ups: set[int] = set()
+        # Key-UP leases for Stop, Mirror and navigation commands.
+        self._command_key_ups: set[int] = set()
 
     def register_hotkeys(self, actions: list[HotkeyAction]) -> HotkeyReport:
         parsed: list[HotkeyAction] = []
@@ -488,6 +519,7 @@ class HotkeyRegistry:
         thread = self._thread
         if thread is None or not thread.is_alive():
             self._mirrored_key_ups.clear()
+            self._command_key_ups.clear()
         elif self._mirrored_key_ups:
             self.logger.warning(
                 "Hook clavier encore actif après stop: relâchements réservés=%s",
@@ -551,6 +583,7 @@ class HotkeyRegistry:
             # Clear ownership only when this hook thread can no longer
             # intercept a matching native UP. Repeated stop() is idempotent.
             self._mirrored_key_ups.clear()
+            self._command_key_ups.clear()
             self._hook_thread_id = 0
 
     def _keyboard_proc(self, n_code: int, w_param: int, l_param: int) -> int:
@@ -568,8 +601,11 @@ class HotkeyRegistry:
                     # state: even a failed state update must not leak the
                     # physical UP of a previously consumed mirror DOWN.
                     mirrored_pair = vk_code in self._mirrored_key_ups
+                    command_pair = vk_code in self._command_key_ups
                     if released and mirrored_pair:
                         self._mirrored_key_ups.discard(vk_code)
+                    if released and command_pair:
+                        self._command_key_ups.discard(vk_code)
                     try:
                         if self.physical_key_release_callback is not None:
                             # The final native/consumed decision below owns
@@ -578,25 +614,63 @@ class HotkeyRegistry:
                         else:
                             self.input_state.set_key(vk_code, pressed)
                     except Exception:
-                        if mirrored_pair:
+                        if mirrored_pair or command_pair:
                             try:
                                 self.logger.exception(
-                                    "Hook clavier: état indisponible, paire miroir préservée."
+                                    "Hook clavier: état indisponible, paire clavier réservée."
                                 )
                             except Exception:
                                 pass
                             return 1
                         raise
+                    command_owned = False
                     try:
+                        # Organizer command keys are not DOFUS keystrokes.
+                        # Own their full physical DOWN/UP pair across callback
+                        # errors, profile reloads and macro focus changes.
+                        if released and command_pair:
+                            for action in self._actions:
+                                if (action.action_id in {
+                                        "stop_script", "mirror_toggle",
+                                        "next_character", "previous_character",
+                                    } and action.spec is not None
+                                        and vk_code in action.spec.keys):
+                                    # Without rearming here, a consumed UP
+                                    # leaves the action active forever and a
+                                    # second physical tap never fires.
+                                    self._suppressed_until_release.discard(action.action_id)
+                                    self.input_state.mark_hotkey_active(action.action_id, False)
+                            return 1
+                        if pressed:
+                            snapshot = self.input_state.snapshot()
+                            command_owned = (
+                                vk_code in self._command_key_ups
+                                or any(
+                                    action.action_id in {
+                                        "stop_script", "mirror_toggle",
+                                        "next_character", "previous_character",
+                                    }
+                                    and action.spec is not None
+                                    and vk_code in (action.spec.keys - MODIFIER_VKS)
+                                    and action.spec.matches(snapshot)
+                                    for action in self._actions
+                                )
+                            )
+                            # Claim before callback: a failed/partial callback
+                            # must never leak DOWN or the later orphan UP.
+                            if command_owned:
+                                self._command_key_ups.add(vk_code)
                         if self._dispatch_priority_stop(vk_code, pressed):
                             return 1
                         self._dispatch_matching_hotkeys()
+                        if command_owned:
+                            return 1
                     except Exception:
-                        if mirrored_pair:
-                            if released:
+                        if mirrored_pair or command_pair or command_owned:
+                            if mirrored_pair and released:
                                 self._release_deferred_key(vk_code)
                             # A failed logger cannot revoke ownership of a
-                            # physical key already mirrored to other windows.
+                            # physical key already consumed by Organizer.
                             try:
                                 self.logger.exception(
                                     "Hook clavier: callback échoué, paire miroir préservée."
@@ -615,7 +689,8 @@ class HotkeyRegistry:
                     # emergency-stop key. In particular preserve Alt+Tab.
                     reserved = any(
                         action.spec and vk_code in action.spec.keys
-                        for action in self._stop_actions
+                        for action in self._actions
+                        if action.action_id in {"stop_script", "mirror_toggle"}
                     )
                     modifier_down = bool(
                         self.input_state.snapshot().intersection(MODIFIER_VKS)
@@ -682,6 +757,11 @@ class HotkeyRegistry:
             if action.spec is None:
                 continue
             active = action.spec.matches(pressed)
+            if action.action_id == "mirror_toggle":
+                # No implicit activation inside another CTRL/ALT/WIN chord.
+                active = active and (pressed & MODIFIER_VKS) == (
+                    action.spec.keys & MODIFIER_VKS
+                )
             if action.kind == "switch":
                 continue
             changed_to_active = self.input_state.mark_hotkey_active(action.action_id, active)

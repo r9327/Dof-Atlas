@@ -25,6 +25,8 @@ from app.constants import (
     KEY_RADIAL_HOTKEY,
     KEY_RADIAL_ENABLED,
     KEY_NEXT_CHARACTER_HOTKEY,
+    KEY_PREVIOUS_CHARACTER_HOTKEY,
+    KEY_MIRROR_TOGGLE_HOTKEY,
     KEY_STOP_SCRIPT_HOTKEY,
     KEY_SWITCH_CHARACTER,
     KEY_SWITCH_CLICK,
@@ -204,9 +206,13 @@ class OrganizerUiMixin:
         self.switch_click = AtlasButton("")
         self.switch_double_click = AtlasButton("")
         self.switch_movement = AtlasButton("")
-        self.next_character = AtlasButton("Perso suivant")
+        self.next_character = AtlasButton("Suivant →")
+        self.previous_character = AtlasButton("← Précédent")
+        self.mirror_arm_button = AtlasButton("Activer Miroir")
+        self.mirror_toggle_hotkey_button = AtlasButton("")
+        self.mirror_toggle_clear = AtlasButton("x")
         self.switch_fake = AtlasButton("Auto-groupe")
-        self.radial_select_button = AtlasButton("Sélection\npersonnage")
+        self.radial_select_button = AtlasButton("Sélection perso")
         self.radial_select_button.setAccessibleName("Sélection personnage")
         self.click_button = AtlasButton("")
         self.double_click_button = AtlasButton("")
@@ -215,9 +221,11 @@ class OrganizerUiMixin:
         self.radial_clear = AtlasButton("x")
         self.next_character_hotkey_button = AtlasButton("")
         self.next_character_clear = AtlasButton("x")
+        self.previous_character_hotkey_button = AtlasButton("")
+        self.previous_character_clear = AtlasButton("x")
         self.reload_runtime_button = AtlasButton("Relancer scripts")
         self.debug_button = AtlasButton("Debug")
-        self.script_speed_title = QLabel("Vitesse script")
+        self.script_speed_title = QLabel("Vitesse :")
         self.script_speed_legacy = AtlasButton("Classique")
         self.script_speed_normal = AtlasButton("Normal")
         self.script_speed_fast = AtlasButton("Rapide")
@@ -228,13 +236,14 @@ class OrganizerUiMixin:
         self.click_clear = AtlasButton("x")
 
         control_size = QSize(138, BUTTON_HEIGHT)
-        # Two text lines must fit inside the Unity sprite's 8px borders.
-        radial_control_size = QSize(control_size.width(), 48)
-        controls_panel_height = 206
+        # Use the same one-line control height as neighboring modules.
+        radial_control_size = control_size
+        controls_panel_height = 246
         panel_inner_width = control_size.width() * 2 + 8
         panel_width = panel_inner_width + CARD_PADDING * 2
         stop_hotkey_size = QSize(52, STOP_BUTTON_HEIGHT)
-        stop_size = QSize(panel_inner_width - stop_hotkey_size.width() - 8, STOP_BUTTON_HEIGHT)
+        stop_size = QSize(panel_inner_width, STOP_BUTTON_HEIGHT)
+        speed_control_size = QSize(71, BUTTON_HEIGHT)
         shortcut_size = QSize(42, KEY_BADGE_HEIGHT)
 
         for button in (
@@ -245,6 +254,8 @@ class OrganizerUiMixin:
             self.switch_fake,
             self.radial_select_button,
             self.next_character,
+            self.previous_character,
+            self.mirror_arm_button,
             self.reload_runtime_button,
             self.debug_button,
         ):
@@ -252,10 +263,15 @@ class OrganizerUiMixin:
             button.setSizePolicy(QSizePolicy.Fixed, QSizePolicy.Fixed)
             button.setObjectName("secondaryButton")
         self.radial_select_button.setFixedSize(radial_control_size)
+        # The Mirror action occupies a full-width row, like Stop. Its
+        # shortcut badge overlays the same button instead of leaving a gap.
+        self.mirror_arm_button.setFixedSize(panel_inner_width, BUTTON_HEIGHT)
         self.stop_script_button.setObjectName("dangerButton")
         self.stop_script_button.setFixedSize(stop_size)
         self.stop_script_button.setSizePolicy(QSizePolicy.Fixed, QSizePolicy.Fixed)
-        for button in (self.click_button, self.double_click_button, self.radial_hotkey_button, self.next_character_hotkey_button):
+        for button in (self.click_button, self.double_click_button, self.radial_hotkey_button,
+                       self.next_character_hotkey_button, self.previous_character_hotkey_button,
+                       self.mirror_toggle_hotkey_button):
             button.setObjectName("keyBadge")
             button.setFixedSize(shortcut_size)
             button.setSizePolicy(QSizePolicy.Fixed, QSizePolicy.Fixed)
@@ -269,17 +285,20 @@ class OrganizerUiMixin:
         self.radial_hotkey_button.setAccessibleName("Raccourci du camembert")
         self.radial_clear.setAccessibleName("Supprimer le raccourci du camembert")
         self.next_character_hotkey_button.setAccessibleName("Raccourci personnage suivant")
+        self.previous_character_hotkey_button.setAccessibleName("Raccourci personnage précédent")
+        self.mirror_toggle_hotkey_button.setAccessibleName("Raccourci activation Miroir")
         self.script_speed_title.setObjectName("MutedLabel")
-        self.script_speed_title.setFixedSize(stop_size.width(), 0)
+        self.script_speed_title.setFixedSize(52, BUTTON_HEIGHT)
         self.script_speed_title.setAlignment(Qt.AlignLeft | Qt.AlignVCenter)
-        self.script_speed_title.hide()
         for button in (
             self.script_speed_legacy, self.script_speed_normal,
             self.script_speed_fast, self.script_speed_instant,
         ):
-            button.setFixedSize(control_size)
+            button.setFixedSize(speed_control_size)
             button.setSizePolicy(QSizePolicy.Fixed, QSizePolicy.Fixed)
             button.setObjectName("segmentedButton")
+        # Keep the full Instantané caption visible in the compact row.
+        self.script_speed_instant.setFixedSize(78, BUTTON_HEIGHT)
         self.click_button.setToolTip("Raccourci Switch Clique")
         self.double_click_button.setToolTip("Raccourci Switch clic x2")
         self.stop_script_hotkey_button.setToolTip("Raccourci Stop script")
@@ -289,10 +308,14 @@ class OrganizerUiMixin:
         self.script_speed_normal.setToolTip("Normal : anciens délais Rapide conservés")
         self.script_speed_fast.setToolTip("Rapide : délais réduits, à confirmer sur DOFUS Unity")
         self.script_speed_instant.setToolTip("Instantané : délais minimaux, fiabilité à tester en jeu")
-        self.next_character.setToolTip("Configurer le raccourci de personnage suivant")
+        self.next_character.setToolTip("Activer le personnage suivant")
+        self.previous_character.setToolTip("Activer le personnage précédent")
+        self.mirror_arm_button.setToolTip("Le mode Miroir est désarmé tant que vous ne l'activez pas ici.")
         self.next_character_hotkey_button.setToolTip("Raccourci personnage suivant")
         self.stop_script_button.setToolTip("Arreter immediatement les macros Python")
-        for button in (self.click_clear, self.double_click_clear, self.stop_script_clear, self.radial_clear, self.next_character_clear):
+        for button in (self.click_clear, self.double_click_clear, self.stop_script_clear,
+                       self.radial_clear, self.next_character_clear, self.previous_character_clear,
+                       self.mirror_toggle_clear):
             button.setObjectName("iconButtonDanger")
             button.setFixedSize(14, 14)
             button.setToolTip("Supprimer le raccourci")
@@ -351,7 +374,8 @@ class OrganizerUiMixin:
         controls_grid.addWidget(macro_cell(self.switch_click, self.click_button, self.click_clear), 0, 1)
         controls_grid.addWidget(macro_cell(self.switch_movement), 1, 0)
         controls_grid.addWidget(macro_cell(self.switch_double_click, self.double_click_button, self.double_click_clear), 1, 1)
-        controls_grid.addWidget(macro_cell(self.next_character, self.next_character_hotkey_button, self.next_character_clear), 2, 0)
+        controls_grid.addWidget(macro_cell(self.next_character, self.next_character_hotkey_button, self.next_character_clear), 2, 1)
+        controls_grid.addWidget(macro_cell(self.previous_character, self.previous_character_hotkey_button, self.previous_character_clear), 2, 0)
         for column in range(2):
             controls_grid.setColumnMinimumWidth(column, control_size.width())
             controls_grid.setColumnStretch(column, 0)
@@ -378,6 +402,10 @@ class OrganizerUiMixin:
         macro_title_row.addWidget(self.runtime_status_dot)
         macro_layout.addLayout(macro_title_row)
         macro_layout.addWidget(controls_grid_host, alignment=Qt.AlignLeft)
+        macro_layout.addWidget(macro_cell(
+            self.mirror_arm_button, self.mirror_toggle_hotkey_button,
+            self.mirror_toggle_clear, size=QSize(panel_inner_width, BUTTON_HEIGHT),
+        ), alignment=Qt.AlignLeft)
 
         self.quick_actions_panel = QFrame()
         self.quick_actions_panel.setObjectName("card")
@@ -397,27 +425,40 @@ class OrganizerUiMixin:
         quick_grid.setVerticalSpacing(8)
         quick_grid.addWidget(self.switch_fake, 0, 0)
         quick_grid.addWidget(macro_cell(self.radial_select_button, self.radial_hotkey_button, self.radial_clear, size=radial_control_size), 0, 1)
-        # Primary Normal/Rapide choice is a single horizontal pair. Keep
-        # Classique and Instantané available underneath for existing profiles
-        # without changing any stored preset or actual timing.
-        quick_grid.addWidget(self.script_speed_normal, 1, 0)
-        quick_grid.addWidget(self.script_speed_fast, 1, 1)
+        # One compact line: Vitesse : Normal | Rapide | Instantané.
+        # Widths total 52 + 71 + 71 + 78 + 3 * 4 = 284px.
+        speed_row = QWidget()
+        speed_row.setFixedSize(panel_inner_width, BUTTON_HEIGHT)
+        speed_row_layout = QHBoxLayout(speed_row)
+        speed_row_layout.setContentsMargins(0, 0, 0, 0)
+        speed_row_layout.setSpacing(4)
+        speed_row_layout.addWidget(self.script_speed_title)
+        for button in (
+            self.script_speed_normal, self.script_speed_fast,
+            self.script_speed_instant,
+        ):
+            speed_row_layout.addWidget(button)
+        quick_grid.addWidget(speed_row, 1, 0, 1, 2)
+        # Preserve an existing Classique profile without silently accelerating
+        # it. This legacy-only choice is no longer offered to the user.
         quick_grid.addWidget(self.script_speed_legacy, 2, 0)
-        quick_grid.addWidget(self.script_speed_instant, 2, 1)
+        self.script_speed_legacy.hide()
         stop_row = QWidget()
         stop_row.setFixedSize(panel_inner_width, STOP_BUTTON_HEIGHT)
         stop_row.setSizePolicy(QSizePolicy.Fixed, QSizePolicy.Fixed)
         stop_row_layout = QHBoxLayout(stop_row)
         stop_row_layout.setContentsMargins(0, 0, 0, 0)
         stop_row_layout.setSpacing(8)
-        stop_row_layout.addWidget(self.stop_script_button)
-        stop_row_layout.addWidget(macro_cell(self.stop_script_hotkey_button, None, self.stop_script_clear, stop_hotkey_size))
+        # The emergency hotkey badge is inside the Stop button, not beside it.
+        stop_row_layout.addWidget(macro_cell(
+            self.stop_script_button, self.stop_script_hotkey_button,
+            self.stop_script_clear, size=stop_size,
+        ))
         for column in range(2):
             quick_grid.setColumnMinimumWidth(column, control_size.width())
             quick_grid.setColumnStretch(column, 0)
         quick_grid.setRowMinimumHeight(0, BUTTON_HEIGHT)
         quick_grid.setRowMinimumHeight(1, BUTTON_HEIGHT)
-        quick_grid.setRowMinimumHeight(2, BUTTON_HEIGHT)
         quick_layout.addWidget(quick_grid_host, alignment=Qt.AlignLeft)
 
         self.controls_panel = QFrame()
@@ -490,6 +531,12 @@ class OrganizerUiMixin:
     def set_runtime_active(self, connected: bool) -> None:
         if not isValid(self):
             return
+        if not connected:
+            # Stop urgence owns the radial popup too; never keep a live
+            # selection on screen after the runtime has been stopped.
+            controller = getattr(self, "_radial_controller", None)
+            if controller is not None:
+                controller.cancel()
         status_dot = getattr(self, "runtime_status_dot", None)
         if status_dot is None or not isValid(status_dot):
             return
@@ -515,10 +562,42 @@ class OrganizerUiMixin:
         ):
             button.setObjectName("segmentedButtonActive" if selected else "segmentedButton")
             self.restyle_button(button)
-        self.macro_grid_host.setEnabled(not mirror)
+        self.macro_grid_host.setEnabled(True)
+        for button in (
+            self.switch_character, self.switch_click, self.switch_movement,
+            self.switch_double_click, self.click_button, self.click_clear,
+            self.double_click_button, self.double_click_clear,
+        ):
+            button.setEnabled(not mirror)
+        self.mirror_arm_button.setEnabled(mirror)
+        self.set_mirror_arm_active(
+            bool(mirror and getattr(self, "_mirror_arm_active", False))
+        )
         self.mirror_mode_button.setToolTip(
             "Miroir : clics, touches courtes, molette. Favori étoilé = source ; pas de glisser ou maintien continu."
         )
+
+    def set_mirror_arm_active(self, active: bool) -> None:
+        button = getattr(self, "mirror_arm_button", None)
+        if button is None or not isValid(button):
+            return
+        active = active is True and self.profiles.get(KEY_ORGANIZER_MACRO_MODE) == "mirror"
+        self._mirror_arm_active = active
+        can_navigate = (profile_bool(self.profiles, KEY_SWITCH_CHARACTER, True)
+                        and not active)
+        for control in (
+            self.next_character, self.previous_character,
+            self.next_character_hotkey_button, self.previous_character_hotkey_button,
+            self.next_character_clear, self.previous_character_clear,
+        ):
+            control.setEnabled(can_navigate)
+        button.setText("Arrêter Miroir" if active else "Activer Miroir")
+        button.setObjectName("primaryButton" if active else "secondaryButton")
+        button.setToolTip(
+            "Arrêter immédiatement la copie des gestes."
+            if active else "Activer explicitement la copie des gestes du personnage favori."
+        )
+        self.restyle_button(button)
 
     def update_switch_buttons(self) -> None:
         self.set_toggle_button(self.switch_character, "Switch Personnage", profile_bool(self.profiles, KEY_SWITCH_CHARACTER, True))
@@ -532,6 +611,8 @@ class OrganizerUiMixin:
         stop_script = self.hotkey_label(KEY_STOP_SCRIPT_HOTKEY)
         radial_hotkey = self.hotkey_label(KEY_RADIAL_HOTKEY)
         next_hotkey = self.hotkey_label(KEY_NEXT_CHARACTER_HOTKEY)
+        previous_hotkey = self.hotkey_label(KEY_PREVIOUS_CHARACTER_HOTKEY)
+        mirror_hotkey = self.hotkey_label(KEY_MIRROR_TOGGLE_HOTKEY)
         self.click_button.setText(short_label(click, 9) if click else "...")
         self.click_button.setToolTip(f"Switch Clique: {click}" if click else "Raccourci Switch Clique")
         self.click_clear.setVisible(bool(click))
@@ -561,6 +642,16 @@ class OrganizerUiMixin:
         self.next_character_hotkey_button.setText(short_label(next_hotkey, 9) if next_hotkey else "...")
         self.next_character_hotkey_button.setToolTip(f"Personnage suivant : {next_hotkey}" if next_hotkey else "Raccourci personnage suivant")
         self.next_character_clear.setVisible(bool(next_hotkey))
+        self.previous_character_hotkey_button.setText(short_label(previous_hotkey, 9) if previous_hotkey else "...")
+        self.previous_character_hotkey_button.setToolTip(
+            f"Personnage précédent : {previous_hotkey}" if previous_hotkey else "Raccourci personnage précédent"
+        )
+        self.previous_character_clear.setVisible(bool(previous_hotkey))
+        self.mirror_toggle_hotkey_button.setText(short_label(mirror_hotkey, 9) if mirror_hotkey else "...")
+        self.mirror_toggle_hotkey_button.setToolTip(
+            f"Activation Miroir : {mirror_hotkey}" if mirror_hotkey else "Configurer le raccourci Miroir"
+        )
+        self.mirror_toggle_clear.setVisible(bool(mirror_hotkey))
 
     def update_script_speed_buttons(self) -> None:
         speed = self.script_speed()
@@ -688,22 +779,8 @@ class OrganizerUiMixin:
                 # A favorite is an action, not a drag handle: swallowing its
                 # mouse release during a tiny drag loses the click/selection.
             layout.addWidget(star)
-            radial_enabled = self.radial_session_is_selected(session)
-            radial_toggle = AtlasButton("◉" if radial_enabled else "○")
-            radial_toggle.setObjectName(
-                "FavoriteButtonActive" if radial_enabled else "FavoriteButton"
-            )
-            radial_toggle.setFixedSize(22, 24)
-            radial_toggle.setAccessibleName(
-                f"{'Retirer' if radial_enabled else 'Ajouter'} {name} du camembert"
-            )
-            radial_toggle.setToolTip(
-                f"{'Retirer' if radial_enabled else 'Ajouter'} ce personnage au camembert"
-            )
-            radial_toggle.clicked.connect(
-                lambda _checked=False, target=dict(session): self.toggle_radial_session(target)
-            )
-            layout.addWidget(radial_toggle)
+            # The radial selector uses Organizer's shared participant roster.
+            # Avoid a second unexplained per-slot selector beside the favorite.
             icon = QLabel()
             icon.setFixedSize(24, 24)
             icon.setAlignment(Qt.AlignCenter)

@@ -4341,6 +4341,7 @@ class OrganizerMacroReliabilityTests(unittest.TestCase):
         runtime._direction = Mock()
         runtime._pending_physical_switch = object()
         runtime._emit_status = Mock()
+        runtime._emit_active = Mock()
 
         runtime.input_state.reset_armed.side_effect = OSError("state failed")
         runtime._switch_click.reset.side_effect = OSError("switch failed")
@@ -4350,7 +4351,8 @@ class OrganizerMacroReliabilityTests(unittest.TestCase):
             side_effect=OSError("common release failed"),
         ) as common_release:
             runtime.emergency_stop("test Stop")
-        runtime.macro_lock.request_stop.assert_called_once_with("test Stop")
+        runtime.macro_lock.request_stop.assert_called_once_with("test Stop", latch=True)
+        runtime._emit_active.assert_called_once_with(False)
         runtime.input_state.clear_mouse_block.assert_called_once()
         runtime.synthetic_guard.reset.assert_called_once()
         runtime._switch_click.reset.assert_called_once()

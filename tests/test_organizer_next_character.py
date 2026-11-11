@@ -74,12 +74,15 @@ class NextCharacterTests(unittest.TestCase):
                 owner.save_profiles.assert_not_called()
                 owner.status_callback.assert_called_once()
 
-    def test_hotkey_registered_only_in_macro_with_enabled_setting(self):
+    def test_hotkey_registered_when_enabled_in_macro_or_disarmed_mirror(self):
         config = settings(4)
         actions = build_hotkey_actions(config)
         self.assertEqual([action.action_id for action in actions], ["next_character"])
         self.assertEqual(actions[0].hotkey_text, "F9")
-        self.assertEqual(build_hotkey_actions(settings(4, mode="mirror")), [])
+        self.assertEqual(
+            [action.action_id for action in build_hotkey_actions(settings(4, mode="mirror"))],
+            ["next_character"],
+        )
         self.assertEqual(build_hotkey_actions(settings(4, hotkey="")), [])
         config.switch_character_enabled = False
         self.assertEqual(build_hotkey_actions(config), [])
@@ -105,6 +108,177 @@ class NextCharacterTests(unittest.TestCase):
                         expected_context=(runtime.settings.primary_handle, "macro"),
                     )
 
+
+    def test_previous_wraps_in_order_for_two_four_six_eight(self):
+        for count in (2, 4, 6, 8):
+            for slot in range(1, count + 1):
+                with self.subTest(count=count, slot=slot):
+                    runtime = Mock()
+                    runtime.settings = settings(count)
+                    runtime.macro_lock.should_stop.return_value = False
+                    macro = SwitchCharacterMacro(runtime)
+                    with (
+                        patch("app.macros.switch_character.is_unity_window", return_value=True),
+                        patch("app.macros.switch_character.is_dofus_unity_process", return_value=True),
+                        patch.object(macro, "logical_active_client",
+                                     return_value=runtime.settings.clients[slot - 1]),
+                        patch.object(macro, "activate_by_index", return_value=True) as activate,
+                    ):
+                        self.assertTrue(macro.activate_previous())
+                    activate.assert_called_once_with(
+                        (slot - 2) % count + 1, expected_profile=runtime.settings,
+                        expected_context=(runtime.settings.primary_handle, "macro"),
+                    )
+
+    def test_previous_and_mirror_hotkeys_do_not_enable_passive_mirror(self):
+        config = settings(4)
+        config.previous_character_hotkey = "F8"
+        self.assertEqual(
+            [action.action_id for action in build_hotkey_actions(config)],
+            ["next_character", "previous_character"],
+        )
+        config.macro_mode = "mirror"
+        config.mirror_toggle_hotkey = "CTRL+F8"
+        self.assertEqual(
+            [action.action_id for action in build_hotkey_actions(config)],
+            ["mirror_toggle", "next_character", "previous_character"],
+        )
+        config.stop_hotkey = "F12"
+        self.assertEqual(
+            [action.action_id for action in build_hotkey_actions(config)],
+            ["stop_script", "mirror_toggle", "next_character", "previous_character"],
+        )
+
+    def test_previous_button_uses_existing_runtime_callback(self):
+        from app.pages.organizer_page import OrganizerPage
+        owner = SimpleNamespace(
+            previous_character_callback=Mock(), status_callback=Mock(),
+        )
+        OrganizerPage.activate_previous_character(owner)
+        owner.previous_character_callback.assert_called_once_with()
+        owner.status_callback.assert_not_called()
+
+    def test_previous_without_known_foreground_selects_last_verified_client(self):
+        for count in (2, 4, 6, 8):
+            with self.subTest(count=count):
+                runtime = Mock()
+                runtime.settings = settings(count)
+                runtime.macro_lock.should_stop.return_value = False
+                macro = SwitchCharacterMacro(runtime)
+                with (
+                    patch("app.macros.switch_character.is_unity_window", return_value=True),
+                    patch("app.macros.switch_character.is_dofus_unity_process", return_value=True),
+                    patch.object(macro, "logical_active_client", return_value=None),
+                    patch.object(macro, "activate_by_index", return_value=True) as activate,
+                ):
+                    self.assertTrue(macro.activate_previous())
+                activate.assert_called_once_with(
+                    count, expected_profile=runtime.settings,
+                    expected_context=(runtime.settings.primary_handle, "macro"),
+                )
+
+    def test_stop_blocks_both_directions_before_native_window_probes(self):
+        for count in (2, 4, 6, 8):
+            with self.subTest(count=count):
+                runtime = Mock()
+                runtime.settings = settings(count)
+                runtime.macro_lock.should_stop.return_value = True
+                macro = SwitchCharacterMacro(runtime)
+                with patch("app.macros.switch_character.is_unity_window") as unity:
+                    self.assertFalse(macro.activate_next())
+                    self.assertFalse(macro.activate_previous())
+                unity.assert_not_called()
+                runtime._spawn_macro.assert_not_called()
+
+    def test_mirror_activation_hotkey_fires_once_per_press_and_exact_modifiers(self):
+        from app.input.hotkeys import HotkeyRegistry
+        from app.input.input_state import InputState
+
+        config = settings(4, mode="mirror")
+        config.mirror_toggle_hotkey = "CTRL+F8"
+        state = InputState()
+        callback = Mock()
+        registry = HotkeyRegistry(state, Mock(), callback)
+        registry.register_hotkeys(build_hotkey_actions(config))
+        # Extra ALT is not a valid consent gesture for CTRL+F8.
+        for vk in (0x11, 0x12, 0x77):
+            state.set_key(vk, True)
+        registry._dispatch_matching_hotkeys()
+        callback.assert_not_called()
+        state.set_key(0x12, False)
+        registry._dispatch_matching_hotkeys()
+        callback.assert_called_once_with("mirror_toggle", {})
+        registry._dispatch_matching_hotkeys()
+        callback.assert_called_once()
+        state.set_key(0x77, False)
+        registry._dispatch_matching_hotkeys()
+        state.set_key(0x77, True)
+        registry._dispatch_matching_hotkeys()
+        self.assertEqual(callback.call_count, 2)
+
+    def test_runtime_routes_previous_and_mirror_toggle_without_implicit_capture(self):
+        for count in (2, 4, 6, 8):
+            with self.subTest(count=count):
+                profile = settings(count)
+                runtime = SimpleNamespace(
+                    settings=profile, _running=True, _admin_ok=True,
+                    macro_lock=SimpleNamespace(
+                        emergency_latched=False, active_label="",
+                    ),
+                    switch_character=SimpleNamespace(
+                        activate_previous=Mock(return_value=True),
+                    ),
+                    toggle_mirror=Mock(return_value=True),
+                    _mirror_armed=False, _emit_status=Mock(),
+                )
+                AtlasRuntime._handle_hotkey(runtime, "previous_character", {})
+                runtime.switch_character.activate_previous.assert_called_once_with(
+                    expected_profile=profile,
+                )
+                profile.macro_mode = "mirror"
+                AtlasRuntime._handle_hotkey(runtime, "mirror_toggle", {})
+                runtime.toggle_mirror.assert_called_once_with()
+                runtime.switch_character.activate_previous.reset_mock()
+                AtlasRuntime._handle_hotkey(runtime, "previous_character", {})
+                runtime.switch_character.activate_previous.assert_called_once_with(
+                    expected_profile=profile,
+                )
+                runtime.switch_character.activate_previous.reset_mock()
+                runtime._mirror_armed = True
+                AtlasRuntime._handle_hotkey(runtime, "previous_character", {})
+                runtime.switch_character.activate_previous.assert_not_called()
+                runtime._emit_status.assert_called_once_with(
+                    "Arrêter Miroir avant de changer de personnage."
+                )
+
+    def test_mirror_mode_next_action_is_available_only_while_disarmed(self):
+        for count in (2, 4, 6, 8):
+            with self.subTest(accounts=count):
+                profile = settings(count, mode="mirror")
+                runtime = SimpleNamespace(
+                    settings=profile, _running=True, _admin_ok=True,
+                    _mirror_armed=True, _emit_status=Mock(),
+                    macro_lock=SimpleNamespace(
+                        emergency_latched=False, active_label="",
+                    ),
+                    switch_character=SimpleNamespace(
+                        activate_next=Mock(return_value=True),
+                    ),
+                )
+                AtlasRuntime._handle_hotkey(runtime, "next_character", {})
+                runtime.switch_character.activate_next.assert_not_called()
+                runtime._emit_status.assert_called_once_with(
+                    "Arrêter Miroir avant de changer de personnage."
+                )
+                runtime._mirror_armed = False
+                AtlasRuntime._handle_hotkey(runtime, "next_character", {})
+                runtime.switch_character.activate_next.assert_called_once_with(
+                    expected_profile=profile,
+                )
+                runtime.switch_character.activate_next.reset_mock()
+                profile.switch_character_enabled = False
+                AtlasRuntime._handle_hotkey(runtime, "next_character", {})
+                runtime.switch_character.activate_next.assert_not_called()
 
     def test_direct_activation_ignores_corrupt_numeric_slot_aliases_2_to_8(self):
         for count in (2, 4, 6, 8):
@@ -316,8 +490,12 @@ class NextCharacterTests(unittest.TestCase):
             expected_profile=runtime.settings,
         )
         runtime.settings.macro_mode = "mirror"
+        # Mode alone is not consent. A still-armed relay, not merely the
+        # selected tab, blocks changing the current DOFUS source.
+        runtime._mirror_armed = True
         AtlasRuntime._handle_hotkey(runtime, "next_character", {})
         runtime.switch_character.activate_next.assert_called_once()
+        runtime._mirror_armed = False
         runtime.settings.macro_mode = "macro"
         runtime.settings.switch_character_enabled = False
         AtlasRuntime._handle_hotkey(runtime, "next_character", {})

@@ -407,14 +407,24 @@ def replace_chat_text_with_clipboard(
 ) -> bool:
     if should_stop is not None and should_stop():
         return False
-    press_key("SPACE")
+    # Every native stage must be confirmed before the following one.
+    # Failing to open chat must not send CTRL+A/DELETE into DOFUS.
+    if press_key("SPACE") is False:
+        return False
     if _sleep_ms(chat_open_ms, should_stop):
+        return False
+    if should_stop is not None and should_stop():
         return False
     press_hotkey("CTRL", "A")
     if _sleep_ms(key_step_ms, should_stop):
         return False
-    press_key("DELETE")
+    if should_stop is not None and should_stop():
+        return False
+    if press_key("DELETE") is False:
+        return False
     if _sleep_ms(key_step_ms, should_stop):
+        return False
+    if should_stop is not None and should_stop():
         return False
     press_hotkey("CTRL", "V")
     if _sleep_ms(paste_settle_ms, should_stop):
@@ -475,11 +485,15 @@ def send_chat_command(
         if interrupted():
             logger.info("Commande chat stoppee avant validation.")
             return False
-        press_key("ENTER")
+        if press_key("ENTER") is False:
+            logger.warning("Commande chat non émise : première validation ENTER refusée.")
+            return False
         if submit_twice:
             if _sleep_ms(key_step_ms, interrupted):
                 return False
             if interrupted():
                 return False
-            press_key("ENTER")
+            if press_key("ENTER") is False:
+                logger.warning("Commande chat partielle : seconde validation ENTER refusée.")
+                return False
     return True

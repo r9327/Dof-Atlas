@@ -80,7 +80,10 @@ class OrganizerMirrorIntegrationTests(unittest.TestCase):
                     self.assertTrue(page.macro_grid_host.isEnabled())
                     page.mirror_mode_button.click()
                     self.assertEqual(page.profiles[KEY_ORGANIZER_MACRO_MODE], "mirror")
-                    self.assertFalse(page.macro_grid_host.isEnabled())
+                    # Navigation stays available while the Miroir is disarmed.
+                    self.assertTrue(page.macro_grid_host.isEnabled())
+                    self.assertFalse(page.switch_click.isEnabled())
+                    self.assertTrue(page.next_character.isEnabled())
                     self.assertTrue(page.stop_script_button.isEnabled())
                     self.assertTrue(page.radial_select_button.isEnabled())
                     on_stop.assert_called_once()
@@ -98,11 +101,11 @@ class OrganizerMirrorIntegrationTests(unittest.TestCase):
 
     def test_mirror_disables_classic_hotkeys_but_keeps_emergency_stop(self):
         actions = build_hotkey_actions(
-            SimpleNamespace(macro_mode="mirror", stop_hotkey="F12"),
+            SimpleNamespace(macro_mode="mirror", stop_hotkey="F12", switch_character_enabled=False),
         )
         self.assertEqual([action.action_id for action in actions], ["stop_script"])
         self.assertEqual(
-            build_hotkey_actions(SimpleNamespace(macro_mode="mirror", stop_hotkey="")),
+            build_hotkey_actions(SimpleNamespace(macro_mode="mirror", stop_hotkey="", switch_character_enabled=False)),
             [],
         )
 
@@ -123,6 +126,9 @@ class OrganizerMirrorIntegrationTests(unittest.TestCase):
         )
         runtime = Mock()
         runtime.settings = settings
+        # These synthetic scenarios explicitly simulate an armed Miroir.
+        # The actual runtime remains disarmed until user consent.
+        runtime._mirror_armed = True
         runtime.macro_lock.wait.return_value = False
         # The legacy busy-lease scenarios use this Mock as an occupied
         # pointer unless they explicitly opt into the free-pointer path.
@@ -7413,7 +7419,7 @@ class OrganizerMirrorIntegrationTests(unittest.TestCase):
                                 expected_profile=runtime.settings,
                             )
 
-    def test_mirror_snapshot_is_available_after_old_stop_lease_has_ended(self):
+    def test_mirror_snapshot_waits_for_explicit_resume_after_stop(self):
         from app.core.runtime_state import AtlasRuntime
 
         for count in (2, 4, 6, 8):
@@ -7430,6 +7436,10 @@ class OrganizerMirrorIntegrationTests(unittest.TestCase):
                 patch("app.macros.mirror_plan.is_dofus_unity_process",
                       return_value=True),
             ):
+                # No automatic re-entry after Stop, even if the previous
+                # macro worker has released its lease.
+                self.assertIsNone(AtlasRuntime._mirror_gesture_targets(runtime))
+                runtime.macro_lock.should_stop.return_value = False
                 self.assertEqual(
                     AtlasRuntime._mirror_gesture_targets(runtime),
                     (source, (source, *slots[:-1])),
@@ -8654,6 +8664,9 @@ class DeferredMirrorPointerTests(unittest.TestCase):
             client_by_handle=lambda h: next((c for c in clients if c.handle == h), None),
         )
         runtime._running = True
+        # These native deferred-delivery fixtures represent a Miroir
+        # explicitly armed by the user, not the unarmed runtime default.
+        runtime._mirror_armed = True
         runtime._switch_click = Mock()
         runtime._switch_click.run_async.return_value = True
         runtime._mirror_input = Mock()

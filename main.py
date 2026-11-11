@@ -2084,6 +2084,8 @@ class AtlasWindow(QMainWindow):
             sessions_changed_callback=self.refresh_global_characters,
             active_session_callback=self.on_organizer_active_window,
             next_character_callback=self.launch_next_character,
+            previous_character_callback=self.launch_previous_character,
+            mirror_arm_callback=self.toggle_mirror,
         )
 
     def create_craft_page(self) -> QWidget:
@@ -2704,9 +2706,19 @@ class AtlasWindow(QMainWindow):
             self.settings_topmost_check.blockSignals(False)
 
     def update_runtime_badge(self, connected: bool) -> None:
+        # UI-side callbacks (including Mirror toggle) must never override
+        # the latched red emergency indicator while hooks remain installed.
+        runtime = getattr(self, "runtime", None)
+        lock = getattr(runtime, "macro_lock", None) if runtime is not None else None
+        connected = bool(connected) and getattr(lock, "emergency_latched", False) is not True
         organizer = self.page_widgets.get("Organizer") if hasattr(self, "page_widgets") else None
         if hasattr(organizer, "set_runtime_active"):
             organizer.set_runtime_active(bool(connected))
+        if hasattr(organizer, "set_mirror_arm_active"):
+            runtime = getattr(self, "runtime", None)
+            organizer.set_mirror_arm_active(
+                getattr(runtime, "mirror_armed", False) is True
+            )
 
     def _ensure_runtime(self) -> AtlasRuntime:
         if self.runtime is None:
@@ -2730,10 +2742,15 @@ class AtlasWindow(QMainWindow):
             return
         self._ensure_runtime().start()
 
-    def stop_runtime(self) -> None:
+    def stop_runtime(self, temporary: bool = False) -> None:
         runtime = self.runtime
         if runtime is not None:
-            runtime.emergency_stop("bouton stop")
+            # Profile/speed changes cancel the current worker but are not
+            # user-triggered emergency shutdowns.
+            runtime.emergency_stop(
+                "reconfiguration Organizer" if temporary else "bouton stop",
+                latch=not temporary,
+            )
 
     def refresh_runtime_sessions(self) -> None:
         organizer = self.page_widgets.get("Organizer") if hasattr(self, "page_widgets") else None
@@ -2752,6 +2769,10 @@ class AtlasWindow(QMainWindow):
         if self.quit_requested or self._background_services_stopped:
             return
         runtime = self._ensure_runtime()
+        if force_restart and not runtime.macro_lock.resume_after_stop():
+            self.update_runtime_badge(False)
+            self.set_status("Relancer impossible : attendre l'arrêt de la macro en cours.")
+            return
         if not getattr(runtime, "_running", False):
             runtime.start()
         else:
@@ -2787,11 +2808,45 @@ class AtlasWindow(QMainWindow):
         runtime = self._ensure_runtime()
         if self.quit_requested or self._background_services_stopped:
             return
+        if getattr(runtime, "mirror_armed", False) is True:
+            self.set_status("Arrêter Miroir avant de changer de personnage.")
+            return
         if runtime.macro_lock.active_label:
             self.set_status("Personnage suivant indisponible : macro déjà en cours.")
             return
         if not runtime.switch_character.activate_next():
             self.set_status("Personnage suivant : aucune autre fenêtre DOFUS activable.")
+
+    def launch_previous_character(self) -> None:
+        """Use the same protected Organizer worker as Personnage suivant."""
+        if self.quit_requested or self._background_services_stopped:
+            return
+        runtime = self._ensure_runtime()
+        if self.quit_requested or self._background_services_stopped:
+            return
+        if getattr(runtime, "mirror_armed", False) is True:
+            self.set_status("Arrêter Miroir avant de changer de personnage.")
+            return
+        if runtime.macro_lock.active_label:
+            self.set_status("Personnage précédent indisponible : macro déjà en cours.")
+            return
+        if not runtime.switch_character.activate_previous():
+            self.set_status("Personnage précédent : aucune autre fenêtre DOFUS activable.")
+
+    def toggle_mirror(self) -> bool:
+        """User gesture: the tab alone never authorizes Mirror delivery."""
+        if self.quit_requested or self._background_services_stopped:
+            return False
+        runtime = self.runtime
+        if runtime is None:
+            self.set_status("Miroir indisponible : runtime pas encore démarré.")
+            return False
+        armed = runtime.toggle_mirror()
+        self.update_runtime_badge(bool(
+            runtime._running and runtime._admin_ok
+            and getattr(runtime.macro_lock, "emergency_latched", False) is not True
+        ))
+        return armed is True
 
     def launch_auto_group(self, invite_entries: list[dict[str, object]]) -> bool:
         if self.quit_requested or self._background_services_stopped:

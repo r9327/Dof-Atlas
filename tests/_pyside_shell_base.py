@@ -1089,7 +1089,9 @@ class PySideShellTests(unittest.TestCase):
                 self.assertTrue(hasattr(page, "sessions_refresh_button"))
                 self.assertEqual(page.macro_panel.height(), page.quick_actions_panel.height())
                 self.assertEqual(page.stop_script_button.objectName(), "dangerButton")
-                self.assertEqual(page.stop_script_button.width(), page.script_speed_title.width())
+                self.assertLess(page.script_speed_title.width(), page.stop_script_button.width())
+                self.assertIs(page.script_speed_title.parentWidget(), page.script_speed_normal.parentWidget())
+                self.assertEqual(page.script_speed_title.y(), page.script_speed_normal.y())
                 page.sessions = [{"nom": "Perso 1", "hwnd": 12345}]
                 page.profiles[KEY_SWITCH_CLICK] = True
                 page.profiles[KEY_CLICK_HOTKEY] = "F8"
@@ -1177,7 +1179,9 @@ class PySideShellTests(unittest.TestCase):
                 self.assertFalse(hasattr(page, "scan_button"))
                 self.assertTrue(hasattr(page, "sessions_refresh_button"))
                 self.assertEqual(page.macro_panel.height(), page.quick_actions_panel.height())
-                self.assertEqual(page.script_speed_title.width(), page.stop_script_button.width())
+                self.assertLess(page.script_speed_title.width(), page.stop_script_button.width())
+                self.assertIs(page.script_speed_title.parentWidget(), page.script_speed_normal.parentWidget())
+                self.assertEqual(page.script_speed_title.y(), page.script_speed_normal.y())
                 self.assertEqual(page.script_speed_normal.height(), page.script_speed_fast.height())
 
                 page.reload_runtime_button.click()
