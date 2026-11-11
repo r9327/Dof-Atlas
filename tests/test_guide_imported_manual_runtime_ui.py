@@ -98,6 +98,7 @@ class ImportedSourceRouterQtTests(unittest.TestCase):
         from app.modules.encyclopedia.views.encyclopedia_page import (
             EncyclopediaPage,
         )
+        from app.modules.encyclopedia.constants import DUNGEONS_TAB
 
         root = Path(self.tmp.name)
         with self.assertRaisesRegex(ValueError, "independent authorizer"):
@@ -127,6 +128,8 @@ class ImportedSourceRouterQtTests(unittest.TestCase):
             client_index_path=root / "clients.json",
             imported_source_services={self.service.guide_id: self.service},
             imported_source_authorizer=lambda _key, _route: self.approved,
+            quest_graph=object(),  # Synthetic: no Doduda quest data in Phase 0.
+            initial_tab=DUNGEONS_TAB,  # Lazy slot; do not load the Quest catalogue.
         )
         try:
             # No Guide source service is constructed or fetched at Home.
