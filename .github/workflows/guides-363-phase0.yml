@@ -55,9 +55,6 @@ jobs:
       - name: Run synthetic import, conformity, storage and sequence gates
         run: |
           python -X faulthandler -m unittest discover -v -s tests -p 'test_atlas_guide_*.py'
-      - name: Run cross-guide persistence, isolated identity and preparation proofs
-        run: |
-          python -X faulthandler -m unittest -v tests.test_guide_progress_persistence tests.test_guide_imported_manual_runtime_service tests.test_guide_entity_identity tests.test_guide_preparation_model
 
   guide-qt:
     name: Guides / Phase 0 Qt UI (Windows, synthetic)
@@ -95,6 +92,11 @@ jobs:
         shell: pwsh
         run: |
           python -X faulthandler -m unittest -v tests.test_guide_shared_route_contract tests.test_guide_manual_selected_validation tests.test_guide_imported_manual_runtime_ui tests.test_guide_preparation_model_qt
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+      - name: Exercise real on-disk character isolation and pure Guide services
+        shell: pwsh
+        run: |
+          python -X faulthandler -m unittest -v tests.test_guide_progress_persistence tests.test_guide_imported_manual_runtime_service tests.test_guide_entity_identity tests.test_guide_preparation_model
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
       # Never import, preview, certify or publish a real source guide.
       # These tests are not Ganymède provenance or DOFUS gameplay evidence.
