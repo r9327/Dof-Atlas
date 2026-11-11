@@ -476,10 +476,36 @@ def publish_candidate(
             # Commit an fsynced temp file atomically; failure leaves either
             # no generation or a complete one, while selection stays old.
             _atomic_file(target, payload)
-        _atomic_file(store / _SELECTED, _json_bytes({
+        selection_path = store / _SELECTED
+        _atomic_file(selection_path, _json_bytes({
             "format": _FORMAT, "candidate_sha256": digest,
             "runtime_activation": False,
         }))
+        # A successful replace is not yet proof that the selected candidate
+        # is readable and intact. Check it under the same publisher lock.
+        try:
+            if _selection(store) != digest:
+                raise GuideRouteContractError("post-write candidate selection mismatch")
+            _verify_generation(store, digest)
+        except (GuideRouteContractError, OSError) as exc:
+            # Never leave a failed publication selected. Immutable generations
+            # are retained; restore only the CAS pointer and verify the old
+            # selection before reporting a clean rollback.
+            try:
+                _atomic_file(selection_path, _json_bytes({
+                    "format": _FORMAT, "candidate_sha256": old,
+                    "runtime_activation": False,
+                }))
+                if _selection(store) != old:
+                    raise GuideRouteContractError("rollback selection mismatch")
+                _verify_generation(store, old)
+            except (GuideRouteContractError, OSError) as rollback_exc:
+                raise GuideRouteContractError(
+                    "post-write verification and rollback failed; manual review required"
+                ) from rollback_exc
+            raise GuideRouteContractError(
+                "post-write verification failed; previous selection restored"
+            ) from exc
     return {
         "status": "CANDIDATE_STORED_NOT_ACTIVE",
         "candidate_sha256": digest, "previous_sha256": old,
