@@ -20,6 +20,7 @@ from PySide6.QtWidgets import (
     QFrame,
     QGridLayout,
     QHBoxLayout,
+    QLayout,
     QLabel,
     QLineEdit,
     QListWidget,
@@ -1058,6 +1059,10 @@ class ZaapWidget(QWidget):
         self.position_divider.setFixedSize(1, 32)
         self.position_divider.hide()
         layout = QVBoxLayout(self)
+        # A wide favorites grid must not lock the widget's minimum width:
+        # allow resizeEvent to reflow it into fewer columns on shrink.
+        if self.compact_favorites:
+            layout.setSizeConstraint(QLayout.SetNoConstraint)
         layout.setContentsMargins(0, 0, 0, 0)
         layout.setSpacing(8)
         input_layout = QHBoxLayout()
