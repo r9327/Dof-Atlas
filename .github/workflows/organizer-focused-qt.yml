@@ -15,6 +15,9 @@ on:
       - 'tests/test_organizer*.py'
       - 'tests/test_hotkeys.py'
       - 'tests/test_runtime_state.py'
+      - 'tests/_pyside_shell_base.py'
+      - 'tests/test_pyside_shell.py'
+      - 'tests/test_character_pyside_diagnostics.py'
 
 permissions:
   contents: read
@@ -75,6 +78,11 @@ jobs:
         shell: pwsh
         run: |
           python -X faulthandler -m unittest -v tests.test_organizer_mirror_ui tests.test_organizer_mirror_focus_admission tests.test_organizer_macro_reliability tests.test_organizer_speed_lease tests.test_organizer_stop_hotkey_priority tests.test_organizer_hook_stop_race
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+      - name: Recheck inherited PySide shell and subprocess Organizer compatibility
+        shell: pwsh
+        run: |
+          python -X faulthandler -m unittest -v tests.test_pyside_shell.PySideShellTests.test_organizer_exports_switch_double_click_hotkey tests.test_pyside_shell.PySideShellTests.test_organizer_quick_actions_reload_and_debug tests.test_character_pyside_diagnostics.CharacterPySideDiagnosticsTests.test_legacy_character_pyside_contracts_emit_full_tracebacks
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
       # Native Windows offscreen fixtures do not prove delivery in DOFUS Unity,
       # focus race outcomes on real machines, or 1/2/4/6/8-account latency.
