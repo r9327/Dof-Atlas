@@ -6,7 +6,7 @@ import weakref
 from pathlib import Path
 from queue import Empty, Queue
 from threading import Thread, current_thread
-from typing import TYPE_CHECKING, Callable
+from typing import TYPE_CHECKING, Callable, Mapping
 
 from PySide6.QtCore import QTimer, Qt, Signal
 from PySide6.QtWidgets import QComboBox, QHBoxLayout, QLabel, QTabWidget, QVBoxLayout, QWidget
@@ -46,6 +46,9 @@ if TYPE_CHECKING:
     )
     from app.pages.lazy_quests_page import LazyQuestsPage
     from app.pages.quests_page import QuestsPage
+    from app.modules.encyclopedia.services.guide_imported_manual_runtime_service import (
+        ImportedSourceManualRuntimeService,
+    )
 
 
 LOGGER = logging.getLogger(__name__)
@@ -180,6 +183,8 @@ class EncyclopediaPage(QWidget):
         guide_progress_by_guide: dict[str, tuple[int, int, str]] | None = None,
         guide_progress_character_key: str = "",
         launch_travel_callback: Callable[[str, tuple[str, ...]], None] | None = None,
+        imported_source_services: Mapping[str, ImportedSourceManualRuntimeService] | None = None,
+        imported_source_authorizer: Callable[[str, dict], bool] | None = None,
         related_data_ready_callback: Callable[[AchievementProvider, GuideProvider], None] | None = None,
         initial_tab: str = DEFAULT_TAB,
     ) -> None:
@@ -223,6 +228,13 @@ class EncyclopediaPage(QWidget):
         self._guide_progress_by_guide = guide_progress_by_guide or {}
         self._guide_progress_character_key = guide_progress_character_key or ""
         self._launch_travel_callback = launch_travel_callback
+        # No automatic source discovery, network access or Guide preload.
+        # A future certified installer must explicitly inject its services
+        # together with a separate authorization witness.
+        self._imported_source_services = dict(imported_source_services or {})
+        if self._imported_source_services and not callable(imported_source_authorizer):
+            raise ValueError("Imported Guides require an independent authorizer")
+        self._imported_source_authorizer = imported_source_authorizer
         self._related_data_ready_callback = related_data_ready_callback
         self._lazy_slots: dict[str, QWidget] = {}
         self._related_ready = all(
@@ -1358,6 +1370,8 @@ class EncyclopediaPage(QWidget):
             quest_progress_path=self.quest_progress_path,
             navigate_callback=self.navigate_to_entity,
             launch_travel_callback=self._launch_travel_callback,
+            imported_source_services=self._imported_source_services,
+            imported_source_authorizer=self._imported_source_authorizer,
             character_key=self.current_character_key,
             graph=self._quest_graph,
             initial_progress_by_guide=self._guide_progress_by_guide,
