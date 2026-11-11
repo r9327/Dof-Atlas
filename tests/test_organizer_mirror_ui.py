@@ -108,23 +108,84 @@ class OrganizerMirrorIntegrationTests(unittest.TestCase):
         rows = [
             {"name": f"Zaap {index}", "label": f"Zaap {index}",
              "x": index, "y": index}
-            for index in range(1, 9)
+            for index in range(1, 10)
         ]
         with (
             patch("app.storage.load_zaap_index", return_value=rows),
             patch("app.storage.read_zaap_favorites", return_value=[
-                row["name"] for row in rows
+                row["name"] for row in rows[:8]
             ]),
         ):
             widget = ZaapWidget(Mock(), compact_favorites=True)
             try:
-                widget.resize(640, 100)
+                widget.show()
+                for width in (280, 320, 400, 458, 480, 640, 850):
+                    with self.subTest(width=width):
+                        widget.resize(width, 100)
+                        self.qt.processEvents()
+                        spacing = widget.favorites_layout.horizontalSpacing()
+                        columns = max(
+                            1, (max(0, widget.width() - widget.favorites_label.width()))
+                            // (190 + spacing),
+                        )
+                        self.assertEqual(widget.favorite_capacity(), columns)
+                        self.assertEqual(widget._favorite_columns, columns)
+                        self.assertEqual(len(widget.favorite_buttons), 8)
+                        self.assertGreater(widget.maximumHeight(), 68)
+                        for index, button in enumerate(widget.favorite_buttons):
+                            chip = button.parentWidget()
+                            self.assertLessEqual(
+                                widget.favorites_label.width()
+                                + columns * (chip.maximumWidth() + spacing),
+                                widget.width(),
+                            )
+                            self.assertIs(
+                                widget.favorites_layout.itemAtPosition(
+                                    index // columns, 1 + index % columns
+                                ).widget(),
+                                chip,
+                            )
+                # Legacy favorites all remain visible, but cannot silently
+                # grow past the capacity for new entries.
+                with patch("app.storage.save_zaap_favorites") as save:
+                    widget.toggle_favorite(rows[8])
+                    save.assert_not_called()
                 self.assertEqual(len(widget.favorite_buttons), 8)
-                self.assertGreater(widget.maximumHeight(), 68)
-                widget.resize(400, 100)
-                self.assertEqual(len(widget.favorite_buttons), 8)
-                self.assertGreater(widget.maximumHeight(), 68)
             finally:
+                widget.close()
+                widget.deleteLater()
+
+    def test_organizer_zaap_new_favorites_stop_at_visible_capacity(self):
+        from app.storage import ZaapWidget
+
+        rows = [
+            {"name": f"Zaap {index}", "label": f"Zaap {index}",
+             "x": index, "y": index}
+            for index in range(1, 4)
+        ]
+        status = Mock()
+        with (
+            patch("app.storage.load_zaap_index", return_value=rows),
+            patch("app.storage.read_zaap_favorites", return_value=[]),
+            patch("app.storage.save_zaap_favorites",
+                  side_effect=lambda names, _zaaps: list(names)) as save,
+        ):
+            widget = ZaapWidget(status, compact_favorites=True)
+            try:
+                widget.show()
+                widget.resize(320, 100)
+                self.qt.processEvents()
+                self.assertEqual(widget.favorite_capacity(), 1)
+                widget.toggle_favorite(rows[0])
+                widget.toggle_favorite(rows[1])
+                self.assertEqual(widget.favorite_names, ["Zaap 1"])
+                self.assertEqual(len(widget.favorite_buttons), 1)
+                self.assertEqual(save.call_count, 1)
+                self.assertTrue(any(
+                    "pleine" in call.args[0] for call in status.call_args_list
+                ))
+            finally:
+                widget.close()
                 widget.deleteLater()
 
     def test_mirror_disables_classic_hotkeys_but_keeps_emergency_stop(self):
