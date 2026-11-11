@@ -374,18 +374,18 @@ class OrganizerUiMixin:
         controls_grid.addWidget(macro_cell(self.switch_click, self.click_button, self.click_clear), 0, 1)
         controls_grid.addWidget(macro_cell(self.switch_movement), 1, 0)
         controls_grid.addWidget(macro_cell(self.switch_double_click, self.double_click_button, self.double_click_clear), 1, 1)
-        controls_grid.addWidget(macro_cell(self.next_character, self.next_character_hotkey_button, self.next_character_clear), 2, 1)
-        controls_grid.addWidget(macro_cell(self.previous_character, self.previous_character_hotkey_button, self.previous_character_clear), 2, 0)
+        # Précédent / Suivant sont des actions rapides, jamais des switches Macro.
         for column in range(2):
             controls_grid.setColumnMinimumWidth(column, control_size.width())
             controls_grid.setColumnStretch(column, 0)
-        for row in range(3):
+        for row in range(2):
             controls_grid.setRowMinimumHeight(row, BUTTON_HEIGHT)
 
         self.macro_panel = QFrame()
         self.macro_panel.setObjectName("card")
-        self.macro_panel.setFixedSize(panel_width, controls_panel_height)
-        self.macro_panel.setSizePolicy(QSizePolicy.Fixed, QSizePolicy.Fixed)
+        self.macro_panel.setMinimumWidth(panel_width)
+        self.macro_panel.setFixedHeight(controls_panel_height)
+        self.macro_panel.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
         self.apply_card_shadow(self.macro_panel)
         macro_layout = QVBoxLayout(self.macro_panel)
         macro_layout.setContentsMargins(CARD_PADDING, CARD_PADDING, CARD_PADDING, CARD_PADDING)
@@ -409,8 +409,9 @@ class OrganizerUiMixin:
 
         self.quick_actions_panel = QFrame()
         self.quick_actions_panel.setObjectName("card")
-        self.quick_actions_panel.setFixedSize(panel_width, controls_panel_height)
-        self.quick_actions_panel.setSizePolicy(QSizePolicy.Fixed, QSizePolicy.Fixed)
+        self.quick_actions_panel.setMinimumWidth(panel_width)
+        self.quick_actions_panel.setFixedHeight(controls_panel_height)
+        self.quick_actions_panel.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
         self.apply_card_shadow(self.quick_actions_panel)
         quick_layout = QVBoxLayout(self.quick_actions_panel)
         quick_layout.setContentsMargins(CARD_PADDING, CARD_PADDING, CARD_PADDING, CARD_PADDING)
@@ -425,6 +426,8 @@ class OrganizerUiMixin:
         quick_grid.setVerticalSpacing(8)
         quick_grid.addWidget(self.switch_fake, 0, 0)
         quick_grid.addWidget(macro_cell(self.radial_select_button, self.radial_hotkey_button, self.radial_clear, size=radial_control_size), 0, 1)
+        quick_grid.addWidget(macro_cell(self.previous_character, self.previous_character_hotkey_button, self.previous_character_clear), 1, 0)
+        quick_grid.addWidget(macro_cell(self.next_character, self.next_character_hotkey_button, self.next_character_clear), 1, 1)
         # One compact line: Vitesse : Normal | Rapide | Instantané.
         # Widths total 52 + 71 + 71 + 78 + 3 * 4 = 284px.
         speed_row = QWidget()
@@ -438,10 +441,10 @@ class OrganizerUiMixin:
             self.script_speed_instant,
         ):
             speed_row_layout.addWidget(button)
-        quick_grid.addWidget(speed_row, 1, 0, 1, 2)
+        macro_layout.addWidget(speed_row, alignment=Qt.AlignLeft)
         # Preserve an existing Classique profile without silently accelerating
         # it. This legacy-only choice is no longer offered to the user.
-        quick_grid.addWidget(self.script_speed_legacy, 2, 0)
+        macro_layout.addWidget(self.script_speed_legacy)
         self.script_speed_legacy.hide()
         stop_row = QWidget()
         stop_row.setFixedSize(panel_inner_width, STOP_BUTTON_HEIGHT)
@@ -463,8 +466,8 @@ class OrganizerUiMixin:
 
         self.controls_panel = QFrame()
         self.controls_panel.setObjectName("card")
-        self.controls_panel.setFixedSize(panel_width, controls_panel_height)
-        self.controls_panel.setSizePolicy(QSizePolicy.Fixed, QSizePolicy.Fixed)
+        self.controls_panel.setFixedHeight(84)
+        self.controls_panel.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
         self.apply_card_shadow(self.controls_panel)
         control_layout = QVBoxLayout(self.controls_panel)
         control_layout.setContentsMargins(CARD_PADDING, CARD_PADDING, CARD_PADDING, CARD_PADDING)
@@ -474,14 +477,14 @@ class OrganizerUiMixin:
         controls_title.setFixedHeight(20)
         control_layout.addLayout(make_card_header(controls_title))
         controls_host = QWidget()
-        controls_host.setFixedWidth(panel_inner_width)
+        controls_host.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
         control_grid = QGridLayout(controls_host)
         control_grid.setContentsMargins(0, 0, 0, 0)
         control_grid.setHorizontalSpacing(8)
         control_grid.setVerticalSpacing(8)
         control_grid.addWidget(self.reload_runtime_button, 0, 0)
         control_grid.addWidget(self.debug_button, 0, 1)
-        control_grid.addWidget(stop_row, 1, 0, 1, 2)
+        control_grid.addWidget(stop_row, 0, 2)
         for column in range(2):
             control_grid.setColumnMinimumWidth(column, control_size.width())
         control_layout.addWidget(controls_host, alignment=Qt.AlignLeft)
@@ -489,10 +492,10 @@ class OrganizerUiMixin:
         controls_panels_row = QHBoxLayout()
         controls_panels_row.setContentsMargins(0, 0, 0, 0)
         controls_panels_row.setSpacing(8)
-        controls_panels_row.addWidget(self.macro_panel)
-        controls_panels_row.addWidget(self.quick_actions_panel)
-        controls_panels_row.addWidget(self.controls_panel)
-        controls_panels_row.addStretch(1)
+        # Barre de contrôle pleine largeur, puis seulement deux modules.
+        root.addWidget(self.controls_panel)
+        controls_panels_row.addWidget(self.macro_panel, 1)
+        controls_panels_row.addWidget(self.quick_actions_panel, 1)
         root.addLayout(controls_panels_row)
 
         self.zaap_panel = QFrame()
