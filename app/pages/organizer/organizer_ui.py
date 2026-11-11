@@ -176,7 +176,7 @@ class OrganizerUiMixin:
         # position/lock/calibrate widgets on the Organizer page.
         self.zaap = ZaapWidget(
             status_callback, launch_zaap_callback, self.refresh_sessions_and_export,
-            show_position_controls=False,
+            show_position_controls=False, favorite_chip_limit=2,
         )
         self.zaap.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
 
@@ -430,6 +430,7 @@ class OrganizerUiMixin:
         speed_row.addStretch(1)
         macro_layout.addLayout(speed_row)
         # Keep legacy timing readable in profile data, but never offer it.
+        self.script_speed_legacy.setParent(self.macro_panel)
         self.script_speed_legacy.hide()
 
         self.quick_actions_panel = QFrame()
