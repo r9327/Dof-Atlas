@@ -272,8 +272,9 @@ def _safe_root(root: Path) -> Path:
     if ".." in Path(root).parts:
         raise GuideRouteContractError("parent traversal in candidate root")
     candidate = Path(root).absolute()
-    if _is_redirected(candidate) or any(part.casefold() in _FORBIDDEN_PARTS
-                                    for part in candidate.parts):
+    if _is_redirected(candidate):
+        raise GuideRouteContractError("symlink or junction candidate root not supported")
+    if any(part.casefold() in _FORBIDDEN_PARTS for part in candidate.parts):
         raise GuideRouteContractError("candidate root must not be an Atlas data/save/cache directory")
     # An explicit staging root may be outside the checkout or inside its
     # disposable artifacts/ directory. Never accept a source, CI-policy,
