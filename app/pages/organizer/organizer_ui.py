@@ -172,6 +172,7 @@ class OrganizerUiMixin:
         self.zaap = ZaapWidget(
             status_callback, launch_zaap_callback, self.refresh_sessions_and_export,
             show_position_controls=False,
+            compact_favorites=True,
         )
         self.zaap.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
 
@@ -505,8 +506,9 @@ class OrganizerUiMixin:
 
         self.zaap_panel = QFrame()
         self.zaap_panel.setObjectName("card")
-        self.zaap_panel.setMaximumHeight(124)
-        self.zaap_panel.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
+        # The Zaap bar grows only for explicitly retained legacy favorites;
+        # new favorites are bounded by one-row capacity.
+        self.zaap_panel.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Maximum)
         self.apply_card_shadow(self.zaap_panel)
         zaap_layout = QVBoxLayout(self.zaap_panel)
         zaap_layout.setContentsMargins(CARD_PADDING, CARD_PADDING, CARD_PADDING, CARD_PADDING)

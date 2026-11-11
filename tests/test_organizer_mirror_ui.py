@@ -103,6 +103,30 @@ class OrganizerMirrorIntegrationTests(unittest.TestCase):
                     page.stop_session_event_watcher()
                     page.deleteLater()
 
+    def test_organizer_zaap_favorites_never_hide_legacy_entries(self):
+        from app.storage import ZaapWidget
+        rows = [
+            {"name": f"Zaap {index}", "label": f"Zaap {index}",
+             "x": index, "y": index}
+            for index in range(1, 9)
+        ]
+        with (
+            patch("app.storage.load_zaap_index", return_value=rows),
+            patch("app.storage.read_zaap_favorites", return_value=[
+                row["name"] for row in rows
+            ]),
+        ):
+            widget = ZaapWidget(Mock(), compact_favorites=True)
+            try:
+                widget.resize(640, 100)
+                self.assertEqual(len(widget.favorite_buttons), 8)
+                self.assertGreater(widget.maximumHeight(), 68)
+                widget.resize(400, 100)
+                self.assertEqual(len(widget.favorite_buttons), 8)
+                self.assertGreater(widget.maximumHeight(), 68)
+            finally:
+                widget.deleteLater()
+
     def test_mirror_disables_classic_hotkeys_but_keeps_emergency_stop(self):
         actions = build_hotkey_actions(
             SimpleNamespace(macro_mode="mirror", stop_hotkey="F12", switch_character_enabled=False),
