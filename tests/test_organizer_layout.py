@@ -867,12 +867,14 @@ class OrganizerLayoutTests(unittest.TestCase):
             panel.deleteLater()
             self.app.processEvents()
 
-    def test_organizer_renders_exactly_eight_non_clipped_slots_without_internal_scroll_area(self):
+    def test_organizer_adaptive_slots_are_reachable_without_internal_scroll_area(self):
         with tempfile.TemporaryDirectory() as temporary:
             with self.organizer_page(Path(temporary)) as page:
                 self.assertEqual(page.session_slot_count(), 8)
-                self.assertEqual(len(page.session_slot_widgets), 8)
+                self.assertEqual(len(page.session_slot_widgets), 2)
                 self.assertEqual(page.sessions_panel.findChildren(QScrollArea), [])
+                page.sessions_panel.expand_button.click()
+                self.assertEqual(len(page.session_slot_widgets), 8)
                 self.assertEqual(
                     sorted(page.sessions_panel.grid_position(index) for _widget, index in page.session_slot_widgets),
                     [(0, 0), (0, 1), (1, 0), (1, 1), (2, 0), (2, 1), (3, 0), (3, 1)],
@@ -897,7 +899,7 @@ class OrganizerLayoutTests(unittest.TestCase):
 
         with tempfile.TemporaryDirectory() as temporary:
             with self.organizer_page(Path(temporary)) as page:
-                self.assertEqual(len(page.session_slot_widgets), 8)
+                self.assertEqual(len(page.session_slot_widgets), 2)
                 watcher = page.session_event_watcher
                 previous_sessions = list(page.sessions)
                 page.hide()
@@ -909,8 +911,8 @@ class OrganizerLayoutTests(unittest.TestCase):
                 self.assertEqual(page.sessions, previous_sessions)
                 page.show()
                 self.app.processEvents()
-                self.assertEqual(page.sessions_panel.grid.count(), 8)
-                self.assertEqual(len(page.session_slot_widgets), 8)
+                self.assertEqual(page.sessions_panel.grid.count(), 2)
+                self.assertEqual(len(page.session_slot_widgets), 2)
                 self.assertIs(page.session_event_watcher, watcher)
 
     def test_reorder_keeps_exactly_eight_slots_and_persists_detected_order(self):

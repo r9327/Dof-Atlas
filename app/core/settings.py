@@ -181,8 +181,8 @@ def timings_for_speed(speed: str) -> MacroTimings:
             travel_focus_settle_ms=6, activate_min_settle_ms=5,
             activate_retry_ms=8, activate_attempts=5,
             switch_background_pre_click_ms=10, switch_background_post_up_ms=2,
-            auto_group_chat_open_ms=25, auto_group_key_step_ms=8,
-            auto_group_paste_settle_ms=25, auto_group_invite_gap_ms=65,
+            # La cadence chat est fixe pour les quatre profils ; seules
+            # les actions de switch/clic suivent le sélecteur de vitesse.
             movement_key_hold_ms=16,
         )
     if mode == "rapide":
@@ -192,8 +192,7 @@ def timings_for_speed(speed: str) -> MacroTimings:
             travel_focus_settle_ms=10, activate_min_settle_ms=6,
             activate_retry_ms=10, activate_attempts=6,
             switch_background_pre_click_ms=14, switch_background_post_up_ms=3,
-            auto_group_chat_open_ms=35, auto_group_key_step_ms=10,
-            auto_group_paste_settle_ms=35, auto_group_invite_gap_ms=100,
+            # Les temporisations chat héritent du profil Normal fiable.
             movement_key_hold_ms=17,
         )
     if mode == "normal":
@@ -233,10 +232,10 @@ def timings_for_speed(speed: str) -> MacroTimings:
         switch_background_post_up_ms=25,
         switch_humanize_min_ms=4,
         switch_humanize_max_ms=9,
-        auto_group_chat_open_ms=80,
-        auto_group_key_step_ms=20,
-        auto_group_paste_settle_ms=80,
-        auto_group_invite_gap_ms=220,
+        auto_group_chat_open_ms=45,
+        auto_group_key_step_ms=12,
+        auto_group_paste_settle_ms=45,
+        auto_group_invite_gap_ms=140,
         movement_key_hold_ms=30,
     )
 

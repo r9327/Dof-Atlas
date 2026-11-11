@@ -13,6 +13,8 @@ CLASS_ICON_DIRS = (
 )
 CLASS_ICON_EXTENSIONS = (".png", ".webp", ".jpg", ".jpeg", ".ico")
 SESSION_SLOT_COUNT = 8
+# Separate physical slot placement from the shared compact character order.
+KEY_SESSION_SLOT_ASSIGNMENTS = "__organizer_slot_assignments__"
 WINDOW_EVENT_DEBOUNCE_MS = 80
 RELEASE_RETRY_DELAYS_MS = (200, 500, 1000, 2000)
 CARD_PADDING = 12

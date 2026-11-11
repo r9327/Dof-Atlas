@@ -20,6 +20,7 @@ from PySide6.QtWidgets import (
     QFrame,
     QGridLayout,
     QHBoxLayout,
+    QLayout,
     QLabel,
     QLineEdit,
     QListWidget,
@@ -978,6 +979,7 @@ class ZaapWidget(QWidget):
         parent: QWidget | None = None,
         show_position_controls: bool = True,
         show_favorites: bool = True,
+        compact_favorites: bool = False,
     ):
         super().__init__(parent)
         self.status_callback = status_callback
@@ -985,6 +987,8 @@ class ZaapWidget(QWidget):
         self.config_update_callback = config_update_callback
         self.show_position_controls = bool(show_position_controls)
         self.show_favorites = bool(show_favorites)
+        self.compact_favorites = bool(compact_favorites)
+        self._favorite_columns = 0
         self.position_locked = read_zaap_click_locked()
         self.zaaps = load_zaap_index()
         self.filtered_zaaps: list[dict[str, Any]] = []
@@ -1055,6 +1059,10 @@ class ZaapWidget(QWidget):
         self.position_divider.setFixedSize(1, 32)
         self.position_divider.hide()
         layout = QVBoxLayout(self)
+        # A wide favorites grid must not lock the widget's minimum width:
+        # allow resizeEvent to reflow it into fewer columns on shrink.
+        if self.compact_favorites:
+            layout.setSizeConstraint(QLayout.SetNoConstraint)
         layout.setContentsMargins(0, 0, 0, 0)
         layout.setSpacing(8)
         input_layout = QHBoxLayout()
@@ -1076,15 +1084,21 @@ class ZaapWidget(QWidget):
         layout.addLayout(input_layout)
         self.favorites_row = QWidget(self)
         self.favorites_row.setObjectName("ZaapFavoritesRow")
-        self.favorites_layout = QHBoxLayout(self.favorites_row)
+        self.favorites_layout = (
+            QGridLayout(self.favorites_row) if self.compact_favorites
+            else QHBoxLayout(self.favorites_row)
+        )
         self.favorites_layout.setContentsMargins(0, 0, 0, 0)
         self.favorites_layout.setSpacing(8)
         self.favorites_label = QLabel("Favoris :")
         self.favorites_label.setObjectName("CompactLabel")
         self.favorites_label.setFixedSize(62, 28)
         self.favorites_label.setAlignment(Qt.AlignVCenter | Qt.AlignLeft)
-        self.favorites_layout.addWidget(self.favorites_label)
-        self.favorites_layout.addStretch(1)
+        if self.compact_favorites:
+            self.favorites_layout.addWidget(self.favorites_label, 0, 0)
+        else:
+            self.favorites_layout.addWidget(self.favorites_label)
+            self.favorites_layout.addStretch(1)
         layout.addWidget(self.favorites_row)
         self.favorites_row.setVisible(False)
         self.search_input.setMinimumWidth(220 if self.show_position_controls else 260)
@@ -1148,6 +1162,23 @@ class ZaapWidget(QWidget):
         key = normalize_key(zaap_favorite_name(row))
         return bool(key and key in {normalize_key(name) for name in self.favorite_names})
 
+    def favorite_capacity(self) -> int:
+        """Maximum *new* favorites fitting in one visible Organizer row."""
+        if not self.compact_favorites:
+            return 8
+        # Count the real grid gaps: one between the label and each chip.
+        # Never use a fictional minimum width when the window shrinks.
+        spacing = self.favorites_layout.horizontalSpacing()
+        available = max(0, self.width() - self.favorites_label.width())
+        return max(1, available // (190 + spacing))
+
+    def resizeEvent(self, event) -> None:
+        super().resizeEvent(event)
+        if (self.compact_favorites and self.show_favorites
+                and hasattr(self, "favorites_layout")
+                and self.favorite_capacity() != self._favorite_columns):
+            self.refresh_favorite_chips()
+
     def toggle_favorite(self, row: dict[str, Any]) -> None:
         if not self.show_favorites:
             return
@@ -1160,6 +1191,11 @@ class ZaapWidget(QWidget):
             current = [favorite for favorite in current if normalize_key(favorite) != key]
             message = f"Favori Zaap retire: {name}"
         else:
+            if self.compact_favorites and len(current) >= self.favorite_capacity():
+                self.status_callback(
+                    "Barre Zaap pleine : retirez un favori avant d'en ajouter un autre."
+                )
+                return
             current.append(name)
             message = f"Favori Zaap ajoute: {name}"
         self.favorite_names = save_zaap_favorites(current, self.zaaps)
@@ -1192,14 +1228,22 @@ class ZaapWidget(QWidget):
                 continue
             rows.append((name, row))
             seen.add(key)
-            if len(rows) >= 8:
+            if not self.compact_favorites and len(rows) >= 8:
                 break
-        for name, row in rows:
+        columns = self.favorite_capacity()
+        self._favorite_columns = columns
+        if self.compact_favorites:
+            spacing = self.favorites_layout.horizontalSpacing()
+            available = max(
+                0, self.width() - self.favorites_label.width() - columns * spacing
+            )
+            chip_width = min(190, max(40, available // columns))
+        for index, (name, row) in enumerate(rows):
             chip = QWidget(self.favorites_row)
             chip.setObjectName("favoriteChip")
             chip.setAttribute(Qt.WA_Hover, True)
             chip.setFixedHeight(28)
-            chip.setMaximumWidth(190)
+            chip.setMaximumWidth(chip_width if self.compact_favorites else 190)
             chip.setSizePolicy(QSizePolicy.Maximum, QSizePolicy.Fixed)
             chip_layout = QHBoxLayout(chip)
             chip_layout.setContentsMargins(8, 0, 10, 0)
@@ -1213,7 +1257,9 @@ class ZaapWidget(QWidget):
             button = QPushButton(short_label(name, 24), chip)
             button.setObjectName("favoriteChipName")
             button.setFixedHeight(26)
-            button.setMaximumWidth(152)
+            button.setMaximumWidth(
+                min(152, max(1, chip_width - 38)) if self.compact_favorites else 152
+            )
             button.setCursor(Qt.PointingHandCursor)
             button.setToolTip(name)
             star_button.clicked.connect(lambda _checked=False, value=row: self.toggle_favorite(value))
@@ -1222,9 +1268,19 @@ class ZaapWidget(QWidget):
             chip_layout.addWidget(button)
             self.favorite_star_buttons.append(star_button)
             self.favorite_buttons.append(button)
-            self.favorites_layout.addWidget(chip)
-        self.favorites_layout.addStretch(1)
+            if self.compact_favorites:
+                self.favorites_layout.addWidget(chip, index // columns, 1 + index % columns)
+            else:
+                self.favorites_layout.addWidget(chip)
+        if not self.compact_favorites:
+            self.favorites_layout.addStretch(1)
         self.favorites_row.setVisible(bool(rows))
+        if self.compact_favorites:
+            # Existing legacy favorites remain directly visible, wrapping as
+            # needed rather than being silently discarded or hidden behind +N.
+            lines = (len(rows) + columns - 1) // columns
+            self.setMaximumHeight(32 + (8 + lines * 28 + max(0, lines - 1) * 8 if lines else 0))
+            self.updateGeometry()
 
     def suggestion_tooltip(self, row: dict[str, Any]) -> str:
         details = []
