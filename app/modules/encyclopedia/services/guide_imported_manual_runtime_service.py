@@ -192,14 +192,19 @@ class ImportedSourceManualRuntimeService(GuideUltimeGeneratedService):
         self, character_key: str, card: dict[str, Any],
     ) -> dict[str, Any]:
         key = self.page_key(card)
-        # Never trust the caller's copied/editable UI payload for a known ID.
-        return self._canonical_cards[key]["manual_sections"]
+        # A shared Qt widget may decorate its returned sections in place.
+        # Return only this card's detached sections, never an alias into the
+        # canonical route used by authorization and validation.
+        return copy.deepcopy(self._canonical_cards[key]["manual_sections"])
 
     def manual_lines_for_card(
         self, character_key: str, card: dict[str, Any],
     ) -> list[dict[str, Any]]:
         key = self.page_key(card)
-        return list(self._canonical_cards[key]["manual_sections"].get("now", ()))
+        # A shallow list copy would still expose each mutable source action.
+        return copy.deepcopy(
+            list(self._canonical_cards[key]["manual_sections"].get("now", ()))
+        )
 
     def manual_order_choice_blocking(
         self, character_key: str, card: dict[str, Any],
@@ -214,7 +219,11 @@ class ImportedSourceManualRuntimeService(GuideUltimeGeneratedService):
         if not callable(self._gate_evaluator):
             return True
         try:
-            return self._gate_evaluator(character_key, canonical) is not True
+            # A failing or buggy per-guide evaluator must not be able to
+            # change the immutable gate contract for later validation clicks.
+            return self._gate_evaluator(
+                character_key, copy.deepcopy(canonical),
+            ) is not True
         except Exception:
             return True
 
