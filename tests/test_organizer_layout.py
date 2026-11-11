@@ -931,7 +931,7 @@ class OrganizerLayoutTests(unittest.TestCase):
                               page.mirror_toggle_hotkey_button.parentWidget())
                 self.assertIs(page.previous_character.parentWidget().parentWidget(),
                               page.next_character.parentWidget().parentWidget())
-                self.assertIs(page.switch_fake.parentWidget(), page.quick_actions_panel)
+                self.assertIs(page.switch_fake.parentWidget().parentWidget(), page.quick_actions_panel)
                 self.assertIs(page.script_speed_normal.parentWidget(), page.macro_panel)
 
     def test_compact_zaap_favorites_offer_overflow_without_clipping(self):
