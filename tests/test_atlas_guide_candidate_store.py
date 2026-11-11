@@ -704,6 +704,43 @@ class CandidateStoreTests(unittest.TestCase):
         self.assertEqual(selected_candidate(self.root), active)
         self.assertFalse((self.root / ".writer.lock").exists())
 
+    def test_rollback_unrecoverable_error_requires_manual_review(self) -> None:
+        from tools import atlas_guide_candidate_store as store
+
+        first = publish_candidate(self.preview, root=self.root)
+        second = publish_candidate(
+            candidate(step_title="Deuxième génération"),
+            root=self.root, expected_selected=first["candidate_sha256"],
+        )
+        current = second["candidate_sha256"]
+        real_atomic = store._atomic_file
+        writes = 0
+
+        def corrupt_then_fail_recovery(path, contents):
+            nonlocal writes
+            if path.name != "selected.json":
+                return real_atomic(path, contents)
+            writes += 1
+            if writes == 1:
+                real_atomic(path, contents)
+                path.write_text('{"damaged": true}', encoding="utf-8")
+                return
+            raise OSError("synthetic persistent disk failure")
+
+        with patch.object(store, "_atomic_file", side_effect=corrupt_then_fail_recovery):
+            with self.assertRaisesRegex(
+                GuideRouteContractError, "manual review required"
+            ):
+                rollback_candidate(
+                    root=self.root, expected_selected=current,
+                    restore_sha256=first["candidate_sha256"],
+                )
+        self.assertEqual(writes, 2)
+        # Neither the requested rollback nor a successful recovery is claimed.
+        with self.assertRaises(GuideRouteContractError):
+            selected_candidate(self.root)
+        self.assertFalse((self.root / ".writer.lock").exists())
+
     def test_generation_validation_parses_the_exact_hashed_bytes(self) -> None:
         first = publish_candidate(self.preview, root=self.root)
         digest = first["candidate_sha256"]
