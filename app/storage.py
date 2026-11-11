@@ -978,7 +978,6 @@ class ZaapWidget(QWidget):
         parent: QWidget | None = None,
         show_position_controls: bool = True,
         show_favorites: bool = True,
-        favorite_chip_limit: int = 8,
     ):
         super().__init__(parent)
         self.status_callback = status_callback
@@ -986,8 +985,6 @@ class ZaapWidget(QWidget):
         self.config_update_callback = config_update_callback
         self.show_position_controls = bool(show_position_controls)
         self.show_favorites = bool(show_favorites)
-        self.favorite_chip_limit = max(0, int(favorite_chip_limit))
-        self.more_favorites_button: QToolButton | None = None
         self.position_locked = read_zaap_click_locked()
         self.zaaps = load_zaap_index()
         self.filtered_zaaps: list[dict[str, Any]] = []
@@ -1195,9 +1192,9 @@ class ZaapWidget(QWidget):
                 continue
             rows.append((name, row))
             seen.add(key)
-            if len(rows) >= 8 and self.favorite_chip_limit >= 8:
+            if len(rows) >= 8:
                 break
-        for name, row in rows[:self.favorite_chip_limit]:
+        for name, row in rows:
             chip = QWidget(self.favorites_row)
             chip.setObjectName("favoriteChip")
             chip.setAttribute(Qt.WA_Hover, True)
@@ -1226,26 +1223,6 @@ class ZaapWidget(QWidget):
             self.favorite_star_buttons.append(star_button)
             self.favorite_buttons.append(button)
             self.favorites_layout.addWidget(chip)
-        self.more_favorites_button = None
-        hidden_rows = rows[self.favorite_chip_limit:]
-        if hidden_rows:
-            # Keep the Zaap card stable even when many favorites exist.
-            # Actions reuse the same launch callback as the visible chips.
-            more = QToolButton(self.favorites_row)
-            more.setObjectName("secondaryButton")
-            more.setText(f"+{len(hidden_rows)}")
-            more.setToolTip("Autres Zaaps favoris")
-            more.setFixedHeight(28)
-            more.setPopupMode(QToolButton.InstantPopup)
-            menu = QMenu(more)
-            for name, row in hidden_rows:
-                action = menu.addAction(name)
-                action.triggered.connect(
-                    lambda _checked=False, destination=row: self.launch_zaap(destination)
-                )
-            more.setMenu(menu)
-            self.more_favorites_button = more
-            self.favorites_layout.addWidget(more)
         self.favorites_layout.addStretch(1)
         self.favorites_row.setVisible(bool(rows))
 
