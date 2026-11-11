@@ -85,11 +85,15 @@ class OrganizerStopHotkeyPriorityTests(unittest.TestCase):
              "next_character", "client:1"},
         )
 
-    def test_mirror_mode_only_registers_stop_even_with_stale_other_bindings(self):
+    def test_mirror_mode_preserves_stop_and_navigation_but_not_classic_macros(self):
         settings = self._settings(macro_mode="mirror")
         actions = build_hotkey_actions(settings)
-        self.assertEqual(len(actions), 1)
-        self.assertEqual(actions[0].action_id, "stop_script")
+        self.assertEqual([a.action_id for a in actions], ["stop_script", "next_character"])
+        registry = HotkeyRegistry(InputState(), Mock(), Mock())
+        report = registry.register_hotkeys(actions)
+        # A duplicate F12 binding still belongs exclusively to Stop urgence.
+        self.assertEqual([a.action_id for a in report.actions], ["stop_script"])
+        self.assertEqual(len(report.errors), 1)
 
 
 if __name__ == "__main__":
