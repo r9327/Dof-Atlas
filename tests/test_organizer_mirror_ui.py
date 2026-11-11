@@ -80,7 +80,10 @@ class OrganizerMirrorIntegrationTests(unittest.TestCase):
                     self.assertTrue(page.macro_grid_host.isEnabled())
                     page.mirror_mode_button.click()
                     self.assertEqual(page.profiles[KEY_ORGANIZER_MACRO_MODE], "mirror")
-                    self.assertFalse(page.macro_grid_host.isEnabled())
+                    # Navigation stays available while the Miroir is disarmed.
+                    self.assertTrue(page.macro_grid_host.isEnabled())
+                    self.assertFalse(page.switch_click.isEnabled())
+                    self.assertTrue(page.next_character.isEnabled())
                     self.assertTrue(page.stop_script_button.isEnabled())
                     self.assertTrue(page.radial_select_button.isEnabled())
                     on_stop.assert_called_once()
@@ -98,11 +101,11 @@ class OrganizerMirrorIntegrationTests(unittest.TestCase):
 
     def test_mirror_disables_classic_hotkeys_but_keeps_emergency_stop(self):
         actions = build_hotkey_actions(
-            SimpleNamespace(macro_mode="mirror", stop_hotkey="F12"),
+            SimpleNamespace(macro_mode="mirror", stop_hotkey="F12", switch_character_enabled=False),
         )
         self.assertEqual([action.action_id for action in actions], ["stop_script"])
         self.assertEqual(
-            build_hotkey_actions(SimpleNamespace(macro_mode="mirror", stop_hotkey="")),
+            build_hotkey_actions(SimpleNamespace(macro_mode="mirror", stop_hotkey="", switch_character_enabled=False)),
             [],
         )
 
@@ -123,6 +126,9 @@ class OrganizerMirrorIntegrationTests(unittest.TestCase):
         )
         runtime = Mock()
         runtime.settings = settings
+        # These synthetic scenarios explicitly simulate an armed Miroir.
+        # The actual runtime remains disarmed until user consent.
+        runtime._mirror_armed = True
         runtime.macro_lock.wait.return_value = False
         # The legacy busy-lease scenarios use this Mock as an occupied
         # pointer unless they explicitly opt into the free-pointer path.
