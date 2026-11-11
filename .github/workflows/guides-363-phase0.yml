@@ -4,6 +4,17 @@ on:
   push:
     branches:
       - 'feat/atlas-guide-importer-pr337-20261102'
+  pull_request:
+    branches: [main]
+    types: [opened, synchronize, reopened, ready_for_review]
+    paths:
+      - '.github/workflows/guides-363-phase0.yml'
+      - 'tools/atlas_guide_*.py'
+      - 'app/modules/encyclopedia/services/guide_*.py'
+      - 'app/modules/encyclopedia/views/shared_manual_guide_view.py'
+      - 'tests/test_atlas_guide_*.py'
+      - 'tests/test_guide_shared_route_contract.py'
+      - 'tests/test_guide_imported_manual_runtime_ui.py'
 
 permissions:
   contents: read
@@ -18,7 +29,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 12
     env:
-      CANDIDATE_SHA: ${{ github.sha }}
+      CANDIDATE_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
       PYTHONUTF8: '1'
     steps:
       - name: Checkout exact branch commit
@@ -44,7 +55,7 @@ jobs:
     runs-on: windows-latest
     timeout-minutes: 20
     env:
-      CANDIDATE_SHA: ${{ github.sha }}
+      CANDIDATE_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
       QT_QPA_PLATFORM: offscreen
       QTWEBENGINE_CHROMIUM_FLAGS: --disable-gpu --no-sandbox
       QTWEBENGINE_DISABLE_SANDBOX: '1'
