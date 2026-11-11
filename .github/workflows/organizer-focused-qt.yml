@@ -113,5 +113,37 @@ jobs:
           name: atlas-ui-screens-${{ env.CANDIDATE_SHA }}
           path: artifacts/atlas-ui-screens/*
           if-no-files-found: warn
+      # Capture the *unmodified* exact UI PR #365 candidate in a separate checkout.
+      # This is an independent visual reference; do not confuse it with main.
+      - name: Checkout exact UI PR 365 HEAD
+        if: always()
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: 9c877faec0a7466240f0cea5cbaee841fbf6214b
+          path: pr365-src
+          persist-credentials: false
+          lfs: false
+      - name: Capture unmodified UI PR 365 Qt screens
+        if: always()
+        shell: pwsh
+        working-directory: pr365-src
+        env:
+          CANDIDATE_SHA: 9c877faec0a7466240f0cea5cbaee841fbf6214b
+          ATLAS_UI_CAPTURE_DIR: artifacts/atlas-ui-pr365-screens
+        run: |
+          if ((git rev-parse HEAD).Trim() -ne $env:CANDIDATE_SHA) {
+            throw "UI PR 365 exact candidate mismatch"
+          }
+          Copy-Item ..\\tests\\capture_organizer_ui.py tests\\capture_organizer_ui.py
+          Copy-Item ..\\tests\\capture_atlas_ui.py tests\\capture_atlas_ui.py
+          python -X faulthandler -m tests.capture_atlas_ui
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+      - name: Upload exact PR 365 reference screenshots
+        if: always()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: atlas-ui-pr365-9c877faec0a7466240f0cea5cbaee841fbf6214b
+          path: pr365-src/artifacts/atlas-ui-pr365-screens/*
+          if-no-files-found: warn
       # Native Windows offscreen fixtures do not prove delivery in DOFUS Unity,
       # focus race outcomes on real machines, or 1/2/4/6/8-account latency.
