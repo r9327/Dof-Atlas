@@ -10,6 +10,7 @@ from PySide6.QtWidgets import (
     QLabel,
     QPushButton,
     QSizePolicy,
+    QStyle,
     QVBoxLayout,
     QWidget,
 )
@@ -236,7 +237,7 @@ class OrganizerUiMixin:
         self.script_speed_normal = AtlasButton("Normal")
         self.script_speed_fast = AtlasButton("Rapide")
         self.script_speed_instant = AtlasButton("Instantané")
-        self.stop_script_button = AtlasButton("Stop urgence")
+        self.stop_script_button = AtlasButton("STOP URGENCE")
         self.stop_script_hotkey_button = AtlasButton("")
         self.stop_script_clear = AtlasButton("x")
         self.click_clear = AtlasButton("x")
@@ -273,6 +274,9 @@ class OrganizerUiMixin:
         # shortcut badge overlays the same button instead of leaving a gap.
         self.mirror_arm_button.setFixedSize(panel_inner_width, BUTTON_HEIGHT)
         self.stop_script_button.setObjectName("dangerButton")
+        self.stop_script_button.setIcon(self.style().standardIcon(QStyle.SP_MessageBoxWarning))
+        self.stop_script_button.setIconSize(QSize(16, 16))
+        self.stop_script_button.setAccessibleName("STOP URGENCE")
         self.stop_script_button.setFixedSize(stop_size)
         self.stop_script_button.setSizePolicy(QSizePolicy.Fixed, QSizePolicy.Fixed)
         for button in (self.click_button, self.double_click_button, self.radial_hotkey_button,
@@ -332,19 +336,23 @@ class OrganizerUiMixin:
             clear: QPushButton | None = None,
             size: QSize = control_size,
         ) -> QWidget:
+            # Real overlay geometry keeps the shortcut inside the action
+            # with a visible right inset; a grid AlignRight stuck to the edge.
             wrapper = QWidget()
             wrapper.setFixedSize(size)
             wrapper.setSizePolicy(QSizePolicy.Fixed, QSizePolicy.Fixed)
-            cell = QGridLayout(wrapper)
-            cell.setContentsMargins(0, 0, 0, 0)
-            cell.setHorizontalSpacing(0)
-            cell.setVerticalSpacing(0)
-            cell.addWidget(action, 0, 0)
+            action.setParent(wrapper)
+            action.move(0, 0)
             if shortcut is not None:
-                cell.addWidget(shortcut, 0, 0, alignment=Qt.AlignRight | Qt.AlignVCenter)
+                shortcut.setParent(wrapper)
+                shortcut.move(
+                    size.width() - shortcut.width() - 10,
+                    (size.height() - shortcut.height()) // 2,
+                )
                 shortcut.raise_()
             if clear is not None:
-                cell.addWidget(clear, 0, 0, alignment=Qt.AlignTop | Qt.AlignRight)
+                clear.setParent(wrapper)
+                clear.move(size.width() - clear.width() - 6, 1)
                 clear.raise_()
             return wrapper
 
@@ -498,8 +506,7 @@ class OrganizerUiMixin:
         controls_panels_row = QHBoxLayout()
         controls_panels_row.setContentsMargins(0, 0, 0, 0)
         controls_panels_row.setSpacing(8)
-        # Barre de contrôle pleine largeur, puis seulement deux modules.
-        root.addWidget(self.controls_panel)
+        # Macro is the first module, with quick actions next to it.
         controls_panels_row.addWidget(self.macro_panel, 1)
         controls_panels_row.addWidget(self.quick_actions_panel, 1)
         root.addLayout(controls_panels_row)
@@ -508,7 +515,7 @@ class OrganizerUiMixin:
         self.zaap_panel.setObjectName("card")
         # The Zaap bar grows only for explicitly retained legacy favorites;
         # new favorites are bounded by one-row capacity.
-        self.zaap_panel.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Maximum)
+        self.zaap_panel.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
         self.apply_card_shadow(self.zaap_panel)
         zaap_layout = QVBoxLayout(self.zaap_panel)
         zaap_layout.setContentsMargins(CARD_PADDING, CARD_PADDING, CARD_PADDING, CARD_PADDING)
@@ -518,10 +525,11 @@ class OrganizerUiMixin:
         zaap_title.setFixedHeight(20)
         zaap_layout.addLayout(make_card_header(zaap_title))
         zaap_layout.addWidget(self.zaap, 1)
-        root.addWidget(self.zaap_panel)
-
-        self.sessions_refresh_button = AtlasButton("⟳")
+        self.sessions_refresh_button = AtlasButton()
         self.sessions_refresh_button.setObjectName("iconButton")
+        self.sessions_refresh_button.setIcon(self.style().standardIcon(QStyle.SP_BrowserReload))
+        self.sessions_refresh_button.setIconSize(QSize(17, 17))
+        self.sessions_refresh_button.setAccessibleName("Actualiser les personnages")
         self.sessions_refresh_button.setFixedSize(32, BUTTON_HEIGHT)
         self.sessions_refresh_button.setToolTip("Scanner les fenêtres Dofus")
         self.sessions_panel = CharacterSlotsPanel(self.sessions_refresh_button)
@@ -530,7 +538,15 @@ class OrganizerUiMixin:
         self.sessions_content = self.sessions_panel.content
         self.sessions_grid = self.sessions_panel.grid
         self.apply_card_shadow(self.sessions_panel)
-        root.addWidget(self.sessions_panel)
+        # Both lower modules share one row; Zaap stretches to the same
+        # right edge as the full-width Controls module underneath.
+        lower_row = QHBoxLayout()
+        lower_row.setContentsMargins(0, 0, 0, 0)
+        lower_row.setSpacing(8)
+        lower_row.addWidget(self.sessions_panel, 1, alignment=Qt.AlignTop)
+        lower_row.addWidget(self.zaap_panel, 1, alignment=Qt.AlignTop)
+        root.addLayout(lower_row)
+        root.addWidget(self.controls_panel)
         root.addStretch(1)
 
     def toggle_session_slots_expanded(self) -> None:
@@ -539,9 +555,9 @@ class OrganizerUiMixin:
 
     def apply_card_shadow(self, frame: QFrame) -> None:
         shadow = QGraphicsDropShadowEffect(frame)
-        shadow.setBlurRadius(16)
-        shadow.setOffset(0, 3)
-        shadow.setColor(QColor(0, 0, 0, 70))
+        shadow.setBlurRadius(22)
+        shadow.setOffset(0, 4)
+        shadow.setColor(QColor(0, 0, 0, 110))
         frame.setGraphicsEffect(shadow)
 
     def set_runtime_active(self, connected: bool) -> None:
