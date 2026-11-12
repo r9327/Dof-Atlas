@@ -269,6 +269,68 @@ class OrganizerSpeedSelector(QFrame):
             self._position_highlight()
 
 
+class OrganizerModeSwitch(QFrame):
+    """Two mode actions presented as a single sliding switch surface.
+
+    The Miroir half keeps its existing embedded hotkey and arm callback.
+    Highlight position represents the selected mode, not permission to
+    inject mirrored input; the runtime still handles explicit arming.
+    """
+
+    def __init__(self, macro: QPushButton, mirror_cell: QWidget) -> None:
+        super().__init__()
+        self.setObjectName("OrganizerModeSwitch")
+        self.setFixedSize(396, BUTTON_HEIGHT + 4)
+        self._choices = (macro, mirror_cell)
+        self._selected = -1
+        self.highlight = QFrame(self)
+        self.highlight.setObjectName("OrganizerModeHighlight")
+        layout = QHBoxLayout(self)
+        layout.setContentsMargins(2, 2, 2, 2)
+        layout.setSpacing(4)
+        layout.addWidget(macro)
+        layout.addWidget(mirror_cell)
+        self.highlight.lower()
+        self._animation = QPropertyAnimation(self.highlight, b"pos", self)
+        self._animation.setDuration(155)
+        self._animation.setEasingCurve(QEasingCurve.OutCubic)
+
+    def set_selected(self, mirror: bool, *, armed: bool = False) -> None:
+        new = 1 if mirror else 0
+        changed = self._selected >= 0 and self._selected != new
+        self._selected = new
+        self.highlight.setObjectName(
+            "OrganizerModeHighlightArmed" if mirror and armed
+            else "OrganizerModeHighlight"
+        )
+        self.highlight.style().unpolish(self.highlight)
+        self.highlight.style().polish(self.highlight)
+        self._sync_highlight(animate=changed)
+
+    def _sync_highlight(self, *, animate: bool = False) -> None:
+        self._animation.stop()
+        if self._selected < 0:
+            return
+        self.layout().activate()
+        target = self._choices[self._selected].geometry()
+        if target.width() <= 0:
+            return
+        self.highlight.setFixedSize(target.size())
+        if animate and self.isVisible() and self.highlight.isVisible():
+            self._animation.setStartValue(self.highlight.pos())
+            self._animation.setEndValue(target.topLeft())
+            self._animation.start()
+        else:
+            self.highlight.move(target.topLeft())
+        self.highlight.lower()
+        self.highlight.show()
+
+    def resizeEvent(self, event) -> None:
+        super().resizeEvent(event)
+        if self._selected >= 0:
+            self._sync_highlight()
+
+
 class OrganizerUiMixin:
     def build_organizer_ui(self, status_callback, launch_zaap_callback) -> None:
         # The active /zaap sender uses the destination command directly.
@@ -364,6 +426,32 @@ class OrganizerUiMixin:
             #organizerPage QPushButton#OrganizerSpeedChoiceSelected {
                 color: #FFFFFF;
                 font-weight: 700;
+            }
+            #organizerPage QFrame#OrganizerModeSwitch {
+                background: #1A2945;
+                border: 1px solid #506485;
+                border-radius: 6px;
+                border-image: none;
+            }
+            #organizerPage QFrame#OrganizerModeHighlight {
+                background: #46694B;
+                border: 1px solid #739669;
+                border-radius: 5px;
+                border-image: none;
+            }
+            #organizerPage QFrame#OrganizerModeHighlightArmed {
+                background: #547E43;
+                border: 1px solid #9BC17C;
+                border-radius: 5px;
+                border-image: none;
+            }
+            #organizerPage QPushButton#OrganizerModeChoice {
+                background: transparent;
+                border: none;
+                border-image: none;
+                border-radius: 4px;
+                color: #F2F4F7;
+                font-weight: 600;
             }
             #organizerPage QFrame#characterSlotEmpty,
             #organizerPage QFrame#characterSlotMissing {
@@ -624,6 +712,16 @@ class OrganizerUiMixin:
         macro_layout.setSpacing(CARD_SPACING)
         macro_layout.setAlignment(Qt.AlignTop)
         macro_layout.addWidget(controls_grid_host, alignment=Qt.AlignLeft)
+        self.macro_mode_button.setObjectName("OrganizerModeChoice")
+        self.mirror_mode_button.setObjectName("OrganizerModeChoice")
+        self.mode_switch = OrganizerModeSwitch(
+            self.macro_mode_button,
+            macro_cell(
+                self.mirror_mode_button, self.mirror_toggle_hotkey_button,
+                self.mirror_toggle_clear, size=control_size,
+            ),
+        )
+        macro_layout.addWidget(self.mode_switch, alignment=Qt.AlignLeft)
 
         self.quick_actions_panel = QFrame()
         self.quick_actions_panel.setObjectName("card")
@@ -728,21 +826,18 @@ class OrganizerUiMixin:
             control_grid.setColumnMinimumWidth(column, control_size.width())
         control_layout.addWidget(controls_host, alignment=Qt.AlignLeft)
 
-        # Macro and Mirror buttons replace their redundant heading. All
-        # three columns share one 30px header row and the same card border.
+        # A common header line; the actual mode switch lives inside Macro,
+        # under the four actions, never as two separated header buttons.
+        self.macro_section_title = QLabel("Automatisation")
+        self.macro_section_title.setObjectName("cardTitle")
+        self.macro_section_title.setFixedHeight(20)
         self.macro_mode_header = QWidget()
         self.macro_mode_header.setObjectName("OrganizerTransparentHost")
+        mode_title_layout = QVBoxLayout(self.macro_mode_header)
+        mode_title_layout.setContentsMargins(0, 0, 0, 0)
+        mode_title_layout.setSpacing(0)
+        mode_title_layout.addLayout(make_card_header(self.macro_section_title))
         self.macro_mode_header.setFixedHeight(BUTTON_HEIGHT)
-        mode_header_layout = QHBoxLayout(self.macro_mode_header)
-        # Match the 12px interior padding of the Macro card below.
-        mode_header_layout.setContentsMargins(CARD_PADDING, 0, 0, 0)
-        mode_header_layout.setSpacing(8)
-        mode_header_layout.addWidget(self.macro_mode_button)
-        mode_header_layout.addWidget(macro_cell(
-            self.mirror_mode_button, self.mirror_toggle_hotkey_button,
-            self.mirror_toggle_clear, size=control_size,
-        ))
-        mode_header_layout.addStretch(1)
         self.quick_actions_title.setFixedHeight(20)
         self._organizer_panel_headers = [self.macro_mode_header]
         for section_title in (self.quick_actions_title, controls_title):
@@ -869,13 +964,11 @@ class OrganizerUiMixin:
 
     def update_macro_mode_buttons(self) -> None:
         mirror = self.profiles.get(KEY_ORGANIZER_MACRO_MODE) == "mirror"
-        for button, selected in (
-            (self.macro_mode_button, not mirror),
-            (self.mirror_mode_button, mirror),
-        ):
-            button.setObjectName("segmentedButtonActive" if selected else "segmentedButton")
-            self.restyle_button(button)
-        self.macro_grid_host.setEnabled(True)
+        self.mode_switch.set_selected(
+            mirror, armed=bool(getattr(self, "_mirror_arm_active", False))
+        )
+        # Qt desaturates all four macro controls, not just their text.
+        self.macro_grid_host.setEnabled(not mirror)
         for button in (
             self.switch_character, self.switch_click, self.switch_movement,
             self.switch_double_click, self.click_button, self.click_clear,
@@ -908,10 +1001,8 @@ class OrganizerUiMixin:
             if active else "Activer explicitement la copie des gestes du personnage favori."
         )
         self.restyle_button(button)
-        self.mirror_mode_button.setObjectName(
-            "primaryButton" if active else
-            "segmentedButtonActive" if self.profiles.get(KEY_ORGANIZER_MACRO_MODE) == "mirror"
-            else "secondaryButton"
+        self.mode_switch.set_selected(
+            self.profiles.get(KEY_ORGANIZER_MACRO_MODE) == "mirror", armed=active
         )
         self.mirror_mode_button.setToolTip(
             "Arrêter la copie Miroir (clics, touches courtes, molette)."
