@@ -252,7 +252,7 @@ class CharacterSlotName(QWidget):
         self.name_label.setObjectName("CompactLabel" if detected else "MutedLabel")
         self.name_label.setFixedHeight(24)
         self.name_label.setMinimumWidth(0)
-        self.name_label.setSizePolicy(QSizePolicy.Fixed, QSizePolicy.Fixed)
+        self.name_label.setSizePolicy(QSizePolicy.Preferred, QSizePolicy.Fixed)
         self.name_label.setAlignment(Qt.AlignLeft | Qt.AlignVCenter)
         self.name_label.setCursor(Qt.OpenHandCursor)
         self.name_label.setToolTip(full_name)

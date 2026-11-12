@@ -1287,6 +1287,13 @@ class OrganizerLayoutTests(unittest.TestCase):
                 first_name = page.session_slot_widgets[1][0].findChild(CharacterSlotName)
                 self.assertNotEqual(first_name.name_label.text(), first_name.full_name)
                 self.assertIsNotNone(first_name.indicator)
+                self.assertLessEqual(
+                    first_name.indicator.geometry().right(), first_name.width(),
+                )
+                self.assertLessEqual(
+                    first_name.name_label.geometry().right(),
+                    first_name.indicator.geometry().left(),
+                )
 
     def test_first_slot_primary_is_persisted_safely_for_mirror_runtime(self):
         from app.constants import KEY_PRIMARY_WINDOW
