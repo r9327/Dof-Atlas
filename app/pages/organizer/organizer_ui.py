@@ -685,9 +685,8 @@ class OrganizerUiMixin:
         self.sessions_content = self.sessions_panel.content
         self.sessions_grid = self.sessions_panel.grid
 
-        # Personnage stays on the left; a slim, full-height Zaap sidebar
-        # stands on the right. 5:1 preserves the requested 75:15 proportion
-        # without wasting the remaining 10% as a blank third column.
+        # Personnage 75%, Zaap 25% of the available width (after 8px gap).
+        # Both panels share the same height; the eight slots stay permanent.
         self.zaap_panel = QFrame()
         self.zaap_panel.setObjectName("card")
         self.zaap_panel.setMinimumWidth(145)
@@ -720,7 +719,7 @@ class OrganizerUiMixin:
         self.bottom_panels_row = QHBoxLayout()
         self.bottom_panels_row.setContentsMargins(0, 0, 0, 0)
         self.bottom_panels_row.setSpacing(8)
-        self.bottom_panels_row.addWidget(self.sessions_panel, 5, Qt.AlignTop)
+        self.bottom_panels_row.addWidget(self.sessions_panel, 3, Qt.AlignTop)
         self.bottom_panels_row.addWidget(self.zaap_panel, 1, Qt.AlignTop)
         root.addLayout(self.bottom_panels_row)
         root.addStretch(1)
