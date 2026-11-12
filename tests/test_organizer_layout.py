@@ -1044,6 +1044,57 @@ class OrganizerLayoutTests(unittest.TestCase):
                 self.assertEqual(page.profiles[KEY_ORGANIZER_MACRO_MODE], "macro")
                 self.assertFalse(page._mirror_arm_active)
 
+    def test_navigation_enable_badges_share_canonical_switch_flag(self):
+        from app.constants import KEY_SWITCH_CHARACTER
+        with tempfile.TemporaryDirectory() as temporary:
+            with self.organizer_page(Path(temporary)) as page:
+                self.assertTrue(page.profiles[KEY_SWITCH_CHARACTER])
+                for badge in (page.next_character_enable_button,
+                              page.previous_character_enable_button):
+                    self.assertEqual(badge.text(), "ON")
+                    self.assertTrue(badge.isEnabled())
+                page.next_character_enable_button.click()
+                self.assertFalse(page.profiles[KEY_SWITCH_CHARACTER])
+                self.assertFalse(page.next_character.isEnabled())
+                self.assertFalse(page.previous_character.isEnabled())
+                self.assertEqual(page.next_character_enable_button.text(), "OFF")
+                self.assertEqual(page.previous_character_enable_button.text(), "OFF")
+                page.previous_character_enable_button.click()
+                self.assertTrue(page.profiles[KEY_SWITCH_CHARACTER])
+                self.assertTrue(page.next_character.isEnabled())
+                self.assertTrue(page.previous_character.isEnabled())
+                self.assertEqual(page.next_character_enable_button.text(), "ON")
+                self.assertEqual(page.previous_character_enable_button.text(), "ON")
+                page.set_mirror_arm_active(True)
+                self.assertFalse(page.next_character_enable_button.isEnabled())
+                self.assertFalse(page.previous_character_enable_button.isEnabled())
+                page.set_mirror_arm_active(False)
+                self.assertTrue(page.next_character_enable_button.isEnabled())
+
+    def test_embedded_hotkey_badges_leave_space_for_full_button_labels(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            with self.organizer_page(Path(temporary)) as page:
+                page.resize(1380, 900)
+                self.app.processEvents()
+                for action, reserve in (
+                    (page.radial_select_button, 48),
+                    (page.previous_character, 82),
+                    (page.next_character, 82),
+                    (page.mirror_mode_button, 48),
+                ):
+                    with self.subTest(button=action.text()):
+                        available = action.width() - reserve - 4
+                        label_width = action.fontMetrics().horizontalAdvance(action.text())
+                        self.assertGreaterEqual(available, label_width)
+                self.assertEqual(
+                    page.previous_character_enable_button.parentWidget(),
+                    page.previous_character_hotkey_button.parentWidget(),
+                )
+                self.assertEqual(
+                    page.next_character_enable_button.parentWidget(),
+                    page.next_character_hotkey_button.parentWidget(),
+                )
+
     def test_three_visible_speed_presets_and_compact_controls(self):
         with tempfile.TemporaryDirectory() as temporary:
             with self.organizer_page(Path(temporary)) as page:
