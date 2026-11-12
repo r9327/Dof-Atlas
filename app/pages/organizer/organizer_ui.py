@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from math import cos, pi, sin
+
 from PySide6.QtCore import QEasingCurve, QPoint, QPointF, QPropertyAnimation, QRectF, QSize, Qt
 from PySide6.QtGui import QColor, QIcon, QPainter, QPen, QPixmap, QPolygonF
 from PySide6.QtWidgets import (
@@ -52,6 +54,39 @@ from .common import (
     session_is_empty,
     session_name,
 )
+
+
+def _organizer_grip_icon() -> QIcon:
+    pixmap = QPixmap(20, 24)
+    pixmap.fill(Qt.transparent)
+    painter = QPainter(pixmap)
+    painter.setRenderHint(QPainter.Antialiasing)
+    painter.setPen(Qt.NoPen)
+    painter.setBrush(QColor("#B5C6DA"))
+    for row in (5, 12, 19):
+        for col in (6, 14):
+            painter.drawEllipse(QPointF(col, row), 1.5, 1.5)
+    painter.end()
+    return QIcon(pixmap)
+
+
+def _organizer_favorite_icon(selected: bool) -> QIcon:
+    pixmap = QPixmap(24, 24)
+    pixmap.fill(Qt.transparent)
+    vertices = [
+        QPointF(
+            12 + (9.0 if i % 2 == 0 else 4.1) * cos(-pi / 2 + i * pi / 5),
+            12 + (9.0 if i % 2 == 0 else 4.1) * sin(-pi / 2 + i * pi / 5),
+        )
+        for i in range(10)
+    ]
+    painter = QPainter(pixmap)
+    painter.setRenderHint(QPainter.Antialiasing)
+    painter.setPen(QPen(QColor("#E7B850" if selected else "#AABACD"), 1.5))
+    painter.setBrush(QColor("#E7B850") if selected else Qt.NoBrush)
+    painter.drawPolygon(QPolygonF(vertices))
+    painter.end()
+    return QIcon(pixmap)
 
 
 def _organizer_warning_icon() -> QIcon:
@@ -381,6 +416,13 @@ class OrganizerUiMixin:
             #organizerPage QPushButton#SecondaryButton,
             #organizerPage QPushButton#segmentedButton {
                 background: #263857;
+            }
+            #organizerPage QPushButton#primaryButton:disabled,
+            #organizerPage QPushButton#secondaryButton:disabled,
+            #organizerPage QPushButton#keyBadge:disabled {
+                background: #1E2B42;
+                color: #8897AA;
+                border: 1px solid #3A4B62;
             }
             #organizerPage QPushButton#primaryButton,
             #organizerPage QPushButton#PrimaryActionButton,
@@ -1181,14 +1223,20 @@ class OrganizerUiMixin:
             layout = QHBoxLayout(row)
             layout.setContentsMargins(8, 0, 8, 0)
             layout.setSpacing(7)
-            grip = AtlasButton("⠿")
+            grip = AtlasButton("")
+            grip.setIcon(_organizer_grip_icon())
+            grip.setIconSize(QSize(13, 19))
+            grip.setAccessibleName("Déplacer ce personnage")
             grip.setObjectName("DragHandle")
             grip.setFixedSize(14, 24)
             grip.setCursor(Qt.OpenHandCursor)
             grip.setToolTip("Déplacer ce personnage")
             self.bind_session_drag_events(grip, index, row)
             layout.addWidget(grip)
-            star = AtlasButton("★" if is_primary else "☆")
+            star = AtlasButton("")
+            star.setIcon(_organizer_favorite_icon(is_primary))
+            star.setIconSize(QSize(19, 19))
+            star.setAccessibleName("Personnage principal" if is_primary else "Définir comme principal")
             star.setObjectName("FavoriteButtonActive" if is_primary else "FavoriteButton")
             star.setFixedSize(22, 24)
             star.setToolTip("Fenêtre principale")
