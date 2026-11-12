@@ -976,12 +976,15 @@ class OrganizerLayoutTests(unittest.TestCase):
                 self.assertTrue(page.previous_character_hotkey_button.isEnabled())
                 page.set_mirror_arm_active(True)
                 self.assertEqual(page.mirror_arm_button.text(), "Arrêter Miroir")
-                self.assertEqual(page.mirror_mode_button.objectName(), "primaryButton")
+                self.assertEqual(page.mirror_mode_button.objectName(), "OrganizerModeChoice")
+                self.assertEqual(page.mode_switch.highlight.objectName(), "OrganizerModeHighlightArmed")
+                self.assertFalse(page.macro_grid_host.isEnabled())
                 self.assertFalse(page.next_character.isEnabled())
                 self.assertFalse(page.previous_character.isEnabled())
                 page.set_mirror_arm_active(False)
                 self.assertEqual(page.mirror_arm_button.text(), "Activer Miroir")
-                self.assertEqual(page.mirror_mode_button.objectName(), "segmentedButtonActive")
+                self.assertEqual(page.mirror_mode_button.objectName(), "OrganizerModeChoice")
+                self.assertEqual(page.mode_switch.highlight.objectName(), "OrganizerModeHighlight")
                 self.assertTrue(page.next_character.isEnabled())
                 self.assertTrue(page.previous_character.isEnabled())
                 previous_cell = page.previous_character.parentWidget()
@@ -1023,6 +1026,34 @@ class OrganizerLayoutTests(unittest.TestCase):
                 # width from its initial 900px size. The *real* 1000px
                 # AtlasWindow capture enforces zero horizontal overflow.
 
+    def test_unified_mode_switch_and_empty_quick_actions_are_safe(self):
+        from app.constants import KEY_ORGANIZER_MACRO_MODE
+        with tempfile.TemporaryDirectory() as temporary:
+            with self.organizer_page(Path(temporary)) as page:
+                for control in (page.quick_placeholder_1, page.quick_placeholder_2):
+                    self.assertFalse(control.isEnabled())
+                    self.assertIn("aucune action", control.toolTip())
+                self.assertTrue(page.macro_grid_host.isEnabled())
+                self.assertEqual(page.mode_switch._selected, 0)
+                self.assertIs(page.mirror_mode_button.parentWidget(),
+                              page.mirror_toggle_hotkey_button.parentWidget())
+                page.profiles[KEY_ORGANIZER_MACRO_MODE] = "mirror"
+                page.update_macro_mode_buttons()
+                self.assertEqual(page.mode_switch._selected, 1)
+                self.assertFalse(page.macro_grid_host.isEnabled())
+                self.assertFalse(page.switch_character.isEnabled())
+                self.assertFalse(page.switch_movement.isEnabled())
+                self.assertTrue(page.mirror_mode_button.isEnabled())
+                page.set_mirror_arm_active(True)
+                self.assertEqual(page.mode_switch.highlight.objectName(),
+                                 "OrganizerModeHighlightArmed")
+                page.profiles[KEY_ORGANIZER_MACRO_MODE] = "macro"
+                page.update_macro_mode_buttons()
+                self.assertEqual(page.mode_switch._selected, 0)
+                self.assertFalse(page._mirror_arm_active)
+                self.assertTrue(page.macro_grid_host.isEnabled())
+                self.assertTrue(page.switch_character.isEnabled())
+
     def test_organizer_three_panels_and_small_window_scroll(self):
         with tempfile.TemporaryDirectory() as temporary:
             with self.organizer_page(Path(temporary)) as page:
@@ -1037,13 +1068,22 @@ class OrganizerLayoutTests(unittest.TestCase):
                     self.assertIs(page.controls_panels_grid.itemAtPosition(0, column).widget(), header)
                     self.assertLess(header.height(), panel.height())
                 self.assertTrue(all(
-                    panel.graphicsEffect() is None for panel in
+                    panel.graphicsEffect() is not None for panel in
                     (*page._organizer_panels, page.zaap_panel, page.sessions_panel)
                 ))
                 self.assertEqual(page.macro_panel.height(), 138)
-                self.assertTrue(page.macro_mode_header.isAncestorOf(page.macro_mode_button))
-                self.assertTrue(page.macro_mode_header.isAncestorOf(page.mirror_mode_button))
-                self.assertFalse(hasattr(page, "macro_section_title"))
+                self.assertTrue(page.macro_panel.isAncestorOf(page.macro_mode_button))
+                self.assertTrue(page.macro_panel.isAncestorOf(page.mirror_mode_button))
+                self.assertFalse(page.macro_mode_header.isAncestorOf(page.macro_mode_button))
+                self.assertEqual(page.macro_section_title.text(), "Automatisation")
+                self.assertEqual(page.mode_switch._selected, 0)
+                self.assertEqual(page.mode_switch.height(), page.macro_mode_button.height() + 4)
+                self.assertEqual(page.stop_script_button.text(), "STOP URGENCE")
+                self.assertFalse(page.stop_script_button.icon().isNull())
+                self.assertFalse(page.sessions_refresh_button.icon().isNull())
+                self.assertEqual(page.sessions_refresh_button.text(), "")
+                self.assertFalse(page.quick_placeholder_1.isEnabled())
+                self.assertFalse(page.quick_placeholder_2.isEnabled())
                 self.assertIn("border-image: none", page.styleSheet())
                 self.assertEqual(len(page.session_slot_widgets), 8)
                 self.assertIs(page.runtime_status_dot.parentWidget(), page.organizer_scroll.widget())
@@ -1129,7 +1169,7 @@ class OrganizerLayoutTests(unittest.TestCase):
                     (page.radial_select_button, 40),
                     (page.previous_character, 40),
                     (page.next_character, 40),
-                    (page.mirror_mode_button, 40),
+                    (page.mirror_mode_button, 48),
                 ):
                     with self.subTest(button=action.text()):
                         available = action.width() - reserve - 4
@@ -1145,21 +1185,15 @@ class OrganizerLayoutTests(unittest.TestCase):
                 )
                 self.assertEqual(page.macro_mode_button.size(), page.mirror_mode_button.size())
                 self.assertEqual(
-                    page.mirror_mode_button.mapTo(page.macro_mode_header, QPoint()).x()
-                    - page.macro_mode_button.mapTo(page.macro_mode_header, QPoint()).x(),
-                    page.macro_mode_button.width() + 8,
+                    page.mirror_mode_button.mapTo(page.mode_switch, QPoint()).x()
+                    - page.macro_mode_button.mapTo(page.mode_switch, QPoint()).x(),
+                    page.macro_mode_button.width() + 4,
                 )
-                # Both are inset by the same card padding. Pixel alignment is
-                # independently inspected in a real AtlasWindow screenshot;
-                # standalone resized widgets can retain transient Qt geometry.
-                self.assertEqual(
-                    page.macro_mode_header.layout().contentsMargins().left(),
-                    page.macro_panel.layout().contentsMargins().left(),
+                self.assertGreater(
+                    page.mode_switch.mapTo(page.macro_panel, QPoint()).y(),
+                    page.switch_movement.mapTo(page.macro_panel, QPoint()).y(),
                 )
-                self.assertEqual(
-                    page.macro_mode_header.layout().spacing(),
-                    page.macro_grid_host.layout().horizontalSpacing(),
-                )
+                self.assertEqual(page.mode_switch._selected, 0)
                 self.assertEqual(page.macro_mode_button.height(), page.next_character.height())
                 self.assertEqual(page.reload_runtime_button.size(), page.next_character.size())
                 self.assertEqual(page.stop_script_button.height(), page.next_character.height())
