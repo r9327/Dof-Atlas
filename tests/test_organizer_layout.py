@@ -71,6 +71,8 @@ class OrganizerLayoutTests(unittest.TestCase):
             patch.object(organizer_sessions, "PROFILE_FILE", profile),
             patch.object(organizer_sessions, "CLIENT_INDEX_JSON", client_index),
             patch.object(organizer_sessions, "CLIENT_INDEX_INI", client_ini),
+            patch.object(organizer, "CLIENT_INDEX_JSON", client_index),
+            patch.object(organizer, "CLIENT_INDEX_INI", client_ini),
             patch.object(organizer_sessions, "scan_unity_sessions", return_value=[]),
             patch.object(organizer.UnityWindowEventWatcher, "start", return_value=None),
             patch.object(organizer.UnityWindowEventWatcher, "stop", return_value=None),
@@ -1273,6 +1275,7 @@ class OrganizerLayoutTests(unittest.TestCase):
                     {"nom": "Enutrof Second", "hwnd": 702, "pid": 802},
                 ])
                 self.assertTrue(page.move_session_to_slot(0, 6))
+                page.sessions[1]["nom"] = "Enutrof Second " + "surnom-tres-long-" * 15
                 page.render_sessions()
                 self.app.processEvents()
                 self.assertIsNone(page.session_slot_widgets[0][0].findChild(
@@ -1282,8 +1285,6 @@ class OrganizerLayoutTests(unittest.TestCase):
                     QLabel, "PrimarySlotIndicator",
                 ))
                 first_name = page.session_slot_widgets[1][0].findChild(CharacterSlotName)
-                first_name.resize(76, 24)
-                self.app.processEvents()
                 self.assertNotEqual(first_name.name_label.text(), first_name.full_name)
                 self.assertIsNotNone(first_name.indicator)
 
@@ -1316,14 +1317,24 @@ class OrganizerLayoutTests(unittest.TestCase):
                     with open(page.client_index_json, encoding="utf-8") as stream:
                         clients = json.load(stream)["clients"]
                     self.assertEqual([row["primary"] for row in clients], [True, False])
-                    # First occupied slot is offline: never silently select
-                    # another live window as a hidden mirror primary.
-                    page.sessions[0] = {"nom": "Offline Alpha", "hwnd": 0}
+                    # Offline slots are empty by the canonical session predicate:
+                    # the first remaining detected character becomes primary.
+                    page.sessions[0] = {"nom": "Offline Beta", "hwnd": 0}
+                    page.export_client_index()
+                    self.assertEqual(
+                        page.profiles[KEY_PRIMARY_WINDOW], "name-class:Alpha:test",
+                    )
+                    with open(page.client_index_json, encoding="utf-8") as stream:
+                        clients = json.load(stream)["clients"]
+                    self.assertEqual([row["primary"] for row in clients], [True])
+                    # No detected client: clear the previous macro master,
+                    # never leave a hidden favorite persisted in the profile.
+                    page.sessions[1] = {"nom": "Offline Alpha", "hwnd": 0}
                     page.export_client_index()
                     self.assertEqual(page.profiles[KEY_PRIMARY_WINDOW], "")
                     with open(page.client_index_json, encoding="utf-8") as stream:
                         clients = json.load(stream)["clients"]
-                    self.assertFalse(any(row["primary"] for row in clients))
+                    self.assertEqual(clients, [])
 
     def test_unified_mode_switch_and_empty_quick_actions_are_safe(self):
         from app.constants import KEY_ORGANIZER_MACRO_MODE
