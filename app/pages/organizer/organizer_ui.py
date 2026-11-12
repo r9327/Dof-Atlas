@@ -1024,7 +1024,10 @@ class OrganizerUiMixin:
         self.macro_mode_button.setObjectName("OrganizerModeChoice")
         self.mirror_mode_button.setObjectName("OrganizerModeChoice")
         self.mode_switch = OrganizerModeSwitch(
-            self.macro_mode_button,
+            # Both halves need the same fixed 194x30 host. Without this,
+            # Qt compresses the bare Macro button to 24px while Miroir
+            # (inside a macro_cell) remains at 30px in the full Windows CI.
+            macro_cell(self.macro_mode_button),
             macro_cell(
                 self.mirror_mode_button, self.mirror_toggle_hotkey_button,
                 self.mirror_toggle_clear, size=control_size,
