@@ -11,7 +11,7 @@ from unittest.mock import patch
 
 os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
 
-from PySide6.QtCore import QAbstractAnimation, QPoint
+from PySide6.QtCore import QAbstractAnimation, QPoint, Qt
 from PySide6.QtWidgets import QApplication, QFrame, QScrollArea
 
 import app.pages.organizer_page as organizer
@@ -1218,6 +1218,9 @@ class OrganizerLayoutTests(unittest.TestCase):
                 instant = page.script_speed_instant
                 classic = page.script_speed_legacy
                 selector = page.speed_selector
+                self.assertTrue(selector.highlight.testAttribute(
+                    Qt.WA_TransparentForMouseEvents
+                ))
                 self.assertEqual(page.script_speed_title.text(), "Vitesse")
                 self.assertTrue(page.script_speed_title.isVisible())
                 self.assertIs(selector.parentWidget(), page.script_speed_title.parentWidget())
