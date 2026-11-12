@@ -1059,6 +1059,22 @@ class OrganizerLayoutTests(unittest.TestCase):
                             )
                         self.assertEqual(page.zaap_scroll.horizontalScrollBar().maximum(), 0)
 
+    def test_organizer_portrait_black_border_is_transparent(self):
+        from PySide6.QtGui import QColor, QImage
+        from app.pages.organizer.organizer_ui import _organizer_class_pixmap
+
+        with tempfile.TemporaryDirectory() as temporary:
+            path = Path(temporary) / "dark-bordered-portrait.png"
+            image = QImage(20, 20, QImage.Format_ARGB32)
+            image.fill(QColor("#090909"))
+            for row in range(5, 15):
+                for column in range(5, 15):
+                    image.setPixelColor(column, row, QColor("#C68D57"))
+            self.assertTrue(image.save(str(path)))
+            clean = _organizer_class_pixmap(str(path)).toImage()
+            self.assertEqual(clean.pixelColor(0, 0).alpha(), 0)
+            self.assertGreater(clean.pixelColor(11, 11).alpha(), 0)
+
     def test_real_slot_and_favorite_icons_are_painted_not_missing_glyphs(self):
         with tempfile.TemporaryDirectory() as temporary:
             with self.organizer_page(Path(temporary)) as page:
