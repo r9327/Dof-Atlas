@@ -980,6 +980,7 @@ class ZaapWidget(QWidget):
         show_position_controls: bool = True,
         show_favorites: bool = True,
         compact_favorites: bool = False,
+        compact_favorite_columns: int | None = None,
     ):
         super().__init__(parent)
         self.status_callback = status_callback
@@ -988,7 +989,13 @@ class ZaapWidget(QWidget):
         self.show_position_controls = bool(show_position_controls)
         self.show_favorites = bool(show_favorites)
         self.compact_favorites = bool(compact_favorites)
+        # Optional two-column Organizer grid; other Zaap instances retain their layout.
+        self.compact_favorite_columns = (
+            max(1, int(compact_favorite_columns))
+            if self.compact_favorites and compact_favorite_columns is not None else None
+        )
         self._favorite_columns = 0
+        self._favorite_layout_width = -1
         self.position_locked = read_zaap_click_locked()
         self.zaaps = load_zaap_index()
         self.filtered_zaaps: list[dict[str, Any]] = []
@@ -1164,7 +1171,9 @@ class ZaapWidget(QWidget):
 
     def favorite_capacity(self) -> int:
         """Maximum *new* favorites fitting in one visible Organizer row."""
-        if not self.compact_favorites:
+        if not self.compact_favorites or self.compact_favorite_columns is not None:
+            # Organizer admits eight new favorites in its vertical grid;
+            # older saved extras remain visible in the scrolling panel.
             return 8
         # Count the real grid gaps: one between the label and each chip.
         # Never use a fictional minimum width when the window shrinks.
@@ -1176,7 +1185,12 @@ class ZaapWidget(QWidget):
         super().resizeEvent(event)
         if (self.compact_favorites and self.show_favorites
                 and hasattr(self, "favorites_layout")
-                and self.favorite_capacity() != self._favorite_columns):
+                and (
+                    (self.compact_favorite_columns or self.favorite_capacity())
+                    != self._favorite_columns
+                    or (self.compact_favorite_columns is not None
+                        and self.width() != self._favorite_layout_width)
+                )):
             self.refresh_favorite_chips()
 
     def toggle_favorite(self, row: dict[str, Any]) -> None:
@@ -1230,8 +1244,9 @@ class ZaapWidget(QWidget):
             seen.add(key)
             if not self.compact_favorites and len(rows) >= 8:
                 break
-        columns = self.favorite_capacity()
+        columns = self.compact_favorite_columns or self.favorite_capacity()
         self._favorite_columns = columns
+        self._favorite_layout_width = self.width()
         if self.compact_favorites:
             spacing = self.favorites_layout.horizontalSpacing()
             available = max(
@@ -1243,8 +1258,13 @@ class ZaapWidget(QWidget):
             chip.setObjectName("favoriteChip")
             chip.setAttribute(Qt.WA_Hover, True)
             chip.setFixedHeight(28)
-            chip.setMaximumWidth(chip_width if self.compact_favorites else 190)
-            chip.setSizePolicy(QSizePolicy.Maximum, QSizePolicy.Fixed)
+            if self.compact_favorite_columns is not None:
+                # Identical chip widths per row, even when the panel resizes.
+                chip.setFixedWidth(chip_width)
+                chip.setSizePolicy(QSizePolicy.Fixed, QSizePolicy.Fixed)
+            else:
+                chip.setMaximumWidth(chip_width if self.compact_favorites else 190)
+                chip.setSizePolicy(QSizePolicy.Maximum, QSizePolicy.Fixed)
             chip_layout = QHBoxLayout(chip)
             chip_layout.setContentsMargins(8, 0, 10, 0)
             chip_layout.setSpacing(4)
