@@ -186,9 +186,16 @@ def main() -> None:
                             child.size() != badges[0].size() for child in slot_badges
                         ):
                             raise RuntimeError("Character slot shortcut differs from Macro badges")
-                    from app.ui.unity_skin import UNITY_PALETTE
-                    if UNITY_PALETTE["PANEL_GRADIENT"] not in page.styleSheet():
-                        raise RuntimeError("Organizer not using the shared Unity gradient")
+                    from app.pages.organizer.glass_material import (
+                        OrganizerGlassCard, unity_glass_gradient,
+                    )
+                    if unity_glass_gradient() not in page.styleSheet():
+                        raise RuntimeError("Organizer not using translucent Unity glass")
+                    if not all(isinstance(panel, OrganizerGlassCard) for panel in (
+                        page.macro_panel, page.quick_actions_panel,
+                        page.controls_panel, page.sessions_panel, page.zaap_panel,
+                    )):
+                        raise RuntimeError("One or more modules lack the glass material")
                     for action, badge in (
                         (page.switch_click, page.click_button),
                         (page.switch_double_click, page.double_click_button),
