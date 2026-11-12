@@ -981,7 +981,7 @@ class OrganizerLayoutTests(unittest.TestCase):
                 self.assertFalse(page.previous_character.isEnabled())
                 page.set_mirror_arm_active(False)
                 self.assertEqual(page.mirror_arm_button.text(), "Activer Miroir")
-                self.assertEqual(page.mirror_mode_button.objectName(), "secondaryButton")
+                self.assertEqual(page.mirror_mode_button.objectName(), "segmentedButtonActive")
                 self.assertTrue(page.next_character.isEnabled())
                 self.assertTrue(page.previous_character.isEnabled())
                 previous_cell = page.previous_character.parentWidget()
