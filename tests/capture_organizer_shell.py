@@ -83,8 +83,26 @@ def main() -> None:
                     file = destination / (name + ".png")
                     if shot.isNull() or not shot.save(str(file), "PNG") or file.stat().st_size < 2000:
                         raise RuntimeError(f"Screenshot {name} missing or invalid")
+                    # Verify the actual horizontal placement on the real
+                    # AtlasWindow: slots first, then the narrow Zaap sidebar.
+                    slot_box = page.sessions_panel
+                    zaap_box = page.zaap_panel
+                    slot_x = slot_box.mapTo(window, QPoint()).x()
+                    zaap_x = zaap_box.mapTo(window, QPoint()).x()
+                    if zaap_x < slot_x + slot_box.width():
+                        raise RuntimeError(f"{name}: Zaap overlaps the character slots")
+                    if not (slot_box.width() > zaap_box.width() * 3):
+                        raise RuntimeError(
+                            f"{name}: Zaap is not a slim sidebar: "
+                            f"{slot_box.width()} vs {zaap_box.width()}"
+                        )
+                    if zaap_box.height() != slot_box.height():
+                        raise RuntimeError(f"{name}: Zaap and slots heights differ")
+                    if page.organizer_scroll.horizontalScrollBar().maximum() != 0:
+                        raise RuntimeError(f"{name}: horizontal overflow in Organizer")
                     record = {
                         "name": name, "file": file.name,
+                        "bottom_widths": [slot_box.width(), zaap_box.width()],
                         "pixels": [shot.width(), shot.height()],
                         "slots": len(page.session_slot_widgets),
                         "scroll_maximum": page.organizer_scroll.verticalScrollBar().maximum(),
