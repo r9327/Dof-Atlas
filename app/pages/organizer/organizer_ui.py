@@ -183,6 +183,17 @@ class OrganizerUiMixin:
         outer.addWidget(self.organizer_scroll)
         content = QWidget()
         self.organizer_scroll.setWidget(content)
+        # Unity's shared yellow/green button border sprites have deep
+        # baked-in shadows. Organizer uses flat themed button surfaces only;
+        # do not remove these sprites from the other application modules.
+        self.setStyleSheet("""
+            #organizerPage QPushButton#primaryButton,
+            #organizerPage QPushButton#secondaryButton,
+            #organizerPage QPushButton#PrimaryActionButton,
+            #organizerPage QPushButton#SecondaryButton {
+                border-image: none;
+            }
+        """)
         root = QVBoxLayout(content)
         root.setContentsMargins(12, 10, 12, 10)
         root.setSpacing(8)
