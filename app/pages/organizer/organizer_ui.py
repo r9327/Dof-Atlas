@@ -264,6 +264,8 @@ class CharacterSlotsPanel(QFrame):
         self.panel_layout.addLayout(header)
 
         self.content = QWidget()
+        self.content.setObjectName("OrganizerTransparentHost")
+        self.content.setStyleSheet("background: transparent; border: none;")
         self.content.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
         self.grid = QGridLayout(self.content)
         self.grid.setContentsMargins(0, 0, 0, 0)
@@ -813,6 +815,7 @@ class OrganizerUiMixin:
         ) -> QWidget:
             wrapper = QWidget()
             wrapper.setObjectName("OrganizerTransparentHost")
+            wrapper.setStyleSheet("background: transparent; border: none;")
             wrapper.setFixedSize(size)
             wrapper.setSizePolicy(QSizePolicy.Fixed, QSizePolicy.Fixed)
             cell = QGridLayout(wrapper)
@@ -827,6 +830,7 @@ class OrganizerUiMixin:
                 )
                 badge_host = QWidget(wrapper)
                 badge_host.setObjectName("OrganizerTransparentHost")
+                badge_host.setStyleSheet("background: transparent; border: none;")
                 badge_host.setFixedSize(shortcut.width() + 8, BUTTON_HEIGHT)
                 badge_layout = QHBoxLayout(badge_host)
                 badge_layout.setContentsMargins(0, 0, 8, 0)
@@ -837,6 +841,7 @@ class OrganizerUiMixin:
             if clear is not None:
                 clear_host = QWidget(wrapper)
                 clear_host.setObjectName("OrganizerTransparentHost")
+                clear_host.setStyleSheet("background: transparent; border: none;")
                 clear_host.setFixedSize(clear.width() + 6, clear.height() + 2)
                 clear_layout = QHBoxLayout(clear_host)
                 clear_layout.setContentsMargins(0, 2, 6, 0)
@@ -1446,6 +1451,8 @@ class OrganizerUiMixin:
             self.bind_session_drag_events(shortcut, index, row)
             self.bind_session_drag_events(remove, index, row)
             shortcut_wrap = QWidget()
+            shortcut_wrap.setObjectName("OrganizerTransparentHost")
+            shortcut_wrap.setStyleSheet("background: transparent; border: none;")
             shortcut_wrap.setFixedSize(58, 24)
             shortcut_wrap.setSizePolicy(QSizePolicy.Fixed, QSizePolicy.Fixed)
             self.bind_session_drag_events(shortcut_wrap, index, row)
