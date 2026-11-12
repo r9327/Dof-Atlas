@@ -121,9 +121,15 @@ def main() -> None:
                     chips = [button.parentWidget() for button in page.zaap.favorite_buttons]
                     if len({chip.width() for chip in chips}) != 1:
                         raise RuntimeError("Zaap favorites have uneven widths")
+                    if page.zaap.favorites_layout.itemAtPosition(
+                        0, 0
+                    ).widget() is not page.zaap.favorites_label:
+                        raise RuntimeError("Favoris title is not in its own row")
+                    if not (page.zaap.favorites_label.y() < chips[0].y()):
+                        raise RuntimeError("Zaap favorites must be below the title")
                     for index, chip in enumerate(chips):
                         if page.zaap.favorites_layout.itemAtPosition(
-                            index // 2, 1 + index % 2
+                            1 + index // 2, index % 2
                         ).widget() is not chip:
                             raise RuntimeError("Zaap favorites are not aligned two by two")
                     if page.previous_character.icon().isNull() is False:
@@ -132,6 +138,18 @@ def main() -> None:
                         raise RuntimeError("Next must have no decorative icon")
                     if page.radial_select_button.icon().isNull():
                         raise RuntimeError("Missing pie-menu selection icon")
+                    for button in (page.macro_mode_button, page.mirror_mode_button):
+                        if button.icon().isNull():
+                            raise RuntimeError("Macro/Miroir mode glyph missing")
+                    style = page.styleSheet()
+                    for selector in (
+                        "QPushButton#secondaryButton:hover",
+                        "QPushButton#secondaryButton:pressed",
+                        "QPushButton#secondaryButton:disabled",
+                        "QLineEdit#comboField",
+                    ):
+                        if selector not in style:
+                            raise RuntimeError("Missing shared glass control state: " + selector)
                     for action, badge in (
                         (page.switch_click, page.click_button),
                         (page.switch_double_click, page.double_click_button),
