@@ -1116,6 +1116,9 @@ class OrganizerLayoutTests(unittest.TestCase):
                     self.assertIn(f"QPushButton#secondaryButton{state}", css)
                 self.assertIn("qlineargradient", css)
                 self.assertIn("border-radius: 9px", css)
+                self.assertIn("QFrame#characterSlot QPushButton#keyBadge", css)
+                self.assertIn("stop:0 #829FC3", css)
+                self.assertIn("border: none;", css)
 
     def test_organizer_portrait_black_border_is_transparent(self):
         from PySide6.QtGui import QColor, QImage
@@ -1211,13 +1214,17 @@ class OrganizerLayoutTests(unittest.TestCase):
                     panel.graphicsEffect() is not None for panel in
                     (*page._organizer_panels, page.zaap_panel, page.sessions_panel)
                 ))
-                self.assertEqual(page.macro_panel.height(), 138)
+                self.assertEqual(page.macro_panel.height(), 146)
+                self.assertEqual(page.quick_actions_panel.height(), 146)
+                self.assertEqual(page.controls_panel.height(), 146)
                 self.assertTrue(page.macro_panel.isAncestorOf(page.macro_mode_button))
                 self.assertTrue(page.macro_panel.isAncestorOf(page.mirror_mode_button))
                 self.assertFalse(page.macro_mode_header.isAncestorOf(page.macro_mode_button))
                 self.assertEqual(page.macro_section_title.text(), "Macro / Miroir")
                 self.assertEqual(page.mode_switch._selected, 0)
-                self.assertEqual(page.mode_switch.height(), page.macro_mode_button.height() + 6)
+                self.assertEqual(page.mode_switch.height(), page.macro_mode_button.height())
+                self.assertEqual(page.mode_switch.layout().spacing(), 8)
+                self.assertEqual(page.macro_panel.layout().spacing(), 8)
                 self.assertEqual(page.stop_script_button.text(), "STOP URGENCE")
                 self.assertFalse(page.stop_script_button.icon().isNull())
                 self.assertFalse(page.sessions_refresh_button.icon().isNull())
@@ -1346,13 +1353,30 @@ class OrganizerLayoutTests(unittest.TestCase):
                 self.assertLessEqual(abs(
                     page.mirror_mode_button.mapTo(page.mode_switch, QPoint()).x()
                     - page.macro_mode_button.mapTo(page.mode_switch, QPoint()).x()
-                    - (page.macro_mode_button.width() + 5)
+                    - (page.macro_mode_button.width() + 8)
                 ), 1)
                 self.assertLess(
                     page.mode_switch.mapTo(page.macro_panel, QPoint()).y(),
                     page.switch_movement.mapTo(page.macro_panel, QPoint()).y(),
                 )
                 self.assertEqual(page.mode_switch._selected, 0)
+                # Mode switch, all shortcuts and all bottom borders now have
+                # the same column starts and sufficient bottom breathing room.
+                for mode, action in (
+                    (page.macro_mode_button, page.switch_character),
+                    (page.mirror_mode_button, page.switch_click),
+                ):
+                    self.assertEqual(
+                        mode.mapTo(page.macro_panel, QPoint()).x(),
+                        action.mapTo(page.macro_panel, QPoint()).x(),
+                    )
+                bottom = max(
+                    page.switch_movement.mapTo(page.macro_panel, QPoint()).y()
+                    + page.switch_movement.height(),
+                    page.switch_double_click.mapTo(page.macro_panel, QPoint()).y()
+                    + page.switch_double_click.height(),
+                )
+                self.assertGreaterEqual(page.macro_panel.height() - bottom, 12)
                 self.assertEqual(page.macro_mode_button.height(), page.next_character.height())
                 self.assertEqual(page.reload_runtime_button.size(), page.next_character.size())
                 self.assertEqual(page.stop_script_button.height(), page.next_character.height())
