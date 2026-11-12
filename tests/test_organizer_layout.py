@@ -996,7 +996,7 @@ class OrganizerLayoutTests(unittest.TestCase):
                 self.assertEqual(page.previous_character.height(), page.next_character.height())
                 self.assertTrue(page.mirror_arm_button.isHidden())
 
-    def test_zaap_is_slim_right_sidebar_without_changing_eight_slots(self):
+    def test_zaap_matches_one_top_module_without_changing_eight_slots(self):
         with tempfile.TemporaryDirectory() as temporary:
             with self.organizer_page(Path(temporary)) as page:
                 page.resize(1380, 900)
@@ -1012,11 +1012,13 @@ class OrganizerLayoutTests(unittest.TestCase):
                 self.assertTrue(page.zaap.search_input.isVisible())
                 self.assertTrue(page.zaap.show_favorites)
                 self.assertTrue(page.zaap.compact_favorites)
+                self.assertEqual(page.zaap.compact_favorite_columns, 2)
+                self.assertEqual(page.zaap.favorite_capacity(), 8)
                 self.assertEqual(page.zaap_scroll.horizontalScrollBar().maximum(), 0)
                 self.assertFalse(hasattr(page.sessions_panel, "expand_button"))
                 self.assertAlmostEqual(
                     page.sessions_panel.width() / page.zaap_panel.width(),
-                    3.0, delta=0.12,
+                    2.0, delta=0.12,
                 )
 
                 page.resize(1000, 740)
@@ -1026,6 +1028,36 @@ class OrganizerLayoutTests(unittest.TestCase):
                 # In this standalone widget, Qt may retain a stale minimum
                 # width from its initial 900px size. The *real* 1000px
                 # AtlasWindow capture enforces zero horizontal overflow.
+
+    def test_organizer_zaap_favorites_are_two_by_two_even_after_resize(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            with self.organizer_page(Path(temporary)) as page:
+                rows = [
+                    {"name": f"Zaap {index}", "label": f"Zaap {index}",
+                     "x": index, "y": index}
+                    for index in range(1, 9)
+                ]
+                page.zaap.zaaps = rows
+                page.zaap.favorite_names = [row["name"] for row in rows]
+                for width in (1380, 1000):
+                    with self.subTest(width=width):
+                        page.resize(width, 900)
+                        self.app.processEvents()
+                        page.zaap.refresh_favorite_chips()
+                        self.app.processEvents()
+                        self.assertEqual(len(page.zaap.favorite_buttons), 8)
+                        self.assertEqual(page.zaap._favorite_columns, 2)
+                        chips = [button.parentWidget()
+                                 for button in page.zaap.favorite_buttons]
+                        self.assertEqual(len({chip.width() for chip in chips}), 1)
+                        for index, chip in enumerate(chips):
+                            self.assertIs(
+                                page.zaap.favorites_layout.itemAtPosition(
+                                    index // 2, 1 + index % 2
+                                ).widget(),
+                                chip,
+                            )
+                        self.assertEqual(page.zaap_scroll.horizontalScrollBar().maximum(), 0)
 
     def test_real_slot_and_favorite_icons_are_painted_not_missing_glyphs(self):
         with tempfile.TemporaryDirectory() as temporary:
@@ -1109,9 +1141,9 @@ class OrganizerLayoutTests(unittest.TestCase):
                 self.assertTrue(page.macro_panel.isAncestorOf(page.macro_mode_button))
                 self.assertTrue(page.macro_panel.isAncestorOf(page.mirror_mode_button))
                 self.assertFalse(page.macro_mode_header.isAncestorOf(page.macro_mode_button))
-                self.assertEqual(page.macro_section_title.text(), "Automatisation")
+                self.assertEqual(page.macro_section_title.text(), "Macro / Miroir")
                 self.assertEqual(page.mode_switch._selected, 0)
-                self.assertEqual(page.mode_switch.height(), page.macro_mode_button.height() + 4)
+                self.assertEqual(page.mode_switch.height(), page.macro_mode_button.height() + 6)
                 self.assertEqual(page.stop_script_button.text(), "STOP URGENCE")
                 self.assertFalse(page.stop_script_button.icon().isNull())
                 self.assertFalse(page.sessions_refresh_button.icon().isNull())
@@ -1119,6 +1151,17 @@ class OrganizerLayoutTests(unittest.TestCase):
                 self.assertFalse(page.quick_placeholder_1.isEnabled())
                 self.assertFalse(page.quick_placeholder_2.isEnabled())
                 self.assertIn("border-image: none", page.styleSheet())
+                self.assertIn("Frosted Unity surfaces", page.styleSheet())
+                self.assertFalse(page.radial_select_button.icon().isNull())
+                self.assertFalse(page.switch_character.icon().isNull())
+                self.assertFalse(page.switch_click.icon().isNull())
+                self.assertFalse(page.switch_double_click.icon().isNull())
+                self.assertFalse(page.switch_movement.icon().isNull())
+                self.assertFalse(page.switch_fake.icon().isNull())
+                self.assertFalse(page.reload_runtime_button.icon().isNull())
+                self.assertFalse(page.debug_button.icon().isNull())
+                self.assertTrue(page.previous_character.icon().isNull())
+                self.assertTrue(page.next_character.icon().isNull())
                 self.assertEqual(len(page.session_slot_widgets), 8)
                 self.assertIs(page.runtime_status_dot.parentWidget(), page.organizer_scroll.widget())
                 self.assertLessEqual(page.macro_panel.y(), page.quick_actions_panel.y())
@@ -1231,7 +1274,7 @@ class OrganizerLayoutTests(unittest.TestCase):
                     - page.macro_mode_button.mapTo(page.mode_switch, QPoint()).x()
                     - (page.macro_mode_button.width() + 5)
                 ), 1)
-                self.assertGreater(
+                self.assertLess(
                     page.mode_switch.mapTo(page.macro_panel, QPoint()).y(),
                     page.switch_movement.mapTo(page.macro_panel, QPoint()).y(),
                 )
