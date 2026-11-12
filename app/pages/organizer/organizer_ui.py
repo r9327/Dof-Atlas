@@ -130,6 +130,18 @@ def _organizer_card_shadow(panel: QFrame) -> None:
     panel.setGraphicsEffect(shadow)
 
 
+class OrganizerZaapWidget(ZaapWidget):
+    """Use painted, DPI-safe favorite stars only in Organizer."""
+
+    def refresh_favorite_chips(self) -> None:
+        super().refresh_favorite_chips()
+        for star in self.favorite_star_buttons:
+            star.setText("")
+            star.setIcon(_organizer_favorite_icon(True))
+            star.setIconSize(QSize(15, 15))
+            star.setAccessibleName(star.toolTip())
+
+
 class CharacterSlotsPanel(QFrame):
     """Organizer character card sized from the slot grid instead of a magic cap."""
 
@@ -375,7 +387,7 @@ class OrganizerUiMixin:
         # The active /zaap sender uses the destination command directly.
         # Keep legacy calibration data readable but hide its obsolete
         # position/lock/calibrate widgets on the Organizer page.
-        self.zaap = ZaapWidget(
+        self.zaap = OrganizerZaapWidget(
             status_callback, launch_zaap_callback, self.refresh_sessions_and_export,
             show_position_controls=False,
             compact_favorites=True,
