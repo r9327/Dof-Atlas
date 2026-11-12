@@ -598,8 +598,10 @@ class OrganizerUiMixin:
                 font-size: 10px;
                 font-weight: 700;
                 min-width: 0px;
-                min-height: 0px;
-                max-height: 22px;
+                /* 20px content + 2px borders = exact 22px Qt badge.
+                   A zero min-height allowed Qt to shrink them to 12px. */
+                min-height: 20px;
+                max-height: 20px;
                 padding: 0px 2px;
                 text-align: center;
             }
