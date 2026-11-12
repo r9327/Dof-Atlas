@@ -67,8 +67,9 @@ class OrganizerMirrorIntegrationTests(unittest.TestCase):
                     page.radial_select_button.click()
                     self.assertTrue(page.profiles[KEY_RADIAL_ENABLED])
                     self.assertEqual(page.radial_select_button.objectName(), "primaryButton")
-                    self.assertTrue(page.macro_mode_header.isAncestorOf(page.macro_mode_button))
-                    self.assertTrue(page.macro_mode_header.isAncestorOf(page.mirror_mode_button))
+                    self.assertTrue(page.macro_panel.isAncestorOf(page.macro_mode_button))
+                    self.assertTrue(page.macro_panel.isAncestorOf(page.mirror_mode_button))
+                    self.assertEqual(page.mode_switch._selected, 0)
                     self.assertTrue(page.macro_panel.isAncestorOf(page.switch_click))
                     self.assertTrue(page.quick_actions_panel.isAncestorOf(page.switch_fake))
                     self.assertTrue(page.quick_actions_panel.isAncestorOf(page.radial_select_button))
@@ -84,8 +85,9 @@ class OrganizerMirrorIntegrationTests(unittest.TestCase):
                     self.assertTrue(page.macro_grid_host.isEnabled())
                     page.mirror_mode_button.click()
                     self.assertEqual(page.profiles[KEY_ORGANIZER_MACRO_MODE], "mirror")
-                    # Navigation stays available while the Miroir is disarmed.
-                    self.assertTrue(page.macro_grid_host.isEnabled())
+                    # A selected/disarmed Miroir must still gray out Macro.
+                    self.assertFalse(page.macro_grid_host.isEnabled())
+                    self.assertEqual(page.mode_switch._selected, 1)
                     self.assertFalse(page.switch_click.isEnabled())
                     self.assertTrue(page.next_character.isEnabled())
                     self.assertTrue(page.stop_script_button.isEnabled())
