@@ -217,6 +217,7 @@ class OrganizerSpeedSelector(QFrame):
         self._choices = (normal, rapid, instant)
         self._selected: int | None = None
         self.highlight = QFrame(self)
+        self.highlight.setAttribute(Qt.WA_TransparentForMouseEvents, True)
         self.highlight.setObjectName("OrganizerSpeedHighlight")
         self.highlight.hide()
         layout = QHBoxLayout(self)
@@ -284,6 +285,7 @@ class OrganizerModeSwitch(QFrame):
         self._choices = (macro, mirror_cell)
         self._selected = -1
         self.highlight = QFrame(self)
+        self.highlight.setAttribute(Qt.WA_TransparentForMouseEvents, True)
         self.highlight.setObjectName("OrganizerModeHighlight")
         layout = QHBoxLayout(self)
         # Qt adds a one-pixel frame inset. Preserve the 3px macro grid
