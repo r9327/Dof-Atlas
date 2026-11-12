@@ -534,6 +534,14 @@ class OrganizerUiMixin:
                 border-image: none;
                 background: #263857;
             }
+            /* Override global 34px content + 10px padding: it overpainted
+               the badge past its nominal 36px frame and hid the 8px inset. */
+            #organizerPage QPushButton#keyBadge {
+                min-width: 0px;
+                padding: 0px 2px;
+                min-height: 0px;
+                max-height: 22px;
+            }
             #organizerPage QWidget#OrganizerTransparentHost {
                 background: transparent;
                 border: none;
