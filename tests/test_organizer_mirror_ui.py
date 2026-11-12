@@ -105,6 +105,7 @@ class OrganizerMirrorIntegrationTests(unittest.TestCase):
 
     def test_organizer_zaap_favorites_never_hide_legacy_entries(self):
         from app.storage import ZaapWidget
+
         rows = [
             {"name": f"Zaap {index}", "label": f"Zaap {index}",
              "x": index, "y": index}
@@ -121,32 +122,30 @@ class OrganizerMirrorIntegrationTests(unittest.TestCase):
                 widget.show()
                 for width in (280, 320, 400, 458, 480, 640, 850):
                     with self.subTest(width=width):
-                        widget.resize(width, 100)
+                        widget.resize(width, 250)
                         self.qt.processEvents()
-                        spacing = widget.favorites_layout.horizontalSpacing()
-                        columns = max(
-                            1, (max(0, widget.width() - widget.favorites_label.width()))
-                            // (190 + spacing),
-                        )
-                        self.assertEqual(widget.favorite_capacity(), columns)
-                        self.assertEqual(widget._favorite_columns, columns)
+                        self.assertEqual(widget.favorite_capacity(), 8)
+                        self.assertEqual(widget._favorite_columns, 2)
                         self.assertEqual(len(widget.favorite_buttons), 8)
                         self.assertGreater(widget.maximumHeight(), 68)
+                        self.assertEqual(
+                            len({button.parentWidget().width()
+                                 for button in widget.favorite_buttons}), 1,
+                        )
                         for index, button in enumerate(widget.favorite_buttons):
                             chip = button.parentWidget()
                             self.assertLessEqual(
                                 widget.favorites_label.width()
-                                + columns * (chip.maximumWidth() + spacing),
+                                + 2 * (chip.width() + widget.favorites_layout.horizontalSpacing()),
                                 widget.width(),
                             )
                             self.assertIs(
                                 widget.favorites_layout.itemAtPosition(
-                                    index // columns, 1 + index % columns
+                                    index // 2, 1 + index % 2
                                 ).widget(),
                                 chip,
                             )
-                # Legacy favorites all remain visible, but cannot silently
-                # grow past the capacity for new entries.
+                # Legacy entries remain visible; no hidden +N or deletion.
                 with patch("app.storage.save_zaap_favorites") as save:
                     widget.toggle_favorite(rows[8])
                     save.assert_not_called()
@@ -161,7 +160,7 @@ class OrganizerMirrorIntegrationTests(unittest.TestCase):
         rows = [
             {"name": f"Zaap {index}", "label": f"Zaap {index}",
              "x": index, "y": index}
-            for index in range(1, 4)
+            for index in range(1, 10)
         ]
         status = Mock()
         with (
@@ -173,14 +172,17 @@ class OrganizerMirrorIntegrationTests(unittest.TestCase):
             widget = ZaapWidget(status, compact_favorites=True)
             try:
                 widget.show()
-                widget.resize(320, 100)
+                widget.resize(400, 250)
                 self.qt.processEvents()
-                self.assertEqual(widget.favorite_capacity(), 1)
-                widget.toggle_favorite(rows[0])
-                widget.toggle_favorite(rows[1])
-                self.assertEqual(widget.favorite_names, ["Zaap 1"])
-                self.assertEqual(len(widget.favorite_buttons), 1)
-                self.assertEqual(save.call_count, 1)
+                self.assertEqual(widget.favorite_capacity(), 8)
+                for row in rows[:8]:
+                    widget.toggle_favorite(row)
+                widget.toggle_favorite(rows[8])
+                self.assertEqual(widget.favorite_names, [
+                    row["name"] for row in rows[:8]
+                ])
+                self.assertEqual(len(widget.favorite_buttons), 8)
+                self.assertEqual(save.call_count, 8)
                 self.assertTrue(any(
                     "pleine" in call.args[0] for call in status.call_args_list
                 ))
