@@ -1111,11 +1111,21 @@ class OrganizerLayoutTests(unittest.TestCase):
                     - page.macro_mode_button.mapTo(page.macro_mode_header, QPoint()).x(),
                     page.macro_mode_button.width() + 8,
                 )
+                # Header action columns must align pixel-for-pixel with Macro's grid.
+                self.assertEqual(
+                    page.macro_mode_button.mapTo(page.macro_panel, QPoint()).x(),
+                    page.switch_character.mapTo(page.macro_panel, QPoint()).x(),
+                )
+                self.assertEqual(
+                    page.mirror_mode_button.mapTo(page.macro_panel, QPoint()).x(),
+                    page.switch_click.mapTo(page.macro_panel, QPoint()).x(),
+                )
                 self.assertEqual(page.macro_mode_button.height(), page.next_character.height())
                 self.assertEqual(page.reload_runtime_button.size(), page.next_character.size())
                 self.assertEqual(page.stop_script_button.height(), page.next_character.height())
 
-    def test_three_visible_speed_presets_and_compact_controls(self):
+    def test_single_sliding_speed_track_preserves_all_three_profiles(self):
+        from app.constants import KEY_SCRIPT_SPEED, KEY_SCRIPT_SPEED_SCHEMA
         with tempfile.TemporaryDirectory() as temporary:
             with self.organizer_page(Path(temporary)) as page:
                 self.app.processEvents()
@@ -1123,58 +1133,78 @@ class OrganizerLayoutTests(unittest.TestCase):
                 rapid = page.script_speed_fast
                 instant = page.script_speed_instant
                 classic = page.script_speed_legacy
+                selector = page.speed_selector
+                self.assertEqual(page.script_speed_title.text(), "Vitesse")
                 self.assertTrue(page.script_speed_title.isVisible())
-                self.assertEqual(page.script_speed_title.text(), "Vitesse :")
-                self.assertIs(page.script_speed_title.parentWidget(), normal.parentWidget())
-                self.assertIs(
-                    normal.parentWidget().parentWidget().parentWidget(),
-                    page.controls_panel,
-                )
-                self.assertEqual(page.script_speed_title.y(), normal.y())
-                self.assertLess(page.script_speed_title.x(), normal.x())
-                self.assertLessEqual(
-                    instant.x() + instant.width(), instant.parentWidget().width(),
-                )
+                self.assertIs(selector.parentWidget(), page.script_speed_title.parentWidget())
+                self.assertTrue(page.controls_panel.isAncestorOf(selector))
+                self.assertEqual(selector.height(), page.next_character.height())
+                self.assertEqual(selector.width(), 340)
                 self.assertTrue(classic.isHidden())
-                self.assertEqual(normal.parent(), rapid.parent())
-                self.assertEqual(normal.parent(), instant.parent())
-                self.assertEqual(normal.y(), rapid.y())
-                self.assertEqual(rapid.y(), instant.y())
-                self.assertLess(normal.x(), rapid.x())
-                self.assertLess(rapid.x(), instant.x())
-                self.assertTrue(all(button.isVisible() for button in (normal, rapid, instant)))
+                self.assertEqual(selector._choices, (normal, rapid, instant))
+                self.assertTrue(all(button.isVisible() for button in selector._choices))
+                self.assertEqual(len({button.parentWidget() for button in selector._choices}), 1)
+                self.assertTrue(all(button.parentWidget() is selector for button in selector._choices))
+                self.assertFalse(any(button.text() == "Classique"
+                                     for button in selector._choices))
+                self.assertEqual(page.previous_character.text(), "Précédent")
+                self.assertEqual(page.next_character.text(), "Suivant")
                 self.assertEqual(page.radial_select_button.height(), page.switch_fake.height())
-                self.assertEqual(page.radial_select_button.text(), "Sélection perso")
                 self.assertIs(page.stop_script_button.parentWidget(),
                               page.stop_script_hotkey_button.parentWidget())
-                self.assertGreaterEqual(page.stop_script_hotkey_button.x(), 0)
-                self.assertLessEqual(
-                    page.stop_script_hotkey_button.x() + page.stop_script_hotkey_button.width(),
-                    page.stop_script_button.width(),
-                )
-                from app.constants import KEY_SCRIPT_SPEED, KEY_SCRIPT_SPEED_SCHEMA
-                for value, selected in (
-                    ("normal", normal), ("rapide", rapid),
-                    ("instantane", instant),
-                ):
+                for value, index in (("normal", 0), ("rapide", 1), ("instantane", 2)):
                     page.profiles[KEY_SCRIPT_SPEED] = value
                     page.profiles[KEY_SCRIPT_SPEED_SCHEMA] = 2
                     page.update_script_speed_buttons()
-                    for button in (normal, rapid, instant):
+                    self.assertEqual(selector._selected, index)
+                    self.assertEqual(
+                        [button.objectName() for button in selector._choices],
+                        ["OrganizerSpeedChoiceSelected" if slot == index else
+                         "OrganizerSpeedChoice" for slot in range(3)],
+                    )
+                    self.assertTrue(selector.highlight.isVisible())
+                    if selector._motion.state() == selector._motion.Running:
                         self.assertEqual(
-                            button.objectName(),
-                            "segmentedButtonActive" if button is selected
-                            else "segmentedButton",
+                            selector._motion.endValue(),
+                            selector._choices[index].geometry().topLeft(),
                         )
-                # Legacy profiles retain their slower timing, but Classique
-                # is never displayed or misrepresented as Normal.
+                    else:
+                        self.assertEqual(
+                            selector.highlight.pos(),
+                            selector._choices[index].geometry().topLeft(),
+                        )
+                # An old Classique profile still has the original timing and
+                # no visible active preset, instead of silently showing Normal.
                 page.profiles[KEY_SCRIPT_SPEED] = "classique"
                 page.update_script_speed_buttons()
                 self.assertTrue(classic.isHidden())
+                self.assertIsNone(selector._selected)
+                self.assertTrue(selector.highlight.isHidden())
                 self.assertTrue(all(
-                    button.objectName() == "segmentedButton"
-                    for button in (normal, rapid, instant)
+                    button.objectName() == "OrganizerSpeedChoice"
+                    for button in selector._choices
                 ))
+
+    def test_speed_track_click_reuses_existing_persisted_action(self):
+        from app.constants import KEY_SCRIPT_SPEED, KEY_SCRIPT_SPEED_SCHEMA
+        with tempfile.TemporaryDirectory() as temporary:
+            with self.organizer_page(Path(temporary)) as page:
+                stop_calls = []
+                reload_calls = []
+                page.stop_runtime_callback = lambda *args: stop_calls.append(args)
+                page.reload_runtime_callback = lambda *args: reload_calls.append(args)
+                page.profiles[KEY_SCRIPT_SPEED_SCHEMA] = 2
+                page.profiles[KEY_SCRIPT_SPEED] = "normal"
+                page.update_script_speed_buttons()
+                page.script_speed_fast.click()
+                self.assertEqual(page.profiles[KEY_SCRIPT_SPEED], "rapide")
+                self.assertEqual(page.speed_selector._selected, 1)
+                self.assertEqual(len(stop_calls), 1)
+                self.assertEqual(len(reload_calls), 1)
+                # Clicking the current choice must not restart live macro workers.
+                page.script_speed_fast.click()
+                self.assertEqual(len(stop_calls), 1)
+                self.assertEqual(len(reload_calls), 1)
 
 
 if __name__ == "__main__":
