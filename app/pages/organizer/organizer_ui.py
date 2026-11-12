@@ -563,6 +563,7 @@ class OrganizerUiMixin:
             self.mirror_mode_button, self.mirror_toggle_hotkey_button,
             self.mirror_toggle_clear, size=control_size,
         ))
+        mode_header_layout.addStretch(1)
         self.quick_actions_title.setFixedHeight(20)
         self._organizer_panel_headers = [self.macro_mode_header]
         for section_title in (self.quick_actions_title, controls_title):
