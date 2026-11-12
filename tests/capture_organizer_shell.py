@@ -97,11 +97,23 @@ def main() -> None:
                     dx = (above.mapTo(window, QPoint()).x()
                           - below.mapTo(window, QPoint()).x())
                     aligned[name] = dx
-                    if abs(dx) > 2:
+                    if abs(dx) > 1:
                         raise RuntimeError(
                             f"{name} header misaligned from Macro grid by {dx} px"
                         )
                 manifest["mode_switch_alignment_px"] = aligned
+                macro_bottom = page.macro_panel.mapTo(window, QPoint()).y() + page.macro_panel.height()
+                for action in (page.switch_movement, page.switch_double_click):
+                    action_bottom = action.mapTo(window, QPoint()).y() + action.height()
+                    if macro_bottom - action_bottom < 12:
+                        raise RuntimeError(
+                            "Macro bottom border clipped by final row: "
+                            f"gap={macro_bottom - action_bottom}px"
+                        )
+                if len({panel.height() for panel in (
+                    page.macro_panel, page.quick_actions_panel, page.controls_panel,
+                )}) != 1:
+                    raise RuntimeError("Top modules no longer share identical heights")
                 if not (page.mode_switch.mapTo(window, QPoint()).y()
                         < page.switch_character.mapTo(window, QPoint()).y()):
                     raise RuntimeError("Macro/Mirror switch is not above the Macro grid")
