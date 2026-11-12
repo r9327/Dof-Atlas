@@ -890,7 +890,7 @@ QPushButton:disabled, QToolButton:disabled {
 #characterSlot, #ListRow {
     background: @PANEL_2;
     border: 1px solid @BORDER_SOFT;
-    border-radius: 7px;
+    border-radius: 10px;
     margin: 0px;
 }
 
@@ -900,40 +900,40 @@ QPushButton:disabled, QToolButton:disabled {
 }
 
 #characterSlotEmpty, #EmptySessionSlot {
-    background: #09111D;
+    background: @PANEL;
     border: 1px solid @BORDER_SOFT;
-    border-radius: 7px;
+    border-radius: 10px;
     margin: 0px;
 }
 
 #characterSlotEmpty:hover, #EmptySessionSlot:hover {
-    background: #0D1827;
+    background: @PANEL_HOVER;
     border-color: #2A3A51;
 }
 
 #characterSlotMissing, #MissingSessionRow {
-    background: #0A1320;
+    background: @PANEL;
     border: 1px solid @BORDER_SOFT;
-    border-radius: 7px;
+    border-radius: 10px;
     margin: 0px;
 }
 
 #characterSlotMissing:hover, #MissingSessionRow:hover {
-    background: #101C2B;
+    background: @PANEL_HOVER;
     border-color: #344B66;
 }
 
 #characterSlotDragging, #DraggingListRow {
     background: #0A4F32;
     border: 1px solid @GREEN;
-    border-radius: 7px;
+    border-radius: 10px;
     margin: 0px;
 }
 
 #characterSlotDropTarget, #DropTargetListRow {
     background: #10243A;
     border: 1px dashed @GREEN;
-    border-radius: 7px;
+    border-radius: 10px;
     margin: 0px;
 }
 
@@ -944,7 +944,7 @@ QPushButton:disabled, QToolButton:disabled {
 }
 
 #slotIndexBadge, #slotNumberBadge {
-    background: #0A121D;
+    background: @PANEL_2;
     border: 1px solid @BORDER_SOFT;
     border-radius: 5px;
     color: @TEXT_MUTED;
@@ -982,7 +982,7 @@ QPushButton:disabled, QToolButton:disabled {
 }
 
 #ClientIndexButton, #PrimaryClientIndexButton {
-    background: #0A121D;
+    background: @PANEL_2;
     border: 1px solid @BORDER;
     border-radius: 5px;
     color: @TEXT;
@@ -1020,9 +1020,9 @@ QListWidget::item:selected {
 }
 
 #favoriteChip, #ZaapFavoriteChip {
-    background: #0A121D;
+    background: @PANEL_2;
     border: 1px solid @BORDER;
-    border-radius: 7px;
+    border-radius: 10px;
     min-height: 26px;
     max-height: 26px;
 }
@@ -1039,7 +1039,7 @@ QListWidget::item:selected {
 
 #favoriteChip:hover, #ZaapFavoriteChip:hover,
 #favoriteChipStar:hover, #ZaapFavoriteStar:hover {
-    background: #10301F;
+    background: @PANEL_HOVER;
     border-color: @GREEN;
     color: @TEXT;
 }
