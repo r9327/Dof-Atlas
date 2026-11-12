@@ -178,6 +178,25 @@ def unity_skin_stylesheet() -> str:
         "QFrame#GuideFeaturedCard { "
         "background: rgba(27, 39, 70, 0.88); border: 1px solid #617CA6; "
         "border-radius: 9px; }",
+        # Organizer only: Unity bevels with rounded Qt-drawn edges,
+        # no opaque black tiles around client slots or Zaap favorites.
+        "QWidget#organizerPage QFrame#card { "
+        "background: qlineargradient(x1:0,y1:0,x2:0,y2:1, "
+        "stop:0 rgba(43, 64, 105, 0.94), stop:1 rgba(27, 39, 70, 0.94)); "
+        "border: 1px solid #617CA6; border-radius: 12px; }",
+        "QWidget#organizerPage QFrame#characterSlot, "
+        "QWidget#organizerPage QFrame#characterSlotEmpty, "
+        "QWidget#organizerPage QFrame#characterSlotMissing { "
+        "background: rgba(40, 56, 92, 0.78); "
+        "border: 1px solid #526990; border-radius: 10px; }",
+        "QWidget#organizerPage QFrame#characterSlotDropTarget { "
+        "background: rgba(68, 96, 136, 0.88); "
+        "border: 1px dashed #9FCE51; border-radius: 10px; }",
+        "QWidget#organizerPage QWidget#favoriteChip { "
+        "background: rgba(43, 63, 101, 0.92); "
+        "border: 1px solid #617CA6; border-radius: 10px; }",
+        "QWidget#organizerPage QWidget#ZaapFavoritesRow { "
+        "background: transparent; border: none; }",
         "QFrame#GuideCompactHeader, QFrame#GuideSheetHeader, "
         "QFrame#GuidePreparationPanel { "
         "background: rgba(24, 37, 70, 0.93); border: 1px solid #475F89; }",
