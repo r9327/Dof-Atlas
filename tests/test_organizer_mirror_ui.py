@@ -34,7 +34,7 @@ class OrganizerMirrorIntegrationTests(unittest.TestCase):
     def setUpClass(cls):
         cls.qt = QApplication.instance() or QApplication([])
 
-    def test_classic_controls_and_two_columns_preserve_macro_behavior(self):
+    def test_classic_controls_and_three_panels_preserve_macro_behavior(self):
         import app.pages.organizer_page as organizer
         import app.pages.organizer.character_sessions as sessions
 
@@ -72,7 +72,7 @@ class OrganizerMirrorIntegrationTests(unittest.TestCase):
                     self.assertTrue(page.macro_panel.isAncestorOf(page.switch_click))
                     self.assertTrue(page.quick_actions_panel.isAncestorOf(page.switch_fake))
                     self.assertTrue(page.quick_actions_panel.isAncestorOf(page.radial_select_button))
-                    self.assertTrue(page.macro_panel.isAncestorOf(page.script_speed_fast))
+                    self.assertTrue(page.controls_panel.isAncestorOf(page.script_speed_fast))
                     self.assertTrue(page.quick_actions_panel.isAncestorOf(page.previous_character))
                     self.assertTrue(page.quick_actions_panel.isAncestorOf(page.next_character))
                     self.assertFalse(page.macro_panel.isAncestorOf(page.previous_character))
