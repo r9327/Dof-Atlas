@@ -1008,7 +1008,10 @@ class OrganizerLayoutTests(unittest.TestCase):
                     panel.graphicsEffect() is None for panel in
                     (*page._organizer_panels, page.zaap_panel, page.sessions_panel)
                 ))
-                self.assertEqual(page.macro_panel.height(), 154)
+                self.assertEqual(page.macro_panel.height(), 138)
+                self.assertTrue(page.macro_mode_header.isAncestorOf(page.macro_mode_button))
+                self.assertTrue(page.macro_mode_header.isAncestorOf(page.mirror_mode_button))
+                self.assertFalse(hasattr(page, "macro_section_title"))
                 self.assertIn("border-image: none", page.styleSheet())
                 self.assertEqual(len(page.session_slot_widgets), 8)
                 self.assertIs(page.runtime_status_dot.parentWidget(), page.organizer_scroll.widget())
@@ -1054,36 +1057,29 @@ class OrganizerLayoutTests(unittest.TestCase):
                 self.assertEqual(page.profiles[KEY_ORGANIZER_MACRO_MODE], "macro")
                 self.assertFalse(page._mirror_arm_active)
 
-    def test_navigation_enable_badges_share_canonical_switch_flag(self):
-        from app.constants import KEY_SWITCH_CHARACTER
+    def test_navigation_buttons_use_canonical_switch_not_on_off_badges(self):
+        from app.constants import KEY_SWITCH_CHARACTER, KEY_ORGANIZER_MACRO_MODE
         with tempfile.TemporaryDirectory() as temporary:
             with self.organizer_page(Path(temporary)) as page:
-                self.assertTrue(page.profiles[KEY_SWITCH_CHARACTER])
-                for badge in (page.next_character_enable_button,
-                              page.previous_character_enable_button):
-                    self.assertEqual(badge.text(), "ON")
-                    self.assertTrue(badge.isEnabled())
-                page.next_character_enable_button.click()
-                self.assertFalse(page.profiles[KEY_SWITCH_CHARACTER])
-                self.assertFalse(page.next_character.isEnabled())
-                self.assertFalse(page.previous_character.isEnabled())
-                self.assertEqual(page.next_character_enable_button.text(), "OFF")
-                self.assertEqual(page.previous_character_enable_button.text(), "OFF")
-                page.previous_character_enable_button.click()
+                self.assertFalse(hasattr(page, "next_character_enable_button"))
+                self.assertFalse(hasattr(page, "previous_character_enable_button"))
                 self.assertTrue(page.profiles[KEY_SWITCH_CHARACTER])
                 self.assertTrue(page.next_character.isEnabled())
                 self.assertTrue(page.previous_character.isEnabled())
-                self.assertEqual(page.next_character_enable_button.text(), "ON")
-                self.assertEqual(page.previous_character_enable_button.text(), "ON")
-                # Mirror can only arm after the profile selects Mirror mode.
-                from app.constants import KEY_ORGANIZER_MACRO_MODE
+                page.switch_character.click()
+                self.assertFalse(page.profiles[KEY_SWITCH_CHARACTER])
+                self.assertFalse(page.next_character.isEnabled())
+                self.assertFalse(page.previous_character.isEnabled())
+                page.switch_character.click()
+                self.assertTrue(page.profiles[KEY_SWITCH_CHARACTER])
                 page.profiles[KEY_ORGANIZER_MACRO_MODE] = "mirror"
                 page.update_macro_mode_buttons()
                 page.set_mirror_arm_active(True)
-                self.assertFalse(page.next_character_enable_button.isEnabled())
-                self.assertFalse(page.previous_character_enable_button.isEnabled())
+                self.assertFalse(page.next_character.isEnabled())
+                self.assertFalse(page.previous_character.isEnabled())
                 page.set_mirror_arm_active(False)
-                self.assertTrue(page.next_character_enable_button.isEnabled())
+                self.assertTrue(page.next_character.isEnabled())
+                self.assertTrue(page.previous_character.isEnabled())
 
     def test_embedded_hotkey_badges_leave_space_for_full_button_labels(self):
         with tempfile.TemporaryDirectory() as temporary:
@@ -1092,22 +1088,26 @@ class OrganizerLayoutTests(unittest.TestCase):
                 self.app.processEvents()
                 for action, reserve in (
                     (page.radial_select_button, 40),
-                    (page.previous_character, 75),
-                    (page.next_character, 75),
+                    (page.previous_character, 40),
+                    (page.next_character, 40),
                     (page.mirror_mode_button, 40),
                 ):
                     with self.subTest(button=action.text()):
                         available = action.width() - reserve - 4
                         label_width = action.fontMetrics().horizontalAdvance(action.text())
                         self.assertGreaterEqual(available, label_width)
-                self.assertEqual(
-                    page.previous_character_enable_button.parentWidget(),
+                self.assertIs(
+                    page.previous_character.parentWidget(),
                     page.previous_character_hotkey_button.parentWidget(),
                 )
-                self.assertEqual(
-                    page.next_character_enable_button.parentWidget(),
+                self.assertIs(
+                    page.next_character.parentWidget(),
                     page.next_character_hotkey_button.parentWidget(),
                 )
+                self.assertEqual(page.macro_mode_button.size(), page.mirror_mode_button.size())
+                self.assertEqual(page.macro_mode_button.height(), page.next_character.height())
+                self.assertEqual(page.reload_runtime_button.size(), page.next_character.size())
+                self.assertEqual(page.stop_script_button.height(), page.next_character.height())
 
     def test_three_visible_speed_presets_and_compact_controls(self):
         with tempfile.TemporaryDirectory() as temporary:
