@@ -41,6 +41,9 @@ from app.storage import ZaapWidget, clean_auto_group_name, profile_bool, short_l
 from app.ui.splash_image import clear_connected_dark_background
 from app.ui.theme import render_theme_template
 from app.ui.components import AtlasButton
+from .glass_material import (
+    OrganizerGlassButton, OrganizerGlassCard, unity_glass_gradient,
+)
 from .common import (
     BUTTON_HEIGHT,
     CARD_PADDING,
@@ -233,7 +236,7 @@ class OrganizerZaapWidget(ZaapWidget):
             star.setAccessibleName(star.toolTip())
 
 
-class CharacterSlotsPanel(QFrame):
+class CharacterSlotsPanel(OrganizerGlassCard):
     """Organizer character card sized from the slot grid instead of a magic cap."""
 
     def __init__(
@@ -507,14 +510,15 @@ class OrganizerUiMixin:
         # Unity's shared yellow/green button border sprites have deep
         # baked-in shadows. Organizer uses flat themed button surfaces only;
         # do not remove these sprites from the other application modules.
-        # Use the SAME canonical Unity color roles as the rest of Atlas.
-        # No separate guessed Organizer palette: a light glass gradient from
-        # the shared skin, while scripts/actions retain their existing owners.
-        self.setStyleSheet(render_theme_template("""
+        # The colors come from Unity's single palette; the material adds
+        # cached background diffusion + edge glints, not a blue repaint.
+        glass_qss = """
             #organizerPage QFrame#card {
-                background: @PANEL_GRADIENT;
-                border: 1px solid @BORDER_CARD;
-                border-radius: 9px;
+                /* GlassCard paints a cached diffused backdrop and specular
+                   rim; QSS cannot render a frosted material on its own. */
+                background: transparent;
+                border: none;
+                border-radius: 10px;
                 border-image: none;
             }
             #organizerPage QPushButton#primaryButton,
@@ -524,7 +528,7 @@ class OrganizerUiMixin:
             #organizerPage QPushButton#segmentedButton,
             #organizerPage QPushButton#segmentedButtonActive,
             #organizerPage QPushButton#dangerButton {
-                background: @PANEL_GRADIENT;
+                background: @GLASS_BUTTON;
                 border: 1px solid @BORDER;
                 border-radius: 8px;
                 border-image: none;
@@ -535,7 +539,7 @@ class OrganizerUiMixin:
             #organizerPage QPushButton#primaryButton,
             #organizerPage QPushButton#PrimaryActionButton,
             #organizerPage QPushButton#segmentedButtonActive {
-                background: @ACTIVE_GRADIENT;
+                background: @GLASS_GREEN;
                 border-color: @GREEN_BORDER;
                 color: @TEXT;
             }
@@ -551,7 +555,7 @@ class OrganizerUiMixin:
             #organizerPage QPushButton#SecondaryButton:hover,
             #organizerPage QPushButton#segmentedButton:hover,
             #organizerPage QPushButton#segmentedButtonActive:hover {
-                background: @PANEL_HOVER;
+                background: @GLASS_HOVER;
                 border-color: @BORDER_STRONG;
                 color: @TEXT;
             }
@@ -586,7 +590,7 @@ class OrganizerUiMixin:
             /* All seven embedded shortcuts, STOP and character slots are
                the SAME keyBadge family and 52x22 dimensions. */
             #organizerPage QPushButton#keyBadge {
-                background: @PANEL_HOVER;
+                background: @GLASS_BUTTON;
                 border: 1px solid @BORDER_STRONG;
                 border-radius: 6px;
                 border-image: none;
@@ -600,7 +604,7 @@ class OrganizerUiMixin:
                 text-align: center;
             }
             #organizerPage QPushButton#keyBadge:hover {
-                background: @PANEL_ACTIVE;
+                background: @GLASS_HOVER;
                 border-color: @GREEN_BORDER;
             }
             #organizerPage QPushButton#keyBadge:pressed {
@@ -614,7 +618,7 @@ class OrganizerUiMixin:
             }
             #organizerPage QPushButton#iconButton,
             #organizerPage QPushButton#iconButtonDanger {
-                background: @PANEL_2;
+                background: @GLASS_BUTTON;
                 border: 1px solid @BORDER;
                 border-radius: 6px;
                 border-image: none;
@@ -623,7 +627,7 @@ class OrganizerUiMixin:
             }
             #organizerPage QPushButton#iconButton:hover,
             #organizerPage QPushButton#iconButtonDanger:hover {
-                background: @PANEL_HOVER;
+                background: @GLASS_HOVER;
                 border-color: @BORDER_STRONG;
             }
             #organizerPage QPushButton#iconButton:disabled,
@@ -698,13 +702,13 @@ class OrganizerUiMixin:
                 border-image: none;
             }
             #organizerPage QWidget#favoriteChip {
-                background: @PANEL_2;
+                background: @GLASS_BUTTON;
                 border: 1px solid @BORDER_CARD;
                 border-radius: 8px;
                 border-image: none;
             }
             #organizerPage QWidget#favoriteChip:hover {
-                background: @PANEL_HOVER;
+                background: @GLASS_HOVER;
                 border-color: @BORDER_STRONG;
             }
             #organizerPage QFrame#characterSlotEmpty,
@@ -739,7 +743,18 @@ class OrganizerUiMixin:
                 background: @PANEL_ACTIVE;
                 border-color: @GREEN_BORDER;
             }
-        """))
+        """
+        glass_qss = (
+            glass_qss
+            .replace("@GLASS_BUTTON", unity_glass_gradient())
+            .replace("@GLASS_HOVER", unity_glass_gradient(
+                "PANEL_HOVER", "PANEL_ACTIVE", top_alpha=199, bottom_alpha=206,
+            ))
+            .replace("@GLASS_GREEN", unity_glass_gradient(
+                "GREEN_DARK", "GREEN_DARK", top_alpha=196, bottom_alpha=218,
+            ))
+        )
+        self.setStyleSheet(render_theme_template(glass_qss))
         root = QVBoxLayout(content)
         # Space for the lower rounded corners and drop shadows at all DPI.
         root.setContentsMargins(14, 12, 14, 20)
@@ -765,8 +780,8 @@ class OrganizerUiMixin:
         header.addStretch(1)
         root.addLayout(header)
 
-        self.macro_mode_button = AtlasButton("Macro")
-        self.mirror_mode_button = AtlasButton("Miroir")
+        self.macro_mode_button = OrganizerGlassButton("Macro")
+        self.mirror_mode_button = OrganizerGlassButton("Miroir")
         self.macro_mode_button.setFixedSize(194, BUTTON_HEIGHT)
         self.mirror_mode_button.setFixedSize(194, BUTTON_HEIGHT)
         self.macro_mode_button.setToolTip("Revenir aux macros classiques")
@@ -776,38 +791,38 @@ class OrganizerUiMixin:
         self.quick_actions_title.setFixedHeight(BUTTON_HEIGHT)
         self.set_runtime_active(False)
 
-        self.switch_character = AtlasButton("")
-        self.switch_click = AtlasButton("")
-        self.switch_double_click = AtlasButton("")
-        self.switch_movement = AtlasButton("")
-        self.next_character = AtlasButton("Suivant")
-        self.previous_character = AtlasButton("Précédent")
-        self.mirror_arm_button = AtlasButton("Activer Miroir")
-        self.mirror_toggle_hotkey_button = AtlasButton("")
-        self.mirror_toggle_clear = AtlasButton("x")
-        self.switch_fake = AtlasButton("Auto-groupe")
-        self.radial_select_button = AtlasButton("Sélection perso")
+        self.switch_character = OrganizerGlassButton("")
+        self.switch_click = OrganizerGlassButton("")
+        self.switch_double_click = OrganizerGlassButton("")
+        self.switch_movement = OrganizerGlassButton("")
+        self.next_character = OrganizerGlassButton("Suivant")
+        self.previous_character = OrganizerGlassButton("Précédent")
+        self.mirror_arm_button = OrganizerGlassButton("Activer Miroir")
+        self.mirror_toggle_hotkey_button = OrganizerGlassButton("")
+        self.mirror_toggle_clear = OrganizerGlassButton("x")
+        self.switch_fake = OrganizerGlassButton("Auto-groupe")
+        self.radial_select_button = OrganizerGlassButton("Sélection perso")
         self.radial_select_button.setAccessibleName("Sélection personnage")
-        self.click_button = AtlasButton("")
-        self.double_click_button = AtlasButton("")
-        self.double_click_clear = AtlasButton("x")
-        self.radial_hotkey_button = AtlasButton("")
-        self.radial_clear = AtlasButton("x")
-        self.next_character_hotkey_button = AtlasButton("")
-        self.next_character_clear = AtlasButton("x")
-        self.previous_character_hotkey_button = AtlasButton("")
-        self.previous_character_clear = AtlasButton("x")
-        self.reload_runtime_button = AtlasButton("Relancer scripts")
-        self.debug_button = AtlasButton("Debug")
+        self.click_button = OrganizerGlassButton("")
+        self.double_click_button = OrganizerGlassButton("")
+        self.double_click_clear = OrganizerGlassButton("x")
+        self.radial_hotkey_button = OrganizerGlassButton("")
+        self.radial_clear = OrganizerGlassButton("x")
+        self.next_character_hotkey_button = OrganizerGlassButton("")
+        self.next_character_clear = OrganizerGlassButton("x")
+        self.previous_character_hotkey_button = OrganizerGlassButton("")
+        self.previous_character_clear = OrganizerGlassButton("x")
+        self.reload_runtime_button = OrganizerGlassButton("Relancer scripts")
+        self.debug_button = OrganizerGlassButton("Debug")
         self.script_speed_title = QLabel("Vitesse")
-        self.script_speed_legacy = AtlasButton("Classique")
-        self.script_speed_normal = AtlasButton("Normal")
-        self.script_speed_fast = AtlasButton("Rapide")
-        self.script_speed_instant = AtlasButton("Instantané")
-        self.stop_script_button = AtlasButton("STOP URGENCE")
-        self.stop_script_hotkey_button = AtlasButton("")
-        self.stop_script_clear = AtlasButton("x")
-        self.click_clear = AtlasButton("x")
+        self.script_speed_legacy = OrganizerGlassButton("Classique")
+        self.script_speed_normal = OrganizerGlassButton("Normal")
+        self.script_speed_fast = OrganizerGlassButton("Rapide")
+        self.script_speed_instant = OrganizerGlassButton("Instantané")
+        self.stop_script_button = OrganizerGlassButton("STOP URGENCE")
+        self.stop_script_hotkey_button = OrganizerGlassButton("")
+        self.stop_script_clear = OrganizerGlassButton("x")
+        self.click_clear = OrganizerGlassButton("x")
 
         control_size = QSize(194, BUTTON_HEIGHT)
         # Use the same one-line control height as neighboring modules.
@@ -994,7 +1009,7 @@ class OrganizerUiMixin:
         for row in range(2):
             controls_grid.setRowMinimumHeight(row, BUTTON_HEIGHT)
 
-        self.macro_panel = QFrame()
+        self.macro_panel = OrganizerGlassCard()
         self.macro_panel.setObjectName("card")
         self.macro_panel.setMinimumWidth(panel_width)
         self.macro_panel.setFixedHeight(controls_panel_height)
@@ -1016,7 +1031,7 @@ class OrganizerUiMixin:
         macro_layout.addWidget(self.mode_switch, alignment=Qt.AlignLeft)
         macro_layout.addWidget(controls_grid_host, alignment=Qt.AlignLeft)
 
-        self.quick_actions_panel = QFrame()
+        self.quick_actions_panel = OrganizerGlassCard()
         self.quick_actions_panel.setObjectName("card")
         self.quick_actions_panel.setMinimumWidth(panel_width)
         self.quick_actions_panel.setFixedHeight(controls_panel_height)
@@ -1045,8 +1060,8 @@ class OrganizerUiMixin:
         ), 1, 1)
         # Honest placeholders: reserve the cells without advertising a
         # non-existent action. Real actions can replace these later.
-        self.quick_placeholder_1 = AtlasButton("Action libre 1")
-        self.quick_placeholder_2 = AtlasButton("Action libre 2")
+        self.quick_placeholder_1 = OrganizerGlassButton("Action libre 1")
+        self.quick_placeholder_2 = OrganizerGlassButton("Action libre 2")
         for placeholder in (self.quick_placeholder_1, self.quick_placeholder_2):
             placeholder.setObjectName("secondaryButton")
             placeholder.setFixedSize(control_size)
@@ -1091,7 +1106,7 @@ class OrganizerUiMixin:
             quick_grid.setRowMinimumHeight(row, BUTTON_HEIGHT)
         quick_layout.addWidget(quick_grid_host, alignment=Qt.AlignLeft)
 
-        self.controls_panel = QFrame()
+        self.controls_panel = OrganizerGlassCard()
         self.controls_panel.setObjectName("card")
         self.controls_panel.setMinimumWidth(panel_width)
         self.controls_panel.setFixedHeight(controls_panel_height)
@@ -1153,7 +1168,7 @@ class OrganizerUiMixin:
         root.addLayout(self.controls_panels_grid)
         self._reflow_organizer_panels(self.width())
 
-        self.sessions_refresh_button = AtlasButton("")
+        self.sessions_refresh_button = OrganizerGlassButton("")
         self.sessions_refresh_button.setObjectName("iconButton")
         self.sessions_refresh_button.setFixedSize(32, BUTTON_HEIGHT)
         self.sessions_refresh_button.setIcon(_organizer_refresh_icon())
@@ -1166,7 +1181,7 @@ class OrganizerUiMixin:
 
         # Characters span two top modules, Zaap spans one (2:1); heights match.
         # Both panels share the same height; the eight slots stay permanent.
-        self.zaap_panel = QFrame()
+        self.zaap_panel = OrganizerGlassCard()
         self.zaap_panel.setObjectName("card")
         self.zaap_panel.setMinimumWidth(220)
         self.zaap_panel.setFixedHeight(self.sessions_panel.calculated_height())
@@ -1471,7 +1486,7 @@ class OrganizerUiMixin:
             layout = QHBoxLayout(row)
             layout.setContentsMargins(8, 0, 8, 0)
             layout.setSpacing(7)
-            grip = AtlasButton("")
+            grip = OrganizerGlassButton("")
             grip.setIcon(_organizer_grip_icon())
             grip.setIconSize(QSize(13, 19))
             grip.setAccessibleName("Déplacer ce personnage")
@@ -1481,7 +1496,7 @@ class OrganizerUiMixin:
             grip.setToolTip("Déplacer ce personnage")
             self.bind_session_drag_events(grip, index, row)
             layout.addWidget(grip)
-            star = AtlasButton("")
+            star = OrganizerGlassButton("")
             star.setIcon(_organizer_favorite_icon(is_primary))
             star.setIconSize(QSize(19, 19))
             star.setAccessibleName("Personnage principal" if is_primary else "Définir comme principal")
@@ -1542,12 +1557,12 @@ class OrganizerUiMixin:
             self.bind_session_drag_events(label, index, row)
             layout.addWidget(label, 1)
             binding = self.slot_hotkey_label(index)
-            shortcut = AtlasButton(binding or "...")
+            shortcut = OrganizerGlassButton(binding or "...")
             shortcut.setObjectName("keyBadge")
             shortcut.setFixedSize(52, KEY_BADGE_HEIGHT)
             shortcut.setToolTip("Raccourci client")
             shortcut.clicked.connect(lambda _checked=False, slot=index, button=shortcut: self.begin_capture("client", slot=slot, button=button))
-            remove = AtlasButton("x")
+            remove = OrganizerGlassButton("x")
             remove.setObjectName("iconButtonDanger")
             remove.setFixedSize(14, 14)
             remove.setVisible(bool(binding))
