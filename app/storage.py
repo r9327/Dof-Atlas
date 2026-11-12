@@ -980,6 +980,7 @@ class ZaapWidget(QWidget):
         show_position_controls: bool = True,
         show_favorites: bool = True,
         compact_favorites: bool = False,
+        compact_favorite_columns: int | None = None,
     ):
         super().__init__(parent)
         self.status_callback = status_callback
@@ -988,7 +989,13 @@ class ZaapWidget(QWidget):
         self.show_position_controls = bool(show_position_controls)
         self.show_favorites = bool(show_favorites)
         self.compact_favorites = bool(compact_favorites)
+        # Optional two-column Organizer grid; other Zaap instances retain their layout.
+        self.compact_favorite_columns = (
+            max(1, int(compact_favorite_columns))
+            if self.compact_favorites and compact_favorite_columns is not None else None
+        )
         self._favorite_columns = 0
+        self._favorite_layout_width = -1
         self.position_locked = read_zaap_click_locked()
         self.zaaps = load_zaap_index()
         self.filtered_zaaps: list[dict[str, Any]] = []
@@ -1094,7 +1101,13 @@ class ZaapWidget(QWidget):
         self.favorites_label.setObjectName("CompactLabel")
         self.favorites_label.setFixedSize(62, 28)
         self.favorites_label.setAlignment(Qt.AlignVCenter | Qt.AlignLeft)
-        if self.compact_favorites:
+        if self.compact_favorite_columns is not None:
+            # Organizer: "Favoris" owns its own full-width line above the
+            # chips, leaving both equal columns free underneath.
+            self.favorites_layout.addWidget(
+                self.favorites_label, 0, 0, 1, self.compact_favorite_columns
+            )
+        elif self.compact_favorites:
             self.favorites_layout.addWidget(self.favorites_label, 0, 0)
         else:
             self.favorites_layout.addWidget(self.favorites_label)
@@ -1164,7 +1177,9 @@ class ZaapWidget(QWidget):
 
     def favorite_capacity(self) -> int:
         """Maximum *new* favorites fitting in one visible Organizer row."""
-        if not self.compact_favorites:
+        if not self.compact_favorites or self.compact_favorite_columns is not None:
+            # Organizer admits eight new favorites in its vertical grid;
+            # older saved extras remain visible in the scrolling panel.
             return 8
         # Count the real grid gaps: one between the label and each chip.
         # Never use a fictional minimum width when the window shrinks.
@@ -1176,7 +1191,12 @@ class ZaapWidget(QWidget):
         super().resizeEvent(event)
         if (self.compact_favorites and self.show_favorites
                 and hasattr(self, "favorites_layout")
-                and self.favorite_capacity() != self._favorite_columns):
+                and (
+                    (self.compact_favorite_columns or self.favorite_capacity())
+                    != self._favorite_columns
+                    or (self.compact_favorite_columns is not None
+                        and self.width() != self._favorite_layout_width)
+                )):
             self.refresh_favorite_chips()
 
     def toggle_favorite(self, row: dict[str, Any]) -> None:
@@ -1230,12 +1250,16 @@ class ZaapWidget(QWidget):
             seen.add(key)
             if not self.compact_favorites and len(rows) >= 8:
                 break
-        columns = self.favorite_capacity()
+        columns = self.compact_favorite_columns or self.favorite_capacity()
         self._favorite_columns = columns
+        self._favorite_layout_width = self.width()
         if self.compact_favorites:
             spacing = self.favorites_layout.horizontalSpacing()
             available = max(
-                0, self.width() - self.favorites_label.width() - columns * spacing
+                0, self.width() - (
+                    (columns - 1) * spacing if self.compact_favorite_columns is not None
+                    else self.favorites_label.width() + columns * spacing
+                )
             )
             chip_width = min(190, max(40, available // columns))
         for index, (name, row) in enumerate(rows):
@@ -1243,8 +1267,13 @@ class ZaapWidget(QWidget):
             chip.setObjectName("favoriteChip")
             chip.setAttribute(Qt.WA_Hover, True)
             chip.setFixedHeight(28)
-            chip.setMaximumWidth(chip_width if self.compact_favorites else 190)
-            chip.setSizePolicy(QSizePolicy.Maximum, QSizePolicy.Fixed)
+            if self.compact_favorite_columns is not None:
+                # Identical chip widths per row, even when the panel resizes.
+                chip.setFixedWidth(chip_width)
+                chip.setSizePolicy(QSizePolicy.Fixed, QSizePolicy.Fixed)
+            else:
+                chip.setMaximumWidth(chip_width if self.compact_favorites else 190)
+                chip.setSizePolicy(QSizePolicy.Maximum, QSizePolicy.Fixed)
             chip_layout = QHBoxLayout(chip)
             chip_layout.setContentsMargins(8, 0, 10, 0)
             chip_layout.setSpacing(4)
@@ -1268,8 +1297,14 @@ class ZaapWidget(QWidget):
             chip_layout.addWidget(button)
             self.favorite_star_buttons.append(star_button)
             self.favorite_buttons.append(button)
-            if self.compact_favorites:
-                self.favorites_layout.addWidget(chip, index // columns, 1 + index % columns)
+            if self.compact_favorite_columns is not None:
+                self.favorites_layout.addWidget(
+                    chip, 1 + index // columns, index % columns
+                )
+            elif self.compact_favorites:
+                self.favorites_layout.addWidget(
+                    chip, index // columns, 1 + index % columns
+                )
             else:
                 self.favorites_layout.addWidget(chip)
         if not self.compact_favorites:
@@ -1279,7 +1314,10 @@ class ZaapWidget(QWidget):
             # Existing legacy favorites remain directly visible, wrapping as
             # needed rather than being silently discarded or hidden behind +N.
             lines = (len(rows) + columns - 1) // columns
-            self.setMaximumHeight(32 + (8 + lines * 28 + max(0, lines - 1) * 8 if lines else 0))
+            label_row = 28 + 8 if self.compact_favorite_columns is not None else 0
+            self.setMaximumHeight(
+                32 + (8 + label_row + lines * 28 + max(0, lines - 1) * 8 if lines else 0)
+            )
             self.updateGeometry()
 
     def suggestion_tooltip(self, row: dict[str, Any]) -> str:

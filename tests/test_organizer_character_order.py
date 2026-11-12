@@ -92,10 +92,9 @@ class OrganizerCharacterOrderTests(unittest.TestCase):
                     {"nom": "Beta - Cra", "hwnd": 202},
                 ])
                 page.render_sessions()
-                self.assertEqual(len(page.session_slot_widgets), 2)
-                page.sessions_panel.expand_button.click()
+                # All eight slots are permanently visible; no expand/collapse.
                 self.assertEqual(len(page.session_slot_widgets), 8)
-                page.sessions_panel.expand_button.click()
+                self.assertFalse(hasattr(page.sessions_panel, "expand_button"))
                 page.reorder_session(0, 7)
                 self.assertEqual(organizer.session_name(page.sessions[7]), "Alpha - Iop")
                 self.assertEqual(len(page.session_slot_widgets), 8)

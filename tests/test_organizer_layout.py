@@ -11,7 +11,8 @@ from unittest.mock import patch
 
 os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
 
-from PySide6.QtWidgets import QApplication, QFrame, QScrollArea
+from PySide6.QtCore import QAbstractAnimation, QPoint, Qt
+from PySide6.QtWidgets import QApplication, QFrame, QPushButton, QScrollArea
 
 import app.pages.organizer_page as organizer
 import app.pages.organizer.character_sessions as organizer_sessions
@@ -867,14 +868,13 @@ class OrganizerLayoutTests(unittest.TestCase):
             panel.deleteLater()
             self.app.processEvents()
 
-    def test_organizer_adaptive_slots_are_reachable_without_internal_scroll_area(self):
+    def test_organizer_always_displays_eight_reorderable_slots(self):
         with tempfile.TemporaryDirectory() as temporary:
             with self.organizer_page(Path(temporary)) as page:
                 self.assertEqual(page.session_slot_count(), 8)
-                self.assertEqual(len(page.session_slot_widgets), 2)
-                self.assertEqual(page.sessions_panel.findChildren(QScrollArea), [])
-                page.sessions_panel.expand_button.click()
                 self.assertEqual(len(page.session_slot_widgets), 8)
+                self.assertFalse(hasattr(page.sessions_panel, "expand_button"))
+                self.assertEqual(page.sessions_panel.findChildren(QScrollArea), [])
                 self.assertEqual(
                     sorted(page.sessions_panel.grid_position(index) for _widget, index in page.session_slot_widgets),
                     [(0, 0), (0, 1), (1, 0), (1, 1), (2, 0), (2, 1), (3, 0), (3, 1)],
@@ -899,7 +899,7 @@ class OrganizerLayoutTests(unittest.TestCase):
 
         with tempfile.TemporaryDirectory() as temporary:
             with self.organizer_page(Path(temporary)) as page:
-                self.assertEqual(len(page.session_slot_widgets), 2)
+                self.assertEqual(len(page.session_slot_widgets), 8)
                 watcher = page.session_event_watcher
                 previous_sessions = list(page.sessions)
                 page.hide()
@@ -911,8 +911,8 @@ class OrganizerLayoutTests(unittest.TestCase):
                 self.assertEqual(page.sessions, previous_sessions)
                 page.show()
                 self.app.processEvents()
-                self.assertEqual(page.sessions_panel.grid.count(), 2)
-                self.assertEqual(len(page.session_slot_widgets), 2)
+                self.assertEqual(page.sessions_panel.grid.count(), 8)
+                self.assertEqual(len(page.session_slot_widgets), 8)
                 self.assertIs(page.session_event_watcher, watcher)
 
     def test_reorder_keeps_exactly_eight_slots_and_persists_detected_order(self):
@@ -955,17 +955,20 @@ class OrganizerLayoutTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as temporary:
             with self.organizer_page(Path(temporary)) as page:
                 self.app.processEvents()
-                self.assertTrue(page.mirror_arm_button.isHidden() is False)
+                self.assertTrue(page.mirror_arm_button.isHidden())
                 self.assertFalse(page.mirror_arm_button.isEnabled())
+                self.assertTrue(
+                    page.mirror_mode_button.parentWidget().isAncestorOf(
+                        page.mirror_toggle_hotkey_button
+                    )
+                )
                 from app.constants import KEY_ORGANIZER_MACRO_MODE
                 page.profiles[KEY_ORGANIZER_MACRO_MODE] = "mirror"
                 page.update_macro_mode_buttons()
                 self.assertTrue(page.mirror_arm_button.isEnabled())
                 self.assertEqual(page.mirror_arm_button.text(), "Activer Miroir")
-                self.assertEqual(
-                    page.mirror_arm_button.width(),
-                    page.stop_script_button.width(),
-                )
+                self.assertEqual(page.mirror_mode_button.text(), "Miroir")
+                self.assertFalse(page._mirror_arm_active)
                 self.assertFalse(page.switch_character.isEnabled())
                 self.assertFalse(page.switch_click.isEnabled())
                 self.assertTrue(page.next_character.isEnabled())
@@ -974,10 +977,15 @@ class OrganizerLayoutTests(unittest.TestCase):
                 self.assertTrue(page.previous_character_hotkey_button.isEnabled())
                 page.set_mirror_arm_active(True)
                 self.assertEqual(page.mirror_arm_button.text(), "Arrêter Miroir")
+                self.assertEqual(page.mirror_mode_button.objectName(), "OrganizerModeChoice")
+                self.assertEqual(page.mode_switch.highlight.objectName(), "OrganizerModeHighlightArmed")
+                self.assertFalse(page.macro_grid_host.isEnabled())
                 self.assertFalse(page.next_character.isEnabled())
                 self.assertFalse(page.previous_character.isEnabled())
                 page.set_mirror_arm_active(False)
                 self.assertEqual(page.mirror_arm_button.text(), "Activer Miroir")
+                self.assertEqual(page.mirror_mode_button.objectName(), "OrganizerModeChoice")
+                self.assertEqual(page.mode_switch.highlight.objectName(), "OrganizerModeHighlight")
                 self.assertTrue(page.next_character.isEnabled())
                 self.assertTrue(page.previous_character.isEnabled())
                 previous_cell = page.previous_character.parentWidget()
@@ -986,12 +994,473 @@ class OrganizerLayoutTests(unittest.TestCase):
                 self.assertEqual(previous_cell.y(), next_cell.y())
                 self.assertLess(previous_cell.x(), next_cell.x())
                 self.assertEqual(page.previous_character.height(), page.next_character.height())
-                self.assertIs(
-                    page.mirror_arm_button.parentWidget(),
-                    page.mirror_toggle_hotkey_button.parentWidget(),
+                self.assertTrue(page.mirror_arm_button.isHidden())
+
+    def test_zaap_matches_one_top_module_without_changing_eight_slots(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            with self.organizer_page(Path(temporary)) as page:
+                page.resize(1380, 900)
+                self.app.processEvents()
+                self.assertEqual(page.bottom_panels_row.count(), 2)
+                self.assertIs(page.bottom_panels_row.itemAt(0).widget(), page.sessions_panel)
+                self.assertIs(page.bottom_panels_row.itemAt(1).widget(), page.zaap_panel)
+                self.assertEqual(len(page.session_slot_widgets), 8)
+                self.assertEqual(page.zaap_panel.height(), page.sessions_panel.height())
+                self.assertGreater(page.zaap_panel.x(), page.sessions_panel.x())
+                self.assertTrue(page.zaap.zaap_label.isHidden())
+                self.assertEqual(page.zaap.search_input.minimumWidth(), 90)
+                self.assertTrue(page.zaap.search_input.isVisible())
+                self.assertTrue(page.zaap.show_favorites)
+                self.assertTrue(page.zaap.compact_favorites)
+                self.assertEqual(page.zaap.compact_favorite_columns, 2)
+                self.assertEqual(page.zaap.favorite_capacity(), 8)
+                self.assertEqual(page.zaap_scroll.horizontalScrollBar().maximum(), 0)
+                self.assertFalse(hasattr(page.sessions_panel, "expand_button"))
+                self.assertAlmostEqual(
+                    page.sessions_panel.width() / page.zaap_panel.width(),
+                    2.0, delta=0.12,
                 )
 
-    def test_three_visible_speed_presets_and_compact_controls(self):
+                page.resize(1000, 740)
+                self.app.processEvents()
+                self.assertEqual(len(page.session_slot_widgets), 8)
+                self.assertEqual(page.zaap_scroll.horizontalScrollBar().maximum(), 0)
+                # In this standalone widget, Qt may retain a stale minimum
+                # width from its initial 900px size. The *real* 1000px
+                # AtlasWindow capture enforces zero horizontal overflow.
+
+    def test_organizer_zaap_favorites_are_two_by_two_even_after_resize(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            with self.organizer_page(Path(temporary)) as page:
+                rows = [
+                    {"name": f"Zaap {index}", "label": f"Zaap {index}",
+                     "x": index, "y": index}
+                    for index in range(1, 9)
+                ]
+                page.zaap.zaaps = rows
+                page.zaap.favorite_names = [row["name"] for row in rows]
+                for width in (1380, 1000):
+                    with self.subTest(width=width):
+                        page.resize(width, 900)
+                        self.app.processEvents()
+                        page.zaap.refresh_favorite_chips()
+                        self.app.processEvents()
+                        self.assertEqual(len(page.zaap.favorite_buttons), 8)
+                        self.assertEqual(page.zaap._favorite_columns, 2)
+                        chips = [button.parentWidget()
+                                 for button in page.zaap.favorite_buttons]
+                        self.assertEqual(len({chip.width() for chip in chips}), 1)
+                        self.assertIs(
+                            page.zaap.favorites_layout.itemAtPosition(0, 0).widget(),
+                            page.zaap.favorites_label,
+                        )
+                        # In the standalone page, the Zaap viewport may be
+                        # off-screen after shrink and retain zero geometry.
+                        # Grid coordinates verify hierarchy here; the real
+                        # AtlasWindow screenshot checks rendered pixel order.
+                        for index, chip in enumerate(chips):
+                            self.assertIs(
+                                page.zaap.favorites_layout.itemAtPosition(
+                                    1 + index // 2, index % 2
+                                ).widget(),
+                                chip,
+                            )
+                        self.assertEqual(page.zaap_scroll.horizontalScrollBar().maximum(), 0)
+
+    def test_organizer_mode_and_pie_icons_share_the_same_white_tint(self):
+        from app.pages.organizer.organizer_ui import _organizer_action_icon
+
+        with tempfile.TemporaryDirectory() as temporary:
+            with self.organizer_page(Path(temporary)) as page:
+                for mode in (page.macro_mode_button, page.mirror_mode_button):
+                    self.assertFalse(mode.icon().isNull())
+                    self.assertEqual(mode.iconSize().width(), 17)
+                for kind in ("radial", "macro", "mirror"):
+                    with self.subTest(kind=kind):
+                        image = _organizer_action_icon(kind).pixmap(32, 32).toImage()
+                        opaque = [
+                            image.pixelColor(x, y)
+                            for x in range(image.width())
+                            for y in range(image.height())
+                            if image.pixelColor(x, y).alpha() >= 200
+                        ]
+                        self.assertGreater(len(opaque), 8)
+                        for color in opaque:
+                            # No green or blue pie slices; all mode and
+                            # action glyphs use the same off-white ink.
+                            self.assertLessEqual(
+                                max(color.red(), color.green(), color.blue())
+                                - min(color.red(), color.green(), color.blue()),
+                                30,
+                            )
+
+    def test_organizer_glass_style_covers_all_button_states(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            with self.organizer_page(Path(temporary)) as page:
+                css = page.styleSheet()
+                for selector in (
+                    "QPushButton#secondaryButton",
+                    "QPushButton#primaryButton",
+                    "QPushButton#dangerButton",
+                    "QPushButton#keyBadge",
+                    "QPushButton#iconButton",
+                    "QLineEdit#comboField",
+                    "QFrame#OrganizerModeSwitch",
+                    "QFrame#OrganizerSpeedSelector",
+                    "QWidget#favoriteChip",
+                    "QFrame#card",
+                ):
+                    with self.subTest(selector=selector):
+                        self.assertIn(selector, css)
+                for state in (":hover", ":pressed", ":disabled"):
+                    self.assertIn(f"QPushButton#secondaryButton{state}", css)
+                self.assertIn("qlineargradient", css)
+                self.assertIn("border-radius: 8px", css)
+                self.assertIn("QPushButton#keyBadge", css)
+                self.assertIn("border: none;", css)
+                from app.ui.unity_skin import UNITY_PALETTE
+                for role in (
+                    "PANEL", "PANEL_2", "PANEL_HOVER",
+                    "BORDER", "BORDER_CARD", "BORDER_STRONG",
+                    "GREEN_DARK", "GREEN_BORDER",
+                ):
+                    self.assertIn(UNITY_PALETTE[role], css)
+                # The old opaque gradient is replaced by semi-transparent
+                # gradients derived from the exact same Unity palette.
+                from app.pages.organizer.glass_material import (
+                    OrganizerGlassCard, OrganizerGlassButton,
+                    unity_glass_gradient, _diffuse_unity_wallpaper,
+                )
+                self.assertIn(unity_glass_gradient(), css)
+                self.assertIn("rgba(", css)
+                for panel in (
+                    page.macro_panel, page.quick_actions_panel,
+                    page.controls_panel, page.sessions_panel, page.zaap_panel,
+                ):
+                    self.assertIsInstance(panel, OrganizerGlassCard)
+                self.assertIsInstance(page.radial_select_button, OrganizerGlassButton)
+                self.assertIsInstance(page.stop_script_button, OrganizerGlassButton)
+                self.assertEqual(_diffuse_unity_wallpaper.cache_info().maxsize, 2)
+                # Glass intensity is a single bounded material adjustment,
+                # not another Organizer color palette or extra renderer.
+                from app.pages.organizer.glass_material import (
+                    GLASS_INTENSITY, _reflection_alpha, _surface_alpha,
+                )
+                self.assertEqual(GLASS_INTENSITY, 0.5)
+                self.assertEqual(_reflection_alpha(132), 66)
+                self.assertEqual(_reflection_alpha(60), 30)
+                self.assertEqual(_surface_alpha(143), 199)
+                self.assertEqual(_surface_alpha(173), 214)
+                self.assertIn(unity_glass_gradient(), css)
+                # The old invented palette must not drift away from Unity.
+                self.assertNotIn("#708BAD", css)
+                self.assertNotIn("#829FC3", css)
+
+    def test_all_shortcut_badges_share_exact_geometry_and_unity_style(self):
+        from app.pages.organizer.organizer_ui import OrganizerZaapWidget
+        from app.ui.unity_skin import UNITY_PALETTE
+
+        with tempfile.TemporaryDirectory() as temporary:
+            with self.organizer_page(Path(temporary)) as page:
+                badges = (
+                    page.click_button,
+                    page.double_click_button,
+                    page.radial_hotkey_button,
+                    page.previous_character_hotkey_button,
+                    page.next_character_hotkey_button,
+                    page.mirror_toggle_hotkey_button,
+                    page.stop_script_hotkey_button,
+                )
+                for badge in badges:
+                    with self.subTest(badge=badge.toolTip()):
+                        self.assertEqual(badge.objectName(), "keyBadge")
+                        self.assertEqual((badge.width(), badge.height()), (52, 22))
+                page.sessions = [
+                    {"nom": f"Perso demo {i}", "hwnd": 950000 + i,
+                     "pid": 91000 + i, "_preview_only": True}
+                    for i in range(8)
+                ]
+                page.render_sessions()
+                for row, _ in page.session_slot_widgets:
+                    shortcut = next(
+                        b for b in row.findChildren(QPushButton)
+                        if b.objectName() == "keyBadge"
+                    )
+                    self.assertEqual((shortcut.width(), shortcut.height()), (52, 22))
+                style = page.styleSheet()
+                self.assertIn(UNITY_PALETTE["PANEL_HOVER"], style)
+                self.assertIn(UNITY_PALETTE["BORDER_STRONG"], style)
+                self.assertIsInstance(page.zaap, OrganizerZaapWidget)
+
+    def test_organizer_portrait_black_border_is_transparent(self):
+        from PySide6.QtGui import QColor, QImage
+        from app.pages.organizer.organizer_ui import _organizer_class_pixmap
+
+        with tempfile.TemporaryDirectory() as temporary:
+            path = Path(temporary) / "dark-bordered-portrait.png"
+            image = QImage(20, 20, QImage.Format_ARGB32)
+            image.fill(QColor("#090909"))
+            for row in range(5, 15):
+                for column in range(5, 15):
+                    image.setPixelColor(column, row, QColor("#C68D57"))
+            self.assertTrue(image.save(str(path)))
+            clean = _organizer_class_pixmap(str(path)).toImage()
+            self.assertEqual(clean.pixelColor(0, 0).alpha(), 0)
+            self.assertGreater(clean.pixelColor(11, 11).alpha(), 0)
+
+    def test_real_slot_and_favorite_icons_are_painted_not_missing_glyphs(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            with self.organizer_page(Path(temporary)) as page:
+                page.sessions = [
+                    {"nom": f"Perso demo {i}", "hwnd": 950000 + i,
+                     "pid": 91000 + i, "_preview_only": True}
+                    for i in range(8)
+                ]
+                page.render_sessions()
+                self.assertEqual(len(page.session_slot_widgets), 8)
+                for row, _index in page.session_slot_widgets:
+                    controls = row.findChildren(QPushButton)
+                    grip = next(button for button in controls
+                                if button.objectName() == "DragHandle")
+                    star = next(button for button in controls
+                                if button.objectName() in
+                                ("FavoriteButton", "FavoriteButtonActive"))
+                    self.assertEqual(grip.text(), "")
+                    self.assertEqual(star.text(), "")
+                    self.assertFalse(grip.icon().isNull())
+                    self.assertFalse(star.icon().isNull())
+                page.zaap.zaaps = [
+                    {"name": "Astrub", "label": "Astrub", "x": 0, "y": -21},
+                    {"name": "Bonta", "label": "Bonta", "x": -31, "y": -55},
+                ]
+                page.zaap.favorite_names = ["Astrub", "Bonta"]
+                page.zaap.refresh_favorite_chips()
+                self.assertEqual(len(page.zaap.favorite_star_buttons), 2)
+                for star in page.zaap.favorite_star_buttons:
+                    self.assertEqual(star.text(), "")
+                    self.assertFalse(star.icon().isNull())
+
+    def test_unified_mode_switch_and_empty_quick_actions_are_safe(self):
+        from app.constants import KEY_ORGANIZER_MACRO_MODE
+        with tempfile.TemporaryDirectory() as temporary:
+            with self.organizer_page(Path(temporary)) as page:
+                for control in (page.quick_placeholder_1, page.quick_placeholder_2):
+                    self.assertFalse(control.isEnabled())
+                    self.assertIn("aucune action", control.toolTip())
+                self.assertTrue(page.macro_grid_host.isEnabled())
+                self.assertEqual(page.mode_switch._selected, 0)
+                self.assertTrue(page.mirror_mode_button.parentWidget().isAncestorOf(
+                    page.mirror_toggle_hotkey_button
+                ))
+                page.profiles[KEY_ORGANIZER_MACRO_MODE] = "mirror"
+                page.update_macro_mode_buttons()
+                self.assertEqual(page.mode_switch._selected, 1)
+                self.assertFalse(page.macro_grid_host.isEnabled())
+                self.assertFalse(page.switch_character.isEnabled())
+                self.assertFalse(page.switch_movement.isEnabled())
+                self.assertTrue(page.mirror_mode_button.isEnabled())
+                page.set_mirror_arm_active(True)
+                self.assertEqual(page.mode_switch.highlight.objectName(),
+                                 "OrganizerModeHighlightArmed")
+                page.profiles[KEY_ORGANIZER_MACRO_MODE] = "macro"
+                page.update_macro_mode_buttons()
+                self.assertEqual(page.mode_switch._selected, 0)
+                self.assertFalse(page._mirror_arm_active)
+                self.assertTrue(page.macro_grid_host.isEnabled())
+                self.assertTrue(page.switch_character.isEnabled())
+
+    def test_organizer_three_panels_and_small_window_scroll(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            with self.organizer_page(Path(temporary)) as page:
+                page.resize(1380, 900)
+                self.app.processEvents()
+                self.assertIs(page.controls_panels_grid.itemAtPosition(1, 0).widget(), page.macro_panel)
+                self.assertIs(page.controls_panels_grid.itemAtPosition(1, 1).widget(), page.quick_actions_panel)
+                self.assertIs(page.controls_panels_grid.itemAtPosition(1, 2).widget(), page.controls_panel)
+                for column, (header, panel) in enumerate(zip(
+                    page._organizer_panel_headers, page._organizer_panels
+                )):
+                    self.assertIs(page.controls_panels_grid.itemAtPosition(0, column).widget(), header)
+                    self.assertLess(header.height(), panel.height())
+                self.assertTrue(all(
+                    panel.graphicsEffect() is not None for panel in
+                    (*page._organizer_panels, page.zaap_panel, page.sessions_panel)
+                ))
+                self.assertEqual(page.macro_panel.height(), 146)
+                self.assertEqual(page.quick_actions_panel.height(), 146)
+                self.assertEqual(page.controls_panel.height(), 146)
+                self.assertTrue(page.macro_panel.isAncestorOf(page.macro_mode_button))
+                self.assertTrue(page.macro_panel.isAncestorOf(page.mirror_mode_button))
+                self.assertFalse(page.macro_mode_header.isAncestorOf(page.macro_mode_button))
+                self.assertEqual(page.macro_section_title.text(), "Macro / Miroir")
+                self.assertEqual(page.mode_switch._selected, 0)
+                self.assertEqual(page.mode_switch.height(), page.macro_mode_button.height())
+                self.assertEqual(page.mode_switch.layout().spacing(), 8)
+                self.assertEqual(page.macro_panel.layout().spacing(), 8)
+                self.assertEqual(page.stop_script_button.text(), "STOP URGENCE")
+                self.assertFalse(page.stop_script_button.icon().isNull())
+                self.assertFalse(page.sessions_refresh_button.icon().isNull())
+                self.assertEqual(page.sessions_refresh_button.text(), "")
+                self.assertFalse(page.quick_placeholder_1.isEnabled())
+                self.assertFalse(page.quick_placeholder_2.isEnabled())
+                self.assertIn("border-image: none", page.styleSheet())
+                self.assertIn("GlassCard paints a cached diffused backdrop", page.styleSheet())
+                self.assertFalse(page.radial_select_button.icon().isNull())
+                self.assertFalse(page.switch_character.icon().isNull())
+                self.assertFalse(page.switch_click.icon().isNull())
+                self.assertFalse(page.switch_double_click.icon().isNull())
+                self.assertFalse(page.switch_movement.icon().isNull())
+                self.assertFalse(page.switch_fake.icon().isNull())
+                self.assertFalse(page.reload_runtime_button.icon().isNull())
+                self.assertFalse(page.debug_button.icon().isNull())
+                self.assertTrue(page.previous_character.icon().isNull())
+                self.assertTrue(page.next_character.icon().isNull())
+                self.assertEqual(len(page.session_slot_widgets), 8)
+                self.assertIs(page.runtime_status_dot.parentWidget(), page.organizer_scroll.widget())
+                self.assertLessEqual(page.macro_panel.y(), page.quick_actions_panel.y())
+                self.assertEqual(page.macro_panel.y(), page.controls_panel.y())
+                page.resize(1000, 470)
+                self.app.processEvents()
+                self.assertIs(page.controls_panels_grid.itemAtPosition(3, 0).widget(), page.controls_panel)
+                self.assertEqual(len(page.session_slot_widgets), 8)
+                # Exercise scrolling even when offscreen Qt has not resized
+                # the standalone page's viewport to its requested height.
+                viewport = page.organizer_scroll.viewport()
+                page.organizer_scroll.widget().setMinimumHeight(viewport.height() + 200)
+                self.app.processEvents()
+                self.assertGreater(page.organizer_scroll.verticalScrollBar().maximum(), 0)
+                page.organizer_scroll.verticalScrollBar().setValue(
+                    page.organizer_scroll.verticalScrollBar().maximum()
+                )
+                self.assertGreater(page.organizer_scroll.verticalScrollBar().value(), 0)
+                # The real AtlasWindow capture checks that the whole row is
+                # accessible at 1000px, without horizontal overflow.
+
+    def test_mirror_button_is_explicit_arm_and_badge_does_not_arm(self):
+        from app.constants import KEY_ORGANIZER_MACRO_MODE
+        with tempfile.TemporaryDirectory() as temporary:
+            with self.organizer_page(Path(temporary)) as page:
+                states = []
+                armed = [False]
+                def toggle():
+                    armed[0] = not armed[0]
+                    states.append(armed[0])
+                    return armed[0]
+                page.mirror_arm_callback = toggle
+                page.reload_runtime_callback = lambda *_args: None
+                page.stop_runtime_callback = lambda *_args: None
+                self.assertFalse(page._mirror_arm_active)
+                self.assertEqual(page.profiles.get(KEY_ORGANIZER_MACRO_MODE, "macro"), "macro")
+                page.mirror_toggle_hotkey_button.click()
+                self.assertEqual(states, [])
+                page.mirror_mode_button.click()
+                self.assertEqual(page.profiles[KEY_ORGANIZER_MACRO_MODE], "mirror")
+                self.assertEqual(states, [True])
+                self.assertTrue(page._mirror_arm_active)
+                self.assertFalse(page.next_character.isEnabled())
+                page.mirror_mode_button.click()
+                self.assertEqual(states, [True, False])
+                self.assertFalse(page._mirror_arm_active)
+                self.assertTrue(page.next_character.isEnabled())
+                page.macro_mode_button.click()
+                self.assertEqual(page.profiles[KEY_ORGANIZER_MACRO_MODE], "macro")
+                self.assertFalse(page._mirror_arm_active)
+
+    def test_navigation_buttons_use_canonical_switch_not_on_off_badges(self):
+        from app.constants import KEY_SWITCH_CHARACTER, KEY_ORGANIZER_MACRO_MODE
+        with tempfile.TemporaryDirectory() as temporary:
+            with self.organizer_page(Path(temporary)) as page:
+                self.assertFalse(hasattr(page, "next_character_enable_button"))
+                self.assertFalse(hasattr(page, "previous_character_enable_button"))
+                self.assertTrue(page.profiles[KEY_SWITCH_CHARACTER])
+                self.assertTrue(page.next_character.isEnabled())
+                self.assertTrue(page.previous_character.isEnabled())
+                page.switch_character.click()
+                self.assertFalse(page.profiles[KEY_SWITCH_CHARACTER])
+                self.assertFalse(page.next_character.isEnabled())
+                self.assertFalse(page.previous_character.isEnabled())
+                page.switch_character.click()
+                self.assertTrue(page.profiles[KEY_SWITCH_CHARACTER])
+                page.profiles[KEY_ORGANIZER_MACRO_MODE] = "mirror"
+                page.update_macro_mode_buttons()
+                page.set_mirror_arm_active(True)
+                self.assertFalse(page.next_character.isEnabled())
+                self.assertFalse(page.previous_character.isEnabled())
+                page.set_mirror_arm_active(False)
+                self.assertTrue(page.next_character.isEnabled())
+                self.assertTrue(page.previous_character.isEnabled())
+
+    def test_embedded_hotkey_badges_leave_space_for_full_button_labels(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            with self.organizer_page(Path(temporary)) as page:
+                page.resize(1380, 900)
+                self.app.processEvents()
+                for action, reserve in (
+                    (page.radial_select_button, 40),
+                    (page.previous_character, 40),
+                    (page.next_character, 40),
+                    (page.mirror_mode_button, 48),
+                ):
+                    with self.subTest(button=action.text()):
+                        available = action.width() - reserve - 4
+                        label_width = action.fontMetrics().horizontalAdvance(action.text())
+                        self.assertGreaterEqual(available, label_width)
+                for action, badge in (
+                    (page.previous_character, page.previous_character_hotkey_button),
+                    (page.next_character, page.next_character_hotkey_button),
+                    (page.mirror_mode_button, page.mirror_toggle_hotkey_button),
+                    (page.stop_script_button, page.stop_script_hotkey_button),
+                ):
+                    with self.subTest(button=action.text()):
+                        self.assertTrue(action.parentWidget().isAncestorOf(badge))
+                        # Geometry of a standalone offscreen page can be
+                        # stale before its containing AtlasWindow is laid out.
+                        # Check the actual inset owned by the badge wrapper;
+                        # the Windows shell capture separately checks pixels.
+                        self.assertEqual(
+                            badge.parentWidget().layout().contentsMargins().right(),
+                            8,
+                        )
+                self.assertEqual(page.macro_mode_button.size(), page.mirror_mode_button.size())
+                self.assertLessEqual(abs(
+                    page.mirror_mode_button.mapTo(page.mode_switch, QPoint()).x()
+                    - page.macro_mode_button.mapTo(page.mode_switch, QPoint()).x()
+                    - (page.macro_mode_button.width() + 8)
+                ), 1)
+                self.assertLess(
+                    page.mode_switch.mapTo(page.macro_panel, QPoint()).y(),
+                    page.switch_movement.mapTo(page.macro_panel, QPoint()).y(),
+                )
+                self.assertEqual(page.mode_switch._selected, 0)
+                # Mode switch, all shortcuts and all bottom borders now have
+                # the same column starts and sufficient bottom breathing room.
+                for mode, action in (
+                    (page.macro_mode_button, page.switch_character),
+                    (page.mirror_mode_button, page.switch_click),
+                ):
+                    self.assertEqual(
+                        mode.mapTo(page.macro_panel, QPoint()).x(),
+                        action.mapTo(page.macro_panel, QPoint()).x(),
+                    )
+                bottom = max(
+                    page.switch_movement.mapTo(page.macro_panel, QPoint()).y()
+                    + page.switch_movement.height(),
+                    page.switch_double_click.mapTo(page.macro_panel, QPoint()).y()
+                    + page.switch_double_click.height(),
+                )
+                self.assertGreaterEqual(page.macro_panel.height() - bottom, 12)
+                self.assertEqual(page.macro_mode_button.height(), page.next_character.height())
+                self.assertEqual(page.reload_runtime_button.size(), page.next_character.size())
+                self.assertEqual(page.debug_button.size(), page.next_character.size())
+                # The controls grid owns three full 30px rows, not a squeezed middle row.
+                self.assertEqual(
+                    page.reload_runtime_button.parentWidget().height(),
+                    3 * page.next_character.height() + 2 * 8,
+                )
+                self.assertEqual(page.stop_script_button.height(), page.next_character.height())
+
+    def test_single_sliding_speed_track_preserves_all_three_profiles(self):
+        from app.constants import KEY_SCRIPT_SPEED, KEY_SCRIPT_SPEED_SCHEMA
         with tempfile.TemporaryDirectory() as temporary:
             with self.organizer_page(Path(temporary)) as page:
                 self.app.processEvents()
@@ -999,54 +1468,84 @@ class OrganizerLayoutTests(unittest.TestCase):
                 rapid = page.script_speed_fast
                 instant = page.script_speed_instant
                 classic = page.script_speed_legacy
+                selector = page.speed_selector
+                self.assertTrue(selector.highlight.testAttribute(
+                    Qt.WA_TransparentForMouseEvents
+                ))
+                self.assertEqual(page.script_speed_title.text(), "Vitesse")
                 self.assertTrue(page.script_speed_title.isVisible())
-                self.assertEqual(page.script_speed_title.text(), "Vitesse :")
-                self.assertIs(page.script_speed_title.parentWidget(), normal.parentWidget())
-                self.assertEqual(page.script_speed_title.y(), normal.y())
-                self.assertLess(page.script_speed_title.x(), normal.x())
-                self.assertLessEqual(
-                    instant.x() + instant.width(), instant.parentWidget().width(),
-                )
+                self.assertIs(selector.parentWidget(), page.script_speed_title.parentWidget())
+                self.assertTrue(page.controls_panel.isAncestorOf(selector))
+                self.assertEqual(selector.height(), page.next_character.height())
+                self.assertEqual(selector.width(), 340)
                 self.assertTrue(classic.isHidden())
-                self.assertEqual(normal.parent(), rapid.parent())
-                self.assertEqual(normal.parent(), instant.parent())
-                self.assertEqual(normal.y(), rapid.y())
-                self.assertEqual(rapid.y(), instant.y())
-                self.assertLess(normal.x(), rapid.x())
-                self.assertLess(rapid.x(), instant.x())
-                self.assertTrue(all(button.isVisible() for button in (normal, rapid, instant)))
+                self.assertEqual(selector._choices, (normal, rapid, instant))
+                self.assertTrue(all(button.isVisible() for button in selector._choices))
+                self.assertEqual(len({button.parentWidget() for button in selector._choices}), 1)
+                self.assertTrue(all(button.parentWidget() is selector for button in selector._choices))
+                self.assertFalse(any(button.text() == "Classique"
+                                     for button in selector._choices))
+                self.assertEqual(page.previous_character.text(), "Précédent")
+                self.assertEqual(page.next_character.text(), "Suivant")
                 self.assertEqual(page.radial_select_button.height(), page.switch_fake.height())
-                self.assertEqual(page.radial_select_button.text(), "Sélection perso")
-                self.assertIs(page.stop_script_button.parentWidget(),
-                              page.stop_script_hotkey_button.parentWidget())
-                self.assertGreaterEqual(page.stop_script_hotkey_button.x(), 0)
-                self.assertLessEqual(
-                    page.stop_script_hotkey_button.x() + page.stop_script_hotkey_button.width(),
-                    page.stop_script_button.width(),
+                self.assertTrue(
+                    page.stop_script_button.parentWidget().isAncestorOf(
+                        page.stop_script_hotkey_button
+                    )
                 )
-                from app.constants import KEY_SCRIPT_SPEED, KEY_SCRIPT_SPEED_SCHEMA
-                for value, selected in (
-                    ("normal", normal), ("rapide", rapid),
-                    ("instantane", instant),
-                ):
+                for value, index in (("normal", 0), ("rapide", 1), ("instantane", 2)):
                     page.profiles[KEY_SCRIPT_SPEED] = value
                     page.profiles[KEY_SCRIPT_SPEED_SCHEMA] = 2
                     page.update_script_speed_buttons()
-                    for button in (normal, rapid, instant):
+                    self.assertEqual(selector._selected, index)
+                    self.assertEqual(
+                        [button.objectName() for button in selector._choices],
+                        ["OrganizerSpeedChoiceSelected" if slot == index else
+                         "OrganizerSpeedChoice" for slot in range(3)],
+                    )
+                    self.assertTrue(selector.highlight.isVisible())
+                    if selector._motion.state() == QAbstractAnimation.State.Running:
                         self.assertEqual(
-                            button.objectName(),
-                            "segmentedButtonActive" if button is selected
-                            else "segmentedButton",
+                            selector._motion.endValue(),
+                            selector._choices[index].geometry().topLeft(),
                         )
-                # Legacy profiles retain their slower timing, but Classique
-                # is never displayed or misrepresented as Normal.
+                    else:
+                        self.assertEqual(
+                            selector.highlight.pos(),
+                            selector._choices[index].geometry().topLeft(),
+                        )
+                # An old Classique profile still has the original timing and
+                # no visible active preset, instead of silently showing Normal.
                 page.profiles[KEY_SCRIPT_SPEED] = "classique"
                 page.update_script_speed_buttons()
                 self.assertTrue(classic.isHidden())
+                self.assertIsNone(selector._selected)
+                self.assertTrue(selector.highlight.isHidden())
                 self.assertTrue(all(
-                    button.objectName() == "segmentedButton"
-                    for button in (normal, rapid, instant)
+                    button.objectName() == "OrganizerSpeedChoice"
+                    for button in selector._choices
                 ))
+
+    def test_speed_track_click_reuses_existing_persisted_action(self):
+        from app.constants import KEY_SCRIPT_SPEED, KEY_SCRIPT_SPEED_SCHEMA
+        with tempfile.TemporaryDirectory() as temporary:
+            with self.organizer_page(Path(temporary)) as page:
+                stop_calls = []
+                reload_calls = []
+                page.stop_runtime_callback = lambda *args: stop_calls.append(args)
+                page.reload_runtime_callback = lambda *args: reload_calls.append(args)
+                page.profiles[KEY_SCRIPT_SPEED_SCHEMA] = 2
+                page.profiles[KEY_SCRIPT_SPEED] = "normal"
+                page.update_script_speed_buttons()
+                page.script_speed_fast.click()
+                self.assertEqual(page.profiles[KEY_SCRIPT_SPEED], "rapide")
+                self.assertEqual(page.speed_selector._selected, 1)
+                self.assertEqual(len(stop_calls), 1)
+                self.assertEqual(len(reload_calls), 1)
+                # Clicking the current choice must not restart live macro workers.
+                page.script_speed_fast.click()
+                self.assertEqual(len(stop_calls), 1)
+                self.assertEqual(len(reload_calls), 1)
 
 
 if __name__ == "__main__":

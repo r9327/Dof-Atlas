@@ -54,6 +54,22 @@ class ModularDomainRoutingTests(unittest.TestCase):
     def route(self, paths, deleted=()):
         return plan_domains(base_sha=B, candidate_sha=H, paths=paths, deleted=list(deleted))
 
+    def test_exact_organizer_qt_capture_scripts_keep_strict_ownership(self):
+        # Only the two audited, synthetic, offscreen screenshot producers are
+        # owned. A future arbitrary capture executable is still blocked.
+        domains = frozenset({"organizer", "ui", "identity"})
+        for path in ("tests/capture_organizer_ui.py",
+                     "tests/capture_organizer_shell.py"):
+            with self.subTest(path=path):
+                self.assertEqual(owners_for(path), domains)
+                plan = self.route([path])
+                self.assertEqual(plan["status"], "READY_TO_EXECUTE")
+                self.assertEqual(plan["unknown_paths"], [])
+                self.assertFalse(plan["phase_certified"])
+        unknown = "tests/capture_organizer_unreviewed.py"
+        self.assertEqual(owners_for(unknown), frozenset())
+        self.assertEqual(self.route([unknown])["status"], "BLOCKED")
+
     def test_reviewed_organizer_files_get_strict_cross_domain_ownership(self):
         # Neither an unrelated macro nor a future native hook gets a free pass.
         cases = {
