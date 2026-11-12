@@ -1081,10 +1081,10 @@ class OrganizerLayoutTests(unittest.TestCase):
                 page.resize(1380, 900)
                 self.app.processEvents()
                 for action, reserve in (
-                    (page.radial_select_button, 48),
-                    (page.previous_character, 82),
-                    (page.next_character, 82),
-                    (page.mirror_mode_button, 48),
+                    (page.radial_select_button, 40),
+                    (page.previous_character, 75),
+                    (page.next_character, 75),
+                    (page.mirror_mode_button, 40),
                 ):
                     with self.subTest(button=action.text()):
                         available = action.width() - reserve - 4
