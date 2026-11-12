@@ -691,7 +691,9 @@ class OrganizerUiMixin:
         )
         self.restyle_button(button)
         self.mirror_mode_button.setObjectName(
-            "primaryButton" if active else "secondaryButton"
+            "primaryButton" if active else
+            "segmentedButtonActive" if self.profiles.get(KEY_ORGANIZER_MACRO_MODE) == "mirror"
+            else "secondaryButton"
         )
         self.mirror_mode_button.setToolTip(
             "Arrêter la copie Miroir (clics, touches courtes, molette)."
