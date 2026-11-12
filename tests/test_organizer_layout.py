@@ -867,14 +867,13 @@ class OrganizerLayoutTests(unittest.TestCase):
             panel.deleteLater()
             self.app.processEvents()
 
-    def test_organizer_adaptive_slots_are_reachable_without_internal_scroll_area(self):
+    def test_organizer_always_displays_eight_reorderable_slots(self):
         with tempfile.TemporaryDirectory() as temporary:
             with self.organizer_page(Path(temporary)) as page:
                 self.assertEqual(page.session_slot_count(), 8)
-                self.assertEqual(len(page.session_slot_widgets), 2)
-                self.assertEqual(page.sessions_panel.findChildren(QScrollArea), [])
-                page.sessions_panel.expand_button.click()
                 self.assertEqual(len(page.session_slot_widgets), 8)
+                self.assertFalse(hasattr(page.sessions_panel, "expand_button"))
+                self.assertEqual(page.sessions_panel.findChildren(QScrollArea), [])
                 self.assertEqual(
                     sorted(page.sessions_panel.grid_position(index) for _widget, index in page.session_slot_widgets),
                     [(0, 0), (0, 1), (1, 0), (1, 1), (2, 0), (2, 1), (3, 0), (3, 1)],
@@ -899,7 +898,7 @@ class OrganizerLayoutTests(unittest.TestCase):
 
         with tempfile.TemporaryDirectory() as temporary:
             with self.organizer_page(Path(temporary)) as page:
-                self.assertEqual(len(page.session_slot_widgets), 2)
+                self.assertEqual(len(page.session_slot_widgets), 8)
                 watcher = page.session_event_watcher
                 previous_sessions = list(page.sessions)
                 page.hide()
@@ -911,8 +910,8 @@ class OrganizerLayoutTests(unittest.TestCase):
                 self.assertEqual(page.sessions, previous_sessions)
                 page.show()
                 self.app.processEvents()
-                self.assertEqual(page.sessions_panel.grid.count(), 2)
-                self.assertEqual(len(page.session_slot_widgets), 2)
+                self.assertEqual(page.sessions_panel.grid.count(), 8)
+                self.assertEqual(len(page.session_slot_widgets), 8)
                 self.assertIs(page.session_event_watcher, watcher)
 
     def test_reorder_keeps_exactly_eight_slots_and_persists_detected_order(self):
@@ -997,16 +996,26 @@ class OrganizerLayoutTests(unittest.TestCase):
             with self.organizer_page(Path(temporary)) as page:
                 page.resize(1380, 900)
                 self.app.processEvents()
-                self.assertIs(page.controls_panels_grid.itemAtPosition(0, 0).widget(), page.macro_panel)
-                self.assertIs(page.controls_panels_grid.itemAtPosition(0, 1).widget(), page.quick_actions_panel)
-                self.assertIs(page.controls_panels_grid.itemAtPosition(0, 2).widget(), page.controls_panel)
+                self.assertIs(page.controls_panels_grid.itemAtPosition(1, 0).widget(), page.macro_panel)
+                self.assertIs(page.controls_panels_grid.itemAtPosition(1, 1).widget(), page.quick_actions_panel)
+                self.assertIs(page.controls_panels_grid.itemAtPosition(1, 2).widget(), page.controls_panel)
+                for column, (header, panel) in enumerate(zip(
+                    page._organizer_panel_headers, page._organizer_panels
+                )):
+                    self.assertIs(page.controls_panels_grid.itemAtPosition(0, column).widget(), header)
+                    self.assertLess(header.height(), panel.height())
+                self.assertTrue(all(
+                    panel.graphicsEffect() is None for panel in
+                    (*page._organizer_panels, page.zaap_panel, page.sessions_panel)
+                ))
+                self.assertEqual(page.macro_panel.height(), 154)
+                self.assertEqual(len(page.session_slot_widgets), 8)
                 self.assertIs(page.runtime_status_dot.parentWidget(), page.organizer_scroll.widget())
                 self.assertLessEqual(page.macro_panel.y(), page.quick_actions_panel.y())
                 self.assertEqual(page.macro_panel.y(), page.controls_panel.y())
                 page.resize(1000, 470)
-                page.sessions_panel.expand_button.click()
                 self.app.processEvents()
-                self.assertIs(page.controls_panels_grid.itemAtPosition(1, 0).widget(), page.controls_panel)
+                self.assertIs(page.controls_panels_grid.itemAtPosition(3, 0).widget(), page.controls_panel)
                 self.assertEqual(len(page.session_slot_widgets), 8)
                 self.assertGreater(page.organizer_scroll.verticalScrollBar().maximum(), 0)
                 page.organizer_scroll.ensureWidgetVisible(page.sessions_panel)
