@@ -56,7 +56,39 @@ def main() -> None:
                 page.profiles[KEY_SCRIPT_SPEED_SCHEMA] = 2
                 page.profiles[KEY_SCRIPT_SPEED] = "normal"
                 page.update_script_speed_buttons()
-                app.processEvents()
+
+                # Preview data stays IN THIS CI SCREENSHOT SCRIPT. No fake
+                # clients/favorites are added to production or user profiles.
+                demo_names = (
+                    "Pandawa Witsis", "Huppermage Lokidor",
+                    "Ecaflip Jokhair", "Enutrof Flooky",
+                    "Sacrieur Sangrilla", "Feca Perso-6",
+                    "Forgelance Perso-7", "Eniripsa Perso-8",
+                )
+                page.sessions = [
+                    {"nom": name, "hwnd": 900001 + index,
+                     "pid": 9001 + index, "_preview_only": True}
+                    for index, name in enumerate(demo_names)
+                ]
+                page.render_sessions()
+                favorite_names = ("Astrub", "Bonta", "Frigost")
+                page.zaap.zaaps = [
+                    {"name": name, "label": name, "search": name, "x": i, "y": -i}
+                    for i, name in enumerate(favorite_names)
+                ]
+                page.zaap.favorite_names = list(favorite_names)
+                page.zaap.refresh_favorite_chips()
+                page.zaap.refresh_results("")
+                manifest["preview_only"] = {
+                    "characters": list(demo_names),
+                    "zaap_favorites": list(favorite_names),
+                    "no_native_windows": True,
+                    "no_user_data_changed": True,
+                }
+                for _ in range(5):
+                    app.processEvents()
+                if len(page.zaap.favorite_buttons) != 3:
+                    raise RuntimeError("Three preview Zaap favorites were not rendered")
                 aligned = {}
                 for name, above, below in (
                     ("Macro", page.macro_mode_button, page.switch_character),
@@ -69,7 +101,10 @@ def main() -> None:
                         raise RuntimeError(
                             f"{name} header misaligned from Macro grid by {dx} px"
                         )
-                manifest["mode_header_alignment_px"] = aligned
+                manifest["mode_switch_alignment_px"] = aligned
+                if not (page.mode_switch.mapTo(window, QPoint()).y()
+                        > page.switch_movement.mapTo(window, QPoint()).y()):
+                    raise RuntimeError("Macro/Mirror switch is not below the Macro grid")
                 manifest["speed_preset_fixture"] = "normal-v2-synthetic-only"
 
                 def capture(name: str, expected_slots: int) -> None:
@@ -79,6 +114,14 @@ def main() -> None:
                             f"Screenshot {name}: expected {expected_slots} slots, "
                             f"got {len(page.session_slot_widgets)}"
                         )
+                    if len(page.zaap.favorite_buttons) != 3:
+                        raise RuntimeError("Preview favorites missing from Zaap")
+                    if page.stop_script_button.text() != "STOP URGENCE":
+                        raise RuntimeError("Emergency stop caption changed")
+                    if page.stop_script_button.icon().isNull():
+                        raise RuntimeError("Warning icon missing")
+                    if page.sessions_refresh_button.icon().isNull():
+                        raise RuntimeError("Refresh icon missing")
                     shot = window.grab()
                     file = destination / (name + ".png")
                     if shot.isNull() or not shot.save(str(file), "PNG") or file.stat().st_size < 2000:
@@ -114,6 +157,17 @@ def main() -> None:
                 capture("organizer-window-1380x900", 8)
                 page.render_sessions()
                 capture("organizer-window-1380x900-8slots", 8)
+                # Visually demonstrate disabled Macro actions without arming
+                # or starting any native input relay in the CI fixture.
+                from app.constants import KEY_ORGANIZER_MACRO_MODE
+                page.profiles[KEY_ORGANIZER_MACRO_MODE] = "mirror"
+                page.update_macro_mode_buttons()
+                app.processEvents()
+                if page._mirror_arm_active or page.macro_grid_host.isEnabled():
+                    raise RuntimeError("Disarmed Mirror preview must gray out Macro")
+                capture("organizer-window-1380x900-mirror-disarmed", 8)
+                page.profiles[KEY_ORGANIZER_MACRO_MODE] = "macro"
+                page.update_macro_mode_buttons()
                 window.resize(1000, 740)
                 for _ in range(5):
                     app.processEvents()
@@ -128,7 +182,7 @@ def main() -> None:
                     window.close()
                     app.processEvents()
 
-    if len(manifest["captures"]) != 4:
+    if len(manifest["captures"]) != 5:
         raise RuntimeError("Missing Organizer screenshot scenario")
     (destination / "manifest.json").write_text(
         json.dumps(manifest, ensure_ascii=False, indent=2), encoding="utf-8",
