@@ -992,6 +992,31 @@ class OrganizerLayoutTests(unittest.TestCase):
                 self.assertEqual(page.previous_character.height(), page.next_character.height())
                 self.assertTrue(page.mirror_arm_button.isHidden())
 
+    def test_zaap_is_slim_right_sidebar_without_changing_eight_slots(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            with self.organizer_page(Path(temporary)) as page:
+                page.resize(1380, 900)
+                self.app.processEvents()
+                self.assertEqual(page.bottom_panels_row.count(), 2)
+                self.assertIs(page.bottom_panels_row.itemAt(0).widget(), page.sessions_panel)
+                self.assertIs(page.bottom_panels_row.itemAt(1).widget(), page.zaap_panel)
+                self.assertEqual(len(page.session_slot_widgets), 8)
+                self.assertEqual(page.zaap_panel.height(), page.sessions_panel.height())
+                self.assertGreater(page.zaap_panel.x(), page.sessions_panel.x())
+                self.assertTrue(page.zaap.zaap_label.isHidden())
+                self.assertEqual(page.zaap.search_input.minimumWidth(), 90)
+                self.assertTrue(page.zaap.search_input.isVisible())
+                self.assertTrue(page.zaap.show_favorites)
+                self.assertTrue(page.zaap.compact_favorites)
+                self.assertEqual(page.zaap_scroll.horizontalScrollBar().maximum(), 0)
+                self.assertFalse(hasattr(page.sessions_panel, "expand_button"))
+
+                page.resize(1000, 740)
+                self.app.processEvents()
+                self.assertEqual(len(page.session_slot_widgets), 8)
+                self.assertEqual(page.zaap_scroll.horizontalScrollBar().maximum(), 0)
+                self.assertEqual(page.organizer_scroll.horizontalScrollBar().maximum(), 0)
+
     def test_organizer_three_panels_and_small_window_scroll(self):
         with tempfile.TemporaryDirectory() as temporary:
             with self.organizer_page(Path(temporary)) as page:
