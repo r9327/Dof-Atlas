@@ -121,6 +121,68 @@ def _organizer_refresh_icon() -> QIcon:
     return QIcon(pixmap)
 
 
+def _organizer_action_icon(kind: str) -> QIcon:
+    """Compact antialiased icons; no platform-font glyph dependencies."""
+    pixmap = QPixmap(32, 32)
+    pixmap.fill(Qt.transparent)
+    painter = QPainter(pixmap)
+    painter.setRenderHint(QPainter.Antialiasing)
+    painter.setPen(QPen(QColor("#E3EEF9"), 2, Qt.SolidLine, Qt.RoundCap, Qt.RoundJoin))
+    if kind == "radial":
+        # The real held-key character selector is a circular pie menu.
+        for index in range(8):
+            painter.setBrush(QColor("#A9D574" if index % 2 else "#6D99C8"))
+            painter.setPen(QPen(QColor("#1C3254"), 1.1))
+            painter.drawPie(QRectF(4, 4, 24, 24), index * 45 * 16, 45 * 16)
+        painter.setBrush(QColor("#25456F"))
+        painter.setPen(QPen(QColor("#E3EEF9"), 1.5))
+        painter.drawEllipse(QRectF(12, 12, 8, 8))
+    elif kind == "group":
+        painter.drawEllipse(QRectF(5, 7, 8, 8))
+        painter.drawEllipse(QRectF(19, 7, 8, 8))
+        painter.drawArc(QRectF(3, 16, 13, 11), 0, 180 * 16)
+        painter.drawArc(QRectF(16, 16, 13, 11), 0, 180 * 16)
+    elif kind == "switch":
+        painter.drawLine(QPointF(5, 11), QPointF(26, 11))
+        painter.drawLine(QPointF(22, 7), QPointF(26, 11))
+        painter.drawLine(QPointF(26, 11), QPointF(22, 15))
+        painter.drawLine(QPointF(27, 21), QPointF(6, 21))
+        painter.drawLine(QPointF(10, 17), QPointF(6, 21))
+        painter.drawLine(QPointF(6, 21), QPointF(10, 25))
+    elif kind == "move":
+        painter.drawLine(QPointF(16, 4), QPointF(16, 28))
+        painter.drawLine(QPointF(4, 16), QPointF(28, 16))
+        for end, a, b in (
+            (QPointF(16, 4), QPointF(12, 9), QPointF(20, 9)),
+            (QPointF(16, 28), QPointF(12, 23), QPointF(20, 23)),
+            (QPointF(4, 16), QPointF(9, 12), QPointF(9, 20)),
+            (QPointF(28, 16), QPointF(23, 12), QPointF(23, 20)),
+        ):
+            painter.drawLine(end, a)
+            painter.drawLine(end, b)
+    elif kind == "click":
+        painter.setBrush(QColor("#B9D3ED"))
+        painter.drawPolygon(QPolygonF([
+            QPointF(6, 4), QPointF(8, 25), QPointF(13, 19),
+            QPointF(19, 27), QPointF(23, 24),
+            QPointF(17, 16), QPointF(25, 14),
+        ]))
+    elif kind == "double":
+        painter.drawEllipse(QRectF(4, 4, 17, 17))
+        painter.drawEllipse(QRectF(11, 11, 17, 17))
+        painter.drawLine(QPointF(16, 8), QPointF(16, 13))
+        painter.drawLine(QPointF(8, 16), QPointF(13, 16))
+    elif kind == "debug":
+        painter.drawEllipse(QRectF(10, 10, 12, 15))
+        painter.drawLine(QPointF(12, 11), QPointF(9, 6))
+        painter.drawLine(QPointF(20, 11), QPointF(23, 6))
+        for y in (13, 19, 25):
+            painter.drawLine(QPointF(10, y), QPointF(5, y - 2))
+            painter.drawLine(QPointF(22, y), QPointF(27, y - 2))
+    painter.end()
+    return QIcon(pixmap)
+
+
 def _organizer_card_shadow(panel: QFrame) -> None:
     """Subtle Unity-style separation, never a black-filled backing rectangle."""
     shadow = QGraphicsDropShadowEffect(panel)
@@ -661,6 +723,21 @@ class OrganizerUiMixin:
             button.setSizePolicy(QSizePolicy.Fixed, QSizePolicy.Fixed)
             button.setObjectName("secondaryButton")
         self.radial_select_button.setFixedSize(radial_control_size)
+        # Small functional icons, without changing callbacks or shortcuts.
+        # Previous/Next intentionally stay text-only.
+        for button, kind in (
+            (self.switch_character, "switch"),
+            (self.switch_click, "click"),
+            (self.switch_double_click, "double"),
+            (self.switch_movement, "move"),
+            (self.switch_fake, "group"),
+            (self.radial_select_button, "radial"),
+            (self.debug_button, "debug"),
+        ):
+            button.setIcon(_organizer_action_icon(kind))
+            button.setIconSize(QSize(17, 17))
+        self.reload_runtime_button.setIcon(_organizer_refresh_icon())
+        self.reload_runtime_button.setIconSize(QSize(17, 17))
         # Retain the original arm control for compatible runtime hooks, but
         # the only visible mirror action is the mode button with its own badge.
         self.mirror_arm_button.setParent(self)
