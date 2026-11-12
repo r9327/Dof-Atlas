@@ -633,20 +633,22 @@ class OrganizerUiMixin:
             }
             #organizerPage QFrame#characterSlotEmpty,
             #organizerPage QFrame#characterSlotMissing {
-                background: transparent;
+                /* Opaque blue prevents ghosted previous slot pixels on resize. */
+                background: #273D60;
                 border: 1px solid #435A7B;
                 border-radius: 9px;
                 border-image: none;
             }
             #organizerPage QFrame#characterSlot {
-                background: rgba(52, 78, 118, 0.84);
+                background: qlineargradient(x1:0,y1:0,x2:0,y2:1,
+                    stop:0 #3B5681, stop:1 #2B4266);
                 border: 1px solid #6481AA;
                 border-radius: 9px;
                 border-image: none;
             }
             #organizerPage QFrame#characterSlotDragging,
             #organizerPage QFrame#characterSlotDropTarget {
-                background: rgba(63, 88, 127, 0.88);
+                background: #39577D;
                 border: 1px solid #8AAA6B;
                 border-radius: 9px;
                 border-image: none;
