@@ -1115,7 +1115,7 @@ class OrganizerLayoutTests(unittest.TestCase):
                 for state in (":hover", ":pressed", ":disabled"):
                     self.assertIn(f"QPushButton#secondaryButton{state}", css)
                 self.assertIn("qlineargradient", css)
-                self.assertIn("border-radius: 9px", css)
+                self.assertIn("border-radius: 8px", css)
                 self.assertIn("QPushButton#keyBadge", css)
                 self.assertIn("border: none;", css)
                 from app.ui.unity_skin import UNITY_PALETTE
@@ -1125,7 +1125,22 @@ class OrganizerLayoutTests(unittest.TestCase):
                     "GREEN_DARK", "GREEN_BORDER",
                 ):
                     self.assertIn(UNITY_PALETTE[role], css)
-                self.assertIn(UNITY_PALETTE["PANEL_GRADIENT"], css)
+                # The old opaque gradient is replaced by semi-transparent
+                # gradients derived from the exact same Unity palette.
+                from app.pages.organizer.glass_material import (
+                    OrganizerGlassCard, OrganizerGlassButton,
+                    unity_glass_gradient, _diffuse_unity_wallpaper,
+                )
+                self.assertIn(unity_glass_gradient(), css)
+                self.assertIn("rgba(", css)
+                for panel in (
+                    page.macro_panel, page.quick_actions_panel,
+                    page.controls_panel, page.sessions_panel, page.zaap_panel,
+                ):
+                    self.assertIsInstance(panel, OrganizerGlassCard)
+                self.assertIsInstance(page.radial_select_button, OrganizerGlassButton)
+                self.assertIsInstance(page.stop_script_button, OrganizerGlassButton)
+                self.assertEqual(_diffuse_unity_wallpaper.cache_info().maxsize, 2)
                 # The old invented palette must not drift away from Unity.
                 self.assertNotIn("#708BAD", css)
                 self.assertNotIn("#829FC3", css)
@@ -1278,7 +1293,7 @@ class OrganizerLayoutTests(unittest.TestCase):
                 self.assertFalse(page.quick_placeholder_1.isEnabled())
                 self.assertFalse(page.quick_placeholder_2.isEnabled())
                 self.assertIn("border-image: none", page.styleSheet())
-                self.assertIn("canonical Unity color roles", page.styleSheet())
+                self.assertIn("GlassCard paints a cached diffused backdrop", page.styleSheet())
                 self.assertFalse(page.radial_select_button.icon().isNull())
                 self.assertFalse(page.switch_character.icon().isNull())
                 self.assertFalse(page.switch_click.icon().isNull())
