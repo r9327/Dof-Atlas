@@ -276,12 +276,6 @@ class OrganizerPage(
         self.next_character_hotkey_button.clicked.connect(lambda: self.begin_capture("next_character"))
         self.next_character_clear.clicked.connect(lambda: self.clear_global_hotkey(KEY_NEXT_CHARACTER_HOTKEY))
         self.previous_character.clicked.connect(self.activate_previous_character)
-        self.previous_character_enable_button.clicked.connect(
-            lambda: self.toggle_profile_bool(KEY_SWITCH_CHARACTER)
-        )
-        self.next_character_enable_button.clicked.connect(
-            lambda: self.toggle_profile_bool(KEY_SWITCH_CHARACTER)
-        )
         self.previous_character_hotkey_button.clicked.connect(lambda: self.begin_capture("previous_character"))
         self.previous_character_clear.clicked.connect(lambda: self.clear_global_hotkey(KEY_PREVIOUS_CHARACTER_HOTKEY))
         self.mirror_arm_button.clicked.connect(self.toggle_mirror_armed)
