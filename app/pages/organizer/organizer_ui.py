@@ -215,8 +215,8 @@ class OrganizerUiMixin:
 
         self.macro_mode_button = AtlasButton("Macro")
         self.mirror_mode_button = AtlasButton("Miroir")
-        self.macro_mode_button.setFixedSize(98, BUTTON_HEIGHT)
-        self.mirror_mode_button.setFixedSize(202, BUTTON_HEIGHT)
+        self.macro_mode_button.setFixedSize(184, BUTTON_HEIGHT)
+        self.mirror_mode_button.setFixedSize(184, BUTTON_HEIGHT)
         self.macro_mode_button.setToolTip("Revenir aux macros classiques")
         self.mirror_mode_button.setToolTip("Activer ou arrêter Miroir")
         self.quick_actions_title = QLabel("Action rapide")
@@ -230,6 +230,14 @@ class OrganizerUiMixin:
         self.switch_movement = AtlasButton("")
         self.next_character = AtlasButton("Suivant →")
         self.previous_character = AtlasButton("← Précédent")
+        # Both direction badges share the runtime's existing authorization flag.
+        self.next_character_enable_button = AtlasButton("ON")
+        self.previous_character_enable_button = AtlasButton("ON")
+        for toggle in (self.next_character_enable_button, self.previous_character_enable_button):
+            toggle.setFixedSize(30, 24)
+            toggle.setAccessibleName("Autoriser la navigation Suivant/Précédent")
+            toggle.setToolTip("Activer ou désactiver les raccourcis des deux directions")
+
         self.mirror_arm_button = AtlasButton("Activer Miroir")
         self.mirror_toggle_hotkey_button = AtlasButton("")
         self.mirror_toggle_clear = AtlasButton("x")
@@ -257,7 +265,7 @@ class OrganizerUiMixin:
         self.stop_script_clear = AtlasButton("x")
         self.click_clear = AtlasButton("x")
 
-        control_size = QSize(160, BUTTON_HEIGHT)
+        control_size = QSize(188, BUTTON_HEIGHT)
         # Use the same one-line control height as neighboring modules.
         radial_control_size = control_size
         controls_panel_height = 200
@@ -348,6 +356,7 @@ class OrganizerUiMixin:
             shortcut: QPushButton | None = None,
             clear: QPushButton | None = None,
             size: QSize = control_size,
+            toggle: QPushButton | None = None,
         ) -> QWidget:
             wrapper = QWidget()
             wrapper.setFixedSize(size)
@@ -358,10 +367,24 @@ class OrganizerUiMixin:
             cell.setVerticalSpacing(0)
             cell.addWidget(action, 0, 0)
             if shortcut is not None:
-                # Reserve text space for the shortcut within the button face.
-                action.setStyleSheet("text-align: left; padding-left: 8px; padding-right: 48px;")
-                cell.addWidget(shortcut, 0, 0, alignment=Qt.AlignRight | Qt.AlignVCenter)
-                shortcut.raise_()
+                # Reserve a separate right-side area for the shortcut and ON/OFF.
+                right_space = 82 if toggle is not None else 48
+                action.setStyleSheet(
+                    f"text-align: center; padding-left: 4px; padding-right: {right_space}px;"
+                )
+                if toggle is not None:
+                    controls = QWidget(wrapper)
+                    controls.setFixedSize(78, BUTTON_HEIGHT)
+                    controls_row = QHBoxLayout(controls)
+                    controls_row.setContentsMargins(0, 0, 0, 0)
+                    controls_row.setSpacing(6)
+                    controls_row.addWidget(toggle)
+                    controls_row.addWidget(shortcut)
+                    cell.addWidget(controls, 0, 0, alignment=Qt.AlignRight | Qt.AlignVCenter)
+                    controls.raise_()
+                else:
+                    cell.addWidget(shortcut, 0, 0, alignment=Qt.AlignRight | Qt.AlignVCenter)
+                    shortcut.raise_()
             if clear is not None:
                 cell.addWidget(clear, 0, 0, alignment=Qt.AlignTop | Qt.AlignRight)
                 clear.raise_()
@@ -425,7 +448,7 @@ class OrganizerUiMixin:
         macro_title_row.addWidget(self.macro_mode_button)
         macro_title_row.addWidget(macro_cell(
             self.mirror_mode_button, self.mirror_toggle_hotkey_button,
-            self.mirror_toggle_clear, size=QSize(202, BUTTON_HEIGHT),
+            self.mirror_toggle_clear, size=QSize(184, BUTTON_HEIGHT),
         ))
         macro_title_row.addStretch(1)
         macro_layout.addLayout(macro_title_row)
@@ -451,8 +474,14 @@ class OrganizerUiMixin:
         quick_grid.setVerticalSpacing(8)
         quick_grid.addWidget(self.switch_fake, 0, 0)
         quick_grid.addWidget(macro_cell(self.radial_select_button, self.radial_hotkey_button, self.radial_clear, size=radial_control_size), 0, 1)
-        quick_grid.addWidget(macro_cell(self.previous_character, self.previous_character_hotkey_button, self.previous_character_clear), 1, 0)
-        quick_grid.addWidget(macro_cell(self.next_character, self.next_character_hotkey_button, self.next_character_clear), 1, 1)
+        quick_grid.addWidget(macro_cell(
+            self.previous_character, self.previous_character_hotkey_button,
+            self.previous_character_clear, toggle=self.previous_character_enable_button,
+        ), 1, 0)
+        quick_grid.addWidget(macro_cell(
+            self.next_character, self.next_character_hotkey_button,
+            self.next_character_clear, toggle=self.next_character_enable_button,
+        ), 1, 1)
         # Vitesse stays in the canonical Controls panel, not Macro.
         speed_row = QWidget()
         speed_row.setFixedSize(panel_inner_width, BUTTON_HEIGHT)
@@ -646,6 +675,14 @@ class OrganizerUiMixin:
             self.next_character_clear, self.previous_character_clear,
         ):
             control.setEnabled(can_navigate)
+        for toggle in (
+            self.next_character_enable_button, self.previous_character_enable_button,
+        ):
+            toggle.setEnabled(not active)
+            enabled = profile_bool(self.profiles, KEY_SWITCH_CHARACTER, True)
+            toggle.setText("ON" if enabled else "OFF")
+            toggle.setObjectName("segmentedButtonActive" if enabled else "segmentedButton")
+            self.restyle_button(toggle)
         button.setText("Arrêter Miroir" if active else "Activer Miroir")
         button.setObjectName("primaryButton" if active else "secondaryButton")
         button.setToolTip(
@@ -664,8 +701,7 @@ class OrganizerUiMixin:
 
     def update_switch_buttons(self) -> None:
         self.set_toggle_button(self.switch_character, "Switch Personnage", profile_bool(self.profiles, KEY_SWITCH_CHARACTER, True))
-        # Both navigation buttons share the existing runtime authorization flag.
-        # Keep their visible state in sync instead of inventing a second source.
+        # These badges reflect the single canonical runtime flag; no parallel state.
         self.set_mirror_arm_active(bool(getattr(self, "_mirror_arm_active", False)))
         self.set_toggle_button(self.switch_click, "Switch Clique", profile_bool(self.profiles, KEY_SWITCH_CLICK, False))
         self.set_toggle_button(self.switch_double_click, "Switch clic x2", profile_bool(self.profiles, KEY_SWITCH_DOUBLE_CLICK, False))
