@@ -1065,6 +1065,10 @@ class OrganizerLayoutTests(unittest.TestCase):
                 self.assertTrue(page.previous_character.isEnabled())
                 self.assertEqual(page.next_character_enable_button.text(), "ON")
                 self.assertEqual(page.previous_character_enable_button.text(), "ON")
+                # Mirror can only arm after the profile selects Mirror mode.
+                from app.constants import KEY_ORGANIZER_MACRO_MODE
+                page.profiles[KEY_ORGANIZER_MACRO_MODE] = "mirror"
+                page.update_macro_mode_buttons()
                 page.set_mirror_arm_active(True)
                 self.assertFalse(page.next_character_enable_button.isEnabled())
                 self.assertFalse(page.previous_character_enable_button.isEnabled())
