@@ -955,17 +955,19 @@ class OrganizerLayoutTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as temporary:
             with self.organizer_page(Path(temporary)) as page:
                 self.app.processEvents()
-                self.assertTrue(page.mirror_arm_button.isHidden() is False)
+                self.assertTrue(page.mirror_arm_button.isHidden())
                 self.assertFalse(page.mirror_arm_button.isEnabled())
+                self.assertIs(
+                    page.mirror_mode_button.parentWidget(),
+                    page.mirror_toggle_hotkey_button.parentWidget(),
+                )
                 from app.constants import KEY_ORGANIZER_MACRO_MODE
                 page.profiles[KEY_ORGANIZER_MACRO_MODE] = "mirror"
                 page.update_macro_mode_buttons()
                 self.assertTrue(page.mirror_arm_button.isEnabled())
                 self.assertEqual(page.mirror_arm_button.text(), "Activer Miroir")
-                self.assertEqual(
-                    page.mirror_arm_button.width(),
-                    page.stop_script_button.width(),
-                )
+                self.assertEqual(page.mirror_mode_button.text(), "Miroir")
+                self.assertFalse(page._mirror_arm_active)
                 self.assertFalse(page.switch_character.isEnabled())
                 self.assertFalse(page.switch_click.isEnabled())
                 self.assertTrue(page.next_character.isEnabled())
@@ -974,10 +976,12 @@ class OrganizerLayoutTests(unittest.TestCase):
                 self.assertTrue(page.previous_character_hotkey_button.isEnabled())
                 page.set_mirror_arm_active(True)
                 self.assertEqual(page.mirror_arm_button.text(), "Arrêter Miroir")
+                self.assertEqual(page.mirror_mode_button.objectName(), "primaryButton")
                 self.assertFalse(page.next_character.isEnabled())
                 self.assertFalse(page.previous_character.isEnabled())
                 page.set_mirror_arm_active(False)
                 self.assertEqual(page.mirror_arm_button.text(), "Activer Miroir")
+                self.assertEqual(page.mirror_mode_button.objectName(), "secondaryButton")
                 self.assertTrue(page.next_character.isEnabled())
                 self.assertTrue(page.previous_character.isEnabled())
                 previous_cell = page.previous_character.parentWidget()
@@ -986,10 +990,59 @@ class OrganizerLayoutTests(unittest.TestCase):
                 self.assertEqual(previous_cell.y(), next_cell.y())
                 self.assertLess(previous_cell.x(), next_cell.x())
                 self.assertEqual(page.previous_character.height(), page.next_character.height())
-                self.assertIs(
-                    page.mirror_arm_button.parentWidget(),
-                    page.mirror_toggle_hotkey_button.parentWidget(),
-                )
+                self.assertTrue(page.mirror_arm_button.isHidden())
+
+    def test_organizer_three_panels_and_small_window_scroll(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            with self.organizer_page(Path(temporary)) as page:
+                page.resize(1380, 900)
+                self.app.processEvents()
+                self.assertIs(page.controls_panels_grid.itemAtPosition(0, 0).widget(), page.macro_panel)
+                self.assertIs(page.controls_panels_grid.itemAtPosition(0, 1).widget(), page.quick_actions_panel)
+                self.assertIs(page.controls_panels_grid.itemAtPosition(0, 2).widget(), page.controls_panel)
+                self.assertIs(page.runtime_status_dot.parentWidget(), page.organizer_scroll.widget())
+                self.assertLessEqual(page.macro_panel.y(), page.quick_actions_panel.y())
+                self.assertEqual(page.macro_panel.y(), page.controls_panel.y())
+                page.resize(1000, 470)
+                page.sessions_panel.expand_button.click()
+                self.app.processEvents()
+                self.assertIs(page.controls_panels_grid.itemAtPosition(1, 0).widget(), page.controls_panel)
+                self.assertEqual(len(page.session_slot_widgets), 8)
+                self.assertGreater(page.organizer_scroll.verticalScrollBar().maximum(), 0)
+                page.organizer_scroll.ensureWidgetVisible(page.sessions_panel)
+                self.app.processEvents()
+                self.assertGreater(page.organizer_scroll.verticalScrollBar().value(), 0)
+                self.assertEqual(page.organizer_scroll.horizontalScrollBar().maximum(), 0)
+
+    def test_mirror_button_is_explicit_arm_and_badge_does_not_arm(self):
+        from app.constants import KEY_ORGANIZER_MACRO_MODE
+        with tempfile.TemporaryDirectory() as temporary:
+            with self.organizer_page(Path(temporary)) as page:
+                states = []
+                armed = [False]
+                def toggle():
+                    armed[0] = not armed[0]
+                    states.append(armed[0])
+                    return armed[0]
+                page.mirror_arm_callback = toggle
+                page.reload_runtime_callback = lambda *_args: None
+                page.stop_runtime_callback = lambda *_args: None
+                self.assertFalse(page._mirror_arm_active)
+                self.assertEqual(page.profiles.get(KEY_ORGANIZER_MACRO_MODE, "macro"), "macro")
+                page.mirror_toggle_hotkey_button.click()
+                self.assertEqual(states, [])
+                page.mirror_mode_button.click()
+                self.assertEqual(page.profiles[KEY_ORGANIZER_MACRO_MODE], "mirror")
+                self.assertEqual(states, [True])
+                self.assertTrue(page._mirror_arm_active)
+                self.assertFalse(page.next_character.isEnabled())
+                page.mirror_mode_button.click()
+                self.assertEqual(states, [True, False])
+                self.assertFalse(page._mirror_arm_active)
+                self.assertTrue(page.next_character.isEnabled())
+                page.macro_mode_button.click()
+                self.assertEqual(page.profiles[KEY_ORGANIZER_MACRO_MODE], "macro")
+                self.assertFalse(page._mirror_arm_active)
 
     def test_three_visible_speed_presets_and_compact_controls(self):
         with tempfile.TemporaryDirectory() as temporary:
@@ -1002,6 +1055,10 @@ class OrganizerLayoutTests(unittest.TestCase):
                 self.assertTrue(page.script_speed_title.isVisible())
                 self.assertEqual(page.script_speed_title.text(), "Vitesse :")
                 self.assertIs(page.script_speed_title.parentWidget(), normal.parentWidget())
+                self.assertIs(
+                    normal.parentWidget().parentWidget().parentWidget(),
+                    page.controls_panel,
+                )
                 self.assertEqual(page.script_speed_title.y(), normal.y())
                 self.assertLess(page.script_speed_title.x(), normal.x())
                 self.assertLessEqual(
