@@ -1050,14 +1050,71 @@ class OrganizerLayoutTests(unittest.TestCase):
                         chips = [button.parentWidget()
                                  for button in page.zaap.favorite_buttons]
                         self.assertEqual(len({chip.width() for chip in chips}), 1)
+                        self.assertIs(
+                            page.zaap.favorites_layout.itemAtPosition(0, 0).widget(),
+                            page.zaap.favorites_label,
+                        )
+                        self.assertLess(
+                            page.zaap.favorites_label.y(), chips[0].y(),
+                        )
                         for index, chip in enumerate(chips):
                             self.assertIs(
                                 page.zaap.favorites_layout.itemAtPosition(
-                                    index // 2, 1 + index % 2
+                                    1 + index // 2, index % 2
                                 ).widget(),
                                 chip,
                             )
                         self.assertEqual(page.zaap_scroll.horizontalScrollBar().maximum(), 0)
+
+    def test_organizer_mode_and_pie_icons_share_the_same_white_tint(self):
+        from app.pages.organizer.organizer_ui import _organizer_action_icon
+
+        with tempfile.TemporaryDirectory() as temporary:
+            with self.organizer_page(Path(temporary)) as page:
+                for mode in (page.macro_mode_button, page.mirror_mode_button):
+                    self.assertFalse(mode.icon().isNull())
+                    self.assertEqual(mode.iconSize().width(), 17)
+                for kind in ("radial", "macro", "mirror"):
+                    with self.subTest(kind=kind):
+                        image = _organizer_action_icon(kind).pixmap(32, 32).toImage()
+                        opaque = [
+                            image.pixelColor(x, y)
+                            for x in range(image.width())
+                            for y in range(image.height())
+                            if image.pixelColor(x, y).alpha() >= 200
+                        ]
+                        self.assertGreater(len(opaque), 8)
+                        for color in opaque:
+                            # No green or blue pie slices; all mode and
+                            # action glyphs use the same off-white ink.
+                            self.assertLessEqual(
+                                max(color.red(), color.green(), color.blue())
+                                - min(color.red(), color.green(), color.blue()),
+                                30,
+                            )
+
+    def test_organizer_glass_style_covers_all_button_states(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            with self.organizer_page(Path(temporary)) as page:
+                css = page.styleSheet()
+                for selector in (
+                    "QPushButton#secondaryButton",
+                    "QPushButton#primaryButton",
+                    "QPushButton#dangerButton",
+                    "QPushButton#keyBadge",
+                    "QPushButton#iconButton",
+                    "QLineEdit#comboField",
+                    "QFrame#OrganizerModeSwitch",
+                    "QFrame#OrganizerSpeedSelector",
+                    "QWidget#favoriteChip",
+                    "QFrame#card",
+                ):
+                    with self.subTest(selector=selector):
+                        self.assertIn(selector, css)
+                for state in (":hover", ":pressed", ":disabled"):
+                    self.assertIn(f"QPushButton#secondaryButton{state}", css)
+                self.assertIn("qlineargradient", css)
+                self.assertIn("border-radius: 9px", css)
 
     def test_organizer_portrait_black_border_is_transparent(self):
         from PySide6.QtGui import QColor, QImage
