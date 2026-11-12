@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from PySide6.QtCore import QSize, Qt
+from PySide6.QtCore import QEasingCurve, QPoint, QPropertyAnimation, QSize, Qt
 from PySide6.QtGui import QPixmap
 from PySide6.QtWidgets import (
     QFrame,
@@ -158,6 +158,75 @@ class CharacterSlotsPanel(QFrame):
                 widget.deleteLater()
 
 
+class OrganizerSpeedSelector(QFrame):
+    """One flat 3-stop track with a sliding highlight, not three separate cards.
+
+    Reuses the existing speed actions and profile keys. The highlight is purely
+    visual, so it never changes speed before the corresponding click callback.
+    """
+
+    PRESETS = ("normal", "rapide", "instantane")
+
+    def __init__(self, normal: QPushButton, rapid: QPushButton,
+                 instant: QPushButton, parent: QWidget | None = None) -> None:
+        super().__init__(parent)
+        self.setObjectName("OrganizerSpeedSelector")
+        self.setFixedHeight(BUTTON_HEIGHT)
+        self._choices = (normal, rapid, instant)
+        self._selected: int | None = None
+        self.highlight = QFrame(self)
+        self.highlight.setObjectName("OrganizerSpeedHighlight")
+        self.highlight.hide()
+        layout = QHBoxLayout(self)
+        layout.setContentsMargins(2, 2, 2, 2)
+        layout.setSpacing(0)
+        for button in self._choices:
+            button.setObjectName("OrganizerSpeedChoice")
+            button.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
+            button.setMinimumWidth(0)
+            layout.addWidget(button, 1)
+        self.highlight.lower()
+        self._motion = QPropertyAnimation(self.highlight, b"pos", self)
+        self._motion.setDuration(145)
+        self._motion.setEasingCurve(QEasingCurve.OutCubic)
+
+    def set_selected(self, preset: str) -> None:
+        previous = self._selected
+        self._selected = self.PRESETS.index(preset) if preset in self.PRESETS else None
+        for index, button in enumerate(self._choices):
+            button.setObjectName(
+                "OrganizerSpeedChoiceSelected" if self._selected == index
+                else "OrganizerSpeedChoice"
+            )
+            button.style().unpolish(button)
+            button.style().polish(button)
+        self._position_highlight(animated=previous is not None and previous != self._selected)
+
+    def _position_highlight(self, *, animated: bool = False) -> None:
+        self._motion.stop()
+        if self._selected is None:
+            self.highlight.hide()
+            return
+        self.layout().activate()
+        target = self._choices[self._selected].geometry()
+        if target.width() <= 0:
+            return
+        self.highlight.setFixedSize(target.size())
+        if animated and self.isVisible() and self.highlight.isVisible():
+            self._motion.setStartValue(self.highlight.pos())
+            self._motion.setEndValue(target.topLeft())
+            self._motion.start()
+        else:
+            self.highlight.move(target.topLeft())
+        self.highlight.lower()
+        self.highlight.show()
+
+    def resizeEvent(self, event) -> None:
+        super().resizeEvent(event)
+        if self._selected is not None:
+            self._position_highlight()
+
+
 class OrganizerUiMixin:
     def build_organizer_ui(self, status_callback, launch_zaap_callback) -> None:
         # The active /zaap sender uses the destination command directly.
@@ -226,6 +295,34 @@ class OrganizerUiMixin:
                 border: none;
                 border-image: none;
             }
+            #organizerPage QFrame#OrganizerSpeedSelector {
+                background: #1A2945;
+                border: 1px solid #506485;
+                border-radius: 6px;
+                border-image: none;
+            }
+            #organizerPage QFrame#OrganizerSpeedHighlight {
+                background: #426936;
+                border: 1px solid #739669;
+                border-radius: 5px;
+                border-image: none;
+            }
+            #organizerPage QPushButton#OrganizerSpeedChoice,
+            #organizerPage QPushButton#OrganizerSpeedChoiceSelected {
+                background: transparent;
+                border: 0px;
+                border-image: none;
+                border-radius: 4px;
+                padding: 0px 3px;
+                color: #BED0E5;
+                font-size: 11px;
+                font-weight: 600;
+                min-height: 0px;
+            }
+            #organizerPage QPushButton#OrganizerSpeedChoiceSelected {
+                color: #FFFFFF;
+                font-weight: 700;
+            }
         """)
         root = QVBoxLayout(content)
         root.setContentsMargins(12, 10, 12, 10)
@@ -266,8 +363,8 @@ class OrganizerUiMixin:
         self.switch_click = AtlasButton("")
         self.switch_double_click = AtlasButton("")
         self.switch_movement = AtlasButton("")
-        self.next_character = AtlasButton("Suivant →")
-        self.previous_character = AtlasButton("← Précédent")
+        self.next_character = AtlasButton("Suivant")
+        self.previous_character = AtlasButton("Précédent")
         self.mirror_arm_button = AtlasButton("Activer Miroir")
         self.mirror_toggle_hotkey_button = AtlasButton("")
         self.mirror_toggle_clear = AtlasButton("x")
@@ -285,7 +382,7 @@ class OrganizerUiMixin:
         self.previous_character_clear = AtlasButton("x")
         self.reload_runtime_button = AtlasButton("Relancer scripts")
         self.debug_button = AtlasButton("Debug")
-        self.script_speed_title = QLabel("Vitesse :")
+        self.script_speed_title = QLabel("Vitesse")
         self.script_speed_legacy = AtlasButton("Classique")
         self.script_speed_normal = AtlasButton("Normal")
         self.script_speed_fast = AtlasButton("Rapide")
@@ -303,7 +400,6 @@ class OrganizerUiMixin:
         panel_width = panel_inner_width + CARD_PADDING * 2
         stop_hotkey_size = QSize(36, KEY_BADGE_HEIGHT)
         stop_size = QSize(panel_inner_width, BUTTON_HEIGHT)
-        speed_control_size = QSize(78, BUTTON_HEIGHT)
         shortcut_size = QSize(36, KEY_BADGE_HEIGHT)
 
         for button in (
@@ -351,15 +447,8 @@ class OrganizerUiMixin:
         self.script_speed_title.setObjectName("MutedLabel")
         self.script_speed_title.setFixedSize(52, BUTTON_HEIGHT)
         self.script_speed_title.setAlignment(Qt.AlignLeft | Qt.AlignVCenter)
-        for button in (
-            self.script_speed_legacy, self.script_speed_normal,
-            self.script_speed_fast, self.script_speed_instant,
-        ):
-            button.setFixedSize(speed_control_size)
-            button.setSizePolicy(QSizePolicy.Fixed, QSizePolicy.Fixed)
-            button.setObjectName("segmentedButton")
-        # Keep the full Instantané caption visible in the compact row.
-        self.script_speed_instant.setFixedSize(speed_control_size)
+        self.script_speed_legacy.setFixedSize(78, BUTTON_HEIGHT)
+        self.script_speed_legacy.setObjectName("segmentedButton")
         self.click_button.setToolTip("Raccourci Switch Clique")
         self.double_click_button.setToolTip("Raccourci Switch clic x2")
         self.stop_script_hotkey_button.setToolTip("Raccourci Stop script")
@@ -494,11 +583,12 @@ class OrganizerUiMixin:
         speed_row_layout.setContentsMargins(0, 0, 0, 0)
         speed_row_layout.setSpacing(4)
         speed_row_layout.addWidget(self.script_speed_title)
-        for button in (
+        self.speed_selector = OrganizerSpeedSelector(
             self.script_speed_normal, self.script_speed_fast,
             self.script_speed_instant,
-        ):
-            speed_row_layout.addWidget(button)
+        )
+        self.speed_selector.setFixedWidth(panel_inner_width - 52 - 4)
+        speed_row_layout.addWidget(self.speed_selector)
         # Preserve an existing Classique profile without silently accelerating
         # it. This legacy-only choice is no longer offered to the user.
         macro_layout.addWidget(self.script_speed_legacy)
@@ -556,7 +646,8 @@ class OrganizerUiMixin:
         self.macro_mode_header.setObjectName("OrganizerTransparentHost")
         self.macro_mode_header.setFixedHeight(BUTTON_HEIGHT)
         mode_header_layout = QHBoxLayout(self.macro_mode_header)
-        mode_header_layout.setContentsMargins(0, 0, 0, 0)
+        # Match the 12px interior padding of the Macro card below.
+        mode_header_layout.setContentsMargins(CARD_PADDING, 0, 0, 0)
         mode_header_layout.setSpacing(8)
         mode_header_layout.addWidget(self.macro_mode_button)
         mode_header_layout.addWidget(macro_cell(
@@ -768,14 +859,13 @@ class OrganizerUiMixin:
 
     def update_script_speed_buttons(self) -> None:
         speed = self.script_speed()
-        for button, value in (
-            (self.script_speed_legacy, "classique"),
-            (self.script_speed_normal, "normal"),
-            (self.script_speed_fast, "rapide"),
-            (self.script_speed_instant, "instantane"),
-        ):
-            button.setObjectName("segmentedButtonActive" if speed == value else "segmentedButton")
-            self.restyle_button(button)
+        self.script_speed_legacy.setObjectName(
+            "segmentedButtonActive" if speed == "classique" else "segmentedButton"
+        )
+        self.restyle_button(self.script_speed_legacy)
+        # In legacy Classique there is deliberately no active indicator:
+        # rendering it as Normal would falsely imply changed runtime timings.
+        self.speed_selector.set_selected(speed)
 
     def update_debug_button(self) -> None:
         enabled = profile_bool(self.profiles, KEY_DEBUG_MODE, False)
