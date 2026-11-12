@@ -420,17 +420,18 @@ class OrganizerModeSwitch(QFrame):
     def __init__(self, macro: QPushButton, mirror_cell: QWidget) -> None:
         super().__init__()
         self.setObjectName("OrganizerModeSwitch")
-        self.setFixedSize(396, BUTTON_HEIGHT + 6)
+        # Match the 194 + 8 + 194 grid exactly, including both column starts.
+        self.setFixedSize(396, BUTTON_HEIGHT)
         self._choices = (macro, mirror_cell)
         self._selected = -1
         self.highlight = QFrame(self)
         self.highlight.setAttribute(Qt.WA_TransparentForMouseEvents, True)
         self.highlight.setObjectName("OrganizerModeHighlight")
         layout = QHBoxLayout(self)
-        # Qt adds a one-pixel frame inset. Preserve the 3px macro grid
-        # alignment tolerance on the actual Windows AtlasWindow shell.
-        layout.setContentsMargins(1, 2, 2, 2)
-        layout.setSpacing(5)
+        # The borderless track and zero margins prevent a 1-2px offset
+        # against the two 194px Macro/Quick-action columns.
+        layout.setContentsMargins(0, 0, 0, 0)
+        layout.setSpacing(8)
         layout.addWidget(macro)
         layout.addWidget(mirror_cell)
         self.highlight.lower()
@@ -655,7 +656,7 @@ class OrganizerUiMixin:
             }
             #organizerPage QFrame#OrganizerModeSwitch {
                 background: rgba(39, 61, 95, 0.94);
-                border: 1px solid #708BAD;
+                border: none;
                 border-radius: 9px;
                 border-image: none;
             }
@@ -721,10 +722,38 @@ class OrganizerUiMixin:
             }
             #organizerPage QFrame#characterSlot {
                 background: qlineargradient(x1:0,y1:0,x2:0,y2:1,
-                    stop:0 #3B5681, stop:1 #2B4266);
+                    stop:0 #30496C, stop:1 #1E3454);
                 border: 1px solid #6481AA;
                 border-radius: 9px;
                 border-image: none;
+            }
+            /* Character shortcuts need a distinctly raised surface,
+               not the same dark blue as the filled character slots. */
+            #organizerPage QFrame#characterSlot QPushButton#keyBadge,
+            #organizerPage QFrame#characterSlotMissing QPushButton#keyBadge {
+                background: qlineargradient(x1:0,y1:0,x2:0,y2:1,
+                    stop:0 #829FC3, stop:1 #5476A2);
+                border: 1px solid #B9D0E8;
+                border-radius: 8px;
+                border-image: none;
+                color: #FFFFFF;
+            }
+            #organizerPage QFrame#characterSlot QPushButton#keyBadge:hover,
+            #organizerPage QFrame#characterSlotMissing QPushButton#keyBadge:hover {
+                background: #90B0D1;
+                border-color: #D8E9F8;
+            }
+            #organizerPage QFrame#characterSlot QPushButton#FavoriteButton,
+            #organizerPage QFrame#characterSlot QPushButton#FavoriteButtonActive {
+                background: rgba(68, 100, 142, 0.92);
+                border: 1px solid #829FBD;
+                border-radius: 7px;
+                border-image: none;
+            }
+            #organizerPage QFrame#characterSlot QPushButton#FavoriteButton:hover,
+            #organizerPage QFrame#characterSlot QPushButton#FavoriteButtonActive:hover {
+                background: #688BB6;
+                border-color: #BCD5ED;
             }
             #organizerPage QFrame#characterSlotDragging,
             #organizerPage QFrame#characterSlotDropTarget {
@@ -735,8 +764,9 @@ class OrganizerUiMixin:
             }
         """)
         root = QVBoxLayout(content)
-        root.setContentsMargins(12, 10, 12, 10)
-        root.setSpacing(8)
+        # Space for the lower rounded corners and drop shadows at all DPI.
+        root.setContentsMargins(14, 12, 14, 20)
+        root.setSpacing(12)
         root.setAlignment(Qt.AlignTop)
 
         header = QHBoxLayout()
@@ -805,7 +835,8 @@ class OrganizerUiMixin:
         control_size = QSize(194, BUTTON_HEIGHT)
         # Use the same one-line control height as neighboring modules.
         radial_control_size = control_size
-        controls_panel_height = 138
+        # Extra bottom breathing room keeps Qt rounded borders/shadows visible.
+        controls_panel_height = 146
         panel_inner_width = control_size.width() * 2 + 8
         panel_width = panel_inner_width + CARD_PADDING * 2
         stop_hotkey_size = QSize(36, KEY_BADGE_HEIGHT)
@@ -993,7 +1024,8 @@ class OrganizerUiMixin:
         self.macro_panel.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
         macro_layout = QVBoxLayout(self.macro_panel)
         macro_layout.setContentsMargins(CARD_PADDING, CARD_PADDING, CARD_PADDING, CARD_PADDING)
-        macro_layout.setSpacing(CARD_SPACING)
+        # Same 8px row rhythm as Quick actions and Controls.
+        macro_layout.setSpacing(8)
         macro_layout.setAlignment(Qt.AlignTop)
         self.macro_mode_button.setObjectName("OrganizerModeChoice")
         self.mirror_mode_button.setObjectName("OrganizerModeChoice")
