@@ -1345,6 +1345,31 @@ class OrganizerLayoutTests(unittest.TestCase):
                         clients = json.load(stream)["clients"]
                     self.assertEqual(clients, [])
 
+    def test_character_star_follows_saved_order_after_profile_reload(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            with self.organizer_page(Path(temporary)) as page:
+                originals = [
+                    {"nom": "Enutrof Alpha", "hwnd": 1001, "pid": 2001},
+                    {"nom": "Enutrof Beta", "hwnd": 1002, "pid": 2002},
+                ]
+                page.sessions = page.build_session_slots(originals)
+                self.assertTrue(page.move_session_to_slot(0, 1))
+                page.export_client_index()
+                # Reload the persisted profile/order just as a new page would,
+                # without relying on a selected name or a hard-coded slot.
+                page.profiles = page.load_profiles()
+                page.sessions = page.build_session_slots(originals)
+                page.render_sessions()
+                self.app.processEvents()
+                self.assertEqual(organizer.session_name(page.sessions[0]), "Enutrof Beta")
+                self.assertEqual(organizer.session_name(page.sessions[1]), "Enutrof Alpha")
+                self.assertIsNotNone(
+                    page.session_slot_widgets[0][0].findChild(QLabel, "PrimarySlotIndicator")
+                )
+                self.assertIsNone(
+                    page.session_slot_widgets[1][0].findChild(QLabel, "PrimarySlotIndicator")
+                )
+
     def test_name_indicator_scales_with_qt_dpi_factors(self):
         # A fresh Qt process is required: QT_SCALE_FACTOR is read on startup.
         # Native Windows DPI, font rasterization and a real Unity client
