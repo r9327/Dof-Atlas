@@ -2,6 +2,8 @@ from __future__ import annotations
 
 import json
 import os
+import subprocess
+import sys
 import tempfile
 import unittest
 from contextlib import contextmanager
@@ -1342,6 +1344,40 @@ class OrganizerLayoutTests(unittest.TestCase):
                     with open(page.client_index_json, encoding="utf-8") as stream:
                         clients = json.load(stream)["clients"]
                     self.assertEqual(clients, [])
+
+    def test_name_indicator_scales_with_qt_dpi_factors(self):
+        # A fresh Qt process is required: QT_SCALE_FACTOR is read on startup.
+        # Native Windows DPI, font rasterization and a real Unity client
+        # are separately tracked in the manual acceptance issue #424.
+        probe = """
+from PySide6.QtWidgets import QApplication
+from app.pages.organizer.organizer_ui import CharacterSlotName
+app = QApplication([])
+widget = CharacterSlotName(
+    "Enutrof " + "pseudo-particulier-" * 22, first=True, detected=True,
+)
+widget.resize(150, 24)
+widget.show()
+app.processEvents()
+indicator = widget.indicator
+assert indicator is not None
+assert indicator.pixmap() is not None and not indicator.pixmap().isNull()
+assert widget.name_label.text() != widget.full_name
+assert indicator.geometry().right() <= widget.width()
+assert widget.name_label.geometry().right() <= indicator.geometry().left()
+assert indicator.focusPolicy().name == "NoFocus"
+widget.close()
+"""
+        for factor in ("1", "1.25", "1.5"):
+            with self.subTest(qt_scale_factor=factor):
+                env = dict(os.environ, QT_SCALE_FACTOR=factor,
+                           QT_QPA_PLATFORM="offscreen")
+                result = subprocess.run(
+                    [sys.executable, "-c", probe],
+                    env=env, capture_output=True, text=True,
+                    timeout=30, check=False,
+                )
+                self.assertEqual(result.returncode, 0, result.stderr)
 
     def test_unified_mode_switch_and_empty_quick_actions_are_safe(self):
         from app.constants import KEY_ORGANIZER_MACRO_MODE
