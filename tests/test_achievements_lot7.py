@@ -499,6 +499,13 @@ class AchievementLot7AlignmentTests(unittest.TestCase):
             self.assertEqual(view.splitter.indexOf(view.detail_stack), 2)
             self.assertFalse(view._detail_open)
 
+            # This test owns the open/close UI contract, not the independent
+            # cold subprocess lifecycle covered by the dedicated detail tests.
+            # Prime the actual rich detail so a cold worker timing race cannot
+            # turn a valid click into an unrelated 5-second timeout.
+            achievement_id = int(item.data(Qt.UserRole))
+            self.assertIsNotNone(self.provider.get_detail_by_id(achievement_id))
+
             view.on_achievement_clicked(item)
             self.wait_for_detail_state(view, True)
             self.assertTrue(view._detail_open)
