@@ -1,6 +1,6 @@
-# DOFUS ATLAS — Organizer : finition UI fidèle (cadrage uniquement)
+# DOFUS ATLAS — Organizer : finition UI fidèle (cadrage initial et exécution)
 
-> **SPEC ONLY — AUCUN CODE D'APPLICATION MODIFIÉ.**
+> **Historique :** la PR a commencé comme SPEC ONLY. Le développement a ensuite été autorisé et effectué ; les mentions « non exécuté » ci-dessous désignent l'état initial, pas l'état présent.
 > Contrat source exhaustif : [issue #428](https://github.com/r9327/Dof-Atlas/issues/428).
 > Version fonctionnelle servant de base : [PR #425 fusionnée](https://github.com/r9327/Dof-Atlas/pull/425).
 > Thème, composants et design system : [PR #365](https://github.com/r9327/Dof-Atlas/pull/365) / [issue #364](https://github.com/r9327/Dof-Atlas/issues/364).
@@ -46,3 +46,44 @@
 OFIN-001 étoile unique décorative juste après premier pseudo ; OFIN-002 zéro ancien espace favori et alignement gauche ; OFIN-003 8 slots/reorder/persistance/commandes préservés ; OFIN-004 fond bleu-gris officiel plus lisible sans toucher police/layout/glass ; OFIN-005 aucun doublon de #365/#425 ; OFIN-006 tests Qt ciblés ; OFIN-007 screenshot Qt Windows au SHA exact ; OFIN-008 audit final et preuve distincte Unity si applicable.
 
 **État initial : 0 développement, 0 test, 0 capture, 0 certification. Cette PR sert exclusivement à cadrer les travaux ; ne pas la fusionner en l'état.**
+
+
+## Amendement 12/11 — « pimpage » Unity premium de la dernière maquette VALIDÉ comme direction (sans transformer le layout)
+
+**Clarification propriétaire : « clakos » = « ça claque » (appréciation positive).** La dernière proposition visuelle introduisant un peu de caractère constitue bien la **référence d'inspiration** supplémentaire. Ce n'est ni une autorisation de reproduire tous ses écarts génératifs, ni un changement du screenshot réel comme source de vérité. **Ajouter seulement des micro-finitions haut de gamme** au rendu final existant.
+
+### Détails supplémentaires à poser (sans nouveaux composants métiers)
+
+1. **Signature Unity très discrète des cinq cartes** : filets de contour fins plus précis, avec éventuellement un **micro-ornement géométrique dans les coins**, ton-sur-ton, style interface Unity officielle (tracé très peu opaque, pas de grands angles lumineux, ne pas toucher aux padding, dimensions et coins arrondis). Unifier ce langage pour les trois cartes supérieures et les deux inférieures ; pas d'habillage différent par module.
+2. **Profondeur maîtrisée** : infime liseré lumineux sur le bord supérieur des panneaux/boutons existants, séparation interne bleu nuit plus nette, ombre douce à faible intensité. Aucun effet plastique 3D, aucun dégradé saturé, pas de halo généralisé, conserver le vrai glass `GLASS_INTENSITY=0.5` et les tokens existants.
+3. **Accent vert Unity utilisé avec retenue** : souligner uniquement les états déjà actifs (Macro, Switch Personnage, Normal, Sélection perso) et le voyant réellement actif. Affiner le contour/soulignement existant, plutôt qu'ajouter de grands néons verts ou de nouveaux témoins décoratifs.
+4. **Premier slot Personnage** : très fine mise en évidence visuelle vert Unity/bleu-vert **seulement si sa sélection runtime existante est effectivement confirmée**, sinon ne pas simuler d'état actif. Toujours **une unique étoile pleine à droite du PSEUDO**, jamais à gauche, permanente, décorative et non cliquable. Ne pas inventer un nouveau système de favori/sélection.
+5. **Rythme et finitions** : micro-contraste des lignes Personnage, boutons de raccourcis décollés des fonds, espacements/bordures rigoureusement identiques, reflet quasi invisible en haut des favoris Zaap, séparations propres dans les boutons Mode/Vitesse et les contrôles. Aucune augmentation de taille ou de nombre d'éléments.
+6. **Fond du panneau** : seulement si le thème officiel fournit déjà un asset local adéquat, possibilité d'une **marque/texture Unity existante** à opacité extrêmement faible dans les grands vides d'arrière-plan, non sous les textes ni dans les slots. **Ne pas ajouter d'image, emblème, logo ou texture inventés** ; si aucun asset approprié n'existe, garder le fond actuel.
+
+### Écarts de la maquette à NE PAS reproduire
+
+- Pas de nouveau gros **logo D** à gauche de « Dofus Atlas », pas de modification des icônes/logos existants.
+- Pas de nouveaux pictogrammes (personnages, Zaap, foudre dans Action libre), ni libellés, ni boutons inventés.
+- Ne pas déplacer l'étoile **à gauche** du premier pseudo comme le fait la génération : position validée **après le pseudo**.
+- Pas de panneaux fantaisie aux quatre coins, grosses arabesques, néons vert fluo, surbrillance sur chaque carte ou bordures trop épaisses.
+- Pas de changement de police/tailles/couleurs non Unity, ni nouvelles colonnes, ratios, interlignes ou géométrie.
+- Pas d'état « actif » visuel simulé si les services runtime disent le contraire.
+
+### Exigences ajoutées au suivi (non réalisées)
+- **OFIN-009** — Micro-finitions premium sur la surface Organizer EXISTANTE : coins discrets ton-sur-ton, filets/ombres/reflets quasi invisibles, cohérence des cinq panneaux ; sans changement structure/tokens/glass/police/assets.
+- **OFIN-010** — États verts seulement lorsqu'ils correspondent au vrai runtime, micro-contraste des raccourcis/slots et éventuel fond officiel existant à très faible opacité ; écarter les éléments inventés du mockup.
+- **OFIN-011** — Comparaison côte à côte des captures Windows réelles AVANT/APRÈS via #422 : même viewport, densité et thème ; vérifier que l'évolution est plus qualitative, pas plus chargée, et que la totalité des modules continue à tenir sans scroll parasite.
+
+**Remise à zéro du statut des nouveaux critères : PENDING / NOT_RUN.** Le présent amendement est documentaire seulement : ni code, ni test, ni rendu Windows généré.
+
+
+## Suivi de réalisation — 12 novembre 2026
+
+- **Code implémenté** : `app/pages/organizer/organizer_ui.py`, `app/pages/organizer/character_sessions.py`, `app/pages/organizer/glass_material.py` ; étoile fixe non interactive après le premier pseudo visible, suppression totale des boutons étoiles des lignes et de leur colonne, noms réalignés et ellipsés, nuance Unity, deux micro-ornements ton-sur-ton sur les panneaux communs Organizer uniquement.
+- **Fonctionnement** : `KEY_PRIMARY_WINDOW` réconcilié à l'export avec le premier client détecté si son identité est vérifiable ; vide si aucune identité utilisable. Un état ambigu ne sélectionne pas silencieusement un autre maître Miroir. Aucun changement de protocole ni de moteur Macro/Zaap.
+- **Tests** : `tests/test_organizer_layout.py` — 57 tests Qt offscreen réussis au SHA `3d31cf21144d3cb7d23cd3c06e5ec132735c83fc`. Les essais sur vraie fenêtre Windows, DPI réels, DOFUS Unity et capture avant/après restent **NOT_RUN**.
+- **Graphify avant modification** : SHA `90bf672ceb2ebb7daefcf805dc38077dfa9f6035`, job #43300078147, freshness PASS.
+- **Atlas Doctor ciblé** : tests PASS ; rapport global `REVIEW / FULL_REQUIRED` (ne vaut ni PASS global ni certification).
+- **Conservation du périmètre** : #365 seule propriétaire des styles globaux, #425 base existante, #422 reste permanente, non fusionnée ; aucun nouveau token, police, taille ou glass.
+- **État** : développement du lot réalisé ; audit final et validation native encore requis avant Ready/fusion. Aucune attestation Windows/Unity inventée.
