@@ -370,7 +370,7 @@ class OrganizerUiMixin:
                 # Reserve a separate right-side area for the shortcut and ON/OFF.
                 right_space = 82 if toggle is not None else 48
                 action.setStyleSheet(
-                    f"text-align: center; padding-left: 4px; padding-right: {right_space}px;"
+                    f"text-align: center; padding-left: 4px; padding-right: {right_space}px; font-size: 11px;"
                 )
                 if toggle is not None:
                     controls = QWidget(wrapper)
