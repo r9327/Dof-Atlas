@@ -8,6 +8,7 @@ from PySide6.QtWidgets import (
     QGridLayout,
     QHBoxLayout,
     QLabel,
+    QScrollArea,
     QPushButton,
     QSizePolicy,
     QVBoxLayout,
@@ -176,7 +177,19 @@ class OrganizerUiMixin:
         )
         self.zaap.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
 
-        root = QVBoxLayout(self)
+        # Organizer scrolls its own content; Atlas navigation stays fixed.
+        self.organizer_scroll = QScrollArea(self)
+        self.organizer_scroll.setObjectName("OrganizerContentScroll")
+        self.organizer_scroll.setFrameShape(QFrame.NoFrame)
+        self.organizer_scroll.setWidgetResizable(True)
+        self.organizer_scroll.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
+        self.organizer_scroll.setVerticalScrollBarPolicy(Qt.ScrollBarAsNeeded)
+        outer = QVBoxLayout(self)
+        outer.setContentsMargins(0, 0, 0, 0)
+        outer.addWidget(self.organizer_scroll)
+        content = QWidget()
+        self.organizer_scroll.setWidget(content)
+        root = QVBoxLayout(content)
         root.setContentsMargins(12, 10, 12, 10)
         root.setSpacing(8)
         root.setAlignment(Qt.AlignTop)
@@ -191,21 +204,24 @@ class OrganizerUiMixin:
         title.setObjectName("PageTitle")
         title.setFixedHeight(28)
         header.addWidget(accent, alignment=Qt.AlignVCenter)
-        header.addWidget(title, 1)
-        root.addLayout(header)
-
-        self.macro_mode_button = AtlasButton("Macro")
-        self.mirror_mode_button = AtlasButton("Miroir")
-        for button in (self.macro_mode_button, self.mirror_mode_button):
-            button.setFixedSize(66, 24)
-            button.setToolTip("Choisir le mode des macros")
-        self.quick_actions_title = QLabel("Action rapide")
-        self.quick_actions_title.setObjectName("cardTitle")
-        self.quick_actions_title.setFixedHeight(20)
+        header.addWidget(title, alignment=Qt.AlignVCenter)
         self.runtime_status_dot = QLabel("●")
         self.runtime_status_dot.setObjectName("RuntimeStatusDot")
         self.runtime_status_dot.setFixedSize(14, 18)
         self.runtime_status_dot.setAlignment(Qt.AlignCenter)
+        header.addWidget(self.runtime_status_dot, alignment=Qt.AlignVCenter)
+        header.addStretch(1)
+        root.addLayout(header)
+
+        self.macro_mode_button = AtlasButton("Macro")
+        self.mirror_mode_button = AtlasButton("Miroir")
+        self.macro_mode_button.setFixedSize(112, BUTTON_HEIGHT)
+        self.mirror_mode_button.setFixedSize(208, BUTTON_HEIGHT)
+        self.macro_mode_button.setToolTip("Revenir aux macros classiques")
+        self.mirror_mode_button.setToolTip("Activer ou arrêter Miroir")
+        self.quick_actions_title = QLabel("Action rapide")
+        self.quick_actions_title.setObjectName("cardTitle")
+        self.quick_actions_title.setFixedHeight(BUTTON_HEIGHT)
         self.set_runtime_active(False)
 
         self.switch_character = AtlasButton("")
@@ -241,10 +257,10 @@ class OrganizerUiMixin:
         self.stop_script_clear = AtlasButton("x")
         self.click_clear = AtlasButton("x")
 
-        control_size = QSize(138, BUTTON_HEIGHT)
+        control_size = QSize(160, BUTTON_HEIGHT)
         # Use the same one-line control height as neighboring modules.
         radial_control_size = control_size
-        controls_panel_height = 246
+        controls_panel_height = 200
         panel_inner_width = control_size.width() * 2 + 8
         panel_width = panel_inner_width + CARD_PADDING * 2
         stop_hotkey_size = QSize(52, STOP_BUTTON_HEIGHT)
@@ -269,9 +285,10 @@ class OrganizerUiMixin:
             button.setSizePolicy(QSizePolicy.Fixed, QSizePolicy.Fixed)
             button.setObjectName("secondaryButton")
         self.radial_select_button.setFixedSize(radial_control_size)
-        # The Mirror action occupies a full-width row, like Stop. Its
-        # shortcut badge overlays the same button instead of leaving a gap.
-        self.mirror_arm_button.setFixedSize(panel_inner_width, BUTTON_HEIGHT)
+        # Retain the original arm control for compatible runtime hooks, but
+        # the only visible mirror action is the mode button with its own badge.
+        self.mirror_arm_button.setParent(self)
+        self.mirror_arm_button.hide()
         self.stop_script_button.setObjectName("dangerButton")
         self.stop_script_button.setFixedSize(stop_size)
         self.stop_script_button.setSizePolicy(QSizePolicy.Fixed, QSizePolicy.Fixed)
@@ -341,6 +358,8 @@ class OrganizerUiMixin:
             cell.setVerticalSpacing(0)
             cell.addWidget(action, 0, 0)
             if shortcut is not None:
+                # Reserve text space for the shortcut within the button face.
+                action.setStyleSheet("text-align: left; padding-left: 8px; padding-right: 48px;")
                 cell.addWidget(shortcut, 0, 0, alignment=Qt.AlignRight | Qt.AlignVCenter)
                 shortcut.raise_()
             if clear is not None:
@@ -396,6 +415,7 @@ class OrganizerUiMixin:
         macro_layout = QVBoxLayout(self.macro_panel)
         macro_layout.setContentsMargins(CARD_PADDING, CARD_PADDING, CARD_PADDING, CARD_PADDING)
         macro_layout.setSpacing(CARD_SPACING)
+        macro_layout.setAlignment(Qt.AlignTop)
         macro_title_row = QHBoxLayout()
         macro_title_row.setSpacing(5)
         macro_accent = QFrame()
@@ -403,15 +423,13 @@ class OrganizerUiMixin:
         macro_accent.setFixedSize(3, 16)
         macro_title_row.addWidget(macro_accent)
         macro_title_row.addWidget(self.macro_mode_button)
-        macro_title_row.addWidget(self.mirror_mode_button)
+        macro_title_row.addWidget(macro_cell(
+            self.mirror_mode_button, self.mirror_toggle_hotkey_button,
+            self.mirror_toggle_clear, size=QSize(208, BUTTON_HEIGHT),
+        ))
         macro_title_row.addStretch(1)
-        macro_title_row.addWidget(self.runtime_status_dot)
         macro_layout.addLayout(macro_title_row)
         macro_layout.addWidget(controls_grid_host, alignment=Qt.AlignLeft)
-        macro_layout.addWidget(macro_cell(
-            self.mirror_arm_button, self.mirror_toggle_hotkey_button,
-            self.mirror_toggle_clear, size=QSize(panel_inner_width, BUTTON_HEIGHT),
-        ), alignment=Qt.AlignLeft)
 
         self.quick_actions_panel = QFrame()
         self.quick_actions_panel.setObjectName("card")
@@ -422,6 +440,7 @@ class OrganizerUiMixin:
         quick_layout = QVBoxLayout(self.quick_actions_panel)
         quick_layout.setContentsMargins(CARD_PADDING, CARD_PADDING, CARD_PADDING, CARD_PADDING)
         quick_layout.setSpacing(CARD_SPACING)
+        quick_layout.setAlignment(Qt.AlignTop)
         quick_layout.addLayout(make_card_header(self.quick_actions_title))
         quick_grid_host = QWidget()
         quick_grid_host.setFixedWidth(panel_inner_width)
@@ -434,8 +453,7 @@ class OrganizerUiMixin:
         quick_grid.addWidget(macro_cell(self.radial_select_button, self.radial_hotkey_button, self.radial_clear, size=radial_control_size), 0, 1)
         quick_grid.addWidget(macro_cell(self.previous_character, self.previous_character_hotkey_button, self.previous_character_clear), 1, 0)
         quick_grid.addWidget(macro_cell(self.next_character, self.next_character_hotkey_button, self.next_character_clear), 1, 1)
-        # One compact line: Vitesse : Normal | Rapide | Instantané.
-        # Widths total 52 + 71 + 71 + 78 + 3 * 4 = 284px.
+        # Vitesse stays in the canonical Controls panel, not Macro.
         speed_row = QWidget()
         speed_row.setFixedSize(panel_inner_width, BUTTON_HEIGHT)
         speed_row_layout = QHBoxLayout(speed_row)
@@ -447,7 +465,6 @@ class OrganizerUiMixin:
             self.script_speed_instant,
         ):
             speed_row_layout.addWidget(button)
-        macro_layout.addWidget(speed_row, alignment=Qt.AlignLeft)
         # Preserve an existing Classique profile without silently accelerating
         # it. This legacy-only choice is no longer offered to the user.
         macro_layout.addWidget(self.script_speed_legacy)
@@ -472,37 +489,43 @@ class OrganizerUiMixin:
 
         self.controls_panel = QFrame()
         self.controls_panel.setObjectName("card")
-        self.controls_panel.setFixedHeight(100)
+        self.controls_panel.setMinimumWidth(panel_width)
+        self.controls_panel.setFixedHeight(controls_panel_height)
         self.controls_panel.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
         self.apply_card_shadow(self.controls_panel)
         control_layout = QVBoxLayout(self.controls_panel)
         control_layout.setContentsMargins(CARD_PADDING, CARD_PADDING, CARD_PADDING, CARD_PADDING)
         control_layout.setSpacing(CARD_SPACING)
+        control_layout.setAlignment(Qt.AlignTop)
         controls_title = QLabel("Contrôles")
         controls_title.setObjectName("cardTitle")
         controls_title.setFixedHeight(20)
         control_layout.addLayout(make_card_header(controls_title))
         controls_host = QWidget()
-        controls_host.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
+        controls_host.setFixedWidth(panel_inner_width)
+        controls_host.setSizePolicy(QSizePolicy.Fixed, QSizePolicy.Fixed)
         control_grid = QGridLayout(controls_host)
         control_grid.setContentsMargins(0, 0, 0, 0)
         control_grid.setHorizontalSpacing(8)
         control_grid.setVerticalSpacing(8)
-        control_grid.addWidget(self.reload_runtime_button, 0, 0)
-        control_grid.addWidget(self.debug_button, 0, 1)
-        control_grid.addWidget(stop_row, 0, 2)
+        control_grid.addWidget(speed_row, 0, 0, 1, 2)
+        control_grid.addWidget(self.reload_runtime_button, 1, 0)
+        control_grid.addWidget(self.debug_button, 1, 1)
+        control_grid.addWidget(stop_row, 2, 0, 1, 2)
         for column in range(2):
             control_grid.setColumnMinimumWidth(column, control_size.width())
         control_layout.addWidget(controls_host, alignment=Qt.AlignLeft)
 
-        controls_panels_row = QHBoxLayout()
-        controls_panels_row.setContentsMargins(0, 0, 0, 0)
-        controls_panels_row.setSpacing(8)
-        # Barre de contrôle pleine largeur, puis seulement deux modules.
-        root.addWidget(self.controls_panel)
-        controls_panels_row.addWidget(self.macro_panel, 1)
-        controls_panels_row.addWidget(self.quick_actions_panel, 1)
-        root.addLayout(controls_panels_row)
+        self.controls_panels_grid = QGridLayout()
+        self.controls_panels_grid.setContentsMargins(0, 0, 0, 0)
+        self.controls_panels_grid.setHorizontalSpacing(8)
+        self.controls_panels_grid.setVerticalSpacing(8)
+        self._organizer_panels = (
+            self.macro_panel, self.quick_actions_panel, self.controls_panel,
+        )
+        self._organizer_panel_columns = 0
+        root.addLayout(self.controls_panels_grid)
+        self._reflow_organizer_panels(self.width())
 
         self.zaap_panel = QFrame()
         self.zaap_panel.setObjectName("card")
@@ -533,15 +556,34 @@ class OrganizerUiMixin:
         root.addWidget(self.sessions_panel)
         root.addStretch(1)
 
+    def _reflow_organizer_panels(self, width: int) -> None:
+        columns = 3 if width >= 1110 else 2 if width >= 750 else 1
+        if self._organizer_panel_columns == columns:
+            return
+        self._organizer_panel_columns = columns
+        while self.controls_panels_grid.count():
+            self.controls_panels_grid.takeAt(0)
+        for index, panel in enumerate(self._organizer_panels):
+            self.controls_panels_grid.addWidget(
+                panel, index // columns, index % columns,
+            )
+        for column in range(3):
+            self.controls_panels_grid.setColumnStretch(column, 1 if column < columns else 0)
+
+    def resizeEvent(self, event) -> None:
+        if hasattr(self, "controls_panels_grid"):
+            self._reflow_organizer_panels(event.size().width())
+        super().resizeEvent(event)
+
     def toggle_session_slots_expanded(self) -> None:
         self._session_slots_expanded = not self._session_slots_expanded
         self.render_sessions()
 
     def apply_card_shadow(self, frame: QFrame) -> None:
         shadow = QGraphicsDropShadowEffect(frame)
-        shadow.setBlurRadius(16)
-        shadow.setOffset(0, 3)
-        shadow.setColor(QColor(0, 0, 0, 70))
+        shadow.setBlurRadius(5)
+        shadow.setOffset(0, 1)
+        shadow.setColor(QColor(0, 0, 0, 22))
         frame.setGraphicsEffect(shadow)
 
     def set_runtime_active(self, connected: bool) -> None:
@@ -589,9 +631,6 @@ class OrganizerUiMixin:
         self.set_mirror_arm_active(
             bool(mirror and getattr(self, "_mirror_arm_active", False))
         )
-        self.mirror_mode_button.setToolTip(
-            "Miroir : clics, touches courtes, molette. Favori étoilé = source ; pas de glisser ou maintien continu."
-        )
 
     def set_mirror_arm_active(self, active: bool) -> None:
         button = getattr(self, "mirror_arm_button", None)
@@ -614,9 +653,20 @@ class OrganizerUiMixin:
             if active else "Activer explicitement la copie des gestes du personnage favori."
         )
         self.restyle_button(button)
+        self.mirror_mode_button.setObjectName(
+            "primaryButton" if active else "secondaryButton"
+        )
+        self.mirror_mode_button.setToolTip(
+            "Arrêter la copie Miroir (clics, touches courtes, molette)."
+            if active else "Activer la copie Miroir du personnage favori."
+        )
+        self.restyle_button(self.mirror_mode_button)
 
     def update_switch_buttons(self) -> None:
         self.set_toggle_button(self.switch_character, "Switch Personnage", profile_bool(self.profiles, KEY_SWITCH_CHARACTER, True))
+        # Both navigation buttons share the existing runtime authorization flag.
+        # Keep their visible state in sync instead of inventing a second source.
+        self.set_mirror_arm_active(bool(getattr(self, "_mirror_arm_active", False)))
         self.set_toggle_button(self.switch_click, "Switch Clique", profile_bool(self.profiles, KEY_SWITCH_CLICK, False))
         self.set_toggle_button(self.switch_double_click, "Switch clic x2", profile_bool(self.profiles, KEY_SWITCH_DOUBLE_CLICK, False))
         self.set_toggle_button(self.switch_movement, "Switch Deplacement", profile_bool(self.profiles, KEY_SWITCH_MOVEMENT, False))
