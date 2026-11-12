@@ -1141,6 +1141,17 @@ class OrganizerLayoutTests(unittest.TestCase):
                 self.assertIsInstance(page.radial_select_button, OrganizerGlassButton)
                 self.assertIsInstance(page.stop_script_button, OrganizerGlassButton)
                 self.assertEqual(_diffuse_unity_wallpaper.cache_info().maxsize, 2)
+                # Glass intensity is a single bounded material adjustment,
+                # not another Organizer color palette or extra renderer.
+                from app.pages.organizer.glass_material import (
+                    GLASS_INTENSITY, _reflection_alpha, _surface_alpha,
+                )
+                self.assertEqual(GLASS_INTENSITY, 0.5)
+                self.assertEqual(_reflection_alpha(132), 66)
+                self.assertEqual(_reflection_alpha(60), 30)
+                self.assertEqual(_surface_alpha(143), 199)
+                self.assertEqual(_surface_alpha(173), 214)
+                self.assertIn(unity_glass_gradient(), css)
                 # The old invented palette must not drift away from Unity.
                 self.assertNotIn("#708BAD", css)
                 self.assertNotIn("#829FC3", css)
