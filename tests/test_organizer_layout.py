@@ -957,9 +957,10 @@ class OrganizerLayoutTests(unittest.TestCase):
                 self.app.processEvents()
                 self.assertTrue(page.mirror_arm_button.isHidden())
                 self.assertFalse(page.mirror_arm_button.isEnabled())
-                self.assertIs(
-                    page.mirror_mode_button.parentWidget(),
-                    page.mirror_toggle_hotkey_button.parentWidget(),
+                self.assertTrue(
+                    page.mirror_mode_button.parentWidget().isAncestorOf(
+                        page.mirror_toggle_hotkey_button
+                    )
                 )
                 from app.constants import KEY_ORGANIZER_MACRO_MODE
                 page.profiles[KEY_ORGANIZER_MACRO_MODE] = "mirror"
@@ -1035,8 +1036,9 @@ class OrganizerLayoutTests(unittest.TestCase):
                     self.assertIn("aucune action", control.toolTip())
                 self.assertTrue(page.macro_grid_host.isEnabled())
                 self.assertEqual(page.mode_switch._selected, 0)
-                self.assertIs(page.mirror_mode_button.parentWidget(),
-                              page.mirror_toggle_hotkey_button.parentWidget())
+                self.assertTrue(page.mirror_mode_button.parentWidget().isAncestorOf(
+                    page.mirror_toggle_hotkey_button
+                ))
                 page.profiles[KEY_ORGANIZER_MACRO_MODE] = "mirror"
                 page.update_macro_mode_buttons()
                 self.assertEqual(page.mode_switch._selected, 1)
@@ -1175,14 +1177,19 @@ class OrganizerLayoutTests(unittest.TestCase):
                         available = action.width() - reserve - 4
                         label_width = action.fontMetrics().horizontalAdvance(action.text())
                         self.assertGreaterEqual(available, label_width)
-                self.assertIs(
-                    page.previous_character.parentWidget(),
-                    page.previous_character_hotkey_button.parentWidget(),
-                )
-                self.assertIs(
-                    page.next_character.parentWidget(),
-                    page.next_character_hotkey_button.parentWidget(),
-                )
+                for action, badge in (
+                    (page.previous_character, page.previous_character_hotkey_button),
+                    (page.next_character, page.next_character_hotkey_button),
+                    (page.mirror_mode_button, page.mirror_toggle_hotkey_button),
+                    (page.stop_script_button, page.stop_script_hotkey_button),
+                ):
+                    with self.subTest(button=action.text()):
+                        self.assertTrue(action.parentWidget().isAncestorOf(badge))
+                        self.assertGreaterEqual(
+                            action.width() -
+                            (badge.mapTo(action, QPoint()).x() + badge.width()),
+                            7,
+                        )
                 self.assertEqual(page.macro_mode_button.size(), page.mirror_mode_button.size())
                 self.assertEqual(
                     page.mirror_mode_button.mapTo(page.mode_switch, QPoint()).x()
@@ -1224,8 +1231,11 @@ class OrganizerLayoutTests(unittest.TestCase):
                 self.assertEqual(page.previous_character.text(), "Précédent")
                 self.assertEqual(page.next_character.text(), "Suivant")
                 self.assertEqual(page.radial_select_button.height(), page.switch_fake.height())
-                self.assertIs(page.stop_script_button.parentWidget(),
-                              page.stop_script_hotkey_button.parentWidget())
+                self.assertTrue(
+                    page.stop_script_button.parentWidget().isAncestorOf(
+                        page.stop_script_hotkey_button
+                    )
+                )
                 for value, index in (("normal", 0), ("rapide", 1), ("instantane", 2)):
                     page.profiles[KEY_SCRIPT_SPEED] = value
                     page.profiles[KEY_SCRIPT_SPEED_SCHEMA] = 2
