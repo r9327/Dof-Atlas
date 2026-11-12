@@ -43,7 +43,6 @@ from .common import (
     DOFUS_CLASS_DEFINITIONS,
     KEY_BADGE_HEIGHT,
     SESSION_SLOT_COUNT,
-    STOP_BUTTON_HEIGHT,
     class_icon_candidates,
     dofus_class_key_from_window_name,
     empty_session_slot,
