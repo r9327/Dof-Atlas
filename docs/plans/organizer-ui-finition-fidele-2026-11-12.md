@@ -46,3 +46,33 @@
 OFIN-001 étoile unique décorative juste après premier pseudo ; OFIN-002 zéro ancien espace favori et alignement gauche ; OFIN-003 8 slots/reorder/persistance/commandes préservés ; OFIN-004 fond bleu-gris officiel plus lisible sans toucher police/layout/glass ; OFIN-005 aucun doublon de #365/#425 ; OFIN-006 tests Qt ciblés ; OFIN-007 screenshot Qt Windows au SHA exact ; OFIN-008 audit final et preuve distincte Unity si applicable.
 
 **État initial : 0 développement, 0 test, 0 capture, 0 certification. Cette PR sert exclusivement à cadrer les travaux ; ne pas la fusionner en l'état.**
+
+
+## Amendement 12/11 — « pimpage » Unity premium de la dernière maquette VALIDÉ comme direction (sans transformer le layout)
+
+**Clarification propriétaire : « clakos » = « ça claque » (appréciation positive).** La dernière proposition visuelle introduisant un peu de caractère constitue bien la **référence d'inspiration** supplémentaire. Ce n'est ni une autorisation de reproduire tous ses écarts génératifs, ni un changement du screenshot réel comme source de vérité. **Ajouter seulement des micro-finitions haut de gamme** au rendu final existant.
+
+### Détails supplémentaires à poser (sans nouveaux composants métiers)
+
+1. **Signature Unity très discrète des cinq cartes** : filets de contour fins plus précis, avec éventuellement un **micro-ornement géométrique dans les coins**, ton-sur-ton, style interface Unity officielle (tracé très peu opaque, pas de grands angles lumineux, ne pas toucher aux padding, dimensions et coins arrondis). Unifier ce langage pour les trois cartes supérieures et les deux inférieures ; pas d'habillage différent par module.
+2. **Profondeur maîtrisée** : infime liseré lumineux sur le bord supérieur des panneaux/boutons existants, séparation interne bleu nuit plus nette, ombre douce à faible intensité. Aucun effet plastique 3D, aucun dégradé saturé, pas de halo généralisé, conserver le vrai glass `GLASS_INTENSITY=0.5` et les tokens existants.
+3. **Accent vert Unity utilisé avec retenue** : souligner uniquement les états déjà actifs (Macro, Switch Personnage, Normal, Sélection perso) et le voyant réellement actif. Affiner le contour/soulignement existant, plutôt qu'ajouter de grands néons verts ou de nouveaux témoins décoratifs.
+4. **Premier slot Personnage** : très fine mise en évidence visuelle vert Unity/bleu-vert **seulement si sa sélection runtime existante est effectivement confirmée**, sinon ne pas simuler d'état actif. Toujours **une unique étoile pleine à droite du PSEUDO**, jamais à gauche, permanente, décorative et non cliquable. Ne pas inventer un nouveau système de favori/sélection.
+5. **Rythme et finitions** : micro-contraste des lignes Personnage, boutons de raccourcis décollés des fonds, espacements/bordures rigoureusement identiques, reflet quasi invisible en haut des favoris Zaap, séparations propres dans les boutons Mode/Vitesse et les contrôles. Aucune augmentation de taille ou de nombre d'éléments.
+6. **Fond du panneau** : seulement si le thème officiel fournit déjà un asset local adéquat, possibilité d'une **marque/texture Unity existante** à opacité extrêmement faible dans les grands vides d'arrière-plan, non sous les textes ni dans les slots. **Ne pas ajouter d'image, emblème, logo ou texture inventés** ; si aucun asset approprié n'existe, garder le fond actuel.
+
+### Écarts de la maquette à NE PAS reproduire
+
+- Pas de nouveau gros **logo D** à gauche de « Dofus Atlas », pas de modification des icônes/logos existants.
+- Pas de nouveaux pictogrammes (personnages, Zaap, foudre dans Action libre), ni libellés, ni boutons inventés.
+- Ne pas déplacer l'étoile **à gauche** du premier pseudo comme le fait la génération : position validée **après le pseudo**.
+- Pas de panneaux fantaisie aux quatre coins, grosses arabesques, néons vert fluo, surbrillance sur chaque carte ou bordures trop épaisses.
+- Pas de changement de police/tailles/couleurs non Unity, ni nouvelles colonnes, ratios, interlignes ou géométrie.
+- Pas d'état « actif » visuel simulé si les services runtime disent le contraire.
+
+### Exigences ajoutées au suivi (non réalisées)
+- **OFIN-009** — Micro-finitions premium sur la surface Organizer EXISTANTE : coins discrets ton-sur-ton, filets/ombres/reflets quasi invisibles, cohérence des cinq panneaux ; sans changement structure/tokens/glass/police/assets.
+- **OFIN-010** — États verts seulement lorsqu'ils correspondent au vrai runtime, micro-contraste des raccourcis/slots et éventuel fond officiel existant à très faible opacité ; écarter les éléments inventés du mockup.
+- **OFIN-011** — Comparaison côte à côte des captures Windows réelles AVANT/APRÈS via #422 : même viewport, densité et thème ; vérifier que l'évolution est plus qualitative, pas plus chargée, et que la totalité des modules continue à tenir sans scroll parasite.
+
+**Remise à zéro du statut des nouveaux critères : PENDING / NOT_RUN.** Le présent amendement est documentaire seulement : ni code, ni test, ni rendu Windows généré.
