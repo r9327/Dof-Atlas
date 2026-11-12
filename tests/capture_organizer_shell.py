@@ -162,6 +162,33 @@ def main() -> None:
                     ):
                         if selector not in style:
                             raise RuntimeError("Missing shared glass control state: " + selector)
+                    badges = (
+                        page.click_button,
+                        page.double_click_button,
+                        page.radial_hotkey_button,
+                        page.previous_character_hotkey_button,
+                        page.next_character_hotkey_button,
+                        page.mirror_toggle_hotkey_button,
+                        page.stop_script_hotkey_button,
+                    )
+                    for badge in badges:
+                        if badge.objectName() != "keyBadge" or badge.size().width() != 52 or badge.size().height() != 22:
+                            raise RuntimeError(
+                                "Shortcut badges have inconsistent style or dimensions"
+                            )
+                    for row, _index in page.session_slot_widgets:
+                        from PySide6.QtWidgets import QPushButton
+                        slot_badges = [
+                            child for child in row.findChildren(QPushButton)
+                            if child.objectName() == "keyBadge"
+                        ]
+                        if slot_badges and any(
+                            child.size() != badges[0].size() for child in slot_badges
+                        ):
+                            raise RuntimeError("Character slot shortcut differs from Macro badges")
+                    from app.ui.unity_skin import UNITY_PALETTE
+                    if UNITY_PALETTE["PANEL_GRADIENT"] not in page.styleSheet():
+                        raise RuntimeError("Organizer not using the shared Unity gradient")
                     for action, badge in (
                         (page.switch_click, page.click_button),
                         (page.switch_double_click, page.double_click_button),
