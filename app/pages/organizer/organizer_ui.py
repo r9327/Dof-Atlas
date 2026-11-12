@@ -677,21 +677,6 @@ class OrganizerUiMixin:
         root.addLayout(self.controls_panels_grid)
         self._reflow_organizer_panels(self.width())
 
-        self.zaap_panel = QFrame()
-        self.zaap_panel.setObjectName("card")
-        # The Zaap bar grows only for explicitly retained legacy favorites;
-        # new favorites are bounded by one-row capacity.
-        self.zaap_panel.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Maximum)
-        zaap_layout = QVBoxLayout(self.zaap_panel)
-        zaap_layout.setContentsMargins(CARD_PADDING, CARD_PADDING, CARD_PADDING, CARD_PADDING)
-        zaap_layout.setSpacing(CARD_SPACING)
-        zaap_title = QLabel("Zaap")
-        zaap_title.setObjectName("cardTitle")
-        zaap_title.setFixedHeight(20)
-        zaap_layout.addLayout(make_card_header(zaap_title))
-        zaap_layout.addWidget(self.zaap, 1)
-        root.addWidget(self.zaap_panel)
-
         self.sessions_refresh_button = AtlasButton("⟳")
         self.sessions_refresh_button.setObjectName("iconButton")
         self.sessions_refresh_button.setFixedSize(32, BUTTON_HEIGHT)
@@ -699,7 +684,45 @@ class OrganizerUiMixin:
         self.sessions_panel = CharacterSlotsPanel(self.sessions_refresh_button)
         self.sessions_content = self.sessions_panel.content
         self.sessions_grid = self.sessions_panel.grid
-        root.addWidget(self.sessions_panel)
+
+        # Personnage stays on the left; a slim, full-height Zaap sidebar
+        # stands on the right. 5:1 preserves the requested 75:15 proportion
+        # without wasting the remaining 10% as a blank third column.
+        self.zaap_panel = QFrame()
+        self.zaap_panel.setObjectName("card")
+        self.zaap_panel.setMinimumWidth(145)
+        self.zaap_panel.setFixedHeight(self.sessions_panel.calculated_height())
+        self.zaap_panel.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
+        zaap_layout = QVBoxLayout(self.zaap_panel)
+        zaap_layout.setContentsMargins(CARD_PADDING, CARD_PADDING, CARD_PADDING, CARD_PADDING)
+        zaap_layout.setSpacing(CARD_SPACING)
+        zaap_title = QLabel("Zaap")
+        zaap_title.setObjectName("cardTitle")
+        zaap_title.setFixedHeight(20)
+        zaap_layout.addLayout(make_card_header(zaap_title))
+
+        # The title already says Zaap; a second 46px label would leave
+        # almost no room to search in the narrow right-hand sidebar.
+        self.zaap.zaap_label.hide()
+        self.zaap.search_input.setMinimumWidth(90)
+        self.zaap.setMinimumWidth(0)
+        self.zaap.setSizePolicy(QSizePolicy.Ignored, QSizePolicy.Fixed)
+        self.zaap_scroll = QScrollArea(self.zaap_panel)
+        self.zaap_scroll.setObjectName("OrganizerZaapScroll")
+        self.zaap_scroll.setFrameShape(QFrame.NoFrame)
+        self.zaap_scroll.setWidgetResizable(True)
+        self.zaap_scroll.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
+        self.zaap_scroll.setVerticalScrollBarPolicy(Qt.ScrollBarAsNeeded)
+        self.zaap_scroll.setMinimumWidth(0)
+        self.zaap_scroll.setWidget(self.zaap)
+        zaap_layout.addWidget(self.zaap_scroll, 1)
+
+        self.bottom_panels_row = QHBoxLayout()
+        self.bottom_panels_row.setContentsMargins(0, 0, 0, 0)
+        self.bottom_panels_row.setSpacing(8)
+        self.bottom_panels_row.addWidget(self.sessions_panel, 5, Qt.AlignTop)
+        self.bottom_panels_row.addWidget(self.zaap_panel, 1, Qt.AlignTop)
+        root.addLayout(self.bottom_panels_row)
         root.addStretch(1)
 
     def _reflow_organizer_panels(self, width: int) -> None:
