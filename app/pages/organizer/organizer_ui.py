@@ -215,8 +215,8 @@ class OrganizerUiMixin:
 
         self.macro_mode_button = AtlasButton("Macro")
         self.mirror_mode_button = AtlasButton("Miroir")
-        self.macro_mode_button.setFixedSize(112, BUTTON_HEIGHT)
-        self.mirror_mode_button.setFixedSize(208, BUTTON_HEIGHT)
+        self.macro_mode_button.setFixedSize(98, BUTTON_HEIGHT)
+        self.mirror_mode_button.setFixedSize(202, BUTTON_HEIGHT)
         self.macro_mode_button.setToolTip("Revenir aux macros classiques")
         self.mirror_mode_button.setToolTip("Activer ou arrêter Miroir")
         self.quick_actions_title = QLabel("Action rapide")
@@ -425,7 +425,7 @@ class OrganizerUiMixin:
         macro_title_row.addWidget(self.macro_mode_button)
         macro_title_row.addWidget(macro_cell(
             self.mirror_mode_button, self.mirror_toggle_hotkey_button,
-            self.mirror_toggle_clear, size=QSize(208, BUTTON_HEIGHT),
+            self.mirror_toggle_clear, size=QSize(202, BUTTON_HEIGHT),
         ))
         macro_title_row.addStretch(1)
         macro_layout.addLayout(macro_title_row)
