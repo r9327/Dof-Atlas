@@ -1,9 +1,10 @@
 from __future__ import annotations
 
-from PySide6.QtCore import QEasingCurve, QPoint, QPropertyAnimation, QSize, Qt
-from PySide6.QtGui import QPixmap
+from PySide6.QtCore import QEasingCurve, QPoint, QPointF, QPropertyAnimation, QRectF, QSize, Qt
+from PySide6.QtGui import QColor, QIcon, QPainter, QPen, QPixmap, QPolygonF
 from PySide6.QtWidgets import (
     QFrame,
+    QGraphicsDropShadowEffect,
     QGridLayout,
     QHBoxLayout,
     QLabel,
@@ -51,6 +52,47 @@ from .common import (
     session_is_empty,
     session_name,
 )
+
+
+def _organizer_warning_icon() -> QIcon:
+    """Draw the warning mark rather than relying on missing Unicode glyphs."""
+    pixmap = QPixmap(26, 26)
+    pixmap.fill(Qt.transparent)
+    painter = QPainter(pixmap)
+    painter.setRenderHint(QPainter.Antialiasing)
+    painter.setPen(QPen(QColor("#FFF0B2"), 1.4))
+    painter.setBrush(QColor("#E7AB32"))
+    painter.drawPolygon(QPolygonF([
+        QPointF(13, 3), QPointF(24, 22), QPointF(2, 22),
+    ]))
+    painter.setPen(QPen(QColor("#39240C"), 2.3, Qt.SolidLine, Qt.RoundCap))
+    painter.drawLine(QPointF(13, 9), QPointF(13, 15))
+    painter.drawPoint(QPointF(13, 19))
+    painter.end()
+    return QIcon(pixmap)
+
+
+def _organizer_refresh_icon() -> QIcon:
+    """Antialiased refresh arrow visible with all fonts and DPI settings."""
+    pixmap = QPixmap(28, 28)
+    pixmap.fill(Qt.transparent)
+    painter = QPainter(pixmap)
+    painter.setRenderHint(QPainter.Antialiasing)
+    painter.setPen(QPen(QColor("#D7E6F1"), 2.3, Qt.SolidLine, Qt.RoundCap))
+    painter.drawArc(QRectF(5.0, 5.0, 18.0, 18.0), 45 * 16, 290 * 16)
+    painter.drawLine(QPointF(20.5, 4.8), QPointF(23.0, 11.2))
+    painter.drawLine(QPointF(23.0, 11.2), QPointF(16.2, 10.3))
+    painter.end()
+    return QIcon(pixmap)
+
+
+def _organizer_card_shadow(panel: QFrame) -> None:
+    """Subtle Unity-style separation, never a black-filled backing rectangle."""
+    shadow = QGraphicsDropShadowEffect(panel)
+    shadow.setBlurRadius(9)
+    shadow.setOffset(0, 2)
+    shadow.setColor(QColor(3, 14, 32, 45))
+    panel.setGraphicsEffect(shadow)
 
 
 class CharacterSlotsPanel(QFrame):
@@ -323,6 +365,26 @@ class OrganizerUiMixin:
                 color: #FFFFFF;
                 font-weight: 700;
             }
+            #organizerPage QFrame#characterSlotEmpty,
+            #organizerPage QFrame#characterSlotMissing {
+                background: transparent;
+                border: 1px solid #435A7B;
+                border-radius: 5px;
+                border-image: none;
+            }
+            #organizerPage QFrame#characterSlot {
+                background: #2B405D;
+                border: 1px solid #59718D;
+                border-radius: 5px;
+                border-image: none;
+            }
+            #organizerPage QFrame#characterSlotDragging,
+            #organizerPage QFrame#characterSlotDropTarget {
+                background: #395272;
+                border: 1px solid #8AAA6B;
+                border-radius: 5px;
+                border-image: none;
+            }
         """)
         root = QVBoxLayout(content)
         root.setContentsMargins(12, 10, 12, 10)
@@ -387,7 +449,7 @@ class OrganizerUiMixin:
         self.script_speed_normal = AtlasButton("Normal")
         self.script_speed_fast = AtlasButton("Rapide")
         self.script_speed_instant = AtlasButton("Instantané")
-        self.stop_script_button = AtlasButton("Stop urgence")
+        self.stop_script_button = AtlasButton("STOP URGENCE")
         self.stop_script_hotkey_button = AtlasButton("")
         self.stop_script_clear = AtlasButton("x")
         self.click_clear = AtlasButton("x")
@@ -424,6 +486,8 @@ class OrganizerUiMixin:
         self.mirror_arm_button.setParent(self)
         self.mirror_arm_button.hide()
         self.stop_script_button.setObjectName("dangerButton")
+        self.stop_script_button.setIcon(_organizer_warning_icon())
+        self.stop_script_button.setIconSize(QSize(20, 20))
         self.stop_script_button.setFixedSize(stop_size)
         self.stop_script_button.setSizePolicy(QSizePolicy.Fixed, QSizePolicy.Fixed)
         for button in (self.click_button, self.double_click_button, self.radial_hotkey_button,
@@ -486,15 +550,28 @@ class OrganizerUiMixin:
             cell.setVerticalSpacing(0)
             cell.addWidget(action, 0, 0)
             if shortcut is not None:
-                # Shortcut stays inside the button; no ON/OFF overlays.
+                # The badge is embedded, but inset from the right border.
                 action.setStyleSheet(
-                    "text-align: center; padding-left: 4px; padding-right: 40px; font-size: 10px;"
+                    "text-align: center; padding-left: 4px; padding-right: 48px; font-size: 10px;"
                 )
-                cell.addWidget(shortcut, 0, 0, alignment=Qt.AlignRight | Qt.AlignVCenter)
-                shortcut.raise_()
+                badge_host = QWidget(wrapper)
+                badge_host.setObjectName("OrganizerTransparentHost")
+                badge_host.setFixedSize(shortcut.width() + 8, BUTTON_HEIGHT)
+                badge_layout = QHBoxLayout(badge_host)
+                badge_layout.setContentsMargins(0, 0, 8, 0)
+                badge_layout.setSpacing(0)
+                badge_layout.addWidget(shortcut, alignment=Qt.AlignVCenter)
+                cell.addWidget(badge_host, 0, 0, alignment=Qt.AlignRight | Qt.AlignVCenter)
+                badge_host.raise_()
             if clear is not None:
-                cell.addWidget(clear, 0, 0, alignment=Qt.AlignTop | Qt.AlignRight)
-                clear.raise_()
+                clear_host = QWidget(wrapper)
+                clear_host.setObjectName("OrganizerTransparentHost")
+                clear_host.setFixedSize(clear.width() + 6, clear.height() + 2)
+                clear_layout = QHBoxLayout(clear_host)
+                clear_layout.setContentsMargins(0, 2, 6, 0)
+                clear_layout.addWidget(clear)
+                cell.addWidget(clear_host, 0, 0, alignment=Qt.AlignTop | Qt.AlignRight)
+                clear_host.raise_()
             return wrapper
 
         def make_card_header(
@@ -575,6 +652,17 @@ class OrganizerUiMixin:
             self.next_character, self.next_character_hotkey_button,
             self.next_character_clear,
         ), 1, 1)
+        # Honest placeholders: reserve the cells without advertising a
+        # non-existent action. Real actions can replace these later.
+        self.quick_placeholder_1 = AtlasButton("Action libre 1")
+        self.quick_placeholder_2 = AtlasButton("Action libre 2")
+        for placeholder in (self.quick_placeholder_1, self.quick_placeholder_2):
+            placeholder.setObjectName("secondaryButton")
+            placeholder.setFixedSize(control_size)
+            placeholder.setToolTip("Emplacement réservé : aucune action configurée")
+            placeholder.setEnabled(False)
+        quick_grid.addWidget(self.quick_placeholder_1, 2, 0)
+        quick_grid.addWidget(self.quick_placeholder_2, 2, 1)
         # Vitesse stays in the canonical Controls panel, not Macro.
         speed_row = QWidget()
         speed_row.setObjectName("OrganizerTransparentHost")
@@ -608,8 +696,8 @@ class OrganizerUiMixin:
         for column in range(2):
             quick_grid.setColumnMinimumWidth(column, control_size.width())
             quick_grid.setColumnStretch(column, 0)
-        quick_grid.setRowMinimumHeight(0, BUTTON_HEIGHT)
-        quick_grid.setRowMinimumHeight(1, BUTTON_HEIGHT)
+        for row in range(3):
+            quick_grid.setRowMinimumHeight(row, BUTTON_HEIGHT)
         quick_layout.addWidget(quick_grid_host, alignment=Qt.AlignLeft)
 
         self.controls_panel = QFrame()
@@ -677,10 +765,13 @@ class OrganizerUiMixin:
         root.addLayout(self.controls_panels_grid)
         self._reflow_organizer_panels(self.width())
 
-        self.sessions_refresh_button = AtlasButton("⟳")
+        self.sessions_refresh_button = AtlasButton("")
         self.sessions_refresh_button.setObjectName("iconButton")
         self.sessions_refresh_button.setFixedSize(32, BUTTON_HEIGHT)
-        self.sessions_refresh_button.setToolTip("Scanner les fenêtres Dofus")
+        self.sessions_refresh_button.setIcon(_organizer_refresh_icon())
+        self.sessions_refresh_button.setIconSize(QSize(22, 22))
+        self.sessions_refresh_button.setAccessibleName("Actualiser les personnages")
+        self.sessions_refresh_button.setToolTip("Actualiser les fenêtres Dofus")
         self.sessions_panel = CharacterSlotsPanel(self.sessions_refresh_button)
         self.sessions_content = self.sessions_panel.content
         self.sessions_grid = self.sessions_panel.grid
@@ -722,6 +813,11 @@ class OrganizerUiMixin:
         self.bottom_panels_row.addWidget(self.sessions_panel, 3, Qt.AlignTop)
         self.bottom_panels_row.addWidget(self.zaap_panel, 1, Qt.AlignTop)
         root.addLayout(self.bottom_panels_row)
+        for panel in (
+            self.macro_panel, self.quick_actions_panel, self.controls_panel,
+            self.sessions_panel, self.zaap_panel,
+        ):
+            _organizer_card_shadow(panel)
         root.addStretch(1)
 
     def _reflow_organizer_panels(self, width: int) -> None:
