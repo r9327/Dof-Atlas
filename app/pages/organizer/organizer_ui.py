@@ -39,6 +39,7 @@ from app.constants import (
 )
 from app.storage import ZaapWidget, clean_auto_group_name, profile_bool, short_label
 from app.ui.splash_image import clear_connected_dark_background
+from app.ui.theme import render_theme_template
 from app.ui.components import AtlasButton
 from .common import (
     BUTTON_HEIGHT,
@@ -506,10 +507,16 @@ class OrganizerUiMixin:
         # Unity's shared yellow/green button border sprites have deep
         # baked-in shadows. Organizer uses flat themed button surfaces only;
         # do not remove these sprites from the other application modules.
-        self.setStyleSheet("""
-            /* Organizer glass-button language: same radius, stroke, motion
-               states and inset across Macro, Quick actions, Controls and slots.
-               Stay scoped here; don't replace the global Unity theme. */
+        # Use the SAME canonical Unity color roles as the rest of Atlas.
+        # No separate guessed Organizer palette: a light glass gradient from
+        # the shared skin, while scripts/actions retain their existing owners.
+        self.setStyleSheet(render_theme_template("""
+            #organizerPage QFrame#card {
+                background: @PANEL_GRADIENT;
+                border: 1px solid @BORDER_CARD;
+                border-radius: 9px;
+                border-image: none;
+            }
             #organizerPage QPushButton#primaryButton,
             #organizerPage QPushButton#secondaryButton,
             #organizerPage QPushButton#PrimaryActionButton,
@@ -517,30 +524,25 @@ class OrganizerUiMixin:
             #organizerPage QPushButton#segmentedButton,
             #organizerPage QPushButton#segmentedButtonActive,
             #organizerPage QPushButton#dangerButton {
-                border: 1px solid #708BAD;
-                border-radius: 9px;
+                background: @PANEL_GRADIENT;
+                border: 1px solid @BORDER;
+                border-radius: 8px;
                 border-image: none;
-                padding-top: 0px;
-                padding-bottom: 0px;
+                color: @TEXT_SOFT;
                 text-align: center;
-                color: #F1F6FB;
-                background: qlineargradient(x1:0,y1:0,x2:0,y2:1,
-                    stop:0 rgba(75, 103, 145, 0.94),
-                    stop:0.45 rgba(53, 78, 116, 0.92),
-                    stop:1 rgba(37, 57, 91, 0.95));
+                padding: 0px 5px;
             }
             #organizerPage QPushButton#primaryButton,
             #organizerPage QPushButton#PrimaryActionButton,
             #organizerPage QPushButton#segmentedButtonActive {
-                background: qlineargradient(x1:0,y1:0,x2:0,y2:1,
-                    stop:0 rgba(94, 138, 83, 0.98),
-                    stop:1 rgba(56, 93, 57, 0.98));
-                border-color: #86B77D;
+                background: @ACTIVE_GRADIENT;
+                border-color: @GREEN_BORDER;
+                color: @TEXT;
             }
             #organizerPage QPushButton#dangerButton {
-                background: qlineargradient(x1:0,y1:0,x2:0,y2:1,
-                    stop:0 #CC4551, stop:1 #A72B3A);
-                border-color: #DF6671;
+                background: @RED_DARK;
+                border-color: @RED;
+                color: @TEXT;
                 font-weight: 700;
             }
             #organizerPage QPushButton#primaryButton:hover,
@@ -548,32 +550,27 @@ class OrganizerUiMixin:
             #organizerPage QPushButton#PrimaryActionButton:hover,
             #organizerPage QPushButton#SecondaryButton:hover,
             #organizerPage QPushButton#segmentedButton:hover,
-            #organizerPage QPushButton#segmentedButtonActive:hover,
-            #organizerPage QPushButton#iconButton:hover,
-            #organizerPage QPushButton#iconButtonDanger:hover,
-            #organizerPage QPushButton#keyBadge:hover {
-                background: qlineargradient(x1:0,y1:0,x2:0,y2:1,
-                    stop:0 rgba(101, 133, 178, 0.98),
-                    stop:1 rgba(54, 82, 126, 0.98));
-                border-color: #A5C0E0;
+            #organizerPage QPushButton#segmentedButtonActive:hover {
+                background: @PANEL_HOVER;
+                border-color: @BORDER_STRONG;
+                color: @TEXT;
             }
             #organizerPage QPushButton#primaryButton:pressed,
             #organizerPage QPushButton#secondaryButton:pressed,
             #organizerPage QPushButton#PrimaryActionButton:pressed,
             #organizerPage QPushButton#SecondaryButton:pressed,
             #organizerPage QPushButton#segmentedButton:pressed,
-            #organizerPage QPushButton#segmentedButtonActive:pressed,
-            #organizerPage QPushButton#iconButton:pressed,
-            #organizerPage QPushButton#keyBadge:pressed {
-                background: #294364;
-                border-color: #B9CEDF;
+            #organizerPage QPushButton#segmentedButtonActive:pressed {
+                background: @PANEL_ACTIVE;
+                border-color: @GREEN_BORDER;
             }
             #organizerPage QPushButton#dangerButton:hover {
-                background: #D64C59;
-                border-color: #F1909B;
+                background: @RED_HOVER;
+                border-color: @RED;
             }
             #organizerPage QPushButton#dangerButton:pressed {
-                background: #952735;
+                background: @RED_DARK;
+                border-color: @RED;
             }
             #organizerPage QPushButton#primaryButton:disabled,
             #organizerPage QPushButton#secondaryButton:disabled,
@@ -581,113 +578,113 @@ class OrganizerUiMixin:
             #organizerPage QPushButton#SecondaryButton:disabled,
             #organizerPage QPushButton#segmentedButton:disabled,
             #organizerPage QPushButton#segmentedButtonActive:disabled,
-            #organizerPage QPushButton#dangerButton:disabled,
-            #organizerPage QPushButton#iconButton:disabled,
-            #organizerPage QPushButton#iconButtonDanger:disabled,
-            #organizerPage QPushButton#keyBadge:disabled {
-                background: #243650;
-                color: #8B9CB3;
-                border: 1px solid #40546E;
+            #organizerPage QPushButton#dangerButton:disabled {
+                background: @PANEL;
+                border-color: @BORDER_SOFT;
+                color: @TEXT_DISABLED;
             }
-            #organizerPage QPushButton#keyBadge,
-            #organizerPage QPushButton#iconButton,
-            #organizerPage QPushButton#iconButtonDanger {
-                border: 1px solid #708BAD;
-                border-radius: 9px;
-                border-image: none;
-                background: qlineargradient(x1:0,y1:0,x2:0,y2:1,
-                    stop:0 rgba(66, 92, 131, 0.98),
-                    stop:1 rgba(39, 60, 95, 0.98));
-                color: #EFF5FB;
-            }
-            /* Global badge min width and padding otherwise swallow the
-               user's eight-pixel right inset inside Macro/Miroir/controls. */
+            /* All seven embedded shortcuts, STOP and character slots are
+               the SAME keyBadge family and 52x22 dimensions. */
             #organizerPage QPushButton#keyBadge {
+                background: @PANEL_HOVER;
+                border: 1px solid @BORDER_STRONG;
+                border-radius: 6px;
+                border-image: none;
+                color: @TEXT;
+                font-size: 10px;
+                font-weight: 700;
                 min-width: 0px;
-                padding: 0px 2px;
                 min-height: 0px;
                 max-height: 22px;
+                padding: 0px 2px;
+                text-align: center;
             }
-            #organizerPage QLineEdit#comboField {
-                background: qlineargradient(x1:0,y1:0,x2:0,y2:1,
-                    stop:0 rgba(58, 82, 121, 0.96),
-                    stop:1 rgba(38, 58, 91, 0.96));
-                color: #F1F6FB;
-                border: 1px solid #708BAD;
-                border-radius: 9px;
+            #organizerPage QPushButton#keyBadge:hover {
+                background: @PANEL_ACTIVE;
+                border-color: @GREEN_BORDER;
+            }
+            #organizerPage QPushButton#keyBadge:pressed {
+                background: @GREEN_DARK;
+                border-color: @GREEN;
+            }
+            #organizerPage QPushButton#keyBadge:disabled {
+                background: @PANEL;
+                border-color: @BORDER_SOFT;
+                color: @TEXT_DISABLED;
+            }
+            #organizerPage QPushButton#iconButton,
+            #organizerPage QPushButton#iconButtonDanger {
+                background: @PANEL_2;
+                border: 1px solid @BORDER;
+                border-radius: 6px;
                 border-image: none;
-                padding: 0px 8px;
+                color: @TEXT_SOFT;
+                padding: 0px;
             }
-            #organizerPage QLineEdit#comboField:focus {
-                border-color: #A5C0E0;
+            #organizerPage QPushButton#iconButton:hover,
+            #organizerPage QPushButton#iconButtonDanger:hover {
+                background: @PANEL_HOVER;
+                border-color: @BORDER_STRONG;
+            }
+            #organizerPage QPushButton#iconButton:disabled,
+            #organizerPage QPushButton#iconButtonDanger:disabled {
+                background: @PANEL;
+                color: @TEXT_DISABLED;
+                border-color: @BORDER_SOFT;
             }
             #organizerPage QWidget#OrganizerTransparentHost {
                 background: transparent;
                 border: none;
                 border-image: none;
             }
-            #organizerPage QFrame#OrganizerSpeedSelector {
-                background: rgba(39, 61, 95, 0.94);
-                border: 1px solid #708BAD;
-                border-radius: 9px;
+            #organizerPage QLineEdit#comboField {
+                background: @PANEL_2;
+                border: 1px solid @BORDER;
+                border-radius: 8px;
                 border-image: none;
+                color: @TEXT;
+                padding: 0px 8px;
             }
-            #organizerPage QFrame#OrganizerSpeedHighlight {
-                background: rgba(86, 129, 76, 0.96);
-                border: 1px solid #9FC995;
+            #organizerPage QLineEdit#comboField:focus {
+                background: @PANEL_HOVER;
+                border-color: @GREEN;
+            }
+            #organizerPage QFrame#OrganizerSpeedSelector,
+            #organizerPage QFrame#OrganizerModeSwitch {
+                background: @PANEL;
+                border: none;
                 border-radius: 8px;
                 border-image: none;
             }
-            #organizerPage QPushButton#OrganizerSpeedChoice,
-            #organizerPage QPushButton#OrganizerSpeedChoiceSelected {
-                background: transparent;
-                border: 0px;
+            #organizerPage QFrame#OrganizerSpeedHighlight,
+            #organizerPage QFrame#OrganizerModeHighlight {
+                background: @GREEN_DARK;
+                border: 1px solid @GREEN_BORDER;
+                border-radius: 7px;
                 border-image: none;
-                border-radius: 4px;
-                padding: 0px 3px;
-                color: #BED0E5;
+            }
+            #organizerPage QFrame#OrganizerModeHighlightArmed {
+                background: @ACTIVE_GRADIENT;
+                border: 1px solid @GREEN;
+                border-radius: 7px;
+                border-image: none;
+            }
+            #organizerPage QPushButton#OrganizerSpeedChoice,
+            #organizerPage QPushButton#OrganizerSpeedChoiceSelected,
+            #organizerPage QPushButton#OrganizerModeChoice {
+                background: transparent;
+                border: none;
+                border-image: none;
+                border-radius: 6px;
+                padding: 0px 2px;
+                color: @TEXT_SOFT;
                 font-size: 11px;
                 font-weight: 600;
                 min-height: 0px;
             }
             #organizerPage QPushButton#OrganizerSpeedChoiceSelected {
-                color: #FFFFFF;
+                color: @TEXT;
                 font-weight: 700;
-            }
-            #organizerPage QFrame#OrganizerModeSwitch {
-                background: rgba(39, 61, 95, 0.94);
-                border: none;
-                border-radius: 9px;
-                border-image: none;
-            }
-            #organizerPage QFrame#OrganizerModeHighlight {
-                background: rgba(79, 119, 85, 0.96);
-                border: 1px solid #9FC995;
-                border-radius: 8px;
-                border-image: none;
-            }
-            #organizerPage QFrame#OrganizerModeHighlightArmed {
-                background: rgba(86, 133, 71, 0.98);
-                border: 1px solid #B0D597;
-                border-radius: 8px;
-                border-image: none;
-            }
-            #organizerPage QPushButton#OrganizerModeChoice {
-                background: transparent;
-                border: none;
-                border-image: none;
-                border-radius: 4px;
-                color: #F2F4F7;
-                font-weight: 600;
-            }
-            /* Frosted Unity surfaces, exclusively in Organizer. */
-            #organizerPage QFrame#card {
-                background: qlineargradient(x1:0,y1:0,x2:0,y2:1,
-                    stop:0 rgba(55, 80, 121, 0.83),
-                    stop:1 rgba(27, 42, 75, 0.87));
-                border: 1px solid #6A86AE;
-                border-radius: 12px;
-                border-image: none;
             }
             #organizerPage QScrollArea#OrganizerContentScroll,
             #organizerPage QScrollArea#OrganizerZaapScroll,
@@ -701,68 +698,48 @@ class OrganizerUiMixin:
                 border-image: none;
             }
             #organizerPage QWidget#favoriteChip {
-                background: qlineargradient(x1:0,y1:0,x2:0,y2:1,
-                    stop:0 rgba(73, 100, 140, 0.96),
-                    stop:1 rgba(43, 64, 98, 0.96));
-                border: 1px solid #708BAD;
-                border-radius: 9px;
+                background: @PANEL_2;
+                border: 1px solid @BORDER_CARD;
+                border-radius: 8px;
                 border-image: none;
             }
             #organizerPage QWidget#favoriteChip:hover {
-                background: rgba(87, 117, 159, 0.98);
-                border-color: #A5C0E0;
+                background: @PANEL_HOVER;
+                border-color: @BORDER_STRONG;
             }
             #organizerPage QFrame#characterSlotEmpty,
             #organizerPage QFrame#characterSlotMissing {
-                /* Opaque blue prevents ghosted previous slot pixels on resize. */
-                background: #273D60;
-                border: 1px solid #435A7B;
-                border-radius: 9px;
+                background: @PANEL;
+                border: 1px solid @BORDER_SOFT;
+                border-radius: 8px;
                 border-image: none;
             }
             #organizerPage QFrame#characterSlot {
-                background: qlineargradient(x1:0,y1:0,x2:0,y2:1,
-                    stop:0 #30496C, stop:1 #1E3454);
-                border: 1px solid #6481AA;
-                border-radius: 9px;
-                border-image: none;
-            }
-            /* Character shortcuts need a distinctly raised surface,
-               not the same dark blue as the filled character slots. */
-            #organizerPage QFrame#characterSlot QPushButton#keyBadge,
-            #organizerPage QFrame#characterSlotMissing QPushButton#keyBadge {
-                background: qlineargradient(x1:0,y1:0,x2:0,y2:1,
-                    stop:0 #829FC3, stop:1 #5476A2);
-                border: 1px solid #B9D0E8;
+                background: @PANEL_2;
+                border: 1px solid @BORDER;
                 border-radius: 8px;
                 border-image: none;
-                color: #FFFFFF;
             }
-            #organizerPage QFrame#characterSlot QPushButton#keyBadge:hover,
-            #organizerPage QFrame#characterSlotMissing QPushButton#keyBadge:hover {
-                background: #90B0D1;
-                border-color: #D8E9F8;
+            #organizerPage QFrame#characterSlotDragging,
+            #organizerPage QFrame#characterSlotDropTarget {
+                background: @PANEL_ACTIVE;
+                border: 1px solid @GREEN_BORDER;
+                border-radius: 8px;
+                border-image: none;
             }
             #organizerPage QFrame#characterSlot QPushButton#FavoriteButton,
             #organizerPage QFrame#characterSlot QPushButton#FavoriteButtonActive {
-                background: rgba(68, 100, 142, 0.92);
-                border: 1px solid #829FBD;
-                border-radius: 7px;
+                background: @PANEL_HOVER;
+                border: 1px solid @BORDER;
+                border-radius: 6px;
                 border-image: none;
             }
             #organizerPage QFrame#characterSlot QPushButton#FavoriteButton:hover,
             #organizerPage QFrame#characterSlot QPushButton#FavoriteButtonActive:hover {
-                background: #688BB6;
-                border-color: #BCD5ED;
+                background: @PANEL_ACTIVE;
+                border-color: @GREEN_BORDER;
             }
-            #organizerPage QFrame#characterSlotDragging,
-            #organizerPage QFrame#characterSlotDropTarget {
-                background: #39577D;
-                border: 1px solid #8AAA6B;
-                border-radius: 9px;
-                border-image: none;
-            }
-        """)
+        """))
         root = QVBoxLayout(content)
         # Space for the lower rounded corners and drop shadows at all DPI.
         root.setContentsMargins(14, 12, 14, 20)
@@ -839,9 +816,9 @@ class OrganizerUiMixin:
         controls_panel_height = 146
         panel_inner_width = control_size.width() * 2 + 8
         panel_width = panel_inner_width + CARD_PADDING * 2
-        stop_hotkey_size = QSize(36, KEY_BADGE_HEIGHT)
+        stop_hotkey_size = QSize(52, KEY_BADGE_HEIGHT)
         stop_size = QSize(panel_inner_width, BUTTON_HEIGHT)
-        shortcut_size = QSize(36, KEY_BADGE_HEIGHT)
+        shortcut_size = QSize(52, KEY_BADGE_HEIGHT)
 
         for button in (
             self.switch_character,
@@ -896,7 +873,7 @@ class OrganizerUiMixin:
             button.setObjectName("keyBadge")
             button.setFixedSize(shortcut_size)
             button.setSizePolicy(QSizePolicy.Fixed, QSizePolicy.Fixed)
-        self.stop_script_hotkey_button.setObjectName("iconButton")
+        self.stop_script_hotkey_button.setObjectName("keyBadge")
         self.stop_script_hotkey_button.setFixedSize(stop_hotkey_size)
         self.stop_script_hotkey_button.setSizePolicy(QSizePolicy.Fixed, QSizePolicy.Fixed)
         self.radial_select_button.setToolTip(
@@ -953,7 +930,7 @@ class OrganizerUiMixin:
             if shortcut is not None:
                 # The badge is embedded, but inset from the right border.
                 action.setStyleSheet(
-                    "text-align: center; padding-left: 4px; padding-right: 48px; font-size: 10px;"
+                    "text-align: center; padding-left: 4px; padding-right: 64px; font-size: 10px;"
                 )
                 badge_host = QWidget(wrapper)
                 badge_host.setObjectName("OrganizerTransparentHost")
