@@ -91,10 +91,11 @@ def main() -> None:
                     zaap_x = zaap_box.mapTo(window, QPoint()).x()
                     if zaap_x < slot_x + slot_box.width():
                         raise RuntimeError(f"{name}: Zaap overlaps the character slots")
-                    if not (slot_box.width() > zaap_box.width() * 3):
+                    ratio = slot_box.width() / max(1, zaap_box.width())
+                    if not (2.90 <= ratio <= 3.10):
                         raise RuntimeError(
-                            f"{name}: Zaap is not a slim sidebar: "
-                            f"{slot_box.width()} vs {zaap_box.width()}"
+                            f"{name}: expected 75/25 slots/Zaap split, got "
+                            f"{slot_box.width()} vs {zaap_box.width()} (ratio {ratio:.3f})"
                         )
                     if zaap_box.height() != slot_box.height():
                         raise RuntimeError(f"{name}: Zaap and slots heights differ")
