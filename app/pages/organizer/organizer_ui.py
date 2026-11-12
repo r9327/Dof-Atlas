@@ -190,7 +190,41 @@ class OrganizerUiMixin:
             #organizerPage QPushButton#primaryButton,
             #organizerPage QPushButton#secondaryButton,
             #organizerPage QPushButton#PrimaryActionButton,
-            #organizerPage QPushButton#SecondaryButton {
+            #organizerPage QPushButton#SecondaryButton,
+            #organizerPage QPushButton#segmentedButton,
+            #organizerPage QPushButton#segmentedButtonActive,
+            #organizerPage QPushButton#dangerButton {
+                border: 1px solid #506485;
+                border-radius: 5px;
+                border-image: none;
+                padding-top: 0px;
+                padding-bottom: 0px;
+                text-align: center;
+            }
+            #organizerPage QPushButton#secondaryButton,
+            #organizerPage QPushButton#SecondaryButton,
+            #organizerPage QPushButton#segmentedButton {
+                background: #263857;
+            }
+            #organizerPage QPushButton#primaryButton,
+            #organizerPage QPushButton#PrimaryActionButton,
+            #organizerPage QPushButton#segmentedButtonActive {
+                background: #426936;
+            }
+            #organizerPage QPushButton#dangerButton {
+                background: #B32632;
+            }
+            #organizerPage QPushButton#keyBadge,
+            #organizerPage QPushButton#iconButton,
+            #organizerPage QPushButton#iconButtonDanger {
+                border: 1px solid #506485;
+                border-radius: 5px;
+                border-image: none;
+                background: #263857;
+            }
+            #organizerPage QWidget#OrganizerTransparentHost {
+                background: transparent;
+                border: none;
                 border-image: none;
             }
         """)
@@ -220,8 +254,8 @@ class OrganizerUiMixin:
 
         self.macro_mode_button = AtlasButton("Macro")
         self.mirror_mode_button = AtlasButton("Miroir")
-        self.macro_mode_button.setFixedSize(184, BUTTON_HEIGHT)
-        self.mirror_mode_button.setFixedSize(184, BUTTON_HEIGHT)
+        self.macro_mode_button.setFixedSize(194, BUTTON_HEIGHT)
+        self.mirror_mode_button.setFixedSize(194, BUTTON_HEIGHT)
         self.macro_mode_button.setToolTip("Revenir aux macros classiques")
         self.mirror_mode_button.setToolTip("Activer ou arrêter Miroir")
         self.quick_actions_title = QLabel("Action rapide")
@@ -235,14 +269,6 @@ class OrganizerUiMixin:
         self.switch_movement = AtlasButton("")
         self.next_character = AtlasButton("Suivant →")
         self.previous_character = AtlasButton("← Précédent")
-        # Both direction badges share the runtime's existing authorization flag.
-        self.next_character_enable_button = AtlasButton("ON")
-        self.previous_character_enable_button = AtlasButton("ON")
-        for toggle in (self.next_character_enable_button, self.previous_character_enable_button):
-            toggle.setFixedSize(30, 24)
-            toggle.setAccessibleName("Autoriser la navigation Suivant/Précédent")
-            toggle.setToolTip("Activer ou désactiver les raccourcis des deux directions")
-
         self.mirror_arm_button = AtlasButton("Activer Miroir")
         self.mirror_toggle_hotkey_button = AtlasButton("")
         self.mirror_toggle_clear = AtlasButton("x")
@@ -273,12 +299,12 @@ class OrganizerUiMixin:
         control_size = QSize(194, BUTTON_HEIGHT)
         # Use the same one-line control height as neighboring modules.
         radial_control_size = control_size
-        controls_panel_height = 154
+        controls_panel_height = 138
         panel_inner_width = control_size.width() * 2 + 8
         panel_width = panel_inner_width + CARD_PADDING * 2
-        stop_hotkey_size = QSize(52, STOP_BUTTON_HEIGHT)
-        stop_size = QSize(panel_inner_width, STOP_BUTTON_HEIGHT)
-        speed_control_size = QSize(71, BUTTON_HEIGHT)
+        stop_hotkey_size = QSize(36, KEY_BADGE_HEIGHT)
+        stop_size = QSize(panel_inner_width, BUTTON_HEIGHT)
+        speed_control_size = QSize(78, BUTTON_HEIGHT)
         shortcut_size = QSize(36, KEY_BADGE_HEIGHT)
 
         for button in (
@@ -334,7 +360,7 @@ class OrganizerUiMixin:
             button.setSizePolicy(QSizePolicy.Fixed, QSizePolicy.Fixed)
             button.setObjectName("segmentedButton")
         # Keep the full Instantané caption visible in the compact row.
-        self.script_speed_instant.setFixedSize(78, BUTTON_HEIGHT)
+        self.script_speed_instant.setFixedSize(speed_control_size)
         self.click_button.setToolTip("Raccourci Switch Clique")
         self.double_click_button.setToolTip("Raccourci Switch clic x2")
         self.stop_script_hotkey_button.setToolTip("Raccourci Stop script")
@@ -361,9 +387,9 @@ class OrganizerUiMixin:
             shortcut: QPushButton | None = None,
             clear: QPushButton | None = None,
             size: QSize = control_size,
-            toggle: QPushButton | None = None,
         ) -> QWidget:
             wrapper = QWidget()
+            wrapper.setObjectName("OrganizerTransparentHost")
             wrapper.setFixedSize(size)
             wrapper.setSizePolicy(QSizePolicy.Fixed, QSizePolicy.Fixed)
             cell = QGridLayout(wrapper)
@@ -372,24 +398,12 @@ class OrganizerUiMixin:
             cell.setVerticalSpacing(0)
             cell.addWidget(action, 0, 0)
             if shortcut is not None:
-                # Reserve a separate right-side area for the shortcut and ON/OFF.
-                right_space = 75 if toggle is not None else 40
+                # Shortcut stays inside the button; no ON/OFF overlays.
                 action.setStyleSheet(
-                    f"text-align: center; padding-left: 4px; padding-right: {right_space}px; font-size: 10px;"
+                    "text-align: center; padding-left: 4px; padding-right: 40px; font-size: 10px;"
                 )
-                if toggle is not None:
-                    controls = QWidget(wrapper)
-                    controls.setFixedSize(72, BUTTON_HEIGHT)
-                    controls_row = QHBoxLayout(controls)
-                    controls_row.setContentsMargins(0, 0, 0, 0)
-                    controls_row.setSpacing(6)
-                    controls_row.addWidget(toggle)
-                    controls_row.addWidget(shortcut)
-                    cell.addWidget(controls, 0, 0, alignment=Qt.AlignRight | Qt.AlignVCenter)
-                    controls.raise_()
-                else:
-                    cell.addWidget(shortcut, 0, 0, alignment=Qt.AlignRight | Qt.AlignVCenter)
-                    shortcut.raise_()
+                cell.addWidget(shortcut, 0, 0, alignment=Qt.AlignRight | Qt.AlignVCenter)
+                shortcut.raise_()
             if clear is not None:
                 cell.addWidget(clear, 0, 0, alignment=Qt.AlignTop | Qt.AlignRight)
                 clear.raise_()
@@ -416,6 +430,7 @@ class OrganizerUiMixin:
             return layout
 
         controls_grid_host = QWidget()
+        controls_grid_host.setObjectName("OrganizerTransparentHost")
         controls_grid_host.setFixedWidth(panel_inner_width)
         controls_grid_host.setSizePolicy(QSizePolicy.Fixed, QSizePolicy.Fixed)
         controls_grid = QGridLayout(controls_grid_host)
@@ -443,15 +458,6 @@ class OrganizerUiMixin:
         macro_layout.setContentsMargins(CARD_PADDING, CARD_PADDING, CARD_PADDING, CARD_PADDING)
         macro_layout.setSpacing(CARD_SPACING)
         macro_layout.setAlignment(Qt.AlignTop)
-        macro_title_row = QHBoxLayout()
-        macro_title_row.setSpacing(5)
-        macro_title_row.addWidget(self.macro_mode_button)
-        macro_title_row.addWidget(macro_cell(
-            self.mirror_mode_button, self.mirror_toggle_hotkey_button,
-            self.mirror_toggle_clear, size=QSize(184, BUTTON_HEIGHT),
-        ))
-        macro_title_row.addStretch(1)
-        macro_layout.addLayout(macro_title_row)
         macro_layout.addWidget(controls_grid_host, alignment=Qt.AlignLeft)
 
         self.quick_actions_panel = QFrame()
@@ -464,6 +470,7 @@ class OrganizerUiMixin:
         quick_layout.setSpacing(CARD_SPACING)
         quick_layout.setAlignment(Qt.AlignTop)
         quick_grid_host = QWidget()
+        quick_grid_host.setObjectName("OrganizerTransparentHost")
         quick_grid_host.setFixedWidth(panel_inner_width)
         quick_grid_host.setSizePolicy(QSizePolicy.Fixed, QSizePolicy.Fixed)
         quick_grid = QGridLayout(quick_grid_host)
@@ -474,14 +481,15 @@ class OrganizerUiMixin:
         quick_grid.addWidget(macro_cell(self.radial_select_button, self.radial_hotkey_button, self.radial_clear, size=radial_control_size), 0, 1)
         quick_grid.addWidget(macro_cell(
             self.previous_character, self.previous_character_hotkey_button,
-            self.previous_character_clear, toggle=self.previous_character_enable_button,
+            self.previous_character_clear,
         ), 1, 0)
         quick_grid.addWidget(macro_cell(
             self.next_character, self.next_character_hotkey_button,
-            self.next_character_clear, toggle=self.next_character_enable_button,
+            self.next_character_clear,
         ), 1, 1)
         # Vitesse stays in the canonical Controls panel, not Macro.
         speed_row = QWidget()
+        speed_row.setObjectName("OrganizerTransparentHost")
         speed_row.setFixedSize(panel_inner_width, BUTTON_HEIGHT)
         speed_row_layout = QHBoxLayout(speed_row)
         speed_row_layout.setContentsMargins(0, 0, 0, 0)
@@ -497,7 +505,8 @@ class OrganizerUiMixin:
         macro_layout.addWidget(self.script_speed_legacy)
         self.script_speed_legacy.hide()
         stop_row = QWidget()
-        stop_row.setFixedSize(panel_inner_width, STOP_BUTTON_HEIGHT)
+        stop_row.setObjectName("OrganizerTransparentHost")
+        stop_row.setFixedSize(panel_inner_width, BUTTON_HEIGHT)
         stop_row.setSizePolicy(QSizePolicy.Fixed, QSizePolicy.Fixed)
         stop_row_layout = QHBoxLayout(stop_row)
         stop_row_layout.setContentsMargins(0, 0, 0, 0)
@@ -527,6 +536,7 @@ class OrganizerUiMixin:
         controls_title.setObjectName("cardTitle")
         controls_title.setFixedHeight(20)
         controls_host = QWidget()
+        controls_host.setObjectName("OrganizerTransparentHost")
         controls_host.setFixedWidth(panel_inner_width)
         controls_host.setSizePolicy(QSizePolicy.Fixed, QSizePolicy.Fixed)
         control_grid = QGridLayout(controls_host)
@@ -541,22 +551,29 @@ class OrganizerUiMixin:
             control_grid.setColumnMinimumWidth(column, control_size.width())
         control_layout.addWidget(controls_host, alignment=Qt.AlignLeft)
 
-        # The three headings sit in the same grid, immediately above their
-        # cards, so they remain aligned across responsive reflow.
-        self.macro_section_title = QLabel("Macro / Miroir")
-        self.macro_section_title.setObjectName("cardTitle")
-        self.macro_section_title.setFixedHeight(20)
+        # Macro and Mirror buttons replace their redundant heading. All
+        # three columns share one 30px header row and the same card border.
+        self.macro_mode_header = QWidget()
+        self.macro_mode_header.setObjectName("OrganizerTransparentHost")
+        self.macro_mode_header.setFixedHeight(BUTTON_HEIGHT)
+        mode_header_layout = QHBoxLayout(self.macro_mode_header)
+        mode_header_layout.setContentsMargins(0, 0, 0, 0)
+        mode_header_layout.setSpacing(8)
+        mode_header_layout.addWidget(self.macro_mode_button)
+        mode_header_layout.addWidget(macro_cell(
+            self.mirror_mode_button, self.mirror_toggle_hotkey_button,
+            self.mirror_toggle_clear, size=control_size,
+        ))
         self.quick_actions_title.setFixedHeight(20)
-        self._organizer_panel_headers = []
-        for section_title in (
-            self.macro_section_title, self.quick_actions_title, controls_title,
-        ):
+        self._organizer_panel_headers = [self.macro_mode_header]
+        for section_title in (self.quick_actions_title, controls_title):
             section_header = QWidget()
+            section_header.setObjectName("OrganizerTransparentHost")
             header_layout = QVBoxLayout(section_header)
             header_layout.setContentsMargins(0, 0, 0, 0)
             header_layout.setSpacing(0)
             header_layout.addLayout(make_card_header(section_title))
-            section_header.setFixedHeight(22)
+            section_header.setFixedHeight(BUTTON_HEIGHT)
             self._organizer_panel_headers.append(section_header)
         self.controls_panels_grid = QGridLayout()
         self.controls_panels_grid.setContentsMargins(0, 0, 0, 0)
@@ -675,14 +692,6 @@ class OrganizerUiMixin:
             self.next_character_clear, self.previous_character_clear,
         ):
             control.setEnabled(can_navigate)
-        for toggle in (
-            self.next_character_enable_button, self.previous_character_enable_button,
-        ):
-            toggle.setEnabled(not active)
-            enabled = profile_bool(self.profiles, KEY_SWITCH_CHARACTER, True)
-            toggle.setText("ON" if enabled else "OFF")
-            toggle.setObjectName("segmentedButtonActive" if enabled else "segmentedButton")
-            self.restyle_button(toggle)
         button.setText("Arrêter Miroir" if active else "Activer Miroir")
         button.setObjectName("primaryButton" if active else "secondaryButton")
         button.setToolTip(
@@ -703,7 +712,7 @@ class OrganizerUiMixin:
 
     def update_switch_buttons(self) -> None:
         self.set_toggle_button(self.switch_character, "Switch Personnage", profile_bool(self.profiles, KEY_SWITCH_CHARACTER, True))
-        # These badges reflect the single canonical runtime flag; no parallel state.
+        # Switch Personnage is the single navigation authorization control.
         self.set_mirror_arm_active(bool(getattr(self, "_mirror_arm_active", False)))
         self.set_toggle_button(self.switch_click, "Switch Clique", profile_bool(self.profiles, KEY_SWITCH_CLICK, False))
         self.set_toggle_button(self.switch_double_click, "Switch clic x2", profile_bool(self.profiles, KEY_SWITCH_DOUBLE_CLICK, False))
