@@ -1009,6 +1009,7 @@ class OrganizerLayoutTests(unittest.TestCase):
                     (*page._organizer_panels, page.zaap_panel, page.sessions_panel)
                 ))
                 self.assertEqual(page.macro_panel.height(), 154)
+                self.assertIn("border-image: none", page.styleSheet())
                 self.assertEqual(len(page.session_slot_widgets), 8)
                 self.assertIs(page.runtime_status_dot.parentWidget(), page.organizer_scroll.widget())
                 self.assertLessEqual(page.macro_panel.y(), page.quick_actions_panel.y())
