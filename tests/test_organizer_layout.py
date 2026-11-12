@@ -11,6 +11,7 @@ from unittest.mock import patch
 
 os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
 
+from PySide6.QtCore import QPoint
 from PySide6.QtWidgets import QApplication, QFrame, QScrollArea
 
 import app.pages.organizer_page as organizer
@@ -1105,6 +1106,11 @@ class OrganizerLayoutTests(unittest.TestCase):
                     page.next_character_hotkey_button.parentWidget(),
                 )
                 self.assertEqual(page.macro_mode_button.size(), page.mirror_mode_button.size())
+                self.assertEqual(
+                    page.mirror_mode_button.mapTo(page.macro_mode_header, QPoint()).x()
+                    - page.macro_mode_button.mapTo(page.macro_mode_header, QPoint()).x(),
+                    page.macro_mode_button.width() + 8,
+                )
                 self.assertEqual(page.macro_mode_button.height(), page.next_character.height())
                 self.assertEqual(page.reload_runtime_button.size(), page.next_character.size())
                 self.assertEqual(page.stop_script_button.height(), page.next_character.height())
