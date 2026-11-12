@@ -1023,11 +1023,16 @@ class OrganizerUiMixin:
         macro_layout.setAlignment(Qt.AlignTop)
         self.macro_mode_button.setObjectName("OrganizerModeChoice")
         self.mirror_mode_button.setObjectName("OrganizerModeChoice")
+        # Keep Macro's button outside a nested grid layout. On the real
+        # Windows certification runner that layout compresses its geometry
+        # to 194x24 even though its fixed size is 194x30.
+        macro_mode_host = QWidget()
+        macro_mode_host.setObjectName("OrganizerTransparentHost")
+        macro_mode_host.setFixedSize(control_size)
+        self.macro_mode_button.setParent(macro_mode_host)
+        self.macro_mode_button.move(0, 0)
         self.mode_switch = OrganizerModeSwitch(
-            # Both halves need the same fixed 194x30 host. Without this,
-            # Qt compresses the bare Macro button to 24px while Miroir
-            # (inside a macro_cell) remains at 30px in the full Windows CI.
-            macro_cell(self.macro_mode_button),
+            macro_mode_host,
             macro_cell(
                 self.mirror_mode_button, self.mirror_toggle_hotkey_button,
                 self.mirror_toggle_clear, size=control_size,
