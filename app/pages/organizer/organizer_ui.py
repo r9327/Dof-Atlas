@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from math import cos, pi, sin
+from functools import lru_cache
 
 from PySide6.QtCore import QEasingCurve, QPoint, QPointF, QPropertyAnimation, QRectF, QSize, Qt
 from PySide6.QtGui import QColor, QIcon, QPainter, QPen, QPixmap, QPolygonF
@@ -37,6 +38,7 @@ from app.constants import (
     KEY_SWITCH_MOVEMENT,
 )
 from app.storage import ZaapWidget, clean_auto_group_name, profile_bool, short_label
+from app.ui.splash_image import clear_connected_dark_background
 from app.ui.components import AtlasButton
 from .common import (
     BUTTON_HEIGHT,
@@ -54,6 +56,18 @@ from .common import (
     session_is_empty,
     session_name,
 )
+
+
+@lru_cache(maxsize=48)
+def _organizer_class_pixmap(path: str) -> QPixmap:
+    """Remove only edge-connected near-black icon backgrounds, once per file."""
+    pixmap = QPixmap(path)
+    if pixmap.isNull():
+        return pixmap
+    cleaned = clear_connected_dark_background(pixmap.toImage())
+    return QPixmap.fromImage(cleaned).scaled(
+        22, 22, Qt.KeepAspectRatio, Qt.SmoothTransformation,
+    )
 
 
 def _organizer_grip_icon() -> QIcon:
@@ -1394,11 +1408,10 @@ class OrganizerUiMixin:
                 (path for path in class_icon_candidates(class_key) if path.is_file()),
                 None,
             ) if class_key else None
-            pixmap = QPixmap(str(icon_path)) if icon_path is not None else QPixmap()
+            pixmap = _organizer_class_pixmap(str(icon_path)) if icon_path is not None else QPixmap()
             if pixmap.isNull() and ICON_PATH.exists():
-                pixmap = QPixmap(str(ICON_PATH))
+                pixmap = _organizer_class_pixmap(str(ICON_PATH))
             if not pixmap.isNull():
-                pixmap = pixmap.scaled(22, 22, Qt.KeepAspectRatio, Qt.SmoothTransformation)
                 icon.setPixmap(pixmap)
             if class_key:
                 label = DOFUS_CLASS_DEFINITIONS[class_key]["label"]
