@@ -1136,6 +1136,11 @@ class OrganizerUiMixin:
         control_grid.setContentsMargins(0, 0, 0, 0)
         control_grid.setHorizontalSpacing(8)
         control_grid.setVerticalSpacing(8)
+        # The three fixed-height rows must not be squeezed by the card layout
+        # on Windows: Relancer/Debug otherwise shrink from 30px to 24px.
+        for row in range(3):
+            control_grid.setRowMinimumHeight(row, BUTTON_HEIGHT)
+        controls_host.setFixedHeight(3 * BUTTON_HEIGHT + 2 * control_grid.verticalSpacing())
         control_grid.addWidget(speed_row, 0, 0, 1, 2)
         control_grid.addWidget(self.reload_runtime_button, 1, 0)
         control_grid.addWidget(self.debug_button, 1, 1)

@@ -1451,6 +1451,12 @@ class OrganizerLayoutTests(unittest.TestCase):
                 self.assertGreaterEqual(page.macro_panel.height() - bottom, 12)
                 self.assertEqual(page.macro_mode_button.height(), page.next_character.height())
                 self.assertEqual(page.reload_runtime_button.size(), page.next_character.size())
+                self.assertEqual(page.debug_button.size(), page.next_character.size())
+                # The controls grid owns three full 30px rows, not a squeezed middle row.
+                self.assertEqual(
+                    page.reload_runtime_button.parentWidget().height(),
+                    3 * page.next_character.height() + 2 * 8,
+                )
                 self.assertEqual(page.stop_script_button.height(), page.next_character.height())
 
     def test_single_sliding_speed_track_preserves_all_three_profiles(self):
