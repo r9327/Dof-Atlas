@@ -286,7 +286,9 @@ class OrganizerModeSwitch(QFrame):
         self.highlight = QFrame(self)
         self.highlight.setObjectName("OrganizerModeHighlight")
         layout = QHBoxLayout(self)
-        layout.setContentsMargins(2, 2, 2, 2)
+        # Qt adds a one-pixel frame inset. Preserve the 3px macro grid
+        # alignment tolerance on the actual Windows AtlasWindow shell.
+        layout.setContentsMargins(1, 2, 3, 2)
         layout.setSpacing(4)
         layout.addWidget(macro)
         layout.addWidget(mirror_cell)
