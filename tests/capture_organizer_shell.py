@@ -71,7 +71,7 @@ def main() -> None:
                     for index, name in enumerate(demo_names)
                 ]
                 page.render_sessions()
-                favorite_names = ("Astrub", "Bonta", "Frigost")
+                favorite_names = ("Astrub", "Bonta", "Frigost", "Sufokia")
                 page.zaap.zaaps = [
                     {"name": name, "label": name, "search": name, "x": i, "y": -i}
                     for i, name in enumerate(favorite_names)
@@ -87,8 +87,8 @@ def main() -> None:
                 }
                 for _ in range(5):
                     app.processEvents()
-                if len(page.zaap.favorite_buttons) != 3:
-                    raise RuntimeError("Three preview Zaap favorites were not rendered")
+                if len(page.zaap.favorite_buttons) != 4:
+                    raise RuntimeError("Four preview Zaap favorites were not rendered")
                 aligned = {}
                 for name, above, below in (
                     ("Macro", page.macro_mode_button, page.switch_character),
@@ -103,8 +103,8 @@ def main() -> None:
                         )
                 manifest["mode_switch_alignment_px"] = aligned
                 if not (page.mode_switch.mapTo(window, QPoint()).y()
-                        > page.switch_movement.mapTo(window, QPoint()).y()):
-                    raise RuntimeError("Macro/Mirror switch is not below the Macro grid")
+                        < page.switch_character.mapTo(window, QPoint()).y()):
+                    raise RuntimeError("Macro/Mirror switch is not above the Macro grid")
                 manifest["speed_preset_fixture"] = "normal-v2-synthetic-only"
 
                 def capture(name: str, expected_slots: int) -> None:
@@ -114,8 +114,24 @@ def main() -> None:
                             f"Screenshot {name}: expected {expected_slots} slots, "
                             f"got {len(page.session_slot_widgets)}"
                         )
-                    if len(page.zaap.favorite_buttons) != 3:
+                    if len(page.zaap.favorite_buttons) != 4:
                         raise RuntimeError("Preview favorites missing from Zaap")
+                    if page.zaap._favorite_columns != 2:
+                        raise RuntimeError("Zaap favorites are not in two columns")
+                    chips = [button.parentWidget() for button in page.zaap.favorite_buttons]
+                    if len({chip.width() for chip in chips}) != 1:
+                        raise RuntimeError("Zaap favorites have uneven widths")
+                    for index, chip in enumerate(chips):
+                        if page.zaap.favorites_layout.itemAtPosition(
+                            index // 2, 1 + index % 2
+                        ).widget() is not chip:
+                            raise RuntimeError("Zaap favorites are not aligned two by two")
+                    if page.previous_character.icon().isNull() is False:
+                        raise RuntimeError("Previous must have no decorative icon")
+                    if page.next_character.icon().isNull() is False:
+                        raise RuntimeError("Next must have no decorative icon")
+                    if page.radial_select_button.icon().isNull():
+                        raise RuntimeError("Missing pie-menu selection icon")
                     if page.stop_script_button.text() != "STOP URGENCE":
                         raise RuntimeError("Emergency stop caption changed")
                     if page.stop_script_button.icon().isNull():
@@ -135,9 +151,9 @@ def main() -> None:
                     if zaap_x < slot_x + slot_box.width():
                         raise RuntimeError(f"{name}: Zaap overlaps the character slots")
                     ratio = slot_box.width() / max(1, zaap_box.width())
-                    if not (2.90 <= ratio <= 3.10):
+                    if not (1.90 <= ratio <= 2.10):
                         raise RuntimeError(
-                            f"{name}: expected 75/25 slots/Zaap split, got "
+                            f"{name}: expected two-top-modules/one-top-module split, got "
                             f"{slot_box.width()} vs {zaap_box.width()} (ratio {ratio:.3f})"
                         )
                     if zaap_box.height() != slot_box.height():
