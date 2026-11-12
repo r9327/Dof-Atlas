@@ -12,7 +12,7 @@ from unittest.mock import patch
 os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
 
 from PySide6.QtCore import QAbstractAnimation, QPoint, Qt
-from PySide6.QtWidgets import QApplication, QFrame, QScrollArea
+from PySide6.QtWidgets import QApplication, QFrame, QPushButton, QScrollArea
 
 import app.pages.organizer_page as organizer
 import app.pages.organizer.character_sessions as organizer_sessions
@@ -1026,6 +1026,38 @@ class OrganizerLayoutTests(unittest.TestCase):
                 # In this standalone widget, Qt may retain a stale minimum
                 # width from its initial 900px size. The *real* 1000px
                 # AtlasWindow capture enforces zero horizontal overflow.
+
+    def test_real_slot_and_favorite_icons_are_painted_not_missing_glyphs(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            with self.organizer_page(Path(temporary)) as page:
+                page.sessions = [
+                    {"nom": f"Perso demo {i}", "hwnd": 950000 + i,
+                     "pid": 91000 + i, "_preview_only": True}
+                    for i in range(8)
+                ]
+                page.render_sessions()
+                self.assertEqual(len(page.session_slot_widgets), 8)
+                for row, _index in page.session_slot_widgets:
+                    controls = row.findChildren(QPushButton)
+                    grip = next(button for button in controls
+                                if button.objectName() == "DragHandle")
+                    star = next(button for button in controls
+                                if button.objectName() in
+                                ("FavoriteButton", "FavoriteButtonActive"))
+                    self.assertEqual(grip.text(), "")
+                    self.assertEqual(star.text(), "")
+                    self.assertFalse(grip.icon().isNull())
+                    self.assertFalse(star.icon().isNull())
+                page.zaap.zaaps = [
+                    {"name": "Astrub", "label": "Astrub", "x": 0, "y": -21},
+                    {"name": "Bonta", "label": "Bonta", "x": -31, "y": -55},
+                ]
+                page.zaap.favorite_names = ["Astrub", "Bonta"]
+                page.zaap.refresh_favorite_chips()
+                self.assertEqual(len(page.zaap.favorite_star_buttons), 2)
+                for star in page.zaap.favorite_star_buttons:
+                    self.assertEqual(star.text(), "")
+                    self.assertFalse(star.icon().isNull())
 
     def test_unified_mode_switch_and_empty_quick_actions_are_safe(self):
         from app.constants import KEY_ORGANIZER_MACRO_MODE
