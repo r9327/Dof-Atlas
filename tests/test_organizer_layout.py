@@ -1116,9 +1116,55 @@ class OrganizerLayoutTests(unittest.TestCase):
                     self.assertIn(f"QPushButton#secondaryButton{state}", css)
                 self.assertIn("qlineargradient", css)
                 self.assertIn("border-radius: 9px", css)
-                self.assertIn("QFrame#characterSlot QPushButton#keyBadge", css)
-                self.assertIn("stop:0 #829FC3", css)
+                self.assertIn("QPushButton#keyBadge", css)
                 self.assertIn("border: none;", css)
+                from app.ui.unity_skin import UNITY_PALETTE
+                for role in (
+                    "PANEL", "PANEL_2", "PANEL_HOVER",
+                    "BORDER", "BORDER_CARD", "BORDER_STRONG",
+                    "GREEN_DARK", "GREEN_BORDER",
+                ):
+                    self.assertIn(UNITY_PALETTE[role], css)
+                self.assertIn(UNITY_PALETTE["PANEL_GRADIENT"], css)
+                # The old invented palette must not drift away from Unity.
+                self.assertNotIn("#708BAD", css)
+                self.assertNotIn("#829FC3", css)
+
+    def test_all_shortcut_badges_share_exact_geometry_and_unity_style(self):
+        from app.pages.organizer.organizer_ui import OrganizerZaapWidget
+        from app.ui.unity_skin import UNITY_PALETTE
+
+        with tempfile.TemporaryDirectory() as temporary:
+            with self.organizer_page(Path(temporary)) as page:
+                badges = (
+                    page.click_button,
+                    page.double_click_button,
+                    page.radial_hotkey_button,
+                    page.previous_character_hotkey_button,
+                    page.next_character_hotkey_button,
+                    page.mirror_toggle_hotkey_button,
+                    page.stop_script_hotkey_button,
+                )
+                for badge in badges:
+                    with self.subTest(badge=badge.toolTip()):
+                        self.assertEqual(badge.objectName(), "keyBadge")
+                        self.assertEqual((badge.width(), badge.height()), (52, 22))
+                page.sessions = [
+                    {"nom": f"Perso demo {i}", "hwnd": 950000 + i,
+                     "pid": 91000 + i, "_preview_only": True}
+                    for i in range(8)
+                ]
+                page.render_sessions()
+                for row, _ in page.session_slot_widgets:
+                    shortcut = next(
+                        b for b in row.findChildren(QPushButton)
+                        if b.objectName() == "keyBadge"
+                    )
+                    self.assertEqual((shortcut.width(), shortcut.height()), (52, 22))
+                style = page.styleSheet()
+                self.assertIn(UNITY_PALETTE["PANEL_HOVER"], style)
+                self.assertIn(UNITY_PALETTE["BORDER_STRONG"], style)
+                self.assertIsInstance(page.zaap, OrganizerZaapWidget)
 
     def test_organizer_portrait_black_border_is_transparent(self):
         from PySide6.QtGui import QColor, QImage
@@ -1232,7 +1278,7 @@ class OrganizerLayoutTests(unittest.TestCase):
                 self.assertFalse(page.quick_placeholder_1.isEnabled())
                 self.assertFalse(page.quick_placeholder_2.isEnabled())
                 self.assertIn("border-image: none", page.styleSheet())
-                self.assertIn("Frosted Unity surfaces", page.styleSheet())
+                self.assertIn("canonical Unity color roles", page.styleSheet())
                 self.assertFalse(page.radial_select_button.icon().isNull())
                 self.assertFalse(page.switch_character.icon().isNull())
                 self.assertFalse(page.switch_click.icon().isNull())
