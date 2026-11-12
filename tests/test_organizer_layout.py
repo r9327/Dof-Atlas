@@ -867,6 +867,36 @@ class OrganizerLayoutTests(unittest.TestCase):
             panel.deleteLater()
             self.app.processEvents()
 
+    def test_unity_panels_order_and_shortcut_right_padding(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            with self.organizer_page(Path(temporary)) as page:
+                self.app.processEvents()
+                root = page.layout()
+                top = root.itemAt(1).layout()
+                bottom = root.itemAt(2).layout()
+                self.assertIs(top.itemAt(0).widget(), page.macro_panel)
+                self.assertIs(top.itemAt(1).widget(), page.quick_actions_panel)
+                self.assertIs(bottom.itemAt(0).widget(), page.sessions_panel)
+                self.assertIs(bottom.itemAt(1).widget(), page.zaap_panel)
+                self.assertIs(root.itemAt(3).widget(), page.controls_panel)
+                self.assertEqual(page.sessions_refresh_button.text(), "")
+                self.assertFalse(page.sessions_refresh_button.icon().isNull())
+                self.assertEqual(page.stop_script_button.text(), "STOP URGENCE")
+                for action, shortcut in (
+                    (page.switch_click, page.click_button),
+                    (page.switch_double_click, page.double_click_button),
+                    (page.radial_select_button, page.radial_hotkey_button),
+                    (page.next_character, page.next_character_hotkey_button),
+                    (page.previous_character, page.previous_character_hotkey_button),
+                    (page.mirror_arm_button, page.mirror_toggle_hotkey_button),
+                    (page.stop_script_button, page.stop_script_hotkey_button),
+                ):
+                    with self.subTest(action=action.text()):
+                        self.assertIs(action.parentWidget(), shortcut.parentWidget())
+                        self.assertGreaterEqual(
+                            action.width() - (shortcut.x() + shortcut.width()), 8
+                        )
+
     def test_organizer_adaptive_slots_are_reachable_without_internal_scroll_area(self):
         with tempfile.TemporaryDirectory() as temporary:
             with self.organizer_page(Path(temporary)) as page:
