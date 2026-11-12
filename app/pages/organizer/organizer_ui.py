@@ -265,7 +265,7 @@ class OrganizerUiMixin:
         self.stop_script_clear = AtlasButton("x")
         self.click_clear = AtlasButton("x")
 
-        control_size = QSize(188, BUTTON_HEIGHT)
+        control_size = QSize(194, BUTTON_HEIGHT)
         # Use the same one-line control height as neighboring modules.
         radial_control_size = control_size
         controls_panel_height = 200
@@ -274,7 +274,7 @@ class OrganizerUiMixin:
         stop_hotkey_size = QSize(52, STOP_BUTTON_HEIGHT)
         stop_size = QSize(panel_inner_width, STOP_BUTTON_HEIGHT)
         speed_control_size = QSize(71, BUTTON_HEIGHT)
-        shortcut_size = QSize(42, KEY_BADGE_HEIGHT)
+        shortcut_size = QSize(36, KEY_BADGE_HEIGHT)
 
         for button in (
             self.switch_character,
@@ -368,13 +368,13 @@ class OrganizerUiMixin:
             cell.addWidget(action, 0, 0)
             if shortcut is not None:
                 # Reserve a separate right-side area for the shortcut and ON/OFF.
-                right_space = 82 if toggle is not None else 48
+                right_space = 75 if toggle is not None else 40
                 action.setStyleSheet(
-                    f"text-align: center; padding-left: 4px; padding-right: {right_space}px; font-size: 11px;"
+                    f"text-align: center; padding-left: 4px; padding-right: {right_space}px; font-size: 10px;"
                 )
                 if toggle is not None:
                     controls = QWidget(wrapper)
-                    controls.setFixedSize(78, BUTTON_HEIGHT)
+                    controls.setFixedSize(72, BUTTON_HEIGHT)
                     controls_row = QHBoxLayout(controls)
                     controls_row.setContentsMargins(0, 0, 0, 0)
                     controls_row.setSpacing(6)
@@ -586,7 +586,7 @@ class OrganizerUiMixin:
         root.addStretch(1)
 
     def _reflow_organizer_panels(self, width: int) -> None:
-        columns = 3 if width >= 1110 else 2 if width >= 750 else 1
+        columns = 3 if width >= 1300 else 2 if width >= 880 else 1
         if self._organizer_panel_columns == columns:
             return
         self._organizer_panel_columns = columns
