@@ -132,6 +132,22 @@ def main() -> None:
                         raise RuntimeError("Next must have no decorative icon")
                     if page.radial_select_button.icon().isNull():
                         raise RuntimeError("Missing pie-menu selection icon")
+                    for action, badge in (
+                        (page.switch_click, page.click_button),
+                        (page.switch_double_click, page.double_click_button),
+                        (page.radial_select_button, page.radial_hotkey_button),
+                        (page.previous_character, page.previous_character_hotkey_button),
+                        (page.next_character, page.next_character_hotkey_button),
+                        (page.mirror_mode_button, page.mirror_toggle_hotkey_button),
+                        (page.stop_script_button, page.stop_script_hotkey_button),
+                    ):
+                        right = action.mapTo(window, QPoint()).x() + action.width()
+                        badge_right = badge.mapTo(window, QPoint()).x() + badge.width()
+                        if right - badge_right < 8:
+                            raise RuntimeError(
+                                f"Shortcut overflows right padding: {action.text()} "
+                                f"gap={right - badge_right}px"
+                            )
                     if page.stop_script_button.text() != "STOP URGENCE":
                         raise RuntimeError("Emergency stop caption changed")
                     if page.stop_script_button.icon().isNull():
