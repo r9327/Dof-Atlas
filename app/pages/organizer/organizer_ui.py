@@ -143,14 +143,28 @@ def _organizer_action_icon(kind: str) -> QIcon:
     painter.setRenderHint(QPainter.Antialiasing)
     painter.setPen(QPen(QColor("#E3EEF9"), 2, Qt.SolidLine, Qt.RoundCap, Qt.RoundJoin))
     if kind == "radial":
-        # The real held-key character selector is a circular pie menu.
+        # Monochrome pie, aligned with the other white action pictograms.
+        painter.setBrush(Qt.NoBrush)
         for index in range(8):
-            painter.setBrush(QColor("#A9D574" if index % 2 else "#6D99C8"))
-            painter.setPen(QPen(QColor("#1C3254"), 1.1))
+            painter.setPen(QPen(QColor("#E3EEF9"), 1.7, Qt.SolidLine, Qt.RoundCap))
             painter.drawPie(QRectF(4, 4, 24, 24), index * 45 * 16, 45 * 16)
-        painter.setBrush(QColor("#25456F"))
-        painter.setPen(QPen(QColor("#E3EEF9"), 1.5))
-        painter.drawEllipse(QRectF(12, 12, 8, 8))
+        painter.setBrush(QColor("#E3EEF9"))
+        painter.setPen(Qt.NoPen)
+        painter.drawEllipse(QRectF(13, 13, 6, 6))
+    elif kind == "macro":
+        # Three stacked plates: mode Macro, not the radial selector.
+        painter.setBrush(Qt.NoBrush)
+        for y in (6, 11, 16):
+            painter.drawPolyline(QPolygonF([
+                QPointF(4, y), QPointF(16, y + 7),
+                QPointF(28, y), QPointF(16, y - 7), QPointF(4, y),
+            ]))
+    elif kind == "mirror":
+        # Overlapping window outlines signal actions mirrored to another client.
+        painter.setBrush(Qt.NoBrush)
+        painter.drawRoundedRect(QRectF(4, 4, 18, 18), 2, 2)
+        painter.drawRoundedRect(QRectF(10, 10, 18, 18), 2, 2)
+        painter.drawLine(QPointF(15, 16), QPointF(23, 16))
     elif kind == "group":
         painter.drawEllipse(QRectF(5, 7, 8, 8))
         painter.drawEllipse(QRectF(19, 7, 8, 8))
@@ -764,6 +778,12 @@ class OrganizerUiMixin:
             button.setIconSize(QSize(17, 17))
         self.reload_runtime_button.setIcon(_organizer_refresh_icon())
         self.reload_runtime_button.setIconSize(QSize(17, 17))
+        for button, kind in (
+            (self.macro_mode_button, "macro"),
+            (self.mirror_mode_button, "mirror"),
+        ):
+            button.setIcon(_organizer_action_icon(kind))
+            button.setIconSize(QSize(17, 17))
         # Retain the original arm control for compatible runtime hooks, but
         # the only visible mirror action is the mode button with its own badge.
         self.mirror_arm_button.setParent(self)
