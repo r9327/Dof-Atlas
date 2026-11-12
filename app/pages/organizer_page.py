@@ -260,7 +260,7 @@ class OrganizerPage(
 
     def _connect_actions(self) -> None:
         self.macro_mode_button.clicked.connect(lambda: self.set_macro_mode("macro"))
-        self.mirror_mode_button.clicked.connect(lambda: self.set_macro_mode("mirror"))
+        self.mirror_mode_button.clicked.connect(self.activate_or_toggle_mirror)
         self.click_button.clicked.connect(lambda: self.begin_capture("click"))
         self.click_clear.clicked.connect(lambda: self.clear_global_hotkey(KEY_CLICK_HOTKEY))
         self.double_click_button.clicked.connect(lambda: self.begin_capture("double_click"))
@@ -307,6 +307,16 @@ class OrganizerPage(
             callback()
         else:
             self.status_callback("Personnage précédent : runtime indisponible.")
+
+    def activate_or_toggle_mirror(self) -> None:
+        """The visible Mirror button both selects the mode and toggles delivery.
+
+        A user click is the explicit authorization; loading a saved Mirror
+        profile never arms it. The runtime callback remains fail-closed.
+        """
+        if self.profiles.get(KEY_ORGANIZER_MACRO_MODE, "macro") != "mirror":
+            self.set_macro_mode("mirror")
+        self.toggle_mirror_armed()
 
     def toggle_mirror_armed(self) -> None:
         callback = self.mirror_arm_callback
