@@ -1,10 +1,9 @@
 from __future__ import annotations
 
 from PySide6.QtCore import QSize, Qt
-from PySide6.QtGui import QColor, QPixmap
+from PySide6.QtGui import QPixmap
 from PySide6.QtWidgets import (
     QFrame,
-    QGraphicsDropShadowEffect,
     QGridLayout,
     QHBoxLayout,
     QLabel,
@@ -97,11 +96,6 @@ class CharacterSlotsPanel(QFrame):
         header.addWidget(accent, alignment=Qt.AlignVCenter)
         header.addWidget(self.title, alignment=Qt.AlignVCenter)
         header.addStretch(1)
-        self.expand_button = AtlasButton("Afficher 8 slots")
-        self.expand_button.setObjectName("secondaryButton")
-        self.expand_button.setFixedHeight(24)
-        self.expand_button.setToolTip("Afficher les slots vides pour déplacer un personnage")
-        header.addWidget(self.expand_button, alignment=Qt.AlignVCenter)
         header.addWidget(refresh_button, alignment=Qt.AlignVCenter)
         self.panel_layout.addLayout(header)
 
@@ -268,7 +262,7 @@ class OrganizerUiMixin:
         control_size = QSize(194, BUTTON_HEIGHT)
         # Use the same one-line control height as neighboring modules.
         radial_control_size = control_size
-        controls_panel_height = 200
+        controls_panel_height = 154
         panel_inner_width = control_size.width() * 2 + 8
         panel_width = panel_inner_width + CARD_PADDING * 2
         stop_hotkey_size = QSize(52, STOP_BUTTON_HEIGHT)
@@ -434,17 +428,12 @@ class OrganizerUiMixin:
         self.macro_panel.setMinimumWidth(panel_width)
         self.macro_panel.setFixedHeight(controls_panel_height)
         self.macro_panel.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
-        self.apply_card_shadow(self.macro_panel)
         macro_layout = QVBoxLayout(self.macro_panel)
         macro_layout.setContentsMargins(CARD_PADDING, CARD_PADDING, CARD_PADDING, CARD_PADDING)
         macro_layout.setSpacing(CARD_SPACING)
         macro_layout.setAlignment(Qt.AlignTop)
         macro_title_row = QHBoxLayout()
         macro_title_row.setSpacing(5)
-        macro_accent = QFrame()
-        macro_accent.setObjectName("CardTitleAccent")
-        macro_accent.setFixedSize(3, 16)
-        macro_title_row.addWidget(macro_accent)
         macro_title_row.addWidget(self.macro_mode_button)
         macro_title_row.addWidget(macro_cell(
             self.mirror_mode_button, self.mirror_toggle_hotkey_button,
@@ -459,12 +448,10 @@ class OrganizerUiMixin:
         self.quick_actions_panel.setMinimumWidth(panel_width)
         self.quick_actions_panel.setFixedHeight(controls_panel_height)
         self.quick_actions_panel.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
-        self.apply_card_shadow(self.quick_actions_panel)
         quick_layout = QVBoxLayout(self.quick_actions_panel)
         quick_layout.setContentsMargins(CARD_PADDING, CARD_PADDING, CARD_PADDING, CARD_PADDING)
         quick_layout.setSpacing(CARD_SPACING)
         quick_layout.setAlignment(Qt.AlignTop)
-        quick_layout.addLayout(make_card_header(self.quick_actions_title))
         quick_grid_host = QWidget()
         quick_grid_host.setFixedWidth(panel_inner_width)
         quick_grid_host.setSizePolicy(QSizePolicy.Fixed, QSizePolicy.Fixed)
@@ -521,7 +508,6 @@ class OrganizerUiMixin:
         self.controls_panel.setMinimumWidth(panel_width)
         self.controls_panel.setFixedHeight(controls_panel_height)
         self.controls_panel.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
-        self.apply_card_shadow(self.controls_panel)
         control_layout = QVBoxLayout(self.controls_panel)
         control_layout.setContentsMargins(CARD_PADDING, CARD_PADDING, CARD_PADDING, CARD_PADDING)
         control_layout.setSpacing(CARD_SPACING)
@@ -529,7 +515,6 @@ class OrganizerUiMixin:
         controls_title = QLabel("Contrôles")
         controls_title.setObjectName("cardTitle")
         controls_title.setFixedHeight(20)
-        control_layout.addLayout(make_card_header(controls_title))
         controls_host = QWidget()
         controls_host.setFixedWidth(panel_inner_width)
         controls_host.setSizePolicy(QSizePolicy.Fixed, QSizePolicy.Fixed)
@@ -545,10 +530,27 @@ class OrganizerUiMixin:
             control_grid.setColumnMinimumWidth(column, control_size.width())
         control_layout.addWidget(controls_host, alignment=Qt.AlignLeft)
 
+        # The three headings sit in the same grid, immediately above their
+        # cards, so they remain aligned across responsive reflow.
+        self.macro_section_title = QLabel("Macro / Miroir")
+        self.macro_section_title.setObjectName("cardTitle")
+        self.macro_section_title.setFixedHeight(20)
+        self.quick_actions_title.setFixedHeight(20)
+        self._organizer_panel_headers = []
+        for section_title in (
+            self.macro_section_title, self.quick_actions_title, controls_title,
+        ):
+            section_header = QWidget()
+            header_layout = QVBoxLayout(section_header)
+            header_layout.setContentsMargins(0, 0, 0, 0)
+            header_layout.setSpacing(0)
+            header_layout.addLayout(make_card_header(section_title))
+            section_header.setFixedHeight(22)
+            self._organizer_panel_headers.append(section_header)
         self.controls_panels_grid = QGridLayout()
         self.controls_panels_grid.setContentsMargins(0, 0, 0, 0)
         self.controls_panels_grid.setHorizontalSpacing(8)
-        self.controls_panels_grid.setVerticalSpacing(8)
+        self.controls_panels_grid.setVerticalSpacing(4)
         self._organizer_panels = (
             self.macro_panel, self.quick_actions_panel, self.controls_panel,
         )
@@ -561,7 +563,6 @@ class OrganizerUiMixin:
         # The Zaap bar grows only for explicitly retained legacy favorites;
         # new favorites are bounded by one-row capacity.
         self.zaap_panel.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Maximum)
-        self.apply_card_shadow(self.zaap_panel)
         zaap_layout = QVBoxLayout(self.zaap_panel)
         zaap_layout.setContentsMargins(CARD_PADDING, CARD_PADDING, CARD_PADDING, CARD_PADDING)
         zaap_layout.setSpacing(CARD_SPACING)
@@ -577,11 +578,8 @@ class OrganizerUiMixin:
         self.sessions_refresh_button.setFixedSize(32, BUTTON_HEIGHT)
         self.sessions_refresh_button.setToolTip("Scanner les fenêtres Dofus")
         self.sessions_panel = CharacterSlotsPanel(self.sessions_refresh_button)
-        self._session_slots_expanded = False
-        self.sessions_panel.expand_button.clicked.connect(self.toggle_session_slots_expanded)
         self.sessions_content = self.sessions_panel.content
         self.sessions_grid = self.sessions_panel.grid
-        self.apply_card_shadow(self.sessions_panel)
         root.addWidget(self.sessions_panel)
         root.addStretch(1)
 
@@ -593,9 +591,11 @@ class OrganizerUiMixin:
         while self.controls_panels_grid.count():
             self.controls_panels_grid.takeAt(0)
         for index, panel in enumerate(self._organizer_panels):
+            row, column = divmod(index, columns)
             self.controls_panels_grid.addWidget(
-                panel, index // columns, index % columns,
+                self._organizer_panel_headers[index], row * 2, column,
             )
+            self.controls_panels_grid.addWidget(panel, row * 2 + 1, column)
         for column in range(3):
             self.controls_panels_grid.setColumnStretch(column, 1 if column < columns else 0)
 
@@ -603,17 +603,6 @@ class OrganizerUiMixin:
         if hasattr(self, "controls_panels_grid"):
             self._reflow_organizer_panels(event.size().width())
         super().resizeEvent(event)
-
-    def toggle_session_slots_expanded(self) -> None:
-        self._session_slots_expanded = not self._session_slots_expanded
-        self.render_sessions()
-
-    def apply_card_shadow(self, frame: QFrame) -> None:
-        shadow = QGraphicsDropShadowEffect(frame)
-        shadow.setBlurRadius(5)
-        shadow.setOffset(0, 1)
-        shadow.setColor(QColor(0, 0, 0, 22))
-        frame.setGraphicsEffect(shadow)
 
     def set_runtime_active(self, connected: bool) -> None:
         if not isValid(self):
@@ -815,24 +804,11 @@ class OrganizerUiMixin:
         slot_count = self.session_slot_count()
         while len(self.sessions) < slot_count:
             self.sessions.append(empty_session_slot())
-        last_occupied = max(
-            (index + 1 for index, session in enumerate(self.sessions[:slot_count])
-             if not session_is_empty(session)),
-            default=0,
-        )
-        visible_count = slot_count if self._session_slots_expanded else min(
-            slot_count, max(2, last_occupied)
-        )
-        self.sessions_panel.slot_count = visible_count
-        self.sessions_panel.row_height = 46 if visible_count <= 4 else CHARACTER_SLOT_HEIGHT
-        self.sessions_panel.expand_button.setText(
-            "Réduire" if self._session_slots_expanded else "Afficher 8 slots"
-        )
-        self.sessions_panel.expand_button.setVisible(
-            visible_count < slot_count or self._session_slots_expanded
-        )
+        # Exactly eight permanent, reorderable slots; no collapse/expand UI.
+        self.sessions_panel.slot_count = slot_count
+        self.sessions_panel.row_height = CHARACTER_SLOT_HEIGHT
 
-        for index in range(visible_count):
+        for index in range(slot_count):
             session = self.sessions[index]
             name = session_name(session)
             hwnd = session_hwnd(session)
