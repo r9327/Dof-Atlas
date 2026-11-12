@@ -70,8 +70,8 @@ def main() -> None:
                     manifest["captures"].append(record)
                     print("ORGANIZER_SHELL_CAPTURE=" + json.dumps(record))
 
-                capture("organizer-window-1380x900", 2)
-                page.sessions_panel.expand_button.click()
+                capture("organizer-window-1380x900", 8)
+                page.render_sessions()
                 capture("organizer-window-1380x900-8slots", 8)
                 window.resize(1000, 740)
                 for _ in range(5):
