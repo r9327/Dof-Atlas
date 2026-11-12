@@ -1101,7 +1101,13 @@ class ZaapWidget(QWidget):
         self.favorites_label.setObjectName("CompactLabel")
         self.favorites_label.setFixedSize(62, 28)
         self.favorites_label.setAlignment(Qt.AlignVCenter | Qt.AlignLeft)
-        if self.compact_favorites:
+        if self.compact_favorite_columns is not None:
+            # Organizer: "Favoris" owns its own full-width line above the
+            # chips, leaving both equal columns free underneath.
+            self.favorites_layout.addWidget(
+                self.favorites_label, 0, 0, 1, self.compact_favorite_columns
+            )
+        elif self.compact_favorites:
             self.favorites_layout.addWidget(self.favorites_label, 0, 0)
         else:
             self.favorites_layout.addWidget(self.favorites_label)
@@ -1250,7 +1256,10 @@ class ZaapWidget(QWidget):
         if self.compact_favorites:
             spacing = self.favorites_layout.horizontalSpacing()
             available = max(
-                0, self.width() - self.favorites_label.width() - columns * spacing
+                0, self.width() - (
+                    (columns - 1) * spacing if self.compact_favorite_columns is not None
+                    else self.favorites_label.width() + columns * spacing
+                )
             )
             chip_width = min(190, max(40, available // columns))
         for index, (name, row) in enumerate(rows):
@@ -1288,8 +1297,14 @@ class ZaapWidget(QWidget):
             chip_layout.addWidget(button)
             self.favorite_star_buttons.append(star_button)
             self.favorite_buttons.append(button)
-            if self.compact_favorites:
-                self.favorites_layout.addWidget(chip, index // columns, 1 + index % columns)
+            if self.compact_favorite_columns is not None:
+                self.favorites_layout.addWidget(
+                    chip, 1 + index // columns, index % columns
+                )
+            elif self.compact_favorites:
+                self.favorites_layout.addWidget(
+                    chip, index // columns, 1 + index % columns
+                )
             else:
                 self.favorites_layout.addWidget(chip)
         if not self.compact_favorites:
@@ -1299,7 +1314,10 @@ class ZaapWidget(QWidget):
             # Existing legacy favorites remain directly visible, wrapping as
             # needed rather than being silently discarded or hidden behind +N.
             lines = (len(rows) + columns - 1) // columns
-            self.setMaximumHeight(32 + (8 + lines * 28 + max(0, lines - 1) * 8 if lines else 0))
+            label_row = 28 + 8 if self.compact_favorite_columns is not None else 0
+            self.setMaximumHeight(
+                32 + (8 + label_row + lines * 28 + max(0, lines - 1) * 8 if lines else 0)
+            )
             self.updateGeometry()
 
     def suggestion_tooltip(self, row: dict[str, Any]) -> str:
