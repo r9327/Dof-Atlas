@@ -12,6 +12,7 @@ from unittest.mock import patch
 
 os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
 
+from PySide6.QtCore import QPoint
 from PySide6.QtWidgets import QApplication
 
 from tests.capture_organizer_ui import configure_capture_fonts
@@ -49,6 +50,27 @@ def main() -> None:
                 page = window.page_widgets.get("Organizer")
                 if page is None or type(page).__name__ != "OrganizerPage":
                     raise RuntimeError("OrganizerPage real widget did not load")
+                # Show one explicit v2 choice in a synthetic capture; avoid
+                # misrepresenting legacy Classique as a selected Normal preset.
+                from app.constants import KEY_SCRIPT_SPEED, KEY_SCRIPT_SPEED_SCHEMA
+                page.profiles[KEY_SCRIPT_SPEED_SCHEMA] = 2
+                page.profiles[KEY_SCRIPT_SPEED] = "normal"
+                page.update_script_speed_buttons()
+                app.processEvents()
+                aligned = {}
+                for name, above, below in (
+                    ("Macro", page.macro_mode_button, page.switch_character),
+                    ("Miroir", page.mirror_mode_button, page.switch_click),
+                ):
+                    dx = (above.mapTo(window, QPoint()).x()
+                          - below.mapTo(window, QPoint()).x())
+                    aligned[name] = dx
+                    if abs(dx) > 2:
+                        raise RuntimeError(
+                            f"{name} header misaligned from Macro grid by {dx} px"
+                        )
+                manifest["mode_header_alignment_px"] = aligned
+                manifest["speed_preset_fixture"] = "normal-v2-synthetic-only"
 
                 def capture(name: str, expected_slots: int) -> None:
                     app.processEvents()
