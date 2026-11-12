@@ -11,7 +11,7 @@ from functools import lru_cache
 
 from PySide6.QtCore import QPoint, QRectF, Qt
 from PySide6.QtGui import (
-    QColor, QImage, QLinearGradient, QPainter, QPainterPath, QPen, QPixmap,
+    QBrush, QColor, QImage, QLinearGradient, QPainter, QPainterPath, QPen, QPixmap,
 )
 from PySide6.QtWidgets import QFrame, QWidget
 
@@ -53,7 +53,7 @@ def _diffuse_unity_wallpaper(width: int, height: int, local_image: str) -> QImag
     base.setColorAt(0, QColor(UNITY_PALETTE["BG_GRADIENT_START"]))
     base.setColorAt(0.52, QColor(UNITY_PALETTE["PANEL"]))
     base.setColorAt(1, QColor(UNITY_PALETTE["BG"]))
-    painter.fillRect(image.rect(), base)
+    painter.fillRect(image.rect(), QBrush(base))
     if local_image:
         picture = QPixmap(local_image)
         if not picture.isNull():
@@ -112,7 +112,7 @@ class OrganizerGlassCard(QFrame):
         bottom.setAlpha(173)
         tint.setColorAt(0, top)
         tint.setColorAt(1, bottom)
-        painter.fillPath(outline, tint)
+        painter.fillPath(outline, QBrush(tint))
 
         # Optical reflection, not a brighter invented blue.
         glint = QLinearGradient(0, 0, self.width(), self.height())
@@ -120,14 +120,14 @@ class OrganizerGlassCard(QFrame):
         glint.setColorAt(0.27, QColor(255, 255, 255, 10))
         glint.setColorAt(0.68, QColor(255, 255, 255, 0))
         glint.setColorAt(1, QColor(255, 255, 255, 24))
-        painter.fillPath(outline, glint)
+        painter.fillPath(outline, QBrush(glint))
         painter.setClipping(False)
 
         edge = QLinearGradient(0, 0, self.width(), self.height())
         edge.setColorAt(0, QColor(245, 250, 255, 132))
         edge.setColorAt(0.52, QColor(214, 229, 255, 49))
         edge.setColorAt(1, QColor(240, 250, 255, 87))
-        painter.setPen(QPen(edge, 1.0))
+        painter.setPen(QPen(QBrush(edge), 1.0))
         painter.setBrush(Qt.NoBrush)
         painter.drawPath(outline)
         if self.width() >= 38:
@@ -163,7 +163,7 @@ class OrganizerGlassButton(AtlasButton):
         shine = QLinearGradient(0, 0, 0, max(1, self.height() * 0.52))
         shine.setColorAt(0, QColor(255, 255, 255, 31 if not self.isDown() else 13))
         shine.setColorAt(1, QColor(255, 255, 255, 0))
-        painter.fillRect(QRectF(0, 0, self.width(), self.height() * 0.52), shine)
+        painter.fillRect(QRectF(0, 0, self.width(), self.height() * 0.52), QBrush(shine))
         painter.setClipping(False)
         painter.setPen(QPen(QColor(244, 250, 255, 75), 1.0))
         painter.drawLine(QPoint(9, 2), QPoint(self.width() - 9, 2))
