@@ -124,9 +124,9 @@ def _organizer_refresh_icon() -> QIcon:
 def _organizer_card_shadow(panel: QFrame) -> None:
     """Subtle Unity-style separation, never a black-filled backing rectangle."""
     shadow = QGraphicsDropShadowEffect(panel)
-    shadow.setBlurRadius(9)
-    shadow.setOffset(0, 2)
-    shadow.setColor(QColor(3, 14, 32, 45))
+    shadow.setBlurRadius(18)
+    shadow.setOffset(0, 3)
+    shadow.setColor(QColor(5, 16, 34, 75))
     panel.setGraphicsEffect(shadow)
 
 
@@ -328,7 +328,7 @@ class OrganizerModeSwitch(QFrame):
     def __init__(self, macro: QPushButton, mirror_cell: QWidget) -> None:
         super().__init__()
         self.setObjectName("OrganizerModeSwitch")
-        self.setFixedSize(396, BUTTON_HEIGHT + 4)
+        self.setFixedSize(396, BUTTON_HEIGHT + 6)
         self._choices = (macro, mirror_cell)
         self._selected = -1
         self.highlight = QFrame(self)
@@ -391,8 +391,10 @@ class OrganizerUiMixin:
             status_callback, launch_zaap_callback, self.refresh_sessions_and_export,
             show_position_controls=False,
             compact_favorites=True,
+            compact_favorite_columns=2,
         )
         self.zaap.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
+        self.zaap.setObjectName("OrganizerZaapContent")
 
         # Organizer scrolls its own content; Atlas navigation stays fixed.
         self.organizer_scroll = QScrollArea(self)
@@ -404,7 +406,9 @@ class OrganizerUiMixin:
         outer = QVBoxLayout(self)
         outer.setContentsMargins(0, 0, 0, 0)
         outer.addWidget(self.organizer_scroll)
+        self.organizer_scroll.viewport().setObjectName("OrganizerContentViewport")
         content = QWidget()
+        content.setObjectName("OrganizerScrollContent")
         self.organizer_scroll.setWidget(content)
         # Unity's shared yellow/green button border sprites have deep
         # baked-in shadows. Organizer uses flat themed button surfaces only;
@@ -511,24 +515,54 @@ class OrganizerUiMixin:
                 color: #F2F4F7;
                 font-weight: 600;
             }
+            /* Frosted Unity surfaces, exclusively in Organizer. */
+            #organizerPage QFrame#card {
+                background: qlineargradient(x1:0,y1:0,x2:0,y2:1,
+                    stop:0 rgba(55, 80, 121, 0.83),
+                    stop:1 rgba(27, 42, 75, 0.87));
+                border: 1px solid #6A86AE;
+                border-radius: 12px;
+                border-image: none;
+            }
+            #organizerPage QScrollArea#OrganizerContentScroll,
+            #organizerPage QScrollArea#OrganizerZaapScroll,
+            #organizerPage QWidget#OrganizerContentViewport,
+            #organizerPage QWidget#OrganizerZaapViewport,
+            #organizerPage QWidget#OrganizerScrollContent,
+            #organizerPage QWidget#OrganizerZaapContent,
+            #organizerPage QWidget#ZaapFavoritesRow {
+                background: transparent;
+                border: none;
+                border-image: none;
+            }
+            #organizerPage QWidget#favoriteChip {
+                background: rgba(47, 70, 108, 0.84);
+                border: 1px solid #6481AA;
+                border-radius: 9px;
+                border-image: none;
+            }
+            #organizerPage QWidget#favoriteChip:hover {
+                background: rgba(69, 96, 140, 0.94);
+                border-color: #9FB9D5;
+            }
             #organizerPage QFrame#characterSlotEmpty,
             #organizerPage QFrame#characterSlotMissing {
                 background: transparent;
                 border: 1px solid #435A7B;
-                border-radius: 5px;
+                border-radius: 9px;
                 border-image: none;
             }
             #organizerPage QFrame#characterSlot {
-                background: #2B405D;
-                border: 1px solid #59718D;
-                border-radius: 5px;
+                background: rgba(52, 78, 118, 0.84);
+                border: 1px solid #6481AA;
+                border-radius: 9px;
                 border-image: none;
             }
             #organizerPage QFrame#characterSlotDragging,
             #organizerPage QFrame#characterSlotDropTarget {
-                background: #395272;
+                background: rgba(63, 88, 127, 0.88);
                 border: 1px solid #8AAA6B;
-                border-radius: 5px;
+                border-radius: 9px;
                 border-image: none;
             }
         """)
@@ -769,7 +803,6 @@ class OrganizerUiMixin:
         macro_layout.setContentsMargins(CARD_PADDING, CARD_PADDING, CARD_PADDING, CARD_PADDING)
         macro_layout.setSpacing(CARD_SPACING)
         macro_layout.setAlignment(Qt.AlignTop)
-        macro_layout.addWidget(controls_grid_host, alignment=Qt.AlignLeft)
         self.macro_mode_button.setObjectName("OrganizerModeChoice")
         self.mirror_mode_button.setObjectName("OrganizerModeChoice")
         self.mode_switch = OrganizerModeSwitch(
@@ -780,6 +813,7 @@ class OrganizerUiMixin:
             ),
         )
         macro_layout.addWidget(self.mode_switch, alignment=Qt.AlignLeft)
+        macro_layout.addWidget(controls_grid_host, alignment=Qt.AlignLeft)
 
         self.quick_actions_panel = QFrame()
         self.quick_actions_panel.setObjectName("card")
@@ -886,7 +920,7 @@ class OrganizerUiMixin:
 
         # A common header line; the actual mode switch lives inside Macro,
         # under the four actions, never as two separated header buttons.
-        self.macro_section_title = QLabel("Automatisation")
+        self.macro_section_title = QLabel("Macro / Miroir")
         self.macro_section_title.setObjectName("cardTitle")
         self.macro_section_title.setFixedHeight(20)
         self.macro_mode_header = QWidget()
@@ -929,11 +963,11 @@ class OrganizerUiMixin:
         self.sessions_content = self.sessions_panel.content
         self.sessions_grid = self.sessions_panel.grid
 
-        # Personnage 75%, Zaap 25% of the available width (after 8px gap).
+        # Characters span two top modules, Zaap spans one (2:1); heights match.
         # Both panels share the same height; the eight slots stay permanent.
         self.zaap_panel = QFrame()
         self.zaap_panel.setObjectName("card")
-        self.zaap_panel.setMinimumWidth(145)
+        self.zaap_panel.setMinimumWidth(220)
         self.zaap_panel.setFixedHeight(self.sessions_panel.calculated_height())
         self.zaap_panel.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
         zaap_layout = QVBoxLayout(self.zaap_panel)
@@ -957,13 +991,14 @@ class OrganizerUiMixin:
         self.zaap_scroll.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
         self.zaap_scroll.setVerticalScrollBarPolicy(Qt.ScrollBarAsNeeded)
         self.zaap_scroll.setMinimumWidth(0)
+        self.zaap_scroll.viewport().setObjectName("OrganizerZaapViewport")
         self.zaap_scroll.setWidget(self.zaap)
         zaap_layout.addWidget(self.zaap_scroll, 1)
 
         self.bottom_panels_row = QHBoxLayout()
         self.bottom_panels_row.setContentsMargins(0, 0, 0, 0)
         self.bottom_panels_row.setSpacing(8)
-        self.bottom_panels_row.addWidget(self.sessions_panel, 3, Qt.AlignTop)
+        self.bottom_panels_row.addWidget(self.sessions_panel, 2, Qt.AlignTop)
         self.bottom_panels_row.addWidget(self.zaap_panel, 1, Qt.AlignTop)
         root.addLayout(self.bottom_panels_row)
         for panel in (
