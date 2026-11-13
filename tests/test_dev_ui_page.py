@@ -168,6 +168,13 @@ class DevUiPageTests(unittest.TestCase):
                 UnityPopupSeparatorDelegate,
             )
             self.assertEqual(page.gallery_navigation.count(), 16)
+            self.assertEqual(page.gallery_navigation.objectName(), "DevUiFamilyCombo")
+            from PySide6.QtWidgets import QStyleOptionViewItem
+            row_hint = page.gallery_navigation.view().itemDelegate().sizeHint(
+                QStyleOptionViewItem(),
+                page.gallery_navigation.model().index(0, 0),
+            )
+            self.assertGreaterEqual(row_hint.height(), 24)
             self.assertEqual(page.gallery_scroll.objectName(), "DevUiGalleryScroll")
             self.assertFalse(page.preview_combo.view().alternatingRowColors())
             self.assertFalse(page.guide_ultime_combo.view().alternatingRowColors())
