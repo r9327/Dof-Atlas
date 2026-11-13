@@ -281,14 +281,21 @@ def unity_skin_stylesheet(palette: Mapping[str, str] | None = None) -> str:
         "padding: 5px 8px; font-weight: 600; }" % (
             translucent("PANEL_2", 0.95), colors["TEXT"], colors["BORDER_SOFT"],
         ),
-        f"QTabBar::tab {{ background: {translucent('NAV_SURFACE', 0.93)}; "
+        # Equal geometry and blue surface for all tabs; green hairline marks
+        # selection. No large green bar or alternate tab theme.
+        f"QTabBar::tab {{ background: {colors['PANEL_2']}; "
         f"color: {colors['TEXT_SOFT']}; "
-        f"border: 2px solid {colors['BORDER']}; "
+        f"border: 1px solid {colors['BORDER_SOFT']}; "
+        f"border-bottom: 2px solid {colors['BORDER_SOFT']}; "
         f"border-radius: {radii['RADIUS_XS']}; "
         "padding: 5px 12px; min-height: 24px; }",
-        f"QTabBar::tab:hover {{ background: {colors['PANEL_HOVER']}; }}",
-        f"QTabBar::tab:selected {{ color: {colors['TEXT']}; "
-        f"background: {colors['PANEL_ACTIVE']}; }}",
+        f"QTabBar::tab:hover {{ background: {colors['PANEL_HOVER']}; "
+        f"border-bottom-color: {colors['GREEN_BORDER']}; }}",
+        f"QTabBar::tab:selected {{ color: {colors['GREEN']}; "
+        f"background: {colors['PANEL_ACTIVE']}; "
+        f"border-bottom-color: {colors['GREEN']}; }}",
+        f"QTabBar::tab:selected:hover {{ color: {colors['GREEN_HOVER']}; "
+        f"border-bottom-color: {colors['GREEN_HOVER']}; }}",
         "QToolTip { background: %s; color: %s; "
         "border: 1px solid %s; padding: 4px; }" % (
             colors["TOOLTIP_SURFACE"], colors["TEXT"], colors["BORDER_STRONG"],
