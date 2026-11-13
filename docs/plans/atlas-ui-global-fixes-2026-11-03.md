@@ -84,3 +84,9 @@ Ne cocher aucun ID de #364 sur cette seule base. Ne pas fusionner tant que les o
 - **Contrat livraison** : les 43 IDs de l'issue #364 sont présents dans le rapport de PR, tous `PENDING`. Aucune preuve n'autorise de les cocher globalement ni de fusionner.
 - **Fond étoilé** : rendu de secours dessiné par Qt présent ; le fichier de fond personnel nettoyé n'est pas distribué. Ne pas publier la capture source du jeu sans validation des droits.
 - **Manques prouvés** : Almanax encore placeholder à l'Accueil et dans le shell. Les autres exigences doivent être confrontées aux véritables comportements/captures du candidat final. Windows/DOFUS et performances restent non certifiés.
+
+### Correction fil d'Ariane Guide — 13 novembre
+
+- **ATGD-005 / ATUI-003 (partiel)** : le `GuidesView.build_detail_page()` plaçait `GuideHeader` avant `GuideBreadcrumb`, à l'inverse du contrat. L'ordre du `QVBoxLayout` est corrigé en **breadcrumb → entête → contenu**, sans changer les panneaux, les composants ou les données Guide.
+- Test Qt dans `tests/test_guide_library_home.py` avec construction du vrai widget de détail et vérification des indices de layout; seul `QuestDetailView` est remplacé dans le test pour éviter un chargement métier hors périmètre.
+- Les autres barres d'Ariane et l'essai Windows restent à contrôler ; **aucun PASS global** pour ATGD-005/ATUI-003 avant les recettes et le SHA final.

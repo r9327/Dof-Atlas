@@ -1428,14 +1428,13 @@ class GuidesView(QWidget):
         self.right_panel_toggle.setAccessibleName("Masquer la colonne d'informations")
         self.right_panel_toggle.clicked.connect(self._toggle_right_panel)
         header_layout.addWidget(self.right_panel_toggle, 0, Qt.AlignRight | Qt.AlignVCenter)
-        root.addWidget(self.detail_header)
-
         self.breadcrumb = QFrame()
         self.breadcrumb.setObjectName("GuideBreadcrumb")
         self.breadcrumb_layout = QHBoxLayout(self.breadcrumb)
         self.breadcrumb_layout.setContentsMargins(8, 5, 8, 5)
         self.breadcrumb_layout.setSpacing(5)
         root.addWidget(self.breadcrumb)
+        root.addWidget(self.detail_header)
 
         self.splitter = FixedColumnSplitter(Qt.Horizontal)
         self.splitter.setObjectName("GuideDetailSplitter")

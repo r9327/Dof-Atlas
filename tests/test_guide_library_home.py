@@ -106,6 +106,45 @@ class GuideLibraryHomeTests(unittest.TestCase):
                     view.deleteLater()
                     self.app.processEvents()
 
+    def test_detail_breadcrumb_precedes_title_header(self):
+        from PySide6.QtCore import Signal
+        from PySide6.QtWidgets import QWidget
+        from app.modules.encyclopedia.views.guides_view import GuidesView
+
+        class QuestDetailStub(QWidget):
+            questProgressChanged = Signal()
+
+            def __init__(self, *args, **kwargs):
+                super().__init__()
+
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            with patch(
+                "app.modules.encyclopedia.widgets.quest_detail_view.QuestDetailView",
+                QuestDetailStub,
+            ):
+                view = GuidesView(
+                    lambda _message: None, provider=_Provider(),
+                    quest_progress_path=root / "quests.json",
+                    achievement_progress_path=root / "achievements.json",
+                    guide_progress_path=root / "guides.json",
+                    profile_path=root / "profile.json",
+                    client_index_path=root / "clients.json",
+                    defer_runtime=True,
+                )
+                try:
+                    detail = view.build_detail_page()
+                    try:
+                        layout = detail.layout()
+                        self.assertIs(layout.itemAt(0).widget(), view.breadcrumb)
+                        self.assertIs(layout.itemAt(1).widget(), view.detail_header)
+                        self.assertIs(layout.itemAt(2).widget(), view.detail_stack)
+                    finally:
+                        detail.deleteLater()
+                finally:
+                    view.deleteLater()
+                    self.app.processEvents()
+
     def test_rich_guides_signals_and_external_catalog_navigation(self):
         from app.modules.encyclopedia.views.guides_view import GuidesView
 
