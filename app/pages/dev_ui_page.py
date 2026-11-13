@@ -398,6 +398,7 @@ class DevUiPage(QWidget):
         self.preview_progress.setRange(0, 100)
         self.preview_progress.setValue(40)
         self.preview_slider = QSlider(Qt.Horizontal)
+        self.preview_slider.setObjectName("DevUiProgressSlider")
         self.preview_slider.setRange(0, 100)
         self.preview_slider.setValue(40)
         self.preview_slider.valueChanged.connect(self.preview_progress.setValue)
