@@ -222,10 +222,30 @@ class DevUiPageTests(unittest.TestCase):
             for card in page.preview_cards.values():
                 shadow = card.graphicsEffect()
                 self.assertIsInstance(shadow, QGraphicsDropShadowEffect)
-                self.assertEqual(shadow.blurRadius(), 10)
-                self.assertEqual(shadow.color().alpha(), 34)
-            self.assertTrue(all(section.graphicsEffect() is None
-                                for section in page.gallery_sections))
+                self.assertEqual(shadow.blurRadius(), 16)
+                self.assertEqual(shadow.color().alpha(), 82)
+            shadow_sections = [
+                section for section in page.gallery_sections
+                if section.graphicsEffect() is not None
+            ]
+            self.assertEqual(
+                [section.title() for section in shadow_sections],
+                ["Formulaires avancés · états et formats",
+                 "Surfaces · cartes · typographie"],
+            )
+            for section in shadow_sections:
+                shadow = section.graphicsEffect()
+                self.assertIsInstance(shadow, QGraphicsDropShadowEffect)
+                self.assertEqual(shadow.blurRadius(), 17)
+                self.assertEqual(shadow.color().alpha(), 82)
+            self.assertEqual(page.preview_advanced_grid.columnCount(), 3)
+            advanced_fields = (
+                page.preview_password, page.preview_readonly,
+                page.preview_disabled_input, page.preview_double_spin,
+                page.preview_date, page.preview_time,
+            )
+            self.assertTrue(all(widget.minimumHeight() == 32
+                                for widget in advanced_fields))
             self.assertIn("QWidget#DevUiPage QWidget#DevUiIconCell", css)
             self.assertIn("QWidget#DevUiPage QTreeWidget::item", css)
             self.assertIn("#SecondaryButton:checked", css)
