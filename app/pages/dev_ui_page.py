@@ -9,7 +9,7 @@ from __future__ import annotations
 import re
 from collections.abc import Callable
 
-from PySide6.QtCore import QDate, Qt
+from PySide6.QtCore import QDate, QEasingCurve, QPropertyAnimation, Qt
 from PySide6.QtGui import QBrush, QColor, QLinearGradient, QPainter, QPixmap
 from PySide6.QtWidgets import (
     QCheckBox,
@@ -19,6 +19,7 @@ from PySide6.QtWidgets import (
     QFrame,
     QGridLayout,
     QGroupBox,
+    QGraphicsOpacityEffect,
     QHeaderView,
     QHBoxLayout,
     QLabel,
@@ -166,6 +167,7 @@ class DevUiPage(QWidget):
         self._build_startup_preview(content)
         self._build_guide_samples(content)
         self._build_ui_assets(content)
+        self._build_motion_gallery(content)
         self._build_scope_matrix(content)
         self._build_dialogs_and_colors(content)
         content.addStretch(1)
@@ -878,6 +880,112 @@ class DevUiPage(QWidget):
             "Inventaire du périmètre, pas une certification de migration"
         )
         section.addWidget(self.preview_scope)
+
+    def _build_motion_gallery(self, parent: QVBoxLayout) -> None:
+        """Replay bounded Qt motions using real Unity-themed controls.
+
+        Timings are adjustable prototypes, not measured DOFUS client timings.
+        Keep these isolated from production widgets until visual acceptance.
+        """
+        section = self._section(parent, "Motion Gallery · prototypes à comparer")
+        note = QLabel(
+            "Transitions de prévisualisation Qt. Les durées ne sont pas "
+            "encore mesurées sur DOFUS Unity : comparer puis valider avant "
+            "toute généralisation."
+        )
+        note.setObjectName("MutedLabel")
+        note.setWordWrap(True)
+        section.addWidget(note)
+
+        timing = QHBoxLayout()
+        timing.addWidget(QLabel("Durée de référence"))
+        self.motion_duration = QSpinBox()
+        self.motion_duration.setObjectName("DevUiMotionDuration")
+        self.motion_duration.setRange(80, 600)
+        self.motion_duration.setSingleStep(20)
+        self.motion_duration.setSuffix(" ms")
+        self.motion_duration.setValue(180)
+        timing.addWidget(self.motion_duration)
+        timing.addStretch(1)
+        section.addLayout(timing)
+
+        controls = QHBoxLayout()
+        self.motion_buttons: dict[str, AtlasButton] = {}
+        for key, caption in (
+            ("apparition", "Rejouer apparition"),
+            ("panneau", "Rejouer panneau"),
+            ("progression", "Rejouer progression"),
+        ):
+            button = AtlasButton(caption, variant="secondary")
+            button.clicked.connect(
+                lambda _checked=False, name=key: self._play_motion(name)
+            )
+            self.motion_buttons[key] = button
+            controls.addWidget(button)
+        controls.addStretch(1)
+        section.addLayout(controls)
+
+        self.motion_fade_card = QFrame()
+        self.motion_fade_card.setObjectName("card")
+        fade_layout = QHBoxLayout(self.motion_fade_card)
+        fade_layout.addWidget(QLabel("Apparition · carte Unity"))
+        section.addWidget(self.motion_fade_card)
+        self.motion_opacity = QGraphicsOpacityEffect(self.motion_fade_card)
+        self.motion_opacity.setOpacity(1.0)
+        self.motion_fade_card.setGraphicsEffect(self.motion_opacity)
+
+        self.motion_panel = QFrame()
+        self.motion_panel.setObjectName("card")
+        panel_layout = QHBoxLayout(self.motion_panel)
+        panel_layout.addWidget(QLabel("Panneau · ouverture verticale"))
+        self._motion_panel_height = 3 * UNITY_SIZES_PX["control_compact"]
+        self.motion_panel.setMaximumHeight(self._motion_panel_height)
+        section.addWidget(self.motion_panel)
+
+        self.motion_progress = QProgressBar()
+        self.motion_progress.setObjectName("DevUiMotionProgress")
+        self.motion_progress.setRange(0, 100)
+        self.motion_progress.setValue(100)
+        section.addWidget(self.motion_progress)
+
+        # Animations have Qt parents and are stopped automatically when the
+        # lazily constructed Dev UI page is released on returning Home.
+        self.motion_animations: dict[str, QPropertyAnimation] = {
+            "apparition": QPropertyAnimation(
+                self.motion_opacity, b"opacity", self
+            ),
+            "panneau": QPropertyAnimation(
+                self.motion_panel, b"maximumHeight", self
+            ),
+            "progression": QPropertyAnimation(
+                self.motion_progress, b"value", self
+            ),
+        }
+        for animation in self.motion_animations.values():
+            animation.setDuration(self.motion_duration.value())
+            animation.setEasingCurve(QEasingCurve.OutCubic)
+
+    def _play_motion(self, name: str) -> None:
+        """Restart the selected preview without overlapping animations."""
+        animation = self.motion_animations[name]
+        animation.stop()
+        animation.setDuration(self.motion_duration.value())
+        if name == "apparition":
+            self.motion_opacity.setOpacity(0.35)
+            animation.setStartValue(0.35)
+            animation.setEndValue(1.0)
+        elif name == "panneau":
+            self.motion_panel.setMaximumHeight(0)
+            animation.setStartValue(0)
+            animation.setEndValue(self._motion_panel_height)
+        else:
+            self.motion_progress.setValue(0)
+            animation.setStartValue(0)
+            animation.setEndValue(100)
+        animation.start()
+        self._report(
+            f"Motion Gallery : {name} · {self.motion_duration.value()} ms"
+        )
 
     def _build_dialogs_and_colors(self, parent: QVBoxLayout) -> None:
         section = self._section(parent, "Dialogues · icônes · typographie")
