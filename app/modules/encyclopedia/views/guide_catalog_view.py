@@ -172,8 +172,13 @@ class GuideCatalogView(QWidget):
         self.library_categories.currentItemChanged.connect(self._on_category_changed)
         self.library_categories.itemClicked.connect(self._toggle_library_category)
         self.library_categories.itemActivated.connect(self._activate_library_item)
+        # Keep the compact menu only as tall as its visible rows. Expanded
+        # categories can still scroll inside the 250px Unity panel.
+        self.library_categories.itemExpanded.connect(self._sync_library_tree_height)
+        self.library_categories.itemCollapsed.connect(self._sync_library_tree_height)
         apply_unity_panel_shadow(self.library_categories, blur=19, vertical=4)
         left_layout.addWidget(self.library_categories, 0)
+        self._sync_library_tree_height()
         left_layout.addStretch(1)
 
         self.library_right = QWidget(self)
@@ -383,6 +388,24 @@ class GuideCatalogView(QWidget):
             # A dense category menu starts folded instead of occupying
             # half of the Guide home before the user chooses a section.
             parent.setExpanded(False)
+
+        self._sync_library_tree_height()
+
+    def _sync_library_tree_height(self, _item: QTreeWidgetItem | None = None) -> None:
+        """No dead space below collapsed categories; scroll expanded lists."""
+        tree = self.library_categories
+        visible_rows = tree.topLevelItemCount()
+        for index in range(tree.topLevelItemCount()):
+            parent = tree.topLevelItem(index)
+            if parent.isExpanded():
+                visible_rows += parent.childCount()
+
+        # Qt's delegate can be taller than its font on Windows/high DPI.
+        # Keep the actual styled first-row hint and a small frame/padding
+        # gutter so the last category is never clipped.
+        row_height = max(23, tree.fontMetrics().lineSpacing() + 8, tree.sizeHintForRow(0))
+        wanted = max(row_height + 12, visible_rows * row_height + 12)
+        tree.setFixedHeight(min(250, wanted))
 
     def _on_category_changed(self, item: QTreeWidgetItem | None, _previous=None) -> None:
         if item is None or not (item.flags() & Qt.ItemIsEnabled):

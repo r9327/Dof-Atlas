@@ -256,6 +256,48 @@ class GuideLibraryHomeTests(unittest.TestCase):
                     view.deleteLater()
                     self.app.processEvents()
 
+    def test_category_menu_fits_collapsed_rows_and_scrolls_expanded_rows(self):
+        with tempfile.TemporaryDirectory() as directory:
+            with patch(
+                "app.modules.encyclopedia.views.guide_catalog_view.catalog_route_map_count_hint",
+                return_value=0,
+            ):
+                view = GuideCatalogView(
+                    lambda _message: None,
+                    provider=_Provider(),
+                    quest_progress_path=Path(directory) / "progress.json",
+                    defer_runtime=True,
+                )
+                view._progress_snapshot = lambda: {}
+                view.hydrate_runtime()
+                view.resize(1180, 780)
+                view.show()
+                self.app.processEvents()
+                try:
+                    tree = view.library_categories
+                    view._sync_library_tree_height()
+                    folded = tree.height()
+                    self.assertLessEqual(folded, 250)
+                    self.assertEqual(tree.minimumHeight(), tree.maximumHeight())
+
+                    dimensions = view._category_nodes["dimensions"]
+                    self.assertGreater(dimensions.childCount(), 0)
+                    dimensions.setExpanded(True)
+                    self.app.processEvents()
+                    self.assertGreaterEqual(tree.height(), folded)
+                    self.assertLessEqual(tree.height(), 250)
+                    self.assertEqual(tree.height(), tree.maximumHeight())
+                    self.assertGreater(tree.verticalScrollBar().maximum(), 0)
+
+                    dimensions.setExpanded(False)
+                    self.app.processEvents()
+                    self.assertEqual(tree.height(), folded)
+                    self.assertEqual(tree.minimumHeight(), tree.maximumHeight())
+                finally:
+                    view.close()
+                    view.deleteLater()
+                    self.app.processEvents()
+
     def test_entire_featured_card_is_clickable_and_keyboard_accessible(self):
         provider = _Provider()
         with tempfile.TemporaryDirectory() as directory:
