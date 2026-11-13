@@ -134,7 +134,22 @@ class DevUiPageTests(unittest.TestCase):
                 {f"Couleur {role}" for role in PALETTE},
             )
 
-            self.assertEqual(set(page.preview_badges), {"done", "active", "blocked"})
+            self.assertEqual(set(page.preview_badges), {
+                "done", "active", "blocked", "danger", "warning", "info",
+                "neutral",
+            })
+            from app.ui.unity_palette import UNITY_CHIP_TONES, UNITY_INTERACTION_STATES
+            self.assertEqual(set(page.preview_chips), set(UNITY_CHIP_TONES))
+            self.assertEqual(page.preview_interaction_states, UNITY_INTERACTION_STATES)
+            self.assertEqual(set(page.preview_text_actions), {"inline_action", "popup_link"})
+            self.assertTrue(page.preview_chips["success"].isChecked())
+            page.preview_chips["danger"].click()
+            self.assertTrue(page.preview_chips["danger"].isChecked())
+            self.assertIn("Badge danger activé", page.feedback.text())
+            self.assertFalse(page.preview_chips["info"].isChecked())
+            self.assertEqual(page.preview_text_actions["inline_action"].styleSheet(), "")
+            page.preview_text_actions["inline_action"].click()
+            self.assertIn("Détails ouverts", page.feedback.text())
             for state, badge in page.preview_badges.items():
                 self.assertEqual(badge.objectName(), "StatusBadge")
                 self.assertEqual(badge.property("state"), state)
@@ -151,9 +166,18 @@ class DevUiPageTests(unittest.TestCase):
             self.assertEqual(page.preview_scope.rowCount(), 12)
             self.assertEqual(page.preview_scope.item(11, 0).text(), "Launcher")
             self.assertIn("Tk", page.preview_scope.item(11, 1).text())
-            self.assertEqual(len(page.preview_icon_labels), 8)
-            self.assertEqual(page.preview_icon_grid.count(), 8)
-            self.assertEqual(page.preview_icon_grid.getItemPosition(7), (1, 3, 1, 1))
+            from app.ui.unity_palette import UNITY_ICON_NAMES, UNITY_ICON_PENDING
+            self.assertEqual(
+                set(page.preview_icon_labels),
+                set(UNITY_ICON_NAMES) | set(UNITY_ICON_PENDING),
+            )
+            self.assertEqual(page.preview_icon_grid.count(),
+                             len(UNITY_ICON_NAMES) + len(UNITY_ICON_PENDING))
+            self.assertEqual(page.preview_icon_grid.getItemPosition(7),
+                             (1, 3, 1, 1))
+            self.assertEqual(page.preview_icon_grid.getItemPosition(13),
+                             (3, 1, 1, 1))
+            self.assertEqual(set(page.preview_icon_missing), set(UNITY_ICON_PENDING))
             for index in range(page.preview_icon_grid.count()):
                 cell = page.preview_icon_grid.itemAt(index).widget()
                 self.assertEqual(cell.objectName(), "DevUiIconCell")
@@ -241,6 +265,13 @@ class DevUiPageTests(unittest.TestCase):
             self.assertEqual(TYPOGRAPHY["FONT_SMALL"], "11px")
             css = atlas_stylesheet()
             self.assertIn("QWidget#DevUiPage QGroupBox::title", css)
+            self.assertIn("#StatusChip[tone=\"success\"]:hover", css)
+            self.assertIn("#StatusChip[tone=\"danger\"]:checked", css)
+            self.assertIn("#InlineActionButton:hover", css)
+            self.assertIn("#PopupLinkButton:focus", css)
+            self.assertIn("#TopNavButtonActive:hover", css)
+            self.assertIn("QTabBar::tab:selected", css)
+            self.assertIn("QWidget#DevUiPage QLabel#DevUiMissingIcon", css)
             self.assertIn("QSlider#DevUiProgressSlider::groove:horizontal", css)
             self.assertIn("QSlider#DevUiProgressSlider::sub-page:horizontal", css)
             self.assertIn("QSlider#DevUiProgressSlider::add-page:horizontal", css)
@@ -319,7 +350,9 @@ class DevUiPageTests(unittest.TestCase):
             page.preview_palette_toggle.click()
             self.assertTrue(page.preview_palette_details.isHidden())
 
-            self.assertEqual(set(page.preview_icon_labels), set(UNITY_ICON_NAMES))
+            from app.ui.unity_palette import UNITY_ICON_PENDING
+            self.assertEqual(set(page.preview_icon_labels),
+                             set(UNITY_ICON_NAMES) | set(UNITY_ICON_PENDING))
             from app.ui.unity_skin import unity_original_preview_icon
             self.assertTrue(all(
                 not unity_original_preview_icon(name).isNull()
@@ -327,7 +360,12 @@ class DevUiPageTests(unittest.TestCase):
             ))
             self.assertTrue(all(
                 label.pixmap() is not None and not label.pixmap().isNull()
-                for label in page.preview_icon_labels.values()
+                for name, label in page.preview_icon_labels.items()
+                if name in UNITY_ICON_NAMES
+            ))
+            self.assertTrue(all(
+                page.preview_icon_labels[name].pixmap() is None
+                for name in UNITY_ICON_PENDING
             ))
             self.assertEqual(
                 set(page.preview_metric_buttons),
