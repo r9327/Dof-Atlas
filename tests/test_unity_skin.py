@@ -10,7 +10,7 @@ from unittest.mock import patch
 os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
 
 from PySide6.QtCore import Qt
-from PySide6.QtGui import QColor, QImage
+from PySide6.QtGui import QColor, QImage, QLinearGradient, QPainter
 from PySide6.QtTest import QTest
 from PySide6.QtWidgets import QApplication, QTabWidget, QWidget
 
@@ -425,9 +425,8 @@ class UnitySkinTests(unittest.TestCase):
                 backdrop.deleteLater()
                 self.app.processEvents()
 
-    def test_public_backdrop_shows_stars_without_personal_unity_assets(self) -> None:
-        # One deterministic field is painted on the shared shell, without a
-        # bundled game texture, timer, animation or per-module stylesheet.
+    def test_public_backdrop_is_exact_blue_gradient_without_local_image(self) -> None:
+        # Without the user's real cleaned wallpaper, never paint fake stars.
         with tempfile.TemporaryDirectory() as directory:
             absent = Path(directory) / "absent"
             with patch.object(unity_skin, "_PERSONAL_ASSETS", absent), patch.object(
@@ -439,22 +438,28 @@ class UnitySkinTests(unittest.TestCase):
                 backdrop.show()
                 try:
                     self.app.processEvents()
-                    with_stars = backdrop.grab().toImage()
-                    with patch.object(unity_skin, "_PUBLIC_SKY_STARS", ()):
-                        without_stars = backdrop.grab().toImage()
-                    # First deterministic star sits at about (19, 28) px.
-                    self.assertTrue(any(
-                        with_stars.pixelColor(x, y) != without_stars.pixelColor(x, y)
-                        for x in range(16, 23) for y in range(25, 33)
-                    ))
+                    image = backdrop.grab().toImage()
+                    expected = QImage(600, 380, QImage.Format_ARGB32)
+                    gradient = QLinearGradient(0, 0, 600, 380)
+                    gradient.setColorAt(0.0, QColor(UNITY_PALETTE["BG_GRADIENT_START"]))
+                    gradient.setColorAt(0.52, QColor(UNITY_PALETTE["PANEL"]))
+                    gradient.setColorAt(1.0, QColor(UNITY_PALETTE["BG"]))
+                    painter = QPainter(expected)
+                    painter.fillRect(expected.rect(), gradient)
+                    painter.end()
+                    for x, y in ((19, 28), (12, 210), (300, 190), (590, 360)):
+                        self.assertEqual(
+                            image.pixelColor(x, y).name(),
+                            expected.pixelColor(x, y).name(),
+                            (x, y),
+                        )
+                    self.assertFalse(hasattr(unity_skin, "_PUBLIC_SKY_STARS"))
                 finally:
                     backdrop.close()
                     backdrop.deleteLater()
                     self.app.processEvents()
 
-    def test_shell_home_margins_reveal_shared_fallback_stars(self) -> None:
-        # Compose the real shared shell selectors without running the heavy
-        # AtlasWindow bootstrap/preload in an offscreen Qt test runner.
+    def test_shell_home_margins_keep_blue_fallback_without_fake_stars(self) -> None:
         from PySide6.QtWidgets import QStackedWidget, QVBoxLayout
         from app.ui.theme import atlas_stylesheet
 
@@ -462,7 +467,6 @@ class UnitySkinTests(unittest.TestCase):
             tempfile.TemporaryDirectory() as directory,
             patch.object(unity_skin, "_PERSONAL_ASSETS", Path(directory) / "personal"),
             patch.object(unity_skin, "_ASSETS", Path(directory) / "assets"),
-            patch.object(unity_skin, "_PUBLIC_SKY_STARS", ((0.012, 0.55, 7.0, 255),)),
         ):
             backdrop = UnityBackdrop()
             backdrop.setStyleSheet(atlas_stylesheet())
@@ -481,73 +485,66 @@ class UnitySkinTests(unittest.TestCase):
                 self.app.processEvents()
                 self.assertTrue(backdrop._pixmap.isNull())
                 self.assertEqual(stack.currentWidget(), home)
-                with_star = backdrop.grab().toImage()
-                with patch.object(unity_skin, "_PUBLIC_SKY_STARS", ()):
-                    backdrop.update()
-                    self.app.processEvents()
-                    without_star = backdrop.grab().toImage()
-                # The margin is in the stacked Home page, not a data card.
-                self.assertNotEqual(
-                    with_star.pixelColor(12, 210),
-                    without_star.pixelColor(12, 210),
-                )
+                # No accidental opaque black root over the blue fallback.
+                color = backdrop.grab().toImage().pixelColor(12, 210)
+                self.assertTrue(color.isValid())
+                self.assertNotEqual(color.name(), "#000000")
             finally:
                 backdrop.close()
                 backdrop.deleteLater()
                 self.app.processEvents()
 
-    def test_starry_backdrop_remains_visible_under_all_shared_shell_roots(self) -> None:
-        """A page-specific opaque QSS must not erase Unity stars after navigation."""
+    def test_real_local_image_remains_visible_under_shared_shell_roots(self) -> None:
+        """Only the actual approved local PNG is allowed to produce a star sky."""
         from PySide6.QtWidgets import QStackedWidget, QVBoxLayout
         from app.ui.theme import atlas_stylesheet
 
-        # Both already-mounted and lazy-loaded pages use these actual root
-        # object names / the same atlasUnityPage dynamic property.
         roots = (
             "HomePage", "EncyclopediaPage", "GuidesView", "GuidesHomePage",
             "organizerPage", "worldScanPage", "CraftPage", "EquipmentPage",
             "PlaceholderPage", "SettingsPage", "DevUiPage",
         )
-        with (
-            tempfile.TemporaryDirectory() as directory,
-            patch.object(unity_skin, "_PERSONAL_ASSETS", Path(directory) / "personal"),
-            patch.object(unity_skin, "_ASSETS", Path(directory) / "assets"),
-            patch.object(unity_skin, "_PUBLIC_SKY_STARS", ((0.012, 0.55, 7.0, 255),)),
-        ):
-            backdrop = UnityBackdrop()
-            backdrop.setStyleSheet(atlas_stylesheet())
-            layout = QVBoxLayout(backdrop)
-            layout.setContentsMargins(0, 0, 0, 0)
-            stack = QStackedWidget(backdrop)
-            stack.setObjectName("AtlasUnityStack")
-            pages = []
-            for name in roots:
-                widget = QWidget(stack)
-                widget.setObjectName(name)
-                widget.setProperty("atlasUnityPage", True)
-                stack.addWidget(widget)
-                pages.append(widget)
-            layout.addWidget(stack)
-            backdrop.resize(600, 380)
-            try:
-                backdrop.show()
-                self.app.processEvents()
-                self.assertTrue(backdrop._pixmap.isNull())
-                for name, page in zip(roots, pages):
-                    with self.subTest(page=name):
-                        stack.setCurrentWidget(page)
-                        backdrop.update()
-                        self.app.processEvents()
-                        with_star = backdrop.grab().toImage().pixelColor(12, 210)
-                        with patch.object(unity_skin, "_PUBLIC_SKY_STARS", ()):
+        with tempfile.TemporaryDirectory() as directory:
+            assets = Path(directory)
+            reference = QImage(600, 380, QImage.Format_ARGB32)
+            reference.fill(QColor("#436b9f"))
+            self.assertTrue(reference.save(str(assets / "background_selection_clean.png")))
+            with (
+                patch.object(unity_skin, "_PERSONAL_ASSETS", assets),
+                patch.object(unity_skin, "_ASSETS", assets / "absent"),
+            ):
+                backdrop = UnityBackdrop()
+                backdrop.setStyleSheet(atlas_stylesheet())
+                layout = QVBoxLayout(backdrop)
+                layout.setContentsMargins(0, 0, 0, 0)
+                stack = QStackedWidget(backdrop)
+                stack.setObjectName("AtlasUnityStack")
+                pages = []
+                for name in roots:
+                    widget = QWidget(stack)
+                    widget.setObjectName(name)
+                    widget.setProperty("atlasUnityPage", True)
+                    stack.addWidget(widget)
+                    pages.append(widget)
+                layout.addWidget(stack)
+                backdrop.resize(600, 380)
+                try:
+                    backdrop.show()
+                    self.app.processEvents()
+                    self.assertFalse(backdrop._pixmap.isNull())
+                    for name, page in zip(roots, pages):
+                        with self.subTest(page=name):
+                            stack.setCurrentWidget(page)
                             backdrop.update()
                             self.app.processEvents()
-                            without_star = backdrop.grab().toImage().pixelColor(12, 210)
-                        self.assertNotEqual(with_star, without_star)
-            finally:
-                backdrop.close()
-                backdrop.deleteLater()
-                self.app.processEvents()
+                            self.assertEqual(
+                                backdrop.grab().toImage().pixelColor(12, 210).name(),
+                                "#436b9f",
+                            )
+                finally:
+                    backdrop.close()
+                    backdrop.deleteLater()
+                    self.app.processEvents()
 
     def test_clean_wallpaper_has_priority_without_mutating_original(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
