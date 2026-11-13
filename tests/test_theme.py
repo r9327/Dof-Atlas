@@ -55,7 +55,7 @@ class SharedThemeTests(unittest.TestCase):
             "SPACE_MD": "13px",
         })
         common = style.split(
-            "#primaryButton, #ActiveButton, #PrimaryActionButton,\\n"
+            "#primaryButton, #ActiveButton, #PrimaryActionButton,\n"
             "#secondaryButton, #SecondaryButton {", 1,
         )[1].split("}", 1)[0]
         for rule in (
