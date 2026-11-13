@@ -4,6 +4,7 @@ from __future__ import annotations
 import ast
 import inspect
 import os
+import textwrap
 import unittest
 
 os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
@@ -34,7 +35,7 @@ class SharedGuideManualViewThemeTests(unittest.TestCase):
                 self.assertIn(selector, style)
 
     def test_no_private_qss_style_literals_in_shared_line_renderer(self):
-        tree = ast.parse(inspect.getsource(SharedGuideManualCard._add_line_section))
+        tree = ast.parse(textwrap.dedent(inspect.getsource(SharedGuideManualCard._add_line_section)))
         self.assertFalse(any(
             isinstance(node, ast.Call)
             and isinstance(node.func, ast.Attribute)
