@@ -356,6 +356,14 @@ QWidget#DevUiPage QHeaderView::section {
     font-size: @FONT_SMALL;
     font-weight: 600;
 }
+QWidget#DevUiPage QWidget#DevUiIconCell {
+    background: transparent;
+    border: none;
+}
+QWidget#DevUiPage QTreeWidget::item {
+    min-height: 24px;
+    padding: 2px @SPACE_XS;
+}
 
 QTabWidget#EncyclopediaTabs::pane {
     background: @BG;
