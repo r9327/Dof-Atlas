@@ -31,7 +31,7 @@ L'architecture existante est la source de vérité : `app/ui/unity_skin.py` (pal
 
 ## Migration Organizer/Macro/Zaap vers #325 — décision du 03/11/2026
 
-Le correctif Switch clic Unity ATMC-003 et les 24 autres critères Organizer/Macro/Zaap/recette multi-fenêtres sont dans #321/#325. **Transfert des fichiers effectué** : le diff actuel de #365 ne conserve que les changements UI globale (`encyclopedia_page.py`, `theme.py`, `unity_skin.py`, ce plan et deux tests visuels). Le clic physique source DOWN/UP, les hooks molette/clavier, les corrections du clic synthétique et leurs tests sont portés dans #325. **La validation reste à faire** : Graphify exact-SHA, Doctor/tests ciblés, audit d'intégration et recette DOFUS Unity 2/4/6/8. Aucun PASS ni certification n'est déduit du transfert.
+Le correctif Switch clic Unity ATMC-003 et les 24 autres critères Organizer/Macro/Zaap/recette multi-fenêtres sont dans #321/#325. **Transfert des fichiers effectué** : au moment de la migration, le diff de #365 ne conservait que les fichiers UI globaux. Des lots UI supplémentaires ont depuis modifié l'Accueil, la navigation, le catalogue Guide et leurs tests ; ce constat historique ne décrit plus la liste exhaustive des fichiers de la PR. Le clic physique source DOWN/UP, les hooks molette/clavier, les corrections du clic synthétique et leurs tests sont portés dans #325. **La validation reste à faire** : Graphify exact-SHA, Doctor/tests ciblés, audit d'intégration et recette DOFUS Unity 2/4/6/8. Aucun PASS ni certification n'est déduit du transfert.
 
 ## Ordre de lots de développement conseillé
 
@@ -63,4 +63,15 @@ Le correctif Switch clic Unity ATMC-003 et les 24 autres critères Organizer/Mac
 - Une suppression de code sans recherche de consommateurs + Graphify ou une validation Windows/DOFUS présentée comme automatique.
 - Un résultat Doctor/CI sur un ancien SHA, ou une prétendue certification du pilote Cawotte.
 
-**À ce stade : document de cadrage uniquement, code produit inchangé et aucun test exécuté.**
+## État de reprise — 13 novembre 2026
+
+**PR #365 toujours en Draft et non certifiée.** Le présent plan est un document de suivi ; les critères et autorisations restent exclusivement ceux de l'issue #364.
+
+- Les lots existants ont introduit le fond étoilé via `UnityBackdrop`, plusieurs styles Unity communs, la sous-navigation réutilisable et des corrections du catalogue Guide. Ce sont des implémentations partielles, **pas** une validation de l'ensemble des 43 exigences.
+- **Accueil / ATUI-002 (partiel)** : commit `0c40f6de` — réduction ciblée des seules largeurs minimales des cartes Guide et Almanax et de la colonne droite, afin que les trois colonnes puissent tenir dans la largeur minimale de fenêtre de 900 px. Aucun déplacement de panneau, changement de palette, police ni contenu.
+- **Test de non-régression** : commit `1b16827b` — test Qt du placement des trois colonnes aux dimensions minimale et par défaut dans `tests/test_unity_skin.py`. **Committed, pas encore exécuté/certifié** au moment de cette mise à jour.
+- **Almanax / ATHM-003 et ATAL-001 : non livré** : la page du shell et la carte de l'Accueil sont encore des placeholders. Aucun calendrier, bonus ou objet non sourcé ne doit être affiché comme réel.
+- **Intégration** : la branche avait 1 432 commits de retard sur `main` à la vérification GitHub du 13/11. Réconcilier la base et les autres PR propriétaires avant la certification finale, sans écraser leurs modifications.
+- **Validation** : tests Qt réels et Doctor/Graphify du HEAD final, contrôles visuels Windows, vérification du Launcher V2, audit commit par commit et contrôle des 43 critères **encore nécessaires**. Les tests ciblés de lots antérieurs ne représentent pas une Phase Certification.
+
+Ne cocher aucun ID de #364 sur cette seule base. Ne pas fusionner tant que les obligations du contrat et les recettes Windows ne sont pas satisfaites.
