@@ -108,12 +108,21 @@ UNITY_ICON_NAMES = (
     "character", "dofus", "map", "inventory",
 )
 
-# Additional module icons required by the navigation. They are indexed as
-# missing rather than replaced by invented "official" drawings. If the local
-# user asset is installed later, Dev UI can display the untouched sprite.
+# Additional module slots: the *same* Unity sprites folder is the source
+# of truth. Assets may use a French/English extraction name depending on
+# the archive; do not treat a missing exact English filename as a missing
+# original logo or substitute a made-up one.
 UNITY_ICON_PENDING = (
     "jobs", "bestiary", "craft", "equipment", "organizer", "almanax",
 )
+UNITY_ICON_FILE_ALIASES = {
+    "jobs": ("jobs", "job", "metier", "metiers", "profession", "professions"),
+    "bestiary": ("bestiary", "bestiaire", "monster", "monsters"),
+    "craft": ("craft", "crafts", "crafting"),
+    "equipment": ("equipment", "stuff", "stuffs"),
+    "organizer": ("organizer", "organiseur"),
+    "almanax": ("almanax",),
+}
 
 # Single shared state index for every interactive visual family.
 UNITY_INTERACTION_STATES = (
