@@ -74,8 +74,12 @@ class CharacterPage(_CharacterPage):
             stats_layout.setContentsMargins(10, 8, 10, 10)
             stats_layout.setSpacing(6)
 
-        self.equipment_panel.setMinimumWidth(650)
-        self.stats_panel.setMinimumWidth(250)
+        # A 900px shell must fit both cards plus its 20px horizontal
+        # margins and the 8px gutter. The equipment grid already needs
+        # far less than its old 650px minimum; do not force window growth
+        # just because the Personnage page was opened.
+        self.equipment_panel.setMinimumWidth(610)
+        self.stats_panel.setMinimumWidth(235)
         self.stats_panel.setMaximumWidth(340)
 
     @staticmethod

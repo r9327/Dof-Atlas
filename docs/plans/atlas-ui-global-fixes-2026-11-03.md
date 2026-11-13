@@ -152,3 +152,11 @@ Ne cocher aucun ID de #364 sur cette seule base. Ne pas fusionner tant que les o
 - La sélection de catégorie et la recherche actualisent les deux collections ; les lignes inchangées sont réutilisées lors d'une simple actualisation de progression. Le message « aucun parcours » n'est montré que si aucun résultat local ne correspond.
 - Les tests existants de bibliothèque sont ajustés pour ce comportement explicitement demandé par ATGD-006 ; nouveau test Qt propriétaire `tests/test_guide_catalog_view.py` couvrant plusieurs références, blocage de l'activation, recherche et réutilisation.
 - **ATGD-006 reste partiel** : essais visuels Windows et contrôle des catégories réelles indispensables ; aucune certification de guide issue de #363 n'est revendiquée.
+
+
+### Personnage — colonnes adaptées à la fenêtre minimale (ATUI-002 / ATCH-001 partiels)
+
+- **Cause dans le code** : `CharacterPage` fixait l'Équipement à 650 px min, les Statistiques à 250 px min, puis ajoutait un espacement de 8 px et deux marges de 10 px. Total **928 px** incompressibles alors que la fenêtre Atlas peut être réduite à 900 px ; cela provoquait des débordements et une croissance non souhaitée du layout.
+- Modification strictement ciblée des minimas des deux cartes (Équipement **610 px**, Statistiques **235 px**), sans toucher aux proportions 70/30, aux slots 64 px, à la taille du sélecteur, aux données ou à la persistance des personnages.
+- Le test Qt existant `tests/test_character_page_modern.py` vérifie les géométries réelles à **900 et 1180 px**, l'absence de débordement, la présence du sélecteur et les mêmes panneaux. Rien ne prétend valider le DPI Windows sans capture réelle.
+- Reste **partiel** pour ATUI-002/ATCH-001 : autres pages, changement de DPI et scénario Windows complet à tester ; pas de statut DONE global.

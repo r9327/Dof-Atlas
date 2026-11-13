@@ -120,6 +120,25 @@ class ModernCharacterPageTests(unittest.TestCase):
             self.assertIn("Statistiques en jeu", page.stats_empty_label.text())
             self.assertTrue(page.stats_scroll.isHidden())
 
+            # The former 650 + 250 + 8 + 20 minimum exceeded the shell's
+            # 900px minimum, shifting the right card beyond the viewport.
+            # Preserve the 70/30 layout and the equipment/selector hierarchy
+            # while proving that the actual Qt geometry fits at both sizes.
+            self.assertLessEqual(page.minimumSizeHint().width(), 900)
+            for width in (900, 1180):
+                page.resize(width, 740)
+                page.show()
+                self.app.processEvents()
+                left = page.equipment_panel.geometry()
+                right = page.stats_panel.geometry()
+                self.assertGreater(right.left(), left.right())
+                self.assertLessEqual(
+                    right.right() + page.layout().contentsMargins().right(),
+                    page.width(),
+                )
+                self.assertGreaterEqual(page.character_selector.width(), 260)
+                self.assertTrue(page.character_selector.isVisibleTo(page))
+            page.close()
             page.deleteLater()
             self.app.processEvents()
 
