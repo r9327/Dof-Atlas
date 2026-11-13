@@ -794,27 +794,46 @@ QPushButton:disabled, QToolButton:disabled {
     color: @TEXT;
 }
 
-#GuideHideCompletedToggle {
+/* Shared normal/hover/active surfaces for all stateful segmented and
+   Guide completion toggles. Different text alignment stays module-owned. */
+#GuideHideCompletedToggle,
+#segmentedButton, #segmentedButtonActive {
     background: @PANEL_2;
     border-color: @BORDER;
-    color: #D7E0EE;
-    font-size: @FONT_SMALL;
+    color: @TEXT_SOFT;
     font-weight: 600;
+}
+
+#GuideHideCompletedToggle {
+    font-size: @FONT_SMALL;
     text-align: left;
     padding-left: 10px;
     padding-right: 8px;
 }
 
+#segmentedButton, #segmentedButtonActive {
+    border: 1px solid @BORDER;
+    text-align: center;
+    padding: 0px 8px;
+}
+
+#GuideHideCompletedToggle:hover, #segmentedButton:hover {
+    background: @PANEL_HOVER;
+    border-color: @BORDER_STRONG;
+}
+
 #GuideHideCompletedToggle:hover {
-    background: #16263A;
-    border-color: #334761;
     color: @TEXT;
 }
 
-#GuideHideCompletedToggle:checked {
+#GuideHideCompletedToggle:checked, #segmentedButtonActive {
     background: @GREEN_DARK;
     border-color: @GREEN;
     color: @TEXT;
+}
+
+#segmentedButtonActive {
+    font-weight: 700;
 }
 
 #GuideHideCompletedToggle:checked:hover {
@@ -842,27 +861,6 @@ QPushButton:disabled, QToolButton:disabled {
 #dangerButton:pressed, #DangerButton:pressed {
     background: @RED_DARK;
     border-color: @RED;
-}
-
-#segmentedButton, #segmentedButtonActive {
-    background: @PANEL_2;
-    border: 1px solid @BORDER;
-    color: #D7E0EE;
-    font-weight: 600;
-    text-align: center;
-    padding: 0px 8px;
-}
-
-#segmentedButton:hover {
-    background: #16263A;
-    border-color: #334761;
-}
-
-#segmentedButtonActive {
-    background: @GREEN_DARK;
-    border-color: @GREEN;
-    color: @TEXT;
-    font-weight: 700;
 }
 
 #keyBadge, #InlineShortcutButton {

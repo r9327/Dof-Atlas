@@ -85,6 +85,45 @@ class SharedThemeTests(unittest.TestCase):
         self.assertIn("font-size: 12px;", normal)
         self.assertIn("border-radius: 6px;", normal)
 
+    def test_stateful_toggles_share_unity_roles_without_losing_layout(self) -> None:
+        """Guide and segmented controls share states, not their text layout."""
+        style = theme.atlas_stylesheet({
+            "PANEL_2": "#123456",
+            "BORDER": "#345678",
+            "TEXT_SOFT": "#789ABC",
+            "PANEL_HOVER": "#234567",
+            "BORDER_STRONG": "#456789",
+            "GREEN_DARK": "#345634",
+            "GREEN": "#456745",
+        })
+        shared = style.split(
+            "#GuideHideCompletedToggle,\n"
+            "#segmentedButton, #segmentedButtonActive {", 1,
+        )[1].split("}", 1)[0]
+        self.assertIn("background: #123456;", shared)
+        self.assertIn("border-color: #345678;", shared)
+        self.assertIn("color: #789ABC;", shared)
+        hover = style.split(
+            "#GuideHideCompletedToggle:hover, #segmentedButton:hover {", 1,
+        )[1].split("}", 1)[0]
+        self.assertIn("background: #234567;", hover)
+        self.assertIn("border-color: #456789;", hover)
+        active = style.split(
+            "#GuideHideCompletedToggle:checked, #segmentedButtonActive {", 1,
+        )[1].split("}", 1)[0]
+        self.assertIn("background: #345634;", active)
+        self.assertIn("border-color: #456745;", active)
+        guide_layout = style.split(
+            "#GuideHideCompletedToggle {", 1,
+        )[1].split("}", 1)[0]
+        segment_layout = style.split("#GuideHideCompletedToggle {", 1)[1].split(
+            "#segmentedButton, #segmentedButtonActive {", 1,
+        )[1].split("}", 1)[0]
+        self.assertIn("text-align: left;", guide_layout)
+        self.assertIn("text-align: center;", segment_layout)
+        self.assertIn("border: 1px solid #345678;", segment_layout)
+        self.assertIn("#GuideHideCompletedToggle:checked:hover {", style)
+
     def test_shared_guide_row_glass_tracks_live_unity_tokens(self) -> None:
         style = theme.atlas_stylesheet({
             "PANEL_HOVER": "#123456",
