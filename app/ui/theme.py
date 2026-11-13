@@ -510,9 +510,9 @@ QTabWidget#EncyclopediaTabs::pane {
 }
 
 QTabWidget#EncyclopediaTabs QTabBar::tab {
-    background: @PANEL;
-    border: 2px solid @BORDER;
-    border-bottom-color: @BORDER_SOFT;
+    background: @PANEL_2;
+    border: 1px solid @BORDER_SOFT;
+    border-bottom: 2px solid @BORDER_SOFT;
     border-top-left-radius: 6px;
     border-top-right-radius: 6px;
     color: @TEXT_MUTED;
@@ -523,22 +523,22 @@ QTabWidget#EncyclopediaTabs QTabBar::tab {
 }
 
 QTabWidget#EncyclopediaTabs QTabBar::tab:selected {
-    background: @PANEL_2;
-    border-color: @GREEN;
+    background: @PANEL_ACTIVE;
+    border-color: @BORDER_SOFT;
     border-bottom: 2px solid @GREEN;
-    color: @TEXT;
+    color: @GREEN;
 }
 
 QTabWidget#EncyclopediaTabs QTabBar[guideActive="true"]::tab:selected {
-    background: @PANEL_2;
-    border-color: @GREEN;
+    background: @PANEL_ACTIVE;
+    border-color: @BORDER_SOFT;
     border-bottom: 2px solid @GREEN;
-    color: @TEXT;
+    color: @GREEN;
 }
 
 QTabWidget#EncyclopediaTabs QTabBar::tab:hover {
-    background: @PANEL_2;
-    border-color: @BORDER;
+    background: @PANEL_HOVER;
+    border-bottom-color: @GREEN_BORDER;
     color: @TEXT;
 }
 
