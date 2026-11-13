@@ -416,8 +416,11 @@ QWidget#DevUiPage QComboBox#DevUiFamilyCombo QAbstractItemView {
 
 /* Preview-only resize and scroll surfaces: remove the native dark splitter
    strip and opaque Qt scrollbar track while leaving the thumb usable. */
+QWidget#DevUiPage QSplitter#DevUiResizeSplitter {
+    background: transparent;
+}
 QWidget#DevUiPage QSplitter#DevUiResizeSplitter::handle:horizontal {
-    background: @GLASS_SUBTLE_BORDER;
+    background: @PANEL_2;
     border-left: 1px solid @BORDER_SOFT;
     border-right: 1px solid @BORDER_SOFT;
 }
@@ -426,8 +429,16 @@ QWidget#DevUiPage QSplitter#DevUiResizeSplitter::handle:horizontal:hover {
     border-left-color: @BORDER_CARD;
     border-right-color: @BORDER_CARD;
 }
-QWidget#DevUiPage QScrollBar:vertical {
+/* An inner QListWidget has its own opaque canvas: a transparent track
+   exposed Qt's near-black default instead of the actual list panel. */
+QWidget#DevUiPage QListWidget QScrollBar:vertical {
+    background: @PANEL;
+}
+QWidget#DevUiPage QScrollArea#DevUiGalleryScroll QScrollBar:vertical {
     background: transparent;
+}
+QWidget#DevUiPage QScrollBar:vertical {
+    background: @PANEL;
     width: 8px;
     margin: 0px;
     border: none;
@@ -3450,8 +3461,8 @@ def _render_theme_template(
     tokens["GLASS_PANEL_BOTTOM"] = _soft_alpha(tokens["PANEL"], "0.88")
     # Dev UI preview only: translucent official blue tokens, no custom sky
     # asset or secondary color palette. Normal modules retain their opacity.
-    tokens["DEV_GALLERY_PANEL_TOP"] = _soft_alpha(tokens["PANEL_2"], "0.58")
-    tokens["DEV_GALLERY_PANEL_BOTTOM"] = _soft_alpha(tokens["PANEL"], "0.66")
+    tokens["DEV_GALLERY_PANEL_TOP"] = _soft_alpha(tokens["PANEL_2"], "0.50")
+    tokens["DEV_GALLERY_PANEL_BOTTOM"] = _soft_alpha(tokens["PANEL"], "0.58")
     style = str(template)
     for literal, role in LEGACY_COLOR_ROLES.items():
         token = f"@{role}"
