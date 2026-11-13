@@ -9,7 +9,7 @@ from unittest.mock import patch
 
 os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
 
-from PySide6.QtCore import Signal
+from PySide6.QtCore import Qt, Signal
 from PySide6.QtWidgets import QApplication, QWidget
 
 from app.modules.encyclopedia.views.guides_view import GuidesView
@@ -59,6 +59,21 @@ class GuidesViewLayoutTests(unittest.TestCase):
                         self.assertIs(layout.itemAt(0).widget(), view.breadcrumb)
                         self.assertIs(layout.itemAt(1).widget(), view.detail_header)
                         self.assertIs(layout.itemAt(2).widget(), view.detail_stack)
+                        # Guide and Quêtes use the same Unity selector and
+                        # keyboard-accessible collapse/restore states.
+                        toggle = view.right_panel_toggle
+                        self.assertEqual(toggle.objectName(), "GuideRightPanelToggle")
+                        self.assertTrue(bool(toggle.focusPolicy() & Qt.TabFocus))
+                        self.assertFalse(toggle.property("collapsed"))
+                        toggle.click()
+                        self.assertTrue(view.right_panel.isHidden())
+                        self.assertTrue(toggle.property("collapsed"))
+                        self.assertEqual(toggle.text(), "‹")
+                        self.assertIn("Réafficher", toggle.accessibleName())
+                        toggle.click()
+                        self.assertFalse(view.right_panel.isHidden())
+                        self.assertFalse(toggle.property("collapsed"))
+                        self.assertEqual(toggle.text(), "›")
                     finally:
                         detail.deleteLater()
                 finally:

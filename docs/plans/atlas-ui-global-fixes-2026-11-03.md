@@ -111,3 +111,9 @@ Ne cocher aucun ID de #364 sur cette seule base. Ne pas fusionner tant que les o
 - Un test `test_shared_quest_detail_sheet_has_exact_three_domain_ownership` couvre les domaines, la planification et le refus du voisin non enregistré. L'ancien routage de toutes les autres familles reste inchangé.
 - Le test UI n'exige plus qu'un QLabel hors écran génère artificiellement une barre de défilement ; il vérifie le contrat Qt avec une plage explicite et le retour borné. La présence visuelle sous Windows reste une recette distincte.
 - **Statuts** : tests CI et UI au SHA de ce lot à exécuter. L'exécution des tests ciblés ne remplace ni la Phase Certification ni les critères Delivery Guard de #364.
+
+### Guide — bouton de colonne droite, états Qt uniformisés (ATGD-004 partiel)
+
+- Le bouton `GuideRightPanelToggle` du détail Guide utilise désormais la même politique de focus clavier et le même curseur que la fiche Quêtes ; le style QSS Unity est unique et déjà livré.
+- La propriété `collapsed` reflète maintenant réellement l'état masqué/réaffiché, avec rafraîchissement ciblé de son style (sans reconstruction de la page, sans modifier les données du Guide ni la logique de splitters).
+- La suite Qt propriétaire `tests/test_guides_view.py` vérifie clics, propriété, libellés accessibles et retour de la colonne. Placement visuel réel sur Windows non certifié, critère non déclaré DONE.

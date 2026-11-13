@@ -1423,6 +1423,9 @@ class GuidesView(QWidget):
         self._right_panel_scroll_position = 0
         self.right_panel_toggle = QToolButton()
         self.right_panel_toggle.setObjectName("GuideRightPanelToggle")
+        self.right_panel_toggle.setCursor(Qt.PointingHandCursor)
+        self.right_panel_toggle.setFocusPolicy(Qt.StrongFocus)
+        self.right_panel_toggle.setProperty("collapsed", False)
         self.right_panel_toggle.setText("›")
         self.right_panel_toggle.setToolTip("Masquer la colonne d'informations")
         self.right_panel_toggle.setAccessibleName("Masquer la colonne d'informations")
@@ -2353,6 +2356,12 @@ class GuidesView(QWidget):
         )
         self.right_panel_toggle.setToolTip(caption)
         self.right_panel_toggle.setAccessibleName(caption)
+        if self.right_panel_toggle.property("collapsed") != hidden:
+            self.right_panel_toggle.setProperty("collapsed", hidden)
+            style = self.right_panel_toggle.style()
+            style.unpolish(self.right_panel_toggle)
+            style.polish(self.right_panel_toggle)
+            self.right_panel_toggle.update()
         sizes = self.splitter.sizes()
         if len(sizes) == 3:
             self._set_classic_splitter_sizes(sizes[0], self.center_panel.minimumWidth())
