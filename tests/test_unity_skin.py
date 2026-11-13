@@ -117,6 +117,7 @@ class UnitySkinTests(unittest.TestCase):
             "BORDER_STRONG": "#607080",
             "PANEL_ACTIVE": "#708090",
             "GREEN_BORDER": "#8192A3",
+            "BORDER_SOFT": "#405060",
         }
         with patch.dict(UNITY_PALETTE, overrides):
             style = unity_skin_stylesheet()
@@ -124,7 +125,7 @@ class UnitySkinTests(unittest.TestCase):
         for selector, expected_rules in (
             ("QGroupBox, QTabWidget::pane {", ("color: #102030;", "border: 1px solid #405060;")),
             ("QTableWidget {", ("color: #102030;", "selection-background-color: #708090;")),
-            ("QHeaderView::section {", ("color: #102030;", "border: 1px solid #405060;")),
+            ("QHeaderView::section {", ("color: #102030;", "border-bottom: 1px solid #405060;")),
             ("QToolTip {", ("color: #102030;", "border: 1px solid #607080;")),
             ("QProgressBar {", ("color: #102030;", "border: 1px solid #405060;")),
             ("QFrame#GuideFeaturedCard {", ("border: 1px solid #8192A3;",)),
@@ -299,6 +300,34 @@ class UnitySkinTests(unittest.TestCase):
                         unity_skin.unity_ui_icon("guide", 100)
                 finally:
                     unity_skin.unity_ui_icon.cache_clear()
+
+    def test_opaque_sprite_tiles_fall_back_to_transparent_white_icons(self) -> None:
+        from app.ui.unity_skin import unity_ui_icon
+
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / "icon.png"
+            square = QImage(24, 24, QImage.Format_ARGB32)
+            square.fill(QColor(0, 0, 0, 255))
+            square.setPixelColor(12, 12, QColor(255, 255, 255, 255))
+            self.assertTrue(square.save(str(path)))
+            with patch.object(unity_skin, "sprite_icon_path", return_value=path):
+                unity_ui_icon.cache_clear()
+                try:
+                    pix = unity_ui_icon("guide", 24).pixmap(24, 24).toImage()
+                    self.assertEqual(pix.pixelColor(0, 0).alpha(), 0)
+                finally:
+                    unity_ui_icon.cache_clear()
+            square.fill(Qt.transparent)
+            square.setPixelColor(12, 12, QColor(255, 255, 255, 255))
+            self.assertTrue(square.save(str(path)))
+            with patch.object(unity_skin, "sprite_icon_path", return_value=path):
+                unity_ui_icon.cache_clear()
+                try:
+                    pix = unity_ui_icon("guide", 24).pixmap(24, 24).toImage()
+                    self.assertEqual(pix.pixelColor(0, 0).alpha(), 0)
+                    self.assertGreater(pix.pixelColor(12, 12).alpha(), 0)
+                finally:
+                    unity_ui_icon.cache_clear()
 
     def test_unknown_icon_does_not_escape_local_theme_directory(self) -> None:
         with patch.dict(os.environ, {"ATLAS_THEME": "dofus_unity"}):
@@ -506,24 +535,12 @@ class UnitySkinTests(unittest.TestCase):
         with patch.dict(os.environ, {"ATLAS_THEME": "atlas"}):
             self.assertIn("AtlasUnityBackdrop", unity_skin_stylesheet())
 
-    def test_tab_sprite_reserves_equal_border_for_all_states(self) -> None:
-        sprite = "Assets_UI_Themes_darkStone_common_bg_tab_selected_normal-png.png"
-        with patch.object(
-            unity_skin, "_sprite_url",
-            side_effect=lambda name: "/tmp/selected-tab.png" if name == sprite else None,
-        ):
+    def test_tabs_are_palette_owned_without_gold_selected_artwork(self) -> None:
+        with patch.object(unity_skin, "_sprite_url", return_value="/tmp/gold-tab.png"):
             style = unity_skin_stylesheet()
-        self.assertIn(
-            "QTabBar::tab, QTabWidget#EncyclopediaTabs QTabBar::tab { "
-            "border: 6px solid transparent; }",
-            style,
-        )
-        self.assertIn(
-            "QTabBar::tab:selected, "
-            "QTabWidget#EncyclopediaTabs QTabBar::tab:selected { "
-            "border: 6px solid transparent; border-image:",
-            style,
-        )
+        self.assertNotIn("gold-tab.png", style)
+        self.assertIn("padding: 5px 12px; min-height: 24px;", style)
+        self.assertIn("QTabBar::tab:selected", style)
 
     def test_encyclopedia_tab_sizes_do_not_change_on_selection(self) -> None:
         from app.ui.theme import atlas_stylesheet
