@@ -147,8 +147,8 @@ class DevUiPage(QWidget):
     def _section(self, parent_layout: QVBoxLayout, title: str) -> QVBoxLayout:
         group = QGroupBox(title)
         layout = QVBoxLayout(group)
-        layout.setContentsMargins(14, 22, 14, 12)
-        layout.setSpacing(9)
+        layout.setContentsMargins(16, 24, 16, 14)
+        layout.setSpacing(10)
         parent_layout.addWidget(group)
         self.gallery_sections.append(group)
         return layout
@@ -462,17 +462,34 @@ class DevUiPage(QWidget):
     def _build_surfaces_and_typography(self, parent: QVBoxLayout) -> None:
         section = self._section(parent, "Surfaces · cartes · typographie")
 
-        titles = QHBoxLayout()
-        title = QLabel("En-tête de section")
-        title.setObjectName("PanelTitle")
-        titles.addWidget(title)
-        secondary = QLabel("Texte secondaire Unity")
-        secondary.setObjectName("MutedLabel")
-        titles.addWidget(secondary)
-        titles.addStretch(1)
-        section.addLayout(titles)
+        # Real theme-owned roles: this is not a second typography system.
+        # Designers can compare title, section, body and caption at a glance.
+        scale = QGridLayout()
+        scale.setHorizontalSpacing(18)
+        scale.setVerticalSpacing(6)
+        self.preview_type_samples: dict[str, QLabel] = {
+            "page": AtlasPageTitle("Titre de page"),
+            "section": QLabel("Titre de section"),
+            "body": QLabel("Texte courant de l'application"),
+            "muted": QLabel("Texte secondaire et indications"),
+        }
+        self.preview_type_samples["section"].setObjectName("PanelTitle")
+        self.preview_type_samples["muted"].setObjectName("MutedLabel")
+        for index, (role, caption) in enumerate((
+            ("page", "Page"),
+            ("section", "Section"),
+            ("body", "Courant"),
+            ("muted", "Secondaire"),
+        )):
+            key = QLabel(caption)
+            key.setObjectName("MutedLabel")
+            scale.addWidget(key, index, 0)
+            scale.addWidget(self.preview_type_samples[role], index, 1)
+        scale.setColumnStretch(1, 1)
+        section.addLayout(scale)
 
         cards = QHBoxLayout()
+        cards.setSpacing(10)
         self.preview_cards: dict[str, QFrame] = {}
         for role, caption in (
             ("card", "Carte globale"),
@@ -483,6 +500,8 @@ class DevUiPage(QWidget):
             card.setObjectName(role)
             card.setMinimumHeight(82)
             card_layout = QVBoxLayout(card)
+            card_layout.setContentsMargins(12, 10, 12, 10)
+            card_layout.setSpacing(5)
             heading = QLabel(caption)
             heading.setObjectName("PanelTitle")
             card_layout.addWidget(heading)
@@ -561,7 +580,9 @@ class DevUiPage(QWidget):
             ("Normal", "control_normal"),
             ("Large", "control_large"),
         ):
-            button = AtlasButton(label, variant="secondary")
+            button = AtlasButton(
+                f"{label} · {UNITY_SIZES_PX[role]} px", variant="secondary"
+            )
             button.setFixedHeight(UNITY_SIZES_PX[role])
             button.setToolTip(f"{label} : {UNITY_SIZES_PX[role]} px")
             self.preview_metric_buttons[role] = button
