@@ -14,7 +14,7 @@ from unittest.mock import patch
 os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
 
 from PySide6.QtCore import QAbstractAnimation, QPoint, Qt
-from PySide6.QtWidgets import QApplication, QFrame, QLabel, QPushButton, QScrollArea
+from PySide6.QtWidgets import QApplication, QFrame, QLabel, QPushButton, QScrollArea, QWidget
 
 import app.pages.organizer_page as organizer
 import app.pages.organizer.character_sessions as organizer_sessions
@@ -1097,6 +1097,21 @@ class OrganizerLayoutTests(unittest.TestCase):
                                 - min(color.red(), color.green(), color.blue()),
                                 30,
                             )
+
+    def test_organizer_transparent_hosts_inherit_existing_glass_qss(self):
+        """No per-widget duplicate QSS; use the real Organizer card/material."""
+        with tempfile.TemporaryDirectory() as directory:
+            with self.organizer_page(Path(directory)) as page:
+                hosts = page.findChildren(QWidget, "OrganizerTransparentHost")
+                self.assertGreaterEqual(len(hosts), 2)
+                self.assertIn(
+                    "#organizerPage QWidget#OrganizerTransparentHost",
+                    page.styleSheet(),
+                )
+                for host in hosts:
+                    with self.subTest(host=host.objectName()):
+                        self.assertEqual(host.styleSheet(), "")
+                self.assertIn("GlassCard paints a cached diffused backdrop", page.styleSheet())
 
     def test_organizer_glass_style_covers_all_button_states(self):
         with tempfile.TemporaryDirectory() as temporary:

@@ -249,3 +249,11 @@ Ne cocher aucun ID de #364 sur cette seule base. Ne pas fusionner tant que les o
 - **Validation dans le lot :** `tests/test_unity_palette.py` (source/overrides/sans Qt), `tests/test_launcher_ui.py` (vrais consommateurs Tk), suite branding adaptée pour exiger une dépendance vers le seul module pur, et suppression du test AST obsolète de `test_distribution_launcher_noop_offline.py`. Doctor-lot exact-SHA et tests packagés Windows encore nécessaires, aucune certification déduite des tests committés.
 
 - **Retour mini-CI du commit palette** : le plan indépendant a identifié exactement `tests/test_unity_palette.py` comme `UNKNOWN_OWNER_BLOCKS_MODULAR_CERTIFICATE`, bien que le Doctor-lot exécute les tests. Ajout de **ce seul chemin de test** au propriétaire `ui` existant dans `tools/ci_domain_certification.py`, avec test de chemin voisin refusé ; aucune modification des contrôles `FULL_REQUIRED`, aucune exemption `[skip ci]` ni déclassement de risque.
+
+
+### P0 — supprimer les cinq QSS identiques sur les hosts Organizer
+
+- **Graphify exact-SHA obligatoire validé** : [#43438955697](https://github.com/r9327/Dof-Atlas/actions/runs/43438955697) pour `192e71a7fa36eb27eefda9c0a23e70a51978e2b1` (diagnostic et fraîcheur SUCCESS). Consommateurs examinés : `organizer_ui.py`, `organizer_page.py`, le thème partagé, `glass_material.py` et les suites Qt.
+- **Cause et changement minimal** : cinq `setStyleSheet` identiques pour `OrganizerTransparentHost` masquaient la règle exacte déjà incluse dans le `glass_qss` de l'Organizer. Suppression des **seuls cinq doublons**, sans déplacer le matériau glass, sans couleur locale ajoutée, sans toucher aux dimensions/raccourcis/clics/Zaap/Miroir. Le bouton avec padding des raccourcis reste intact.
+- **Tests direct-owner** : `tests/test_organizer_ui.py` construit le vrai `CharacterSlotsPanel`, clique physiquement sur Actualiser et exige l'absence de style local sur son conteneur. `tests/test_organizer_layout.py` construit le vrai Organizer avec ses fichiers isolés et vérifie tous les hosts transparents héritant de l'unique règle QSS, sans perdre le glass.
+- **Preuve restant nécessaire** : exécution du lot exact-SHA et capture Windows ; essais DOFUS multi-comptes restent à la PR #325, non annoncés PASS ici.
