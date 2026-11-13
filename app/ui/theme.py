@@ -414,6 +414,44 @@ QWidget#DevUiPage QComboBox#DevUiFamilyCombo QAbstractItemView {
     selection-color: @TEXT;
 }
 
+/* Preview-only resize and scroll surfaces: remove the native dark splitter
+   strip and opaque Qt scrollbar track while leaving the thumb usable. */
+QWidget#DevUiPage QSplitter#DevUiResizeSplitter::handle:horizontal {
+    background: @GLASS_SUBTLE_BORDER;
+    border-left: 1px solid @BORDER_SOFT;
+    border-right: 1px solid @BORDER_SOFT;
+}
+QWidget#DevUiPage QSplitter#DevUiResizeSplitter::handle:horizontal:hover {
+    background: @PANEL_HOVER;
+    border-left-color: @BORDER_CARD;
+    border-right-color: @BORDER_CARD;
+}
+QWidget#DevUiPage QScrollBar:vertical {
+    background: transparent;
+    width: 8px;
+    margin: 0px;
+    border: none;
+}
+QWidget#DevUiPage QScrollBar::handle:vertical {
+    background: @BORDER_CARD;
+    border-radius: @RADIUS_XS;
+    min-height: 26px;
+}
+QWidget#DevUiPage QScrollBar::handle:vertical:hover {
+    background: @BORDER_STRONG;
+}
+QWidget#DevUiPage QScrollBar::add-line:vertical,
+QWidget#DevUiPage QScrollBar::sub-line:vertical {
+    background: transparent;
+    border: none;
+    height: 0px;
+}
+QWidget#DevUiPage QScrollBar::add-page:vertical,
+QWidget#DevUiPage QScrollBar::sub-page:vertical {
+    background: transparent;
+    border: none;
+}
+
 QTabWidget#EncyclopediaTabs::pane {
     background: @BG;
     border: none;
@@ -3412,8 +3450,8 @@ def _render_theme_template(
     tokens["GLASS_PANEL_BOTTOM"] = _soft_alpha(tokens["PANEL"], "0.88")
     # Dev UI preview only: translucent official blue tokens, no custom sky
     # asset or secondary color palette. Normal modules retain their opacity.
-    tokens["DEV_GALLERY_PANEL_TOP"] = _soft_alpha(tokens["PANEL_2"], "0.68")
-    tokens["DEV_GALLERY_PANEL_BOTTOM"] = _soft_alpha(tokens["PANEL"], "0.74")
+    tokens["DEV_GALLERY_PANEL_TOP"] = _soft_alpha(tokens["PANEL_2"], "0.58")
+    tokens["DEV_GALLERY_PANEL_BOTTOM"] = _soft_alpha(tokens["PANEL"], "0.66")
     style = str(template)
     for literal, role in LEGACY_COLOR_ROLES.items():
         token = f"@{role}"
