@@ -339,8 +339,19 @@ QProgressBar#PreloadPopupProgress::chunk {
    Only its section framing is scoped; never duplicate widget QSS locally. */
 QWidget#DevUiPage QGroupBox {
     border: 1px solid @BORDER_SOFT;
+    border-top: 1px solid @GLASS_HAIRLINE;
     border-radius: @RADIUS_SM;
     margin-top: @SPACE_LG;
+}
+/* A very restrained 15–20% glass highlight; surfaces stay blue Unity.
+   The existing translucent QGroupBox remains intact underneath. */
+QWidget#DevUiPage QFrame#card,
+QWidget#DevUiPage QFrame#Panel,
+QWidget#DevUiPage QFrame#QuestPanel {
+    background: qlineargradient(x1:0, y1:0, x2:0, y2:1,
+        stop:0 @GLASS_PANEL_TOP, stop:1 @GLASS_PANEL_BOTTOM);
+    border: 1px solid @BORDER_SOFT;
+    border-top: 1px solid @GLASS_HAIRLINE;
 }
 QWidget#DevUiPage QGroupBox::title {
     subcontrol-origin: margin;
@@ -3356,6 +3367,11 @@ def _render_theme_template(
     # subtle glass treatment must not become a second hard-coded gray palette.
     tokens["GLASS_SUBTLE_SURFACE"] = _soft_alpha(tokens["PANEL_HOVER"], "0.05")
     tokens["GLASS_SUBTLE_BORDER"] = _soft_alpha(tokens["BORDER_SOFT"], "0.18")
+    # Small optical glint (16% edge), not a full iOS-style backdrop blur.
+    # Blue-panel opacity remains high: stars are not smeared or washed out.
+    tokens["GLASS_HAIRLINE"] = _soft_alpha(tokens["TEXT_SOFT"], "0.16")
+    tokens["GLASS_PANEL_TOP"] = _soft_alpha(tokens["PANEL_2"], "0.82")
+    tokens["GLASS_PANEL_BOTTOM"] = _soft_alpha(tokens["PANEL"], "0.88")
     style = str(template)
     for literal, role in LEGACY_COLOR_ROLES.items():
         token = f"@{role}"
