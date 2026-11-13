@@ -1624,6 +1624,8 @@ class AtlasWindow(QMainWindow):
         if not hasattr(self, "module_subnav_layout"):
             return
 
+        self._module_subnav_spec = None
+        self._module_subnav_buttons = ()
         while self.module_subnav_layout.count():
             item = self.module_subnav_layout.takeAt(0)
             widget = item.widget()
@@ -1637,22 +1639,33 @@ class AtlasWindow(QMainWindow):
         active_label: str,
         callback,
     ) -> None:
-        self.clear_module_subnav()
+        # Reuse the actual Qt controls when only the active tool/stuff changes.
+        # Recreating the whole row on every click causes geometry flicker and
+        # briefly duplicates deleted Qt widgets until their deferred teardown.
+        spec = (group, tuple(labels), callback)
+        if getattr(self, "_module_subnav_spec", None) != spec:
+            self.clear_module_subnav()
+            buttons: list[AtlasButton] = []
+            for label in labels:
+                button = AtlasButton(label)
+                button.setObjectName("TopNavButton")
+                button.clicked.connect(
+                    lambda _checked=False, value=label: callback(value)
+                )
+                self.module_subnav_layout.addWidget(button)
+                buttons.append(button)
+            self.module_subnav_layout.addStretch(1)
+            self._module_subnav_buttons = tuple(buttons)
+            self._module_subnav_spec = spec
 
-        for label in labels:
-            button = AtlasButton(label)
-            button.setObjectName(
-                "TopNavButtonActive"
-                if label == active_label
-                else "TopNavButton"
-            )
-            button.setCursor(Qt.PointingHandCursor)
-            button.clicked.connect(
-                lambda _checked=False, value=label: callback(value)
-            )
-            self.module_subnav_layout.addWidget(button)
+        for label, button in zip(labels, self._module_subnav_buttons):
+            state = "TopNavButtonActive" if label == active_label else "TopNavButton"
+            if button.objectName() != state:
+                button.setObjectName(state)
+                button.style().unpolish(button)
+                button.style().polish(button)
+                button.update()
 
-        self.module_subnav_layout.addStretch(1)
         self.module_subnav.setVisible(True)
         self.refresh_nav_selection(group)
 
