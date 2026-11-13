@@ -162,6 +162,13 @@ class DevUiPageTests(unittest.TestCase):
             self.assertFalse(page.preview_metrics.alternatingRowColors())
             self.assertFalse(page.preview_scope.alternatingRowColors())
             self.assertFalse(page.gallery_navigation.view().alternatingRowColors())
+            from app.pages.dev_ui_page import UnityPopupSeparatorDelegate
+            self.assertIsInstance(
+                page.gallery_navigation.view().itemDelegate(),
+                UnityPopupSeparatorDelegate,
+            )
+            self.assertEqual(page.gallery_navigation.count(), 16)
+            self.assertEqual(page.gallery_scroll.objectName(), "DevUiGalleryScroll")
             self.assertFalse(page.preview_combo.view().alternatingRowColors())
             self.assertFalse(page.guide_ultime_combo.view().alternatingRowColors())
             self.assertTrue(all(
@@ -223,6 +230,12 @@ class DevUiPageTests(unittest.TestCase):
             self.assertEqual(TYPOGRAPHY["FONT_SMALL"], "11px")
             css = atlas_stylesheet()
             self.assertIn("QWidget#DevUiPage QGroupBox::title", css)
+            self.assertIn("QScrollArea#DevUiGalleryScroll", css)
+            self.assertIn("stop:0 rgba(33, 49, 84, 0.68)", css)
+            self.assertIn("stop:1 rgba(27, 39, 70, 0.74)", css)
+            # Only the gallery transparency changes; global panel tokens
+            # and the real shell background source are untouched.
+            self.assertIn("QWidget#DevUiPage QGroupBox {", css)
             self.assertIn("QWidget#DevUiPage QComboBox QAbstractItemView", css)
             self.assertIn("QWidget#DevUiPage QFrame#GuideUltimeGeneratedView", css)
             self.assertIn("alternate-background-color: #1B2746", css)
