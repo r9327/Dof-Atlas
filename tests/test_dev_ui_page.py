@@ -214,6 +214,18 @@ class DevUiPageTests(unittest.TestCase):
             self.assertEqual(TYPOGRAPHY["FONT_SMALL"], "11px")
             css = atlas_stylesheet()
             self.assertIn("QWidget#DevUiPage QGroupBox::title", css)
+            self.assertIn("QWidget#DevUiPage QFrame#card", css)
+            self.assertIn("rgba(217, 234, 242, 0.16)", css)
+            self.assertIn("stop:0 rgba(33, 49, 84, 0.82)", css)
+            self.assertIn("stop:1 rgba(27, 39, 70, 0.88)", css)
+            from PySide6.QtWidgets import QGraphicsDropShadowEffect
+            for card in page.preview_cards.values():
+                shadow = card.graphicsEffect()
+                self.assertIsInstance(shadow, QGraphicsDropShadowEffect)
+                self.assertEqual(shadow.blurRadius(), 10)
+                self.assertEqual(shadow.color().alpha(), 34)
+            self.assertTrue(all(section.graphicsEffect() is None
+                                for section in page.gallery_sections))
             self.assertIn("QWidget#DevUiPage QWidget#DevUiIconCell", css)
             self.assertIn("QWidget#DevUiPage QTreeWidget::item", css)
             self.assertIn("#SecondaryButton:checked", css)
