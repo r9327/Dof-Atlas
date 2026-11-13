@@ -140,7 +140,7 @@ class UnitySkinTests(unittest.TestCase):
             ("QProgressBar {", ("color: #102030;", "border: 1px solid #405060;")),
             ("QFrame#GuideFeaturedCard {", ("border: 1px solid #8192A3;",)),
             ("QDialog#AtlasDialog, QMenu {", ("color: #102030;", "border: 1px solid #506070;")),
-            ("QPlainTextEdit {", ("color: #102030;", "border: 1px solid #506070;")),
+            ("QPlainTextEdit {", ("color: #102030;", "border: 1px solid #405060;")),
         ):
             with self.subTest(selector=selector):
                 section = style.rsplit(selector, 1)[1].split("}", 1)[0]
