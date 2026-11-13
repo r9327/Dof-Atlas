@@ -799,7 +799,7 @@ class DevUiPage(QWidget):
         intro = QLabel(
             "Couleurs principales et emplacement dans l'UI darkStone : "
             "les mêmes rôles sont utilisés dans les modules. "
-            "Les boutons prennent les sprites Unity locaux quand ils existent."
+            "Les boutons partagés suivent strictement les couleurs Unity."
         )
         intro.setObjectName("MutedLabel")
         intro.setWordWrap(True)
