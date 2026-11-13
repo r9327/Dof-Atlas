@@ -376,6 +376,29 @@ QWidget#DevUiPage QTreeWidget::item {
     padding: 2px @SPACE_XS;
 }
 
+/* UI gallery: retire the near-black wells, without changing the other
+   modules or inventing another palette. Selection remains explicit. */
+QWidget#DevUiPage QTabWidget::pane,
+QWidget#DevUiPage QWidget#DevUiTabPage,
+QWidget#DevUiPage QFrame#GuideUltimeGeneratedView {
+    background: @PANEL;
+    color: @TEXT;
+}
+QWidget#DevUiPage QTreeWidget,
+QWidget#DevUiPage QTableWidget,
+QWidget#DevUiPage QListWidget {
+    background: @PANEL;
+    alternate-background-color: @PANEL;
+    selection-background-color: @PANEL_ACTIVE;
+    selection-color: @TEXT;
+}
+QWidget#DevUiPage QComboBox QAbstractItemView {
+    background: @PANEL_2;
+    alternate-background-color: @PANEL_2;
+    selection-background-color: @PANEL_ACTIVE;
+    selection-color: @TEXT;
+}
+
 QTabWidget#EncyclopediaTabs::pane {
     background: @BG;
     border: none;
