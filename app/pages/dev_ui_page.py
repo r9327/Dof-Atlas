@@ -150,7 +150,7 @@ class DevUiPage(QWidget):
         # Real shared Unity relief on two static catalog panels. Avoid the
         # 16-fold scrolling cost of applying shadows to every section.
         if title.startswith(("Formulaires avancés", "Surfaces · cartes")):
-            apply_unity_panel_shadow(group, blur=17, vertical=3, alpha=82)
+            apply_unity_panel_shadow(group, blur=18, vertical=4, alpha=112)
         layout = QVBoxLayout(group)
         layout.setContentsMargins(14, 22, 14, 12)
         layout.setSpacing(9)
@@ -400,11 +400,13 @@ class DevUiPage(QWidget):
         )
         self.preview_date = QDateEdit()
         self.preview_date.setCalendarPopup(True)
+        self.preview_date.setDisplayFormat("dd/MM/yyyy")
         self.preview_date.setDate(QDate.currentDate())
         self.preview_date.dateChanged.connect(
             lambda value: self._report(f"Date : {value.toString('dd/MM/yyyy')}")
         )
         self.preview_time = QTimeEdit()
+        self.preview_time.setDisplayFormat("HH:mm")
         self.preview_time.timeChanged.connect(
             lambda value: self._report(f"Heure : {value.toString('HH:mm')}")
         )
@@ -547,7 +549,7 @@ class DevUiPage(QWidget):
             card_layout.addWidget(small)
             # Fixed visual samples only. No effect on scrolling rows,
             # focusable controls or the actual game panels.
-            apply_unity_panel_shadow(card, blur=16, vertical=3, alpha=82)
+            apply_unity_panel_shadow(card, blur=17, vertical=4, alpha=112)
             self.preview_cards[role] = card
             cards.addWidget(card, 1)
         section.addLayout(cards)
