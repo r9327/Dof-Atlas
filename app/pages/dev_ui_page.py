@@ -290,7 +290,7 @@ class DevUiPage(QWidget):
         for index, role in enumerate((
             "BG", "PANEL", "PANEL_2", "PANEL_ACTIVE", "BORDER",
             "BORDER_CARD", "TEXT", "TEXT_MUTED", "GREEN", "RED",
-            "LIST_SURFACE", "NAV_SURFACE", "TOOLTIP_SURFACE",
+            "LIST_SURFACE", "NAV_SURFACE", "FIELD_SURFACE", "TOOLTIP_SURFACE",
         )):
             value = PALETTE[role]
             cell = QWidget()
