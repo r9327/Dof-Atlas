@@ -42,6 +42,12 @@ def capture(output: Path, *, width: int = 1100, height: int = 800) -> dict[str, 
         "kind": "real Qt offscreen QWidget capture",
         "families": page.gallery_navigation.count(),
         "viewport": [width, height],
+        # Identify the real source. A blue fallback must never be represented
+        # as the user's missing personal Unity wallpaper.
+        "background_source": (
+            "local-unity-image" if not backdrop._pixmap.isNull()
+            else "unity-blue-gradient"
+        ),
         "screenshots": {},
     }
     try:
