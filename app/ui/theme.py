@@ -337,7 +337,16 @@ QProgressBar#PreloadPopupProgress::chunk {
 
 /* The developer catalog inherits the same palette and type scale.
    Only its section framing is scoped; never duplicate widget QSS locally. */
+/* The real shell UnityBackdrop stays behind the gallery. Expose its stars
+   through the gallery viewport and a soft blue panel gradient. */
+QWidget#DevUiPage QScrollArea#DevUiGalleryScroll,
+QWidget#DevUiPage QScrollArea#DevUiGalleryScroll > QWidget,
+QWidget#DevUiPage QScrollArea#DevUiGalleryScroll > QWidget > QWidget {
+    background: transparent;
+}
 QWidget#DevUiPage QGroupBox {
+    background: qlineargradient(x1:0, y1:0, x2:0, y2:1,
+        stop:0 @DEV_GALLERY_PANEL_TOP, stop:1 @DEV_GALLERY_PANEL_BOTTOM);
     border: 1px solid @BORDER_SOFT;
     border-top: 1px solid @GLASS_HAIRLINE;
     border-radius: @RADIUS_SM;
@@ -3395,6 +3404,10 @@ def _render_theme_template(
     tokens["GLASS_HAIRLINE"] = _soft_alpha(tokens["TEXT_SOFT"], "0.16")
     tokens["GLASS_PANEL_TOP"] = _soft_alpha(tokens["PANEL_2"], "0.82")
     tokens["GLASS_PANEL_BOTTOM"] = _soft_alpha(tokens["PANEL"], "0.88")
+    # Dev UI preview only: translucent official blue tokens, no custom sky
+    # asset or secondary color palette. Normal modules retain their opacity.
+    tokens["DEV_GALLERY_PANEL_TOP"] = _soft_alpha(tokens["PANEL_2"], "0.68")
+    tokens["DEV_GALLERY_PANEL_BOTTOM"] = _soft_alpha(tokens["PANEL"], "0.74")
     style = str(template)
     for literal, role in LEGACY_COLOR_ROLES.items():
         token = f"@{role}"
