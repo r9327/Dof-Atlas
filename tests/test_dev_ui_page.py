@@ -164,7 +164,7 @@ class DevUiPageTests(unittest.TestCase):
             for state, badge in page.preview_badges.items():
                 self.assertEqual(badge.objectName(), "StatusBadge")
                 self.assertEqual(badge.property("state"), state)
-                self.assertTrue(badge.text().startswith("● "))
+                self.assertTrue(badge.text().startswith("• "))
                 self.assertEqual(badge.cursor().shape(), Qt.ArrowCursor)
             self.assertEqual(set(page.preview_cards), {"card", "Panel", "QuestPanel"})
             self.assertEqual(page.preview_busy.minimum(), 0)
