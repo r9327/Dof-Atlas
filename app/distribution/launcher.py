@@ -621,7 +621,9 @@ def main() -> int:
                 if target != ROOT:
                     last_pct = [-1]
                     def moved(done, total):
-                        pct = int(100 * done / max(total, 1))
+                        # Copy completion is not a verified installation or
+                        # Home handoff: reserve 100% for launch success.
+                        pct = min(96, int(100 * done / max(total, 1)))
                         if pct != last_pct[0]:
                             last_pct[0] = pct
                             report(f"Copie vers le nouveau disque : {pct} %", pct)
