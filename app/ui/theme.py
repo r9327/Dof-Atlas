@@ -1399,6 +1399,22 @@ QCheckBox::indicator:checked {
     color: @TEXT;
 }
 
+/* Every top-level and Outils/Stuffs sub-tab shares interaction states.
+   Keep normal and active geometry identical so focus never moves the row. */
+#TopNavButton:pressed, #TopNavButtonActive:pressed {
+    background: @PANEL_HOVER;
+    border-bottom-color: @GREEN_BORDER;
+}
+#TopNavButton:disabled, #TopNavButtonActive:disabled {
+    background: transparent;
+    color: @TEXT_DISABLED;
+    border-bottom-color: transparent;
+}
+#TopNavButton:focus, #TopNavButtonActive:focus {
+    border: 1px solid @GREEN_BORDER;
+    border-bottom: 2px solid @GREEN;
+}
+
 #TopNavCharacterCombo {
     background: @PANEL_2;
     border: 1px solid @BORDER;

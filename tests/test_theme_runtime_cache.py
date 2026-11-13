@@ -63,6 +63,26 @@ class ThemeRuntimeCacheTests(unittest.TestCase):
         self.assertIn("border-color: #234BCD;", hover)
         self.assertIn("QComboBox::drop-down {", style)
 
+    def test_module_navigation_states_use_shared_tokens(self) -> None:
+        style = theme.atlas_stylesheet({
+            "GREEN_BORDER": "#123ABC",
+            "TEXT_DISABLED": "#ABC123",
+            "PANEL_HOVER": "#345BCD",
+        })
+        pressed = style.split(
+            "#TopNavButton:pressed, #TopNavButtonActive:pressed {", 1
+        )[1].split("}", 1)[0]
+        disabled = style.split(
+            "#TopNavButton:disabled, #TopNavButtonActive:disabled {", 1
+        )[1].split("}", 1)[0]
+        focused = style.split(
+            "#TopNavButton:focus, #TopNavButtonActive:focus {", 1
+        )[1].split("}", 1)[0]
+        self.assertIn("background: #345BCD;", pressed)
+        self.assertIn("color: #ABC123;", disabled)
+        self.assertIn("border: 1px solid #123ABC;", focused)
+        self.assertIn("border-bottom: 2px solid " + theme.PALETTE["GREEN"] + ";", focused)
+
     def test_guide_category_tree_follows_shared_unity_tokens(self) -> None:
         style = theme.atlas_stylesheet({
             "PANEL_ACTIVE": "#123ABC",
