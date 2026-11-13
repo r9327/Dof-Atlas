@@ -7,6 +7,7 @@ from PySide6.QtWidgets import (
     QHBoxLayout,
     QLabel,
     QPushButton,
+    QToolButton,
     QVBoxLayout,
     QWidget,
 )
@@ -68,6 +69,42 @@ class AtlasButton(QPushButton):
         except KeyError as exc:
             raise ValueError(f"Unknown AtlasButton variant: {variant}") from exc
         self.setObjectName(object_name)
+
+
+class AtlasPanelToggle(QToolButton):
+    """Shared Unity control for collapsing a host-owned information panel.
+
+    Only presentation and accessibility are shared. The host retains the
+    visibility, splitter sizing, scroll restoration and click callback.
+    """
+
+    def __init__(self, parent: QWidget | None = None) -> None:
+        super().__init__(parent)
+        self.setObjectName("GuideRightPanelToggle")
+        self.setCursor(Qt.PointingHandCursor)
+        self.setFocusPolicy(Qt.StrongFocus)
+        self.setProperty("collapsed", False)
+        self.setText("›")
+        self.setToolTip("Masquer la colonne d'informations")
+        self.setAccessibleName(self.toolTip())
+
+    def set_collapsed(self, collapsed: bool) -> None:
+        """Update the shared state without extra repolish on identical values."""
+        collapsed = bool(collapsed)
+        self.setText("‹" if collapsed else "›")
+        label = (
+            "Réafficher la colonne d'informations"
+            if collapsed else "Masquer la colonne d'informations"
+        )
+        self.setToolTip(label)
+        self.setAccessibleName(label)
+        if self.property("collapsed") == collapsed:
+            return
+        self.setProperty("collapsed", collapsed)
+        style = self.style()
+        style.unpolish(self)
+        style.polish(self)
+        self.update()
 
 
 class AtlasPageTitle(QLabel):

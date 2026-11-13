@@ -9,6 +9,7 @@ os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
 from PySide6.QtWidgets import QApplication, QLabel
 
 from app.modules.encyclopedia.widgets.quest_detail_view import QuestDetailView
+from app.ui.components import AtlasPanelToggle
 from app.ui.theme import THEME_TOKENS, atlas_stylesheet
 
 
@@ -34,6 +35,7 @@ class QuestDetailViewColumnTests(unittest.TestCase):
             self.assertEqual(expected, 120)
             self.assertFalse(sheet.right_panel.isHidden())
             self.assertIs(sheet.splitter.widget(1), sheet.right_panel)
+            self.assertIsInstance(sheet.right_panel_toggle, AtlasPanelToggle)
             self.assertEqual(sheet.right_panel_toggle.objectName(), "GuideRightPanelToggle")
             self.assertEqual(sheet.right_panel_toggle.text(), "›")
 

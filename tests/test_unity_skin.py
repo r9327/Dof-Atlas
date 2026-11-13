@@ -9,6 +9,7 @@ from unittest.mock import patch
 
 os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
 
+from PySide6.QtCore import Qt
 from PySide6.QtGui import QColor, QImage
 from PySide6.QtWidgets import QApplication, QTabWidget, QWidget
 
@@ -20,6 +21,38 @@ from app.ui.unity_skin import (
 
 
 class UnitySkinTests(unittest.TestCase):
+    def test_panel_toggle_common_state_and_accessibility(self) -> None:
+        from app.ui.components import AtlasPanelToggle
+
+        toggle = AtlasPanelToggle()
+        try:
+            self.assertEqual(toggle.objectName(), "GuideRightPanelToggle")
+            self.assertTrue(bool(toggle.focusPolicy() & Qt.TabFocus))
+            self.assertIs(toggle.property("collapsed"), False)
+            self.assertEqual(toggle.text(), "›")
+            self.assertEqual(toggle.toolTip(), toggle.accessibleName())
+            self.assertIn("Masquer", toggle.toolTip())
+
+            toggle.set_collapsed(True)
+            self.assertIs(toggle.property("collapsed"), True)
+            self.assertEqual(toggle.text(), "‹")
+            self.assertEqual(toggle.toolTip(), toggle.accessibleName())
+            self.assertIn("Réafficher", toggle.toolTip())
+
+            # The host, not this UI class, owns navigation and click effects.
+            requested = []
+            toggle.clicked.connect(lambda: requested.append("toggle"))
+            toggle.click()
+            self.assertEqual(requested, ["toggle"])
+            self.assertIs(toggle.property("collapsed"), True)
+            toggle.set_collapsed(True)
+            self.assertIs(toggle.property("collapsed"), True)
+            toggle.set_collapsed(False)
+            self.assertEqual(toggle.text(), "›")
+            self.assertIs(toggle.property("collapsed"), False)
+        finally:
+            toggle.deleteLater()
+
     def test_shared_unity_widget_families_follow_single_palette(self) -> None:
         overrides = {
             "TEXT": "#102030",

@@ -13,6 +13,7 @@ from PySide6.QtCore import Qt, Signal
 from PySide6.QtWidgets import QApplication, QWidget
 
 from app.modules.encyclopedia.views.guides_view import GuidesView
+from app.ui.components import AtlasPanelToggle
 
 
 class _Provider:
@@ -62,6 +63,7 @@ class GuidesViewLayoutTests(unittest.TestCase):
                         # Guide and Quêtes use the same Unity selector and
                         # keyboard-accessible collapse/restore states.
                         toggle = view.right_panel_toggle
+                        self.assertIsInstance(toggle, AtlasPanelToggle)
                         self.assertEqual(toggle.objectName(), "GuideRightPanelToggle")
                         self.assertTrue(bool(toggle.focusPolicy() & Qt.TabFocus))
                         self.assertFalse(toggle.property("collapsed"))

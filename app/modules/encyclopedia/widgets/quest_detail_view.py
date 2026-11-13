@@ -34,7 +34,7 @@ from app.modules.encyclopedia.services.guide_quest_view_model import (
 from app.modules.encyclopedia.widgets.dashboard import FixedColumnSplitter
 from app.modules.encyclopedia.widgets.quest_item_row import item_row
 from app.quest_catalog import QuestRecord, normalize_text
-from app.ui.components import AtlasButton
+from app.ui.components import AtlasButton, AtlasPanelToggle
 
 
 QuestOpener = Callable[[int], object]
@@ -128,14 +128,7 @@ class QuestDetailView(QWidget):
         self._right_panel_collapsed = False
         self._right_panel_saved_width = 300
         self._right_panel_scroll_position = 0
-        self.right_panel_toggle = QToolButton()
-        self.right_panel_toggle.setObjectName("GuideRightPanelToggle")
-        self.right_panel_toggle.setCursor(Qt.PointingHandCursor)
-        self.right_panel_toggle.setFocusPolicy(Qt.StrongFocus)
-        self.right_panel_toggle.setText("›")
-        self.right_panel_toggle.setToolTip("Masquer la colonne d'informations")
-        self.right_panel_toggle.setAccessibleName("Masquer la colonne d'informations")
-        self.right_panel_toggle.setProperty("collapsed", False)
+        self.right_panel_toggle = AtlasPanelToggle()
         self.right_panel_toggle.clicked.connect(self.toggle_right_panel)
         header_layout.addWidget(self.right_panel_toggle, 0, Qt.AlignRight | Qt.AlignVCenter)
         root.addWidget(self.header)
@@ -198,16 +191,7 @@ class QuestDetailView(QWidget):
 
         self._right_panel_collapsed = collapsed
         self.right_panel.setVisible(not collapsed)
-        self.right_panel_toggle.setText("‹" if collapsed else "›")
-        caption = (
-            "Réafficher la colonne d'informations"
-            if collapsed else "Masquer la colonne d'informations"
-        )
-        self.right_panel_toggle.setToolTip(caption)
-        self.right_panel_toggle.setAccessibleName(caption)
-        self.right_panel_toggle.setProperty("collapsed", collapsed)
-        self.right_panel_toggle.style().unpolish(self.right_panel_toggle)
-        self.right_panel_toggle.style().polish(self.right_panel_toggle)
+        self.right_panel_toggle.set_collapsed(collapsed)
 
         if not collapsed:
             width = max(self.splitter.width(), sum(self.splitter.sizes()))

@@ -62,7 +62,7 @@ from app.modules.encyclopedia.widgets.guide_card import (
     GuideListModel,
 )
 from app.core.text import normalize_key as normalize_text
-from app.ui.components import AtlasButton
+from app.ui.components import AtlasButton, AtlasPanelToggle
 from app.ui.theme import PALETTE, render_theme_template
 
 if TYPE_CHECKING:
@@ -1421,14 +1421,7 @@ class GuidesView(QWidget):
         self._right_panel_collapsed = False
         self._right_panel_saved_width = 230
         self._right_panel_scroll_position = 0
-        self.right_panel_toggle = QToolButton()
-        self.right_panel_toggle.setObjectName("GuideRightPanelToggle")
-        self.right_panel_toggle.setCursor(Qt.PointingHandCursor)
-        self.right_panel_toggle.setFocusPolicy(Qt.StrongFocus)
-        self.right_panel_toggle.setProperty("collapsed", False)
-        self.right_panel_toggle.setText("›")
-        self.right_panel_toggle.setToolTip("Masquer la colonne d'informations")
-        self.right_panel_toggle.setAccessibleName("Masquer la colonne d'informations")
+        self.right_panel_toggle = AtlasPanelToggle()
         self.right_panel_toggle.clicked.connect(self._toggle_right_panel)
         header_layout.addWidget(self.right_panel_toggle, 0, Qt.AlignRight | Qt.AlignVCenter)
         self.breadcrumb = QFrame()
@@ -2349,19 +2342,7 @@ class GuidesView(QWidget):
         hidden = self._right_panel_collapsed
         self.right_panel.setMinimumWidth(0 if hidden else 220)
         self.right_panel.setVisible(not hidden)
-        self.right_panel_toggle.setText("‹" if hidden else "›")
-        caption = (
-            "Réafficher la colonne d'informations"
-            if hidden else "Masquer la colonne d'informations"
-        )
-        self.right_panel_toggle.setToolTip(caption)
-        self.right_panel_toggle.setAccessibleName(caption)
-        if self.right_panel_toggle.property("collapsed") != hidden:
-            self.right_panel_toggle.setProperty("collapsed", hidden)
-            style = self.right_panel_toggle.style()
-            style.unpolish(self.right_panel_toggle)
-            style.polish(self.right_panel_toggle)
-            self.right_panel_toggle.update()
+        self.right_panel_toggle.set_collapsed(hidden)
         sizes = self.splitter.sizes()
         if len(sizes) == 3:
             self._set_classic_splitter_sizes(sizes[0], self.center_panel.minimumWidth())
