@@ -167,6 +167,44 @@ class DevUiPageTests(unittest.TestCase):
             page.close()
             page.deleteLater()
 
+    def test_shared_type_scale_and_gallery_finishes(self) -> None:
+        from app.pages.dev_ui_page import DevUiPage
+        from app.ui.theme import TYPOGRAPHY, atlas_stylesheet
+
+        page = DevUiPage(on_back=lambda: None)
+        try:
+            self.assertEqual(
+                set(page.preview_type_samples),
+                {"page", "section", "body", "muted"},
+            )
+            self.assertEqual(page.preview_type_samples["page"].objectName(), "PageTitle")
+            self.assertEqual(
+                page.preview_type_samples["section"].objectName(), "PanelTitle"
+            )
+            self.assertEqual(page.preview_type_samples["body"].objectName(), "")
+            self.assertEqual(
+                page.preview_type_samples["muted"].objectName(), "MutedLabel"
+            )
+            self.assertTrue(all(
+                widget.styleSheet() == ""
+                for widget in page.preview_type_samples.values()
+            ))
+            self.assertTrue(all(
+                "px" in button.text()
+                for button in page.preview_metric_buttons.values()
+            ))
+            self.assertEqual(TYPOGRAPHY["FONT_TITLE"], "18px")
+            self.assertEqual(TYPOGRAPHY["FONT_SECTION"], "14px")
+            self.assertEqual(TYPOGRAPHY["FONT_BODY"], "12px")
+            self.assertEqual(TYPOGRAPHY["FONT_SMALL"], "11px")
+            css = atlas_stylesheet()
+            self.assertIn("QWidget#DevUiPage QGroupBox::title", css)
+            self.assertIn("font-size: 14px;", css)
+            self.assertEqual(page.styleSheet(), "")
+        finally:
+            page.close()
+            page.deleteLater()
+
     def test_game_ui_colors_sizes_icons_and_gradient_preview(self) -> None:
         from app.pages.dev_ui_page import DevUiPage
         from app.ui.unity_palette import (
