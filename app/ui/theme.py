@@ -545,8 +545,8 @@ QSplitter#AchievementCatalogSplitter::handle {
 }
 
 #StatusBadge[state="active"] {
-    color: @YELLOW;
-    border-color: @YELLOW;
+    color: @TEXT_SOFT;
+    border-color: @BORDER_STRONG;
 }
 
 #GuideManualStepCheck {
