@@ -13,7 +13,7 @@ permissions:
 
 jobs:
   real-qt-capture:
-    name: Dev UI / semantic subtle buttons tabs badges hover and logos exact-SHA proof
+    name: Dev UI / final subtle controls links hover and 14 module icon slots exact-SHA
     runs-on: windows-latest
     timeout-minutes: 15
     env:
