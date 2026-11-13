@@ -108,6 +108,19 @@ UNITY_ICON_NAMES = (
     "character", "dofus", "map", "inventory",
 )
 
+# Additional module icons required by the navigation. They are indexed as
+# missing rather than replaced by invented "official" drawings. If the local
+# user asset is installed later, Dev UI can display the untouched sprite.
+UNITY_ICON_PENDING = (
+    "jobs", "bestiary", "craft", "equipment", "organizer", "almanax",
+)
+
+# Single shared state index for every interactive visual family.
+UNITY_INTERACTION_STATES = (
+    "normal", "hover", "pressed", "selected", "focus", "disabled",
+)
+UNITY_CHIP_TONES = ("success", "danger", "warning", "info", "neutral")
+
 # Guide-compatible names still exist for old selectors and explicit
 # per-role previews, but their normal colors now follow shared Unity
 # surfaces. Do not maintain a second blue palette for this one module.
