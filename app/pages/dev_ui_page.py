@@ -55,7 +55,9 @@ from app.ui.theme import PALETTE, SIZES, SPACING, TYPOGRAPHY
 from app.ui.unity_palette import (
     UNITY_ICON_NAMES, UNITY_MAIN_ROLES, UNITY_SIZES_PX, UNITY_UI_USAGE,
 )
-from app.ui.unity_skin import apply_unity_panel_shadow, unity_ui_icon
+from app.ui.unity_skin import (
+    apply_unity_panel_shadow, unity_original_preview_icon,
+)
 
 
 class DevUiPage(QWidget):
@@ -147,10 +149,9 @@ class DevUiPage(QWidget):
 
     def _section(self, parent_layout: QVBoxLayout, title: str) -> QVBoxLayout:
         group = QGroupBox(title)
-        # Real shared Unity relief on two static catalog panels. Avoid the
-        # 16-fold scrolling cost of applying shadows to every section.
-        if title.startswith(("Formulaires avancés", "Surfaces · cartes")):
-            apply_unity_panel_shadow(group, blur=18, vertical=5, alpha=145)
+        # The same subtle Unity relief on every static gallery module.
+        # Never apply graphics effects to scrolling rows or input controls.
+        apply_unity_panel_shadow(group, blur=17, vertical=5, alpha=135)
         layout = QVBoxLayout(group)
         layout.setContentsMargins(14, 22, 14, 12)
         layout.setSpacing(9)
@@ -639,7 +640,7 @@ class DevUiPage(QWidget):
         for role in ("icon_small", "icon_normal", "icon_large", "icon_xlarge"):
             size = UNITY_SIZES_PX[role]
             icon = QLabel()
-            icon.setPixmap(unity_ui_icon("guide", size).pixmap(size, size))
+            icon.setPixmap(unity_original_preview_icon("guide", size).pixmap(size, size))
             icon.setToolTip(f"{role} : {size} px")
             icons.addWidget(icon)
             text = QLabel(f"{size} px")
@@ -753,7 +754,7 @@ class DevUiPage(QWidget):
         section = self._section(parent, "Icônes · raccourcis · tooltips")
 
         source_hint = QLabel(
-            "Sprites Unity transparents si disponibles · sinon icônes Atlas monochromes"
+            "Logos Unity en couleurs d'origine s'ils sont installés et transparents · sinon repli Atlas"
         )
         source_hint.setObjectName("MutedLabel")
         section.addWidget(source_hint)
@@ -778,7 +779,7 @@ class DevUiPage(QWidget):
             symbol.setFixedSize(32, 32)
             symbol.setAccessibleName(f"Icône {icon_captions[name]}")
             size = UNITY_SIZES_PX["icon_large"]
-            symbol.setPixmap(unity_ui_icon(name, size).pixmap(size, size))
+            symbol.setPixmap(unity_original_preview_icon(name, size).pixmap(size, size))
             symbol.setToolTip(
                 f"{icon_captions[name]} · Unity local si transparent, repli Atlas sinon"
             )
@@ -855,7 +856,7 @@ class DevUiPage(QWidget):
         row.addWidget(self.dialog_button)
         for name in ("guide", "quest", "success", "character"):
             icon_label = QLabel()
-            icon_label.setPixmap(unity_ui_icon(name).pixmap(24, 24))
+            icon_label.setPixmap(unity_original_preview_icon(name).pixmap(24, 24))
             icon_label.setToolTip(name)
             row.addWidget(icon_label)
         row.addStretch(1)
