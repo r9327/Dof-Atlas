@@ -54,6 +54,7 @@ class UnitySkinTests(unittest.TestCase):
         with patch.object(unity_skin, "_sprite_url", side_effect=lambda name: f"/fake/{name}"):
             css = unity_skin_stylesheet()
         self.assertNotIn("btn_yellow2_", css)
+        self.assertNotIn("bg_tab_selected_normal", css)
         for name in ("PrimaryActionButton", "primaryButton",
                      "SecondaryButton", "secondaryButton"):
             self.assertNotIn(f"QPushButton#{name} {{ border: 8px", css)
