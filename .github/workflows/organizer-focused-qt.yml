@@ -27,6 +27,59 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  # Permanent Capture UI PR: isolated, exact-SHA preview of the developer catalog.
+  # Keep this as a visual checkpoint, not as a release certification.
+  dev-ui-library:
+    name: Dev UI / exact-SHA Qt screenshots (Windows)
+    runs-on: windows-latest
+    timeout-minutes: 15
+    env:
+      UI_SHA: 10e5b80e72fdd1769eadf32243c57930c4171bdf
+      QT_QPA_PLATFORM: offscreen
+      QTWEBENGINE_CHROMIUM_FLAGS: --disable-gpu --no-sandbox
+      QTWEBENGINE_DISABLE_SANDBOX: '1'
+      PYTHONUTF8: '1'
+      PYTHONUNBUFFERED: '1'
+    steps:
+      - name: Checkout exact Dev UI PR #365 HEAD
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ env.UI_SHA }}
+          persist-credentials: false
+          lfs: false
+      - name: Verify candidate SHA
+        shell: pwsh
+        run: |
+          if ((git rev-parse HEAD).Trim() -ne $env:UI_SHA) {
+            throw "Dev UI candidate checkout differs from pinned PR #365 HEAD"
+          }
+      - name: Python 3.13
+        uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
+        with:
+          python-version: '3.13'
+      - name: Install pinned Windows Qt runtime
+        shell: pwsh
+        run: |
+          python -m pip install --require-hashes --no-deps -r requirements-pyside.txt
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+      - name: Test shared Dev UI components
+        shell: pwsh
+        run: |
+          python -X faulthandler -m unittest -v tests.test_dev_ui_page
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+      - name: Capture real Dev UI full gallery, viewport and dialog
+        shell: pwsh
+        run: |
+          python -X faulthandler -m tools.dev_ui_snapshot --output artifacts/dev-ui --width 1440 --height 900
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+      - name: Upload actual Qt screenshots
+        if: always()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: dev-ui-365-${{ env.UI_SHA }}
+          path: artifacts/dev-ui/*
+          if-no-files-found: warn
+
   organizer-qt:
     name: Organizer / Exact-SHA Qt and runtime regressions (Windows, synthetic)
     runs-on: windows-latest
