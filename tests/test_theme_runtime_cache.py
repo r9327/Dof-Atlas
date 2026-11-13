@@ -87,7 +87,7 @@ class ThemeRuntimeCacheTests(unittest.TestCase):
                 for rule in rules:
                     self.assertIn(rule, section)
         from app.ui.preload_popup import PreloadProgressPopup
-        self.assertNotIn("setStyleSheet(", PreloadProgressPopup.__init__.__code__.co_names)
+        self.assertNotIn("setStyleSheet", PreloadProgressPopup.__init__.__code__.co_names)
 
     def test_module_navigation_states_use_shared_tokens(self) -> None:
         style = theme.atlas_stylesheet({

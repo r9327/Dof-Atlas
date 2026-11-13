@@ -127,6 +127,11 @@ class UnitySkinTests(unittest.TestCase):
             self.assertEqual(page.startup_status.objectName(), "PreloadPopupCurrent")
             self.assertEqual(page.startup_progress.objectName(), "PreloadPopupProgress")
             self.assertEqual(page.startup_progress.value(), 2)
+            self.assertEqual(page.guide_sample_summary.objectName(), "GuidePreparationSummary")
+            self.assertEqual(page.guide_sample_row.objectName(), "GuidePreparationRow")
+            self.assertEqual(page.guide_manual_nav.objectName(), "GuideManualNav")
+            page.guide_copy_button.click()
+            self.assertIn("Copier cliqué", page.feedback.text())
             page.preview_buttons["primary"].click()
             self.assertIn("primary", page.feedback.text())
 
@@ -195,6 +200,30 @@ class UnitySkinTests(unittest.TestCase):
             "rgba(119, 136, 153, 0.96)",  # shared text fields and combos
         ):
             with self.subTest(expected=expected):
+                self.assertIn(expected, style)
+        self.assertEqual(UNITY_PALETTE, original)
+
+    def test_guide_special_surfaces_obey_canonical_unity_overrides(self) -> None:
+        original = dict(UNITY_PALETTE)
+        style = unity_skin_stylesheet({
+            "GUIDE_COMPACT_SURFACE": "#102030",
+            "GUIDE_SUMMARY_TOP": "#203040",
+            "GUIDE_SUMMARY_BOTTOM": "#304050",
+            "GUIDE_PREPARATION_ROW": "#405060",
+            "GUIDE_PREPARATION_ROW_BORDER": "#506070",
+            "GUIDE_COPY_HOVER": "#607080",
+            "GUIDE_MANUAL_NAV_SURFACE": "#708090",
+        })
+        for expected in (
+            "rgba(16, 32, 48, 0.93)",
+            "rgba(32, 48, 64, 0.97)",
+            "rgba(48, 64, 80, 0.97)",
+            "rgba(64, 80, 96, 0.92)",
+            "rgba(80, 96, 112, 0.65)",
+            "rgba(96, 112, 128, 0.30)",
+            "rgba(112, 128, 144, 0.94)",
+        ):
+            with self.subTest(value=expected):
                 self.assertIn(expected, style)
         self.assertEqual(UNITY_PALETTE, original)
 

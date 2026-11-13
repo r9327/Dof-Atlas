@@ -98,6 +98,7 @@ class DevUiPage(QWidget):
         self._build_fields(content)
         self._build_panels(content)
         self._build_startup_preview(content)
+        self._build_guide_samples(content)
         self._build_dialogs_and_colors(content)
         content.addStretch(1)
 
@@ -284,6 +285,33 @@ class DevUiPage(QWidget):
         self.startup_progress.setRange(0, 3)
         self.startup_progress.setValue(2)
         section.addWidget(self.startup_progress)
+
+    def _build_guide_samples(self, parent: QVBoxLayout) -> None:
+        """Render Guide's real shared selectors; never duplicate their colors."""
+        section = self._section(parent, "Guides · panneaux Unity partagés")
+        self.guide_sample_summary = QFrame()
+        self.guide_sample_summary.setObjectName("GuidePreparationSummary")
+        summary_layout = QVBoxLayout(self.guide_sample_summary)
+        summary_layout.addWidget(QLabel("Préparation · fond et bordures Unity"))
+        section.addWidget(self.guide_sample_summary)
+
+        self.guide_sample_row = QFrame()
+        self.guide_sample_row.setObjectName("GuidePreparationRow")
+        row_layout = QHBoxLayout(self.guide_sample_row)
+        row_layout.addWidget(QLabel("Ressource de démonstration"), 1)
+        self.guide_copy_button = AtlasButton("Copier", variant="secondary")
+        self.guide_copy_button.set_style_name("GuidePreparationItemCopy")
+        self.guide_copy_button.clicked.connect(
+            lambda: self._report("Guide · bouton Copier cliqué")
+        )
+        row_layout.addWidget(self.guide_copy_button)
+        section.addWidget(self.guide_sample_row)
+
+        self.guide_manual_nav = QFrame()
+        self.guide_manual_nav.setObjectName("GuideManualNav")
+        nav_layout = QHBoxLayout(self.guide_manual_nav)
+        nav_layout.addWidget(QLabel("Navigation du guide · fond partagé"))
+        section.addWidget(self.guide_manual_nav)
 
     def _build_dialogs_and_colors(self, parent: QVBoxLayout) -> None:
         section = self._section(parent, "Dialogues · icônes · typographie")

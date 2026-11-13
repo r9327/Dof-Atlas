@@ -57,6 +57,14 @@ UNITY_PALETTE = {
     "GUIDE_TOGGLE_ACTIVE": "#536F9D",
     "GUIDE_TOGGLE_ACTIVE_BORDER": "#B8CBE8",
     "GUIDE_TOGGLE_HOVER": "#516EA0",
+    # Dedicated Guide surfaces: named in the same Unity palette and not QSS literals.
+    "GUIDE_COMPACT_SURFACE": "#182546",
+    "GUIDE_SUMMARY_TOP": "#455B8C",
+    "GUIDE_SUMMARY_BOTTOM": "#18264A",
+    "GUIDE_PREPARATION_ROW": "#1F3057",
+    "GUIDE_PREPARATION_ROW_BORDER": "#7295C4",
+    "GUIDE_COPY_HOVER": "#668BC4",
+    "GUIDE_MANUAL_NAV_SURFACE": "#131F3B",
     "SHELL_GRADIENT": "qlineargradient(x1:0, y1:0, x2:1, y2:0, stop:0 #192657, stop:1 #151821)",
     "PANEL_GRADIENT": "qlineargradient(x1:0, y1:0, x2:1, y2:1, stop:0 #24395F, stop:1 #192657)",
     "ACTIVE_GRADIENT": "qlineargradient(x1:0, y1:0, x2:0, y2:1, stop:0 #6E9B41, stop:1 #497332)",
@@ -230,28 +238,38 @@ def unity_skin_stylesheet(palette: Mapping[str, str] | None = None) -> str:
         "background: %s; border-radius: 4px; }" % colors["GREEN"],
         "QFrame#GuideCompactHeader, QFrame#GuideSheetHeader, "
         "QFrame#GuidePreparationPanel { "
-        "background: rgba(24, 37, 70, 0.93); border: 1px solid %s; }" % colors["BORDER"],
+        "background: %s; border: 1px solid %s; }" % (
+            translucent("GUIDE_COMPACT_SURFACE", 0.93), colors["BORDER"],
+        ),
         # Small bevels and stronger contrast for the real guide surfaces.
         # QSS has no native box-shadow; personal 9-slice sprites can supply
         # the game-native depth when installed.
         "QFrame#GuidePreparationSummary, QFrame#GuideManualWarningSection { "
         "background: qlineargradient(x1:0,y1:0,x2:0,y2:1, "
-        "stop:0 rgba(69, 91, 140, 0.97), stop:1 rgba(24, 38, 74, 0.97)); "
+        "stop:0 %s, stop:1 %s); "
         "border: 1px solid %s; border-radius: 5px; color: %s; }" % (
+            translucent("GUIDE_SUMMARY_TOP", 0.97),
+            translucent("GUIDE_SUMMARY_BOTTOM", 0.97),
             colors["GUIDE_PREPARATION_BORDER"], colors["GUIDE_PREPARATION_TEXT"],
         ),
         "QFrame#GuidePreparationRow, QFrame#GuidePreparationDetails { "
-        "background: rgba(31, 48, 87, 0.92); "
-        "border: 1px solid rgba(114, 149, 196, 0.65); border-radius: 5px; }",
+        "background: %s; border: 1px solid %s; border-radius: 5px; }" % (
+            translucent("GUIDE_PREPARATION_ROW", 0.92),
+            translucent("GUIDE_PREPARATION_ROW_BORDER", 0.65),
+        ),
         "QPushButton#GuidePreparationItemCopy { "
         "text-align: left; background: transparent; border: none; "
         "color: %s; padding: 3px; }" % colors["GUIDE_ITEM_TEXT"],
         "QPushButton#GuidePreparationItemCopy:hover { "
-        "background: rgba(102, 139, 196, 0.30); border-radius: 4px; }",
+        "background: %s; border-radius: 4px; }" %
+        translucent("GUIDE_COPY_HOVER", 0.30),
         "QLabel#GuidePreparationRowStatus, QLabel#GuidePreparationParticipantNeed { "
         "color: %s; font-weight: 600; }" % colors["GUIDE_STATUS_TEXT"],
         "QFrame#GuideManualNav { "
-        "background: rgba(19, 31, 59, 0.94); border-top: 1px solid %s; }" % colors["GUIDE_NAV_BORDER"],
+        "background: %s; border-top: 1px solid %s; }" % (
+            translucent("GUIDE_MANUAL_NAV_SURFACE", 0.94),
+            colors["GUIDE_NAV_BORDER"],
+        ),
         "QToolButton#GuidePreparationToggle, QToolButton#GuideSummaryButton, "
         "QToolButton#GuideParticipantsButton { "
         "background: qlineargradient(x1:0,y1:0,x2:0,y2:1, "
