@@ -13,7 +13,7 @@ os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
 
 from PySide6.QtCore import Qt
 from PySide6.QtTest import QTest
-from PySide6.QtWidgets import QApplication, QWidget
+from PySide6.QtWidgets import QApplication, QLineEdit, QWidget
 
 
 class DevUiPageTests(unittest.TestCase):
@@ -152,7 +152,7 @@ class DevUiPageTests(unittest.TestCase):
                 icon.styleSheet() == ""
                 for icon in page.preview_icon_labels.values()
             ))
-            self.assertTrue(page.preview_password.echoMode() == page.preview_password.Password)
+            self.assertTrue(page.preview_password.echoMode() == QLineEdit.Password)
             self.assertTrue(page.preview_readonly.isReadOnly())
             self.assertFalse(page.preview_disabled_input.isEnabled())
 
