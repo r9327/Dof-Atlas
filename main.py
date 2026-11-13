@@ -1706,11 +1706,7 @@ class AtlasWindow(QMainWindow):
 
         for label, button in zip(labels, self._module_subnav_buttons):
             state = "TopNavButtonActive" if label == active_label else "TopNavButton"
-            if button.objectName() != state:
-                button.setObjectName(state)
-                button.style().unpolish(button)
-                button.style().polish(button)
-                button.update()
+            button.set_style_name(state)
 
         self.module_subnav.setVisible(True)
         self.refresh_nav_selection(group)
@@ -2046,12 +2042,7 @@ class AtlasWindow(QMainWindow):
     def refresh_nav_selection(self, active_group: str) -> None:
         for button, group in self.nav_buttons:
             object_name = "TopNavButtonActive" if group == active_group and active_group else "TopNavButton"
-            if button.objectName() == object_name:
-                continue
-            button.setObjectName(object_name)
-            button.style().unpolish(button)
-            button.style().polish(button)
-            button.update()
+            button.set_style_name(object_name)
 
     def ensure_page_loaded(self, name: str) -> QWidget | None:
         factory = self.page_factories.get(name)

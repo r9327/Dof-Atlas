@@ -21,6 +21,29 @@ from app.ui.unity_skin import (
 
 
 class UnitySkinTests(unittest.TestCase):
+    def test_atlas_button_variants_and_navigation_use_one_style_switch(self) -> None:
+        from app.ui.components import AtlasButton
+
+        button = AtlasButton("Voir", variant="secondary")
+        try:
+            self.assertEqual(button.objectName(), "SecondaryButton")
+            self.assertEqual(button.minimumHeight(), 24)
+            button.set_variant("primary")
+            self.assertEqual(button.objectName(), "PrimaryActionButton")
+            button.set_style_name("TopNavButton")
+            self.assertEqual(button.objectName(), "TopNavButton")
+            button.set_style_name("TopNavButtonActive")
+            self.assertEqual(button.objectName(), "TopNavButtonActive")
+            button.set_style_name("TopNavButtonActive")
+            self.assertEqual(button.objectName(), "TopNavButtonActive")
+            button.set_style_name("TopNavButton")
+            self.assertEqual(button.objectName(), "TopNavButton")
+            with self.assertRaises(ValueError):
+                button.set_variant("not-a-variant")
+            self.assertEqual(button.objectName(), "TopNavButton")
+        finally:
+            button.deleteLater()
+
     def test_panel_toggle_common_state_and_accessibility(self) -> None:
         from app.ui.components import AtlasPanelToggle
 

@@ -68,7 +68,17 @@ class AtlasButton(QPushButton):
             object_name = BUTTON_OBJECT_NAMES[variant]
         except KeyError as exc:
             raise ValueError(f"Unknown AtlasButton variant: {variant}") from exc
+        self.set_style_name(object_name)
+
+    def set_style_name(self, object_name: str) -> None:
+        """Refresh a changed shared Qt style role without recreating the button."""
+        if self.objectName() == object_name:
+            return
         self.setObjectName(object_name)
+        style = self.style()
+        style.unpolish(self)
+        style.polish(self)
+        self.update()
 
 
 class AtlasPanelToggle(QToolButton):
