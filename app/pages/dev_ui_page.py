@@ -608,6 +608,8 @@ class DevUiPage(QWidget):
         section.addWidget(hint)
 
         self.preview_splitter = QSplitter(Qt.Horizontal)
+        self.preview_splitter.setObjectName("DevUiResizeSplitter")
+        self.preview_splitter.setHandleWidth(6)
         self.preview_splitter.setChildrenCollapsible(False)
         self.preview_scroll_list = QListWidget()
         for item in (
