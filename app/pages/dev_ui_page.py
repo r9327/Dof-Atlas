@@ -31,6 +31,7 @@ from PySide6.QtWidgets import (
     QScrollArea,
     QSlider,
     QSpinBox,
+    QStyledItemDelegate,
     QSplitter,
     QTableWidget,
     QTableWidgetItem,
@@ -58,6 +59,23 @@ from app.ui.unity_palette import (
 from app.ui.unity_skin import (
     apply_unity_panel_shadow, unity_original_preview_icon,
 )
+
+
+class UnityPopupSeparatorDelegate(QStyledItemDelegate):
+    """Draw a thin Unity token divider without changing native row states."""
+
+    def paint(self, painter: QPainter, option, index) -> None:
+        super().paint(painter, option, index)
+        # No doubled border at the very end of the dropdown.
+        if index.row() + 1 >= index.model().rowCount(index.parent()):
+            return
+        painter.save()
+        painter.setPen(QColor(PALETTE["BORDER_SOFT"]))
+        painter.drawLine(
+            option.rect.left() + 8, option.rect.bottom(),
+            option.rect.right() - 8, option.rect.bottom(),
+        )
+        painter.restore()
 
 
 class DevUiPage(QWidget):
@@ -107,6 +125,9 @@ class DevUiPage(QWidget):
         self.gallery_navigation = QComboBox()
         self.gallery_navigation.setAccessibleName("Accès direct aux familles UI")
         self.gallery_navigation.view().setAlternatingRowColors(False)
+        self.gallery_navigation.view().setItemDelegate(
+            UnityPopupSeparatorDelegate(self.gallery_navigation.view())
+        )
         navigator.addWidget(self.gallery_navigation, 1)
         self.gallery_count = QLabel()
         self.gallery_count.setObjectName("MutedLabel")
@@ -114,6 +135,7 @@ class DevUiPage(QWidget):
         outer.addLayout(navigator)
 
         scroll = QScrollArea(self)
+        scroll.setObjectName("DevUiGalleryScroll")
         scroll.setWidgetResizable(True)
         scroll.setFrameShape(QFrame.NoFrame)
         self.gallery_scroll = scroll
