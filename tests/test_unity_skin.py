@@ -536,7 +536,11 @@ class UnitySkinTests(unittest.TestCase):
             self.assertIn("AtlasUnityBackdrop", unity_skin_stylesheet())
 
     def test_tabs_are_palette_owned_without_gold_selected_artwork(self) -> None:
-        with patch.object(unity_skin, "_sprite_url", return_value="/tmp/gold-tab.png"):
+        sprite = "Assets_UI_Themes_darkStone_common_bg_tab_selected_normal-png.png"
+        with patch.object(
+            unity_skin, "_sprite_url",
+            side_effect=lambda name: "/tmp/gold-tab.png" if name == sprite else None,
+        ):
             style = unity_skin_stylesheet()
         self.assertNotIn("gold-tab.png", style)
         self.assertIn("padding: 5px 12px; min-height: 24px;", style)
