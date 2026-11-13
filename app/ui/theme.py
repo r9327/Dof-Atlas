@@ -414,6 +414,40 @@ QWidget#DevUiPage QComboBox#DevUiFamilyCombo QAbstractItemView {
     selection-color: @TEXT;
 }
 
+/* Replace Qt's near-black native slider with the existing Unity surface
+   and active green, without changing the geometry of other app sliders. */
+QWidget#DevUiPage QSlider#DevUiProgressSlider {
+    background: transparent;
+    min-height: 24px;
+}
+QWidget#DevUiPage QSlider#DevUiProgressSlider::groove:horizontal {
+    background: @PANEL_2;
+    border: 1px solid @BORDER_SOFT;
+    height: 6px;
+    border-radius: 3px;
+}
+QWidget#DevUiPage QSlider#DevUiProgressSlider::sub-page:horizontal {
+    background: @GREEN_DARK;
+    border: 1px solid @GREEN_BORDER;
+    border-radius: 3px;
+}
+QWidget#DevUiPage QSlider#DevUiProgressSlider::add-page:horizontal {
+    background: @PANEL_2;
+    border: 1px solid @BORDER_SOFT;
+    border-radius: 3px;
+}
+QWidget#DevUiPage QSlider#DevUiProgressSlider::handle:horizontal {
+    background: @PANEL_ACTIVE;
+    border: 2px solid @GREEN_BORDER;
+    width: 14px;
+    margin: -6px 0;
+    border-radius: 7px;
+}
+QWidget#DevUiPage QSlider#DevUiProgressSlider::handle:horizontal:hover {
+    background: @PANEL_HOVER;
+    border-color: @GREEN;
+}
+
 /* Preview-only resize and scroll surfaces: remove the native dark splitter
    strip and opaque Qt scrollbar track while leaving the thumb usable. */
 QWidget#DevUiPage QSplitter#DevUiResizeSplitter {
