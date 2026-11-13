@@ -54,6 +54,18 @@ class ModularDomainRoutingTests(unittest.TestCase):
         self.assertEqual(owners_for(unreviewed), frozenset())
         self.assertEqual(self.route([unreviewed])["status"], "BLOCKED")
 
+    def test_theme_direct_source_and_regression_have_exact_ui_ownership(self):
+        source = "app/ui/theme.py"
+        test = "tests/test_theme.py"
+        self.assertEqual(owners_for(source), frozenset({"ui"}))
+        self.assertEqual(owners_for(test), frozenset({"ui"}))
+        self.assertEqual(
+            self.route([source, test])["status"], "READY_TO_EXECUTE"
+        )
+        unknown = "tests/test_theme_unreviewed.py"
+        self.assertEqual(owners_for(unknown), frozenset())
+        self.assertEqual(self.route([unknown])["status"], "BLOCKED")
+
     def test_stdlib_unity_palette_test_has_exact_ui_ownership(self):
         source = "app/ui/unity_palette.py"
         test = "tests/test_unity_palette.py"

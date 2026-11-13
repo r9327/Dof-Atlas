@@ -472,6 +472,7 @@ def owners_for(path: str) -> frozenset[str]:
     if path == "tests/test_unity_wallpaper_cleaner.py":
         return frozenset({"ui", "data"})
     if path in {
+        "tests/test_theme.py",
         "tests/test_unity_skin.py",
         "tests/test_theme_runtime_cache.py",
         "tests/test_unity_palette.py",
