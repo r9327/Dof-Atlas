@@ -345,6 +345,59 @@ class UnitySkinTests(unittest.TestCase):
                 backdrop.deleteLater()
                 self.app.processEvents()
 
+    def test_starry_backdrop_remains_visible_under_all_shared_shell_roots(self) -> None:
+        """A page-specific opaque QSS must not erase Unity stars after navigation."""
+        from PySide6.QtWidgets import QStackedWidget, QVBoxLayout
+        from app.ui.theme import atlas_stylesheet
+
+        # Both already-mounted and lazy-loaded pages use these actual root
+        # object names / the same atlasUnityPage dynamic property.
+        roots = (
+            "HomePage", "EncyclopediaPage", "GuidesView", "GuidesHomePage",
+            "organizerPage", "worldScanPage", "CraftPage", "EquipmentPage",
+            "PlaceholderPage", "SettingsPage", "DevUiPage",
+        )
+        with (
+            tempfile.TemporaryDirectory() as directory,
+            patch.object(unity_skin, "_PERSONAL_ASSETS", Path(directory) / "personal"),
+            patch.object(unity_skin, "_ASSETS", Path(directory) / "assets"),
+            patch.object(unity_skin, "_PUBLIC_SKY_STARS", ((0.012, 0.55, 7.0, 255),)),
+        ):
+            backdrop = UnityBackdrop()
+            backdrop.setStyleSheet(atlas_stylesheet())
+            layout = QVBoxLayout(backdrop)
+            layout.setContentsMargins(0, 0, 0, 0)
+            stack = QStackedWidget(backdrop)
+            stack.setObjectName("AtlasUnityStack")
+            pages = []
+            for name in roots:
+                widget = QWidget(stack)
+                widget.setObjectName(name)
+                widget.setProperty("atlasUnityPage", True)
+                stack.addWidget(widget)
+                pages.append(widget)
+            layout.addWidget(stack)
+            backdrop.resize(600, 380)
+            try:
+                backdrop.show()
+                self.app.processEvents()
+                self.assertTrue(backdrop._pixmap.isNull())
+                for name, page in zip(roots, pages):
+                    with self.subTest(page=name):
+                        stack.setCurrentWidget(page)
+                        backdrop.update()
+                        self.app.processEvents()
+                        with_star = backdrop.grab().toImage().pixelColor(12, 210)
+                        with patch.object(unity_skin, "_PUBLIC_SKY_STARS", ()):
+                            backdrop.update()
+                            self.app.processEvents()
+                            without_star = backdrop.grab().toImage().pixelColor(12, 210)
+                        self.assertNotEqual(with_star, without_star)
+            finally:
+                backdrop.close()
+                backdrop.deleteLater()
+                self.app.processEvents()
+
     def test_clean_wallpaper_has_priority_without_mutating_original(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
             asset_dir = Path(directory)

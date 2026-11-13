@@ -269,3 +269,10 @@ Ne cocher aucun ID de #364 sur cette seule base. Ne pas fusionner tant que les o
 - **Limites** : aucune capture du vrai écran Guide Ultime ni test de ses données métier n'est implicitement acquis ; Doctor-lot et captures Windows à vérifier sur le HEAD précis.
 
 - **Doctor-lot #43442711796** a exécuté **18/18 tests PASS**, mais a produit `REVIEW` car `app/ui/theme.py` n'avait pas de test propriétaire au nom exact. Le test comportemental est conservé et déplacé vers `tests/test_theme.py` (source `app/ui/theme.py` → test direct), avec une assertion séparée sur le style des boutons. Ce chemin précis rejoint le domaine UI fermé ; les noms voisins restent refusés. Aucun relâchement du Doctor-lot ni de la certification globale.
+
+
+### P0 — non-régression fond étoilé sur toutes les racines de modules (13/11/2026)
+
+- Le shell `AtlasWindow` utilise déjà un unique `UnityBackdrop`, et `register_page` / `ensure_pending_page_loaded` attribuent `atlasUnityPage=true` aux pages affichées. Le stylesheet Unity possède des exceptions transparentes explicites pour les racines Encyclopédie et Guides.
+- Le test Qt `tests/test_unity_skin.py::test_starry_backdrop_remains_visible_under_all_shared_shell_roots` construit un vrai backdrop et onze widgets racines aux noms exacts (Accueil, Encyclopédie, Guide, Organizer, monde, Craft, Équipement, placeholders, Paramètres, Dev). Pour chaque racine, il compare le rendu de l'étoile de fallback avec/sans étoile à la même coordonnée, après navigation de `QStackedWidget` ; le test passe uniquement si le décor n'est pas masqué par la feuille QSS.
+- Il s'agit d'une **preuve Qt offscreen d'un fond de repli libre d'assets**, pas d'une capture Windows de tous les modules réels ni de la texture Unity personnelle. Les panneaux de données opaques restent intentionnellement lisibles ; pas de modification du peintre ni des performances runtime.
