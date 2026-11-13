@@ -270,9 +270,11 @@ class DevUiPage(QWidget):
         self.preview_tree.setMaximumHeight(154)
         self.preview_tree.setAlternatingRowColors(True)
         self.preview_tree.setUniformRowHeights(True)
+        self.preview_tree.setIndentation(14)
         self.preview_tree.header().setStretchLastSection(False)
         self.preview_tree.header().setSectionResizeMode(0, QHeaderView.Stretch)
-        self.preview_tree.header().setSectionResizeMode(1, QHeaderView.ResizeToContents)
+        self.preview_tree.header().setSectionResizeMode(1, QHeaderView.Fixed)
+        self.preview_tree.setColumnWidth(1, 150)
         parent_item = QTreeWidgetItem(("Encyclopédie", "Disponible"))
         for label in ("Quêtes", "Succès", "Guides"):
             QTreeWidgetItem(parent_item, (label, "Sélectionnable"))
@@ -748,6 +750,7 @@ class DevUiPage(QWidget):
         }
         for index, name in enumerate(UNITY_ICON_NAMES):
             cell = QWidget()
+            cell.setObjectName("DevUiIconCell")
             cell_layout = QHBoxLayout(cell)
             cell_layout.setContentsMargins(4, 4, 4, 4)
             cell_layout.setSpacing(9)
