@@ -10,7 +10,7 @@ from functools import lru_cache
 from pathlib import Path
 
 from PySide6.QtCore import QRectF, Qt
-from PySide6.QtGui import QColor, QFontDatabase, QIcon, QLinearGradient, QPainter, QPen, QPixmap
+from PySide6.QtGui import QColor, QFontDatabase, QIcon, QImage, QLinearGradient, QPainter, QPen, QPixmap
 from PySide6.QtWidgets import QGraphicsDropShadowEffect, QWidget
 
 from app.ui.unity_palette import (
@@ -62,6 +62,17 @@ def sprite_icon_path(icon: str) -> Path | None:
     return _asset_file(Path("sprites") / filename)
 
 
+def _is_opaque_icon_tile(image: QImage) -> bool:
+    """Reject squared opaque sprite backgrounds; preserve transparency or use fallback."""
+    if image.isNull() or image.width() < 2 or image.height() < 2:
+        return True
+    corners = (
+        image.pixelColor(0, 0), image.pixelColor(image.width() - 1, 0),
+        image.pixelColor(0, image.height() - 1),
+        image.pixelColor(image.width() - 1, image.height() - 1),
+    )
+    return all(color.alpha() >= 250 for color in corners)
+
 
 @lru_cache(maxsize=48)
 def unity_ui_icon(name: str, size: int = 24) -> QIcon:
@@ -78,7 +89,12 @@ def unity_ui_icon(name: str, size: int = 24) -> QIcon:
         raise ValueError(f"Unsupported Unity UI icon size: {size}")
     path = sprite_icon_path(name)
     if path is not None:
-        return QIcon(str(path))
+        source = QImage(str(path))
+        # The optional official sprite must not bring an opaque square into
+        # Atlas. Fall back to the existing white pictogram instead of altering
+        # licensed artwork or drawing a black icon tile.
+        if not source.isNull() and not _is_opaque_icon_tile(source):
+            return QIcon(QPixmap.fromImage(source))
 
     pix = QPixmap(size, size)
     pix.fill(Qt.transparent)
@@ -214,8 +230,9 @@ def unity_skin_stylesheet(palette: Mapping[str, str] | None = None) -> str:
             colors["TEXT"], colors["BORDER"],
         ),
         "QHeaderView::section { background: %s; "
-        "color: %s; border: 1px solid %s; }" % (
-            translucent("PANEL_2", 0.95), colors["TEXT"], colors["BORDER"],
+        "color: %s; border: none; border-bottom: 1px solid %s; "
+        "padding: 5px 8px; font-weight: 600; }" % (
+            translucent("PANEL_2", 0.95), colors["TEXT"], colors["BORDER_SOFT"],
         ),
         f"QTabBar::tab {{ background: {translucent('NAV_SURFACE', 0.93)}; "
         f"color: {colors['TEXT_SOFT']}; "
@@ -234,6 +251,7 @@ def unity_skin_stylesheet(palette: Mapping[str, str] | None = None) -> str:
         "text-align: center; }" % (
             translucent("LIST_SURFACE", 0.85), colors["TEXT"], colors["BORDER"],
         ),
+        "QProgressBar::chunk { background: %s; }" % colors["GREEN"],
         "QFrame#card, QFrame#HomeCharacterCard, QFrame#HomeTrackingCard, "
         "QFrame#HomeGuideCard, QFrame#HomeNetworkMiniCard, QFrame#HomeAlmanaxCard, "
         "QFrame#GuideFeaturedCard { "
