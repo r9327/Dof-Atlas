@@ -332,6 +332,26 @@ class UnitySkinTests(unittest.TestCase):
                     )
                 finally:
                     unity_ui_icon.cache_clear()
+            # Bright parts remain legible white, while the original dark
+            # contour becomes a transparent cut-out rather than a white blob.
+            square.fill(Qt.transparent)
+            square.setPixelColor(12, 12, QColor(UNITY_PALETTE["GREEN"]))
+            square.setPixelColor(12, 11, QColor(8, 8, 8))
+            self.assertTrue(square.save(str(path)))
+            with patch.object(unity_skin, "sprite_icon_path", return_value=path):
+                unity_ui_icon.cache_clear()
+                try:
+                    pix = unity_ui_icon("guide", 24).pixmap(24, 24).toImage()
+                    self.assertGreater(
+                        pix.pixelColor(12, 12).alpha(),
+                        pix.pixelColor(12, 11).alpha(),
+                    )
+                    self.assertEqual(
+                        pix.pixelColor(12, 12).name(),
+                        QColor(UNITY_PALETTE["TEXT"]).name(),
+                    )
+                finally:
+                    unity_ui_icon.cache_clear()
 
     def test_unknown_icon_does_not_escape_local_theme_directory(self) -> None:
         with patch.dict(os.environ, {"ATLAS_THEME": "dofus_unity"}):
