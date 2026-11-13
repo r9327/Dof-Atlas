@@ -171,7 +171,7 @@ class DevUiPageTests(unittest.TestCase):
                 page.gallery_navigation.view().itemDelegate(),
                 UnityPopupSeparatorDelegate,
             )
-            self.assertEqual(page.gallery_navigation.count(), 16)
+            self.assertEqual(page.gallery_navigation.count(), 17)
             self.assertEqual(page.gallery_navigation.objectName(), "DevUiFamilyCombo")
             from PySide6.QtWidgets import QStyleOptionViewItem
             row_hint = page.gallery_navigation.view().itemDelegate().sizeHint(
@@ -369,6 +369,60 @@ class DevUiPageTests(unittest.TestCase):
             page.close()
             page.deleteLater()
 
+    def test_motion_gallery_replays_three_real_qt_animations(self) -> None:
+        from app.pages.dev_ui_page import DevUiPage
+        from PySide6.QtCore import QEasingCurve, QPropertyAnimation
+
+        page = DevUiPage(on_back=lambda: None)
+        try:
+            self.assertEqual(
+                set(page.motion_buttons),
+                {"apparition", "panneau", "progression"},
+            )
+            self.assertEqual(set(page.motion_animations), set(page.motion_buttons))
+            self.assertTrue(all(
+                isinstance(animation, QPropertyAnimation)
+                for animation in page.motion_animations.values()
+            ))
+            self.assertTrue(all(
+                animation.easingCurve().type() == QEasingCurve.OutCubic
+                for animation in page.motion_animations.values()
+            ))
+            self.assertEqual(page.motion_duration.value(), 180)
+            self.assertTrue(all(button.styleSheet() == ""
+                                for button in page.motion_buttons.values()))
+
+            # Directly advance the real Qt animation clock: deterministic and
+            # independent of CI host performance or a Windows display server.
+            page.motion_buttons["apparition"].click()
+            self.assertIn("apparition", page.feedback.text())
+            fade = page.motion_animations["apparition"]
+            fade.setCurrentTime(fade.duration())
+            self.assertAlmostEqual(page.motion_opacity.opacity(), 1.0)
+
+            page.motion_duration.setValue(240)
+            page.motion_buttons["panneau"].click()
+            panel = page.motion_animations["panneau"]
+            self.assertEqual(panel.duration(), 240)
+            panel.setCurrentTime(panel.duration())
+            self.assertEqual(
+                page.motion_panel.maximumHeight(), page._motion_panel_height
+            )
+
+            page.motion_buttons["progression"].click()
+            progress = page.motion_animations["progression"]
+            self.assertEqual(progress.duration(), 240)
+            progress.setCurrentTime(progress.duration())
+            self.assertEqual(page.motion_progress.value(), 100)
+
+            # Replaying does not leave a second animation attached to a widget.
+            page.motion_buttons["apparition"].click()
+            self.assertEqual(len(page.motion_animations), 3)
+            self.assertEqual(page.motion_fade_card.styleSheet(), "")
+        finally:
+            page.close()
+            page.deleteLater()
+
     def test_gallery_renders_real_qt_full_height_in_reduced_window(self) -> None:
         """Viewport and full scroll content must be real, grab-able Qt pixels."""
         from app.pages.dev_ui_page import DevUiPage
@@ -378,7 +432,7 @@ class DevUiPageTests(unittest.TestCase):
             page.resize(900, 680)
             page.show()
             self.app.processEvents()
-            self.assertEqual(page.gallery_navigation.count(), 16)
+            self.assertEqual(page.gallery_navigation.count(), 17)
             self.assertGreater(
                 page.gallery_scroll.verticalScrollBar().maximum(), 0
             )
