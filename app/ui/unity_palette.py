@@ -59,6 +59,17 @@ UNITY_PALETTE = {
 }
 
 
+# Shared geometrical tokens for Qt theme and Unity skin. Keep the exact
+# existing values: a style override must reach both layers without drift.
+UNITY_RADII = {
+    "RADIUS_XS": "4px",
+    "RADIUS_SM": "6px",
+    "RADIUS_MD": "8px",
+    "RADIUS_LG": "10px",
+    "RADIUS_XL": "12px",
+}
+
+
 _LAUNCHER_ROLES = {
     "background": "BG",
     "panel": "PANEL",

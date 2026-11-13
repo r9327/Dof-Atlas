@@ -12,7 +12,7 @@ from PySide6.QtCore import QRectF
 from PySide6.QtGui import QColor, QFontDatabase, QLinearGradient, QPainter, QPixmap
 from PySide6.QtWidgets import QGraphicsDropShadowEffect, QWidget
 
-from app.ui.unity_palette import UNITY_PALETTE
+from app.ui.unity_palette import UNITY_PALETTE, UNITY_RADII
 
 
 _ASSETS = Path(__file__).resolve().parents[1] / "assets" / "themes" / "dofus_unity"
@@ -94,6 +94,10 @@ def unity_skin_stylesheet(palette: Mapping[str, str] | None = None) -> str:
     if not unity_enabled():
         return ""
     colors = UNITY_PALETTE if palette is None else {**UNITY_PALETTE, **palette}
+    radii = {
+        **UNITY_RADII,
+        **{key: value for key, value in (palette or {}).items() if key in UNITY_RADII},
+    }
 
     def translucent(role: str, alpha: float) -> str:
         """Keep current glass opacity while following live Unity color tokens."""
@@ -132,8 +136,9 @@ def unity_skin_stylesheet(palette: Mapping[str, str] | None = None) -> str:
         # Shared widget families, never changes their existing geometry or actions.
         "QGroupBox, QTabWidget::pane { "
         "background: %s; color: %s; "
-        "border: 1px solid %s; border-radius: 6px; }" % (
+        "border: 1px solid %s; border-radius: %s; }" % (
             translucent("PANEL", 0.78), colors["TEXT"], colors["BORDER"],
+            radii["RADIUS_SM"],
         ),
         "QListView, QTreeView, QTableView, QListWidget, QTreeWidget, QTableWidget { "
         "background: %s; color: %s; "
@@ -173,8 +178,11 @@ def unity_skin_stylesheet(palette: Mapping[str, str] | None = None) -> str:
         # Featured Guide cards are deliberately accented, but share the same
         # palette and selector ownership as every other Unity surface.
         "QFrame#GuideFeaturedCard { background: qlineargradient(x1:0,y1:0,x2:0,y2:1, "
-        "stop:0 %s, stop:1 %s); border: 1px solid %s; border-radius: 8px; }"
-        % (colors["PANEL_ACTIVE"], colors["PANEL"], colors["GREEN_BORDER"]),
+        "stop:0 %s, stop:1 %s); border: 1px solid %s; border-radius: %s; }"
+        % (
+            colors["PANEL_ACTIVE"], colors["PANEL"], colors["GREEN_BORDER"],
+            radii["RADIUS_MD"],
+        ),
         "QFrame#GuideFeaturedCard:hover { background: %s; border: 1px solid %s; }"
         % (colors["PANEL_HOVER"], colors["GREEN_HOVER"]),
         "QFrame#GuideFeaturedCard:focus { border: 2px solid %s; }"
@@ -185,9 +193,11 @@ def unity_skin_stylesheet(palette: Mapping[str, str] | None = None) -> str:
         "QFrame#GuideFeaturedCard QLabel#FeaturedSubtitle { color: %s; }"
         % colors["TEXT_MUTED"],
         "QFrame#GuideFeaturedCard QProgressBar#GuideFeaturedProgress { "
-        "border: 0; background: %s; border-radius: 4px; }" % colors["BORDER_SOFT"],
+        "border: 0; background: %s; border-radius: %s; }"
+        % (colors["BORDER_SOFT"], radii["RADIUS_XS"]),
         "QFrame#GuideFeaturedCard QProgressBar#GuideFeaturedProgress::chunk { "
-        "background: %s; border-radius: 4px; }" % colors["GREEN"],
+        "background: %s; border-radius: %s; }"
+        % (colors["GREEN"], radii["RADIUS_XS"]),
         "QFrame#GuideCompactHeader, QFrame#GuideSheetHeader, "
         "QFrame#GuidePreparationPanel { "
         "background: %s; border: 1px solid %s; }" % (
@@ -213,8 +223,9 @@ def unity_skin_stylesheet(palette: Mapping[str, str] | None = None) -> str:
         "text-align: left; background: transparent; border: none; "
         "color: %s; padding: 3px; }" % colors["GUIDE_ITEM_TEXT"],
         "QPushButton#GuidePreparationItemCopy:hover { "
-        "background: %s; border-radius: 4px; }" %
-        translucent("GUIDE_COPY_HOVER", 0.30),
+        "background: %s; border-radius: %s; }" % (
+            translucent("GUIDE_COPY_HOVER", 0.30), radii["RADIUS_XS"],
+        ),
         "QLabel#GuidePreparationRowStatus, QLabel#GuidePreparationParticipantNeed { "
         "color: %s; font-weight: 600; }" % colors["GUIDE_STATUS_TEXT"],
         "QFrame#GuideManualNav { "

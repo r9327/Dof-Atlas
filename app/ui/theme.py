@@ -3,6 +3,7 @@ from __future__ import annotations
 from collections.abc import Mapping
 from functools import lru_cache
 
+from app.ui.unity_palette import UNITY_RADII
 from app.ui.unity_skin import UNITY_PALETTE, unity_skin_stylesheet
 
 
@@ -42,11 +43,7 @@ SPACING = {
 }
 
 SIZES = {
-    "RADIUS_XS": "4px",
-    "RADIUS_SM": "6px",
-    "RADIUS_MD": "8px",
-    "RADIUS_LG": "10px",
-    "RADIUS_XL": "12px",
+    **UNITY_RADII,
     "CONTROL_HEIGHT_COMPACT": "24px",
     "CONTROL_HEIGHT": "32px",
     "TOP_NAV_HEIGHT": "58px",

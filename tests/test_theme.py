@@ -110,6 +110,34 @@ class SharedThemeTests(unittest.TestCase):
         self.assertIn("QFrame#GuideManualLineRow", style)
         self.assertIn("QCheckBox#GuideManualCombatCheck", style)
 
+    def test_unity_skin_radii_follow_theme_overrides_without_local_duplicates(self) -> None:
+        from app.ui.unity_palette import UNITY_RADII
+
+        self.assertEqual(
+            {key: theme.SIZES[key] for key in UNITY_RADII}, UNITY_RADII,
+        )
+        style = theme.atlas_stylesheet({
+            "RADIUS_XS": "14px",
+            "RADIUS_SM": "16px",
+            "RADIUS_MD": "18px",
+        })
+        group = style.split("QGroupBox, QTabWidget::pane {", 1)[1].split("}", 1)[0]
+        self.assertIn("border-radius: 16px;", group)
+        featured = style.split(
+            "QFrame#GuideFeaturedCard { background: qlineargradient(", 1
+        )[1].split("}", 1)[0]
+        self.assertIn("border-radius: 18px;", featured)
+        progress = style.split(
+            "QFrame#GuideFeaturedCard QProgressBar#GuideFeaturedProgress {", 1
+        )[1].split("}", 1)[0]
+        self.assertIn("border-radius: 14px;", progress)
+        copy_hover = style.split(
+            "QPushButton#GuidePreparationItemCopy:hover {", 1
+        )[1].split("}", 1)[0]
+        self.assertIn("border-radius: 14px;", copy_hover)
+        self.assertEqual(theme.SIZES["RADIUS_SM"], "6px")
+        self.assertEqual(theme.SIZES["RADIUS_MD"], "8px")
+
     def test_guide_buttons_remain_themed_after_dropdown_unification(self) -> None:
         style = theme.atlas_stylesheet({"GREEN_BORDER": "#135790"})
         button_hover = style.split(

@@ -81,6 +81,20 @@ class UnitySkinTests(unittest.TestCase):
         finally:
             toggle.deleteLater()
 
+    def test_unity_skin_radius_overrides_follow_shared_metrics(self) -> None:
+        from app.ui.unity_palette import UNITY_RADII
+
+        style = unity_skin_stylesheet({
+            "RADIUS_XS": "14px",
+            "RADIUS_SM": "16px",
+            "RADIUS_MD": "18px",
+        })
+        self.assertIn("border-radius: 16px;", style)
+        self.assertIn("border-radius: 18px;", style)
+        self.assertIn("border-radius: 14px;", style)
+        self.assertEqual(UNITY_RADII["RADIUS_SM"], "6px")
+        self.assertEqual(UNITY_RADII["RADIUS_MD"], "8px")
+
     def test_shared_unity_widget_families_follow_single_palette(self) -> None:
         overrides = {
             "TEXT": "#102030",
