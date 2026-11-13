@@ -146,13 +146,13 @@ class UnitySkinTests(unittest.TestCase):
         # every one of them. Exercise the actual shell/Home composition.
         from main import AtlasWindow
 
-        with tempfile.TemporaryDirectory() as directory, (
+        with (
+            tempfile.TemporaryDirectory() as directory,
             patch.object(unity_skin, "_PERSONAL_ASSETS", Path(directory) / "personal"),
             patch.object(unity_skin, "_ASSETS", Path(directory) / "assets"),
             patch.object(AtlasWindow, "start_startup_preload_sequence", return_value=None),
             patch.object(AtlasWindow, "setup_tray", return_value=None),
-        ), patch.object(
-            unity_skin, "_PUBLIC_SKY_STARS", ((0.012, 0.55, 7.0, 255),)
+            patch.object(unity_skin, "_PUBLIC_SKY_STARS", ((0.012, 0.55, 7.0, 255),)),
         ):
             window = AtlasWindow(initial_preload={})
             try:
