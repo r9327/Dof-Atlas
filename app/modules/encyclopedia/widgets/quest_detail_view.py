@@ -124,6 +124,20 @@ class QuestDetailView(QWidget):
         self.done_button.setFocusPolicy(Qt.NoFocus)
         self.done_button.clicked.connect(self.toggle_completed)
         header_layout.addWidget(self.done_button, 0, Qt.AlignRight | Qt.AlignVCenter)
+        # The same Unity control serves Quêtes and the shared Guide quest sheet.
+        self._right_panel_collapsed = False
+        self._right_panel_saved_width = 300
+        self._right_panel_scroll_position = 0
+        self.right_panel_toggle = QToolButton()
+        self.right_panel_toggle.setObjectName("GuideRightPanelToggle")
+        self.right_panel_toggle.setCursor(Qt.PointingHandCursor)
+        self.right_panel_toggle.setFocusPolicy(Qt.StrongFocus)
+        self.right_panel_toggle.setText("›")
+        self.right_panel_toggle.setToolTip("Masquer la colonne d'informations")
+        self.right_panel_toggle.setAccessibleName("Masquer la colonne d'informations")
+        self.right_panel_toggle.setProperty("collapsed", False)
+        self.right_panel_toggle.clicked.connect(self.toggle_right_panel)
+        header_layout.addWidget(self.right_panel_toggle, 0, Qt.AlignRight | Qt.AlignVCenter)
         root.addWidget(self.header)
 
         self.splitter = FixedColumnSplitter(Qt.Horizontal)
@@ -167,6 +181,44 @@ class QuestDetailView(QWidget):
         scroll.setWidget(content)
         panel_root.addWidget(scroll, 1)
         return panel, scroll, layout
+
+    def toggle_right_panel(self) -> None:
+        self.set_right_panel_collapsed(not self._right_panel_collapsed)
+
+    def set_right_panel_collapsed(self, collapsed: bool) -> None:
+        """Hide only the information panel, keeping the current quest and scroll."""
+        collapsed = bool(collapsed)
+        if collapsed == self._right_panel_collapsed:
+            return
+        if collapsed:
+            sizes = self.splitter.sizes()
+            if len(sizes) == 2 and sizes[1] >= self.right_panel.minimumWidth():
+                self._right_panel_saved_width = min(self.right_panel.maximumWidth(), sizes[1])
+            self._right_panel_scroll_position = self.right_scroll.verticalScrollBar().value()
+
+        self._right_panel_collapsed = collapsed
+        self.right_panel.setVisible(not collapsed)
+        self.right_panel_toggle.setText("‹" if collapsed else "›")
+        caption = (
+            "Réafficher la colonne d'informations"
+            if collapsed else "Masquer la colonne d'informations"
+        )
+        self.right_panel_toggle.setToolTip(caption)
+        self.right_panel_toggle.setAccessibleName(caption)
+        self.right_panel_toggle.setProperty("collapsed", collapsed)
+        self.right_panel_toggle.style().unpolish(self.right_panel_toggle)
+        self.right_panel_toggle.style().polish(self.right_panel_toggle)
+
+        if not collapsed:
+            width = max(self.splitter.width(), sum(self.splitter.sizes()))
+            right = max(
+                self.right_panel.minimumWidth(),
+                min(self.right_panel.maximumWidth(), self._right_panel_saved_width),
+            )
+            if width > 0:
+                self.splitter.setSizes([max(self.center_panel.minimumWidth(), width - right), right])
+            bar = self.right_scroll.verticalScrollBar()
+            bar.setValue(min(self._right_panel_scroll_position, bar.maximum()))
 
     @classmethod
     def _clear_layout(cls, layout) -> None:
@@ -229,6 +281,9 @@ class QuestDetailView(QWidget):
         self._render_information(quest, guide, step, achievements)
         self.questChanged.emit(int(quest.id))
         if self.current_quest_id != previous_quest_id:
+            # A new quest always starts at its own top, even if info was hidden.
+            if self._right_panel_collapsed:
+                self._right_panel_scroll_position = 0
             for scroll in (self.center_scroll, self.right_scroll):
                 bar = scroll.verticalScrollBar()
                 bar.setValue(bar.minimum())

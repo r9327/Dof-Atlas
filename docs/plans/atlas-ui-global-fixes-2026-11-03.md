@@ -96,3 +96,10 @@ Ne cocher aucun ID de #364 sur cette seule base. Ne pas fusionner tant que les o
 - L'exécution de la suite `tests/test_guide_library_home.py` au SHA `0cd1e2f47c855376cd90ea670e87ed00fa78d319` a passé ses 11 cas, dont le fil d'Ariane ; mais le routeur Doctor de lot rendait `REVIEW`, car `app/modules/encyclopedia/views/guides_view.py` n'avait pas de test reconnu comme propriétaire direct.
 - Le même scénario Qt est placé **une seule fois** dans `tests/test_guides_view.py`, correspondant directement au module de production sans modifier la carte des tests ou assouplir le planificateur Doctor. L'ancien test est retiré de `tests/test_guide_library_home.py` et ce fichier retourne à la version du SHA précédent.
 - Validation du nouveau HEAD et de sa suite Qt en attente ; ne pas interpréter `REVIEW` ou l'absence de FULL comme un PASS.
+
+### Quêtes — 3e colonne masquable/restaurable (ATQT-001 partiel)
+
+- La feuille partagée `QuestDetailView` réutilise maintenant le bouton `GuideRightPanelToggle`, avec des couleurs/états issus de `app/ui/theme.py`. Pas de palette locale, ni de nouveau renderer.
+- Un clic masque uniquement la colonne « informations » et libère son espace ; le bouton reste accessible dans l'en-tête pour la réafficher. La largeur utile et le défilement de la quête courante sont conservés. Lors d'un changement de quête, le défilement repart du haut.
+- La même feuille est utilisée par Quêtes et le détail Quêtes des Guides ; la progression, les données et les actions restent inchangées.
+- Le test Qt `tests/test_quest_detail_view.py` couvre le round-trip, l'état du bouton, la conservation du défilement et le thème commun. La validation Doctor ciblée, l'ouverture réelle Windows et l'harmonisation du menu Quêtes restent **à prouver** ; ATQT-001 n'est pas globalement DONE.

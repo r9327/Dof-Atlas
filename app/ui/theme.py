@@ -2484,6 +2484,31 @@ QToolButton#GuideItemIcon[state="done"] {
 }
 
 
+/* One semantic Unity control for Guide and Quêtes information rails. */
+QToolButton#GuideRightPanelToggle {
+    background: @PANEL_2;
+    color: @TEXT_SOFT;
+    border: 1px solid @BORDER;
+    border-radius: @RADIUS_SM;
+    min-width: @CONTROL_HEIGHT_COMPACT;
+    min-height: @CONTROL_HEIGHT_COMPACT;
+}
+QToolButton#GuideRightPanelToggle:hover,
+QToolButton#GuideRightPanelToggle:focus {
+    background: @PANEL_HOVER;
+    color: @TEXT;
+    border-color: @GREEN_BORDER;
+}
+QToolButton#GuideRightPanelToggle:pressed,
+QToolButton#GuideRightPanelToggle[collapsed="true"] {
+    background: @PANEL_ACTIVE;
+    border-color: @GREEN_BORDER;
+}
+QToolButton#GuideRightPanelToggle:disabled {
+    color: @TEXT_DISABLED;
+    border-color: @BORDER_SOFT;
+}
+
 /* Guide Ultime variants. */
 
 QFrame#GuideBreadcrumb {
