@@ -97,6 +97,7 @@ class DevUiPage(QWidget):
         self._build_tabs_and_menus(content)
         self._build_fields(content)
         self._build_panels(content)
+        self._build_startup_preview(content)
         self._build_dialogs_and_colors(content)
         content.addStretch(1)
 
@@ -264,6 +265,25 @@ class DevUiPage(QWidget):
         self.panel_toggle.set_collapsed(collapsed)
         self.preview_panel.setHidden(collapsed)
         self._report("Panneau masqué" if collapsed else "Panneau affiché")
+
+    def _build_startup_preview(self, parent: QVBoxLayout) -> None:
+        """Show startup's actual global QSS selectors without running preload."""
+        section = self._section(parent, "Préchargement · même thème Unity")
+        self.startup_title = QLabel("Dofus Atlas")
+        self.startup_title.setObjectName("PreloadPopupTitle")
+        self.startup_title.setAlignment(Qt.AlignCenter)
+        section.addWidget(self.startup_title)
+
+        self.startup_status = QLabel("Préparation de Guides & Succès…")
+        self.startup_status.setObjectName("PreloadPopupCurrent")
+        self.startup_status.setAlignment(Qt.AlignCenter)
+        section.addWidget(self.startup_status)
+
+        self.startup_progress = QProgressBar()
+        self.startup_progress.setObjectName("PreloadPopupProgress")
+        self.startup_progress.setRange(0, 3)
+        self.startup_progress.setValue(2)
+        section.addWidget(self.startup_progress)
 
     def _build_dialogs_and_colors(self, parent: QVBoxLayout) -> None:
         section = self._section(parent, "Dialogues · icônes · typographie")

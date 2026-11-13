@@ -63,6 +63,32 @@ class ThemeRuntimeCacheTests(unittest.TestCase):
         self.assertIn("border-color: #234BCD;", hover)
         self.assertIn("QComboBox::drop-down {", style)
 
+    def test_preload_popup_style_is_canonical_and_follows_unity_tokens(self) -> None:
+        style = theme.atlas_stylesheet({
+            "BG": "#102030",
+            "PANEL_2": "#203040",
+            "BORDER": "#304050",
+            "TEXT": "#405060",
+            "TEXT_MUTED": "#506070",
+            "GREEN": "#607080",
+            "FONT_FAMILY": '"Arial"',
+            "RADIUS_XL": "15px",
+        })
+        selectors = (
+            ("QDialog#PreloadProgressPopup", ("background: #102030;", "border: 1px solid #304050;", "border-radius: 15px;")),
+            ("QLabel#PreloadPopupTitle", ("color: #405060;", 'font-family: "Arial";')),
+            ("QLabel#PreloadPopupCurrent", ("color: #506070;", 'font-family: "Arial";')),
+            ("QProgressBar#PreloadPopupProgress", ("background: #203040;", "color: #405060;")),
+            ("QProgressBar#PreloadPopupProgress::chunk", ("background: #607080;",)),
+        )
+        for selector, rules in selectors:
+            with self.subTest(selector=selector):
+                section = style.split(selector + " {", 1)[1].split("}", 1)[0]
+                for rule in rules:
+                    self.assertIn(rule, section)
+        from app.ui.preload_popup import PreloadProgressPopup
+        self.assertNotIn("setStyleSheet(", PreloadProgressPopup.__init__.__code__.co_names)
+
     def test_module_navigation_states_use_shared_tokens(self) -> None:
         style = theme.atlas_stylesheet({
             "GREEN_BORDER": "#123ABC",

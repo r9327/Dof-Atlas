@@ -218,3 +218,11 @@ Ne cocher aucun ID de #364 sur cette seule base. Ne pas fusionner tant que les o
 - **Connexions cliquables :** tests dans `tests/test_unity_skin.py` pour les variantes et états de navigation, menu QAction, menu déroulant, onglets, bouton de panneau (masquer/restaurer), slider→progress, popup non bloquante et retour Paramètres. Le test vérifie aussi l'absence de style local.
 - **Validation utilisateur :** ouvrir ce module dans une build Windows de ce SHA, comparer couleurs, tailles, bordures, polices, survol/focus/désactivé, scroll et popup, puis noter les écarts. Ce laboratoire **ne remplace pas** les vérifications réelles des autres modules, du Launcher natif ou d'Organizer, et ne certifie pas à lui seul ATUI-015/016.
 - **Statut :** ce lot reste **partiel** tant que les suites CI au dernier HEAD, les preuves visuelles et l'inventaire de chaque écran ne sont pas passés. Ne pas cocher les 43 exigences ou fusionner sur cette seule implémentation.
+
+
+### P0 UI — lot regroupé, une validation CI par priorité (13/11/2026)
+
+- Contrat de travail : **grouper code + tests + documentation dans un seul commit par lot**, puis un contrôle CI ciblé **à la fin de P0**, pas une série de validations volontairement déclenchées à chaque micro-correction. Les checks GitHub automatiques liés au push restent sous le contrôle du dépôt : les commits de ce lot doivent donc être groupés avant push.
+- **Source unique confirmée :** la fenêtre de préchargement (`app/ui/preload_popup.py`) possédait encore son `setStyleSheet` local (fenêtre, titres, progression). Les règles sont migrées à `app/ui/theme.py`, où les mêmes tokens de couleurs, font et dimensions s'appliquent à toutes les instances sans masquer le style global. Le contrôleur de préchargement, ses états et son handoff ne changent pas.
+- **Validation Dev :** la bibliothèque UI expose maintenant un aperçu des vrais widgets `PreloadPopupTitle`, `PreloadPopupCurrent` et `PreloadPopupProgress`, sans instancier de worker ou d'écran modal. Les tests vérifient la propagation des tokens et l'absence de stylesheet local ainsi que la présence des widgets dans la galerie.
+- **Statut :** ce lot prouve uniquement la suppression d'un doublon identifié et reste P0 partiel tant que le scénario Windows réel, les autres QSS locaux et la validation finale à HEAD exact ne sont pas bouclés.

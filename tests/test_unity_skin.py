@@ -123,6 +123,10 @@ class UnitySkinTests(unittest.TestCase):
                 "PrimaryActionButton",
             )
             self.assertFalse(page.preview_buttons["disabled"].isEnabled())
+            self.assertEqual(page.startup_title.objectName(), "PreloadPopupTitle")
+            self.assertEqual(page.startup_status.objectName(), "PreloadPopupCurrent")
+            self.assertEqual(page.startup_progress.objectName(), "PreloadPopupProgress")
+            self.assertEqual(page.startup_progress.value(), 2)
             page.preview_buttons["primary"].click()
             self.assertIn("primary", page.feedback.text())
 

@@ -46,6 +46,7 @@ SIZES = {
     "RADIUS_SM": "6px",
     "RADIUS_MD": "8px",
     "RADIUS_LG": "10px",
+    "RADIUS_XL": "12px",
     "CONTROL_HEIGHT_COMPACT": "24px",
     "CONTROL_HEIGHT": "32px",
     "TOP_NAV_HEIGHT": "58px",
@@ -282,6 +283,36 @@ QDialog#CloseActionDialog {
     background: @BORDER_SOFT;
     border: none;
     max-height: 1px;
+}
+
+/* Single owner for the launcher handoff popup: no widget-local stylesheet. */
+QDialog#PreloadProgressPopup {
+    background: @BG;
+    border: 1px solid @BORDER;
+    border-radius: @RADIUS_XL;
+}
+QLabel#PreloadPopupTitle {
+    color: @TEXT;
+    font-size: 22px;
+    font-weight: 700;
+    font-family: @FONT_FAMILY;
+}
+QLabel#PreloadPopupCurrent {
+    color: @TEXT_MUTED;
+    font-size: @FONT_BODY;
+    font-family: @FONT_FAMILY;
+}
+QProgressBar#PreloadPopupProgress {
+    background: @PANEL_2;
+    color: @TEXT;
+    border: 1px solid @BORDER;
+    border-radius: @RADIUS_SM;
+    min-height: 17px;
+    text-align: center;
+}
+QProgressBar#PreloadPopupProgress::chunk {
+    background: @GREEN;
+    border-radius: 5px;
 }
 
 #organizerPage, #worldScanPage, #OrganizerPage, #QuestsPage, #EncyclopediaPage {
