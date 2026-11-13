@@ -155,34 +155,45 @@ def unity_skin_stylesheet() -> str:
         "QScrollArea > QWidget > QWidget { background: transparent; }",
         # Shared widget families, never changes their existing geometry or actions.
         "QGroupBox, QTabWidget::pane { "
-        "background: rgba(27, 39, 70, 0.78); color: #F1F6FB; "
-        "border: 1px solid #475F89; border-radius: 6px; }",
+        "background: rgba(27, 39, 70, 0.78); color: %s; "
+        "border: 1px solid %s; border-radius: 6px; }" % (
+            UNITY_PALETTE["TEXT"], UNITY_PALETTE["BORDER"],
+        ),
         "QListView, QTreeView, QTableView, QListWidget, QTreeWidget, QTableWidget { "
-        "background: rgba(21, 32, 59, 0.92); color: #F1F6FB; "
+        "background: rgba(21, 32, 59, 0.92); color: %s; "
         "alternate-background-color: rgba(33, 49, 84, 0.88); "
-        "selection-background-color: #344978; selection-color: #F1F6FB; "
-        "border: 1px solid #475F89; }",
+        "selection-background-color: %s; selection-color: %s; "
+        "border: 1px solid %s; }" % (
+            UNITY_PALETTE["TEXT"], UNITY_PALETTE["PANEL_ACTIVE"],
+            UNITY_PALETTE["TEXT"], UNITY_PALETTE["BORDER"],
+        ),
         "QHeaderView::section { background: rgba(33, 49, 84, 0.95); "
-        "color: #F1F6FB; border: 1px solid #475F89; }",
+        "color: %s; border: 1px solid %s; }" % (
+            UNITY_PALETTE["TEXT"], UNITY_PALETTE["BORDER"],
+        ),
         f"QTabBar::tab {{ background: rgba(25, 38, 75, 0.93); "
         f"color: {UNITY_PALETTE['TEXT_SOFT']}; "
         f"border: 2px solid {UNITY_PALETTE['BORDER']}; }}",
         f"QTabBar::tab:hover {{ background: {UNITY_PALETTE['PANEL_HOVER']}; }}",
         f"QTabBar::tab:selected {{ color: {UNITY_PALETTE['TEXT']}; "
         f"background: {UNITY_PALETTE['PANEL_ACTIVE']}; }}",
-        "QToolTip { background: #192657; color: #F1F6FB; "
-        "border: 1px solid #7B9BC8; padding: 4px; }",
+        "QToolTip { background: #192657; color: %s; "
+        "border: 1px solid %s; padding: 4px; }" % (
+            UNITY_PALETTE["TEXT"], UNITY_PALETTE["BORDER_STRONG"],
+        ),
         "QProgressBar { background: rgba(21, 32, 59, 0.85); "
-        "color: #F1F6FB; border: 1px solid #475F89; "
-        "text-align: center; }",
+        "color: %s; border: 1px solid %s; "
+        "text-align: center; }" % (
+            UNITY_PALETTE["TEXT"], UNITY_PALETTE["BORDER"],
+        ),
         "QFrame#card, QFrame#HomeCharacterCard, QFrame#HomeTrackingCard, "
         "QFrame#HomeGuideCard, QFrame#HomeNetworkMiniCard, QFrame#HomeAlmanaxCard, "
         "QFrame#GuideFeaturedCard { "
-        "background: rgba(27, 39, 70, 0.88); border: 1px solid #617CA6; "
-        "border-radius: 9px; }",
+        "background: rgba(27, 39, 70, 0.88); border: 1px solid %s; "
+        "border-radius: 9px; }" % UNITY_PALETTE["BORDER_CARD"],
         "QFrame#GuideCompactHeader, QFrame#GuideSheetHeader, "
         "QFrame#GuidePreparationPanel { "
-        "background: rgba(24, 37, 70, 0.93); border: 1px solid #475F89; }",
+        "background: rgba(24, 37, 70, 0.93); border: 1px solid %s; }" % UNITY_PALETTE["BORDER"],
         # Small bevels and stronger contrast for the real guide surfaces.
         # QSS has no native box-shadow; personal 9-slice sprites can supply
         # the game-native depth when installed.
@@ -222,12 +233,16 @@ def unity_skin_stylesheet() -> str:
         "QToolButton#GuideParticipantsButton:hover { "
         "background: %s; }" % UNITY_PALETTE["GUIDE_TOGGLE_HOVER"],
         "QDialog#AtlasDialog, QMenu { "
-        "background: rgba(25, 38, 75, 0.98); color: #F1F6FB; "
-        "border: 1px solid #617CA6; }",
+        "background: rgba(25, 38, 75, 0.98); color: %s; "
+        "border: 1px solid %s; }" % (
+            UNITY_PALETTE["TEXT"], UNITY_PALETTE["BORDER_CARD"],
+        ),
         "QLineEdit, QComboBox, QSpinBox, QDoubleSpinBox, QTextEdit, "
         "QPlainTextEdit { "
-        "background: rgba(20, 29, 55, 0.96); color: #F1F6FB; "
-        "border: 1px solid #617CA6; }",
+        "background: rgba(20, 29, 55, 0.96); color: %s; "
+        "border: 1px solid %s; }" % (
+            UNITY_PALETTE["TEXT"], UNITY_PALETTE["BORDER_CARD"],
+        ),
         # Focus must be appended AFTER all sprite rules to remain visible.
         "#PageTitle, #HomeGuideTitle, #TopNavBrandText { "
         'font-family: "Rowdies", "Lexend", "Segoe UI"; }',
@@ -308,7 +323,7 @@ def unity_skin_stylesheet() -> str:
     rules.append(
         "QPushButton:focus, QToolButton:focus, QCheckBox:focus, "
         "QComboBox:focus, QLineEdit:focus, QTreeView:focus, QListView:focus { "
-        "border: 2px solid #D9EAF2; }"
+        "border: 2px solid %s; }" % UNITY_PALETTE["TEXT_SOFT"]
     )
     # ID-specific sprite rules otherwise outrank a generic :focus selector.
     # A visible focus outline takes priority over decorative border-images.
@@ -319,7 +334,7 @@ def unity_skin_stylesheet() -> str:
     )
     rules.append(
         ", ".join(f"QPushButton#{name}:focus" for name in focus_button_names)
-        + " { border: 2px solid #D9EAF2; border-image: none; }"
+        + " { border: 2px solid %s; border-image: none; }" % UNITY_PALETTE["TEXT_SOFT"]
     )
     return "\n".join(rules)
 

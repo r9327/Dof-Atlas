@@ -1716,17 +1716,17 @@ QMenu::separator {
 }
 
 #HomePlaceholderBadge {
-    background: #2A2B11;
-    border: 1px solid #7D8424;
+    background: @BADGE_BG;
+    border: 1px solid @BADGE_BORDER;
     border-radius: 5px;
-    color: #C9D44C;
+    color: @BADGE_TEXT;
     font-size: 11px;
     font-weight: 900;
     padding: 4px 10px;
 }
 
 #HomeAlmanaxText {
-    color: #D7DDD8;
+    color: @TEXT_SOFT;
     font-size: 14px;
     font-weight: 500;
     padding: 8px 10px;

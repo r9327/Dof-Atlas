@@ -20,6 +20,34 @@ from app.ui.unity_skin import (
 
 
 class UnitySkinTests(unittest.TestCase):
+    def test_shared_unity_widget_families_follow_single_palette(self) -> None:
+        overrides = {
+            "TEXT": "#102030",
+            "TEXT_SOFT": "#304050",
+            "BORDER": "#405060",
+            "BORDER_CARD": "#506070",
+            "BORDER_STRONG": "#607080",
+            "PANEL_ACTIVE": "#708090",
+        }
+        with patch.dict(UNITY_PALETTE, overrides):
+            style = unity_skin_stylesheet()
+
+        for selector, expected_rules in (
+            ("QGroupBox, QTabWidget::pane {", ("color: #102030;", "border: 1px solid #405060;")),
+            ("QTableWidget {", ("color: #102030;", "selection-background-color: #708090;")),
+            ("QHeaderView::section {", ("color: #102030;", "border: 1px solid #405060;")),
+            ("QToolTip {", ("color: #102030;", "border: 1px solid #607080;")),
+            ("QProgressBar {", ("color: #102030;", "border: 1px solid #405060;")),
+            ("QFrame#GuideFeaturedCard {", ("border: 1px solid #506070;",)),
+            ("QDialog#AtlasDialog, QMenu {", ("color: #102030;", "border: 1px solid #506070;")),
+            ("QPlainTextEdit {", ("color: #102030;", "border: 1px solid #506070;")),
+        ):
+            with self.subTest(selector=selector):
+                section = style.split(selector, 1)[1].split("}", 1)[0]
+                for expected in expected_rules:
+                    self.assertIn(expected, section)
+        self.assertIn("border: 2px solid #304050; border-image: none;", style)
+
     def test_guide_controls_render_the_canonical_palette_values(self) -> None:
         with patch.dict(UNITY_PALETTE, {"GUIDE_NAV_BORDER": "#010203"}):
             self.assertIn("border-top: 1px solid #010203;", unity_skin_stylesheet())

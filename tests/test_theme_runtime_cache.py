@@ -83,6 +83,20 @@ class ThemeRuntimeCacheTests(unittest.TestCase):
         self.assertIn("border: 1px solid #123ABC;", focused)
         self.assertIn("border-bottom: 2px solid " + theme.PALETTE["GREEN"] + ";", focused)
 
+    def test_home_badge_and_almanax_use_shared_semantic_tokens(self) -> None:
+        style = theme.atlas_stylesheet({
+            "BADGE_BG": "#112233",
+            "BADGE_BORDER": "#223344",
+            "BADGE_TEXT": "#334455",
+            "TEXT_SOFT": "#445566",
+        })
+        badge = style.split("#HomePlaceholderBadge {", 1)[1].split("}", 1)[0]
+        almanax = style.split("#HomeAlmanaxText {", 1)[1].split("}", 1)[0]
+        self.assertIn("background: #112233;", badge)
+        self.assertIn("border: 1px solid #223344;", badge)
+        self.assertIn("color: #334455;", badge)
+        self.assertIn("color: #445566;", almanax)
+
     def test_guide_category_tree_follows_shared_unity_tokens(self) -> None:
         style = theme.atlas_stylesheet({
             "PANEL_ACTIVE": "#123ABC",
