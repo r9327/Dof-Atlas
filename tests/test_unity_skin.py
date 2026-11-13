@@ -264,6 +264,41 @@ class UnitySkinTests(unittest.TestCase):
         self.assertEqual(shell.pending_guide_target, ("dofus_sylvestre", None))
         self.assertEqual(calls[0], ("tab", GUIDES_TAB))
 
+    def test_home_layout_fits_atlas_minimum_window_without_clipping_columns(self) -> None:
+        from app.constants import MIN_WINDOW_HEIGHT, MIN_WINDOW_WIDTH
+        from app.pages.home_page import HomePage
+
+        home = HomePage()
+        try:
+            for width, height in (
+                (MIN_WINDOW_WIDTH, MIN_WINDOW_HEIGHT),
+                (1180, 720),
+            ):
+                with self.subTest(width=width, height=height):
+                    home.resize(width, height)
+                    home.show()
+                    self.app.processEvents()
+                    self.assertEqual(home.width(), width)
+                    self.assertLessEqual(home.minimumSizeHint().width(), width)
+                    self.assertTrue(home.right_column.isVisible())
+                    self.assertTrue(home.almanax_card.isVisible())
+                    self.assertLess(
+                        home.left_column.geometry().right(),
+                        home.guide_card.geometry().left(),
+                    )
+                    self.assertLess(
+                        home.guide_card.geometry().right(),
+                        home.right_column.geometry().left(),
+                    )
+                    self.assertLessEqual(
+                        home.right_column.geometry().right(),
+                        home.rect().right(),
+                    )
+        finally:
+            home.close()
+            home.deleteLater()
+            self.app.processEvents()
+
     def test_home_tracking_icons_preserve_local_alpha_and_fallback(self) -> None:
         from PySide6.QtWidgets import QLabel
         from app.pages.home_page import HomeTrackingRow
