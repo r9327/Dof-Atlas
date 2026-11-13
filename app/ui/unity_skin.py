@@ -349,15 +349,15 @@ def unity_skin_stylesheet(palette: Mapping[str, str] | None = None) -> str:
                 insets,
             )
 
-    # Keep semantic colors / focus from shared theme; the sprite provides relief.
+    # Shared buttons must use the same palette everywhere. The optional
+    # darkStone btn_yellow2 image is GOLD and overrides the blue secondary
+    # role; btn_green can appear neon in Windows offscreen captures. Neither
+    # is an appropriate skin for the universal AtlasButton variants.
+    # Their normal / hover / pressed / disabled colors are already provided
+    # by app.ui.theme. Preserve optional artwork on dedicated controls only.
     sprites_for_states(
-        "QPushButton#PrimaryActionButton, QPushButton#primaryButton, "
         "QPushButton#HomeContinueButton, QPushButton#FeaturedGuideOpen",
         "btn_green", 8,
-    )
-    sprites_for_states(
-        "QPushButton#SecondaryButton, QPushButton#secondaryButton",
-        "btn_yellow2", 8,
     )
     sprites_for_states(
         "QPushButton#GuideManualPageCheck",
