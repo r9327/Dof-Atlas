@@ -150,6 +150,10 @@ class DevUiPageTests(unittest.TestCase):
             self.assertEqual(page.preview_text_actions["inline_action"].styleSheet(), "")
             page.preview_text_actions["inline_action"].click()
             self.assertIn("Détails ouverts", page.feedback.text())
+            from app.ui.components import AtlasDialog
+            page.preview_text_actions["popup_link"].click()
+            self.assertIsInstance(page._preview_dialog, AtlasDialog)
+            page._preview_dialog.reject()
             for state, badge in page.preview_badges.items():
                 self.assertEqual(badge.objectName(), "StatusBadge")
                 self.assertEqual(badge.property("state"), state)
@@ -364,7 +368,8 @@ class DevUiPageTests(unittest.TestCase):
                 if name in UNITY_ICON_NAMES
             ))
             self.assertTrue(all(
-                page.preview_icon_labels[name].pixmap() is None
+                (page.preview_icon_labels[name].pixmap() is None
+                 or page.preview_icon_labels[name].pixmap().isNull())
                 for name in UNITY_ICON_PENDING
             ))
             self.assertEqual(
