@@ -380,6 +380,19 @@ QWidget#DevUiPage QWidget#DevUiIconCell {
     background: transparent;
     border: none;
 }
+QWidget#DevUiPage QLabel#DevUiMissingIcon {
+    background: @PANEL_2;
+    color: @TEXT_DISABLED;
+    border: 1px dashed @BORDER_SOFT;
+    border-radius: @RADIUS_XS;
+    font-size: @FONT_SECTION;
+}
+QWidget#DevUiPage QLabel#DevUiMissingIconText {
+    color: @TEXT_DISABLED;
+    font-size: @FONT_SMALL;
+    background: transparent;
+    border: none;
+}
 QWidget#DevUiPage QTreeWidget::item {
     min-height: 24px;
     padding: 2px @SPACE_XS;
@@ -1150,6 +1163,23 @@ QPushButton:disabled, QToolButton:disabled {
 #StatusChip[tone="info"]:hover { color: @TEXT; border-color: @BORDER_STRONG; }
 #StatusChip[tone="neutral"] { color: @TEXT_MUTED; border-color: @BORDER_SOFT; }
 #StatusChip[tone="neutral"]:hover { color: @TEXT; border-color: @BORDER_CARD; }
+/* A selected tone keeps its own meaning; green denotes the control family
+   only when no semantic tone is assigned. */
+#StatusChip[tone="success"]:checked {
+    background: @PANEL_ACTIVE; border-color: @GREEN; color: @GREEN_HOVER;
+}
+#StatusChip[tone="danger"]:checked {
+    background: @PANEL_ACTIVE; border-color: @RED; color: @RED_HOVER;
+}
+#StatusChip[tone="warning"]:checked {
+    background: @PANEL_ACTIVE; border-color: @YELLOW; color: @YELLOW;
+}
+#StatusChip[tone="info"]:checked {
+    background: @PANEL_ACTIVE; border-color: @BORDER_STRONG; color: @TEXT;
+}
+#StatusChip[tone="neutral"]:checked {
+    background: @PANEL_ACTIVE; border-color: @BORDER_CARD; color: @TEXT_SOFT;
+}
 
 #keyBadge, #InlineShortcutButton {
     background: #09121F;
