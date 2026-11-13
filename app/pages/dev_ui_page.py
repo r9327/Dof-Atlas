@@ -19,6 +19,7 @@ from PySide6.QtWidgets import (
     QFrame,
     QGridLayout,
     QGroupBox,
+    QHeaderView,
     QHBoxLayout,
     QLabel,
     QLineEdit,
@@ -54,7 +55,7 @@ from app.ui.theme import PALETTE, SIZES, SPACING, TYPOGRAPHY
 from app.ui.unity_palette import (
     UNITY_ICON_NAMES, UNITY_MAIN_ROLES, UNITY_SIZES_PX, UNITY_UI_USAGE,
 )
-from app.ui.unity_skin import sprite_icon_path, unity_ui_icon
+from app.ui.unity_skin import unity_ui_icon
 
 
 class DevUiPage(QWidget):
@@ -117,7 +118,7 @@ class DevUiPage(QWidget):
         body.setProperty("atlasUnityPage", True)
         content = QVBoxLayout(body)
         content.setContentsMargins(7, 7, 7, 16)
-        content.setSpacing(12)
+        content.setSpacing(10)
         scroll.setWidget(body)
         outer.addWidget(scroll, 1)
 
@@ -147,8 +148,8 @@ class DevUiPage(QWidget):
     def _section(self, parent_layout: QVBoxLayout, title: str) -> QVBoxLayout:
         group = QGroupBox(title)
         layout = QVBoxLayout(group)
-        layout.setContentsMargins(16, 24, 16, 14)
-        layout.setSpacing(10)
+        layout.setContentsMargins(14, 22, 14, 12)
+        layout.setSpacing(9)
         parent_layout.addWidget(group)
         self.gallery_sections.append(group)
         return layout
@@ -267,6 +268,11 @@ class DevUiPage(QWidget):
         self.preview_tree = QTreeWidget()
         self.preview_tree.setHeaderLabels(("Famille UI", "État"))
         self.preview_tree.setMaximumHeight(154)
+        self.preview_tree.setAlternatingRowColors(True)
+        self.preview_tree.setUniformRowHeights(True)
+        self.preview_tree.header().setStretchLastSection(False)
+        self.preview_tree.header().setSectionResizeMode(0, QHeaderView.Stretch)
+        self.preview_tree.header().setSectionResizeMode(1, QHeaderView.ResizeToContents)
         parent_item = QTreeWidgetItem(("Encyclopédie", "Disponible"))
         for label in ("Quêtes", "Succès", "Guides"):
             QTreeWidgetItem(parent_item, (label, "Sélectionnable"))
@@ -283,6 +289,11 @@ class DevUiPage(QWidget):
         self.preview_table.setHorizontalHeaderLabels(("Contrôle", "État"))
         self.preview_table.setVerticalScrollBarPolicy(Qt.ScrollBarAsNeeded)
         self.preview_table.setMaximumHeight(154)
+        self.preview_table.setAlternatingRowColors(True)
+        self.preview_table.setShowGrid(False)
+        self.preview_table.verticalHeader().hide()
+        self.preview_table.horizontalHeader().setStretchLastSection(False)
+        self.preview_table.horizontalHeader().setSectionResizeMode(QHeaderView.Stretch)
         for index, title in enumerate(("Survol", "Sélection", "Clavier")):
             self.preview_table.setItem(index, 0, QTableWidgetItem(title))
             self.preview_table.setItem(index, 1, QTableWidgetItem("Unity"))
@@ -569,10 +580,13 @@ class DevUiPage(QWidget):
     def _build_sizes(self, parent: QVBoxLayout) -> None:
         """Inspect the shared size scale without changing existing UI geometry."""
         section = self._section(parent, "Tailles · typographie · espacements")
-        section.addWidget(QLabel(
+        sizing_hint = QLabel(
             "Trois hauteurs de contrôles et quatre tailles d'icônes, "
             "pilotées par les mêmes métriques que le code commun."
-        ))
+        )
+        sizing_hint.setObjectName("MutedLabel")
+        sizing_hint.setWordWrap(True)
+        section.addWidget(sizing_hint)
         self.preview_metric_buttons: dict[str, AtlasButton] = {}
         row = QHBoxLayout()
         for label, role in (
@@ -610,7 +624,12 @@ class DevUiPage(QWidget):
         )
         self.preview_metrics.setHorizontalHeaderLabels(("Token commun", "Valeur"))
         self.preview_metrics.setMaximumHeight(178)
-        self.preview_metrics.horizontalHeader().setStretchLastSection(True)
+        self.preview_metrics.setAlternatingRowColors(True)
+        self.preview_metrics.setShowGrid(False)
+        self.preview_metrics.verticalHeader().hide()
+        self.preview_metrics.horizontalHeader().setStretchLastSection(False)
+        self.preview_metrics.horizontalHeader().setSectionResizeMode(0, QHeaderView.ResizeToContents)
+        self.preview_metrics.horizontalHeader().setSectionResizeMode(1, QHeaderView.Stretch)
         for index, (name, value) in enumerate((
             *SIZES.items(), *SPACING.items(), *TYPOGRAPHY.items(),
         )):
@@ -703,31 +722,41 @@ class DevUiPage(QWidget):
     def _build_ui_assets(self, parent: QVBoxLayout) -> None:
         section = self._section(parent, "Icônes · raccourcis · tooltips")
 
-        row = QHBoxLayout()
+        source_hint = QLabel(
+            "Sprites Unity transparents si disponibles · sinon icônes Atlas monochromes"
+        )
+        source_hint.setObjectName("MutedLabel")
+        section.addWidget(source_hint)
+        icons = QGridLayout()
+        icons.setHorizontalSpacing(12)
+        icons.setVerticalSpacing(6)
         self.preview_icon_labels: dict[str, QLabel] = {}
-        for name in UNITY_ICON_NAMES:
+        icon_captions = {
+            "guide": "Guides", "quest": "Quêtes", "success": "Succès",
+            "encyclopedia": "Encyclopédie", "character": "Personnage",
+            "dofus": "Dofus", "map": "Carte", "inventory": "Inventaire",
+        }
+        for index, name in enumerate(UNITY_ICON_NAMES):
             cell = QWidget()
-            column = QVBoxLayout(cell)
-            column.setContentsMargins(2, 2, 2, 2)
+            cell_layout = QHBoxLayout(cell)
+            cell_layout.setContentsMargins(4, 4, 4, 4)
+            cell_layout.setSpacing(9)
             symbol = QLabel()
             symbol.setAlignment(Qt.AlignCenter)
-            symbol.setMinimumHeight(30)
-            symbol.setPixmap(unity_ui_icon(name, UNITY_SIZES_PX["icon_large"]).pixmap(
-                UNITY_SIZES_PX["icon_large"], UNITY_SIZES_PX["icon_large"]
-            ))
+            symbol.setFixedSize(32, 32)
+            symbol.setAccessibleName(f"Icône {icon_captions[name]}")
+            size = UNITY_SIZES_PX["icon_large"]
+            symbol.setPixmap(unity_ui_icon(name, size).pixmap(size, size))
             symbol.setToolTip(
-                f"Sprite DOFUS Unity local : {name}"
-                if sprite_icon_path(name) is not None
-                else f"Icône Atlas monochrome de repli : {name}"
+                f"{icon_captions[name]} · Unity local si transparent, repli Atlas sinon"
             )
-            label = QLabel(name)
-            label.setObjectName("MutedLabel")
-            label.setAlignment(Qt.AlignCenter)
-            column.addWidget(symbol)
-            column.addWidget(label)
-            row.addWidget(cell, 1)
+            caption = QLabel(icon_captions[name])
+            caption.setObjectName("MutedLabel")
+            cell_layout.addWidget(symbol)
+            cell_layout.addWidget(caption, 1)
+            icons.addWidget(cell, index // 4, index % 4)
             self.preview_icon_labels[name] = symbol
-        section.addLayout(row)
+        section.addLayout(icons)
 
         tools = QHBoxLayout()
         for label in ("Ctrl + K", "Shift + F2"):
@@ -767,7 +796,12 @@ class DevUiPage(QWidget):
         self.preview_scope = QTableWidget(len(modules), 2)
         self.preview_scope.setHorizontalHeaderLabels(("Module", "Source de style cible"))
         self.preview_scope.setMaximumHeight(192)
-        self.preview_scope.horizontalHeader().setStretchLastSection(True)
+        self.preview_scope.setAlternatingRowColors(True)
+        self.preview_scope.setShowGrid(False)
+        self.preview_scope.verticalHeader().hide()
+        self.preview_scope.horizontalHeader().setStretchLastSection(False)
+        self.preview_scope.horizontalHeader().setSectionResizeMode(0, QHeaderView.ResizeToContents)
+        self.preview_scope.horizontalHeader().setSectionResizeMode(1, QHeaderView.Stretch)
         for index, module in enumerate(modules):
             self.preview_scope.setItem(index, 0, QTableWidgetItem(module))
             source = "Palette Unity / Tk" if module == "Launcher" else "Thème Qt commun"
