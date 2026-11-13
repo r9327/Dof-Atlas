@@ -172,7 +172,7 @@ class GuideCatalogView(QWidget):
         self.library_categories.itemActivated.connect(self._activate_library_item)
         # Keep the compact menu only as tall as its visible rows. Expanded
         # categories can still scroll inside the 250px Unity panel.
-        self.library_categories.itemExpanded.connect(self._sync_library_tree_height)
+        self.library_categories.itemExpanded.connect(self._on_library_category_expanded)
         self.library_categories.itemCollapsed.connect(self._sync_library_tree_height)
         apply_unity_panel_shadow(self.library_categories, blur=19, vertical=4)
         left_layout.addWidget(self.library_categories, 0)
@@ -425,6 +425,14 @@ class GuideCatalogView(QWidget):
         row_height = max(23, tree.fontMetrics().lineSpacing() + 8, tree.sizeHintForRow(0))
         wanted = max(row_height + 12, visible_rows * row_height + 12)
         tree.setFixedHeight(min(250, wanted))
+
+    def _on_library_category_expanded(self, item: QTreeWidgetItem) -> None:
+        """Expanding an arrow selects that same category in the right pane."""
+        self._sync_library_tree_height(item)
+        if item.data(0, Qt.UserRole) and self.library_categories.currentItem() is not item:
+            # QTreeWidget's expander arrow does not emit currentItemChanged:
+            # go through the normal selection path rather than duplicating it.
+            self.library_categories.setCurrentItem(item)
 
     def _on_category_changed(self, item: QTreeWidgetItem | None, _previous=None) -> None:
         if item is None or not (item.flags() & Qt.ItemIsEnabled):
