@@ -511,7 +511,7 @@ class DevUiPage(QWidget):
             ("info", "Information"),
             ("neutral", "Neutre"),
         ):
-            badge = QLabel(f"● {caption}")
+            badge = QLabel(f"• {caption}")
             badge.setObjectName("StatusBadge")
             badge.setProperty("state", state)
             badge.setAlignment(Qt.AlignCenter)
