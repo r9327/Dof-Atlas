@@ -147,6 +147,10 @@ class DevUiPage(QWidget):
 
     def _section(self, parent_layout: QVBoxLayout, title: str) -> QVBoxLayout:
         group = QGroupBox(title)
+        # Real shared Unity relief on two static catalog panels. Avoid the
+        # 16-fold scrolling cost of applying shadows to every section.
+        if title.startswith(("Formulaires avancés", "Surfaces · cartes")):
+            apply_unity_panel_shadow(group, blur=17, vertical=3, alpha=82)
         layout = QVBoxLayout(group)
         layout.setContentsMargins(14, 22, 14, 12)
         layout.setSpacing(9)
@@ -372,23 +376,21 @@ class DevUiPage(QWidget):
         """Show native Qt controls which inherit the same application QSS."""
         section = self._section(parent, "Formulaires avancés · états et formats")
 
-        row = QHBoxLayout()
+        form_grid = QGridLayout()
+        form_grid.setHorizontalSpacing(12)
+        form_grid.setVerticalSpacing(7)
+        self.preview_advanced_grid = form_grid
         self.preview_password = QLineEdit()
         self.preview_password.setPlaceholderText("Mot de passe")
         self.preview_password.setEchoMode(QLineEdit.Password)
         self.preview_password.setAccessibleName("Champ de mot de passe")
-        row.addWidget(self.preview_password, 1)
 
         self.preview_readonly = QLineEdit("Lecture seule")
         self.preview_readonly.setReadOnly(True)
-        row.addWidget(self.preview_readonly, 1)
 
         self.preview_disabled_input = QLineEdit("Indisponible")
         self.preview_disabled_input.setEnabled(False)
-        row.addWidget(self.preview_disabled_input, 1)
-        section.addLayout(row)
 
-        formats = QHBoxLayout()
         self.preview_double_spin = QDoubleSpinBox()
         self.preview_double_spin.setDecimals(2)
         self.preview_double_spin.setRange(0.0, 999.99)
@@ -396,23 +398,34 @@ class DevUiPage(QWidget):
         self.preview_double_spin.valueChanged.connect(
             lambda value: self._report(f"Nombre décimal : {value:.2f}")
         )
-        formats.addWidget(self.preview_double_spin)
         self.preview_date = QDateEdit()
         self.preview_date.setCalendarPopup(True)
         self.preview_date.setDate(QDate.currentDate())
         self.preview_date.dateChanged.connect(
             lambda value: self._report(f"Date : {value.toString('dd/MM/yyyy')}")
         )
-        formats.addWidget(self.preview_date)
         self.preview_time = QTimeEdit()
         self.preview_time.timeChanged.connect(
             lambda value: self._report(f"Heure : {value.toString('HH:mm')}")
         )
-        formats.addWidget(self.preview_time)
-        formats.addStretch(1)
-        section.addLayout(formats)
+        for index, (caption, control) in enumerate((
+            ("Mot de passe", self.preview_password),
+            ("Lecture seule", self.preview_readonly),
+            ("Désactivé", self.preview_disabled_input),
+            ("Nombre décimal", self.preview_double_spin),
+            ("Date", self.preview_date),
+            ("Heure", self.preview_time),
+        )):
+            heading = QLabel(caption)
+            heading.setObjectName("MutedLabel")
+            form_grid.addWidget(heading, index // 3 * 2, index % 3)
+            control.setMinimumHeight(UNITY_SIZES_PX["control_normal"])
+            form_grid.addWidget(control, index // 3 * 2 + 1, index % 3)
+            form_grid.setColumnStretch(index % 3, 1)
+        section.addLayout(form_grid)
 
         checks = QHBoxLayout()
+        checks.setSpacing(16)
         self.preview_tristate = QCheckBox("Tri-état")
         self.preview_tristate.setTristate(True)
         self.preview_tristate.setCheckState(Qt.PartiallyChecked)
@@ -534,7 +547,7 @@ class DevUiPage(QWidget):
             card_layout.addWidget(small)
             # Fixed visual samples only. No effect on scrolling rows,
             # focusable controls or the actual game panels.
-            apply_unity_panel_shadow(card, blur=10, vertical=2, alpha=34)
+            apply_unity_panel_shadow(card, blur=16, vertical=3, alpha=82)
             self.preview_cards[role] = card
             cards.addWidget(card, 1)
         section.addLayout(cards)
