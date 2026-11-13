@@ -57,7 +57,8 @@ class UnitySkinTests(unittest.TestCase):
         self.assertIn("background: rgba(33, 49, 84, 0.96)", style)
         self.assertIn("QLineEdit:read-only, QPlainTextEdit:read-only", style)
         self.assertIn("QLineEdit:disabled, QComboBox:disabled", style)
-        self.assertIn("QDoubleSpinBox::up-button, QDoubleSpinBox::down-button", style)
+        self.assertIn("QDoubleSpinBox::up-button", style)
+        self.assertIn("QDoubleSpinBox::down-button", style)
         self.assertIn("QDateEdit::drop-down", style)
         self.assertIn("background: #344978; border: none;", style)
         for state in ("check", "mixed", "up", "down"):
