@@ -326,6 +326,10 @@ class UnitySkinTests(unittest.TestCase):
                     pix = unity_ui_icon("guide", 24).pixmap(24, 24).toImage()
                     self.assertEqual(pix.pixelColor(0, 0).alpha(), 0)
                     self.assertGreater(pix.pixelColor(12, 12).alpha(), 0)
+                    self.assertEqual(
+                        pix.pixelColor(12, 12).name(),
+                        QColor(UNITY_PALETTE["TEXT"]).name(),
+                    )
                 finally:
                     unity_ui_icon.cache_clear()
 
