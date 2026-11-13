@@ -105,6 +105,67 @@ class UnitySkinTests(unittest.TestCase):
                     self.assertIn(expected, section)
         self.assertIn("border: 2px solid #304050; border-image: none;", style)
 
+    def test_dev_ui_gallery_uses_shared_widgets_and_real_clicks(self) -> None:
+        from app.pages.dev_ui_page import DevUiPage
+        from app.ui.components import AtlasButton, AtlasDialog, AtlasPanelToggle
+
+        navigation: list[str] = []
+        page = DevUiPage(on_back=lambda: navigation.append("Settings"))
+        try:
+            self.assertTrue(page.property("atlasUnityPage"))
+            self.assertEqual(page.styleSheet(), "")
+            self.assertTrue(
+                all(widget.styleSheet() == "" for widget in page.findChildren(QWidget))
+            )
+            self.assertIsInstance(page.preview_buttons["primary"], AtlasButton)
+            self.assertEqual(
+                page.preview_buttons["primary"].objectName(),
+                "PrimaryActionButton",
+            )
+            self.assertFalse(page.preview_buttons["disabled"].isEnabled())
+            page.preview_buttons["primary"].click()
+            self.assertIn("primary", page.feedback.text())
+
+            page.preview_nav[0].click()
+            self.assertEqual(page.preview_nav[0].objectName(), "TopNavButtonActive")
+            self.assertEqual(page.preview_nav[1].objectName(), "TopNavButton")
+            page.preview_combo.setCurrentIndex(2)
+            self.assertIn("Instantané", page.feedback.text())
+            page.preview_tabs.setCurrentIndex(1)
+            self.assertIn("Succès", page.feedback.text())
+            page.menu_button.menu().actions()[1].trigger()
+            self.assertIn("Deuxième action", page.feedback.text())
+
+            page.preview_slider.setValue(78)
+            self.assertEqual(page.preview_progress.value(), 78)
+            self.assertIsInstance(page.panel_toggle, AtlasPanelToggle)
+            page.panel_toggle.click()
+            self.assertTrue(page.preview_panel.isHidden())
+            self.assertTrue(page.panel_toggle.property("collapsed"))
+            page.panel_toggle.click()
+            self.assertFalse(page.preview_panel.isHidden())
+
+            page.dialog_button.click()
+            self.assertIsInstance(page._preview_dialog, AtlasDialog)
+            page._preview_dialog.reject()
+            page.back_button.click()
+            self.assertEqual(navigation, ["Settings"])
+        finally:
+            page.close()
+            page.deleteLater()
+
+    def test_dev_ui_gallery_is_lazy_and_accessible_from_settings(self) -> None:
+        source = (Path(__file__).resolve().parents[1] / "main.py").read_text(
+            encoding="utf-8"
+        )
+        self.assertIn('self.register_page("Dev UI", self.loading_page(', source)
+        self.assertIn('self.page_factories["Dev UI"] = self.create_dev_ui_page', source)
+        self.assertIn('developer_button.clicked.connect(lambda: self.show_page("Dev UI"))', source)
+        self.assertIn(
+            'self.release_reconstructible_page("Dev UI", self.create_dev_ui_page)',
+            source,
+        )
+
     def test_unity_glass_surfaces_obey_global_color_overrides(self) -> None:
         """A palette change must reach cards, panels, lists, tabs and controls."""
         original = dict(UNITY_PALETTE)
