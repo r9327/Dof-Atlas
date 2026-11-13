@@ -892,12 +892,15 @@ class AtlasWindow(QMainWindow):
         self.register_page("Equipement", self.loading_page("Équipement"))
         self.register_page("Almanax", self.placeholder_page("Almanax", "Le module Almanax sera intégré ici.", badge="En travaux"))
         self.register_page("Settings", self.create_settings_page())
+        self.register_page("Dev UI", self.loading_page("Dev · UI"))
 
         self.page_factories["Organizer"] = self.create_organizer_page
         self.page_factories["Scan Monde"] = self.create_world_scan_page
         self.page_factories["Craft"] = self.create_craft_page
         self.page_factories["Quetes"] = self.create_encyclopedia_page
         self.page_factories["Equipement"] = self.create_equipment_page
+        # Loaded only when requested via Settings; never part of normal startup.
+        self.page_factories["Dev UI"] = self.create_dev_ui_page
 
         self.top_nav = self.build_top_nav()
         root.addWidget(self.top_nav)
@@ -1823,8 +1826,19 @@ class AtlasWindow(QMainWindow):
         info.setObjectName("MutedLabel")
         info.setWordWrap(True)
         layout.addWidget(info)
+        developer_button = AtlasButton("Dev · Bibliothèque UI Unity", variant="secondary")
+        developer_button.setToolTip(
+            "Prévisualiser les vrais composants UI communs et tester leurs clics."
+        )
+        developer_button.clicked.connect(lambda: self.show_page("Dev UI"))
+        layout.addWidget(developer_button)
         layout.addStretch(1)
         return page
+
+    def create_dev_ui_page(self) -> QWidget:
+        from app.pages.dev_ui_page import DevUiPage
+
+        return DevUiPage(on_back=lambda: self.show_page("Settings"))
 
     def loading_page(self, name: str) -> QWidget:
         page = QWidget()
@@ -1886,6 +1900,7 @@ class AtlasWindow(QMainWindow):
             self.release_reconstructible_page("Quetes", self.create_encyclopedia_page)
             self.release_reconstructible_page("Craft", self.create_craft_page)
             self.release_reconstructible_page("Equipement", self.create_equipment_page)
+            self.release_reconstructible_page("Dev UI", self.create_dev_ui_page)
             # The cartography canvas is reconstructible; keep only the last
             # selected world/map and history, never the loaded Qt widget tree.
             # Active I/O deliberately prevents hibernation until a safe visit.
