@@ -1788,6 +1788,7 @@ QMenu::separator {
                     margin: 1px 0px;
                     padding: 3px 7px;
                     border: 1px solid transparent;
+                    border-left: 3px solid transparent;
                     border-radius: @RADIUS_SM;
                 }
 
@@ -1806,6 +1807,7 @@ QMenu::separator {
                 QWidget#AchievementsView QListWidget#QuestResultList::item {
                     background: @PANEL_2;
                     border: 1px solid @BORDER_SOFT;
+                    border-left: 3px solid transparent;
                     border-radius: @RADIUS_SM;
                     color: @TEXT_SOFT;
                     min-height: 48px;
