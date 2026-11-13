@@ -135,3 +135,11 @@ Ne cocher aucun ID de #364 sur cette seule base. Ne pas fusionner tant que les o
 - Test propriétaire `tests/test_encyclopedia_page.py` : remplacement différé de Succès pendant que Donjons est sélectionné, conservation des autres onglets masqués, et remplacement du volet courant avec signaux déjà bloqués.
 - Périmètre volontairement limité à la logique des onglets ; aucun service Bestiaire nouveau, aucune donnée fictive et aucun changement du composant de navigation partagé.
 - **Toujours partiel** : séquence complète de navigation et dimensions des onglets à certifier sur vrai Windows avant de clôturer ATBS-001/ATUI-006.
+
+
+### Validation du routage CI Bestiaire / Encyclopédie — exact-SHA
+
+- Le mini-audit Scoped PR a bloqué le HEAD `aeda800d` pour `tests/test_encyclopedia_page.py` : `UNKNOWN_OWNER_BLOCKS_MODULAR_CERTIFICATE`. **Ce n'est pas un échec du test Qt**, dont le lot Doctor exact-SHA est `READY` / exécution `PASS`.
+- Enregistrement de **ce seul chemin exact** dans l'ensemble existant `guides` / `ui` de `tools/ci_domain_certification.py`, à côté de la page dont il certifie la visibilité. Aucun wildcard ni assouplissement du refus pour des suites inconnues.
+- Ajout d'un test de routage dans `tests/test_ci_domain_certification.py` : owner de la source et de la suite, plan READY, absence de validation Phase et refus du voisin non enregistré.
+- Mini-audit, tests Qt et statut de la nouvelle branche doivent être revérifiés sur le nouveau SHA avant toute conclusion de validation globale.

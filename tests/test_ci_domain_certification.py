@@ -707,6 +707,23 @@ class ModularDomainRoutingTests(unittest.TestCase):
             "BLOCKED",
         )
 
+    def test_encyclopedia_lazy_tab_regression_has_exact_shared_ui_owner(self):
+        # The tab replacement is owned by the same Guide/UI shell used by
+        # Bestiaire and Encyclopedia. Unknown siblings must still be blocked.
+        source = "app/modules/encyclopedia/views/encyclopedia_page.py"
+        regression = "tests/test_encyclopedia_page.py"
+        domains = frozenset({"guides", "ui"})
+        for path in (source, regression):
+            self.assertEqual(owners_for(path), domains)
+        report = self.route([source, regression])
+        self.assertEqual(report["status"], "READY_TO_EXECUTE")
+        self.assertEqual(set(report["domains"]), set(domains))
+        self.assertEqual(report["unknown_paths"], [])
+        self.assertFalse(report["phase_certified"])
+        self.assertEqual(
+            owners_for("tests/test_encyclopedia_page_unreviewed.py"), frozenset(),
+        )
+
     def test_guide_catalog_and_local_skin_assets_have_real_domain_owners(self):
         guide_paths = [
             "app/modules/encyclopedia/views/encyclopedia_page.py",

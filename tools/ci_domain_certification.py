@@ -389,6 +389,7 @@ def owners_for(path: str) -> frozenset[str]:
         return frozenset({"guides", "ui"})
     if path in {
         "app/modules/encyclopedia/views/encyclopedia_page.py",
+        "tests/test_encyclopedia_page.py",
         "app/modules/encyclopedia/views/guide_catalog_view.py",
         "app/modules/encyclopedia/views/guide_featured_home.py",
         "app/modules/encyclopedia/views/guide_library_sources.py",
