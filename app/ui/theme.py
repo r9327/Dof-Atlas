@@ -370,6 +370,7 @@ QTreeWidget#AchievementCategoryTree::item,
 #AchievementsView QListWidget#QuestResultList::item {
     min-height: 25px;
     padding: 2px 5px;
+    border-left: 2px solid transparent;
 }
 
 QTreeWidget#AchievementCategoryTree::item:selected {
@@ -2454,6 +2455,7 @@ QTreeWidget#GuideLibraryCategories::item {
     min-height: 23px;
     padding: 2px 5px;
     border-radius: @RADIUS_XS;
+    border-left: 2px solid transparent;
 }
 QTreeWidget#GuideLibraryCategories::item:hover {
     background: @PANEL_HOVER;
