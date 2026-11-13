@@ -62,7 +62,12 @@ from app.ui.unity_skin import (
 
 
 class UnityPopupSeparatorDelegate(QStyledItemDelegate):
-    """Draw a thin Unity token divider without changing native row states."""
+    """Draw Unity dividers while preserving compact shared row geometry."""
+
+    def sizeHint(self, option, index):
+        hint = super().sizeHint(option, index)
+        hint.setHeight(max(hint.height(), UNITY_SIZES_PX["control_compact"]))
+        return hint
 
     def paint(self, painter: QPainter, option, index) -> None:
         super().paint(painter, option, index)
@@ -123,6 +128,7 @@ class DevUiPage(QWidget):
         navigator = QHBoxLayout()
         navigator.addWidget(QLabel("Aller à une famille"))
         self.gallery_navigation = QComboBox()
+        self.gallery_navigation.setObjectName("DevUiFamilyCombo")
         self.gallery_navigation.setAccessibleName("Accès direct aux familles UI")
         self.gallery_navigation.view().setAlternatingRowColors(False)
         self.gallery_navigation.view().setItemDelegate(
