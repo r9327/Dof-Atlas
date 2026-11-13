@@ -4,15 +4,13 @@ from PySide6.QtCore import QSize, Qt, QTimer, Signal
 from PySide6.QtGui import QIcon
 from app.ui.unity_skin import apply_unity_panel_shadow, sprite_icon_path
 from PySide6.QtWidgets import (
-    QAbstractItemView, QFrame, QLabel, QListView, QListWidget, QListWidgetItem,
-    QScrollArea, QSpacerItem, QSizePolicy, QTreeWidget, QTreeWidgetItem, QVBoxLayout, QWidget,
+    QAbstractItemView, QFrame, QLabel, QListView,
+    QScrollArea, QTreeWidget, QTreeWidgetItem, QVBoxLayout, QWidget,
 )
 from app.modules.encyclopedia.views.guide_featured_home import (
     FEATURED, FeaturedGuideCard, FeaturedPair,
 )
-from app.modules.encyclopedia.views.guide_library_sources import (
-    CATEGORIES, displayable_listings, load_ganymede_listings,
-)
+from app.modules.encyclopedia.views.guide_library_sources import CATEGORIES
 
 from app.modules.encyclopedia.services.guide_catalog_hints import (
     catalog_route_map_count_hint,
@@ -71,8 +69,6 @@ class GuideCatalogView(QWidget):
         self.search_text = ""
         self.guides = []
         self.visible_guides = []
-        self.ganymede_listings = ()
-        self._unavailable_listing_signature: tuple[tuple[int, str], ...] = ()
         self.library_category = "dofus"
         self._initial_progress_by_guide = dict(initial_progress_by_guide or {})
         self._initial_progress_character_key = str(initial_progress_character_key or "")
@@ -197,29 +193,6 @@ class GuideCatalogView(QWidget):
         self.home_empty.setVisible(False)
         result_layout.addWidget(self.home_empty, 1)
 
-        # Read-only local index references never become playable Guide cards.
-        self.unavailable_title = QLabel("PARCOURS RÉFÉRENCÉS · NON DISPONIBLES")
-        self.unavailable_title.setObjectName("GuidesHomeUnavailableTitle")
-        self.unavailable_title.setWordWrap(True)
-        self.unavailable_title.setVisible(False)
-        result_layout.addWidget(self.unavailable_title)
-
-        self.unavailable_list = QListWidget(self)
-        self.unavailable_list.setObjectName("GuideLibraryUnavailableList")
-        self.unavailable_list.setSelectionMode(QAbstractItemView.NoSelection)
-        self.unavailable_list.setEditTriggers(QAbstractItemView.NoEditTriggers)
-        self.unavailable_list.setFocusPolicy(Qt.NoFocus)
-        self.unavailable_list.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
-        self.unavailable_list.setMaximumHeight(300)
-        self.unavailable_list.setVisible(False)
-        result_layout.addWidget(self.unavailable_list)
-        # When the category contains references but no playable cards, absorb
-        # remaining height below the list, not between its title and rows.
-        self.results_bottom_spacer = QSpacerItem(
-            0, 0, QSizePolicy.Minimum, QSizePolicy.Minimum
-        )
-        result_layout.addItem(self.results_bottom_spacer)
-
         self.home_columns = GuideHomeColumns(
             self.library_left, self.library_right, self
         )
@@ -236,16 +209,12 @@ class GuideCatalogView(QWidget):
 
     def _show_runtime_loading(self) -> None:
         self.home_dofus_list.setVisible(False)
-        self.unavailable_title.setVisible(False)
-        self.unavailable_list.setVisible(False)
         self.home_empty.setText("Chargement des guides…")
         self.home_empty.setWordWrap(False)
         self.home_empty.setVisible(True)
 
     def show_runtime_error(self, message: str) -> None:
         self.home_dofus_list.setVisible(False)
-        self.unavailable_title.setVisible(False)
-        self.unavailable_list.setVisible(False)
         self.home_empty.setText(str(message or "Chargement des guides impossible."))
         self.home_empty.setWordWrap(True)
         self.home_empty.setVisible(True)
@@ -264,12 +233,6 @@ class GuideCatalogView(QWidget):
             raise RuntimeError("Aucun guide chargé depuis catalog.json")
         self.graph = graph
         self.guides = list(guides)
-        # Metadata are deliberately not playable Atlas guides.
-        try:
-            self.ganymede_listings = load_ganymede_listings()
-        except (OSError, ValueError, KeyError, TypeError) as exc:
-            self.ganymede_listings = ()
-            self.status_callback(f"Inventaire Ganymède indisponible : {exc}")
         if initial_progress_by_guide is not None:
             self._initial_progress_by_guide = dict(initial_progress_by_guide)
         if initial_progress_character_key:
@@ -389,12 +352,7 @@ class GuideCatalogView(QWidget):
             )
 
     def _populate_library_tree(self) -> None:
-        """Group available guides and disabled references inside expandable menus.
-
-        The read-only source index is kept intact; metadata-only routes can
-        never dispatch a guideRequested signal.
-        """
-        catalog_ids = {str(guide.id) for guide in self.guides}
+        """Group playable Atlas guides in the expandable navigation tree."""
         featured = {guide_id for guide_id, _title in FEATURED}
         for category, parent in self._category_nodes.items():
             parent.takeChildren()
@@ -407,12 +365,6 @@ class GuideCatalogView(QWidget):
                 child.setToolTip(0, str(guide.title))
                 parent.addChild(child)
 
-            for entry in displayable_listings(self.ganymede_listings, catalog_ids, category):
-                child = QTreeWidgetItem((entry.title,))
-                child.setFlags(child.flags() & ~Qt.ItemIsEnabled & ~Qt.ItemIsSelectable)
-                child.setData(0, Qt.UserRole + 2, entry.source_id)
-                child.setToolTip(0, "Guide référencé, mais parcours non disponible dans Atlas.")
-                parent.addChild(child)
             # A dense category menu starts folded instead of occupying
             # half of the Guide home before the user chooses a section.
             parent.setExpanded(False)
@@ -474,8 +426,8 @@ class GuideCatalogView(QWidget):
         self.result_model.set_home_column(matched, "left")
         self._apply_catalog_overrides()
 
-        # Real routes remain clickable cards; source-index metadata are shown
-        # separately as disabled text rows, never as progress-bearing routes.
+        # Only real playable routes enter this catalogue; source-index
+        # metadata stay outside the navigation and cannot become fake cards.
         category = self.library_category
         shown_guides = [
             guide for guide in matched
@@ -506,41 +458,12 @@ class GuideCatalogView(QWidget):
         )
         self.home_dofus_list.setVisible(bool(shown_guides))
 
-        references = displayable_listings(
-            tuple(self.ganymede_listings), set(catalog_by_id), category,
-            self.search_text,
-        )
-        signature = tuple(
-            (int(entry.source_id), str(entry.title)) for entry in references
-        )
-        if signature != self._unavailable_listing_signature:
-            self.unavailable_list.clear()
-            for entry in references:
-                item = QListWidgetItem(str(entry.title))
-                item.setFlags(Qt.NoItemFlags)
-                item.setToolTip(
-                    "Guide référencé dans le catalogue local, "
-                    "mais parcours non disponible dans Atlas."
-                )
-                self.unavailable_list.addItem(item)
-            self._unavailable_listing_signature = signature
-        has_references = bool(references)
-        self.unavailable_title.setVisible(has_references)
-        self.unavailable_list.setVisible(has_references)
-        self.unavailable_list.setMaximumHeight(170 if shown_guides else 300)
-        self.results_bottom_spacer.changeSize(
-            0, 0, QSizePolicy.Minimum,
-            QSizePolicy.Expanding if has_references and not shown_guides
-            else QSizePolicy.Minimum,
-        )
-        self.library_right.layout().invalidate()
-
         self.home_empty.setText(
             "Aucun Dofus disponible."
             if category == "dofus"
             else "Aucun parcours disponible pour cette catégorie."
         )
-        self.home_empty.setVisible(not shown_guides and not has_references)
+        self.home_empty.setVisible(not shown_guides)
         self._sync_grid_columns()
 
     def _sync_grid_columns(self) -> None:

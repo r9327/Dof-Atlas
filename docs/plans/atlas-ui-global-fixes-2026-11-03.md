@@ -191,3 +191,11 @@ Ne cocher aucun ID de #364 sur cette seule base. Ne pas fusionner tant que les o
 - **Graphify** — [carte exacte de `895548f0`](https://github.com/r9327/Dof-Atlas/actions/runs/43417365864) et [carte exacte de `58c52b64`](https://github.com/r9327/Dof-Atlas/actions/runs/43418095120) : diagnostics/fraîcheur SUCCESS, propriétaires et consommateurs examinés avant mutualisation. Un nouveau commit rend ces graphes historiques, pas preuves du HEAD final.
 
 **À poursuivre en P0 :** inventaire écrans × composants et recensement des QSS locaux ; migrer uniquement les doublons confirmés, vérifier menus/breadcrumbs, icônes, états et Launcher/Organizer sans écraser leurs propriétaires ; demander captures Windows comparables et tests complets à la fin de l'implémentation. `ATUI-009..016` restent **PARTIELS / PENDING** ; aucune preuve Windows native DOFUS ni Phase globale ou fusion déclarée.
+
+
+### P0 — suppression des faux parcours et contrôle réel des clics Guide (13/11/2026)
+
+- **Demande :** supprimer entièrement de l'interface « PARCOURS RÉFÉRENCÉS · NON DISPONIBLES », ses listes et les entrées désactivées de l'arbre Guides. Les métadonnées source Ganymède restent intactes dans leur propriétaire de collecte (#363), mais ne sont ni chargées ni affichées comme routes jouables par le catalogue Guide.
+- **Chemins UI :** suppression du panneau, de la liste, du spacer spécifique, du chargement de l'index et de la construction des faux enfants, sans affecter les vraies cartes, la catégorie Dofus et les deux guides optimisés.
+- **Contrat de clic/connexion :** vrai clic souris Qt sur la grille Guide, vrai clic sur un enfant d'arbre jouable, clic souris et touche Entrée sur les cartes optimisées, changement de catégorie, absence d'ouverture pour les références non jouables et absence de double émission après activation. Les tests résident dans le **même commit que la correction** (`tests/test_guide_catalog_view.py`).
+- **Vérification exigée :** suite Qt propriétaire au HEAD exact et parcours `GuideCatalogView.guideRequested` vers `EncyclopediaPage.navigate_to_guide`, puis captures CI Windows si disponibles. Un `uncovered_paths`, `NOT_RUN` ou un scénario sans capture n'est pas un PASS et doit rester consigné.
