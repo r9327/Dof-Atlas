@@ -12,7 +12,7 @@ permissions:
 
 jobs:
   real-qt-capture:
-    name: Dev UI final refined-icon exact-SHA Qt and screenshots (Windows)
+    name: Dev UI Unity-glass 16pct and soft-shadow exact-SHA Qt screenshot (Windows)
     runs-on: windows-latest
     timeout-minutes: 15
     env:
