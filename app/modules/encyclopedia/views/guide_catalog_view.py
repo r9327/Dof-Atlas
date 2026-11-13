@@ -148,6 +148,9 @@ class GuideCatalogView(QWidget):
         self.library_categories.setIndentation(14)
         self.library_categories.setMinimumWidth(0)
         self.library_categories.setUniformRowHeights(True)
+        # Pixel scrolling ends at the final visible row, rather than exposing
+        # an extra whole item of blank viewport at the bottom of dense menus.
+        self.library_categories.setVerticalScrollMode(QAbstractItemView.ScrollPerPixel)
         self.library_categories.setMaximumHeight(250)
         self._category_nodes = {}
         # Dofus is the default, selectable category; events come last.
