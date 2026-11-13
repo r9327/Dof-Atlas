@@ -176,6 +176,7 @@ class UnitySkinTests(unittest.TestCase):
             "NAV_SURFACE": "#445566",
             "SCROLL_SURFACE": "#556677",
             "TOOLTIP_SURFACE": "#667788",
+            "FIELD_SURFACE": "#778899",
         })
         for expected in (
             "rgba(17, 34, 51, 0.88)",  # cards and Guide panels
@@ -184,8 +185,10 @@ class UnitySkinTests(unittest.TestCase):
             "rgba(51, 68, 85, 0.92)",  # lists and tables
             "rgba(51, 68, 85, 0.85)",  # shared progress
             "rgba(68, 85, 102, 0.93)",  # common tabs
+            "rgba(68, 85, 102, 0.98)",  # dialogs and menus
             "rgba(85, 102, 119, 0.35)",  # scroll surfaces
             "background: #667788;",  # tooltips
+            "rgba(119, 136, 153, 0.96)",  # shared text fields and combos
         ):
             with self.subTest(expected=expected):
                 self.assertIn(expected, style)
