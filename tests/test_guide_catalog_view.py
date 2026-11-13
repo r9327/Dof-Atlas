@@ -117,6 +117,30 @@ class GuideCatalogRightColumnTests(unittest.TestCase):
         self.assertEqual(view.library_category, "regions")
         self.assertEqual(calls, [])
 
+    def test_references_only_start_below_heading_without_large_empty_gap(self):
+        view = self.make_view()
+        view.library_categories.setCurrentItem(view._category_nodes["dimensions"])
+        self.app.processEvents()
+        self.assertFalse(view.home_dofus_list.isVisible())
+        self.assertTrue(view.unavailable_list.isVisibleTo(view))
+        self.assertEqual(view.library_results_title.text(), "DIMENSIONS DIVINES")
+        self.assertLessEqual(
+            view.unavailable_title.geometry().top()
+            - view.library_results_title.geometry().bottom(),
+            24,
+        )
+        self.assertLessEqual(
+            view.unavailable_list.geometry().top()
+            - view.unavailable_title.geometry().bottom(),
+            24,
+        )
+
+        # The Dofus grid still owns the remaining height when real cards exist.
+        view.library_categories.setCurrentItem(view._category_nodes["dofus"])
+        self.app.processEvents()
+        self.assertTrue(view.home_dofus_list.isVisibleTo(view))
+        self.assertGreater(view.home_dofus_list.height(), 280)
+
     def test_filter_and_refresh_reuse_rows_without_changing_real_cards(self):
         view = self.make_view()
         view.library_categories.setCurrentItem(view._category_nodes["regions"])
