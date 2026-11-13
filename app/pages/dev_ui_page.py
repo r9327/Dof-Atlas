@@ -59,7 +59,7 @@ from app.ui.unity_palette import (
     UNITY_INTERACTION_STATES, UNITY_MAIN_ROLES, UNITY_SIZES_PX, UNITY_UI_USAGE,
 )
 from app.ui.unity_skin import (
-    apply_unity_panel_shadow, unity_original_preview_icon,
+    apply_unity_panel_shadow, sprite_icon_path, unity_original_preview_icon,
 )
 
 
@@ -511,7 +511,7 @@ class DevUiPage(QWidget):
             ("info", "Information"),
             ("neutral", "Neutre"),
         ):
-            badge = QLabel(caption)
+            badge = QLabel(f"● {caption}")
             badge.setObjectName("StatusBadge")
             badge.setProperty("state", state)
             badge.setAlignment(Qt.AlignCenter)
@@ -529,7 +529,9 @@ class DevUiPage(QWidget):
             "info": "Information", "neutral": "Neutre",
         }
         for tone in UNITY_CHIP_TONES:
-            chip = AtlasButton(chip_captions[tone], variant="status_chip")
+            chip = AtlasButton(f"• {chip_captions[tone]}", variant="status_chip")
+            chip.setMinimumHeight(20)
+            chip.setMaximumHeight(24)
             chip.setProperty("tone", tone)
             chip.setCheckable(True)
             chip.setChecked(tone == "success")
@@ -846,9 +848,13 @@ class DevUiPage(QWidget):
     def _build_ui_assets(self, parent: QVBoxLayout) -> None:
         section = self._section(parent, "Icônes · raccourcis · tooltips")
 
+        all_icon_names = (*UNITY_ICON_NAMES, *UNITY_ICON_PENDING)
+        local_icon_count = sum(
+            sprite_icon_path(name) is not None for name in all_icon_names
+        )
         source_hint = QLabel(
-            "8 sprites Unity disponibles · modules manquants signalés sans faux logos · "
-            "originaux en couleurs si installés localement"
+            f"Sources Unity communes : {local_icon_count}/{len(all_icon_names)} "
+            "pictogrammes repérés dans ce lancement · couleurs originales conservées"
         )
         source_hint.setObjectName("MutedLabel")
         section.addWidget(source_hint)
@@ -866,7 +872,7 @@ class DevUiPage(QWidget):
             "almanax": "Almanax",
         }
         self.preview_icon_missing: dict[str, QLabel] = {}
-        for index, name in enumerate((*UNITY_ICON_NAMES, *UNITY_ICON_PENDING)):
+        for index, name in enumerate(all_icon_names):
             cell = QWidget()
             cell.setObjectName("DevUiIconCell")
             cell_layout = QHBoxLayout(cell)
@@ -879,11 +885,14 @@ class DevUiPage(QWidget):
             size = UNITY_SIZES_PX["icon_large"]
             icon = unity_original_preview_icon(name, size)
             if icon.isNull():
-                # The checked-in Unity set lacks this module sprite: show a
-                # genuine missing-asset state, not a made-up in-game logo.
+                # Not present at this path in *this environment*. Do not
+                # claim the user's original assets are unavailable elsewhere.
                 symbol.setObjectName("DevUiMissingIcon")
                 symbol.setText("—")
-                symbol.setToolTip(f"{icon_captions[name]} · icône originale à importer")
+                symbol.setToolTip(
+                    f"{icon_captions[name]} · non détecté dans le dossier "
+                    "Unity de cet environnement"
+                )
                 self.preview_icon_missing[name] = symbol
             else:
                 symbol.setPixmap(icon.pixmap(size, size))
@@ -895,7 +904,7 @@ class DevUiPage(QWidget):
             cell_layout.addWidget(symbol)
             cell_layout.addWidget(caption, 1)
             if name in self.preview_icon_missing:
-                flag = QLabel("À importer")
+                flag = QLabel("Non détecté ici")
                 flag.setObjectName("DevUiMissingIconText")
                 cell_layout.addWidget(flag)
             icons.addWidget(cell, index // 4, index % 4)
