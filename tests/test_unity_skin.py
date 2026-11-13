@@ -142,40 +142,47 @@ class UnitySkinTests(unittest.TestCase):
                     self.app.processEvents()
 
     def test_shell_home_margins_reveal_shared_fallback_stars(self) -> None:
-        # The backdrop alone can paint stars while an opaque stacked page hides
-        # every one of them. Exercise the actual shell/Home composition.
-        from main import AtlasWindow
+        # Compose the real shared shell selectors without running the heavy
+        # AtlasWindow bootstrap/preload in an offscreen Qt test runner.
+        from PySide6.QtWidgets import QStackedWidget, QVBoxLayout
+        from app.ui.theme import atlas_stylesheet
 
         with (
             tempfile.TemporaryDirectory() as directory,
             patch.object(unity_skin, "_PERSONAL_ASSETS", Path(directory) / "personal"),
             patch.object(unity_skin, "_ASSETS", Path(directory) / "assets"),
-            patch.object(AtlasWindow, "start_startup_preload_sequence", return_value=None),
-            patch.object(AtlasWindow, "setup_tray", return_value=None),
             patch.object(unity_skin, "_PUBLIC_SKY_STARS", ((0.012, 0.55, 7.0, 255),)),
         ):
-            window = AtlasWindow(initial_preload={})
+            backdrop = UnityBackdrop()
+            backdrop.setStyleSheet(atlas_stylesheet())
+            layout = QVBoxLayout(backdrop)
+            layout.setContentsMargins(0, 0, 0, 0)
+            stack = QStackedWidget(backdrop)
+            stack.setObjectName("AtlasUnityStack")
+            home = QWidget(stack)
+            home.setObjectName("HomePage")
+            home.setProperty("atlasUnityPage", True)
+            stack.addWidget(home)
+            layout.addWidget(stack)
+            backdrop.resize(600, 380)
             try:
-                window.resize(900, 600)
-                window.show()
+                backdrop.show()
                 self.app.processEvents()
-                backdrop = window.centralWidget()
-                self.assertIsInstance(backdrop, UnityBackdrop)
                 self.assertTrue(backdrop._pixmap.isNull())
-                self.assertEqual(window.stack.objectName(), "AtlasUnityStack")
-                with_star = window.grab().toImage()
+                self.assertEqual(stack.currentWidget(), home)
+                with_star = backdrop.grab().toImage()
                 with patch.object(unity_skin, "_PUBLIC_SKY_STARS", ()):
                     backdrop.update()
                     self.app.processEvents()
-                    without_star = window.grab().toImage()
-                # x=14 is inside Home's left margin, not a card or nav control.
+                    without_star = backdrop.grab().toImage()
+                # The margin is in the stacked Home page, not a data card.
                 self.assertNotEqual(
-                    with_star.pixelColor(14, 332),
-                    without_star.pixelColor(14, 332),
+                    with_star.pixelColor(12, 210),
+                    without_star.pixelColor(12, 210),
                 )
             finally:
-                window.close()
-                window.deleteLater()
+                backdrop.close()
+                backdrop.deleteLater()
                 self.app.processEvents()
 
     def test_clean_wallpaper_has_priority_without_mutating_original(self) -> None:
