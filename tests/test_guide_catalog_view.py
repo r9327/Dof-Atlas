@@ -125,6 +125,45 @@ class GuideCatalogInteractionTests(unittest.TestCase):
         self.assertEqual(requested, ["dofus_cawotte"])
         self.assertEqual(view.current_guide_id, "dofus_cawotte")
 
+    def test_grid_activation_does_not_emit_duplicate_guide_request(self):
+        view = self.make_view()
+        requested = []
+        view.guideRequested.connect(requested.append)
+        index = view.home_dofus_model.index(0, 0)
+        self.assertTrue(index.isValid())
+
+        # Qt emits activated after clicked for a double-click. The second
+        # signal must not reroute, spawn a second detail or reset a spinner.
+        view.home_dofus_list.clicked.emit(index)
+        view.home_dofus_list.activated.emit(index)
+        self.assertEqual(requested, ["dofus_cawotte"])
+
+    def test_grid_keyboard_return_and_keypad_enter_open_selected_guide(self):
+        view = self.make_view()
+        requested = []
+        view.guideRequested.connect(requested.append)
+        grid = view.home_dofus_list
+        self.assertTrue(grid.isVisibleTo(view))
+        grid.setCurrentIndex(view.home_dofus_model.index(0, 0))
+        grid.setFocus()
+        self.app.processEvents()
+        self.assertTrue(grid.hasFocus())
+
+        QTest.keyClick(grid, Qt.Key_Return)
+        self.assertEqual(requested, ["dofus_cawotte"])
+        QTest.keyClick(grid, Qt.Key_Enter)
+        self.assertEqual(requested, ["dofus_cawotte", "dofus_cawotte"])
+
+    def test_grid_keyboard_on_empty_selection_does_not_open_a_guide(self):
+        view = self.make_view()
+        requested = []
+        view.guideRequested.connect(requested.append)
+        grid = view.home_dofus_list
+        grid.setCurrentIndex(view.home_dofus_model.index(-1, -1))
+        grid.setFocus()
+        QTest.keyClick(grid, Qt.Key_Return)
+        self.assertEqual(requested, [])
+
     def test_real_mouse_click_on_tree_child_opens_its_guide(self):
         view = self.make_view()
         requested = []

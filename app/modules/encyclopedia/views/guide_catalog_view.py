@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from PySide6.QtCore import QSize, Qt, QTimer, Signal
-from PySide6.QtGui import QIcon
+from PySide6.QtGui import QIcon, QKeySequence, QShortcut
 from app.ui.unity_skin import apply_unity_panel_shadow, sprite_icon_path
 from PySide6.QtWidgets import (
     QAbstractItemView, QFrame, QLabel, QListView,
@@ -134,8 +134,16 @@ class GuideCatalogView(QWidget):
         self.home_dofus_list.setWrapping(True)
         self.home_dofus_list.setResizeMode(QListView.Adjust)
         self.home_dofus_list.setGridSize(QSize(220, 96))
+        # A double-click emits both clicked and activated in Qt. Wiring both
+        # directly causes duplicate guide navigation (and redundant loading).
+        # Mouse uses clicked; focused keyboard users get Return/Numpad Enter.
         self.home_dofus_list.clicked.connect(self._on_clicked)
-        self.home_dofus_list.activated.connect(self._on_clicked)
+        self._grid_open_shortcuts = []
+        for key in (Qt.Key_Return, Qt.Key_Enter):
+            shortcut = QShortcut(QKeySequence(key), self.home_dofus_list)
+            shortcut.setContext(Qt.WidgetShortcut)
+            shortcut.activated.connect(self._activate_selected_card)
+            self._grid_open_shortcuts.append(shortcut)
 
         # Tree nodes are stable across refreshes: expansion is user-controlled.
         self.library_categories = QTreeWidget(self)
@@ -247,6 +255,12 @@ class GuideCatalogView(QWidget):
         guide_id = index.data(GUIDE_ID_ROLE)
         if guide_id:
             self.select_guide(str(guide_id))
+
+    def _activate_selected_card(self) -> None:
+        """Open the actual selected model item, without duplicate mouse signals."""
+        index = self.home_dofus_list.currentIndex()
+        if index.isValid():
+            self._on_clicked(index)
 
     def select_guide(self, guide_id: str) -> bool:
         guide_id = str(guide_id or "")
