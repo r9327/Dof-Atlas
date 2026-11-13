@@ -55,7 +55,8 @@ from app.ui.components import (
 )
 from app.ui.theme import PALETTE, SIZES, SPACING, TYPOGRAPHY
 from app.ui.unity_palette import (
-    UNITY_ICON_NAMES, UNITY_MAIN_ROLES, UNITY_SIZES_PX, UNITY_UI_USAGE,
+    UNITY_CHIP_TONES, UNITY_ICON_NAMES, UNITY_ICON_PENDING,
+    UNITY_INTERACTION_STATES, UNITY_MAIN_ROLES, UNITY_SIZES_PX, UNITY_UI_USAGE,
 )
 from app.ui.unity_skin import (
     apply_unity_panel_shadow, unity_original_preview_icon,
@@ -257,6 +258,28 @@ class DevUiPage(QWidget):
         link_row.addStretch(1)
         section.addLayout(link_row)
 
+        # Borderless but unmistakably clickable secondary/popup actions.
+        # Both are real AtlasButton controls and inherit the same QSS tokens.
+        action_row = QHBoxLayout()
+        self.preview_text_actions: dict[str, AtlasButton] = {}
+        for name, caption in (
+            ("inline_action", "Voir les détails"),
+            ("popup_link", "Ouvrir la popup  ↗"),
+        ):
+            button = AtlasButton(caption, variant=name)
+            button.setAccessibleName(caption)
+            button.setToolTip("Texte d'action cliquable · survol vert · clavier actif")
+            if name == "popup_link":
+                button.clicked.connect(self._open_preview_dialog)
+            else:
+                button.clicked.connect(
+                    lambda _checked=False: self._report("Détails ouverts")
+                )
+            self.preview_text_actions[name] = button
+            action_row.addWidget(button)
+        action_row.addStretch(1)
+        section.addLayout(action_row)
+
     def _select_nav(self, active: int) -> None:
         for index, button in enumerate(self.preview_nav):
             button.set_variant(
@@ -267,6 +290,7 @@ class DevUiPage(QWidget):
     def _build_tabs_and_menus(self, parent: QVBoxLayout) -> None:
         section = self._section(parent, "Onglets · menus et navigation")
         self.preview_tabs = QTabWidget()
+        self.preview_tabs.setObjectName("DevUiTabs")
         for title in ("Quêtes", "Succès", "Guides"):
             tab = QWidget()
             tab.setObjectName("DevUiTabPage")
@@ -482,6 +506,10 @@ class DevUiPage(QWidget):
             ("done", "Terminé"),
             ("active", "En cours"),
             ("blocked", "Indisponible"),
+            ("danger", "Danger"),
+            ("warning", "Attention"),
+            ("info", "Information"),
+            ("neutral", "Neutre"),
         ):
             badge = QLabel(caption)
             badge.setObjectName("StatusBadge")
@@ -492,6 +520,34 @@ class DevUiPage(QWidget):
             badges.addWidget(badge)
         badges.addStretch(1)
         section.addLayout(badges)
+
+        # Passive badges above have no hover. These *interactive* chips do.
+        chip_row = QHBoxLayout()
+        self.preview_chips: dict[str, AtlasButton] = {}
+        chip_captions = {
+            "success": "Validé", "danger": "Danger", "warning": "Attention",
+            "info": "Information", "neutral": "Neutre",
+        }
+        for tone in UNITY_CHIP_TONES:
+            chip = AtlasButton(chip_captions[tone], variant="status_chip")
+            chip.setProperty("tone", tone)
+            chip.setCheckable(True)
+            chip.setChecked(tone == "success")
+            chip.setAccessibleName(f"Badge interactif {chip_captions[tone]}")
+            chip.setToolTip(f"Badge {tone} · clic, survol, sélection et focus")
+            chip.toggled.connect(
+                lambda checked, selected=tone: self._report(
+                    f"Badge {selected} {'activé' if checked else 'désactivé'}"
+                )
+            )
+            self.preview_chips[tone] = chip
+            chip_row.addWidget(chip)
+        chip_row.addStretch(1)
+        section.addLayout(chip_row)
+        self.preview_interaction_states = UNITY_INTERACTION_STATES
+        hint = QLabel("États indexés : " + " · ".join(UNITY_INTERACTION_STATES))
+        hint.setObjectName("MutedLabel")
+        section.addWidget(hint)
 
         state_row = QHBoxLayout()
         self.preview_toggle = QToolButton()
@@ -791,7 +847,8 @@ class DevUiPage(QWidget):
         section = self._section(parent, "Icônes · raccourcis · tooltips")
 
         source_hint = QLabel(
-            "Logos Unity en couleurs d'origine s'ils sont installés et transparents · sinon repli Atlas"
+            "8 sprites Unity disponibles · modules manquants signalés sans faux logos · "
+            "originaux en couleurs si installés localement"
         )
         source_hint.setObjectName("MutedLabel")
         section.addWidget(source_hint)
@@ -804,8 +861,12 @@ class DevUiPage(QWidget):
             "guide": "Guides", "quest": "Quêtes", "success": "Succès",
             "encyclopedia": "Encyclopédie", "character": "Personnage",
             "dofus": "Dofus", "map": "Carte", "inventory": "Inventaire",
+            "jobs": "Métiers", "bestiary": "Bestiaire", "craft": "Crafts",
+            "equipment": "Stuffs", "organizer": "Organizer",
+            "almanax": "Almanax",
         }
-        for index, name in enumerate(UNITY_ICON_NAMES):
+        self.preview_icon_missing: dict[str, QLabel] = {}
+        for index, name in enumerate((*UNITY_ICON_NAMES, *UNITY_ICON_PENDING)):
             cell = QWidget()
             cell.setObjectName("DevUiIconCell")
             cell_layout = QHBoxLayout(cell)
@@ -816,14 +877,27 @@ class DevUiPage(QWidget):
             symbol.setFixedSize(32, 32)
             symbol.setAccessibleName(f"Icône {icon_captions[name]}")
             size = UNITY_SIZES_PX["icon_large"]
-            symbol.setPixmap(unity_original_preview_icon(name, size).pixmap(size, size))
-            symbol.setToolTip(
-                f"{icon_captions[name]} · Unity local si transparent, repli Atlas sinon"
-            )
+            icon = unity_original_preview_icon(name, size)
+            if icon.isNull():
+                # The checked-in Unity set lacks this module sprite: show a
+                # genuine missing-asset state, not a made-up in-game logo.
+                symbol.setObjectName("DevUiMissingIcon")
+                symbol.setText("—")
+                symbol.setToolTip(f"{icon_captions[name]} · icône originale à importer")
+                self.preview_icon_missing[name] = symbol
+            else:
+                symbol.setPixmap(icon.pixmap(size, size))
+                symbol.setToolTip(
+                    f"{icon_captions[name]} · sprite Unity local ou repli Atlas"
+                )
             caption = QLabel(icon_captions[name])
             caption.setObjectName("MutedLabel")
             cell_layout.addWidget(symbol)
             cell_layout.addWidget(caption, 1)
+            if name in self.preview_icon_missing:
+                flag = QLabel("À importer")
+                flag.setObjectName("DevUiMissingIconText")
+                cell_layout.addWidget(flag)
             icons.addWidget(cell, index // 4, index % 4)
             self.preview_icon_labels[name] = symbol
         section.addLayout(icons)
