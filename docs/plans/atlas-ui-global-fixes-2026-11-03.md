@@ -259,3 +259,11 @@ Ne cocher aucun ID de #364 sur cette seule base. Ne pas fusionner tant que les o
 - **Preuve restant nécessaire** : exécution du lot exact-SHA et capture Windows ; essais DOFUS multi-comptes restent à la PR #325, non annoncés PASS ici.
 
 - **CI / clôture P0 Organizer :** le mini-audit a bloqué sur l'unique fichier `tests/test_organizer_ui.py` (`UNKNOWN_OWNER_BLOCKS_MODULAR_CERTIFICATE`) malgré sa suite Qt réelle. Propriétaire exact ajouté au routeur fermé dans les trois domaines consommateurs existants `organizer/ui/identity`, avec un test de chemin voisin toujours refusé. Aucun wildcard, skip ou modification des obligations `FULL_REQUIRED`.
+
+
+### P0 — Contrat déroulants Successes / Guide Ultime (13/11/2026)
+
+- **Racine** : le thème global expose déjà un unique `QComboBox` (normal, focus, hover, disabled, popup) pour les Succès, Quêtes, Personnage, etc. Cependant `#GuideUltimeGeneratedView QComboBox` avait **deux règles locales concurrentes** (fonds `PANEL_HOVER`, marges 6×10 et 4×8, hover `GREEN_BORDER`), qui empêchaient la propagation du modèle commun.
+- **Fix minimal** : supprimer les deux règles de dropdown spécifiques et les styles bouton doublonnés devenus inutiles en haut de la feuille ; conserver le bloc final `#GuideUltimeGeneratedView QPushButton/QToolButton` et les règles métier du Guide. La sélection, les données et les callbacks des véritables Guides ne sont pas modifiés.
+- **Validation dans le même commit** : `tests/test_theme_runtime_cache.py` vérifie absence d'exception Guide, couleurs popup/survol sur overrides et maintien du style bouton. La bibliothèque Dev offre le vrai parent `GuideUltimeGeneratedView` et un `QComboBox` cliquable ; `tests/test_dev_ui_page.py` exerce changement de sélection et navigation clavier Qt réelle jusqu'au callback.
+- **Limites** : aucune capture du vrai écran Guide Ultime ni test de ses données métier n'est implicitement acquis ; Doctor-lot et captures Windows à vérifier sur le HEAD précis.

@@ -3093,19 +3093,8 @@ QLabel[travelCopyEnabled="true"] {
     height: 19px;
 }
 
-#GuideUltimeGeneratedView QPushButton,
-#GuideUltimeGeneratedView QComboBox {
-    background: @PANEL_HOVER;
-    color: @TEXT_SOFT;
-    border: 1px solid @BORDER;
-    border-radius: @RADIUS_XS;
-    padding: 6px 10px;
-}
-
-#GuideUltimeGeneratedView QPushButton:hover,
-#GuideUltimeGeneratedView QComboBox:hover {
-    border-color: @GREEN_BORDER;
-}
+/* Guide Ultime buttons keep their domain layout below. Its combo boxes
+   inherit the same native dropdown rules as Succès, Quêtes and Personnage. */
 
 #GuideRouteCurrent {
     color: @GREEN;
@@ -3231,7 +3220,6 @@ QLabel[travelCopyEnabled="true"]:hover {
     height: 16px;
 }
 
-#GuideUltimeGeneratedView QComboBox,
 #GuideUltimeGeneratedView QPushButton,
 #GuideUltimeGeneratedView QToolButton {
     background: @PANEL_HOVER;
@@ -3241,7 +3229,6 @@ QLabel[travelCopyEnabled="true"]:hover {
     padding: 4px 8px;
 }
 
-#GuideUltimeGeneratedView QComboBox:hover,
 #GuideUltimeGeneratedView QPushButton:hover,
 #GuideUltimeGeneratedView QToolButton:hover {
     border-color: @GREEN_BORDER;

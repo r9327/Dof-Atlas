@@ -46,6 +46,12 @@ class DevUiPageTests(unittest.TestCase):
             self.assertEqual(page.guide_sample_summary.objectName(), "GuidePreparationSummary")
             self.assertEqual(page.guide_sample_row.objectName(), "GuidePreparationRow")
             self.assertEqual(page.guide_manual_nav.objectName(), "GuideManualNav")
+            self.assertEqual(
+                page.guide_ultime_sample.objectName(), "GuideUltimeGeneratedView"
+            )
+            self.assertEqual(page.guide_ultime_combo.styleSheet(), "")
+            page.guide_ultime_combo.setCurrentIndex(2)
+            self.assertIn("Guide Ultime : Instantané", page.feedback.text())
             page.guide_copy_button.click()
             self.assertIn("Copier cliqué", page.feedback.text())
             page.preview_buttons["primary"].click()
@@ -110,6 +116,25 @@ class DevUiPageTests(unittest.TestCase):
             page.close()
             page.deleteLater()
 
+
+    def test_guide_ultime_dropdown_keyboard_selection_uses_real_qt_signal(self) -> None:
+        from app.pages.dev_ui_page import DevUiPage
+
+        page = DevUiPage(on_back=lambda: None)
+        try:
+            page.resize(1000, 800)
+            page.show()
+            self.app.processEvents()
+            combo = page.guide_ultime_combo
+            combo.setCurrentIndex(0)
+            combo.setFocus()
+            QTest.keyClick(combo, Qt.Key_Down)
+            self.assertEqual(combo.currentIndex(), 1)
+            self.assertIn("Guide Ultime : Rapide", page.feedback.text())
+            self.assertEqual(combo.styleSheet(), "")
+        finally:
+            page.close()
+            page.deleteLater()
 
     def test_dev_ui_gallery_is_lazy_and_accessible_from_settings(self) -> None:
         source = (Path(__file__).resolve().parents[1] / "main.py").read_text(

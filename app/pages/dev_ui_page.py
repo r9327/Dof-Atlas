@@ -363,6 +363,20 @@ class DevUiPage(QWidget):
         nav_layout.addWidget(QLabel("Navigation du guide · fond partagé"))
         section.addWidget(self.guide_manual_nav)
 
+        # Use the real Guide Ultime parent selector and the same native
+        # QComboBox as Successes. Never apply a per-widget QSS override.
+        self.guide_ultime_sample = QFrame()
+        self.guide_ultime_sample.setObjectName("GuideUltimeGeneratedView")
+        guide_layout = QHBoxLayout(self.guide_ultime_sample)
+        guide_layout.addWidget(QLabel("Menu Guide Ultime · style Succès"), 1)
+        self.guide_ultime_combo = QComboBox()
+        self.guide_ultime_combo.addItems(("Normal", "Rapide", "Instantané"))
+        self.guide_ultime_combo.currentTextChanged.connect(
+            lambda value: self._report(f"Guide Ultime : {value}")
+        )
+        guide_layout.addWidget(self.guide_ultime_combo, 1)
+        section.addWidget(self.guide_ultime_sample)
+
     def _build_dialogs_and_colors(self, parent: QVBoxLayout) -> None:
         section = self._section(parent, "Dialogues · icônes · typographie")
         section.addWidget(AtlasPageTitle("Titre Atlas partagé"))

@@ -63,6 +63,35 @@ class ThemeRuntimeCacheTests(unittest.TestCase):
         self.assertIn("border-color: #234BCD;", hover)
         self.assertIn("QComboBox::drop-down {", style)
 
+    def test_guide_ultime_dropdown_inherits_successes_global_rules(self) -> None:
+        overrides = {
+            "PANEL_2": "#123ABC",
+            "PANEL_ACTIVE": "#234BCD",
+            "BORDER": "#345CDE",
+            "BORDER_STRONG": "#456DEF",
+        }
+        style = theme.atlas_stylesheet(overrides)
+        # A Guide-specific QComboBox rule used to override the common
+        # popup/focus/hover rules twice with incompatible padding/colors.
+        self.assertNotIn("#GuideUltimeGeneratedView QComboBox", style)
+        common = style.split(
+            "QLineEdit, QComboBox, QSpinBox, #inputField, #comboField {", 1
+        )[0]
+        self.assertIn("QComboBox", common)
+        dropdown = style.split("QComboBox QAbstractItemView {", 1)[1].split("}", 1)[0]
+        self.assertIn("background: #123ABC;", dropdown)
+        self.assertIn("selection-background-color: #234BCD;", dropdown)
+        self.assertIn("border: 1px solid #345CDE;", dropdown)
+        hover = style.split("QComboBox:hover {", 1)[1].split("}", 1)[0]
+        self.assertIn("border-color: #456DEF;", hover)
+        # Do not disturb Guide-only buttons and other interactive controls.
+        self.assertIn(
+            "#GuideUltimeGeneratedView QPushButton,\n"
+            "#GuideUltimeGeneratedView QToolButton {",
+            style,
+        )
+        self.assertIn("#GuideUltimeGeneratedView QCheckBox {", style)
+
     def test_preload_popup_style_is_canonical_and_follows_unity_tokens(self) -> None:
         style = theme.atlas_stylesheet({
             "BG": "#102030",
