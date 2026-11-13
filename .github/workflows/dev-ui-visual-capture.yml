@@ -13,7 +13,7 @@ permissions:
 
 jobs:
   real-qt-capture:
-    name: Dev UI / verified star backdrop and dropdown dividers exact-SHA proof
+    name: Dev UI / final star backdrop and 24px menu rows exact-SHA proof
     runs-on: windows-latest
     timeout-minutes: 15
     env:
