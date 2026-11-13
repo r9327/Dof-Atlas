@@ -239,3 +239,11 @@ Ne cocher aucun ID de #364 sur cette seule base. Ne pas fusionner tant que les o
 - **Limite** : contrôle des sources et tests ajoutés ne valent pas capture Windows, test DOFUS ou phase certifiée ; finaliser `ATUI-009..016` seulement après preuve des consommateurs réels.
 
 - **Qualification des tests propriétaires** : le lot Doctor `670195ef` a exécuté les deux suites existantes : **65/65 PASS** sur les assertions, mais `REVIEW` à cause de `uncovered_paths=[app/pages/dev_ui_page.py]`. Les trois tests de la galerie (vrais clics Qt, navigation/saisie, lazy shell) sont déplacés sans duplication vers `tests/test_dev_ui_page.py`, propriétaire exact recommandé par `ai_context.recommended_tests`. Pas de modification des politiques, wildcards ni seuils du routeur. Le verdict du nouveau SHA reste à vérifier ; cela ne certifie pas la PR entière.
+
+
+### P0 — palette Unity unique pour Launcher Tk et application Qt (13/11/2026)
+
+- **Graphify préalable exact-SHA :** [#43437093712](https://github.com/r9327/Dof-Atlas/actions/runs/43437093712) : diagnostic et fraîcheur SUCCESS pour `2029029fbb87c023d65a16aea5663371f2a7ad30`. Consommateurs vérifiés : `unity_skin.py` → thème et widgets Qt, `launcher_ui.py` → `launcher.py` Tk. Aucun module de logique d'installation modifié.
+- **Correction racine :** les littéraux `UNITY_PALETTE` sont déplacés sans changement de valeur dans `app/ui/unity_palette.py`, **sans PySide6 ni effet de bord**, et importés par `app/ui/unity_skin.py`. Le Launcher importe seulement l'adaptateur `launcher_colors()` du même module pur ; plus de deuxième palette couleur Tk.
+- **Compatibilité :** les anciens symboles publics `unity_skin.UNITY_PALETTE`, `launcher_ui.UNITY_PALETTE` et `launcher_ui.COLORS` restent disponibles. Couleurs/dimensions/logiciel d'installation inchangés ; PyInstaller suit l'import standard du module Python sans nouvelle ressource.
+- **Validation dans le lot :** `tests/test_unity_palette.py` (source/overrides/sans Qt), `tests/test_launcher_ui.py` (vrais consommateurs Tk), suite branding adaptée pour exiger une dépendance vers le seul module pur, et suppression du test AST obsolète de `test_distribution_launcher_noop_offline.py`. Doctor-lot exact-SHA et tests packagés Windows encore nécessaires, aucune certification déduite des tests committés.

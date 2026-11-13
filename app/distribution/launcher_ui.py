@@ -6,19 +6,10 @@ from __future__ import annotations
 
 import math
 
-UNITY_PALETTE = {
-    "background": "#151821",
-    "panel": "#1B2746",
-    "border": "#475F89",
-    "track": "#213154",
-    "text": "#F1F6FB",
-    "muted": "#B8C6E3",
-    "accent": "#9FCE51",
-    "accent_hover": "#B1DC64",
-}
+from app.ui.unity_palette import launcher_colors
 
-
-# No second launcher palette: the old Atlas UI cannot accidentally reappear.
+# Keep the standalone Tk entry lightweight: this imports a stdlib-only palette.
+UNITY_PALETTE = launcher_colors()
 COLORS = UNITY_PALETTE
 FONT_FAMILY = "Lexend"
 
