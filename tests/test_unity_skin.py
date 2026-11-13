@@ -55,6 +55,7 @@ class UnitySkinTests(unittest.TestCase):
             css = unity_skin_stylesheet()
         self.assertNotIn("btn_yellow2_", css)
         self.assertNotIn("bg_tab_selected_normal", css)
+        self.assertIn("padding: 5px 12px; min-height: 24px;", css)
         for name in ("PrimaryActionButton", "primaryButton",
                      "SecondaryButton", "secondaryButton"):
             self.assertNotIn(f"QPushButton#{name} {{ border: 8px", css)
