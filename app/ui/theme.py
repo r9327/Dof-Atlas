@@ -407,6 +407,12 @@ QWidget#DevUiPage QComboBox QAbstractItemView {
     selection-background-color: @PANEL_ACTIVE;
     selection-color: @TEXT;
 }
+/* The family selector keeps the original green active row. Only its
+   unobtrusive separators and fixed row height are preview-specific. */
+QWidget#DevUiPage QComboBox#DevUiFamilyCombo QAbstractItemView {
+    selection-background-color: @GREEN_DARK;
+    selection-color: @TEXT;
+}
 
 QTabWidget#EncyclopediaTabs::pane {
     background: @BG;
