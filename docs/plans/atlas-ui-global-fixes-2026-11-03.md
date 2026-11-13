@@ -90,3 +90,9 @@ Ne cocher aucun ID de #364 sur cette seule base. Ne pas fusionner tant que les o
 - **ATGD-005 / ATUI-003 (partiel)** : le `GuidesView.build_detail_page()` plaçait `GuideHeader` avant `GuideBreadcrumb`, à l'inverse du contrat. L'ordre du `QVBoxLayout` est corrigé en **breadcrumb → entête → contenu**, sans changer les panneaux, les composants ou les données Guide.
 - Test Qt dans `tests/test_guide_library_home.py` avec construction du vrai widget de détail et vérification des indices de layout; seul `QuestDetailView` est remplacé dans le test pour éviter un chargement métier hors périmètre.
 - Les autres barres d'Ariane et l'essai Windows restent à contrôler ; **aucun PASS global** pour ATGD-005/ATUI-003 avant les recettes et le SHA final.
+
+### Propriété des tests — fil d'Ariane
+
+- L'exécution de la suite `tests/test_guide_library_home.py` au SHA `0cd1e2f47c855376cd90ea670e87ed00fa78d319` a passé ses 11 cas, dont le fil d'Ariane ; mais le routeur Doctor de lot rendait `REVIEW`, car `app/modules/encyclopedia/views/guides_view.py` n'avait pas de test reconnu comme propriétaire direct.
+- Le même scénario Qt est placé **une seule fois** dans `tests/test_guides_view.py`, correspondant directement au module de production sans modifier la carte des tests ou assouplir le planificateur Doctor. L'ancien test est retiré de `tests/test_guide_library_home.py` et ce fichier retourne à la version du SHA précédent.
+- Validation du nouveau HEAD et de sa suite Qt en attente ; ne pas interpréter `REVIEW` ou l'absence de FULL comme un PASS.
