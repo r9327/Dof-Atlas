@@ -68,7 +68,9 @@ class SharedThemeTests(unittest.TestCase):
         primary = style.split(
             "#primaryButton, #ActiveButton, #PrimaryActionButton {", 1
         )[1].split("}", 1)[0]
-        secondary = style.split(
+        # The first occurrence belongs to the shared primary/secondary
+        # typography block; inspect the final variant-specific color rule.
+        secondary = style.rsplit(
             "#secondaryButton, #SecondaryButton {", 1
         )[1].split("}", 1)[0]
         self.assertIn("background: ", primary)
@@ -108,7 +110,9 @@ class SharedThemeTests(unittest.TestCase):
         )[1].split("}", 1)[0]
         self.assertIn("padding: 3px 0;", warning_line)
         self.assertIn("QFrame#GuideManualLineRow", style)
-        self.assertIn("QCheckBox#GuideManualCombatCheck", style)
+        # This rule intentionally uses an object-name selector, independent
+        # of the concrete Qt class (the live widget remains a QCheckBox).
+        self.assertIn("#GuideManualCombatCheck {", style)
 
     def test_unity_skin_radii_follow_theme_overrides_without_local_duplicates(self) -> None:
         from app.ui.unity_palette import UNITY_RADII
