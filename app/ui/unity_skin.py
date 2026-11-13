@@ -381,6 +381,21 @@ def unity_skin_stylesheet(palette: Mapping[str, str] | None = None) -> str:
         "background: %s; color: %s; border: 1px solid %s; }" % (
             translucent("PANEL", 0.94), colors["TEXT_DISABLED"], colors["BORDER_SOFT"],
         ),
+        # Native QAbstractSpinBox button wells inherited almost-black pixels
+        # in the capture. Keep their arrows and keyboard/wheel interactions;
+        # only unify the little surfaces and separators with the Unity panel.
+        "QSpinBox::up-button, QSpinBox::down-button, "
+        "QDoubleSpinBox::up-button, QDoubleSpinBox::down-button, "
+        "QDateEdit::up-button, QDateEdit::down-button, "
+        "QTimeEdit::up-button, QTimeEdit::down-button { "
+        "background: %s; border: none; border-left: 1px solid %s; "
+        "width: 17px; }" % (
+            colors["PANEL_ACTIVE"], colors["BORDER_SOFT"],
+        ),
+        "QDateEdit::drop-down { background: %s; border: none; "
+        "border-left: 1px solid %s; width: 21px; }" % (
+            colors["PANEL_ACTIVE"], colors["BORDER_SOFT"],
+        ),
         # Focus must be appended AFTER all sprite rules to remain visible.
         "#PageTitle, #HomeGuideTitle, #TopNavBrandText { "
         'font-family: "Rowdies", "Lexend", "Segoe UI"; }',
