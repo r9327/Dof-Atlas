@@ -60,7 +60,27 @@ class UnitySkinTests(unittest.TestCase):
         self.assertIn("QDoubleSpinBox::up-button, QDoubleSpinBox::down-button", style)
         self.assertIn("QDateEdit::drop-down", style)
         self.assertIn("background: #344978; border: none;", style)
+        for state in ("check", "mixed", "up", "down"):
+            self.assertIn(f"atlas-control-{state}.svg", style)
+        self.assertIn("QCheckBox::indicator:indeterminate", style)
+        self.assertIn("QDateEdit::down-arrow", style)
         self.assertNotIn("rgba(20, 29, 55, 0.96)", style)
+
+    def test_optional_control_icons_fallback_keeps_native_arrows(self) -> None:
+        from PySide6.QtGui import QPixmap
+
+        root = Path(__file__).resolve().parents[1] / "app/assets/themes/dofus_unity/sprites"
+        for state in ("check", "mixed", "up", "down"):
+            self.assertFalse(QPixmap(str(root / f"atlas-control-{state}.svg")).isNull())
+
+        with tempfile.TemporaryDirectory() as folder, patch.object(
+            unity_skin, "_PERSONAL_ASSETS", Path(folder) / "personal"
+        ), patch.object(
+            unity_skin, "_ASSETS", Path(folder) / "missing"
+        ):
+            css = unity_skin_stylesheet()
+            self.assertNotIn("atlas-control-up.svg", css)
+            self.assertNotIn("QDateEdit::drop-down", css)
 
     def test_shared_buttons_never_inherit_gold_or_neon_sprite_borders(self) -> None:
         """Optional Unity assets cannot silently replace semantic button colors."""
