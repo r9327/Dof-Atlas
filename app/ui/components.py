@@ -22,6 +22,10 @@ BUTTON_OBJECT_NAMES = {
     "danger": "DangerButton",
     "navigation": "TopNavButton",
     "navigation_active": "TopNavButtonActive",
+    # Shared link roles across Guides, Quêtes and Succès.
+    "guide_breadcrumb": "GuideBreadcrumbButton",
+    "guide_quest_link": "GuideInlineQuestButton",
+    "guide_achievement_link": "GuideInlineAchievementButton",
 }
 
 _APPLICATION_ICON: QIcon | None = None

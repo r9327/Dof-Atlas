@@ -321,3 +321,11 @@ Ne cocher aucun ID de #364 sur cette seule base. Ne pas fusionner tant que les o
 - **Non-régression :** les valeurs par défaut, états, assets Unity, performances, données Guides et logique Organizer/Launcher restent inchangés. Tests ciblés dans `tests/test_theme.py` et `tests/test_unity_skin.py`; certificat Doctor/Windows à confirmer au SHA exact. Ne pas déclarer les critères ATUI-009..016 DONE sur ce seul lot.
 
 - **Diagnostic Doctor du lot rayons :** [run #43461403077](https://github.com/r9327/Dof-Atlas/actions/runs/43461403077) — FAIL (2 assertions de `tests/test_theme.py`, antérieures au lot, qui visaient respectivement le premier bloc commun plutôt que le dernier bloc de couleur secondaire et un sélecteur `QCheckBox#...` absent alors que le QSS utilise `#GuideManualCombatCheck`). Les deux sélecteurs existants et leur comportement restent inchangés ; corrections **uniquement dans les assertions** pour tester la règle réellement appliquée. Revalider au nouveau SHA, sans maquiller les FAIL historiques.
+
+
+### UI commune — rôles de liens mutualisés entre Guides, Quêtes et Succès (13/11/2026)
+
+- Les rôles `guide_breadcrumb`, `guide_quest_link` et `guide_achievement_link` ont un seul propriétaire : `AtlasButton.BUTTON_OBJECT_NAMES` dans `app/ui/components.py`. Les vues Guides, Quêtes et Succès passent le rôle à `AtlasButton(..., variant=...)` plutôt que copier un `setObjectName` local.
+- L'ancien sélecteur `GuideBreadcrumbButton` dupliqué dans le bloc Guide est supprimé ; la règle sémantique de `app/ui/theme.py` demeure la seule source de style. Les identifiants QSS, couleurs effectives, comportements de clic, textes et destinations existants restent inchangés.
+- La galerie `Dev · Bibliothèque UI Unity` présente les trois vrais boutons et leurs signaux Qt. Tests directs : `tests/test_components.py`, `tests/test_dev_ui_page.py`, `tests/test_theme.py` (identité et propagation des couleurs, absence du double sélecteur).
+- **Statut : implémentation ciblée, pas certification.** Doctor et CI au SHA exact, puis contrôle visuel Windows restent nécessaires ; aucune modification métier, du réseau ni des données Guides.

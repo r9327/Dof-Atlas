@@ -56,6 +56,15 @@ class DevUiPageTests(unittest.TestCase):
             self.assertIn("Copier cliqué", page.feedback.text())
             page.preview_buttons["primary"].click()
             self.assertIn("primary", page.feedback.text())
+            for role, expected_name in (
+                ("guide_breadcrumb", "GuideBreadcrumbButton"),
+                ("guide_quest_link", "GuideInlineQuestButton"),
+                ("guide_achievement_link", "GuideInlineAchievementButton"),
+            ):
+                self.assertEqual(page.preview_buttons[role].objectName(), expected_name)
+                self.assertEqual(page.preview_buttons[role].styleSheet(), "")
+                page.preview_buttons[role].click()
+                self.assertIn(role, page.feedback.text())
 
             page.preview_tree.setCurrentItem(
                 page.preview_tree.topLevelItem(0).child(1)

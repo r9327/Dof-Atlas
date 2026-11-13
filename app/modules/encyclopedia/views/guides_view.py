@@ -2562,15 +2562,13 @@ class GuidesView(QWidget):
 
     def _render_breadcrumb(self, guide: Guide, quest_name: str = "") -> None:
         clear_layout(self.breadcrumb_layout)
-        guide_home = AtlasButton("Guides")
-        guide_home.setObjectName("GuideBreadcrumbButton")
+        guide_home = AtlasButton("Guides", variant="guide_breadcrumb")
         guide_home.clicked.connect(self.show_home)
         self.breadcrumb_layout.addWidget(guide_home)
         self._add_breadcrumb_separator()
 
         if quest_name:
-            guide_button = AtlasButton(guide.title)
-            guide_button.setObjectName("GuideBreadcrumbButton")
+            guide_button = AtlasButton(guide.title, variant="guide_breadcrumb")
             guide_button.clicked.connect(lambda _checked=False, gid=guide.id: self.show_guide_overview(gid, preserve_scroll=True))
             self.breadcrumb_layout.addWidget(guide_button)
             self._add_breadcrumb_separator()
@@ -3309,9 +3307,11 @@ class GuidesView(QWidget):
         marker.setFixedWidth(18)
         marker.setAlignment(Qt.AlignCenter)
         layout.addWidget(marker, 0, Qt.AlignTop)
-        button = AtlasButton(clean_text(text))
+        button = AtlasButton(
+            clean_text(text),
+            variant="guide_achievement_link" if success_id is not None else "guide_quest_link",
+        )
         if success_id is not None:
-            button.setObjectName("GuideInlineAchievementButton")
             button.setToolTip("Ouvrir ce succès")
             button.clicked.connect(
                 lambda _checked=False, sid=int(success_id):
@@ -3320,7 +3320,6 @@ class GuidesView(QWidget):
                 )
             )
         else:
-            button.setObjectName("GuideInlineQuestButton")
             button.setToolTip("Ouvrir cette quête")
             button.clicked.connect(
                 lambda _checked=False, qid=int(quest_id):
@@ -4294,8 +4293,7 @@ def icon_row(kind: str, text: str) -> QWidget:
 
 
 def travel_position_row(position: str) -> QWidget:
-    button = AtlasButton(str(position or ""))
-    button.setObjectName("GuideInlineQuestButton")
+    button = AtlasButton(str(position or ""), variant="guide_quest_link")
     button.setToolTip("Copier la commande /travel")
     button.clicked.connect(lambda _checked=False, value=str(position or ""): copy_travel_position(value))
     return button

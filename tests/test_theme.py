@@ -124,6 +124,23 @@ class SharedThemeTests(unittest.TestCase):
         self.assertIn("border: 1px solid #345678;", segment_layout)
         self.assertIn("#GuideHideCompletedToggle:checked:hover {", style)
 
+    def test_breadcrumb_has_one_global_owner_and_live_unity_tokens(self) -> None:
+        style = theme.atlas_stylesheet({
+            "TEXT_MUTED": "#102030",
+            "PANEL_HOVER": "#203040",
+            "GREEN_BORDER": "#304050",
+        })
+        self.assertNotIn("QPushButton#GuideBreadcrumbButton,\n", style)
+        self.assertNotIn("QPushButton#GuideBreadcrumbButton:hover,\n", style)
+        self.assertEqual(style.count("QPushButton#GuideBreadcrumbButton {"), 1)
+        self.assertEqual(style.count("QPushButton#GuideBreadcrumbButton:hover {"), 1)
+        normal = style.split("QPushButton#GuideBreadcrumbButton {", 1)[1].split("}", 1)[0]
+        hover = style.split("QPushButton#GuideBreadcrumbButton:hover {", 1)[1].split("}", 1)[0]
+        self.assertIn("color: #102030;", normal)
+        self.assertIn("background: #203040;", hover)
+        self.assertIn("border-color: #304050;", hover)
+        self.assertIn("QPushButton#GuideInlineQuestButton,", style)
+
     def test_shared_guide_row_glass_tracks_live_unity_tokens(self) -> None:
         style = theme.atlas_stylesheet({
             "PANEL_HOVER": "#123456",

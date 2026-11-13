@@ -405,8 +405,9 @@ class QuestDetailView(QWidget):
         if achievements:
             buttons: list[QWidget] = []
             for achievement in achievements[:6]:
-                button = AtlasButton(str(getattr(achievement, "name", "")))
-                button.setObjectName("GuideInlineQuestButton")
+                button = AtlasButton(
+                    str(getattr(achievement, "name", "")), variant="guide_quest_link"
+                )
                 button.clicked.connect(
                     lambda _checked=False, achievement_id=int(getattr(achievement, "id", 0) or 0): self.open_entity(
                         "achievement", achievement_id
@@ -434,8 +435,9 @@ class QuestDetailView(QWidget):
                 record = catalog.by_id.get(int(related_id))
                 if record is None:
                     continue
-                button = AtlasButton(f"{label} : {record.name}")
-                button.setObjectName("GuideInlineQuestButton")
+                button = AtlasButton(
+                    f"{label} : {record.name}", variant="guide_quest_link"
+                )
                 button.clicked.connect(
                     lambda _checked=False, target_id=int(record.id): self.open_related_quest(target_id)
                 )

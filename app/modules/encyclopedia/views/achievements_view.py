@@ -648,8 +648,9 @@ class AchievementsView(QWidget):
 
     def add_alignment_guide_button(self, layout: QVBoxLayout, side: str) -> None:
         city = "Bonta" if side == "bonta" else "Brâkmar"
-        guide_button = AtlasButton(f"Ouvrir le Guide Alignement {city}")
-        guide_button.setObjectName("GuideBreadcrumbButton")
+        guide_button = AtlasButton(
+            f"Ouvrir le Guide Alignement {city}", variant="guide_breadcrumb"
+        )
         guide_button.setSizePolicy(QSizePolicy.Ignored, QSizePolicy.Fixed)
         guide_button.clicked.connect(
             lambda _checked=False, guide_id=_alignment_guide_ids()[side]: self.open_guide(guide_id)

@@ -158,6 +158,24 @@ class DevUiPage(QWidget):
         nav_row.addStretch(1)
         section.addLayout(nav_row)
 
+        # Actual shared link variants used in Guides, Quêtes and Succès.
+        link_row = QHBoxLayout()
+        for name, caption in (
+            ("guide_breadcrumb", "Fil d'Ariane"),
+            ("guide_quest_link", "Lien de quête"),
+            ("guide_achievement_link", "Lien de succès"),
+        ):
+            button = AtlasButton(caption, variant=name)
+            button.clicked.connect(
+                lambda _checked=False, selected=name: self._report(
+                    f"Lien {selected} cliqué"
+                )
+            )
+            self.preview_buttons[name] = button
+            link_row.addWidget(button)
+        link_row.addStretch(1)
+        section.addLayout(link_row)
+
     def _select_nav(self, active: int) -> None:
         for index, button in enumerate(self.preview_nav):
             button.set_variant(

@@ -42,12 +42,15 @@ class SharedUiComponentsTests(unittest.TestCase):
             QTest.mouseClick(button, Qt.LeftButton)
             self.assertEqual(calls, ["SecondaryButton"])
 
-            for variant in ("primary", "danger", "navigation", "navigation_active"):
+            for variant in (
+                "primary", "danger", "navigation", "navigation_active",
+                "guide_breadcrumb", "guide_quest_link", "guide_achievement_link",
+            ):
                 button.set_variant(variant)
                 self.assertEqual(button.objectName(), BUTTON_OBJECT_NAMES[variant])
                 self.assertEqual(button.styleSheet(), "")
             QTest.mouseClick(button, Qt.LeftButton)
-            self.assertEqual(calls[-1], "TopNavButtonActive")
+            self.assertEqual(calls[-1], "GuideInlineAchievementButton")
             self.assertEqual(len(calls), 2)
         finally:
             root.close()

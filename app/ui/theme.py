@@ -2308,7 +2308,6 @@ QMenu::separator {
                 max-height: 26px;
             }
 
-            QPushButton#GuideBreadcrumbButton,
             QPushButton#GuideInlineQuestButton,
             QPushButton#GuideItemNameButton {
                 background: transparent;
@@ -2323,7 +2322,6 @@ QMenu::separator {
                 text-align: left;
             }
 
-            QPushButton#GuideBreadcrumbButton:hover,
             QPushButton#GuideInlineQuestButton:hover,
             QPushButton#GuideItemNameButton:hover {
                 background: #1a202b;
