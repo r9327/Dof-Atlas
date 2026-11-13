@@ -209,6 +209,47 @@ class DevUiPageTests(unittest.TestCase):
                 gradient.pixelColor(1, 9).red(),
                 gradient.pixelColor(30, 9).red(),
             )
+            self.assertGreater(gradient.pixelColor(1, 9).alpha(), 0)
+            # Vertical gradients must use their actual QSS coordinates.
+            vertical = page._color_pixmap(
+                "qlineargradient(x1:0,y1:0,x2:0,y2:1,"
+                "stop:0 #111111, stop:1 #EEEEEE)",
+                32, 24,
+            ).toImage()
+            self.assertNotEqual(
+                vertical.pixelColor(15, 1).red(),
+                vertical.pixelColor(15, 22).red(),
+            )
+            self.assertEqual(
+                page._color_pixmap("#123456", 8, 8).toImage()
+                .pixelColor(0, 0).name(), "#123456",
+            )
+        finally:
+            page.close()
+            page.deleteLater()
+
+    def test_gallery_renders_real_qt_full_height_in_reduced_window(self) -> None:
+        """Viewport and full scroll content must be real, grab-able Qt pixels."""
+        from app.pages.dev_ui_page import DevUiPage
+
+        page = DevUiPage(on_back=lambda: None)
+        try:
+            page.resize(900, 680)
+            page.show()
+            self.app.processEvents()
+            self.assertEqual(page.gallery_navigation.count(), 16)
+            self.assertGreater(
+                page.gallery_scroll.verticalScrollBar().maximum(), 0
+            )
+            viewport = page.grab()
+            full = page.gallery_scroll.widget().grab()
+            self.assertFalse(viewport.isNull())
+            self.assertFalse(full.isNull())
+            self.assertGreater(full.height(), page.gallery_scroll.viewport().height())
+            self.assertEqual(viewport.width(), page.width())
+            self.assertTrue(all(
+                section.styleSheet() == "" for section in page.gallery_sections
+            ))
         finally:
             page.close()
             page.deleteLater()

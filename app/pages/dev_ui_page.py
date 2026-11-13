@@ -10,7 +10,7 @@ import re
 from collections.abc import Callable
 
 from PySide6.QtCore import QDate, Qt
-from PySide6.QtGui import QColor, QLinearGradient, QPainter, QPixmap
+from PySide6.QtGui import QBrush, QColor, QLinearGradient, QPainter, QPixmap
 from PySide6.QtWidgets import (
     QCheckBox,
     QComboBox,
@@ -589,6 +589,7 @@ class DevUiPage(QWidget):
         )
         self.preview_metrics.setHorizontalHeaderLabels(("Token commun", "Valeur"))
         self.preview_metrics.setMaximumHeight(178)
+        self.preview_metrics.horizontalHeader().setStretchLastSection(True)
         for index, (name, value) in enumerate((
             *SIZES.items(), *SPACING.items(), *TYPOGRAPHY.items(),
         )):
@@ -745,6 +746,7 @@ class DevUiPage(QWidget):
         self.preview_scope = QTableWidget(len(modules), 2)
         self.preview_scope.setHorizontalHeaderLabels(("Module", "Source de style cible"))
         self.preview_scope.setMaximumHeight(192)
+        self.preview_scope.horizontalHeader().setStretchLastSection(True)
         for index, module in enumerate(modules):
             self.preview_scope.setItem(index, 0, QTableWidgetItem(module))
             source = "Palette Unity / Tk" if module == "Launcher" else "Thème Qt commun"
@@ -837,12 +839,12 @@ class DevUiPage(QWidget):
         pix.fill(Qt.transparent)
         # The canonical gradient tokens contain explicit QSS stop positions.
         stops = re.findall(
-            r"stop:\\s*([01](?:\\.\\d+)?)\\s+(#[0-9a-fA-F]{6})",
+            r"stop:\s*([01](?:\.\d+)?)\s+(#[0-9a-fA-F]{6})",
             value,
         )
         if stops:
             coords = re.search(
-                r"x1:([01]),\\s*y1:([01]),\\s*x2:([01]),\\s*y2:([01])",
+                r"x1:\s*([01]),\s*y1:\s*([01]),\s*x2:\s*([01]),\s*y2:\s*([01])",
                 value,
             )
             x1, y1, x2, y2 = (
@@ -854,7 +856,7 @@ class DevUiPage(QWidget):
             for offset, hex_color in stops:
                 gradient.setColorAt(float(offset), QColor(hex_color))
             painter = QPainter(pix)
-            painter.fillRect(pix.rect(), gradient)
+            painter.fillRect(pix.rect(), QBrush(gradient))
             painter.end()
         return pix
 

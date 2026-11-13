@@ -361,3 +361,15 @@ Ne cocher aucun ID de #364 sur cette seule base. Ne pas fusionner tant que les o
 - Tests ajoutés `tests/test_unity_palette.py`, `tests/test_theme.py`, `tests/test_unity_skin.py`, `tests/test_dev_ui_page.py` : propagation de couleurs, maintien des overrides, SVG-like raster Qt de secours, palette détaillée, taille des contrôles, rendu d'un dégradé et interactions de la galerie.
 
 **Statut** : unification ciblée implémentée, mais le résultat graphique sur le vrai poste Windows et la conformité avec les derniers écrans du client DOFUS restent à vérifier visuellement. Une capture ou un mockup ne vaut pas une certification. Pas de CI manuelle avant la fin de la globalisation entière ; les actions déclenchées automatiquement par GitHub lors du push ne constituent pas une demande manuelle de validation.
+
+
+### Galerie Dev UI — finition ciblée et captures Qt (13/11/2026)
+
+**Portée** : finaliser exclusivement `app/pages/dev_ui_page.py`, sans modifier la navigation, le moteur Guide ou les écrans métier.
+
+- **Correctif confirmé par lecture du code** : la regex QSS qui extrayait les stops/coordonnées des dégradés employait deux antislashs dans des chaînes raw ; elle ne pouvait pas correspondre à `stop:0 #xxxxxx`. Les expressions sont corrigées, le `QLinearGradient` est converti explicitement en `QBrush` pour le rendu Qt. Tests : couleurs pleines, dégradé horizontal, dégradé vertical et alpha non nul.
+- **Géométrie** : les secondes colonnes des tableaux de périmètre et de métriques s'étirent maintenant avec la largeur disponible ; conservation du scroll vertical, du menu d'accès aux 16 familles et de l'absence de QSS local.
+- **Capture reproductible du vrai widget** : `python -m tools.dev_ui_snapshot --output artifacts/dev-ui` produit `dev-ui-viewport.png`, `dev-ui-complete.png`, `dev-ui-dialog.png` et `dev-ui-capture.json`. Les captures sont des rendus Qt offscreen du code courant, jamais des mockups ; elles ne constituent pas une preuve d'EXE installé ou d'affichage sur moniteur physique.
+- **Test ajouté** : le widget Dev UI se rend à 900×680 avec galerie plus haute que le viewport, et peut être capturé sans données DOFUS. Les tests incluent les boutons, menus, icônes et contrôles existants.
+- **Diagnostic ciblé des preuves Windows précédentes** : au SHA `72eb54ed2b112e2745ccd46634fb88042c0d7993`, les 2 assertions en échec concernent `guides-success/page-3-1200` et `guides-success/page-3-960`, toutes deux dues à une ligne manquante `Faire les combats requis par la quête en cours dans la zone Champs.`. Ce sont des échecs de contenu/affichage Guide, non de la galerie Dev ; ils ne sont pas réparés ni masqués ici.
+- **Validation restante** : l'exécution de `test_dev_ui_page` et une capture Qt sur le HEAD final n'ont pas été effectuées dans cette intervention faute de runtime PySide6 local ; l'outil de capture est fourni mais sa génération d'images reste `NOT_RUN`. Demande explicite : pas de CI manuelle ni de certification avant la fin de la globalisation entière. Le commit de finition porte `[skip ci]`.
