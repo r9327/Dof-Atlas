@@ -12,7 +12,7 @@ os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
 
 from PySide6.QtCore import QRect, Qt
 from PySide6.QtTest import QTest
-from PySide6.QtWidgets import QApplication, QBoxLayout, QGraphicsDropShadowEffect, QListView, QLineEdit, QListWidget
+from PySide6.QtWidgets import QApplication, QBoxLayout, QGraphicsDropShadowEffect, QLabel, QListView, QLineEdit, QListWidget
 
 from app.modules.encyclopedia.models.guide import Guide
 from app.modules.encyclopedia.views.guide_catalog_view import GuideCatalogView
@@ -91,6 +91,9 @@ class GuideLibraryHomeTests(unittest.TestCase):
                         view.home_scroll.widget().objectName(), "GuidesHomeContent"
                     )
                     self.assertEqual(view.library_right.objectName(), "GuideLibraryResults")
+                    headings = view.findChildren(QLabel, "GuideLibrarySectionTitle")
+                    self.assertEqual(len(headings), 3)
+                    self.assertTrue(all(label.styleSheet() == "" for label in headings))
                     # Theme stylesheet owns selected/hover states for every module.
                     self.assertEqual(view.library_categories.styleSheet(), "")
                     for card in view.featured_cards.values():

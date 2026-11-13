@@ -101,6 +101,24 @@ class ThemeRuntimeCacheTests(unittest.TestCase):
         self.assertIn("background: #345BCD;", hovered)
         self.assertIn("QTreeWidget#GuideLibraryCategories::item {", style)
 
+    def test_guide_section_title_is_global_without_local_palette(self) -> None:
+        style = theme.atlas_stylesheet({"TEXT": "#ABC123"})
+        heading = style.split("QLabel#GuideLibrarySectionTitle {", 1)[1].split("}", 1)[0]
+        self.assertIn("color: #ABC123;", heading)
+        self.assertIn("font-size: 13px;", heading)
+        self.assertIn("font-weight: 800;", heading)
+
+    def test_focus_border_has_same_geometry_as_idle_navigation(self) -> None:
+        style = theme.atlas_stylesheet()
+        idle = style.split("#TopNavButton, #TopNavButtonActive {", 1)[1].split("}", 1)[0]
+        focused = style.split(
+            "#TopNavButton:focus, #TopNavButtonActive:focus {", 1
+        )[1].split("}", 1)[0]
+        self.assertIn("border: 1px solid transparent;", idle)
+        self.assertIn("border-bottom: 2px solid transparent;", idle)
+        self.assertIn("border: 1px solid ", focused)
+        self.assertIn("border-bottom: 2px solid ", focused)
+
     def test_atlas_stylesheet_reuses_cached_static_template(self) -> None:
         calls: list[tuple[str, object]] = []
 

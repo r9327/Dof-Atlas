@@ -1377,7 +1377,7 @@ QCheckBox::indicator:checked {
 
 #TopNavButton, #TopNavButtonActive {
     background: transparent;
-    border: none;
+    border: 1px solid transparent;
     border-bottom: 2px solid transparent;
     border-radius: @RADIUS_XS;
     color: @TEXT;
@@ -2435,6 +2435,13 @@ QTreeWidget#QuestHierarchyTree::item:selected {
 
 /* Guide category tree uses the same Unity semantic roles as other
    Encyclopedia navigation trees; only its compact geometry is specific. */
+/* Section headings are one shared role, with unchanged typography. */
+QLabel#GuideLibrarySectionTitle {
+    color: @TEXT;
+    font-size: 13px;
+    font-weight: 800;
+}
+
 QTreeWidget#GuideLibraryCategories {
     background: @PANEL_2;
     border: 1px solid @BORDER;

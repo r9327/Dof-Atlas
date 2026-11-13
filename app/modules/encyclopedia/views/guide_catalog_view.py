@@ -7,7 +7,6 @@ from PySide6.QtWidgets import (
     QFrame, QLabel, QListView, QScrollArea, QTreeWidget, QTreeWidgetItem,
     QVBoxLayout, QWidget,
 )
-from app.ui.theme import PALETTE
 from app.modules.encyclopedia.views.guide_featured_home import (
     FEATURED, FeaturedGuideCard, FeaturedPair,
 )
@@ -96,9 +95,7 @@ class GuideCatalogView(QWidget):
 
         def heading(text: str) -> QLabel:
             label = QLabel(text)
-            label.setStyleSheet(
-                f"color: {PALETTE['TEXT']}; font-size: 13px; font-weight: 800;"
-            )
+            label.setObjectName("GuideLibrarySectionTitle")
             return label
 
         # Exactly two highlighted guides; alignments remain in the browsable library.
