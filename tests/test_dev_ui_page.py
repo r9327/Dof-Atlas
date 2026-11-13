@@ -147,6 +147,13 @@ class DevUiPageTests(unittest.TestCase):
             self.assertTrue(page.preview_chips["danger"].isChecked())
             self.assertIn("Badge danger activé", page.feedback.text())
             self.assertFalse(page.preview_chips["info"].isChecked())
+            self.assertTrue(all(
+                chip.text().startswith("• ")
+                and chip.minimumHeight() == 20
+                and chip.maximumHeight() == 24
+                and chip.cursor().shape() == Qt.PointingHandCursor
+                for chip in page.preview_chips.values()
+            ))
             self.assertEqual(page.preview_text_actions["inline_action"].styleSheet(), "")
             page.preview_text_actions["inline_action"].click()
             self.assertIn("Détails ouverts", page.feedback.text())
@@ -157,6 +164,8 @@ class DevUiPageTests(unittest.TestCase):
             for state, badge in page.preview_badges.items():
                 self.assertEqual(badge.objectName(), "StatusBadge")
                 self.assertEqual(badge.property("state"), state)
+                self.assertTrue(badge.text().startswith("● "))
+                self.assertEqual(badge.cursor().shape(), Qt.ArrowCursor)
             self.assertEqual(set(page.preview_cards), {"card", "Panel", "QuestPanel"})
             self.assertEqual(page.preview_busy.minimum(), 0)
             self.assertEqual(page.preview_busy.maximum(), 0)
@@ -182,6 +191,14 @@ class DevUiPageTests(unittest.TestCase):
             self.assertEqual(page.preview_icon_grid.getItemPosition(13),
                              (3, 1, 1, 1))
             self.assertEqual(set(page.preview_icon_missing), set(UNITY_ICON_PENDING))
+            self.assertTrue(any(
+                label.text() == "Non détecté ici"
+                for label in page.findChildren(QLabel)
+            ))
+            self.assertTrue(any(
+                label.text().startswith("Sources Unity communes :")
+                for label in page.findChildren(QLabel)
+            ))
             for index in range(page.preview_icon_grid.count()):
                 cell = page.preview_icon_grid.itemAt(index).widget()
                 self.assertEqual(cell.objectName(), "DevUiIconCell")
@@ -269,6 +286,8 @@ class DevUiPageTests(unittest.TestCase):
             self.assertEqual(TYPOGRAPHY["FONT_SMALL"], "11px")
             css = atlas_stylesheet()
             self.assertIn("QWidget#DevUiPage QGroupBox::title", css)
+            self.assertIn("#StatusChip {\n    background: transparent;", css)
+            self.assertIn("#StatusBadge, #ActivityBadge {\n    background: transparent;", css)
             self.assertIn("#StatusChip[tone=\"success\"]:hover", css)
             self.assertIn("#StatusChip[tone=\"danger\"]:checked", css)
             self.assertIn("#InlineActionButton:hover", css)
