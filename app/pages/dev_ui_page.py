@@ -150,7 +150,7 @@ class DevUiPage(QWidget):
         # Real shared Unity relief on two static catalog panels. Avoid the
         # 16-fold scrolling cost of applying shadows to every section.
         if title.startswith(("Formulaires avancés", "Surfaces · cartes")):
-            apply_unity_panel_shadow(group, blur=18, vertical=4, alpha=112)
+            apply_unity_panel_shadow(group, blur=18, vertical=5, alpha=145)
         layout = QVBoxLayout(group)
         layout.setContentsMargins(14, 22, 14, 12)
         layout.setSpacing(9)
@@ -526,8 +526,8 @@ class DevUiPage(QWidget):
         section.addLayout(scale)
 
         cards = QHBoxLayout()
-        cards.setSpacing(12)
-        cards.setContentsMargins(4, 4, 4, 5)
+        cards.setSpacing(16)
+        cards.setContentsMargins(12, 8, 12, 14)
         self.preview_cards: dict[str, QFrame] = {}
         for role, caption in (
             ("card", "Carte globale"),
@@ -549,7 +549,7 @@ class DevUiPage(QWidget):
             card_layout.addWidget(small)
             # Fixed visual samples only. No effect on scrolling rows,
             # focusable controls or the actual game panels.
-            apply_unity_panel_shadow(card, blur=17, vertical=4, alpha=112)
+            apply_unity_panel_shadow(card, blur=17, vertical=5, alpha=135)
             self.preview_cards[role] = card
             cards.addWidget(card, 1)
         section.addLayout(cards)
