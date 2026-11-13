@@ -684,14 +684,16 @@ QSplitter#AchievementCatalogSplitter::handle {
     border: none;
 }
 
+/* Passive statuses are compact annotations, not pretend buttons: no pill,
+   raised panel, border, hover or action cursor. Dot/text carry the meaning. */
 #StatusBadge, #ActivityBadge {
-    background: @PANEL_2;
-    border: 1px solid @BORDER_SOFT;
-    border-radius: 5px;
-    color: @TEXT;
+    background: transparent;
+    border: none;
+    border-radius: 0px;
+    color: @TEXT_MUTED;
     font-size: @FONT_BADGE;
     font-weight: 700;
-    padding: 2px 6px;
+    padding: 1px 3px;
 }
 
 #StatusBadge[state="done"] {
@@ -1128,58 +1130,54 @@ QPushButton:disabled, QToolButton:disabled {
 /* Shared semantic interactive chips with normal / hover / pressed /
    selected / keyboard-focus / disabled states. Unlike StatusBadge QLabel,
    these are real actions, not passive statuses. */
+/* Interactive status chips are underline controls, never miniature buttons:
+   transparent at rest, no perimeter; semantic underline on hover/selection.
+   Native QPushButton still gives keyboard, click, focus and tooltips. */
 #StatusChip {
-    background: @PANEL_2;
+    background: transparent;
     color: @TEXT_SOFT;
-    border: 1px solid @BORDER_SOFT;
-    border-radius: @RADIUS_SM;
-    padding: 3px 8px;
-    font-size: @FONT_SMALL;
-    font-weight: 600;
+    border: none;
+    border-bottom: 2px solid @BORDER_SOFT;
+    border-radius: 0px;
+    padding: 1px 5px;
+    font-size: @FONT_BADGE;
+    font-weight: 700;
 }
 #StatusChip:hover {
-    background: @PANEL_HOVER;
-    border-color: @BORDER_STRONG;
+    background: @GLASS_SUBTLE_SURFACE;
+    border-bottom-color: @BORDER_CARD;
 }
-#StatusChip:pressed, #StatusChip:checked {
-    background: @PANEL_ACTIVE;
-    border-color: @GREEN_BORDER;
+#StatusChip:pressed {
+    background: @PANEL_HOVER;
+}
+#StatusChip:checked {
+    background: transparent;
+    border-bottom-color: @GREEN_BORDER;
 }
 #StatusChip:focus {
-    border: 2px solid @GREEN_BORDER;
+    border: 1px solid @BORDER_CARD;
+    border-bottom: 2px solid @GREEN_BORDER;
 }
 #StatusChip:disabled {
-    background: @PANEL;
+    background: transparent;
     color: @TEXT_DISABLED;
-    border-color: @BORDER_SOFT;
+    border-bottom-color: transparent;
 }
-#StatusChip[tone="success"] { color: @GREEN; border-color: @GREEN_BORDER; }
-#StatusChip[tone="success"]:hover { color: @GREEN_HOVER; border-color: @GREEN; }
-#StatusChip[tone="danger"] { color: @RED_HOVER; border-color: @RED; }
-#StatusChip[tone="danger"]:hover { color: @RED_HOVER; border-color: @RED_HOVER; }
-#StatusChip[tone="warning"] { color: @YELLOW; border-color: @YELLOW; }
-#StatusChip[tone="warning"]:hover { background: @PANEL_HOVER; }
-#StatusChip[tone="info"] { color: @TEXT_SOFT; border-color: @BORDER_CARD; }
-#StatusChip[tone="info"]:hover { color: @TEXT; border-color: @BORDER_STRONG; }
-#StatusChip[tone="neutral"] { color: @TEXT_MUTED; border-color: @BORDER_SOFT; }
-#StatusChip[tone="neutral"]:hover { color: @TEXT; border-color: @BORDER_CARD; }
-/* A selected tone keeps its own meaning; green denotes the control family
-   only when no semantic tone is assigned. */
-#StatusChip[tone="success"]:checked {
-    background: @PANEL_ACTIVE; border-color: @GREEN; color: @GREEN_HOVER;
-}
-#StatusChip[tone="danger"]:checked {
-    background: @PANEL_ACTIVE; border-color: @RED; color: @RED_HOVER;
-}
-#StatusChip[tone="warning"]:checked {
-    background: @PANEL_ACTIVE; border-color: @YELLOW; color: @YELLOW;
-}
-#StatusChip[tone="info"]:checked {
-    background: @PANEL_ACTIVE; border-color: @BORDER_STRONG; color: @TEXT;
-}
-#StatusChip[tone="neutral"]:checked {
-    background: @PANEL_ACTIVE; border-color: @BORDER_CARD; color: @TEXT_SOFT;
-}
+#StatusChip[tone="success"] { color: @GREEN; }
+#StatusChip[tone="success"]:hover { color: @GREEN_HOVER; border-bottom-color: @GREEN_HOVER; }
+#StatusChip[tone="danger"] { color: @RED_HOVER; }
+#StatusChip[tone="danger"]:hover { border-bottom-color: @RED_HOVER; }
+#StatusChip[tone="warning"] { color: @YELLOW; }
+#StatusChip[tone="warning"]:hover { border-bottom-color: @YELLOW; }
+#StatusChip[tone="info"] { color: @TEXT_SOFT; }
+#StatusChip[tone="info"]:hover { color: @TEXT; border-bottom-color: @BORDER_STRONG; }
+#StatusChip[tone="neutral"] { color: @TEXT_MUTED; }
+#StatusChip[tone="neutral"]:hover { color: @TEXT; border-bottom-color: @BORDER_CARD; }
+#StatusChip[tone="success"]:checked { color: @GREEN_HOVER; border-bottom-color: @GREEN; }
+#StatusChip[tone="danger"]:checked { border-bottom-color: @RED; }
+#StatusChip[tone="warning"]:checked { border-bottom-color: @YELLOW; }
+#StatusChip[tone="info"]:checked { color: @TEXT; border-bottom-color: @BORDER_STRONG; }
+#StatusChip[tone="neutral"]:checked { color: @TEXT_SOFT; border-bottom-color: @BORDER_CARD; }
 
 #keyBadge, #InlineShortcutButton {
     background: #09121F;
