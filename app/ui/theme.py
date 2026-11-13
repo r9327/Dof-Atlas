@@ -462,6 +462,12 @@ QWidget#DevUiPage QScrollBar::sub-page:vertical {
     background: transparent;
     border: none;
 }
+/* A transparent page over a QListWidget reveals its native Qt base, not
+   the shell wallpaper. Match the canonical list panel instead of black. */
+QWidget#DevUiPage QListWidget QScrollBar::add-page:vertical,
+QWidget#DevUiPage QListWidget QScrollBar::sub-page:vertical {
+    background: @PANEL;
+}
 
 QTabWidget#EncyclopediaTabs::pane {
     background: @BG;
