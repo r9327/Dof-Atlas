@@ -627,7 +627,7 @@ QSplitter#AchievementCatalogSplitter::handle {
 }
 
 #EncyclopediaProgressBar::chunk {
-    background: @YELLOW;
+    background: @GREEN;
     border-radius: 3px;
 }
 
@@ -824,6 +824,18 @@ QPushButton:disabled, QToolButton:disabled {
     background: @PANEL_HOVER;
     border-color: @BORDER_STRONG;
     color: @TEXT;
+}
+
+/* Shared toggle state for real checkable secondary actions. Same semantic
+   selection colors as Atlas navigation, no decorative paint or local QSS. */
+#SecondaryButton:checked, #secondaryButton:checked {
+    background: @PANEL_ACTIVE;
+    border-color: @GREEN_BORDER;
+    color: @TEXT;
+}
+#SecondaryButton:checked:hover, #secondaryButton:checked:hover {
+    background: @PANEL_HOVER;
+    border-color: @GREEN_BORDER;
 }
 
 /* Shared normal/hover/active surfaces for all stateful segmented and
