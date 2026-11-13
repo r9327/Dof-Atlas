@@ -337,7 +337,7 @@ class HomePage(QWidget):
         left_layout.addWidget(self.tracking_card, 1)
 
         self.guide_card = self._card("HomeGuideCard")
-        self.guide_card.setMinimumWidth(500)
+        self.guide_card.setMinimumWidth(300)
         guide_layout = self.guide_card.layout()
         self._add_card_title(guide_layout, "Guide progression")
 
@@ -381,7 +381,7 @@ class HomePage(QWidget):
         guide_layout.addWidget(self.continue_button)
 
         self.almanax_card = self._card("HomeAlmanaxCard")
-        self.almanax_card.setMinimumWidth(250)
+        self.almanax_card.setMinimumWidth(205)
         self.almanax_card.setMaximumWidth(330)
         almanax_layout = self.almanax_card.layout()
         self._add_card_title(almanax_layout, "Almanax")
@@ -415,7 +415,7 @@ class HomePage(QWidget):
 
         self.right_column = QWidget()
         self.right_column.setObjectName("HomeRightColumn")
-        self.right_column.setMinimumWidth(250)
+        self.right_column.setMinimumWidth(205)
         self.right_column.setMaximumWidth(330)
         right_layout = QVBoxLayout(self.right_column)
         right_layout.setContentsMargins(0, 0, 0, 0)
