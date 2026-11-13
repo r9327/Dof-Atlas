@@ -62,7 +62,7 @@ jobs:
       - name: Validate Dev UI shared widgets and interactions
         shell: pwsh
         run: |
-          python -X faulthandler -m unittest -v tests.test_dev_ui_page
+          python -X faulthandler -m unittest -v tests.test_dev_ui_page tests.test_unity_skin.UnitySkinTests.test_shared_buttons_never_inherit_gold_or_neon_sprite_borders
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
       - name: Upload screenshot artifact
         if: always()
