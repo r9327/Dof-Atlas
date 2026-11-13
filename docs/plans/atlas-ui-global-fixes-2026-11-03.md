@@ -143,3 +143,12 @@ Ne cocher aucun ID de #364 sur cette seule base. Ne pas fusionner tant que les o
 - Enregistrement de **ce seul chemin exact** dans l'ensemble existant `guides` / `ui` de `tools/ci_domain_certification.py`, à côté de la page dont il certifie la visibilité. Aucun wildcard ni assouplissement du refus pour des suites inconnues.
 - Ajout d'un test de routage dans `tests/test_ci_domain_certification.py` : owner de la source et de la suite, plan READY, absence de validation Phase et refus du voisin non enregistré.
 - Mini-audit, tests Qt et statut de la nouvelle branche doivent être revérifiés sur le nouveau SHA avant toute conclusion de validation globale.
+
+
+### Guide — références visibles à droite sans faux parcours (ATGD-006 partiel)
+
+- Les rubriques avec des guides seulement **référencés** (ex. Zones et régions) n'affichaient aucun élément à droite malgré les données locales dans `ganymede_main_index.json`. Les références restaient uniquement dans l'arbre de gauche.
+- Dans la colonne de droite, les **cartes des vrais guides jouables** sont conservées et les entrées non disponibles sont maintenant présentées séparément sous « PARCOURS RÉFÉRENCÉS · NON DISPONIBLES » : lignes textuelles désactivées, sans clic, jauge, progression, route inventée, appel réseau ou provenance externe affichée.
+- La sélection de catégorie et la recherche actualisent les deux collections ; les lignes inchangées sont réutilisées lors d'une simple actualisation de progression. Le message « aucun parcours » n'est montré que si aucun résultat local ne correspond.
+- Les tests existants de bibliothèque sont ajustés pour ce comportement explicitement demandé par ATGD-006 ; nouveau test Qt propriétaire `tests/test_guide_catalog_view.py` couvrant plusieurs références, blocage de l'activation, recherche et réutilisation.
+- **ATGD-006 reste partiel** : essais visuels Windows et contrôle des catégories réelles indispensables ; aucune certification de guide issue de #363 n'est revendiquée.

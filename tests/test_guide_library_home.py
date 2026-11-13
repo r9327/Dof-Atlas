@@ -99,9 +99,10 @@ class GuideLibraryHomeTests(unittest.TestCase):
                     for card in view.featured_cards.values():
                         self.assertIn("qlineargradient(", card.styleSheet())
                         self.assertIn("stop:0 #354971", card.styleSheet())
-                    self.assertIsNone(
+                    self.assertIsNotNone(
                         view.findChild(QListWidget, "GuideLibraryUnavailableList")
                     )
+                    self.assertFalse(view.unavailable_list.isVisible())
                 finally:
                     view.deleteLater()
                     self.app.processEvents()
@@ -240,11 +241,13 @@ class GuideLibraryHomeTests(unittest.TestCase):
                     self.assertTrue(dimensions.isExpanded())
                     self.assertEqual(view.library_results_title.text(), "DIMENSIONS DIVINES")
                     self.assertFalse(view.home_dofus_list.isVisible())
-                    self.assertTrue(view.home_empty.isVisible())
-                    self.assertIn("Aucun parcours", view.home_empty.text())
-                    self.assertIsNone(
-                        view.findChild(QListWidget, "GuideLibraryUnavailableList")
-                    )
+                    self.assertFalse(view.home_empty.isVisible())
+                    self.assertTrue(view.unavailable_list.isVisibleTo(view))
+                    self.assertGreater(view.unavailable_list.count(), 0)
+                    self.assertTrue(all(
+                        not (view.unavailable_list.item(i).flags() & Qt.ItemIsEnabled)
+                        for i in range(view.unavailable_list.count())
+                    ))
                     alignments.setExpanded(False)
                     view.set_search_text("no-matching-library-entry")
                     self.assertTrue(view.featured_cards["guide_complet"].isVisibleTo(view))
