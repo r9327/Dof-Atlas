@@ -28,6 +28,11 @@ UNITY_PALETTE = {
     "PANEL_2": "#213154",
     "PANEL_HOVER": "#2C3C69",
     "PANEL_ACTIVE": "#344978",
+    # Glass/overlay surfaces are semantic Unity roles, never per-page palettes.
+    "LIST_SURFACE": "#15203B",
+    "NAV_SURFACE": "#19264B",
+    "SCROLL_SURFACE": "#151D32",
+    "TOOLTIP_SURFACE": "#192657",
     "BORDER": "#475F89",
     "BORDER_SOFT": "#354966",
     "BORDER_CARD": "#617CA6",
@@ -128,6 +133,12 @@ def unity_skin_stylesheet(palette: Mapping[str, str] | None = None) -> str:
     if not unity_enabled():
         return ""
     colors = UNITY_PALETTE if palette is None else {**UNITY_PALETTE, **palette}
+
+    def translucent(role: str, alpha: float) -> str:
+        """Keep current glass opacity while following live Unity color tokens."""
+        color = QColor(colors[role])
+        return f"rgba({color.red()}, {color.green()}, {color.blue()}, {alpha:.2f})"
+
     rules = [
         # The wallpaper is painted once by the *parent* of all shell pages.
         # Only root surfaces are translucent; data cards retain dark contrast.
@@ -149,50 +160,55 @@ def unity_skin_stylesheet(palette: Mapping[str, str] | None = None) -> str:
         "QFrame#GuidesHomeCategory, QFrame#GuidesHomeProgressionColumn, "
         "QFrame#GuideLeftPanel, QFrame#GuideCenterPanel, "
         "QFrame#GuideRightPanel, QFrame#GuidesHomeSubCategory { "
-        "background: rgba(27, 39, 70, 0.88); "
-        "border: 1px solid #475F89; }",
-        "QListView#GuidesHomeDofusGrid { "
-        "background: rgba(21, 32, 59, 0.45); }",
-        "QScrollArea { background: rgba(21, 29, 50, 0.35); border: none; }",
+        "background: %s; border: 1px solid %s; }" % (
+            translucent("PANEL", 0.88), colors["BORDER"],
+        ),
+        "QListView#GuidesHomeDofusGrid { background: %s; }" %
+        translucent("LIST_SURFACE", 0.45),
+        "QScrollArea { background: %s; border: none; }" %
+        translucent("SCROLL_SURFACE", 0.35),
         "QScrollArea > QWidget > QWidget { background: transparent; }",
         # Shared widget families, never changes their existing geometry or actions.
         "QGroupBox, QTabWidget::pane { "
-        "background: rgba(27, 39, 70, 0.78); color: %s; "
+        "background: %s; color: %s; "
         "border: 1px solid %s; border-radius: 6px; }" % (
-            colors["TEXT"], colors["BORDER"],
+            translucent("PANEL", 0.78), colors["TEXT"], colors["BORDER"],
         ),
         "QListView, QTreeView, QTableView, QListWidget, QTreeWidget, QTableWidget { "
-        "background: rgba(21, 32, 59, 0.92); color: %s; "
-        "alternate-background-color: rgba(33, 49, 84, 0.88); "
+        "background: %s; color: %s; "
+        "alternate-background-color: %s; "
         "selection-background-color: %s; selection-color: %s; "
         "border: 1px solid %s; }" % (
-            colors["TEXT"], colors["PANEL_ACTIVE"],
+            translucent("LIST_SURFACE", 0.92), colors["TEXT"],
+            translucent("PANEL_2", 0.88), colors["PANEL_ACTIVE"],
             colors["TEXT"], colors["BORDER"],
         ),
-        "QHeaderView::section { background: rgba(33, 49, 84, 0.95); "
+        "QHeaderView::section { background: %s; "
         "color: %s; border: 1px solid %s; }" % (
-            colors["TEXT"], colors["BORDER"],
+            translucent("PANEL_2", 0.95), colors["TEXT"], colors["BORDER"],
         ),
-        f"QTabBar::tab {{ background: rgba(25, 38, 75, 0.93); "
+        f"QTabBar::tab {{ background: {translucent('NAV_SURFACE', 0.93)}; "
         f"color: {colors['TEXT_SOFT']}; "
         f"border: 2px solid {colors['BORDER']}; }}",
         f"QTabBar::tab:hover {{ background: {colors['PANEL_HOVER']}; }}",
         f"QTabBar::tab:selected {{ color: {colors['TEXT']}; "
         f"background: {colors['PANEL_ACTIVE']}; }}",
-        "QToolTip { background: #192657; color: %s; "
+        "QToolTip { background: %s; color: %s; "
         "border: 1px solid %s; padding: 4px; }" % (
-            colors["TEXT"], colors["BORDER_STRONG"],
+            colors["TOOLTIP_SURFACE"], colors["TEXT"], colors["BORDER_STRONG"],
         ),
-        "QProgressBar { background: rgba(21, 32, 59, 0.85); "
+        "QProgressBar { background: %s; "
         "color: %s; border: 1px solid %s; "
         "text-align: center; }" % (
-            colors["TEXT"], colors["BORDER"],
+            translucent("LIST_SURFACE", 0.85), colors["TEXT"], colors["BORDER"],
         ),
         "QFrame#card, QFrame#HomeCharacterCard, QFrame#HomeTrackingCard, "
         "QFrame#HomeGuideCard, QFrame#HomeNetworkMiniCard, QFrame#HomeAlmanaxCard, "
         "QFrame#GuideFeaturedCard { "
-        "background: rgba(27, 39, 70, 0.88); border: 1px solid %s; "
-        "border-radius: 9px; }" % colors["BORDER_CARD"],
+        "background: %s; border: 1px solid %s; "
+        "border-radius: 9px; }" % (
+            translucent("PANEL", 0.88), colors["BORDER_CARD"],
+        ),
         # Featured Guide cards are deliberately accented, but share the same
         # palette and selector ownership as every other Unity surface.
         "QFrame#GuideFeaturedCard { background: qlineargradient(x1:0,y1:0,x2:0,y2:1, "
