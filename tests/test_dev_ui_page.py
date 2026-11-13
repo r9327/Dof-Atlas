@@ -148,6 +148,16 @@ class DevUiPageTests(unittest.TestCase):
             self.assertEqual(page.preview_scope.item(11, 0).text(), "Launcher")
             self.assertIn("Tk", page.preview_scope.item(11, 1).text())
             self.assertEqual(len(page.preview_icon_labels), 8)
+            self.assertEqual(page.preview_icon_grid.count(), 8)
+            self.assertEqual(page.preview_icon_grid.getItemPosition(7), (1, 3, 1, 1))
+            self.assertFalse(page.preview_table.showGrid())
+            self.assertFalse(page.preview_scope.showGrid())
+            self.assertTrue(page.preview_table.alternatingRowColors())
+            self.assertTrue(page.preview_tree.alternatingRowColors())
+            self.assertTrue(page.preview_checked_action.isChecked())
+            page.preview_checked_action.click()
+            self.assertFalse(page.preview_checked_action.isChecked())
+            self.assertIn("désélectionné", page.feedback.text())
             self.assertTrue(all(
                 icon.styleSheet() == ""
                 for icon in page.preview_icon_labels.values()
@@ -199,6 +209,8 @@ class DevUiPageTests(unittest.TestCase):
             self.assertEqual(TYPOGRAPHY["FONT_SMALL"], "11px")
             css = atlas_stylesheet()
             self.assertIn("QWidget#DevUiPage QGroupBox::title", css)
+            self.assertIn("#SecondaryButton:checked", css)
+            self.assertIn("background: #9FCE51;", css)
             self.assertIn("font-size: 14px;", css)
             self.assertEqual(page.styleSheet(), "")
         finally:
