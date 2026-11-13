@@ -12,7 +12,7 @@ permissions:
 
 jobs:
   real-qt-capture:
-    name: Dev UI / refined forms and visible Unity relief (Windows Qt)
+    name: Dev UI / advanced-form control polish and enhanced Unity shadows (Windows Qt)
     runs-on: windows-latest
     timeout-minutes: 15
     env:
