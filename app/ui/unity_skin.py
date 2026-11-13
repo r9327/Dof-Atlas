@@ -56,11 +56,25 @@ def _sprite_url(filename: str) -> str | None:
 
 
 def sprite_icon_path(icon: str) -> Path | None:
-    """Keep Atlas fallback icons if a personal Unity pictogram is absent."""
+    """Find the user's original-color pictogram in the single Unity folder.
+
+    Some original exports use French module names. Check only documented
+    filename shapes in the existing sprites directory, never fabricate art.
+    Personal theme takes priority over the checkout, as for every other asset.
+    """
     if not unity_enabled() or icon not in (*UNITY_ICON_NAMES, *UNITY_ICON_PENDING):
         return None
-    filename = f"Assets_UI_Themes_Figma_menuIcons_1x_{icon}-png.png"
-    return _asset_file(Path("sprites") / filename)
+    aliases = UNITY_ICON_FILE_ALIASES.get(icon, (icon,))
+    for root in (_PERSONAL_ASSETS, _ASSETS):
+        for alias in aliases:
+            for filename in (
+                f"Assets_UI_Themes_Figma_menuIcons_1x_{alias}-png.png",
+                f"menuIcons_1x_{alias}.png",
+            ):
+                candidate = root / "sprites" / filename
+                if candidate.is_file():
+                    return candidate
+    return None
 
 
 def _is_opaque_icon_tile(image: QImage) -> bool:
