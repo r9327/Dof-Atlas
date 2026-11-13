@@ -75,6 +75,20 @@ def capture(output: Path, *, width: int = 1100, height: int = 800) -> dict[str, 
         results["horizontal_scroll_max"] = page.gallery_scroll.horizontalScrollBar().maximum()
         results["vertical_scroll_max"] = page.gallery_scroll.verticalScrollBar().maximum()
 
+        # Screenshot the actual expanded Qt family dropdown, not a simulated
+        # painted list. This proves the popup rows match the approved palette.
+        page.gallery_navigation.showPopup()
+        app.processEvents()
+        try:
+            family_popup_file = output / "dev-ui-family-dropdown.png"
+            dropdown_view = page.gallery_navigation.view()
+            if not dropdown_view.grab().save(str(family_popup_file), "PNG"):
+                raise RuntimeError(f"Unable to capture {family_popup_file}")
+            results["screenshots"]["family_dropdown"] = str(family_popup_file)
+        finally:
+            page.gallery_navigation.hidePopup()
+            app.processEvents()
+
         # The real popup is a separate Qt surface, not pasted into a mockup.
         page.dialog_button.click()
         app.processEvents()
