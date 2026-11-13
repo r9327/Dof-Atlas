@@ -598,7 +598,9 @@ class HoverMenuButton(AtlasButton):
     def __init__(self, text: str, parent: QWidget | None = None) -> None:
         super().__init__(text, parent)
         self.setObjectName("TopNavButton")
-        self.setFocusPolicy(Qt.NoFocus)
+        # Tab must reach the same menu family as mouse hover. Mouse-only
+        # NoFocus made its actions unreachable without a pointer.
+        self.setFocusPolicy(Qt.TabFocus)
         self._hover_menu: QMenu | None = None
         self._outside_ticks = 0
         self._poll_timer = QTimer(self)
@@ -614,7 +616,14 @@ class HoverMenuButton(AtlasButton):
         self.open_hover_menu()
         super().enterEvent(event)
 
-    def open_hover_menu(self) -> None:
+    def keyPressEvent(self, event) -> None:
+        if event.key() in (Qt.Key_Down, Qt.Key_F4) and self._hover_menu is not None:
+            self.open_hover_menu(keyboard=True)
+            event.accept()
+            return
+        super().keyPressEvent(event)
+
+    def open_hover_menu(self, *, keyboard: bool = False) -> None:
         menu = self._hover_menu
         if menu is None:
             return
@@ -625,15 +634,31 @@ class HoverMenuButton(AtlasButton):
 
         if menu.isVisible():
             self._outside_ticks = 0
+            if keyboard:
+                # Native QMenu handles Escape/Enter itself. Cursor polling is
+                # only valid for hover-open menus, not a keyboard popup.
+                self._poll_timer.stop()
+                self._select_first_menu_action(menu)
             return
 
         HoverMenuButton._active_button = self
         self._outside_ticks = 0
         self.setDown(False)
-        self.clearFocus()
+        if not keyboard:
+            self.clearFocus()
         menu.popup(self.mapToGlobal(QPoint(0, self.height())))
-        if not self._poll_timer.isActive():
+        if keyboard:
+            self._poll_timer.stop()
+            self._select_first_menu_action(menu)
+        elif not self._poll_timer.isActive():
             self._poll_timer.start()
+
+    @staticmethod
+    def _select_first_menu_action(menu: QMenu) -> None:
+        for action in menu.actions():
+            if action.isEnabled() and action.isVisible() and not action.isSeparator():
+                menu.setActiveAction(action)
+                return
 
     def close_hover_menu(self) -> None:
         self._poll_timer.stop()

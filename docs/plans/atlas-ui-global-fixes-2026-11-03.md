@@ -284,3 +284,11 @@ Ne cocher aucun ID de #364 sur cette seule base. Ne pas fusionner tant que les o
 - **Correction minimale** : garder `clicked` comme unique voie souris. Deux raccourcis `QShortcut` locaux au vrai `QListView` prennent en charge `Return` et `Enter` du pavé numérique sur l'index courant, sans installer de filtre global ni perturber le composant partagé.
 - **Tests du même commit** : émission `clicked` suivie de `activated` => une seule demande ; vrais événements clavier Qt pour Return/Numpad Enter => chacun ouvre le Guide sélectionné ; sélection invalide => zéro ouverture. Les cartes Guides optimisés conservent leurs propres callbacks existants.
 - **Validation requise** : Doctor-lot exact SHA et CI Guides Windows ; ce changement n'est ni une certification des parcours #363 ni une recette utilisateur DOFUS.
+
+
+### P0 — navigation du bandeau Unity au clavier, sans changer le survol (13/11/2026)
+
+- **Défaut réel** : `HoverMenuButton` était `Qt.NoFocus` ; tous ses menus (Encyclopédie, Bestiaire, Outils, Stuffs, Tutoriels) étaient impossibles à atteindre via Tab, même si leur `QMenu` avait des actions Qt fonctionnelles.
+- **Correction** : le bouton accepte maintenant `Qt.TabFocus` et ouvre son menu par Flèche bas/F4. Le menu natif Qt reçoit sa première action activable ; `QMenu` conserve Entrée, Échap et les clics souris. Le minuteur de suivi du curseur reste **uniquement** pour le survol afin qu'un menu ouvert au clavier ne se ferme pas alors que le pointeur est ailleurs.
+- **Tests du même commit** : `tests/test_unity_skin.py` vérifie l'accès Tab, le vrai `QTest.keyClick` pour ouvrir le QMenu, le déclenchement d'un QAction par Entrée, ainsi que l'ouverture/fermeture au survol et l'arrêt du minuteur. Aucun écran métier, callback de navigation ni moteur Organizer/DOFUS modifié.
+- **Limite** : l'utilisation réelle au clavier dans le shell Windows reste à vérifier dans les CI ciblées ; ne pas certifier tous les 43 critères sur ce lot.

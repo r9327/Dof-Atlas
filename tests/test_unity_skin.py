@@ -11,6 +11,7 @@ os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
 
 from PySide6.QtCore import Qt
 from PySide6.QtGui import QColor, QImage
+from PySide6.QtTest import QTest
 from PySide6.QtWidgets import QApplication, QTabWidget, QWidget
 
 from app.ui import unity_skin
@@ -486,6 +487,48 @@ class UnitySkinTests(unittest.TestCase):
         finally:
             tabs.close()
             tabs.deleteLater()
+
+    def test_top_navigation_hover_menu_is_keyboard_accessible_and_clickable(self) -> None:
+        from PySide6.QtWidgets import QMenu
+        from main import HoverMenuButton
+
+        button = HoverMenuButton("Outils")
+        menu = QMenu(button)
+        activated: list[str] = []
+        first = menu.addAction("Crafts", lambda: activated.append("Crafts"))
+        menu.addAction("Map monde", lambda: activated.append("Map monde"))
+        button.set_hover_menu(menu)
+        button.resize(150, 36)
+        button.show()
+        try:
+            self.app.processEvents()
+            self.assertTrue(bool(button.focusPolicy() & Qt.TabFocus))
+            button.setFocus(Qt.TabFocusReason)
+            self.assertTrue(button.hasFocus())
+
+            # A real Qt Down key opens the same QMenu as the hover path.
+            QTest.keyClick(button, Qt.Key_Down)
+            self.app.processEvents()
+            self.assertTrue(menu.isVisible())
+            self.assertIs(menu.activeAction(), first)
+            self.assertFalse(button._poll_timer.isActive())
+
+            QTest.keyClick(menu, Qt.Key_Return)
+            self.app.processEvents()
+            self.assertEqual(activated, ["Crafts"])
+            self.assertFalse(menu.isVisible())
+
+            # Mouse-hover opening remains polled and uses the same actions.
+            button.open_hover_menu()
+            self.assertTrue(menu.isVisible())
+            self.assertTrue(button._poll_timer.isActive())
+            button.close_hover_menu()
+            self.assertFalse(menu.isVisible())
+            self.assertFalse(button._poll_timer.isActive())
+        finally:
+            button.close_hover_menu()
+            button.close()
+            button.deleteLater()
 
     def test_primary_navigation_uses_local_unity_pictograms_with_fallback(self) -> None:
         main_source = (Path(__file__).resolve().parents[1] / "main.py").read_text(encoding="utf-8")
