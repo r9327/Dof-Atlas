@@ -48,6 +48,16 @@ class UnitySkinTests(unittest.TestCase):
                     self.assertIn(expected, section)
         self.assertIn("border: 2px solid #304050; border-image: none;", style)
 
+    def test_preview_palette_does_not_mutate_global_unity_colors(self) -> None:
+        original = dict(UNITY_PALETTE)
+        preview = unity_skin_stylesheet({
+            "TEXT": "#142536",
+            "BORDER_CARD": "#253647",
+        })
+        self.assertIn("QDialog#AtlasDialog, QMenu {", preview)
+        self.assertIn("color: #142536; border: 1px solid #253647;", preview)
+        self.assertEqual(UNITY_PALETTE, original)
+
     def test_guide_controls_render_the_canonical_palette_values(self) -> None:
         with patch.dict(UNITY_PALETTE, {"GUIDE_NAV_BORDER": "#010203"}):
             self.assertIn("border-top: 1px solid #010203;", unity_skin_stylesheet())

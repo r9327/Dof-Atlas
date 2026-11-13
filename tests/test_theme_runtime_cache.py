@@ -83,6 +83,21 @@ class ThemeRuntimeCacheTests(unittest.TestCase):
         self.assertIn("border: 1px solid #123ABC;", focused)
         self.assertIn("border-bottom: 2px solid " + theme.PALETTE["GREEN"] + ";", focused)
 
+    def test_preview_overrides_reach_shared_unity_widget_layer(self) -> None:
+        overrides = {
+            "TEXT": "#142536",
+            "BORDER": "#253647",
+            "BORDER_CARD": "#364758",
+        }
+        style = theme.atlas_stylesheet(overrides)
+        group = style.rsplit("QGroupBox, QTabWidget::pane {", 1)[1].split("}", 1)[0]
+        dialog = style.rsplit("QDialog#AtlasDialog, QMenu {", 1)[1].split("}", 1)[0]
+        self.assertIn("color: #142536;", group)
+        self.assertIn("border: 1px solid #253647;", group)
+        self.assertIn("color: #142536;", dialog)
+        self.assertIn("border: 1px solid #364758;", dialog)
+        self.assertEqual(theme.PALETTE["TEXT"], "#F1F6FB")
+
     def test_home_badge_and_almanax_use_shared_semantic_tokens(self) -> None:
         style = theme.atlas_stylesheet({
             "BADGE_BG": "#112233",

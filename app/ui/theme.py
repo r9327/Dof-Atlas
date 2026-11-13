@@ -3272,4 +3272,8 @@ def atlas_stylesheet(overrides: Mapping[str, str] | None = None) -> str:
     """
 
     style = render_theme_template(_STYLE_TEMPLATE, overrides)
-    return style + "\n" + unity_skin_stylesheet()
+    if not overrides:
+        return style + "\n" + unity_skin_stylesheet()
+    # Preview variants must use the same tokens in the Unity widget layer.
+    # The regular stylesheet still shares the original cached path.
+    return style + "\n" + unity_skin_stylesheet(overrides)

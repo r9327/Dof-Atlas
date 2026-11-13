@@ -5,6 +5,7 @@ Game-extracted image and font files stay outside the public Windows release.
 from __future__ import annotations
 
 import os
+from collections.abc import Mapping
 from pathlib import Path
 
 from PySide6.QtCore import QRectF
@@ -122,10 +123,11 @@ def apply_unity_panel_shadow(widget: QWidget, *, blur: int = 18, vertical: int =
     widget.setGraphicsEffect(effect)
 
 
-def unity_skin_stylesheet() -> str:
-    """Global Qt controls, with 9-slice and local-only source sprites."""
+def unity_skin_stylesheet(palette: Mapping[str, str] | None = None) -> str:
+    """Global Qt controls, with optional preview overrides for Unity tokens."""
     if not unity_enabled():
         return ""
+    colors = UNITY_PALETTE if palette is None else {**UNITY_PALETTE, **palette}
     rules = [
         # The wallpaper is painted once by the *parent* of all shell pages.
         # Only root surfaces are translucent; data cards retain dark contrast.
@@ -157,43 +159,43 @@ def unity_skin_stylesheet() -> str:
         "QGroupBox, QTabWidget::pane { "
         "background: rgba(27, 39, 70, 0.78); color: %s; "
         "border: 1px solid %s; border-radius: 6px; }" % (
-            UNITY_PALETTE["TEXT"], UNITY_PALETTE["BORDER"],
+            colors["TEXT"], colors["BORDER"],
         ),
         "QListView, QTreeView, QTableView, QListWidget, QTreeWidget, QTableWidget { "
         "background: rgba(21, 32, 59, 0.92); color: %s; "
         "alternate-background-color: rgba(33, 49, 84, 0.88); "
         "selection-background-color: %s; selection-color: %s; "
         "border: 1px solid %s; }" % (
-            UNITY_PALETTE["TEXT"], UNITY_PALETTE["PANEL_ACTIVE"],
-            UNITY_PALETTE["TEXT"], UNITY_PALETTE["BORDER"],
+            colors["TEXT"], colors["PANEL_ACTIVE"],
+            colors["TEXT"], colors["BORDER"],
         ),
         "QHeaderView::section { background: rgba(33, 49, 84, 0.95); "
         "color: %s; border: 1px solid %s; }" % (
-            UNITY_PALETTE["TEXT"], UNITY_PALETTE["BORDER"],
+            colors["TEXT"], colors["BORDER"],
         ),
         f"QTabBar::tab {{ background: rgba(25, 38, 75, 0.93); "
-        f"color: {UNITY_PALETTE['TEXT_SOFT']}; "
-        f"border: 2px solid {UNITY_PALETTE['BORDER']}; }}",
-        f"QTabBar::tab:hover {{ background: {UNITY_PALETTE['PANEL_HOVER']}; }}",
-        f"QTabBar::tab:selected {{ color: {UNITY_PALETTE['TEXT']}; "
-        f"background: {UNITY_PALETTE['PANEL_ACTIVE']}; }}",
+        f"color: {colors['TEXT_SOFT']}; "
+        f"border: 2px solid {colors['BORDER']}; }}",
+        f"QTabBar::tab:hover {{ background: {colors['PANEL_HOVER']}; }}",
+        f"QTabBar::tab:selected {{ color: {colors['TEXT']}; "
+        f"background: {colors['PANEL_ACTIVE']}; }}",
         "QToolTip { background: #192657; color: %s; "
         "border: 1px solid %s; padding: 4px; }" % (
-            UNITY_PALETTE["TEXT"], UNITY_PALETTE["BORDER_STRONG"],
+            colors["TEXT"], colors["BORDER_STRONG"],
         ),
         "QProgressBar { background: rgba(21, 32, 59, 0.85); "
         "color: %s; border: 1px solid %s; "
         "text-align: center; }" % (
-            UNITY_PALETTE["TEXT"], UNITY_PALETTE["BORDER"],
+            colors["TEXT"], colors["BORDER"],
         ),
         "QFrame#card, QFrame#HomeCharacterCard, QFrame#HomeTrackingCard, "
         "QFrame#HomeGuideCard, QFrame#HomeNetworkMiniCard, QFrame#HomeAlmanaxCard, "
         "QFrame#GuideFeaturedCard { "
         "background: rgba(27, 39, 70, 0.88); border: 1px solid %s; "
-        "border-radius: 9px; }" % UNITY_PALETTE["BORDER_CARD"],
+        "border-radius: 9px; }" % colors["BORDER_CARD"],
         "QFrame#GuideCompactHeader, QFrame#GuideSheetHeader, "
         "QFrame#GuidePreparationPanel { "
-        "background: rgba(24, 37, 70, 0.93); border: 1px solid %s; }" % UNITY_PALETTE["BORDER"],
+        "background: rgba(24, 37, 70, 0.93); border: 1px solid %s; }" % colors["BORDER"],
         # Small bevels and stronger contrast for the real guide surfaces.
         # QSS has no native box-shadow; personal 9-slice sprites can supply
         # the game-native depth when installed.
@@ -201,47 +203,47 @@ def unity_skin_stylesheet() -> str:
         "background: qlineargradient(x1:0,y1:0,x2:0,y2:1, "
         "stop:0 rgba(69, 91, 140, 0.97), stop:1 rgba(24, 38, 74, 0.97)); "
         "border: 1px solid %s; border-radius: 5px; color: %s; }" % (
-            UNITY_PALETTE["GUIDE_PREPARATION_BORDER"], UNITY_PALETTE["GUIDE_PREPARATION_TEXT"],
+            colors["GUIDE_PREPARATION_BORDER"], colors["GUIDE_PREPARATION_TEXT"],
         ),
         "QFrame#GuidePreparationRow, QFrame#GuidePreparationDetails { "
         "background: rgba(31, 48, 87, 0.92); "
         "border: 1px solid rgba(114, 149, 196, 0.65); border-radius: 5px; }",
         "QPushButton#GuidePreparationItemCopy { "
         "text-align: left; background: transparent; border: none; "
-        "color: %s; padding: 3px; }" % UNITY_PALETTE["GUIDE_ITEM_TEXT"],
+        "color: %s; padding: 3px; }" % colors["GUIDE_ITEM_TEXT"],
         "QPushButton#GuidePreparationItemCopy:hover { "
         "background: rgba(102, 139, 196, 0.30); border-radius: 4px; }",
         "QLabel#GuidePreparationRowStatus, QLabel#GuidePreparationParticipantNeed { "
-        "color: %s; font-weight: 600; }" % UNITY_PALETTE["GUIDE_STATUS_TEXT"],
+        "color: %s; font-weight: 600; }" % colors["GUIDE_STATUS_TEXT"],
         "QFrame#GuideManualNav { "
-        "background: rgba(19, 31, 59, 0.94); border-top: 1px solid %s; }" % UNITY_PALETTE["GUIDE_NAV_BORDER"],
+        "background: rgba(19, 31, 59, 0.94); border-top: 1px solid %s; }" % colors["GUIDE_NAV_BORDER"],
         "QToolButton#GuidePreparationToggle, QToolButton#GuideSummaryButton, "
         "QToolButton#GuideParticipantsButton { "
         "background: qlineargradient(x1:0,y1:0,x2:0,y2:1, "
         "stop:0 %s, stop:1 %s); "
         "color: %s; border: 1px solid %s; "
         "border-radius: 5px; padding: 3px 8px; }" % (
-            UNITY_PALETTE["GUIDE_TOGGLE_TOP"], UNITY_PALETTE["GUIDE_TOGGLE_BOTTOM"],
-            UNITY_PALETTE["GUIDE_PREPARATION_TEXT"], UNITY_PALETTE["GUIDE_TOGGLE_BORDER"],
+            colors["GUIDE_TOGGLE_TOP"], colors["GUIDE_TOGGLE_BOTTOM"],
+            colors["GUIDE_PREPARATION_TEXT"], colors["GUIDE_TOGGLE_BORDER"],
         ),
         "QToolButton#GuidePreparationToggle:checked, QToolButton#GuideSummaryButton:checked, "
         "QToolButton#GuideParticipantsButton:checked { "
         "background: %s; border: 1px solid %s; }" % (
-            UNITY_PALETTE["GUIDE_TOGGLE_ACTIVE"], UNITY_PALETTE["GUIDE_TOGGLE_ACTIVE_BORDER"],
+            colors["GUIDE_TOGGLE_ACTIVE"], colors["GUIDE_TOGGLE_ACTIVE_BORDER"],
         ),
         "QToolButton#GuidePreparationToggle:hover, QToolButton#GuideSummaryButton:hover, "
         "QToolButton#GuideParticipantsButton:hover { "
-        "background: %s; }" % UNITY_PALETTE["GUIDE_TOGGLE_HOVER"],
+        "background: %s; }" % colors["GUIDE_TOGGLE_HOVER"],
         "QDialog#AtlasDialog, QMenu { "
         "background: rgba(25, 38, 75, 0.98); color: %s; "
         "border: 1px solid %s; }" % (
-            UNITY_PALETTE["TEXT"], UNITY_PALETTE["BORDER_CARD"],
+            colors["TEXT"], colors["BORDER_CARD"],
         ),
         "QLineEdit, QComboBox, QSpinBox, QDoubleSpinBox, QTextEdit, "
         "QPlainTextEdit { "
         "background: rgba(20, 29, 55, 0.96); color: %s; "
         "border: 1px solid %s; }" % (
-            UNITY_PALETTE["TEXT"], UNITY_PALETTE["BORDER_CARD"],
+            colors["TEXT"], colors["BORDER_CARD"],
         ),
         # Focus must be appended AFTER all sprite rules to remain visible.
         "#PageTitle, #HomeGuideTitle, #TopNavBrandText { "
@@ -323,7 +325,7 @@ def unity_skin_stylesheet() -> str:
     rules.append(
         "QPushButton:focus, QToolButton:focus, QCheckBox:focus, "
         "QComboBox:focus, QLineEdit:focus, QTreeView:focus, QListView:focus { "
-        "border: 2px solid %s; }" % UNITY_PALETTE["TEXT_SOFT"]
+        "border: 2px solid %s; }" % colors["TEXT_SOFT"]
     )
     # ID-specific sprite rules otherwise outrank a generic :focus selector.
     # A visible focus outline takes priority over decorative border-images.
@@ -334,7 +336,7 @@ def unity_skin_stylesheet() -> str:
     )
     rules.append(
         ", ".join(f"QPushButton#{name}:focus" for name in focus_button_names)
-        + " { border: 2px solid %s; border-image: none; }" % UNITY_PALETTE["TEXT_SOFT"]
+        + " { border: 2px solid %s; border-image: none; }" % colors["TEXT_SOFT"]
     )
     return "\n".join(rules)
 
