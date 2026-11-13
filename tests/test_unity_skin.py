@@ -49,6 +49,16 @@ class UnitySkinTests(unittest.TestCase):
         finally:
             button.deleteLater()
 
+    def test_advanced_form_surfaces_match_unity_palette_and_states(self) -> None:
+        style = unity_skin_stylesheet()
+        fields = "QLineEdit, QComboBox, QSpinBox, QDoubleSpinBox"
+        self.assertIn(fields, style)
+        self.assertIn("QDateEdit, QTimeEdit, QTextEdit, QPlainTextEdit", style)
+        self.assertIn("background: rgba(33, 49, 84, 0.96)", style)
+        self.assertIn("QLineEdit:read-only, QPlainTextEdit:read-only", style)
+        self.assertIn("QLineEdit:disabled, QComboBox:disabled", style)
+        self.assertNotIn("rgba(20, 29, 55, 0.96)", style)
+
     def test_shared_buttons_never_inherit_gold_or_neon_sprite_borders(self) -> None:
         """Optional Unity assets cannot silently replace semantic button colors."""
         with patch.object(unity_skin, "_sprite_url", side_effect=lambda name: f"/fake/{name}"):
