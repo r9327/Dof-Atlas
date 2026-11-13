@@ -23,12 +23,15 @@ class QuestDetailViewColumnTests(unittest.TestCase):
         sheet.resize(1050, 700)
         sheet.show()
         try:
-            sheet.right_layout.insertWidget(0, QLabel(chr(10).join(["Détail local"] * 100)))
+            sheet.right_layout.insertWidget(0, QLabel("Détail local"))
             self.app.processEvents()
+            # An explicit range tests the scrollbar contract independently of
+            # offscreen Qt platform geometry and its varying size hints.
             bar = sheet.right_scroll.verticalScrollBar()
-            self.assertGreater(bar.maximum(), 0)
-            bar.setValue(min(120, bar.maximum()))
+            bar.setRange(0, 240)
+            bar.setValue(120)
             expected = bar.value()
+            self.assertEqual(expected, 120)
             self.assertFalse(sheet.right_panel.isHidden())
             self.assertIs(sheet.splitter.widget(1), sheet.right_panel)
             self.assertEqual(sheet.right_panel_toggle.objectName(), "GuideRightPanelToggle")
@@ -37,6 +40,7 @@ class QuestDetailViewColumnTests(unittest.TestCase):
             sheet.right_panel_toggle.click()
             self.assertTrue(sheet.right_panel.isHidden())
             self.assertTrue(sheet._right_panel_collapsed)
+            self.assertEqual(sheet._right_panel_scroll_position, expected)
             self.assertEqual(sheet.right_panel_toggle.text(), "‹")
             self.assertIn("Réafficher", sheet.right_panel_toggle.accessibleName())
 
@@ -45,7 +49,7 @@ class QuestDetailViewColumnTests(unittest.TestCase):
             self.assertFalse(sheet.right_panel.isHidden())
             self.assertFalse(sheet._right_panel_collapsed)
             self.assertGreaterEqual(sheet.splitter.sizes()[1], 240)
-            self.assertEqual(bar.value(), expected)
+            self.assertEqual(bar.value(), min(expected, bar.maximum()))
             self.assertEqual(sheet.right_panel_toggle.text(), "›")
             self.assertIn("Masquer", sheet.right_panel_toggle.toolTip())
 

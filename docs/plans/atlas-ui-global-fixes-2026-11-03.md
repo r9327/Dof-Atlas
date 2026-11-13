@@ -103,3 +103,11 @@ Ne cocher aucun ID de #364 sur cette seule base. Ne pas fusionner tant que les o
 - Un clic masque uniquement la colonne « informations » et libère son espace ; le bouton reste accessible dans l'en-tête pour la réafficher. La largeur utile et le défilement de la quête courante sont conservés. Lors d'un changement de quête, le défilement repart du haut.
 - La même feuille est utilisée par Quêtes et le détail Quêtes des Guides ; la progression, les données et les actions restent inchangées.
 - Le test Qt `tests/test_quest_detail_view.py` couvre le round-trip, l'état du bouton, la conservation du défilement et le thème commun. La validation Doctor ciblée, l'ouverture réelle Windows et l'harmonisation du menu Quêtes restent **à prouver** ; ATQT-001 n'est pas globalement DONE.
+
+### Correction ciblée du routage CI — Quêtes/Guide
+
+- Le [mini-audit Scoped PR](https://github.com/r9327/Dof-Atlas/actions/runs/43393190509) a confirmé un `UNKNOWN_OWNER_BLOCKS_MODULAR_CERTIFICATE` pour `app/modules/encyclopedia/widgets/quest_detail_view.py`, malgré la présence du test Qt dédié.
+- Ajout **strictement de deux chemins exacts** dans `tools/ci_domain_certification.py` : le composant partagé et son test. Les trois domaines réellement consommateurs sont `quests`, `guides` et `ui` (rapport Graphify au HEAD `bb2b44ae`). Aucun wildcard, contournement du FULL, skip ni nouvelle porte CI.
+- Un test `test_shared_quest_detail_sheet_has_exact_three_domain_ownership` couvre les domaines, la planification et le refus du voisin non enregistré. L'ancien routage de toutes les autres familles reste inchangé.
+- Le test UI n'exige plus qu'un QLabel hors écran génère artificiellement une barre de défilement ; il vérifie le contrat Qt avec une plage explicite et le retour borné. La présence visuelle sous Windows reste une recette distincte.
+- **Statuts** : tests CI et UI au SHA de ce lot à exécuter. L'exécution des tests ciblés ne remplace ni la Phase Certification ni les critères Delivery Guard de #364.

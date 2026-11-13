@@ -39,6 +39,22 @@ class ModularDomainRoutingTests(unittest.TestCase):
         self.assertEqual(owners_for(unknown), frozenset())
         self.assertEqual(self.route([unknown])["status"], "BLOCKED")
 
+    def test_shared_quest_detail_sheet_has_exact_three_domain_ownership(self):
+        source = "app/modules/encyclopedia/widgets/quest_detail_view.py"
+        regression = "tests/test_quest_detail_view.py"
+        domains = frozenset({"quests", "guides", "ui"})
+        self.assertEqual(owners_for(source), domains)
+        self.assertEqual(owners_for(regression), domains)
+        report = self.route([source, regression])
+        self.assertEqual(report["status"], "READY_TO_EXECUTE")
+        self.assertEqual(set(report["domains"]), set(domains))
+        self.assertEqual(report["unknown_paths"], [])
+        self.assertFalse(report["phase_certified"])
+        # No sibling wildcard: unreviewed executable widgets remain blocked.
+        unexpected = "app/modules/encyclopedia/widgets/quest_detail_overlay.py"
+        self.assertEqual(owners_for(unexpected), frozenset())
+        self.assertEqual(self.route([unexpected])["status"], "BLOCKED")
+
     def test_shared_text_requires_all_product_domains_without_unknown_wildcard(self):
         domains = {"craft", "quests", "guides", "ui", "startup",
                    "identity", "data", "organizer"}
