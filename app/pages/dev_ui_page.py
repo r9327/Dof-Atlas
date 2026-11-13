@@ -55,7 +55,7 @@ from app.ui.theme import PALETTE, SIZES, SPACING, TYPOGRAPHY
 from app.ui.unity_palette import (
     UNITY_ICON_NAMES, UNITY_MAIN_ROLES, UNITY_SIZES_PX, UNITY_UI_USAGE,
 )
-from app.ui.unity_skin import unity_ui_icon
+from app.ui.unity_skin import apply_unity_panel_shadow, unity_ui_icon
 
 
 class DevUiPage(QWidget):
@@ -511,7 +511,8 @@ class DevUiPage(QWidget):
         section.addLayout(scale)
 
         cards = QHBoxLayout()
-        cards.setSpacing(10)
+        cards.setSpacing(12)
+        cards.setContentsMargins(4, 4, 4, 5)
         self.preview_cards: dict[str, QFrame] = {}
         for role, caption in (
             ("card", "Carte globale"),
@@ -531,6 +532,9 @@ class DevUiPage(QWidget):
             small.setObjectName("MutedLabel")
             small.setWordWrap(True)
             card_layout.addWidget(small)
+            # Fixed visual samples only. No effect on scrolling rows,
+            # focusable controls or the actual game panels.
+            apply_unity_panel_shadow(card, blur=10, vertical=2, alpha=34)
             self.preview_cards[role] = card
             cards.addWidget(card, 1)
         section.addLayout(cards)
