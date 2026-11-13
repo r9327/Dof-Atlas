@@ -222,8 +222,8 @@ class DevUiPageTests(unittest.TestCase):
             for card in page.preview_cards.values():
                 shadow = card.graphicsEffect()
                 self.assertIsInstance(shadow, QGraphicsDropShadowEffect)
-                self.assertEqual(shadow.blurRadius(), 16)
-                self.assertEqual(shadow.color().alpha(), 82)
+                self.assertEqual(shadow.blurRadius(), 17)
+                self.assertEqual(shadow.color().alpha(), 112)
             shadow_sections = [
                 section for section in page.gallery_sections
                 if section.graphicsEffect() is not None
@@ -236,9 +236,11 @@ class DevUiPageTests(unittest.TestCase):
             for section in shadow_sections:
                 shadow = section.graphicsEffect()
                 self.assertIsInstance(shadow, QGraphicsDropShadowEffect)
-                self.assertEqual(shadow.blurRadius(), 17)
-                self.assertEqual(shadow.color().alpha(), 82)
+                self.assertEqual(shadow.blurRadius(), 18)
+                self.assertEqual(shadow.color().alpha(), 112)
             self.assertEqual(page.preview_advanced_grid.columnCount(), 3)
+            self.assertEqual(page.preview_date.displayFormat(), "dd/MM/yyyy")
+            self.assertEqual(page.preview_time.displayFormat(), "HH:mm")
             advanced_fields = (
                 page.preview_password, page.preview_readonly,
                 page.preview_disabled_input, page.preview_double_spin,
