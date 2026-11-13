@@ -223,7 +223,7 @@ class DevUiPageTests(unittest.TestCase):
                 shadow = card.graphicsEffect()
                 self.assertIsInstance(shadow, QGraphicsDropShadowEffect)
                 self.assertEqual(shadow.blurRadius(), 17)
-                self.assertEqual(shadow.color().alpha(), 112)
+                self.assertEqual(shadow.color().alpha(), 135)
             shadow_sections = [
                 section for section in page.gallery_sections
                 if section.graphicsEffect() is not None
@@ -237,7 +237,7 @@ class DevUiPageTests(unittest.TestCase):
                 shadow = section.graphicsEffect()
                 self.assertIsInstance(shadow, QGraphicsDropShadowEffect)
                 self.assertEqual(shadow.blurRadius(), 18)
-                self.assertEqual(shadow.color().alpha(), 112)
+                self.assertEqual(shadow.color().alpha(), 145)
             self.assertEqual(page.preview_advanced_grid.columnCount(), 3)
             self.assertEqual(page.preview_date.displayFormat(), "dd/MM/yyyy")
             self.assertEqual(page.preview_time.displayFormat(), "HH:mm")
