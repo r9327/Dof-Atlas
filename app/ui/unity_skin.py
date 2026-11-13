@@ -361,11 +361,25 @@ def unity_skin_stylesheet(palette: Mapping[str, str] | None = None) -> str:
         "border: 1px solid %s; }" % (
             translucent("NAV_SURFACE", 0.98), colors["TEXT"], colors["BORDER_CARD"],
         ),
-        "QLineEdit, QComboBox, QSpinBox, QDoubleSpinBox, QTextEdit, "
-        "QPlainTextEdit { "
-        "background: %s; color: %s; "
-        "border: 1px solid %s; }" % (
-            translucent("FIELD_SURFACE", 0.96), colors["TEXT"], colors["BORDER_CARD"],
+        # Form fields should share the same blue surface and geometry.
+        # The previous near-black FIELD_SURFACE override was applied after
+        # theme.py and made Date/Time/DoubleSpinBox look native and mismatched.
+        "QLineEdit, QComboBox, QSpinBox, QDoubleSpinBox, "
+        "QDateEdit, QTimeEdit, QTextEdit, QPlainTextEdit { "
+        "background: %s; color: %s; border: 1px solid %s; "
+        "border-radius: %s; }" % (
+            translucent("PANEL_2", 0.96), colors["TEXT"], colors["BORDER"],
+            radii["RADIUS_SM"],
+        ),
+        "QLineEdit:read-only, QPlainTextEdit:read-only { "
+        "background: %s; color: %s; border: 1px solid %s; }" % (
+            translucent("PANEL", 0.96), colors["TEXT_SOFT"], colors["BORDER_SOFT"],
+        ),
+        "QLineEdit:disabled, QComboBox:disabled, QSpinBox:disabled, "
+        "QDoubleSpinBox:disabled, QDateEdit:disabled, QTimeEdit:disabled, "
+        "QTextEdit:disabled, QPlainTextEdit:disabled { "
+        "background: %s; color: %s; border: 1px solid %s; }" % (
+            translucent("PANEL", 0.94), colors["TEXT_DISABLED"], colors["BORDER_SOFT"],
         ),
         # Focus must be appended AFTER all sprite rules to remain visible.
         "#PageTitle, #HomeGuideTitle, #TopNavBrandText { "
