@@ -228,16 +228,12 @@ class DevUiPageTests(unittest.TestCase):
                 section for section in page.gallery_sections
                 if section.graphicsEffect() is not None
             ]
-            self.assertEqual(
-                [section.title() for section in shadow_sections],
-                ["Formulaires avancés · états et formats",
-                 "Surfaces · cartes · typographie"],
-            )
+            self.assertEqual(len(shadow_sections), len(page.gallery_sections))
             for section in shadow_sections:
                 shadow = section.graphicsEffect()
                 self.assertIsInstance(shadow, QGraphicsDropShadowEffect)
-                self.assertEqual(shadow.blurRadius(), 18)
-                self.assertEqual(shadow.color().alpha(), 145)
+                self.assertEqual(shadow.blurRadius(), 17)
+                self.assertEqual(shadow.color().alpha(), 135)
             self.assertEqual(page.preview_advanced_grid.columnCount(), 3)
             self.assertEqual(page.preview_date.displayFormat(), "dd/MM/yyyy")
             self.assertEqual(page.preview_time.displayFormat(), "HH:mm")
@@ -275,6 +271,11 @@ class DevUiPageTests(unittest.TestCase):
             self.assertTrue(page.preview_palette_details.isHidden())
 
             self.assertEqual(set(page.preview_icon_labels), set(UNITY_ICON_NAMES))
+            from app.ui.unity_skin import unity_original_preview_icon
+            self.assertTrue(all(
+                not unity_original_preview_icon(name).isNull()
+                for name in UNITY_ICON_NAMES
+            ))
             self.assertTrue(all(
                 label.pixmap() is not None and not label.pixmap().isNull()
                 for label in page.preview_icon_labels.values()
