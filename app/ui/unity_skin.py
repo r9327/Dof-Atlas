@@ -306,6 +306,19 @@ def unity_skin_stylesheet() -> str:
     return "\n".join(rules)
 
 
+# Deterministic, asset-free fallback used only when no personal Unity sky exists.
+# Stable positions prevent flicker and the cost stays bounded on every repaint.
+_PUBLIC_SKY_STARS = tuple(
+    (
+        ((index * 149 + 31) % 991) / 991,
+        ((index * 233 + 73) % 997) / 997,
+        2.0 if index % 11 == 0 else 1.0,
+        130 if index % 11 == 0 else 75,
+    )
+    for index in range(110)
+)
+
+
 class UnityBackdrop(QWidget):
     """One cached pixmap per shell; paint a centered cover crop without stretching."""
 
@@ -325,6 +338,16 @@ class UnityBackdrop(QWidget):
         gradient.setColorAt(0.52, QColor(UNITY_PALETTE["PANEL"]))
         gradient.setColorAt(1.0, QColor(UNITY_PALETTE["BG"]))
         painter.fillRect(self.rect(), gradient)
+        if self._pixmap.isNull() and self.width() > 0 and self.height() > 0:
+            # The same subtle fixed sky appears on every shell page. Never
+            # paint fallback stars over the user's original cleaned wallpaper.
+            star_color = QColor(UNITY_PALETTE["TEXT_SOFT"])
+            for x, y, size, alpha in _PUBLIC_SKY_STARS:
+                star_color.setAlpha(alpha)
+                painter.fillRect(
+                    QRectF(x * self.width(), y * self.height(), size, size),
+                    star_color,
+                )
         if not self._pixmap.isNull() and self.width() > 0 and self.height() > 0:
             source_w = self._pixmap.width()
             source_h = self._pixmap.height()

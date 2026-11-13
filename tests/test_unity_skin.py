@@ -110,6 +110,33 @@ class UnitySkinTests(unittest.TestCase):
                 backdrop.deleteLater()
                 self.app.processEvents()
 
+    def test_public_backdrop_shows_stars_without_personal_unity_assets(self) -> None:
+        # One deterministic field is painted on the shared shell, without a
+        # bundled game texture, timer, animation or per-module stylesheet.
+        with tempfile.TemporaryDirectory() as directory:
+            absent = Path(directory) / "absent"
+            with patch.object(unity_skin, "_PERSONAL_ASSETS", absent), patch.object(
+                unity_skin, "_ASSETS", absent
+            ):
+                backdrop = UnityBackdrop()
+                backdrop.resize(600, 380)
+                self.assertTrue(backdrop._pixmap.isNull())
+                backdrop.show()
+                try:
+                    self.app.processEvents()
+                    with_stars = backdrop.grab().toImage()
+                    with patch.object(unity_skin, "_PUBLIC_SKY_STARS", ()):
+                        without_stars = backdrop.grab().toImage()
+                    # First deterministic star sits at about (19, 28) px.
+                    self.assertTrue(any(
+                        with_stars.pixelColor(x, y) != without_stars.pixelColor(x, y)
+                        for x in range(16, 23) for y in range(25, 33)
+                    ))
+                finally:
+                    backdrop.close()
+                    backdrop.deleteLater()
+                    self.app.processEvents()
+
     def test_clean_wallpaper_has_priority_without_mutating_original(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
             asset_dir = Path(directory)
