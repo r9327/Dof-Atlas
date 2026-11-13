@@ -105,6 +105,31 @@ class UnitySkinTests(unittest.TestCase):
                     self.assertIn(expected, section)
         self.assertIn("border: 2px solid #304050; border-image: none;", style)
 
+    def test_unity_glass_surfaces_obey_global_color_overrides(self) -> None:
+        """A palette change must reach cards, panels, lists, tabs and controls."""
+        original = dict(UNITY_PALETTE)
+        style = unity_skin_stylesheet({
+            "PANEL": "#112233",
+            "PANEL_2": "#223344",
+            "LIST_SURFACE": "#334455",
+            "NAV_SURFACE": "#445566",
+            "SCROLL_SURFACE": "#556677",
+            "TOOLTIP_SURFACE": "#667788",
+        })
+        for expected in (
+            "rgba(17, 34, 51, 0.88)",  # cards and Guide panels
+            "rgba(17, 34, 51, 0.78)",  # shared tab/group panes
+            "rgba(34, 51, 68, 0.88)",  # alternate list rows
+            "rgba(51, 68, 85, 0.92)",  # lists and tables
+            "rgba(51, 68, 85, 0.85)",  # shared progress
+            "rgba(68, 85, 102, 0.93)",  # common tabs
+            "rgba(85, 102, 119, 0.35)",  # scroll surfaces
+            "background: #667788;",  # tooltips
+        ):
+            with self.subTest(expected=expected):
+                self.assertIn(expected, style)
+        self.assertEqual(UNITY_PALETTE, original)
+
     def test_preview_palette_does_not_mutate_global_unity_colors(self) -> None:
         original = dict(UNITY_PALETTE)
         preview = unity_skin_stylesheet({
