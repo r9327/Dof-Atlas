@@ -13,7 +13,7 @@ permissions:
 
 jobs:
   real-qt-capture:
-    name: Dev UI / corrected blue scrollbar track and splitter exact-SHA proof
+    name: Dev UI / no black list track or splitter final Windows proof
     runs-on: windows-latest
     timeout-minutes: 15
     env:
