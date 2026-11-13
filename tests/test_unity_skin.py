@@ -200,8 +200,12 @@ class UnitySkinTests(unittest.TestCase):
         self.assertEqual(UNITY_PALETTE, original)
 
     def test_guide_controls_render_the_canonical_palette_values(self) -> None:
-        with patch.dict(UNITY_PALETTE, {"GUIDE_NAV_BORDER": "#010203"}):
-            self.assertIn("border-top: 1px solid #010203;", unity_skin_stylesheet())
+        # Legacy role is an alias to the common BORDER by default, but
+        # explicit per-role previews are still supported.
+        self.assertIn(
+            "border-top: 1px solid #010203;",
+            unity_skin_stylesheet({"GUIDE_NAV_BORDER": "#010203"}),
+        )
 
     def test_unity_only_theme_even_with_stale_legacy_override(self) -> None:
         for choice in ("", "atlas", "legacy", "dofus_unity"):
