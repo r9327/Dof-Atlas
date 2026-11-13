@@ -12,7 +12,7 @@ permissions:
 
 jobs:
   real-qt-capture:
-    name: Dev UI / final advanced forms, Unity control glyphs and panel shadows
+    name: Dev UI / final advanced forms, controls and shadows exact-SHA proof
     runs-on: windows-latest
     timeout-minutes: 15
     env:
