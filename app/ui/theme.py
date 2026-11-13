@@ -695,6 +695,24 @@ QSplitter#AchievementCatalogSplitter::handle {
     border-color: @BORDER_STRONG;
 }
 
+/* Semantic, compact, non-action badges. These must never look clickable. */
+#StatusBadge[state="danger"] {
+    color: @RED_HOVER;
+    border-color: @RED;
+}
+#StatusBadge[state="warning"] {
+    color: @YELLOW;
+    border-color: @YELLOW;
+}
+#StatusBadge[state="info"] {
+    color: @TEXT_SOFT;
+    border-color: @BORDER_CARD;
+}
+#StatusBadge[state="neutral"] {
+    color: @TEXT_MUTED;
+    border-color: @BORDER_SOFT;
+}
+
 #GuideManualStepCheck {
     color: @TEXT;
     font-size: @FONT_SMALL;
@@ -946,17 +964,24 @@ QPushButton:disabled, QToolButton:disabled {
     padding-right: @SPACE_MD;
 }
 
+/* Shared action hierarchy: blue at rest, green only for interaction/state.
+   No large neon/solid-green rectangles on ordinary Atlas buttons. */
 #primaryButton, #ActiveButton, #PrimaryActionButton {
-    background: @ACTIVE_GRADIENT;
-    border-color: @GREEN_BORDER;
+    background: @PANEL_2;
+    border-color: @BORDER_CARD;
     color: @TEXT;
-    font-weight: 800;
+    font-weight: 700;
 }
-
 #primaryButton:hover, #ActiveButton:hover, #PrimaryActionButton:hover {
-    background: @GREEN_HOVER;
-    border-color: @GREEN;
-    color: @TEXT;
+    background: @PANEL_HOVER;
+    border-color: @GREEN_BORDER;
+    color: @GREEN;
+}
+#primaryButton:pressed, #ActiveButton:pressed, #PrimaryActionButton:pressed,
+#primaryButton:checked, #ActiveButton:checked, #PrimaryActionButton:checked {
+    background: @PANEL_ACTIVE;
+    border-color: @GREEN_BORDER;
+    color: @GREEN;
 }
 
 #secondaryButton, #SecondaryButton {
@@ -968,7 +993,7 @@ QPushButton:disabled, QToolButton:disabled {
 
 #secondaryButton:hover, #SecondaryButton:hover {
     background: @PANEL_HOVER;
-    border-color: @BORDER_STRONG;
+    border-color: @GREEN_BORDER;
     color: @TEXT;
 }
 
@@ -977,11 +1002,12 @@ QPushButton:disabled, QToolButton:disabled {
 #SecondaryButton:checked, #secondaryButton:checked {
     background: @PANEL_ACTIVE;
     border-color: @GREEN_BORDER;
-    color: @TEXT;
+    color: @GREEN;
 }
 #SecondaryButton:checked:hover, #secondaryButton:checked:hover {
     background: @PANEL_HOVER;
-    border-color: @GREEN_BORDER;
+    border-color: @GREEN;
+    color: @GREEN_HOVER;
 }
 
 /* Shared normal/hover/active surfaces for all stateful segmented and
@@ -1032,26 +1058,98 @@ QPushButton:disabled, QToolButton:disabled {
     color: @TEXT;
 }
 
+/* Red stays a meaning, not a huge rectangle. Critical Stop Urgence is
+   a separately identified emergency action and must remain unmistakable. */
 #dangerButton, #DangerButton {
-    background: @RED;
-    border-color: #F0444B;
-    color: @TEXT;
+    background: @PANEL_2;
+    border-color: @RED;
+    color: @RED_HOVER;
     font-size: @FONT_BODY;
     font-weight: 700;
     text-align: center;
     padding-left: 8px;
     padding-right: 8px;
 }
-
 #dangerButton:hover, #DangerButton:hover {
-    background: @RED_HOVER;
-    border-color: #FF6167;
+    background: @PANEL_HOVER;
+    border-color: @RED_HOVER;
+    color: @RED_HOVER;
+}
+#dangerButton:pressed, #DangerButton:pressed {
+    background: @PANEL_ACTIVE;
+    border-color: @RED;
+    color: @TEXT;
 }
 
-#dangerButton:pressed, #DangerButton:pressed {
-    background: @RED_DARK;
-    border-color: @RED;
+/* Reusable clickable text vs. real buttons. Native QPushButton semantics
+   retain keyboard activation and a visible :focus outline. */
+#InlineActionButton, #PopupLinkButton {
+    background: transparent;
+    border: 1px solid transparent;
+    color: @TEXT_SOFT;
+    font-weight: 600;
+    font-size: @FONT_SMALL;
+    padding: 3px 6px;
+    text-align: left;
 }
+#InlineActionButton:hover, #PopupLinkButton:hover {
+    background: @GLASS_SUBTLE_SURFACE;
+    border-color: transparent;
+    color: @GREEN_HOVER;
+}
+#InlineActionButton:pressed, #PopupLinkButton:pressed {
+    background: @PANEL_HOVER;
+    border-color: transparent;
+    color: @GREEN;
+}
+#InlineActionButton:focus, #PopupLinkButton:focus {
+    border: 1px solid @GREEN_BORDER;
+    background: transparent;
+}
+#InlineActionButton:disabled, #PopupLinkButton:disabled {
+    background: transparent;
+    border-color: transparent;
+    color: @TEXT_DISABLED;
+}
+
+/* Shared semantic interactive chips with normal / hover / pressed /
+   selected / keyboard-focus / disabled states. Unlike StatusBadge QLabel,
+   these are real actions, not passive statuses. */
+#StatusChip {
+    background: @PANEL_2;
+    color: @TEXT_SOFT;
+    border: 1px solid @BORDER_SOFT;
+    border-radius: @RADIUS_SM;
+    padding: 3px 8px;
+    font-size: @FONT_SMALL;
+    font-weight: 600;
+}
+#StatusChip:hover {
+    background: @PANEL_HOVER;
+    border-color: @BORDER_STRONG;
+}
+#StatusChip:pressed, #StatusChip:checked {
+    background: @PANEL_ACTIVE;
+    border-color: @GREEN_BORDER;
+}
+#StatusChip:focus {
+    border: 2px solid @GREEN_BORDER;
+}
+#StatusChip:disabled {
+    background: @PANEL;
+    color: @TEXT_DISABLED;
+    border-color: @BORDER_SOFT;
+}
+#StatusChip[tone="success"] { color: @GREEN; border-color: @GREEN_BORDER; }
+#StatusChip[tone="success"]:hover { color: @GREEN_HOVER; border-color: @GREEN; }
+#StatusChip[tone="danger"] { color: @RED_HOVER; border-color: @RED; }
+#StatusChip[tone="danger"]:hover { color: @RED_HOVER; border-color: @RED_HOVER; }
+#StatusChip[tone="warning"] { color: @YELLOW; border-color: @YELLOW; }
+#StatusChip[tone="warning"]:hover { background: @PANEL_HOVER; }
+#StatusChip[tone="info"] { color: @TEXT_SOFT; border-color: @BORDER_CARD; }
+#StatusChip[tone="info"]:hover { color: @TEXT; border-color: @BORDER_STRONG; }
+#StatusChip[tone="neutral"] { color: @TEXT_MUTED; border-color: @BORDER_SOFT; }
+#StatusChip[tone="neutral"]:hover { color: @TEXT; border-color: @BORDER_CARD; }
 
 #keyBadge, #InlineShortcutButton {
     background: #09121F;
@@ -1595,9 +1693,9 @@ QCheckBox::indicator:checked {
 }
 
 #TopNavButton, #TopNavButtonActive {
-    background: transparent;
-    border: 1px solid transparent;
-    border-bottom: 2px solid transparent;
+    background: @PANEL_2;
+    border: 1px solid @BORDER_SOFT;
+    border-bottom: 2px solid @BORDER_SOFT;
     border-radius: @RADIUS_XS;
     color: @TEXT;
     font-size: @FONT_BODY;
@@ -1608,14 +1706,19 @@ QCheckBox::indicator:checked {
 }
 
 #TopNavButton:hover {
-    background: @PANEL_2;
-    border-bottom-color: @BORDER;
+    background: @PANEL_HOVER;
+    border-bottom-color: @GREEN_BORDER;
+    color: @TEXT;
 }
-
 #TopNavButtonActive {
     background: @PANEL_ACTIVE;
     border-bottom-color: @GREEN;
-    color: @TEXT;
+    color: @GREEN;
+}
+#TopNavButtonActive:hover {
+    background: @PANEL_HOVER;
+    border-bottom-color: @GREEN_HOVER;
+    color: @GREEN_HOVER;
 }
 
 /* Every top-level and Outils/Stuffs sub-tab shares interaction states.
