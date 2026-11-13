@@ -39,6 +39,19 @@ class ModularDomainRoutingTests(unittest.TestCase):
         self.assertEqual(owners_for(unknown), frozenset())
         self.assertEqual(self.route([unknown])["status"], "BLOCKED")
 
+    def test_organizer_shared_visual_host_has_exact_qt_owner(self):
+        source = "app/pages/organizer/organizer_ui.py"
+        test = "tests/test_organizer_ui.py"
+        owners = frozenset({"organizer", "ui", "identity"})
+        self.assertEqual(owners_for(source), owners)
+        self.assertEqual(owners_for(test), owners)
+        plan = self.route([source, test])
+        self.assertEqual(plan["status"], "READY_TO_EXECUTE")
+        self.assertEqual(set(plan["domains"]), set(owners))
+        unreviewed = "tests/test_organizer_ui_unreviewed.py"
+        self.assertEqual(owners_for(unreviewed), frozenset())
+        self.assertEqual(self.route([unreviewed])["status"], "BLOCKED")
+
     def test_stdlib_unity_palette_test_has_exact_ui_ownership(self):
         source = "app/ui/unity_palette.py"
         test = "tests/test_unity_palette.py"

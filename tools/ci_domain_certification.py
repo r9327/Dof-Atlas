@@ -453,6 +453,10 @@ def owners_for(path: str) -> frozenset[str]:
         return frozenset({"guides", "data"})
     if path == "tests/test_organizer_layout.py":
         return frozenset({"ui", "identity"})
+    if path == "tests/test_organizer_ui.py":
+        # Reviewed direct Qt owner for Organizer's transparent host material.
+        # No test_organizer* wildcard and no game-input privilege.
+        return frozenset({"organizer", "ui", "identity"})
     if path == "tests/test_world_scan_async_loading.py":
         return frozenset({"ui"})
     if path == "tests/test_startup_preload_window_visibility.py":
