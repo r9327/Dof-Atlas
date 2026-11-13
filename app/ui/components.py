@@ -27,6 +27,11 @@ BUTTON_OBJECT_NAMES = {
     "guide_breadcrumb": "GuideBreadcrumbButton",
     "guide_quest_link": "GuideInlineQuestButton",
     "guide_achievement_link": "GuideInlineAchievementButton",
+    # Reusable, unbordered links for secondary actions and popup triggers.
+    "inline_action": "InlineActionButton",
+    "popup_link": "PopupLinkButton",
+    # Unlike read-only badges, status chips are interactive and checkable.
+    "status_chip": "StatusChip",
 }
 
 _APPLICATION_ICON: QIcon | None = None
