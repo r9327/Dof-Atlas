@@ -14,7 +14,7 @@ from PySide6.QtGui import QColor, QFontDatabase, QIcon, QImage, QLinearGradient,
 from PySide6.QtWidgets import QGraphicsDropShadowEffect, QWidget
 
 from app.ui.unity_palette import (
-    UNITY_ICON_NAMES, UNITY_PALETTE, UNITY_RADII, UNITY_SIZES_PX,
+    UNITY_ICON_NAMES, UNITY_ICON_PENDING, UNITY_PALETTE, UNITY_RADII, UNITY_SIZES_PX,
     resolve_unity_colors,
 )
 
@@ -56,7 +56,7 @@ def _sprite_url(filename: str) -> str | None:
 
 def sprite_icon_path(icon: str) -> Path | None:
     """Keep Atlas fallback icons if a personal Unity pictogram is absent."""
-    if not unity_enabled() or icon not in UNITY_ICON_NAMES:
+    if not unity_enabled() or icon not in (*UNITY_ICON_NAMES, *UNITY_ICON_PENDING):
         return None
     filename = f"Assets_UI_Themes_Figma_menuIcons_1x_{icon}-png.png"
     return _asset_file(Path("sprites") / filename)
@@ -82,7 +82,7 @@ def unity_original_preview_icon(name: str, size: int = 24) -> QIcon:
     back to the existing Qt pictogram without faking the source colors.
     Production icon rendering is unchanged until visual approval.
     """
-    if name not in UNITY_ICON_NAMES:
+    if name not in (*UNITY_ICON_NAMES, *UNITY_ICON_PENDING):
         raise ValueError(f"Unknown Unity UI icon: {name}")
     if size not in {UNITY_SIZES_PX[key] for key in (
         "icon_small", "icon_normal", "icon_large", "icon_xlarge"
@@ -96,7 +96,9 @@ def unity_original_preview_icon(name: str, size: int = 24) -> QIcon:
                 size, size, Qt.KeepAspectRatio, Qt.SmoothTransformation
             )
             return QIcon(pixmap)
-    return unity_ui_icon(name, size)
+    # Only the eight existing Atlas glyphs have a truthful generic fallback.
+    # The additional module icons must wait for their real game sprites.
+    return unity_ui_icon(name, size) if name in UNITY_ICON_NAMES else QIcon()
 
 
 @lru_cache(maxsize=48)
