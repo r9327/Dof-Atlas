@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import threading
+from time import monotonic
 from dataclasses import dataclass
 from logging import Logger
 from typing import Callable
@@ -11,7 +12,9 @@ from app.core.admin import audit_client_admin_rights
 from app.core.logger import get_runtime_logger, set_debug_logging
 from app.core.macro_lock import MacroLock
 from app.core.settings import AtlasSettings, load_settings
-from app.input.input_state import InputState, SyntheticInputGuard
+from app.input.input_state import (
+    DeferredMirrorGesture, InputState, MirrorPointerContext, MirrorPointerSnapshot, SyntheticInputGuard,
+)
 from app.input.managed_hooks import (
     ManagedHotkeyRegistry,
     ManagedMouseHook,
@@ -107,12 +110,29 @@ class AtlasRuntime:
         self._macro_init_lock = threading.RLock()
         self._switch_character = None
         self._switch_click = None
+        self._pending_physical_switch = None
+        self._mirror_drain_lock = threading.Lock()
+        self._mirror_input = None
+        # Volatile: selecting the Miroir tab never arms physical input relay.
+        # Each Atlas startup and settings reload begins disarmed.
+        self._mirror_armed = False
+        self._mirror_arm_epoch = 0
         self._direction = None
         self._travel = None
         self._zaap = None
         self._auto_group = None
-        self.registry = ManagedHotkeyRegistry(self.input_state, self.logger, self._handle_hotkey)
-        self.mouse_hook = ManagedMouseHook(self.input_state, self.synthetic_guard, self.logger, self._handle_mouse_click)
+        self.registry = ManagedHotkeyRegistry(
+            self.input_state, self.logger, self._handle_hotkey,
+            physical_key_callback=self._handle_mirror_key,
+            physical_key_release_callback=self._release_deferred_mirror_key,
+        )
+        self.mouse_hook = ManagedMouseHook(
+            self.input_state, self.synthetic_guard, self.logger,
+            self._handle_mouse_click,
+            wheel_callback=self._handle_mirror_wheel,
+            release_callback=self._handle_mouse_release,
+            blocked_callback=self._handle_blocked_mirror_pointer,
+        )
         self.last_client_point = LastClientPoint()
         self.active_client_handle = 0
         self._running = False
@@ -141,6 +161,12 @@ class AtlasRuntime:
     @settings.setter
     def settings(self, value: AtlasSettings) -> None:
         with self._settings_lock:
+            # A native DOWN from the previous Organizer generation must not
+            # trigger replay when its physical UP arrives after reload.
+            self._pending_physical_switch = None
+            state = self.__dict__.get("input_state")
+            if state is not None:
+                state.invalidate_deferred_mirror_pointer()
             self._settings = value
 
     @property
@@ -170,6 +196,14 @@ class AtlasRuntime:
     def switch_click(self, value) -> None:
         with self._macro_init_lock:
             self._switch_click = value
+
+    @property
+    def mirror_input(self):
+        with self._macro_init_lock:
+            if self._mirror_input is None:
+                from app.macros.mirror_input import MirrorInputMacro
+                self._mirror_input = MirrorInputMacro(self)
+            return self._mirror_input
 
     @property
     def direction(self):
@@ -240,6 +274,9 @@ class AtlasRuntime:
             self.status_callback(str(text))
 
     def _emit_active(self, active: bool) -> None:
+        # Emergency Stop owns the existing red/green runtime indicator.
+        # A routine hooks reload may not turn it green before Relancer.
+        active = bool(active) and getattr(self.macro_lock, "emergency_latched", False) is not True
         bridge = self._callback_bridge
         if bridge is not None:
             bridge.publish_active(bool(active))
@@ -421,7 +458,15 @@ class AtlasRuntime:
             )
 
     def reload_hotkeys(self, force_restart: bool = False) -> None:
-        self.settings = load_settings()
+        # A harmless refresh (including Zaap/Auto-groupe launch) must not
+        # silently turn off an explicitly activated Mirror. A changed roster,
+        # favorite, mode or any runtime binding still invalidates consent.
+        previous_settings = self.__dict__.get("_settings")
+        was_armed = getattr(self, "_mirror_armed", False) is True
+        arm_epoch = self.__dict__.get("_mirror_arm_epoch", 0)
+        self._mirror_armed = False
+        refreshed_settings = load_settings()
+        self.settings = refreshed_settings
         set_debug_logging(self.settings.debug_enabled)
         if not self.settings.clients:
             # No client means no keyboard/mouse action can target Dofus. Avoid
@@ -440,6 +485,13 @@ class AtlasRuntime:
         self._admin_ok = admin_audit.ok
         self.synthetic_guard.reset()
         self.input_state.reset_armed()
+        if (was_armed and previous_settings is not None
+                and previous_settings == refreshed_settings
+                and getattr(refreshed_settings, "macro_mode", None) == "mirror"
+                and self._running and self._admin_ok
+                and self.__dict__.get("_mirror_arm_epoch", 0) == arm_epoch
+                and not self.macro_lock.should_stop()):
+            self._mirror_armed = True
         # The activity badge represents real hook execution, not configuration
         # readiness. A bad optional/individual binding can warn without claiming
         # that an already-running hook runtime has stopped.
@@ -464,42 +516,119 @@ class AtlasRuntime:
         self.settings = load_settings()
         self.travel.run_async(text, tuple(character_keys or ()))
 
-    def launch_zaap(self, text: str, click_position=None, click_ratios=None) -> None:
+    def launch_zaap(self, text: str, click_position=None, click_ratios=None) -> bool:
+        if getattr(self.macro_lock, "emergency_latched", False) is True:
+            self._emit_status("Zaap bloqué : Stop urgence actif. Cliquer sur Relancer.")
+            return False
+        # A rejected concurrent launch must not reload Organizer while the
+        # first worker is still sending actions to its captured roster.
+        if self.macro_lock.active_label:
+            self.logger.info("Auto zaap refusé: macro déjà active.")
+            return False
         self.settings = load_settings()
-        self.zaap.run_async(text, click_position=click_position, click_ratios=click_ratios)
+        return bool(self.zaap.run_async(
+            text, click_position=click_position, click_ratios=click_ratios,
+        ))
 
-    def launch_auto_group(self, invite_entries: list[dict[str, object]]) -> None:
+    def launch_auto_group(self, invite_entries: list[dict[str, object]]) -> bool:
+        if getattr(self.macro_lock, "emergency_latched", False) is True:
+            self._emit_status("Auto-groupe bloqué : Stop urgence actif. Cliquer sur Relancer.")
+            return False
+        if self.macro_lock.active_label:
+            self.logger.info("Auto groupe refusé: macro déjà active.")
+            return False
         self.settings = load_settings()
-        self.auto_group.run_async(invite_entries)
+        return bool(self.auto_group.run_async(invite_entries))
 
-    def emergency_stop(self, reason: str = "stop urgence") -> None:
-        self.macro_lock.request_stop(reason)
-        self.input_state.reset_armed()
-        self.input_state.clear_mouse_block()
-        self.synthetic_guard.reset()
+    def emergency_stop(self, reason: str = "stop urgence", *, latch: bool = True) -> None:
+        self._mirror_armed = False
+        self._mirror_arm_epoch = self.__dict__.get("_mirror_arm_epoch", 0) + 1
+        self.macro_lock.request_stop(reason, latch=latch)
+        self._pending_physical_switch = None
+        failures: list[str] = []
+
+        def cleanup(label: str, action: Callable[[], object]) -> None:
+            try:
+                result = action()
+                if result is False:
+                    # SendInput helpers attempt *all* releases but can report
+                    # partial delivery without raising. Do not claim success.
+                    failures.append(label)
+                    try:
+                        self.logger.warning(
+                            "Stop urgence: relachement refuse step=%s", label,
+                        )
+                    except Exception:
+                        pass
+            except Exception:
+                failures.append(label)
+                try:
+                    self.logger.exception(
+                        "Stop urgence: nettoyage incomplet step=%s", label,
+                    )
+                except Exception:
+                    # Diagnostics must never prevent another release attempt.
+                    pass
+
+        cleanup("input_state", self.input_state.reset_armed)
+        cleanup("pointer", self.input_state.clear_mouse_block)
+        cleanup("synthetic", self.synthetic_guard.reset)
         with self._macro_init_lock:
             switch_click = self._switch_click
             direction = self._direction
         if switch_click is not None:
-            switch_click.reset()
+            cleanup("switch_click", switch_click.reset)
         if direction is not None:
-            direction.release_virtual_inputs()
-        release_common_inputs()
-        self.logger.warning("Stop urgence Python: etats internes remis a zero.")
-        self._emit_status("Stop urgence: macros Python arretees.")
+            cleanup("direction", direction.release_virtual_inputs)
+        cleanup("common_inputs", release_common_inputs)
+        try:
+            if failures:
+                self.logger.warning(
+                    "Stop urgence Python: nettoyage incomplet steps=%s",
+                    ",".join(failures),
+                )
+            else:
+                self.logger.warning("Stop urgence Python: etats internes remis a zero.")
+        except Exception:
+            pass
+        if latch:
+            self._emit_active(False)
+        self._emit_status(
+            "Stop urgence: interruption demandée, relâchements à vérifier."
+            if failures else "Stop urgence: macros Python arretees."
+        )
 
     def _spawn_macro(self, label: str, target: Callable[[], None]) -> bool:
-        if not self.macro_lock.try_begin(label):
+        # Reservation and generation capture must be one atomic step. A
+        # Stop/restart between two separate reads must not attach this runner
+        # to a newer macro with the same label.
+        generation = self.macro_lock.try_begin_generation(label)
+        if type(generation) is not int:
             return False
 
         def runner() -> None:
+            bound = self.macro_lock.bind_worker(label, generation)
             try:
+                if not bound:
+                    self.logger.info(
+                        "%s annulé: ancien worker planifié sur un bail périmé.",
+                        label,
+                    )
+                    return
                 target()
             except Exception:
                 self.logger.exception("%s erreur non geree.", label)
             finally:
-                self.synthetic_guard.reset()
-                self.macro_lock.end(label)
+                if bound:
+                    self.macro_lock.unbind_worker()
+                # Atomic lease release + synthetic guard cleanup: Stop/restart
+                # cannot admit another worker between ownership validation
+                # and the reset of shared synthetic input state.
+                self.macro_lock.end(
+                    label, generation=generation,
+                    on_owner_end=self.synthetic_guard.reset if bound else None,
+                )
+                AtlasRuntime._drain_deferred_mirror_pointer(self)
 
         thread = None
         try:
@@ -512,16 +641,71 @@ class AtlasRuntime:
             # but never leak the exclusive lease on construction/start failure.
             if thread is not None and thread in self._threads:
                 self._threads.remove(thread)
-            self.macro_lock.end(label)
+            self.macro_lock.end(label, generation=generation)
             self.logger.exception("%s impossible de demarrer le thread macro.", label)
             self._emit_status(f"{label}: lancement impossible.")
             return False
         return True
 
+    @property
+    def mirror_armed(self) -> bool:
+        return self._mirror_armed is True
+
+    def toggle_mirror(self) -> bool:
+        """Explicit, volatile opt-in; physical input remains native by default."""
+        if self.settings.macro_mode != "mirror":
+            self._emit_status("Miroir indisponible : sélectionner le mode Miroir.")
+            return False
+        if self._mirror_armed:
+            self._mirror_armed = False
+            self.emergency_stop("Miroir désactivé", latch=False)
+            self._emit_active(bool(self._running and self._admin_ok))
+            self._emit_status("Miroir désactivé : entrées non recopiées.")
+            return False
+        if (not self._running or not self._admin_ok
+                or getattr(self, "_runtime_bindings_available", True) is False
+                or self.macro_lock.emergency_latched):
+            self._emit_status("Miroir indisponible : runtime arrêté, sans sessions ou Stop urgence actif.")
+            return False
+        if not self.macro_lock.resume_after_stop():
+            self._emit_status("Miroir indisponible : macro précédente encore active.")
+            return False
+        settings = self.settings
+        clients = getattr(settings, "clients", None)
+        if not isinstance(clients, (list, tuple)):
+            self._emit_status("Miroir indisponible : liste des personnages illisible.")
+            return False
+        handles = tuple(getattr(item, "handle", None) for item in clients)
+        if (not 2 <= len(handles) <= 8
+                or any(type(hwnd) is not int or not 0 < hwnd <= (2**64 - 1)
+                       for hwnd in handles)
+                or len(set(handles)) != len(handles)
+                or type(settings.primary_handle) is not int
+                or settings.primary_handle not in handles):
+            # Do not claim the relay is armed on malformed/duplicate native
+            # windows: the actual sender would reject this roster immediately.
+            self._emit_status("Miroir indisponible : 2 à 8 fenêtres uniques et un favori valides requis.")
+            return False
+        self._mirror_arm_epoch = self.__dict__.get("_mirror_arm_epoch", 0) + 1
+        self._mirror_armed = True
+        self._emit_active(True)
+        self._emit_status("Miroir activé à la demande : arrêter avec le raccourci ou le bouton.")
+        return True
+
     def _handle_hotkey(self, action_id: str, payload: dict[str, object]) -> None:
         if action_id == "stop_script":
-            self.logger.warning("Stop urgence recu par raccourci.")
-            self.emergency_stop("raccourci")
+            # Latch Stop and release inputs BEFORE any optional diagnostic.
+            # A broken or slow log sink must never delay the emergency action.
+            try:
+                self.emergency_stop("raccourci")
+            finally:
+                try:
+                    self.logger.warning("Stop urgence recu par raccourci.")
+                except Exception:
+                    pass
+            return
+        if getattr(self.macro_lock, "emergency_latched", False) is True:
+            # Stop remains authoritative even if hooks are still running.
             return
         if not self._running or not self._admin_ok:
             self.logger.debug(
@@ -531,23 +715,885 @@ class AtlasRuntime:
                 action_id,
             )
             return
+        settings = self.settings
+        if action_id == "mirror_toggle":
+            self.toggle_mirror()
+            return
+        if action_id in {"next_character", "previous_character"} and (
+                settings.macro_mode == "mirror"
+                and getattr(self, "_mirror_armed", False) is True):
+            # Never change game focus under an active Mirror source.
+            self._emit_status("Arrêter Miroir avant de changer de personnage.")
+            return
+        if action_id == "next_character":
+            # A busy MacroLock would reject the eventual activation worker.
+            # Avoid scanning up to eight HWNDs just to hit that refusal.
+            if (settings.switch_character_enabled
+                    and self.settings is settings
+                    and not self.macro_lock.active_label):
+                self.switch_character.activate_next(expected_profile=settings)
+            return
+        if action_id == "previous_character":
+            if (settings.switch_character_enabled
+                    and self.settings is settings
+                    and not self.macro_lock.active_label):
+                self.switch_character.activate_previous(expected_profile=settings)
+            return
+        if settings.macro_mode == "mirror":
+            return
         if action_id.startswith("client:"):
-            try:
-                client_index = int(payload.get("client_index", 0))
-            except (TypeError, ValueError):
+            raw_index = payload.get("client_index", 0)
+            # Do not truncate bool/float/fractional aliases before the
+            # strict slot check in SwitchCharacterMacro receives the value.
+            if type(raw_index) not in (int, str):
                 self.logger.debug("Payload invalide pour switch personnage: action=%s payload=%s", action_id, payload)
                 return
-            self.switch_character.activate_by_index(client_index)
+            try:
+                client_index = int(raw_index)
+            except (TypeError, ValueError, OverflowError):
+                self.logger.debug("Payload invalide pour switch personnage: action=%s payload=%s", action_id, payload)
+                return
+            if (not settings.switch_character_enabled
+                    or not 1 <= client_index <= 8
+                    or action_id != f"client:{client_index}"):
+                self.logger.debug("Raccourci personnage périmé ou désactivé: action=%s", action_id)
+                return
+            # The registry binds a slot AND its HWND. An old callback from a
+            # replaced Organizer roster must not activate a different client
+            # newly assigned to the same index. Legacy payloads lack handle.
+            bound_handle = payload.get("handle")
+            if bound_handle is not None and (
+                type(bound_handle) is not int or not 0 < bound_handle <= (2**64 - 1)
+                or not any(
+                    type(client.index) is int and client.index == client_index
+                    and type(client.handle) is int and client.handle == bound_handle
+                    for client in settings.clients
+                )
+            ):
+                self.logger.debug("Raccourci personnage périmé: action=%s", action_id)
+                return
+            if self.settings is not settings:
+                self.logger.debug("Raccourci personnage abandonné: profil Organizer modifié.")
+                return
+            self.switch_character.activate_by_index(
+                client_index, expected_profile=settings,
+            )
             return
         if action_id.startswith("direction:"):
-            key_name = str(payload.get("key_name", "")).strip()
-            if not key_name:
+            key_name = payload.get("key_name")
+            if (
+                not settings.movement_enabled
+                or type(key_name) is not str
+                or key_name not in ("HOME", "DELETE", "END", "PAGEDOWN")
+                or action_id != f"direction:{key_name}"
+            ):
                 self.logger.debug("Payload invalide pour direction: action=%s payload=%s", action_id, payload)
                 return
-            self.direction.run_async(key_name)
+            if self.settings is not settings:
+                self.logger.debug("Raccourci déplacement abandonné: profil Organizer modifié.")
+                return
+            self.direction.run_async(key_name, expected_profile=settings)
             return
 
+    def _mirror_gesture_targets(self) -> tuple[int, tuple[int, ...]] | None:
+        """Snapshot one real starred Unity DOFUS source and its session roster."""
+        from app.macros.mirror_plan import (
+            is_dofus_unity_process, mirror_delivery_targets,
+        )
+        from app.windows.unity_windows import is_unity_window
+
+        settings = self.settings
+        if (not self._running or not self._admin_ok
+                or settings is None
+                or getattr(settings, "macro_mode", None) != "mirror"
+                or getattr(self, "_mirror_armed", False) is not True
+                or getattr(self.macro_lock, "emergency_latched", False) is True):
+            return None
+        source = getattr(settings, "primary_handle", None)
+        if type(source) is not int or not 0 < source <= (2**64 - 1):
+            return None
+        clients = getattr(settings, "clients", None)
+        if not isinstance(clients, (list, tuple)):
+            return None
+        # Freeze the roster BEFORE even the first native identity probe:
+        # a process query can yield while Organizer changes a slot in place.
+        # Also reject an invalid roster without any expensive Win32 reads.
+        live = tuple(getattr(client, "handle", None) for client in clients)
+        if (not 2 <= len(live) <= 8
+                or any(type(hwnd) is not int or not 0 < hwnd <= (2**64 - 1) for hwnd in live)
+                or len(set(live)) != len(live)
+                or source not in live):
+            return None
+        lookup = getattr(settings, "client_by_handle", None)
+        if not callable(lookup):
+            return None
+        try:
+            favorite = lookup(source)
+        except Exception:
+            self.logger.exception("Miroir: recherche du favori impossible.")
+            return None
+        if (favorite is None or type(getattr(favorite, "handle", None)) is not int
+                or getattr(favorite, "handle", None) != source or not is_unity_window(source)):
+            return None
+        # Native identity probes can release the GIL. Reconfirm the same
+        # in-memory slot values, favorite, mode and runtime state, even if
+        # the Organizer settings object itself was mutated in place.
+        def still_authorized() -> bool:
+            active = getattr(settings, "clients", None)
+            return (
+                self.settings is settings
+                and self._running and self._admin_ok
+                # No gesture is admitted after an emergency Stop until Relancer.
+                and not self.macro_lock.should_stop()
+                and getattr(settings, "macro_mode", None) == "mirror"
+                and getattr(self, "_mirror_armed", False) is True
+                and type(getattr(settings, "primary_handle", None)) is int
+                and getattr(settings, "primary_handle", None) == source
+                and type(getattr(favorite, "handle", None)) is int
+                and getattr(favorite, "handle", None) == source
+                and isinstance(active, (list, tuple))
+                and tuple((type(getattr(client, "handle", None)),
+                           getattr(client, "handle", None))
+                          for client in active)
+                == tuple((int, hwnd) for hwnd in live)
+            )
+
+        # A native identity query can yield to an in-place Organizer edit
+        # or Emergency Stop. Stop immediately: do not scan the remaining
+        # 2-8 windows for a gesture that is no longer authorized.
+        try:
+            if not is_dofus_unity_process(source) or not still_authorized():
+                return None
+            for hwnd in live:
+                if hwnd == source:
+                    continue
+                if not is_unity_window(hwnd) or not is_dofus_unity_process(hwnd):
+                    return None
+                if not still_authorized():
+                    return None
+        except Exception:
+            self.logger.exception("Miroir: vérification des fenêtres interrompue.")
+            return None
+        targets = mirror_delivery_targets(
+            live, live, source, source_was_consumed=True,
+        )
+        # The favorite may be any Organizer slot. Keyboard/wheel workers
+        # always begin with that physical source; preserve the relative
+        # order of all other clients.
+        if len(targets) < 2 or source not in targets or not still_authorized():
+            return None
+        ordered = (source, *(hwnd for hwnd in targets if hwnd != source))
+        return source, ordered
+
+    def _note_deferred_mirror(self, message: str, *args: object) -> None:
+        try:
+            self.logger.info(message, *args)
+        except Exception:
+            # A diagnostic sink is not allowed to strand an admitted input.
+            pass
+
+    def _mirror_pointer_profile_is_current(self, context: MirrorPointerContext) -> bool:
+        if (type(context) is not MirrorPointerContext or not self._running
+                or not self._admin_ok
+                or getattr(self, "_mirror_armed", False) is not True):
+            return False
+        # A low-level hook must not invoke the lazy JSON loader during a
+        # detached-profile transition. Plain diagnostic runtimes expose the
+        # already-loaded settings directly instead of the cached property.
+        if "_settings" in self.__dict__:
+            with self._settings_lock:
+                settings = self._settings
+        else:
+            settings = self.settings
+        clients = getattr(settings, "clients", None)
+        if (settings is not context.profile
+                or getattr(settings, "macro_mode", None) != "mirror"
+                or type(getattr(settings, "primary_handle", None)) is not int
+                or settings.primary_handle != context.source
+                or not isinstance(clients, (list, tuple))):
+            return False
+        handles = tuple(getattr(c, "handle", None) for c in clients)
+        return (
+            all(type(h) is int for h in handles)
+            and len(handles) == len(context.handles)
+            and (context.source, *(h for h in handles if h != context.source)) == context.handles
+        )
+
+    def _deferred_mirror_is_current(self, gesture: DeferredMirrorGesture) -> bool:
+        return (
+            type(gesture) is DeferredMirrorGesture
+            and self.input_state.deferred_mirror_pointer_is_current(gesture)
+            and self._mirror_pointer_profile_is_current(gesture.context)
+            and not self.macro_lock.should_stop()
+        )
+
+    def _release_deferred_mirror_key(self, vk_code: int) -> None:
+        self.input_state.release_deferred_mirror_key(vk_code)
+        self._drain_deferred_mirror_pointer()
+
+    def _handoff_deferred_mirror_focus(
+        self, owner: DeferredMirrorGesture | MirrorPointerSnapshot,
+        allowed: tuple[int | None, ...], *, successful: bool,
+    ) -> None:
+        if type(owner) not in (DeferredMirrorGesture, MirrorPointerSnapshot):
+            return
+        def current() -> bool:
+            if type(owner) is DeferredMirrorGesture:
+                return self._deferred_mirror_is_current(owner)
+            return (self.input_state.mirror_pointer_snapshot_is_current(owner)
+                    and self._mirror_pointer_profile_is_current(owner.context)
+                    and not self.macro_lock.should_stop())
+        if not successful or not current():
+            return
+        from app.windows.unity_windows import foreground_window
+        from app.windows_embed import window_process_id
+        from app.macros.mirror_plan import is_dofus_unity_process
+        try:
+            foreground = foreground_window()
+            if (type(foreground) is int and foreground in allowed
+                    and window_process_id(foreground) == dict(owner.context.process_ids).get(foreground)
+                    and is_dofus_unity_process(foreground)
+                    and foreground_window() == foreground
+                    and current()):
+                self.input_state.note_deferred_mirror_focus_handoff(owner, foreground)
+        except (OSError, ValueError, TypeError, OverflowError):
+            self._note_deferred_mirror("Miroir geste différé: focus final non vérifiable")
+
+    def _defer_blocked_mirror_key(self, vk_code: int) -> bool:
+        snapshot = self.input_state.mirror_pointer_snapshot()
+        if type(snapshot) is not MirrorPointerSnapshot:
+            return False
+        epoch, context, generation, captured_foreground = snapshot
+        if (type(context) is not MirrorPointerContext
+                or not self._mirror_pointer_profile_is_current(context)
+                or not self.input_state.deferred_mirror_capacity_available()):
+            return False
+        captured_at = monotonic()
+        from app.windows.unity_windows import foreground_window
+        from app.windows_embed import window_process_id
+        foreground = foreground_window()
+        if (type(foreground) is not int or foreground != captured_foreground or foreground not in context.handles
+                or window_process_id(foreground) != dict(context.process_ids).get(foreground)
+                or foreground_window() != foreground
+                or not self._mirror_pointer_profile_is_current(context)):
+            return False
+        result = self.input_state.defer_mirror_pointer(
+            epoch, generation, context, foreground, "key", (vk_code,), captured_at=captured_at,
+        )
+        if result != "accepted":
+            return False
+        try:
+            self.input_state.note_blocked_physical_gesture(expected_epoch=epoch, interrupt=False)
+        except Exception:
+            # The key was already admitted. Preserve its ownership rather
+            # than leaking a native DOWN after an interruption-probe failure.
+            self._note_deferred_mirror("Miroir geste différé: interruption du pointeur indisponible")
+        self._note_deferred_mirror("Miroir geste différé: type=key admission=accepted")
+        return True
+
+    def _handle_blocked_mirror_pointer(
+        self, message: int, x: int, y: int, data: int,
+        snapshot: object, ambiguous: bool,
+    ) -> bool:
+        from app.input.mouse_hooks import (
+            WM_LBUTTONDOWN, WM_LBUTTONUP, WM_RBUTTONDOWN, WM_RBUTTONUP,
+            WM_MOUSEWHEEL, WM_MOUSEHWHEEL,
+        )
+        if message in (WM_LBUTTONUP, WM_RBUTTONUP):
+            self.input_state.release_deferred_mirror_pointer(
+                "Left" if message == WM_LBUTTONUP else "Right",
+            )
+            self._drain_deferred_mirror_pointer()
+            return False
+        if (message not in (WM_LBUTTONDOWN, WM_RBUTTONDOWN, WM_MOUSEWHEEL, WM_MOUSEHWHEEL)
+                or type(snapshot) is not MirrorPointerSnapshot):
+            return False
+        epoch, context, generation, captured_foreground = snapshot
+        if type(context) is not MirrorPointerContext or not self._mirror_pointer_profile_is_current(context):
+            return False
+        captured_at = monotonic()
+        if ambiguous and message in (WM_LBUTTONDOWN, WM_RBUTTONDOWN):
+            # Reject an overlapping pair before native probes. The state
+            # validates the old lease/Stop generation before cancelling it.
+            self.input_state.defer_mirror_pointer(
+                epoch, generation, context, context.source, "click",
+                ("Left" if message == WM_LBUTTONDOWN else "Right", 0, 0),
+                captured_at=captured_at, ambiguous=True,
+            )
+            return False
+        if not self.input_state.deferred_mirror_capacity_available():
+            return False
+        from app.windows.unity_windows import (
+            client_point_ratio, find_known_client_from_point, foreground_window,
+            screen_to_client,
+        )
+        from app.windows_embed import window_process_id
+
+        foreground = foreground_window()
+        if (type(foreground) is not int or foreground != captured_foreground or foreground not in context.handles
+                or window_process_id(foreground) != dict(context.process_ids).get(foreground)
+                or find_known_client_from_point(x, y, (foreground,)) != foreground):
+            return False
+        point = screen_to_client(foreground, x, y)
+        ratio = client_point_ratio(foreground, *point) if point is not None else None
+        if (ratio is None or foreground_window() != foreground
+                or not self._mirror_pointer_profile_is_current(context)):
+            return False
+        if message in (WM_LBUTTONDOWN, WM_RBUTTONDOWN):
+            kind = "click"
+            payload = ("Left" if message == WM_LBUTTONDOWN else "Right", *ratio)
+        else:
+            delta = (int(data) >> 16) & 0xFFFF
+            if delta & 0x8000:
+                delta -= 0x10000
+            kind = "wheel"
+            payload = (delta, message == WM_MOUSEHWHEEL, *ratio)
+        result = self.input_state.defer_mirror_pointer(
+            epoch, generation, context, foreground, kind, payload,
+            captured_at=captured_at, ambiguous=ambiguous,
+        )
+        self._note_deferred_mirror("Miroir geste différé: type=%s admission=%s", kind, result)
+        self._drain_deferred_mirror_pointer()
+        return result == "accepted"
+
+    def _drain_deferred_mirror_pointer(self) -> None:
+        # Legacy test/diagnostic runtimes may not have initialized a queue.
+        lock = self.__dict__.get("_mirror_drain_lock")
+        if lock is None or not lock.acquire(blocking=False):
+            return
+        dispatched = False
+        try:
+            from app.input.input_state import MIRROR_PENDING_CAPACITY
+
+            for _ in range(MIRROR_PENDING_CAPACITY):
+                if self.macro_lock.active_label or self.input_state.is_mouse_blocked():
+                    return
+                gesture = self.input_state.take_deferred_mirror_pointer()
+                if gesture is None:
+                    return
+                context = gesture.context
+                try:
+                    from app.macros.mirror_plan import is_dofus_unity_process
+                    from app.windows.unity_windows import (
+                        client_point_from_ratio, client_to_screen, foreground_window,
+                    )
+                    from app.windows_embed import window_process_id
+                    if (not self._deferred_mirror_is_current(gesture)
+                            or foreground_window() != self.input_state.deferred_mirror_expected_foreground(gesture)
+                            or not all(window_process_id(h) == pid and is_dofus_unity_process(h)
+                                       for h, pid in context.process_ids)):
+                        self._note_deferred_mirror("Miroir geste différé: refus=contexte_périmé")
+                        continue
+                    if gesture.kind == "click":
+                        from app.macros.switch_click import SwitchClickContext
+                        button, rx, ry = gesture.payload
+                        point = client_point_from_ratio(context.source, rx, ry)
+                        screen = client_to_screen(context.source, *point) if point is not None else None
+                        if screen is None:
+                            self._note_deferred_mirror("Miroir geste différé: refus=coordonnées")
+                            continue
+                        captured = SwitchClickContext(context.source, *point, rx, ry, "deferred")
+                        started = self.switch_click.run_async(
+                            button, *screen, 1, "Miroir",
+                            exact_source_handle=context.source,
+                            mirror_target_handles=context.handles,
+                            captured_context=captured, expected_profile=context.profile,
+                            deferred_gesture=gesture,
+                        )
+                    elif gesture.kind == "wheel":
+                        delta, horizontal, rx, ry = gesture.payload
+                        started = self.mirror_input.run_wheel(
+                            delta, horizontal, rx, ry, context.source, context.handles,
+                            expected_profile=context.profile, deferred_gesture=gesture,
+                        )
+                    else:
+                        started = self.mirror_input.run_key(
+                            gesture.payload[0], context.source, context.handles,
+                            expected_profile=context.profile, deferred_gesture=gesture,
+                        )
+                    dispatched = dispatched or bool(started)
+                    self._note_deferred_mirror("Miroir geste différé: type=%s lancé=%s", gesture.kind, bool(started))
+                except Exception:
+                    try:
+                        self.logger.exception("Miroir: lancement du geste différé impossible.")
+                    except Exception:
+                        pass
+        finally:
+            try:
+                counts = self.input_state.deferred_mirror_counts()
+                if any(counts.values()) and counts != self.__dict__.get("_last_deferred_mirror_counts"):
+                    self._note_deferred_mirror(
+                        "Miroir file: acceptés=%s expirés=%s annulés=%s pleine=%s ambigus=%s retirés=%s",
+                        *(counts[name] for name in ("accepted", "expired", "cancelled", "full", "ambiguous", "taken")),
+                    )
+                    self._last_deferred_mirror_counts = counts
+            finally:
+                lock.release()
+            # A worker can finish while this non-reentrant drain owns its
+            # lock. Cover that handoff; a still-running worker drains at end.
+            if dispatched and not self.macro_lock.active_label:
+                self._drain_deferred_mirror_pointer()
+
+    def _report_mirror_busy_input(self, kind: str) -> None:
+        """Bounded non-sensitive warning when an input cannot join a busy fan-out."""
+        now = monotonic()
+        previous = getattr(self, "_last_mirror_busy_notice_at", 0.0)
+        if type(previous) not in (int, float) or now - previous >= 0.5:
+            self._last_mirror_busy_notice_at = now
+            self.logger.warning(
+                "Miroir occupe: entree physique %s non synchronisee, sans replay.", kind,
+            )
+            self._emit_status(
+                "Miroir desynchronise : geste non diffuse sur tous les comptes."
+            )
+
+    def _handle_mirror_key(self, vk_code: int, pressed: bool) -> bool:
+        """Forward only short standalone keystrokes; never modifier/OS chords."""
+        from app.input.hotkeys import MIRROR_DISCRETE_KEYS
+        from app.windows.unity_windows import foreground_window
+
+        # Reject reserved keys and malformed callbacks before any expensive
+        # Win32 focus/process query, even if this method is called directly.
+        if (type(pressed) is not bool or type(vk_code) is not int
+                or vk_code not in MIRROR_DISCRETE_KEYS):
+            return False
+        if not pressed:
+            return False
+        settings = self.settings
+        if (not self._running or not self._admin_ok
+                or settings is None
+                or getattr(settings, "macro_mode", None) != "mirror"
+                or getattr(self, "_mirror_armed", False) is not True
+                or getattr(self.macro_lock, "emergency_latched", False) is True
+                or (self.macro_lock.active_label
+                    and self.macro_lock.should_stop())):
+            return False
+        # Any Organizer command key is reserved even when its shortcut is
+        # not currently matched (e.g. CTRL+F8 vs plain F8). This prevents
+        # the activation DOWN from becoming a mirrored DOFUS keystroke.
+        from app.input.hotkeys import parsed_hotkey_keys
+        reserved_hotkeys = (
+            getattr(settings, "stop_hotkey", ""),
+            getattr(settings, "mirror_toggle_hotkey", ""),
+            getattr(settings, "next_character_hotkey", ""),
+            getattr(settings, "previous_character_hotkey", ""),
+        )
+        if getattr(settings, "radial_enabled", False) is True:
+            reserved_hotkeys += (getattr(settings, "radial_hotkey", ""),)
+        if any(
+            vk_code in parsed_hotkey_keys(binding)
+            for binding in reserved_hotkeys
+            if type(binding) is str and binding
+        ):
+            return False
+        # Capture the active worker BEFORE the native foreground query,
+        # which can yield to a Stop/restart with the same action label.
+        owner = self.macro_lock.snapshot_active()
+        busy_label, busy_generation = owner if owner is not None else ("", None)
+        foreground = foreground_window()
+        if busy_label and (
+            type(busy_generation) is not int
+            or not self.macro_lock.owns(busy_label, busy_generation)
+        ):
+            return False
+        if busy_label:
+            if (self.input_state.is_mouse_blocked()
+                    and AtlasRuntime._defer_blocked_mirror_key(self, vk_code)):
+                return True
+            # A worker may finish/Stop while native Win32 checks are running.
+            # Only the exact original Organizer generation may suppress a
+            # busy secondary key. Otherwise let the real key pass through.
+            if foreground == settings.primary_handle:
+                AtlasRuntime._report_mirror_busy_input(self, "clavier")
+                return False
+            # No pointer lease: the native key is safe to pass through.
+            # Avoid an expensive process-image query from the LL hook for
+            # every busy secondary key, especially with 8 clients.
+            if not self.input_state.is_mouse_blocked():
+                clients = getattr(settings, "clients", ())
+                if (isinstance(clients, (list, tuple))
+                        and type(foreground) is int
+                        and any(type(getattr(c, "handle", None)) is int and getattr(c, "handle", None) == foreground
+                                for c in clients)
+                        and self.settings is settings
+                        and self._running and self._admin_ok
+                        and settings.macro_mode == "mirror"
+                        and self.macro_lock.owns(busy_label, busy_generation)
+                        and not self.macro_lock.should_stop()
+                        and foreground_window() == foreground):
+                    AtlasRuntime._report_mirror_busy_input(self, "clavier")
+                return False
+            from app.macros.mirror_plan import is_dofus_unity_process
+
+            clients = getattr(settings, "clients", None)
+            if not isinstance(clients, (list, tuple)):
+                return False
+            favorite_at_probe = settings.primary_handle
+            frozen = tuple((type(getattr(c, "handle", None)), getattr(c, "handle", None)) for c in clients)
+            trusted = (
+                type(foreground) is int
+                and (int, foreground) in frozen
+                and is_dofus_unity_process(foreground)
+            )
+            if not trusted:
+                return False
+
+            def still_busy_and_current() -> bool:
+                active = getattr(settings, "clients", None)
+                return (
+                    self.settings is settings
+                    and self._running and self._admin_ok
+                    and settings.macro_mode == "mirror"
+                    and type(settings.primary_handle) is int
+                    and settings.primary_handle == favorite_at_probe
+                    and self.macro_lock.owns(busy_label, busy_generation)
+                    and not self.macro_lock.should_stop()
+                    and isinstance(active, (list, tuple))
+                    and tuple((type(getattr(c, "handle", None)), getattr(c, "handle", None)) for c in active) == frozen
+                    # The foreground HWND can change during process identity
+                    # inspection. Never eat a busy secondary input for an app
+                    # that was not foreground when this gesture began.
+                    and foreground_window() == foreground
+                )
+
+            if not still_busy_and_current():
+                return False
+            AtlasRuntime._report_mirror_busy_input(self, "clavier")
+            if not still_busy_and_current():
+                return False
+            # Without a pointer lease this physical key can remain native
+            # in the currently focused, authenticated DOFUS client. Never
+            # consume a key merely because the previous worker is busy.
+            if not self.input_state.is_mouse_blocked():
+                return False
+            return bool(still_busy_and_current())
+        # Never probe the entire 8-client roster for a key typed into
+        # another application or a non-favorite DOFUS window.
+        if foreground != settings.primary_handle:
+            return False
+        snapshot = self._mirror_gesture_targets()
+        if snapshot is None:
+            return False
+        source, targets = snapshot
+        # Native process probes can yield while another application takes
+        # focus. Preserve the physical key rather than consuming a stale tap.
+        if (foreground != source or self.settings is not settings
+                or not self._running or not self._admin_ok
+                or foreground_window() != source):
+            return False
+        try:
+            return bool(self.mirror_input.run_key(
+                vk_code, source, targets, expected_profile=settings,
+            ))
+        except Exception:
+            self.logger.exception("Miroir clavier: lancement impossible.")
+            return False
+
+    def _handle_mirror_wheel(
+        self, delta: int, screen_x: int, screen_y: int, horizontal: bool,
+    ) -> bool:
+        # A malformed native callback must never trigger a full 8-client
+        # identity scan or consume a wheel tick. POINT is a signed LONG.
+        if (type(delta) is not int or delta == 0 or abs(delta) > 32767
+                or type(horizontal) is not bool
+                or type(screen_x) is not int or type(screen_y) is not int
+                or not -(2**31) <= screen_x < 2**31
+                or not -(2**31) <= screen_y < 2**31):
+            return False
+        from app.windows.unity_windows import (
+            client_point_ratio, find_known_client_from_point,
+            foreground_window, screen_to_client,
+        )
+
+        settings = self.settings
+        if (not self._running or not self._admin_ok
+                or settings is None
+                or getattr(settings, "macro_mode", None) != "mirror"
+                or getattr(self, "_mirror_armed", False) is not True
+                or getattr(self.macro_lock, "emergency_latched", False) is True
+                or (self.macro_lock.active_label
+                    and self.macro_lock.should_stop())):
+            return False
+        # Capture the active worker BEFORE the native foreground query,
+        # which can yield to a Stop/restart with the same action label.
+        owner = self.macro_lock.snapshot_active()
+        busy_label, busy_generation = owner if owner is not None else ("", None)
+        foreground = foreground_window()
+        if busy_label and (
+            type(busy_generation) is not int
+            or not self.macro_lock.owns(busy_label, busy_generation)
+        ):
+            return False
+        if busy_label:
+            # A wheel tick on the still-focused favorite stays physical.
+            # A busy worker cannot safely replay it to every client later.
+            if foreground == settings.primary_handle:
+                AtlasRuntime._report_mirror_busy_input(self, "molette")
+                return False
+            # When the pointer is still native, do not run a Win32 process
+            # probe merely to decide to pass the physical wheel through.
+            if not self.input_state.is_mouse_blocked():
+                clients = getattr(settings, "clients", ())
+                if (isinstance(clients, (list, tuple))
+                        and type(foreground) is int
+                        and any(type(getattr(c, "handle", None)) is int and getattr(c, "handle", None) == foreground
+                                for c in clients)
+                        and self.settings is settings
+                        and self._running and self._admin_ok
+                        and settings.macro_mode == "mirror"
+                        and self.macro_lock.owns(busy_label, busy_generation)
+                        and not self.macro_lock.should_stop()
+                        and foreground_window() == foreground):
+                    AtlasRuntime._report_mirror_busy_input(self, "molette")
+                return False
+            from app.macros.mirror_plan import is_dofus_unity_process
+
+            clients = getattr(settings, "clients", None)
+            if not isinstance(clients, (list, tuple)):
+                return False
+            favorite_at_probe = settings.primary_handle
+            frozen = tuple((type(getattr(c, "handle", None)), getattr(c, "handle", None)) for c in clients)
+            trusted = (
+                type(foreground) is int
+                and (int, foreground) in frozen
+                and is_dofus_unity_process(foreground)
+            )
+            if not trusted:
+                return False
+
+            def still_busy_and_current() -> bool:
+                active = getattr(settings, "clients", None)
+                return (
+                    self.settings is settings
+                    and self._running and self._admin_ok
+                    and settings.macro_mode == "mirror"
+                    and type(settings.primary_handle) is int
+                    and settings.primary_handle == favorite_at_probe
+                    and self.macro_lock.owns(busy_label, busy_generation)
+                    and not self.macro_lock.should_stop()
+                    and isinstance(active, (list, tuple))
+                    and tuple((type(getattr(c, "handle", None)), getattr(c, "handle", None)) for c in active) == frozen
+                    # The foreground HWND can change during process identity
+                    # inspection. Never eat a busy secondary input for an app
+                    # that was not foreground when this gesture began.
+                    and foreground_window() == foreground
+                )
+
+            if not still_busy_and_current():
+                return False
+            AtlasRuntime._report_mirror_busy_input(self, "molette")
+            if not still_busy_and_current():
+                return False
+            # The worker has not claimed the cursor: keep the actual wheel
+            # tick native instead of silently losing it during dispatch.
+            if not self.input_state.is_mouse_blocked():
+                return False
+            return bool(still_busy_and_current())
+        # A wheel gesture outside the favorite should cost no roster scans.
+        if foreground != settings.primary_handle:
+            return False
+        if find_known_client_from_point(
+            screen_x, screen_y, (foreground,),
+        ) != foreground:
+            return False
+        snapshot = self._mirror_gesture_targets()
+        if snapshot is None:
+            return False
+        source, targets = snapshot
+        if foreground != source:
+            return False
+        if find_known_client_from_point(screen_x, screen_y, (source,)) != source:
+            return False
+        point = screen_to_client(source, screen_x, screen_y)
+        ratio = client_point_ratio(source, *point) if point is not None else None
+        # Screen-to-client conversion can also yield to a focus change.
+        # Do not swallow the physical wheel tick for a stale Unity source.
+        if (ratio is None or self.settings is not settings
+                or not self._running or not self._admin_ok
+                or foreground_window() != source):
+            return False
+        try:
+            return bool(self.mirror_input.run_wheel(
+                delta, horizontal, ratio[0], ratio[1], source, targets,
+                expected_profile=settings,
+            ))
+        except Exception:
+            self.logger.exception("Miroir molette: lancement impossible.")
+            return False
+
+    def _handle_mirror_click(self, button: str, screen_x: int, screen_y: int) -> bool:
+        """Replay a consumed favorite-window click through the existing sender.
+
+        Fail closed without an explicit favorite or a real physical click on
+        that foreground Unity window. Do not create a parallel input backend.
+        """
+        from app.windows.unity_windows import (
+            find_known_client_from_point, foreground_window, is_unity_window,
+        )
+        from app.macros.mirror_plan import mirror_delivery_targets, is_dofus_unity_process
+
+        if getattr(self, "_mirror_armed", False) is not True:
+            return False
+        if (type(button) is not str or button.casefold() not in {"left", "right"}
+                or type(screen_x) is not int or type(screen_y) is not int
+                or not -(2**31) <= screen_x < 2**31
+                or not -(2**31) <= screen_y < 2**31):
+            return False
+        # A keyboard worker never owns the pointer; a wheel worker only
+        # owns it after preflight. The native event is intentionally left
+        # alone: do not perform 2–8 expensive process probes inside the
+        # low-level mouse hook merely to decide to pass a click through.
+        # Capture label + generation under a single lease lock acquisition.
+        # Two separate reads could mix old and newly started Miroir workers.
+        owner = self.macro_lock.snapshot_active()
+        busy, busy_generation = owner if owner is not None else ("", None)
+        if busy and (
+            type(busy_generation) is not int
+            or not self.macro_lock.owns(busy, busy_generation)
+        ):
+            return False
+        if busy and not self.input_state.is_mouse_blocked():
+            # A queued click worker is not yet moving the pointer. Preserve
+            # ordinary native gestures until it actually acquires its mouse
+            # block; do not run a full DOFUS roster probe from the hook.
+            return False
+        settings = self.settings
+        # A profile can be detached while the native click hook is running.
+        # Return False so the physical DOWN remains native.
+        if settings is None:
+            return False
+        # The physical click can arrive while the UI switches Macro/Miroir.
+        # A mode decision made before a profile reload is not authority to
+        # broadcast the event under the new mode.
+        source_hwnd = getattr(settings, "primary_handle", None)
+        if (getattr(settings, "macro_mode", None) != "mirror"
+                or type(source_hwnd) is not int
+                or not 0 < source_hwnd <= (2**64 - 1)
+                or (self.macro_lock.active_label
+                    and self.macro_lock.should_stop())):
+            return False
+        # Freeze the exact slots BEFORE GetForegroundWindow, hit-test and
+        # the favorite's process probe. These native calls can yield, so a
+        # later snapshot might silently adopt a changed roster and consume
+        # the physical DOWN for the *old* gesture.
+        clients_at_dispatch = getattr(settings, "clients", None)
+        if not isinstance(clients_at_dispatch, (list, tuple)):
+            return False
+        live_handles = tuple(
+            getattr(client, "handle", None) for client in clients_at_dispatch
+        )
+        if (not 2 <= len(live_handles) <= 8
+                or any(type(hwnd) is not int or not 0 < hwnd <= (2**64 - 1)
+                       for hwnd in live_handles)
+                or len(set(live_handles)) != len(live_handles)
+                or source_hwnd not in live_handles):
+            return False
+        # Check the focused/pointed window BEFORE scanning the roster.
+        # Physical mouse hooks run globally, including over other apps.
+        if foreground_window() != source_hwnd:
+            return False
+        if find_known_client_from_point(
+            screen_x, screen_y, (source_hwnd,),
+        ) != source_hwnd:
+            return False
+        lookup = getattr(settings, "client_by_handle", None)
+        if not callable(lookup):
+            return False
+        try:
+            favorite = lookup(source_hwnd)
+        except Exception:
+            self.logger.exception("Miroir: recherche du favori impossible.")
+            return False
+        if (favorite is None or type(getattr(favorite, "handle", None)) is not int
+                or getattr(favorite, "handle", None) != source_hwnd
+                or not is_unity_window(source_hwnd)
+                or not is_dofus_unity_process(source_hwnd)):
+            return False
+        # The source click will be consumed only if *every* original
+        # configured character is still valid. Never silently drop a stale
+        # or foreign client from the frozen roster.
+        if not all(
+            is_unity_window(hwnd) and is_dofus_unity_process(hwnd)
+            for hwnd in live_handles if hwnd != source_hwnd
+        ):
+            return False
+        # A Win32 probe may yield while Organizer mutates its existing
+        # settings object. An unchanged object reference is not sufficient
+        # to consume the old physical DOWN.
+        def roster_still_current() -> bool:
+            current_clients = getattr(settings, "clients", None)
+            return (
+                self.settings is settings
+                and self._running and self._admin_ok
+                and settings.macro_mode == "mirror"
+                and getattr(self, "_mirror_armed", False) is True
+                and type(settings.primary_handle) is int
+                and settings.primary_handle == source_hwnd
+                and type(getattr(favorite, "handle", None)) is int
+                and getattr(favorite, "handle", None) == source_hwnd
+                and isinstance(current_clients, (list, tuple))
+                and tuple((type(getattr(client, "handle", None)), getattr(client, "handle", None))
+                          for client in current_clients)
+                == tuple((int, hwnd) for hwnd in live_handles)
+            )
+
+        if not roster_still_current():
+            return False
+        destinations = mirror_delivery_targets(
+            live_handles, live_handles, source_hwnd, source_was_consumed=True,
+        )
+        if len(destinations) < 2 or not roster_still_current():
+            return False
+        # mirror_delivery_targets preserves Organizer slot order, whereas
+        # the click worker requires the starred physical source first. A
+        # favorite in a later slot must not make an otherwise valid gesture
+        # fail the worker's roster identity check after its DOWN was eaten.
+        ordered_destinations = (
+            source_hwnd,
+            *(hwnd for hwnd in destinations if hwnd != source_hwnd),
+        )
+        # A DOFUS process probe may yield to another application. Do not
+        # consume the physical DOWN if the favorite lost focus meanwhile.
+        if foreground_window() != source_hwnd:
+            return False
+        if busy:
+            # The native Win32 roster probe above can yield while a worker
+            # completes, Stop is requested or Organizer switches modes.
+            # Same label is NOT enough after Stop/restart.
+            if (not self.macro_lock.owns(busy, busy_generation)
+                    or not self.input_state.is_mouse_blocked()
+                    or not self.macro_lock.active_label
+                    or self.macro_lock.should_stop()
+                    or not roster_still_current()):
+                return False
+            AtlasRuntime._report_mirror_busy_input(self, "clic")
+            # Publishing a status can also yield to Stop or a profile edit.
+            # Return true only while the SAME worker generation still owns
+            # the pointer. A new Miroir with the same name is not that owner.
+            return bool(
+                self.macro_lock.owns(busy, busy_generation)
+                and self.input_state.is_mouse_blocked()
+                and self.macro_lock.active_label
+                and not self.macro_lock.should_stop()
+                and roster_still_current()
+            )
+        if not roster_still_current():
+            return False
+        try:
+            return bool(self.switch_click.run_async(
+                button, screen_x, screen_y, 1, "Miroir",
+                exact_source_handle=source_hwnd,
+                mirror_target_handles=ordered_destinations,
+                expected_profile=settings,
+            ))
+        except Exception:
+            self.logger.exception("Miroir: démarrage impossible.")
+            return False
+
     def _handle_mouse_click(self, button: str, screen_x: int, screen_y: int) -> bool:
+        # Unarmed or stopped Organizer must never swallow native clicks.
+        if getattr(self.macro_lock, "emergency_latched", False) is True:
+            return False
         if not self._running or not self._admin_ok:
             self.logger.debug(
                 "Clic ignore: runtime actif=%s admin_ok=%s button=%s x=%s y=%s",
@@ -558,7 +1604,31 @@ class AtlasRuntime:
                 screen_y,
             )
             return False
+        # A new physical DOWN before the previously captured native UP
+        # makes the click pair ambiguous (double press or overlapping
+        # buttons). Keep BOTH gestures native and cancel the pending replay:
+        # never clone an action whose DOWN/UP can no longer be paired safely.
+        pending = getattr(self, "_pending_physical_switch", None)
+        if isinstance(pending, tuple) and len(pending) in (7, 8):
+            self._pending_physical_switch = None
+            self.logger.debug(
+                "Clic natif non recopié: cause=overlapping_down button=%s",
+                button,
+            )
+            return False
+        settings = self.settings
+        if settings is None:
+            # Runtime shutdown/reload must never turn a physical click into a
+            # Python hook exception or an orphaned release.
+            return False
+        if getattr(settings, "macro_mode", None) == "mirror":
+            return self._handle_mirror_click(button, screen_x, screen_y)
         action = self.registry.switch_action_for_pressed_keys()
+        if self.settings is not settings:
+            # Register lookups can overlap a reload. Never use an old hotkey
+            # to consume the first physical DOWN of a replacement profile.
+            self.logger.debug("Clic switch abandonné: profil Organizer modifié pendant raccourci.")
+            return False
         if action is None:
             self.logger.debug(
                 "Clic sans macro: aucun raccourci switch physiquement maintenu button=%s x=%s y=%s",
@@ -568,7 +1638,29 @@ class AtlasRuntime:
             )
             return False
         active_macro = self.macro_lock.active_label
+        if active_macro and not self.input_state.is_mouse_blocked():
+            # Any prevalidating macro that does not own the pointer must leave
+            # native DOWN/UP untouched, including Zaap and Auto-groupe.
+            return False
         if active_macro:
+            # The mouse hook is global. During the narrow interval between
+            # MacroLock acquisition and the sender's input block, never eat a
+            # click in an unrelated app just because a switch hotkey is held.
+            from app.windows.unity_windows import (
+                find_known_client_from_point, foreground_window,
+            )
+            from app.macros.mirror_plan import is_dofus_unity_process
+
+            foreground = foreground_window()
+            if (
+                foreground not in (c.handle for c in settings.clients)
+                or find_known_client_from_point(
+                    screen_x, screen_y, (foreground,),
+                ) != foreground
+                or not is_dofus_unity_process(foreground)
+                or self.settings is not settings
+            ):
+                return False
             self.logger.debug(
                 "Clic switch consomme: macro deja active=%s button=%s x=%s y=%s",
                 active_macro,
@@ -579,10 +1671,43 @@ class AtlasRuntime:
             return True
         try:
             click_count = int(action.payload.get("click_count", 1))
-        except (TypeError, ValueError):
+        except (TypeError, ValueError, OverflowError):
             self.logger.debug("Payload switch invalide: action=%s payload=%s", action.action_id, action.payload)
             click_count = 1
         action_label = str(action.payload.get("label", "Switch clique"))
+        # Unity world targets can require the native DOWN/UP pair on the
+        # foreground source. Keep that pair intact for a simple click and
+        # replay only the other clients after physical release.
+        if click_count == 1 and str(button).casefold() in {"left", "right"}:
+            profile_at_press = settings
+            from app.windows.unity_windows import (
+                find_known_client_from_point, foreground_window,
+            )
+            from app.macros.mirror_plan import is_dofus_unity_process
+
+            source = find_known_client_from_point(
+                screen_x, screen_y,
+                (client.handle for client in settings.clients),
+            )
+            if (self.settings is not settings):
+                return False
+            if (source and foreground_window() == source
+                    and is_dofus_unity_process(int(source))):
+                context = self.switch_click._capture_trigger_context(
+                    screen_x, screen_y, action_label,
+                )
+                if self.settings is not profile_at_press:
+                    # The old physical DOWN is already native. Never fall
+                    # through to a synthetic replay under the new profile.
+                    self.logger.debug("Clic natif non recopié: cause=profile_changed_during_capture")
+                    return False
+                if (context is not None and context.reason == "cursor"
+                        and context.source_hwnd == source):
+                    self._pending_physical_switch = (
+                        button, screen_x, screen_y, click_count,
+                        action_label, context, monotonic(), profile_at_press,
+                    )
+                    return False
         try:
             started = self.switch_click.run_async(
                 button,
@@ -590,17 +1715,86 @@ class AtlasRuntime:
                 screen_y,
                 click_count,
                 action_label,
+                expected_profile=settings,
             )
         except Exception:
             self.logger.exception(
                 "Déclenchement switch clique impossible: action=%s",
                 action_label,
             )
-            return True
+            # No worker owns this DOWN: let the native event reach Unity.
+            return False
 
         if not started:
             self.logger.debug(
-                "Clic switch consommé sans lancement: action=%s",
+                "Clic switch non intercepté: lancement refusé action=%s",
                 action_label,
             )
+            return False
+        return True
+
+    def _handle_mouse_release(self, button: str, screen_x: int, screen_y: int) -> bool:
+        """Finish one native foreground click, then replay to other clients.
+
+        True asks the hook to FORWARD the real UP even when the asynchronous
+        replay begins blocking later gestures. It does not claim replay worked.
+        """
+        pending = getattr(self, "_pending_physical_switch", None)
+        if (not isinstance(pending, tuple) or len(pending) not in (7, 8)
+                or str(pending[0]).casefold() != str(button).casefold()):
+            return False
+        self._pending_physical_switch = None
+        (_button, down_x, down_y, count, label, context, captured_at) = pending[:7]
+        profile_at_press = pending[7] if len(pending) == 8 else None
+        from app.windows.unity_windows import foreground_window
+        from app.macros.mirror_plan import is_dofus_unity_process
+
+        try:
+            reason = None
+            if not self._running or not self._admin_ok:
+                reason = "runtime_unavailable"
+            elif profile_at_press is not None and self.settings is not profile_at_press:
+                reason = "profile_replaced"
+            elif self.settings.macro_mode != "macro":
+                reason = "mode_changed"
+            elif self.macro_lock.should_stop():
+                reason = "emergency_stop"
+            elif self.macro_lock.active_label:
+                reason = "worker_busy"
+            elif not 0 <= monotonic() - captured_at <= 2.0:
+                reason = "expired"
+            elif (int(screen_x) - down_x) ** 2 + (int(screen_y) - down_y) ** 2 > 24 ** 2:
+                reason = "drag_or_moved"
+            elif foreground_window() != context.source_hwnd:
+                reason = "focus_changed"
+            elif not is_dofus_unity_process(context.source_hwnd):
+                reason = "source_untrusted"
+            elif (profile_at_press is not None
+                  and self.settings is not profile_at_press):
+                # A native process probe can release the GIL and reload the
+                # roster even after our first generation check.
+                reason = "profile_replaced"
+            if reason is not None:
+                self.logger.debug(
+                    "Clic natif non recopié: cause=%s button=%s",
+                    reason, button,
+                )
+                return True
+            replay_kwargs = (
+                {"expected_profile": profile_at_press}
+                if profile_at_press is not None else {}
+            )
+            if not self.switch_click.run_async(
+                button, down_x, down_y, count, label,
+                captured_context=context,
+                physical_source_delivered=True,
+                **replay_kwargs,
+            ):
+                self.logger.warning(
+                    "Clic natif non recopié: cause=dispatch_refused button=%s",
+                    button,
+                )
+        except Exception:
+            self.logger.exception("%s: duplication après clic physique impossible.", label)
+        # Native UP must ALWAYS reach Unity, regardless of replay success.
         return True

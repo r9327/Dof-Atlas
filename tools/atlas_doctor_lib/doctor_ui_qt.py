@@ -532,6 +532,47 @@ def open_guide(page, owner, guide_id):
     return view
 
 
+def mounted_action_line_html(sheet) -> list[str]:
+    """Reconstruct one *visible* logical action per canonical Guide row.
+
+    A shared Guide may split the position and the action text to put a
+    distinct Zaap button between them. Recombine only an intact, exactly
+    paired position + Zaap + action. Missing/duplicate controls stay split
+    and therefore fail the canonical-line oracle; this is not a PASS waiver.
+    """
+    from PySide6.QtWidgets import QFrame, QLabel, QToolButton
+
+    actual = []
+    for row in sheet.findChildren(QFrame, "GuideManualLineRow"):
+        labels = [
+            widget for widget in row.findChildren(QLabel)
+            if widget.parentWidget() is row
+        ]
+        positions = [
+            label for label in labels
+            if label.objectName() == "GuideManualPositionCopy"
+        ]
+        normal = [
+            label for label in labels
+            if label.objectName() != "GuideManualPositionCopy"
+        ]
+        if not positions:
+            actual.extend(label.text() for label in normal)
+            continue
+        zaaps = [
+            button for button in row.findChildren(QToolButton, "GuideManualZaapShortcut")
+            if button.parentWidget() is row
+        ]
+        if (len(positions) == len(normal) == len(zaaps) == 1
+                and normal[0].text().startswith("— ")):
+            actual.append(positions[0].text() + " " + normal[0].text())
+        else:
+            # Never manufacture a logical PASS from a missing Zaap icon,
+            # duplicated coordinate or lost action text.
+            actual.extend(label.text() for label in labels)
+    return actual
+
+
 def sheet_observations(view, expected_card) -> dict:
     from PySide6.QtWidgets import QFrame, QLabel
 
@@ -563,10 +604,7 @@ def sheet_observations(view, expected_card) -> dict:
                 expected.append(sheet._format_line_html(prefix, position, text,
                                 sheet._npc_names(text), sheet._resource_names))
         sheet._last_route_position_key = last_position
-        actual = []
-        for line_row in sheet.findChildren(QFrame, "GuideManualLineRow"):
-            actual.extend(label.text() for label in line_row.findChildren(QLabel)
-                          if label.parentWidget() is line_row)
+        actual = mounted_action_line_html(sheet)
         result.update(missing_lines=list((Counter(expected) - Counter(actual)).elements())[:5],
                       stale_or_duplicate_lines=list((Counter(actual) - Counter(expected)).elements())[:5],
                       expected_line_count=len(expected), actual_line_count=len(actual))
@@ -1235,8 +1273,13 @@ def exercise_quest_links(session, page, owner):
             button = buttons[0]
             spy = QSignalSpy(sheet.questRequested)
             click = click_target(page, button, view.scroll)
-            settle(lambda: first_quest_failure(quest_outcome(
-                page, quest_id, [spy.at(i) for i in range(spy.count())])) is None, timeout=5)
+            settle(
+                lambda current_page=page, current_quest_id=quest_id, current_spy=spy:
+                first_quest_failure(quest_outcome(
+                    current_page, current_quest_id,
+                    [current_spy.at(i) for i in range(current_spy.count())])) is None,
+                timeout=5,
+            )
             observed = quest_outcome(page, quest_id, [spy.at(i) for i in range(spy.count())])
             failure = first_quest_failure(observed)
             observed.update(click=click, first_failed_transition=failure)

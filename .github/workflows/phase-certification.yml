@@ -79,7 +79,7 @@ jobs:
           lfs: false
           persist-credentials: false
       - name: Set up stdlib-only Doctor
-        uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
         with:
           python-version: "3.13"
       - name: Fail fast on PR whitespace and stale AI context
@@ -156,7 +156,7 @@ jobs:
           lfs: false
           persist-credentials: false
       - name: Set up stdlib-only focused checks
-        uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
         with:
           python-version: "3.13"
       - name: Verify scope and execute focused contracts
@@ -319,7 +319,7 @@ jobs:
           }
 
       - name: Set up Python 3.13
-        uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
         with:
           python-version: "3.13"
           cache: pip
@@ -354,6 +354,16 @@ jobs:
         run: |
           python -m pip install --require-hashes --no-deps -r requirements-pyside.txt
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+
+      - name: Install pinned optional property-test dependencies for PR domains
+        # Only developer/test tooling. Do not add Hypothesis to Atlas EXE or
+        # relax the exact-SHA domain gate when a property test is unavailable.
+        if: github.event_name == 'pull_request' && steps.reuse.outputs.reuse_full != 'true'
+        run: |
+          python -m pip install --disable-pip-version-check --no-input --only-binary=:all: --no-deps "hypothesis==6.170.15" "sortedcontainers==2.4.0"
+          if ($LASTEXITCODE -ne 0) { throw "Pinned Hypothesis test dependencies unavailable" }
+          python -c "from importlib.metadata import version; assert version('hypothesis') == '6.170.15'; assert version('sortedcontainers') == '2.4.0'"
+          if ($LASTEXITCODE -ne 0) { throw "Optional property-test dependency versions differ from pinned CI contract" }
 
       - name: Prepare certification logs
         run: New-Item -ItemType Directory -Force -Path "artifacts/phase_certification" | Out-Null
@@ -968,7 +978,7 @@ jobs:
           fail-on-scopes: development, runtime, unknown
 
       - name: Set up Python 3.13
-        uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
         with:
           python-version: "3.13"
           cache: pip

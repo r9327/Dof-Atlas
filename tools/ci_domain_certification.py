@@ -38,6 +38,7 @@ BASELINE_GROUPS = {
 # decision for PHASE_CERTIFICATION.md or any executable policy change.
 REVIEWED_CI_INSTRUCTION_PATHS = frozenset({
     "AGENTS.md", "AI_ENTRYPOINT.md", "AI_CONTEXT.md", "CLAUDE.md",
+    "GRAPHIFY.md",  # Canonical architecture/agent instruction (not runtime)
     ".github/copilot-instructions.md", ".cursor/rules/atlas-doctor.mdc",
     "app/AGENTS.md", "data/AGENTS.md", "tests/AGENTS.md", "tools/AGENTS.md",
     "tools/skills/dofus-atlas-tools/SKILL.md",
@@ -45,6 +46,10 @@ REVIEWED_CI_INSTRUCTION_PATHS = frozenset({
     # Additional reviewed AI guidance and skills; exact paths only.
     ".ai/context-map.yaml",
     ".ai/scopes/quality_ci.yaml",
+    # Reviewed Organizer Mirror scope manifests, not a broad scope wildcard.
+    ".ai/scopes/organizer.yaml",
+    ".ai/scopes/macro_runtime.yaml",
+    ".ai/scopes/persistence_identity.yaml",
     "tests/test_ai_workflow_skills.py",
     ".agents/skills/codebase-navigation/SKILL.md",
     ".agents/skills/dofus-data-provenance/SKILL.md",
@@ -73,10 +78,24 @@ CI_FILES = frozenset({
     "tools/ci_scope_gate.py", "tools/ci_pr_audit.py",
     "tools/ci_delivery_guard.py",
     "tools/ci_domain_certification.py", "tools/doctor_certification.py",
+    "tools/doctor_pr_on_demand.py",  # Explicit CI owner: read-only PR diagnostics
+    "tools/doctor_dev_lot.py",  # Explicit CI owner: bounded Draft lot diagnostics only
+    "tools/atlas_tools_on_demand.py",  # Explicit CI owner: bounded PR tool router
+    "tests/test_atlas_tools_on_demand.py",  # Its adversarial contract suite
     "tools/atlas_full_suite_proof.py", "tools/ci_verified_pr_full.py",
     "tools/ci_main_phase_evidence.py", "tools/ci_guide_full_evidence.py",
     "tools/doctor_policy_authority.py", "tools/ci_guide_full_evidence.py",
 })
+# Reviewed developer-only Doctor and AI context contract files. Their
+# behavior does not change Atlas runtime data or packaged application modules.
+# Keep the paths exact: unknown future benchmarks/tools still fail closed.
+DOCTOR_OSS_CONTEXT_PATHS = frozenset({
+    "tools/ai_context.py",
+    "tests/test_ai_context.py",
+    "tools/atlas_json_benchmark.py",
+    "tests/test_atlas_json_benchmark.py",
+})
+
 # Explicitly audited Doctor-only profiling tools. These do not alter app
 # runtime or Guide data; their real Qt Windows campaign remains independently
 # required by atlas-exhaustive-benchmark.yml. Never permit a tools/* wildcard.
@@ -94,6 +113,13 @@ DOCTOR_PERF_TOOLS = frozenset({
     "tests/test_pr303_commit_audit.py",
 })
 
+# New developer-only wheel verification has one explicit source and test
+# owner. Unknown installers remain unowned and fail closed.
+DOCTOR_OSS_INSTALL_PATHS = frozenset({
+    "tools/doctor_oss_wheels.py",
+    "tests/test_doctor_oss_wheels.py",
+})
+
 # Reviewed Organizer ownership, restricted to concrete paths. Unknown input
 # backends or other application modules must continue to block certification.
 ORGANIZER_MACRO_PATHS = frozenset({
@@ -101,6 +127,7 @@ ORGANIZER_MACRO_PATHS = frozenset({
     "app/macros/input_tools.py", "app/macros/switch_character.py",
     "app/macros/switch_click.py", "app/macros/travel.py",
     "app/macros/zaap.py", "app/macros/mirror_plan.py",
+    "app/macros/mirror_input.py",
 })
 ORGANIZER_UI_PATHS = frozenset({
     "app/pages/organizer_page.py", "app/pages/organizer/__init__.py",
@@ -115,22 +142,49 @@ ORGANIZER_RUNTIME_PATHS = frozenset({
     "app/core/runtime_state.py", "app/core/macro_lock.py",
     "app/input/input_state.py", "app/input/managed_hooks.py",
     "app/input/hotkeys.py", "app/windows/clicks.py",
+    "app/input/mouse_hooks.py",
 })
 ORGANIZER_TEST_PATHS = frozenset({
+    # Exact, Windows-offscreen screenshot producers for the Organizer UI;
+    # neither path is a game-input backend or a general tests/* wildcard.
+    "tests/capture_organizer_ui.py",
+    "tests/capture_organizer_shell.py",
     "tests/test_organizer_character_order.py",
     "tests/test_organizer_character_icon_refresh.py",
     "tests/test_organizer_icon_cache.py",
     "tests/test_organizer_shutdown_guard.py",
     "tests/test_organizer_macro_reliability.py",
+    "tests/test_organizer_favorite_inflight.py",
     "tests/test_organizer_radial_selection.py",
     "tests/test_organizer_radial_overlay.py",
     "tests/test_organizer_mirror_plan.py",
+    "tests/test_organizer_mirror_ui.py",
     "tests/test_organizer_sendinput.py",
     "tests/test_organizer_hotkey_capture.py",
     "tests/test_runtime_lazy_macros.py",
     "tests/test_runtime_hook_lifecycle.py",
+    "tests/test_direction.py",
     "tests/test_direction_macro.py",
+    "tests/test_input_tools.py",
     "tests/test_zaap_shortcut_import_boundary.py",
+    # Explicit P0 tests reviewed with Organizer #325. Do not broaden to a
+    # tests/test_organizer* wildcard: unknown backends must remain BLOCKED.
+    "tests/test_character_hotkey_mapping.py",
+    "tests/test_organizer_focus_preflight.py",
+    "tests/test_organizer_focus_topmost.py",
+    "tests/test_organizer_hook_stop_race.py",
+    "tests/test_organizer_identity_overflow.py",
+    "tests/test_organizer_macro_generation.py",
+    "tests/test_organizer_mirror_focus_admission.py",
+    "tests/test_organizer_next_character.py",
+    "tests/test_organizer_numeric_hook_guards.py",
+    "tests/test_organizer_persisted_hwnd.py",
+    "tests/test_organizer_pointer_lease_epoch.py",
+    "tests/test_organizer_speed_lease.py",
+    "tests/test_organizer_speed_presets.py",
+    "tests/test_organizer_stop_hotkey_priority.py",
+    "tests/test_organizer_switch_click_profile.py",
+    "tests/test_organizer_zaap_popup.py",
 })
 
 CRAFT_PATHS = frozenset({
@@ -159,7 +213,8 @@ def owners_for(path: str) -> frozenset[str]:
     if (path.startswith(".github/workflows/") or path.startswith(".github/rulesets/")
             or path in {".github/pull_request_template.md", "AGENTS.md"}):
         return frozenset({"ci"})
-    if path in DOCTOR_PERF_TOOLS:
+    if (path in DOCTOR_PERF_TOOLS or path in DOCTOR_OSS_INSTALL_PATHS
+            or path in DOCTOR_OSS_CONTEXT_PATHS):
         return frozenset({"ci"})
     if path in CI_FILES or path in PR303_AUDIT_JSON_PATHS or path.startswith("tools/atlas_doctor_lib/"):
         return frozenset({"ci"})
@@ -186,13 +241,29 @@ def owners_for(path: str) -> frozenset[str]:
         "app/distribution/file_clone.py",
         "app/distribution/cleanup.py",
         "app/distribution/install_location.py",
+        "app/distribution/manifest.py",
+        "scripts/windows/build_repo_update_pointer.py",
+        "tests/test_distribution_repo_update_pointer.py",
+        "app/distribution/setup.py",
+        "app/distribution/archive_parts.py",
+        "tests/test_distribution_multipart.py",
+        "tests/test_distribution_install_location.py",
+        "tests/test_distribution_setup.py",
         "tests/test_distribution_disk_space.py",
         "tests/test_distribution_smart_update.py",
+        "tests/test_distribution_first_boot.py",
         "tests/test_distribution_packaging.py",
     }:
         return frozenset({"ci", "startup", "data"})
-    if path in {"app/distribution/launcher.py", "app/distribution/launcher_ui.py"}:
+    if path in {
+        "app/distribution/launcher.py", "app/distribution/launcher_ui.py",
+        "app/distribution/health.py", "tests/test_distribution_health.py",
+    }:
         return frozenset({"startup", "ui"})
+    if path == "app/distribution/startup_trace.py":
+        return frozenset({"startup", "ui"})
+    if path in {"tools/startup_trace_report.py", "tools/analyze_startup.py"}:
+        return frozenset({"ci", "startup"})
     if path in {
         "scripts/windows/release_lfs_assets.py",
         "scripts/windows/release_lfs_assets_lock.json",
@@ -233,10 +304,36 @@ def owners_for(path: str) -> frozenset[str]:
     if path == "app/constants.py":
         return frozenset({"craft", "quests", "guides", "ui", "startup",
                           "identity", "data", "organizer"})
+    # Canonical text normalization is shared across product domains. Keep
+    # their complete baseline coverage; never infer an Organizer-only scope.
+    if path in {"app/core/text.py", "tests/test_core_text.py"}:
+        return frozenset({"craft", "quests", "guides", "ui", "startup",
+                          "identity", "data", "organizer"})
+    if path == "tests/_pyside_shell_base.py":
+        # This inherited Qt fixture is executed via tests.test_pyside_shell.
+        # It covers Craft, Quest, the shell/startup lifecycle, Organizer,
+        # per-character identity and data persistence. Keep its exact path
+        # reviewed; unrelated private test helpers must remain unowned.
+        return frozenset({"craft", "quests", "guides", "ui", "startup",
+                          "identity", "data", "organizer"})
     # Organizer profile defaults are read by Qt/session startup and persisted
     # for character-bound input. Unknown app/core files still fail closed.
     if path == "app/core/profile_settings.py":
         return frozenset({"organizer", "ui", "startup", "identity", "data"})
+    # Organizer reads the persisted UI/session registry from runtime settings.
+    if path == "app/core/settings.py":
+        return frozenset({"organizer", "ui", "startup", "identity", "data"})
+    if path in {"app/windows/focus.py", "app/windows/unity_windows.py"}:
+        # These canonical Win32 helpers route focus/Unity identity for the
+        # Organizer workers AND the initial session scan. Do not classify
+        # every app/windows module by name: unreviewed injection stays blocked.
+        return frozenset({"organizer", "ui", "startup", "identity"})
+    if path == "app/storage.py":
+        # Shared Qt, profile, craft, quest, persistence and launcher service.
+        # Its Graphify consumer graph reaches those domains; never treat
+        # the central storage facade as an Organizer-only change.
+        return frozenset({"craft", "quests", "guides", "ui", "startup",
+                          "identity", "data", "organizer"})
     if path in ORGANIZER_RUNTIME_PATHS or path == "app/pages/organizer_page.py":
         # OrganizerPage creates the native watcher, Qt timers and startup scan.
         return frozenset({"organizer", "startup", "ui", "identity"})
@@ -247,6 +344,21 @@ def owners_for(path: str) -> frozenset[str]:
         return frozenset({"organizer", "ui", "identity"})
     if path in ORGANIZER_TEST_PATHS:
         return frozenset({"organizer", "ui", "identity"})
+    if path in {
+        "tests/test_hotkeys.py",
+        "tests/test_managed_hooks_lazy.py",
+        "tests/test_runtime_state.py",
+    }:
+        # Shared Win32 hooks and runtime lifecycle also affect startup.
+        return frozenset({"organizer", "startup", "ui", "identity"})
+    if path in {
+        "tools/benchmark_organizer_mirror_windows.py",
+        "tests/test_organizer_mirror_windows_benchmark.py",
+        "tools/organizer_mirror_log_report.py",
+        "tests/test_organizer_mirror_log_report.py",
+    }:
+        # Development-only synthetic benchmark and offline log analysis.
+        return frozenset({"ci", "organizer"})
     if path in CRAFT_PATHS or path.startswith("app/pages/craft_"):
         return frozenset({"craft"})
     if path.startswith("app/modules/encyclopedia/services/guide_"):
@@ -350,6 +462,10 @@ def owners_for(path: str) -> frozenset[str]:
     if path in {"tests/test_unity_skin.py", "tests/test_theme_runtime_cache.py"}:
         # Canonical Unity palette / Qt stylesheet cache regression contracts.
         return frozenset({"ui"})
+    if path == "tests/test_runtime_regression_contracts.py":
+        # Existing contracts cover Zaap/Guide routing, identity, persistence,
+        # Qt callbacks and shutdown. A generic runtime wildcard is unsafe.
+        return frozenset({"organizer", "guides", "identity", "data", "ui", "startup"})
     if path == "tests/test_distribution_export.py":
         # Runtime export policy is both CI packaging integrity and startup.
         return frozenset({"ci", "startup"})

@@ -4,20 +4,21 @@ All tests use synthetic files: no network, no frozen Atlas binaries.
 """
 from __future__ import annotations
 
+from dataclasses import replace
 import hashlib
 import io
 import tempfile
 import threading
 import unittest
 from pathlib import Path
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 
 from app.distribution import install, release_client
 from app.distribution.install import (
     _copy_unchanged_verified, install_release, mark_healthy, read_state,
     rollback_pending, slot_path,
 )
-from app.distribution.manifest import ReleaseFile, parse_manifest
+from app.distribution.manifest import DeltaManifest, ReleaseFile, parse_manifest
 from app.distribution.release_client import RemoteRelease, UpdateError, download_archive
 from scripts.windows.package_release import package_release
 
@@ -89,6 +90,408 @@ class ReuseInstallerTests(unittest.TestCase):
             )
             self.assertTrue(rollback_pending(target))
             self.assertEqual(read_state(target)["active"], old_slot)
+
+    def test_antivirus_locked_slot_activation_keeps_active_release_and_progress(self):
+        """An OS sharing violation must never switch active state or lose data."""
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            first, original = self._package(root, "a" * 40, "v1", change=b"old")
+            runtime = root / "runtime"
+            self.assertTrue(install_release(runtime, first, original))
+            mark_healthy(runtime)
+            before = read_state(runtime)
+            progress = runtime / "user" / "quest_progress.json"
+            progress.parent.mkdir(parents=True)
+            progress.write_bytes(b'{"quest":42}')
+
+            second, newer = self._package(root, "b" * 40, "v2", change=b"new")
+            original_replace = install.os.replace
+
+            def deny_locked_activation(source, destination):
+                candidate = Path(source)
+                installed = Path(destination)
+                if (candidate.name.startswith(".atlas-install-")
+                        and installed.parent == runtime / "versions"):
+                    raise PermissionError("WinError 32: antivirus holds target")
+                return original_replace(source, destination)
+
+            with patch.object(install.os, "replace", side_effect=deny_locked_activation):
+                with self.assertRaises(UpdateError):
+                    install_release(runtime, second, newer)
+
+            self.assertEqual(read_state(runtime), before)
+            self.assertEqual(progress.read_bytes(), b'{"quest":42}')
+            self.assertEqual(
+                (slot_path(runtime, before["active"]) / "AtlasApp/changed.dat").read_bytes(),
+                b"old",
+            )
+            self.assertFalse(list(runtime.glob(".atlas-install-*")))
+            self.assertFalse(
+                slot_path(runtime, f"{newer.app_version}-{newer.source_sha[:12]}").exists()
+            )
+
+            # Releasing the lock allows a normal retry; no corrupted slot was
+            # promoted and no rollback/progress metadata was sacrificed.
+            self.assertTrue(install_release(runtime, second, newer))
+            self.assertEqual(read_state(runtime)["previous"], before["active"])
+            self.assertEqual(progress.read_bytes(), b'{"quest":42}')
+
+    def test_invalid_new_zip_preserves_active_state_and_progress(self):
+        with tempfile.TemporaryDirectory() as d:
+            root = Path(d)
+            first, original = self._package(root, "a" * 40, "v1", change=b"old")
+            runtime = root / "runtime"
+            self.assertTrue(install_release(runtime, first, original))
+            mark_healthy(runtime)
+            before = read_state(runtime)
+            progress = runtime / "user" / "quest_progress.json"
+            progress.parent.mkdir(parents=True)
+            progress.write_text('{"quest":12}', encoding="utf-8")
+            second, newer = self._package(root, "b" * 40, "v2", change=b"new")
+            second.write_bytes(b"corrupted zip")
+            with self.assertRaises(UpdateError):
+                install_release(runtime, second, newer)
+            self.assertEqual(read_state(runtime), before)
+            self.assertEqual(progress.read_text(encoding="utf-8"), '{"quest":12}')
+            self.assertEqual(
+                (slot_path(runtime, before["active"]) / "AtlasApp/changed.dat").read_bytes(),
+                b"old",
+            )
+            self.assertFalse(list(runtime.glob(".atlas-install-*")))
+
+    def test_verified_identical_version_never_reopens_an_archive(self):
+        with tempfile.TemporaryDirectory() as d:
+            root = Path(d)
+            archive, manifest = self._package(root, "a" * 40, "v1", change=b"old")
+            runtime = root / "runtime"
+            self.assertTrue(install_release(runtime, archive, manifest))
+            mark_healthy(runtime)
+            before = read_state(runtime)
+            archive.write_bytes(b"no longer a valid archive")
+            with patch.object(install.zipfile, "ZipFile",
+                              side_effect=AssertionError("should not unpack same version")):
+                self.assertFalse(install_release(runtime, archive, manifest))
+            self.assertEqual(read_state(runtime), before)
+            self.assertFalse(list(runtime.glob(".atlas-install-*")))
+
+    def test_state_write_failure_is_recoverable_without_losing_old_slot(self):
+        with tempfile.TemporaryDirectory() as d:
+            root = Path(d)
+            first, original = self._package(root, "a" * 40, "v1", change=b"old")
+            runtime = root / "runtime"
+            self.assertTrue(install_release(runtime, first, original))
+            mark_healthy(runtime)
+            before = read_state(runtime)
+            progress = runtime / "user" / "achievements.json"
+            progress.parent.mkdir(parents=True)
+            progress.write_text('{"achievement":7}', encoding="utf-8")
+            second, newer = self._package(root, "b" * 40, "v2", change=b"new")
+            with patch.object(install, "_write_state", side_effect=OSError("simulated full disk")):
+                with self.assertRaises(UpdateError):
+                    install_release(runtime, second, newer)
+            self.assertEqual(read_state(runtime), before)
+            self.assertEqual(progress.read_text(encoding="utf-8"), '{"achievement":7}')
+            self.assertEqual(
+                (slot_path(runtime, before["active"]) / "AtlasApp/changed.dat").read_bytes(),
+                b"old",
+            )
+            self.assertFalse(list(runtime.glob(".atlas-install-*")))
+            # The fully verified orphaned slot is reused directly: no second
+            # decompress, no ZIP read and no multi-GB file copy.
+            orphan = slot_path(runtime, f"{newer.app_version}-{newer.source_sha[:12]}")
+            self.assertTrue(orphan.is_dir())
+            with (
+                patch.object(install.zipfile, "ZipFile",
+                             side_effect=AssertionError("redundant archive extraction")),
+                patch.object(install, "_copy_unchanged_verified",
+                             side_effect=AssertionError("redundant staging copy")),
+            ):
+                self.assertTrue(install_release(runtime, second, newer))
+            self.assertTrue(read_state(runtime)["pending"])
+            self.assertTrue(rollback_pending(runtime))
+            self.assertEqual(read_state(runtime)["active"], before["active"])
+            self.assertEqual(progress.read_text(encoding="utf-8"), '{"achievement":7}')
+
+    def test_launcher_recovers_verified_full_slot_without_network_or_extraction(self):
+        from app.distribution import launcher
+
+        with tempfile.TemporaryDirectory() as d:
+            root = Path(d)
+            first, original = self._package(root, "a" * 40, "v1", change=b"old")
+            runtime = root / "runtime"
+            install_release(runtime, first, original)
+            mark_healthy(runtime)
+            stable_slot = read_state(runtime)["active"]
+            profile = runtime / "user" / "character-progress.json"
+            profile.parent.mkdir()
+            profile.write_bytes(b'{"quest":99}')
+            second, newer = self._package(root, "b" * 40, "v2", change=b"new")
+            with patch.object(install, "_write_state", side_effect=OSError("disk full")):
+                with self.assertRaises(UpdateError):
+                    install_release(runtime, second, newer)
+            self.assertEqual(read_state(runtime)["active"], stable_slot)
+            steps: list[tuple[str, int]] = []
+            remote = RemoteRelease("v2", "https://example.invalid/unused",
+                                   second.stat().st_size, newer)
+            with (
+                patch.object(launcher, "ROOT", runtime),
+                patch.object(launcher, "_LOCATION_ERROR", None),
+                patch.object(launcher, "_logger", return_value=MagicMock()),
+                patch.object(launcher, "_run_lock", return_value=MagicMock()),
+                patch.object(launcher, "SingleInstanceGuard") as guard,
+                patch.object(launcher, "recover_data_packs_on_launch"),
+                patch.object(launcher, "latest_release", return_value=remote),
+                patch.object(launcher, "download_archive",
+                             side_effect=AssertionError("redundant network transfer")),
+                patch.object(launcher, "ensure_space",
+                             side_effect=AssertionError("redundant space reservation")),
+                patch.object(launcher, "install_release",
+                             side_effect=AssertionError("redundant extraction")),
+                patch.object(launcher, "_launch_with_health", return_value=True) as launched,
+                patch.object(launcher, "schedule_launcher_upgrade"),
+                patch.object(launcher, "cleanup_verified_runtime", return_value=(0, 0)),
+            ):
+                guard.return_value.acquire.return_value = True
+                launcher.run_update(lambda title, pct: steps.append((title, pct)))
+            self.assertEqual(read_state(runtime)["source_sha"], newer.source_sha)
+            self.assertFalse(read_state(runtime)["pending"])
+            self.assertEqual(read_state(runtime)["previous"], stable_slot)
+            self.assertTrue(any("recuperee" in title for title, _ in steps))
+            self.assertEqual(steps[-1][1], 100)
+            launched.assert_called_once()
+            self.assertEqual(profile.read_bytes(), b'{"quest":99}')
+
+    def test_orphan_slot_must_be_fully_verified_before_reuse(self):
+        with tempfile.TemporaryDirectory() as d:
+            root = Path(d)
+            first, original = self._package(root, "a" * 40, "v1", change=b"old")
+            runtime = root / "runtime"
+            self.assertTrue(install_release(runtime, first, original))
+            mark_healthy(runtime)
+            stable = read_state(runtime)
+            profile = runtime / "user" / "progress.json"
+            profile.parent.mkdir()
+            profile.write_text('{"quests":42}', encoding="utf-8")
+            second, newer = self._package(root, "b" * 40, "v2", change=b"new")
+            with patch.object(install, "_write_state", side_effect=OSError("disk full")):
+                with self.assertRaises(UpdateError):
+                    install_release(runtime, second, newer)
+            orphan = slot_path(runtime, f"{newer.app_version}-{newer.source_sha[:12]}")
+            # Same-size corruption must not pass a size-only shortcut.
+            (orphan / "AtlasApp/changed.dat").write_bytes(b"bad")
+            with (
+                patch.object(install.zipfile, "ZipFile",
+                             side_effect=AssertionError("must reject before extraction")),
+                self.assertRaisesRegex(UpdateError, "Conflicting existing installation slot"),
+            ):
+                install_release(runtime, second, newer)
+            self.assertFalse(list(runtime.glob(".atlas-install-*")))
+            self.assertEqual(read_state(runtime), stable)
+            self.assertEqual(profile.read_text(encoding="utf-8"), '{"quests":42}')
+
+    def test_pending_rollback_is_idempotent_and_restores_metadata(self):
+        with tempfile.TemporaryDirectory() as d:
+            root = Path(d)
+            first, original = self._package(root, "a" * 40, "v1", change=b"old")
+            runtime = root / "runtime"
+            install_release(runtime, first, original)
+            mark_healthy(runtime)
+            old = read_state(runtime)
+            second, newer = self._package(root, "b" * 40, "v2", change=b"new")
+            install_release(runtime, second, newer)
+            self.assertTrue(rollback_pending(runtime))
+            rolled_back = read_state(runtime)
+            self.assertFalse(rolled_back["pending"])
+            self.assertEqual(rolled_back["active"], old["active"])
+            self.assertEqual(rolled_back["source_sha"], old["source_sha"])
+            self.assertEqual(rolled_back["blocked_source_sha"], newer.source_sha)
+            self.assertFalse(rollback_pending(runtime))
+            self.assertEqual(read_state(runtime), rolled_back)
+
+    def test_failed_first_install_never_remains_active_and_keeps_user_data(self):
+        with tempfile.TemporaryDirectory() as d:
+            root = Path(d)
+            runtime = root / "runtime"
+            package, candidate = self._package(root, "a" * 40, "v1", change=b"bad")
+            self.assertTrue(install_release(runtime, package, candidate))
+            pending = read_state(runtime)
+            unacknowledged = slot_path(runtime, pending["active"])
+            self.assertTrue(unacknowledged.is_dir())
+            self.assertTrue(pending["pending"])
+            profile = runtime / "user" / "characters.json"
+            profile.parent.mkdir()
+            profile.write_bytes(b'{"level":200}')
+
+            self.assertFalse(rollback_pending(runtime))
+            failed = read_state(runtime)
+            self.assertIsNone(failed["active"])
+            self.assertIsNone(failed["previous"])
+            self.assertFalse(failed["pending"])
+            self.assertEqual(failed["blocked_source_sha"], candidate.source_sha)
+            self.assertNotIn("entrypoint", failed)
+            self.assertNotIn("source_sha", failed)
+            self.assertIsNone(install.active_executable(runtime))
+            self.assertTrue(unacknowledged.is_dir(), "Failed EXE remains for diagnosis")
+            self.assertEqual(profile.read_bytes(), b'{"level":200}')
+            self.assertFalse(rollback_pending(runtime))
+            self.assertEqual(read_state(runtime), failed)
+
+            corrected, fixed = self._package(root, "b" * 40, "v2", change=b"fixed")
+            self.assertTrue(install_release(runtime, corrected, fixed))
+            self.assertEqual(read_state(runtime)["source_sha"], fixed.source_sha)
+            self.assertEqual(read_state(runtime)["previous"], None)
+            mark_healthy(runtime)
+            self.assertFalse(read_state(runtime)["pending"])
+            self.assertEqual(profile.read_bytes(), b'{"level":200}')
+
+    def test_first_launch_crash_marks_release_blocked_without_backup(self):
+        from app.distribution import launcher
+
+        with tempfile.TemporaryDirectory() as d:
+            root = Path(d)
+            runtime = root / "runtime"
+            package, candidate = self._package(root, "a" * 40, "v1", change=b"bad")
+            remote = RemoteRelease("v1", "https://example.invalid/unused",
+                                   package.stat().st_size, candidate)
+            # Model the real *first* run: no pending slot at startup, then
+            # download/install creates pending before the child crashes.
+            self.assertIsNone(read_state(runtime)["active"])
+            with (
+                patch.object(launcher, "ROOT", runtime),
+                patch.object(launcher, "_logger", return_value=MagicMock()),
+                patch.object(launcher, "_run_lock", return_value=MagicMock()),
+                patch.object(launcher, "SingleInstanceGuard") as guard,
+                patch.object(launcher, "recover_data_packs_on_launch"),
+                patch.object(launcher, "latest_release", return_value=remote),
+                patch.object(launcher, "ensure_space"),
+                patch.object(launcher, "download_archive", return_value=package) as download,
+                patch.object(launcher, "_launch_with_health", return_value=False) as launch,
+                patch.object(launcher, "mark_healthy",
+                             side_effect=AssertionError("crash is never healthy")),
+            ):
+                guard.return_value.acquire.return_value = True
+                with self.assertRaisesRegex(UpdateError, "n'a pas confirme son demarrage"):
+                    launcher.run_update(lambda *_: None)
+            download.assert_called_once()
+            launch.assert_called_once()
+            state = read_state(runtime)
+            self.assertIsNone(state["active"])
+            self.assertFalse(state["pending"])
+            self.assertEqual(state["blocked_source_sha"], candidate.source_sha)
+
+    def test_launcher_refuses_blocked_first_install_without_launch_or_download(self):
+        from app.distribution import launcher
+
+        with tempfile.TemporaryDirectory() as d:
+            root = Path(d)
+            runtime = root / "runtime"
+            package, candidate = self._package(root, "a" * 40, "v1", change=b"bad")
+            install_release(runtime, package, candidate)
+            self.assertFalse(rollback_pending(runtime))
+            remote = RemoteRelease("v1", "https://example.invalid/unused",
+                                   package.stat().st_size, candidate)
+            with (
+                patch.object(launcher, "ROOT", runtime),
+                patch.object(launcher, "_logger", return_value=MagicMock()),
+                patch.object(launcher, "_run_lock", return_value=MagicMock()),
+                patch.object(launcher, "SingleInstanceGuard") as guard,
+                patch.object(launcher, "recover_data_packs_on_launch"),
+                patch.object(launcher, "latest_release", return_value=remote),
+                patch.object(launcher, "download_archive",
+                             side_effect=AssertionError("blocked release must not download")),
+                patch.object(launcher, "_launch_with_health",
+                             side_effect=AssertionError("failed EXE must not start")),
+            ):
+                guard.return_value.acquire.return_value = True
+                with self.assertRaisesRegex(UpdateError, "a deja echoue"):
+                    launcher.run_update(lambda *_: None)
+            self.assertIsNone(read_state(runtime)["active"])
+            self.assertEqual(read_state(runtime)["blocked_source_sha"], candidate.source_sha)
+
+    def test_legacy_blocked_first_install_is_not_launched_as_healthy(self):
+        from app.distribution import launcher
+
+        with tempfile.TemporaryDirectory() as d:
+            root = Path(d)
+            runtime = root / "runtime"
+            package, candidate = self._package(root, "a" * 40, "v1", change=b"bad")
+            install_release(runtime, package, candidate)
+            legacy = read_state(runtime)
+            legacy["pending"] = False
+            legacy["blocked_source_sha"] = legacy["source_sha"]
+            install._write_state(runtime, legacy)
+            self.assertIsNone(install.active_executable(runtime))
+            profile = runtime / "user" / "characters.json"
+            profile.parent.mkdir()
+            profile.write_bytes(b'{"dofus":2}')
+            remote = RemoteRelease("v1", "https://example.invalid/unused",
+                                   package.stat().st_size, candidate)
+            messages = []
+            with (
+                patch.object(launcher, "ROOT", runtime),
+                patch.object(launcher, "_logger", return_value=MagicMock()),
+                patch.object(launcher, "_run_lock", return_value=MagicMock()),
+                patch.object(launcher, "SingleInstanceGuard") as guard,
+                patch.object(launcher, "recover_data_packs_on_launch"),
+                patch.object(launcher, "latest_release", return_value=remote),
+                patch.object(launcher, "download_archive",
+                             side_effect=AssertionError("blocked version cannot download")),
+                patch.object(launcher, "_launch_with_health",
+                             side_effect=AssertionError("blocked EXE cannot spawn")),
+            ):
+                guard.return_value.acquire.return_value = True
+                with self.assertRaisesRegex(UpdateError, "a deja echoue"):
+                    launcher.run_update(lambda label, _pct: messages.append(label))
+            self.assertIn("Version non validee bloquee", messages)
+            state = read_state(runtime)
+            self.assertIsNone(state["active"])
+            self.assertFalse(state["pending"])
+            self.assertEqual(state["blocked_source_sha"], candidate.source_sha)
+            self.assertEqual(profile.read_bytes(), b'{"dofus":2}')
+            self.assertFalse(rollback_pending(runtime))
+
+    def test_rollback_rejects_damaged_old_exe_without_changing_state(self):
+        with tempfile.TemporaryDirectory() as d:
+            root = Path(d)
+            first, original = self._package(root, "a" * 40, "v1", change=b"old")
+            runtime = root / "runtime"
+            install_release(runtime, first, original)
+            mark_healthy(runtime)
+            stable = read_state(runtime)
+            profile = runtime / "user" / "progress.json"
+            profile.parent.mkdir()
+            profile.write_bytes(b'{"quests":23}')
+            second, newer = self._package(root, "b" * 40, "v2", change=b"new")
+            install_release(runtime, second, newer)
+            pending = read_state(runtime)
+            prior_exe = slot_path(runtime, stable["active"]) / "AtlasApp/AtlasApp.exe"
+            original_bytes = prior_exe.read_bytes()
+            try:
+                prior_exe.write_bytes(b"MZ-corrupt")
+                with self.assertRaisesRegex(UpdateError, "Previous rollback executable is corrupt"):
+                    rollback_pending(runtime)
+                self.assertEqual(read_state(runtime), pending)
+                self.assertEqual(profile.read_bytes(), b'{"quests":23}')
+            finally:
+                prior_exe.write_bytes(original_bytes)
+            self.assertTrue(rollback_pending(runtime))
+            self.assertEqual(read_state(runtime)["active"], stable["active"])
+
+    def test_rollback_rejects_missing_previous_exe(self):
+        with tempfile.TemporaryDirectory() as d:
+            root = Path(d)
+            first, original = self._package(root, "a" * 40, "v1", change=b"old")
+            runtime = root / "runtime"
+            install_release(runtime, first, original)
+            mark_healthy(runtime)
+            old = read_state(runtime)["active"]
+            second, newer = self._package(root, "b" * 40, "v2", change=b"new")
+            install_release(runtime, second, newer)
+            pending = read_state(runtime)
+            (slot_path(runtime, old) / "AtlasApp/AtlasApp.exe").unlink()
+            with self.assertRaisesRegex(UpdateError, "Previous rollback executable is missing"):
+                rollback_pending(runtime)
+            self.assertEqual(read_state(runtime), pending)
 
     def test_legacy_slot_without_index_avoids_speculative_full_copies(self):
         with tempfile.TemporaryDirectory() as d:
@@ -273,6 +676,267 @@ class CleanupSafetyTests(unittest.TestCase):
 
 
 class ParallelTransferTests(unittest.TestCase):
+    def _small_delta_release(self, root: Path):
+        _, manifest, _ = multipart_fixture(root)
+        payload = b"synthetic verified differential payload"
+        delta = DeltaManifest(
+            "b" * 40, hashlib.sha256(payload).hexdigest(), len(payload),
+            ("AtlasApp/AtlasApp.exe",),
+        )
+        release = RemoteRelease(
+            "v1", "", manifest.archive_size, replace(manifest, delta=delta),
+            delta_url="https://github.com/r9327/Dof-Atlas-App/releases/download/v1/atlas-delta.zip",
+        )
+        return release, payload
+
+    def test_complete_corrupt_cached_delta_redownloads_in_place(self):
+        # A full-size corrupt cache must not force the much larger full ZIP.
+        with tempfile.TemporaryDirectory() as d:
+            root = Path(d)
+            release, payload = self._small_delta_release(root)
+            cache = root / "cache"
+            cache.mkdir()
+            cached = cache / (release.manifest.source_sha[:20] + ".delta.zip.part")
+            cached.write_bytes(b"X" * len(payload))
+            with patch.object(
+                release_client, "_open", return_value=Response(payload)
+            ) as request:
+                actual = download_archive(release, cache, differential=True)
+            self.assertEqual(actual.read_bytes(), payload)
+            request.assert_called_once_with(release.delta_url, {})
+
+    def test_complete_valid_cached_delta_needs_no_network(self):
+        with tempfile.TemporaryDirectory() as d:
+            root = Path(d)
+            release, payload = self._small_delta_release(root)
+            cache = root / "cache"
+            cache.mkdir()
+            cached = cache / (release.manifest.source_sha[:20] + ".delta.zip.part")
+            cached.write_bytes(payload)
+            with patch.object(
+                release_client, "_open", side_effect=AssertionError("Unexpected network")
+            ):
+                actual = download_archive(release, cache, differential=True)
+            self.assertEqual(actual.read_bytes(), payload)
+
+    def test_newly_downloaded_corrupt_delta_is_never_accepted(self):
+        with tempfile.TemporaryDirectory() as d:
+            root = Path(d)
+            release, payload = self._small_delta_release(root)
+            cache = root / "cache"
+            with patch.object(
+                release_client, "_open", return_value=Response(b"X" * len(payload))
+            ):
+                with self.assertRaisesRegex(UpdateError, "SHA-256 mismatch"):
+                    download_archive(release, cache, differential=True)
+            cached = cache / (release.manifest.source_sha[:20] + ".delta.zip.part")
+            self.assertFalse(cached.exists())
+
+    def test_multipart_network_bytes_and_verified_cache_zero_transfer(self):
+        with tempfile.TemporaryDirectory() as d:
+            root = Path(d)
+            archive, manifest, remote = multipart_fixture(root)
+            payloads = {
+                url: (archive.parent / part.name).read_bytes()
+                for url, part in zip(remote.part_urls, manifest.archive_parts)
+            }
+            events = []
+
+            def record(name, **metrics):
+                events.append((name, metrics))
+
+            with (
+                patch.object(release_client, "_open", side_effect=lambda url, headers=None: Response(payloads[url])),
+                patch.object(release_client, "record_startup_event", side_effect=record),
+            ):
+                self.assertEqual(download_archive(remote, root / "cache").read_bytes(), archive.read_bytes())
+                self.assertEqual(download_archive(remote, root / "cache").read_bytes(), archive.read_bytes())
+            measured = [metrics for name, metrics in events if name == "multipart_archive_ready"]
+            self.assertEqual(len(measured), 2)
+            self.assertEqual(measured[0]["network_bytes"], sum(map(len, payloads.values())))
+            self.assertEqual(measured[0]["cached_bytes"], 0)
+            self.assertEqual(measured[1]["network_bytes"], 0)
+            self.assertEqual(measured[1]["cached_bytes"], manifest.archive_size)
+
+    def test_multipart_resume_only_counts_new_network_bytes(self):
+        with tempfile.TemporaryDirectory() as d:
+            root = Path(d)
+            archive, manifest, remote = multipart_fixture(root)
+            payloads = {
+                url: (archive.parent / part.name).read_bytes()
+                for url, part in zip(remote.part_urls, manifest.archive_parts)
+            }
+            part = manifest.archive_parts[0]
+            prefix = len(payloads[remote.part_urls[0]]) // 2
+            parts_dir = root / "cache" / (manifest.source_sha[:20] + "-parts")
+            parts_dir.mkdir(parents=True)
+            (parts_dir / (part.name + ".download")).write_bytes(payloads[remote.part_urls[0]][:prefix])
+            events = []
+
+            def serve(url, headers=None):
+                if url == remote.part_urls[0]:
+                    self.assertEqual(headers, {"Range": f"bytes={prefix}-"})
+                    return Response(
+                        payloads[url][prefix:], status=206,
+                        headers={"Content-Range": f"bytes {prefix}-{part.size - 1}/{part.size}"},
+                    )
+                return Response(payloads[url])
+
+            with (
+                patch.object(release_client, "_open", side_effect=serve),
+                patch.object(release_client, "record_startup_event",
+                             side_effect=lambda name, **metrics: events.append((name, metrics))),
+            ):
+                self.assertEqual(download_archive(remote, root / "cache").read_bytes(), archive.read_bytes())
+            measured = [m for name, m in events if name == "multipart_archive_ready"]
+            self.assertEqual(len(measured), 1)
+            self.assertEqual(measured[0]["network_bytes"], sum(map(len, payloads.values())) - prefix)
+            self.assertEqual(measured[0]["cached_bytes"], prefix)
+
+    def test_corrupt_complete_cached_part_redownloads_during_same_launch(self):
+        with tempfile.TemporaryDirectory() as d:
+            root = Path(d)
+            archive, manifest, remote = multipart_fixture(root)
+            payloads = {
+                url: (archive.parent / part.name).read_bytes()
+                for url, part in zip(remote.part_urls, manifest.archive_parts)
+            }
+            first_part = manifest.archive_parts[0]
+            parts_dir = root / "cache" / (manifest.source_sha[:20] + "-parts")
+            parts_dir.mkdir(parents=True)
+            (parts_dir / (first_part.name + ".download")).write_bytes(b"X" * first_part.size)
+            events = []
+
+            with (
+                patch.object(release_client, "_open",
+                             side_effect=lambda url, headers=None: Response(payloads[url])),
+                patch.object(release_client, "record_startup_event",
+                             side_effect=lambda name, **metrics: events.append((name, metrics))),
+            ):
+                result = download_archive(remote, root / "cache")
+            self.assertEqual(result.read_bytes(), archive.read_bytes())
+            measured = [m for name, m in events if name == "multipart_archive_ready"]
+            self.assertEqual(len(measured), 1)
+            self.assertEqual(measured[0]["network_bytes"], sum(map(len, payloads.values())))
+            self.assertEqual(measured[0]["cached_bytes"], 0)
+
+    def test_retry_within_same_launch_not_counted_as_prior_cache(self):
+        with tempfile.TemporaryDirectory() as d:
+            root = Path(d)
+            archive, manifest, remote = multipart_fixture(root)
+            payloads = {
+                url: (archive.parent / part.name).read_bytes()
+                for url, part in zip(remote.part_urls, manifest.archive_parts)
+            }
+            first_url = remote.part_urls[0]
+            prefix = len(payloads[first_url]) // 2
+            attempts = 0
+            events = []
+
+            class DropsAfterFirstBlock(Response):
+                def read(self, n=-1):
+                    if self.tell() == 0:
+                        return super().read(prefix)
+                    raise OSError("synthetic interrupted first transfer")
+
+            def serve(url, headers=None):
+                nonlocal attempts
+                if url != first_url:
+                    return Response(payloads[url])
+                attempts += 1
+                if attempts == 1:
+                    return DropsAfterFirstBlock(payloads[url])
+                self.assertEqual(headers, {"Range": f"bytes={prefix}-"})
+                part_size = len(payloads[url])
+                return Response(
+                    payloads[url][prefix:], status=206,
+                    headers={"Content-Range": f"bytes {prefix}-{part_size - 1}/{part_size}"},
+                )
+
+            with (
+                patch.object(release_client, "_open", side_effect=serve),
+                patch.object(release_client.time, "sleep", return_value=None),
+                patch.object(release_client, "record_startup_event",
+                             side_effect=lambda name, **metrics: events.append((name, metrics))),
+            ):
+                result = download_archive(remote, root / "cache")
+            self.assertEqual(attempts, 2)
+            self.assertEqual(result.read_bytes(), archive.read_bytes())
+            measured = [m for name, m in events if name == "multipart_archive_ready"]
+            self.assertEqual(len(measured), 1)
+            self.assertEqual(measured[0]["network_bytes"], sum(map(len, payloads.values())))
+            self.assertEqual(measured[0]["cached_bytes"], 0)
+
+    def test_full_part_then_socket_failure_is_not_counted_as_old_cache(self):
+        with tempfile.TemporaryDirectory() as d:
+            root = Path(d)
+            archive, manifest, remote = multipart_fixture(root)
+            payloads = {
+                url: (archive.parent / part.name).read_bytes()
+                for url, part in zip(remote.part_urls, manifest.archive_parts)
+            }
+            first_url = remote.part_urls[0]
+            requests = []
+            events = []
+
+            class FullPartThenDisconnects(Response):
+                def read(self, n=-1):
+                    if self.tell() == 0:
+                        return super().read(n)
+                    raise OSError("connection failed after full body")
+
+            def serve(url, headers=None):
+                requests.append((url, headers))
+                if url == first_url:
+                    return FullPartThenDisconnects(payloads[url])
+                return Response(payloads[url])
+
+            with (
+                patch.object(release_client, "_open", side_effect=serve),
+                patch.object(release_client.time, "sleep", return_value=None),
+                patch.object(release_client, "record_startup_event",
+                             side_effect=lambda name, **metrics: events.append((name, metrics))),
+            ):
+                result = download_archive(remote, root / "cache")
+            self.assertEqual(result.read_bytes(), archive.read_bytes())
+            self.assertEqual(sum(1 for url, _ in requests if url == first_url), 1)
+            measured = [m for name, m in events if name == "multipart_archive_ready"]
+            self.assertEqual(len(measured), 1)
+            self.assertEqual(measured[0]["network_bytes"], sum(map(len, payloads.values())))
+            self.assertEqual(measured[0]["cached_bytes"], 0)
+
+    def test_ignored_range_does_not_count_discarded_cached_prefix(self):
+        with tempfile.TemporaryDirectory() as d:
+            root = Path(d)
+            archive, manifest, remote = multipart_fixture(root)
+            payloads = {
+                url: (archive.parent / part.name).read_bytes()
+                for url, part in zip(remote.part_urls, manifest.archive_parts)
+            }
+            first_url = remote.part_urls[0]
+            prefix = len(payloads[first_url]) // 2
+            parts_dir = root / "cache" / (manifest.source_sha[:20] + "-parts")
+            parts_dir.mkdir(parents=True)
+            (parts_dir / (manifest.archive_parts[0].name + ".download")).write_bytes(payloads[first_url][:prefix])
+            events = []
+
+            def serve(url, headers=None):
+                if url == first_url:
+                    self.assertEqual(headers, {"Range": f"bytes={prefix}-"})
+                return Response(payloads[url], status=200)
+
+            with (
+                patch.object(release_client, "_open", side_effect=serve),
+                patch.object(release_client, "record_startup_event",
+                             side_effect=lambda name, **metrics: events.append((name, metrics))),
+            ):
+                result = download_archive(remote, root / "cache")
+            self.assertEqual(result.read_bytes(), archive.read_bytes())
+            measured = [m for name, m in events if name == "multipart_archive_ready"]
+            self.assertEqual(len(measured), 1)
+            self.assertEqual(measured[0]["network_bytes"], sum(map(len, payloads.values())))
+            self.assertEqual(measured[0]["cached_bytes"], 0)
+
     def test_parallel_multipart_is_bounded_and_sha_verified(self):
         with tempfile.TemporaryDirectory() as d:
             root = Path(d)
@@ -393,8 +1057,23 @@ class FrozenCandidateWorkflowTests(unittest.TestCase):
             "github.head_ref == 'feat/smart-download-safe-cow-install-20261027'",
             workflow,
         )
+        self.assertIn(
+            "github.head_ref == 'perf/launcher-v2-startup-audit-20261028'",
+            workflow,
+        )
+        # This grants only an unpublished exact-SHA candidate artifact;
+        # the Stable release path still requires workflow_run on main.
+        self.assertIn("Validate full candidate ZIP and manifest integrity", workflow)
+        self.assertIn("Upload unmerged full Windows distribution candidate", workflow)
         self.assertIn("github.event.action == 'ready_for_review'", workflow)
         self.assertIn("atlas-windows-full-candidate-", workflow)
+        # Draft/ready-for-review may only read the previous public manifest.
+        # Actual frozen delta must be independently checked and preserved as a
+        # candidate artifact, never published from a review branch.
+        self.assertIn("github.event_name == 'workflow_run' && secrets.ATLAS_DISTRIBUTION_TOKEN || github.token", workflow)
+        self.assertIn("DELTA_NOT_GENERATED:", workflow)
+        self.assertIn("_verify_delta_members(delta_path, manifest)", workflow)
+        self.assertIn("            dist-release/atlas-delta.zip", workflow)
         self.assertIn("if: github.event_name == 'workflow_run'", workflow)
         self.assertIn("--repo r9327/Dof-Atlas-App", workflow)
 

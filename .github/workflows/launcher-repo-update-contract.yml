@@ -1,0 +1,80 @@
+name: Launcher Repo Update — Scoped Contract
+
+# A light, exact-SHA Ubuntu/Windows test for the optional repository pointer.
+# No package publication, application install, FULL or Phase Certification.
+on:
+  pull_request:
+    branches: [main]
+    types: [opened, synchronize, reopened]
+    paths:
+      - app/distribution/manifest.py
+      - app/distribution/startup_trace.py
+      - tools/startup_trace_report.py
+      - scripts/windows/build_repo_update_pointer.py
+      - tests/test_distribution_repo_update_pointer.py
+      - tests/test_distribution_smart_update.py
+      - app/distribution/install.py
+      - app/distribution/launcher.py
+      - app/distribution/setup.py
+      - tests/test_distribution_setup.py
+      - app/distribution/launcher_ui.py
+      - tests/test_distribution_launcher_branding.py
+      - tests/test_distribution_launcher_noop_offline.py
+      - app/distribution/install_location.py
+      - tests/test_distribution_install_location.py
+      - app/distribution/health.py
+      - tests/test_distribution_health.py
+      - tests/test_startup_trace.py
+      - tests/test_startup_trace_report.py
+      - .github/workflows/launcher-repo-update-contract.yml
+
+permissions:
+  contents: read
+
+jobs:
+  repo-pointer-contract:
+    if: github.event.pull_request.head.repo.full_name == github.repository
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 8
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+    steps:
+      - name: Checkout exact candidate without credentials
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          persist-credentials: false
+          lfs: false
+      - name: Python 3.13
+        uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
+        with:
+          python-version: "3.13"
+      - name: Verify checkout SHA
+        env:
+          EXPECTED_SHA: ${{ github.event.pull_request.head.sha }}
+        run: python -c "import os,subprocess; assert subprocess.check_output(['git','rev-parse','HEAD'],text=True).strip() == os.environ['EXPECTED_SHA']"
+      - name: Run strict repo update pointer regressions
+        run: python -X faulthandler -m unittest discover -s tests -p test_distribution_repo_update_pointer.py -v
+      - name: Verify transactional slots, rollback and unchanged file reuse
+        run: python -X faulthandler -m unittest discover -s tests -p 'test_distribution_smart_update.py' -v
+      - name: Verify unchanged/offline launcher startup and binary hash reuse
+        run: python -X faulthandler -m unittest discover -s tests -p 'test_distribution_launcher_noop_offline.py' -v
+      - name: Verify existing runtime relocation and Windows link protections
+        run: python -X faulthandler -m unittest discover -s tests -p 'test_distribution_install_location.py' -v
+      - name: Verify packaged Windows prerequisites and per-user setup contracts
+        run: python -X faulthandler -m unittest discover -s tests -p 'test_distribution_setup.py' -v
+      - name: Validate DPI-safe launcher geometry and Unity branding
+        run: python -X faulthandler -m unittest discover -s tests -p 'test_distribution_launcher_branding.py' -v
+      - name: Verify single-window Qt handoff and failed-launch recovery
+        run: python -X faulthandler -m unittest discover -s tests -p 'test_distribution_health.py' -v
+      - name: Validate opt-in startup trace clocks and report (native Windows API)
+        run: python -X faulthandler -m unittest discover -s tests -p 'test_startup_trace*.py' -v
+      - name: State proof boundaries
+        if: always()
+        run: |
+          echo "Repo update pointer contract for ${{ github.event.pull_request.head.sha }}"
+          echo "Source top-level Git tree fingerprints (for context index verification):"
+          git ls-tree HEAD
+          echo "No delta published, installer invoked or Windows Unity app certified"

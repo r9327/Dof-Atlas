@@ -7,13 +7,32 @@ from .utils import image_basename_from_url, normalize_text, repair_mojibake, saf
 
 
 def craft_category_for_item(item: dict[str, Any]) -> str:
-    """One pure category policy shared by Craft search, adapter and display."""
-    text = slugify(" ".join(str(item.get(key, "")) for key in ("name", "type", "family", "category")))
-    if any(token in text for token in ("trophee", "prysma", "prysmaradite")):
+    """One category policy shared by Craft search, adapter and display."""
+    tokens = set(slugify(" ".join(str(item.get(key, "")) for key in (
+        "name", "type", "family", "category",
+    ))).split("_"))
+    # A descriptive item name is never stronger than its explicit type:
+    # "Épée du Trophée" remains a weapon, not a trophy.
+    declared_type = set(slugify(str(item.get("type") or "")).split("_"))
+    trophy_types = {"trophee", "trophees", "prysma", "prysmaradite", "prysmaradites"}
+    if declared_type & {"ressource", "ressources", "resource", "resources"}:
+        return "resource"
+    if declared_type & trophy_types:
         return "trophy_prysma"
-    equipment = ("arme", "coiffe", "cape", "ceinture", "anneau", "collier",
-                 "amulette", "botte", "bouclier", "dofus")
-    return "equipment" if any(token in text for token in equipment) else "resource"
+    equipment = {
+        "arme", "armes", "epee", "epees", "arc", "arcs", "dagues", "dague",
+        "baton", "batons", "baguette", "baguettes", "pelle", "pelles",
+        "marteau", "marteaux", "hache", "haches", "faux", "lance", "lances",
+        "coiffe", "coiffes", "cape", "capes", "ceinture", "ceintures",
+        "anneau", "anneaux", "collier", "colliers", "amulette", "amulettes",
+        "botte", "bottes", "bouclier", "boucliers", "dofus", "equipement",
+        "equipment", "weapon",
+    }
+    if declared_type & equipment:
+        return "equipment"
+    if tokens & trophy_types:
+        return "trophy_prysma"
+    return "equipment" if tokens & equipment else "resource"
 
 
 RESOURCE_HINTS = {

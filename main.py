@@ -59,6 +59,7 @@ from app.validation_log import record_validation
 from app.modules.encyclopedia.constants import ACHIEVEMENTS_TAB, GUIDES_TAB, QUESTS_TAB
 from app.pages.home_page import HomePage
 from app.preload import PreloadTask, StartupPreloader
+from app.distribution.startup_trace import record_startup_event
 from app.services.character_data_service import CharacterDataService
 from app.services.character_order_service import CharacterOrderService
 from app.storage import default_profiles, item_id, normalize_key, read_json, write_json
@@ -250,6 +251,7 @@ def _run_preload_module_status(module: str, *arguments: str) -> None:
     # DEVNULL avoids parent-side capture buffers, while keeping every rich
     # catalogue/cache build inside the disposable child process.
     import subprocess
+    import tempfile
 
     root = str(Path(__file__).resolve().parent)
     environment = dict(os.environ)
@@ -270,15 +272,26 @@ def _run_preload_module_status(module: str, *arguments: str) -> None:
     if os.name == "nt":
         options["creationflags"] = getattr(subprocess, "CREATE_NO_WINDOW", 0)
 
-    completed = subprocess.run(
-        [sys.executable, "-m", module, *arguments],
-        **options,
-    )
-    exit_code = int(completed.returncode)
-    if exit_code != 0:
-        raise RuntimeError(
-            f"Worker preload en échec: {module} (code {exit_code})"
+    # Keep rich output outside Atlas' heap, but retain a bounded diagnostic
+    # when one of several concurrent disposable workers fails.
+    with tempfile.TemporaryFile() as diagnostics:
+        options["stderr"] = diagnostics
+        completed = subprocess.run(
+            [sys.executable, "-m", module, *arguments],
+            **options,
         )
+        exit_code = int(completed.returncode)
+        if exit_code != 0:
+            length = diagnostics.seek(0, os.SEEK_END)
+            diagnostics.seek(max(0, length - 8192))
+            detail = diagnostics.read(8192).decode("utf-8", errors="replace").strip()
+            # Doctor's compact preload reports retain the first 240 chars.
+            # Put the terminal exception before the traceback frames.
+            summary = detail.splitlines()[-1][:120] if detail else ""
+            raise RuntimeError(
+                f"Worker preload en échec: {module} (code {exit_code})"
+                + (f": {summary}\n{detail}" if detail else "")
+            )
 
 
 def _run_preload_module_result(module: str, *arguments: str) -> str:
@@ -749,6 +762,36 @@ class CloseActionDialog(AtlasDialog):
 
 
 class AtlasWindow(QMainWindow):
+    def eventFilter(self, watched: QObject, event: QEvent) -> bool:
+        # A real QWidget Paint event is stronger evidence than show() or a
+        # zero-delay timer; it still does not certify user interactivity.
+        if watched is getattr(self, "home_page", None) and self.isVisible():
+            if event.type() == QEvent.Paint:
+                if not getattr(self, "_home_first_paint_recorded", False):
+                    self._home_first_paint_recorded = True
+                    record_startup_event("home_first_paint")
+                if not getattr(self, "_home_ready_acknowledged", False):
+                    QTimer.singleShot(0, self._ack_home_after_first_paint)
+            elif (event.type() == QEvent.Show and self._home_first_paint_recorded
+                  and not self._home_ready_acknowledged):
+                # A hidden or switched page may have invalidated the first
+                # callback. Re-check when the already-painted Home reappears.
+                QTimer.singleShot(0, self._ack_home_after_first_paint)
+        return super().eventFilter(watched, event)
+
+    def _ack_home_after_first_paint(self) -> None:
+        # A paint alone isn't an interactive Home. Require a subsequent Qt
+        # event-loop turn and the real, visible Home widget before handoff.
+        if self._home_ready_acknowledged:
+            return
+        if (not self.isVisible() or not self.home_page.isVisible()
+                or self.stack.currentWidget() is not self.home_page):
+            return
+        self._home_ready_acknowledged = True
+        record_startup_event("home_event_loop")
+        from app.distribution.health import announce_home_ready
+        announce_home_ready()
+
     def __init__(self, initial_preload: dict[str, Any] | None = None):
         super().__init__()
         self.setWindowTitle(APP_NAME)
@@ -830,7 +873,10 @@ class AtlasWindow(QMainWindow):
             self.stack.setObjectName("AtlasUnityStack")
         self.pages: list[tuple[str, QWidget]] = []
 
+        self._home_first_paint_recorded = False
+        self._home_ready_acknowledged = False
         self.home_page = HomePage()
+        self.home_page.installEventFilter(self)
         self.home_page.continueRequested.connect(self.open_guide_progress)
         self.home_page.changeCharacterRequested.connect(self.open_character_selector)
         self.home_page.network_bridge.characterActivated.connect(
@@ -2052,6 +2098,9 @@ class AtlasWindow(QMainWindow):
             self.launch_zaap,
             sessions_changed_callback=self.refresh_global_characters,
             active_session_callback=self.on_organizer_active_window,
+            next_character_callback=self.launch_next_character,
+            previous_character_callback=self.launch_previous_character,
+            mirror_arm_callback=self.toggle_mirror,
         )
 
     def create_craft_page(self) -> QWidget:
@@ -2226,6 +2275,7 @@ class AtlasWindow(QMainWindow):
             return
         self._home_revealed = True
         self.show()
+        record_startup_event("home_visible")
         app = QApplication.instance()
         if app is not None:
             app.setQuitOnLastWindowClosed(True)
@@ -2243,6 +2293,7 @@ class AtlasWindow(QMainWindow):
         if self._post_preload_services_started:
             return
         self._post_preload_services_started = True
+        record_startup_event("preload_complete")
         self._schedule_owned_callback(POST_RENDER_RUNTIME_DELAY_MS, self.start_runtime)
         if os.environ.get("QT_QPA_PLATFORM", "").strip().casefold() != "offscreen":
             self._schedule_owned_callback(POST_RENDER_NETWORK_DELAY_MS, self.prepare_network_capture)
@@ -2670,9 +2721,19 @@ class AtlasWindow(QMainWindow):
             self.settings_topmost_check.blockSignals(False)
 
     def update_runtime_badge(self, connected: bool) -> None:
+        # UI-side callbacks (including Mirror toggle) must never override
+        # the latched red emergency indicator while hooks remain installed.
+        runtime = getattr(self, "runtime", None)
+        lock = getattr(runtime, "macro_lock", None) if runtime is not None else None
+        connected = bool(connected) and getattr(lock, "emergency_latched", False) is not True
         organizer = self.page_widgets.get("Organizer") if hasattr(self, "page_widgets") else None
         if hasattr(organizer, "set_runtime_active"):
             organizer.set_runtime_active(bool(connected))
+        if hasattr(organizer, "set_mirror_arm_active"):
+            runtime = getattr(self, "runtime", None)
+            organizer.set_mirror_arm_active(
+                getattr(runtime, "mirror_armed", False) is True
+            )
 
     def _ensure_runtime(self) -> AtlasRuntime:
         if self.runtime is None:
@@ -2696,10 +2757,15 @@ class AtlasWindow(QMainWindow):
             return
         self._ensure_runtime().start()
 
-    def stop_runtime(self) -> None:
+    def stop_runtime(self, temporary: bool = False) -> None:
         runtime = self.runtime
         if runtime is not None:
-            runtime.emergency_stop("bouton stop")
+            # Profile/speed changes cancel the current worker but are not
+            # user-triggered emergency shutdowns.
+            runtime.emergency_stop(
+                "reconfiguration Organizer" if temporary else "bouton stop",
+                latch=not temporary,
+            )
 
     def refresh_runtime_sessions(self) -> None:
         organizer = self.page_widgets.get("Organizer") if hasattr(self, "page_widgets") else None
@@ -2718,6 +2784,10 @@ class AtlasWindow(QMainWindow):
         if self.quit_requested or self._background_services_stopped:
             return
         runtime = self._ensure_runtime()
+        if force_restart and not runtime.macro_lock.resume_after_stop():
+            self.update_runtime_badge(False)
+            self.set_status("Relancer impossible : attendre l'arrêt de la macro en cours.")
+            return
         if not getattr(runtime, "_running", False):
             runtime.start()
         else:
@@ -2731,15 +2801,78 @@ class AtlasWindow(QMainWindow):
         self.reload_runtime()
         self._ensure_runtime().launch_guide_travel(text, tuple(character_keys or ()))
 
-    def launch_zaap(self, text: str, click_position=None, click_ratios=None) -> None:
+    def launch_zaap(self, text: str, click_position=None, click_ratios=None) -> bool:
+        if self.quit_requested or self._background_services_stopped:
+            return False
+        # Refreshing sessions invalidates the running worker's generation.
+        # Refuse a second launch BEFORE any reload, not after MacroLock fails.
+        runtime = self.runtime
+        if runtime is not None and runtime.macro_lock.active_label:
+            return False
         self.reload_runtime()
-        self._ensure_runtime().launch_zaap(
-            text, click_position=click_position, click_ratios=click_ratios
-        )
+        if self.quit_requested or self._background_services_stopped:
+            return False
+        return bool(self._ensure_runtime().launch_zaap(
+            text, click_position=click_position, click_ratios=click_ratios,
+        ))
 
-    def launch_auto_group(self, invite_entries: list[dict[str, object]]) -> None:
+    def launch_next_character(self) -> None:
+        """Direct Organizer action: reuse the live character-switching worker."""
+        if self.quit_requested or self._background_services_stopped:
+            return
+        runtime = self._ensure_runtime()
+        if self.quit_requested or self._background_services_stopped:
+            return
+        if getattr(runtime, "mirror_armed", False) is True:
+            self.set_status("Arrêter Miroir avant de changer de personnage.")
+            return
+        if runtime.macro_lock.active_label:
+            self.set_status("Personnage suivant indisponible : macro déjà en cours.")
+            return
+        if not runtime.switch_character.activate_next():
+            self.set_status("Personnage suivant : aucune autre fenêtre DOFUS activable.")
+
+    def launch_previous_character(self) -> None:
+        """Use the same protected Organizer worker as Personnage suivant."""
+        if self.quit_requested or self._background_services_stopped:
+            return
+        runtime = self._ensure_runtime()
+        if self.quit_requested or self._background_services_stopped:
+            return
+        if getattr(runtime, "mirror_armed", False) is True:
+            self.set_status("Arrêter Miroir avant de changer de personnage.")
+            return
+        if runtime.macro_lock.active_label:
+            self.set_status("Personnage précédent indisponible : macro déjà en cours.")
+            return
+        if not runtime.switch_character.activate_previous():
+            self.set_status("Personnage précédent : aucune autre fenêtre DOFUS activable.")
+
+    def toggle_mirror(self) -> bool:
+        """User gesture: the tab alone never authorizes Mirror delivery."""
+        if self.quit_requested or self._background_services_stopped:
+            return False
+        runtime = self.runtime
+        if runtime is None:
+            self.set_status("Miroir indisponible : runtime pas encore démarré.")
+            return False
+        armed = runtime.toggle_mirror()
+        self.update_runtime_badge(bool(
+            runtime._running and runtime._admin_ok
+            and getattr(runtime.macro_lock, "emergency_latched", False) is not True
+        ))
+        return armed is True
+
+    def launch_auto_group(self, invite_entries: list[dict[str, object]]) -> bool:
+        if self.quit_requested or self._background_services_stopped:
+            return False
+        runtime = self.runtime
+        if runtime is not None and runtime.macro_lock.active_label:
+            return False
         self.reload_runtime()
-        self._ensure_runtime().launch_auto_group(invite_entries)
+        if self.quit_requested or self._background_services_stopped:
+            return False
+        return bool(self._ensure_runtime().launch_auto_group(invite_entries))
 
     def _shutdown_background_services(self) -> None:
         if self._background_services_stopped:
@@ -2791,6 +2924,7 @@ class AtlasWindow(QMainWindow):
 
 
 def main() -> int:
+    record_startup_event("app_main_begin")
     guard = SingleInstanceGuard()
     if not guard.acquire():
         LOGGER.warning("[main] another Dofus Atlas instance is already running")
@@ -2802,6 +2936,7 @@ def main() -> int:
         enable_dpi_awareness()
         configure_windows_app_id()
         app = QApplication(sys.argv)
+        record_startup_event("qt_application_created")
         register_unity_fonts()
         # The only visible window during preload is a transient QDialog;
         # hiding it must never quit Qt before revealing AtlasWindow.
@@ -2810,7 +2945,7 @@ def main() -> int:
         app.setWindowIcon(atlas_application_icon())
         splash = None
         splash_started_at = None
-        if LOGO_PATH.exists():
+        if LOGO_PATH.exists() and os.environ.get("DOFUS_ATLAS_LAUNCHER_HANDOFF") != "1":
             pixmap = splash_logo_pixmap()
             splash = QSplashScreen(pixmap, Qt.Window | Qt.FramelessWindowHint | Qt.WindowDoesNotAcceptFocus)
             splash.setAttribute(Qt.WA_TranslucentBackground, True)
@@ -2833,15 +2968,19 @@ def main() -> int:
         initial_preload: dict[str, Any] = {}
         LOGGER.info("[preload] main window stays hidden until functional preload finishes")
         LOGGER.info("[main] creating AtlasWindow")
+        record_startup_event("atlas_window_create_begin")
         window = AtlasWindow(initial_preload=initial_preload)
+        record_startup_event("atlas_window_created")
         LOGGER.info("[main] AtlasWindow created visible=%s title=%r", window.isVisible(), window.windowTitle())
         # Show only the standalone loading dialog. The normal Qt event loop
         # continues to process workers and progress without displaying Home.
         window.preload_popup.begin(dict(window.preload_states))
+        record_startup_event("preload_dialog_active")
         from app.distribution.health import announce_ready
         # The responsive preload dialog proves Qt is alive to the launcher.
         # Waiting for all cache builders here would exceed its health timeout.
         QTimer.singleShot(0, announce_ready)
+        QTimer.singleShot(0, lambda: record_startup_event("qt_event_loop"))
         if splash is not None and splash_started_at is not None:
             keep_splash_visible(app, splash_started_at)
             splash.close()

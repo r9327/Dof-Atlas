@@ -13,8 +13,62 @@ H = "b" * 40
 
 
 class ModularDomainRoutingTests(unittest.TestCase):
+    def test_runtime_regression_contracts_keep_all_reviewed_consumers(self):
+        domains = {"organizer", "guides", "identity", "data", "ui", "startup"}
+        path = "tests/test_runtime_regression_contracts.py"
+        self.assertEqual(owners_for(path), frozenset(domains))
+        plan = self.route([path])
+        self.assertEqual(set(plan["domains"]), domains)
+        self.assertEqual(plan["unknown_paths"], [])
+        unknown = "tests/test_runtime_unreviewed_contracts.py"
+        self.assertEqual(owners_for(unknown), frozenset())
+        self.assertEqual(self.route([unknown])["status"], "BLOCKED")
+
+    def test_inherited_pyside_shell_base_keeps_all_real_consumer_owners(self):
+        fixture = "tests/_pyside_shell_base.py"
+        domains = {"craft", "quests", "guides", "ui", "startup",
+                   "identity", "data", "organizer"}
+        self.assertEqual(owners_for(fixture), frozenset(domains))
+        plan = self.route([fixture])
+        self.assertEqual(plan["status"], "READY_TO_EXECUTE")
+        self.assertEqual(set(plan["domains"]), domains)
+        self.assertEqual(plan["unknown_paths"], [])
+        # Only this audited inherited shell fixture is allowed; future
+        # private test helpers must still fail closed.
+        unknown = "tests/_pyside_unreviewed_base.py"
+        self.assertEqual(owners_for(unknown), frozenset())
+        self.assertEqual(self.route([unknown])["status"], "BLOCKED")
+
+    def test_shared_text_requires_all_product_domains_without_unknown_wildcard(self):
+        domains = {"craft", "quests", "guides", "ui", "startup",
+                   "identity", "data", "organizer"}
+        for path in ("app/core/text.py", "tests/test_core_text.py"):
+            with self.subTest(path=path):
+                self.assertEqual(owners_for(path), frozenset(domains))
+                plan = self.route([path])
+                self.assertEqual(set(plan["domains"]), domains)
+                self.assertEqual(plan["unknown_paths"], [])
+        self.assertEqual(owners_for("app/core/text_unreviewed.py"), frozenset())
+        self.assertEqual(self.route(["app/core/text_unreviewed.py"])["status"], "BLOCKED")
+
     def route(self, paths, deleted=()):
         return plan_domains(base_sha=B, candidate_sha=H, paths=paths, deleted=list(deleted))
+
+    def test_exact_organizer_qt_capture_scripts_keep_strict_ownership(self):
+        # Only the two audited, synthetic, offscreen screenshot producers are
+        # owned. A future arbitrary capture executable is still blocked.
+        domains = frozenset({"organizer", "ui", "identity"})
+        for path in ("tests/capture_organizer_ui.py",
+                     "tests/capture_organizer_shell.py"):
+            with self.subTest(path=path):
+                self.assertEqual(owners_for(path), domains)
+                plan = self.route([path])
+                self.assertEqual(plan["status"], "READY_TO_EXECUTE")
+                self.assertEqual(plan["unknown_paths"], [])
+                self.assertFalse(plan["phase_certified"])
+        unknown = "tests/capture_organizer_unreviewed.py"
+        self.assertEqual(owners_for(unknown), frozenset())
+        self.assertEqual(self.route([unknown])["status"], "BLOCKED")
 
     def test_reviewed_organizer_files_get_strict_cross_domain_ownership(self):
         # Neither an unrelated macro nor a future native hook gets a free pass.
@@ -24,18 +78,33 @@ class ModularDomainRoutingTests(unittest.TestCase):
                                  "startup", "identity", "data", "organizer"},
             "app/core/profile_settings.py": {"organizer", "ui",
                                              "startup", "identity", "data"},
+            "app/core/settings.py": {"organizer", "ui",
+                                    "startup", "identity", "data"},
             "app/macros/zaap.py": {"organizer", "ui", "identity"},
             "app/macros/direction.py": {"organizer", "ui", "identity"},
             "app/macros/mirror_plan.py": {"organizer", "ui", "identity"},
+            "app/macros/mirror_input.py": {"organizer", "ui", "identity"},
             "app/pages/organizer/radial_selection.py": {"organizer", "ui", "identity"},
             "app/pages/organizer/radial_overlay.py": {"organizer", "ui", "identity"},
             "app/core/runtime_state.py": {"organizer", "ui", "startup", "identity"},
+            "app/input/mouse_hooks.py": {"organizer", "ui", "startup", "identity"},
             "app/pages/organizer_page.py": {"organizer", "ui", "startup", "identity"},
             "app/pages/organizer/character_sessions.py": {"organizer", "ui", "identity", "data"},
             "app/windows/clicks.py": {"organizer", "ui", "startup", "identity"},
+            "tests/test_direction.py": {"organizer", "ui", "identity"},
+            "tests/test_hotkeys.py": {"organizer", "ui", "startup", "identity"},
+            "tests/test_input_tools.py": {"organizer", "ui", "identity"},
+            "tests/test_runtime_state.py": {"organizer", "ui", "startup", "identity"},
+            "tests/test_organizer_switch_click_profile.py": {"organizer", "ui", "identity"},
+            "tools/benchmark_organizer_mirror_windows.py": {"ci", "organizer"},
+            "tests/test_organizer_mirror_windows_benchmark.py": {"ci", "organizer"},
+            "tools/organizer_mirror_log_report.py": {"ci", "organizer"},
+            "tests/test_organizer_mirror_log_report.py": {"ci", "organizer"},
             "tests/test_organizer_sendinput.py": {"organizer", "ui", "identity"},
             "tests/test_organizer_macro_reliability.py": {"organizer", "ui", "identity"},
+            "tests/test_organizer_favorite_inflight.py": {"organizer", "ui", "identity"},
             "tests/test_organizer_mirror_plan.py": {"organizer", "ui", "identity"},
+            "tests/test_organizer_mirror_ui.py": {"organizer", "ui", "identity"},
             "tests/test_organizer_radial_overlay.py": {"organizer", "ui", "identity"},
             "tests/test_organizer_hotkey_capture.py": {"organizer", "ui", "identity"},
             "docs/organizer/radial-selector.md": {"organizer", "ui", "identity"},
@@ -61,6 +130,117 @@ class ModularDomainRoutingTests(unittest.TestCase):
         generic_doc = "docs/organizer/unreviewed-contract.md"
         self.assertFalse(owners_for(generic_doc))
         self.assertNotIn("organizer", self.route([generic_doc])["domains"])
+
+    def test_shared_win32_and_storage_dependencies_keep_real_cross_domain_owners(self):
+        reviewed = {
+            "app/windows/focus.py":
+                {"organizer", "ui", "startup", "identity"},
+            "app/windows/unity_windows.py":
+                {"organizer", "ui", "startup", "identity"},
+            "app/storage.py":
+                {"craft", "quests", "guides", "ui", "startup",
+                 "identity", "data", "organizer"},
+        }
+        for path, expected in reviewed.items():
+            with self.subTest(path=path):
+                self.assertEqual(owners_for(path), frozenset(expected))
+                plan = self.route([path])
+                self.assertEqual(plan["status"], "READY_TO_EXECUTE")
+                self.assertEqual(plan["unknown_paths"], [])
+                self.assertEqual(set(plan["domains"]), expected)
+                self.assertFalse(plan["phase_certified"])
+        # No wildcard for future Win32 sender helpers or parallel stores.
+        for unknown in ("app/windows/new_injector.py",
+                        "app/windows/new_hooks.py",
+                        "app/storage_unreviewed.py"):
+            with self.subTest(path=unknown):
+                self.assertFalse(owners_for(unknown))
+                self.assertEqual(self.route([unknown])["status"], "BLOCKED")
+
+    def test_all_reviewed_organizer_p0_tests_get_explicit_ownership(self):
+        # These tests are real PR #325 files, not future hypothetical paths.
+        reviewed = (
+            "tests/test_character_hotkey_mapping.py",
+            "tests/test_organizer_focus_preflight.py",
+            "tests/test_organizer_focus_topmost.py",
+            "tests/test_organizer_hook_stop_race.py",
+            "tests/test_organizer_identity_overflow.py",
+            "tests/test_organizer_macro_generation.py",
+            "tests/test_organizer_mirror_focus_admission.py",
+            "tests/test_organizer_next_character.py",
+            "tests/test_organizer_numeric_hook_guards.py",
+            "tests/test_organizer_persisted_hwnd.py",
+            "tests/test_organizer_pointer_lease_epoch.py",
+            "tests/test_organizer_speed_lease.py",
+            "tests/test_organizer_speed_presets.py",
+            "tests/test_organizer_stop_hotkey_priority.py",
+            "tests/test_organizer_zaap_popup.py",
+        )
+        for path in reviewed:
+            with self.subTest(path=path):
+                self.assertEqual(
+                    owners_for(path), frozenset({"organizer", "ui", "identity"})
+                )
+                routed = self.route([path])
+                self.assertEqual(routed["status"], "READY_TO_EXECUTE")
+                self.assertEqual(routed["unknown_paths"], [])
+                self.assertEqual(
+                    routed["domains"], ["ui", "identity", "organizer"],
+                )
+        lazy = "tests/test_managed_hooks_lazy.py"
+        self.assertEqual(
+            owners_for(lazy),
+            frozenset({"organizer", "startup", "ui", "identity"}),
+        )
+        self.assertEqual(
+            self.route(list(reviewed) + [lazy])["status"],
+            "READY_TO_EXECUTE",
+        )
+        # Keep the intent of the strict closed-world owner registry intact.
+        for unreviewed in (
+            "tests/test_organizer_new_backend.py",
+            "tests/test_managed_hooks_unreviewed.py",
+            "app/input/new_win32_injector.py",
+        ):
+            with self.subTest(unreviewed=unreviewed):
+                self.assertFalse(owners_for(unreviewed))
+                self.assertEqual(
+                    self.route([unreviewed])["status"], "BLOCKED",
+                )
+
+    def test_new_organizer_ai_scope_manifests_have_exact_ci_owner(self):
+        manifests = (
+            ".ai/scopes/organizer.yaml",
+            ".ai/scopes/macro_runtime.yaml",
+            ".ai/scopes/persistence_identity.yaml",
+        )
+        for path in manifests:
+            with self.subTest(path=path):
+                self.assertEqual(owners_for(path), frozenset({"ci"}))
+                self.assertEqual(self.route([path])["status"], "READY_TO_EXECUTE")
+        self.assertEqual(self.route(list(manifests))["domains"], ["ci"])
+        self.assertFalse(owners_for(".ai/scopes/mirror_unreviewed.yaml"))
+        self.assertEqual(self.route([".ai/scopes/mirror_unreviewed.yaml"])["status"], "BLOCKED")
+
+    def test_doctor_pr_on_demand_exact_owner_and_contract(self):
+        # New on-demand runner is CI-only. Unknown sibling executables stay
+        # blocked until individually reviewed; the new contract test is owned.
+        changed = [
+            "tools/doctor_pr_on_demand.py",
+            "tools/doctor_dev_lot.py",
+            "tools/atlas_tools_on_demand.py",
+            "tests/test_atlas_tools_on_demand.py",
+            ".github/workflows/atlas-tools-on-demand.yml",
+            "tests/test_doctor_pr_on_demand.py",
+            ".github/workflows/atlas-doctor-on-demand.yml",
+            "GRAPHIFY.md",  # Reviewed root Graphify agent contract.
+        ]
+        for path in changed:
+            with self.subTest(path=path):
+                self.assertEqual(owners_for(path), frozenset({"ci"}))
+        self.assertEqual(self.route(changed)["status"], "READY_TO_EXECUTE")
+        self.assertFalse(owners_for("tools/doctor_unreviewed_entry.py"))
+        self.assertEqual(self.route(["tools/doctor_unreviewed_entry.py"])["status"], "BLOCKED")
 
     def test_delivery_contract_and_guard_are_ci_owned(self):
         for path in ("tools/ci_delivery_guard.py",
@@ -412,6 +592,39 @@ class ModularDomainRoutingTests(unittest.TestCase):
         self.assertFalse(owners_for("tools/install_unreviewed.ps1"))
         self.assertFalse(owners_for("tests/test_install_unreviewed.py"))
 
+    def test_doctor_context_and_offline_json_trials_have_narrow_ci_owners(self):
+        paths = [
+            "tools/ai_context.py", "tests/test_ai_context.py",
+            "tools/atlas_json_benchmark.py",
+            "tests/test_atlas_json_benchmark.py",
+        ]
+        for path in paths:
+            with self.subTest(path=path):
+                self.assertEqual(owners_for(path), frozenset({"ci"}))
+        plan = self.route(paths)
+        self.assertEqual(plan["status"], "READY_TO_EXECUTE")
+        self.assertEqual(plan["domains"], ["ci"])
+        self.assertFalse(plan["full_suite_executed"])
+        self.assertEqual(owners_for("tools/atlas_json_unreviewed.py"),
+                         frozenset())
+        self.assertEqual(owners_for("tests/test_json_unreviewed.py"),
+                         frozenset())
+
+    def test_oss_wheel_installer_has_exact_ci_owner_not_general_installers(self):
+        for path in ("tools/doctor_oss_wheels.py",
+                     "tests/test_doctor_oss_wheels.py",
+                     "tools/setup_doctor_oss.ps1"):
+            self.assertEqual(owners_for(path), frozenset({"ci"}), path)
+        self.assertEqual(owners_for("tools/unreviewed_wheels.py"), frozenset())
+        self.assertEqual(owners_for("tests/test_unreviewed_wheels.py"),
+                         frozenset())
+        plan = self.route([
+            "tools/doctor_oss_wheels.py", "tests/test_doctor_oss_wheels.py",
+        ])
+        self.assertEqual(plan["status"], "READY_TO_EXECUTE")
+        self.assertEqual(plan["domains"], ["ci"])
+        self.assertFalse(plan["full_suite_executed"])
+
     def test_doctor_ai_workflow_and_explicit_bootstrap_are_ci_owned(self):
         paths = ["AI_CONTEXT.md", "tools/setup_doctor_oss.ps1",
                  "tests/test_doctor_ai_usage.py"]
@@ -530,6 +743,8 @@ class ModularDomainRoutingTests(unittest.TestCase):
             "app/distribution/file_clone.py",
             "app/distribution/cleanup.py",
             "app/distribution/install_location.py",
+            "app/distribution/setup.py",
+            "tests/test_distribution_setup.py",
             "tests/test_distribution_disk_space.py",
             "tests/test_distribution_smart_update.py",
             "tests/test_distribution_packaging.py",
@@ -831,6 +1046,96 @@ class ModularDomainRoutingTests(unittest.TestCase):
         plan = self.route(["docs/readme.md", ".ai/context_index.json"])
         self.assertEqual(plan["domains"], ["metadata"])
         self.assertFalse(plan["phase_certified"])
+
+
+    def test_repo_update_protocol_has_exact_distribution_ownership(self):
+        # Only the reviewed pointer reader, offline producer, and its tests
+        # are owned. No scripts/windows/* or app/distribution/* wildcard.
+        files = (
+            "app/distribution/manifest.py",
+            "scripts/windows/build_repo_update_pointer.py",
+            "tests/test_distribution_repo_update_pointer.py",
+        )
+        for path in files:
+            with self.subTest(path=path):
+                self.assertEqual(owners_for(path),
+                                 frozenset({"ci", "startup", "data"}))
+        # The static B/H domain fixture predates NRU. Only test exact
+        # ownership here; actual head diff is checked by CI on real SHA.
+        for path in ("app/distribution/repo_update_unreviewed.py",
+                     "scripts/windows/rogue_pointer_publisher.py",
+                     "tests/test_distribution_unreviewed_pointer.py"):
+            self.assertEqual(owners_for(path), frozenset())
+
+    def test_unicode_install_relocation_has_exact_distribution_ownership(self):
+        path = "tests/test_distribution_install_location.py"
+        self.assertEqual(owners_for(path), frozenset({"ci", "startup", "data"}))
+        plan = self.route([path])
+        self.assertEqual(plan["status"], "READY_TO_EXECUTE")
+        self.assertEqual(plan["domains"], ["ci", "startup", "data"])
+        self.assertEqual(plan["unknown_paths"], [])
+        self.assertFalse(owners_for("tests/test_distribution_unknown_location.py"))
+        self.assertEqual(
+            self.route(["tests/test_distribution_unknown_location.py"])["status"],
+            "BLOCKED",
+        )
+
+
+    def test_pr285_startup_trace_paths_are_reviewed_without_wildcard(self):
+        expected = {
+            "app/distribution/startup_trace.py": {"startup", "ui"},
+            "app/distribution/health.py": {"startup", "ui"},
+            "tests/test_distribution_health.py": {"startup", "ui"},
+            "tools/startup_trace_report.py": {"ci", "startup"},
+            "tools/analyze_startup.py": {"ci", "startup"},
+        }
+        for path, owners in expected.items():
+            with self.subTest(path=path):
+                self.assertEqual(owners_for(path), frozenset(owners))
+        plan = self.route([
+            *expected,
+            "tests/test_startup_trace.py",
+            "tests/test_startup_trace_report.py",
+        ])
+        self.assertEqual(plan["status"], "READY_TO_EXECUTE")
+        self.assertEqual(plan["unknown_paths"], [])
+        self.assertEqual(plan["domains"], ["ci", "ui", "startup"])
+        self.assertFalse(plan["phase_certified"])
+        self.assertFalse(plan["merge_authorized"])
+        for path in (
+            "app/distribution/unreviewed_startup_helper.py",
+            "app/distribution/health_unknown.py",
+            "tests/test_distribution_health_unknown.py",
+            "tools/startup_trace_unknown.py",
+        ):
+            self.assertEqual(owners_for(path), frozenset(), path)
+            self.assertEqual(self.route([path])["status"], "BLOCKED")
+
+
+    def test_first_boot_integrity_regressions_have_only_reviewed_distribution_owner(self):
+        # A real first-boot regression modifies the Launcher, verified slot
+        # and bundled data. Keep the complete shared consumer closure instead
+        # of silently skipping this changed test or opening a broad wildcard.
+        owner = frozenset({"ci", "startup", "data"})
+        path = "tests/test_distribution_first_boot.py"
+        self.assertEqual(owners_for(path), owner)
+        plan = self.route([path])
+        self.assertEqual(plan["status"], "READY_TO_EXECUTE")
+        self.assertEqual(plan["domains"], ["ci", "startup", "data"])
+        self.assertEqual(plan["unknown_paths"], [])
+        self.assertEqual(
+            owners_for("tests/test_distribution_unreviewed_first_boot.py"),
+            frozenset(),
+        )
+
+    def test_multipart_assembler_has_strict_distribution_ownership(self):
+        paths = ["app/distribution/archive_parts.py", "tests/test_distribution_multipart.py"]
+        for path in paths:
+            self.assertEqual(owners_for(path), frozenset({"ci", "startup", "data"}))
+        result = self.route(paths)
+        self.assertEqual(result["status"], "READY_TO_EXECUTE")
+        self.assertEqual(result["unknown_paths"], [])
+        self.assertFalse(owners_for("app/distribution/unreviewed_archive.py"))
 
 
 if __name__ == "__main__":

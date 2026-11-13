@@ -39,6 +39,17 @@ UNITY_PALETTE = {
     "GREEN_HOVER": "#B1DC64",
     "GREEN_DARK": "#497332",
     "GREEN_BORDER": "#94BA62",
+    "GUIDE_PREPARATION_BORDER": "#8299C0",
+    "GUIDE_PREPARATION_TEXT": "#FFFFFF",
+    "GUIDE_ITEM_TEXT": "#F6F8FE",
+    "GUIDE_STATUS_TEXT": "#E4EDFC",
+    "GUIDE_NAV_BORDER": "#6B87B3",
+    "GUIDE_TOGGLE_TOP": "#445B89",
+    "GUIDE_TOGGLE_BOTTOM": "#273A62",
+    "GUIDE_TOGGLE_BORDER": "#8098BF",
+    "GUIDE_TOGGLE_ACTIVE": "#536F9D",
+    "GUIDE_TOGGLE_ACTIVE_BORDER": "#B8CBE8",
+    "GUIDE_TOGGLE_HOVER": "#516EA0",
     "SHELL_GRADIENT": "qlineargradient(x1:0, y1:0, x2:1, y2:0, stop:0 #192657, stop:1 #151821)",
     "PANEL_GRADIENT": "qlineargradient(x1:0, y1:0, x2:1, y2:1, stop:0 #24395F, stop:1 #192657)",
     "ACTIVE_GRADIENT": "qlineargradient(x1:0, y1:0, x2:0, y2:1, stop:0 #6E9B41, stop:1 #497332)",
@@ -178,31 +189,38 @@ def unity_skin_stylesheet() -> str:
         "QFrame#GuidePreparationSummary, QFrame#GuideManualWarningSection { "
         "background: qlineargradient(x1:0,y1:0,x2:0,y2:1, "
         "stop:0 rgba(69, 91, 140, 0.97), stop:1 rgba(24, 38, 74, 0.97)); "
-        "border: 1px solid #8299C0; border-radius: 5px; color: #FFFFFF; }",
+        "border: 1px solid %s; border-radius: 5px; color: %s; }" % (
+            UNITY_PALETTE["GUIDE_PREPARATION_BORDER"], UNITY_PALETTE["GUIDE_PREPARATION_TEXT"],
+        ),
         "QFrame#GuidePreparationRow, QFrame#GuidePreparationDetails { "
         "background: rgba(31, 48, 87, 0.92); "
         "border: 1px solid rgba(114, 149, 196, 0.65); border-radius: 5px; }",
         "QPushButton#GuidePreparationItemCopy { "
         "text-align: left; background: transparent; border: none; "
-        "color: #F6F8FE; padding: 3px; }",
+        "color: %s; padding: 3px; }" % UNITY_PALETTE["GUIDE_ITEM_TEXT"],
         "QPushButton#GuidePreparationItemCopy:hover { "
         "background: rgba(102, 139, 196, 0.30); border-radius: 4px; }",
         "QLabel#GuidePreparationRowStatus, QLabel#GuidePreparationParticipantNeed { "
-        "color: #E4EDFC; font-weight: 600; }",
+        "color: %s; font-weight: 600; }" % UNITY_PALETTE["GUIDE_STATUS_TEXT"],
         "QFrame#GuideManualNav { "
-        "background: rgba(19, 31, 59, 0.94); border-top: 1px solid #6B87B3; }",
+        "background: rgba(19, 31, 59, 0.94); border-top: 1px solid %s; }" % UNITY_PALETTE["GUIDE_NAV_BORDER"],
         "QToolButton#GuidePreparationToggle, QToolButton#GuideSummaryButton, "
         "QToolButton#GuideParticipantsButton { "
         "background: qlineargradient(x1:0,y1:0,x2:0,y2:1, "
-        "stop:0 #445B89, stop:1 #273A62); "
-        "color: #FFFFFF; border: 1px solid #8098BF; "
-        "border-radius: 5px; padding: 3px 8px; }",
+        "stop:0 %s, stop:1 %s); "
+        "color: %s; border: 1px solid %s; "
+        "border-radius: 5px; padding: 3px 8px; }" % (
+            UNITY_PALETTE["GUIDE_TOGGLE_TOP"], UNITY_PALETTE["GUIDE_TOGGLE_BOTTOM"],
+            UNITY_PALETTE["GUIDE_PREPARATION_TEXT"], UNITY_PALETTE["GUIDE_TOGGLE_BORDER"],
+        ),
         "QToolButton#GuidePreparationToggle:checked, QToolButton#GuideSummaryButton:checked, "
         "QToolButton#GuideParticipantsButton:checked { "
-        "background: #536F9D; border: 1px solid #B8CBE8; }",
+        "background: %s; border: 1px solid %s; }" % (
+            UNITY_PALETTE["GUIDE_TOGGLE_ACTIVE"], UNITY_PALETTE["GUIDE_TOGGLE_ACTIVE_BORDER"],
+        ),
         "QToolButton#GuidePreparationToggle:hover, QToolButton#GuideSummaryButton:hover, "
         "QToolButton#GuideParticipantsButton:hover { "
-        "background: #516EA0; }",
+        "background: %s; }" % UNITY_PALETTE["GUIDE_TOGGLE_HOVER"],
         "QDialog#AtlasDialog, QMenu { "
         "background: rgba(25, 38, 75, 0.98); color: #F1F6FB; "
         "border: 1px solid #617CA6; }",

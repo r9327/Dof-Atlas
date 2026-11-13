@@ -31,6 +31,27 @@ def _committed_text(path: str) -> str:
 
 
 class AiWorkflowSkillsTests(unittest.TestCase):
+    def test_macro_reliability_has_an_exact_owner_without_a_test_wildcard(self):
+        from tools import agent
+        path = "tests/test_organizer_macro_reliability.py"
+        report = agent.impact_payload(ROOT, [path])
+        self.assertEqual(report["unowned_paths"], [])
+        self.assertEqual(report["ownership"][path]["primary_scope"], "macro_runtime")
+        self.assertIn("tests.test_direction_macro", report["scope_tests"])
+        unknown = "tests/test_organizer_unreviewed_sender.py"
+        self.assertEqual(agent.ownership_payload(ROOT, [unknown])["unowned_paths"], [unknown])
+
+    def test_mirror_document_has_an_exact_organizer_owner_without_a_docs_wildcard(self):
+        from tools import agent
+        path = "docs/organizer/mirror-feasibility.md"
+        report = agent.impact_payload(ROOT, [path])
+        self.assertEqual(report["unowned_paths"], [])
+        self.assertEqual(report["ambiguous_paths"], [])
+        self.assertEqual(report["ownership"][path]["primary_scope"], "organizer")
+        self.assertIn("tests.test_organizer_shutdown_guard", report["scope_tests"])
+        unknown = "docs/organizer/unreviewed-acceptance.md"
+        self.assertEqual(agent.ownership_payload(ROOT, [unknown])["unowned_paths"], [unknown])
+
     def test_discoverable_skills_have_unique_valid_frontmatter(self) -> None:
         skills = sorted((ROOT / ".agents/skills").glob("*/SKILL.md"))
         self.assertTrue(NEW_SKILLS.issubset({p.parent.name for p in skills}))

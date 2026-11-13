@@ -50,6 +50,19 @@ After edits, use the same paths with `agent check --run-tests --json`,
 inspect the individual `approved_oss_execution.tools` statuses, then
 `agent validate`. If scope expands, replan.
 
+For tools beyond Doctor and Graphify, the authorized command and artifact
+route is `docs/atlas-tools-on-demand.md`. Use `/atlas tools` to discover the
+canonical catalog, and the exact approved `audit`, `ponytail`, `oss` or
+`bench` modes when the agent has no checkout; do not invent an arbitrary
+remote tool-execution command or treat a simulated eight-process bench as
+live DOFUS evidence.
+
+If the agent has **GitHub-only access** (no executable checkout), it may
+request Doctor or Graphify on an open PR (including Draft) using the authorized
+on-demand workflow described in `docs/doctor-on-demand-pr.md`. Read the
+report/artifact for the exact current PR HEAD, not just the workflow definition.
+Do not claim local tests or Windows behavior from a remote Ubuntu diagnostic.
+
 The `native_routes` are recommendations for calling the existing owners;
 they are not proof that a tool ran. `oss_recommendations` may contain
 evaluated or rejected projects that must **not** be launched. Only the
@@ -57,6 +70,38 @@ approved, already-installed Ruff and zizmor adapters may run automatically.
 An absent scanner remains a reported gap. Local Windows readiness uses
 `tools/setup_doctor_oss.ps1` in check-only mode by default; installation
 requires the explicit `-Install` switch. Follow #346 for real-PC proof.
+
+### Integration paths actually implemented
+
+The Doctor agent result now exposes `oss_local_preflight` and
+`oss_selection.local_package_probes/local_binary_probes` for *relevant*
+candidate IDs. These read installed package metadata or PATH only. They do not
+install, import, execute, license, or qualify the detected candidates.
+
+- Python or workflow edits: the existing `agent check --run-tests` owns scoped
+  unit tests and the already approved Ruff/zizmor subprocesses. Keep their
+  individual `CLEAN/FINDINGS/NOT_AVAILABLE/ERROR` states intact.
+- Changes to the OSS router: the canonical `tools.ai_context.recommended_tests`
+  now routes its actual Doctor OSS tests into the **existing** unittest runner.
+  When Hypothesis is locally installed, the same selector additionally runs
+  `tests.test_doctor_oss_hypothesis`. A missing dependency is not PASS.
+- JSON data evaluation: the canonical catalog now advertises
+  `tools.atlas_json_benchmark` with explicit `--compare-parsers`
+  (stdlib/orjson/msgspec), `--compare-streaming` (ijson quest parity) and
+  `--compare-compression` (zlib/zstandard round-trip). These are **manual
+  offline trials**, not a runtime parser/installer migration or RAM proof.
+- Local visual/font assets: Doctor can propose `oss --asset-trial` to compare
+  *explicit* image files using ImageHash, or `oss --font-trial` to inspect
+  selected Unity TTF/OTF using fontTools. Both commands are read-only, opt-in,
+  bounded, and do not demonstrate safe deletion, licence or Qt rendering.
+- Hypothesis: select the existing targeted test owner when the package is
+  installed; missing is not PASS. Qt/Launcher/Organizer/Guide specialists use
+  their established owners and branch-specific sources, never a fabricated
+  common runtime or third-party scanner.
+- An `OPT_IN_TRIAL_AVAILABLE` candidate means a tested invocation path has
+  been *implemented*, **not** that its dependency is present, the command ran,
+  or the backend has been approved for runtime. `locally_available=true`
+  does not authorize any new binary. Preserve independent Windows-only proofs.
 
 ## Routing rules
 

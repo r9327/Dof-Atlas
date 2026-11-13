@@ -146,7 +146,12 @@ def _latest_profile(path: Path) -> dict[str, object]:
                     payload = json.loads(raw)
                 except json.JSONDecodeError:
                     continue
-                if isinstance(payload, dict):
+                # The opt-in multi-process JSONL trace shares this file with
+                # legacy first-UI profiles. Trace events lack these fields and
+                # must not hide the last complete legacy sample.
+                if (isinstance(payload, dict)
+                        and isinstance(payload.get("timestamp"), str)
+                        and isinstance(payload.get("total_ms"), (float, int))):
                     latest = payload
     except OSError:
         return {}

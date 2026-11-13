@@ -27,12 +27,12 @@
     },
     ".github": {
       "mode": "040000",
-      "sha": "42ef48dbb395f28d893a0f0afe3dfe4519782f46",
+      "sha": "8167b5311efd42f52c11f8b778af28e11ea3050d",
       "type": "tree"
     },
     ".gitignore": {
       "mode": "100644",
-      "sha": "3a8da6d0e841fdd8e0f1ee1dc32940d574970c21",
+      "sha": "52502f3339edad8c427d7ab006fd286dd5e9eaa5",
       "type": "blob"
     },
     ".graphifyignore": {
@@ -42,7 +42,7 @@
     },
     "AGENTS.md": {
       "mode": "100644",
-      "sha": "00bee3ed058dcd3fea38b7fdda4abccad6c6c314",
+      "sha": "644213d944126be0bd9a96c1b1f8029cc4796248",
       "type": "blob"
     },
     "AI_CONTEXT.md": {
@@ -52,7 +52,7 @@
     },
     "AI_ENTRYPOINT.md": {
       "mode": "100644",
-      "sha": "931ffb72c0b9d0b5955280b96c4105484716a3ef",
+      "sha": "5875ff39d487189de6f1766f5d4146cd36eee94d",
       "type": "blob"
     },
     "CLAUDE.md": {
@@ -82,7 +82,7 @@
     },
     "GRAPHIFY.md": {
       "mode": "100644",
-      "sha": "9d7864b60257ee12d353706b563253a331e7ec47",
+      "sha": "e3b7ea3615de3d765a4839624e71e8df018bf1ef",
       "type": "blob"
     },
     "GUIDE_ULTIME_STATUS.md": {
@@ -117,7 +117,7 @@
     },
     "app": {
       "mode": "040000",
-      "sha": "4078460b4aa43027ad4988ac137cbcfca9bf4e8b",
+      "sha": "189cd30745fb996175241d13c51ac350adedfa9f",
       "type": "tree"
     },
     "data": {
@@ -127,22 +127,22 @@
     },
     "docs": {
       "mode": "040000",
-      "sha": "4ef5b0280952b59e1154445282073d1c5d3ad8f1",
+      "sha": "aa67dffb2e569c51739bff0ec9e16c50e9937c90",
       "type": "tree"
     },
     "launch.py": {
       "mode": "100644",
-      "sha": "8959b440f0453313ced73d362a3acaf6d45ef1f6",
+      "sha": "65b2a119ad7d7a715081270ccd2b8f0478915a49",
       "type": "blob"
     },
     "local_dofus_data": {
       "mode": "040000",
-      "sha": "1b60e20ed4f46bc567d369f16d5c2fa9a7474be7",
+      "sha": "e420025f0039e189b2c225d3dafd59858eb78ef4",
       "type": "tree"
     },
     "main.py": {
       "mode": "100644",
-      "sha": "20ad53159bae086b92ce7a8442e74301d655d387",
+      "sha": "5d2158d3d22f37f7361b5ca1e01a459c7a0c8878",
       "type": "blob"
     },
     "requirements-pyside.txt": {
@@ -152,7 +152,7 @@
     },
     "scripts": {
       "mode": "040000",
-      "sha": "b26ce46e5dd19170f4e3681256c02a0bf4ca0df6",
+      "sha": "3e13272a1986c164e9416cd602c9e47c4a20ee8b",
       "type": "tree"
     },
     "sitecustomize.py": {
@@ -162,12 +162,12 @@
     },
     "tests": {
       "mode": "040000",
-      "sha": "5163bcdf475718f80a79e0d40372bd7fc5387364",
+      "sha": "f56d7690a306e1f4b7947f6dcb5eca35c4837581",
       "type": "tree"
     },
     "tools": {
       "mode": "040000",
-      "sha": "42a818bde4d5fc07cf0fc99d957a05ee8634264e",
+      "sha": "e130128d9363979b003820f356fb7bbbc0989919",
       "type": "tree"
     }
   },

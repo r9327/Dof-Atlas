@@ -3,6 +3,7 @@ from __future__ import annotations
 import json
 import tempfile
 from pathlib import Path
+from types import SimpleNamespace
 from unittest.mock import patch
 
 from PySide6.QtCore import Qt
@@ -10,6 +11,8 @@ from PySide6.QtWidgets import QApplication
 
 import app.pages._quests_page_impl as quests_impl
 from app.constants import KEY_SESSION_ORDER
+from app.core.settings import ZaapTimings, load_settings, timings_for_speed
+from app.input.hotkeys import build_hotkey_actions, parse_hotkey
 from app.quest_catalog import QuestCatalog, QuestCharacter, QuestRecord
 from app.session_manager_pyside import QuestsPage
 from tests import _pyside_shell_base as _base
@@ -17,6 +20,63 @@ from tests import _pyside_shell_base as _base
 
 class PySideShellTests(_base.PySideShellTests):
     """Canonical shell suite with targeted overrides for superseded fixtures."""
+
+    def test_organizer_release_retries_are_bounded_and_temporary(self):
+        # The scanner is already mocked by the inherited scenario. Select
+        # its Windows branch without changing the process-wide os.name.
+        with patch("app.pages.organizer.character_sessions.os", SimpleNamespace(name="nt")):
+            super().test_organizer_release_retries_are_bounded_and_temporary()
+
+    def test_organizer_notifies_shell_when_release_title_becomes_character_name(self):
+        with patch("app.pages.organizer.character_sessions.os", SimpleNamespace(name="nt")):
+            super().test_organizer_notifies_shell_when_release_title_becomes_character_name()
+
+    def test_organizer_window_event_detects_dofus_started_after_atlas(self):
+        with patch("app.pages.organizer.character_sessions.os", SimpleNamespace(name="nt")):
+            super().test_organizer_window_event_detects_dofus_started_after_atlas()
+
+    def test_general_timings_are_not_too_low_for_reliable_macros(self):
+        # Schema 2 renamed the old Rapide baseline to Normal. Keep the
+        # original numeric floors attached to that same validated preset.
+        normal = timings_for_speed("normal")
+        rapide = timings_for_speed("rapide")
+        self.assertGreaterEqual(normal.click_focus_settle_ms, 8)
+        self.assertGreaterEqual(normal.activate_retry_ms, 12)
+        self.assertGreaterEqual(normal.auto_group_paste_settle_ms, 45)
+        self.assertGreaterEqual(normal.auto_group_invite_gap_ms, rapide.auto_group_invite_gap_ms)
+
+    def test_python_runtime_hotkeys_and_timings_replace_external_script(self):
+        simple, error = parse_hotkey("F12")
+        self.assertFalse(error)
+        self.assertEqual(simple.canonical, "F12")
+
+        combo, error = parse_hotkey("Ctrl+Alt+F12")
+        self.assertFalse(error)
+        self.assertEqual(combo.canonical, "CTRL+ALT+F12")
+
+        self.assertEqual(timings_for_speed("normal").switch_background_pre_click_ms, 18)
+        self.assertEqual(timings_for_speed("rapide").switch_background_pre_click_ms, 14)
+        self.assertEqual(
+            ZaapTimings(),
+            ZaapTimings(
+                focus_settle_ms=10,
+                activate_attempts=5,
+                activate_retry_ms=2,
+                open_wait_ms=1200,
+                click_settle_ms=250,
+                submit_settle_ms=70,
+                input_click_down_ms=1,
+                input_double_gap_ms=5,
+                reliable_click_pre_ms=35,
+                reliable_click_post_ms=25,
+            ),
+        )
+
+        settings = load_settings()
+        actions = build_hotkey_actions(settings)
+        action_ids = {action.action_id for action in actions}
+        self.assertTrue(all("window" not in action_id for action_id in action_ids))
+
 
     @staticmethod
     def _organizer_paths(organizer, root: Path) -> dict[str, Path]:
@@ -82,6 +142,7 @@ class PySideShellTests(_base.PySideShellTests):
                 page.export_client_index()
 
                 self.assertEqual(len(page.sessions), 8)
+                # All eight slots stay visible, even when only one client is live.
                 self.assertEqual(len(page.session_slot_widgets), 8)
                 self.assertEqual(page.sessions[0]["nom"], "Bob - Pandawa")
                 self.assertTrue(all(not page.sessions[index]["nom"] for index in range(1, 8)))

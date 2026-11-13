@@ -18,6 +18,12 @@ from app.constants import (
     KEY_SESSION_ORDER,
     KEY_STOP_SCRIPT_HOTKEY,
     KEY_RADIAL_HOTKEY,
+    KEY_RADIAL_ENABLED,
+    KEY_RADIAL_EXCLUDED,
+    KEY_NEXT_CHARACTER_HOTKEY,
+    KEY_PREVIOUS_CHARACTER_HOTKEY,
+    KEY_MIRROR_TOGGLE_HOTKEY,
+    KEY_ORGANIZER_MACRO_MODE,
     KEY_RADIAL_PARTICIPANTS,
     KEY_SWITCH_CHARACTER,
     KEY_SWITCH_CLICK,
@@ -28,7 +34,7 @@ from app.constants import (
 )
 from app.services.character_order_service import CharacterOrderService
 from app.services.profile_settings_service import ProfileSettingsService
-from app.storage import clean_auto_group_name, default_profiles, normalize_key, read_json
+from app.storage import clean_auto_group_name, default_profiles, normalize_key, profile_bool, read_json
 from app.windows_embed import UnityWindowEventWatcher, scan_unity_sessions
 from app.pages.organizer.character_sessions import CharacterSessionsMixin
 from app.pages.organizer.common import (
@@ -135,6 +141,9 @@ class OrganizerPage(
         parent: QWidget | None = None,
         sessions_changed_callback=None,
         active_session_callback=None,
+        next_character_callback=None,
+        previous_character_callback=None,
+        mirror_arm_callback=None,
     ) -> None:
         super().__init__(parent)
         self.setObjectName("organizerPage")
@@ -146,6 +155,9 @@ class OrganizerPage(
         self.launch_zaap_callback = launch_zaap_callback
         self.sessions_changed_callback = sessions_changed_callback
         self.active_session_callback = active_session_callback
+        self.next_character_callback = next_character_callback
+        self.previous_character_callback = previous_character_callback
+        self.mirror_arm_callback = mirror_arm_callback
         self._last_notified_session_signature: tuple[tuple[int, str, int, int], ...] | None = None
         self._sessions_render_dirty = False
         self.release_retry_index = 0
@@ -156,7 +168,9 @@ class OrganizerPage(
         self.profile_file = PROFILE_FILE
         self.client_index_json = CLIENT_INDEX_JSON
         self.client_index_ini = CLIENT_INDEX_INI
-        self.scan_unity_sessions_callback = lambda: scan_unity_sessions()
+        # None uses the canonical native scanner + DOFUS image filter.
+        # Explicit injections remain available for controlled tests/tools.
+        self.scan_unity_sessions_callback = None
 
         self.character_order_service = CharacterOrderService(self.profile_file)
         self.profiles = self.load_profiles()
@@ -184,6 +198,7 @@ class OrganizerPage(
         self.build_organizer_ui(status_callback, launch_zaap_callback)
         self._connect_actions()
         self.update_switch_buttons()
+        self.update_macro_mode_buttons()
         self.update_global_buttons()
         self.update_script_speed_buttons()
         self.update_debug_button()
@@ -201,7 +216,9 @@ class OrganizerPage(
             # selector existed. Do not enroll new scans after this snapshot.
             self.ensure_radial_participants()
             self.save_profiles(self.profiles)
-        self._radial_controller.set_shortcut(binding)
+        self._radial_controller.set_shortcut(
+            binding if profile_bool(self.profiles, KEY_RADIAL_ENABLED, True) else ""
+        )
         self.destroyed.connect(self._radial_controller.cancel)
         self.export_client_index()
         self.request_sessions_render()
@@ -243,6 +260,8 @@ class OrganizerPage(
         self._profiles_baseline = dict(current)
 
     def _connect_actions(self) -> None:
+        self.macro_mode_button.clicked.connect(lambda: self.set_macro_mode("macro"))
+        self.mirror_mode_button.clicked.connect(self.activate_or_toggle_mirror)
         self.click_button.clicked.connect(lambda: self.begin_capture("click"))
         self.click_clear.clicked.connect(lambda: self.clear_global_hotkey(KEY_CLICK_HOTKEY))
         self.double_click_button.clicked.connect(lambda: self.begin_capture("double_click"))
@@ -250,9 +269,18 @@ class OrganizerPage(
         self.stop_script_button.clicked.connect(self.stop_script)
         self.stop_script_hotkey_button.clicked.connect(lambda: self.begin_capture("stop_script"))
         self.stop_script_clear.clicked.connect(lambda: self.clear_global_hotkey(KEY_STOP_SCRIPT_HOTKEY))
-        self.radial_select_button.clicked.connect(lambda: self.begin_capture("radial"))
+        self.radial_select_button.clicked.connect(self.toggle_radial_enabled)
         self.radial_hotkey_button.clicked.connect(lambda: self.begin_capture("radial"))
         self.radial_clear.clicked.connect(lambda: self.clear_global_hotkey(KEY_RADIAL_HOTKEY))
+        self.next_character.clicked.connect(self.activate_next_character)
+        self.next_character_hotkey_button.clicked.connect(lambda: self.begin_capture("next_character"))
+        self.next_character_clear.clicked.connect(lambda: self.clear_global_hotkey(KEY_NEXT_CHARACTER_HOTKEY))
+        self.previous_character.clicked.connect(self.activate_previous_character)
+        self.previous_character_hotkey_button.clicked.connect(lambda: self.begin_capture("previous_character"))
+        self.previous_character_clear.clicked.connect(lambda: self.clear_global_hotkey(KEY_PREVIOUS_CHARACTER_HOTKEY))
+        self.mirror_arm_button.clicked.connect(self.toggle_mirror_armed)
+        self.mirror_toggle_hotkey_button.clicked.connect(lambda: self.begin_capture("mirror_toggle"))
+        self.mirror_toggle_clear.clicked.connect(lambda: self.clear_global_hotkey(KEY_MIRROR_TOGGLE_HOTKEY))
         self.reload_runtime_button.clicked.connect(self.reload_runtime)
         self.debug_button.clicked.connect(self.toggle_debug_mode)
         self.sessions_refresh_button.clicked.connect(self.scan_sessions)
@@ -261,8 +289,42 @@ class OrganizerPage(
         self.switch_double_click.clicked.connect(lambda: self.toggle_profile_bool(KEY_SWITCH_DOUBLE_CLICK))
         self.switch_movement.clicked.connect(lambda: self.toggle_profile_bool(KEY_SWITCH_MOVEMENT))
         self.switch_fake.clicked.connect(self.launch_auto_group)
+        self.script_speed_legacy.clicked.connect(lambda: self.set_script_speed("classique"))
         self.script_speed_normal.clicked.connect(lambda: self.set_script_speed("normal"))
         self.script_speed_fast.clicked.connect(lambda: self.set_script_speed("rapide"))
+        self.script_speed_instant.clicked.connect(lambda: self.set_script_speed("instantane"))
+
+    def activate_next_character(self) -> None:
+        """Use the existing app runtime; the shortcut badge configures the key."""
+        callback = self.next_character_callback
+        if callable(callback):
+            callback()
+        else:
+            self.status_callback("Personnage suivant : runtime indisponible.")
+
+    def activate_previous_character(self) -> None:
+        callback = self.previous_character_callback
+        if callable(callback):
+            callback()
+        else:
+            self.status_callback("Personnage précédent : runtime indisponible.")
+
+    def activate_or_toggle_mirror(self) -> None:
+        """The visible Mirror button both selects the mode and toggles delivery.
+
+        A user click is the explicit authorization; loading a saved Mirror
+        profile never arms it. The runtime callback remains fail-closed.
+        """
+        if self.profiles.get(KEY_ORGANIZER_MACRO_MODE, "macro") != "mirror":
+            self.set_macro_mode("mirror")
+        self.toggle_mirror_armed()
+
+    def toggle_mirror_armed(self) -> None:
+        callback = self.mirror_arm_callback
+        if callable(callback):
+            self.set_mirror_arm_active(callback() is True)
+        else:
+            self.status_callback("Activation Miroir indisponible : runtime absent.")
 
     def ensure_radial_participants(self) -> None:
         # Snapshot the current Organizer roster when the shortcut is first
@@ -274,6 +336,38 @@ class OrganizerPage(
         self.profiles[KEY_RADIAL_PARTICIPANTS] = list(dict.fromkeys(
             key for key in keys if key
         ))
+
+    def sync_radial_participants(self, *, persist: bool = True) -> bool:
+        """Auto-enroll NEW detected clients without undoing manual exclusions.
+
+        The watcher already scans Organizer windows; do not create another
+        process scanner or poll loop just to refresh the radial picker.
+        """
+        if not profile_bool(self.profiles, KEY_RADIAL_ENABLED, True):
+            return False
+        included = self.profiles.get(KEY_RADIAL_PARTICIPANTS)
+        if not isinstance(included, list):
+            return False
+        excluded = self.profiles.get(KEY_RADIAL_EXCLUDED, [])
+        blocked = {
+            key for key in excluded if isinstance(key, str)
+        } if isinstance(excluded, list) else set()
+        selected = list(dict.fromkeys(
+            key for key in included if isinstance(key, str) and key
+        ))
+        previous = tuple(selected)
+        for row in getattr(self, "sessions", ()):
+            if not session_is_detected(row):
+                continue
+            key = radial_roster_key(row)
+            if key and key not in blocked and key not in selected:
+                selected.append(key)
+        if tuple(selected) == previous:
+            return False
+        self.profiles[KEY_RADIAL_PARTICIPANTS] = selected
+        if persist:
+            self.save_profiles(self.profiles)
+        return True
 
     def radial_session_is_selected(self, session: dict[str, Any]) -> bool:
         # Before initial configuration, show the current roster as a preview.
@@ -288,14 +382,24 @@ class OrganizerPage(
         key = radial_roster_key(session)
         if not key:
             return
-        selected = [str(item) for item in self.profiles.get(
-            KEY_RADIAL_PARTICIPANTS, []
-        ) if isinstance(item, str)]
+        raw_selected = self.profiles.get(KEY_RADIAL_PARTICIPANTS, [])
+        selected = list(dict.fromkeys(
+            item for item in raw_selected if isinstance(item, str)
+        )) if isinstance(raw_selected, list) else []
+        raw_excluded = self.profiles.get(KEY_RADIAL_EXCLUDED, [])
+        excluded = list(dict.fromkeys(
+            item for item in raw_excluded if isinstance(item, str)
+        )) if isinstance(raw_excluded, list) else []
         if key in selected:
             selected.remove(key)
+            if key not in excluded:
+                excluded.append(key)
         else:
             selected.append(key)
+            if key in excluded:
+                excluded.remove(key)
         self.profiles[KEY_RADIAL_PARTICIPANTS] = selected
+        self.profiles[KEY_RADIAL_EXCLUDED] = excluded
         self.save_profiles(self.profiles)
         self.request_sessions_render()
 
@@ -312,21 +416,47 @@ class OrganizerPage(
         return visible_characters(sessions, handles)
 
     def _radial_can_open(self) -> bool:
+        if not profile_bool(self.profiles, KEY_RADIAL_ENABLED, True):
+            return False
+        # Stop urgence is never used to open the wheel, even if a legacy
+        # profile bypassed the normal hotkey-collision checks.
+        radial = self.hotkey_label(KEY_RADIAL_HOTKEY)
+        if radial and radial == self.hotkey_label(KEY_STOP_SCRIPT_HOTKEY):
+            return False
         if self.capture_target is not None:
             return False
-        from app.windows.unity_windows import foreground_window, is_unity_window
+        from app.windows.unity_windows import foreground_window
         hwnd = foreground_window()
-        # A foreign/untracked Dofus window is not an Organizer session and
-        # must not trigger a focus-changing radial picker.
-        return bool(
-            is_unity_window(hwnd)
-            and any(
-                session_is_detected(row) and session_hwnd(row) == hwnd
-                for row in getattr(self, "sessions", [])
-            )
-        )
+        # The selection shortcut is global: the source can be any existing
+        # Windows foreground window, not only an active DOFUS Unity client.
+        # The targets, by contrast, must still be verified Organizer sessions.
+        if type(hwnd) is not int or hwnd <= 0:
+            return False
+        if not any(session_is_detected(row) for row in getattr(self, "sessions", [])):
+            return False
+        overlay = getattr(self, "_radial_overlay", None)
+        if isinstance(overlay, QWidget) and overlay.isVisible():
+            # Do not activate a game after Alt+Tab or focus theft while held.
+            return hwnd == getattr(self, "_radial_origin_hwnd", None)
+        self._radial_origin_hwnd = hwnd
+        return True
 
     def _activate_radial_handle(self, handle: int) -> None:
+        # Closing the overlay must not move focus if another app took over.
+        origin = getattr(self, "_radial_origin_hwnd", None)
+        if type(origin) is int and origin > 0:
+            from app.windows.unity_windows import foreground_window
+            if foreground_window() != origin:
+                return
+        if handle == 0:
+            # Centre: open the existing Atlas window, never another instance.
+            window = self.window()
+            if window is not None:
+                window.showNormal()
+                window.raise_()
+                window.activateWindow()
+                self.status_callback("DOFUS ATLAS au premier plan.")
+            return
         if not any(session_hwnd(row) == handle and session_is_detected(row)
                    for row in getattr(self, "sessions", [])):
             return

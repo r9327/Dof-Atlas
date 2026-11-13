@@ -90,6 +90,8 @@ class FirstBootDiagnosticsTests(unittest.TestCase):
         from unittest.mock import Mock
         remote = Mock()
         remote.manifest.source_sha = "a" * 40
+        remote.manifest.app_version = "1"
+        remote.manifest.schema_version = 1
         remote.manifest.delta = None
         remote.manifest.files = ()
         remote.manifest.archive_parts = ()

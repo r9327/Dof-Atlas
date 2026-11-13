@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import logging
 import os
 from datetime import datetime
 from typing import Any
@@ -14,6 +15,9 @@ from app.constants import (
     KEY_SCRIPT_SPEED,
     KEY_SESSION_ORDER,
     KEY_STOP_SCRIPT_HOTKEY,
+    KEY_NEXT_CHARACTER_HOTKEY,
+    KEY_PREVIOUS_CHARACTER_HOTKEY,
+    KEY_MIRROR_TOGGLE_HOTKEY,
     KEY_SWITCH_CHARACTER,
     KEY_SWITCH_CLICK,
     KEY_SWITCH_DOUBLE_CLICK,
@@ -42,6 +46,7 @@ from app.validation_log import record_validation
 from .common import (
     RELEASE_RETRY_DELAYS_MS,
     SESSION_SLOT_COUNT,
+    KEY_SESSION_SLOT_ASSIGNMENTS,
     client_slot_hotkey_key,
     dofus_class_key_from_window_name,
     empty_session_slot,
@@ -85,7 +90,12 @@ class CharacterSessionsMixin:
         for raw_id, row in characters.items() if isinstance(characters, dict) else ():
             if not str(raw_id).isdigit() or not isinstance(row, dict):
                 continue
-            character_id = int(raw_id)
+            try:
+                character_id = int(raw_id)
+            except (ValueError, OverflowError):
+                # Unicode digit-like keys and oversized integers must not
+                # interrupt the entire verified identity refresh.
+                continue
             if character_id <= 0 or str(row.get("source") or "") != "verified_network_identity":
                 continue
             rows.append((character_id, dict(row)))
@@ -105,7 +115,12 @@ class CharacterSessionsMixin:
 
         owner_module = sys.modules.get("app.pages.organizer_page")
         scanner = getattr(owner_module, "scan_unity_sessions", scan_unity_sessions)
-        return scanner()
+        if scanner is not scan_unity_sessions:
+            # Explicit test/integration scanners retain their injection contract.
+            return scanner()
+        from app.macros.mirror_plan import is_dofus_unity_process
+        return [row for row in scanner() if isinstance(row, dict) and
+                is_dofus_unity_process(session_hwnd(row))]
 
     def load_profiles(self) -> dict[str, Any]:
         payload = read_json(self._profile_file(), default_profiles())
@@ -175,9 +190,33 @@ class CharacterSessionsMixin:
         self.profiles = self.load_profiles()
         refreshed = False
         if os.name == "nt":
-            sessions = self._scan_unity_sessions()
+            try:
+                sessions = self._scan_unity_sessions()
+            except Exception:
+                logging.getLogger(__name__).exception(
+                    "Organizer scan échoué : sessions précédentes conservées."
+                )
+                return False
+            # A broken native scanner is not proof that all eight DOFUS
+            # windows closed. Preserve the last published roster/index.
+            # An actual empty list remains a valid all-windows-closed scan.
+            if not isinstance(sessions, (list, tuple)):
+                logging.getLogger(__name__).warning(
+                    "Organizer scan invalide (%s) : sessions précédentes conservées.",
+                    type(sessions).__name__,
+                )
+                return False
+            valid = [
+                session for session in sessions
+                if isinstance(session, dict) and session_is_detected(session)
+            ]
+            if sessions and not valid:
+                logging.getLogger(__name__).warning(
+                    "Organizer scan uniquement corrompu : sessions précédentes conservées."
+                )
+                return False
             self.sessions = self.build_session_slots(sessions)
-            refreshed = bool(sessions)
+            refreshed = bool(valid)
         self.export_client_index()
         if render:
             self.request_sessions_render()
@@ -203,8 +242,17 @@ class CharacterSessionsMixin:
             watcher.stop()
 
     def on_unity_window_event(self, event_id: int, hwnd: int) -> None:
-        if int(event_id) == EVENT_SYSTEM_FOREGROUND and callable(self.active_session_callback):
-            self.active_session_callback(int(hwnd))
+        # Native watcher callbacks already provide exact Win32 ints.
+        # Never coerce True, fractional floats or textual HWNDs into a real
+        # tracked window: a bad event must not select another character.
+        if (type(event_id) is not int or type(hwnd) is not int
+                or not 0 < hwnd <= (2**64 - 1)):
+            logging.getLogger(__name__).warning(
+                "Organizer événement fenêtre invalide : sélection inchangée."
+            )
+            return
+        if event_id == EVENT_SYSTEM_FOREGROUND and callable(self.active_session_callback):
+            self.active_session_callback(hwnd)
         self.window_event_refresh_timer.start()
 
     def session_identity_signature(self) -> tuple[tuple[int, str, int, int], ...]:
@@ -224,6 +272,10 @@ class CharacterSessionsMixin:
         if signature == self._last_notified_session_signature:
             return
         self._last_notified_session_signature = signature
+        # The radial picker reuses this existing changed-roster event.
+        sync_radial = getattr(self, "sync_radial_participants", None)
+        if callable(sync_radial):
+            sync_radial()
         if callable(self.sessions_changed_callback):
             self.sessions_changed_callback()
 
@@ -237,11 +289,22 @@ class CharacterSessionsMixin:
         return sum(1 for session in self.sessions if session_is_detected(session))
 
     def build_session_slots(self, detected_sessions: list[dict[str, Any]]) -> list[dict[str, Any]]:
-        detected = [
-            dict(session)
-            for session in detected_sessions
-            if session_is_detected(session)
-        ]
+        # An event watcher may report one HWND more than once during a
+        # refresh. Duplicates must not consume the eight visible Organizer
+        # slots and hide the last real character. Deduplicate on the exact
+        # validated Win32 HWND, never on a possibly shared window title.
+        detected: list[dict[str, Any]] = []
+        seen_handles: set[int] = set()
+        for session in detected_sessions:
+            # Injectable Win32 scanners/watchers may yield corrupt records.
+            # Reject them without losing valid later windows (including #8).
+            if not isinstance(session, dict) or not session_is_detected(session):
+                continue
+            hwnd = session_hwnd(session)
+            if hwnd in seen_handles:
+                continue
+            seen_handles.add(hwnd)
+            detected.append(dict(session))
         ordered = list(
             self.character_order_service.sort_rows(
                 detected,
@@ -250,17 +313,36 @@ class CharacterSessionsMixin:
                 ),
             )
         )
-        slots = ordered[:SESSION_SLOT_COUNT]
-        while len(slots) < SESSION_SLOT_COUNT:
-            slots.append(empty_session_slot())
+        # Keep logical character order canonical, but restore explicit sparse
+        # Organizer slot choices independently. An ambiguous name cannot claim
+        # a slot; an unknown/offline name leaves the position available.
+        slots = [empty_session_slot() for _ in range(SESSION_SLOT_COUNT)]
+        saved = self.profiles.get(KEY_SESSION_SLOT_ASSIGNMENTS, ())
+        if isinstance(saved, (list, tuple)):
+            for index, token in enumerate(saved[:SESSION_SLOT_COUNT]):
+                key = normalize_key(token) if isinstance(token, str) else ""
+                if not key:
+                    continue
+                matches = [
+                    row for row in ordered
+                    if self.persisted_session_order_key(row) == key
+                ]
+                if len(matches) != 1:
+                    continue
+                slots[index] = matches[0]
+                ordered.remove(matches[0])
+        for row in ordered:
+            index = next((i for i, value in enumerate(slots) if session_is_empty(value)), None)
+            if index is None:
+                break
+            slots[index] = row
         return slots
 
     def session_order_keys(self, session: dict[str, Any]) -> list[str]:
-        try:
-            hwnd = int(session.get("hwnd", 0))
-        except (AttributeError, TypeError, ValueError):
-            hwnd = 0
-        label = str(session.get("nom", "")).strip() if isinstance(session, dict) else ""
+        # Reuse the exact HWND parser used for export and dispatch. A float
+        # or boolean alias must not acquire a persisted session-order key.
+        hwnd = session_hwnd(session)
+        label = session_name(session)
         short_name = clean_auto_group_name(label)
         keys = [normalize_key(label), normalize_key(short_name)]
         if hwnd > 0:
@@ -300,6 +382,28 @@ class CharacterSessionsMixin:
             return
         self.character_order_service.save_labels(order)
         self.profiles[KEY_SESSION_ORDER] = list(self.character_order_service.load_order())
+        current_slots = [
+            self.persisted_session_order_key(session) if session_is_detected(session) else ""
+            for session in self.sessions[:SESSION_SLOT_COUNT]
+        ]
+        current_slots += [""] * (SESSION_SLOT_COUNT - len(current_slots))
+        prior = self.profiles.get(KEY_SESSION_SLOT_ASSIGNMENTS, ())
+        active = {key for key in current_slots if key}
+        if isinstance(prior, (list, tuple)):
+            for index, token in enumerate(prior[:SESSION_SLOT_COUNT]):
+                # Preserve positions of disconnected users, but never leave
+                # a ghost of a character that was intentionally moved.
+                key = normalize_key(token) if isinstance(token, str) else ""
+                if not current_slots[index] and key and key not in active:
+                    current_slots[index] = key
+        if not isinstance(prior, (list, tuple)) or list(prior) != current_slots:
+            ProfileSettingsService(self._profile_file()).update_values(
+                {KEY_SESSION_SLOT_ASSIGNMENTS: current_slots},
+                default=default_profiles(),
+            )
+        self.profiles[KEY_SESSION_SLOT_ASSIGNMENTS] = current_slots
+        if hasattr(self, "_profiles_baseline"):
+            self._profiles_baseline[KEY_SESSION_SLOT_ASSIGNMENTS] = current_slots
 
     def primary_session(self) -> dict[str, Any] | None:
         primary = str(self.profiles.get(KEY_PRIMARY_WINDOW, ""))
@@ -320,33 +424,88 @@ class CharacterSessionsMixin:
     def launch_auto_group(self) -> None:
         self.capture_target = None
         invite_names = []
-        seen = set()
+        seen_names: set[str] = set()
+        seen_windows: set[int] = set()
+        ambiguous_names = 0
+        duplicate_windows = 0
+        invalid_names = 0
         for session in self.sessions:
             if not session_is_detected(session):
                 continue
             name = clean_auto_group_name(session.get("nom", ""))
             key = normalize_key(name)
-            if not name or key in seen:
+            hwnd = session_hwnd(session)
+            if not name or not key:
+                invalid_names += 1
                 continue
-            seen.add(key)
-            invite_names.append({"name": name, "handle": session_hwnd(session)})
+            if hwnd in seen_windows:
+                duplicate_windows += 1
+                continue
+            if key in seen_names:
+                # Two distinct detected windows with the same invite name
+                # cannot both be addressed unambiguously with /invite.
+                # Never drop an actual participant silently.
+                ambiguous_names += 1
+                continue
+            seen_windows.add(hwnd)
+            seen_names.add(key)
+            invite_names.append({"name": name, "handle": hwnd})
+        if ambiguous_names or duplicate_windows or invalid_names:
+            self.status_callback(
+                "Auto-groupe non lancé : sessions ambiguës "
+                f"({ambiguous_names} nom(s) en doublon, "
+                f"{duplicate_windows} fenêtre(s) en doublon, "
+                f"{invalid_names} nom(s) invalide(s)). "
+                "Actualiser Organizer avant de relancer."
+            )
+            return
         if not invite_names:
             self.status_callback("Auto-groupe ignoré: aucun personnage détecté.")
             return
         self.export_client_index()
-        if callable(self.launch_auto_group_callback):
-            self.launch_auto_group_callback(invite_names)
-        else:
-            self.status_callback("Runtime Python indisponible.")
+        callback = self.launch_auto_group_callback
+        if not callable(callback):
+            self.status_callback("Auto-groupe indisponible : runtime Python absent.")
             return
-        self.status_callback(f"Auto-groupe lancé: {len(invite_names)} invitation(s).")
+        try:
+            accepted = callback(invite_names)
+        except Exception:
+            logging.getLogger(__name__).exception(
+                "Auto-groupe : échec du callback de lancement."
+            )
+            self.status_callback("Auto-groupe non lancé : erreur du runtime.")
+            return
+        if accepted is False:
+            self.status_callback(
+                "Auto-groupe non lancé : une macro est déjà active ou le démarrage a échoué."
+            )
+        elif accepted is True:
+            # The worker has merely started. Only its own telemetry knows
+            # how many commands were sent; never claim invitations succeeded.
+            self.status_callback("Auto-groupe en cours : vérification des invitations.")
+        else:
+            # Backwards-compatible adapter: a callback returning None does
+            # not prove that any worker started.
+            self.status_callback("Auto-groupe transmis au runtime (démarrage non confirmé).")
 
     def scan_sessions(self) -> None:
         if os.name != "nt":
             self.status_callback("Scan sessions disponible seulement sous Windows.")
             return
         self.capture_target = None
-        self.sessions = self.build_session_slots(self._scan_unity_sessions())
+        try:
+            scanned = self._scan_unity_sessions()
+        except Exception:
+            logging.getLogger(__name__).exception(
+                "Organizer scan manuel échoué : sessions précédentes conservées."
+            )
+            self.status_callback("Scan échoué : sessions précédentes conservées.")
+            return
+        if not isinstance(scanned, (list, tuple)) or (scanned and not any(
+                isinstance(row, dict) and session_is_detected(row) for row in scanned)):
+            self.status_callback("Scan invalide : sessions précédentes conservées.")
+            return
+        self.sessions = self.build_session_slots(scanned)
         self.export_client_index()
         self.request_sessions_render()
         self.sync_event_watcher_sessions()
@@ -376,9 +535,20 @@ class CharacterSessionsMixin:
             return
         previous_signature = self.session_identity_signature()
         self.profiles = self.load_profiles()
-        self.sessions = self.build_session_slots(
-            CharacterSessionsMixin._scan_unity_sessions(self)
-        )
+        try:
+            scanned = CharacterSessionsMixin._scan_unity_sessions(self)
+        except Exception:
+            logging.getLogger(__name__).exception(
+                "Organizer événement Windows : scan échoué, sessions conservées."
+            )
+            return
+        if not isinstance(scanned, (list, tuple)) or (scanned and not any(
+                isinstance(row, dict) and session_is_detected(row) for row in scanned)):
+            logging.getLogger(__name__).warning(
+                "Organizer événement Windows : scan invalide, sessions conservées."
+            )
+            return
+        self.sessions = self.build_session_slots(scanned)
         changed = self.session_identity_signature() != previous_signature
         if changed:
             self.export_client_index()
@@ -404,9 +574,22 @@ class CharacterSessionsMixin:
         if os.name != "nt" or not self.sessions_have_generic_names():
             return
         previous_signature = self.session_identity_signature()
-        self.sessions = self.build_session_slots(
-            CharacterSessionsMixin._scan_unity_sessions(self)
-        )
+        try:
+            scanned = CharacterSessionsMixin._scan_unity_sessions(self)
+        except Exception:
+            logging.getLogger(__name__).exception(
+                "Organizer identification différée : scan échoué, sessions conservées."
+            )
+            self.schedule_next_release_identity_retry()
+            return
+        if not isinstance(scanned, (list, tuple)) or (scanned and not any(
+                isinstance(row, dict) and session_is_detected(row) for row in scanned)):
+            logging.getLogger(__name__).warning(
+                "Organizer identification différée : scan invalide, sessions conservées."
+            )
+            self.schedule_next_release_identity_retry()
+            return
+        self.sessions = self.build_session_slots(scanned)
         changed = self.session_identity_signature() != previous_signature
         if changed:
             self.export_client_index()
@@ -451,10 +634,7 @@ class CharacterSessionsMixin:
             return ""
         for character_id, row in self._verified_character_rows():
             token = f"character:{character_id}"
-            try:
-                row_pid = int(row.get("pid") or 0)
-            except (TypeError, ValueError):
-                row_pid = 0
+            row_pid = session_pid(row)
             # A Windows PID can be reused after restart. Never trust it
             # without matching the verified character name AND class.
             verified_identity_matches = (
@@ -556,11 +736,8 @@ class CharacterSessionsMixin:
     def set_primary_window(self, session: dict[str, Any] | str) -> None:
         current = str(self.profiles.get(KEY_PRIMARY_WINDOW, ""))
         if isinstance(session, dict):
-            name = str(session.get("nom", "Session"))
-            try:
-                hwnd = int(session.get("hwnd", 0))
-            except (TypeError, ValueError):
-                hwnd = 0
+            name = session_name(session) or "Session"
+            hwnd = session_hwnd(session)
             token = self.primary_token_for_session(name, hwnd, session)
         else:
             name = str(session)
@@ -582,12 +759,34 @@ class CharacterSessionsMixin:
         self.save_profiles(self.profiles)
         self.export_client_index()
         self.render_sessions()
+        # Rebind the mirror source immediately after a favorite change.
+        self.reload_runtime_callback()
         self.status_callback(f"Fenêtre principale : {name}")
+
+    def sync_primary_to_first_slot(self) -> None:
+        """Use the first occupied slot as the master without guessing identities.
+
+        A missing or ambiguous first session disables the mirror primary rather
+        than silently leaving a previously selected favorite in another slot.
+        """
+        first = next(
+            (session for session in self.sessions if not session_is_empty(session)),
+            None,
+        )
+        token = (
+            self.primary_token_for_session(
+                session_name(first), session_hwnd(first), first,
+            )
+            if first is not None and session_is_detected(first) else ""
+        )
+        if str(self.profiles.get(KEY_PRIMARY_WINDOW, "")).strip() != token:
+            self.profiles[KEY_PRIMARY_WINDOW] = token
+            self.save_profiles(self.profiles)
 
     def export_client_index(self) -> None:
         timestamp = datetime.now().astimezone().isoformat(timespec="seconds")
         self.save_session_order()
-        self.rebind_primary_preference()
+        self.sync_primary_to_first_slot()
         primary_token = str(self.profiles.get(KEY_PRIMARY_WINDOW, ""))
         primary_label = ""
         primary_handle = 0
@@ -600,6 +799,9 @@ class CharacterSessionsMixin:
         click_hotkey = str(self.profiles.get(KEY_CLICK_HOTKEY, "")).strip() if click_enabled else ""
         double_click_hotkey = str(self.profiles.get(KEY_DOUBLE_CLICK_HOTKEY, "")).strip() if double_click_enabled else ""
         stop_script_hotkey = str(self.profiles.get(KEY_STOP_SCRIPT_HOTKEY, "")).strip()
+        next_character_hotkey = str(self.profiles.get(KEY_NEXT_CHARACTER_HOTKEY, "")).strip()
+        previous_character_hotkey = str(self.profiles.get(KEY_PREVIOUS_CHARACTER_HOTKEY, "")).strip()
+        mirror_toggle_hotkey = str(self.profiles.get(KEY_MIRROR_TOGGLE_HOTKEY, "")).strip()
         script_speed = self.script_speed()
         debug_enabled = profile_bool(self.profiles, KEY_DEBUG_MODE, False)
         if double_click_enabled and click_hotkey and double_click_hotkey and click_hotkey == double_click_hotkey:
@@ -625,7 +827,8 @@ class CharacterSessionsMixin:
             binding = self.resolve_client_binding(
                 slot_index,
                 used_client_bindings,
-                {click_hotkey, double_click_hotkey, stop_script_hotkey},
+                {click_hotkey, double_click_hotkey, stop_script_hotkey, next_character_hotkey,
+                 previous_character_hotkey, mirror_toggle_hotkey},
             )
             clients.append(
                 {
@@ -659,7 +862,11 @@ class CharacterSessionsMixin:
                 "double_click_hotkey": double_click_hotkey,
                 "movement_enabled": profile_bool(self.profiles, KEY_SWITCH_MOVEMENT, False),
                 "stop_script_hotkey": stop_script_hotkey,
+                "next_character_hotkey": next_character_hotkey,
+                "previous_character_hotkey": previous_character_hotkey,
+                "mirror_toggle_hotkey": mirror_toggle_hotkey,
                 "script_speed": script_speed,
+                "script_speed_schema": 2,
                 "debug_enabled": debug_enabled,
                 "zaap_click_x": read_zaap_click_position(self.profiles)[0],
                 "zaap_click_y": read_zaap_click_position(self.profiles)[1],
@@ -689,7 +896,9 @@ class CharacterSessionsMixin:
             f"double_click_hotkey={double_click_hotkey}",
             f"movement_enabled={1 if profile_bool(self.profiles, KEY_SWITCH_MOVEMENT, False) else 0}",
             f"stop_script_hotkey={stop_script_hotkey}",
+            f"next_character_hotkey={next_character_hotkey}",
             f"script_speed={script_speed}",
+            "script_speed_schema=2",
             f"debug_enabled={1 if debug_enabled else 0}",
             f"zaap_click_x={read_zaap_click_position(self.profiles)[0]}",
             f"zaap_click_y={read_zaap_click_position(self.profiles)[1]}",

@@ -19,11 +19,13 @@ _SCOPES: dict[str, tuple[str, ...]] = {
     "workflow": ("ATOSS-21", "ATOSS-22"),
     "qt": ("ATOSS-01", "ATOSS-02"),
     "guide": ("ATOSS-02", "ATOSS-15"),
-    "launcher": ("ATOSS-03", "ATOSS-02", "ATOSS-14"),
-    "json": ("ATOSS-11", "ATOSS-12", "ATOSS-13", "AT-SUP-01"),
-    "perf": ("ATOSS-06", "ATOSS-10", "ATOSS-07", "ATOSS-08", "ATOSS-09"),
+    "launcher": ("ATOSS-03", "ATOSS-02", "ATOSS-14", "AT-SUP-02", "AT-SUP-03"),
+    "json": ("ATOSS-11", "ATOSS-12", "ATOSS-13", "ATOSS-14", "AT-SUP-01", "AT-SUP-05"),
+    "perf": ("ATOSS-06", "ATOSS-10", "ATOSS-07", "ATOSS-08", "ATOSS-09", "ATOSS-04", "ATOSS-25"),
     "assets": ("ATOSS-16", "ATOSS-17"),
     "dependencies": ("ATOSS-23", "AT-SUP-04"),
+    "test_tools": ("ATOSS-05", "ATOSS-02", "ATOSS-01"),
+    "agent_eval": ("ATOSS-24",),
 }
 # Dedicated adapters, never expanded automatically to other discovered tools.
 _EXECUTABLE = frozenset({"ATOSS-20", "ATOSS-21"})
@@ -37,6 +39,45 @@ _PRIORITY = {
     "ATOSS-06": 1, "ATOSS-10": 1, "ATOSS-11": 1,
     "ATOSS-15": 2, "ATOSS-16": 2,
 }
+# Exact developer-only opt-in entry points that already exist in this PR.
+# These are callable trials, NEVER automatic execution or evidence of adoption.
+# This table routes policy; the ATOSS study remains the candidate inventory.
+_OPTIONAL_TRIAL_ROUTES = {
+    "ATOSS-02": "tools.ai_context.recommended_tests (Hypothesis installed; scoped tests only)",
+    # Select the isolated parser/RSS trial for performance decisions. The
+    # original warm-only --compare-parsers stays available as a manual probe.
+    "ATOSS-11": "tools.atlas_json_benchmark --compare-process",
+    "ATOSS-12": "tools.atlas_json_benchmark --compare-process",
+    "ATOSS-13": "tools.atlas_json_benchmark --compare-streaming",
+    "ATOSS-14": "tools.atlas_json_benchmark --compare-compression",
+    "ATOSS-16": "tools.atlas_doctor oss --asset-trial (manual-only ImageHash)",
+    "ATOSS-17": "tools.atlas_doctor oss --font-trial (manual-only fontTools)",
+}
+
+# Only lookup aliases for read-only local package metadata (never imports or installs).
+# Candidate names, IDs and acceptance decisions still come from the study.
+_DISTRIBUTIONS = {
+    "ATOSS-01": "pytest-qt", "ATOSS-02": "hypothesis",
+    "ATOSS-03": "pywinauto", "ATOSS-04": "pytest-benchmark",
+    "ATOSS-05": "pytest-xdist", "ATOSS-06": "py-spy",
+    "ATOSS-07": "viztracer", "ATOSS-08": "scalene",
+    "ATOSS-09": "pyinstrument", "ATOSS-10": "psutil",
+    "ATOSS-11": "msgspec", "ATOSS-12": "orjson",
+    "ATOSS-13": "ijson", "ATOSS-14": "zstandard",
+    "ATOSS-15": "rapidfuzz", "ATOSS-16": "ImageHash",
+    "ATOSS-17": "fonttools", "ATOSS-19": "semgrep",
+    "ATOSS-20": "ruff", "ATOSS-21": "zizmor",
+    "ATOSS-25": "opentelemetry-api",
+    "AT-SUP-01": "jsonschema", "AT-SUP-02": "pyinstaller",
+    "AT-SUP-04": "pip-audit", "AT-SUP-05": "pydantic",
+}
+# Executable aliases are only probed on PATH. Neither provenance nor CLI
+# compatibility is implied by a positive result.
+_BINARIES = {
+    "ATOSS-18": "ast-grep",
+    "ATOSS-22": "gitleaks",
+    "ATOSS-23": "osv-scanner",
+}
 _MAX_RECOMMENDATIONS = 8
 
 
@@ -48,6 +89,10 @@ def classify_scope(paths: Iterable[str]) -> list[str]:
         domain = classify_path(path)
         if lowered.endswith((".py", ".pyi")):
             scopes.add("python")
+        if lowered.startswith("tests/") and lowered.endswith(".py"):
+            scopes.add("test_tools")
+        if any(token in lowered for token in ("local_ai", "agent_task", "agent_protocol")):
+            scopes.add("agent_eval")
         if lowered.startswith(".github/workflows/") and lowered.endswith((".yaml", ".yml")):
             scopes.add("workflow")
         if domain in {"ui"} or any(token in lowered for token in (
@@ -99,15 +144,26 @@ def intelligent_plan(paths: Iterable[str], inventory: dict[str, Any],
                  else "EXTERNAL_OWNER" if cid in _EXTERNAL_OWNER
                  else "REUSE_EXISTING" if cid in _EXISTING
                  else "OPT_IN_APPROVED_ADAPTER" if cid in _EXECUTABLE
+                 else "OPT_IN_TRIAL_AVAILABLE" if cid in _OPTIONAL_TRIAL_ROUTES
                  else "EVALUATION_REQUIRED")
         if "REJECT" in found.get("study_decision", ""):
             state = "REJECTED"
+        if found.get("final_decision") == "REJECTED":
+            state = "REJECTED"
+        elif found.get("final_decision") == "HOLDING_ONLY":
+            state = "EXTERNAL_OWNER"
         rows.append({
             "id": cid, "name": found.get("name"), "decision": state,
+            "final_policy_decision": found.get("final_decision"),
             "reason_scopes": sorted(reasons[cid]),
             "priority": priority[cid],
             "tool_executed": False,
             "licensed_for_automation": False,
+            "local_distribution": _DISTRIBUTIONS.get(cid),
+            "local_binary": _BINARIES.get(cid),
+            "opt_in_trial_route": _OPTIONAL_TRIAL_ROUTES.get(cid),
+            "trial_executed": False,
+            "adoption_qualified": False,
         })
     # Never truncate executable recommendations behind multiple optional
     # alternatives; the full inventory remains accessible separately.
@@ -119,11 +175,24 @@ def intelligent_plan(paths: Iterable[str], inventory: dict[str, Any],
     if "qt" in scopes:
         native_routes.append("tools.atlas_doctor ui (existing Qt scenarios)")
     if "guide" in scopes:
-        native_routes.append("tools.atlas_doctor certify (guide owner)")
+        # Guide development must never silently dispatch certification.
+        native_routes.append("tools.atlas_doctor agent check (Guide scoped owner)")
+        native_routes.append("tools.atlas_doctor graph (Guide dependency impact)")
     if "perf" in scopes:
         native_routes.append("tools.atlas_doctor perf (single Perf Lab)")
     if "json" in scopes:
         native_routes.append("tools.atlas_json_inventory (existing JSON owner)")
+        native_routes.append("tools.atlas_json_benchmark (explicit parser/stream/compression trials)")
+    if "launcher" in scopes:
+        native_routes.append("tools.atlas_doctor agent check (Launcher scoped owner)")
+    if "test_tools" in scopes:
+        native_routes.append("tools.ai_context recommended_tests (existing unittest owner)")
+    if "assets" in scopes:
+        native_routes.append("tools.atlas_doctor file-audit (asset review, no deletion)")
+        native_routes.append("tools.atlas_doctor oss --asset-trial (explicit ImageHash comparison, no deletion)")
+        native_routes.append("tools.atlas_doctor oss --font-trial (explicit fontTools metadata, no font mutation)")
+    if "dependencies" in scopes:
+        native_routes.append("tools.tool_catalog (local package metadata only)")
     if "python" in scopes:
         native_routes.append("tools.atlas_doctor agent check (existing targeted tests)")
     complete_inventory = {
@@ -145,9 +214,23 @@ def intelligent_plan(paths: Iterable[str], inventory: dict[str, Any],
                   else "REVIEW",
         "scopes": scopes,
         "recommended": included,
+        "evaluated_candidates": rows,
+        "omitted_candidates": rows[limit:],
         "omitted_count": omitted,
         "native_routes": list(dict.fromkeys(native_routes)),
         "inventory_coverage": complete_inventory,
+        "local_package_probes": [
+            {"id": row["id"], "distribution": row["local_distribution"]}
+            for row in included
+            if row["decision"] not in {"REJECTED", "EXTERNAL_OWNER"}
+            and row["local_distribution"]
+        ],
+        "local_binary_probes": [
+            {"id": row["id"], "binary": row["local_binary"]}
+            for row in included
+            if row["decision"] not in {"REJECTED", "EXTERNAL_OWNER"}
+            and row["local_binary"]
+        ],
         "no_automatic_installation": True,
         "certified": False,
     }
@@ -175,31 +258,93 @@ def ai_tool_workflow(action: str, core_report: dict[str, Any],
         {"id": "commit_audit_and_phase_certification", "when": "PR_READY", "required": True,
          "command": None},
     )
-    selection_rows = selection.get("recommended") or []
+    # The bounded top 8 are suggested for immediate execution/preflight,
+    # but agents must still be able to inspect EVERY contextual alternative.
+    selection_rows = (selection.get("evaluated_candidates")
+                      or selection.get("recommended") or [])
+    observed_packages = {
+        row["id"]: row for row in (selection.get("local_preflight") or {}).get("tools", [])
+        if isinstance(row, dict) and isinstance(row.get("id"), str)
+    }
     special = [
         {"tool_id": row.get("id"), "name": row.get("name"),
          "decision": row.get("decision"),
+         "final_policy_decision": row.get("final_policy_decision"),
          "reason_scopes": list(row.get("reason_scopes") or []),
+         "shortlisted": row.get("id") in {
+             item.get("id") for item in selection.get("recommended", [])
+             if isinstance(item, dict)
+         },
+         "local_distribution": row.get("local_distribution"),
+         "local_binary": row.get("local_binary"),
+         "opt_in_trial_route": row.get("opt_in_trial_route"),
+         "adoption_qualified": False,
+         "trial_executed": False,
+         "locally_available": observed_packages.get(row.get("id"), {}).get("available"),
+         "installed_version_claim": observed_packages.get(row.get("id"), {}).get("version_claim"),
          "automatic_execution": False}
         for row in selection_rows if isinstance(row, dict)
     ]
     expected = (["ruff"] if "python" in (selection.get("scopes") or []) else []) + (
         ["zizmor"] if "workflow" in (selection.get("scopes") or []) else [])
     summary = (advisory or {}).get("execution_summary") or {}
+    reported_rows = (advisory or {}).get("execution_results", [])
+    if not isinstance(reported_rows, list):
+        reported_rows = []
     witnessed = {
         row.get("tool"): row.get("status")
-        for row in (advisory or {}).get("execution_results", [])
+        for row in reported_rows
         if isinstance(row, dict) and isinstance(row.get("tool"), str)
     }
+    # The status alone is not a witness. Only the canonical adapter can
+    # attest execution, and the exact named tools, integrity snapshot and
+    # correctly named execution summary must agree. A partial scan retains
+    # individual real witnesses, but never claims ALL tools executed.
+    attested = (
+        action == "check"
+        and (advisory or {}).get("source") == "tools.atlas_doctor_lib.oss_router.route_oss"
+        and (advisory or {}).get("status") == "ADVISORY_ONLY"
+        and (advisory or {}).get("input_integrity_verified") is True
+        and (advisory or {}).get("files_modified") is False
+        # Contradictory summaries must never attest a diagnostic: each
+        # COMPLETE requires every named tool to have executed. A genuine
+        # INCOMPLETE scan may still retain individual real tool witnesses.
+        and summary.get("status") == (
+            "COMPLETE" if all(
+                isinstance(row, dict) and row.get("status") in {"CLEAN", "FINDINGS"}
+                for row in reported_rows
+            ) else "INCOMPLETE"
+        )
+        and summary.get("expected_tools") == expected
+        # The actual Doctor adapter reports both totals and individual gaps.
+        # Reject contradictory counters instead of trusting a COMPLETE flag.
+        and type(summary.get("confirmed_executions")) is int
+        and summary["confirmed_executions"] == sum(
+            isinstance(row, dict) and row.get("status") in {"CLEAN", "FINDINGS"}
+            for row in reported_rows
+        )
+        and summary.get("gaps") == [
+            {"tool": row.get("tool"), "status": row.get("status")}
+            for row in reported_rows
+            if not isinstance(row, dict)
+            or row.get("status") not in {"CLEAN", "FINDINGS"}
+        ]
+        and len(reported_rows) == len(expected)
+        and all(isinstance(row, dict) and row.get("tool") == expected[i]
+                for i, row in enumerate(reported_rows))
+    )
     tools = []
     for name in expected:
         observed = witnessed.get(name)
+        executed = bool(attested and observed in {"CLEAN", "FINDINGS"})
         tools.append({
             "name": name,
             "selected": True,
-            "status": observed if observed else "NOT_RUN",
-            "executed": observed in {"CLEAN", "FINDINGS"},
-            "missing_or_incomplete": observed not in {"CLEAN", "FINDINGS"},
+            "status": ("UNVERIFIED" if observed in {"CLEAN", "FINDINGS"} and not executed
+                       else observed or "NOT_RUN"),
+            "reported_status": observed,
+            "executed": executed,
+            "missing_or_incomplete": not executed,
         })
     blockers = [
         {"tool": row["name"], "status": row["status"]}
@@ -222,6 +367,7 @@ def ai_tool_workflow(action: str, core_report: dict[str, Any],
             "expected_tools": expected,
             "tools": tools,
             "all_executed": bool(expected) and not blockers,
+            "witness_integrity_verified": bool(attested),
             "coverage_incomplete": truncated,
             "reported_execution_summary_status": summary.get("status", "NOT_RUN"),
             "gaps": blockers,

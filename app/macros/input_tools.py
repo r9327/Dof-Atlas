@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import ctypes
 import ctypes.wintypes
+import logging
 import os
 import sys
 import time
@@ -107,14 +108,24 @@ def key_up(vk_code: int) -> None:
     _send_keyboard(vk_code, up=True)
 
 
-def press_key(key_name: str, hold_ms: int = 0) -> None:
+def press_key(
+    key_name: str, hold_ms: int = 0,
+    *, should_stop: Callable[[], bool] | None = None,
+) -> bool:
+    """Return False before any DOWN, True after its paired UP completed."""
     vk_code = _vk(key_name)
-    if not vk_code:
-        return
+    if not vk_code or (should_stop is not None and should_stop()):
+        return False
     key_down(vk_code)
     try:
         if hold_ms > 0:
-            time.sleep(hold_ms / 1000.0)
+            if should_stop is None:
+                # Preserve exact legacy timing for other one-shot callers.
+                time.sleep(hold_ms / 1000.0)
+            else:
+                # Direction holds must release early on Stop/profile change.
+                # This existing helper checks the predicate every <=10 ms.
+                _sleep_ms(hold_ms, should_stop)
     finally:
         original_error = sys.exc_info()[1]
         try:
@@ -128,6 +139,7 @@ def press_key(key_name: str, hold_ms: int = 0) -> None:
             logging.getLogger(__name__).exception(
                 "Relachement touche impossible apres une erreur d'entree"
             )
+    return True
 
 
 def press_hotkey(*key_names: str, hold_ms: int = 0) -> None:
@@ -162,30 +174,53 @@ def press_hotkey(*key_names: str, hold_ms: int = 0) -> None:
                 raise errors[0]
 
 
-def release_common_inputs() -> None:
+def release_common_inputs() -> bool:
     # Emergency stop must continue releasing *all* buttons/modifiers even
-    # when Windows refuses an individual input.
+    # when Windows refuses an individual input. Report failed native
+    # delivery to runtime without allowing a failed logger to strand cleanup.
+    all_released = True
     import logging
     from app.input.hotkeys import VK_CONTROL, VK_MENU, VK_SHIFT
+
+    logger = logging.getLogger(__name__)
+
+    def report(level: str, message: str, value: int) -> None:
+        try:
+            getattr(logger, level)(message, value)
+        except Exception:
+            # An unavailable diagnostic sink is not a reason to abandon
+            # subsequent emergency key/button releases.
+            pass
+
     if os.name == "nt":
         from app.windows.clicks import _send_mouse_flag
         for flag in (0x0004, 0x0010, 0x0040):  # left/right/middle UP
             try:
                 if not _send_mouse_flag(flag):
-                    logging.getLogger(__name__).warning(
-                        "Stop urgence: SendInput souris refuse le relachement flag=%s", flag
+                    all_released = False
+                    report(
+                        "warning",
+                        "Stop urgence: SendInput souris refuse le relachement flag=%s",
+                        flag,
                     )
             except Exception:
-                logging.getLogger(__name__).exception(
-                    "Stop urgence: erreur relachement souris flag=%s", flag
+                all_released = False
+                report(
+                    "exception",
+                    "Stop urgence: erreur relachement souris flag=%s",
+                    flag,
                 )
     for vk_code in (VK_SHIFT, VK_CONTROL, VK_MENU):
         try:
             key_up(vk_code)
         except Exception:
-            logging.getLogger(__name__).exception(
-                "Stop urgence: relachement touche refuse vk=%s", vk_code
+            all_released = False
+            report(
+                "exception",
+                "Stop urgence: relachement touche refuse vk=%s",
+                vk_code,
             )
+    return all_released
 
 
 @contextmanager
@@ -196,46 +231,164 @@ def clipboard_text(text: str, logger: Logger):
     try:
         import win32clipboard
         import win32con
-    except Exception:
+    except Exception as exc:
         logger.error("Clipboard indisponible: pywin32 introuvable.")
-        yield
-        return
+        # Sending Ctrl+V now would paste unrelated user clipboard data.
+        raise OSError("Clipboard indisponible pour la commande macro") from exc
 
     previous = ""
     captured = False
+    prepared = False
+    clipboard_seq = 0
     for _attempt in range(10):
+        unsupported_formats = False
+        revision_unavailable = False
+        recovery_failed = False
         try:
             win32clipboard.OpenClipboard()
             try:
+                # This owner only snapshots Unicode text. Refuse rich/media
+                # formats rather than irreversibly stripping them (Word,
+                # Excel, images, file drops, custom application formats).
+                fmt = 0
+                for _index in range(64):
+                    fmt = win32clipboard.EnumClipboardFormats(fmt)
+                    if not fmt:
+                        break
+                    if fmt not in (1, 7, 13, 16):  # CF_TEXT/OEMTEXT/UNICODETEXT/LOCALE
+                        unsupported_formats = True
+                        raise ValueError("Clipboard contient des formats non restaurables")
+                else:
+                    unsupported_formats = True
+                    raise ValueError("Clipboard contient trop de formats")
                 try:
                     previous = win32clipboard.GetClipboardData(win32con.CF_UNICODETEXT)
                     captured = True
-                except Exception:
+                except Exception as exc:
+                    # Never destroy a user's image, files, or other clipboard
+                    # formats that cannot be restored by this text-only path.
+                    # An actually empty clipboard is safe to temporarily use.
+                    try:
+                        empty = win32clipboard.EnumClipboardFormats(0) == 0
+                    except Exception:
+                        empty = False
+                    if not empty:
+                        raise OSError(
+                            "Clipboard non texte ou illisible: commande annulee"
+                        ) from exc
                     previous = ""
                     captured = False
+                # A missing Win32 sequence counter cannot protect a
+                # concurrent user Copy during restoration. Refuse BEFORE
+                # replacing any user data, rather than preparing a command
+                # the sender would have to reject after the mutation.
+                try:
+                    revision = win32clipboard.GetClipboardSequenceNumber()
+                except Exception as exc:
+                    revision_unavailable = True
+                    raise OSError("Clipboard revision Win32 illisible") from exc
+                if type(revision) is not int or revision == 0:
+                    revision_unavailable = True
+                    raise OSError("Clipboard revision Win32 indisponible")
                 win32clipboard.EmptyClipboard()
-                win32clipboard.SetClipboardText(str(text), win32con.CF_UNICODETEXT)
+                try:
+                    win32clipboard.SetClipboardText(str(text), win32con.CF_UNICODETEXT)
+                except Exception:
+                    # Failed preparation must not leave a previously captured
+                    # Unicode clipboard empty. Restore it under the SAME lock
+                    # before retrying the send or reporting an error.
+                    if captured:
+                        try:
+                            win32clipboard.SetClipboardText(
+                                previous, win32con.CF_UNICODETEXT,
+                            )
+                        except Exception:
+                            recovery_failed = True
+                            logger.exception(
+                                "Clipboard: reparation immediate apres echec SetClipboardText impossible."
+                            )
+                    raise
+                # Snapshot under the same OpenClipboard lease. Capturing the
+                # serial after closing would race a new user Copy.
+                try:
+                    serial = win32clipboard.GetClipboardSequenceNumber()
+                except Exception:
+                    serial = 0
+                if type(serial) is not int or serial == 0:
+                    # If tracking fails AFTER SetClipboardText, undo Atlas'
+                    # temporary payload while the original clipboard lease
+                    # is still held. The chat sender must never run without
+                    # a reliable revision and restoration must not race Copy.
+                    revision_unavailable = True
+                    try:
+                        win32clipboard.EmptyClipboard()
+                        if captured:
+                            win32clipboard.SetClipboardText(
+                                previous, win32con.CF_UNICODETEXT,
+                            )
+                    except Exception:
+                        recovery_failed = True
+                        logger.exception(
+                            "Clipboard: reparation apres compteur Win32 invalide impossible."
+                        )
+                    raise OSError("Clipboard revision invalide apres preparation")
+                clipboard_seq = serial
             finally:
                 win32clipboard.CloseClipboard()
+            prepared = True
             break
-        except Exception:
+        except Exception as exc:
+            if unsupported_formats:
+                # Unsupported formats cannot be recovered by retrying.
+                logger.warning("Clipboard conservé: %s", exc)
+                raise OSError("Clipboard multi-format non restaure: commande annulee") from exc
+            if recovery_failed:
+                # Never retry over an already damaged clipboard snapshot:
+                # it would be misread as empty and the backup would be lost.
+                raise OSError("Clipboard non restaure apres echec de preparation") from exc
+            if revision_unavailable:
+                # Tracking cannot recover mid-command: no SendInput is safe.
+                # Preparation is either untouched or repaired under the lock.
+                logger.warning("Clipboard conserve: revision Win32 non fiable.")
+                raise OSError("Clipboard revision Win32 indisponible: commande annulee") from exc
             time.sleep(0.03)
+    if not prepared:
+        logger.error("Clipboard: impossible de preparer la commande apres 10 tentatives.")
+        raise OSError("Clipboard non prepare: commande macro annulee")
+    # Win32 increments this serial when another process changes clipboard.
+    # Zero means sequence tracking was unavailable during preparation.
     try:
-        yield
+        # Expose the exact revision owned by this temporary chat command.
+        # The sender checks it at every cancellable keyboard boundary, not
+        # only when the old clipboard is restored.
+        yield clipboard_seq
     finally:
+        restored = False
         for _attempt in range(10):
             try:
                 win32clipboard.OpenClipboard()
                 try:
+                    if clipboard_seq:
+                        current_seq = win32clipboard.GetClipboardSequenceNumber()
+                        if current_seq != clipboard_seq:
+                            logger.info(
+                                "Clipboard utilisateur modifie pendant la macro: restauration ignoree."
+                            )
+                            restored = True  # The NEW clipboard content is authoritative.
+                            break
                     win32clipboard.EmptyClipboard()
                     if captured:
                         win32clipboard.SetClipboardText(previous, win32con.CF_UNICODETEXT)
                 finally:
                     win32clipboard.CloseClipboard()
-                return
+                restored = True
+                break
             except Exception:
                 time.sleep(0.03)
-        logger.warning("Clipboard: restauration impossible.")
+        if not restored:
+            logger.warning("Clipboard: restauration impossible.")
+        # Never return from this finally: contextlib would swallow exceptions
+        # from the caller (SendInput, focus, Stop, etc.) and report fake success.
 
 
 def _sleep_ms(duration_ms: int, should_stop: Callable[[], bool] | None = None) -> bool:
@@ -253,21 +406,51 @@ def replace_chat_text_with_clipboard(
     paste_settle_ms: int = 0,
     should_stop: Callable[[], bool] | None = None,
 ) -> bool:
+    """Submit chat keystrokes; report the first failed native stage.
+
+    A successful SendInput is not proof that Unity opened chat or accepted text.
+    No new polling/injection mechanism or unsafe fallback is introduced here.
+    """
     if should_stop is not None and should_stop():
         return False
-    press_key("SPACE")
-    if _sleep_ms(chat_open_ms, should_stop):
-        return False
-    press_hotkey("CTRL", "A")
-    if _sleep_ms(key_step_ms, should_stop):
-        return False
-    press_key("DELETE")
-    if _sleep_ms(key_step_ms, should_stop):
-        return False
-    press_hotkey("CTRL", "V")
-    if _sleep_ms(paste_settle_ms, should_stop):
-        return False
-    return True
+    logger = logging.getLogger(__name__)
+    stage = "SPACE"
+    try:
+        if press_key("SPACE") is False:
+            logger.warning("Chat non émis : SPACE refusé (raccourci/Stop/SendInput).")
+            return False
+        logger.debug("Chat SPACE DOWN/UP émis ; ouverture Unity non vérifiée.")
+        stage = "attente après SPACE"
+        if _sleep_ms(chat_open_ms, should_stop):
+            logger.info("Chat interrompu après SPACE : Stop ou contexte modifié.")
+            return False
+        if should_stop is not None and should_stop():
+            return False
+        stage = "CTRL+A"
+        press_hotkey("CTRL", "A")
+        stage = "attente après CTRL+A"
+        if _sleep_ms(key_step_ms, should_stop):
+            return False
+        if should_stop is not None and should_stop():
+            return False
+        stage = "DELETE"
+        if press_key("DELETE") is False:
+            logger.warning("Chat non émis : suppression DELETE refusée.")
+            return False
+        stage = "attente après DELETE"
+        if _sleep_ms(key_step_ms, should_stop):
+            return False
+        if should_stop is not None and should_stop():
+            return False
+        stage = "CTRL+V"
+        press_hotkey("CTRL", "V")
+        stage = "attente après CTRL+V"
+        if _sleep_ms(paste_settle_ms, should_stop):
+            return False
+        return True
+    except Exception:
+        logger.exception("Chat : échec d'émission à l'étape %s.", stage)
+        raise
 
 
 def send_chat_command(
@@ -279,18 +462,59 @@ def send_chat_command(
     paste_settle_ms: int = 0,
     should_stop: Callable[[], bool] | None = None,
 ) -> bool:
-    with clipboard_text(text, logger):
+    # Stop is authoritative before touching the system clipboard at all.
+    # The later checks remain necessary for a Stop during the paste sequence.
+    if should_stop is not None and should_stop():
+        logger.info("Commande chat stoppee avant preparation du clipboard.")
+        return False
+    with clipboard_text(text, logger) as clipboard_revision:
+        # A physical Ctrl+C during chat preparation would replace Atlas'
+        # temporary command. Do not paste/submit that unrelated text.
+        # Existing callers and injected test contexts without a native
+        # revision keep the historical Stop predicate.
+        def interrupted() -> bool:
+            if should_stop is not None and should_stop():
+                return True
+            if type(clipboard_revision) is not int:
+                return False
+            # Pywin32 exposes the native DWORD through a signed C int.
+            # A negative Python value is still a valid 32-bit revision;
+            # only zero represents an unavailable clipboard station.
+            if clipboard_revision == 0:
+                logger.warning("Clipboard: revision Win32 indisponible, chat annule.")
+                return True
+            try:
+                import win32clipboard
+                current = win32clipboard.GetClipboardSequenceNumber()
+            except Exception:
+                logger.warning("Clipboard: revision Win32 illisible, chat annule.")
+                return True
+            if type(current) is not int or current != clipboard_revision:
+                logger.warning("Clipboard modifie pendant le chat: envoi annule.")
+                return True
+            return False
+
         if not replace_chat_text_with_clipboard(
             chat_open_ms=chat_open_ms,
             key_step_ms=key_step_ms,
             paste_settle_ms=paste_settle_ms,
-            should_stop=should_stop,
+            should_stop=interrupted,
         ):
             logger.info("Commande chat stoppee avant validation.")
             return False
-        press_key("ENTER")
+        # Check after the paste and once more before any second ENTER.
+        if interrupted():
+            logger.info("Commande chat stoppee avant validation.")
+            return False
+        if press_key("ENTER") is False:
+            logger.warning("Commande chat non émise : première validation ENTER refusée.")
+            return False
         if submit_twice:
-            if _sleep_ms(key_step_ms, should_stop):
+            if _sleep_ms(key_step_ms, interrupted):
                 return False
-            press_key("ENTER")
+            if interrupted():
+                return False
+            if press_key("ENTER") is False:
+                logger.warning("Commande chat partielle : seconde validation ENTER refusée.")
+                return False
     return True

@@ -13,6 +13,8 @@ CLASS_ICON_DIRS = (
 )
 CLASS_ICON_EXTENSIONS = (".png", ".webp", ".jpg", ".jpeg", ".ico")
 SESSION_SLOT_COUNT = 8
+# Separate physical slot placement from the shared compact character order.
+KEY_SESSION_SLOT_ASSIGNMENTS = "__organizer_slot_assignments__"
 WINDOW_EVENT_DEBOUNCE_MS = 80
 RELEASE_RETRY_DELAYS_MS = (200, 500, 1000, 2000)
 CARD_PADDING = 12
@@ -57,21 +59,38 @@ def client_slot_hotkey_key(slot_index: int) -> str:
 
 
 def session_name(session: dict[str, Any] | None) -> str:
-    return str((session or {}).get("nom", "")).strip()
+    raw = (session or {}).get("nom", "")
+    # A null/corrupt native title is not the character literally named
+    # "None". Do not offer it as an Auto-groupe invitation.
+    return raw.strip() if isinstance(raw, str) else ""
+
+
+def _validated_session_number(raw: Any, maximum: int) -> int:
+    # Win32 session IDs are exact unsigned integers, not booleans/floats.
+    # Keep persisted JSON decimal strings but never truncate a fractional
+    # HWND into an unrelated genuine window.
+    if type(raw) is int:
+        number = raw
+    elif type(raw) is str and raw.isascii() and raw.strip().isdecimal():
+        try:
+            number = int(raw.strip())
+        except (ValueError, OverflowError):
+            return 0
+    else:
+        return 0
+    return number if 0 < number <= maximum else 0
 
 
 def session_hwnd(session: dict[str, Any] | None) -> int:
-    try:
-        return int((session or {}).get("hwnd", 0))
-    except (TypeError, ValueError):
-        return 0
+    return _validated_session_number(
+        (session or {}).get("hwnd", 0), 2**64 - 1,
+    )
 
 
 def session_pid(session: dict[str, Any] | None) -> int:
-    try:
-        return int((session or {}).get("pid", 0))
-    except (TypeError, ValueError):
-        return 0
+    return _validated_session_number(
+        (session or {}).get("pid", 0), 2**32 - 1,
+    )
 
 
 def session_is_empty(session: dict[str, Any] | None) -> bool:

@@ -6,6 +6,7 @@ import os
 import re
 import threading
 from dataclasses import dataclass, field
+from functools import lru_cache
 from logging import Logger
 from typing import Callable
 
@@ -14,6 +15,7 @@ from app.input.hook_lifecycle import current_native_thread_id, stop_message_hook
 from app.input.input_state import InputState
 
 HotkeyCallback = Callable[[str, dict[str, object]], None]
+PhysicalKeyCallback = Callable[[int, bool], bool]
 
 WH_KEYBOARD_LL = 13
 WM_KEYDOWN = 0x0100
@@ -94,6 +96,15 @@ NAMED_KEYS = {
 }
 for index in range(1, 25):
     NAMED_KEYS[f"F{index}"] = 0x6F + index
+
+# Only standalone short taps, never modifiers, system chords or extended
+# keys with persistent press/release semantics. Shared by the native hook
+# and the sender so callers cannot bypass the capture safety policy.
+MIRROR_DISCRETE_KEYS = frozenset(
+    {*range(0x30, 0x3A), *range(0x41, 0x5B),
+     *range(0x70, 0x88), 0x08, 0x0D, 0x1B, 0x20,
+     0x25, 0x26, 0x27, 0x28}
+)
 
 
 @dataclass(frozen=True)
@@ -241,7 +252,44 @@ def parse_hotkey(text: str) -> tuple[HotkeySpec | None, str]:
     return HotkeySpec(text=text, keys=frozenset(keys), canonical=canonical), ""
 
 
+@lru_cache(maxsize=32)
+def parsed_hotkey_keys(text: str) -> frozenset[int]:
+    """Bounded pure parser for reserved radial keys in the native hook."""
+    spec, error = parse_hotkey(text)
+    return spec.keys if spec is not None and not error else frozenset()
+
+
 def build_hotkey_actions(settings: AtlasSettings) -> list[HotkeyAction]:
+    # Mutually exclusive modes. Mirror begins disarmed, and its explicit
+    # activation shortcut is the only non-emergency macro action in this mode.
+    if settings.macro_mode == "mirror":
+        actions: list[HotkeyAction] = []
+        if settings.stop_hotkey:
+            actions.append(HotkeyAction(
+                action_id="stop_script", label="Stop urgence",
+                hotkey_text=settings.stop_hotkey, kind="press",
+            ))
+        mirror_hotkey = getattr(settings, "mirror_toggle_hotkey", "")
+        if mirror_hotkey:
+            actions.append(HotkeyAction(
+                action_id="mirror_toggle", label="Activer / arrêter Miroir",
+                hotkey_text=mirror_hotkey, kind="press",
+            ))
+        # The selected tab is not consent to mirror. When disarmed, users
+        # still need to navigate their existing Organizer clients.
+        if settings.switch_character_enabled:
+            for action_id, label, binding in (
+                ("next_character", "Personnage suivant",
+                 getattr(settings, "next_character_hotkey", "")),
+                ("previous_character", "Personnage précédent",
+                 getattr(settings, "previous_character_hotkey", "")),
+            ):
+                if binding:
+                    actions.append(HotkeyAction(
+                        action_id=action_id, label=label,
+                        hotkey_text=binding, kind="press",
+                    ))
+        return actions
     actions: list[HotkeyAction] = []
     if settings.switch_click_enabled or settings.switch_click_hotkey:
         actions.append(
@@ -268,7 +316,11 @@ def build_hotkey_actions(settings: AtlasSettings) -> list[HotkeyAction]:
     # Stop urgence is optional. An empty optional binding is absence of an action,
     # not a registry error and must never poison the runtime readiness report.
     if settings.stop_hotkey:
-        actions.append(
+        # Persisted profiles can still contain duplicate bindings despite UI
+        # validation. Register Stop first so the conflict owner always stays
+        # the emergency action; no classic macro may shadow it.
+        actions.insert(
+            0,
             HotkeyAction(
                 action_id="stop_script",
                 label="Stop urgence",
@@ -277,10 +329,35 @@ def build_hotkey_actions(settings: AtlasSettings) -> list[HotkeyAction]:
             )
         )
 
+    if settings.switch_character_enabled and getattr(settings, "next_character_hotkey", ""):
+        actions.append(HotkeyAction(
+            action_id="next_character",
+            label="Personnage suivant",
+            hotkey_text=settings.next_character_hotkey,
+            kind="press",
+        ))
+    if settings.switch_character_enabled and getattr(settings, "previous_character_hotkey", ""):
+        actions.append(HotkeyAction(
+            action_id="previous_character",
+            label="Personnage précédent",
+            hotkey_text=settings.previous_character_hotkey,
+            kind="press",
+        ))
+    radial_spec = None
+    if getattr(settings, "radial_enabled", False) is True:
+        radial_spec, _error = parse_hotkey(
+            str(getattr(settings, "radial_hotkey", "") or "")
+        )
     if settings.switch_character_enabled:
         for client in settings.clients:
             if not client.binding:
                 continue
+            if radial_spec is not None:
+                slot_spec, _error = parse_hotkey(client.binding)
+                if slot_spec and slot_spec.canonical == radial_spec.canonical:
+                    # An enabled held-wheel shortcut outranks the ordinary
+                    # slot switch. Never dispatch both for one physical key.
+                    continue
             actions.append(
                 HotkeyAction(
                     action_id=f"client:{client.index}",
@@ -321,6 +398,11 @@ class HotkeyRegistry:
         self._startup_event = threading.Event()
         self._start_ok = False
         self._suppressed_until_release: set[str] = set()
+        self.physical_key_callback: PhysicalKeyCallback | None = None
+        self.physical_key_release_callback: Callable[[int], None] | None = None
+        self._mirrored_key_ups: set[int] = set()
+        # Key-UP leases for Stop, Mirror and navigation commands.
+        self._command_key_ups: set[int] = set()
 
     def register_hotkeys(self, actions: list[HotkeyAction]) -> HotkeyReport:
         parsed: list[HotkeyAction] = []
@@ -351,7 +433,14 @@ class HotkeyRegistry:
             )
             owner_by_key[spec.canonical] = action
             parsed.append(action)
-            self.logger.debug("Hotkey actif: %s action=%s", spec.canonical, action.action_id)
+            try:
+                self.logger.debug(
+                    "Hotkey actif: %s action=%s", spec.canonical, action.action_id,
+                )
+            except Exception:
+                # A diagnostic failure must not prevent the new emergency
+                # Stop binding from being installed during profile reload.
+                pass
         self._actions = tuple(parsed)
         self._switch_actions = tuple(action for action in parsed if action.kind == "switch")
         self._stop_actions = tuple(action for action in parsed if action.action_id == "stop_script")
@@ -423,7 +512,19 @@ class HotkeyRegistry:
         return self._start_ok
 
     def stop(self) -> None:
+        # Keep the original UP owned until the native hook actually stops.
+        # A timed-out hook thread can still process a physical release after
+        # stop_message_hook returns; clearing early would leak an orphan UP.
         stop_message_hook(self)
+        thread = self._thread
+        if thread is None or not thread.is_alive():
+            self._mirrored_key_ups.clear()
+            self._command_key_ups.clear()
+        elif self._mirrored_key_ups:
+            self.logger.warning(
+                "Hook clavier encore actif après stop: relâchements réservés=%s",
+                len(self._mirrored_key_ups),
+            )
 
     def _run_hook(self) -> None:
         self._hook_thread_id = current_native_thread_id(self.logger)
@@ -448,13 +549,45 @@ class HotkeyRegistry:
             self._startup_event.set()
             self.logger.info("Hook clavier Python actif.")
             msg = ctypes.wintypes.MSG()
-            while not self._stop_event.is_set() and user32.GetMessageW(ctypes.byref(msg), None, 0, 0) != 0:
+            while not self._stop_event.is_set():
+                # GetMessageW returns -1 on failure, 0 for WM_QUIT,
+                # and a positive value for a dispatchable event.
+                result = int(user32.GetMessageW(ctypes.byref(msg), None, 0, 0))
+                if result <= 0:
+                    if result == -1:
+                        self.logger.error(
+                            "Hook clavier: GetMessageW a échoué; arrêt de la boucle."
+                        )
+                    break
                 user32.TranslateMessage(ctypes.byref(msg))
                 user32.DispatchMessageW(ctypes.byref(msg))
+        except Exception:
+            # Native setup/message-pump failure must not leave start()
+            # waiting for the whole hook timeout without a ready signal.
+            self.logger.exception("Hook clavier: erreur inattendue du thread Win32.")
         finally:
+            # Also signal failures before SetWindowsHookExW returns.
+            self._startup_event.set()
+            # When the Win32 loop dies without a requested Stop, teardown
+            # the native hook ourselves: otherwise this thread may disappear
+            # while the global low-level hook still references its callback.
+            if self._hook and not self._stop_event.is_set():
+                try:
+                    ctypes.windll.user32.UnhookWindowsHookEx(self._hook)
+                except Exception:
+                    self.logger.exception(
+                        "Hook clavier: impossible de libérer le hook à la sortie."
+                    )
+            self._hook = None
+            self._start_ok = False
+            # Clear ownership only when this hook thread can no longer
+            # intercept a matching native UP. Repeated stop() is idempotent.
+            self._mirrored_key_ups.clear()
+            self._command_key_ups.clear()
             self._hook_thread_id = 0
 
     def _keyboard_proc(self, n_code: int, w_param: int, l_param: int) -> int:
+        physical_key_event = n_code >= 0 and w_param in (WM_KEYDOWN, WM_SYSKEYDOWN, WM_KEYUP, WM_SYSKEYUP)
         try:
             if n_code >= 0:
                 event = ctypes.cast(ctypes.c_void_p(l_param), ctypes.POINTER(KBDLLHOOKSTRUCT)).contents
@@ -464,13 +597,131 @@ class HotkeyRegistry:
                 released = w_param in (WM_KEYUP, WM_SYSKEYUP)
                 if pressed or released:
                     vk_code = LEFT_RIGHT_MODIFIERS.get(int(event.vkCode), int(event.vkCode))
-                    self.input_state.set_key(vk_code, pressed)
-                    if self._dispatch_priority_stop(vk_code, pressed):
-                        return 1
-                    self._dispatch_matching_hotkeys()
+                    # Ownership must be read BEFORE updating shared key
+                    # state: even a failed state update must not leak the
+                    # physical UP of a previously consumed mirror DOWN.
+                    mirrored_pair = vk_code in self._mirrored_key_ups
+                    command_pair = vk_code in self._command_key_ups
+                    if released and mirrored_pair:
+                        self._mirrored_key_ups.discard(vk_code)
+                    if released and command_pair:
+                        self._command_key_ups.discard(vk_code)
+                    try:
+                        if self.physical_key_release_callback is not None:
+                            # The final native/consumed decision below owns
+                            # cancellation, so queued keys can retain order.
+                            self.input_state.set_key(vk_code, pressed, preserve_deferred=True)
+                        else:
+                            self.input_state.set_key(vk_code, pressed)
+                    except Exception:
+                        if mirrored_pair or command_pair:
+                            try:
+                                self.logger.exception(
+                                    "Hook clavier: état indisponible, paire clavier réservée."
+                                )
+                            except Exception:
+                                pass
+                            return 1
+                        raise
+                    command_owned = False
+                    try:
+                        # Organizer command keys are not DOFUS keystrokes.
+                        # Own their full physical DOWN/UP pair across callback
+                        # errors, profile reloads and macro focus changes.
+                        if released and command_pair:
+                            for action in self._actions:
+                                if (action.action_id in {
+                                        "stop_script", "mirror_toggle",
+                                        "next_character", "previous_character",
+                                    } and action.spec is not None
+                                        and vk_code in action.spec.keys):
+                                    # Without rearming here, a consumed UP
+                                    # leaves the action active forever and a
+                                    # second physical tap never fires.
+                                    self._suppressed_until_release.discard(action.action_id)
+                                    self.input_state.mark_hotkey_active(action.action_id, False)
+                            return 1
+                        if pressed:
+                            snapshot = self.input_state.snapshot()
+                            command_owned = (
+                                vk_code in self._command_key_ups
+                                or any(
+                                    action.action_id in {
+                                        "stop_script", "mirror_toggle",
+                                        "next_character", "previous_character",
+                                    }
+                                    and action.spec is not None
+                                    and vk_code in (action.spec.keys - MODIFIER_VKS)
+                                    and action.spec.matches(snapshot)
+                                    for action in self._actions
+                                )
+                            )
+                            # Claim before callback: a failed/partial callback
+                            # must never leak DOWN or the later orphan UP.
+                            if command_owned:
+                                self._command_key_ups.add(vk_code)
+                        if self._dispatch_priority_stop(vk_code, pressed):
+                            return 1
+                        self._dispatch_matching_hotkeys()
+                        if command_owned:
+                            return 1
+                    except Exception:
+                        if mirrored_pair or command_pair or command_owned:
+                            if mirrored_pair and released:
+                                self._release_deferred_key(vk_code)
+                            # A failed logger cannot revoke ownership of a
+                            # physical key already consumed by Organizer.
+                            try:
+                                self.logger.exception(
+                                    "Hook clavier: callback échoué, paire miroir préservée."
+                                )
+                            except Exception:
+                                pass
+                            return 1
+                        raise
+                    # A mirrored physical DOWN is a short, balanced injected
+                    # tap; swallow its original UP even after the worker ends.
+                    if mirrored_pair and (released or pressed):
+                        if released and self.physical_key_release_callback is not None:
+                            self._release_deferred_key(vk_code)
+                        return 1  # also suppress physical autorepeat
+                    # Never intercept global combinations, modifiers, or the
+                    # emergency-stop key. In particular preserve Alt+Tab.
+                    reserved = any(
+                        action.spec and vk_code in action.spec.keys
+                        for action in self._actions
+                        if action.action_id in {"stop_script", "mirror_toggle"}
+                    )
+                    modifier_down = bool(
+                        self.input_state.snapshot().intersection(MODIFIER_VKS)
+                    )
+                    permitted = vk_code in MIRROR_DISCRETE_KEYS
+                    if (pressed and permitted and not reserved and not modifier_down
+                            and self.physical_key_callback is not None):
+                        if self.physical_key_callback(vk_code, True):
+                            self._mirrored_key_ups.add(vk_code)
+                            return 1
         except Exception:
-            self.logger.exception("Hook clavier: erreur callback.")
+            # Unowned physical keys remain native even if diagnostics fail.
+            # Never let an exception escape a low-level Windows hook.
+            try:
+                self.logger.exception("Hook clavier: erreur callback.")
+            except Exception:
+                pass
+        if physical_key_event and self.physical_key_release_callback is not None:
+            self.input_state.invalidate_deferred_mirror_pointer()
         return ctypes.windll.user32.CallNextHookEx(self._hook, n_code, w_param, l_param)
+
+    def _release_deferred_key(self, vk_code: int) -> None:
+        if self.physical_key_release_callback is None:
+            return
+        try:
+            self.physical_key_release_callback(vk_code)
+        except Exception:
+            try:
+                self.logger.exception("Miroir: fin du geste clavier différé impossible.")
+            except Exception:
+                pass
 
     def _dispatch_priority_stop(self, vk_code: int, pressed: bool) -> bool:
         if not self._stop_actions:
@@ -490,7 +741,12 @@ class HotkeyRegistry:
             consumed = True
             if action.action_id in self._suppressed_until_release:
                 continue
-            self.logger.warning("Stop urgence prioritaire: %s", spec.canonical)
+            # Logging is non-critical: a broken warning sink must never
+            # prevent the emergency Stop callback from firing.
+            try:
+                self.logger.warning("Stop urgence prioritaire: %s", spec.canonical)
+            except Exception:
+                pass
             self.callback(action.action_id, action.payload)
             self._suppressed_until_release.add(action.action_id)
         return consumed
@@ -501,6 +757,11 @@ class HotkeyRegistry:
             if action.spec is None:
                 continue
             active = action.spec.matches(pressed)
+            if action.action_id == "mirror_toggle":
+                # No implicit activation inside another CTRL/ALT/WIN chord.
+                active = active and (pressed & MODIFIER_VKS) == (
+                    action.spec.keys & MODIFIER_VKS
+                )
             if action.kind == "switch":
                 continue
             changed_to_active = self.input_state.mark_hotkey_active(action.action_id, active)

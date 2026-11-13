@@ -51,18 +51,163 @@ class DoctorOssRoutingTests(unittest.TestCase):
         with (patch("tools.atlas_doctor_lib.oss_router.catalog", return_value={}),
               patch("tools.atlas_doctor_lib.oss_router.select_tools", side_effect=self._native),
               patch("tools.atlas_doctor_lib.oss_router.local_candidate_preflight", side_effect=self._probe),
-              patch("tools.atlas_doctor_lib.oss_router.subprocess.run", return_value=sample) as run):
+              patch("tools.atlas_doctor_lib.oss_router.subprocess.run", return_value=sample) as run,
+              patch("tools.atlas_doctor_lib.oss_router._ruff_command",
+                    return_value=["python", "-P", "-m", "ruff"])):
             payload = route_oss(self.root, ["tools/example.py"], run=True)
         args = run.call_args.args[0]
         self.assertIn("--no-fix", args)
         self.assertIn("--no-cache", args)
         self.assertIn("--isolated", args)
+        self.assertEqual(args[1:4], ["-P", "-m", "ruff"])
+        self.assertNotIn("PYTHONNOUSERSITE", run.call_args.kwargs["env"])
+        self.assertEqual(run.call_args.kwargs["env"]["PYTHONPATH"], "")
         self.assertEqual(args[-2:], ["--", "tools/example.py"])
         self.assertNotIn("private source content", json.dumps(payload))
         self.assertNotIn("secret", json.dumps(payload))
         self.assertEqual(payload["execution"]["status"], "FINDINGS")
         self.assertEqual(payload["execution"]["rule_counts"]["F401"], 1)
         self.assertFalse(payload["phase_certified"])
+
+    def test_windows_ruff_binary_uses_only_python_scripts_not_path(self):
+        from tools.atlas_doctor_lib.oss_router import _ruff_command
+        with TemporaryDirectory() as directory:
+            outside = Path(directory) / "Scripts"
+            outside.mkdir()
+            binary = outside / "ruff.exe"
+            binary.write_bytes(b"MZ")
+            with (patch("tools.atlas_doctor_lib.oss_router.sys.platform", "win32"),
+                  patch("tools.atlas_doctor_lib.oss_router.sysconfig.get_path",
+                        return_value=str(outside)),
+                  patch("tools.atlas_doctor_lib.oss_router.sysconfig.get_preferred_scheme",
+                        return_value="nt_user")):
+                self.assertEqual(_ruff_command(self.root), [str(binary.resolve())])
+                binary.unlink()
+                self.assertIsNone(_ruff_command(self.root))
+            candidate = self.root / "Scripts"
+            candidate.mkdir()
+            (candidate / "ruff.exe").write_bytes(b"MZ")
+            with (patch("tools.atlas_doctor_lib.oss_router.sys.platform", "win32"),
+                  patch("tools.atlas_doctor_lib.oss_router.sysconfig.get_path",
+                        return_value=str(candidate)),
+                  patch("tools.atlas_doctor_lib.oss_router.sysconfig.get_preferred_scheme",
+                        return_value="nt_user")):
+                self.assertIsNone(_ruff_command(self.root))
+
+    def test_actionable_ruff_locations_do_not_expose_host_paths_or_messages(self):
+        valid = str(self.root / "tools" / "example.py")
+        sample = SimpleNamespace(returncode=1, stdout=json.dumps([
+            {"code": "B023", "filename": valid,
+             "location": {"row": 42, "column": 7},
+             "message": "SECRET_FROM_SOURCE"},
+            {"code": "B023", "filename": "/tmp/private-secret.py",
+             "location": {"row": 5, "column": 1},
+             "message": "not allowlisted"},
+            {"code": "I001", "filename": valid,
+             "location": {"row": 1, "column": 1},
+             "message": "style only"},
+        ]), stderr="some-host-path")
+        with (patch("tools.atlas_doctor_lib.oss_router.catalog", return_value={}),
+              patch("tools.atlas_doctor_lib.oss_router.select_tools",
+                    side_effect=self._native),
+              patch("tools.atlas_doctor_lib.oss_router.local_candidate_preflight",
+                    side_effect=self._probe),
+              patch("tools.atlas_doctor_lib.oss_router.subprocess.run",
+                    return_value=sample),
+              patch("tools.atlas_doctor_lib.oss_router._ruff_command",
+                    return_value=["python", "-P", "-m", "ruff"])):
+            result = route_oss(self.root, ["tools/example.py"], run=True)
+        self.assertEqual(result["execution"]["status"], "FINDINGS")
+        self.assertEqual(result["execution"]["actionable_locations"],
+                         [{"file": "tools/example.py", "line": 42, "code": "B023"}])
+        self.assertEqual(result["execution"]["rule_counts"]["B023"], 2)
+        self.assertNotIn("SECRET_FROM_SOURCE", json.dumps(result))
+        self.assertNotIn(str(self.root), json.dumps(result))
+
+    def test_ruff_inconsistent_exit_and_json_never_claim_clean(self):
+        from types import SimpleNamespace
+        for returncode, findings in ((1, []), (0, [{"code": "F401"}])):
+            with self.subTest(code=returncode):
+                fake = SimpleNamespace(
+                    returncode=returncode, stdout=json.dumps(findings), stderr="")
+                with (patch("tools.atlas_doctor_lib.oss_router.catalog",
+                            return_value={"tools": []}),
+                      patch("tools.atlas_doctor_lib.oss_router.select_tools",
+                            side_effect=self._native),
+                      patch("tools.atlas_doctor_lib.oss_router.local_candidate_preflight",
+                            side_effect=self._probe),
+                      patch("tools.atlas_doctor_lib.oss_router.subprocess.run",
+                            return_value=fake),
+              patch("tools.atlas_doctor_lib.oss_router._ruff_command",
+                    return_value=["python", "-P", "-m", "ruff"])):
+                    report = route_oss(self.root, ["tools/example.py"], run=True)
+                self.assertEqual(report["execution"]["status"], "ERROR")
+                self.assertEqual(report["execution"]["tool"], "ruff")
+                self.assertEqual(report["execution"]["exit_code"], returncode)
+                self.assertEqual(report["execution"]["stderr_present"], False)
+                self.assertEqual(report["execution_count"], 0)
+                self.assertEqual(report["execution_summary"]["status"], "INCOMPLETE")
+
+    def test_scanner_mutation_cancels_all_execution_witnesses(self):
+        sample = SimpleNamespace(returncode=0, stdout="[]", stderr="")
+        def alter_input(*args, **kwargs):
+            (self.root / "tools/example.py").write_text("x = 42\n", encoding="utf-8")
+            return sample
+        with (patch("tools.atlas_doctor_lib.oss_router.catalog", return_value={}),
+              patch("tools.atlas_doctor_lib.oss_router.select_tools",
+                    side_effect=self._native),
+              patch("tools.atlas_doctor_lib.oss_router.local_candidate_preflight",
+                    side_effect=self._probe),
+              patch("tools.atlas_doctor_lib.oss_router.subprocess.run",
+                    side_effect=alter_input),
+              patch("tools.atlas_doctor_lib.oss_router._ruff_command",
+                    return_value=["python", "-P", "-m", "ruff"])):
+            payload = route_oss(self.root, ["tools/example.py"], run=True)
+        self.assertEqual(payload["execution"]["status"], "ERROR")
+        self.assertTrue(payload["files_modified"])
+        self.assertFalse(payload["input_integrity_verified"])
+        self.assertEqual(payload["execution_count"], 0)
+        self.assertEqual(payload["execution_summary"]["status"], "INCOMPLETE")
+        self.assertNotIn("x = 42", json.dumps(payload))
+
+    def test_unverifiable_large_input_never_reaches_third_party(self):
+        (self.root / "tools/example.py").write_bytes(b"#" * 2_000_001)
+        with (patch("tools.atlas_doctor_lib.oss_router.catalog", return_value={}),
+              patch("tools.atlas_doctor_lib.oss_router.select_tools",
+                    side_effect=self._native),
+              patch("tools.atlas_doctor_lib.oss_router.local_candidate_preflight",
+                    side_effect=self._probe),
+              patch("tools.atlas_doctor_lib.oss_router.subprocess.run") as run):
+            payload = route_oss(self.root, ["tools/example.py"], run=True)
+        run.assert_not_called()
+        self.assertEqual(payload["execution"]["status"], "ERROR")
+        self.assertEqual(payload["execution_count"], 0)
+        self.assertIsNone(payload["files_modified"])
+        self.assertFalse(payload["input_integrity_verified"])
+
+    def test_ruff_version_probe_uses_user_site_but_not_project_cwd(self):
+        from tools.atlas_doctor_lib.oss_router import _observed_tool_version
+        sample = SimpleNamespace(returncode=0, stdout="ruff 0.17.3\n", stderr="")
+        with (patch("tools.atlas_doctor_lib.oss_router.subprocess.run",
+                    return_value=sample) as run,
+              patch("tools.atlas_doctor_lib.oss_router._ruff_command",
+                    return_value=["python", "-P", "-m", "ruff"])):
+            version = _observed_tool_version(self.root, "ruff")
+        self.assertEqual(version, "0.17.3")
+        self.assertEqual(run.call_args.args[0][1:4], ["-P", "-m", "ruff"])
+        self.assertNotIn("PYTHONNOUSERSITE", run.call_args.kwargs["env"])
+        self.assertEqual(run.call_args.kwargs["env"]["PYTHONPATH"], "")
+
+    def test_windows_developer_install_is_explicit_and_verifies_wheels(self):
+        from pathlib import Path
+        script = (Path(__file__).resolve().parents[1] /
+                  "tools/setup_doctor_oss.ps1").read_text(encoding="utf-8")
+        self.assertIn("param([switch]$Install)", script)
+        self.assertIn("if ($Install)", script)
+        self.assertIn("tools.doctor_oss_wheels --install", script)
+        self.assertIn("if ($LASTEXITCODE -ne 0)", script)
+        self.assertNotIn("--hash=sha256:", script)
+        self.assertNotIn("pip install --user", script)
 
     def test_missing_package_does_not_execute_or_install(self):
         with (patch("tools.atlas_doctor_lib.oss_router.catalog", return_value={}),
@@ -84,6 +229,172 @@ class DoctorOssRoutingTests(unittest.TestCase):
         self.assertEqual(sel.call_args.kwargs["capability"], "ci_intelligence")
         run.assert_not_called()
 
+    def test_imagehash_is_explicit_readonly_and_reports_visual_candidates(self):
+        from types import ModuleType
+        from tools.atlas_doctor_lib.oss_router import trial_imagehash
+        a = self.root / "tests" / "first.png"
+        b = self.root / "tests" / "second.png"
+        a.parent.mkdir(parents=True, exist_ok=True)
+        a.write_bytes(b"example a")
+        b.write_bytes(b"example b")
+
+        class Picture:
+            width = 10
+            height = 10
+            def __enter__(self):
+                return self
+            def __exit__(self, *args):
+                return False
+        image = ModuleType("PIL.Image")
+        image.open = lambda path: Picture()
+        image.DecompressionBombError = ValueError
+        pil = ModuleType("PIL")
+        pil.Image = image
+        imagehash = ModuleType("imagehash")
+        class Hash:
+            def __sub__(self, other):
+                return 2
+        imagehash.phash = lambda picture: Hash()
+        with patch.dict("sys.modules", {"PIL": pil, "PIL.Image": image,
+                                         "imagehash": imagehash}):
+            report = trial_imagehash(self.root, ["tests/first.png",
+                                                  "tests/second.png"])
+        self.assertEqual(report["status"], "TRIAL_COMPLETE")
+        self.assertEqual(report["execution_count"], 1)
+        self.assertEqual(report["possible_visual_duplicates"][0]["distance"], 2)
+        self.assertFalse(report["automated_deletion_allowed"])
+        self.assertFalse(report["runtime_consumers_verified"])
+        self.assertTrue(a.is_file() and b.is_file())
+
+    def test_imagehash_is_never_automatic_or_silent_without_dependency(self):
+        from tools.atlas_doctor_lib.oss_router import trial_imagehash
+        image = self.root / "tests" / "first.png"
+        image.parent.mkdir(parents=True, exist_ok=True)
+        image.write_bytes(b"example a")
+        with patch.dict("sys.modules", {"imagehash": None}):
+            report = trial_imagehash(self.root, ["tests/first.png"])
+        self.assertEqual(report["status"], "NOT_AVAILABLE")
+        self.assertEqual(report["execution_count"], 0)
+        with self.assertRaises(ValueError):
+            trial_imagehash(self.root, ["tools/example.py"])
+
+        from tools.atlas_doctor import build_parser
+        parsed = build_parser().parse_args([
+            "oss", "tests/first.png", "--asset-trial"])
+        self.assertTrue(parsed.asset_trial)
+        self.assertFalse(parsed.run)
+        self.assertFalse(parsed.verify_live)
+
+    def test_fonttools_reads_bounded_metadata_without_modifying_fonts(self):
+        import sys
+        from types import ModuleType
+        from tools.atlas_doctor_lib.oss_router import trial_fonttools
+        fontfile = self.root / "tests" / "unity.ttf"
+        fontfile.parent.mkdir(parents=True, exist_ok=True)
+        fontfile.write_bytes(b"synthetic-font")
+        class Names:
+            def getDebugName(self, key):
+                return {1: "Unity Family", 2: "Medium", 13: "do-not-trust"}[key]
+        class Font:
+            def __init__(self, path, *, lazy, recalcBBoxes, recalcTimestamp):
+                self.path = path
+                self.names = Names()
+                self.closed = False
+                self.settings = (lazy, recalcBBoxes, recalcTimestamp)
+                self_test.assertEqual(self.settings, (True, False, False))
+            def __getitem__(self, name):
+                self_test.assertEqual(name, "name")
+                return self.names
+            def close(self):
+                self.closed = True
+        self_test = self
+        package = ModuleType("fontTools")
+        package.__path__ = []
+        ttlib = ModuleType("fontTools.ttLib")
+        ttlib.TTFont = Font
+        package.ttLib = ttlib
+        with patch.dict(sys.modules, {"fontTools": package,
+                                      "fontTools.ttLib": ttlib}):
+            report = trial_fonttools(self.root, ["tests/unity.ttf"])
+        self.assertEqual(report["status"], "TRIAL_COMPLETE")
+        self.assertTrue(report["input_integrity_verified"])
+        self.assertEqual(report["fonts"][0]["family"], "Unity Family")
+        self.assertTrue(report["fonts"][0]["license_metadata_present"])
+        self.assertFalse(report["fonts"][0]["license_verified"])
+        self.assertFalse(report["qt_rendering_verified"])
+        self.assertFalse(report["runtime_consumers_verified"])
+        self.assertNotIn("do-not-trust", json.dumps(report))
+        self.assertEqual(fontfile.read_bytes(), b"synthetic-font")
+
+    def test_fonttools_rejects_bad_font_or_missing_optional_dependency(self):
+        import sys
+        from tools.atlas_doctor_lib.oss_router import trial_fonttools
+        fontfile = self.root / "tests" / "unity.ttf"
+        fontfile.parent.mkdir(parents=True, exist_ok=True)
+        fontfile.write_bytes(b"synthetic-font")
+        with patch.dict(sys.modules, {"fontTools": None,
+                                      "fontTools.ttLib": None}):
+            unavailable = trial_fonttools(self.root, ["tests/unity.ttf"])
+        self.assertEqual(unavailable["status"], "NOT_AVAILABLE")
+        self.assertEqual(unavailable["execution_count"], 0)
+        with self.assertRaises(ValueError):
+            trial_fonttools(self.root, ["tools/example.py"])
+        # A malformed local font must never yield a metadata or license PASS.
+        from types import ModuleType
+        package = ModuleType("fontTools")
+        package.__path__ = []
+        ttlib = ModuleType("fontTools.ttLib")
+        ttlib.TTFont = lambda *a, **k: (_ for _ in ()).throw(ValueError("source secret"))
+        package.ttLib = ttlib
+        with patch.dict(sys.modules, {"fontTools": package,
+                                      "fontTools.ttLib": ttlib}):
+            failed = trial_fonttools(self.root, ["tests/unity.ttf"])
+        self.assertEqual(failed["status"], "ERROR")
+        self.assertNotIn("source secret", json.dumps(failed))
+
+    def test_fonttools_cli_is_exclusive_and_not_a_fake_pass(self):
+        import contextlib
+        import io
+        from tools import atlas_doctor
+        args = atlas_doctor.build_parser().parse_args([
+            "oss", "tests/unity.ttf", "--font-trial"])
+        self.assertTrue(args.font_trial)
+        self.assertFalse(args.run)
+        with (patch.object(atlas_doctor, "command_oss",
+                           return_value={"status": "NOT_AVAILABLE"}),
+              contextlib.redirect_stdout(io.StringIO())):
+            self.assertEqual(atlas_doctor.main([
+                "oss", "tests/unity.ttf", "--font-trial"]), 1)
+        with (patch.object(atlas_doctor, "command_oss",
+                           return_value={"status": "TRIAL_COMPLETE"}),
+              contextlib.redirect_stdout(io.StringIO())):
+            self.assertEqual(atlas_doctor.main([
+                "oss", "tests/unity.ttf", "--font-trial"]), 0)
+        with patch("tools.atlas_doctor_lib.oss_router.trial_fonttools") as trial:
+            payload = atlas_doctor.command_oss(self.root,
+                atlas_doctor.build_parser().parse_args([
+                    "oss", "tests/unity.ttf", "--font-trial", "--run"]))
+        self.assertEqual(payload["status"], "BLOCKED")
+        trial.assert_not_called()
+
+    def test_imagehash_cli_errors_are_nonzero_not_fake_success(self):
+        import contextlib
+        import io
+        from tools import atlas_doctor
+        with (patch.object(atlas_doctor, "command_oss",
+                           return_value={"status": "NOT_AVAILABLE"}) as command,
+              contextlib.redirect_stdout(io.StringIO())):
+            result = atlas_doctor.main([
+                "oss", "tests/first.png", "--asset-trial"])
+        self.assertEqual(result, 1)
+        command.assert_called_once()
+        with (patch.object(atlas_doctor, "command_oss",
+                           return_value={"status": "TRIAL_COMPLETE"}),
+              contextlib.redirect_stdout(io.StringIO())):
+            result = atlas_doctor.main([
+                "oss", "tests/first.png", "--asset-trial"])
+        self.assertEqual(result, 0)
+
     def test_bad_paths_rejected_before_discovery_and_execution(self):
         for bad in ("../secret.py", "tools/../secret.py", "tools/@options.py",
                     "tools/example.py;touch", "/tools/example.py", "tools/missing.py"):
@@ -98,13 +409,187 @@ class DoctorOssRoutingTests(unittest.TestCase):
         with self.assertRaises(ValueError):
             route_oss(self.root, ["tools/example.py"] * 17, run=True)
 
+    def test_optional_preflight_exception_blocks_both_scanners_without_exception_leak(self):
+        with (patch("tools.atlas_doctor_lib.oss_router.catalog",
+                    return_value={"tools": []}),
+              patch("tools.atlas_doctor_lib.oss_router.select_tools",
+                    return_value={"tools": []}),
+              patch("tools.atlas_doctor_lib.oss_router.local_candidate_preflight",
+                    side_effect=OSError("sensitive local package path")),
+              patch("tools.atlas_doctor_lib.oss_router._zizmor_executable") as fallback,
+              patch("tools.atlas_doctor_lib.oss_router.subprocess.run") as run):
+            report = route_oss(self.root, [
+                "tools/example.py", ".github/workflows/ci.yml"], run=True)
+        run.assert_not_called()
+        fallback.assert_not_called()
+        self.assertEqual(report["local_preflight_status"], "ERROR")
+        self.assertEqual(report["local_preflight_error_type"], "OSError")
+        self.assertEqual([row["tool"] for row in report["execution_results"]],
+                         ["ruff", "zizmor"])
+        self.assertEqual([row["status"] for row in report["execution_results"]],
+                         ["ERROR", "ERROR"])
+        self.assertEqual(report["execution_count"], 0)
+        self.assertEqual(report["execution_summary"]["status"], "INCOMPLETE")
+        self.assertFalse(report["phase_certified"])
+        self.assertNotIn("sensitive local package path", json.dumps(report))
+
+    def test_malformed_ruff_preflight_fails_closed_without_scanner(self):
+        invalid_rows = (
+            {"name": "ruff", "available": "false", "version": "0.17.3"},
+            {"name": "ruff", "available": True},
+            {"name": "ruff", "available": True, "version": {"raw": "0.17.3"}},
+        )
+        for row in invalid_rows:
+            with self.subTest(row=row):
+                with (patch("tools.atlas_doctor_lib.oss_router.catalog",
+                            return_value={"tools": []}),
+                      patch("tools.atlas_doctor_lib.oss_router.select_tools",
+                            return_value={"tools": []}),
+                      patch("tools.atlas_doctor_lib.oss_router.local_candidate_preflight",
+                            return_value={"results": [row]}),
+                      patch("tools.atlas_doctor_lib.oss_router._zizmor_executable") as resolver,
+                      patch("tools.atlas_doctor_lib.oss_router.subprocess.run") as run):
+                    report = route_oss(
+                        self.root,
+                        ["tools/example.py", ".github/workflows/ci.yml"],
+                        run=True,
+                    )
+                run.assert_not_called()
+                resolver.assert_not_called()
+                self.assertEqual(report["local_preflight_status"], "ERROR")
+                self.assertEqual(report["local_preflight_error_type"], "ValueError")
+                self.assertEqual(
+                    [item["status"] for item in report["execution_results"]],
+                    ["ERROR", "ERROR"],
+                )
+                self.assertEqual(report["execution_count"], 0)
+                self.assertEqual(report["execution_summary"]["status"], "INCOMPLETE")
+                self.assertFalse(report["phase_certified"])
+
+    def test_zizmor_resolver_rejects_relative_and_linked_executables(self):
+        from tools.atlas_doctor_lib.oss_router import _zizmor_executable
+        executable = self.root / "zizmor"
+        executable.write_bytes(b"fake binary")
+        with (patch("shutil.which", return_value=str(executable)),
+              patch("tools.atlas_doctor_lib.oss_router.sys.platform", "linux")):
+            self.assertEqual(_zizmor_executable(), str(executable.resolve()))
+        # Windows strictly requires an .exe: the same Unix-style fake is
+        # intentionally rejected, rather than weakening the resolver.
+        with (patch("shutil.which", return_value=str(executable)),
+              patch("tools.atlas_doctor_lib.oss_router.sys.platform", "win32"),
+              patch("tools.atlas_doctor_lib.oss_router.site.getuserbase",
+                    return_value=str(self.root / "missing-userbase"))):
+            self.assertIsNone(_zizmor_executable())
+        with (patch("shutil.which", return_value="./zizmor"),
+              patch("tools.atlas_doctor_lib.oss_router.sys.platform", "linux")):
+            self.assertIsNone(_zizmor_executable())
+        with (patch("shutil.which", return_value=str(executable)),
+              patch("pathlib.Path.is_symlink", return_value=True),
+              patch("tools.atlas_doctor_lib.oss_router.sys.platform", "linux")):
+            self.assertIsNone(_zizmor_executable())
+
+    def test_zizmor_rejects_checkout_local_path_even_if_discovered(self):
+        from tools.atlas_doctor_lib.oss_router import _zizmor_executable
+        candidate = self.root / "zizmor"
+        candidate.write_bytes(b"untrusted")
+        with (patch("shutil.which", return_value=str(candidate)),
+              patch("tools.atlas_doctor_lib.oss_router.sys.platform", "linux")):
+            self.assertIsNone(_zizmor_executable(self.root))
+        with (patch("shutil.which", return_value=str(candidate)),
+              patch("tools.atlas_doctor_lib.oss_router.sys.platform", "linux"),
+              patch("tools.atlas_doctor_lib.oss_router.catalog",
+                    return_value={"tools": []}),
+              patch("tools.atlas_doctor_lib.oss_router.select_tools",
+                    return_value={"tools": []}),
+              patch("tools.atlas_doctor_lib.oss_router.local_candidate_preflight",
+                    return_value={"results": [{"kind": "path_executable",
+                                               "name": "zizmor", "available": True}]}),
+              patch("tools.atlas_doctor_lib.oss_router.subprocess.run") as run):
+            report = route_oss(self.root, [".github/workflows/ci.yml"], run=True)
+        run.assert_not_called()
+        self.assertEqual(report["execution"]["status"], "NOT_AVAILABLE")
+
+    def test_zizmor_windows_batch_script_is_not_a_trusted_executable(self):
+        from tools.atlas_doctor_lib.oss_router import _zizmor_executable
+        with TemporaryDirectory() as outside:
+            script = Path(outside) / "zizmor.cmd"
+            script.write_text("@echo off", encoding="utf-8")
+            with (patch("shutil.which", return_value=str(script)),
+                  patch("tools.atlas_doctor_lib.oss_router.sys.platform", "win32"),
+                  patch("tools.atlas_doctor_lib.oss_router.site.getuserbase",
+                        return_value=str(self.root / "no_user_bin"))):
+                self.assertIsNone(_zizmor_executable(self.root))
+            executable = Path(outside) / "zizmor.exe"
+            executable.write_bytes(b"external-exe-fixture")
+            with (patch("shutil.which", return_value=str(executable)),
+                  patch("tools.atlas_doctor_lib.oss_router.sys.platform", "win32")):
+                self.assertEqual(_zizmor_executable(self.root),
+                                 str(executable.resolve()))
+
+    def test_preflight_cannot_turn_unresolved_zizmor_into_execution(self):
+        with (patch("tools.atlas_doctor_lib.oss_router.catalog",
+                    return_value={"tools": []}),
+              patch("tools.atlas_doctor_lib.oss_router.select_tools",
+                    return_value={"tools": []}),
+              patch("tools.atlas_doctor_lib.oss_router.local_candidate_preflight",
+                    return_value={"results": [{"kind": "path_executable",
+                                               "name": "zizmor", "available": True}]}),
+              patch("tools.atlas_doctor_lib.oss_router._zizmor_executable",
+                    return_value=None),
+              patch("tools.atlas_doctor_lib.oss_router._execute_zizmor") as scan):
+            report = route_oss(self.root, [".github/workflows/ci.yml"], run=True)
+        scan.assert_not_called()
+        self.assertEqual(report["execution"]["status"], "NOT_AVAILABLE")
+        self.assertEqual(report["execution_count"], 0)
+        self.assertEqual(report["execution_summary"]["status"], "INCOMPLETE")
+
+    def test_workflow_scan_receives_only_resolved_absolute_binary(self):
+        absolute = str((self.root / "trusted" / "zizmor").resolve())
+        with (patch("tools.atlas_doctor_lib.oss_router.catalog",
+                    return_value={"tools": []}),
+              patch("tools.atlas_doctor_lib.oss_router.select_tools",
+                    return_value={"tools": []}),
+              patch("tools.atlas_doctor_lib.oss_router.local_candidate_preflight",
+                    return_value={"results": [{"kind": "path_executable",
+                                               "name": "zizmor", "available": True}]}),
+              patch("tools.atlas_doctor_lib.oss_router._zizmor_executable",
+                    return_value=absolute),
+              patch("tools.atlas_doctor_lib.oss_router._execute_zizmor",
+                    return_value={"tool": "zizmor", "status": "CLEAN",
+                                  "finding_count": 0}) as scan):
+            report = route_oss(self.root, [".github/workflows/ci.yml"], run=True)
+        scan.assert_called_once_with(
+            self.root, [".github/workflows/ci.yml"], 20, binary=absolute)
+        self.assertEqual(report["execution"]["status"], "CLEAN")
+        self.assertEqual(report["execution_summary"]["confirmed_executions"], 1)
+
+    def test_internal_workflow_runner_rejects_unresolved_binary(self):
+        from tools.atlas_doctor_lib.oss_router import _execute_zizmor
+        files = [".github/workflows/ci.yml"]
+        with patch("tools.atlas_doctor_lib.oss_router.subprocess.run") as process:
+            invalid = _execute_zizmor(self.root, files, 5, binary="zizmor")
+        process.assert_not_called()
+        self.assertEqual(invalid["status"], "UNAVAILABLE")
+        binary = str((self.root / "trusted" / "zizmor").resolve())
+        with patch("tools.atlas_doctor_lib.oss_router.subprocess.run",
+                   return_value=SimpleNamespace(returncode=0, stdout="[]",
+                                               stderr="")) as process:
+            valid = _execute_zizmor(self.root, files, 5, binary=binary)
+        self.assertEqual(valid["status"], "CLEAN")
+        self.assertEqual(process.call_args.args[0][0], binary)
+        self.assertIn("--offline", process.call_args.args[0])
+        self.assertIn("--no-config", process.call_args.args[0])
+        self.assertNotIn("GITHUB_TOKEN", process.call_args.kwargs["env"])
+
     def test_timeout_is_not_a_fake_success(self):
         from subprocess import TimeoutExpired
         with (patch("tools.atlas_doctor_lib.oss_router.catalog", return_value={}),
               patch("tools.atlas_doctor_lib.oss_router.select_tools", side_effect=self._native),
               patch("tools.atlas_doctor_lib.oss_router.local_candidate_preflight", side_effect=self._probe),
               patch("tools.atlas_doctor_lib.oss_router.subprocess.run",
-                    side_effect=TimeoutExpired("ruff", 1))):
+                    side_effect=TimeoutExpired("ruff", 1)),
+              patch("tools.atlas_doctor_lib.oss_router._ruff_command",
+                    return_value=["python", "-P", "-m", "ruff"])):
             payload = route_oss(self.root, ["tools/example.py"], run=True, timeout_seconds=1)
         self.assertEqual(payload["execution"]["status"], "TIMEOUT")
         self.assertFalse(payload["phase_certified"])
@@ -176,6 +661,123 @@ class DoctorOssRoutingTests(unittest.TestCase):
         self.assertEqual(report["execution_witnesses"], 0)
         self.assertEqual(report["candidates"][19]["integration"], "DOCTOR_OPT_IN_ONLY")
         self.assertEqual(report["candidates"][-1]["integration"], "REJECTED")
+
+    def test_substituted_candidate_id_is_review_even_when_counts_match(self):
+        from tools.atlas_doctor_lib.oss_router import _open_source_inventory
+        study = self.root / "docs" / "roadmap"
+        study.mkdir(parents=True)
+        lines = [
+            f"| ATOSS-{number:02d} | [tool](https://github.com/org/tool) | ASSESS | Owner |"
+            for number in range(1, 30)
+        ]
+        lines.extend(
+            f"| AT-SUP-{number:02d} | [extra](https://github.com/org/extra) | ASSESS | Owner |"
+            for number in range(1, 6)
+        )
+        lines[28] = lines[28].replace("ATOSS-29", "ATOSS-30")
+        (study / "GITHUB_OPEN_SOURCE_INTEGRATION_2026-10-31.md").write_text(
+            "\n".join(lines) + "\n", encoding="utf-8")
+        report = _open_source_inventory(self.root)
+        self.assertEqual(report["count"], 29)
+        self.assertEqual(report["supplemental_count"], 5)
+        self.assertEqual(report["status"], "REVIEW")
+        self.assertEqual(report["missing_ids"], ["ATOSS-29"])
+        self.assertEqual(report["unexpected_ids"], ["ATOSS-30"])
+        self.assertEqual(report["execution_witnesses"], 0)
+
+    def test_repository_study_covers_all_34_exact_ids(self):
+        from tools.tool_audit import ROOT
+        from tools.atlas_doctor_lib.oss_router import _open_source_inventory
+        report = _open_source_inventory(ROOT)
+        expected = {f"ATOSS-{number:02d}" for number in range(1, 30)}
+        expected.update(f"AT-SUP-{number:02d}" for number in range(1, 6))
+        actual = {row["id"] for row in report["candidates"] + report["supplemental"]}
+        self.assertEqual(report["status"], "INVENTORIED_NOT_CERTIFIED")
+        self.assertEqual(actual, expected)
+        self.assertEqual(report["missing_ids"], [])
+        self.assertEqual(report["unexpected_ids"], [])
+        self.assertEqual(report["execution_witnesses"], 0)
+
+    def test_legacy_study_without_final_table_remains_inventory_only(self):
+        from tools.atlas_doctor_lib.oss_router import _open_source_inventory
+        study = self.root / "docs" / "roadmap"
+        study.mkdir(parents=True, exist_ok=True)
+        rows = [
+            f"| ATOSS-{number:02d} | [x](https://github.com/a/x) | ASSESS | Owner |"
+            for number in range(1, 30)
+        ] + [
+            f"| AT-SUP-{number:02d} | [x](https://github.com/a/x) | ASSESS | Owner |"
+            for number in range(1, 6)
+        ]
+        (study / "GITHUB_OPEN_SOURCE_INTEGRATION_2026-10-31.md").write_text(
+            "\n".join(rows) + "\n", encoding="utf-8")
+        report = _open_source_inventory(self.root)
+        self.assertEqual(report["status"], "INVENTORIED_NOT_CERTIFIED")
+        self.assertEqual(report["final_decision_status"], "NOT_RECORDED")
+        self.assertEqual(report["execution_witnesses"], 0)
+        self.assertTrue(all(row["final_decision"] is None for row in
+                            report["candidates"] + report["supplemental"]))
+
+    def test_final_study_decisions_cover_all_ids_without_claiming_execution(self):
+        from tools.tool_audit import ROOT
+        from tools.atlas_doctor_lib.oss_router import _open_source_inventory
+        report = _open_source_inventory(ROOT)
+        decisions = {row["id"]: row["final_decision"]
+                     for row in report["candidates"] + report["supplemental"]}
+        self.assertEqual(len(decisions), 34)
+        self.assertEqual(report["final_decision_status"],
+                         "DOCUMENTED_NOT_QUALIFIED")
+        self.assertEqual(sum(report["final_decision_counts"].values()), 34)
+        self.assertEqual(report["final_decision_counts"]["ADOPTED"], 1)
+        self.assertEqual(report["final_decision_counts"]["HOLDING_ONLY"], 2)
+        self.assertEqual(report["final_decision_counts"]["DEFERRED_WITH_REASON"], 7)
+        self.assertFalse(report["final_decisions_are_execution_evidence"])
+        self.assertEqual(report["execution_witnesses"], 0)
+        self.assertEqual(decisions["ATOSS-20"], "ADOPTED")
+        self.assertEqual(decisions["ATOSS-28"], "REJECTED")
+
+    def test_partial_final_decision_section_cannot_claim_complete(self):
+        from tools.atlas_doctor_lib.oss_router import _open_source_inventory
+        study_dir = self.root / "docs" / "roadmap"
+        study_dir.mkdir(parents=True, exist_ok=True)
+        original = "\n".join(
+            [f"| ATOSS-{i:02d} | [x](https://github.com/a/x) | ASSESS | Owner |"
+             for i in range(1, 30)] +
+            [f"| AT-SUP-{i:02d} | [x](https://github.com/a/x) | ASSESS | Owner |"
+             for i in range(1, 6)])
+        (study_dir / "GITHUB_OPEN_SOURCE_INTEGRATION_2026-10-31.md").write_text(
+            original + "\n### Décision de maintenance pour chacun des 34 candidats\n"
+            "| **ATOSS-01** | ADOPTED | reason | NOT_RUN |\n"
+            "### Exécution par gros lots\n", encoding="utf-8")
+        report = _open_source_inventory(self.root)
+        self.assertEqual(report["status"], "REVIEW")
+        self.assertEqual(report["final_decision_status"], "REVIEW")
+        self.assertEqual(len(report["final_decision_missing_ids"]), 33)
+        self.assertFalse(report["final_decisions_are_execution_evidence"])
+
+    def test_corrupt_final_decision_cannot_be_silently_qualified(self):
+        from tools.atlas_doctor_lib.oss_router import _open_source_inventory
+        study_dir = self.root / "docs" / "roadmap"
+        study_dir.mkdir(parents=True, exist_ok=True)
+        lines = [
+            f"| ATOSS-{i:02d} | [x](https://github.com/a/x) | ASSESS | Owner |"
+            for i in range(1, 30)
+        ] + [
+            f"| AT-SUP-{i:02d} | [x](https://github.com/a/x) | ASSESS | Owner |"
+            for i in range(1, 6)
+        ]
+        lines.append("### Décision de maintenance pour chacun des 34 candidats")
+        lines.append("| **ATOSS-01** | SOMETHING_UNKNOWN | reason | NOT_RUN |")
+        lines.append("| **ATOSS-01** | ADOPTED | reason | NOT_RUN |")
+        lines.append("### Exécution par gros lots")
+        path = study_dir / "GITHUB_OPEN_SOURCE_INTEGRATION_2026-10-31.md"
+        path.write_text("\n".join(lines) + "\n", encoding="utf-8")
+        report = _open_source_inventory(self.root)
+        self.assertEqual(report["status"], "REVIEW")
+        self.assertEqual(report["final_decision_status"], "REVIEW")
+        self.assertIn("malformed final decision row",
+                      report["final_decision_errors"])
+        self.assertEqual(report["execution_witnesses"], 0)
 
     def test_catalog_reports_unready_tools_without_running_them(self):
         catalog = {"tool_count": 2, "agent_ready_count": 1,

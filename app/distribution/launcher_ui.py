@@ -4,6 +4,8 @@ Its Unity colors match the main Qt app without importing Qt or game assets.
 """
 from __future__ import annotations
 
+import math
+
 UNITY_PALETTE = {
     "background": "#151821",
     "panel": "#1B2746",
@@ -131,6 +133,22 @@ LOGO_PNG_BASE64 = (
     "orm0lR8yzmTKJVe5lJdawhAvuud39CbLvWulm+b9SHuZYa042ULxnTs3pxILLW0rHljsvhfPO5vInCfiS/1EZ7l5lpt32Z"
     "sXn/5/dG1R8G22ZywAAAAASUVORK5CYII="
 )
+
+
+def dpi_multiplier(window) -> float:
+    """Only enlarge the launcher geometry when Tk reports higher Windows DPI.
+
+    Tk scaling measures pixels per point (96 DPI = 4/3). Clamp malformed
+    or extreme OS/Tcl replies; the original 100%-DPI layout remains the
+    fallback, and no OS-specific package is required.
+    """
+    try:
+        pixels_per_point = float(window.tk.call("tk", "scaling"))
+    except Exception:
+        return 1.0
+    if not math.isfinite(pixels_per_point) or pixels_per_point <= 0:
+        return 1.0
+    return min(2.0, max(1.0, pixels_per_point / (96.0 / 72.0)))
 
 
 def display_message(message: str) -> str:

@@ -20,6 +20,7 @@ from PySide6.QtWidgets import (
     QFrame,
     QGridLayout,
     QHBoxLayout,
+    QLayout,
     QLabel,
     QLineEdit,
     QListWidget,
@@ -978,6 +979,8 @@ class ZaapWidget(QWidget):
         parent: QWidget | None = None,
         show_position_controls: bool = True,
         show_favorites: bool = True,
+        compact_favorites: bool = False,
+        compact_favorite_columns: int | None = None,
     ):
         super().__init__(parent)
         self.status_callback = status_callback
@@ -985,6 +988,14 @@ class ZaapWidget(QWidget):
         self.config_update_callback = config_update_callback
         self.show_position_controls = bool(show_position_controls)
         self.show_favorites = bool(show_favorites)
+        self.compact_favorites = bool(compact_favorites)
+        # Optional two-column Organizer grid; other Zaap instances retain their layout.
+        self.compact_favorite_columns = (
+            max(1, int(compact_favorite_columns))
+            if self.compact_favorites and compact_favorite_columns is not None else None
+        )
+        self._favorite_columns = 0
+        self._favorite_layout_width = -1
         self.position_locked = read_zaap_click_locked()
         self.zaaps = load_zaap_index()
         self.filtered_zaaps: list[dict[str, Any]] = []
@@ -993,6 +1004,9 @@ class ZaapWidget(QWidget):
         self.favorite_star_buttons: list[QToolButton] = []
         self.calibration_active = False
         self.launching_zaap = False
+        # An already-queued FocusIn/MousePress QTimer must not reopen the
+        # suggestion popup after selection. A fresh user edit/click may.
+        self._suppress_autoshow_after_launch = False
         self.search_input = QLineEdit()
         self.search_input.setObjectName("comboField")
         self.search_input.setPlaceholderText("Sélectionner un zaap")
@@ -1052,6 +1066,10 @@ class ZaapWidget(QWidget):
         self.position_divider.setFixedSize(1, 32)
         self.position_divider.hide()
         layout = QVBoxLayout(self)
+        # A wide favorites grid must not lock the widget's minimum width:
+        # allow resizeEvent to reflow it into fewer columns on shrink.
+        if self.compact_favorites:
+            layout.setSizeConstraint(QLayout.SetNoConstraint)
         layout.setContentsMargins(0, 0, 0, 0)
         layout.setSpacing(8)
         input_layout = QHBoxLayout()
@@ -1073,15 +1091,27 @@ class ZaapWidget(QWidget):
         layout.addLayout(input_layout)
         self.favorites_row = QWidget(self)
         self.favorites_row.setObjectName("ZaapFavoritesRow")
-        self.favorites_layout = QHBoxLayout(self.favorites_row)
+        self.favorites_layout = (
+            QGridLayout(self.favorites_row) if self.compact_favorites
+            else QHBoxLayout(self.favorites_row)
+        )
         self.favorites_layout.setContentsMargins(0, 0, 0, 0)
         self.favorites_layout.setSpacing(8)
         self.favorites_label = QLabel("Favoris :")
         self.favorites_label.setObjectName("CompactLabel")
         self.favorites_label.setFixedSize(62, 28)
         self.favorites_label.setAlignment(Qt.AlignVCenter | Qt.AlignLeft)
-        self.favorites_layout.addWidget(self.favorites_label)
-        self.favorites_layout.addStretch(1)
+        if self.compact_favorite_columns is not None:
+            # Organizer: "Favoris" owns its own full-width line above the
+            # chips, leaving both equal columns free underneath.
+            self.favorites_layout.addWidget(
+                self.favorites_label, 0, 0, 1, self.compact_favorite_columns
+            )
+        elif self.compact_favorites:
+            self.favorites_layout.addWidget(self.favorites_label, 0, 0)
+        else:
+            self.favorites_layout.addWidget(self.favorites_label)
+            self.favorites_layout.addStretch(1)
         layout.addWidget(self.favorites_row)
         self.favorites_row.setVisible(False)
         self.search_input.setMinimumWidth(220 if self.show_position_controls else 260)
@@ -1103,6 +1133,9 @@ class ZaapWidget(QWidget):
         self.refresh_results("")
 
     def refresh_results(self, text: str) -> None:
+        # This callback is connected to textEdited (user input), not setText.
+        # A genuinely new query re-enables suggestions after a selection.
+        self._suppress_autoshow_after_launch = False
         rows = self.search(text)
         self.filtered_zaaps = rows
         self.populate_suggestions(rows)
@@ -1142,6 +1175,30 @@ class ZaapWidget(QWidget):
         key = normalize_key(zaap_favorite_name(row))
         return bool(key and key in {normalize_key(name) for name in self.favorite_names})
 
+    def favorite_capacity(self) -> int:
+        """Maximum *new* favorites fitting in one visible Organizer row."""
+        if not self.compact_favorites or self.compact_favorite_columns is not None:
+            # Organizer admits eight new favorites in its vertical grid;
+            # older saved extras remain visible in the scrolling panel.
+            return 8
+        # Count the real grid gaps: one between the label and each chip.
+        # Never use a fictional minimum width when the window shrinks.
+        spacing = self.favorites_layout.horizontalSpacing()
+        available = max(0, self.width() - self.favorites_label.width())
+        return max(1, available // (190 + spacing))
+
+    def resizeEvent(self, event) -> None:
+        super().resizeEvent(event)
+        if (self.compact_favorites and self.show_favorites
+                and hasattr(self, "favorites_layout")
+                and (
+                    (self.compact_favorite_columns or self.favorite_capacity())
+                    != self._favorite_columns
+                    or (self.compact_favorite_columns is not None
+                        and self.width() != self._favorite_layout_width)
+                )):
+            self.refresh_favorite_chips()
+
     def toggle_favorite(self, row: dict[str, Any]) -> None:
         if not self.show_favorites:
             return
@@ -1154,6 +1211,11 @@ class ZaapWidget(QWidget):
             current = [favorite for favorite in current if normalize_key(favorite) != key]
             message = f"Favori Zaap retire: {name}"
         else:
+            if self.compact_favorites and len(current) >= self.favorite_capacity():
+                self.status_callback(
+                    "Barre Zaap pleine : retirez un favori avant d'en ajouter un autre."
+                )
+                return
             current.append(name)
             message = f"Favori Zaap ajoute: {name}"
         self.favorite_names = save_zaap_favorites(current, self.zaaps)
@@ -1186,15 +1248,32 @@ class ZaapWidget(QWidget):
                 continue
             rows.append((name, row))
             seen.add(key)
-            if len(rows) >= 8:
+            if not self.compact_favorites and len(rows) >= 8:
                 break
-        for name, row in rows:
+        columns = self.compact_favorite_columns or self.favorite_capacity()
+        self._favorite_columns = columns
+        self._favorite_layout_width = self.width()
+        if self.compact_favorites:
+            spacing = self.favorites_layout.horizontalSpacing()
+            available = max(
+                0, self.width() - (
+                    (columns - 1) * spacing if self.compact_favorite_columns is not None
+                    else self.favorites_label.width() + columns * spacing
+                )
+            )
+            chip_width = min(190, max(40, available // columns))
+        for index, (name, row) in enumerate(rows):
             chip = QWidget(self.favorites_row)
             chip.setObjectName("favoriteChip")
             chip.setAttribute(Qt.WA_Hover, True)
             chip.setFixedHeight(28)
-            chip.setMaximumWidth(190)
-            chip.setSizePolicy(QSizePolicy.Maximum, QSizePolicy.Fixed)
+            if self.compact_favorite_columns is not None:
+                # Identical chip widths per row, even when the panel resizes.
+                chip.setFixedWidth(chip_width)
+                chip.setSizePolicy(QSizePolicy.Fixed, QSizePolicy.Fixed)
+            else:
+                chip.setMaximumWidth(chip_width if self.compact_favorites else 190)
+                chip.setSizePolicy(QSizePolicy.Maximum, QSizePolicy.Fixed)
             chip_layout = QHBoxLayout(chip)
             chip_layout.setContentsMargins(8, 0, 10, 0)
             chip_layout.setSpacing(4)
@@ -1207,7 +1286,9 @@ class ZaapWidget(QWidget):
             button = QPushButton(short_label(name, 24), chip)
             button.setObjectName("favoriteChipName")
             button.setFixedHeight(26)
-            button.setMaximumWidth(152)
+            button.setMaximumWidth(
+                min(152, max(1, chip_width - 38)) if self.compact_favorites else 152
+            )
             button.setCursor(Qt.PointingHandCursor)
             button.setToolTip(name)
             star_button.clicked.connect(lambda _checked=False, value=row: self.toggle_favorite(value))
@@ -1216,9 +1297,28 @@ class ZaapWidget(QWidget):
             chip_layout.addWidget(button)
             self.favorite_star_buttons.append(star_button)
             self.favorite_buttons.append(button)
-            self.favorites_layout.addWidget(chip)
-        self.favorites_layout.addStretch(1)
+            if self.compact_favorite_columns is not None:
+                self.favorites_layout.addWidget(
+                    chip, 1 + index // columns, index % columns
+                )
+            elif self.compact_favorites:
+                self.favorites_layout.addWidget(
+                    chip, index // columns, 1 + index % columns
+                )
+            else:
+                self.favorites_layout.addWidget(chip)
+        if not self.compact_favorites:
+            self.favorites_layout.addStretch(1)
         self.favorites_row.setVisible(bool(rows))
+        if self.compact_favorites:
+            # Existing legacy favorites remain directly visible, wrapping as
+            # needed rather than being silently discarded or hidden behind +N.
+            lines = (len(rows) + columns - 1) // columns
+            label_row = 28 + 8 if self.compact_favorite_columns is not None else 0
+            self.setMaximumHeight(
+                32 + (8 + label_row + lines * 28 + max(0, lines - 1) * 8 if lines else 0)
+            )
+            self.updateGeometry()
 
     def suggestion_tooltip(self, row: dict[str, Any]) -> str:
         details = []
@@ -1242,6 +1342,8 @@ class ZaapWidget(QWidget):
         self.suggestion_popup.setCurrentItem(item)
 
     def show_suggestions(self) -> None:
+        if self._suppress_autoshow_after_launch:
+            return
         if not self.suggestion_popup.count():
             self.hide_suggestions()
             return
@@ -1302,11 +1404,16 @@ class ZaapWidget(QWidget):
                 self.launch_current_suggestion()
                 return True
             if key in (Qt.Key_Down, Qt.Key_Up):
+                self._suppress_autoshow_after_launch = False
                 if not self.suggestion_popup.isVisible() and self.suggestion_popup.count() and self.search_input.text().strip():
                     self.show_suggestions()
                 self.move_suggestion_selection(1 if key == Qt.Key_Down else -1)
                 return True
         if watched is self.search_input and event.type() in (QEvent.FocusIn, QEvent.MouseButtonPress):
+            if event.type() == QEvent.MouseButtonPress:
+                # Real user interaction may reopen suggestions; a delayed
+                # FocusIn emitted during launch is not equivalent to a click.
+                self._suppress_autoshow_after_launch = False
             if self.search_input.text().strip() and self.suggestion_popup.count():
                 self._schedule_owned_callback(0, self.show_suggestions)
         if watched is self.search_input and event.type() == QEvent.FocusOut:
@@ -1386,6 +1493,11 @@ class ZaapWidget(QWidget):
         self.launching_zaap = True
         label = self.suggestion_label(zaap)
         coords = row_coordinate_pair(zaap)
+        # Close immediately, before callbacks can reload the runtime or
+        # activate another window. The popup must never stay over DOFUS.
+        # Suppress previously scheduled show_suggestions() QTimer callbacks.
+        self._suppress_autoshow_after_launch = True
+        self.hide_suggestions()
         try:
             if coords is None:
                 LOGGER.warning("Auto zaap refuse: coordonnees absentes pour %s", label)
@@ -1394,12 +1506,31 @@ class ZaapWidget(QWidget):
             self.search_input.setText(label)
             if self.config_update_callback is not None:
                 self.config_update_callback()
-            if self.start_callback is not None:
-                command = f"/zaap {coords[0]},{coords[1]}"
-                invoke_compatible_callback(self.start_callback, command, None, None)
-            self.hide_suggestions()
-            LOGGER.info("Auto zaap selection: label=%s coords=%s", label, coords)
-            self.status_callback(f"Auto zaap lance: {label}")
+            if self.start_callback is None:
+                self.status_callback("Auto zaap indisponible : runtime non connecté.")
+                return
+            command = f"/zaap {coords[0]},{coords[1]}"
+            try:
+                accepted = invoke_compatible_callback(
+                    self.start_callback, command, None, None,
+                )
+            except Exception:
+                LOGGER.exception("Auto zaap: lancement du runtime impossible.")
+                self.status_callback(f"Auto zaap non lancé : {label}")
+                return
+            LOGGER.info(
+                "Auto zaap sélection: label=%s coords=%s accepté=%s",
+                label, coords, accepted is True,
+            )
+            if accepted is True:
+                self.status_callback(f"Auto zaap en cours : {label}")
+            elif accepted is False:
+                self.status_callback(
+                    f"Auto zaap non lancé : macro occupée ou runtime indisponible ({label})."
+                )
+            else:
+                # Legacy callbacks returning None do not prove acceptance.
+                self.status_callback(f"Auto zaap transmis (démarrage non confirmé) : {label}")
         finally:
             self._schedule_owned_callback(0, self.reset_launch_guard)
 

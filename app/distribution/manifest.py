@@ -228,3 +228,77 @@ def verify_file(path: Path, entry: ReleaseFile) -> bool:
         return digest.hexdigest() == entry.sha256
     except OSError:
         return False
+
+# Candidate repository-update channel (NRU-001). Parsing only: never authorizes an
+# install until the certified channel publisher, frozen payload and rollback are
+# wired and validated. Keep the existing ReleaseManifest as the single payload
+# format; do not invent a second installer or accept unverified git source.
+REPO_UPDATE_POINTER_LIMIT = 4096
+REPO_UPDATE_MAX_DELTA = 95 * 1024 * 1024
+_REPO_UPDATE_FIELDS = frozenset({
+    "protocol_version", "channel", "source_sha", "app_commit_sha",
+    "base_source_sha", "manifest_sha256", "delta_sha256", "delta_size",
+})
+
+
+@dataclass(frozen=True)
+class RepoUpdatePointer:
+    source_sha: str
+    app_commit_sha: str
+    base_source_sha: str
+    manifest_sha256: str
+    delta_sha256: str
+    delta_size: int
+
+    def pinned_asset_url(self, *, manifest: bool = False) -> str:
+        """Only immutable GitHub blob paths, never caller-provided URLs."""
+        name = "atlas-manifest.json" if manifest else "atlas-delta.zip"
+        return (
+            "https://raw.githubusercontent.com/r9327/Dof-Atlas-App/"
+            f"{self.app_commit_sha}/updates/{self.source_sha}/{name}"
+        )
+
+
+def parse_repo_update_pointer(raw: bytes) -> RepoUpdatePointer:
+    """Fail closed on unstable, unbounded or unpinned APP update metadata.
+
+    This is metadata verification, not proof that a DEV SHA was certified.
+    The publisher must verify source provenance and certification separately.
+    """
+    if not isinstance(raw, bytes) or len(raw) > REPO_UPDATE_POINTER_LIMIT:
+        raise ManifestError("Invalid repository update pointer length")
+    try:
+        doc = json.loads(raw)
+    except (UnicodeError, ValueError) as exc:
+        raise ManifestError("Malformed repository update pointer") from exc
+    if (not isinstance(doc, dict) or set(doc) != _REPO_UPDATE_FIELDS or
+            type(doc["protocol_version"]) is not int or doc["protocol_version"] != 1 or
+            doc["channel"] != "stable"):
+        raise ManifestError("Unsupported repository update pointer")
+    source = valid_source_sha(doc["source_sha"])
+    base = valid_source_sha(doc["base_source_sha"])
+    commit = valid_source_sha(doc["app_commit_sha"])
+    if base == source:
+        raise ManifestError("Repository patch base cannot equal target")
+    digest = valid_sha(doc["manifest_sha256"])
+    delta_digest = valid_sha(doc["delta_sha256"])
+    size = doc["delta_size"]
+    if type(size) is not int or not 0 < size <= REPO_UPDATE_MAX_DELTA:
+        raise ManifestError("Repository patch exceeds safe Git transport size")
+    return RepoUpdatePointer(source, commit, base, digest, delta_digest, size)
+
+
+def verify_repo_update_manifest(pointer: RepoUpdatePointer, raw: bytes) -> ReleaseManifest:
+    """Bind an immutable repo pointer to the canonical frozen-app manifest."""
+    if not isinstance(pointer, RepoUpdatePointer) or not isinstance(raw, bytes):
+        raise ManifestError("Invalid repository update manifest inputs")
+    if hashlib.sha256(raw).hexdigest() != pointer.manifest_sha256:
+        raise ManifestError("Repository manifest digest mismatch")
+    manifest = parse_manifest(raw)
+    if manifest.source_sha != pointer.source_sha or manifest.delta is None:
+        raise ManifestError("Repository patch manifest source or delta missing")
+    if (manifest.delta.base_source_sha != pointer.base_source_sha or
+            manifest.delta.archive_sha256 != pointer.delta_sha256 or
+            manifest.delta.archive_size != pointer.delta_size):
+        raise ManifestError("Repository patch identity mismatch")
+    return manifest

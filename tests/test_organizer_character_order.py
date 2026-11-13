@@ -11,7 +11,6 @@ from unittest.mock import patch
 os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
 
 from PySide6.QtCore import Qt
-from PySide6.QtTest import QTest
 from PySide6.QtWidgets import QApplication, QLabel, QPushButton
 
 from app.constants import KEY_DEBUG_MODE, KEY_PRIMARY_WINDOW, KEY_SESSION_ORDER
@@ -82,6 +81,35 @@ class OrganizerCharacterOrderTests(unittest.TestCase):
                 self.assertEqual(
                     page.character_order_service.load_order(),
                     ("alpha", "beta", "gamma"),
+                )
+
+    def test_sparse_slot_seven_survives_rescan_without_changing_slot_hotkeys(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            with self.organizer_page(Path(temporary)) as (page, profile, index):
+                page.sessions = page.build_session_slots([
+                    {"nom": "Alpha - Iop", "hwnd": 101},
+                    {"nom": "Beta - Cra", "hwnd": 202},
+                ])
+                page.render_sessions()
+                # All eight slots are permanently visible; no expand/collapse.
+                self.assertEqual(len(page.session_slot_widgets), 8)
+                self.assertFalse(hasattr(page.sessions_panel, "expand_button"))
+                page.reorder_session(0, 7)
+                self.assertEqual(organizer.session_name(page.sessions[7]), "Alpha - Iop")
+                self.assertEqual(len(page.session_slot_widgets), 8)
+                self.assertEqual(
+                    json.loads(index.read_text(encoding="utf-8"))["clients"][-1]["slot"], 8
+                )
+                page.profiles = page.load_profiles()
+                page.sessions = page.build_session_slots([
+                    {"nom": "Beta - Cra", "hwnd": 303},
+                    {"nom": "Alpha - Iop", "hwnd": 404},
+                ])
+                self.assertEqual(organizer.session_name(page.sessions[7]), "Alpha - Iop")
+                self.assertEqual(organizer.session_name(page.sessions[1]), "Beta - Cra")
+                self.assertEqual(
+                    json.loads(profile.read_text(encoding="utf-8"))
+                    ["__organizer_slot_assignments__"][7], "alpha",
                 )
 
     def test_apply_saved_order_uses_canonical_order_without_clearing_current_sessions(self):
@@ -424,7 +452,7 @@ class OrganizerCharacterOrderTests(unittest.TestCase):
 
 
 
-    def test_favorite_button_click_persists_after_reorder_and_window_reconnect(self):
+    def test_first_slot_master_persists_after_reorder_and_window_reconnect(self):
         with tempfile.TemporaryDirectory() as temporary:
             root = Path(temporary)
             bindings = root / "network_character_bindings.json"
@@ -446,22 +474,31 @@ class OrganizerCharacterOrderTests(unittest.TestCase):
                     {"nom": "Alpha - Iop", "hwnd": 10, "pid": 101},
                     {"nom": "Beta - Cra", "hwnd": 20, "pid": 202},
                 ])
+                page.export_client_index()
                 page.render_sessions()
-                favorite_buttons = page.sessions_panel.findChildren(QPushButton)
-                favorite = next(
-                    button for button in favorite_buttons
-                    if button.objectName() == "FavoriteButton"
+                # The removed favorite buttons must not retain an invisible
+                # clickable widget or a reserved column in any slot.
+                self.assertFalse(any(
+                    b.objectName() in ("FavoriteButton", "FavoriteButtonActive")
+                    for b in page.sessions_panel.findChildren(QPushButton)
+                ))
+                self.assertIsNotNone(
+                    page.session_slot_widgets[0][0].findChild(QLabel, "PrimarySlotIndicator")
                 )
-                self.assertFalse(hasattr(favorite, "_atlas_drag_index"))
-                QTest.mouseClick(favorite, Qt.LeftButton)
-
+                self.assertIsNone(
+                    page.session_slot_widgets[1][0].findChild(QLabel, "PrimarySlotIndicator")
+                )
                 self.assertEqual(
                     json.loads(profile.read_text(encoding="utf-8"))[KEY_PRIMARY_WINDOW],
                     "character:77",
                 )
-                # A scan in reverse order must NOT change the canonical order.
-                # Exercise a real Organizer drag/reorder before reconnecting.
+                # Reorder must change the canonical master automatically;
+                # there is no second editable/hidden favorite to retain.
                 page.reorder_session(0, 1)
+                self.assertEqual(
+                    json.loads(profile.read_text(encoding="utf-8"))[KEY_PRIMARY_WINDOW],
+                    "character:88",
+                )
                 bindings.write_text(
                     json.dumps({"characters": {
                         "77": {
@@ -486,13 +523,16 @@ class OrganizerCharacterOrderTests(unittest.TestCase):
                     [client["character_key"] for client in clients],
                     ["character:88", "character:77"],
                 )
-                self.assertEqual(
-                    [client["primary"] for client in clients],
-                    [False, True],
-                )
+                self.assertEqual([client["primary"] for client in clients], [True, False])
                 self.assertEqual(
                     json.loads(profile.read_text(encoding="utf-8"))[KEY_PRIMARY_WINDOW],
-                    "character:77",
+                    "character:88",
+                )
+                self.assertIsNotNone(
+                    page.session_slot_widgets[0][0].findChild(QLabel, "PrimarySlotIndicator")
+                )
+                self.assertIsNone(
+                    page.session_slot_widgets[1][0].findChild(QLabel, "PrimarySlotIndicator")
                 )
 
 

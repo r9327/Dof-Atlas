@@ -34,7 +34,7 @@ jobs:
           # Certify the exact PR HEAD, never GitHub's temporary merge commit.
           ref: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.sha || github.sha }}
           persist-credentials: false
-      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97
+      - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0
         with:
           python-version: "3.13"
       - name: Compile updater modules
@@ -181,6 +181,7 @@ jobs:
           github.head_ref == 'feature/unified-launcher-auto-update-preload-20261026' ||
           github.head_ref == 'feat/smart-download-safe-cow-install-20261027' ||
           github.head_ref == 'fix/personal-unity-assets-runtime-20261028' ||
+          github.head_ref == 'perf/launcher-v2-startup-audit-20261028' ||
           (github.head_ref == 'fix/windows-quest-assets-custom-runtime-root-20261015' ||
            (github.head_ref == 'fix/frozen-guide-success-runtime-assets-20261015' ||
            github.head_ref == 'fix/windows-craft-seed-and-full-prereqs-20261015' ||
@@ -217,7 +218,7 @@ jobs:
           current="$(git ls-remote origin refs/heads/main | cut -f1)"
           test "$current" = "$SOURCE_SHA"
           test "$(git rev-parse HEAD)" = "$SOURCE_SHA"
-      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97
+      - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0
         with:
           python-version: "3.13"
       - name: Fetch only startup images for optional diagnostic build
@@ -433,13 +434,22 @@ jobs:
             }
           }
       - name: Read previous certified distribution manifest (if available)
-        if: github.event_name == 'workflow_run'
+        if: >-
+          github.event_name == 'workflow_run' ||
+          inputs.full_candidate == true ||
+          (github.event_name == 'pull_request' && github.event.action == 'ready_for_review')
         env:
-          GH_TOKEN: ${{ secrets.ATLAS_DISTRIBUTION_TOKEN }}
+          # Candidate previews receive read-only metadata access, not the APP
+          # publisher secret. The stable production path keeps its own token.
+          GH_TOKEN: ${{ github.event_name == 'workflow_run' && secrets.ATLAS_DISTRIBUTION_TOKEN || github.token }}
         run: |
           mkdir -p "$RUNNER_TEMP/atlas-previous"
-          gh release download --repo r9327/Dof-Atlas-App \
-            --pattern atlas-manifest.json --dir "$RUNNER_TEMP/atlas-previous" || true
+          if gh release download --repo r9327/Dof-Atlas-App \
+              --pattern atlas-manifest.json --dir "$RUNNER_TEMP/atlas-previous"; then
+            echo "Previous certified release manifest acquired; delta packaging will be attempted"
+          else
+            echo "::notice::No previous public manifest available; full Windows candidate only, delta NOT RUN"
+          fi
       - name: Package ZIP, manifest and launcher
         if: >-
           github.event_name == 'workflow_run' ||
@@ -518,6 +528,17 @@ jobs:
                           total += len(block)
                   assert total == item.size and digest.hexdigest() == item.sha256, item.path
           print(f"VERIFIED: {len(expected)} hashed files, source={manifest.source_sha}")
+          if manifest.delta is not None:
+              from app.distribution.manifest import ReleaseFile, verify_file
+              from scripts.windows.build_repo_update_pointer import _verify_delta_members
+              delta_path = root / "atlas-delta.zip"
+              assert verify_file(delta_path, ReleaseFile(
+                  delta_path.name, manifest.delta.archive_size, manifest.delta.archive_sha256
+              )), "Delta ZIP missing or SHA mismatch"
+              _verify_delta_members(delta_path, manifest)
+              print(f"VERIFIED: candidate frozen delta has {len(manifest.delta.paths)} changed files")
+          else:
+              print("DELTA_NOT_GENERATED: no compatible certified base or insufficient savings")
           PY
       - name: Export exact frozen installer and SHA256 evidence to Doctor
         if: inputs.full_candidate == true
@@ -602,6 +623,7 @@ jobs:
             dist-release/atlas-windows.zip
             dist-release/atlas-windows.part*
             dist-release/atlas-manifest.json
+            dist-release/atlas-delta.zip
             dist-release/atlas-channel.json
             dist-release/DofusAtlas.exe
             dist-release/DofusAtlasSetup.exe
@@ -731,7 +753,7 @@ jobs:
                               or not _publishable(Path("_internal") / n) for n in names):
               raise SystemExit("Source diff is no longer JSON-only")
           PY
-      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97
+      - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0
         with:
           python-version: "3.13"
       - name: Materialize selected Git LFS JSON

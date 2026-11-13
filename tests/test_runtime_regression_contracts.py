@@ -44,9 +44,10 @@ class RuntimeRegressionContractTests(unittest.TestCase):
             calls.append((search, position, ratios))
             raise TypeError("bug inside callback")
 
-        widget = storage.ZaapWidget(lambda _text: None, callback)
+        statuses = []
+        widget = storage.ZaapWidget(statuses.append, callback)
         try:
-            with self.assertRaisesRegex(TypeError, "bug inside callback"):
+            with self.assertLogs(storage.LOGGER, level="ERROR") as diagnostic:
                 widget.launch_zaap(
                     {
                         "label": "Cité d'Astrub [5,-18]",
@@ -57,6 +58,8 @@ class RuntimeRegressionContractTests(unittest.TestCase):
                 )
             self.assertEqual(len(calls), 1)
             self.assertEqual(calls[0], ("/zaap 5,-18", None, None))
+            self.assertIn("non lancé", statuses[-1])
+            self.assertTrue(any("bug inside callback" in line for line in diagnostic.output))
         finally:
             # Reset only this widget. A global processEvents() here also runs
             # unrelated callbacks left by earlier Qt tests and can make the
@@ -298,8 +301,10 @@ class RuntimeRegressionContractTests(unittest.TestCase):
 
     def test_emergency_stop_does_not_fake_hook_badge_off(self) -> None:
         source = Path(__file__).resolve().parents[1].joinpath("main.py").read_text(encoding="utf-8")
-        method = source.split("    def stop_runtime(self) -> None:", 1)[1].split("\n    def ", 1)[0]
-        self.assertIn('runtime.emergency_stop("bouton stop")', method)
+        method = source.split("    def stop_runtime(self, ", 1)[1].split("\n    def ", 1)[0]
+        self.assertIn("runtime.emergency_stop(", method)
+        self.assertIn('"bouton stop"', method)
+        self.assertIn("latch=not temporary", method)
         self.assertNotIn("update_runtime_badge(False)", method)
 
     def test_runtime_joins_cooperative_macro_worker_during_shutdown(self) -> None:

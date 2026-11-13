@@ -2,25 +2,63 @@ from __future__ import annotations
 
 import json
 import os
+import subprocess
+import sys
 import tempfile
 import unittest
 from contextlib import contextmanager
 from pathlib import Path
+from types import SimpleNamespace
 from unittest.mock import patch
 
 os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
 
-from PySide6.QtWidgets import QApplication, QFrame, QScrollArea
+from PySide6.QtCore import QAbstractAnimation, QPoint, Qt
+from PySide6.QtWidgets import QApplication, QFrame, QLabel, QPushButton, QScrollArea
 
 import app.pages.organizer_page as organizer
 import app.pages.organizer.character_sessions as organizer_sessions
-from app.pages.organizer.organizer_ui import CharacterSlotsPanel
+from app.pages.organizer.organizer_ui import CharacterSlotName, CharacterSlotsPanel
 
 
 class OrganizerLayoutTests(unittest.TestCase):
     @classmethod
     def setUpClass(cls) -> None:
         cls.app = QApplication.instance() or QApplication([])
+
+    def test_session_ids_refuse_fractional_boolean_and_corrupt_native_values(self):
+        from app.pages.organizer.common import (
+            session_hwnd, session_pid, session_is_detected, session_name,
+        )
+
+        for count in (2, 4, 6, 8):
+            for hwnd in range(101, 101 + count):
+                with self.subTest(count=count, hwnd=hwnd):
+                    self.assertEqual(session_hwnd({"hwnd": hwnd}), hwnd)
+                    self.assertEqual(session_hwnd({"hwnd": f" {hwnd} "}), hwnd)
+                    self.assertTrue(session_is_detected({
+                        "nom": "Witsis", "hwnd": hwnd,
+                    }))
+        bad_hwnds = (
+            True, False, 101.0, 101.9, float("nan"), float("inf"),
+            None, "-101", "+101", "101.5", object(), 0, -1, 2**64,
+        )
+        for raw in bad_hwnds:
+            with self.subTest(hwnd=repr(raw)):
+                self.assertEqual(session_hwnd({"hwnd": raw}), 0)
+                self.assertFalse(session_is_detected({
+                    "nom": "Witsis", "hwnd": raw,
+                }))
+        for raw in (None, False, True, float("inf"), 2**32, "1.5"):
+            with self.subTest(pid=repr(raw)):
+                self.assertEqual(session_pid({"pid": raw}), 0)
+        self.assertEqual(session_pid({"pid": " 12345 "}), 12345)
+        for invalid_name in (None, False, 101, object()):
+            with self.subTest(name=repr(invalid_name)):
+                self.assertEqual(session_name({"nom": invalid_name}), "")
+                self.assertFalse(session_is_detected({
+                    "nom": invalid_name, "hwnd": 101,
+                }))
 
     @contextmanager
     def organizer_page(self, root: Path):
@@ -35,6 +73,8 @@ class OrganizerLayoutTests(unittest.TestCase):
             patch.object(organizer_sessions, "PROFILE_FILE", profile),
             patch.object(organizer_sessions, "CLIENT_INDEX_JSON", client_index),
             patch.object(organizer_sessions, "CLIENT_INDEX_INI", client_ini),
+            patch.object(organizer, "CLIENT_INDEX_JSON", client_index),
+            patch.object(organizer, "CLIENT_INDEX_INI", client_ini),
             patch.object(organizer_sessions, "scan_unity_sessions", return_value=[]),
             patch.object(organizer.UnityWindowEventWatcher, "start", return_value=None),
             patch.object(organizer.UnityWindowEventWatcher, "stop", return_value=None),
@@ -50,6 +90,760 @@ class OrganizerLayoutTests(unittest.TestCase):
                 page.close()
                 page.deleteLater()
                 self.app.processEvents()
+
+    def test_organizer_duplicate_scanner_windows_never_hide_eighth_client(self):
+        from unittest.mock import Mock
+        from app.pages.organizer.character_sessions import CharacterSessionsMixin
+        from app.pages.organizer.common import session_hwnd, session_is_detected
+
+        for count in (2, 4, 6, 8):
+            with self.subTest(count=count):
+                page = Mock()
+                page.character_order_service.sort_rows.side_effect = (
+                    lambda rows, **_kwargs: rows
+                )
+                distinct = [
+                    {"nom": f"Perso{i}", "hwnd": 101 + i}
+                    for i in range(count)
+                ]
+                scanned = [
+                    distinct[0],
+                    {"nom": "Duplicated event", "hwnd": 101},
+                    *distinct[1:],
+                ]
+                slots = CharacterSessionsMixin.build_session_slots(page, scanned)
+                self.assertEqual(len(slots), 8)
+                active = [row for row in slots if session_is_detected(row)]
+                self.assertEqual(len(active), count)
+                self.assertEqual(
+                    tuple(session_hwnd(row) for row in active),
+                    tuple(range(101, 101 + count)),
+                )
+                self.assertEqual(active[0]["nom"], "Perso0")
+
+    def test_organizer_scanner_skips_malformed_rows_without_losing_eighth_window(self):
+        from unittest.mock import Mock
+        from app.pages.organizer.character_sessions import CharacterSessionsMixin
+        from app.pages.organizer.common import session_hwnd, session_is_detected
+
+        for count in (2, 4, 6, 8):
+            with self.subTest(count=count):
+                page = Mock()
+                page.character_order_service.sort_rows.side_effect = (
+                    lambda rows, **_kwargs: rows
+                )
+                valid = [
+                    {"nom": f"Perso{i}", "hwnd": 101 + i}
+                    for i in range(count)
+                ]
+                # Invalid native callback rows must never crash a refresh or
+                # consume the fixed-size slot budget before the final client.
+                scanned = [None, False, 123, "invalid", [],
+                           {"nom": "Broken", "hwnd": 101.5},
+                           *valid[:-1], object(), valid[-1]]
+                slots = CharacterSessionsMixin.build_session_slots(page, scanned)
+                active = [row for row in slots if session_is_detected(row)]
+                self.assertEqual(len(slots), 8)
+                self.assertEqual(len(active), count)
+                self.assertEqual(
+                    tuple(session_hwnd(row) for row in active),
+                    tuple(range(101, 101 + count)),
+                )
+
+    def test_organizer_invalid_scanner_result_keeps_prior_sessions_2_4_6_8(self):
+        from unittest.mock import Mock
+        from app.pages.organizer.character_sessions import CharacterSessionsMixin
+
+        for count in (2, 4, 6, 8):
+            for corrupt in (None, False, "broken", 42, {"nom": "wrong"},
+                            [None, "broken", {"nom": "Broken", "hwnd": 101.5}]):
+                with self.subTest(count=count, corrupt=repr(corrupt)):
+                    page = Mock()
+                    previous = [
+                        {"nom": f"Perso{i}", "hwnd": 101 + i}
+                        for i in range(count)
+                    ]
+                    page.sessions = previous
+                    page.load_profiles.return_value = {}
+                    page._scan_unity_sessions.return_value = corrupt
+                    with patch.object(organizer_sessions.os, "name", "nt"):
+                        refreshed = CharacterSessionsMixin.refresh_sessions_and_export(page)
+                    self.assertFalse(refreshed)
+                    self.assertIs(page.sessions, previous)
+                    page.build_session_slots.assert_not_called()
+                    page.export_client_index.assert_not_called()
+                    page.sync_event_watcher_sessions.assert_not_called()
+                    page.notify_sessions_changed.assert_not_called()
+
+    def test_organizer_scanner_exception_preserves_prior_sessions_and_index(self):
+        from unittest.mock import Mock
+        from app.pages.organizer.character_sessions import CharacterSessionsMixin
+
+        page = Mock()
+        previous = [{"nom": "Perso1", "hwnd": 101}]
+        page.sessions = previous
+        page.load_profiles.return_value = {}
+        page._scan_unity_sessions.side_effect = RuntimeError("scanner failed")
+        with patch.object(organizer_sessions.os, "name", "nt"):
+            self.assertFalse(CharacterSessionsMixin.refresh_sessions_and_export(page))
+        self.assertIs(page.sessions, previous)
+        page.export_client_index.assert_not_called()
+        page.notify_sessions_changed.assert_not_called()
+
+    def test_organizer_empty_successful_scan_clears_closed_windows(self):
+        from unittest.mock import Mock
+        from app.pages.organizer.character_sessions import CharacterSessionsMixin
+        from app.pages.organizer.common import session_is_detected
+
+        for count in (2, 4, 6, 8):
+            with self.subTest(clients=count):
+                page = Mock()
+                page.sessions = [
+                    {"nom": f"Perso{i}", "hwnd": 101 + i}
+                    for i in range(count)
+                ]
+                page.load_profiles.return_value = {}
+                page._scan_unity_sessions.return_value = []
+                page.character_order_service.sort_rows.side_effect = (
+                    lambda rows, **_kwargs: rows
+                )
+                page.build_session_slots.side_effect = (
+                    lambda rows: CharacterSessionsMixin.build_session_slots(page, rows)
+                )
+                with patch.object(organizer_sessions.os, "name", "nt"):
+                    self.assertFalse(CharacterSessionsMixin.refresh_sessions_and_export(page))
+                self.assertEqual(len(page.sessions), 8)
+                self.assertFalse(any(session_is_detected(row) for row in page.sessions))
+                page.export_client_index.assert_called_once()
+                page.notify_sessions_changed.assert_called_once()
+
+    def test_organizer_partial_corrupt_scan_keeps_all_valid_clients(self):
+        from unittest.mock import Mock
+        from app.pages.organizer.character_sessions import CharacterSessionsMixin
+        from app.pages.organizer.common import session_hwnd, session_is_detected
+
+        for count in (2, 4, 6, 8):
+            with self.subTest(clients=count):
+                page = Mock()
+                page.load_profiles.return_value = {}
+                page._scan_unity_sessions.return_value = [
+                    None, False, {"nom": "broken", "hwnd": 101.5},
+                    *({"nom": f"Perso{i}", "hwnd": 101 + i}
+                      for i in range(count)),
+                ]
+                page.character_order_service.sort_rows.side_effect = (
+                    lambda rows, **_kwargs: rows
+                )
+                page.build_session_slots.side_effect = (
+                    lambda rows: CharacterSessionsMixin.build_session_slots(page, rows)
+                )
+                with patch.object(organizer_sessions.os, "name", "nt"):
+                    self.assertTrue(CharacterSessionsMixin.refresh_sessions_and_export(page))
+                valid = [row for row in page.sessions if session_is_detected(row)]
+                self.assertEqual(
+                    tuple(session_hwnd(row) for row in valid),
+                    tuple(range(101, 101 + count)),
+                )
+                page.export_client_index.assert_called_once()
+                page.notify_sessions_changed.assert_called_once()
+
+    def test_explicit_scan_failure_preserves_sessions_without_reload(self):
+        from unittest.mock import Mock
+        from app.pages.organizer.character_sessions import CharacterSessionsMixin
+
+        for outcome in (None, False, [None], RuntimeError("bad scanner")):
+            with self.subTest(outcome=repr(outcome)):
+                page = Mock()
+                previous = [{"nom": "Perso", "hwnd": 101}]
+                page.sessions = previous
+                if isinstance(outcome, Exception):
+                    page._scan_unity_sessions.side_effect = outcome
+                else:
+                    page._scan_unity_sessions.return_value = outcome
+                with patch.object(organizer_sessions.os, "name", "nt"):
+                    CharacterSessionsMixin.scan_sessions(page)
+                self.assertIs(page.sessions, previous)
+                page.export_client_index.assert_not_called()
+                page.request_sessions_render.assert_not_called()
+                page.sync_event_watcher_sessions.assert_not_called()
+                page.reload_runtime_callback.assert_not_called()
+                self.assertIn("conservées", page.status_callback.call_args.args[0])
+
+    def test_window_event_scan_failure_preserves_roster_without_export(self):
+        from unittest.mock import Mock
+        from app.pages.organizer.character_sessions import CharacterSessionsMixin
+
+        for outcome in (None, {}, [{"nom": "Broken", "hwnd": 3.2}],
+                        RuntimeError("bad scanner")):
+            with self.subTest(outcome=repr(outcome)):
+                page = Mock()
+                previous = [{"nom": "Perso", "hwnd": 101}]
+                page.sessions = previous
+                if isinstance(outcome, Exception):
+                    scan = patch.object(
+                        CharacterSessionsMixin, "_scan_unity_sessions",
+                        side_effect=outcome,
+                    )
+                else:
+                    scan = patch.object(
+                        CharacterSessionsMixin, "_scan_unity_sessions",
+                        return_value=outcome,
+                    )
+                with patch.object(organizer_sessions.os, "name", "nt"), scan:
+                    CharacterSessionsMixin.refresh_sessions_from_window_event(page)
+                self.assertIs(page.sessions, previous)
+                page.build_session_slots.assert_not_called()
+                page.export_client_index.assert_not_called()
+                page.request_sessions_render.assert_not_called()
+                page.sync_event_watcher_sessions.assert_not_called()
+                page.begin_release_identity_retries.assert_not_called()
+
+    def test_generic_release_retry_failed_scan_retries_without_erasing_roster(self):
+        from unittest.mock import Mock
+        from app.pages.organizer.character_sessions import CharacterSessionsMixin
+
+        for outcome in (None, 123, [None], RuntimeError("bad scanner")):
+            with self.subTest(outcome=repr(outcome)):
+                page = Mock()
+                previous = [{"nom": "Dofus", "hwnd": 101}]
+                page.sessions = previous
+                page.sessions_have_generic_names.return_value = True
+                if isinstance(outcome, Exception):
+                    scan = patch.object(
+                        CharacterSessionsMixin, "_scan_unity_sessions",
+                        side_effect=outcome,
+                    )
+                else:
+                    scan = patch.object(
+                        CharacterSessionsMixin, "_scan_unity_sessions",
+                        return_value=outcome,
+                    )
+                with patch.object(organizer_sessions.os, "name", "nt"), scan:
+                    CharacterSessionsMixin.retry_release_identity(page)
+                self.assertIs(page.sessions, previous)
+                page.export_client_index.assert_not_called()
+                page.sync_event_watcher_sessions.assert_not_called()
+                page.schedule_next_release_identity_retry.assert_called_once()
+
+    def test_successful_empty_scans_clear_stale_slots_across_all_entrypoints(self):
+        from unittest.mock import Mock
+        from app.pages.organizer.character_sessions import CharacterSessionsMixin
+        from app.pages.organizer.common import session_is_detected
+
+        for action in ("scan_sessions", "refresh_sessions_from_window_event",
+                       "retry_release_identity"):
+            for count in (2, 4, 6, 8):
+                with self.subTest(action=action, clients=count):
+                    page = Mock()
+                    page.sessions = [
+                        {"nom": f"Perso{i}", "hwnd": 101 + i}
+                        for i in range(count)
+                    ]
+                    page.detected_session_count.return_value = 0
+                    page.sessions_have_generic_names.side_effect = [True, False]
+                    page.session_identity_signature.side_effect = [
+                        ("old_roster",), ("empty_roster",),
+                    ]
+                    page._scan_unity_sessions.return_value = []
+                    page.load_profiles.return_value = {}
+                    page.character_order_service.sort_rows.side_effect = (
+                        lambda rows, **_kwargs: rows
+                    )
+                    page.build_session_slots.side_effect = (
+                        lambda rows: CharacterSessionsMixin.build_session_slots(page, rows)
+                    )
+                    with (
+                        patch.object(organizer_sessions.os, "name", "nt"),
+                        patch.object(
+                            CharacterSessionsMixin, "_scan_unity_sessions",
+                            return_value=[],
+                        ),
+                    ):
+                        getattr(CharacterSessionsMixin, action)(page)
+                    self.assertEqual(len(page.sessions), 8)
+                    self.assertFalse(any(session_is_detected(row) for row in page.sessions))
+                    page.export_client_index.assert_called_once()
+
+    def test_native_window_event_never_truncates_corrupt_hwnd_or_id(self):
+        from unittest.mock import Mock
+        from app.pages.organizer.character_sessions import CharacterSessionsMixin
+        from app.windows_embed import EVENT_SYSTEM_FOREGROUND
+
+        for invalid in (None, True, False, 101.0, 101.9, "101", -1, 0, 2**64):
+            with self.subTest(hwnd=repr(invalid)):
+                page = Mock()
+                CharacterSessionsMixin.on_unity_window_event(
+                    page, EVENT_SYSTEM_FOREGROUND, invalid
+                )
+                page.active_session_callback.assert_not_called()
+                page.window_event_refresh_timer.start.assert_not_called()
+        for invalid_event in (None, True, 3.0, "3", float("inf")):
+            with self.subTest(event=repr(invalid_event)):
+                page = Mock()
+                CharacterSessionsMixin.on_unity_window_event(
+                    page, invalid_event, 101
+                )
+                page.active_session_callback.assert_not_called()
+                page.window_event_refresh_timer.start.assert_not_called()
+
+    def test_native_window_event_preserves_exact_2_4_6_8_client_selection(self):
+        from unittest.mock import Mock
+        from app.pages.organizer.character_sessions import CharacterSessionsMixin
+        from app.windows_embed import EVENT_SYSTEM_FOREGROUND
+
+        for count in (2, 4, 6, 8):
+            for hwnd in range(101, 101 + count):
+                with self.subTest(clients=count, hwnd=hwnd):
+                    page = Mock()
+                    CharacterSessionsMixin.on_unity_window_event(
+                        page, EVENT_SYSTEM_FOREGROUND, hwnd
+                    )
+                    page.active_session_callback.assert_called_once_with(hwnd)
+                    page.window_event_refresh_timer.start.assert_called_once_with()
+        page = Mock()
+        CharacterSessionsMixin.on_unity_window_event(
+            page, EVENT_SYSTEM_FOREGROUND + 1, 101
+        )
+        page.active_session_callback.assert_not_called()
+        page.window_event_refresh_timer.start.assert_called_once_with()
+
+    def test_organizer_order_and_favorite_never_coerce_foreign_window_ids(self):
+        from unittest.mock import Mock
+        from app.pages.organizer.character_sessions import CharacterSessionsMixin
+
+        for count in (2, 4, 6, 8):
+            for index in range(count):
+                with self.subTest(count=count, index=index):
+                    hwnd = 101 + index
+                    page = Mock()
+                    page.profiles = {}
+                    page.primary_token_for_session.return_value = ""
+                    valid = {"nom": f"Perso{index}", "hwnd": str(hwnd)}
+                    keys = CharacterSessionsMixin.session_order_keys(page, valid)
+                    self.assertIn(f"hwnd:{hwnd}", keys)
+                    for invalid in (float(hwnd), True, f"+{hwnd}", 2**64):
+                        row = {"nom": f"Perso{index}", "hwnd": invalid}
+                        bad = CharacterSessionsMixin.session_order_keys(page, row)
+                        self.assertFalse(any(key.startswith("hwnd:") for key in bad))
+                        with patch.object(
+                            organizer_sessions, "record_validation",
+                        ):
+                            CharacterSessionsMixin.set_primary_window(page, row)
+                        page.primary_token_for_session.assert_called_with(
+                            f"Perso{index}", 0, row,
+                        )
+                        page.reload_runtime_callback.assert_not_called()
+                        page.primary_token_for_session.reset_mock()
+
+    def test_organizer_autogroup_reports_accepted_rejected_and_legacy_launch(self):
+        from unittest.mock import Mock
+        from app.pages.organizer.character_sessions import CharacterSessionsMixin
+
+        for accepted in (True, False, None):
+            with self.subTest(accepted=accepted):
+                page = Mock()
+                page.sessions = [
+                    {"nom": "Leader", "hwnd": 101, "pid": 1001},
+                    {"nom": "Friend", "hwnd": 202, "pid": 1002},
+                ]
+                page.launch_auto_group_callback.return_value = accepted
+                CharacterSessionsMixin.launch_auto_group(page)
+                page.export_client_index.assert_called_once()
+                page.launch_auto_group_callback.assert_called_once()
+                message = page.status_callback.call_args.args[0]
+                if accepted is True:
+                    self.assertIn("en cours", message)
+                    self.assertNotIn("invitation(s)", message)
+                elif accepted is False:
+                    self.assertIn("non lancé", message)
+                else:
+                    self.assertIn("non confirmé", message)
+
+    def test_organizer_autogroup_passes_all_unique_detected_clients_2_4_6_8(self):
+        from unittest.mock import Mock
+        from app.pages.organizer.character_sessions import CharacterSessionsMixin
+
+        for count in (2, 4, 6, 8):
+            with self.subTest(count=count):
+                page = Mock()
+                page.sessions = [
+                    {"nom": f"Perso-{i}", "hwnd": 101 + i, "pid": 1001 + i}
+                    for i in range(count)
+                ]
+                page.launch_auto_group_callback.return_value = True
+                CharacterSessionsMixin.launch_auto_group(page)
+                page.export_client_index.assert_called_once()
+                entries = page.launch_auto_group_callback.call_args.args[0]
+                self.assertEqual(len(entries), count)
+                self.assertEqual(
+                    {entry["handle"] for entry in entries},
+                    set(range(101, 101 + count)),
+                )
+                self.assertIn("en cours", page.status_callback.call_args.args[0])
+
+    def test_organizer_autogroup_refuses_duplicate_or_unaddressable_clients(self):
+        from unittest.mock import Mock
+        from app.pages.organizer.character_sessions import CharacterSessionsMixin
+
+        for count in (2, 4, 6, 8):
+            sessions = [
+                {"nom": f"Perso{i}", "hwnd": 101 + i, "pid": 1001 + i}
+                for i in range(count)
+            ]
+            for invalid in ("duplicate_name", "duplicate_hwnd", "empty_invite_name"):
+                with self.subTest(count=count, invalid=invalid):
+                    page = Mock()
+                    page.sessions = [dict(session) for session in sessions]
+                    if invalid == "duplicate_name":
+                        page.sessions[-1]["nom"] = page.sessions[0]["nom"] + " - Dofus"
+                    elif invalid == "duplicate_hwnd":
+                        page.sessions[-1]["hwnd"] = page.sessions[0]["hwnd"]
+                    else:
+                        page.sessions[-1]["nom"] = " - Dofus"
+                    CharacterSessionsMixin.launch_auto_group(page)
+                    page.export_client_index.assert_not_called()
+                    page.launch_auto_group_callback.assert_not_called()
+                    self.assertIn("non lancé", page.status_callback.call_args.args[0])
+                    self.assertIn("Actualiser Organizer", page.status_callback.call_args.args[0])
+
+    def test_organizer_autogroup_callback_exception_fails_safely_without_ui_crash(self):
+        from unittest.mock import Mock
+        from app.pages.organizer.character_sessions import CharacterSessionsMixin
+
+        page = Mock()
+        page.sessions = [
+            {"nom": "Leader", "hwnd": 101, "pid": 1001},
+            {"nom": "Friend", "hwnd": 202, "pid": 1002},
+        ]
+        page.launch_auto_group_callback.side_effect = RuntimeError("runtime failed")
+        with self.assertLogs("app.pages.organizer.character_sessions", level="ERROR"):
+            CharacterSessionsMixin.launch_auto_group(page)
+        self.assertIn("non lancé", page.status_callback.call_args.args[0])
+
+    def test_organizer_autogroup_does_not_claim_success_without_any_sessions(self):
+        from unittest.mock import Mock
+        from app.pages.organizer.character_sessions import CharacterSessionsMixin
+
+        page = Mock()
+        page.sessions = []
+        CharacterSessionsMixin.launch_auto_group(page)
+        page.launch_auto_group_callback.assert_not_called()
+        page.export_client_index.assert_not_called()
+        self.assertIn("aucun personnage", page.status_callback.call_args.args[0])
+
+
+    def test_busy_organizer_next_button_does_not_scan_live_windows(self):
+        from unittest.mock import Mock
+        import main as app_main
+
+        for count in (2, 4, 6, 8):
+            with self.subTest(clients=count):
+                fake = Mock()
+                fake.quit_requested = False
+                fake._background_services_stopped = False
+                fake._ensure_runtime.return_value.macro_lock.active_label = "Auto groupe"
+                app_main.AtlasWindow.launch_next_character(fake)
+                fake._ensure_runtime.assert_called_once()
+                fake._ensure_runtime.return_value.switch_character.activate_next.assert_not_called()
+                fake.set_status.assert_called_once_with(
+                    "Personnage suivant indisponible : macro déjà en cours."
+                )
+
+    def test_armed_mirror_blocks_both_shell_navigation_buttons(self):
+        from unittest.mock import Mock
+        import main as app_main
+
+        for label, method in (
+            ("suivant", app_main.AtlasWindow.launch_next_character),
+            ("précédent", app_main.AtlasWindow.launch_previous_character),
+        ):
+            with self.subTest(action=label):
+                shell = Mock()
+                shell.quit_requested = False
+                shell._background_services_stopped = False
+                runtime = shell._ensure_runtime.return_value
+                runtime.mirror_armed = True
+                runtime.macro_lock.active_label = ""
+                method(shell)
+                runtime.switch_character.activate_next.assert_not_called()
+                runtime.switch_character.activate_previous.assert_not_called()
+                shell.set_status.assert_called_once_with(
+                    "Arrêter Miroir avant de changer de personnage."
+                )
+
+    def test_next_button_never_resurrects_runtime_during_shutdown(self):
+        from unittest.mock import Mock
+        import main as app_main
+
+        for stopped_attr in ("quit_requested", "_background_services_stopped"):
+            with self.subTest(shutdown=stopped_attr):
+                fake = Mock()
+                fake.quit_requested = False
+                fake._background_services_stopped = False
+                setattr(fake, stopped_attr, True)
+                app_main.AtlasWindow.launch_next_character(fake)
+                fake._ensure_runtime.assert_not_called()
+                fake.set_status.assert_not_called()
+
+    def test_next_button_aborts_if_shutdown_begins_during_runtime_init(self):
+        from unittest.mock import Mock
+        import main as app_main
+
+        for stopped_attr in ("quit_requested", "_background_services_stopped"):
+            with self.subTest(shutdown=stopped_attr):
+                fake = Mock()
+                fake.quit_requested = False
+                fake._background_services_stopped = False
+                runtime = Mock()
+                def init_and_close():
+                    setattr(fake, stopped_attr, True)
+                    return runtime
+                fake._ensure_runtime.side_effect = init_and_close
+                app_main.AtlasWindow.launch_next_character(fake)
+                fake._ensure_runtime.assert_called_once_with()
+                runtime.switch_character.activate_next.assert_not_called()
+                fake.set_status.assert_not_called()
+
+    def test_idle_organizer_next_button_preserves_normal_action(self):
+        from unittest.mock import Mock
+        import main as app_main
+
+        for accepted in (True, False):
+            with self.subTest(accepted=accepted):
+                fake = Mock()
+                fake.quit_requested = False
+                fake._background_services_stopped = False
+                runtime = fake._ensure_runtime.return_value
+                runtime.macro_lock.active_label = ""
+                runtime.switch_character.activate_next.return_value = accepted
+                app_main.AtlasWindow.launch_next_character(fake)
+                runtime.switch_character.activate_next.assert_called_once_with()
+                if accepted:
+                    fake.set_status.assert_not_called()
+                else:
+                    fake.set_status.assert_called_once_with(
+                        "Personnage suivant : aucune autre fenêtre DOFUS activable."
+                    )
+
+    def test_organizer_auto_group_and_zaap_cannot_launch_during_shutdown(self):
+        from unittest.mock import Mock
+        import main as app_main
+
+        fake = Mock()
+        fake.quit_requested = False
+        fake._background_services_stopped = False
+        for method, args in (
+            (app_main.AtlasWindow.launch_auto_group,
+             ([{"name": "Friend", "handle": 202}],)),
+            (app_main.AtlasWindow.launch_zaap, ("/zaap 1,2",)),
+        ):
+            for stopped_attr in ("quit_requested", "_background_services_stopped"):
+                with self.subTest(method=method.__name__, attr=stopped_attr):
+                    setattr(fake, stopped_attr, True)
+                    self.assertFalse(method(fake, *args))
+                    fake.reload_runtime.assert_not_called()
+                    fake._ensure_runtime.assert_not_called()
+                    setattr(fake, stopped_attr, False)
+
+
+    def test_busy_organizer_quick_action_refuses_before_session_refresh(self):
+        from unittest.mock import Mock
+        import main as app_main
+
+        for count in (2, 4, 6, 8):
+            for busy in ("Auto groupe", "Auto zaap", "Miroir", "Switch clique"):
+                for method, args in (
+                    (app_main.AtlasWindow.launch_auto_group,
+                     ([{"name": "Friend", "handle": 202}],)),
+                    (app_main.AtlasWindow.launch_zaap, ("/zaap 1,2",)),
+                ):
+                    with self.subTest(clients=count, busy=busy, method=method.__name__):
+                        fake = Mock()
+                        fake.quit_requested = False
+                        fake._background_services_stopped = False
+                        fake.runtime.macro_lock.active_label = busy
+                        fake.runtime.settings.clients = [
+                            SimpleNamespace(handle=101 + i) for i in range(count)
+                        ]
+                        old = fake.runtime.settings
+                        self.assertFalse(method(fake, *args))
+                        fake.reload_runtime.assert_not_called()
+                        fake._ensure_runtime.assert_not_called()
+                        self.assertIs(fake.runtime.settings, old)
+
+    def test_organizer_macro_launch_aborts_if_shutdown_begins_during_reload(self):
+        from unittest.mock import Mock
+        import main as app_main
+
+        for method, args in (
+            (app_main.AtlasWindow.launch_auto_group,
+             ([{"name": "Friend", "handle": 202}],)),
+            (app_main.AtlasWindow.launch_zaap, ("/zaap 1,2",)),
+        ):
+            with self.subTest(method=method.__name__):
+                fake = Mock()
+                fake.runtime = None
+                fake.quit_requested = False
+                fake._background_services_stopped = False
+                fake.reload_runtime.side_effect = lambda: setattr(
+                    fake, "_background_services_stopped", True,
+                )
+                self.assertFalse(method(fake, *args))
+                fake.reload_runtime.assert_called_once()
+                fake._ensure_runtime.assert_not_called()
+
+    def test_organizer_macro_launch_still_returns_runtime_acceptance(self):
+        from unittest.mock import Mock
+        import main as app_main
+
+        for accepted in (True, False):
+            with self.subTest(accepted=accepted):
+                fake = Mock()
+                fake.runtime = None
+                fake.quit_requested = False
+                fake._background_services_stopped = False
+                fake._ensure_runtime.return_value.launch_auto_group.return_value = accepted
+                fake._ensure_runtime.return_value.launch_zaap.return_value = accepted
+                self.assertIs(app_main.AtlasWindow.launch_auto_group(
+                    fake, [{"name": "Friend", "handle": 202}],
+                ), accepted)
+                self.assertIs(app_main.AtlasWindow.launch_zaap(
+                    fake, "/zaap 1,2",
+                ), accepted)
+
+    def test_stop_button_cancels_radial_before_runtime_callback(self):
+        from unittest.mock import Mock
+        from app.pages.organizer.organizer_hotkeys import OrganizerHotkeysMixin
+
+        events = []
+        page = SimpleNamespace(
+            _radial_controller=Mock(),
+            stop_runtime_callback=lambda: events.append("runtime_stop"),
+            status_callback=Mock(),
+        )
+        page._radial_controller.cancel.side_effect = lambda: events.append("radial_cancel")
+        OrganizerHotkeysMixin.stop_script(page)
+        self.assertEqual(events, ["radial_cancel", "runtime_stop"])
+        page.status_callback.assert_not_called()
+
+    def test_runtime_red_indicator_cancels_held_radial_controller(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            with self.organizer_page(Path(temporary)) as page:
+                controller = page._radial_controller
+                with patch.object(controller, "cancel", wraps=controller.cancel) as cancel:
+                    page.set_runtime_active(True)
+                    cancel.assert_not_called()
+                    page.set_runtime_active(False)
+                    cancel.assert_called_once_with()
+
+    def test_refused_mirror_toggle_never_turns_emergency_led_green(self):
+        from unittest.mock import Mock
+        import main as app_main
+
+        shell = Mock()
+        shell.quit_requested = False
+        shell._background_services_stopped = False
+        organizer = Mock()
+        shell.page_widgets = {"Organizer": organizer}
+        shell.runtime._running = True
+        shell.runtime._admin_ok = True
+        shell.runtime.mirror_armed = False
+        shell.runtime.macro_lock.emergency_latched = True
+        shell.runtime.toggle_mirror.return_value = False
+        shell.update_runtime_badge.side_effect = (
+            lambda connected: app_main.AtlasWindow.update_runtime_badge(
+                shell, connected,
+            )
+        )
+        self.assertFalse(app_main.AtlasWindow.toggle_mirror(shell))
+        organizer.set_runtime_active.assert_called_with(False)
+        organizer.set_mirror_arm_active.assert_called_with(False)
+        # Only a real Relancer/runtime-ready state can turn the badge green.
+        shell.runtime.macro_lock.emergency_latched = False
+        app_main.AtlasWindow.update_runtime_badge(shell, True)
+        organizer.set_runtime_active.assert_called_with(True)
+        shell.runtime._admin_ok = False
+        self.assertFalse(app_main.AtlasWindow.toggle_mirror(shell))
+        organizer.set_runtime_active.assert_called_with(False)
+
+    def test_emergency_stop_and_reconfiguration_are_distinct(self):
+        from unittest.mock import Mock
+        import main as app_main
+
+        shell = Mock()
+        shell.runtime = Mock()
+        app_main.AtlasWindow.stop_runtime(shell)
+        shell.runtime.emergency_stop.assert_called_once_with(
+            "bouton stop", latch=True,
+        )
+        shell.runtime.emergency_stop.reset_mock()
+        app_main.AtlasWindow.stop_runtime(shell, True)
+        shell.runtime.emergency_stop.assert_called_once_with(
+            "reconfiguration Organizer", latch=False,
+        )
+
+    def test_runtime_badge_cannot_turn_green_while_emergency_stop_is_latched(self):
+        from unittest.mock import Mock
+        import main as app_main
+
+        shell = Mock()
+        organizer_widget = Mock()
+        shell.page_widgets = {"Organizer": organizer_widget}
+        shell.runtime = SimpleNamespace(
+            macro_lock=SimpleNamespace(emergency_latched=True),
+            mirror_armed=False,
+        )
+        app_main.AtlasWindow.update_runtime_badge(shell, True)
+        organizer_widget.set_runtime_active.assert_called_once_with(False)
+        organizer_widget.set_mirror_arm_active.assert_called_once_with(False)
+
+        organizer_widget.reset_mock()
+        shell.runtime.macro_lock.emergency_latched = False
+        app_main.AtlasWindow.update_runtime_badge(shell, True)
+        organizer_widget.set_runtime_active.assert_called_once_with(True)
+
+    def test_mirror_toggle_refusal_after_stop_cannot_reenable_green_badge(self):
+        from unittest.mock import Mock
+        import main as app_main
+
+        shell = Mock()
+        shell.quit_requested = False
+        shell._background_services_stopped = False
+        runtime = shell.runtime
+        runtime._running = True
+        runtime._admin_ok = True
+        runtime.macro_lock.emergency_latched = True
+        runtime.toggle_mirror.return_value = False
+        self.assertFalse(app_main.AtlasWindow.toggle_mirror(shell))
+        shell.update_runtime_badge.assert_called_once_with(False)
+        runtime.toggle_mirror.assert_called_once_with()
+
+    def test_explicit_relancer_refuses_busy_workers_before_green_light(self):
+        from unittest.mock import Mock
+        import main as app_main
+
+        for allowed in (False, True):
+            with self.subTest(allowed=allowed):
+                shell = Mock()
+                shell.quit_requested = False
+                shell._background_services_stopped = False
+                runtime = shell._ensure_runtime.return_value
+                runtime._running = True
+                runtime.macro_lock.resume_after_stop.return_value = allowed
+                app_main.AtlasWindow.reload_runtime(shell, True)
+                runtime.macro_lock.resume_after_stop.assert_called_once()
+                if allowed:
+                    runtime.reload_hotkeys.assert_called_once_with(True)
+                    shell.update_runtime_badge.assert_not_called()
+                else:
+                    runtime.reload_hotkeys.assert_not_called()
+                    shell.update_runtime_badge.assert_called_once_with(False)
+                    shell.set_status.assert_called_once()
+                runtime.macro_lock.resume_after_stop.reset_mock()
+                runtime.reload_hotkeys.reset_mock()
+                app_main.AtlasWindow.reload_runtime(shell, False)
+                runtime.macro_lock.resume_after_stop.assert_not_called()
+                runtime.reload_hotkeys.assert_called_once_with(False)
 
     def test_character_slots_panel_calculates_height_from_grid_geometry(self):
         refresh = QFrame()
@@ -78,11 +872,12 @@ class OrganizerLayoutTests(unittest.TestCase):
             panel.deleteLater()
             self.app.processEvents()
 
-    def test_organizer_renders_exactly_eight_non_clipped_slots_without_internal_scroll_area(self):
+    def test_organizer_always_displays_eight_reorderable_slots(self):
         with tempfile.TemporaryDirectory() as temporary:
             with self.organizer_page(Path(temporary)) as page:
                 self.assertEqual(page.session_slot_count(), 8)
                 self.assertEqual(len(page.session_slot_widgets), 8)
+                self.assertFalse(hasattr(page.sessions_panel, "expand_button"))
                 self.assertEqual(page.sessions_panel.findChildren(QScrollArea), [])
                 self.assertEqual(
                     sorted(page.sessions_panel.grid_position(index) for _widget, index in page.session_slot_widgets),
@@ -96,6 +891,12 @@ class OrganizerLayoutTests(unittest.TestCase):
                     self.assertEqual(geometry.height(), organizer.CHARACTER_SLOT_HEIGHT)
                     self.assertGreaterEqual(geometry.top(), content_rect.top())
                     self.assertLessEqual(geometry.bottom(), content_rect.bottom())
+                    # No unexplained circular per-character selector.
+                    from PySide6.QtWidgets import QPushButton
+                    self.assertFalse(any(
+                        button.text() in {"◉", "○"}
+                        for button in widget.findChildren(QPushButton)
+                    ))
 
     def test_hidden_organizer_evicts_only_slots_and_preserves_live_watcher(self):
         from PySide6.QtCore import QCoreApplication, QEvent
@@ -137,6 +938,778 @@ class OrganizerLayoutTests(unittest.TestCase):
                 )
                 self.assertEqual(page.character_order_service.load_order(), expected)
                 self.assertEqual(len(page.sessions), 8)
+
+
+    def test_zaap_legacy_position_controls_are_hidden_without_losing_destination_ui(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            with self.organizer_page(Path(temporary)) as page:
+                self.assertFalse(page.zaap.show_position_controls)
+                for control in (
+                    page.zaap.position_label,
+                    page.zaap.position_wrapper,
+                    page.zaap.lock_button,
+                    page.zaap.calibrate_button,
+                ):
+                    self.assertTrue(control.isHidden())
+                self.assertTrue(page.zaap.search_input.isVisible())
+                self.assertIsNotNone(page.zaap.suggestion_popup)
+                self.assertTrue(page.zaap.show_favorites)
+
+    def test_mirror_requires_explicit_arm_and_navigation_buttons_share_row(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            with self.organizer_page(Path(temporary)) as page:
+                self.app.processEvents()
+                self.assertTrue(page.mirror_arm_button.isHidden())
+                self.assertFalse(page.mirror_arm_button.isEnabled())
+                self.assertTrue(
+                    page.mirror_mode_button.parentWidget().isAncestorOf(
+                        page.mirror_toggle_hotkey_button
+                    )
+                )
+                from app.constants import KEY_ORGANIZER_MACRO_MODE
+                page.profiles[KEY_ORGANIZER_MACRO_MODE] = "mirror"
+                page.update_macro_mode_buttons()
+                self.assertTrue(page.mirror_arm_button.isEnabled())
+                self.assertEqual(page.mirror_arm_button.text(), "Activer Miroir")
+                self.assertEqual(page.mirror_mode_button.text(), "Miroir")
+                self.assertFalse(page._mirror_arm_active)
+                self.assertFalse(page.switch_character.isEnabled())
+                self.assertFalse(page.switch_click.isEnabled())
+                self.assertTrue(page.next_character.isEnabled())
+                self.assertTrue(page.previous_character.isEnabled())
+                self.assertTrue(page.next_character_hotkey_button.isEnabled())
+                self.assertTrue(page.previous_character_hotkey_button.isEnabled())
+                page.set_mirror_arm_active(True)
+                self.assertEqual(page.mirror_arm_button.text(), "Arrêter Miroir")
+                self.assertEqual(page.mirror_mode_button.objectName(), "OrganizerModeChoice")
+                self.assertEqual(page.mode_switch.highlight.objectName(), "OrganizerModeHighlightArmed")
+                self.assertFalse(page.macro_grid_host.isEnabled())
+                self.assertFalse(page.next_character.isEnabled())
+                self.assertFalse(page.previous_character.isEnabled())
+                page.set_mirror_arm_active(False)
+                self.assertEqual(page.mirror_arm_button.text(), "Activer Miroir")
+                self.assertEqual(page.mirror_mode_button.objectName(), "OrganizerModeChoice")
+                self.assertEqual(page.mode_switch.highlight.objectName(), "OrganizerModeHighlight")
+                self.assertTrue(page.next_character.isEnabled())
+                self.assertTrue(page.previous_character.isEnabled())
+                previous_cell = page.previous_character.parentWidget()
+                next_cell = page.next_character.parentWidget()
+                self.assertIs(previous_cell.parentWidget(), next_cell.parentWidget())
+                self.assertEqual(previous_cell.y(), next_cell.y())
+                self.assertLess(previous_cell.x(), next_cell.x())
+                self.assertEqual(page.previous_character.height(), page.next_character.height())
+                self.assertTrue(page.mirror_arm_button.isHidden())
+
+    def test_zaap_matches_one_top_module_without_changing_eight_slots(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            with self.organizer_page(Path(temporary)) as page:
+                page.resize(1380, 900)
+                self.app.processEvents()
+                self.assertEqual(page.bottom_panels_row.count(), 2)
+                self.assertIs(page.bottom_panels_row.itemAt(0).widget(), page.sessions_panel)
+                self.assertIs(page.bottom_panels_row.itemAt(1).widget(), page.zaap_panel)
+                self.assertEqual(len(page.session_slot_widgets), 8)
+                self.assertEqual(page.zaap_panel.height(), page.sessions_panel.height())
+                self.assertGreater(page.zaap_panel.x(), page.sessions_panel.x())
+                self.assertTrue(page.zaap.zaap_label.isHidden())
+                self.assertEqual(page.zaap.search_input.minimumWidth(), 90)
+                self.assertTrue(page.zaap.search_input.isVisible())
+                self.assertTrue(page.zaap.show_favorites)
+                self.assertTrue(page.zaap.compact_favorites)
+                self.assertEqual(page.zaap.compact_favorite_columns, 2)
+                self.assertEqual(page.zaap.favorite_capacity(), 8)
+                self.assertEqual(page.zaap_scroll.horizontalScrollBar().maximum(), 0)
+                self.assertFalse(hasattr(page.sessions_panel, "expand_button"))
+                self.assertAlmostEqual(
+                    page.sessions_panel.width() / page.zaap_panel.width(),
+                    2.0, delta=0.12,
+                )
+
+                page.resize(1000, 740)
+                self.app.processEvents()
+                self.assertEqual(len(page.session_slot_widgets), 8)
+                self.assertEqual(page.zaap_scroll.horizontalScrollBar().maximum(), 0)
+                # In this standalone widget, Qt may retain a stale minimum
+                # width from its initial 900px size. The *real* 1000px
+                # AtlasWindow capture enforces zero horizontal overflow.
+
+    def test_organizer_zaap_favorites_are_two_by_two_even_after_resize(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            with self.organizer_page(Path(temporary)) as page:
+                rows = [
+                    {"name": f"Zaap {index}", "label": f"Zaap {index}",
+                     "x": index, "y": index}
+                    for index in range(1, 9)
+                ]
+                page.zaap.zaaps = rows
+                page.zaap.favorite_names = [row["name"] for row in rows]
+                for width in (1380, 1000):
+                    with self.subTest(width=width):
+                        page.resize(width, 900)
+                        self.app.processEvents()
+                        page.zaap.refresh_favorite_chips()
+                        self.app.processEvents()
+                        self.assertEqual(len(page.zaap.favorite_buttons), 8)
+                        self.assertEqual(page.zaap._favorite_columns, 2)
+                        chips = [button.parentWidget()
+                                 for button in page.zaap.favorite_buttons]
+                        self.assertEqual(len({chip.width() for chip in chips}), 1)
+                        self.assertIs(
+                            page.zaap.favorites_layout.itemAtPosition(0, 0).widget(),
+                            page.zaap.favorites_label,
+                        )
+                        # In the standalone page, the Zaap viewport may be
+                        # off-screen after shrink and retain zero geometry.
+                        # Grid coordinates verify hierarchy here; the real
+                        # AtlasWindow screenshot checks rendered pixel order.
+                        for index, chip in enumerate(chips):
+                            self.assertIs(
+                                page.zaap.favorites_layout.itemAtPosition(
+                                    1 + index // 2, index % 2
+                                ).widget(),
+                                chip,
+                            )
+                        self.assertEqual(page.zaap_scroll.horizontalScrollBar().maximum(), 0)
+
+    def test_organizer_mode_and_pie_icons_share_the_same_white_tint(self):
+        from app.pages.organizer.organizer_ui import _organizer_action_icon
+
+        with tempfile.TemporaryDirectory() as temporary:
+            with self.organizer_page(Path(temporary)) as page:
+                for mode in (page.macro_mode_button, page.mirror_mode_button):
+                    self.assertFalse(mode.icon().isNull())
+                    self.assertEqual(mode.iconSize().width(), 17)
+                for kind in ("radial", "macro", "mirror"):
+                    with self.subTest(kind=kind):
+                        image = _organizer_action_icon(kind).pixmap(32, 32).toImage()
+                        opaque = [
+                            image.pixelColor(x, y)
+                            for x in range(image.width())
+                            for y in range(image.height())
+                            if image.pixelColor(x, y).alpha() >= 200
+                        ]
+                        self.assertGreater(len(opaque), 8)
+                        for color in opaque:
+                            # No green or blue pie slices; all mode and
+                            # action glyphs use the same off-white ink.
+                            self.assertLessEqual(
+                                max(color.red(), color.green(), color.blue())
+                                - min(color.red(), color.green(), color.blue()),
+                                30,
+                            )
+
+    def test_organizer_glass_style_covers_all_button_states(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            with self.organizer_page(Path(temporary)) as page:
+                css = page.styleSheet()
+                for selector in (
+                    "QPushButton#secondaryButton",
+                    "QPushButton#primaryButton",
+                    "QPushButton#dangerButton",
+                    "QPushButton#keyBadge",
+                    "QPushButton#iconButton",
+                    "QLineEdit#comboField",
+                    "QFrame#OrganizerModeSwitch",
+                    "QFrame#OrganizerSpeedSelector",
+                    "QWidget#favoriteChip",
+                    "QFrame#card",
+                ):
+                    with self.subTest(selector=selector):
+                        self.assertIn(selector, css)
+                for state in (":hover", ":pressed", ":disabled"):
+                    self.assertIn(f"QPushButton#secondaryButton{state}", css)
+                self.assertIn("qlineargradient", css)
+                self.assertIn("border-radius: 8px", css)
+                self.assertIn("QPushButton#keyBadge", css)
+                self.assertIn("border: none;", css)
+                from app.ui.unity_skin import UNITY_PALETTE
+                for role in (
+                    "PANEL", "PANEL_2", "PANEL_HOVER",
+                    "BORDER", "BORDER_CARD", "BORDER_STRONG",
+                    "GREEN_DARK", "GREEN_BORDER",
+                ):
+                    self.assertIn(UNITY_PALETTE[role], css)
+                # The old opaque gradient is replaced by semi-transparent
+                # gradients derived from the exact same Unity palette.
+                from app.pages.organizer.glass_material import (
+                    OrganizerGlassCard, OrganizerGlassButton,
+                    unity_glass_gradient, _diffuse_unity_wallpaper,
+                )
+                self.assertIn(unity_glass_gradient(), css)
+                self.assertIn("rgba(", css)
+                for panel in (
+                    page.macro_panel, page.quick_actions_panel,
+                    page.controls_panel, page.sessions_panel, page.zaap_panel,
+                ):
+                    self.assertIsInstance(panel, OrganizerGlassCard)
+                self.assertIsInstance(page.radial_select_button, OrganizerGlassButton)
+                self.assertIsInstance(page.stop_script_button, OrganizerGlassButton)
+                self.assertEqual(_diffuse_unity_wallpaper.cache_info().maxsize, 2)
+                # Glass intensity is a single bounded material adjustment,
+                # not another Organizer color palette or extra renderer.
+                from app.pages.organizer.glass_material import (
+                    GLASS_INTENSITY, _reflection_alpha, _surface_alpha,
+                )
+                self.assertEqual(GLASS_INTENSITY, 0.5)
+                self.assertEqual(_reflection_alpha(132), 66)
+                self.assertEqual(_reflection_alpha(60), 30)
+                self.assertEqual(_surface_alpha(143), 199)
+                self.assertEqual(_surface_alpha(173), 214)
+                self.assertIn(unity_glass_gradient(), css)
+                # The old invented palette must not drift away from Unity.
+                self.assertNotIn("#708BAD", css)
+                self.assertNotIn("#829FC3", css)
+
+    def test_all_shortcut_badges_share_exact_geometry_and_unity_style(self):
+        from app.pages.organizer.organizer_ui import OrganizerZaapWidget
+        from app.ui.unity_skin import UNITY_PALETTE
+
+        with tempfile.TemporaryDirectory() as temporary:
+            with self.organizer_page(Path(temporary)) as page:
+                badges = (
+                    page.click_button,
+                    page.double_click_button,
+                    page.radial_hotkey_button,
+                    page.previous_character_hotkey_button,
+                    page.next_character_hotkey_button,
+                    page.mirror_toggle_hotkey_button,
+                    page.stop_script_hotkey_button,
+                )
+                for badge in badges:
+                    with self.subTest(badge=badge.toolTip()):
+                        self.assertEqual(badge.objectName(), "keyBadge")
+                        self.assertEqual((badge.width(), badge.height()), (52, 22))
+                page.sessions = [
+                    {"nom": f"Perso demo {i}", "hwnd": 950000 + i,
+                     "pid": 91000 + i, "_preview_only": True}
+                    for i in range(8)
+                ]
+                page.render_sessions()
+                for row, _ in page.session_slot_widgets:
+                    shortcut = next(
+                        b for b in row.findChildren(QPushButton)
+                        if b.objectName() == "keyBadge"
+                    )
+                    self.assertEqual((shortcut.width(), shortcut.height()), (52, 22))
+                style = page.styleSheet()
+                self.assertIn(UNITY_PALETTE["PANEL_HOVER"], style)
+                self.assertIn(UNITY_PALETTE["BORDER_STRONG"], style)
+                self.assertIsInstance(page.zaap, OrganizerZaapWidget)
+
+    def test_organizer_portrait_black_border_is_transparent(self):
+        from PySide6.QtGui import QColor, QImage
+        from app.pages.organizer.organizer_ui import _organizer_class_pixmap
+
+        with tempfile.TemporaryDirectory() as temporary:
+            path = Path(temporary) / "dark-bordered-portrait.png"
+            image = QImage(20, 20, QImage.Format_ARGB32)
+            image.fill(QColor("#090909"))
+            for row in range(5, 15):
+                for column in range(5, 15):
+                    image.setPixelColor(column, row, QColor("#C68D57"))
+            self.assertTrue(image.save(str(path)))
+            clean = _organizer_class_pixmap(str(path)).toImage()
+            self.assertEqual(clean.pixelColor(0, 0).alpha(), 0)
+            self.assertGreater(clean.pixelColor(11, 11).alpha(), 0)
+
+    def test_real_slot_and_decorative_primary_icons_are_painted(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            with self.organizer_page(Path(temporary)) as page:
+                page.sessions = [
+                    {"nom": f"Perso demo {i}", "hwnd": 950000 + i,
+                     "pid": 91000 + i, "_preview_only": True}
+                    for i in range(8)
+                ]
+                page.render_sessions()
+                self.assertEqual(len(page.session_slot_widgets), 8)
+                for row, index in page.session_slot_widgets:
+                    controls = row.findChildren(QPushButton)
+                    grip = next(button for button in controls
+                                if button.objectName() == "DragHandle")
+                    self.assertEqual(grip.text(), "")
+                    self.assertFalse(grip.icon().isNull())
+                    self.assertFalse(any(button.objectName() in
+                        ("FavoriteButton", "FavoriteButtonActive") for button in controls))
+                    indicators = row.findChildren(QLabel, "PrimarySlotIndicator")
+                    self.assertEqual(len(indicators), 1 if index == 0 else 0)
+                    if indicators:
+                        self.assertFalse(indicators[0].pixmap().isNull())
+                        self.assertEqual(indicators[0].focusPolicy(), Qt.NoFocus)
+                        self.assertTrue(indicators[0].testAttribute(Qt.WA_TransparentForMouseEvents))
+                page.zaap.zaaps = [
+                    {"name": "Astrub", "label": "Astrub", "x": 0, "y": -21},
+                    {"name": "Bonta", "label": "Bonta", "x": -31, "y": -55},
+                ]
+                page.zaap.favorite_names = ["Astrub", "Bonta"]
+                page.zaap.refresh_favorite_chips()
+                self.assertEqual(len(page.zaap.favorite_star_buttons), 2)
+                for star in page.zaap.favorite_star_buttons:
+                    self.assertEqual(star.text(), "")
+                    self.assertFalse(star.icon().isNull())
+
+    def test_primary_star_tracks_first_occupied_slot_without_ghost_column(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            with self.organizer_page(Path(temporary)) as page:
+                for count in (1, 2, 4, 6, 8):
+                    with self.subTest(count=count):
+                        page.sessions = page.build_session_slots([
+                            {"nom": f"Enutrof Perso {index}", "hwnd": 501 + index, "pid": 601 + index}
+                            for index in range(count)
+                        ])
+                        page.render_sessions()
+                        self.app.processEvents()
+                        name_starts = []
+                        for row, index in page.session_slot_widgets:
+                            slots = row.findChildren(CharacterSlotName)
+                            if index < count:
+                                self.assertEqual(len(slots), 1)
+                                name_starts.append(slots[0].x())
+                                self.assertEqual(slots[0].indicator is not None, index == 0)
+                                self.assertFalse(any(
+                                    button.objectName().startswith("FavoriteButton")
+                                    for button in row.findChildren(QPushButton)
+                                ))
+                            else:
+                                self.assertEqual(slots, [])
+                        self.assertEqual(len(set(name_starts)), 1)
+                page.sessions = page.build_session_slots([
+                    {"nom": "Pandawa Premier", "hwnd": 701, "pid": 801},
+                    {"nom": "Enutrof Second", "hwnd": 702, "pid": 802},
+                ])
+                self.assertTrue(page.move_session_to_slot(0, 6))
+                page.sessions[1]["nom"] = "Enutrof Second " + "surnom-tres-long-" * 15
+                page.render_sessions()
+                self.app.processEvents()
+                self.assertIsNone(page.session_slot_widgets[0][0].findChild(
+                    QLabel, "PrimarySlotIndicator",
+                ))
+                self.assertIsNotNone(page.session_slot_widgets[1][0].findChild(
+                    QLabel, "PrimarySlotIndicator",
+                ))
+                first_name = page.session_slot_widgets[1][0].findChild(CharacterSlotName)
+                self.assertNotEqual(first_name.name_label.text(), first_name.full_name)
+                self.assertIsNotNone(first_name.indicator)
+                self.assertLessEqual(
+                    first_name.indicator.geometry().right(), first_name.width(),
+                )
+                self.assertLessEqual(
+                    first_name.name_label.geometry().right(),
+                    first_name.indicator.geometry().left(),
+                )
+
+    def test_first_slot_primary_is_persisted_safely_for_mirror_runtime(self):
+        from app.constants import KEY_PRIMARY_WINDOW
+
+        with tempfile.TemporaryDirectory() as temporary:
+            with self.organizer_page(Path(temporary)) as page:
+                page.sessions = page.build_session_slots([
+                    {"nom": "Alpha", "hwnd": 101, "pid": 201},
+                    {"nom": "Beta", "hwnd": 102, "pid": 202},
+                ])
+                page.profiles[KEY_PRIMARY_WINDOW] = "hwnd:102"
+                with patch.object(
+                    page, "fallback_primary_token_for_session",
+                    side_effect=lambda row: f"name-class:{row['nom']}:test",
+                ):
+                    page.export_client_index()
+                    self.assertEqual(
+                        page.profiles[KEY_PRIMARY_WINDOW], "name-class:Alpha:test",
+                    )
+                    with open(page.client_index_json, encoding="utf-8") as stream:
+                        clients = json.load(stream)["clients"]
+                    self.assertEqual([row["primary"] for row in clients], [True, False])
+                    self.assertTrue(page.move_session_to_slot(0, 1))
+                    page.export_client_index()
+                    self.assertEqual(
+                        page.profiles[KEY_PRIMARY_WINDOW], "name-class:Beta:test",
+                    )
+                    with open(page.client_index_json, encoding="utf-8") as stream:
+                        clients = json.load(stream)["clients"]
+                    self.assertEqual([row["primary"] for row in clients], [True, False])
+                    # Offline slots are empty by the canonical session predicate:
+                    # the first remaining detected character becomes primary.
+                    page.sessions[0] = {"nom": "Offline Beta", "hwnd": 0}
+                    page.export_client_index()
+                    self.assertEqual(
+                        page.profiles[KEY_PRIMARY_WINDOW], "name-class:Alpha:test",
+                    )
+                    with open(page.client_index_json, encoding="utf-8") as stream:
+                        clients = json.load(stream)["clients"]
+                    self.assertEqual([row["primary"] for row in clients], [True])
+                    # No detected client: clear the previous macro master,
+                    # never leave a hidden favorite persisted in the profile.
+                    page.sessions[1] = {"nom": "Offline Alpha", "hwnd": 0}
+                    page.export_client_index()
+                    self.assertEqual(page.profiles[KEY_PRIMARY_WINDOW], "")
+                    with open(page.client_index_json, encoding="utf-8") as stream:
+                        clients = json.load(stream)["clients"]
+                    self.assertEqual(clients, [])
+
+    def test_character_star_follows_saved_order_after_profile_reload(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            with self.organizer_page(Path(temporary)) as page:
+                originals = [
+                    {"nom": "Enutrof Alpha", "hwnd": 1001, "pid": 2001},
+                    {"nom": "Enutrof Beta", "hwnd": 1002, "pid": 2002},
+                ]
+                page.sessions = page.build_session_slots(originals)
+                self.assertTrue(page.move_session_to_slot(0, 1))
+                page.export_client_index()
+                # Reload the persisted profile/order just as a new page would,
+                # without relying on a selected name or a hard-coded slot.
+                page.profiles = page.load_profiles()
+                page.sessions = page.build_session_slots(originals)
+                page.render_sessions()
+                self.app.processEvents()
+                self.assertEqual(organizer.session_name(page.sessions[0]), "Enutrof Beta")
+                self.assertEqual(organizer.session_name(page.sessions[1]), "Enutrof Alpha")
+                self.assertIsNotNone(
+                    page.session_slot_widgets[0][0].findChild(QLabel, "PrimarySlotIndicator")
+                )
+                self.assertIsNone(
+                    page.session_slot_widgets[1][0].findChild(QLabel, "PrimarySlotIndicator")
+                )
+
+    def test_name_indicator_scales_with_qt_dpi_factors(self):
+        # A fresh Qt process is required: QT_SCALE_FACTOR is read on startup.
+        # Native Windows DPI, font rasterization and a real Unity client
+        # are separately tracked in the manual acceptance issue #424.
+        probe = """
+from PySide6.QtWidgets import QApplication
+from app.pages.organizer.organizer_ui import CharacterSlotName
+app = QApplication([])
+widget = CharacterSlotName(
+    "Enutrof " + "pseudo-particulier-" * 22, first=True, detected=True,
+)
+widget.resize(150, 24)
+widget.show()
+app.processEvents()
+indicator = widget.indicator
+assert indicator is not None
+assert indicator.pixmap() is not None and not indicator.pixmap().isNull()
+assert widget.name_label.text() != widget.full_name
+assert indicator.geometry().right() <= widget.width()
+assert widget.name_label.geometry().right() <= indicator.geometry().left()
+assert indicator.focusPolicy().name == "NoFocus"
+widget.close()
+"""
+        for factor in ("1", "1.25", "1.5"):
+            with self.subTest(qt_scale_factor=factor):
+                env = dict(os.environ, QT_SCALE_FACTOR=factor,
+                           QT_QPA_PLATFORM="offscreen")
+                result = subprocess.run(
+                    [sys.executable, "-c", probe],
+                    env=env, capture_output=True, text=True,
+                    timeout=30, check=False,
+                )
+                self.assertEqual(result.returncode, 0, result.stderr)
+
+    def test_unified_mode_switch_and_empty_quick_actions_are_safe(self):
+        from app.constants import KEY_ORGANIZER_MACRO_MODE
+        with tempfile.TemporaryDirectory() as temporary:
+            with self.organizer_page(Path(temporary)) as page:
+                for control in (page.quick_placeholder_1, page.quick_placeholder_2):
+                    self.assertFalse(control.isEnabled())
+                    self.assertIn("aucune action", control.toolTip())
+                self.assertTrue(page.macro_grid_host.isEnabled())
+                self.assertEqual(page.mode_switch._selected, 0)
+                self.assertTrue(page.mirror_mode_button.parentWidget().isAncestorOf(
+                    page.mirror_toggle_hotkey_button
+                ))
+                page.profiles[KEY_ORGANIZER_MACRO_MODE] = "mirror"
+                page.update_macro_mode_buttons()
+                self.assertEqual(page.mode_switch._selected, 1)
+                self.assertFalse(page.macro_grid_host.isEnabled())
+                self.assertFalse(page.switch_character.isEnabled())
+                self.assertFalse(page.switch_movement.isEnabled())
+                self.assertTrue(page.mirror_mode_button.isEnabled())
+                page.set_mirror_arm_active(True)
+                self.assertEqual(page.mode_switch.highlight.objectName(),
+                                 "OrganizerModeHighlightArmed")
+                page.profiles[KEY_ORGANIZER_MACRO_MODE] = "macro"
+                page.update_macro_mode_buttons()
+                self.assertEqual(page.mode_switch._selected, 0)
+                self.assertFalse(page._mirror_arm_active)
+                self.assertTrue(page.macro_grid_host.isEnabled())
+                self.assertTrue(page.switch_character.isEnabled())
+
+    def test_organizer_three_panels_and_small_window_scroll(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            with self.organizer_page(Path(temporary)) as page:
+                page.resize(1380, 900)
+                self.app.processEvents()
+                self.assertIs(page.controls_panels_grid.itemAtPosition(1, 0).widget(), page.macro_panel)
+                self.assertIs(page.controls_panels_grid.itemAtPosition(1, 1).widget(), page.quick_actions_panel)
+                self.assertIs(page.controls_panels_grid.itemAtPosition(1, 2).widget(), page.controls_panel)
+                for column, (header, panel) in enumerate(zip(
+                    page._organizer_panel_headers, page._organizer_panels
+                )):
+                    self.assertIs(page.controls_panels_grid.itemAtPosition(0, column).widget(), header)
+                    self.assertLess(header.height(), panel.height())
+                self.assertTrue(all(
+                    panel.graphicsEffect() is not None for panel in
+                    (*page._organizer_panels, page.zaap_panel, page.sessions_panel)
+                ))
+                self.assertEqual(page.macro_panel.height(), 146)
+                self.assertEqual(page.quick_actions_panel.height(), 146)
+                self.assertEqual(page.controls_panel.height(), 146)
+                self.assertTrue(page.macro_panel.isAncestorOf(page.macro_mode_button))
+                self.assertTrue(page.macro_panel.isAncestorOf(page.mirror_mode_button))
+                self.assertFalse(page.macro_mode_header.isAncestorOf(page.macro_mode_button))
+                self.assertEqual(page.macro_section_title.text(), "Macro / Miroir")
+                self.assertEqual(page.mode_switch._selected, 0)
+                self.assertEqual(page.mode_switch.height(), page.macro_mode_button.height())
+                self.assertEqual(page.mode_switch.layout().spacing(), 8)
+                self.assertEqual(page.macro_panel.layout().spacing(), 8)
+                self.assertEqual(page.stop_script_button.text(), "STOP URGENCE")
+                self.assertFalse(page.stop_script_button.icon().isNull())
+                self.assertFalse(page.sessions_refresh_button.icon().isNull())
+                self.assertEqual(page.sessions_refresh_button.text(), "")
+                self.assertFalse(page.quick_placeholder_1.isEnabled())
+                self.assertFalse(page.quick_placeholder_2.isEnabled())
+                self.assertIn("border-image: none", page.styleSheet())
+                self.assertIn("GlassCard paints a cached diffused backdrop", page.styleSheet())
+                self.assertFalse(page.radial_select_button.icon().isNull())
+                self.assertFalse(page.switch_character.icon().isNull())
+                self.assertFalse(page.switch_click.icon().isNull())
+                self.assertFalse(page.switch_double_click.icon().isNull())
+                self.assertFalse(page.switch_movement.icon().isNull())
+                self.assertFalse(page.switch_fake.icon().isNull())
+                self.assertFalse(page.reload_runtime_button.icon().isNull())
+                self.assertFalse(page.debug_button.icon().isNull())
+                self.assertTrue(page.previous_character.icon().isNull())
+                self.assertTrue(page.next_character.icon().isNull())
+                self.assertEqual(len(page.session_slot_widgets), 8)
+                self.assertIs(page.runtime_status_dot.parentWidget(), page.organizer_scroll.widget())
+                self.assertLessEqual(page.macro_panel.y(), page.quick_actions_panel.y())
+                self.assertEqual(page.macro_panel.y(), page.controls_panel.y())
+                page.resize(1000, 470)
+                self.app.processEvents()
+                self.assertIs(page.controls_panels_grid.itemAtPosition(3, 0).widget(), page.controls_panel)
+                self.assertEqual(len(page.session_slot_widgets), 8)
+                # Exercise scrolling even when offscreen Qt has not resized
+                # the standalone page's viewport to its requested height.
+                viewport = page.organizer_scroll.viewport()
+                page.organizer_scroll.widget().setMinimumHeight(viewport.height() + 200)
+                self.app.processEvents()
+                self.assertGreater(page.organizer_scroll.verticalScrollBar().maximum(), 0)
+                page.organizer_scroll.verticalScrollBar().setValue(
+                    page.organizer_scroll.verticalScrollBar().maximum()
+                )
+                self.assertGreater(page.organizer_scroll.verticalScrollBar().value(), 0)
+                # The real AtlasWindow capture checks that the whole row is
+                # accessible at 1000px, without horizontal overflow.
+
+    def test_mirror_button_is_explicit_arm_and_badge_does_not_arm(self):
+        from app.constants import KEY_ORGANIZER_MACRO_MODE
+        with tempfile.TemporaryDirectory() as temporary:
+            with self.organizer_page(Path(temporary)) as page:
+                states = []
+                armed = [False]
+                def toggle():
+                    armed[0] = not armed[0]
+                    states.append(armed[0])
+                    return armed[0]
+                page.mirror_arm_callback = toggle
+                page.reload_runtime_callback = lambda *_args: None
+                page.stop_runtime_callback = lambda *_args: None
+                self.assertFalse(page._mirror_arm_active)
+                self.assertEqual(page.profiles.get(KEY_ORGANIZER_MACRO_MODE, "macro"), "macro")
+                page.mirror_toggle_hotkey_button.click()
+                self.assertEqual(states, [])
+                page.mirror_mode_button.click()
+                self.assertEqual(page.profiles[KEY_ORGANIZER_MACRO_MODE], "mirror")
+                self.assertEqual(states, [True])
+                self.assertTrue(page._mirror_arm_active)
+                self.assertFalse(page.next_character.isEnabled())
+                page.mirror_mode_button.click()
+                self.assertEqual(states, [True, False])
+                self.assertFalse(page._mirror_arm_active)
+                self.assertTrue(page.next_character.isEnabled())
+                page.macro_mode_button.click()
+                self.assertEqual(page.profiles[KEY_ORGANIZER_MACRO_MODE], "macro")
+                self.assertFalse(page._mirror_arm_active)
+
+    def test_navigation_buttons_use_canonical_switch_not_on_off_badges(self):
+        from app.constants import KEY_SWITCH_CHARACTER, KEY_ORGANIZER_MACRO_MODE
+        with tempfile.TemporaryDirectory() as temporary:
+            with self.organizer_page(Path(temporary)) as page:
+                self.assertFalse(hasattr(page, "next_character_enable_button"))
+                self.assertFalse(hasattr(page, "previous_character_enable_button"))
+                self.assertTrue(page.profiles[KEY_SWITCH_CHARACTER])
+                self.assertTrue(page.next_character.isEnabled())
+                self.assertTrue(page.previous_character.isEnabled())
+                page.switch_character.click()
+                self.assertFalse(page.profiles[KEY_SWITCH_CHARACTER])
+                self.assertFalse(page.next_character.isEnabled())
+                self.assertFalse(page.previous_character.isEnabled())
+                page.switch_character.click()
+                self.assertTrue(page.profiles[KEY_SWITCH_CHARACTER])
+                page.profiles[KEY_ORGANIZER_MACRO_MODE] = "mirror"
+                page.update_macro_mode_buttons()
+                page.set_mirror_arm_active(True)
+                self.assertFalse(page.next_character.isEnabled())
+                self.assertFalse(page.previous_character.isEnabled())
+                page.set_mirror_arm_active(False)
+                self.assertTrue(page.next_character.isEnabled())
+                self.assertTrue(page.previous_character.isEnabled())
+
+    def test_embedded_hotkey_badges_leave_space_for_full_button_labels(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            with self.organizer_page(Path(temporary)) as page:
+                page.resize(1380, 900)
+                self.app.processEvents()
+                for action, reserve in (
+                    (page.radial_select_button, 40),
+                    (page.previous_character, 40),
+                    (page.next_character, 40),
+                    (page.mirror_mode_button, 48),
+                ):
+                    with self.subTest(button=action.text()):
+                        available = action.width() - reserve - 4
+                        label_width = action.fontMetrics().horizontalAdvance(action.text())
+                        self.assertGreaterEqual(available, label_width)
+                for action, badge in (
+                    (page.previous_character, page.previous_character_hotkey_button),
+                    (page.next_character, page.next_character_hotkey_button),
+                    (page.mirror_mode_button, page.mirror_toggle_hotkey_button),
+                    (page.stop_script_button, page.stop_script_hotkey_button),
+                ):
+                    with self.subTest(button=action.text()):
+                        self.assertTrue(action.parentWidget().isAncestorOf(badge))
+                        # Geometry of a standalone offscreen page can be
+                        # stale before its containing AtlasWindow is laid out.
+                        # Check the actual inset owned by the badge wrapper;
+                        # the Windows shell capture separately checks pixels.
+                        self.assertEqual(
+                            badge.parentWidget().layout().contentsMargins().right(),
+                            8,
+                        )
+                self.assertEqual(page.macro_mode_button.size(), page.mirror_mode_button.size())
+                self.assertLessEqual(abs(
+                    page.mirror_mode_button.mapTo(page.mode_switch, QPoint()).x()
+                    - page.macro_mode_button.mapTo(page.mode_switch, QPoint()).x()
+                    - (page.macro_mode_button.width() + 8)
+                ), 1)
+                self.assertLess(
+                    page.mode_switch.mapTo(page.macro_panel, QPoint()).y(),
+                    page.switch_movement.mapTo(page.macro_panel, QPoint()).y(),
+                )
+                self.assertEqual(page.mode_switch._selected, 0)
+                # Mode switch, all shortcuts and all bottom borders now have
+                # the same column starts and sufficient bottom breathing room.
+                for mode, action in (
+                    (page.macro_mode_button, page.switch_character),
+                    (page.mirror_mode_button, page.switch_click),
+                ):
+                    self.assertEqual(
+                        mode.mapTo(page.macro_panel, QPoint()).x(),
+                        action.mapTo(page.macro_panel, QPoint()).x(),
+                    )
+                bottom = max(
+                    page.switch_movement.mapTo(page.macro_panel, QPoint()).y()
+                    + page.switch_movement.height(),
+                    page.switch_double_click.mapTo(page.macro_panel, QPoint()).y()
+                    + page.switch_double_click.height(),
+                )
+                self.assertGreaterEqual(page.macro_panel.height() - bottom, 12)
+                self.assertEqual(page.macro_mode_button.height(), page.next_character.height())
+                self.assertEqual(page.reload_runtime_button.size(), page.next_character.size())
+                self.assertEqual(page.debug_button.size(), page.next_character.size())
+                # The controls grid owns three full 30px rows, not a squeezed middle row.
+                self.assertEqual(
+                    page.reload_runtime_button.parentWidget().height(),
+                    3 * page.next_character.height() + 2 * 8,
+                )
+                self.assertEqual(page.stop_script_button.height(), page.next_character.height())
+
+    def test_single_sliding_speed_track_preserves_all_three_profiles(self):
+        from app.constants import KEY_SCRIPT_SPEED, KEY_SCRIPT_SPEED_SCHEMA
+        with tempfile.TemporaryDirectory() as temporary:
+            with self.organizer_page(Path(temporary)) as page:
+                self.app.processEvents()
+                normal = page.script_speed_normal
+                rapid = page.script_speed_fast
+                instant = page.script_speed_instant
+                classic = page.script_speed_legacy
+                selector = page.speed_selector
+                self.assertTrue(selector.highlight.testAttribute(
+                    Qt.WA_TransparentForMouseEvents
+                ))
+                self.assertEqual(page.script_speed_title.text(), "Vitesse")
+                self.assertTrue(page.script_speed_title.isVisible())
+                self.assertIs(selector.parentWidget(), page.script_speed_title.parentWidget())
+                self.assertTrue(page.controls_panel.isAncestorOf(selector))
+                self.assertEqual(selector.height(), page.next_character.height())
+                self.assertEqual(selector.width(), 340)
+                self.assertTrue(classic.isHidden())
+                self.assertEqual(selector._choices, (normal, rapid, instant))
+                self.assertTrue(all(button.isVisible() for button in selector._choices))
+                self.assertEqual(len({button.parentWidget() for button in selector._choices}), 1)
+                self.assertTrue(all(button.parentWidget() is selector for button in selector._choices))
+                self.assertFalse(any(button.text() == "Classique"
+                                     for button in selector._choices))
+                self.assertEqual(page.previous_character.text(), "Précédent")
+                self.assertEqual(page.next_character.text(), "Suivant")
+                self.assertEqual(page.radial_select_button.height(), page.switch_fake.height())
+                self.assertTrue(
+                    page.stop_script_button.parentWidget().isAncestorOf(
+                        page.stop_script_hotkey_button
+                    )
+                )
+                for value, index in (("normal", 0), ("rapide", 1), ("instantane", 2)):
+                    page.profiles[KEY_SCRIPT_SPEED] = value
+                    page.profiles[KEY_SCRIPT_SPEED_SCHEMA] = 2
+                    page.update_script_speed_buttons()
+                    self.assertEqual(selector._selected, index)
+                    self.assertEqual(
+                        [button.objectName() for button in selector._choices],
+                        ["OrganizerSpeedChoiceSelected" if slot == index else
+                         "OrganizerSpeedChoice" for slot in range(3)],
+                    )
+                    self.assertTrue(selector.highlight.isVisible())
+                    if selector._motion.state() == QAbstractAnimation.State.Running:
+                        self.assertEqual(
+                            selector._motion.endValue(),
+                            selector._choices[index].geometry().topLeft(),
+                        )
+                    else:
+                        self.assertEqual(
+                            selector.highlight.pos(),
+                            selector._choices[index].geometry().topLeft(),
+                        )
+                # An old Classique profile still has the original timing and
+                # no visible active preset, instead of silently showing Normal.
+                page.profiles[KEY_SCRIPT_SPEED] = "classique"
+                page.update_script_speed_buttons()
+                self.assertTrue(classic.isHidden())
+                self.assertIsNone(selector._selected)
+                self.assertTrue(selector.highlight.isHidden())
+                self.assertTrue(all(
+                    button.objectName() == "OrganizerSpeedChoice"
+                    for button in selector._choices
+                ))
+
+    def test_speed_track_click_reuses_existing_persisted_action(self):
+        from app.constants import KEY_SCRIPT_SPEED, KEY_SCRIPT_SPEED_SCHEMA
+        with tempfile.TemporaryDirectory() as temporary:
+            with self.organizer_page(Path(temporary)) as page:
+                stop_calls = []
+                reload_calls = []
+                page.stop_runtime_callback = lambda *args: stop_calls.append(args)
+                page.reload_runtime_callback = lambda *args: reload_calls.append(args)
+                page.profiles[KEY_SCRIPT_SPEED_SCHEMA] = 2
+                page.profiles[KEY_SCRIPT_SPEED] = "normal"
+                page.update_script_speed_buttons()
+                page.script_speed_fast.click()
+                self.assertEqual(page.profiles[KEY_SCRIPT_SPEED], "rapide")
+                self.assertEqual(page.speed_selector._selected, 1)
+                self.assertEqual(len(stop_calls), 1)
+                self.assertEqual(len(reload_calls), 1)
+                # Clicking the current choice must not restart live macro workers.
+                page.script_speed_fast.click()
+                self.assertEqual(len(stop_calls), 1)
+                self.assertEqual(len(reload_calls), 1)
 
 
 if __name__ == "__main__":

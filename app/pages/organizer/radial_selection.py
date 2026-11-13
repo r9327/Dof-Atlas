@@ -8,6 +8,23 @@ from __future__ import annotations
 import math
 from typing import Collection, Mapping, Any
 
+from app.core.text import clean_auto_group_name, normalize_key
+from .common import DOFUS_CLASS_DEFINITIONS
+
+
+def _exact_native_id(value: object, maximum: int, *, allow_zero: bool = False) -> int | None:
+    """Accept only real Win32 integer IDs or persisted ASCII decimal text."""
+    if type(value) is int:
+        number = value
+    elif type(value) is str and value.isascii() and value.strip().isdecimal():
+        try:
+            number = int(value.strip())
+        except (ValueError, OverflowError):
+            return None
+    else:
+        return None
+    return number if (0 if allow_zero else 1) <= number <= maximum else None
+
 
 def radial_roster_key(session: Mapping[str, Any]) -> str:
     """A verified character ID when known, otherwise a process-local identity.
@@ -20,12 +37,11 @@ def radial_roster_key(session: Mapping[str, Any]) -> str:
     if verified.startswith("character:") and len(verified) > len("character:"):
         return verified
     name = " ".join(str(session.get("nom") or "").strip().casefold().split())
-    try:
-        pid = int(session.get("pid") or 0)
-        hwnd = int(session.get("hwnd") or 0)
-    except (TypeError, ValueError):
-        return ""
-    if not name or hwnd <= 0:
+    raw_pid = session.get("pid")
+    pid = _exact_native_id(raw_pid if raw_pid not in (None, "") else 0,
+                           2**32 - 1, allow_zero=True)
+    hwnd = _exact_native_id(session.get("hwnd"), 2**64 - 1)
+    if not name or hwnd is None or pid is None:
         return ""
     return f"unverified:{name}:{pid if pid > 0 else hwnd}"
 
@@ -41,11 +57,8 @@ def visible_characters(
     """
     selected: set[int] = set()
     for value in included_handles:
-        try:
-            handle = int(value)
-        except (TypeError, ValueError):
-            continue
-        if handle > 0:
+        handle = _exact_native_id(value, 2**64 - 1)
+        if handle is not None:
             selected.add(handle)
     found: list[dict[str, Any]] = []
     seen: set[int] = set()
@@ -53,14 +66,12 @@ def visible_characters(
         if not isinstance(session, Mapping):
             # A malformed legacy/session cache must not crash the picker.
             continue
-        try:
-            handle = int(session.get("hwnd", 0))
-        except (TypeError, ValueError):
+        handle = _exact_native_id(session.get("hwnd", 0), 2**64 - 1)
+        if handle is None:
             continue
         label = str(session.get("nom", "") or "").strip()
         if (
-            handle <= 0
-            or handle not in selected
+            handle not in selected
             or handle in seen
             or not label
             or session.get("_empty_slot")
@@ -70,6 +81,29 @@ def visible_characters(
         seen.add(handle)
         found.append(dict(session))
     return found[:8]
+
+
+def radial_display_label(session: Mapping[str, Any]) -> str:
+    """Use the character name, never a redundant breed/class-only title.
+
+    Window titles sometimes append a breed after " - ". The class
+    portrait already identifies the breed, so keep only the actual name.
+    No change to the HWND/roster identity used for selection.
+    """
+    if not isinstance(session, Mapping):
+        return ""
+    raw = session.get("character_name") or session.get("nom") or ""
+    if not isinstance(raw, str):
+        return ""
+    label = clean_auto_group_name(raw)
+    key = normalize_key(label)
+    if key in DOFUS_CLASS_DEFINITIONS or any(
+        key == normalize_key(alias)
+        for definition in DOFUS_CLASS_DEFINITIONS.values()
+        for alias in definition["aliases"]
+    ):
+        return ""
+    return label[:17]
 
 
 def slice_count(characters: Collection[object]) -> int:
@@ -147,30 +181,37 @@ def confirmed_radial_target(
     mutable index into a freshly sorted roster at key-release time.
     Call with `current` already filtered through visible_characters().
     """
-    if selected_index is None or not 0 <= selected_index < len(snapshot):
+    if (type(selected_index) is not int
+            or not 0 <= selected_index < len(snapshot)):
         return None
     original = snapshot[selected_index]
-    try:
-        handle = int(original.get("hwnd") or 0)
-    except (TypeError, ValueError):
+    if not isinstance(original, Mapping):
         return None
-    if handle <= 0:
+    handle = _exact_native_id(original.get("hwnd"), 2**64 - 1)
+    if handle is None:
         return None
     identity = str(original.get("character_key") or "").strip()
     name = str(original.get("nom") or "").strip()
     pid = original.get("pid")
+    # A recycled HWND with a corrupt PID must never be released as an
+    # authenticated radial target, even if its title still matches.
+    if pid is not None and _exact_native_id(
+        pid, 2**32 - 1, allow_zero=True,
+    ) is None:
+        return None
     for item in current:
         if not isinstance(item, Mapping):
             continue
-        try:
-            candidate = int(item.get("hwnd") or 0)
-        except (TypeError, ValueError):
-            continue
+        candidate = _exact_native_id(item.get("hwnd"), 2**64 - 1)
         if candidate != handle or str(item.get("nom") or "").strip() != name:
             continue
         if identity and str(item.get("character_key") or "").strip() != identity:
             continue
-        if pid is not None and item.get("pid") != pid:
+        if pid is not None and (
+                item.get("pid") != pid
+                or _exact_native_id(
+                    item.get("pid"), 2**32 - 1, allow_zero=True,
+                ) is None):
             continue
         return handle
     return None
