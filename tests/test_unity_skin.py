@@ -49,6 +49,17 @@ class UnitySkinTests(unittest.TestCase):
         finally:
             button.deleteLater()
 
+    def test_shared_buttons_never_inherit_gold_or_neon_sprite_borders(self) -> None:
+        """Optional Unity assets cannot silently replace semantic button colors."""
+        with patch.object(unity_skin, "_sprite_url", side_effect=lambda name: f"/fake/{name}"):
+            css = unity_skin_stylesheet()
+        self.assertNotIn("btn_yellow2_", css)
+        for name in ("PrimaryActionButton", "primaryButton",
+                     "SecondaryButton", "secondaryButton"):
+            self.assertNotIn(f"QPushButton#{name} {{ border: 8px", css)
+        # Dedicated game-style actions can retain their own sprite treatment.
+        self.assertIn("btn_green_normal.png", css)
+
     def test_panel_toggle_common_state_and_accessibility(self) -> None:
         from app.ui.components import AtlasPanelToggle
 
