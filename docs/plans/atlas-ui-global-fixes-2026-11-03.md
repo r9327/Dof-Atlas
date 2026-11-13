@@ -126,3 +126,12 @@ Ne cocher aucun ID de #364 sur cette seule base. Ne pas fusionner tant que les o
 - Réactiver un succès déjà affiché conserve sa fiche, sans deuxième chargement. `itemActivated` partage la même action que `itemClicked` pour Enter/Return et l'accessibilité.
 - Un test Qt propriétaire `tests/test_achievements_view.py` couvre présence de la colonne, état vide, double activation et activation clavier, sans modifier les sources de données ou la progression.
 - **Toujours partiel** : resize et navigation sur Windows réel, données métier et activation du catalogue restent à recetter ; ne pas marquer ATSC-001 comme DONE à cette étape.
+
+
+### Bestiaire ↔ Encyclopédie — visibilité conservée après hydratation (ATBS-001 / ATUI-006 partiels)
+
+- **Cause vérifiée dans le code** : `EncyclopediaPage.replace_tab_widget()` retire puis réinsère l'onglet lazy chargé ; le nouvel onglet reprend par défaut l'état visible, ce qui peut faire réapparaître un onglet Succès/Guides caché pendant une session Bestiaire.
+- Le remplacement mémorise et rétablit la visibilité exacte de l'onglet, garde la sélection précédente et restaure aussi l'état de blocage des signaux Qt du parent.
+- Test propriétaire `tests/test_encyclopedia_page.py` : remplacement différé de Succès pendant que Donjons est sélectionné, conservation des autres onglets masqués, et remplacement du volet courant avec signaux déjà bloqués.
+- Périmètre volontairement limité à la logique des onglets ; aucun service Bestiaire nouveau, aucune donnée fictive et aucun changement du composant de navigation partagé.
+- **Toujours partiel** : séquence complète de navigation et dimensions des onglets à certifier sur vrai Windows avant de clôturer ATBS-001/ATUI-006.

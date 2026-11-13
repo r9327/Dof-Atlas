@@ -323,13 +323,20 @@ class EncyclopediaPage(QWidget):
         index = self.tab_labels().index(label)
         current_label = self.current_tab_label()
         old_widget = self.tabs.widget(index)
-        self.tabs.blockSignals(True)
-        self.tabs.removeTab(index)
-        self.tabs.insertTab(index, widget, label)
-        target_label = label if current_label == label else current_label
-        if target_label in self.tab_labels():
-            self.tabs.setCurrentIndex(self.tab_labels().index(target_label))
-        self.tabs.blockSignals(False)
+        # Replacing a lazy tab removes/reinserts it in Qt, which resets hidden
+        # tabs to visible. Preserve the shell's Bestiaire/Encyclopédie filter:
+        # a late Guide/Success hydration must not leak its tab into Bestiaire.
+        was_visible = self.tabs.tabBar().isTabVisible(index)
+        was_blocked = self.tabs.blockSignals(True)
+        try:
+            self.tabs.removeTab(index)
+            self.tabs.insertTab(index, widget, label)
+            self.tabs.tabBar().setTabVisible(index, was_visible)
+            target_label = label if current_label == label else current_label
+            if target_label in self.tab_labels():
+                self.tabs.setCurrentIndex(self.tab_labels().index(target_label))
+        finally:
+            self.tabs.blockSignals(was_blocked)
         self._lazy_slots.pop(label, None)
         if old_widget is not widget:
             old_widget.deleteLater()
