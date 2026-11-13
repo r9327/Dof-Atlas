@@ -13,7 +13,7 @@ permissions:
 
 jobs:
   real-qt-capture:
-    name: Dev UI / clear badges vs buttons and canonical Unity icons exact-SHA
+    name: Dev UI / final readable badges and authentic Unity pictogram discovery exact-SHA
     runs-on: windows-latest
     timeout-minutes: 15
     env:
