@@ -75,6 +75,31 @@ def _is_opaque_icon_tile(image: QImage) -> bool:
 
 
 @lru_cache(maxsize=48)
+def unity_original_preview_icon(name: str, size: int = 24) -> QIcon:
+    """Show an untouched transparent Unity sprite in Dev UI when installed.
+
+    The public checkout cannot ship game-extracted icons. The preview falls
+    back to the existing Qt pictogram without faking the source colors.
+    Production icon rendering is unchanged until visual approval.
+    """
+    if name not in UNITY_ICON_NAMES:
+        raise ValueError(f"Unknown Unity UI icon: {name}")
+    if size not in {UNITY_SIZES_PX[key] for key in (
+        "icon_small", "icon_normal", "icon_large", "icon_xlarge"
+    )}:
+        raise ValueError(f"Unsupported Unity UI icon size: {size}")
+    path = sprite_icon_path(name)
+    if path is not None:
+        source = QImage(str(path))
+        if not source.isNull() and not _is_opaque_icon_tile(source):
+            pixmap = QPixmap.fromImage(source).scaled(
+                size, size, Qt.KeepAspectRatio, Qt.SmoothTransformation
+            )
+            return QIcon(pixmap)
+    return unity_ui_icon(name, size)
+
+
+@lru_cache(maxsize=48)
 def unity_ui_icon(name: str, size: int = 24) -> QIcon:
     """Actual local Unity pictogram when permitted; otherwise a clean white icon.
 
