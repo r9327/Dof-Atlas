@@ -91,6 +91,32 @@ class GuideCatalogRightColumnTests(unittest.TestCase):
         self.assertEqual(requested, [])
         self.assertEqual(view.home_dofus_model.rowCount(), 0)
 
+    def test_expanding_arrow_selects_category_without_launching_a_guide(self):
+        view = self.make_view()
+        calls = []
+        view.guideRequested.connect(calls.append)
+        self.assertEqual(view.library_category, "dofus")
+        regions = view._category_nodes["regions"]
+        self.assertGreater(regions.childCount(), 0)
+
+        # The expander arrow does not necessarily change currentItem in Qt.
+        regions.setExpanded(True)
+        self.app.processEvents()
+        self.assertIs(view.library_categories.currentItem(), regions)
+        self.assertEqual(view.library_category, "regions")
+        self.assertEqual(view.library_results_title.text(), "ZONES ET RÉGIONS")
+        self.assertEqual(view.unavailable_list.count(), 2)
+        self.assertTrue(view.unavailable_list.isVisibleTo(view))
+        self.assertFalse(view.home_dofus_list.isVisible())
+        self.assertEqual(calls, [])
+
+        # Re-expanding the selected category must remain idempotent.
+        regions.setExpanded(False)
+        regions.setExpanded(True)
+        self.app.processEvents()
+        self.assertEqual(view.library_category, "regions")
+        self.assertEqual(calls, [])
+
     def test_filter_and_refresh_reuse_rows_without_changing_real_cards(self):
         view = self.make_view()
         view.library_categories.setCurrentItem(view._category_nodes["regions"])
