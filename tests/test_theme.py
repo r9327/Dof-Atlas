@@ -83,6 +83,33 @@ class SharedThemeTests(unittest.TestCase):
         self.assertIn("font-size: 12px;", normal)
         self.assertIn("border-radius: 6px;", normal)
 
+    def test_shared_guide_row_glass_tracks_live_unity_tokens(self) -> None:
+        style = theme.atlas_stylesheet({
+            "PANEL_HOVER": "#123456",
+            "BORDER_SOFT": "#ABCDEF",
+            "RADIUS_XS": "11px",
+            "RADIUS_SM": "13px",
+            "SPACE_XXS": "3px",
+        })
+        rules = style.split(
+            "QFrame#GuideManualCombatSection,\n"
+            "QFrame#GuideManualCombatLineRow,\n"
+            "QFrame#GuideManualCombatInlineRow {", 1,
+        )[1].split("}", 1)[0]
+        self.assertIn("background: rgba(18, 52, 86, 0.05);", rules)
+        self.assertIn("border: 1px solid rgba(171, 205, 239, 0.18);", rules)
+        self.assertIn("border-radius: 11px;", rules)
+        section_rule = style.split(
+            "QFrame#GuideManualCombatSection {", 1
+        )[1].split("}", 1)[0]
+        self.assertIn("border-radius: 13px;", section_rule)
+        warning_line = style.split(
+            "QFrame#GuideManualWarningSection QLabel#GuideManualLine {", 1
+        )[1].split("}", 1)[0]
+        self.assertIn("padding: 3px 0;", warning_line)
+        self.assertIn("QFrame#GuideManualLineRow", style)
+        self.assertIn("QCheckBox#GuideManualCombatCheck", style)
+
     def test_guide_buttons_remain_themed_after_dropdown_unification(self) -> None:
         style = theme.atlas_stylesheet({"GREEN_BORDER": "#135790"})
         button_hover = style.split(

@@ -507,14 +507,7 @@ class SharedGuideManualCard(GuideUltimeManualCard):
         frame.setObjectName(
             "GuideManualWarningSection" if section_key == "prepare" else object_name
         )
-        if section_key == "boss":
-            frame.setStyleSheet(
-                "QFrame#GuideManualCombatSection {"
-                "background: rgba(174, 183, 177, 0.035);"
-                "border: 1px solid rgba(174, 183, 177, 0.16);"
-                "border-radius: 6px;"
-                "}"
-            )
+        # The global Unity stylesheet owns the combat/section material.
         layout = QVBoxLayout(frame)
         layout.setContentsMargins(10, 8, 10, 8)
         layout.setSpacing(6)
@@ -552,19 +545,9 @@ class SharedGuideManualCard(GuideUltimeManualCard):
             combat_line = self._is_combat_row(kind, text)
 
             row_widget = QFrame()
-            row_widget.setObjectName("GuideManualLineRow")
-            if section_key == "prepare":
-                row_widget.setStyleSheet(
-                    "QFrame#GuideManualLineRow { background: transparent; border: none; }"
-                )
-            elif combat_line:
-                row_widget.setStyleSheet(
-                    "QFrame#GuideManualLineRow {"
-                    "background: rgba(174, 183, 177, 0.045);"
-                    "border: 1px solid rgba(174, 183, 177, 0.14);"
-                    "border-radius: 4px;"
-                    "}"
-                )
+            row_widget.setObjectName(
+                "GuideManualCombatLineRow" if combat_line else "GuideManualLineRow"
+            )
             row_layout = QHBoxLayout(row_widget)
             row_layout.setContentsMargins(0, 0, 0, 0)
             row_layout.setSpacing(7)
@@ -582,16 +565,8 @@ class SharedGuideManualCard(GuideUltimeManualCard):
             )
             if section_key == "prepare":
                 line.setObjectName("GuideManualLine")
-                line.setStyleSheet(
-                    "QLabel#GuideManualLine { background: transparent; border: none; padding: 2px 0; }"
-                )
             elif combat_line:
                 line.setObjectName("GuideManualCombatInlineText")
-                line.setStyleSheet(
-                    "QLabel#GuideManualCombatInlineText {"
-                    "background: transparent; border: none; padding: 5px 7px;"
-                    "}"
-                )
             else:
                 line.setObjectName(self._line_object_name(kind, text))
             line.setWordWrap(True)
@@ -871,13 +846,6 @@ class SharedGuideManualCard(GuideUltimeManualCard):
 
         row = QFrame()
         row.setObjectName("GuideManualCombatInlineRow")
-        row.setStyleSheet(
-            "QFrame#GuideManualCombatInlineRow {"
-            "background: rgba(174, 183, 177, 0.055);"
-            "border: 1px solid rgba(174, 183, 177, 0.18);"
-            "border-radius: 4px;"
-            "}"
-        )
         row_layout = QHBoxLayout(row)
         row_layout.setContentsMargins(16, 3, 6, 3)
         row_layout.setSpacing(6)
@@ -895,9 +863,6 @@ class SharedGuideManualCard(GuideUltimeManualCard):
         # tooltip while the row follows the viewport width.
         checkbox.setMinimumWidth(0)
         checkbox.setSizePolicy(QSizePolicy.Ignored, QSizePolicy.Preferred)
-        checkbox.setStyleSheet(
-            "QCheckBox#GuideManualCombatCheck { background: transparent; border: none; }"
-        )
         progress = getattr(self.service, "quest_progress", None)
         checked = bool(
             progress is not None

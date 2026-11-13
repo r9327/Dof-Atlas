@@ -2838,6 +2838,37 @@ QToolButton#GuideParticipantPortrait:checked {
     border-color: @GREEN_BORDER;
 }
 
+/* Shared roadbook containers: one Unity material for every Guide reader. */
+QFrame#GuideManualCombatSection,
+QFrame#GuideManualCombatLineRow,
+QFrame#GuideManualCombatInlineRow {
+    background: @GLASS_SUBTLE_SURFACE;
+    border: 1px solid @GLASS_SUBTLE_BORDER;
+    border-radius: @RADIUS_XS;
+}
+
+QFrame#GuideManualCombatSection {
+    border-radius: @RADIUS_SM;
+}
+
+QFrame#GuideManualLineRow,
+QFrame#GuideManualActionGroup {
+    background: transparent;
+    border: none;
+}
+
+QLabel#GuideManualCombatInlineText {
+    background: transparent;
+    border: none;
+    padding: 5px 7px;
+}
+
+QFrame#GuideManualWarningSection QLabel#GuideManualLine {
+    background: transparent;
+    border: none;
+    padding: @SPACE_XXS 0;
+}
+
 #GuideManualDungeonSection {
     border-color: @RED_DARK;
 }
@@ -2935,6 +2966,7 @@ QToolButton#GuideParticipantPortrait:checked {
 #GuideManualCombatCheck {
     color: @TEXT_SOFT;
     background: transparent;
+    border: none;
     spacing: 8px;
     font-size: 14px;
     font-weight: 700;
@@ -3241,6 +3273,23 @@ QLabel[travelCopyEnabled="true"]:hover {
 """
 
 
+def _soft_alpha(color: str, alpha: str) -> str:
+    """Generate a light QSS tint from the current Unity semantic color.
+
+    Unsupported override formats pass through unchanged rather than breaking
+    previews; the canonical PANEL_HOVER/BORDER_SOFT values are #RRGGBB.
+    """
+    value = str(color)
+    if len(value) == 7 and value.startswith("#"):
+        try:
+            channels = tuple(int(value[index:index + 2], 16) for index in (1, 3, 5))
+        except ValueError:
+            pass
+        else:
+            return f"rgba({channels[0]}, {channels[1]}, {channels[2]}, {alpha})"
+    return value
+
+
 def _render_theme_template(
     template: str,
     overrides: Mapping[str, str] | None = None,
@@ -3253,6 +3302,10 @@ def _render_theme_template(
         if unknown:
             raise KeyError(f"Unknown theme token(s): {', '.join(unknown)}")
         tokens.update({key: str(value) for key, value in overrides.items()})
+    # Derived translucent roles track palette overrides automatically. A
+    # subtle glass treatment must not become a second hard-coded gray palette.
+    tokens["GLASS_SUBTLE_SURFACE"] = _soft_alpha(tokens["PANEL_HOVER"], "0.05")
+    tokens["GLASS_SUBTLE_BORDER"] = _soft_alpha(tokens["BORDER_SOFT"], "0.18")
     style = str(template)
     for literal, role in LEGACY_COLOR_ROLES.items():
         token = f"@{role}"

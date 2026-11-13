@@ -88,6 +88,17 @@ class ModularDomainRoutingTests(unittest.TestCase):
         self.assertEqual(owners_for(unrelated), frozenset())
         self.assertEqual(self.route([unrelated])["status"], "BLOCKED")
 
+    def test_shared_guide_row_source_and_direct_test_keep_both_owners(self):
+        source = "app/modules/encyclopedia/views/shared_manual_guide_view.py"
+        test = "tests/test_shared_manual_guide_view.py"
+        domains = frozenset({"guides", "ui"})
+        self.assertEqual(owners_for(source), domains)
+        self.assertEqual(owners_for(test), domains)
+        self.assertEqual(self.route([source, test])["status"], "READY_TO_EXECUTE")
+        unknown = "tests/test_shared_manual_guide_view_v2.py"
+        self.assertEqual(owners_for(unknown), frozenset())
+        self.assertEqual(self.route([unknown])["status"], "BLOCKED")
+
     def test_shared_quest_detail_sheet_has_exact_three_domain_ownership(self):
         source = "app/modules/encyclopedia/widgets/quest_detail_view.py"
         regression = "tests/test_quest_detail_view.py"
