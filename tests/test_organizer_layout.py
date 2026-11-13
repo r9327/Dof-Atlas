@@ -2,6 +2,8 @@ from __future__ import annotations
 
 import json
 import os
+import subprocess
+import sys
 import tempfile
 import unittest
 from contextlib import contextmanager
@@ -12,11 +14,11 @@ from unittest.mock import patch
 os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
 
 from PySide6.QtCore import QAbstractAnimation, QPoint, Qt
-from PySide6.QtWidgets import QApplication, QFrame, QPushButton, QScrollArea
+from PySide6.QtWidgets import QApplication, QFrame, QLabel, QPushButton, QScrollArea
 
 import app.pages.organizer_page as organizer
 import app.pages.organizer.character_sessions as organizer_sessions
-from app.pages.organizer.organizer_ui import CharacterSlotsPanel
+from app.pages.organizer.organizer_ui import CharacterSlotName, CharacterSlotsPanel
 
 
 class OrganizerLayoutTests(unittest.TestCase):
@@ -71,6 +73,8 @@ class OrganizerLayoutTests(unittest.TestCase):
             patch.object(organizer_sessions, "PROFILE_FILE", profile),
             patch.object(organizer_sessions, "CLIENT_INDEX_JSON", client_index),
             patch.object(organizer_sessions, "CLIENT_INDEX_INI", client_ini),
+            patch.object(organizer, "CLIENT_INDEX_JSON", client_index),
+            patch.object(organizer, "CLIENT_INDEX_INI", client_ini),
             patch.object(organizer_sessions, "scan_unity_sessions", return_value=[]),
             patch.object(organizer.UnityWindowEventWatcher, "start", return_value=None),
             patch.object(organizer.UnityWindowEventWatcher, "stop", return_value=None),
@@ -1208,7 +1212,7 @@ class OrganizerLayoutTests(unittest.TestCase):
             self.assertEqual(clean.pixelColor(0, 0).alpha(), 0)
             self.assertGreater(clean.pixelColor(11, 11).alpha(), 0)
 
-    def test_real_slot_and_favorite_icons_are_painted_not_missing_glyphs(self):
+    def test_real_slot_and_decorative_primary_icons_are_painted(self):
         with tempfile.TemporaryDirectory() as temporary:
             with self.organizer_page(Path(temporary)) as page:
                 page.sessions = [
@@ -1218,17 +1222,20 @@ class OrganizerLayoutTests(unittest.TestCase):
                 ]
                 page.render_sessions()
                 self.assertEqual(len(page.session_slot_widgets), 8)
-                for row, _index in page.session_slot_widgets:
+                for row, index in page.session_slot_widgets:
                     controls = row.findChildren(QPushButton)
                     grip = next(button for button in controls
                                 if button.objectName() == "DragHandle")
-                    star = next(button for button in controls
-                                if button.objectName() in
-                                ("FavoriteButton", "FavoriteButtonActive"))
                     self.assertEqual(grip.text(), "")
-                    self.assertEqual(star.text(), "")
                     self.assertFalse(grip.icon().isNull())
-                    self.assertFalse(star.icon().isNull())
+                    self.assertFalse(any(button.objectName() in
+                        ("FavoriteButton", "FavoriteButtonActive") for button in controls))
+                    indicators = row.findChildren(QLabel, "PrimarySlotIndicator")
+                    self.assertEqual(len(indicators), 1 if index == 0 else 0)
+                    if indicators:
+                        self.assertFalse(indicators[0].pixmap().isNull())
+                        self.assertEqual(indicators[0].focusPolicy(), Qt.NoFocus)
+                        self.assertTrue(indicators[0].testAttribute(Qt.WA_TransparentForMouseEvents))
                 page.zaap.zaaps = [
                     {"name": "Astrub", "label": "Astrub", "x": 0, "y": -21},
                     {"name": "Bonta", "label": "Bonta", "x": -31, "y": -55},
@@ -1239,6 +1246,163 @@ class OrganizerLayoutTests(unittest.TestCase):
                 for star in page.zaap.favorite_star_buttons:
                     self.assertEqual(star.text(), "")
                     self.assertFalse(star.icon().isNull())
+
+    def test_primary_star_tracks_first_occupied_slot_without_ghost_column(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            with self.organizer_page(Path(temporary)) as page:
+                for count in (1, 2, 4, 6, 8):
+                    with self.subTest(count=count):
+                        page.sessions = page.build_session_slots([
+                            {"nom": f"Enutrof Perso {index}", "hwnd": 501 + index, "pid": 601 + index}
+                            for index in range(count)
+                        ])
+                        page.render_sessions()
+                        self.app.processEvents()
+                        name_starts = []
+                        for row, index in page.session_slot_widgets:
+                            slots = row.findChildren(CharacterSlotName)
+                            if index < count:
+                                self.assertEqual(len(slots), 1)
+                                name_starts.append(slots[0].x())
+                                self.assertEqual(slots[0].indicator is not None, index == 0)
+                                self.assertFalse(any(
+                                    button.objectName().startswith("FavoriteButton")
+                                    for button in row.findChildren(QPushButton)
+                                ))
+                            else:
+                                self.assertEqual(slots, [])
+                        self.assertEqual(len(set(name_starts)), 1)
+                page.sessions = page.build_session_slots([
+                    {"nom": "Pandawa Premier", "hwnd": 701, "pid": 801},
+                    {"nom": "Enutrof Second", "hwnd": 702, "pid": 802},
+                ])
+                self.assertTrue(page.move_session_to_slot(0, 6))
+                page.sessions[1]["nom"] = "Enutrof Second " + "surnom-tres-long-" * 15
+                page.render_sessions()
+                self.app.processEvents()
+                self.assertIsNone(page.session_slot_widgets[0][0].findChild(
+                    QLabel, "PrimarySlotIndicator",
+                ))
+                self.assertIsNotNone(page.session_slot_widgets[1][0].findChild(
+                    QLabel, "PrimarySlotIndicator",
+                ))
+                first_name = page.session_slot_widgets[1][0].findChild(CharacterSlotName)
+                self.assertNotEqual(first_name.name_label.text(), first_name.full_name)
+                self.assertIsNotNone(first_name.indicator)
+                self.assertLessEqual(
+                    first_name.indicator.geometry().right(), first_name.width(),
+                )
+                self.assertLessEqual(
+                    first_name.name_label.geometry().right(),
+                    first_name.indicator.geometry().left(),
+                )
+
+    def test_first_slot_primary_is_persisted_safely_for_mirror_runtime(self):
+        from app.constants import KEY_PRIMARY_WINDOW
+
+        with tempfile.TemporaryDirectory() as temporary:
+            with self.organizer_page(Path(temporary)) as page:
+                page.sessions = page.build_session_slots([
+                    {"nom": "Alpha", "hwnd": 101, "pid": 201},
+                    {"nom": "Beta", "hwnd": 102, "pid": 202},
+                ])
+                page.profiles[KEY_PRIMARY_WINDOW] = "hwnd:102"
+                with patch.object(
+                    page, "fallback_primary_token_for_session",
+                    side_effect=lambda row: f"name-class:{row['nom']}:test",
+                ):
+                    page.export_client_index()
+                    self.assertEqual(
+                        page.profiles[KEY_PRIMARY_WINDOW], "name-class:Alpha:test",
+                    )
+                    with open(page.client_index_json, encoding="utf-8") as stream:
+                        clients = json.load(stream)["clients"]
+                    self.assertEqual([row["primary"] for row in clients], [True, False])
+                    self.assertTrue(page.move_session_to_slot(0, 1))
+                    page.export_client_index()
+                    self.assertEqual(
+                        page.profiles[KEY_PRIMARY_WINDOW], "name-class:Beta:test",
+                    )
+                    with open(page.client_index_json, encoding="utf-8") as stream:
+                        clients = json.load(stream)["clients"]
+                    self.assertEqual([row["primary"] for row in clients], [True, False])
+                    # Offline slots are empty by the canonical session predicate:
+                    # the first remaining detected character becomes primary.
+                    page.sessions[0] = {"nom": "Offline Beta", "hwnd": 0}
+                    page.export_client_index()
+                    self.assertEqual(
+                        page.profiles[KEY_PRIMARY_WINDOW], "name-class:Alpha:test",
+                    )
+                    with open(page.client_index_json, encoding="utf-8") as stream:
+                        clients = json.load(stream)["clients"]
+                    self.assertEqual([row["primary"] for row in clients], [True])
+                    # No detected client: clear the previous macro master,
+                    # never leave a hidden favorite persisted in the profile.
+                    page.sessions[1] = {"nom": "Offline Alpha", "hwnd": 0}
+                    page.export_client_index()
+                    self.assertEqual(page.profiles[KEY_PRIMARY_WINDOW], "")
+                    with open(page.client_index_json, encoding="utf-8") as stream:
+                        clients = json.load(stream)["clients"]
+                    self.assertEqual(clients, [])
+
+    def test_character_star_follows_saved_order_after_profile_reload(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            with self.organizer_page(Path(temporary)) as page:
+                originals = [
+                    {"nom": "Enutrof Alpha", "hwnd": 1001, "pid": 2001},
+                    {"nom": "Enutrof Beta", "hwnd": 1002, "pid": 2002},
+                ]
+                page.sessions = page.build_session_slots(originals)
+                self.assertTrue(page.move_session_to_slot(0, 1))
+                page.export_client_index()
+                # Reload the persisted profile/order just as a new page would,
+                # without relying on a selected name or a hard-coded slot.
+                page.profiles = page.load_profiles()
+                page.sessions = page.build_session_slots(originals)
+                page.render_sessions()
+                self.app.processEvents()
+                self.assertEqual(organizer.session_name(page.sessions[0]), "Enutrof Beta")
+                self.assertEqual(organizer.session_name(page.sessions[1]), "Enutrof Alpha")
+                self.assertIsNotNone(
+                    page.session_slot_widgets[0][0].findChild(QLabel, "PrimarySlotIndicator")
+                )
+                self.assertIsNone(
+                    page.session_slot_widgets[1][0].findChild(QLabel, "PrimarySlotIndicator")
+                )
+
+    def test_name_indicator_scales_with_qt_dpi_factors(self):
+        # A fresh Qt process is required: QT_SCALE_FACTOR is read on startup.
+        # Native Windows DPI, font rasterization and a real Unity client
+        # are separately tracked in the manual acceptance issue #424.
+        probe = """
+from PySide6.QtWidgets import QApplication
+from app.pages.organizer.organizer_ui import CharacterSlotName
+app = QApplication([])
+widget = CharacterSlotName(
+    "Enutrof " + "pseudo-particulier-" * 22, first=True, detected=True,
+)
+widget.resize(150, 24)
+widget.show()
+app.processEvents()
+indicator = widget.indicator
+assert indicator is not None
+assert indicator.pixmap() is not None and not indicator.pixmap().isNull()
+assert widget.name_label.text() != widget.full_name
+assert indicator.geometry().right() <= widget.width()
+assert widget.name_label.geometry().right() <= indicator.geometry().left()
+assert indicator.focusPolicy().name == "NoFocus"
+widget.close()
+"""
+        for factor in ("1", "1.25", "1.5"):
+            with self.subTest(qt_scale_factor=factor):
+                env = dict(os.environ, QT_SCALE_FACTOR=factor,
+                           QT_QPA_PLATFORM="offscreen")
+                result = subprocess.run(
+                    [sys.executable, "-c", probe],
+                    env=env, capture_output=True, text=True,
+                    timeout=30, check=False,
+                )
+                self.assertEqual(result.returncode, 0, result.stderr)
 
     def test_unified_mode_switch_and_empty_quick_actions_are_safe(self):
         from app.constants import KEY_ORGANIZER_MACRO_MODE

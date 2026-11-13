@@ -150,6 +150,22 @@ class OrganizerGlassCard(QFrame):
             painter.drawLine(
                 QPoint(15, 2), QPoint(self.width() - 15, 2),
             )
+        # Ton-sur-ton corner signatures shared by all five Organizer cards.
+        # Reuse Unity border color and the existing glass intensity unchanged.
+        if self.width() >= 60 and self.height() >= 55:
+            corner = QColor(UNITY_PALETTE["BORDER_CARD"])
+            corner.setAlpha(_reflection_alpha(72))
+            painter.setPen(QPen(corner, 1.0))
+            painter.drawLine(QPoint(8, 17), QPoint(8, 23))
+            painter.drawLine(QPoint(8, 17), QPoint(14, 17))
+            painter.drawLine(
+                QPoint(self.width() - 9, self.height() - 24),
+                QPoint(self.width() - 9, self.height() - 18),
+            )
+            painter.drawLine(
+                QPoint(self.width() - 15, self.height() - 18),
+                QPoint(self.width() - 9, self.height() - 18),
+            )
         painter.end()
 
 

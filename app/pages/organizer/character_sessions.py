@@ -763,10 +763,30 @@ class CharacterSessionsMixin:
         self.reload_runtime_callback()
         self.status_callback(f"Fenêtre principale : {name}")
 
+    def sync_primary_to_first_slot(self) -> None:
+        """Use the first occupied slot as the master without guessing identities.
+
+        A missing or ambiguous first session disables the mirror primary rather
+        than silently leaving a previously selected favorite in another slot.
+        """
+        first = next(
+            (session for session in self.sessions if not session_is_empty(session)),
+            None,
+        )
+        token = (
+            self.primary_token_for_session(
+                session_name(first), session_hwnd(first), first,
+            )
+            if first is not None and session_is_detected(first) else ""
+        )
+        if str(self.profiles.get(KEY_PRIMARY_WINDOW, "")).strip() != token:
+            self.profiles[KEY_PRIMARY_WINDOW] = token
+            self.save_profiles(self.profiles)
+
     def export_client_index(self) -> None:
         timestamp = datetime.now().astimezone().isoformat(timespec="seconds")
         self.save_session_order()
-        self.rebind_primary_preference()
+        self.sync_primary_to_first_slot()
         primary_token = str(self.profiles.get(KEY_PRIMARY_WINDOW, ""))
         primary_label = ""
         primary_handle = 0

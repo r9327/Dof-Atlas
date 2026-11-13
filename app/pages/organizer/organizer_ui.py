@@ -25,7 +25,6 @@ from app.constants import (
     KEY_DEBUG_MODE,
     KEY_ORGANIZER_MACRO_MODE,
     KEY_DOUBLE_CLICK_HOTKEY,
-    KEY_PRIMARY_WINDOW,
     KEY_RADIAL_HOTKEY,
     KEY_RADIAL_ENABLED,
     KEY_NEXT_CHARACTER_HOTKEY,
@@ -234,6 +233,58 @@ class OrganizerZaapWidget(ZaapWidget):
             star.setIcon(_organizer_favorite_icon(True))
             star.setIconSize(QSize(15, 15))
             star.setAccessibleName(star.toolTip())
+
+
+class CharacterSlotName(QWidget):
+    """Keep the first-slot indicator next to the name, never in a favorite column."""
+
+    def __init__(self, full_name: str, *, first: bool, detected: bool) -> None:
+        super().__init__()
+        self.full_name = full_name
+        self.setObjectName("OrganizerTransparentHost")
+        self.setMinimumWidth(0)
+        self.setFixedHeight(24)
+        self.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
+        line = QHBoxLayout(self)
+        line.setContentsMargins(0, 0, 0, 0)
+        line.setSpacing(4)
+        self.name_label = QLabel(full_name)
+        self.name_label.setObjectName("CompactLabel" if detected else "MutedLabel")
+        self.name_label.setFixedHeight(24)
+        self.name_label.setMinimumWidth(0)
+        self.name_label.setSizePolicy(QSizePolicy.Preferred, QSizePolicy.Fixed)
+        self.name_label.setAlignment(Qt.AlignLeft | Qt.AlignVCenter)
+        self.name_label.setCursor(Qt.OpenHandCursor)
+        self.name_label.setToolTip(full_name)
+        self.name_label.setAccessibleName(full_name)
+        line.addWidget(self.name_label)
+        self.indicator: QLabel | None = None
+        if first:
+            indicator = QLabel()
+            indicator.setObjectName("PrimarySlotIndicator")
+            indicator.setPixmap(_organizer_favorite_icon(True).pixmap(QSize(16, 16)))
+            indicator.setFixedSize(16, 24)
+            indicator.setAlignment(Qt.AlignCenter)
+            indicator.setFocusPolicy(Qt.NoFocus)
+            indicator.setAttribute(Qt.WA_TransparentForMouseEvents, True)
+            indicator.setAccessibleName("Premier personnage affiché")
+            line.addWidget(indicator)
+            self.indicator = indicator
+        line.addStretch(1)
+        self._elide_name()
+
+    def _elide_name(self) -> None:
+        reserved = (self.indicator.width() + 4) if self.indicator is not None else 0
+        available = max(0, self.width() - reserved)
+        shortened = self.name_label.fontMetrics().elidedText(
+            self.full_name, Qt.ElideRight, available,
+        )
+        if self.name_label.text() != shortened:
+            self.name_label.setText(shortened)
+
+    def resizeEvent(self, event) -> None:
+        super().resizeEvent(event)
+        self._elide_name()
 
 
 class CharacterSlotsPanel(OrganizerGlassCard):
@@ -715,13 +766,13 @@ class OrganizerUiMixin:
             }
             #organizerPage QFrame#characterSlotEmpty,
             #organizerPage QFrame#characterSlotMissing {
-                background: @PANEL;
+                background: @PANEL_2;
                 border: 1px solid @BORDER_SOFT;
                 border-radius: 8px;
                 border-image: none;
             }
             #organizerPage QFrame#characterSlot {
-                background: @PANEL_2;
+                background: @PANEL_GRADIENT;
                 border: 1px solid @BORDER;
                 border-radius: 8px;
                 border-image: none;
@@ -732,18 +783,6 @@ class OrganizerUiMixin:
                 border: 1px solid @GREEN_BORDER;
                 border-radius: 8px;
                 border-image: none;
-            }
-            #organizerPage QFrame#characterSlot QPushButton#FavoriteButton,
-            #organizerPage QFrame#characterSlot QPushButton#FavoriteButtonActive {
-                background: @PANEL_HOVER;
-                border: 1px solid @BORDER;
-                border-radius: 6px;
-                border-image: none;
-            }
-            #organizerPage QFrame#characterSlot QPushButton#FavoriteButton:hover,
-            #organizerPage QFrame#characterSlot QPushButton#FavoriteButtonActive:hover {
-                background: @PANEL_ACTIVE;
-                border-color: @GREEN_BORDER;
             }
         """
         glass_qss = (
@@ -1442,14 +1481,16 @@ class OrganizerUiMixin:
         self.session_slot_widgets = []
         self.sessions_grid = self.sessions_panel.grid
         self.sessions_placeholder = None
-        primary = str(self.profiles.get(KEY_PRIMARY_WINDOW, ""))
-        primary_matched = False
         slot_count = self.session_slot_count()
         while len(self.sessions) < slot_count:
             self.sessions.append(empty_session_slot())
         # Exactly eight permanent, reorderable slots; no collapse/expand UI.
         self.sessions_panel.slot_count = slot_count
         self.sessions_panel.row_height = CHARACTER_SLOT_HEIGHT
+        first_index = next(
+            (position for position in range(slot_count)
+             if not session_is_empty(self.sessions[position])), None,
+        )
 
         for index in range(slot_count):
             session = self.sessions[index]
@@ -1457,13 +1498,6 @@ class OrganizerUiMixin:
             hwnd = session_hwnd(session)
             is_empty = session_is_empty(session)
             is_detected = session_is_detected(session)
-            is_primary = is_detected and self.session_is_primary(name, hwnd, primary, session)
-            if is_primary and not primary.startswith("hwnd:"):
-                if primary_matched:
-                    is_primary = False
-                else:
-                    primary_matched = True
-
             if is_empty:
                 slot = QFrame()
                 slot.setAttribute(Qt.WA_Hover, True)
@@ -1511,19 +1545,6 @@ class OrganizerUiMixin:
             grip.setToolTip("Déplacer ce personnage")
             self.bind_session_drag_events(grip, index, row)
             layout.addWidget(grip)
-            star = OrganizerGlassButton("")
-            star.setIcon(_organizer_favorite_icon(is_primary))
-            star.setIconSize(QSize(19, 19))
-            star.setAccessibleName("Personnage principal" if is_primary else "Définir comme principal")
-            star.setObjectName("FavoriteButtonActive" if is_primary else "FavoriteButton")
-            star.setFixedSize(22, 24)
-            star.setToolTip("Fenêtre principale")
-            star.setEnabled(is_detected)
-            if is_detected:
-                star.clicked.connect(lambda _checked=False, target=session: self.set_primary_window(target))
-                # A favorite is an action, not a drag handle: swallowing its
-                # mouse release during a tiny drag loses the click/selection.
-            layout.addWidget(star)
             # The radial selector uses Organizer's shared participant roster.
             # Avoid a second unexplained per-slot selector beside the favorite.
             icon = QLabel()
@@ -1562,15 +1583,12 @@ class OrganizerUiMixin:
             self.bind_session_drag_events(icon, index, row)
             layout.addWidget(icon)
             display_name = clean_auto_group_name(name) or name
-            label = QLabel(display_name)
-            label.setObjectName("CompactLabel" if is_detected else "MutedLabel")
-            label.setWordWrap(False)
-            label.setFixedHeight(24)
-            label.setAlignment(Qt.AlignVCenter)
-            label.setCursor(Qt.OpenHandCursor)
-            label.setToolTip(display_name)
-            self.bind_session_drag_events(label, index, row)
-            layout.addWidget(label, 1)
+            name_host = CharacterSlotName(
+                display_name, first=index == first_index, detected=is_detected,
+            )
+            self.bind_session_drag_events(name_host, index, row)
+            self.bind_session_drag_events(name_host.name_label, index, row)
+            layout.addWidget(name_host, 1)
             binding = self.slot_hotkey_label(index)
             shortcut = OrganizerGlassButton(binding or "...")
             shortcut.setObjectName("keyBadge")
