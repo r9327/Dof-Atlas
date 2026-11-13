@@ -1,4 +1,5 @@
 name: Dev UI / 5 Finishes Windows Capture
+# Final visual check for the shared Dev UI gallery; only this workflow edit triggers it.
 
 on:
   pull_request:
