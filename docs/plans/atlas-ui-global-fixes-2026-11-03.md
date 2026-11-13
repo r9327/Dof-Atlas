@@ -229,3 +229,11 @@ Ne cocher aucun ID de #364 sur cette seule base. Ne pas fusionner tant que les o
 
 - **Guide, finition P0** : les valeurs RGBA historiques de ses en-têtes compacts, lignes de préparation, cadres avertissement, navigation et survol Copier sont maintenant dans les rôles sémantiques de `UNITY_PALETTE` avec les **mêmes valeurs et opacités**. La bibliothèque Dev expose leurs vrais sélecteurs et teste le clic « Copier » sans aucune copie de logique métier. Tests d'override et de clic dans `tests/test_unity_skin.py`.
 - **Contrôle du test préchargement** : l'assertion cible désormais le vrai nom d'appel Python `setStyleSheet` (et pas la chaîne avec parenthèses), pour détecter efficacement toute réintroduction de QSS local.
+
+
+### P0 — inventaire ciblé du prochain lot de propagation
+
+- `app/distribution/launcher_ui.py` : source Tk légère avec `UNITY_PALETTE` locale **encore dupliquée**. Les valeurs actuelles correspondent à Unity ; un test de parité basé sur l'AST de `app/ui/unity_skin.py` détecte désormais toute divergence sans charger PySide6 dans le Launcher. **Ce garde-fou n'est pas une source de vérité unique** ; extraction vers un module de tokens stdlib partagés à faire uniquement après Graphify exact-SHA et vérification packaging EXE.
+- `app/pages/organizer/organizer_ui.py` : plusieurs styles locaux `OrganizerTransparentHost` identiques et un `glass_qss` spécifique au matériau. **Ne pas supprimer le matériau vitré** : une consolidation éventuelle des seuls hosts transparents exige la carte des consommateurs et un test de rendu Qt. Aucun changement du moteur Macro/Miroir/Zaap dans ce lot.
+- `app/pages/dev_ui_page.py` : l'inventaire interactif inclut désormais arborescence et tableaux (sélection réelle + callbacks), saisie texte/numérique/multiligne (signaux), boutons et états précédents. Les champs numériques, éditeurs et tableaux ont le même trait de focus Unity ; test de token + clic souris Qt ajouté.
+- **Limite** : contrôle des sources et tests ajoutés ne valent pas capture Windows, test DOFUS ou phase certifiée ; finaliser `ATUI-009..016` seulement après preuve des consommateurs réels.

@@ -26,7 +26,11 @@ from PySide6.QtWidgets import (
     QScrollArea,
     QSlider,
     QSpinBox,
+    QTableWidget,
+    QTableWidgetItem,
     QTabWidget,
+    QTreeWidget,
+    QTreeWidgetItem,
     QVBoxLayout,
     QWidget,
 )
@@ -95,6 +99,7 @@ class DevUiPage(QWidget):
 
         self._build_buttons(content)
         self._build_tabs_and_menus(content)
+        self._build_data_views(content)
         self._build_fields(content)
         self._build_panels(content)
         self._build_startup_preview(content)
@@ -194,12 +199,51 @@ class DevUiPage(QWidget):
         menu_row.addStretch(1)
         section.addLayout(menu_row)
 
+    def _build_data_views(self, parent: QVBoxLayout) -> None:
+        """Exercise the actual shared tree/table family and their Qt signals."""
+        section = self._section(parent, "Listes · arborescences · tableaux")
+        row = QHBoxLayout()
+
+        self.preview_tree = QTreeWidget()
+        self.preview_tree.setHeaderLabels(("Famille UI", "État"))
+        self.preview_tree.setMaximumHeight(154)
+        parent_item = QTreeWidgetItem(("Encyclopédie", "Disponible"))
+        for label in ("Quêtes", "Succès", "Guides"):
+            QTreeWidgetItem(parent_item, (label, "Sélectionnable"))
+        self.preview_tree.addTopLevelItem(parent_item)
+        parent_item.setExpanded(True)
+        self.preview_tree.currentItemChanged.connect(
+            lambda item, _previous: self._report(
+                f"Arborescence : {item.text(0)}"
+            ) if item is not None else None
+        )
+        row.addWidget(self.preview_tree, 1)
+
+        self.preview_table = QTableWidget(3, 2)
+        self.preview_table.setHorizontalHeaderLabels(("Contrôle", "État"))
+        self.preview_table.setVerticalScrollBarPolicy(Qt.ScrollBarAsNeeded)
+        self.preview_table.setMaximumHeight(154)
+        for index, title in enumerate(("Survol", "Sélection", "Clavier")):
+            self.preview_table.setItem(index, 0, QTableWidgetItem(title))
+            self.preview_table.setItem(index, 1, QTableWidgetItem("Unity"))
+        self.preview_table.currentCellChanged.connect(
+            lambda current_row, _column, _old_row, _old_column: self._report(
+                f"Tableau : {self.preview_table.item(current_row, 0).text()}"
+            ) if current_row >= 0 and self.preview_table.item(current_row, 0)
+            else None
+        )
+        row.addWidget(self.preview_table, 1)
+        section.addLayout(row)
+
     def _build_fields(self, parent: QVBoxLayout) -> None:
         section = self._section(parent, "Saisie · sélection · progression")
         row = QHBoxLayout()
         self.preview_input = QLineEdit()
         self.preview_input.setPlaceholderText("Champ texte Unity")
         self.preview_input.setToolTip("Focus, bordure et curseur hérités du thème")
+        self.preview_input.textChanged.connect(
+            lambda text: self._report(f"Saisie : {text}")
+        )
         row.addWidget(self.preview_input, 2)
         self.preview_combo = QComboBox()
         self.preview_combo.addItems(("Normal", "Rapide", "Instantané"))
@@ -210,12 +254,18 @@ class DevUiPage(QWidget):
         self.preview_spin = QSpinBox()
         self.preview_spin.setRange(1, 8)
         self.preview_spin.setValue(4)
+        self.preview_spin.valueChanged.connect(
+            lambda value: self._report(f"Compteur : {value}")
+        )
         row.addWidget(self.preview_spin)
         section.addLayout(row)
 
         self.preview_text = QPlainTextEdit()
         self.preview_text.setPlaceholderText("Zone de texte multiligne")
         self.preview_text.setMaximumHeight(68)
+        self.preview_text.textChanged.connect(
+            lambda: self._report("Saisie multiligne modifiée")
+        )
         section.addWidget(self.preview_text)
 
         states = QHBoxLayout()

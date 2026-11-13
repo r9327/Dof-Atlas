@@ -11,6 +11,7 @@ os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
 
 from PySide6.QtCore import Qt
 from PySide6.QtGui import QColor, QImage
+from PySide6.QtTest import QTest
 from PySide6.QtWidgets import QApplication, QTabWidget, QWidget
 
 from app.ui import unity_skin
@@ -135,6 +136,19 @@ class UnitySkinTests(unittest.TestCase):
             page.preview_buttons["primary"].click()
             self.assertIn("primary", page.feedback.text())
 
+            page.preview_tree.setCurrentItem(
+                page.preview_tree.topLevelItem(0).child(1)
+            )
+            self.assertIn("Succès", page.feedback.text())
+            page.preview_table.setCurrentCell(2, 0)
+            self.assertIn("Clavier", page.feedback.text())
+            page.preview_input.setText("essai")
+            self.assertIn("Saisie : essai", page.feedback.text())
+            page.preview_spin.setValue(6)
+            self.assertIn("Compteur : 6", page.feedback.text())
+            page.preview_text.setPlainText("interaction")
+            self.assertIn("Saisie multiligne", page.feedback.text())
+
             page.preview_nav[0].click()
             self.assertEqual(page.preview_nav[0].objectName(), "TopNavButtonActive")
             self.assertEqual(page.preview_nav[1].objectName(), "TopNavButton")
@@ -162,6 +176,36 @@ class UnitySkinTests(unittest.TestCase):
         finally:
             page.close()
             page.deleteLater()
+
+    def test_dev_ui_physical_mouse_click_reaches_shared_button_handler(self) -> None:
+        from app.pages.dev_ui_page import DevUiPage
+
+        page = DevUiPage(on_back=lambda: None)
+        try:
+            page.resize(1000, 800)
+            page.show()
+            self.app.processEvents()
+            button = page.preview_buttons["primary"]
+            self.assertTrue(button.isVisible())
+            QTest.mouseClick(button, Qt.LeftButton)
+            self.assertIn("Bouton primary cliqué", page.feedback.text())
+            self.assertEqual(page.styleSheet(), "")
+        finally:
+            page.close()
+            page.deleteLater()
+
+    def test_common_field_and_table_focus_uses_the_same_unity_border(self) -> None:
+        style = unity_skin_stylesheet({"TEXT_SOFT": "#102030"})
+        focus_rule = next(
+            line for line in style.splitlines()
+            if "QDoubleSpinBox:focus" in line
+        )
+        for selector in (
+            "QSpinBox:focus", "QDoubleSpinBox:focus", "QPlainTextEdit:focus",
+            "QTextEdit:focus", "QTableWidget:focus", "QTreeWidget:focus",
+        ):
+            self.assertIn(selector, focus_rule)
+        self.assertIn("border: 2px solid #102030;", focus_rule)
 
     def test_dev_ui_gallery_is_lazy_and_accessible_from_settings(self) -> None:
         source = (Path(__file__).resolve().parents[1] / "main.py").read_text(

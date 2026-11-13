@@ -377,7 +377,10 @@ def unity_skin_stylesheet(palette: Mapping[str, str] | None = None) -> str:
     # Keep keyboard focus visible even when the button has a border-image.
     rules.append(
         "QPushButton:focus, QToolButton:focus, QCheckBox:focus, "
-        "QComboBox:focus, QLineEdit:focus, QTreeView:focus, QListView:focus { "
+        "QComboBox:focus, QLineEdit:focus, QSpinBox:focus, "
+        "QDoubleSpinBox:focus, QTextEdit:focus, QPlainTextEdit:focus, "
+        "QTreeView:focus, QListView:focus, QTableView:focus, "
+        "QTreeWidget:focus, QListWidget:focus, QTableWidget:focus { "
         "border: 2px solid %s; }" % colors["TEXT_SOFT"]
     )
     # ID-specific sprite rules otherwise outrank a generic :focus selector.

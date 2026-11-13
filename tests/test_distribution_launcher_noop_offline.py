@@ -1,6 +1,7 @@
 """Launcher no-op/offline behavior without a full CI or Windows GUI."""
 from __future__ import annotations
 
+import ast
 import logging
 import socket
 import sys
@@ -11,11 +12,43 @@ from pathlib import Path
 from types import SimpleNamespace
 from unittest.mock import MagicMock, patch
 
-from app.distribution import launcher, release_client
+from app.distribution import launcher, launcher_ui, release_client
 from app.distribution.release_client import UpdateError
 
 
 class OfflineProbeTests(unittest.TestCase):
+    def test_standalone_launcher_colors_stay_in_sync_with_canonical_unity(self):
+        """Keep the Tk EXE lightweight; detect drift without importing PySide6."""
+        source = (
+            Path(__file__).resolve().parents[1] / "app" / "ui" / "unity_skin.py"
+        ).read_text(encoding="utf-8")
+        module = ast.parse(source)
+        definitions = [
+            node.value for node in module.body
+            if isinstance(node, ast.Assign)
+            and any(
+                isinstance(target, ast.Name) and target.id == "UNITY_PALETTE"
+                for target in node.targets
+            )
+        ]
+        self.assertEqual(len(definitions), 1)
+        palette = ast.literal_eval(definitions[0])
+        roles = {
+            "background": "BG",
+            "panel": "PANEL",
+            "border": "BORDER",
+            "track": "PANEL_2",
+            "text": "TEXT",
+            "muted": "TEXT_MUTED",
+            "accent": "GREEN",
+            "accent_hover": "GREEN_HOVER",
+        }
+        self.assertEqual(
+            launcher_ui.COLORS,
+            {name: palette[role] for name, role in roles.items()},
+        )
+        self.assertEqual(launcher_ui.COLORS, launcher_ui.UNITY_PALETTE)
+
     def test_existing_release_on_dns_failure_does_not_try_three_fallbacks(self):
         with patch.object(
             release_client, "_read_limited",
