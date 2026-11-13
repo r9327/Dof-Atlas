@@ -345,6 +345,7 @@ QWidget#DevUiPage QGroupBox {
 QWidget#DevUiPage QGroupBox::title {
     subcontrol-origin: margin;
     subcontrol-position: top left;
+    top: @SPACE_MD;
     left: 10px;
     padding: 0px @SPACE_SM;
     color: @TEXT;
