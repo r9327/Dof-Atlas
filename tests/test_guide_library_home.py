@@ -91,6 +91,8 @@ class GuideLibraryHomeTests(unittest.TestCase):
                         view.home_scroll.widget().objectName(), "GuidesHomeContent"
                     )
                     self.assertEqual(view.library_right.objectName(), "GuideLibraryResults")
+                    # Theme stylesheet owns selected/hover states for every module.
+                    self.assertEqual(view.library_categories.styleSheet(), "")
                     for card in view.featured_cards.values():
                         self.assertIn("qlineargradient(", card.styleSheet())
                         self.assertIn("stop:0 #354971", card.styleSheet())

@@ -2417,6 +2417,31 @@ QTreeWidget#QuestHierarchyTree::item:selected {
     color: @TEXT;
 }
 
+/* Guide category tree uses the same Unity semantic roles as other
+   Encyclopedia navigation trees; only its compact geometry is specific. */
+QTreeWidget#GuideLibraryCategories {
+    background: @PANEL_2;
+    border: 1px solid @BORDER;
+    border-radius: @RADIUS_MD;
+    padding: 3px;
+    color: @TEXT_SOFT;
+    outline: none;
+}
+QTreeWidget#GuideLibraryCategories::item {
+    min-height: 23px;
+    padding: 2px 5px;
+    border-radius: @RADIUS_XS;
+}
+QTreeWidget#GuideLibraryCategories::item:hover {
+    background: @PANEL_HOVER;
+}
+QTreeWidget#GuideLibraryCategories::item:selected {
+    background: @PANEL_ACTIVE;
+    color: @TEXT;
+    border-left: 2px solid @GREEN;
+}
+
+
 
 QFrame#GuideItemRow[state="done"],
 QFrame#GuideQuestItemRow[state="done"],

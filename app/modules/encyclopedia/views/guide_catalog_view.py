@@ -151,18 +151,6 @@ class GuideCatalogView(QWidget):
         self.library_categories.setMinimumWidth(0)
         self.library_categories.setUniformRowHeights(True)
         self.library_categories.setMaximumHeight(250)
-        self.library_categories.setStyleSheet(
-            "QTreeWidget#GuideLibraryCategories { "
-            "background: qlineargradient(x1:0,y1:0,x2:0,y2:1, "
-            "stop:0 #293D65, stop:1 #121D34); border: 1px solid #809AC2; "
-            "border-radius: 8px; padding: 3px; }"
-            "QTreeWidget#GuideLibraryCategories::item { min-height: 23px; "
-            "padding: 2px 5px; border-radius: 4px; }"
-            "QTreeWidget#GuideLibraryCategories::item:hover { "
-            "background: rgba(91, 121, 174, 0.33); }"
-            "QTreeWidget#GuideLibraryCategories::item:selected { "
-            "background: #344978; color: #F1F6FB; }"
-        )
         self._category_nodes = {}
         # Dofus is the default, selectable category; events come last.
         # Featured optimized routes stay in their own permanent left column.

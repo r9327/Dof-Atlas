@@ -63,6 +63,24 @@ class ThemeRuntimeCacheTests(unittest.TestCase):
         self.assertIn("border-color: #234BCD;", hover)
         self.assertIn("QComboBox::drop-down {", style)
 
+    def test_guide_category_tree_follows_shared_unity_tokens(self) -> None:
+        style = theme.atlas_stylesheet({
+            "PANEL_ACTIVE": "#123ABC",
+            "PANEL_HOVER": "#345BCD",
+            "TEXT": "#ABC123",
+        })
+        self.assertIn("QTreeWidget#GuideLibraryCategories {", style)
+        selected = style.split(
+            "QTreeWidget#GuideLibraryCategories::item:selected {", 1,
+        )[1].split("}", 1)[0]
+        hovered = style.split(
+            "QTreeWidget#GuideLibraryCategories::item:hover {", 1,
+        )[1].split("}", 1)[0]
+        self.assertIn("background: #123ABC;", selected)
+        self.assertIn("color: #ABC123;", selected)
+        self.assertIn("background: #345BCD;", hovered)
+        self.assertIn("QTreeWidget#GuideLibraryCategories::item {", style)
+
     def test_atlas_stylesheet_reuses_cached_static_template(self) -> None:
         calls: list[tuple[str, object]] = []
 
