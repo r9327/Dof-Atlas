@@ -12,7 +12,7 @@ permissions:
 
 jobs:
   real-qt-capture:
-    name: Dev UI actual Qt capture at PR SHA (Windows, offscreen)
+    name: Dev UI five-finishes exact-SHA capture (Windows, offscreen)
     runs-on: windows-latest
     timeout-minutes: 15
     env:
