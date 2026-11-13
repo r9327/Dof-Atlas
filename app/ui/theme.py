@@ -32,6 +32,8 @@ TYPOGRAPHY = {
     "FONT_BODY": "12px",
     "FONT_SMALL": "11px",
     "FONT_TITLE": "18px",
+    "FONT_SECTION": "14px",
+    "FONT_BADGE": "10px",
 }
 
 SPACING = {
@@ -326,11 +328,32 @@ QProgressBar#PreloadPopupProgress::chunk {
 
 #PageTitle {
     color: @TEXT;
-    font-size: 18px;
+    font-size: @FONT_TITLE;
     font-weight: 800;
     letter-spacing: 0px;
     padding: 0px;
     border: none;
+}
+
+/* The developer catalog inherits the same palette and type scale.
+   Only its section framing is scoped; never duplicate widget QSS locally. */
+QWidget#DevUiPage QGroupBox {
+    border: 1px solid @BORDER_SOFT;
+    border-radius: @RADIUS_SM;
+    margin-top: @SPACE_LG;
+}
+QWidget#DevUiPage QGroupBox::title {
+    subcontrol-origin: margin;
+    subcontrol-position: top left;
+    left: 10px;
+    padding: 0px @SPACE_SM;
+    color: @TEXT;
+    font-size: @FONT_SECTION;
+    font-weight: 700;
+}
+QWidget#DevUiPage QHeaderView::section {
+    font-size: @FONT_SMALL;
+    font-weight: 600;
 }
 
 QTabWidget#EncyclopediaTabs::pane {
@@ -506,7 +529,7 @@ QSplitter#AchievementCatalogSplitter::handle {
     border: 1px solid @BORDER_SOFT;
     border-radius: 5px;
     color: @TEXT;
-    font-size: 10px;
+    font-size: @FONT_BADGE;
     font-weight: 700;
     padding: 2px 6px;
 }
@@ -625,7 +648,7 @@ QSplitter#AchievementCatalogSplitter::handle {
 
 #cardTitle, #ControlSectionTitle, #PanelTitle {
     color: @TEXT;
-    font-size: 14px;
+    font-size: @FONT_SECTION;
     font-weight: 700;
     letter-spacing: 0px;
     padding: 0px;
