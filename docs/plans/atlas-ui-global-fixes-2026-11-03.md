@@ -71,7 +71,16 @@ Le correctif Switch clic Unity ATMC-003 et les 24 autres critères Organizer/Mac
 - **Accueil / ATUI-002 (partiel)** : commit `0c40f6de` — réduction ciblée des seules largeurs minimales des cartes Guide et Almanax et de la colonne droite, afin que les trois colonnes puissent tenir dans la largeur minimale de fenêtre de 900 px. Aucun déplacement de panneau, changement de palette, police ni contenu.
 - **Test de non-régression** : commit `1b16827b` — test Qt du placement des trois colonnes aux dimensions minimale et par défaut dans `tests/test_unity_skin.py`. **Committed, pas encore exécuté/certifié** au moment de cette mise à jour.
 - **Almanax / ATHM-003 et ATAL-001 : non livré** : la page du shell et la carte de l'Accueil sont encore des placeholders. Aucun calendrier, bonus ou objet non sourcé ne doit être affiché comme réel.
-- **Intégration** : la branche avait 1 432 commits de retard sur `main` à la vérification GitHub du 13/11. Réconcilier la base et les autres PR propriétaires avant la certification finale, sans écraser leurs modifications.
+- **Intégration** : la branche avait 1 432 commits de retard sur `main` au début de la reprise du 13/11. Elle a été resynchronisée par merge `f351e601` (second parent `main@76c0008b`) en réappliquant les 12 fichiers de modifications en contexte exact, sans écraser l'Organizer et le Launcher fusionnés.
 - **Validation** : tests Qt réels et Doctor/Graphify du HEAD final, contrôles visuels Windows, vérification du Launcher V2, audit commit par commit et contrôle des 43 critères **encore nécessaires**. Les tests ciblés de lots antérieurs ne représentent pas une Phase Certification.
 
 Ne cocher aucun ID de #364 sur cette seule base. Ne pas fusionner tant que les obligations du contrat et les recettes Windows ne sont pas satisfaites.
+
+## Contrôle technique de la reprise du 13/11/2026
+
+- **Graphify exact-SHA avant déplacement de test** : [workflow #43388403004](https://github.com/r9327/Dof-Atlas/actions/runs/43388403004), diagnostic et fraîcheur PASS pour `f351e601f8153de2a5c0b77cb857296847f9a352`. Ce n'est pas une validation des interactions UI.
+- **Doctor à la même base** : [workflow #43388400626](https://github.com/r9327/Dof-Atlas/actions/runs/43388400626), diagnostic réussi mais `FULL_REQUIRED_NOT_DISPATCHED`; aucun PASS de tests complets ne peut être déduit.
+- **Routage CI ciblé** : la suite non propriétaire `tests/test_shell_reliability.py` bloquait le mini-audit (`UNKNOWN_OWNER_BLOCKS_MODULAR_CERTIFICATE`, [run #43388278457](https://github.com/r9327/Dof-Atlas/actions/runs/43388278457)). Le seul test spécifique à cette PR (`test_module_subnav_reuses_buttons_and_keeps_clicks_correct`) est déplacé avec ses assertions vers `tests/test_unity_skin.py`, suite Qt/UI propriétaire. L'ancien fichier est restauré octet pour octet à `main`. La mise à jour doit encore être validée sur le nouveau HEAD.
+- **Contrat livraison** : les 43 IDs de l'issue #364 sont présents dans le rapport de PR, tous `PENDING`. Aucune preuve n'autorise de les cocher globalement ni de fusionner.
+- **Fond étoilé** : rendu de secours dessiné par Qt présent ; le fichier de fond personnel nettoyé n'est pas distribué. Ne pas publier la capture source du jeu sans validation des droits.
+- **Manques prouvés** : Almanax encore placeholder à l'Accueil et dans le shell. Les autres exigences doivent être confrontées aux véritables comportements/captures du candidat final. Windows/DOFUS et performances restent non certifiés.

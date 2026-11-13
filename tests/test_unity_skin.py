@@ -240,6 +240,52 @@ class UnitySkinTests(unittest.TestCase):
         self.assertIn('lambda _checked=False, chosen=tab:', main_source)
         self.assertIn("if icon_path:", main_source)
 
+    def test_module_subnav_reuses_buttons_and_keeps_clicks_correct(self) -> None:
+        # Changing Outils tabs updates the same shared button row without
+        # accumulating stale Qt controls or losing the callback.
+        from main import AtlasWindow
+        with (
+            patch.object(AtlasWindow, "start_runtime", return_value=None),
+            patch.object(AtlasWindow, "setup_tray", return_value=None),
+        ):
+            window = AtlasWindow(initial_preload={})
+        selected: list[str] = []
+        other: list[str] = []
+
+        def select_tool(label: str) -> None:
+            selected.append(label)
+
+        def select_stuff(label: str) -> None:
+            other.append(label)
+
+        try:
+            labels = ("Crafts", "Map monde", "Ocre")
+            window.configure_module_subnav("Outils", labels, "Crafts", select_tool)
+            first = tuple(window._module_subnav_buttons)
+            self.assertEqual(len(first), 3)
+            self.assertEqual(first[0].objectName(), "TopNavButtonActive")
+
+            window.configure_module_subnav("Outils", labels, "Ocre", select_tool)
+            self.assertTrue(all(a is b for a, b in zip(first, window._module_subnav_buttons)))
+            self.assertEqual(first[0].objectName(), "TopNavButton")
+            self.assertEqual(first[2].objectName(), "TopNavButtonActive")
+            first[0].click()
+            self.assertEqual(selected, ["Crafts"])
+
+            window.hide_module_subnav()
+            window.configure_module_subnav("Outils", labels, "Map monde", select_tool)
+            self.assertIs(window._module_subnav_buttons[1], first[1])
+            self.assertEqual(first[1].objectName(), "TopNavButtonActive")
+
+            window.configure_module_subnav("Stuffs", ("PvM", "PvP"), "PvP", select_stuff)
+            self.assertEqual(len(window._module_subnav_buttons), 2)
+            self.assertIsNot(window._module_subnav_buttons[0], first[0])
+            window._module_subnav_buttons[1].click()
+            self.assertEqual(other, ["PvP"])
+            self.assertEqual(selected, ["Crafts"])
+        finally:
+            window.deleteLater()
+
     def test_deep_link_uses_encyclopedia_filter_after_bestiary(self) -> None:
         import main
         from app.modules.encyclopedia.constants import GUIDES_TAB
