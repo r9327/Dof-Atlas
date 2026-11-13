@@ -15,9 +15,12 @@ os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
 
 from PySide6.QtCore import Qt
 from PySide6.QtTest import QTest
-from PySide6.QtWidgets import QApplication, QListWidget
+from PySide6.QtWidgets import QApplication, QListWidget, QTabWidget, QWidget
 
+from app.modules.encyclopedia.constants import GUIDES_TAB
 from app.modules.encyclopedia.models.guide import Guide
+from app.modules.encyclopedia.views.encyclopedia_page import EncyclopediaPage
+from app.ui.unity_skin import unity_skin_stylesheet
 from app.modules.encyclopedia.views.guide_catalog_view import GuideCatalogView
 
 
@@ -156,6 +159,83 @@ class GuideCatalogInteractionTests(unittest.TestCase):
         card.setFocus()
         QTest.keyClick(card, Qt.Key_Return)
         self.assertEqual(requested, ["guide_complet", "guide_complet"])
+
+    def test_featured_card_uses_shared_unity_colors_without_losing_click(self):
+        view = self.make_view()
+        card = view.featured_cards["guide_complet"]
+        self.assertEqual(card.styleSheet(), "")
+        self.assertEqual(card.title.styleSheet(), "")
+        self.assertEqual(card.subtitle.styleSheet(), "")
+        self.assertEqual(card.progress.styleSheet(), "")
+        self.assertEqual(card.title.objectName(), "GuideFeaturedTitle")
+        self.assertEqual(card.progress.objectName(), "GuideFeaturedProgress")
+        self.assertEqual(card.focusPolicy(), Qt.StrongFocus)
+
+        stylesheet = unity_skin_stylesheet({
+            "PANEL_ACTIVE": "#123456",
+            "PANEL": "#234567",
+            "GREEN_BORDER": "#345678",
+            "TEXT": "#456789",
+            "TEXT_MUTED": "#56789A",
+            "GREEN": "#6789AB",
+        })
+        card_style = stylesheet.rsplit("QFrame#GuideFeaturedCard {", 1)[1].split("}", 1)[0]
+        title_style = stylesheet.split("QFrame#GuideFeaturedCard QLabel#GuideFeaturedTitle {", 1)[1].split("}", 1)[0]
+        progress_style = stylesheet.split("QFrame#GuideFeaturedCard QProgressBar#GuideFeaturedProgress::chunk {", 1)[1].split("}", 1)[0]
+        self.assertIn("stop:0 #123456, stop:1 #234567", card_style)
+        self.assertIn("border: 1px solid #345678", card_style)
+        self.assertIn("color: #456789", title_style)
+        self.assertIn("background: #6789AB", progress_style)
+
+        opened = []
+        view.guideRequested.connect(opened.append)
+        QTest.mouseClick(card, Qt.LeftButton, pos=card.rect().center())
+        self.assertEqual(opened, ["guide_complet"])
+
+    def test_click_flows_from_catalog_signal_to_encyclopedia_routing(self):
+        from types import SimpleNamespace
+
+        view = self.make_view()
+        tabs = QTabWidget()
+        tabs.addTab(QWidget(), GUIDES_TAB)
+        self.addCleanup(tabs.deleteLater)
+        self.addCleanup(tabs.close)
+        opened = []
+        status = []
+        detail = SimpleNamespace(select_guide=lambda guide_id: opened.append(guide_id))
+        owner = SimpleNamespace(
+            tabs=tabs,
+            _pending_guide_id="",
+            _pending_lazy_tab="",
+            _pending_achievement_context_id=None,
+            _guide_runtime_ready=True,
+            _achievement_ready=False,
+            _last_ready_tab_index=-1,
+            tab_labels=lambda: [tabs.tabText(i) for i in range(tabs.count())],
+            ensure_full_guides_view=lambda: detail,
+            ensure_guides_view=lambda: view,
+            sync_tab_accent=lambda _label: None,
+            sync_search_visibility=lambda: None,
+            sync_character_to_children=lambda: None,
+            status_callback=status.append,
+        )
+        owner.open_pending_lazy_tab = lambda: EncyclopediaPage.open_pending_lazy_tab(owner)
+        view.guideRequested.connect(
+            lambda guide_id: EncyclopediaPage.navigate_to_guide(owner, guide_id)
+        )
+
+        # A physical Qt click must traverse the real Encyclopedia routing
+        # functions (not stop at a mocked signal).
+        index = view.home_dofus_model.index(0, 0)
+        view.home_dofus_list.scrollTo(index)
+        self.app.processEvents()
+        rect = view.home_dofus_list.visualRect(index)
+        QTest.mouseClick(view.home_dofus_list.viewport(), Qt.LeftButton, pos=rect.center())
+        self.assertEqual(opened, ["dofus_cawotte"])
+        self.assertEqual(owner._pending_guide_id, "")
+        self.assertEqual(owner._pending_lazy_tab, "")
+        self.assertEqual(owner._last_ready_tab_index, 0)
+        self.assertEqual(status, [f"Encyclopédie : {GUIDES_TAB}"])
 
     def test_missing_guide_never_dispatches_or_opens(self):
         view = self.make_view()

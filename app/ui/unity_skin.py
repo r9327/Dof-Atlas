@@ -193,6 +193,24 @@ def unity_skin_stylesheet(palette: Mapping[str, str] | None = None) -> str:
         "QFrame#GuideFeaturedCard { "
         "background: rgba(27, 39, 70, 0.88); border: 1px solid %s; "
         "border-radius: 9px; }" % colors["BORDER_CARD"],
+        # Featured Guide cards are deliberately accented, but share the same
+        # palette and selector ownership as every other Unity surface.
+        "QFrame#GuideFeaturedCard { background: qlineargradient(x1:0,y1:0,x2:0,y2:1, "
+        "stop:0 %s, stop:1 %s); border: 1px solid %s; border-radius: 8px; }"
+        % (colors["PANEL_ACTIVE"], colors["PANEL"], colors["GREEN_BORDER"]),
+        "QFrame#GuideFeaturedCard:hover { background: %s; border: 1px solid %s; }"
+        % (colors["PANEL_HOVER"], colors["GREEN_HOVER"]),
+        "QFrame#GuideFeaturedCard:focus { border: 2px solid %s; }"
+        % colors["GREEN_HOVER"],
+        "QFrame#GuideFeaturedCard QLabel { border: 0; background: transparent; }",
+        "QFrame#GuideFeaturedCard QLabel#GuideFeaturedTitle { "
+        "color: %s; font-weight: 800; font-size: 12px; }" % colors["TEXT"],
+        "QFrame#GuideFeaturedCard QLabel#FeaturedSubtitle { color: %s; }"
+        % colors["TEXT_MUTED"],
+        "QFrame#GuideFeaturedCard QProgressBar#GuideFeaturedProgress { "
+        "border: 0; background: %s; border-radius: 4px; }" % colors["BORDER_SOFT"],
+        "QFrame#GuideFeaturedCard QProgressBar#GuideFeaturedProgress::chunk { "
+        "background: %s; border-radius: 4px; }" % colors["GREEN"],
         "QFrame#GuideCompactHeader, QFrame#GuideSheetHeader, "
         "QFrame#GuidePreparationPanel { "
         "background: rgba(24, 37, 70, 0.93); border: 1px solid %s; }" % colors["BORDER"],

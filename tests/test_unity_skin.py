@@ -84,6 +84,7 @@ class UnitySkinTests(unittest.TestCase):
             "BORDER_CARD": "#506070",
             "BORDER_STRONG": "#607080",
             "PANEL_ACTIVE": "#708090",
+            "GREEN_BORDER": "#8192A3",
         }
         with patch.dict(UNITY_PALETTE, overrides):
             style = unity_skin_stylesheet()
@@ -94,12 +95,12 @@ class UnitySkinTests(unittest.TestCase):
             ("QHeaderView::section {", ("color: #102030;", "border: 1px solid #405060;")),
             ("QToolTip {", ("color: #102030;", "border: 1px solid #607080;")),
             ("QProgressBar {", ("color: #102030;", "border: 1px solid #405060;")),
-            ("QFrame#GuideFeaturedCard {", ("border: 1px solid #506070;",)),
+            ("QFrame#GuideFeaturedCard {", ("border: 1px solid #8192A3;",)),
             ("QDialog#AtlasDialog, QMenu {", ("color: #102030;", "border: 1px solid #506070;")),
             ("QPlainTextEdit {", ("color: #102030;", "border: 1px solid #506070;")),
         ):
             with self.subTest(selector=selector):
-                section = style.split(selector, 1)[1].split("}", 1)[0]
+                section = style.rsplit(selector, 1)[1].split("}", 1)[0]
                 for expected in expected_rules:
                     self.assertIn(expected, section)
         self.assertIn("border: 2px solid #304050; border-image: none;", style)

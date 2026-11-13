@@ -11,8 +11,7 @@ from PySide6.QtWidgets import (
 )
 
 from app.modules.encyclopedia.services.image_service import ENCYCLOPEDIA_IMAGE_SERVICE
-from app.ui.theme import PALETTE
-from app.ui.unity_skin import apply_unity_panel_shadow, sprite_icon_path, unity_enabled
+from app.ui.unity_skin import apply_unity_panel_shadow, sprite_icon_path
 
 
 FEATURED = (
@@ -31,22 +30,7 @@ class FeaturedGuideCard(QFrame):
         self.setFocusPolicy(Qt.StrongFocus)
         self.setCursor(Qt.PointingHandCursor)
         self.setAccessibleName(title)
-        # A widget-local stylesheet overrides the global Unity QSS. Keep
-        # the Atlas default unchanged, but give Unity its intended alpha.
-        card_background = (
-            "qlineargradient(x1:0,y1:0,x2:0,y2:1, "
-            "stop:0 #354971, stop:1 #1B2947)"
-            if unity_enabled() else PALETTE["PANEL_2"]
-        )
-        self.setStyleSheet(
-            "#GuideFeaturedCard { background: " + card_background
-            + "; border: 1px solid " + PALETTE["GREEN_BORDER"]
-            + "; border-radius: 8px; }"
-            "#GuideFeaturedCard:hover { background: rgba(50, 70, 114, 0.96); "
-            "border: 1px solid #AACB77; }"
-            "#GuideFeaturedCard:focus { border: 2px solid #C6E691; }"
-            "#GuideFeaturedCard QLabel { border: 0; background: transparent; }"
-        )
+        # All card/child colors and states come from the shared Unity QSS.
         apply_unity_panel_shadow(self, blur=16, vertical=3)
         layout = QVBoxLayout(self)
         layout.setContentsMargins(9, 6, 9, 6)
@@ -54,9 +38,7 @@ class FeaturedGuideCard(QFrame):
         self.setMinimumHeight(64)
         self.setMaximumHeight(85)
         self.title = QLabel(title)
-        self.title.setStyleSheet(
-            f"color: {PALETTE['TEXT']}; font-weight: 800; font-size: 12px;"
-        )
+        self.title.setObjectName("GuideFeaturedTitle")
         title_row = QHBoxLayout()
         self.artwork = QLabel()
         self.artwork.setFixedSize(28, 28)
@@ -66,18 +48,12 @@ class FeaturedGuideCard(QFrame):
         layout.addLayout(title_row)
         self.subtitle = QLabel("")
         self.subtitle.setObjectName("FeaturedSubtitle")
-        self.subtitle.setStyleSheet(f"color: {PALETTE['TEXT_MUTED']};")
         self.subtitle.setWordWrap(False)
         layout.addWidget(self.subtitle)
         self.progress = QProgressBar()
+        self.progress.setObjectName("GuideFeaturedProgress")
         self.progress.setMaximumHeight(5)
         self.progress.setTextVisible(False)
-        self.progress.setStyleSheet(
-            f"QProgressBar {{ border: 0; background: {PALETTE['BORDER_SOFT']};"
-            f" border-radius: 4px; }}"
-            f"QProgressBar::chunk {{ background: {PALETTE['GREEN']};"
-            f" border-radius: 4px; }}"
-        )
         layout.addWidget(self.progress)
         self.open_button = QPushButton("Ouvrir →")
         self.open_button.setObjectName("FeaturedGuideOpen")
