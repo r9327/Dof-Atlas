@@ -94,7 +94,17 @@ def unity_ui_icon(name: str, size: int = 24) -> QIcon:
         # Atlas. Fall back to the existing white pictogram instead of altering
         # licensed artwork or drawing a black icon tile.
         if not source.isNull() and not _is_opaque_icon_tile(source):
-            return QIcon(QPixmap.fromImage(source))
+            # Preserve the *real* Unity silhouette and its transparency, but
+            # never reintroduce per-module yellow/green/orange pictograms.
+            # SourceIn paints only existing non-transparent pixels.
+            artwork = QPixmap.fromImage(source)
+            painter = QPainter(artwork)
+            try:
+                painter.setCompositionMode(QPainter.CompositionMode_SourceIn)
+                painter.fillRect(artwork.rect(), QColor(UNITY_PALETTE["TEXT"]))
+            finally:
+                painter.end()
+            return QIcon(artwork)
 
     pix = QPixmap(size, size)
     pix.fill(Qt.transparent)
