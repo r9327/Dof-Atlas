@@ -167,6 +167,52 @@ class DevUiPageTests(unittest.TestCase):
             page.close()
             page.deleteLater()
 
+    def test_game_ui_colors_sizes_icons_and_gradient_preview(self) -> None:
+        from app.pages.dev_ui_page import DevUiPage
+        from app.ui.unity_palette import (
+            UNITY_ICON_NAMES, UNITY_MAIN_ROLES, UNITY_SIZES_PX, UNITY_UI_USAGE,
+        )
+
+        page = DevUiPage(on_back=lambda: None)
+        try:
+            self.assertEqual(page.preview_main_color_roles, UNITY_MAIN_ROLES)
+            self.assertEqual(page.preview_ui_usage, UNITY_UI_USAGE)
+            self.assertTrue(page.preview_palette_details.isHidden())
+            page.preview_palette_toggle.click()
+            self.assertFalse(page.preview_palette_details.isHidden())
+            page.preview_palette_toggle.click()
+            self.assertTrue(page.preview_palette_details.isHidden())
+
+            self.assertEqual(set(page.preview_icon_labels), set(UNITY_ICON_NAMES))
+            self.assertTrue(all(
+                label.pixmap() is not None and not label.pixmap().isNull()
+                for label in page.preview_icon_labels.values()
+            ))
+            self.assertEqual(
+                set(page.preview_metric_buttons),
+                {"control_compact", "control_normal", "control_large"},
+            )
+            for role, button in page.preview_metric_buttons.items():
+                self.assertEqual(button.height(), UNITY_SIZES_PX[role])
+            for role, label in page.preview_metric_icons.items():
+                self.assertEqual(label.pixmap().width(), UNITY_SIZES_PX[role])
+            self.assertGreater(page.preview_metrics.rowCount(), 10)
+
+            # QSS gradients must be drawn, not fed to QColor as invalid hex.
+            gradient = page._color_pixmap(
+                "qlineargradient(x1:0,y1:0,x2:1,y2:0,"
+                "stop:0 #101010, stop:1 #F0F0F0)",
+                32, 18,
+            ).toImage()
+            self.assertTrue(gradient.pixelColor(1, 9).isValid())
+            self.assertNotEqual(
+                gradient.pixelColor(1, 9).red(),
+                gradient.pixelColor(30, 9).red(),
+            )
+        finally:
+            page.close()
+            page.deleteLater()
+
     def test_gallery_index_scrolls_to_real_section(self) -> None:
         from app.pages.dev_ui_page import DevUiPage
 

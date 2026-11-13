@@ -6,10 +6,11 @@ It is constructed lazily only after the user explicitly opens it in Settings.
 """
 from __future__ import annotations
 
+import re
 from collections.abc import Callable
 
 from PySide6.QtCore import QDate, Qt
-from PySide6.QtGui import QColor, QPixmap
+from PySide6.QtGui import QColor, QLinearGradient, QPainter, QPixmap
 from PySide6.QtWidgets import (
     QCheckBox,
     QComboBox,
@@ -49,8 +50,11 @@ from app.ui.components import (
     AtlasPanelToggle,
     atlas_application_icon,
 )
-from app.ui.theme import PALETTE
-from app.ui.unity_skin import sprite_icon_path
+from app.ui.theme import PALETTE, SIZES, SPACING, TYPOGRAPHY
+from app.ui.unity_palette import (
+    UNITY_ICON_NAMES, UNITY_MAIN_ROLES, UNITY_SIZES_PX, UNITY_UI_USAGE,
+)
+from app.ui.unity_skin import sprite_icon_path, unity_ui_icon
 
 
 class DevUiPage(QWidget):
@@ -125,6 +129,7 @@ class DevUiPage(QWidget):
         self._build_advanced_fields(content)
         self._build_states_and_badges(content)
         self._build_surfaces_and_typography(content)
+        self._build_sizes(content)
         self._build_panels(content)
         self._build_startup_preview(content)
         self._build_guide_samples(content)
@@ -542,6 +547,55 @@ class DevUiPage(QWidget):
         self.preview_splitter.setSizes((220, 460))
         section.addWidget(self.preview_splitter)
 
+    def _build_sizes(self, parent: QVBoxLayout) -> None:
+        """Inspect the shared size scale without changing existing UI geometry."""
+        section = self._section(parent, "Tailles · typographie · espacements")
+        section.addWidget(QLabel(
+            "Trois hauteurs de contrôles et quatre tailles d'icônes, "
+            "pilotées par les mêmes métriques que le code commun."
+        ))
+        self.preview_metric_buttons: dict[str, AtlasButton] = {}
+        row = QHBoxLayout()
+        for label, role in (
+            ("Compact", "control_compact"),
+            ("Normal", "control_normal"),
+            ("Large", "control_large"),
+        ):
+            button = AtlasButton(label, variant="secondary")
+            button.setFixedHeight(UNITY_SIZES_PX[role])
+            button.setToolTip(f"{label} : {UNITY_SIZES_PX[role]} px")
+            self.preview_metric_buttons[role] = button
+            row.addWidget(button)
+        row.addStretch(1)
+        section.addLayout(row)
+
+        icons = QHBoxLayout()
+        self.preview_metric_icons: dict[str, QLabel] = {}
+        for role in ("icon_small", "icon_normal", "icon_large", "icon_xlarge"):
+            size = UNITY_SIZES_PX[role]
+            icon = QLabel()
+            icon.setPixmap(unity_ui_icon("guide", size).pixmap(size, size))
+            icon.setToolTip(f"{role} : {size} px")
+            icons.addWidget(icon)
+            text = QLabel(f"{size} px")
+            text.setObjectName("MutedLabel")
+            icons.addWidget(text)
+            self.preview_metric_icons[role] = icon
+        icons.addStretch(1)
+        section.addLayout(icons)
+
+        self.preview_metrics = QTableWidget(
+            len(SIZES) + len(SPACING) + len(TYPOGRAPHY), 2
+        )
+        self.preview_metrics.setHorizontalHeaderLabels(("Token commun", "Valeur"))
+        self.preview_metrics.setMaximumHeight(178)
+        for index, (name, value) in enumerate((
+            *SIZES.items(), *SPACING.items(), *TYPOGRAPHY.items(),
+        )):
+            self.preview_metrics.setItem(index, 0, QTableWidgetItem(name))
+            self.preview_metrics.setItem(index, 1, QTableWidgetItem(value))
+        section.addWidget(self.preview_metrics)
+
     def _build_panels(self, parent: QVBoxLayout) -> None:
         section = self._section(parent, "Panneaux · transparence · réduction")
         control_row = QHBoxLayout()
@@ -629,24 +683,21 @@ class DevUiPage(QWidget):
 
         row = QHBoxLayout()
         self.preview_icon_labels: dict[str, QLabel] = {}
-        for name in (
-            "guide", "quest", "success", "encyclopedia", "character",
-            "dofus", "map", "inventory",
-        ):
+        for name in UNITY_ICON_NAMES:
             cell = QWidget()
             column = QVBoxLayout(cell)
             column.setContentsMargins(2, 2, 2, 2)
             symbol = QLabel()
             symbol.setAlignment(Qt.AlignCenter)
             symbol.setMinimumHeight(30)
-            path = sprite_icon_path(name)
-            if path is None:
-                symbol.setText("—")
-                symbol.setToolTip("Icône Unity locale indisponible")
-            else:
-                from PySide6.QtGui import QIcon
-                symbol.setPixmap(QIcon(str(path)).pixmap(24, 24))
-                symbol.setToolTip(f"Icône Unity : {name}")
+            symbol.setPixmap(unity_ui_icon(name, UNITY_SIZES_PX["icon_large"]).pixmap(
+                UNITY_SIZES_PX["icon_large"], UNITY_SIZES_PX["icon_large"]
+            ))
+            symbol.setToolTip(
+                f"Sprite DOFUS Unity local : {name}"
+                if sprite_icon_path(name) is not None
+                else f"Icône Atlas monochrome de repli : {name}"
+            )
             label = QLabel(name)
             label.setObjectName("MutedLabel")
             label.setAlignment(Qt.AlignCenter)
@@ -714,32 +765,123 @@ class DevUiPage(QWidget):
         self.dialog_button.clicked.connect(self._open_preview_dialog)
         row.addWidget(self.dialog_button)
         for name in ("guide", "quest", "success", "character"):
-            path = sprite_icon_path(name)
-            if path is not None:
-                from PySide6.QtGui import QIcon
-                icon_label = QLabel()
-                icon_label.setPixmap(QIcon(str(path)).pixmap(24, 24))
-                row.addWidget(icon_label)
+            icon_label = QLabel()
+            icon_label.setPixmap(unity_ui_icon(name).pixmap(24, 24))
+            icon_label.setToolTip(name)
+            row.addWidget(icon_label)
         row.addStretch(1)
         section.addLayout(row)
 
         colors = self._section(parent, "Palette Unity · source de vérité")
-        grid = QGridLayout()
-        # Every canonical semantic color, never a manually curated second palette.
+        intro = QLabel(
+            "Couleurs principales et emplacement dans l'UI darkStone : "
+            "les mêmes rôles sont utilisés dans les modules. "
+            "Les boutons prennent les sprites Unity locaux quand ils existent."
+        )
+        intro.setObjectName("MutedLabel")
+        intro.setWordWrap(True)
+        colors.addWidget(intro)
+
+        main_grid = QGridLayout()
+        self.preview_main_color_roles = UNITY_MAIN_ROLES
+        for index, role in enumerate(UNITY_MAIN_ROLES):
+            main_grid.addWidget(
+                self._palette_swatch(role), index // 5, index % 5
+            )
+        colors.addLayout(main_grid)
+
+        placement_title = QLabel("À quel endroit chaque couleur s'applique")
+        placement_title.setObjectName("PanelTitle")
+        colors.addWidget(placement_title)
+        placement = QGridLayout()
+        self.preview_ui_usage = UNITY_UI_USAGE
+        for index, (caption, surface_role, accent_role) in enumerate(UNITY_UI_USAGE):
+            card = QFrame()
+            card.setObjectName("card")
+            card_layout = QHBoxLayout(card)
+            card_layout.setContentsMargins(8, 6, 8, 6)
+            title = QLabel(caption)
+            title.setMinimumWidth(112)
+            card_layout.addWidget(title)
+            for role in (surface_role, accent_role):
+                chip = QLabel()
+                chip.setPixmap(self._color_pixmap(PALETTE[role], 25, 18))
+                chip.setToolTip(f"{role} : {PALETTE[role]}")
+                card_layout.addWidget(chip)
+            placement.addWidget(card, index // 2, index % 2)
+        colors.addLayout(placement)
+
+        self.preview_palette_toggle = AtlasButton(
+            "Afficher la palette technique complète", variant="secondary"
+        )
+        self.preview_palette_toggle.clicked.connect(self._toggle_palette_details)
+        colors.addWidget(self.preview_palette_toggle)
+        self.preview_palette_details = QWidget()
+        detail_layout = QGridLayout(self.preview_palette_details)
+        # Technical roles remain available for audit, but do not drown the UI.
         for index, role in enumerate(PALETTE):
-            value = PALETTE[role]
-            cell = QWidget()
-            cell_layout = QHBoxLayout(cell)
-            cell_layout.setContentsMargins(0, 0, 0, 0)
-            swatch = QPixmap(32, 18)
-            swatch.fill(QColor(value))
-            chip = QLabel()
-            chip.setPixmap(swatch)
-            chip.setAccessibleName(f"Couleur {role}")
-            cell_layout.addWidget(chip)
-            cell_layout.addWidget(QLabel(f"{role}  {value}"), 1)
-            grid.addWidget(cell, index // 3, index % 3)
-        colors.addLayout(grid)
+            detail_layout.addWidget(
+                self._palette_swatch(role), index // 3, index % 3
+            )
+        self.preview_palette_details.hide()
+        colors.addWidget(self.preview_palette_details)
+
+    @staticmethod
+    def _color_pixmap(value: str, width: int = 32, height: int = 18) -> QPixmap:
+        """Render both flat colors and actual QSS gradients in the gallery."""
+        pix = QPixmap(width, height)
+        color = QColor(value)
+        if color.isValid():
+            pix.fill(color)
+            return pix
+        pix.fill(Qt.transparent)
+        # The canonical gradient tokens contain explicit QSS stop positions.
+        stops = re.findall(
+            r"stop:\\s*([01](?:\\.\\d+)?)\\s+(#[0-9a-fA-F]{6})",
+            value,
+        )
+        if stops:
+            coords = re.search(
+                r"x1:([01]),\\s*y1:([01]),\\s*x2:([01]),\\s*y2:([01])",
+                value,
+            )
+            x1, y1, x2, y2 = (
+                [int(part) for part in coords.groups()] if coords else [0, 0, 1, 0]
+            )
+            gradient = QLinearGradient(
+                x1 * width, y1 * height, x2 * width, y2 * height
+            )
+            for offset, hex_color in stops:
+                gradient.setColorAt(float(offset), QColor(hex_color))
+            painter = QPainter(pix)
+            painter.fillRect(pix.rect(), gradient)
+            painter.end()
+        return pix
+
+    def _palette_swatch(self, role: str) -> QWidget:
+        value = PALETTE[role]
+        cell = QWidget()
+        layout = QHBoxLayout(cell)
+        layout.setContentsMargins(0, 0, 0, 0)
+        chip = QLabel()
+        chip.setPixmap(self._color_pixmap(value))
+        chip.setAccessibleName(f"Couleur {role}")
+        layout.addWidget(chip)
+        label = QLabel(role)
+        label.setObjectName("MutedLabel")
+        label.setToolTip(f"{role} : {value}")
+        layout.addWidget(label, 1)
+        return cell
+
+    def _toggle_palette_details(self) -> None:
+        visible = self.preview_palette_details.isHidden()
+        self.preview_palette_details.setVisible(visible)
+        self.preview_palette_toggle.setText(
+            "Masquer les nuances techniques" if visible
+            else "Afficher la palette technique complète"
+        )
+        self._report("Palette technique affichée" if visible
+                     else "Palette technique masquée")
 
     def _open_preview_dialog(self) -> None:
         dialog = AtlasDialog(self)

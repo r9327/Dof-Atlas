@@ -341,3 +341,23 @@ Ne cocher aucun ID de #364 sur cette seule base. Ne pas fusionner tant que les o
 - **Interactions vérifiables** : choix d'onglet, menus, clics, boutons d'état, champs, arborescence, tableau, scroll/splitter, progression/busy, navigation vers la section, popups et retours. Aucun runtime DOFUS, téléchargement ou création de données métier. Tests ajoutés à `tests/test_dev_ui_page.py` : couverture de l'inventaire, boutons/clics, propriétés de statut, palette exhaustive, sections et scroll/navigation, absence de QSS local.
 - **Contrôle visuel demandé** : sur une vraie build Windows, ouvrir Paramètres → Dev · Bibliothèque UI Unity ; contrôler le bandeau/sommaire, les 15 sections, le scroll, la largeur minimale et la popup, puis prendre une capture Qt. Une image de simulation extérieure à Qt ne constitue PAS cette preuve.
 - **Consigne de livraison** : ne pas déclencher de CI manuelle avant la fin de la globalisation entière ; tests et recettes exact-SHA finaux seulement. La CI automatique éventuellement déclenchée au push reste distincte d'une certification.
+
+
+### UI darkStone — couleurs par usage, tailles et icônes communes (13/11/2026)
+
+**Objectif de design** : s'inspirer des positions et états des composants du client DOFUS Unity, dans la variante **darkStone** dont les sprites sont déjà fournis pour usage local. Ce n'est pas une nouvelle palette personnelle, ni la preuve d'une copie pixel-perfect de la version live (l'interface du jeu et ses thèmes évoluent). Éviter d'importer de nouveaux logos de jeu.
+
+**Mapping unique composant → couleurs → états** :
+- Fenêtres/cartes : `BG/PANEL/BORDER`, référence `window_border_top.png` / `Assets_UI_Themes_darkStone_common_bg_small_border_light-png.png`.
+- En-têtes/navigation : `NAV_SURFACE/TEXT_SOFT`, sélection d'onglet `PANEL_ACTIVE/GREEN_BORDER`, sprite d'onglet sélectionné si localement disponible.
+- Bouton d'action : `GREEN/GREEN_BORDER`, sprites `btn_green_{normal,over,pressed,disabled}.png` ; bouton secondaire : `PANEL_2/BORDER_CARD`, sprite `btn_yellow2_{normal,over,pressed,disabled}.png` quand disponible.
+- Champs/listes : `FIELD_SURFACE/LIST_SURFACE` et bordures communes ; survol : `PANEL_HOVER` ; tooltips : `TOOLTIP_SURFACE`.
+- Les 18 noms legacy spécifiques aux Guides restent acceptés pour compatibilité, mais leur rendu par défaut est maintenant dérivé des tokens Unity génériques via `resolve_unity_colors`. Les overrides explicites Guide restent possibles. Un changement des tokens globaux se propage dans QSS et `unity_skin_stylesheet()`.
+- La galerie Dev met **10 couleurs principales** en avant avec une grille de leurs emplacements ; les autres rôles techniques sont masqués par défaut mais consultables. Les gradients QSS sont rendus avec leurs vrais stops, pas un `QColor` invalide.
+
+**Tailles et icônes** :
+- Une seule échelle `UNITY_SIZES_PX` : boutons 24/32/40 px et icônes 16/20/24/32 px. Les dimensions existantes restent inchangées, les nouvelles variantes sont montrées dans `Dev UI`. `AtlasButton` partage la hauteur compacte avec `theme.SIZES`.
+- L'appel unique `unity_ui_icon(name, size)` utilise en priorité l'icône DOFUS Unity locale autorisée, et sinon un fallback vectoriel monochrome Qt. Plus de `—` dans la galerie Dev ; aucun nouveau sprite de jeu dans une release publique.
+- Tests ajoutés `tests/test_unity_palette.py`, `tests/test_theme.py`, `tests/test_unity_skin.py`, `tests/test_dev_ui_page.py` : propagation de couleurs, maintien des overrides, SVG-like raster Qt de secours, palette détaillée, taille des contrôles, rendu d'un dégradé et interactions de la galerie.
+
+**Statut** : unification ciblée implémentée, mais le résultat graphique sur le vrai poste Windows et la conformité avec les derniers écrans du client DOFUS restent à vérifier visuellement. Une capture ou un mockup ne vaut pas une certification. Pas de CI manuelle avant la fin de la globalisation entière ; les actions déclenchées automatiquement par GitHub lors du push ne constituent pas une demande manuelle de validation.
