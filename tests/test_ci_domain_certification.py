@@ -48,7 +48,9 @@ class ModularDomainRoutingTests(unittest.TestCase):
         plan = self.route([source, test])
         self.assertEqual(plan["status"], "READY_TO_EXECUTE")
         self.assertEqual(set(plan["domains"]), set(owners))
-        unreviewed = "tests/test_organizer_ui_unreviewed.py"
+        # The generic "ui_" fallback is intentional; this neighbor has
+        # no reviewed Organizer/identity owner and must remain blocked.
+        unreviewed = "tests/test_organizer_unreviewed.py"
         self.assertEqual(owners_for(unreviewed), frozenset())
         self.assertEqual(self.route([unreviewed])["status"], "BLOCKED")
 
