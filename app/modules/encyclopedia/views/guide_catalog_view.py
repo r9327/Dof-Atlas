@@ -5,7 +5,7 @@ from PySide6.QtGui import QIcon
 from app.ui.unity_skin import apply_unity_panel_shadow, sprite_icon_path
 from PySide6.QtWidgets import (
     QAbstractItemView, QFrame, QLabel, QListView, QListWidget, QListWidgetItem,
-    QScrollArea, QTreeWidget, QTreeWidgetItem, QVBoxLayout, QWidget,
+    QScrollArea, QSpacerItem, QSizePolicy, QTreeWidget, QTreeWidgetItem, QVBoxLayout, QWidget,
 )
 from app.modules.encyclopedia.views.guide_featured_home import (
     FEATURED, FeaturedGuideCard, FeaturedPair,
@@ -210,6 +210,12 @@ class GuideCatalogView(QWidget):
         self.unavailable_list.setMaximumHeight(300)
         self.unavailable_list.setVisible(False)
         result_layout.addWidget(self.unavailable_list)
+        # When the category contains references but no playable cards, absorb
+        # remaining height below the list, not between its title and rows.
+        self.results_bottom_spacer = QSpacerItem(
+            0, 0, QSizePolicy.Minimum, QSizePolicy.Minimum
+        )
+        result_layout.addItem(self.results_bottom_spacer)
 
         self.home_columns = GuideHomeColumns(
             self.library_left, self.library_right, self
@@ -519,6 +525,12 @@ class GuideCatalogView(QWidget):
         self.unavailable_title.setVisible(has_references)
         self.unavailable_list.setVisible(has_references)
         self.unavailable_list.setMaximumHeight(170 if shown_guides else 300)
+        self.results_bottom_spacer.changeSize(
+            0, 0, QSizePolicy.Minimum,
+            QSizePolicy.Expanding if has_references and not shown_guides
+            else QSizePolicy.Minimum,
+        )
+        self.library_right.layout().invalidate()
 
         self.home_empty.setText(
             "Aucun Dofus disponible."
