@@ -95,7 +95,9 @@ class ModularDomainRoutingTests(unittest.TestCase):
         self.assertEqual(owners_for(source), domains)
         self.assertEqual(owners_for(test), domains)
         self.assertEqual(self.route([source, test])["status"], "READY_TO_EXECUTE")
-        unknown = "tests/test_shared_manual_guide_view_v2.py"
+        # The broad historical 'guide' test family is already classified;
+        # this adjacent unreviewed manual helper has no approved owners.
+        unknown = "tests/test_shared_manual_roadbook_unreviewed.py"
         self.assertEqual(owners_for(unknown), frozenset())
         self.assertEqual(self.route([unknown])["status"], "BLOCKED")
 
