@@ -20,6 +20,8 @@ BUTTON_OBJECT_NAMES = {
     "primary": "PrimaryActionButton",
     "secondary": "SecondaryButton",
     "danger": "DangerButton",
+    "navigation": "TopNavButton",
+    "navigation_active": "TopNavButtonActive",
 }
 
 _APPLICATION_ICON: QIcon | None = None

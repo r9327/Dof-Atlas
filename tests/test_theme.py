@@ -39,6 +39,50 @@ class SharedThemeTests(unittest.TestCase):
         )
         self.assertIn("#GuideUltimeGeneratedView QCheckBox {", style)
 
+    def test_shared_buttons_use_one_typography_spacing_and_radius_contract(self) -> None:
+        from app.ui.components import BUTTON_OBJECT_NAMES
+
+        self.assertEqual(BUTTON_OBJECT_NAMES["navigation"], "TopNavButton")
+        self.assertEqual(BUTTON_OBJECT_NAMES["navigation_active"], "TopNavButtonActive")
+        self.assertEqual(BUTTON_OBJECT_NAMES["primary"], "PrimaryActionButton")
+        self.assertEqual(BUTTON_OBJECT_NAMES["secondary"], "SecondaryButton")
+
+        style = theme.atlas_stylesheet({
+            "FONT_SMALL": "15px",
+            "FONT_BODY": "16px",
+            "RADIUS_SM": "9px",
+            "SPACE_LG": "17px",
+            "SPACE_MD": "13px",
+        })
+        common = style.split(
+            "#primaryButton, #ActiveButton, #PrimaryActionButton,\\n"
+            "#secondaryButton, #SecondaryButton {", 1,
+        )[1].split("}", 1)[0]
+        for rule in (
+            "font-size: 15px;",
+            "padding-left: 17px;",
+            "padding-right: 13px;",
+        ):
+            self.assertIn(rule, common)
+
+        primary = style.split(
+            "#primaryButton, #ActiveButton, #PrimaryActionButton {", 1
+        )[1].split("}", 1)[0]
+        secondary = style.split(
+            "#secondaryButton, #SecondaryButton {", 1
+        )[1].split("}", 1)[0]
+        self.assertIn("background: ", primary)
+        self.assertIn("background: ", secondary)
+        self.assertNotIn("padding-left", primary)
+        self.assertNotIn("padding-left", secondary)
+        self.assertIn("font-size: 16px;", style)
+        self.assertIn("border-radius: 9px;", style)
+
+        normal = theme.atlas_stylesheet()
+        self.assertIn("font-size: 11px;", normal)
+        self.assertIn("font-size: 12px;", normal)
+        self.assertIn("border-radius: 6px;", normal)
+
     def test_guide_buttons_remain_themed_after_dropdown_unification(self) -> None:
         style = theme.atlas_stylesheet({"GREEN_BORDER": "#135790"})
         button_hover = style.split(

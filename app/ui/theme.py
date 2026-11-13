@@ -185,7 +185,7 @@ QToolTip {
 #burgerButton, #MenuButton {
     background: @PANEL_2;
     border: 1px solid @BORDER;
-    border-radius: 6px;
+    border-radius: @RADIUS_SM;
     color: @TEXT;
     font-size: 17px;
     font-weight: 700;
@@ -206,7 +206,7 @@ QToolTip {
 #TopmostButton, #TopmostButtonActive {
     background: transparent;
     border: 1px solid transparent;
-    border-radius: 6px;
+    border-radius: @RADIUS_SM;
     color: @TEXT;
     font-size: 13px;
     font-weight: 600;
@@ -341,7 +341,7 @@ QTabWidget#EncyclopediaTabs QTabBar::tab {
     border-top-left-radius: 6px;
     border-top-right-radius: 6px;
     color: @TEXT_MUTED;
-    font-size: 11px;
+    font-size: @FONT_SMALL;
     font-weight: 700;
     min-height: 28px;
     padding: 0px 7px;
@@ -386,7 +386,7 @@ QTabWidget#EncyclopediaTabs QTabBar::tab:hover {
 #AchievementsView #GuideCenterPanel {
     background: @PANEL;
     border: 1px solid @BORDER;
-    border-radius: 8px;
+    border-radius: @RADIUS_MD;
 }
 
 QTreeWidget#AchievementCategoryTree,
@@ -427,7 +427,7 @@ QSplitter#AchievementCatalogSplitter::handle {
 #AchievementSummaryWidget, #AchievementRewardWidget, #GuideCompletedSeriesLabel {
     background: @PANEL;
     border: 1px solid @BORDER;
-    border-radius: 8px;
+    border-radius: @RADIUS_MD;
 }
 
 #CategoryProgressCard, #RewardCard, #ObjectiveRow, #GuideStepWidget,
@@ -462,7 +462,7 @@ QSplitter#AchievementCatalogSplitter::handle {
 #GuideHeaderImage, #GuideRewardImage {
     background: @PANEL_2;
     border: 1px solid @BORDER_SOFT;
-    border-radius: 6px;
+    border-radius: @RADIUS_SM;
     padding: 0px;
 }
 
@@ -478,7 +478,7 @@ QSplitter#AchievementCatalogSplitter::handle {
     background: @PANEL_2;
     border-color: @BORDER_SOFT;
     color: @TEXT_MUTED;
-    font-size: 11px;
+    font-size: @FONT_SMALL;
     padding: 7px 9px;
 }
 
@@ -522,13 +522,13 @@ QSplitter#AchievementCatalogSplitter::handle {
 
 #GuideManualStepCheck {
     color: @TEXT;
-    font-size: 11px;
+    font-size: @FONT_SMALL;
 }
 
 #EncyclopediaResultList, #GuideResultList {
     background: @PANEL_2;
     border: 1px solid @BORDER;
-    border-radius: 6px;
+    border-radius: @RADIUS_SM;
     outline: 0;
 }
 
@@ -577,7 +577,7 @@ QSplitter#AchievementCatalogSplitter::handle {
 #AchievementEntityRow {
     background: transparent;
     border: 1px solid @BORDER_SOFT;
-    border-radius: 6px;
+    border-radius: @RADIUS_SM;
 }
 
 #AchievementEntityRow:hover,
@@ -593,7 +593,7 @@ QSplitter#AchievementCatalogSplitter::handle {
 #EncyclopediaProgressBar {
     background: @SIDEBAR;
     border: 1px solid @BORDER_SOFT;
-    border-radius: 4px;
+    border-radius: @RADIUS_XS;
     height: 7px;
 }
 
@@ -610,7 +610,7 @@ QSplitter#AchievementCatalogSplitter::handle {
 #card, #OrganizerPanel, #Panel, #CraftPanel, #QuestPanel {
     background: @PANEL;
     border: 1px solid @BORDER;
-    border-radius: 8px;
+    border-radius: @RADIUS_MD;
 }
 
 #DialogToolbar {
@@ -654,13 +654,13 @@ QSplitter#AchievementCatalogSplitter::handle {
 
 #CompactLabel {
     color: @TEXT;
-    font-size: 12px;
+    font-size: @FONT_BODY;
     padding: 0px;
 }
 
 #WarningLabel {
     color: @YELLOW;
-    font-size: 11px;
+    font-size: @FONT_SMALL;
     padding: 2px 0px;
 }
 
@@ -761,15 +761,21 @@ QPushButton:disabled, QToolButton:disabled {
     color: @TEXT_DISABLED;
 }
 
+/* Primary and secondary are the same control family. Variant-specific
+   visuals live below; shared size, text layout and spacing live here. */
+#primaryButton, #ActiveButton, #PrimaryActionButton,
+#secondaryButton, #SecondaryButton {
+    font-size: @FONT_SMALL;
+    text-align: left;
+    padding-left: @SPACE_LG;
+    padding-right: @SPACE_MD;
+}
+
 #primaryButton, #ActiveButton, #PrimaryActionButton {
     background: @ACTIVE_GRADIENT;
     border-color: @GREEN_BORDER;
     color: @TEXT;
-    font-size: 11px;
     font-weight: 800;
-    text-align: left;
-    padding-left: 10px;
-    padding-right: 8px;
 }
 
 #primaryButton:hover, #ActiveButton:hover, #PrimaryActionButton:hover {
@@ -782,11 +788,7 @@ QPushButton:disabled, QToolButton:disabled {
     background: @PANEL_2;
     border-color: @BORDER;
     color: @TEXT_SOFT;
-    font-size: 11px;
     font-weight: 600;
-    text-align: left;
-    padding-left: 10px;
-    padding-right: 8px;
 }
 
 #secondaryButton:hover, #SecondaryButton:hover {
@@ -799,7 +801,7 @@ QPushButton:disabled, QToolButton:disabled {
     background: @PANEL_2;
     border-color: @BORDER;
     color: #D7E0EE;
-    font-size: 11px;
+    font-size: @FONT_SMALL;
     font-weight: 600;
     text-align: left;
     padding-left: 10px;
@@ -828,7 +830,7 @@ QPushButton:disabled, QToolButton:disabled {
     background: @RED;
     border-color: #F0444B;
     color: @TEXT;
-    font-size: 12px;
+    font-size: @FONT_BODY;
     font-weight: 700;
     text-align: center;
     padding-left: 8px;
@@ -896,7 +898,7 @@ QPushButton:disabled, QToolButton:disabled {
 #iconButton, #ClientMenuButton {
     background: @PANEL_2;
     border: 1px solid @BORDER;
-    border-radius: 6px;
+    border-radius: @RADIUS_SM;
     color: @TEXT;
     font-size: 14px;
     font-weight: 800;
@@ -937,7 +939,7 @@ QPushButton:disabled, QToolButton:disabled {
 #GhostTile {
     background: @PANEL_2;
     border: 1px dashed @BORDER;
-    border-radius: 6px;
+    border-radius: @RADIUS_SM;
 }
 
 #SessionsArea {
@@ -1055,7 +1057,7 @@ QPushButton:disabled, QToolButton:disabled {
 #ZaapSuggestionPopup {
     background: @PANEL_2;
     border: 1px solid @GREEN;
-    border-radius: 6px;
+    border-radius: @RADIUS_SM;
     padding: 4px;
 }
 
@@ -1063,7 +1065,7 @@ QPushButton:disabled, QToolButton:disabled {
     color: #DCE5F2;
     padding: 5px 8px;
     min-height: 25px;
-    border-radius: 4px;
+    border-radius: @RADIUS_XS;
     border-bottom: 1px solid @BORDER_SOFT;
 }
 
@@ -1091,7 +1093,7 @@ QListWidget::item:selected {
     border: none;
     border-radius: 0px;
     padding: 0px;
-    font-size: 12px;
+    font-size: @FONT_BODY;
     font-weight: 800;
 }
 
@@ -1108,7 +1110,7 @@ QListWidget::item:selected {
     border: none;
     border-radius: 0px;
     padding: 0px;
-    font-size: 11px;
+    font-size: @FONT_SMALL;
     font-weight: 700;
     text-align: left;
 }
@@ -1135,7 +1137,7 @@ QListWidget::item:selected {
 
 #SelectionRow {
     background: @PANEL_2;
-    border-radius: 6px;
+    border-radius: @RADIUS_SM;
 }
 
 #WorldDetailValue {
@@ -1143,7 +1145,7 @@ QListWidget::item:selected {
     border: 1px solid @BORDER_SOFT;
     border-radius: 5px;
     color: @TEXT;
-    font-size: 11px;
+    font-size: @FONT_SMALL;
     padding: 4px 6px;
     min-height: 18px;
 }
@@ -1151,7 +1153,7 @@ QListWidget::item:selected {
 #MapToolbar, #MapCanvas, #WorldDetailPanel {
     background: @PANEL;
     border: 1px solid @BORDER;
-    border-radius: 8px;
+    border-radius: @RADIUS_MD;
 }
 
 #MapToolbar {
@@ -1170,22 +1172,22 @@ QListWidget::item:selected {
 
 #WorldScanProgress {
     color: #DCE5F2;
-    font-size: 12px;
+    font-size: @FONT_BODY;
     font-weight: 750;
 }
 
 #WorldCacheState {
     color: @TEXT_MUTED;
-    font-size: 11px;
+    font-size: @FONT_SMALL;
     font-weight: 650;
 }
 
 #BreadcrumbLabel {
     background: @PANEL_2;
     border: 1px solid @BORDER_SOFT;
-    border-radius: 6px;
+    border-radius: @RADIUS_SM;
     color: @TEXT_MUTED;
-    font-size: 11px;
+    font-size: @FONT_SMALL;
     font-weight: 700;
     padding: 0px 10px;
 }
@@ -1210,7 +1212,7 @@ QListWidget::item:selected {
 #WorldMenu {
     background: #0A121D;
     border: 1px solid @BORDER;
-    border-radius: 8px;
+    border-radius: @RADIUS_MD;
 }
 
 #WorldMenuScroll, #WorldMenuContents {
@@ -1221,14 +1223,14 @@ QListWidget::item:selected {
 #WorldMenuScroll QScrollBar:vertical {
     background: #08111D;
     border: none;
-    border-radius: 4px;
+    border-radius: @RADIUS_XS;
     margin: 4px 0px 4px 0px;
     width: 8px;
 }
 
 #WorldMenuScroll QScrollBar::handle:vertical {
     background: #2A3A51;
-    border-radius: 4px;
+    border-radius: @RADIUS_XS;
     min-height: 36px;
 }
 
@@ -1257,9 +1259,9 @@ QListWidget::item:selected {
 #WorldMenuItem, #WorldMenuItemActive {
     background: transparent;
     border: 1px solid transparent;
-    border-radius: 6px;
+    border-radius: @RADIUS_SM;
     color: #DCE5F2;
-    font-size: 12px;
+    font-size: @FONT_BODY;
     font-weight: 650;
     padding: 0px 10px;
     text-align: left;
@@ -1286,7 +1288,7 @@ QListWidget::item:selected {
 
 #MapViewTree::item {
     min-height: 28px;
-    border-radius: 6px;
+    border-radius: @RADIUS_SM;
     padding: 0px 7px;
     color: #DCE5F2;
 }
@@ -1304,9 +1306,9 @@ QListWidget::item:selected {
 #MapDetailValue {
     background: #09121F;
     border: 1px solid @BORDER_SOFT;
-    border-radius: 6px;
+    border-radius: @RADIUS_SM;
     color: @TEXT;
-    font-size: 11px;
+    font-size: @FONT_SMALL;
     padding: 5px 7px;
     min-height: 20px;
 }
@@ -1328,9 +1330,9 @@ QListWidget::item:selected {
 #LevelBadge {
     background: #09121F;
     border: 1px solid @BORDER;
-    border-radius: 4px;
+    border-radius: @RADIUS_XS;
     color: @GREEN;
-    font-size: 11px;
+    font-size: @FONT_SMALL;
     font-weight: 800;
     padding: 2px 6px;
 }
@@ -1344,13 +1346,13 @@ QScrollBar:vertical {
     background: @PANEL;
     width: 8px;
     margin: 1px;
-    border-radius: 4px;
+    border-radius: @RADIUS_XS;
 }
 
 QScrollBar::handle:vertical {
     background: #344863;
     min-height: 26px;
-    border-radius: 4px;
+    border-radius: @RADIUS_XS;
 }
 
 QScrollBar::handle:vertical:hover {
@@ -1413,7 +1415,7 @@ QCheckBox::indicator:checked {
     border-bottom: 2px solid transparent;
     border-radius: @RADIUS_XS;
     color: @TEXT;
-    font-size: 12px;
+    font-size: @FONT_BODY;
     font-weight: 700;
     padding: 0px 8px;
     min-height: 40px;
@@ -1455,7 +1457,7 @@ QCheckBox::indicator:checked {
     min-height: 38px;
     max-height: 38px;
     padding: 0px 9px;
-    font-size: 12px;
+    font-size: @FONT_BODY;
     font-weight: 700;
 }
 
@@ -1575,13 +1577,13 @@ QMenu::separator {
 
 #HomeNetworkMiniTitle {
     color: @TEXT_SOFT;
-    font-size: 12px;
+    font-size: @FONT_BODY;
     font-weight: 700;
 }
 
 #HomeNetworkMiniStatus {
     color: @TEXT_MUTED;
-    font-size: 11px;
+    font-size: @FONT_SMALL;
     font-weight: 500;
 }
 
@@ -1716,27 +1718,27 @@ QMenu::separator {
 
 #HomeTrackingLabel {
     color: @TEXT_SOFT;
-    font-size: 11px;
+    font-size: @FONT_SMALL;
     font-weight: 600;
 }
 
 #HomeTrackingValue {
     color: @TEXT_SOFT;
-    font-size: 11px;
+    font-size: @FONT_SMALL;
     font-weight: 700;
 }
 
 #HomeTrackingBar {
     background: @PANEL_HOVER;
     border: none;
-    border-radius: 4px;
+    border-radius: @RADIUS_XS;
     min-height: 8px;
     max-height: 8px;
 }
 
 #HomeTrackingBar::chunk {
     background: @GREEN_DARK;
-    border-radius: 4px;
+    border-radius: @RADIUS_XS;
 }
 
 #HomeAlmanaxPlaceholderIcon {
@@ -1751,7 +1753,7 @@ QMenu::separator {
     border: 1px solid @BADGE_BORDER;
     border-radius: 5px;
     color: @BADGE_TEXT;
-    font-size: 11px;
+    font-size: @FONT_SMALL;
     font-weight: 900;
     padding: 4px 10px;
 }
@@ -1800,7 +1802,7 @@ QMenu::separator {
 
                 QWidget#AchievementsView QLabel#GuideSectionTitle {
                     color: @YELLOW;
-                    font-size: 12px;
+                    font-size: @FONT_BODY;
                     font-weight: 800;
                     padding: 1px 2px 6px 2px;
                 }
@@ -1888,19 +1890,19 @@ QMenu::separator {
 
                 QWidget#AchievementsView QLabel#AchievementDescription {
                     color: @TEXT_SOFT;
-                    font-size: 12px;
+                    font-size: @FONT_BODY;
                     padding: 0px 0px 2px 0px;
                 }
 
                 QWidget#AchievementsView QLabel#AchievementProgressText {
                     color: @TEXT_MUTED;
-                    font-size: 11px;
+                    font-size: @FONT_SMALL;
                     font-weight: 700;
                 }
 
                 QWidget#AchievementsView QLabel#AchievementSectionTitle {
                     color: @YELLOW;
-                    font-size: 11px;
+                    font-size: @FONT_SMALL;
                     font-weight: 800;
                     padding: 5px 1px 1px 1px;
                 }
@@ -1951,7 +1953,7 @@ QMenu::separator {
                 QWidget#AchievementsView QProgressBar#EncyclopediaProgressBar {
                     background: @BG;
                     border: 1px solid @BORDER_SOFT;
-                    border-radius: 4px;
+                    border-radius: @RADIUS_XS;
                     min-height: 8px;
                     max-height: 8px;
                 }
@@ -2011,7 +2013,7 @@ QMenu::separator {
             QFrame#GuideSeriesSummaryRow {
                 background: #141821;
                 border: 1px solid #242b37;
-                border-radius: 6px;
+                border-radius: @RADIUS_SM;
             }
 
             QFrame#GuideAdventureCard:hover,
@@ -2058,7 +2060,7 @@ QMenu::separator {
                 border: 1px solid #303847;
                 border-radius: 5px;
                 color: #8c95a3;
-                font-size: 12px;
+                font-size: @FONT_BODY;
                 font-weight: 800;
                 padding: 0px;
             }
@@ -2083,7 +2085,7 @@ QMenu::separator {
 
             QLabel#GuidesHomeCategoryTitle {
                 color: #e7bf63;
-                font-size: 12px;
+                font-size: @FONT_BODY;
                 letter-spacing: 0px;
             }
 
@@ -2093,7 +2095,7 @@ QMenu::separator {
 
             QLabel#GuideHeaderMeta {
                 color: #c9d0dc;
-                font-size: 12px;
+                font-size: @FONT_BODY;
             }
 
             QLabel#GuideHeaderProgress {
@@ -2102,13 +2104,13 @@ QMenu::separator {
                 font-weight: 800;
                 padding: 4px 8px;
                 border: 1px solid #5d512d;
-                border-radius: 6px;
+                border-radius: @RADIUS_SM;
                 background: #1c1a12;
             }
 
             QLabel#GuideInfoSectionTitle {
                 color: #e8edf7;
-                font-size: 11px;
+                font-size: @FONT_SMALL;
                 font-weight: 800;
             }
 
@@ -2123,7 +2125,7 @@ QMenu::separator {
             }
 
             QLabel#GuideDofusCardTitle {
-                font-size: 12px;
+                font-size: @FONT_BODY;
             }
 
             QLabel#GuideTreeChildText,
@@ -2132,7 +2134,7 @@ QMenu::separator {
             QLabel#QuestSolutionDescription,
             QLabel#GuideActivityText {
                 color: #d9dfeb;
-                font-size: 12px;
+                font-size: @FONT_BODY;
             }
 
             QLabel#GuideHomeCardMeta,
@@ -2152,18 +2154,18 @@ QMenu::separator {
             QLabel#MutedLabel,
             QLabel#GuidesHomeEmptyText {
                 color: #9ca5b4;
-                font-size: 11px;
+                font-size: @FONT_SMALL;
             }
 
             QLabel#GuideBreadcrumbCurrentStrong {
                 color: #dfe6f3;
-                font-size: 11px;
+                font-size: @FONT_SMALL;
                 font-weight: 700;
             }
 
             QLabel#GuideQuestNumber {
                 color: #a78bda;
-                font-size: 12px;
+                font-size: @FONT_BODY;
                 font-weight: 800;
             }
 
@@ -2195,7 +2197,7 @@ QMenu::separator {
             QLabel#GuideDofusImage {
                 background: #0b0f17;
                 border: 1px solid #2b3341;
-                border-radius: 6px;
+                border-radius: @RADIUS_SM;
                 color: #e7bf63;
             }
 
@@ -2284,7 +2286,7 @@ QMenu::separator {
                 border: 1px solid #303847;
                 border-radius: 5px;
                 color: #8c95a3;
-                font-size: 12px;
+                font-size: @FONT_BODY;
                 font-weight: 800;
                 padding: 0px 6px;
             }
@@ -2316,9 +2318,9 @@ QMenu::separator {
             QPushButton#GuideItemNameButton {
                 background: transparent;
                 border: 1px solid transparent;
-                border-radius: 4px;
+                border-radius: @RADIUS_XS;
                 color: #aeb7c6;
-                font-size: 11px;
+                font-size: @FONT_SMALL;
                 font-weight: 700;
                 min-height: 22px;
                 max-height: 22px;
@@ -2341,7 +2343,7 @@ QMenu::separator {
 
             QLabel#GuideItemQuantity {
                 color: #aeb7c6;
-                font-size: 11px;
+                font-size: @FONT_SMALL;
                 font-weight: 700;
             }
 
@@ -2749,7 +2751,7 @@ QToolButton#GuidePreparationReady {
     background: transparent;
     color: @TEXT_MUTED;
     border: 1px solid @BORDER_SOFT;
-    border-radius: 10px;
+    border-radius: @RADIUS_LG;
     min-width: 20px;
     max-width: 20px;
     min-height: 20px;
@@ -2953,7 +2955,7 @@ QToolButton#GuideParticipantPortrait:checked {
     border: none;
     padding: 2px;
     spacing: 9px;
-    font-size: 12px;
+    font-size: @FONT_BODY;
     font-weight: 700;
 }
 

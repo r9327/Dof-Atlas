@@ -39,6 +39,10 @@ class UnitySkinTests(unittest.TestCase):
             self.assertEqual(button.objectName(), "TopNavButtonActive")
             button.set_style_name("TopNavButton")
             self.assertEqual(button.objectName(), "TopNavButton")
+            button.set_variant("navigation_active")
+            self.assertEqual(button.objectName(), "TopNavButtonActive")
+            button.set_variant("navigation")
+            self.assertEqual(button.objectName(), "TopNavButton")
             with self.assertRaises(ValueError):
                 button.set_variant("not-a-variant")
             self.assertEqual(button.objectName(), "TopNavButton")

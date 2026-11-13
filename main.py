@@ -596,8 +596,7 @@ class HoverMenuButton(AtlasButton):
     _CLOSE_GRACE_TICKS = 6
 
     def __init__(self, text: str, parent: QWidget | None = None) -> None:
-        super().__init__(text, parent)
-        self.setObjectName("TopNavButton")
+        super().__init__(text, parent, variant="navigation")
         # Tab must reach the same menu family as mouse hover. Mouse-only
         # NoFocus made its actions unreachable without a pointer.
         self.setFocusPolicy(Qt.TabFocus)
@@ -1024,8 +1023,7 @@ class AtlasWindow(QMainWindow):
         layout.addWidget(self.brand_button)
         layout.addSpacing(8)
 
-        organizer = AtlasButton("Organizer")
-        organizer.setObjectName("TopNavButton")
+        organizer = AtlasButton("Organizer", variant="navigation")
         inventory_sprite = sprite_icon_path("inventory")
         if inventory_sprite:
             organizer.setIcon(QIcon(str(inventory_sprite)))
@@ -1094,8 +1092,7 @@ class AtlasWindow(QMainWindow):
         layout.addWidget(stuffs)
         self.nav_buttons.append((stuffs, "Stuffs"))
 
-        almanax = AtlasButton("Almanax")
-        almanax.setObjectName("TopNavButton")
+        almanax = AtlasButton("Almanax", variant="navigation")
         almanax.clicked.connect(lambda: self.show_page("Almanax"))
         layout.addWidget(almanax)
         self.nav_buttons.append((almanax, "Almanax"))
@@ -1721,8 +1718,7 @@ class AtlasWindow(QMainWindow):
             self.clear_module_subnav()
             buttons: list[AtlasButton] = []
             for label in labels:
-                button = AtlasButton(label)
-                button.setObjectName("TopNavButton")
+                button = AtlasButton(label, variant="navigation")
                 button.clicked.connect(
                     lambda _checked=False, value=label: callback(value)
                 )
@@ -1733,8 +1729,9 @@ class AtlasWindow(QMainWindow):
             self._module_subnav_spec = spec
 
         for label, button in zip(labels, self._module_subnav_buttons):
-            state = "TopNavButtonActive" if label == active_label else "TopNavButton"
-            button.set_style_name(state)
+            button.set_variant(
+                "navigation_active" if label == active_label else "navigation"
+            )
 
         self.module_subnav.setVisible(True)
         self.refresh_nav_selection(group)
@@ -2081,8 +2078,9 @@ class AtlasWindow(QMainWindow):
 
     def refresh_nav_selection(self, active_group: str) -> None:
         for button, group in self.nav_buttons:
-            object_name = "TopNavButtonActive" if group == active_group and active_group else "TopNavButton"
-            button.set_style_name(object_name)
+            button.set_variant(
+                "navigation_active" if group == active_group and active_group else "navigation"
+            )
 
     def ensure_page_loaded(self, name: str) -> QWidget | None:
         factory = self.page_factories.get(name)

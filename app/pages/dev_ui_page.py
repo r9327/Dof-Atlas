@@ -147,11 +147,9 @@ class DevUiPage(QWidget):
 
         nav_row = QHBoxLayout()
         self.preview_nav = (
-            AtlasButton("Onglet normal"),
-            AtlasButton("Onglet actif"),
+            AtlasButton("Onglet normal", variant="navigation"),
+            AtlasButton("Onglet actif", variant="navigation_active"),
         )
-        self.preview_nav[0].set_style_name("TopNavButton")
-        self.preview_nav[1].set_style_name("TopNavButtonActive")
         for index, button in enumerate(self.preview_nav):
             button.clicked.connect(
                 lambda _checked=False, selected=index: self._select_nav(selected)
@@ -162,8 +160,8 @@ class DevUiPage(QWidget):
 
     def _select_nav(self, active: int) -> None:
         for index, button in enumerate(self.preview_nav):
-            button.set_style_name(
-                "TopNavButtonActive" if index == active else "TopNavButton"
+            button.set_variant(
+                "navigation_active" if index == active else "navigation"
             )
         self._report(f"Onglet {active + 1} sélectionné")
 
