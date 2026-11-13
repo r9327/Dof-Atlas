@@ -385,22 +385,9 @@ def unity_skin_stylesheet(palette: Mapping[str, str] | None = None) -> str:
             f'QCheckBox::indicator {{ width: 19px; height: 19px; image: url("{normal}"); }}',
             f'QCheckBox::indicator:checked {{ image: url("{checked}"); }}',
         ))
-    selected_tab = _sprite_url("Assets_UI_Themes_darkStone_common_bg_tab_selected_normal-png.png")
-    if selected_tab:
-        # Keep the same border box for selected and unselected tabs. A 6px
-        # selected-only sprite border makes the tab bar jump on navigation.
-        # Encyclopedia has a more specific QSS selector, so it must be
-        # included explicitly rather than relying on the generic rule.
-        rules.append(
-            "QTabBar::tab, QTabWidget#EncyclopediaTabs QTabBar::tab { "
-            "border: 6px solid transparent; }"
-        )
-        rules.append(
-            "QTabBar::tab:selected, "
-            "QTabWidget#EncyclopediaTabs QTabBar::tab:selected { "
-            "border: 6px solid transparent;"
-            f' border-image: url("{selected_tab}") 6 6 6 6 stretch stretch; }}'
-        )
+    # Selected tabs use PANEL_ACTIVE / GREEN_BORDER from the real palette.
+    # The optional darkStone 9-slice has a beige-gold tint, and forcing a 6px
+    # border changes geometry. Do not let decorative art replace shared tabs.
     # Keep keyboard focus visible even when the button has a border-image.
     rules.append(
         "QPushButton:focus, QToolButton:focus, QCheckBox:focus, "
