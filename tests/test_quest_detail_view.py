@@ -63,6 +63,28 @@ class QuestDetailViewColumnTests(unittest.TestCase):
             sheet.deleteLater()
             self.app.processEvents()
 
+    def test_embedded_guide_context_uses_same_reversible_control(self) -> None:
+        from PySide6.QtCore import Qt
+        from app.modules.encyclopedia.widgets.quest_detail_view import QuestViewContext
+
+        sheet = QuestDetailView(object(), object(), object())
+        sheet.context = QuestViewContext(host="guides", guide_id="guide_local")
+        context = sheet.context
+        try:
+            self.assertTrue(bool(sheet.right_panel_toggle.focusPolicy() & Qt.TabFocus))
+            sheet.set_right_panel_collapsed(True)
+            self.assertTrue(sheet.right_panel.isHidden())
+            self.assertTrue(sheet.right_panel_toggle.property("collapsed"))
+            sheet.set_right_panel_collapsed(True)  # Repeated signal is inert.
+            sheet.set_right_panel_collapsed(False)
+            self.assertFalse(sheet.right_panel.isHidden())
+            self.assertFalse(sheet.right_panel_toggle.property("collapsed"))
+            self.assertIs(sheet.context, context)
+            self.assertEqual(context.host, "guides")
+        finally:
+            sheet.deleteLater()
+            self.app.processEvents()
+
     def test_right_toggle_uses_shared_unity_theme(self) -> None:
         css = atlas_stylesheet()
         self.assertIn("QToolButton#GuideRightPanelToggle", css)
