@@ -245,6 +245,8 @@ class DevUiPageTests(unittest.TestCase):
             self.assertIn("stop:1 rgba(27, 39, 70, 0.58)", css)
             self.assertIn("QSplitter#DevUiResizeSplitter::handle:horizontal", css)
             self.assertIn("QWidget#DevUiPage QListWidget QScrollBar:vertical", css)
+            self.assertIn("QWidget#DevUiPage QListWidget QScrollBar::add-page:vertical", css)
+            self.assertIn("QWidget#DevUiPage QListWidget QScrollBar::sub-page:vertical", css)
             self.assertIn("QWidget#DevUiPage QScrollArea#DevUiGalleryScroll QScrollBar:vertical", css)
             self.assertIn("QWidget#DevUiPage QScrollBar:vertical", css)
             self.assertIn("QWidget#DevUiPage QScrollBar::add-page:vertical", css)
