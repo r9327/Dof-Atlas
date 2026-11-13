@@ -13,7 +13,7 @@ permissions:
 
 jobs:
   real-qt-capture:
-    name: Dev UI / real wallpaper or blue fallback and slider exact-SHA proof
+    name: Dev UI / semantic subtle buttons tabs badges hover and logos exact-SHA proof
     runs-on: windows-latest
     timeout-minutes: 15
     env:
@@ -54,7 +54,7 @@ jobs:
         shell: pwsh
         run: |
           $manifest = Get-Content artifacts/dev-ui/dev-ui-capture.json -Raw | ConvertFrom-Json
-          if ($manifest.families -ne 16) { throw "Dev UI families count changed" }
+          if ($manifest.families -ne 17) { throw "Dev UI families count changed" }
           if ($manifest.background_source -notin @('local-unity-image', 'unity-blue-gradient')) {
             throw "Unexpected/unknown Dev UI wallpaper source"
           }
