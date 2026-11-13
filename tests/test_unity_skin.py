@@ -335,6 +335,47 @@ class UnitySkinTests(unittest.TestCase):
                 finally:
                     unity_skin.unity_ui_icon.cache_clear()
 
+    def test_original_module_icons_from_same_unity_folder_support_french_names(self) -> None:
+        """Read real installed PNGs unchanged, no alternative icon directory."""
+        from app.ui.unity_skin import sprite_icon_path, unity_original_preview_icon
+
+        with tempfile.TemporaryDirectory() as directory:
+            personal = Path(directory) / "personal"
+            checkout = Path(directory) / "checkout"
+            sprites = personal / "sprites"
+            sprites.mkdir(parents=True)
+            for name, color in (
+                ("metiers", "#eaca55"), ("bestiaire", "#5894ba"),
+            ):
+                image = QImage(24, 24, QImage.Format_ARGB32)
+                image.fill(Qt.transparent)
+                image.setPixelColor(12, 12, QColor(color))
+                filename = f"Assets_UI_Themes_Figma_menuIcons_1x_{name}-png.png"
+                self.assertTrue(image.save(str(sprites / filename)))
+            with (
+                patch.object(unity_skin, "_PERSONAL_ASSETS", personal),
+                patch.object(unity_skin, "_ASSETS", checkout),
+            ):
+                unity_original_preview_icon.cache_clear()
+                try:
+                    for module, alias, original_color in (
+                        ("jobs", "metiers", "#eaca55"),
+                        ("bestiary", "bestiaire", "#5894ba"),
+                    ):
+                        source = sprite_icon_path(module)
+                        self.assertIsNotNone(source)
+                        self.assertIn(alias, source.name)
+                        icon = unity_original_preview_icon(module, 24)
+                        self.assertFalse(icon.isNull())
+                        self.assertEqual(
+                            icon.pixmap(24, 24).toImage().pixelColor(12, 12).name(),
+                            original_color,
+                        )
+                    self.assertIsNone(sprite_icon_path("craft"))
+                    self.assertTrue(unity_original_preview_icon("craft").isNull())
+                finally:
+                    unity_original_preview_icon.cache_clear()
+
     def test_opaque_sprite_tiles_fall_back_to_transparent_white_icons(self) -> None:
         from app.ui.unity_skin import unity_ui_icon
 
