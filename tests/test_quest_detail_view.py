@@ -23,7 +23,7 @@ class QuestDetailViewColumnTests(unittest.TestCase):
         sheet.resize(1050, 700)
         sheet.show()
         try:
-            sheet.right_layout.insertWidget(0, QLabel("Détail local\\n" * 100))
+            sheet.right_layout.insertWidget(0, QLabel(chr(10).join(["Détail local"] * 100)))
             self.app.processEvents()
             bar = sheet.right_scroll.verticalScrollBar()
             self.assertGreater(bar.maximum(), 0)
