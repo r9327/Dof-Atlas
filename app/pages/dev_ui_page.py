@@ -8,17 +8,20 @@ from __future__ import annotations
 
 from collections.abc import Callable
 
-from PySide6.QtCore import Qt
+from PySide6.QtCore import QDate, Qt
 from PySide6.QtGui import QColor, QPixmap
 from PySide6.QtWidgets import (
     QCheckBox,
     QComboBox,
+    QDateEdit,
+    QDoubleSpinBox,
     QFrame,
     QGridLayout,
     QGroupBox,
     QHBoxLayout,
     QLabel,
     QLineEdit,
+    QListWidget,
     QMenu,
     QPlainTextEdit,
     QProgressBar,
@@ -26,9 +29,12 @@ from PySide6.QtWidgets import (
     QScrollArea,
     QSlider,
     QSpinBox,
+    QSplitter,
     QTableWidget,
     QTableWidgetItem,
     QTabWidget,
+    QTimeEdit,
+    QToolButton,
     QTreeWidget,
     QTreeWidgetItem,
     QVBoxLayout,
@@ -61,6 +67,7 @@ class DevUiPage(QWidget):
         self.setProperty("atlasUnityPage", True)
         self._preview_dialog: AtlasDialog | None = None
         self._click_count = 0
+        self.gallery_sections: list[QGroupBox] = []
 
         outer = QVBoxLayout(self)
         outer.setContentsMargins(16, 12, 16, 12)
@@ -75,8 +82,9 @@ class DevUiPage(QWidget):
         outer.addLayout(heading)
 
         subtitle = QLabel(
-            "Vrais composants partagés : modifier le thème commun doit changer "
-            "tous ces exemples, sans styles locaux ni données de jeu."
+            "Composants Unity existants et contrôles candidats à mutualiser. "
+            "Cette galerie permet la comparaison visuelle ; l'adoption dans "
+            "chaque module se vérifie séparément."
         )
         subtitle.setObjectName("MutedLabel")
         subtitle.setWordWrap(True)
@@ -86,9 +94,21 @@ class DevUiPage(QWidget):
         self.feedback.setAccessibleName("Résultat des interactions du laboratoire UI")
         outer.addWidget(self.feedback)
 
+        # The index stays visible while the long catalog scrolls underneath.
+        navigator = QHBoxLayout()
+        navigator.addWidget(QLabel("Aller à une famille"))
+        self.gallery_navigation = QComboBox()
+        self.gallery_navigation.setAccessibleName("Accès direct aux familles UI")
+        navigator.addWidget(self.gallery_navigation, 1)
+        self.gallery_count = QLabel()
+        self.gallery_count.setObjectName("MutedLabel")
+        navigator.addWidget(self.gallery_count)
+        outer.addLayout(navigator)
+
         scroll = QScrollArea(self)
         scroll.setWidgetResizable(True)
         scroll.setFrameShape(QFrame.NoFrame)
+        self.gallery_scroll = scroll
         body = QWidget()
         body.setProperty("atlasUnityPage", True)
         content = QVBoxLayout(body)
@@ -100,21 +120,40 @@ class DevUiPage(QWidget):
         self._build_buttons(content)
         self._build_tabs_and_menus(content)
         self._build_data_views(content)
+        self._build_scroll_and_resize(content)
         self._build_fields(content)
+        self._build_advanced_fields(content)
+        self._build_states_and_badges(content)
+        self._build_surfaces_and_typography(content)
         self._build_panels(content)
         self._build_startup_preview(content)
         self._build_guide_samples(content)
+        self._build_ui_assets(content)
+        self._build_scope_matrix(content)
         self._build_dialogs_and_colors(content)
         content.addStretch(1)
 
-    @staticmethod
-    def _section(parent_layout: QVBoxLayout, title: str) -> QVBoxLayout:
+        self.gallery_navigation.addItems(
+            [section.title() for section in self.gallery_sections]
+        )
+        self.gallery_count.setText(f"{len(self.gallery_sections)} familles UI")
+        self.gallery_navigation.currentIndexChanged.connect(self._jump_to_section)
+
+    def _section(self, parent_layout: QVBoxLayout, title: str) -> QVBoxLayout:
         group = QGroupBox(title)
         layout = QVBoxLayout(group)
         layout.setContentsMargins(14, 22, 14, 12)
         layout.setSpacing(9)
         parent_layout.addWidget(group)
+        self.gallery_sections.append(group)
         return layout
+
+    def _jump_to_section(self, index: int) -> None:
+        """Scroll to the real section; no duplicate or floating UI catalog."""
+        if 0 <= index < len(self.gallery_sections):
+            self.gallery_scroll.ensureWidgetVisible(
+                self.gallery_sections[index], 0, 12
+            )
 
     def _report(self, action: str) -> None:
         self._click_count += 1
@@ -311,6 +350,198 @@ class DevUiPage(QWidget):
         section.addWidget(self.preview_progress)
         section.addWidget(self.preview_slider)
 
+    def _build_advanced_fields(self, parent: QVBoxLayout) -> None:
+        """Show native Qt controls which inherit the same application QSS."""
+        section = self._section(parent, "Formulaires avancés · états et formats")
+
+        row = QHBoxLayout()
+        self.preview_password = QLineEdit()
+        self.preview_password.setPlaceholderText("Mot de passe")
+        self.preview_password.setEchoMode(QLineEdit.Password)
+        self.preview_password.setAccessibleName("Champ de mot de passe")
+        row.addWidget(self.preview_password, 1)
+
+        self.preview_readonly = QLineEdit("Lecture seule")
+        self.preview_readonly.setReadOnly(True)
+        row.addWidget(self.preview_readonly, 1)
+
+        self.preview_disabled_input = QLineEdit("Indisponible")
+        self.preview_disabled_input.setEnabled(False)
+        row.addWidget(self.preview_disabled_input, 1)
+        section.addLayout(row)
+
+        formats = QHBoxLayout()
+        self.preview_double_spin = QDoubleSpinBox()
+        self.preview_double_spin.setDecimals(2)
+        self.preview_double_spin.setRange(0.0, 999.99)
+        self.preview_double_spin.setValue(12.50)
+        self.preview_double_spin.valueChanged.connect(
+            lambda value: self._report(f"Nombre décimal : {value:.2f}")
+        )
+        formats.addWidget(self.preview_double_spin)
+        self.preview_date = QDateEdit()
+        self.preview_date.setCalendarPopup(True)
+        self.preview_date.setDate(QDate.currentDate())
+        self.preview_date.dateChanged.connect(
+            lambda value: self._report(f"Date : {value.toString('dd/MM/yyyy')}")
+        )
+        formats.addWidget(self.preview_date)
+        self.preview_time = QTimeEdit()
+        self.preview_time.timeChanged.connect(
+            lambda value: self._report(f"Heure : {value.toString('HH:mm')}")
+        )
+        formats.addWidget(self.preview_time)
+        formats.addStretch(1)
+        section.addLayout(formats)
+
+        checks = QHBoxLayout()
+        self.preview_tristate = QCheckBox("Tri-état")
+        self.preview_tristate.setTristate(True)
+        self.preview_tristate.setCheckState(Qt.PartiallyChecked)
+        checks.addWidget(self.preview_tristate)
+        self.preview_disabled_check = QCheckBox("Case désactivée")
+        self.preview_disabled_check.setEnabled(False)
+        checks.addWidget(self.preview_disabled_check)
+        checks.addStretch(1)
+        section.addLayout(checks)
+
+    def _build_states_and_badges(self, parent: QVBoxLayout) -> None:
+        section = self._section(parent, "États · badges · retours visuels")
+
+        badges = QHBoxLayout()
+        self.preview_badges: dict[str, QLabel] = {}
+        for state, caption in (
+            ("done", "Terminé"),
+            ("active", "En cours"),
+            ("blocked", "Indisponible"),
+        ):
+            badge = QLabel(caption)
+            badge.setObjectName("StatusBadge")
+            badge.setProperty("state", state)
+            badge.setAlignment(Qt.AlignCenter)
+            badge.setAccessibleName(f"Statut {caption}")
+            self.preview_badges[state] = badge
+            badges.addWidget(badge)
+        badges.addStretch(1)
+        section.addLayout(badges)
+
+        state_row = QHBoxLayout()
+        self.preview_toggle = QToolButton()
+        self.preview_toggle.setObjectName("GuideSummaryButton")
+        self.preview_toggle.setText("Commutateur")
+        self.preview_toggle.setCheckable(True)
+        self.preview_toggle.setChecked(True)
+        self.preview_toggle.setAccessibleName("Commutateur de démonstration")
+        self.preview_toggle.toggled.connect(
+            lambda checked: self._report("Commutateur actif" if checked
+                                         else "Commutateur inactif")
+        )
+        state_row.addWidget(self.preview_toggle)
+        info = QLabel("Normal · survol · pressé · actif · focus · désactivé")
+        info.setObjectName("MutedLabel")
+        state_row.addWidget(info, 1)
+        section.addLayout(state_row)
+
+        progress_row = QHBoxLayout()
+        self.preview_busy = QProgressBar()
+        self.preview_busy.setRange(0, 0)
+        self.preview_busy.setAccessibleName("Progression indéterminée")
+        progress_row.addWidget(self.preview_busy, 1)
+        self.preview_complete = QProgressBar()
+        self.preview_complete.setRange(0, 100)
+        self.preview_complete.setValue(100)
+        self.preview_complete.setAccessibleName("Progression terminée")
+        progress_row.addWidget(self.preview_complete, 1)
+        section.addLayout(progress_row)
+
+    def _build_surfaces_and_typography(self, parent: QVBoxLayout) -> None:
+        section = self._section(parent, "Surfaces · cartes · typographie")
+
+        titles = QHBoxLayout()
+        title = QLabel("En-tête de section")
+        title.setObjectName("PanelTitle")
+        titles.addWidget(title)
+        secondary = QLabel("Texte secondaire Unity")
+        secondary.setObjectName("MutedLabel")
+        titles.addWidget(secondary)
+        titles.addStretch(1)
+        section.addLayout(titles)
+
+        cards = QHBoxLayout()
+        self.preview_cards: dict[str, QFrame] = {}
+        for role, caption in (
+            ("card", "Carte globale"),
+            ("Panel", "Panneau"),
+            ("QuestPanel", "Panneau de quête"),
+        ):
+            card = QFrame()
+            card.setObjectName(role)
+            card.setMinimumHeight(82)
+            card_layout = QVBoxLayout(card)
+            heading = QLabel(caption)
+            heading.setObjectName("PanelTitle")
+            card_layout.addWidget(heading)
+            small = QLabel("Couleurs, bordures et espacements communs")
+            small.setObjectName("MutedLabel")
+            small.setWordWrap(True)
+            card_layout.addWidget(small)
+            self.preview_cards[role] = card
+            cards.addWidget(card, 1)
+        section.addLayout(cards)
+
+        separator = QFrame()
+        separator.setFrameShape(QFrame.HLine)
+        separator.setFrameShadow(QFrame.Plain)
+        section.addWidget(separator)
+        hint = QLabel(
+            "Les surfaces de démonstration gardent les styles QSS réels. "
+            "Les dispositions et données spécifiques restent propres aux modules."
+        )
+        hint.setObjectName("MutedLabel")
+        hint.setWordWrap(True)
+        section.addWidget(hint)
+
+    def _build_scroll_and_resize(self, parent: QVBoxLayout) -> None:
+        section = self._section(parent, "Défilement · listes · redimensionnement")
+        hint = QLabel(
+            "Déplace la séparation, sélectionne une ligne et fais défiler la liste."
+        )
+        hint.setObjectName("MutedLabel")
+        hint.setWordWrap(True)
+        section.addWidget(hint)
+
+        self.preview_splitter = QSplitter(Qt.Horizontal)
+        self.preview_splitter.setChildrenCollapsible(False)
+        self.preview_scroll_list = QListWidget()
+        for item in (
+            "Accueil", "Personnage", "Encyclopédie", "Outils",
+            "Stuffs", "Organizer", "Almanax", "Launcher",
+        ):
+            self.preview_scroll_list.addItem(item)
+        self.preview_scroll_list.setMinimumWidth(130)
+        self.preview_scroll_list.setMaximumHeight(134)
+        self.preview_scroll_list.currentTextChanged.connect(
+            lambda text: self._report(f"Liste : {text}")
+        )
+        self.preview_splitter.addWidget(self.preview_scroll_list)
+
+        self.preview_scroll_panel = QFrame()
+        self.preview_scroll_panel.setObjectName("Panel")
+        split_layout = QVBoxLayout(self.preview_scroll_panel)
+        title = QLabel("Panneau adaptable")
+        title.setObjectName("PanelTitle")
+        split_layout.addWidget(title)
+        detail = QLabel(
+            "Redimensionnement du panneau · bordure Unity · "
+            "barre de défilement partagée"
+        )
+        detail.setObjectName("MutedLabel")
+        detail.setWordWrap(True)
+        split_layout.addWidget(detail, 1)
+        self.preview_splitter.addWidget(self.preview_scroll_panel)
+        self.preview_splitter.setSizes((220, 460))
+        section.addWidget(self.preview_splitter)
+
     def _build_panels(self, parent: QVBoxLayout) -> None:
         section = self._section(parent, "Panneaux · transparence · réduction")
         control_row = QHBoxLayout()
@@ -393,6 +624,85 @@ class DevUiPage(QWidget):
         guide_layout.addWidget(self.guide_ultime_combo, 1)
         section.addWidget(self.guide_ultime_sample)
 
+    def _build_ui_assets(self, parent: QVBoxLayout) -> None:
+        section = self._section(parent, "Icônes · raccourcis · tooltips")
+
+        row = QHBoxLayout()
+        self.preview_icon_labels: dict[str, QLabel] = {}
+        for name in (
+            "guide", "quest", "success", "encyclopedia", "character",
+            "dofus", "map", "inventory",
+        ):
+            cell = QWidget()
+            column = QVBoxLayout(cell)
+            column.setContentsMargins(2, 2, 2, 2)
+            symbol = QLabel()
+            symbol.setAlignment(Qt.AlignCenter)
+            symbol.setMinimumHeight(30)
+            path = sprite_icon_path(name)
+            if path is None:
+                symbol.setText("—")
+                symbol.setToolTip("Icône Unity locale indisponible")
+            else:
+                from PySide6.QtGui import QIcon
+                symbol.setPixmap(QIcon(str(path)).pixmap(24, 24))
+                symbol.setToolTip(f"Icône Unity : {name}")
+            label = QLabel(name)
+            label.setObjectName("MutedLabel")
+            label.setAlignment(Qt.AlignCenter)
+            column.addWidget(symbol)
+            column.addWidget(label)
+            row.addWidget(cell, 1)
+            self.preview_icon_labels[name] = symbol
+        section.addLayout(row)
+
+        tools = QHBoxLayout()
+        for label in ("Ctrl + K", "Shift + F2"):
+            shortcut = QToolButton()
+            shortcut.setObjectName("InlineShortcutButton")
+            shortcut.setText(label)
+            shortcut.setToolTip("Exemple visuel de raccourci (aucune action globale)")
+            shortcut.clicked.connect(
+                lambda _checked=False, value=label: self._report(
+                    f"Raccourci affiché : {value}"
+                )
+            )
+            tools.addWidget(shortcut)
+        tooltip = AtlasButton("Survole-moi", variant="secondary")
+        tooltip.setToolTip("Tooltip du thème Unity partagé")
+        tooltip.clicked.connect(lambda: self._report("Info-bulle contrôlée"))
+        tools.addWidget(tooltip)
+        tools.addStretch(1)
+        section.addLayout(tools)
+
+    def _build_scope_matrix(self, parent: QVBoxLayout) -> None:
+        """Show migration scope without incorrectly claiming all screens migrated."""
+        section = self._section(parent, "Couverture · modules consommateurs")
+        note = QLabel(
+            "Périmètre de propagation à contrôler : la présence ici ne signifie "
+            "pas que le module est déjà intégralement globalisé."
+        )
+        note.setObjectName("MutedLabel")
+        note.setWordWrap(True)
+        section.addWidget(note)
+
+        modules = (
+            "Accueil", "Personnage", "Quêtes", "Succès",
+            "Guides", "Bestiaire", "Outils", "Stuffs",
+            "Organizer", "Almanax", "Réseau", "Launcher",
+        )
+        self.preview_scope = QTableWidget(len(modules), 2)
+        self.preview_scope.setHorizontalHeaderLabels(("Module", "Source de style cible"))
+        self.preview_scope.setMaximumHeight(192)
+        for index, module in enumerate(modules):
+            self.preview_scope.setItem(index, 0, QTableWidgetItem(module))
+            source = "Palette Unity / Tk" if module == "Launcher" else "Thème Qt commun"
+            self.preview_scope.setItem(index, 1, QTableWidgetItem(source))
+        self.preview_scope.setToolTip(
+            "Inventaire du périmètre, pas une certification de migration"
+        )
+        section.addWidget(self.preview_scope)
+
     def _build_dialogs_and_colors(self, parent: QVBoxLayout) -> None:
         section = self._section(parent, "Dialogues · icônes · typographie")
         section.addWidget(AtlasPageTitle("Titre Atlas partagé"))
@@ -415,11 +725,8 @@ class DevUiPage(QWidget):
 
         colors = self._section(parent, "Palette Unity · source de vérité")
         grid = QGridLayout()
-        for index, role in enumerate((
-            "BG", "PANEL", "PANEL_2", "PANEL_ACTIVE", "BORDER",
-            "BORDER_CARD", "TEXT", "TEXT_MUTED", "GREEN", "RED",
-            "LIST_SURFACE", "NAV_SURFACE", "FIELD_SURFACE", "TOOLTIP_SURFACE",
-        )):
+        # Every canonical semantic color, never a manually curated second palette.
+        for index, role in enumerate(PALETTE):
             value = PALETTE[role]
             cell = QWidget()
             cell_layout = QHBoxLayout(cell)
@@ -431,7 +738,7 @@ class DevUiPage(QWidget):
             chip.setAccessibleName(f"Couleur {role}")
             cell_layout.addWidget(chip)
             cell_layout.addWidget(QLabel(f"{role}  {value}"), 1)
-            grid.addWidget(cell, index // 2, index % 2)
+            grid.addWidget(cell, index // 3, index % 3)
         colors.addLayout(grid)
 
     def _open_preview_dialog(self) -> None:

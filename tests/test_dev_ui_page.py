@@ -108,6 +108,85 @@ class DevUiPageTests(unittest.TestCase):
             page.deleteLater()
 
 
+    def test_all_ui_families_are_visible_without_local_styles(self) -> None:
+        """The developer catalog covers real controls and semantic style roles."""
+        from app.pages.dev_ui_page import DevUiPage
+        from app.ui.theme import PALETTE
+        from PySide6.QtWidgets import QGroupBox, QLabel
+
+        page = DevUiPage(on_back=lambda: None)
+        try:
+            self.assertEqual(page.gallery_navigation.count(), len(page.gallery_sections))
+            self.assertGreaterEqual(page.gallery_navigation.count(), 13)
+            self.assertTrue(all(isinstance(s, QGroupBox) for s in page.gallery_sections))
+            self.assertIn("familles UI", page.gallery_count.text())
+            self.assertTrue(page.gallery_scroll.widgetResizable())
+            self.assertEqual(page.styleSheet(), "")
+            self.assertTrue(all(w.styleSheet() == "" for w in page.findChildren(QWidget)))
+
+            # No second palette: all current tokens are represented by Qt swatches.
+            swatches = [
+                label for label in page.findChildren(QLabel)
+                if label.accessibleName().startswith("Couleur ")
+            ]
+            self.assertEqual(
+                {label.accessibleName() for label in swatches},
+                {f"Couleur {role}" for role in PALETTE},
+            )
+
+            self.assertEqual(set(page.preview_badges), {"done", "active", "blocked"})
+            for state, badge in page.preview_badges.items():
+                self.assertEqual(badge.objectName(), "StatusBadge")
+                self.assertEqual(badge.property("state"), state)
+            self.assertEqual(set(page.preview_cards), {"card", "Panel", "QuestPanel"})
+            self.assertEqual(page.preview_busy.minimum(), 0)
+            self.assertEqual(page.preview_busy.maximum(), 0)
+            self.assertEqual(page.preview_complete.value(), 100)
+            self.assertEqual(page.preview_splitter.count(), 2)
+            self.assertEqual(page.preview_scroll_list.count(), 8)
+            self.assertEqual(page.preview_scope.rowCount(), 12)
+            self.assertEqual(page.preview_scope.item(11, 0).text(), "Launcher")
+            self.assertIn("Tk", page.preview_scope.item(11, 1).text())
+            self.assertEqual(len(page.preview_icon_labels), 8)
+            self.assertTrue(all(
+                icon.styleSheet() == ""
+                for icon in page.preview_icon_labels.values()
+            ))
+            self.assertTrue(page.preview_password.echoMode() == page.preview_password.Password)
+            self.assertTrue(page.preview_readonly.isReadOnly())
+            self.assertFalse(page.preview_disabled_input.isEnabled())
+
+            page.preview_toggle.click()
+            self.assertFalse(page.preview_toggle.isChecked())
+            self.assertIn("Commutateur inactif", page.feedback.text())
+            page.preview_scroll_list.setCurrentRow(1)
+            self.assertIn("Personnage", page.feedback.text())
+            page.preview_double_spin.setValue(15.75)
+            self.assertIn("15.75", page.feedback.text())
+        finally:
+            page.close()
+            page.deleteLater()
+
+    def test_gallery_index_scrolls_to_real_section(self) -> None:
+        from app.pages.dev_ui_page import DevUiPage
+
+        page = DevUiPage(on_back=lambda: None)
+        try:
+            page.resize(1000, 760)
+            page.show()
+            self.app.processEvents()
+            bar = page.gallery_scroll.verticalScrollBar()
+            page.gallery_navigation.setCurrentIndex(
+                page.gallery_navigation.count() - 1
+            )
+            self.app.processEvents()
+            self.assertGreater(bar.maximum(), 0)
+            self.assertGreater(bar.value(), 0)
+            self.assertEqual(page.gallery_navigation.currentText(), "Palette Unity · source de vérité")
+        finally:
+            page.close()
+            page.deleteLater()
+
     def test_dev_ui_physical_mouse_click_reaches_shared_button_handler(self) -> None:
         from app.pages.dev_ui_page import DevUiPage
 
