@@ -264,7 +264,7 @@ class DevUiPage(QWidget):
         self.preview_text_actions: dict[str, AtlasButton] = {}
         for name, caption in (
             ("inline_action", "Voir les détails"),
-            ("popup_link", "Ouvrir la popup  ↗"),
+            ("popup_link", "Ouvrir la popup"),
         ):
             button = AtlasButton(caption, variant=name)
             button.setAccessibleName(caption)
