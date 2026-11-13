@@ -453,7 +453,16 @@ class DevUiPage(QWidget):
                                          else "Commutateur inactif")
         )
         state_row.addWidget(self.preview_toggle)
-        info = QLabel("Normal · survol · pressé · actif · focus · désactivé")
+        self.preview_checked_action = AtlasButton("Sélectionné", variant="secondary")
+        self.preview_checked_action.setCheckable(True)
+        self.preview_checked_action.setChecked(True)
+        self.preview_checked_action.toggled.connect(
+            lambda checked: self._report(
+                "Bouton sélectionné" if checked else "Bouton désélectionné"
+            )
+        )
+        state_row.addWidget(self.preview_checked_action)
+        info = QLabel("Survol · pressé · focus · désactivé")
         info.setObjectName("MutedLabel")
         state_row.addWidget(info, 1)
         section.addLayout(state_row)
