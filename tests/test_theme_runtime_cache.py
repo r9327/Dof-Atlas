@@ -104,18 +104,18 @@ class ThemeRuntimeCacheTests(unittest.TestCase):
     def test_guide_and_success_selection_borders_do_not_shift_rows(self) -> None:
         style = theme.atlas_stylesheet({"GREEN": "#ABC123"})
         selectors = (
-            ("QTreeWidget#GuideLibraryCategories::item", "QTreeWidget#GuideLibraryCategories::item:selected"),
-            ("QTreeWidget#AchievementCategoryTree::item", "QTreeWidget#AchievementCategoryTree::item:selected"),
-            ("#AchievementsView QListWidget#QuestResultList::item", "#AchievementsView QListWidget#QuestResultList::item:selected"),
+            ("QTreeWidget#GuideLibraryCategories::item", "QTreeWidget#GuideLibraryCategories::item:selected", 2),
+            ("QWidget#AchievementsView QTreeWidget#AchievementCategoryTree::item", "QWidget#AchievementsView QTreeWidget#AchievementCategoryTree::item:selected", 3),
+            ("QWidget#AchievementsView QListWidget#QuestResultList::item", "QWidget#AchievementsView QListWidget#QuestResultList::item:selected", 3),
         )
-        for base_selector, selected_selector in selectors:
+        for base_selector, selected_selector, width in selectors:
             with self.subTest(selector=base_selector):
                 # Item metrics must not change when the selection accent is
                 # painted, even across keyboard and pointer navigation.
                 default = style.split(base_selector + " {", 1)[1].split("}", 1)[0]
                 selected = style.split(selected_selector + " {", 1)[1].split("}", 1)[0]
-                self.assertIn("border-left: 2px solid transparent;", default)
-                self.assertIn("border-left: 2px solid #ABC123;", selected)
+                self.assertIn(f"border-left: {width}px solid transparent;", default)
+                self.assertIn(f"border-left: {width}px solid #ABC123;", selected)
 
     def test_guide_section_title_is_global_without_local_palette(self) -> None:
         style = theme.atlas_stylesheet({"TEXT": "#ABC123"})
