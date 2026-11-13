@@ -13,7 +13,7 @@ permissions:
 
 jobs:
   real-qt-capture:
-    name: Dev UI / no black list track or splitter final Windows proof
+    name: Dev UI / real wallpaper or blue fallback and slider exact-SHA proof
     runs-on: windows-latest
     timeout-minutes: 15
     env:
@@ -55,6 +55,9 @@ jobs:
         run: |
           $manifest = Get-Content artifacts/dev-ui/dev-ui-capture.json -Raw | ConvertFrom-Json
           if ($manifest.families -ne 16) { throw "Dev UI families count changed" }
+          if ($manifest.background_source -notin @('local-unity-image', 'unity-blue-gradient')) {
+            throw "Unexpected/unknown Dev UI wallpaper source"
+          }
           if ($manifest.horizontal_scroll_max -ne 0) { throw "Dev UI has horizontal overflow" }
           if ($manifest.vertical_scroll_max -le 0) { throw "Dev UI gallery no longer scrolls" }
           foreach ($name in @('viewport', 'complete', 'family_dropdown', 'dialog')) {
