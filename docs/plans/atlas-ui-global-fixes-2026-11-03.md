@@ -117,3 +117,12 @@ Ne cocher aucun ID de #364 sur cette seule base. Ne pas fusionner tant que les o
 - Le bouton `GuideRightPanelToggle` du détail Guide utilise désormais la même politique de focus clavier et le même curseur que la fiche Quêtes ; le style QSS Unity est unique et déjà livré.
 - La propriété `collapsed` reflète maintenant réellement l'état masqué/réaffiché, avec rafraîchissement ciblé de son style (sans reconstruction de la page, sans modifier les données du Guide ni la logique de splitters).
 - La suite Qt propriétaire `tests/test_guides_view.py` vérifie clics, propriété, libellés accessibles et retour de la colonne. Placement visuel réel sur Windows non certifié, critère non déclaré DONE.
+
+
+### Succès — colonne de détail persistante et navigation clavier (ATSC-001 partiel)
+
+- **Défaut réel** : le catalogue créait déjà un `FixedColumnSplitter` à trois enfants, mais sa colonne de détail vide pouvait se réduire et un second clic sur le même succès la vidait. Le clavier n'activait pas la même action que le clic.
+- La troisième colonne a désormais une largeur minimale de 240 px et n'est pas repliable via le séparateur ; l'état sans sélection affiche un texte discret existant (`MutedLabel`), sans précharger les détails riches sur le thread Qt.
+- Réactiver un succès déjà affiché conserve sa fiche, sans deuxième chargement. `itemActivated` partage la même action que `itemClicked` pour Enter/Return et l'accessibilité.
+- Un test Qt propriétaire `tests/test_achievements_view.py` couvre présence de la colonne, état vide, double activation et activation clavier, sans modifier les sources de données ou la progression.
+- **Toujours partiel** : resize et navigation sur Windows réel, données métier et activation du catalogue restent à recetter ; ne pas marquer ATSC-001 comme DONE à cette étape.

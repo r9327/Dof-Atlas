@@ -202,6 +202,8 @@ class AchievementsView(QWidget):
         self.list_widget.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
         self.list_widget.setItemDelegate(AchievementListDelegate(self.list_widget))
         self.list_widget.itemClicked.connect(self.on_achievement_clicked)
+        # Enter/Return (and accessible activation) must open the same detail as a click.
+        self.list_widget.itemActivated.connect(self.on_achievement_clicked)
         self.success_panel.layout().addWidget(self.list_widget, 1)
         self.success_panel.setMinimumWidth(285)
         self.splitter.addWidget(self.success_panel)
@@ -209,7 +211,10 @@ class AchievementsView(QWidget):
         self.detail_stack = QStackedWidget()
         self.detail_stack.setObjectName("AchievementDetailStack")
         self.detail_stack.setSizePolicy(QSizePolicy.Ignored, QSizePolicy.Expanding)
+        # Keep the third column present even before the first detail is loaded.
+        self.detail_stack.setMinimumWidth(240)
         self.splitter.addWidget(self.detail_stack)
+        self.splitter.setCollapsible(2, False)
 
         self.detail_scroll = QScrollArea()
         self.detail_scroll.setObjectName("GuideRightPanelScroll")
@@ -435,13 +440,9 @@ class AchievementsView(QWidget):
         if achievement_id is None:
             return
         achievement_id = int(achievement_id)
-        if (
-            self.current_achievement_id == achievement_id
-            and (self._detail_open or
-                 self._detail_requested is not None and
-                 self._detail_requested[1] == achievement_id)
-        ):
-            self.close_detail_panel()
+        # Re-activating the selected success must never silently empty column 3.
+        # A pending request is already deduplicated in show_achievement().
+        if self.current_achievement_id == achievement_id and self._detail_open:
             return
         self.show_achievement(achievement_id)
 
@@ -818,6 +819,11 @@ class AchievementsView(QWidget):
         self._detail_open = False
         self.detail_stack.setCurrentWidget(self.detail_scroll)
         self.clear_detail()
+        hint = QLabel("Sélectionnez un succès pour afficher ses détails.")
+        hint.setObjectName("MutedLabel")
+        hint.setWordWrap(True)
+        self.detail_layout.addWidget(hint)
+        self.detail_layout.addStretch(1)
 
     def closeEvent(self, event) -> None:  # noqa: N802 - Qt API
         self._detail_generation += 1
