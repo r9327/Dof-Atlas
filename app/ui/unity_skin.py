@@ -219,7 +219,9 @@ def unity_skin_stylesheet(palette: Mapping[str, str] | None = None) -> str:
         ),
         f"QTabBar::tab {{ background: {translucent('NAV_SURFACE', 0.93)}; "
         f"color: {colors['TEXT_SOFT']}; "
-        f"border: 2px solid {colors['BORDER']}; }}",
+        f"border: 2px solid {colors['BORDER']}; "
+        f"border-radius: {radii['RADIUS_XS']}; "
+        "padding: 5px 12px; min-height: 24px; }",
         f"QTabBar::tab:hover {{ background: {colors['PANEL_HOVER']}; }}",
         f"QTabBar::tab:selected {{ color: {colors['TEXT']}; "
         f"background: {colors['PANEL_ACTIVE']}; }}",
