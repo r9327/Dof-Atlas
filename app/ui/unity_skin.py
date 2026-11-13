@@ -33,6 +33,7 @@ UNITY_PALETTE = {
     "NAV_SURFACE": "#19264B",
     "SCROLL_SURFACE": "#151D32",
     "TOOLTIP_SURFACE": "#192657",
+    "FIELD_SURFACE": "#141D37",
     "BORDER": "#475F89",
     "BORDER_SOFT": "#354966",
     "BORDER_CARD": "#617CA6",
@@ -269,15 +270,15 @@ def unity_skin_stylesheet(palette: Mapping[str, str] | None = None) -> str:
         "QToolButton#GuideParticipantsButton:hover { "
         "background: %s; }" % colors["GUIDE_TOGGLE_HOVER"],
         "QDialog#AtlasDialog, QMenu { "
-        "background: rgba(25, 38, 75, 0.98); color: %s; "
+        "background: %s; color: %s; "
         "border: 1px solid %s; }" % (
-            colors["TEXT"], colors["BORDER_CARD"],
+            translucent("NAV_SURFACE", 0.98), colors["TEXT"], colors["BORDER_CARD"],
         ),
         "QLineEdit, QComboBox, QSpinBox, QDoubleSpinBox, QTextEdit, "
         "QPlainTextEdit { "
-        "background: rgba(20, 29, 55, 0.96); color: %s; "
+        "background: %s; color: %s; "
         "border: 1px solid %s; }" % (
-            colors["TEXT"], colors["BORDER_CARD"],
+            translucent("FIELD_SURFACE", 0.96), colors["TEXT"], colors["BORDER_CARD"],
         ),
         # Focus must be appended AFTER all sprite rules to remain visible.
         "#PageTitle, #HomeGuideTitle, #TopNavBrandText { "
