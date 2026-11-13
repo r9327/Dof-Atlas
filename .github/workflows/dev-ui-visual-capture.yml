@@ -12,7 +12,7 @@ permissions:
 
 jobs:
   real-qt-capture:
-    name: Dev UI / advanced-form control polish and enhanced Unity shadows (Windows Qt)
+    name: Dev UI / final advanced forms, Unity control glyphs and panel shadows
     runs-on: windows-latest
     timeout-minutes: 15
     env:
@@ -63,7 +63,7 @@ jobs:
       - name: Validate Dev UI shared widgets and interactions
         shell: pwsh
         run: |
-          python -X faulthandler -m unittest -v tests.test_dev_ui_page tests.test_unity_skin.UnitySkinTests.test_shared_buttons_never_inherit_gold_or_neon_sprite_borders tests.test_unity_skin.UnitySkinTests.test_opaque_sprite_tiles_fall_back_to_transparent_white_icons tests.test_unity_skin.UnitySkinTests.test_shared_unity_widget_families_follow_single_palette tests.test_unity_skin.UnitySkinTests.test_advanced_form_surfaces_match_unity_palette_and_states tests.test_unity_skin.UnitySkinTests.test_tabs_are_palette_owned_without_gold_selected_artwork
+          python -X faulthandler -m unittest -v tests.test_dev_ui_page tests.test_unity_skin.UnitySkinTests.test_shared_buttons_never_inherit_gold_or_neon_sprite_borders tests.test_unity_skin.UnitySkinTests.test_opaque_sprite_tiles_fall_back_to_transparent_white_icons tests.test_unity_skin.UnitySkinTests.test_shared_unity_widget_families_follow_single_palette tests.test_unity_skin.UnitySkinTests.test_advanced_form_surfaces_match_unity_palette_and_states tests.test_unity_skin.UnitySkinTests.test_optional_control_icons_fallback_keeps_native_arrows tests.test_unity_skin.UnitySkinTests.test_tabs_are_palette_owned_without_gold_selected_artwork
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
       - name: Upload screenshot artifact
         if: always()
