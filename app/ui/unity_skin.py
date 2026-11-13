@@ -14,7 +14,8 @@ from PySide6.QtGui import QColor, QFontDatabase, QIcon, QImage, QLinearGradient,
 from PySide6.QtWidgets import QGraphicsDropShadowEffect, QWidget
 
 from app.ui.unity_palette import (
-    UNITY_ICON_NAMES, UNITY_ICON_PENDING, UNITY_PALETTE, UNITY_RADII, UNITY_SIZES_PX,
+    UNITY_ICON_FILE_ALIASES, UNITY_ICON_NAMES, UNITY_ICON_PENDING,
+    UNITY_PALETTE, UNITY_RADII, UNITY_SIZES_PX,
     resolve_unity_colors,
 )
 
