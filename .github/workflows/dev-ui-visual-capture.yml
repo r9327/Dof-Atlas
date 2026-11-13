@@ -1,4 +1,4 @@
-name: Dev UI / Windows Visual Capture
+name: Dev UI / Unity Palette Visual Capture
 
 on:
   pull_request:
