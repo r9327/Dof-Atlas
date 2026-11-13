@@ -15,18 +15,28 @@ from pathlib import Path
 def capture(output: Path, *, width: int = 1100, height: int = 800) -> dict[str, object]:
     os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
 
-    from PySide6.QtWidgets import QApplication
+    from PySide6.QtCore import QPoint
+    from PySide6.QtGui import QPainter
+    from PySide6.QtWidgets import QApplication, QVBoxLayout
     from app.pages.dev_ui_page import DevUiPage
     from app.ui.theme import atlas_stylesheet
-    from app.ui.unity_skin import register_unity_fonts
+    from app.ui.unity_skin import UnityBackdrop, register_unity_fonts
 
     output.mkdir(parents=True, exist_ok=True)
     app = QApplication.instance() or QApplication([])
     register_unity_fonts()
     app.setStyleSheet(atlas_stylesheet())
-    page = DevUiPage(on_back=lambda: None)
-    page.resize(width, height)
-    page.show()
+    # Use the exact backdrop widget from the real Atlas shell. A standalone
+    # DevUiPage is transparent, so grabbing it alone produces a misleading
+    # BLACK background on offscreen Qt instead of the Unity sky.
+    backdrop = UnityBackdrop()
+    host_layout = QVBoxLayout(backdrop)
+    host_layout.setContentsMargins(0, 0, 0, 0)
+    host_layout.setSpacing(0)
+    page = DevUiPage(on_back=lambda: None, parent=backdrop)
+    host_layout.addWidget(page)
+    backdrop.resize(width, height)
+    backdrop.show()
     app.processEvents()
     results: dict[str, object] = {
         "kind": "real Qt offscreen QWidget capture",
@@ -38,11 +48,26 @@ def capture(output: Path, *, width: int = 1100, height: int = 800) -> dict[str, 
         # A normal viewport capture AND the actual complete scroll content.
         viewport = output / "dev-ui-viewport.png"
         complete = output / "dev-ui-complete.png"
-        if not page.grab().save(str(viewport), "PNG"):
+        if not backdrop.grab().save(str(viewport), "PNG"):
             raise RuntimeError(f"Unable to capture {viewport}")
         body = page.gallery_scroll.widget()
-        if body is None or not body.grab().save(str(complete), "PNG"):
-            raise RuntimeError(f"Unable to capture {complete}")
+        if body is None:
+            raise RuntimeError("Dev UI scroll content is missing")
+        # The full-height capture is actual Qt scroll content painted over
+        # the same UnityBackdrop, not a designed screenshot or a flat fill.
+        full_backdrop = UnityBackdrop()
+        try:
+            full_backdrop.resize(body.size())
+            full_pixmap = full_backdrop.grab()
+            painter = QPainter(full_pixmap)
+            try:
+                body.render(painter, QPoint(0, 0))
+            finally:
+                painter.end()
+            if not full_pixmap.save(str(complete), "PNG"):
+                raise RuntimeError(f"Unable to capture {complete}")
+        finally:
+            full_backdrop.deleteLater()
         results["screenshots"] = {
             "viewport": str(viewport),
             "complete": str(complete),
@@ -61,8 +86,9 @@ def capture(output: Path, *, width: int = 1100, height: int = 800) -> dict[str, 
             results["screenshots"]["dialog"] = str(dialog_file)
             popup.reject()
     finally:
-        page.close()
+        backdrop.close()
         page.deleteLater()
+        backdrop.deleteLater()
     (output / "dev-ui-capture.json").write_text(
         json.dumps(results, indent=2, ensure_ascii=False) + "\n", encoding="utf-8"
     )
