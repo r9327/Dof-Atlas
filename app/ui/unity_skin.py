@@ -381,21 +381,7 @@ def unity_skin_stylesheet(palette: Mapping[str, str] | None = None) -> str:
         "background: %s; color: %s; border: 1px solid %s; }" % (
             translucent("PANEL", 0.94), colors["TEXT_DISABLED"], colors["BORDER_SOFT"],
         ),
-        # Native QAbstractSpinBox button wells inherited almost-black pixels
-        # in the capture. Keep their arrows and keyboard/wheel interactions;
-        # only unify the little surfaces and separators with the Unity panel.
-        "QSpinBox::up-button, QSpinBox::down-button, "
-        "QDoubleSpinBox::up-button, QDoubleSpinBox::down-button, "
-        "QDateEdit::up-button, QDateEdit::down-button, "
-        "QTimeEdit::up-button, QTimeEdit::down-button { "
-        "background: %s; border: none; border-left: 1px solid %s; "
-        "width: 17px; }" % (
-            colors["PANEL_ACTIVE"], colors["BORDER_SOFT"],
-        ),
-        "QDateEdit::drop-down { background: %s; border: none; "
-        "border-left: 1px solid %s; width: 21px; }" % (
-            colors["PANEL_ACTIVE"], colors["BORDER_SOFT"],
-        ),
+
         # Focus must be appended AFTER all sprite rules to remain visible.
         "#PageTitle, #HomeGuideTitle, #TopNavBrandText { "
         'font-family: "Rowdies", "Lexend", "Segoe UI"; }',
@@ -449,13 +435,63 @@ def unity_skin_stylesheet(palette: Mapping[str, str] | None = None) -> str:
         "QPushButton#TopNavSettings",
         "btn_green_small", 6,
     )
-    normal = _sprite_url("Assets_UI_Themes_darkStone_common_btn_checkbox_normal-png.png")
-    checked = _sprite_url("Assets_UI_Themes_darkStone_common_btn_checkbox_selected-png.png")
-    if normal and checked:
+    # Tiny original vector glyphs preserve the real spin controls and
+    # selected/mixed checkbox state. No darkStone black checkbox tiles.
+    # If a release omits these optional files, Qt keeps its native arrows.
+    glyph_root = Path("sprites")
+    glyphs = {
+        state: _asset_file(glyph_root / f"atlas-control-{state}.svg")
+        for state in ("check", "mixed", "up", "down")
+    }
+    rules.append(
+        "QCheckBox, QRadioButton { background: transparent; "
+        "border: none; color: %s; spacing: 8px; }" % colors["TEXT_SOFT"]
+    )
+    rules.append(
+        "QCheckBox:disabled, QRadioButton:disabled { color: %s; }"
+        % colors["TEXT_DISABLED"]
+    )
+    if glyphs["check"] and glyphs["mixed"]:
+        check_url = glyphs["check"].resolve().as_posix()
+        mixed_url = glyphs["mixed"].resolve().as_posix()
         rules.extend((
-            f'QCheckBox::indicator {{ width: 19px; height: 19px; image: url("{normal}"); }}',
-            f'QCheckBox::indicator:checked {{ image: url("{checked}"); }}',
+            "QCheckBox::indicator { width: 18px; height: 18px; "
+            "background: %s; border: 1px solid %s; border-radius: 4px; }"
+            % (colors["PANEL_2"], colors["BORDER_CARD"]),
+            "QCheckBox::indicator:checked { background: %s; border-color: %s; "
+            'image: url("%s"); }' % (
+                colors["GREEN_DARK"], colors["GREEN_BORDER"], check_url
+            ),
+            "QCheckBox::indicator:indeterminate { background: %s; "
+            'border-color: %s; image: url("%s"); }' % (
+                colors["PANEL_ACTIVE"], colors["BORDER_STRONG"], mixed_url
+            ),
+            "QCheckBox::indicator:disabled { background: %s; border-color: %s; }"
+            % (colors["PANEL"], colors["BORDER_SOFT"]),
         ))
+    if glyphs["up"] and glyphs["down"]:
+        up_url = glyphs["up"].resolve().as_posix()
+        down_url = glyphs["down"].resolve().as_posix()
+        # Style the wells only with a verified visible chevron. Without the
+        # SVG icons, native Qt arrow wells remain visible and clickable.
+        roots = ("QSpinBox", "QDoubleSpinBox", "QDateEdit", "QTimeEdit")
+        for direction, url in (("up", up_url), ("down", down_url)):
+            rules.append(
+                ", ".join(f"{root}::{direction}-button" for root in roots)
+                + " { background: %s; border: none; border-left: 1px solid %s; "
+                  "width: 17px; }" % (
+                      colors["PANEL_ACTIVE"], colors["BORDER_SOFT"]
+                  )
+            )
+            rules.append(
+                ", ".join(f"{root}::{direction}-arrow" for root in roots)
+                + f' {{ image: url("{url}"); width: 9px; height: 9px; }}'
+            )
+        rules.append(
+            "QDateEdit::drop-down { background: %s; border: none; "
+            "border-left: 1px solid %s; width: 21px; }"
+            % (colors["PANEL_ACTIVE"], colors["BORDER_SOFT"])
+        )
     # Selected tabs use PANEL_ACTIVE / GREEN_BORDER from the real palette.
     # The optional darkStone 9-slice has a beige-gold tint, and forcing a 6px
     # border changes geometry. Do not let decorative art replace shared tabs.
