@@ -57,7 +57,7 @@ jobs:
           if ($manifest.families -ne 16) { throw "Dev UI families count changed" }
           if ($manifest.horizontal_scroll_max -ne 0) { throw "Dev UI has horizontal overflow" }
           if ($manifest.vertical_scroll_max -le 0) { throw "Dev UI gallery no longer scrolls" }
-          foreach ($name in @('viewport', 'complete', 'dialog')) {
+          foreach ($name in @('viewport', 'complete', 'family_dropdown', 'dialog')) {
             $imagePath = $manifest.screenshots.$name
             if (-not (Test-Path $imagePath)) { throw "Missing real Qt screenshot: $name" }
           }
