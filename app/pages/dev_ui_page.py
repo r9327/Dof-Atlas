@@ -737,6 +737,7 @@ class DevUiPage(QWidget):
         source_hint.setObjectName("MutedLabel")
         section.addWidget(source_hint)
         icons = QGridLayout()
+        self.preview_icon_grid = icons
         icons.setHorizontalSpacing(12)
         icons.setVerticalSpacing(6)
         self.preview_icon_labels: dict[str, QLabel] = {}
