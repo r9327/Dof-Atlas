@@ -175,16 +175,19 @@ def register_unity_fonts() -> tuple[str, ...]:
     return tuple(dict.fromkeys(families))
 
 
-def apply_unity_panel_shadow(widget: QWidget, *, blur: int = 18, vertical: int = 4) -> None:
-    """A real Qt shadow for a few fixed Guide panels, never list rows.
+def apply_unity_panel_shadow(
+    widget: QWidget, *, blur: int = 18, vertical: int = 4, alpha: int = 195
+) -> None:
+    """Reuse the existing Unity panel relief on *static* surfaces only.
 
-    Qt stylesheets cannot render box-shadow. This effect is intentionally
-    reserved for lightweight, static panels to protect scrolling performance.
+    The default remains untouched for current Guide callers. A low-alpha
+    variant can be opted into elsewhere without a second shadow system or
+    any per-row graphics effects.
     """
     effect = QGraphicsDropShadowEffect(widget)
     effect.setBlurRadius(blur)
     effect.setOffset(0, vertical)
-    effect.setColor(QColor(0, 0, 0, 195))
+    effect.setColor(QColor(0, 0, 0, max(0, min(255, alpha))))
     widget.setGraphicsEffect(effect)
 
 
