@@ -6,13 +6,17 @@ from __future__ import annotations
 
 import os
 from collections.abc import Mapping
+from functools import lru_cache
 from pathlib import Path
 
-from PySide6.QtCore import QRectF
-from PySide6.QtGui import QColor, QFontDatabase, QLinearGradient, QPainter, QPixmap
+from PySide6.QtCore import QRectF, Qt
+from PySide6.QtGui import QColor, QFontDatabase, QIcon, QLinearGradient, QPainter, QPen, QPixmap
 from PySide6.QtWidgets import QGraphicsDropShadowEffect, QWidget
 
-from app.ui.unity_palette import UNITY_PALETTE, UNITY_RADII
+from app.ui.unity_palette import (
+    UNITY_ICON_NAMES, UNITY_PALETTE, UNITY_RADII, UNITY_SIZES_PX,
+    resolve_unity_colors,
+)
 
 
 _ASSETS = Path(__file__).resolve().parents[1] / "assets" / "themes" / "dofus_unity"
@@ -52,14 +56,74 @@ def _sprite_url(filename: str) -> str | None:
 
 def sprite_icon_path(icon: str) -> Path | None:
     """Keep Atlas fallback icons if a personal Unity pictogram is absent."""
-    if not unity_enabled() or icon not in {
-        "guide", "quest", "success", "encyclopedia",
-        "character", "dofus", "map", "inventory",
-    }:
+    if not unity_enabled() or icon not in UNITY_ICON_NAMES:
         return None
     filename = f"Assets_UI_Themes_Figma_menuIcons_1x_{icon}-png.png"
     return _asset_file(Path("sprites") / filename)
 
+
+
+@lru_cache(maxsize=48)
+def unity_ui_icon(name: str, size: int = 24) -> QIcon:
+    """Actual local Unity pictogram when permitted; otherwise a clean white icon.
+
+    The fallback is drawn with Qt paths, not with a game asset or a unicode
+    glyph that might show as a colored square on Windows.
+    """
+    if name not in UNITY_ICON_NAMES:
+        raise ValueError(f"Unknown Unity UI icon: {name}")
+    if size not in {UNITY_SIZES_PX[key] for key in (
+        "icon_small", "icon_normal", "icon_large", "icon_xlarge"
+    )}:
+        raise ValueError(f"Unsupported Unity UI icon size: {size}")
+    path = sprite_icon_path(name)
+    if path is not None:
+        return QIcon(str(path))
+
+    pix = QPixmap(size, size)
+    pix.fill(Qt.transparent)
+    painter = QPainter(pix)
+    painter.setRenderHint(QPainter.Antialiasing)
+    painter.scale(size / 24.0, size / 24.0)
+    painter.setPen(QPen(QColor(UNITY_PALETTE["TEXT"]), 1.8, Qt.SolidLine,
+                        Qt.RoundCap, Qt.RoundJoin))
+    painter.setBrush(Qt.NoBrush)
+    if name == "guide":
+        painter.drawRoundedRect(QRectF(3, 5, 18, 15), 1.5, 1.5)
+        painter.drawLine(12, 5, 12, 20)
+        painter.drawLine(6, 9, 10, 9)
+        painter.drawLine(14, 9, 18, 9)
+    elif name == "quest":
+        painter.drawRoundedRect(QRectF(5, 3, 14, 18), 2, 2)
+        for y in (8, 12, 16):
+            painter.drawLine(8, y, 16, y)
+    elif name == "success":
+        painter.drawArc(QRectF(6, 3, 12, 12), 0, 180 * 16)
+        painter.drawLine(6, 9, 9, 15)
+        painter.drawLine(18, 9, 15, 15)
+        painter.drawLine(12, 15, 12, 19)
+        painter.drawLine(8, 21, 16, 21)
+    elif name == "encyclopedia":
+        painter.drawRoundedRect(QRectF(4, 4, 13, 16), 1, 1)
+        painter.drawRoundedRect(QRectF(8, 2, 13, 16), 1, 1)
+        painter.drawLine(11, 7, 17, 7)
+        painter.drawLine(11, 11, 17, 11)
+    elif name == "character":
+        painter.drawEllipse(QRectF(8, 3, 8, 8))
+        painter.drawArc(QRectF(4, 12, 16, 11), 0, 180 * 16)
+    elif name == "dofus":
+        painter.drawEllipse(QRectF(7, 3, 10, 18))
+        painter.drawArc(QRectF(9, 6, 6, 9), 40 * 16, 100 * 16)
+    elif name == "map":
+        painter.drawEllipse(QRectF(6, 3, 12, 12))
+        painter.drawEllipse(QRectF(10, 7, 4, 4))
+        painter.drawLine(7, 14, 12, 21)
+        painter.drawLine(17, 14, 12, 21)
+    elif name == "inventory":
+        painter.drawRoundedRect(QRectF(4, 8, 16, 13), 2, 2)
+        painter.drawArc(QRectF(8, 3, 8, 10), 0, 180 * 16)
+    painter.end()
+    return QIcon(pix)
 
 def register_unity_fonts() -> tuple[str, ...]:
     """Register local fonts only after QApplication exists; never package them."""
@@ -93,7 +157,7 @@ def unity_skin_stylesheet(palette: Mapping[str, str] | None = None) -> str:
     """Global Qt controls, with optional preview overrides for Unity tokens."""
     if not unity_enabled():
         return ""
-    colors = UNITY_PALETTE if palette is None else {**UNITY_PALETTE, **palette}
+    colors = resolve_unity_colors(palette)
     radii = {
         **UNITY_RADII,
         **{key: value for key, value in (palette or {}).items() if key in UNITY_RADII},

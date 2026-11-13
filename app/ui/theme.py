@@ -3,14 +3,17 @@ from __future__ import annotations
 from collections.abc import Mapping
 from functools import lru_cache
 
-from app.ui.unity_palette import UNITY_RADII
+from app.ui.unity_palette import (
+    UNITY_COLOR_ALIAS_ROLES, UNITY_RADII, UNITY_SIZES_PX,
+    resolve_unity_colors,
+)
 from app.ui.unity_skin import UNITY_PALETTE, unity_skin_stylesheet
 
 
 # One Unity visual language, shared by every Qt page. The remaining keys are
 # semantic warning/status roles, not a second (legacy) presentation.
 PALETTE = {
-    **UNITY_PALETTE,
+    **resolve_unity_colors(),
     "RED": "#D71920",
     "RED_HOVER": "#EF2028",
     "RED_DARK": "#9F1016",
@@ -44,8 +47,13 @@ SPACING = {
 
 SIZES = {
     **UNITY_RADII,
-    "CONTROL_HEIGHT_COMPACT": "24px",
-    "CONTROL_HEIGHT": "32px",
+    "CONTROL_HEIGHT_COMPACT": f'{UNITY_SIZES_PX["control_compact"]}px',
+    "CONTROL_HEIGHT": f'{UNITY_SIZES_PX["control_normal"]}px',
+    "CONTROL_HEIGHT_LARGE": f'{UNITY_SIZES_PX["control_large"]}px',
+    "ICON_SIZE_SMALL": f'{UNITY_SIZES_PX["icon_small"]}px',
+    "ICON_SIZE_NORMAL": f'{UNITY_SIZES_PX["icon_normal"]}px',
+    "ICON_SIZE_LARGE": f'{UNITY_SIZES_PX["icon_large"]}px',
+    "ICON_SIZE_XLARGE": f'{UNITY_SIZES_PX["icon_xlarge"]}px',
     "TOP_NAV_HEIGHT": "58px",
 }
 
@@ -3295,6 +3303,11 @@ def _render_theme_template(
         if unknown:
             raise KeyError(f"Unknown theme token(s): {', '.join(unknown)}")
         tokens.update({key: str(value) for key, value in overrides.items()})
+    # Guide-compatible aliases must follow the shared source *after* palette
+    # overrides. Explicit legacy Guide overrides remain supported.
+    for alias, role in UNITY_COLOR_ALIAS_ROLES.items():
+        if not overrides or alias not in overrides:
+            tokens[alias] = tokens[role]
     # Derived translucent roles track palette overrides automatically. A
     # subtle glass treatment must not become a second hard-coded gray palette.
     tokens["GLASS_SUBTLE_SURFACE"] = _soft_alpha(tokens["PANEL_HOVER"], "0.05")

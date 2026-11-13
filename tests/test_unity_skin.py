@@ -255,6 +255,34 @@ class UnitySkinTests(unittest.TestCase):
             finally:
                 components._APPLICATION_ICON = old
 
+    def test_unity_icons_have_white_vector_fallback_when_sprites_missing(self) -> None:
+        """Missing personal textures never result in empty developer icons."""
+        from app.ui.unity_palette import UNITY_ICON_NAMES, UNITY_SIZES_PX
+
+        with tempfile.TemporaryDirectory() as folder:
+            path = Path(folder)
+            with patch.object(unity_skin, "_ASSETS", path), patch.object(
+                unity_skin, "_PERSONAL_ASSETS", path / "no-theme"
+            ):
+                unity_skin.unity_ui_icon.cache_clear()
+                try:
+                    for name in UNITY_ICON_NAMES:
+                        for role in ("icon_small", "icon_large", "icon_xlarge"):
+                            size = UNITY_SIZES_PX[role]
+                            pix = unity_skin.unity_ui_icon(name, size).pixmap(size, size)
+                            self.assertFalse(pix.isNull(), (name, size))
+                            self.assertTrue(pix.toImage().hasAlphaChannel())
+                            self.assertTrue(any(
+                                pix.toImage().pixelColor(x, y).alpha() > 0
+                                for x in range(size) for y in range(size)
+                            ), (name, size))
+                    with self.assertRaises(ValueError):
+                        unity_skin.unity_ui_icon("unknown")
+                    with self.assertRaises(ValueError):
+                        unity_skin.unity_ui_icon("guide", 100)
+                finally:
+                    unity_skin.unity_ui_icon.cache_clear()
+
     def test_unknown_icon_does_not_escape_local_theme_directory(self) -> None:
         with patch.dict(os.environ, {"ATLAS_THEME": "dofus_unity"}):
             self.assertIsNone(sprite_icon_path("not-an-allowlisted-icon"))

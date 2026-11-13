@@ -70,6 +70,86 @@ UNITY_RADII = {
 }
 
 
+# What each color does in the actual UI, not another color palette.
+# Keep the darkStone component sprites and their original Qt state mapping.
+UNITY_UI_USAGE = (
+    ("Fond de fenêtre", "BG", "BORDER"),
+    ("Carte et panneau", "PANEL", "BORDER"),
+    ("En-tête et navigation", "NAV_SURFACE", "TEXT_SOFT"),
+    ("Onglet sélectionné", "PANEL_ACTIVE", "GREEN_BORDER"),
+    ("Contrôle secondaire", "PANEL_2", "BORDER_CARD"),
+    ("Champ de saisie", "FIELD_SURFACE", "BORDER"),
+    ("Liste et tableau", "LIST_SURFACE", "BORDER"),
+    ("Survol", "PANEL_HOVER", "BORDER_STRONG"),
+    ("Info-bulle", "TOOLTIP_SURFACE", "TEXT"),
+    ("Action validée", "GREEN", "GREEN_BORDER"),
+)
+
+# The gallery highlights the small, meaningful palette. Full technical
+# variants remain available separately and never become a second theme.
+UNITY_MAIN_ROLES = (
+    "BG", "PANEL", "PANEL_2", "NAV_SURFACE", "FIELD_SURFACE",
+    "BORDER", "TEXT", "TEXT_MUTED", "PANEL_ACTIVE", "GREEN",
+)
+
+# Pixel metrics shared by the stylesheet and the real Qt components.
+# Preserves the existing compact/normal sizing (no layout redesign).
+UNITY_SIZES_PX = {
+    "control_compact": 24,
+    "control_normal": 32,
+    "control_large": 40,
+    "icon_small": 16,
+    "icon_normal": 20,
+    "icon_large": 24,
+    "icon_xlarge": 32,
+}
+UNITY_ICON_NAMES = (
+    "guide", "quest", "success", "encyclopedia",
+    "character", "dofus", "map", "inventory",
+)
+
+# Guide-compatible names still exist for old selectors and explicit
+# per-role previews, but their normal colors now follow shared Unity
+# surfaces. Do not maintain a second blue palette for this one module.
+UNITY_COLOR_ALIAS_ROLES = {
+    "GUIDE_PREPARATION_BORDER": "BORDER_CARD",
+    "GUIDE_PREPARATION_TEXT": "TEXT",
+    "GUIDE_ITEM_TEXT": "TEXT",
+    "GUIDE_STATUS_TEXT": "TEXT_SOFT",
+    "GUIDE_NAV_BORDER": "BORDER",
+    "GUIDE_TOGGLE_TOP": "PANEL_ACTIVE",
+    "GUIDE_TOGGLE_BOTTOM": "PANEL_2",
+    "GUIDE_TOGGLE_BORDER": "BORDER_CARD",
+    "GUIDE_TOGGLE_ACTIVE": "PANEL_ACTIVE",
+    "GUIDE_TOGGLE_ACTIVE_BORDER": "GREEN_BORDER",
+    "GUIDE_TOGGLE_HOVER": "PANEL_HOVER",
+    "GUIDE_COMPACT_SURFACE": "PANEL",
+    "GUIDE_SUMMARY_TOP": "PANEL_ACTIVE",
+    "GUIDE_SUMMARY_BOTTOM": "PANEL",
+    "GUIDE_PREPARATION_ROW": "PANEL_2",
+    "GUIDE_PREPARATION_ROW_BORDER": "BORDER_CARD",
+    "GUIDE_COPY_HOVER": "PANEL_HOVER",
+    "GUIDE_MANUAL_NAV_SURFACE": "NAV_SURFACE",
+}
+
+
+def resolve_unity_colors(
+    overrides: Mapping[str, str] | None = None,
+) -> dict[str, str]:
+    """Resolve semantic aliases after overrides; preserve explicit Guide overrides.
+
+    With no override, a Guide uses exactly the same surface/hover/border
+    colors as the rest of the application, even after a live theme update.
+    """
+    colors = dict(UNITY_PALETTE)
+    if overrides:
+        colors.update(overrides)
+    for alias, role in UNITY_COLOR_ALIAS_ROLES.items():
+        if not overrides or alias not in overrides:
+            colors[alias] = colors[role]
+    return colors
+
+
 _LAUNCHER_ROLES = {
     "background": "BG",
     "panel": "PANEL",

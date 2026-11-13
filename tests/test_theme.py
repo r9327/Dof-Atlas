@@ -198,6 +198,29 @@ class SharedThemeTests(unittest.TestCase):
         self.assertEqual(theme.SIZES["RADIUS_SM"], "6px")
         self.assertEqual(theme.SIZES["RADIUS_MD"], "8px")
 
+    def test_guide_color_aliases_follow_common_unity_overrides(self) -> None:
+        from app.ui.unity_palette import UNITY_SIZES_PX
+
+        style = theme.atlas_stylesheet({
+            "PANEL": "#112233",
+            "PANEL_2": "#223344",
+            "PANEL_ACTIVE": "#334455",
+            "BORDER_CARD": "#445566",
+        })
+        # The Guide is not allowed to maintain a parallel surface palette.
+        self.assertIn("rgba(17, 34, 51, 0.93)", style)
+        self.assertIn("rgba(34, 51, 68, 0.92)", style)
+        self.assertIn("rgba(51, 68, 85, 0.97)", style)
+        self.assertIn("rgba(68, 85, 102, 0.65)", style)
+        self.assertEqual(
+            theme.SIZES["CONTROL_HEIGHT_COMPACT"],
+            f'{UNITY_SIZES_PX["control_compact"]}px',
+        )
+        self.assertEqual(
+            theme.SIZES["ICON_SIZE_LARGE"],
+            f'{UNITY_SIZES_PX["icon_large"]}px',
+        )
+
     def test_guide_buttons_remain_themed_after_dropdown_unification(self) -> None:
         style = theme.atlas_stylesheet({"GREEN_BORDER": "#135790"})
         button_hover = style.split(

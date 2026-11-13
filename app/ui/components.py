@@ -13,6 +13,7 @@ from PySide6.QtWidgets import (
 )
 
 from app.constants import APP_ICON_PATH
+from app.ui.unity_palette import UNITY_SIZES_PX
 from app.ui.splash_image import clear_connected_dark_background
 
 
@@ -65,7 +66,7 @@ class AtlasButton(QPushButton):
     ) -> None:
         super().__init__(text, parent)
         self.setCursor(Qt.PointingHandCursor)
-        self.setMinimumHeight(24)
+        self.setMinimumHeight(UNITY_SIZES_PX["control_compact"])
         if variant:
             self.set_variant(variant)
 
