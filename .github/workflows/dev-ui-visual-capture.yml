@@ -49,6 +49,16 @@ jobs:
         run: |
           python -X faulthandler -m tools.dev_ui_snapshot --output artifacts/dev-ui --width 1440 --height 900
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+      - name: Check capture completeness and horizontal fit
+        shell: pwsh
+        run: |
+          $manifest = Get-Content artifacts/dev-ui/dev-ui-capture.json -Raw | ConvertFrom-Json
+          if ($manifest.families -ne 16) { throw "Dev UI families count changed" }
+          if ($manifest.horizontal_scroll_max -ne 0) { throw "Dev UI has horizontal overflow" }
+          foreach ($name in @('viewport', 'complete', 'dialog')) {
+            $imagePath = $manifest.screenshots.$name
+            if (-not (Test-Path $imagePath)) { throw "Missing real Qt screenshot: $name" }
+          }
       - name: Validate Dev UI shared widgets and interactions
         shell: pwsh
         run: |
