@@ -1,5 +1,5 @@
 name: Atlas UI / Global Unity Windows Capture
-# Final exact-SHA UI regression: real AtlasWindow module captures, transparent panel content, Unity map placeholder and painted Settings icon.
+# One final exact-SHA Windows UI regression: 9 full-shell modules, 22 Dev UI families, Organizer and Launcher contracts.
 
 on:
   pull_request:
