@@ -82,11 +82,11 @@ class UnityPaletteTests(unittest.TestCase):
             UNITY_UI_CONSUMERS, UNITY_UI_FAMILY_INDEX,
         )
 
-        self.assertEqual(len(UNITY_UI_FAMILY_INDEX), 20)
+        self.assertEqual(len(UNITY_UI_FAMILY_INDEX), 22)
         self.assertEqual(len(UNITY_UI_CONSUMERS), 12)
         self.assertEqual(len({
             item["title"] for item in UNITY_UI_FAMILY_INDEX.values()
-        }), 20)
+        }), 22)
         for family, item in UNITY_UI_FAMILY_INDEX.items():
             with self.subTest(family=family):
                 self.assertTrue(item["title"])
@@ -99,7 +99,7 @@ class UnityPaletteTests(unittest.TestCase):
         self.assertEqual(UNITY_UI_FAMILY_INDEX["guides"]["scope"], "module")
         self.assertEqual(UNITY_UI_FAMILY_INDEX["palette"]["scope"], "shared")
         from app.ui.unity_palette import UNITY_UI_UNIFICATION_CONTRACT
-        self.assertGreaterEqual(len(UNITY_UI_UNIFICATION_CONTRACT), 30)
+        self.assertGreaterEqual(len(UNITY_UI_UNIFICATION_CONTRACT), 39)
         self.assertEqual({family for _label, family in
                           UNITY_UI_UNIFICATION_CONTRACT},
                          set(UNITY_UI_FAMILY_INDEX))
