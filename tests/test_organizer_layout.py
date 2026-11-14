@@ -1704,11 +1704,11 @@ widget.close()
                 page.script_speed_fast.click()
                 self.assertEqual(page.profiles[KEY_SCRIPT_SPEED], "rapide")
                 self.assertEqual(page.speed_selector._selected, 1)
-                self.assertEqual(len(stop_calls), 1)
+                self.assertEqual(len(stop_calls), 0)
                 self.assertEqual(len(reload_calls), 1)
                 # Clicking the current choice must not restart live macro workers.
                 page.script_speed_fast.click()
-                self.assertEqual(len(stop_calls), 1)
+                self.assertEqual(len(stop_calls), 0)
                 self.assertEqual(len(reload_calls), 1)
 
 

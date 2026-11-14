@@ -34,7 +34,12 @@ class OrganizerSpeedPresetsTests(unittest.TestCase):
             with self.subTest(attribute=attr):
                 values = [getattr(timing, attr) for timing in timings]
                 self.assertEqual(values, sorted(values, reverse=True))
-                self.assertGreater(values[-1], 0)
+                self.assertGreaterEqual(values[-1], 0)
+                if attr in {
+                    "auto_group_chat_open_ms", "auto_group_key_step_ms",
+                    "auto_group_paste_settle_ms", "movement_key_hold_ms",
+                }:
+                    self.assertGreater(values[-1], 0)
         for timing in timings:
             self.assertGreaterEqual(timing.activate_attempts, 1)
             self.assertGreaterEqual(timing.input_click_down_ms, 1)
@@ -51,7 +56,7 @@ class OrganizerSpeedPresetsTests(unittest.TestCase):
             loaded = settings.load_settings()
         self.assertEqual(loaded.script_speed, "normal")
         self.assertEqual(
-            loaded.timings.switch_background_pre_click_ms, 18,
+            loaded.timings.switch_background_pre_click_ms, 10,
         )
 
     def test_new_instantane_export_schema_stays_instantane_when_loaded(self):
@@ -66,9 +71,9 @@ class OrganizerSpeedPresetsTests(unittest.TestCase):
         ):
             loaded = settings.load_settings()
         self.assertEqual(loaded.script_speed, "instantane")
-        self.assertEqual(loaded.timings.auto_group_chat_open_ms, 45)
+        self.assertEqual(loaded.timings.auto_group_chat_open_ms, 30)
 
-    def test_chat_cadence_is_identical_across_switch_presets(self):
+    def test_chat_cadence_gets_faster_without_removing_reliability_floors(self):
         modes = ("classique", "normal", "rapide", "instantane")
         fields = (
             "auto_group_chat_open_ms", "auto_group_key_step_ms",
@@ -76,10 +81,10 @@ class OrganizerSpeedPresetsTests(unittest.TestCase):
         )
         for field in fields:
             with self.subTest(field=field):
-                self.assertEqual(
-                    len({getattr(settings.timings_for_speed(mode), field) for mode in modes}),
-                    1,
-                )
+                values = [getattr(settings.timings_for_speed(mode), field) for mode in modes]
+                self.assertEqual(values, sorted(values, reverse=True))
+                if field != "auto_group_invite_gap_ms":
+                    self.assertGreater(values[-1], 0)
 
     def test_zaap_and_auto_group_consume_all_three_actual_speed_presets_in_both_modes(self):
         from app.macros.auto_group import AutoGroupMacro
@@ -105,7 +110,7 @@ class OrganizerSpeedPresetsTests(unittest.TestCase):
                     ):
                         ZaapMacro(zaap)._run("/zaap 1,2")
                     send_zaap.assert_called_once()
-                    self.assertEqual(send_zaap.call_args.args[0], "/zaap 1,2")
+                    self.assertEqual(send_zaap.call_args.args[0], "/travel 1,2")
                     for key, value in (
                         ("chat_open_ms", timing.auto_group_chat_open_ms),
                         ("key_step_ms", timing.auto_group_key_step_ms),

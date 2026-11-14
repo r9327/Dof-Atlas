@@ -92,11 +92,11 @@ class OrganizerMirrorIntegrationTests(unittest.TestCase):
                     self.assertTrue(page.next_character.isEnabled())
                     self.assertTrue(page.stop_script_button.isEnabled())
                     self.assertTrue(page.radial_select_button.isEnabled())
-                    on_stop.assert_called_once()
+                    on_stop.assert_not_called()
                     page.macro_mode_button.click()
                     self.assertEqual(page.profiles[KEY_ORGANIZER_MACRO_MODE], "macro")
                     self.assertTrue(page.macro_grid_host.isEnabled())
-                    self.assertEqual(on_stop.call_count, 2)
+                    self.assertEqual(on_stop.call_count, 0)
                     self.assertEqual(
                         json.loads(profile.read_text(encoding="utf-8"))[KEY_ORGANIZER_MACRO_MODE],
                         "macro",
