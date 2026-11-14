@@ -20,6 +20,7 @@ from app.ui.splash_image import clear_connected_dark_background
 BUTTON_OBJECT_NAMES = {
     "primary": "PrimaryActionButton",
     "secondary": "SecondaryButton",
+    "selected": "ActiveButton",
     "danger": "DangerButton",
     "navigation": "TopNavButton",
     "navigation_active": "TopNavButtonActive",
