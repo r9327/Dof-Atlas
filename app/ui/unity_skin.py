@@ -268,7 +268,7 @@ def unity_skin_stylesheet(palette: Mapping[str, str] | None = None) -> str:
         "border: 1px solid %s; border-top: 1px solid %s; "
         "border-radius: %s; }" % (
             translucent("PANEL_2", 0.82), translucent("PANEL", 0.88),
-            colors["TEXT"], colors["BORDER"],
+            colors["TEXT"], colors["BORDER_SOFT"],
             translucent("TEXT_SOFT", UNITY_GLASS_INTENSITY), radii["RADIUS_MD"],
         ),
         "QListView, QTreeView, QTableView, QListWidget, QTreeWidget, QTableWidget { "
