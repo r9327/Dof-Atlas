@@ -281,13 +281,18 @@ def unity_skin_stylesheet(palette: Mapping[str, str] | None = None) -> str:
         "QWidget#GuidesDetailPage, "
         "QWidget#GuideLeftPanelContent, QWidget#GuideCenterPanelContent, "
         "QWidget#GuideRightPanelContent { background: transparent; }",
-        # Real guide panels remain legible, but they no longer blot out the sky.
+        # Match the exact Unity panel material already owned by theme.py.
         "QFrame#GuideHeader, "
         "QFrame#GuidesHomeCategory, QFrame#GuidesHomeProgressionColumn, "
         "QFrame#GuideLeftPanel, QFrame#GuideCenterPanel, "
         "QFrame#GuideRightPanel, QFrame#GuidesHomeSubCategory { "
-        "background: %s; border: 1px solid %s; }" % (
-            translucent("PANEL", 0.88), colors["BORDER"],
+        "background: qlineargradient(x1:0,y1:0,x2:0,y2:1,"
+        "stop:0 %s,stop:1 %s); border: 1px solid %s; "
+        "border-top: 1px solid %s; border-radius: %s; }" % (
+            translucent("PANEL_2", 0.82), translucent("PANEL", 0.88),
+            colors["BORDER_SOFT"],
+            translucent("TEXT_SOFT", UNITY_GLASS_INTENSITY),
+            radii["RADIUS_MD"],
         ),
         "QListView#GuidesHomeDofusGrid { background: %s; }" %
         translucent("LIST_SURFACE", 0.45),
@@ -378,8 +383,13 @@ def unity_skin_stylesheet(palette: Mapping[str, str] | None = None) -> str:
         % (colors["GREEN"], radii["RADIUS_XS"]),
         "QFrame#GuideCompactHeader, QFrame#GuideSheetHeader, "
         "QFrame#GuidePreparationPanel { "
-        "background: %s; border: 1px solid %s; }" % (
-            translucent("GUIDE_COMPACT_SURFACE", 0.93), colors["BORDER"],
+        "background: qlineargradient(x1:0,y1:0,x2:0,y2:1,"
+        "stop:0 %s,stop:1 %s); border: 1px solid %s; "
+        "border-top: 1px solid %s; border-radius: %s; }" % (
+            translucent("PANEL_2", 0.82), translucent("PANEL", 0.88),
+            colors["BORDER_SOFT"],
+            translucent("TEXT_SOFT", UNITY_GLASS_INTENSITY),
+            radii["RADIUS_MD"],
         ),
         # Small bevels and stronger contrast for the real guide surfaces.
         # QSS has no native box-shadow; personal 9-slice sprites can supply

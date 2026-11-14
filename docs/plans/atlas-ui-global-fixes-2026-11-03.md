@@ -736,3 +736,10 @@ La capture Windows `Personnage` (profil temporaire vide) a révélé que `Charac
 - Le plan de domaine CI reste **BLOCKED** sur huit chemins exacts non indexés (4 icônes Atlas SVG, `guide_ultime_generated_view.py`, `tests/capture_app_shell_ui.py`, `tests/test_equipment_deferred_start.py`, `tools/dev_ui_snapshot.py`). Le routeur est limité à **ces huit chemins**, avec domaines consommateurs effectifs ; aucun wildcard `.svg`, `tools/*` ou `tests/*`.
 - Tests de non-régression : chaque chemin connu a des domaines non vides, les voisins inconnus restent rejetés ; les quatre pictogrammes SVG sont contrôlés comme des formes statiques (pas de script, lien ou référence externe). `plan_domains` reste fail-closed et son résultat n'est **pas** un certificat.
 - **Limites :** le Delivery Guard refuse toujours un rapport non lié au HEAD exact. Les exigences PENDING du contrat #364 restent PENDING. Aucune certification globale ni fusion autorisée par ce seul lot ; nouvelles preuves CI nécessaires au SHA final.
+
+
+### P0 — surfaces Guides uniformisées comme Dev UI (14 novembre 2026)
+
+- Cause : des panneaux, cartes et états Guides conservaient une palette sombre opaque et le skin Unity **réécrivait** les mêmes surfaces après le QSS commun ; une modification des tokens Dev UI ne se répercutait donc pas fidèlement.
+- Mise à jour **deux couches QSS existantes, sans nouvelle palette** : les racines Guides deviennent transparentes ; les panneaux, catégories, en-têtes compacts, cartes, états de survol et zones vides réutilisent `GLASS_PANEL_TOP/BOTTOM`, `GLASS_BUTTON/HOVER`, `GLASS_HAIRLINE`, `BORDER_SOFT` et les rayons Unity ; sélection par liseré inférieur vert fin.
+- Test de propagation des tokens ajouté dans `tests/test_theme.py`. Aucune logique métier, données Ganymède, progression, clic, ni route modifiés. **Tests/CI non exécutés pendant ce lot**, à conserver pour la validation finale de la PR toujours Draft.

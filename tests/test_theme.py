@@ -157,6 +157,42 @@ class SharedThemeTests(unittest.TestCase):
         self.assertIn("border-color: #304050;", hover)
         self.assertIn("QPushButton#GuideInlineQuestButton,", style)
 
+    def test_guide_surfaces_use_the_shared_glass_in_both_stylesheet_layers(self) -> None:
+        from app.ui.unity_palette import resolve_unity_colors
+
+        overrides = {
+            "PANEL_2": "#203050", "PANEL": "#142038",
+            "PANEL_ACTIVE": "#30456A", "PANEL_HOVER": "#405775",
+            "BORDER_SOFT": "#637A94", "TEXT_SOFT": "#DCE7F2",
+            "GREEN": "#A3D153", "GREEN_BORDER": "#86B343",
+            "RADIUS_MD": "12px",
+        }
+        style = theme.atlas_stylesheet(overrides)
+        roots = style.split("QWidget#GuidesHomePage,\n", 1)[1].split("}", 1)[0]
+        self.assertIn("background: transparent;", roots)
+        panels = style.split(
+            "QFrame#GuideHeader,\n            QFrame#GuideBreadcrumb,", 1
+        )[1].split("}", 1)[0]
+        self.assertIn("rgba(32, 48, 80, 0.82)", panels)
+        self.assertIn("rgba(20, 32, 56, 0.88)", panels)
+        self.assertIn("border-radius: 12px;", panels)
+        cards = style.split("QFrame#GuideAdventureCard,\n", 1)[1].split("}", 1)[0]
+        expected = theme.unity_glass_gradient(
+            palette=resolve_unity_colors(overrides)
+        )
+        self.assertIn(f"background: {expected};", cards)
+        active = style.split(
+            "QFrame#GuideQuestLineActive,\n"
+            "            QFrame#GuideTreeRowActive {", 1
+        )[1].split("}", 1)[0]
+        self.assertIn("border-bottom: 2px solid #A3D153;", active)
+        actual_skin = style.split(
+            "QFrame#GuideHeader, QFrame#GuidesHomeCategory,", 1
+        )[1].split("}", 1)[0]
+        self.assertIn("rgba(32, 48, 80, 0.82)", actual_skin)
+        self.assertIn("rgba(20, 32, 56, 0.88)", actual_skin)
+        self.assertIn("border-radius: 12px;", actual_skin)
+
     def test_shared_guide_row_glass_tracks_live_unity_tokens(self) -> None:
         style = theme.atlas_stylesheet({
             "PANEL_HOVER": "#123456",

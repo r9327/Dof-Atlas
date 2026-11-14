@@ -2281,30 +2281,30 @@ QMenu::separator {
 
 /* Guides catalogue and shared quest-detail primitives. */
 
+            /* Guide root hosts reveal the shared Unity sky. */
             QWidget#GuidesHomePage,
             QWidget#GuidesHomeContent,
             QWidget#GuidesDetailPage,
             QWidget#GuideLeftPanelContent,
             QWidget#GuideCenterPanelContent,
-            QWidget#GuideRightPanelContent,
-            QFrame#GuidesHomeSubCategory {
-                background: #080b12;
+            QWidget#GuideRightPanelContent {
+                background: transparent;
             }
 
+            /* One material for the Dev UI gallery and actual Guide panels. */
             QFrame#GuideHeader,
             QFrame#GuideBreadcrumb,
             QFrame#GuidesHomeCategory,
             QFrame#GuidesHomeProgressionColumn,
             QFrame#GuideLeftPanel,
             QFrame#GuideCenterPanel,
-            QFrame#GuideRightPanel {
-                background: #10141d;
-                border: 1px solid #262d3a;
-                border-radius: 7px;
-            }
-
+            QFrame#GuideRightPanel,
             QFrame#GuidesHomeSubCategory {
-                border: none;
+                background: qlineargradient(x1:0,y1:0,x2:0,y2:1,
+                    stop:0 @GLASS_PANEL_TOP,stop:1 @GLASS_PANEL_BOTTOM);
+                border: 1px solid @BORDER_SOFT;
+                border-top: 1px solid @GLASS_HAIRLINE;
+                border-radius: @RADIUS_MD;
             }
 
             QFrame#GuidesHomeSeparator {
@@ -2321,8 +2321,8 @@ QMenu::separator {
             QFrame#GuideTreeRow,
             QFrame#GuideTreeRowActive,
             QFrame#GuideSeriesSummaryRow {
-                background: #141821;
-                border: 1px solid #242b37;
+                background: @GLASS_BUTTON;
+                border: 1px solid @BORDER_SOFT;
                 border-radius: @RADIUS_SM;
             }
 
@@ -2332,31 +2332,32 @@ QMenu::separator {
             QFrame#GuideQuestLine:hover,
             QFrame#GuideTreeRow:hover,
             QFrame#GuideSeriesSummaryRow:hover {
-                background: #1a202b;
-                border-color: #5e3d93;
+                background: @GLASS_HOVER;
+                border-color: @GREEN_BORDER;
             }
 
             QFrame#GuideDofusCard[state="done"] {
-                border-color: #2e7445;
+                border-color: @GREEN_BORDER;
             }
 
             QFrame#GuideQuestLineActive,
             QFrame#GuideTreeRowActive {
-                background: #24183d;
-                border-color: #6f4bb6;
+                background: @GLASS_HOVER;
+                border-color: @GREEN_BORDER;
+                border-bottom: 2px solid @GREEN;
             }
 
             QFrame#GuideQuestLineUnavailable {
-                background: #10141d;
-                border-color: #202733;
+                background: @GLASS_PANEL_BOTTOM;
+                border-color: @BORDER_SOFT;
             }
 
             QFrame#GuideQuestLine[state="done"],
             QFrame#GuideQuestLineActive[state="done"],
             QFrame#GuideTreeRow[state="done"],
             QFrame#GuideTreeRowActive[state="done"] {
-                background: #0d1118;
-                border-color: #202733;
+                background: @GLASS_PANEL_BOTTOM;
+                border-color: @BORDER_SOFT;
             }
 
             QLabel#GuideQuestLineTitle[state="done"],
@@ -2549,15 +2550,15 @@ QMenu::separator {
             }
 
             QFrame#GuideActivityChip {
-                background: #121720;
-                border: 1px solid #28303d;
-                border-radius: 5px;
+                background: @GLASS_BUTTON;
+                border: 1px solid @BORDER_SOFT;
+                border-radius: @RADIUS_XS;
             }
 
             QFrame#GuideStepsCollapsedRail {
-                background: #10141d;
+                background: @GLASS_PANEL_BOTTOM;
                 border: none;
-                border-radius: 5px;
+                border-radius: @RADIUS_XS;
             }
 
             QFrame#QuestObjectiveLine:hover,
@@ -2704,9 +2705,9 @@ QMenu::separator {
             }
 
             QFrame#GuidesHomeEmpty {
-                background: #10141d;
-                border: 1px dashed #2b3341;
-                border-radius: 7px;
+                background: @GLASS_BUTTON;
+                border: 1px dashed @BORDER_SOFT;
+                border-radius: @RADIUS_MD;
             }
 
             QLabel#GuideStepsVerticalText {
@@ -2937,9 +2938,11 @@ QToolButton#GuideManualProgressLock[state="locked"] {
 QFrame#GuideCompactHeader,
 QFrame#GuidePreparationPanel,
 QFrame#GuideSheetHeader {
-    background: @PANEL;
-    border: 1px solid @BORDER;
-    border-radius: @RADIUS_SM;
+    background: qlineargradient(x1:0,y1:0,x2:0,y2:1,
+        stop:0 @GLASS_PANEL_TOP,stop:1 @GLASS_PANEL_BOTTOM);
+    border: 1px solid @BORDER_SOFT;
+    border-top: 1px solid @GLASS_HAIRLINE;
+    border-radius: @RADIUS_MD;
 }
 
 QLabel#GuideCompactTitle {
@@ -3011,9 +3014,9 @@ QFrame#GuideCompactSettingsPanel,
 QFrame#GuideParticipantsPanel,
 QFrame#GuideSummaryPanel,
 QFrame#GuidePreparationDetails {
-    background: @PANEL_2;
+    background: @GLASS_BUTTON;
     border: 1px solid @BORDER_SOFT;
-    border-radius: @RADIUS_XS;
+    border-radius: @RADIUS_MD;
 }
 
 QToolButton#GuidePreparationToggle {
