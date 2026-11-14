@@ -84,7 +84,7 @@ jobs:
           python -X faulthandler -m tests.capture_app_shell_ui
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           $report = Get-Content artifacts/app-shell/manifest.json -Raw | ConvertFrom-Json
-          if ($report.screenshots.Count -ne 8) {
+          if ($report.screenshots.Count -ne 9) {
             throw "Full-shell capture inventory is incomplete"
           }
       - name: Upload screenshot artifact

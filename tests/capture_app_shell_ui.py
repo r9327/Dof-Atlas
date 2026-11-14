@@ -22,6 +22,7 @@ SCENARIOS = (
     ("Craft", "craft", "CraftPage", "deferred-local-data"),
     ("Equipement", "stuffs", "EquipmentPage", "no-user-equipment"),
     ("Scan Monde", "carte", "WorldScanPanel", "deferred-cartography"),
+    ("Personnage", "personnage", "CharacterPage", "empty-personal-profile"),
     ("Quetes", "encyclopedie", "EncyclopediaPage", "empty-catalog-shell-only"),
     ("Bestiaire", "bestiaire", "EncyclopediaPage", "unavailable-bestiary-placeholder"),
 )
@@ -65,6 +66,19 @@ def capture(output: Path) -> dict[str, object]:
                         "module": name, "readiness": readiness, "status": "NOT_RUN"
                     }
                     try:
+                        if name == "Personnage":
+                            # Real character dressing, isolated from both user
+                            # profiles and live network capture during CI.
+                            character_type = atlas_main._resolve_character_page()
+                            character = character_type(
+                                profile_path=Path(tmp) / "character_profiles.json",
+                                client_index_path=Path(tmp) / "client_index.json",
+                                binding_path=Path(tmp) / "bindings.json",
+                            )
+                            character.refresh_from_sources("")
+                            window.register_page("Personnage", character)
+                            window.page_nav_group["Personnage"] = ""
+                            record["fixture"] = "temporary empty player profile"
                         if name == "Quetes":
                             # The hosted Windows runner has no raw Doduda
                             # quest_categories.json. Exercise the REAL widget
@@ -139,7 +153,7 @@ def capture(output: Path) -> dict[str, object]:
     (output / "manifest.json").write_text(
         json.dumps(result, ensure_ascii=False, indent=2), encoding="utf-8"
     )
-    required = {"Home", "Settings", "Almanax", "Craft", "Equipement", "Quetes", "Bestiaire"}
+    required = {"Home", "Settings", "Almanax", "Craft", "Equipement", "Personnage", "Quetes", "Bestiaire"}
     failed = [
         entry["module"] for entry in result["screenshots"]
         if entry["module"] in required and entry["status"] != "CAPTURED"
