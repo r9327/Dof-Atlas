@@ -147,11 +147,32 @@ class UnityPaletteTests(unittest.TestCase):
         # Imported Qt artwork stays in its original colors; only custom
         # QPainter UI glyphs must resolve the canonical semantic palette.
         root = Path(__file__).resolve().parents[1]
-        for relative in ("main.py", "app/pages/organizer/organizer_ui.py"):
+        for relative in (
+            "main.py", "app/pages/organizer/organizer_ui.py",
+            "app/ui/world_scan_panel.py",
+        ):
             with self.subTest(source=relative):
                 source = (root / relative).read_text(encoding="utf-8")
                 self.assertNotIn('QColor("#', source)
                 self.assertNotIn("QColor('#", source)
+
+    def test_world_scan_and_shell_use_indexed_shared_roles(self) -> None:
+        root = Path(__file__).resolve().parents[1]
+        world = (root / "app/ui/world_scan_panel.py").read_text(encoding="utf-8")
+        shell = (root / "main.py").read_text(encoding="utf-8")
+        for role, token in (
+            ("world_scan.placeholder", "PANEL"),
+            ("world_scan.planet_outline", "TEXT"),
+            ("world_scan.planet_fill", "GREEN_DARK"),
+        ):
+            with self.subTest(role=role):
+                self.assertEqual(UNITY_PAINTED_UI_ROLES[role], token)
+                self.assertIn(f'unity_painted_ui_color("{role}")', world)
+                self.assertEqual(
+                    unity_painted_ui_color(role, {token: "#123456"}), "#123456",
+                )
+        self.assertIn('AtlasStatusBadge(badge, state="blocked")', shell)
+        self.assertNotIn('setObjectName("HomePlaceholderBadge")', shell)
 
     def test_rich_text_and_character_fonts_share_unity_metrics(self) -> None:
         self.assertEqual(UNITY_CONTENT_TYPOGRAPHY_PX, {
