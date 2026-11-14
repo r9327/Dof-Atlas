@@ -19,6 +19,7 @@ from PySide6.QtWidgets import QApplication, QFrame, QLabel, QPushButton, QScroll
 import app.pages.organizer_page as organizer
 import app.pages.organizer.character_sessions as organizer_sessions
 from app.pages.organizer.organizer_ui import CharacterSlotName, CharacterSlotsPanel
+from app.ui.theme import atlas_stylesheet
 
 
 class OrganizerLayoutTests(unittest.TestCase):
@@ -1104,19 +1105,21 @@ class OrganizerLayoutTests(unittest.TestCase):
             with self.organizer_page(Path(directory)) as page:
                 hosts = page.findChildren(QWidget, "OrganizerTransparentHost")
                 self.assertGreaterEqual(len(hosts), 2)
+                self.assertEqual(page.styleSheet(), "")
                 self.assertIn(
                     "#organizerPage QWidget#OrganizerTransparentHost",
-                    page.styleSheet(),
+                    atlas_stylesheet(),
                 )
                 for host in hosts:
                     with self.subTest(host=host.objectName()):
                         self.assertEqual(host.styleSheet(), "")
-                self.assertIn("GlassCard paints a cached diffused backdrop", page.styleSheet())
+                self.assertIn("GlassCard paints a cached diffused backdrop", atlas_stylesheet())
 
     def test_organizer_glass_style_covers_all_button_states(self):
         with tempfile.TemporaryDirectory() as temporary:
             with self.organizer_page(Path(temporary)) as page:
-                css = page.styleSheet()
+                self.assertEqual(page.styleSheet(), "")
+                css = atlas_stylesheet()
                 for selector in (
                     "QPushButton#secondaryButton",
                     "QPushButton#primaryButton",
@@ -1206,7 +1209,8 @@ class OrganizerLayoutTests(unittest.TestCase):
                         if b.objectName() == "keyBadge"
                     )
                     self.assertEqual((shortcut.width(), shortcut.height()), (52, 22))
-                style = page.styleSheet()
+                self.assertEqual(page.styleSheet(), "")
+                style = atlas_stylesheet()
                 self.assertIn(UNITY_PALETTE["PANEL_HOVER"], style)
                 self.assertIn(UNITY_PALETTE["BORDER_STRONG"], style)
                 self.assertIsInstance(page.zaap, OrganizerZaapWidget)
@@ -1482,8 +1486,8 @@ widget.close()
                 self.assertEqual(page.sessions_refresh_button.text(), "")
                 self.assertFalse(page.quick_placeholder_1.isEnabled())
                 self.assertFalse(page.quick_placeholder_2.isEnabled())
-                self.assertIn("border-image: none", page.styleSheet())
-                self.assertIn("GlassCard paints a cached diffused backdrop", page.styleSheet())
+                self.assertIn("border-image: none", atlas_stylesheet())
+                self.assertIn("GlassCard paints a cached diffused backdrop", atlas_stylesheet())
                 self.assertFalse(page.radial_select_button.icon().isNull())
                 self.assertFalse(page.switch_character.icon().isNull())
                 self.assertFalse(page.switch_click.icon().isNull())
