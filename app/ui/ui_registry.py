@@ -56,8 +56,9 @@ UI_FAMILY_PAINTED_ROLES = {
     "startup": tuple(role for role in UNITY_PAINTED_UI_ROLES
                      if role.startswith("splash.")),
     "assets": tuple(role for role in UNITY_PAINTED_UI_ROLES
-                    if role.startswith("organizer.") and role != "organizer.shadow"),
-    "panels": ("organizer.shadow",),
+                    if (role.startswith("organizer.") and role != "organizer.shadow")
+                    or role.startswith("world_scan.planet_")),
+    "panels": ("organizer.shadow", "world_scan.placeholder"),
 }
 
 
