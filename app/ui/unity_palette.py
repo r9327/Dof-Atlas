@@ -106,7 +106,12 @@ UNITY_MAIN_ROLES = (
 # The exact frosted-glass intensity previously owned by Organizer is
 # centralized here so the shell, global QSS and its preview cannot drift.
 # This module stays Qt-free for the standalone Tk launcher.
-UNITY_GLASS_INTENSITY = 0.5
+# Approved optical glass strength across Unity panels, controls and hairlines.
+# 16% of the original translucent delta: preserves readability and darkStone palette.
+UNITY_GLASS_INTENSITY = 0.16
+
+# Single gentle relief shared by all static demo surfaces.
+UNITY_PANEL_SHADOW = {"blur": 17, "vertical": 5, "alpha": 135}
 
 
 def unity_rgba(
