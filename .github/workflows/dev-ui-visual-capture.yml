@@ -1,5 +1,5 @@
 name: Atlas UI / Global Unity Windows Capture
-# Final Windows UI regression after Bestiary visibility fix: 9 real shell modules and one shared Unity contract.
+# Final Windows UI proof: 9 real AtlasWindow captures, Bestiary tab isolation, transparent Character equipment and common Unity controls.
 
 on:
   pull_request:
