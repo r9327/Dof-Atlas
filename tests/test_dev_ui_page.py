@@ -533,8 +533,16 @@ class DevUiPageTests(unittest.TestCase):
             self.assertIn("QSlider::handle:horizontal", css)
             self.assertIn("background: #213154;", css)
             self.assertIn("QScrollArea#DevUiGalleryScroll", css)
-            self.assertIn("stop:0 rgba(33, 49, 84, 0.50)", css)
-            self.assertIn("stop:1 rgba(27, 39, 70, 0.58)", css)
+            group_style = css.split("QGroupBox {", 1)[1].split("}", 1)[0]
+            card_style = css.split(
+                "#card, #OrganizerPanel, #Panel, #CraftPanel, #QuestPanel {", 1
+            )[1].split("}", 1)[0]
+            for common_gradient in (
+                "stop:0 rgba(33, 49, 84, 0.82)",
+                "stop:1 rgba(27, 39, 70, 0.88)",
+            ):
+                self.assertIn(common_gradient, group_style)
+                self.assertIn(common_gradient, card_style)
             self.assertIn("QSplitter::handle:horizontal", css)
             self.assertIn("QWidget#DevUiPage QListWidget QScrollBar:vertical", css)
             self.assertIn("QWidget#DevUiPage QListWidget QScrollBar::add-page:vertical", css)
