@@ -57,6 +57,7 @@ from app.ui.components import (
 from app.ui.theme import PALETTE, SIZES, SPACING, TYPOGRAPHY
 from app.ui.unity_palette import (
     UNITY_CHIP_TONES, UNITY_ICON_NAMES, UNITY_ICON_PENDING,
+    UNITY_PANEL_SHADOW,
     UNITY_INTERACTION_STATES, UNITY_MAIN_ROLES, UNITY_ORGANIZER_METRICS_PX,
     UNITY_SIZES_PX, UNITY_UI_USAGE,
     UNITY_UI_CONSUMERS, UNITY_UI_FAMILY_INDEX, UNITY_UI_UNIFICATION_CONTRACT,
@@ -114,6 +115,31 @@ class DevUiPage(QWidget):
         outer = QVBoxLayout(self)
         outer.setContentsMargins(16, 12, 16, 12)
         outer.setSpacing(10)
+
+        # Real page breadcrumb, immediately under the shell's navigation tabs.
+        # The same GuideBreadcrumb owner is reused by the gallery below.
+        self.page_breadcrumb = QFrame()
+        self.page_breadcrumb.setObjectName("GuideBreadcrumb")
+        breadcrumb_line = QHBoxLayout(self.page_breadcrumb)
+        breadcrumb_line.setContentsMargins(8, 3, 8, 3)
+        breadcrumb_line.setSpacing(5)
+        self.page_breadcrumb_back = AtlasButton(
+            "Paramètres", variant="guide_breadcrumb"
+        )
+        self.page_breadcrumb_back.setEnabled(on_back is not None)
+        if on_back is not None:
+            self.page_breadcrumb_back.clicked.connect(on_back)
+        breadcrumb_line.addWidget(self.page_breadcrumb_back)
+        for caption in ("›", "Développement", "›"):
+            crumb = QLabel(caption)
+            crumb.setObjectName("GuideBreadcrumbSeparator")
+            breadcrumb_line.addWidget(crumb)
+        current = QLabel("UI Dev")
+        current.setObjectName("GuideBreadcrumbCurrent")
+        breadcrumb_line.addWidget(current, 1)
+        apply_unity_panel_shadow(self.page_breadcrumb, **UNITY_PANEL_SHADOW)
+        outer.addWidget(self.page_breadcrumb)
+
         heading = QHBoxLayout()
         heading.addWidget(AtlasPageTitle("Dev · Bibliothèque UI Unity"), 1)
         self.back_button = AtlasButton("Retour aux paramètres", variant="secondary")
@@ -167,8 +193,8 @@ class DevUiPage(QWidget):
 
         self._build_buttons(content)
         self._build_tabs_and_menus(content)
-        self._build_sidebar(content)
         self._build_breadcrumbs(content)
+        self._build_sidebar(content)
         self._build_data_views(content)
         self._build_scroll_and_resize(content)
         self._build_layouts(content)
@@ -213,7 +239,7 @@ class DevUiPage(QWidget):
         )
         # The same subtle Unity relief on every static gallery module.
         # Never apply graphics effects to scrolling rows or input controls.
-        apply_unity_panel_shadow(group, blur=17, vertical=5, alpha=135)
+        apply_unity_panel_shadow(group, **UNITY_PANEL_SHADOW)
         layout = QVBoxLayout(group)
         layout.setContentsMargins(14, 22, 14, 12)
         layout.setSpacing(9)
@@ -405,6 +431,7 @@ class DevUiPage(QWidget):
         row = QHBoxLayout()
         self.preview_sidebar = QFrame()
         self.preview_sidebar.setObjectName("sidebar")
+        apply_unity_panel_shadow(self.preview_sidebar, **UNITY_PANEL_SHADOW)
         self.preview_sidebar.setMinimumWidth(195)
         self.preview_sidebar.setMaximumWidth(240)
         layout = QVBoxLayout(self.preview_sidebar)
@@ -412,11 +439,13 @@ class DevUiPage(QWidget):
         layout.setSpacing(6)
         self.preview_burger = QToolButton()
         self.preview_burger.setObjectName("MenuButton")
-        self.preview_burger.setText("☰")
+        self.preview_burger.setText("Menu")
         self.preview_burger.setToolTip("Replier / déplier le menu")
         self.preview_burger.clicked.connect(self._toggle_preview_sidebar)
         layout.addWidget(self.preview_burger)
         self.preview_sidebar_content = QWidget()
+        self.preview_sidebar_content.setObjectName("DevUiSidebarContent")
+        self.preview_sidebar_content.setProperty("atlasUnityPage", True)
         content = QVBoxLayout(self.preview_sidebar_content)
         content.setContentsMargins(0, 0, 0, 0)
         content.setSpacing(4)
@@ -467,6 +496,7 @@ class DevUiPage(QWidget):
 
         self.preview_breadcrumb = QFrame()
         self.preview_breadcrumb.setObjectName("GuideBreadcrumb")
+        apply_unity_panel_shadow(self.preview_breadcrumb, **UNITY_PANEL_SHADOW)
         row = QHBoxLayout(self.preview_breadcrumb)
         row.setContentsMargins(8, 5, 8, 5)
         row.setSpacing(5)
@@ -558,6 +588,7 @@ class DevUiPage(QWidget):
         for index, name in enumerate(("Quêtes", "Succès", "Métiers", "Bestiaire")):
             card = QFrame()
             card.setObjectName("card")
+            apply_unity_panel_shadow(card, **UNITY_PANEL_SHADOW)
             line = QHBoxLayout(card)
             line.setContentsMargins(10, 8, 10, 8)
             line.addWidget(QLabel(name), 1)
@@ -911,7 +942,7 @@ class DevUiPage(QWidget):
             card_layout.addWidget(small)
             # Fixed visual samples only. No effect on scrolling rows,
             # focusable controls or the actual game panels.
-            apply_unity_panel_shadow(card, blur=17, vertical=5, alpha=135)
+            apply_unity_panel_shadow(card, **UNITY_PANEL_SHADOW)
             self.preview_cards[role] = card
             cards.addWidget(card, 1)
         section.addLayout(cards)
@@ -1053,6 +1084,7 @@ class DevUiPage(QWidget):
 
         self.preview_glass_panel = QFrame()
         self.preview_glass_panel.setObjectName("OrganizerPanel")
+        apply_unity_panel_shadow(self.preview_glass_panel, **UNITY_PANEL_SHADOW)
         line = QHBoxLayout(self.preview_glass_panel)
         glass_title = QLabel("Organizer · glass Unity et dégradé communs")
         glass_title.setObjectName("MutedLabel")
