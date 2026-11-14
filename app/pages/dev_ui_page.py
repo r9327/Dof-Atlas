@@ -68,6 +68,7 @@ from app.ui.unity_palette import (
 )
 from app.ui.unity_skin import (
     UnityBackdrop, apply_unity_panel_shadow, sprite_icon_path, unity_original_preview_icon,
+    wallpaper_path,
 )
 from app.ui.ui_registry import (
     UI_CONSUMER_INDEX, UI_FAMILY_QSS_SELECTORS,
@@ -1223,20 +1224,28 @@ class DevUiPage(QWidget):
     def _build_backdrop(self, parent: QVBoxLayout) -> None:
         """Display the actual cached wallpaper/gradient widget used by the shell."""
         section = self._section(parent, "backdrop")
+        image_loaded = wallpaper_path() is not None
+        self.preview_wallpaper_status = QLabel(
+            "Fond actif : image étoilée Unity locale nettoyée."
+            if image_loaded else
+            "Fond actif : dégradé Unity de secours (image étoilée non installée)."
+        )
+        self.preview_wallpaper_status.setObjectName("MutedLabel")
+        section.addWidget(self.preview_wallpaper_status)
         note = QLabel(
-            "Fond réel du shell : image Unity d'origine lorsqu'elle est installée, "
-            "sinon dégradé partagé. Aucun motif étoilé n'est simulé."
+            "Aucun faux motif étoilé : la démonstration utilise exactement "
+            "le même UnityBackdrop que l'application."
         )
         note.setObjectName("MutedLabel")
         note.setWordWrap(True)
         section.addWidget(note)
         self.preview_backdrop = UnityBackdrop()
-        self.preview_backdrop.setMinimumHeight(150)
-        self.preview_backdrop.setMaximumHeight(150)
+        self.preview_backdrop.setFixedHeight(5 * UNITY_SIZES_PX["control_normal"])
         wrapper = QVBoxLayout(self.preview_backdrop)
         wrapper.setContentsMargins(16, 14, 16, 14)
         card = QFrame()
         card.setObjectName("card")
+        apply_unity_panel_shadow(card, **UNITY_PANEL_SHADOW)
         card_layout = QVBoxLayout(card)
         card_layout.addWidget(AtlasPageTitle("Carte sur fond Unity"))
         muted = QLabel("Dégradé, transparence et bordures hérités du thème")

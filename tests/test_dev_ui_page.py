@@ -945,6 +945,29 @@ class DevUiPageTests(unittest.TestCase):
             page.close()
             page.deleteLater()
 
+    def test_dev_ui_asset_fallback_is_explicit_without_pretend_artwork(self) -> None:
+        from unittest.mock import patch
+        from app.pages.dev_ui_page import DevUiPage
+        from app.ui.theme import atlas_stylesheet
+
+        with patch("app.pages.dev_ui_page.wallpaper_path", return_value=None):
+            page = DevUiPage(on_back=lambda: None)
+        try:
+            self.assertIn("dégradé Unity de secours",
+                          page.preview_wallpaper_status.text())
+            self.assertEqual(page.preview_wallpaper_status.styleSheet(), "")
+            self.assertEqual(page.preview_backdrop.height(),
+                             5 * 32)
+            self.assertIn(
+                "QWidget#DevUiPage QLabel#DevUiMissingIcon",
+                atlas_stylesheet(),
+            )
+            self.assertTrue(all(section.graphicsEffect() is not None
+                                for section in page.gallery_sections))
+        finally:
+            page.close()
+            page.deleteLater()
+
     def test_gallery_renders_real_qt_full_height_in_reduced_window(self) -> None:
         """Viewport and full scroll content must be real, grab-able Qt pixels."""
         from app.pages.dev_ui_page import DevUiPage

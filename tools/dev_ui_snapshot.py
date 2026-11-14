@@ -78,8 +78,40 @@ def capture(output: Path, *, width: int = 1100, height: int = 800) -> dict[str, 
             "viewport": str(viewport),
             "complete": str(complete),
         }
+        # Record scroll evidence *before* expanding the real Qt window.
         results["horizontal_scroll_max"] = page.gallery_scroll.horizontalScrollBar().maximum()
         results["vertical_scroll_max"] = page.gallery_scroll.verticalScrollBar().maximum()
+
+        # Capture the complete real page, including its breadcrumb and title.
+        # The old 'complete' image was only the inner scrolling widget and
+        # silently omitted the page header from three-part screenshots.
+        scroll_y = page.gallery_scroll.mapTo(backdrop, QPoint(0, 0)).y()
+        page_height = scroll_y + body.height() + 24
+        if page_height > 16000:
+            raise RuntimeError(f"Dev UI full-page height is unreasonable: {page_height}")
+        backdrop.resize(width, page_height)
+        app.processEvents()
+        full_page = backdrop.grab()
+        if full_page.isNull():
+            raise RuntimeError("Unable to capture full Qt page")
+        whole = output / "dev-ui-page-complete.png"
+        if not full_page.save(str(whole), "PNG"):
+            raise RuntimeError(f"Unable to save {whole}")
+        results["screenshots"]["page_complete"] = str(whole)
+        results["page_complete_size"] = [full_page.width(), full_page.height()]
+        # Three real QPixmap crops, independently zoomable on mobile.
+        for number in range(3):
+            top = full_page.height() * number // 3
+            bottom = full_page.height() * (number + 1) // 3
+            part = output / f"dev-ui-partie-{number + 1}.png"
+            if not full_page.copy(0, top, full_page.width(), bottom - top).save(
+                str(part), "PNG"
+            ):
+                raise RuntimeError(f"Unable to save {part}")
+            results["screenshots"][f"part_{number + 1}"] = str(part)
+        # Restore the user-sized viewport before opening native popups.
+        backdrop.resize(width, height)
+        app.processEvents()
 
         # Screenshot the actual expanded Qt family dropdown, not a simulated
         # painted list. This proves the popup rows match the approved palette.

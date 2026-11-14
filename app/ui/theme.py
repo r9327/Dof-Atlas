@@ -375,7 +375,8 @@ QWidget#DevUiPage QWidget#DevUiIconCell {
     border: none;
 }
 QWidget#DevUiPage QLabel#DevUiMissingIcon {
-    background: @PANEL_2;
+    /* An absent original icon must not create an opaque dark square. */
+    background: transparent;
     color: @TEXT_DISABLED;
     border: 1px dashed @BORDER_SOFT;
     border-radius: @RADIUS_XS;
