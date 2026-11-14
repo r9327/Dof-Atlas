@@ -10,7 +10,7 @@ from unittest.mock import patch
 os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
 
 from PySide6.QtCore import Qt
-from PySide6.QtGui import QColor, QImage, QLinearGradient, QPainter
+from PySide6.QtGui import QColor, QIcon, QImage, QLinearGradient, QPainter, QPixmap
 from PySide6.QtTest import QTest
 from PySide6.QtWidgets import QApplication, QTabWidget, QWidget
 
@@ -946,10 +946,16 @@ class UnitySkinTests(unittest.TestCase):
             image.fill(QColor(0, 0, 0, 0))
             image.setPixelColor(8, 8, QColor(250, 200, 80, 255))
             self.assertTrue(image.save(str(path)))
-            with patch("app.pages.home_page.sprite_icon_path", return_value=path) as lookup:
+            with patch(
+                "app.pages.home_page.unity_original_preview_icon",
+                return_value=QIcon(QPixmap(str(path))),
+            ) as lookup:
                 row = HomeTrackingRow("◆", "Quêtes", sprite_key="quest")
             try:
-                lookup.assert_called_once_with("quest")
+                from app.ui.unity_palette import UNITY_SIZES_PX
+                lookup.assert_called_once_with(
+                    "quest", UNITY_SIZES_PX["icon_small"]
+                )
                 icon = row.findChild(QLabel, "HomeTrackingIcon")
                 self.assertIsNotNone(icon)
                 self.assertFalse(icon.pixmap().isNull())
@@ -957,7 +963,10 @@ class UnitySkinTests(unittest.TestCase):
             finally:
                 row.deleteLater()
 
-            with patch("app.pages.home_page.sprite_icon_path", return_value=None):
+            with patch(
+                "app.pages.home_page.unity_original_preview_icon",
+                return_value=QIcon(),
+            ):
                 fallback = HomeTrackingRow("◆", "Quêtes", sprite_key="quest")
             try:
                 self.assertEqual(

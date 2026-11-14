@@ -803,3 +803,10 @@ La capture Windows `Personnage` (profil temporaire vide) a révélé que `Charac
 - Les labels des logos Guides utilisent le fond transparent du matériau Unity, au lieu d'une plaque sombre derrière les PNG alpha ; une bordure `BORDER_SOFT` maintient le contour accessible. Leur texte de repli suit `YELLOW`.
 - `tests/test_ui_universal_contract.py` instançait `DevUiPage` sans `QApplication`, bien que cette suite vérifie seulement l'index QSS : risque de crash natif. Le test lit désormais les identifiants de source et vérifie les index sans créer de `QWidget` ; les interactions de la galerie restent dans la suite Qt dédiée.
 - Contrat Almanax indexé dans la même vérification. Tests NON EXÉCUTÉS à la demande du propriétaire pendant la phase de développement.
+
+
+### Accueil — resolver d'images Unity unique (14/11/2026)
+
+- La ligne de suivi Quêtes/Succès chargeait directement `QPixmap(sprite_icon_path)` et le pictogramme Almanax construisait un `QIcon` brut. Ces deux chemins contournaient la vérification alpha de `unity_original_preview_icon` utilisée par la galerie Dev UI.
+- Les deux consommateurs App utilisent désormais `unity_original_preview_icon` avec **tailles indexées** `UNITY_SIZES_PX` ; les sprites opaques avec fond noir sont rejetés et les originaux transparents gardent leurs couleurs. Repli lisible existant conservé si le sprite est absent.
+- Test de vrai PNG transparent + repli mis à jour dans `tests/test_unity_skin.py` ; aucune CI lancée pendant le développement.

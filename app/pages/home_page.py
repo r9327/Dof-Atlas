@@ -22,7 +22,8 @@ from PySide6.QtWidgets import (
 from app.constants import LOGO_PATH, QUEST_PROGRESS_FILE, ROOT_DIR
 from app.network.application_coordinator import NetworkApplicationStatus
 from app.ui.components import AtlasButton, AtlasStatusBadge, atlas_application_icon
-from app.ui.unity_skin import apply_unity_panel_shadow, sprite_icon_path
+from app.ui.unity_palette import UNITY_SIZES_PX
+from app.ui.unity_skin import apply_unity_panel_shadow, unity_original_preview_icon
 from app.ui.network_bridge import network_ui_bridge
 
 if TYPE_CHECKING:
@@ -169,13 +170,12 @@ class HomeTrackingRow(QWidget):
         icon_label.setFixedWidth(20)
         # Reuse the same local-only Unity pictograms as the application shell.
         # An absent or damaged user asset keeps the readable legacy glyph.
-        icon_path = sprite_icon_path(sprite_key) if sprite_key else None
-        if icon_path is not None:
-            pixmap = QPixmap(str(icon_path))
-            if not pixmap.isNull():
-                icon_label.setPixmap(pixmap.scaled(
-                    18, 18, Qt.KeepAspectRatio, Qt.SmoothTransformation,
-                ))
+        icon_asset = (
+            unity_original_preview_icon(sprite_key, UNITY_SIZES_PX["icon_small"])
+            if sprite_key else QIcon()
+        )
+        if not icon_asset.isNull():
+            icon_label.setPixmap(icon_asset.pixmap(18, 18))
         layout.addWidget(icon_label)
 
         name = QLabel(label)
@@ -393,9 +393,11 @@ class HomePage(QWidget):
         self.almanax_icon.setIconSize(QSize(126, 126))
         self.almanax_icon.setToolTip("Ouvrir le calendrier Almanax")
         self.almanax_icon.clicked.connect(self.almanaxRequested.emit)
-        almanax_sprite = sprite_icon_path("almanax")
-        if almanax_sprite is not None:
-            self.almanax_icon.setIcon(QIcon(str(almanax_sprite)))
+        almanax_sprite = unity_original_preview_icon(
+            "almanax", UNITY_SIZES_PX["icon_xlarge"]
+        )
+        if not almanax_sprite.isNull():
+            self.almanax_icon.setIcon(almanax_sprite)
         elif Path(LOGO_PATH).exists():
             self.almanax_icon.setIcon(atlas_application_icon())
         almanax_layout.addWidget(self.almanax_icon, 0, Qt.AlignHCenter)
