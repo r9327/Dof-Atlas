@@ -167,9 +167,11 @@ class DevUiPage(QWidget):
 
         self._build_buttons(content)
         self._build_tabs_and_menus(content)
+        self._build_sidebar(content)
         self._build_breadcrumbs(content)
         self._build_data_views(content)
         self._build_scroll_and_resize(content)
+        self._build_layouts(content)
         self._build_fields(content)
         self._build_advanced_fields(content)
         self._build_states_and_badges(content)
@@ -320,7 +322,7 @@ class DevUiPage(QWidget):
     def _build_tabs_and_menus(self, parent: QVBoxLayout) -> None:
         section = self._section(parent, "navigation")
         self.preview_tabs = QTabWidget()
-        self.preview_tabs.setObjectName("DevUiTabs")
+        self.preview_tabs.setObjectName("EncyclopediaTabs")
         for title in ("Quêtes", "Succès", "Guides"):
             tab = QWidget()
             tab.setObjectName("DevUiTabPage")
@@ -350,6 +352,65 @@ class DevUiPage(QWidget):
         menu_row.addWidget(self.menu_button)
         menu_row.addStretch(1)
         section.addLayout(menu_row)
+
+    def _build_sidebar(self, parent: QVBoxLayout) -> None:
+        """Real sidebar selectors, with live selection and collapse."""
+        section = self._section(parent, "sidebar")
+        row = QHBoxLayout()
+        self.preview_sidebar = QFrame()
+        self.preview_sidebar.setObjectName("sidebar")
+        self.preview_sidebar.setMinimumWidth(195)
+        self.preview_sidebar.setMaximumWidth(240)
+        layout = QVBoxLayout(self.preview_sidebar)
+        layout.setContentsMargins(8, 8, 8, 8)
+        layout.setSpacing(6)
+        self.preview_burger = QToolButton()
+        self.preview_burger.setObjectName("MenuButton")
+        self.preview_burger.setText("☰")
+        self.preview_burger.setToolTip("Replier / déplier le menu")
+        self.preview_burger.clicked.connect(self._toggle_preview_sidebar)
+        layout.addWidget(self.preview_burger)
+        self.preview_sidebar_content = QWidget()
+        content = QVBoxLayout(self.preview_sidebar_content)
+        content.setContentsMargins(0, 0, 0, 0)
+        content.setSpacing(4)
+        self.preview_sidebar_buttons: dict[str, AtlasButton] = {}
+        for label in ("Accueil", "Encyclopédie", "Outils", "Organizer"):
+            button = AtlasButton(label)
+            button.set_style_name(
+                "navItemActive" if label == "Encyclopédie" else "navItem"
+            )
+            button.clicked.connect(
+                lambda _checked=False, target=label: self._select_preview_sidebar(target)
+            )
+            self.preview_sidebar_buttons[label] = button
+            content.addWidget(button)
+        divider = QFrame()
+        divider.setObjectName("NavSeparator")
+        divider.setFixedHeight(1)
+        content.addWidget(divider)
+        layout.addWidget(self.preview_sidebar_content)
+        row.addWidget(self.preview_sidebar)
+        note = QLabel(
+            "Navigation Unity : actif, survol, replié et séparateur. "
+            "Démonstration sans changement de page."
+        )
+        note.setObjectName("MutedLabel")
+        note.setWordWrap(True)
+        row.addWidget(note, 1)
+        section.addLayout(row)
+
+    def _toggle_preview_sidebar(self) -> None:
+        collapsed = not self.preview_sidebar_content.isHidden()
+        self.preview_sidebar_content.setHidden(collapsed)
+        self._report("Menu latéral replié" if collapsed else "Menu latéral déployé")
+
+    def _select_preview_sidebar(self, selected: str) -> None:
+        for label, button in self.preview_sidebar_buttons.items():
+            button.set_style_name(
+                "navItemActive" if label == selected else "navItem"
+            )
+        self._report(f"Navigation latérale : {selected}")
 
     def _build_breadcrumbs(self, parent: QVBoxLayout) -> None:
         """Real shared Guide breadcrumb states, not one isolated button."""
@@ -429,6 +490,31 @@ class DevUiPage(QWidget):
         )
         row.addWidget(self.preview_table, 1)
         section.addLayout(row)
+
+    def _build_layouts(self, parent: QVBoxLayout) -> None:
+        """Existing card QSS inside an elastic two-column grid."""
+        section = self._section(parent, "layouts")
+        intro = QLabel("Grille 2 × 2 : colonnes égales, marges et alignements communs.")
+        intro.setObjectName("MutedLabel")
+        section.addWidget(intro)
+        grid = QGridLayout()
+        grid.setSpacing(10)
+        self.preview_layout_cards: list[QFrame] = []
+        for index, name in enumerate(("Quêtes", "Succès", "Métiers", "Bestiaire")):
+            card = QFrame()
+            card.setObjectName("card")
+            line = QHBoxLayout(card)
+            line.setContentsMargins(10, 8, 10, 8)
+            line.addWidget(QLabel(name), 1)
+            line.addWidget(AtlasStatusBadge(
+                "Actif" if index == 0 else "Disponible",
+                state="active" if index == 0 else "neutral",
+            ))
+            grid.addWidget(card, index // 2, index % 2)
+            self.preview_layout_cards.append(card)
+        grid.setColumnStretch(0, 1)
+        grid.setColumnStretch(1, 1)
+        section.addLayout(grid)
 
     def _build_fields(self, parent: QVBoxLayout) -> None:
         section = self._section(parent, "fields")
