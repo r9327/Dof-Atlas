@@ -14,7 +14,7 @@ from typing import TYPE_CHECKING, Any, Callable
 from weakref import WeakSet
 
 from PySide6.QtCore import QDate, QObject, QEvent, QPoint, QSize, Qt, QTimer, Signal
-from PySide6.QtGui import QCloseEvent, QColor, QIcon, QImage, QPixmap
+from PySide6.QtGui import QCloseEvent, QColor, QCursor, QIcon, QImage, QPixmap
 from PySide6.QtWidgets import (
     QApplication,
     QCalendarWidget,
@@ -609,6 +609,7 @@ class HoverMenuButton(AtlasButton):
         # NoFocus made its actions unreachable without a pointer.
         self.setFocusPolicy(Qt.TabFocus)
         self._hover_menu: QMenu | None = None
+        self._cursor_at_menu_close: QPoint | None = None
         self._outside_ticks = 0
         self._poll_timer = QTimer(self)
         self._poll_timer.setInterval(self._POLL_MS)
@@ -620,7 +621,11 @@ class HoverMenuButton(AtlasButton):
         menu.aboutToHide.connect(self._menu_hidden)
 
     def enterEvent(self, event) -> None:
-        self.open_hover_menu()
+        # Qt can send a new enter event when a popup releases the mouse.
+        # A stationary cursor must not immediately reopen the dismissed menu.
+        if QCursor.pos() != self._cursor_at_menu_close:
+            self._cursor_at_menu_close = None
+            self.open_hover_menu()
         super().enterEvent(event)
 
     def keyPressEvent(self, event) -> None:
@@ -682,6 +687,7 @@ class HoverMenuButton(AtlasButton):
         self.update()
 
     def _menu_hidden(self) -> None:
+        self._cursor_at_menu_close = QCursor.pos()
         self._poll_timer.stop()
         self._outside_ticks = 0
         self.setDown(False)
@@ -709,7 +715,6 @@ class HoverMenuButton(AtlasButton):
             self._menu_hidden()
             return
 
-        from PySide6.QtGui import QCursor
         pos = QCursor.pos()
 
         # QMenu est une popup et capte la souris : on détecte directement

@@ -142,10 +142,12 @@ class DevUiPage(QWidget):
 
         # The index stays visible while the long catalog scrolls underneath.
         navigator = QHBoxLayout()
-        navigator.addWidget(QLabel("Aller à une famille"))
+        navigation_label = QLabel("Aller à une famille")
+        navigator.addWidget(navigation_label)
         self.gallery_navigation = AtlasComboBox()
         self.gallery_navigation.setObjectName("DevUiFamilyCombo")
         self.gallery_navigation.setAccessibleName("Accès direct aux familles UI")
+        navigation_label.setBuddy(self.gallery_navigation)
         self.gallery_navigation.view().setAlternatingRowColors(False)
         # This is a navigation chooser, not a full-width form field.
         # The common combo itself caps popup rows for keyboard/scroll access.
@@ -155,6 +157,7 @@ class DevUiPage(QWidget):
         self.gallery_count = QLabel()
         self.gallery_count.setObjectName("MutedLabel")
         navigator.addWidget(self.gallery_count)
+        navigator.addStretch(1)
         outer.addLayout(navigator)
 
         scroll = QScrollArea(self)

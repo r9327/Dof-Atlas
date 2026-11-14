@@ -13,7 +13,7 @@ os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
 
 from PySide6.QtCore import Qt
 from PySide6.QtTest import QTest
-from PySide6.QtWidgets import QApplication, QLineEdit, QWidget
+from PySide6.QtWidgets import QApplication, QLabel, QLineEdit, QWidget
 
 
 class DevUiPageTests(unittest.TestCase):
@@ -983,6 +983,9 @@ class DevUiPageTests(unittest.TestCase):
             page.resize(900, 680)
             page.show()
             self.app.processEvents()
+            combo = page.gallery_navigation
+            label = next(label for label in page.findChildren(QLabel) if label.buddy() is combo)
+            self.assertLess(combo.x() - label.geometry().right(), 16)
             self.assertEqual(page.gallery_navigation.count(), 22)
             self.assertGreater(
                 page.gallery_scroll.verticalScrollBar().maximum(), 0
