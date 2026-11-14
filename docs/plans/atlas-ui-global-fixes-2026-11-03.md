@@ -625,3 +625,13 @@ La galerie ne certifie ni l'adoption dans les 12 consommateurs, ni le
 fond étoilé lorsque le fichier n'est pas disponible, ni l'animation
 fidèle à DOFUS Unity. Les tests et captures Qt doivent être exécutés
 au HEAD final ; pas de CI à chaque lot.
+
+### Affichage intégral de l'inventaire (14 novembre)
+
+Les tableaux des 39 rubriques d'uniformisation, 12 consommateurs
+et dimensions/tokens ne limitent plus la hauteur de leurs lignes :
+`DevUiPage._expand_catalog_table()` laisse **un seul défilement vertical
+principal**, sans tableaux imbriqués dissimulant des entrées.
+Le test Qt contrôle cette contrainte. Les nuances techniques de palette
+restent volontairement derrière leur commande de détail pour préserver
+la lisibilité ; les composants et familles restent tous indexés.
