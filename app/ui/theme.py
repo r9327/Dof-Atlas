@@ -176,22 +176,25 @@ QToolTip {
 
 #burgerButton, #MenuButton {
     background: @PANEL_2;
-    border: 1px solid @BORDER;
-    border-radius: @RADIUS_SM;
-    color: @TEXT;
-    font-size: 17px;
+    border: 1px solid @BORDER_SOFT;
+    border-bottom: 2px solid @BORDER_SOFT;
+    border-radius: @RADIUS_XS;
+    color: @TEXT_SOFT;
+    font-size: @FONT_SMALL;
     font-weight: 700;
-    padding: 0px;
+    padding: 0px @SPACE_MD;
+    min-height: @CONTROL_HEIGHT_COMPACT;
+    max-height: @CONTROL_HEIGHT_COMPACT;
 }
-
 #burgerButton:hover, #MenuButton:hover {
-    background: @PANEL_2;
-    border-color: @BORDER;
+    background: @PANEL_HOVER;
+    border-bottom-color: @GREEN_BORDER;
+    color: @TEXT;
 }
-
 #burgerButton:pressed, #MenuButton:pressed {
-    background: @GREEN_DARK;
-    border-color: @GREEN;
+    background: @PANEL_ACTIVE;
+    border-bottom-color: @GREEN;
+    color: @GREEN;
 }
 
 /* Compact side-nav states use the same blue/green hairline language as
@@ -350,7 +353,7 @@ QGroupBox {
         stop:0 @GLASS_PANEL_TOP, stop:1 @GLASS_PANEL_BOTTOM);
     border: 1px solid @BORDER_SOFT;
     border-top: 1px solid @GLASS_HAIRLINE;
-    border-radius: @RADIUS_SM;
+    border-radius: @RADIUS_MD;
     margin-top: @SPACE_LG;
 }
 QGroupBox::title {
@@ -2845,6 +2848,10 @@ QLabel#GuideBreadcrumbSeparator,
 QLabel#GuideBreadcrumbCurrent {
     color: @TEXT_MUTED;
     font-size: @FONT_SMALL;
+}
+QLabel#GuideBreadcrumbCurrent {
+    color: @GREEN;
+    font-weight: 700;
 }
 
 #GuideManualProgressFrame,
