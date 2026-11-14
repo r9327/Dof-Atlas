@@ -222,6 +222,15 @@ class DevUiPage(QWidget):
         self.gallery_family_widgets[family_key] = group
         return layout
 
+    @staticmethod
+    def _expand_catalog_table(table: QTableWidget) -> None:
+        """Expose every inventory row using only the main gallery scroll."""
+        table.setVerticalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
+        table.resizeRowsToContents()
+        row_height = sum(max(24, table.rowHeight(i)) for i in range(table.rowCount()))
+        header_height = table.horizontalHeader().sizeHint().height()
+        table.setFixedHeight(header_height + row_height + 2 * table.frameWidth() + 6)
+
     def _jump_to_section(self, index: int) -> None:
         """Scroll to the real section; no duplicate or floating UI catalog."""
         if 0 <= index < len(self.gallery_sections):
@@ -1023,6 +1032,7 @@ class DevUiPage(QWidget):
         )):
             self.preview_metrics.setItem(index, 0, QTableWidgetItem(name))
             self.preview_metrics.setItem(index, 1, QTableWidgetItem(value))
+        self._expand_catalog_table(self.preview_metrics)
         section.addWidget(self.preview_metrics)
 
     def _build_panels(self, parent: QVBoxLayout) -> None:
@@ -1261,6 +1271,7 @@ class DevUiPage(QWidget):
         self.preview_scope.setToolTip(
             "Inventaire du périmètre, pas une certification de migration"
         )
+        self._expand_catalog_table(self.preview_scope)
         section.addWidget(self.preview_scope)
 
         contract_label = QLabel(
@@ -1294,6 +1305,7 @@ class DevUiPage(QWidget):
                 family_keys.index(UNITY_UI_UNIFICATION_CONTRACT[row][1])
             )
         )
+        self._expand_catalog_table(self.preview_contract)
         section.addWidget(self.preview_contract)
 
     def _build_motion_gallery(self, parent: QVBoxLayout) -> None:
