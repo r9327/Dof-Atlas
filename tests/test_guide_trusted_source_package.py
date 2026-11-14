@@ -96,6 +96,67 @@ class TrustedSourcePackageTests(unittest.TestCase):
             build_head_sha=TEST_HEAD, witness=self.witness,
         )
 
+    def test_trusted_per_guide_gate_registration_and_character_isolation(self):
+        # The projected source carries a hard quest prerequisite. Only a
+        # separately trusted, guide-specific policy may qualify its character.
+        metadata = copy.deepcopy(self.route["source_guide_metadata"])
+        source_steps = [
+            copy.deepcopy(card["manual_runtime_metadata"]["source_step"])
+            for card in self.route["steps"]
+        ]
+        source_steps[0]["prerequisites"] = [{"quest_id": 123}]
+        route = project_authorized_guide({**metadata, "steps": source_steps})
+        entry = self.write(route=route)
+        loader = self.loader(entry)
+        calls = []
+
+        def qualified(character_key, card):
+            calls.append((character_key, card["manual_stage_id"]))
+            return character_key == "character:1"
+
+        def build_service(evaluators):
+            service = loader.factories(
+                SimpleNamespace(), SimpleNamespace(), self.progress,
+                gate_evaluators=evaluators,
+            )[self.key]()
+            service.set_authorization_guard(loader.authorize)
+            return service
+
+        blocked = build_service(None)
+        self.assertTrue(blocked.can_write_progress())
+        blocked.set_page_checked("character:1", blocked.cards[0], 0, True)
+        self.assertFalse(blocked.page_checked("character:1", blocked.cards[0]))
+
+        approved = build_service({self.key: qualified})
+        approved.set_page_checked("character:2", approved.cards[0], 0, True)
+        self.assertFalse(approved.page_checked("character:2", approved.cards[0]))
+        approved.set_page_checked("character:1", approved.cards[0], 0, True)
+        self.assertTrue(approved.page_checked("character:1", approved.cards[0]))
+        self.assertEqual(
+            calls, [("character:2", approved.cards[0]["manual_stage_id"]),
+                    ("character:1", approved.cards[0]["manual_stage_id"])],
+        )
+        self.approved = False
+        approved.set_page_checked("character:1", approved.cards[1], 0, True)
+        self.assertFalse(approved.page_checked("character:1", approved.cards[1]))
+
+    def test_external_gate_registry_must_be_explicit_and_known(self):
+        entry = self.write()
+        loader = self.loader(entry)
+        for invalid in (
+            {"source_guide:unknown": lambda *_: True},
+            {self.key: True},
+            {self.key: None},
+            [self.key],
+        ):
+            with self.subTest(invalid=str(invalid)):
+                with self.assertRaises(GuidePackageBlocked):
+                    loader.factories(
+                        SimpleNamespace(), SimpleNamespace(), self.progress,
+                        gate_evaluators=invalid,
+                    )
+        self.assertEqual(self.witness_calls, [])
+
     def test_lazy_factory_binds_exact_route_to_recheckable_authorizer(self):
         entry = self.write()
         loader = self.loader(entry)

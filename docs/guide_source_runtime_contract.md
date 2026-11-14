@@ -287,3 +287,23 @@ validées :
 
 Les tests de la véritable intégration des données, du rendu Windows et
 du jeu DOFUS restent des preuves distinctes et bloquantes.
+
+### Injection des évaluateurs propres à chaque guide
+
+Le paquet de confiance accepte maintenant une table explicite
+`gate_evaluators={guide_id: callback}` dans `factories(...)`.
+Elle est fournie **par la composition de confiance**, jamais par l'export
+JSON, et chaque ID doit appartenir au registre de guides attestés.
+Une valeur non callable ou un guide étranger est rejeté avant toute
+lecture. Les callbacks reçoivent `(character_key, canonical_card_copy)`
+et ne peuvent satisfaire un prérequis qu'en renvoyant exactement
+`True`. Sans évaluateur qualifié, tout `hard_runtime_gates` reste
+bloquant, y compris après ouverture du guide. L'autorisation
+indépendante est reconsultée au moment de l'écriture et peut encore
+révoquer une progression dont les prérequis seraient satisfaits.
+
+Ce raccordement **ne fournit pas** un évaluateur métier Ganymède
+certifié et n'active aucun guide. Les politiques de prérequis spécifiques,
+leurs sources de vérité, et leur recette Windows/DOFUS restent à
+implémenter et qualifier guide par guide. Des fixtures fictives
+vérifient le raccordement et l'isolation par personnage.

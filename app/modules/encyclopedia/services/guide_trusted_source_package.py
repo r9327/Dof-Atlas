@@ -259,13 +259,26 @@ class GuideTrustedSourcePackage:
 
     def factories(
         self, quest_progress: Any, achievement_progress: Any, guide_progress: Any,
+        *,
+        gate_evaluators: Mapping[str, Callable[[str, dict[str, Any]], bool]] | None = None,
     ) -> dict[str, Callable[[], Any]]:
         """Adapter for EncyclopediaPage(imported_source_factories=...).
 
-        Factories capture the registry and progress services, not route bytes.
-        No service, route JSON or Qt reader is initialized here.
+        Only the trusted composition owner may register qualified per-guide
+        prerequisite evaluators. No evaluator is ever inferred from source JSON,
+        and a missing evaluator keeps hard gates blocked rather than bypassed.
+        Factories retain tiny registry references, not all route bytes.
         """
-        def make(guide_id: str) -> Callable[[], Any]:
+        if gate_evaluators is not None and not isinstance(gate_evaluators, Mapping):
+            raise GuidePackageBlocked("Trusted per-guide gate registry must be a mapping")
+        evaluators = dict(gate_evaluators or {})
+        for guide_id, evaluator in evaluators.items():
+            if guide_id not in self._entries or not callable(evaluator):
+                raise GuidePackageBlocked("Unregistered or invalid source Guide gate evaluator")
+
+        def make(
+            guide_id: str, evaluator: Callable[[str, dict[str, Any]], bool] | None,
+        ) -> Callable[[], Any]:
             def build() -> Any:
                 from app.modules.encyclopedia.services.guide_imported_manual_runtime_service import (
                     ImportedSourceManualRuntimeService,
@@ -273,9 +286,13 @@ class GuideTrustedSourcePackage:
                 return ImportedSourceManualRuntimeService(
                     quest_progress, achievement_progress, guide_progress,
                     route=self.load_route(guide_id),
+                    gate_evaluator=evaluator,
                 )
             return build
-        return {guide_id: make(guide_id) for guide_id in self._entries}
+        return {
+            guide_id: make(guide_id, evaluators.get(guide_id))
+            for guide_id in self._entries
+        }
 
 
 __all__ = [
