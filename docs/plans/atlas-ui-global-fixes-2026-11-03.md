@@ -728,3 +728,11 @@ La capture Windows `Personnage` (profil temporaire vide) a révélé que `Charac
 - `tests/test_theme.py` attend désormais la formule du gradient partagé et ses surcharges sémantiques, pas la couleur pleine antérieure.
 - `AtlasWindow.finish_pending_encyclopedia_tab()` réapplique le groupe d'onglets **après** l'hydratation différée de la vue, qui peut réinsérer le widget et révéler un onglet auparavant masqué. Le filtrage groupe reste centralisé dans un seul bloc, sans nouveau thème ni donnée métier.
 - La capture réelle `tests/capture_app_shell_ui.py` vérifie aussi le retour Bestiaire → Quêtes. **CI au nouveau SHA en attente ; aucun résultat PASS nouveau ni certification Windows/DOFUS Unity revendiqué.**
+
+
+### Propriétaires exacts des 8 fichiers UI sans route CI (14/11/2026)
+
+- **Source vérifiée :** capture Windows Qt de la PR #365 sur `82cf9405f2224045f6797574c8578cbf0d57fdf8` **SUCCESS**, avec Bestiaire ↔ Encyclopédie et 79 tests UI ; les autres jobs ciblés Organizer/Craft/Launcher/Doctor/Phase8 ont réussi. Ceci ne vaut pas recette native DOFUS.
+- Le plan de domaine CI reste **BLOCKED** sur huit chemins exacts non indexés (4 icônes Atlas SVG, `guide_ultime_generated_view.py`, `tests/capture_app_shell_ui.py`, `tests/test_equipment_deferred_start.py`, `tools/dev_ui_snapshot.py`). Le routeur est limité à **ces huit chemins**, avec domaines consommateurs effectifs ; aucun wildcard `.svg`, `tools/*` ou `tests/*`.
+- Tests de non-régression : chaque chemin connu a des domaines non vides, les voisins inconnus restent rejetés ; les quatre pictogrammes SVG sont contrôlés comme des formes statiques (pas de script, lien ou référence externe). `plan_domains` reste fail-closed et son résultat n'est **pas** un certificat.
+- **Limites :** le Delivery Guard refuse toujours un rapport non lié au HEAD exact. Les exigences PENDING du contrat #364 restent PENDING. Aucune certification globale ni fusion autorisée par ce seul lot ; nouvelles preuves CI nécessaires au SHA final.

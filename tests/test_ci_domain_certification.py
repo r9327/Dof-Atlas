@@ -988,6 +988,77 @@ class ModularDomainRoutingTests(unittest.TestCase):
             frozenset(),
         )
 
+    def test_pr365_visual_assets_capture_and_guide_have_exact_owners(self):
+        """The eight reviewed UI files are owned, but unrelated siblings fail closed."""
+        verified = {
+            "app/assets/themes/dofus_unity/sprites/atlas-control-check.svg":
+                {"ui", "data"},
+            "app/assets/themes/dofus_unity/sprites/atlas-control-down.svg":
+                {"ui", "data"},
+            "app/assets/themes/dofus_unity/sprites/atlas-control-mixed.svg":
+                {"ui", "data"},
+            "app/assets/themes/dofus_unity/sprites/atlas-control-up.svg":
+                {"ui", "data"},
+            "app/modules/encyclopedia/views/guide_ultime_generated_view.py":
+                {"guides", "ui"},
+            "tests/capture_app_shell_ui.py":
+                {"ci", "ui", "startup", "craft", "quests", "guides", "identity"},
+            "tests/test_equipment_deferred_start.py":
+                {"startup", "ui"},
+            "tools/dev_ui_snapshot.py":
+                {"ci", "ui"},
+        }
+        for path, owners in verified.items():
+            with self.subTest(path=path):
+                self.assertEqual(owners_for(path), frozenset(owners))
+        plan = self.route(list(verified))
+        self.assertEqual(plan["status"], "READY_TO_EXECUTE")
+        self.assertEqual(plan["unknown_paths"], [])
+        self.assertFalse(plan["phase_certified"])
+        for unknown in (
+            "app/assets/themes/dofus_unity/sprites/atlas-control-external.svg",
+            "app/assets/themes/dofus_unity/sprites/unknown.svg",
+            "app/modules/encyclopedia/views/guide_ultime_unreviewed_view.py",
+            "tests/capture_unreviewed_shell_ui.py",
+            "tests/test_equipment_deferred_unknown.py",
+            "tools/dev_ui_snapshot_experimental.py",
+        ):
+            with self.subTest(unknown=unknown):
+                self.assertEqual(owners_for(unknown), frozenset())
+                self.assertEqual(self.route([unknown])["status"], "BLOCKED")
+
+    def test_pr365_svg_glyphs_are_passive_static_shapes(self):
+        """Review four SVG assets without accepting embedded scripts or URLs."""
+        from pathlib import Path
+        from xml.etree import ElementTree
+
+        root = Path(__file__).resolve().parents[1]
+        names = ("check", "down", "mixed", "up")
+        allowed_tags = {"svg", "g", "path"}
+        allowed_attrs = {
+            "width", "height", "viewBox", "fill", "stroke", "stroke-width",
+            "stroke-linecap", "stroke-linejoin", "d",
+        }
+        for name in names:
+            path = root / (
+                "app/assets/themes/dofus_unity/sprites/"
+                f"atlas-control-{name}.svg"
+            )
+            data = path.read_text(encoding="utf-8")
+            self.assertLess(len(data), 4096)
+            self.assertNotIn("http:", data.replace(
+                "http://www.w3.org/2000/svg", ""
+            ))
+            self.assertNotIn("https:", data)
+            drawing = ElementTree.fromstring(data)
+            for element in drawing.iter():
+                local_tag = element.tag.rsplit("}", 1)[-1]
+                self.assertIn(local_tag, allowed_tags, path.name)
+                self.assertTrue(
+                    set(element.attrib).issubset(allowed_attrs),
+                    (path.name, element.attrib),
+                )
+
     def test_unknown_owner_blocks_instead_of_launching_full(self):
         plan = self.route(["app/new_cross_domain_provider.py"])
         self.assertEqual(plan["status"], "BLOCKED")

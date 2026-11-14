@@ -388,6 +388,10 @@ def owners_for(path: str) -> frozenset[str]:
         # All four concrete guide readers have both Guide logic and Qt clients.
         # Unknown view modules remain BLOCKED; no wildcard or coverage reduction.
         return frozenset({"guides", "ui"})
+    if path == "app/modules/encyclopedia/views/guide_ultime_generated_view.py":
+        # Concrete generated Guide Qt reader: the Guide runtime and shared
+        # Unity widgets are both direct consumers. No sibling wildcard.
+        return frozenset({"guides", "ui"})
     if path in {
         "app/modules/encyclopedia/views/encyclopedia_page.py",
         "tests/test_encyclopedia_page.py",
@@ -398,6 +402,15 @@ def owners_for(path: str) -> frozenset[str]:
     }:
         # Catalog widgets and the Encyclopedia shell have Guide and UI consumers.
         return frozenset({"guides", "ui"})
+    if path in {
+        "app/assets/themes/dofus_unity/sprites/atlas-control-check.svg",
+        "app/assets/themes/dofus_unity/sprites/atlas-control-down.svg",
+        "app/assets/themes/dofus_unity/sprites/atlas-control-mixed.svg",
+        "app/assets/themes/dofus_unity/sprites/atlas-control-up.svg",
+    }:
+        # These four reviewed passive 14x14 Atlas SVG glyphs have no links,
+        # scripts or game-extracted data. Every OTHER SVG stays unowned.
+        return frozenset({"ui", "data"})
     if path.startswith("app/assets/themes/dofus_unity/"):
         # Owned *only* as UI/data inputs, not approved for redistribution.
         if Path(path).suffix.lower() in {".png", ".ttf", ".md"}:
@@ -458,6 +471,16 @@ def owners_for(path: str) -> frozenset[str]:
         # Reviewed direct Qt owner for Organizer's transparent host material.
         # No test_organizer* wildcard and no game-input privilege.
         return frozenset({"organizer", "ui", "identity"})
+    if path == "tools/dev_ui_snapshot.py":
+        # Developer Qt screenshot producer; not an application runtime.
+        return frozenset({"ci", "ui"})
+    if path == "tests/capture_app_shell_ui.py":
+        # Exact real-shell screenshot scenario: Home, Craft, Quest/Guide shell,
+        # character view and the startup navigation lifecycle. No tests/* rule.
+        return frozenset({"ci", "ui", "startup", "craft", "quests", "guides", "identity"})
+    if path == "tests/test_equipment_deferred_start.py":
+        # Real Qt Equipment lifecycle + shared component presentation.
+        return frozenset({"startup", "ui"})
     if path == "tests/test_world_scan_async_loading.py":
         return frozenset({"ui"})
     if path == "tests/test_startup_preload_window_visibility.py":
