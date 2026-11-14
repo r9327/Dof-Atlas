@@ -454,10 +454,10 @@ def unity_skin_stylesheet(palette: Mapping[str, str] | None = None) -> str:
     # is an appropriate skin for the universal AtlasButton variants.
     # Their normal / hover / pressed / disabled colors are already provided
     # by app.ui.theme. Preserve optional artwork on dedicated controls only.
-    sprites_for_states(
-        "QPushButton#HomeContinueButton, QPushButton#FeaturedGuideOpen",
-        "btn_green", 8,
-    )
+    # HomeContinueButton is an AtlasButton: keep the approved blue/green
+    # semantic states from app.ui.theme, not a neon 9-slice border image.
+    # The hidden Guide-specific Open action retains its optional game sprite.
+    sprites_for_states("QPushButton#FeaturedGuideOpen", "btn_green", 8)
     sprites_for_states(
         "QPushButton#GuideManualPageCheck",
         "btn_green", 8,

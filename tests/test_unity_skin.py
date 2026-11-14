@@ -95,6 +95,9 @@ class UnitySkinTests(unittest.TestCase):
             self.assertNotIn(f"QPushButton#{name} {{ border: 8px", css)
         # Dedicated game-style actions can retain their own sprite treatment.
         self.assertIn("btn_green_normal.png", css)
+        self.assertNotIn(
+            "QPushButton#HomeContinueButton { border: 8px", css,
+        )
 
     def test_panel_toggle_common_state_and_accessibility(self) -> None:
         from app.ui.components import AtlasPanelToggle
