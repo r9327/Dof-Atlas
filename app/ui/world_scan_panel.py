@@ -15,7 +15,7 @@ from app.constants import LOGGER
 from app.services.maps.map_cache_builder import get_cache_summary, get_local_image_stats
 from app.services.maps.map_manifest import DEFAULT_WORLD_AREA, DEFAULT_WORLD_NAME, WORLD_MENU_NAMES
 from app.ui.map_canvas_widget import MapCanvasWidget
-from app.ui.components import AtlasButton
+from app.ui.components import AtlasButton, AtlasPageTitle
 
 
 DEFAULT_WORLD_CONTEXT = f"{DEFAULT_WORLD_NAME} / {DEFAULT_WORLD_AREA}"
@@ -82,8 +82,7 @@ class WorldScanPanel(QWidget):
         accent = QFrame()
         accent.setObjectName("TitleAccent")
         accent.setFixedSize(4, 24)
-        title = QLabel("Scan Monde")
-        title.setObjectName("PageTitle")
+        title = AtlasPageTitle("Scan Monde")
         title.setFixedHeight(28)
         header.addWidget(accent, alignment=Qt.AlignVCenter)
         header.addWidget(title, 1)

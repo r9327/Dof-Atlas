@@ -8,7 +8,7 @@ from PySide6.QtGui import QDesktopServices
 from PySide6.QtWidgets import QLabel, QVBoxLayout, QWidget
 
 from app.constants import HUZOUNET_URL
-from app.ui.components import AtlasButton
+from app.ui.components import AtlasButton, AtlasPageTitle
 
 
 # Legacy shell tests may inject a lightweight fake through the historical module
@@ -51,8 +51,7 @@ class EquipmentPage(QWidget):
         root.setContentsMargins(18, 16, 18, 18)
         root.setSpacing(12)
 
-        title = QLabel("Équipement")
-        title.setObjectName("PageTitle")
+        title = AtlasPageTitle("Équipement")
         root.addWidget(title)
 
         self.section_label = QLabel()

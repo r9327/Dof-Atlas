@@ -55,7 +55,7 @@ from app.storage import (
     short_label,
     write_json,
 )
-from app.ui.components import AtlasButton
+from app.ui.components import AtlasButton, AtlasPageTitle
 
 
 LOGGER = logging.getLogger(__name__)
@@ -275,8 +275,7 @@ class ItemSetDialog(QDialog):
             return
 
         name = item_set.get("name_fr") or item_set.get("name_en") or f"Panoplie {item_set.get('ankama_id', '')}"
-        title = QLabel(str(name))
-        title.setObjectName("PageTitle")
+        title = AtlasPageTitle(str(name))
         root.addWidget(title)
         root.addWidget(QLabel(f"{len(item_set.get('items', []))} objet(s) connus"))
 
@@ -429,8 +428,7 @@ class RouteDialog(QDialog):
         self.setWindowFlag(Qt.WindowStaysOnTopHint, True)
 
         root = QVBoxLayout(self)
-        title = QLabel(f"{job_name} - {item.get('name', 'Ressource')}")
-        title.setObjectName("PageTitle")
+        title = AtlasPageTitle(f"{job_name} - {item.get('name', 'Ressource')}")
         root.addWidget(title)
         controls = QHBoxLayout()
         self.step_label = QLabel("Etape 1")
@@ -531,8 +529,7 @@ class CraftPage(QWidget):
 
         root = QVBoxLayout(self)
         root.setContentsMargins(6, 6, 6, 6)
-        title = QLabel("Craft")
-        title.setObjectName("PageTitle")
+        title = AtlasPageTitle("Craft")
         root.addWidget(title)
         self.retry_preload_button = AtlasButton("Réessayer le chargement Craft")
         self.retry_preload_button.setObjectName("CraftRetryPreload")

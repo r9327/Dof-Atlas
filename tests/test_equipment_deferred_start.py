@@ -16,6 +16,18 @@ class EquipmentDeferredStartTests(unittest.TestCase):
     def setUpClass(cls) -> None:
         cls.app = QApplication.instance() or QApplication([])
 
+    def test_equipment_title_inherits_the_universal_ui_index(self) -> None:
+        from app.ui.components import AtlasPageTitle
+
+        page = EquipmentPage(lambda _text: None)
+        try:
+            title = page.findChild(AtlasPageTitle, "PageTitle")
+            self.assertIsNotNone(title)
+            self.assertEqual(title.text(), "Équipement")
+            self.assertEqual(title.styleSheet(), "")
+        finally:
+            page.deleteLater()
+
     def test_equipment_shell_is_navigation_ready_before_webengine(self) -> None:
         page = EquipmentPage(lambda _text: None)
         self.assertTrue(page.is_navigation_ready())

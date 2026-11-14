@@ -90,6 +90,9 @@ class UnityPaletteTests(unittest.TestCase):
         self.assertEqual(UNITY_UI_FAMILY_INDEX["motion"]["scope"], "prototype")
         self.assertEqual(UNITY_UI_FAMILY_INDEX["guides"]["scope"], "module")
         self.assertEqual(UNITY_UI_FAMILY_INDEX["palette"]["scope"], "shared")
+        self.assertIn(
+            "AtlasPageTitle", UNITY_UI_FAMILY_INDEX["surfaces"]["components"],
+        )
         self.assertIn("Launcher", UNITY_UI_CONSUMERS)
 
     def test_color_module_does_not_import_qt_or_game_runtime(self) -> None:

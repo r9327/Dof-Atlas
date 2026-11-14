@@ -37,6 +37,7 @@ from app.modules.encyclopedia.views.related_preload_state import (
     RelatedPreloadState,
 )
 from app.pages.quest_character_cache import quest_character_source_signature
+from app.ui.components import AtlasPageTitle
 from app.quest_catalog import QuestCharacter, load_quest_characters
 
 if TYPE_CHECKING:
@@ -294,8 +295,7 @@ class EncyclopediaPage(QWidget):
                 page.setObjectName("EncyclopediaUnavailableBestiary")
                 layout = QVBoxLayout(page)
                 layout.setContentsMargins(24, 24, 24, 24)
-                title = QLabel(label.title())
-                title.setObjectName("PageTitle")
+                title = AtlasPageTitle(label.title())
                 layout.addWidget(title)
                 message = QLabel(
                     "Module en préparation : ce volet du Bestiaire n'est pas encore "

@@ -179,7 +179,7 @@ UNITY_UI_FAMILY_INDEX = {
     },
     "surfaces": {
         "title": "Surfaces · cartes · typographie",
-        "components": ("PageTitle", "PanelTitle", "MutedLabel", "card", "Panel", "QuestPanel", "QFrame"),
+        "components": ("AtlasPageTitle", "PageTitle", "PanelTitle", "MutedLabel", "card", "Panel", "QuestPanel", "QFrame"),
         "style_owner": "app/ui/theme.py + app/ui/unity_skin.py",
         "scope": "shared",
     },

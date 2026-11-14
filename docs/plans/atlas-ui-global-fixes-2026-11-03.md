@@ -76,6 +76,26 @@ Tests à contrôler au SHA final : `tests/test_unity_skin.py`,
 vues Guide, Home et Craft. Le lot ne prouve ni le fonctionnement de tous les
 clics en jeu, ni les captures des 12 modules, ni la certification finale.
 
+### Lot d'adoption suivant — titres et badges passifs (14/11)
+
+Les titres des écrans Craft, Équipement, Carte du monde, placeholder
+Bestiaire et deux boîtes de dialogue Craft utilisent maintenant
+`AtlasPageTitle` (même `objectName="PageTitle"`, dimensions et données),
+à la place d'un `QLabel` renommé. La famille indexée `surfaces`
+référence explicitement cette classe commune. Le badge historique
+`#HomePlaceholderBadge` plein et sa vérification de tokens privés ont été
+supprimés : le seul « En travaux » existant utilise désormais le
+`AtlasStatusBadge` passif, transparent et indexé par état comme la galerie.
+
+Tests directs : Craft, Équipement, Carte, Bestiaire lazy-tab,
+`test_theme_runtime_cache` et `test_unity_palette`.
+Rien n'est changé aux tailles métier, à l'Organizer ou aux animations
+non validées. La capture Windows Guides au SHA `8d232dc7d7e9`
+avait 116/118 assertions PASS ; deux FAIL concernaient exactement
+la ligne « Faire les combats requis … zone Champs » sur le même
+stade INC-02 à 960/1200 px. Ne pas confondre cela avec un test des
+composants communs ni déclarer la PR certifiée sans correction indépendante.
+
 ## Dépendances / responsabilités
 
 | Branche / PR | Responsabilité | Règle pour cette PR |

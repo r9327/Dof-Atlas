@@ -28,6 +28,20 @@ class EncyclopediaLazyTabVisibilityTests(unittest.TestCase):
         self.addCleanup(tabs.deleteLater)
         return page
 
+    def test_bestiary_unavailable_title_uses_shared_page_component(self):
+        from app.ui.components import AtlasPageTitle
+
+        page = self.make_page()
+        page._lazy_slots["DONJONS"] = page.tabs.widget(3)
+        page.replace_tab_widget = lambda label, widget: (
+            EncyclopediaPage.replace_tab_widget(page, label, widget)
+        )
+        unavailable = EncyclopediaPage.ensure_tab_loaded(page, "DONJONS")
+        title = unavailable.findChild(AtlasPageTitle, "PageTitle")
+        self.assertIsNotNone(title)
+        self.assertEqual(title.text(), "Donjons")
+        self.assertIs(page.tabs.widget(3), unavailable)
+
     def test_hidden_encyclopedia_tabs_stay_hidden_after_lazy_hydration(self):
         page = self.make_page()
         bar = page.tabs.tabBar()

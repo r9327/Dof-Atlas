@@ -2027,16 +2027,6 @@ QMenu::separator {
     padding: 4px;
 }
 
-#HomePlaceholderBadge {
-    background: @BADGE_BG;
-    border: 1px solid @BADGE_BORDER;
-    border-radius: 5px;
-    color: @BADGE_TEXT;
-    font-size: @FONT_SMALL;
-    font-weight: 900;
-    padding: 4px 10px;
-}
-
 #HomeAlmanaxText {
     color: @TEXT_SOFT;
     font-size: 14px;
