@@ -15,7 +15,7 @@ from PySide6.QtWidgets import QGraphicsDropShadowEffect, QWidget
 
 from app.ui.unity_palette import (
     UNITY_ICON_FILE_ALIASES, UNITY_ICON_NAMES, UNITY_ICON_PENDING,
-    UNITY_PALETTE, UNITY_RADII, UNITY_SIZES_PX,
+    UNITY_GLASS_INTENSITY, UNITY_PALETTE, UNITY_RADII, UNITY_SIZES_PX,
     resolve_unity_colors,
 )
 
@@ -249,7 +249,7 @@ def unity_skin_stylesheet(palette: Mapping[str, str] | None = None) -> str:
         "QWidget#GuideLeftPanelContent, QWidget#GuideCenterPanelContent, "
         "QWidget#GuideRightPanelContent { background: transparent; }",
         # Real guide panels remain legible, but they no longer blot out the sky.
-        "QFrame#GuideHeader, QFrame#GuideBreadcrumb, "
+        "QFrame#GuideHeader, "
         "QFrame#GuidesHomeCategory, QFrame#GuidesHomeProgressionColumn, "
         "QFrame#GuideLeftPanel, QFrame#GuideCenterPanel, "
         "QFrame#GuideRightPanel, QFrame#GuidesHomeSubCategory { "
@@ -267,9 +267,9 @@ def unity_skin_stylesheet(palette: Mapping[str, str] | None = None) -> str:
         "stop:0 %s,stop:1 %s); color: %s; "
         "border: 1px solid %s; border-top: 1px solid %s; "
         "border-radius: %s; }" % (
-            translucent("PANEL_2", 0.50), translucent("PANEL", 0.58),
+            translucent("PANEL_2", 0.82), translucent("PANEL", 0.88),
             colors["TEXT"], colors["BORDER"],
-            translucent("TEXT_SOFT", 0.16), radii["RADIUS_SM"],
+            translucent("TEXT_SOFT", UNITY_GLASS_INTENSITY), radii["RADIUS_SM"],
         ),
         "QListView, QTreeView, QTableView, QListWidget, QTreeWidget, QTableWidget { "
         "background: %s; color: %s; "
@@ -310,7 +310,7 @@ def unity_skin_stylesheet(palette: Mapping[str, str] | None = None) -> str:
             translucent("LIST_SURFACE", 0.85), colors["TEXT"], colors["BORDER"],
         ),
         "QProgressBar::chunk { background: %s; }" % colors["GREEN"],
-        "QFrame#card, QFrame#HomeCharacterCard, QFrame#HomeTrackingCard, "
+        "QFrame#card, QFrame#GuideBreadcrumb, QFrame#HomeCharacterCard, QFrame#HomeTrackingCard, "
         "QFrame#HomeGuideCard, QFrame#HomeNetworkMiniCard, QFrame#HomeAlmanaxCard, "
         "QFrame#GuideFeaturedCard { "
         "background: qlineargradient(x1:0,y1:0,x2:0,y2:1,"
