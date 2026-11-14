@@ -4,7 +4,7 @@ import unittest
 from types import SimpleNamespace
 from unittest.mock import Mock
 
-from app.constants import KEY_SCRIPT_SPEED, KEY_SCRIPT_SPEED_SCHEMA
+from app.constants import KEY_ORGANIZER_MACRO_MODE, KEY_SCRIPT_SPEED, KEY_SCRIPT_SPEED_SCHEMA
 from app.core.macro_lock import MacroLock
 from app.pages.organizer.organizer_hotkeys import OrganizerHotkeysMixin
 
@@ -61,6 +61,25 @@ class OrganizerSpeedAndLeaseTests(unittest.TestCase):
         OrganizerHotkeysMixin.set_script_speed(owner, "normal")
         self.assertEqual(events, ["save", "export", "reload"])
         self.assertEqual(owner.profiles[KEY_SCRIPT_SPEED_SCHEMA], 2)
+        owner.stop_runtime_callback.assert_not_called()
+
+    def test_switching_macro_mirror_keeps_runtime_running(self):
+        events = []
+        owner = SimpleNamespace(
+            profiles={KEY_ORGANIZER_MACRO_MODE: "macro"},
+            stop_runtime_callback=Mock(),
+            save_profiles=Mock(),
+            export_client_index=Mock(),
+            update_macro_mode_buttons=Mock(),
+            update_switch_buttons=Mock(),
+            reload_runtime_callback=Mock(side_effect=lambda: events.append("reload")),
+            status_callback=Mock(),
+        )
+        OrganizerHotkeysMixin.set_macro_mode(owner, "mirror")
+        self.assertEqual(owner.profiles[KEY_ORGANIZER_MACRO_MODE], "mirror")
+        OrganizerHotkeysMixin.set_macro_mode(owner, "macro")
+        self.assertEqual(owner.profiles[KEY_ORGANIZER_MACRO_MODE], "macro")
+        self.assertEqual(events, ["reload", "reload"])
         owner.stop_runtime_callback.assert_not_called()
 
     def test_wrong_owner_cannot_release_active_macro_lease(self):

@@ -26,6 +26,13 @@ def _runtime() -> Mock:
 
 
 class OrganizerMacroReliabilityTests(unittest.TestCase):
+    def test_zaap_legacy_favorites_send_travel_command(self):
+        from app.macros.zaap import parse_zaap_command, zaap_command
+
+        self.assertEqual(parse_zaap_command("/zaap -5,12"), (-5, 12))
+        self.assertEqual(parse_zaap_command("/travel -5,12"), (-5, 12))
+        self.assertEqual(zaap_command(-5, 12), "/travel -5,12")
+
     def test_space_refusal_never_sends_destructive_chat_keys(self):
         from app.macros import input_tools
 
