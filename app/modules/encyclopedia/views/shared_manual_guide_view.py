@@ -411,7 +411,7 @@ class SharedGuideManualCard(GuideUltimeManualCard):
             label = "Validé ✓"
         else:
             label = "Valider"
-        self.page_check = QPushButton(label)
+        self.page_check = AtlasButton(label)
         self.page_check.setObjectName("GuideManualPageCheck")
         self.page_check.setCheckable(True)
         self.page_check.setChecked(bool((automatic or manual) and not blocking))
@@ -958,7 +958,7 @@ class SharedGuideManualView(GuideUltimeManualView):
         nav_layout = QHBoxLayout(nav)
         nav_layout.setContentsMargins(8, 4, 8, 6)
         nav_layout.setSpacing(8)
-        self.prev_button = QPushButton("Précédent")
+        self.prev_button = AtlasButton("Précédent")
         self.prev_button.setObjectName("GuideManualPrev")
         self.prev_button.setIcon(
             self.prev_button.style().standardIcon(QStyle.SP_ArrowBack)
@@ -973,7 +973,7 @@ class SharedGuideManualView(GuideUltimeManualView):
         self.validation_layout.setSpacing(0)
         nav_layout.addWidget(self.validation_host)
         nav_layout.addStretch(1)
-        self.next_button = QPushButton("Suivant")
+        self.next_button = AtlasButton("Suivant")
         self.next_button.setObjectName("GuideManualNextButton")
         self.next_button.setIcon(
             self.next_button.style().standardIcon(QStyle.SP_ArrowForward)
@@ -1040,7 +1040,7 @@ class SharedGuideManualView(GuideUltimeManualView):
             lambda value: self._show_index(value - 1)
         )
         title_row.addWidget(self.page_jump)
-        self.current_button = QPushButton("Actuelle")
+        self.current_button = AtlasButton("Actuelle")
         self.current_button.setObjectName("GuideCompactCurrentButton")
         self.current_button.setIcon(_guide_symbol_icon(self.current_button, "current"))
         self.current_button.clicked.connect(self.go_active)
@@ -1167,7 +1167,7 @@ class SharedGuideManualView(GuideUltimeManualView):
         self.preparation_filter_group = QButtonGroup(self)
         self.preparation_filter_group.setExclusive(True)
         for label in ("Tout", "Prérequis", "Métiers", "Potions", "Pierres d'âme", "Clefs", "Objets"):
-            button = QPushButton(label)
+            button = AtlasButton(label)
             button.setObjectName("GuidePreparationFilter")
             button.setCheckable(True)
             button.setProperty("filterKey", label)
@@ -1706,7 +1706,7 @@ class SharedGuideManualView(GuideUltimeManualView):
     def _append_preparation_more(self, remaining: int) -> None:
         if remaining <= 0:
             return
-        button = QPushButton(f"Afficher la suite ({remaining} besoins restants)")
+        button = AtlasButton(f"Afficher la suite ({remaining} besoins restants)")
         button.setObjectName("GuidePreparationShowMore")
         button.clicked.connect(lambda _checked=False: self._show_more_preparation())
         self.preparation_rows_layout.addWidget(button)
@@ -1797,7 +1797,7 @@ class SharedGuideManualView(GuideUltimeManualView):
 
     def _copyable_preparation_item(self, name: str, display: str,
                                    item_id: int | None) -> QPushButton:
-        button = QPushButton(display)
+        button = AtlasButton(display)
         button.setObjectName("GuidePreparationItemCopy")
         button.setFlat(True)
         button.setCursor(Qt.PointingHandCursor)

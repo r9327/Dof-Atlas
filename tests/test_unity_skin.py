@@ -828,6 +828,33 @@ class UnitySkinTests(unittest.TestCase):
             home.deleteLater()
             self.app.processEvents()
 
+
+    def test_home_uses_shared_indexed_buttons_and_passive_status(self) -> None:
+        """Home consumes the real Dev UI buttons and read-only badge."""
+        from PySide6.QtWidgets import QWidget
+        from app.pages.home_page import HomePage
+        from app.ui.components import AtlasButton, AtlasStatusBadge
+
+        home = HomePage()
+        try:
+            for name in (
+                "HomeChangeCharacterButton", "HomeContinueButton",
+                "HomeAlmanaxButton",
+            ):
+                button = home.findChild(QWidget, name)
+                self.assertIsInstance(button, AtlasButton, name)
+                self.assertEqual(button.objectName(), name)
+            self.assertFalse(home.continue_button.isEnabled())
+            badge = home.findChild(AtlasStatusBadge, "StatusBadge")
+            self.assertIsNotNone(badge)
+            self.assertEqual(badge.text(), "En travaux")
+            self.assertEqual(badge.property("state"), "blocked")
+            self.assertEqual(badge.accessibleName(), "Statut En travaux")
+            self.assertEqual(badge.cursor().shape(), Qt.ArrowCursor)
+        finally:
+            home.close()
+            home.deleteLater()
+
     def test_home_tracking_icons_preserve_local_alpha_and_fallback(self) -> None:
         from PySide6.QtWidgets import QLabel
         from app.pages.home_page import HomeTrackingRow

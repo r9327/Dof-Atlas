@@ -199,7 +199,7 @@ class CraftResourceDialog(QDialog):
             resource_icon = self.icon_cache.icon_for_item(craft_image_item(item_info)).pixmap(24, 24)
             if not resource_icon.isNull():
                 icon.setPixmap(resource_icon)
-            label = QPushButton(name)
+            label = AtlasButton(name)
             label.setObjectName("ResourceNameButton")
             label.setFlat(True)
             label.setCursor(Qt.PointingHandCursor)

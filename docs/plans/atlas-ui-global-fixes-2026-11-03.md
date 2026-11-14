@@ -54,6 +54,28 @@ comme universellement validées. Le registre ne prouve pas que chaque
 consommateur a été migré : contrôles ciblés et captures Windows nécessaires
 avant certification de la PR.
 
+### Adoption réelle des composants indexés (lot transverse du 14/11)
+
+Graphify exact-SHA `087379d6cac01ab2d4c885a6ddec9fa7878bc6c5`
+du run `43598632925` : analyse et contrôle de fraîcheur PASS.
+Les relations avec les écrans consommateurs et les tests ont été vérifiées.
+
+Les QPushButton standards encore utilisés sur l'Accueil, dans la Carte du
+monde, Craft et les vues Guide (partagée, manuelle, générée, universelle)
+sont remplacés par le composant commun `AtlasButton`. Les objectName,
+raccourcis, signaux Qt, états et géométries spécifiques sont conservés.
+Le statut passif « En travaux » sur l'Accueil utilise `AtlasStatusBadge`.
+Les autres familles (Qt standard, couleurs, champs, listes, onglets,
+surfaces, typo, scrollbars et dialogues) restent prises en charge par le
+thème universel déjà partagé. Organizer conserve ses composants métier et
+son adaptateur Unity ; le Launcher Tk continue d'utiliser `launcher_colors`.
+
+Tests à contrôler au SHA final : `tests/test_unity_skin.py`,
+`tests/test_world_scan_async_loading.py`,
+`tests/test_guide_ultime_manual_ui_navigation.py` et tests concernés des
+vues Guide, Home et Craft. Le lot ne prouve ni le fonctionnement de tous les
+clics en jeu, ni les captures des 12 modules, ni la certification finale.
+
 ## Dépendances / responsabilités
 
 | Branche / PR | Responsabilité | Règle pour cette PR |

@@ -13,7 +13,6 @@ from PySide6.QtWidgets import (
     QHBoxLayout,
     QLabel,
     QProgressBar,
-    QPushButton,
     QSizePolicy,
     QToolButton,
     QVBoxLayout,
@@ -22,7 +21,7 @@ from PySide6.QtWidgets import (
 
 from app.constants import LOGO_PATH, QUEST_PROGRESS_FILE, ROOT_DIR
 from app.network.application_coordinator import NetworkApplicationStatus
-from app.ui.components import atlas_application_icon
+from app.ui.components import AtlasButton, AtlasStatusBadge, atlas_application_icon
 from app.ui.unity_skin import sprite_icon_path
 from app.ui.network_bridge import network_ui_bridge
 
@@ -309,7 +308,7 @@ class HomePage(QWidget):
         identity.addLayout(identity_text, 1)
         char_layout.addLayout(identity)
 
-        change_button = QPushButton("Changer de personnage")
+        change_button = AtlasButton("Changer de personnage")
         change_button.setObjectName("HomeChangeCharacterButton")
         change_button.clicked.connect(self.changeCharacterRequested)
         char_layout.addWidget(change_button)
@@ -374,7 +373,7 @@ class HomePage(QWidget):
         self.zone_value = self._add_guide_detail_row(guide_layout, "●", "Zone actuelle :")
         guide_layout.addStretch(1)
 
-        self.continue_button = QPushButton("Continuer")
+        self.continue_button = AtlasButton("Continuer")
         self.continue_button.setObjectName("HomeContinueButton")
         self.continue_button.setEnabled(False)
         self.continue_button.clicked.connect(self._emit_continue)
@@ -396,9 +395,7 @@ class HomePage(QWidget):
             self.almanax_icon.setIcon(atlas_application_icon())
         almanax_layout.addWidget(self.almanax_icon, 0, Qt.AlignHCenter)
 
-        badge = QLabel("En travaux")
-        badge.setObjectName("HomePlaceholderBadge")
-        badge.setAlignment(Qt.AlignCenter)
+        badge = AtlasStatusBadge("En travaux", state="blocked")
         almanax_layout.addWidget(badge, 0, Qt.AlignHCenter)
 
         almanax_text = QLabel("Le module Almanax sera intégré ici.")
@@ -408,7 +405,7 @@ class HomePage(QWidget):
         almanax_layout.addWidget(almanax_text)
         almanax_layout.addStretch(1)
 
-        almanax_button = QPushButton("Voir l’Almanax")
+        almanax_button = AtlasButton("Voir l’Almanax")
         almanax_button.setObjectName("HomeAlmanaxButton")
         almanax_button.setEnabled(False)
         almanax_layout.addWidget(almanax_button)

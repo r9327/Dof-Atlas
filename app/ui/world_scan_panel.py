@@ -15,6 +15,7 @@ from app.constants import LOGGER
 from app.services.maps.map_cache_builder import get_cache_summary, get_local_image_stats
 from app.services.maps.map_manifest import DEFAULT_WORLD_AREA, DEFAULT_WORLD_NAME, WORLD_MENU_NAMES
 from app.ui.map_canvas_widget import MapCanvasWidget
+from app.ui.components import AtlasButton
 
 
 DEFAULT_WORLD_CONTEXT = f"{DEFAULT_WORLD_NAME} / {DEFAULT_WORLD_AREA}"
@@ -190,7 +191,7 @@ class WorldScanPanel(QWidget):
         self.update_action_state()
 
     def make_button(self, text: str, object_name: str) -> QPushButton:
-        button = QPushButton(text)
+        button = AtlasButton(text)
         button.setObjectName(object_name)
         button.setFixedHeight(30)
         button.setMinimumWidth(108)
@@ -859,7 +860,7 @@ class WorldScanPanel(QWidget):
         self._evict_world_menu_items()
         self._world_menu_suspended = False
         for world in names:
-            item = QPushButton(world)
+            item = AtlasButton(world)
             item.setObjectName("WorldMenuItem")
             item.setFixedHeight(28)
             item.setCursor(Qt.PointingHandCursor)

@@ -14,7 +14,6 @@ from PySide6.QtWidgets import (
     QHBoxLayout,
     QLabel,
     QProgressBar,
-    QPushButton,
     QToolButton,
     QToolTip,
     QVBoxLayout,
@@ -28,6 +27,7 @@ from app.modules.encyclopedia.services.guide_quest_view_model import (
 from app.modules.encyclopedia.views.guide_ultime_universal_view import GuideUltimeUniversalView
 from app.core.text import normalize_key as normalize_text
 from app.ui.theme import PALETTE
+from app.ui.components import AtlasButton
 
 
 NPC_COLOR = PALETTE["YELLOW"]
@@ -789,7 +789,7 @@ class GuideUltimeManualView(GuideUltimeUniversalView):
         buttons = QHBoxLayout()
         buttons.setSpacing(8)
         for option in options:
-            button = QPushButton(option)
+            button = AtlasButton(option)
             button.setObjectName("GuideManualOrderButton")
             button.clicked.connect(lambda _checked=False, value=option: self._select_manual_order(value))
             buttons.addWidget(button)
