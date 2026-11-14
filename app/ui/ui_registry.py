@@ -10,6 +10,7 @@ from __future__ import annotations
 
 from app.ui.unity_palette import (
     UNITY_PAINTED_UI_ROLES, UNITY_UI_FAMILY_INDEX, UNITY_UI_CONSUMERS,
+    UNITY_UI_UNIFICATION_CONTRACT,
 )
 
 
@@ -19,6 +20,7 @@ UI_FAMILY_QSS_SELECTORS: dict[str, tuple[str, ...]] = {
         "#InlineActionButton", "#PopupLinkButton", "#TopNavButton",
     ),
     "navigation": ("QTabBar::tab", "QTabWidget::pane", "QMenu {"),
+    "breadcrumbs": ("QFrame#GuideBreadcrumb", "QPushButton#GuideBreadcrumbButton", "QLabel#GuideBreadcrumbCurrent"),
     "data_views": ("QTreeWidget::item", "QTableWidget", "QHeaderView::section"),
     "scroll_resize": (
         "QSplitter::handle:horizontal", "QScrollBar:vertical",
@@ -30,12 +32,14 @@ UI_FAMILY_QSS_SELECTORS: dict[str, tuple[str, ...]] = {
     ),
     "advanced_fields": ("QDoubleSpinBox", "QDateEdit", "QTimeEdit"),
     "statuses": ('#StatusBadge[state="done"]', "#StatusChip"),
+    "notifications": ("#StatusBadge", "#MutedLabel", "#card"),
     "surfaces": ("#PageTitle", "#PanelTitle", "#MutedLabel", "#card"),
     "metrics": (),  # Values resolve into QSS, not standalone selectors.
     "panels": (
         "#OrganizerPanel", "#GuideRightPanelToggle",
         "#organizerPage QFrame#card", "QGroupBox",
     ),
+    "backdrop": ("QWidget#AtlasUnityBackdrop",),
     "startup": (
         "#PreloadPopupTitle", "#PreloadPopupCurrent", "#PreloadPopupProgress",
     ),
@@ -72,6 +76,7 @@ UI_INTERACTION_QSS_SELECTORS = {
         "QTabBar::tab:hover", "QTabBar::tab:selected",
         "QTabBar::tab:selected:hover",
     ),
+    "breadcrumbs": ("QPushButton#GuideBreadcrumbButton:hover",),
     "fields": ("QComboBox:hover", "QComboBox:disabled"),
     "statuses": ("#StatusChip:hover", "#StatusChip:checked"),
     "panels": (
@@ -170,6 +175,11 @@ def validate_ui_index() -> None:
     families = tuple(UNITY_UI_FAMILY_INDEX)
     if families != tuple(UI_FAMILY_QSS_SELECTORS):
         raise ValueError("Dev UI family selector index differs from gallery order")
+    if not UNITY_UI_UNIFICATION_CONTRACT or any(
+        not label or family not in UNITY_UI_FAMILY_INDEX
+        for label, family in UNITY_UI_UNIFICATION_CONTRACT
+    ):
+        raise ValueError("UI-unification topic without a reachable Dev UI family")
     if tuple(UNITY_UI_CONSUMERS) != tuple(UI_CONSUMER_INDEX):
         raise ValueError("Dev UI consumer index differs from module list")
     painted = [role for group in UI_FAMILY_PAINTED_ROLES.values() for role in group]
