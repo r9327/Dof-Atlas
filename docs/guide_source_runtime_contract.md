@@ -182,14 +182,17 @@ et les factories explicites introduites ci-dessus. Ce n'est **pas** un
 certificateur : aucune instance n'est automatiquement branchée dans `main.py`
 ni créée par les données utilisateur. Le registre contient uniquement les
 métadonnées indépendantes `GuidePackageEntry(guide_id, filename, sha256,
-certificate_ref)`. Aucun guide n'est lu pendant l'ouverture d'Atlas.
+source_sha256, head_sha, certificate_ref)`. Aucun guide n'est lu pendant
+l'ouverture d'Atlas.
 
 À la sélection explicite, le chargeur vérifie le fichier JSON avec une limite
 de 16 Mio, refuse les chemins de traversée, liens symboliques et jonctions
 Windows, exige l'empreinte SHA-256 **exacte des octets installés**, refuse
 les clés JSON dupliquées et NaN/Infinity, contrôle l'identité canonique et
 impose `source_compliance=NOT_CERTIFIED` dans le contenu. Une **preuve externe**
-est impérative via `witness(guide_id, file_sha256, certificate_ref) is True`.
+est impérative via
+`witness(guide_id, file_sha256, source_sha256, build_head_sha,
+certificate_ref) is True`.
 Cette fonction doit appartenir à la composition de confiance, reconnaître
 les justificatifs indépendants de droits/provenance, la source exacte et les
 preuves complètes (Windows/DOFUS) avant d'accepter une certification réelle.

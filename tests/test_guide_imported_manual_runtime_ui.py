@@ -475,6 +475,19 @@ class ImportedSourceRouterQtTests(unittest.TestCase):
         self.assertNotIn(key, self.view._loaded_imported_source_services)
         self.assertFalse(self.progress_path.exists())
 
+        # Reauthorize a fresh reader, then mutate its installed bytes:
+        # refresh must also evict the now-invalid reader without any writes.
+        valid["allowed"] = True
+        self.assertTrue(self.view.select_guide(key))
+        packaged = root / "fictional-packaged.json"
+        packaged.write_bytes(payload + b" ")
+        self.view.refresh_external_progress()
+        self.assertIsNone(self.view.current_guide_id)
+        self.assertIs(self.view.stack.currentWidget(), self.view.home_page)
+        self.assertNotIn(key, self.view._catalog_manual_views)
+        self.assertNotIn(key, self.view._loaded_imported_source_services)
+        self.assertFalse(self.progress_path.exists())
+
     def test_shared_validation_uses_source_id_and_does_not_touch_other_guides(self):
         self.approved = True
         self.assertTrue(self.view.select_guide(self.service.guide_id))
