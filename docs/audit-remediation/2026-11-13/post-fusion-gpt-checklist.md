@@ -153,3 +153,40 @@ Contrat exact : [#321](https://github.com/r9327/Dof-Atlas/issues/321), rapport #
 | GQA-006/GQA-007 | Contrat #430, checklist présente, commits #431 | Windows synthetic au précédent HEAD : Guard candidat tests PASS, contrat FAIL (SHA ancien) ; Phase SKIPPED | Écriture des preuves au **dernier HEAD** seulement. Aucun résultat natif, aucune certification ou revue globale finale prétendue | GPT puis utilisateur |
 
 **Garde de sortie :** poursuivre les vérifications sans lancer de FULL répétées ; une décision finale de revue nécessite la revue commit-par-commit, l'audit global, les tests ciblés et les preuves du **HEAD final**. La recette physique demeure NOT_RUN si elle n'est pas fournie.
+
+## Qualification source ciblée et revue de logique — 14/11/2026
+
+### GQA-003 — Craft : constats ancrés dans le code du candidat
+
+- `app/pages/craft_page.py:set_job` programme l'ouverture de `open_leveling_dialog` après le clic, y compris récolte/fabrication. Il privilégie le guide réel s'il a des entrées ; sinon `build_local_leveling_suggestions` utilise le catalogue disponible et peut afficher un avertissement explicite. La présence de données éditoriales Gamosaurus **n'est pas certifiée** : `LEVELING_FILE` pointe vers `data/raw/json/gamosaurus/metiers_leveling.json`, `.gitignore` ignore `data/raw/`, et le fichier n'est pas suivi au HEAD examiné.
+- Les tests présents couvrent le clic métier, la priorité du vrai guide, le fallback offline, la recherche accents/apostrophes, catégorie armes, ordre/scroll, Échap et la résolution d'icône. Suite : `tests/test_craft_fixes.py` (14 tests), `tests/test_craft_leveling_offline.py` (4), `tests/test_craft_category_search.py` (5). **Présence vérifiée ; exécution #431 NOT_RUN**.
+- Le workflow candidat Windows matérialise des assets via LFS ou source publique épinglée et un seed Craft à part ; **une archive installée réelle n'a pas été inspectée**. Ne pas remplacer les sources métier par des données inventées ni ajouter des chemins spéculatifs.
+
+### GQA-004 — Launcher : constats ancrés dans le code du candidat
+
+- `app/distribution/launcher.py` tente l'optimisation no-op via SHA de release installée, compare les versions, choisit delta si archive plus petite et base identique, puis conserve un fallback FULL. `install_release` retourne `False` quand le slot est déjà actif **et tous les fichiers vérifient leurs empreintes** ; les données personnelles ne sont pas réinstallées dans ce chemin.
+- `_copy_unchanged_verified` dans `app/distribution/install.py` vérifie la taille, tente un clone CoW, sinon recopie et hash SHA-256 en un passage avant activation atomique. Le coût disque sur NTFS sans clone CoW reste un fait de conception, **pas une preuve de bug ou une permission de hardlink dangereux**.
+- Suites existantes lues : `test_distribution_smart_update.py` (38 tests : delta, reprise, corruption, rollback, CoW et cache), `test_distribution_launcher_noop_offline.py` (31 : no-op, home-ack, UI, offline) ; `test_distribution_health.py` (24 : health/Home/mutex), `test_distribution_install_location.py` (15 : persistance, migration sécurisée). Aucun installateur réel ni métrique NTFS du candidat disponible ici. **Nouveau défaut reproductible : aucun identifié à ce stade**.
+
+### GQA-005 — Doctor / workflows : statut des vérifications
+
+- Dans les workflows inspectés `organizer-focused-qt.yml`, `craft-focused-qt.yml`, `atlas-windows-distribution.yml`, `doctor-certification.yml`, `phase-certification.yml`, le checkout est épinglé à `3d3c42e5aac5ba805825da76410c181273ba90b1` (7.0.1), setup-python à `6d4fd22b20465ccc0f7354476588e8df7c9ca0e0` (7.1.0), upload-artifact à `cf430e030ddbb5b0abf93d22962f4752f3646cd9` (7.0.2). Existence des versions et leur utilisation dans ces fichiers **vérifiées par lecture**, pas de qualification exhaustive de chaque action du dépôt.
+- `tools/atlas_doctor_lib/oss_router.py` distingue l'absence d'un analyseur de son exécution : Ruff/zizmor sont des choix opt-in sûrs ; 34 outils candidats ne signifient pas 34 installés. Suite de contrat existante : `tests/test_doctor_oss_routing.py` (38 tests) ; **pas de nouvelle exécution Doctor `plan/check/validate` ni Graphify exact-SHA dans cette session**. Aucun refactor structurel entrepris.
+- À `b820eb59dc808b9dc48ec7a402ad021d604b2e0f` **et** `91cc0290c77e97d1ee7fdb0d5d9a285e20fb8ad0`, les jobs automatiques `Organizer / Focused Windows Qt` et `Organizer Miroir — Windows fixture stress` ont conclu **SUCCESS**. `Phase Certification` a été **SKIPPED** (Draft), `Atlas Delivery Guard` **FAILURE** tant que le rapport PR pointe l'ancien SHA et conserve GQA-001..007 PENDING ; ce n'est ni un PASS de recette Unity ni une surprise masquée. Aucune CI manuelle FULL déclenchée.
+
+### Revue **commit par commit** des cinq premières étapes
+
+| Commit | Revue du delta contre son parent | Jugement / limites |
+| --- | --- | --- |
+| `107240a7` | Ouverture du contrat #430 et de la checklist, pas de code applicatif | Cadrage correct ; aucune validation revendiquée |
+| `834289a2` | Macros/vitesses : pas d'arrêt runtime au changement de profil ; préservation Miroir speed/debug si roster et mode inchangés ; commande `/travel` + SPACE 40 ms | Correctifs cohérents avec les symptômes ; **risque à surveiller** : actions déjà en vol et fiabilité Unity avec les délais réduits |
+| `cfd1024a` | Tests supplémentaires Zaap legacy / Macro-Miroir / presets, mais fixtures runtime historiques incompatibles avec dataclass `replace` | **Deux erreurs** exact-SHA sous Windows : défaut de fixtures non traité à cette étape |
+| `b820eb59` | Tests runtime convertis aux vrais `AtlasSettings`, cas speed/debug et Stop concurrent | Corrige la cause démontrée sans affaiblir le runtime ; Qt Windows synthétique SUCCESS au SHA exact |
+| `91cc0290` | Réconciliation des 19 fusions et 31 obligations #325, avec états PARTIEL / NON VÉRIFIABLE et matrice | Documentation conservatrice ; n'interprète aucune déclaration DONE historique comme réception native ; Qt Windows synthétique SUCCESS au SHA exact |
+
+### Audit intégré provisoire (avant la validation de sortie)
+
+- **Périmètre :** pas de changement du moteur de distribution, des données Craft, des workflows, de la palette/UI globale ni des branches Guides/Opti V3 ; correction unique du défaut de fixtures reproductible, plus les changements Organizer déjà présents sur #431.
+- **Interaction transversale :** les workers SwitchClick, Direction, Zaap et Auto-groupe vérifient le profil/contexte et le Stop avant plusieurs opérations natives ; le passage Macro/Miroir conserve le runtime de hooks. Il reste à observer le comportement durant un geste effectivement en cours sur le Windows utilisateur.
+- **Risques :** temporisations rapides = émission native rapide, **pas** preuve de réception DOFUS ; vrai chat Espace, focus, HUD, données/images de l'archive et performance NTFS restent hors des vérifications disponibles.
+- **Décision logique provisoire : IMPROVEMENTS ADVISED** (aucun nouveau défaut certain identifié après la correction des fixtures), **pas READY / pas CERTIFIED**. La clôture GQA-007 et un verdict final ne sont possibles qu'après contrôles de sortie sur le HEAD définitif, comptabilité du rapport exact-SHA et certification prévue par le dépôt. Les recettes humaines restent NOT_RUN et suivies dans leurs issues d'origine.
