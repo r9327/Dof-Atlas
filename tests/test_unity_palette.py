@@ -185,7 +185,7 @@ class UnityPaletteTests(unittest.TestCase):
             with self.subTest(path=path):
                 source = (root / path).read_text(encoding="utf-8")
                 for name in (
-                    "PrimaryActionButton", "SecondaryButton",
+                    "PrimaryActionButton", "SecondaryButton", "ActiveButton",
                     "GuideBreadcrumbButton",
                 ):
                     self.assertNotIn(f'.setObjectName("{name}")', source)
@@ -194,6 +194,7 @@ class UnityPaletteTests(unittest.TestCase):
         guides = (root / paths[2]).read_text(encoding="utf-8")
         self.assertIn('variant="primary"', craft)
         self.assertIn('variant="secondary"', craft)
+        self.assertIn('button.set_variant("selected")', craft)
         self.assertEqual(quests.count('variant="guide_breadcrumb"'), 3)
         self.assertIn('variant="guide_breadcrumb"', guides)
 
