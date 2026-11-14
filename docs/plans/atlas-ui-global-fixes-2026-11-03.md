@@ -606,3 +606,22 @@ signifie pas que les 31 préoccupations ont toutes été effectivement
 déployées sur les 12 modules, ni que le moteur de notification flottante,
 les animations ou les essais Windows sont certifiés. Aucun CI automatique
 par lot ; tests Qt et captures au SHA final avant validation.
+
+### Dernier contrôle UI Dev du 14 novembre — visibilité des composants
+
+La galerie contient désormais **22 familles** et un inventaire de
+**39 points d'uniformisation** liés à des exemples accessibles via le
+menu de familles ou la matrice cliquable. Les ajouts portent sur :
+menu latéral avec rôles Unity réels, sous-menu QMenu, action cochable,
+onglets `EncyclopediaTabs`, précédent/suivant/retour, fil d'Ariane
+compact et courant renforcé, grilles et colonnes, états natifs Qt,
+accents de titre, panneau glass `OrganizerPanel`, dialogues info/
+attention/erreur via `AtlasDialog` et `AtlasStatusBadge`.
+
+Aucun fichier de thème ou contrôle métier n'est modifié ici :
+les aperçus héritent du QSS canonique, les interactions de la galerie
+sont isolées, les assets manquants restent explicitement signalés.
+La galerie ne certifie ni l'adoption dans les 12 consommateurs, ni le
+fond étoilé lorsque le fichier n'est pas disponible, ni l'animation
+fidèle à DOFUS Unity. Les tests et captures Qt doivent être exécutés
+au HEAD final ; pas de CI à chaque lot.
