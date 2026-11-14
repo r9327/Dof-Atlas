@@ -706,7 +706,7 @@ QSplitter#AchievementCatalogSplitter::handle {
 }
 
 #EncyclopediaResultList::item:selected, #GuideResultList::item:selected {
-    background: @GREEN_DARK;
+    background: @PANEL_ACTIVE;
     border-left: 3px solid @GREEN;
     color: @TEXT;
 }
@@ -732,8 +732,9 @@ QSplitter#AchievementCatalogSplitter::handle {
 }
 
 #EntityLinkButton:hover {
-    border-color: @GREEN;
-    background: @GREEN_DARK;
+    border-color: @GREEN_BORDER;
+    background: @PANEL_HOVER;
+    color: @GREEN;
 }
 
 #AchievementEntityRow {
@@ -744,8 +745,8 @@ QSplitter#AchievementCatalogSplitter::handle {
 
 #AchievementEntityRow:hover,
 #ObjectiveRow:hover {
-    border-color: @GREEN;
-    background: @GREEN_DARK;
+    border-color: @GREEN_BORDER;
+    background: @PANEL_HOVER;
 }
 
 #AchievementEntityRowText {
@@ -916,8 +917,9 @@ QPushButton:hover, QToolButton:hover {
 }
 
 QPushButton:pressed, QToolButton:pressed {
-    background: @GREEN_DARK;
-    border-color: @GREEN;
+    background: @PANEL_ACTIVE;
+    border-color: @GREEN_BORDER;
+    color: @GREEN;
 }
 
 QPushButton:disabled, QToolButton:disabled {
@@ -1339,7 +1341,7 @@ QPushButton:disabled, QToolButton:disabled {
 
 #ZaapSuggestionPopup::item:selected, #ZaapSuggestionPopup::item:hover,
 QListWidget::item:selected {
-    background: @GREEN_DARK;
+    background: @PANEL_ACTIVE;
     color: @TEXT;
 }
 
@@ -1461,20 +1463,20 @@ QListWidget::item:selected {
 }
 
 #WorldPlanetButton {
-    background: #0B7F3D;
-    border: 1px solid @GREEN;
+    background: @PANEL_2;
+    border: 1px solid @BORDER_CARD;
     border-radius: 30px;
     padding: 0px;
 }
-
 #WorldPlanetButton:hover {
-    background: @GREEN_HOVER;
-    border-color: @GREEN_HOVER;
+    background: @PANEL_HOVER;
+    border-color: @GREEN_BORDER;
+    color: @GREEN;
 }
-
 #WorldPlanetButton:pressed {
-    background: @GREEN_DARK;
+    background: @PANEL_ACTIVE;
     border-color: @GREEN;
+    color: @GREEN;
 }
 
 #WorldMenu {
@@ -1541,9 +1543,9 @@ QListWidget::item:selected {
 }
 
 #WorldMenuItemActive {
-    background: @GREEN_DARK;
-    border-color: @GREEN;
-    color: @TEXT;
+    background: @PANEL_ACTIVE;
+    border-color: @GREEN_BORDER;
+    color: @GREEN;
     font-weight: 800;
 }
 
@@ -1566,9 +1568,9 @@ QListWidget::item:selected {
 }
 
 #MapViewTree::item:selected {
-    background: @GREEN_DARK;
+    background: @PANEL_ACTIVE;
     color: @TEXT;
-    border: 1px solid @GREEN;
+    border: 1px solid @GREEN_BORDER;
 }
 
 #MapDetailValue {
@@ -1905,8 +1907,8 @@ QMenu::separator {
 #HomeChangeCharacterButton,
 #HomeContinueButton,
 #HomeAlmanaxButton {
-    background: @ACTIVE_GRADIENT;
-    border: 1px solid @GREEN_BORDER;
+    background: @PANEL_2;
+    border: 1px solid @BORDER_CARD;
     border-radius: @RADIUS_SM;
     color: @TEXT;
     font-size: 13px;
@@ -1918,9 +1920,18 @@ QMenu::separator {
 }
 
 #HomeChangeCharacterButton:hover,
-#HomeContinueButton:hover {
-    background: @GREEN_HOVER;
-    border-color: @GREEN;
+#HomeContinueButton:hover,
+#HomeAlmanaxButton:hover {
+    background: @PANEL_HOVER;
+    border-color: @GREEN_BORDER;
+    color: @GREEN;
+}
+#HomeChangeCharacterButton:pressed,
+#HomeContinueButton:pressed,
+#HomeAlmanaxButton:pressed {
+    background: @PANEL_ACTIVE;
+    border-color: @GREEN_BORDER;
+    color: @GREEN;
 }
 
 #HomeContinueButton:disabled,

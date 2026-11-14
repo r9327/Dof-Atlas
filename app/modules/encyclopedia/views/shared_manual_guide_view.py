@@ -980,7 +980,7 @@ class SharedGuideManualView(GuideUltimeManualView):
         )
         self.next_button.clicked.connect(lambda: self.navigate_relative(1))
         nav_layout.addWidget(self.next_button)
-        apply_unity_panel_shadow(nav, blur=14, vertical=3)
+        apply_unity_panel_shadow(nav)
         root.addWidget(nav)
 
         self.progress_details = QLabel()
@@ -1137,7 +1137,7 @@ class SharedGuideManualView(GuideUltimeManualView):
         self.settings_panel.setVisible(False)
         self.settings_button.toggled.connect(self.settings_panel.setVisible)
         right.addWidget(self.settings_panel)
-        apply_unity_panel_shadow(header, blur=18, vertical=4)
+        apply_unity_panel_shadow(header)
         root.addWidget(header)
 
     def _build_preparation_panel(self, root: QVBoxLayout) -> None:
@@ -1194,7 +1194,7 @@ class SharedGuideManualView(GuideUltimeManualView):
         self.preparation_scroll.setWidget(self.preparation_content)
         panel_layout.addWidget(self.preparation_scroll)
         self.preparation_panel.setVisible(False)
-        apply_unity_panel_shadow(self.preparation_panel, blur=16, vertical=4)
+        apply_unity_panel_shadow(self.preparation_panel)
         root.addWidget(self.preparation_panel)
 
     def _build_sheet_header(self, root: QVBoxLayout) -> None:
@@ -1275,7 +1275,7 @@ class SharedGuideManualView(GuideUltimeManualView):
         self.summary_panel.setVisible(False)
         self.summary_button.toggled.connect(self._summary_toggled)
         layout.addWidget(self.summary_panel)
-        apply_unity_panel_shadow(header, blur=15, vertical=3)
+        apply_unity_panel_shadow(header)
         root.addWidget(header)
         self._refresh_participants_panel()
 

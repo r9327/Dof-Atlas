@@ -268,6 +268,26 @@ class SharedThemeTests(unittest.TestCase):
         self.assertIn("color: #99CC33;", block)
         self.assertNotIn("background: #497332;", block)
 
+    def test_all_module_selections_use_blue_surfaces_and_fine_green_accents(self) -> None:
+        style = theme.atlas_stylesheet()
+        for selector in (
+            "#EncyclopediaResultList::item:selected, #GuideResultList::item:selected {",
+            "#WorldMenuItemActive {",
+            "#MapViewTree::item:selected {",
+        ):
+            block = style.split(selector, 1)[1].split("}", 1)[0]
+            self.assertIn("background: #344978;", block)
+            self.assertNotIn("background: #497332;", block)
+        home = style.split(
+            "#HomeChangeCharacterButton,\n#HomeContinueButton,\n#HomeAlmanaxButton {", 1
+        )[1].split("}", 1)[0]
+        self.assertIn("background: #213154;", home)
+        self.assertNotIn("background: qlineargradient", home)
+        pressed = style.split(
+            "QPushButton:pressed, QToolButton:pressed {", 1
+        )[1].split("}", 1)[0]
+        self.assertIn("background: #344978;", pressed)
+
     def test_dev_ui_shared_surface_style_reaches_real_widgets(self) -> None:
         style = theme.atlas_stylesheet({
             "PANEL": "#112233", "PANEL_2": "#223344",

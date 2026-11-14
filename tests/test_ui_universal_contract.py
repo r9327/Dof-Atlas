@@ -119,6 +119,39 @@ class UiUniversalContractTests(unittest.TestCase):
         self.assertNotIn("#organizerPage QPushButton#primaryButton:hover",
                          ORGANIZER_STYLE_TEMPLATE)
 
+    def test_glass_relief_is_consumed_in_actual_static_panels(self):
+        from app.ui.unity_palette import UNITY_PANEL_SHADOW
+        from app.ui.unity_skin import apply_unity_panel_shadow
+        self.assertEqual(UNITY_PANEL_SHADOW, {
+            "blur": 17, "vertical": 5, "alpha": 135,
+        })
+        signatures = {
+            "app/pages/home_page.py": ("apply_unity_panel_shadow(card)",),
+            "app/pages/craft_page.py": (
+                "apply_unity_panel_shadow(self.craft_left_panel)",
+                "apply_unity_panel_shadow(self.craft_right_panel)",
+                "apply_unity_panel_shadow(self.jobs_panel)",
+            ),
+            "app/ui/world_scan_panel.py": (
+                "apply_unity_panel_shadow(toolbar)",
+                "apply_unity_panel_shadow(self.detail_panel)",
+            ),
+            "app/modules/encyclopedia/views/achievements_view.py": (
+                "apply_unity_panel_shadow(panel)",
+            ),
+            "app/modules/encyclopedia/views/shared_manual_guide_view.py": (
+                "apply_unity_panel_shadow(nav)",
+                "apply_unity_panel_shadow(header)",
+            ),
+        }
+        for path, calls in signatures.items():
+            content = (REPO_ROOT / path).read_text(encoding="utf-8")
+            for call in calls:
+                with self.subTest(path=path, call=call):
+                    self.assertIn(call, content)
+        self.assertIn("apply_unity_panel_shadow(panel)",
+                      (REPO_ROOT / "app/pages/organizer/organizer_ui.py").read_text(encoding="utf-8"))
+
     def test_tk_launcher_keeps_unity_color_and_font_adapter(self):
         from app.distribution.launcher_ui import COLORS, FONT_FAMILY, button_options
         from app.ui.unity_palette import UNITY_PALETTE, UNITY_TYPOGRAPHY
