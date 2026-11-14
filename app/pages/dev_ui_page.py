@@ -57,14 +57,16 @@ from app.ui.components import (
 from app.ui.theme import PALETTE, SIZES, SPACING, TYPOGRAPHY
 from app.ui.unity_palette import (
     UNITY_CHIP_TONES, UNITY_ICON_NAMES, UNITY_ICON_PENDING,
-    UNITY_INTERACTION_STATES, UNITY_MAIN_ROLES, UNITY_SIZES_PX, UNITY_UI_USAGE,
+    UNITY_INTERACTION_STATES, UNITY_MAIN_ROLES, UNITY_ORGANIZER_METRICS_PX,
+    UNITY_SIZES_PX, UNITY_UI_USAGE,
     UNITY_UI_CONSUMERS, UNITY_UI_FAMILY_INDEX,
 )
 from app.ui.unity_skin import (
     apply_unity_panel_shadow, sprite_icon_path, unity_original_preview_icon,
 )
 from app.ui.ui_registry import (
-    UI_CONSUMER_INDEX, UI_FAMILY_QSS_SELECTORS, validate_ui_index,
+    UI_CONSUMER_INDEX, UI_FAMILY_QSS_SELECTORS,
+    UI_FAMILY_PAINTED_ROLES, validate_ui_index,
 )
 
 
@@ -196,10 +198,12 @@ class DevUiPage(QWidget):
         group.setProperty("atlasUiFamily", family_key)
         group.setAccessibleName(details["title"])
         qss_selectors = UI_FAMILY_QSS_SELECTORS[family_key]
+        painted_roles = UI_FAMILY_PAINTED_ROLES.get(family_key, ())
         group.setToolTip(
             f"Source : {details['style_owner']}\n"
             f"Composants indexés : {', '.join(details['components'])}\n"
             f"Règles globales : {', '.join(qss_selectors) or 'tokens / démo'}\n"
+            f"Couleurs peintes : {', '.join(painted_roles) or 'via QSS'}\n"
             f"Portée : {details['scope']}"
         )
         # The same subtle Unity relief on every static gallery module.
@@ -767,7 +771,8 @@ class DevUiPage(QWidget):
         section.addLayout(icons)
 
         self.preview_metrics = QTableWidget(
-            len(SIZES) + len(SPACING) + len(TYPOGRAPHY), 2
+            len(SIZES) + len(SPACING) + len(TYPOGRAPHY)
+            + len(UNITY_ORGANIZER_METRICS_PX), 2
         )
         self.preview_metrics.setHorizontalHeaderLabels(("Token commun", "Valeur"))
         self.preview_metrics.setMaximumHeight(178)
@@ -779,6 +784,8 @@ class DevUiPage(QWidget):
         self.preview_metrics.horizontalHeader().setSectionResizeMode(1, QHeaderView.Stretch)
         for index, (name, value) in enumerate((
             *SIZES.items(), *SPACING.items(), *TYPOGRAPHY.items(),
+            *((f"ORGANIZER_{key.upper()}", f"{value}px")
+              for key, value in UNITY_ORGANIZER_METRICS_PX.items()),
         )):
             self.preview_metrics.setItem(index, 0, QTableWidgetItem(name))
             self.preview_metrics.setItem(index, 1, QTableWidgetItem(value))

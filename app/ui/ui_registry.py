@@ -8,7 +8,9 @@ so an audit can detect missing adoption instead of merely listing names.
 
 from __future__ import annotations
 
-from app.ui.unity_palette import UNITY_UI_FAMILY_INDEX, UNITY_UI_CONSUMERS
+from app.ui.unity_palette import (
+    UNITY_PAINTED_UI_ROLES, UNITY_UI_FAMILY_INDEX, UNITY_UI_CONSUMERS,
+)
 
 
 UI_FAMILY_QSS_SELECTORS: dict[str, tuple[str, ...]] = {
@@ -45,6 +47,17 @@ UI_FAMILY_QSS_SELECTORS: dict[str, tuple[str, ...]] = {
     "coverage": (),  # Documentation / source index, not a painted widget.
     "dialogs": ("#AtlasDialog", "#DialogHeader", "#DialogTitle"),
     "palette": (),  # Colors resolve into other families, not standalone QSS.
+}
+
+
+# Painted Qt iconography has no QSS selector, but belongs to the same
+# Dev UI family registry. Derive roles by namespace to prevent duplicate maps.
+UI_FAMILY_PAINTED_ROLES = {
+    "startup": tuple(role for role in UNITY_PAINTED_UI_ROLES
+                     if role.startswith("splash.")),
+    "assets": tuple(role for role in UNITY_PAINTED_UI_ROLES
+                    if role.startswith("organizer.") and role != "organizer.shadow"),
+    "panels": ("organizer.shadow",),
 }
 
 
@@ -132,6 +145,11 @@ def validate_ui_index() -> None:
         raise ValueError("Dev UI family selector index differs from gallery order")
     if tuple(UNITY_UI_CONSUMERS) != tuple(UI_CONSUMER_INDEX):
         raise ValueError("Dev UI consumer index differs from module list")
+    painted = [role for group in UI_FAMILY_PAINTED_ROLES.values() for role in group]
+    if len(painted) != len(set(painted)) or set(painted) != set(UNITY_PAINTED_UI_ROLES):
+        raise ValueError("Unindexed or duplicated painted Unity role")
+    if any(name not in UI_FAMILY_QSS_SELECTORS for name in UI_FAMILY_PAINTED_ROLES):
+        raise ValueError("Painted Unity role belongs to an unknown Dev UI family")
     for name, info in UI_CONSUMER_INDEX.items():
         if not info["paths"] or info["adapter"] not in {"qt", "qt_scoped", "tk"}:
             raise ValueError(f"Invalid UI consumer registration: {name}")

@@ -139,6 +139,30 @@ def unity_glass_gradient(
     )
 
 
+# QPainter-drawn UI glyphs and splash text use semantic Unity roles too.
+# This is a role index, NOT an independent palette with arbitrary colors.
+UNITY_PAINTED_UI_ROLES = {
+    "splash.status": "TEXT_SOFT",
+    "organizer.grip": "TEXT_MUTED",
+    "organizer.favorite": "YELLOW",
+    "organizer.favorite_idle": "TEXT_MUTED",
+    "organizer.warning_outline": "TEXT_SOFT",
+    "organizer.warning_fill": "YELLOW",
+    "organizer.warning_detail": "BG",
+    "organizer.refresh": "TEXT_SOFT",
+    "organizer.action": "TEXT_SOFT",
+    "organizer.action_fill": "TEXT_SOFT",
+    "organizer.shadow": "BG",
+}
+
+
+def unity_painted_ui_color(
+    name: str, overrides: Mapping[str, str] | None = None,
+) -> str:
+    """Resolve painter colors through the same canonical Unity token map."""
+    return resolve_unity_colors(overrides)[UNITY_PAINTED_UI_ROLES[name]]
+
+
 # Spacing, fonts and sizes have ONE Qt-free source for both the
 # application QSS and the real QWidget layouts, with no layout redesign.
 UNITY_SPACING_PX = {
@@ -166,6 +190,19 @@ UNITY_SIZES_PX = {
     "icon_large": 24,
     "icon_xlarge": 32,
 }
+UNITY_ORGANIZER_METRICS_PX = {
+    # Preserved module-specific geometry, now visible in the global UI index.
+    "card_padding": 12,
+    "card_spacing": 10,
+    "button_height": 30,
+    "input_height": UNITY_SIZES_PX["control_normal"],
+    "key_badge_height": 22,
+    "key_badge_min_width": 34,
+    "favorite_chip_height": 28,
+    "character_slot_height": 36,
+    "stop_button_height": 34,
+}
+
 UNITY_ICON_NAMES = (
     "guide", "quest", "success", "encyclopedia",
     "character", "dofus", "map", "inventory",
@@ -248,7 +285,7 @@ UNITY_UI_FAMILY_INDEX = {
     },
     "metrics": {
         "title": "Tailles · typographie · espacements",
-        "components": ("UNITY_SIZES_PX", "UNITY_SPACING_PX", "UNITY_TYPOGRAPHY", "SIZES", "SPACING", "TYPOGRAPHY", "UNITY_RADII"),
+        "components": ("UNITY_SIZES_PX", "UNITY_ORGANIZER_METRICS_PX", "UNITY_SPACING_PX", "UNITY_TYPOGRAPHY", "SIZES", "SPACING", "TYPOGRAPHY", "UNITY_RADII"),
         "style_owner": "app/ui/unity_palette.py + app/ui/theme.py",
         "scope": "shared",
     },

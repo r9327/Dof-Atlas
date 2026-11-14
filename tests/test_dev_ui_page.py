@@ -141,6 +141,61 @@ class DevUiPageTests(unittest.TestCase):
             page.close()
             page.deleteLater()
 
+    def test_all_indexed_visual_rules_have_global_owners(self) -> None:
+        """The gallery must not advertise selectors missing from real QSS."""
+        from pathlib import Path
+        from app.ui.theme import atlas_stylesheet
+        from app.ui.ui_registry import (
+            UI_CONSUMER_INDEX, UI_FAMILY_PAINTED_ROLES,
+            UI_FAMILY_QSS_SELECTORS, UI_INTERACTION_QSS_SELECTORS,
+            validate_ui_index,
+        )
+        from app.ui.unity_palette import (
+            UNITY_ORGANIZER_METRICS_PX, UNITY_PAINTED_UI_ROLES,
+        )
+
+        validate_ui_index()
+        style = atlas_stylesheet()
+        for family, selectors in UI_FAMILY_QSS_SELECTORS.items():
+            for selector in selectors:
+                with self.subTest(family=family, selector=selector):
+                    self.assertIn(selector, style)
+        for family, selectors in UI_INTERACTION_QSS_SELECTORS.items():
+            for selector in selectors:
+                with self.subTest(family=family, interaction=selector):
+                    self.assertIn(selector, style)
+        self.assertEqual(
+            {role for roles in UI_FAMILY_PAINTED_ROLES.values() for role in roles},
+            set(UNITY_PAINTED_UI_ROLES),
+        )
+        root = Path(__file__).resolve().parents[1]
+        for module, consumer in UI_CONSUMER_INDEX.items():
+            for source in consumer["paths"]:
+                with self.subTest(module=module, source=source):
+                    self.assertTrue((root / source).is_file())
+        self.assertEqual(UNITY_ORGANIZER_METRICS_PX["button_height"], 30)
+
+    def test_painted_roles_and_organizer_metrics_are_visible_in_gallery(self) -> None:
+        from app.pages.dev_ui_page import DevUiPage
+        from app.ui.ui_registry import UI_FAMILY_PAINTED_ROLES
+        from app.ui.unity_palette import UNITY_ORGANIZER_METRICS_PX
+
+        page = DevUiPage(on_back=lambda: None)
+        try:
+            for family, painted in UI_FAMILY_PAINTED_ROLES.items():
+                for role in painted:
+                    self.assertIn(role, page.gallery_family_widgets[family].toolTip())
+            metric_names = {
+                page.preview_metrics.item(i, 0).text()
+                for i in range(page.preview_metrics.rowCount())
+            }
+            for key in UNITY_ORGANIZER_METRICS_PX:
+                self.assertIn(f"ORGANIZER_{key.upper()}", metric_names)
+            self.assertEqual(page.styleSheet(), "")
+        finally:
+            page.close()
+            page.deleteLater()
+
     def test_all_ui_families_are_visible_without_local_styles(self) -> None:
         """The developer catalog covers real controls and semantic style roles."""
         from app.pages.dev_ui_page import DevUiPage

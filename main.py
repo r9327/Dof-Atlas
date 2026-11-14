@@ -67,6 +67,7 @@ from app.ui.components import AtlasButton, AtlasDialog, AtlasDialogHeader, Atlas
 from app.ui.preload_popup import PreloadProgressPopup
 from app.ui.splash_image import clear_connected_dark_background
 from app.ui.theme import atlas_stylesheet
+from app.ui.unity_palette import unity_painted_ui_color
 from app.ui.unity_skin import UnityBackdrop, unity_enabled, register_unity_fonts, sprite_icon_path
 from app.windows.unity_windows import enable_dpi_awareness
 from app.windows.single_instance import SingleInstanceGuard
@@ -560,7 +561,7 @@ def run_startup_preload(app: QApplication, splash: QSplashScreen | None = None) 
         splash.showMessage(
             f"Préchargement · {label}",
             Qt.AlignBottom | Qt.AlignCenter,
-            QColor("#dbe5f2"),
+            QColor(unity_painted_ui_color("splash.status")),
         )
         splash.repaint()
 
@@ -2990,7 +2991,7 @@ def main() -> int:
             splash.showMessage(
                 "Ouverture de l'interface...",
                 Qt.AlignBottom | Qt.AlignCenter,
-                QColor("#dbe5f2"),
+                QColor(unity_painted_ui_color("splash.status")),
             )
             app.processEvents()
         app.setStyleSheet(atlas_stylesheet())

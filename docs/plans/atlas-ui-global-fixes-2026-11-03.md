@@ -145,6 +145,32 @@ hauteur de slot, grid de métiers, popup spéciale) globalement uniforme
 par magie : les valeurs propres à une page restent des exceptions
 intentionnelles, mais aucun nouveau style n'est à recréer par page.
 
+### Lot d'universalisation complémentaire — pictogrammes peints / tailles (14/11)
+
+La référence Dev UI n'est **pas limitée aux QPushButton**. Les
+pictogrammes dessinés avec QPainter (Organizer : poignée, favori,
+alerte, actualiser, actions et ombre ; Splash : texte) sont désormais
+rattachés aux couleurs existantes de `UNITY_PAINTED_UI_ROLES`.
+Le helper Qt-free `unity_painted_ui_color()` n'introduit aucune palette
+parallèle. `UI_FAMILY_PAINTED_ROLES` indexe ces usages dans les familles
+Dev UI ; les tooltips de la galerie les exposent et `validate_ui_index()`
+détecte tout oubli ou doublon.
+
+Les métriques métier déjà validées d'Organizer sont indexées dans
+`UNITY_ORGANIZER_METRICS_PX` et utilisées via les anciennes constantes
+compatibles de `app/pages/organizer/common.py`. La galerie affiche ces
+valeurs dans « Métriques », mais ne change **aucune hauteur ni padding**.
+Le Splash utilise aussi le rôle Unity `TEXT_SOFT`.
+
+Les contrôles `test_unity_palette.py` (Qt-free), `test_dev_ui_page.py`
+(QSS compilé, registre des écrans/états et galerie) surveillent cette
+adoption. Les cartes du monde et images du jeu conservent leurs couleurs
+de données distinctes du chrome UI.
+
+La validation d'un index ne constitue pas une capture ni une
+certification de tous les écrans. Windows/Doctor au SHA exact restent
+nécessaires avant tout verdict global.
+
 ## Dépendances / responsabilités
 
 | Branche / PR | Responsabilité | Règle pour cette PR |

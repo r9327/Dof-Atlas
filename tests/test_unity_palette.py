@@ -7,9 +7,10 @@ from pathlib import Path
 
 from app.ui.unity_palette import (
     UNITY_COLOR_ALIAS_ROLES, UNITY_ICON_NAMES, UNITY_MAIN_ROLES,
+    UNITY_ORGANIZER_METRICS_PX, UNITY_PAINTED_UI_ROLES,
     UNITY_PALETTE, UNITY_SIZES_PX, UNITY_SPACING_PX, UNITY_TYPOGRAPHY,
     UNITY_UI_USAGE,
-    launcher_colors, resolve_unity_colors,
+    launcher_colors, resolve_unity_colors, unity_painted_ui_color,
 )
 
 
@@ -100,6 +101,56 @@ class UnityPaletteTests(unittest.TestCase):
             "AtlasPageTitle", UNITY_UI_FAMILY_INDEX["surfaces"]["components"],
         )
         self.assertIn("Launcher", UNITY_UI_CONSUMERS)
+
+
+    def test_painted_ui_colors_are_indexed_unity_roles(self) -> None:
+        from app.ui.ui_registry import UI_FAMILY_PAINTED_ROLES, validate_ui_index
+
+        validate_ui_index()
+        listed = [role for family in UI_FAMILY_PAINTED_ROLES.values()
+                  for role in family]
+        self.assertEqual(set(listed), set(UNITY_PAINTED_UI_ROLES))
+        self.assertEqual(len(listed), len(set(listed)))
+        for name, token in UNITY_PAINTED_UI_ROLES.items():
+            with self.subTest(name=name):
+                self.assertIn(token, UNITY_PALETTE)
+                self.assertEqual(unity_painted_ui_color(name), UNITY_PALETTE[token])
+        self.assertEqual(
+            unity_painted_ui_color("organizer.favorite", {"YELLOW": "#123456"}),
+            "#123456",
+        )
+        with self.assertRaises(KeyError):
+            unity_painted_ui_color("not-a-real-painter")
+
+    def test_organizer_dimensions_use_indexed_values_without_resize(self) -> None:
+        expected = {
+            "card_padding": 12, "card_spacing": 10,
+            "button_height": 30, "input_height": 32,
+            "key_badge_height": 22, "key_badge_min_width": 34,
+            "favorite_chip_height": 28, "character_slot_height": 36,
+            "stop_button_height": 34,
+        }
+        self.assertEqual(UNITY_ORGANIZER_METRICS_PX, expected)
+        source = (
+            Path(__file__).resolve().parents[1]
+            / "app/pages/organizer/common.py"
+        ).read_text(encoding="utf-8")
+        for role in expected:
+            self.assertIn(f'UNITY_ORGANIZER_METRICS_PX["{role}"]', source)
+        self.assertEqual(
+            UNITY_ORGANIZER_METRICS_PX["input_height"],
+            UNITY_SIZES_PX["control_normal"],
+        )
+
+    def test_painted_ui_does_not_use_private_hex_qcolors(self) -> None:
+        # Imported Qt artwork stays in its original colors; only custom
+        # QPainter UI glyphs must resolve the canonical semantic palette.
+        root = Path(__file__).resolve().parents[1]
+        for relative in ("main.py", "app/pages/organizer/organizer_ui.py"):
+            with self.subTest(source=relative):
+                source = (root / relative).read_text(encoding="utf-8")
+                self.assertNotIn('QColor("#', source)
+                self.assertNotIn("QColor('#", source)
 
     def test_color_module_does_not_import_qt_or_game_runtime(self) -> None:
         source = (Path(__file__).resolve().parents[1] / "app/ui/unity_palette.py").read_text(encoding="utf-8")

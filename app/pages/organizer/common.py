@@ -5,6 +5,7 @@ from typing import Any
 
 from app.constants import CLIENT_INDEX_JSON, DATA_DIR
 from app.storage import normalize_key, read_json
+from app.ui.unity_palette import UNITY_ORGANIZER_METRICS_PX
 
 CLASS_ICON_DIRS = (
     DATA_DIR / "images" / "classes",
@@ -17,15 +18,15 @@ SESSION_SLOT_COUNT = 8
 KEY_SESSION_SLOT_ASSIGNMENTS = "__organizer_slot_assignments__"
 WINDOW_EVENT_DEBOUNCE_MS = 80
 RELEASE_RETRY_DELAYS_MS = (200, 500, 1000, 2000)
-CARD_PADDING = 12
-CARD_SPACING = 10
-BUTTON_HEIGHT = 30
-INPUT_HEIGHT = 32
-KEY_BADGE_HEIGHT = 22
-KEY_BADGE_MIN_WIDTH = 34
-FAVORITE_CHIP_HEIGHT = 28
-CHARACTER_SLOT_HEIGHT = 36
-STOP_BUTTON_HEIGHT = 34
+CARD_PADDING = UNITY_ORGANIZER_METRICS_PX["card_padding"]
+CARD_SPACING = UNITY_ORGANIZER_METRICS_PX["card_spacing"]
+BUTTON_HEIGHT = UNITY_ORGANIZER_METRICS_PX["button_height"]
+INPUT_HEIGHT = UNITY_ORGANIZER_METRICS_PX["input_height"]
+KEY_BADGE_HEIGHT = UNITY_ORGANIZER_METRICS_PX["key_badge_height"]
+KEY_BADGE_MIN_WIDTH = UNITY_ORGANIZER_METRICS_PX["key_badge_min_width"]
+FAVORITE_CHIP_HEIGHT = UNITY_ORGANIZER_METRICS_PX["favorite_chip_height"]
+CHARACTER_SLOT_HEIGHT = UNITY_ORGANIZER_METRICS_PX["character_slot_height"]
+STOP_BUTTON_HEIGHT = UNITY_ORGANIZER_METRICS_PX["stop_button_height"]
 
 DOFUS_CLASS_DEFINITIONS = {
     "feca": {"id": 1, "label": "Feca", "aliases": ("feca", "féca")},

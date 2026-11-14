@@ -39,6 +39,7 @@ from app.constants import (
 from app.storage import ZaapWidget, clean_auto_group_name, profile_bool, short_label
 from app.ui.splash_image import clear_connected_dark_background
 from app.ui.components import AtlasButton
+from app.ui.unity_palette import unity_painted_ui_color
 from .glass_material import (
     OrganizerGlassButton, OrganizerGlassCard,
 )
@@ -78,7 +79,7 @@ def _organizer_grip_icon() -> QIcon:
     painter = QPainter(pixmap)
     painter.setRenderHint(QPainter.Antialiasing)
     painter.setPen(Qt.NoPen)
-    painter.setBrush(QColor("#B5C6DA"))
+    painter.setBrush(QColor(unity_painted_ui_color("organizer.grip")))
     for row in (5, 12, 19):
         for col in (6, 14):
             painter.drawEllipse(QPointF(col, row), 1.5, 1.5)
@@ -98,8 +99,8 @@ def _organizer_favorite_icon(selected: bool) -> QIcon:
     ]
     painter = QPainter(pixmap)
     painter.setRenderHint(QPainter.Antialiasing)
-    painter.setPen(QPen(QColor("#E7B850" if selected else "#AABACD"), 1.5))
-    painter.setBrush(QColor("#E7B850") if selected else Qt.NoBrush)
+    painter.setPen(QPen(QColor(unity_painted_ui_color("organizer.favorite" if selected else "organizer.favorite_idle")), 1.5))
+    painter.setBrush(QColor(unity_painted_ui_color("organizer.favorite")) if selected else Qt.NoBrush)
     painter.drawPolygon(QPolygonF(vertices))
     painter.end()
     return QIcon(pixmap)
@@ -111,12 +112,12 @@ def _organizer_warning_icon() -> QIcon:
     pixmap.fill(Qt.transparent)
     painter = QPainter(pixmap)
     painter.setRenderHint(QPainter.Antialiasing)
-    painter.setPen(QPen(QColor("#FFF0B2"), 1.4))
-    painter.setBrush(QColor("#E7AB32"))
+    painter.setPen(QPen(QColor(unity_painted_ui_color("organizer.warning_outline")), 1.4))
+    painter.setBrush(QColor(unity_painted_ui_color("organizer.warning_fill")))
     painter.drawPolygon(QPolygonF([
         QPointF(13, 3), QPointF(24, 22), QPointF(2, 22),
     ]))
-    painter.setPen(QPen(QColor("#39240C"), 2.3, Qt.SolidLine, Qt.RoundCap))
+    painter.setPen(QPen(QColor(unity_painted_ui_color("organizer.warning_detail")), 2.3, Qt.SolidLine, Qt.RoundCap))
     painter.drawLine(QPointF(13, 9), QPointF(13, 15))
     painter.drawPoint(QPointF(13, 19))
     painter.end()
@@ -129,7 +130,7 @@ def _organizer_refresh_icon() -> QIcon:
     pixmap.fill(Qt.transparent)
     painter = QPainter(pixmap)
     painter.setRenderHint(QPainter.Antialiasing)
-    painter.setPen(QPen(QColor("#D7E6F1"), 2.3, Qt.SolidLine, Qt.RoundCap))
+    painter.setPen(QPen(QColor(unity_painted_ui_color("organizer.refresh")), 2.3, Qt.SolidLine, Qt.RoundCap))
     painter.drawArc(QRectF(5.0, 5.0, 18.0, 18.0), 45 * 16, 290 * 16)
     painter.drawLine(QPointF(20.5, 4.8), QPointF(23.0, 11.2))
     painter.drawLine(QPointF(23.0, 11.2), QPointF(16.2, 10.3))
@@ -143,14 +144,14 @@ def _organizer_action_icon(kind: str) -> QIcon:
     pixmap.fill(Qt.transparent)
     painter = QPainter(pixmap)
     painter.setRenderHint(QPainter.Antialiasing)
-    painter.setPen(QPen(QColor("#E3EEF9"), 2, Qt.SolidLine, Qt.RoundCap, Qt.RoundJoin))
+    painter.setPen(QPen(QColor(unity_painted_ui_color("organizer.action")), 2, Qt.SolidLine, Qt.RoundCap, Qt.RoundJoin))
     if kind == "radial":
         # Monochrome pie, aligned with the other white action pictograms.
         painter.setBrush(Qt.NoBrush)
         for index in range(8):
-            painter.setPen(QPen(QColor("#E3EEF9"), 1.7, Qt.SolidLine, Qt.RoundCap))
+            painter.setPen(QPen(QColor(unity_painted_ui_color("organizer.action")), 1.7, Qt.SolidLine, Qt.RoundCap))
             painter.drawPie(QRectF(4, 4, 24, 24), index * 45 * 16, 45 * 16)
-        painter.setBrush(QColor("#E3EEF9"))
+        painter.setBrush(QColor(unity_painted_ui_color("organizer.action")))
         painter.setPen(Qt.NoPen)
         painter.drawEllipse(QRectF(13, 13, 6, 6))
     elif kind == "macro":
@@ -191,7 +192,7 @@ def _organizer_action_icon(kind: str) -> QIcon:
             painter.drawLine(end, a)
             painter.drawLine(end, b)
     elif kind == "click":
-        painter.setBrush(QColor("#B9D3ED"))
+        painter.setBrush(QColor(unity_painted_ui_color("organizer.action_fill")))
         painter.drawPolygon(QPolygonF([
             QPointF(6, 4), QPointF(8, 25), QPointF(13, 19),
             QPointF(19, 27), QPointF(23, 24),
@@ -218,7 +219,9 @@ def _organizer_card_shadow(panel: QFrame) -> None:
     shadow = QGraphicsDropShadowEffect(panel)
     shadow.setBlurRadius(18)
     shadow.setOffset(0, 3)
-    shadow.setColor(QColor(5, 16, 34, 75))
+    shadow_color = QColor(unity_painted_ui_color("organizer.shadow"))
+    shadow_color.setAlpha(75)
+    shadow.setColor(shadow_color)
     panel.setGraphicsEffect(shadow)
 
 
