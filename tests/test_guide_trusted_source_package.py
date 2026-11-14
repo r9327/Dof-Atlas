@@ -20,6 +20,9 @@ from app.modules.encyclopedia.services.guide_trusted_source_package import (
 )
 from tests.test_guide_imported_manual_runtime_service import _source_route
 
+TEST_HEAD = "a" * 40
+TEST_SOURCE = hashlib.sha256(b"fictional authorized source export").hexdigest()
+
 
 class TrustedSourcePackageTests(unittest.TestCase):
     def setUp(self) -> None:
@@ -30,7 +33,7 @@ class TrustedSourcePackageTests(unittest.TestCase):
         self.key = self.route["id"]
         self.file = self.root / "fictional-trusted.json"
         self.approved = True
-        self.witness_calls: list[tuple[str, str, str]] = []
+        self.witness_calls: list[tuple[str, str, str, str, str]] = []
         self.progress = GuideProgressService(self.root / "progress.json")
 
     def write(self, *, route=None, raw: bytes | None = None) -> GuidePackageEntry:
@@ -42,16 +45,24 @@ class TrustedSourcePackageTests(unittest.TestCase):
         self.file.write_bytes(raw)
         return GuidePackageEntry(
             self.key, self.file.name, hashlib.sha256(raw).hexdigest(),
-            "fictional-independent-receipt",
+            TEST_SOURCE, TEST_HEAD, "fictional-independent-receipt",
         )
 
-    def witness(self, guide_id: str, file_sha: str, receipt: str) -> bool:
-        self.witness_calls.append((guide_id, file_sha, receipt))
-        return self.approved and guide_id == self.key and receipt == "fictional-independent-receipt"
+    def witness(
+        self, guide_id: str, file_sha: str, source_sha: str,
+        head_sha: str, receipt: str,
+    ) -> bool:
+        self.witness_calls.append((guide_id, file_sha, source_sha, head_sha, receipt))
+        return (
+            self.approved and guide_id == self.key
+            and source_sha == TEST_SOURCE and head_sha == TEST_HEAD
+            and receipt == "fictional-independent-receipt"
+        )
 
     def loader(self, entry: GuidePackageEntry) -> GuideTrustedSourcePackage:
         return GuideTrustedSourcePackage(
-            self.root, {self.key: entry}, witness=self.witness,
+            self.root, {self.key: entry},
+            build_head_sha=TEST_HEAD, witness=self.witness,
         )
 
     def test_lazy_factory_binds_exact_route_to_recheckable_authorizer(self):
@@ -80,6 +91,37 @@ class TrustedSourcePackageTests(unittest.TestCase):
         service.route["steps"][0]["manual_title"] = "Injected UI content"
         self.assertFalse(loader.authorize(self.key, service.route))
 
+    def test_installed_file_changes_revoke_existing_progress_permission(self):
+        entry = self.write()
+        loader = self.loader(entry)
+        service = loader.factories(
+            SimpleNamespace(), SimpleNamespace(), self.progress,
+        )[self.key]()
+        service.set_authorization_guard(loader.authorize)
+        self.assertTrue(service.can_write_progress())
+        self.file.write_bytes(self.file.read_bytes() + b" ")
+        self.assertFalse(service.can_write_progress())
+        service.set_page_checked("character:1", service.cards[0], 0, True)
+        self.assertFalse((self.root / "progress.json").exists())
+
+    def test_stale_code_head_and_unpinned_source_are_blocked(self):
+        entry = self.write()
+        with self.assertRaisesRegex(GuidePackageBlocked, "different app HEAD"):
+            GuideTrustedSourcePackage(
+                self.root, {self.key: entry},
+                build_head_sha="b" * 40, witness=self.witness,
+            )
+        with self.assertRaisesRegex(GuidePackageBlocked, "source SHA-256"):
+            GuidePackageEntry(
+                self.key, self.file.name, entry.sha256,
+                "0" * 64, TEST_HEAD, "receipt",
+            )
+        with self.assertRaisesRegex(GuidePackageBlocked, "exact app Git HEAD"):
+            GuidePackageEntry(
+                self.key, self.file.name, entry.sha256,
+                TEST_SOURCE, "0" * 40, "receipt",
+            )
+
     def test_wrong_bytes_and_wrong_id_are_blocked_before_authorization(self):
         entry = self.write()
         loader = self.loader(entry)
@@ -95,7 +137,10 @@ class TrustedSourcePackageTests(unittest.TestCase):
     def test_absent_or_revoked_witness_cannot_be_replaced_by_source_claim(self):
         entry = self.write()
         with self.assertRaisesRegex(GuidePackageBlocked, "witness"):
-            GuideTrustedSourcePackage(self.root, {self.key: entry}, witness=None)
+            GuideTrustedSourcePackage(
+                self.root, {self.key: entry},
+                build_head_sha=TEST_HEAD, witness=None,
+            )
         self.approved = False
         with self.assertRaisesRegex(GuidePackageBlocked, "certificate"):
             self.loader(entry).load_route(self.key)
@@ -136,22 +181,24 @@ class TrustedSourcePackageTests(unittest.TestCase):
     def test_traversal_wrong_root_and_duplicate_package_ownership_are_rejected(self):
         entry = self.write()
         with self.assertRaises(GuidePackageBlocked):
-            GuidePackageEntry(self.key, "../other.json", entry.sha256, "receipt")
+            GuidePackageEntry(self.key, "../other.json", entry.sha256, TEST_SOURCE, TEST_HEAD, "receipt")
         with self.assertRaises(GuidePackageBlocked):
-            GuidePackageEntry(self.key, "folder/other.json", entry.sha256, "receipt")
+            GuidePackageEntry(self.key, "folder/other.json", entry.sha256, TEST_SOURCE, TEST_HEAD, "receipt")
         with self.assertRaises(GuidePackageBlocked):
-            GuidePackageEntry(self.key, self.file.name, "not-a-hash", "receipt")
+            GuidePackageEntry(self.key, self.file.name, "not-a-hash", TEST_SOURCE, TEST_HEAD, "receipt")
         with self.assertRaises(GuidePackageBlocked):
             GuideTrustedSourcePackage(
-                self.root / "missing", {self.key: entry}, witness=self.witness,
+                self.root / "missing", {self.key: entry},
+                build_head_sha=TEST_HEAD, witness=self.witness,
             )
         other = GuidePackageEntry(
-            "source_guide:another-fictional", entry.filename, entry.sha256, "receipt",
+            "source_guide:another-fictional", entry.filename, entry.sha256,
+            TEST_SOURCE, TEST_HEAD, "receipt",
         )
         with self.assertRaisesRegex(GuidePackageBlocked, "two Guide identities"):
             GuideTrustedSourcePackage(
                 self.root, {self.key: entry, other.guide_id: other},
-                witness=self.witness,
+                build_head_sha=TEST_HEAD, witness=self.witness,
             )
 
     def test_symlink_to_route_is_rejected(self):

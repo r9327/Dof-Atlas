@@ -33,6 +33,7 @@ from app.modules.encyclopedia.views.shared_manual_guide_view import (
     SharedGuideManualView, _PreparationNeed,
 )
 from tests.test_guide_imported_manual_runtime_service import _source_route
+from tests.test_guide_trusted_source_package import TEST_HEAD, TEST_SOURCE
 from tests.test_guide_ultime_manual_ui_navigation import _FakeParticipantService
 
 
@@ -357,17 +358,19 @@ class ImportedSourceRouterQtTests(unittest.TestCase):
         valid = {"allowed": True}
         witness_calls = []
 
-        def witness(guide_id, file_sha, receipt):
-            witness_calls.append((guide_id, file_sha, receipt))
+        def witness(guide_id, file_sha, source_sha, head_sha, receipt):
+            witness_calls.append((guide_id, file_sha, source_sha, head_sha, receipt))
             return (valid["allowed"] and guide_id == key
-                    and file_sha == digest and receipt == "synthetic-only")
+                    and file_sha == digest and source_sha == TEST_SOURCE
+                    and head_sha == TEST_HEAD and receipt == "synthetic-only")
 
         package = GuideTrustedSourcePackage(
             root,
             {key: GuidePackageEntry(
-                key, "fictional-packaged.json", digest, "synthetic-only",
+                key, "fictional-packaged.json", digest,
+                TEST_SOURCE, TEST_HEAD, "synthetic-only",
             )},
-            witness=witness,
+            build_head_sha=TEST_HEAD, witness=witness,
         )
         self.view._imported_source_factories.update(
             package.factories(

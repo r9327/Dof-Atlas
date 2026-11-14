@@ -19,7 +19,8 @@ from app.modules.encyclopedia.services.guide_shared_route_contract import (
     project_authorized_guide,
 )
 
-Witness = Callable[[str, str, str], bool]
+# guide ID, projected file SHA, authorized source SHA, exact app HEAD, receipt ID
+Witness = Callable[[str, str, str, str, str], bool]
 _MAX_ROUTE_BYTES = 16 * 1024 * 1024
 
 
@@ -58,6 +59,8 @@ class GuidePackageEntry:
     guide_id: str
     filename: str
     sha256: str
+    source_sha256: str
+    head_sha: str
     certificate_ref: str
 
     def __post_init__(self) -> None:
@@ -82,6 +85,14 @@ class GuidePackageEntry:
         if (not isinstance(self.sha256, str) or len(self.sha256) != 64
                 or any(char not in "0123456789abcdef" for char in self.sha256)):
             raise GuidePackageBlocked("A lowercase pinned SHA-256 is required")
+        if (not isinstance(self.source_sha256, str) or len(self.source_sha256) != 64
+                or any(char not in "0123456789abcdef" for char in self.source_sha256)
+                or self.source_sha256 == "0" * 64):
+            raise GuidePackageBlocked("A pinned authorized source SHA-256 is required")
+        if (not isinstance(self.head_sha, str) or len(self.head_sha) != 40
+                or any(char not in "0123456789abcdef" for char in self.head_sha)
+                or self.head_sha == "0" * 40):
+            raise GuidePackageBlocked("A pinned exact app Git HEAD is required")
         if (not isinstance(self.certificate_ref, str)
                 or not self.certificate_ref.strip()
                 or len(self.certificate_ref) > 256):
@@ -102,8 +113,13 @@ class GuideTrustedSourcePackage:
         root: Path,
         entries: Mapping[str, GuidePackageEntry],
         *,
+        build_head_sha: str,
         witness: Witness | None,
     ) -> None:
+        if (not isinstance(build_head_sha, str) or len(build_head_sha) != 40
+                or any(c not in "0123456789abcdef" for c in build_head_sha)
+                or build_head_sha == "0" * 40):
+            raise GuidePackageBlocked("Trusted build HEAD must be an exact Git SHA")
         if not callable(witness):
             raise GuidePackageBlocked("Independent trusted witness required")
         self.root = Path(root)
@@ -113,9 +129,12 @@ class GuideTrustedSourcePackage:
         if not self.root.is_dir():
             raise GuidePackageBlocked("Trusted package directory missing")
         self._entries = dict(entries)
+        self._build_head_sha = build_head_sha
         for guide_id, entry in self._entries.items():
             if not isinstance(entry, GuidePackageEntry) or guide_id != entry.guide_id:
                 raise GuidePackageBlocked("Entry key and source identity differ")
+            if not hmac.compare_digest(entry.head_sha, build_head_sha):
+                raise GuidePackageBlocked("Certificate belongs to a different app HEAD")
         if len({entry.filename for entry in self._entries.values()}) != len(self._entries):
             raise GuidePackageBlocked("One packaged file cannot own two Guide identities")
         self._witness = witness
@@ -125,7 +144,8 @@ class GuideTrustedSourcePackage:
     def _attested(self, entry: GuidePackageEntry) -> bool:
         try:
             return self._witness(
-                entry.guide_id, entry.sha256, entry.certificate_ref,
+                entry.guide_id, entry.sha256, entry.source_sha256,
+                self._build_head_sha, entry.certificate_ref,
             ) is True
         except Exception:
             return False
@@ -196,8 +216,24 @@ class GuideTrustedSourcePackage:
         self._loaded[guide_id] = (entry.sha256, route_digest)
         return route
 
+    def _installed_bytes_match(self, entry: GuidePackageEntry) -> bool:
+        """Fail closed if a packaged route was modified or replaced after opening."""
+        try:
+            path = self.root / entry.filename
+            if any(_redirected(boundary) for boundary in
+                   (self.root, *self.root.parents, path)):
+                return False
+            with path.open("rb") as stream:
+                payload = stream.read(_MAX_ROUTE_BYTES + 1)
+            return (
+                0 < len(payload) <= _MAX_ROUTE_BYTES
+                and hmac.compare_digest(hashlib.sha256(payload).hexdigest(), entry.sha256)
+            )
+        except OSError:
+            return False
+
     def authorize(self, guide_id: str, route: dict[str, Any]) -> bool:
-        """Recheck exact in-memory snapshot and independent revocation on writes."""
+        """Recheck installed bytes, exact in-memory snapshot and revocable witness."""
         entry = self._entries.get(guide_id)
         receipt = self._loaded.get(guide_id)
         if entry is None or receipt is None or not isinstance(route, dict):
@@ -210,7 +246,11 @@ class GuideTrustedSourcePackage:
             current = hashlib.sha256(_json_bytes(route)).hexdigest()
         except (TypeError, ValueError):
             return False
-        return hmac.compare_digest(receipt[1], current) and self._attested(entry)
+        return (
+            hmac.compare_digest(receipt[1], current)
+            and self._installed_bytes_match(entry)
+            and self._attested(entry)
+        )
 
     def factories(
         self, quest_progress: Any, achievement_progress: Any, guide_progress: Any,

@@ -222,3 +222,22 @@ authentifié avec une fiche modifiée (texte, ordre, sections, prérequis,
 actions ou coordonnées cachées) est refusé, même si l'attestation
 synthétique accepte son empreinte. Cette comparaison structurelle ne
 remplace pas la vérification humaine indépendante contre Ganymède.
+
+## Empreintes de source, HEAD exact et remplacement de fichier
+
+L'entrée externe `GuidePackageEntry` porte obligatoirement deux autres
+empreintes : `source_sha256` (export autorisé) et `head_sha` (code exact
+ayant fait l'objet des preuves). L'application fournit séparément le
+`build_head_sha` issu de ses métadonnées de livraison **de confiance** :
+une différence bloque la construction du chargeur, avant la lecture du guide.
+Le témoin indépendant reçoit le quintuplet
+`(guide_id, file_sha256, source_sha256, build_head_sha, certificate_ref)`.
+La source, le code et le paquet doivent tous être vérifiés par l'autorité
+externe ; un SHA-256 en lui-même ne prouve aucune autorisation.
+
+Le lecteur réévalue désormais l'empreinte des octets installés à chaque
+autorisation. Un fichier modifié ou remplacé après son ouverture bloque
+également l'écriture de progression, sans relancer la route ou importer
+un autre guide. Cette lecture bornée peut avoir un coût I/O et doit être
+mesurée sur une vraie installation avant certification. La fonction témoin
+de tests est synthétique : son retour `True` ne certifie jamais la source.
