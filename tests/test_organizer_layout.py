@@ -1574,6 +1574,12 @@ widget.close()
                 self.assertTrue(page.previous_character.isEnabled())
 
     def test_embedded_hotkey_badges_leave_space_for_full_button_labels(self):
+        # The real Atlas shell installs the global stylesheet once. An
+        # isolated Organizer test must do the same now that no private
+        # Organizer stylesheet hides the Qt default font metrics.
+        previous_qss = self.app.styleSheet()
+        self.app.setStyleSheet(atlas_stylesheet())
+        self.addCleanup(self.app.setStyleSheet, previous_qss)
         with tempfile.TemporaryDirectory() as temporary:
             with self.organizer_page(Path(temporary)) as page:
                 page.resize(1380, 900)
