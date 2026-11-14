@@ -172,3 +172,43 @@ Ce mécanisme n'effectue aucune découverte des dossiers locaux, ne certifie
 aucun contenu et n'active aucun guide Ganymède réel. La preuve actuelle
 porte uniquement sur des fixtures fictives ; l'autorisation indépendante
 et la recette native Windows/DOFUS restent obligatoires.
+
+## Paquet installé attesté — frontière de confiance (Phase 0)
+
+`app/modules/encyclopedia/services/guide_trusted_source_package.py`
+fournit une passerelle **optionnelle**, sans Qt et sans import du dossier
+`tools/`, entre un répertoire de guides packagés par un éditeur de confiance
+et les factories explicites introduites ci-dessus. Ce n'est **pas** un
+certificateur : aucune instance n'est automatiquement branchée dans `main.py`
+ni créée par les données utilisateur. Le registre contient uniquement les
+métadonnées indépendantes `GuidePackageEntry(guide_id, filename, sha256,
+certificate_ref)`. Aucun guide n'est lu pendant l'ouverture d'Atlas.
+
+À la sélection explicite, le chargeur vérifie le fichier JSON avec une limite
+de 16 Mio, refuse les chemins de traversée, liens symboliques et jonctions
+Windows, exige l'empreinte SHA-256 **exacte des octets installés**, refuse
+les clés JSON dupliquées et NaN/Infinity, contrôle l'identité canonique et
+impose `source_compliance=NOT_CERTIFIED` dans le contenu. Une **preuve externe**
+est impérative via `witness(guide_id, file_sha256, certificate_ref) is True`.
+Cette fonction doit appartenir à la composition de confiance, reconnaître
+les justificatifs indépendants de droits/provenance, la source exacte et les
+preuves complètes (Windows/DOFUS) avant d'accepter une certification réelle.
+Ni le JSON ni son SHA seul ne peuvent fabriquer cette preuve.
+
+Le composition owner peut ensuite transmettre
+`imported_source_factories=package.factories(quest_progress,
+achievement_progress, guide_progress)` et
+`imported_source_authorizer=package.authorize` à `EncyclopediaPage`.
+Le callback d'autorisation vérifie le contenu mémorisé contre l'instantané
+approuvé et reconsulte l'attestation indépendante à chaque écriture, pour
+refuser une révocation ou une modification de route entre deux clics.
+Les fixtures de tests utilisant un témoin booléen ne constituent PAS une
+vraie certification et ne doivent pas être copiées dans la composition
+production. Le registre de certificats, la signature, la livraison réelle,
+le catalogue public et la qualification de Cawotte restent **PENDING**.
+
+Régression ciblée : `tests.test_guide_trusted_source_package` (faux exports
+uniquement), plus le test Qt sur la révocation de l'attestation dans
+`tests.test_guide_imported_manual_runtime_ui`. Ces suites sont ajoutées
+au workflow Phase 0 Windows avec rapport exact-SHA ; une PR non fusionnée
+ne constitue pas une preuve d'exécution.

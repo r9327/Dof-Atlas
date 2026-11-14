@@ -19,6 +19,7 @@ on:
       - 'tests/test_guide_imported_manual_runtime_ui.py'
       - 'tests/test_guide_progress_persistence.py'
       - 'tests/test_guide_imported_manual_runtime_service.py'
+      - 'tests/test_guide_trusted_source_package.py'
       - 'tests/test_guide_entity_identity.py'
       - 'tests/test_guide_preparation_model.py'
       - 'tests/test_guide_preparation_model_qt.py'
@@ -130,7 +131,7 @@ jobs:
       - name: Exercise real on-disk character isolation and pure Guide services
         shell: pwsh
         run: |
-          python -X faulthandler -m unittest -v tests.test_guide_progress_persistence tests.test_guide_imported_manual_runtime_service tests.test_guide_entity_identity tests.test_guide_preparation_model
+          python -X faulthandler -m unittest -v tests.test_guide_progress_persistence tests.test_guide_imported_manual_runtime_service tests.test_guide_trusted_source_package tests.test_guide_entity_identity tests.test_guide_preparation_model
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
       - name: Record machine-readable Windows Phase 0 test evidence
         shell: pwsh
@@ -150,7 +151,7 @@ jobs:
               "runner_os": os.environ.get("RUNNER_OS"),
               "run_id": os.environ.get("GITHUB_RUN_ID"),
               "run_attempt": os.environ.get("GITHUB_RUN_ATTEMPT"),
-              "test_suites": ["tests.test_guide_shared_route_contract","tests.test_guide_manual_selected_validation","tests.test_guide_imported_manual_runtime_ui","tests.test_guide_preparation_model_qt","tests.test_guide_ultime_manual_ui_navigation","tests.test_guide_progress_persistence","tests.test_guide_imported_manual_runtime_service","tests.test_guide_entity_identity","tests.test_guide_preparation_model"],
+              "test_suites": ["tests.test_guide_shared_route_contract","tests.test_guide_manual_selected_validation","tests.test_guide_imported_manual_runtime_ui","tests.test_guide_preparation_model_qt","tests.test_guide_ultime_manual_ui_navigation","tests.test_guide_progress_persistence","tests.test_guide_imported_manual_runtime_service","tests.test_guide_trusted_source_package","tests.test_guide_entity_identity","tests.test_guide_preparation_model"],
               "real_guide_count": 0,
               "certified": False,
               "source_rights_verified": False,

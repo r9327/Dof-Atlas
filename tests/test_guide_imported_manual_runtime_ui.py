@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import hashlib
+import json
 import os
 import tempfile
 import unittest
@@ -20,6 +22,9 @@ from app.modules.encyclopedia.services.serialized_achievement_progress_service i
 )
 from app.modules.encyclopedia.services.guide_imported_manual_runtime_service import (
     ImportedSourceManualRuntimeService,
+)
+from app.modules.encyclopedia.services.guide_trusted_source_package import (
+    GuidePackageEntry, GuideTrustedSourcePackage,
 )
 from app.modules.encyclopedia.views.manual_route_guides_view import (
     ManualRouteGuidesView,
@@ -341,6 +346,50 @@ class ImportedSourceRouterQtTests(unittest.TestCase):
                 imported_source_factories={self.service.guide_id: lambda: self.service},
                 imported_source_authorizer=lambda *_: True,
             )
+
+    def test_attested_package_witness_revocation_closes_shared_source_reader(self):
+        key = "source_guide:fictional-packaged"
+        route = _source_route("fictional-packaged")
+        root = Path(self.tmp.name)
+        payload = json.dumps(route, sort_keys=True).encode("utf-8")
+        (root / "fictional-packaged.json").write_bytes(payload)
+        digest = hashlib.sha256(payload).hexdigest()
+        valid = {"allowed": True}
+        witness_calls = []
+
+        def witness(guide_id, file_sha, receipt):
+            witness_calls.append((guide_id, file_sha, receipt))
+            return (valid["allowed"] and guide_id == key
+                    and file_sha == digest and receipt == "synthetic-only")
+
+        package = GuideTrustedSourcePackage(
+            root,
+            {key: GuidePackageEntry(
+                key, "fictional-packaged.json", digest, "synthetic-only",
+            )},
+            witness=witness,
+        )
+        self.view._imported_source_factories.update(
+            package.factories(
+                self.quest_progress, self.achievement_progress, self.progress,
+            )
+        )
+        self.view._imported_source_authorizer = package.authorize
+        self.assertFalse(package._loaded)
+        self.assertFalse(self.progress_path.exists())
+
+        self.assertTrue(self.view.select_guide(key))
+        self.assertIsInstance(self.view.stack.currentWidget(), SharedGuideManualView)
+        self.assertGreaterEqual(len(witness_calls), 2)
+        self.assertFalse(self.progress_path.exists())
+
+        valid["allowed"] = False
+        self.view.refresh_external_progress()
+        self.assertIsNone(self.view.current_guide_id)
+        self.assertEqual(self.view.stack.currentWidget(), self.view.home_page)
+        self.assertNotIn(key, self.view._catalog_manual_views)
+        self.assertNotIn(key, self.view._loaded_imported_source_services)
+        self.assertFalse(self.progress_path.exists())
 
     def test_shared_validation_uses_source_id_and_does_not_touch_other_guides(self):
         self.approved = True

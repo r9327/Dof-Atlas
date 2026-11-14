@@ -105,13 +105,15 @@ class TrustedSourcePackageTests(unittest.TestCase):
             self.loader(entry).load_route(self.key)
 
     def test_duplicate_json_keys_and_nonfinite_values_are_rejected(self):
-        raw = json.dumps(self.route).encode("utf-8")
-        raw = raw.replace(b'{"id": ', b'{"id": "source_guide:fictional-trusted", "id": ', 1)
+        raw = (b'{"id":"source_guide:fictional-trusted",'
+               b'"id":"source_guide:fictional-trusted",'
+               b'"source_compliance":"NOT_CERTIFIED","steps":[]}')
         entry = self.write(raw=raw)
         with self.assertRaisesRegex(GuidePackageBlocked, "Duplicate"):
             self.loader(entry).load_route(self.key)
-        raw = json.dumps(self.route, allow_nan=True).encode("utf-8")
-        raw = raw.replace(b'"index": 1', b'"index": NaN', 1)
+        raw = (b'{"id":"source_guide:fictional-trusted",'
+               b'"source_compliance":"NOT_CERTIFIED",'
+               b'"index":NaN,"steps":[]}')
         entry = self.write(raw=raw)
         with self.assertRaises(GuidePackageBlocked):
             self.loader(entry).load_route(self.key)
