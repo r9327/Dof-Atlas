@@ -157,6 +157,30 @@ class SharedThemeTests(unittest.TestCase):
         self.assertIn("border-color: #304050;", hover)
         self.assertIn("QPushButton#GuideInlineQuestButton,", style)
 
+    def test_quest_launch_position_has_unified_bold_typography(self) -> None:
+        from app.ui.unity_palette import UNITY_UI_FAMILY_INDEX
+
+        style = theme.atlas_stylesheet({
+            "TEXT": "#ABCDEF", "FONT_BODY": "17px",
+        })
+        rule = style.split(
+            "QLabel#QuestLaunchPosition {", 1
+        )[1].split("}", 1)[0]
+        self.assertIn("color: #ABCDEF;", rule)
+        self.assertIn("font-size: 17px;", rule)
+        self.assertIn("font-weight: 800;", rule)
+        self.assertIn(
+            "QuestLaunchPosition",
+            UNITY_UI_FAMILY_INDEX["guides"]["components"],
+        )
+        # Do not change the source position or link generation.
+        from pathlib import Path
+        source = (
+            Path(__file__).resolve().parents[1]
+            / "app/modules/encyclopedia/widgets/quest_detail_view.py"
+        ).read_text(encoding="utf-8")
+        self.assertIn('"QuestLaunchPosition"', source)
+
     def test_guide_icons_preserve_transparent_background(self) -> None:
         style = theme.atlas_stylesheet()
         block = style.split(

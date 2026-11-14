@@ -823,3 +823,10 @@ La capture Windows `Personnage` (profil temporaire vide) a révélé que `Charac
 
 - Le scénario existant `tests/capture_app_shell_ui.py` marquait encore Almanax « not-implemented », malgré le calendrier désormais monté dans `AtlasWindow`. Il contrôle maintenant la **vraie** instance `AlmanaxCalendar`, la présence du fil d'Ariane, la sélection d'une date future et le message d'absence de source, puis photographie le shell.
 - La preuve screenshot signale explicitement `offline-calendar-no-offering-data` et zéro contenu de jeu fictif ; elle ne vaut ni validation des offrandes ni recette Windows native. Contrat d'inventaire ajouté sans QApplication dans la suite universelle. **Non exécuté**, conformément à la cadence demandée.
+
+
+### Quêtes — position de lancement typographiée par Unity (14/11/2026)
+
+- L'affichage natif de la position de lancement `QuestLaunchPosition` utilisait un `QLabel` sans rôle global de typographie ; les coordonnées cliquables `atlas-travel:` dans les descriptions HTML possédaient déjà `font-weight:700`.
+- Ajout d'une règle **unique** `QLabel#QuestLaunchPosition` en gras `800`, avec police et couleur provenant de `FONT_BODY`/`TEXT`. La galerie Dev UI affiche le même rôle en lecture seule ; il est ajouté à l'index Guides existant. Aucune modification du service quest, de la position de jeu ni des liens de voyage.
+- Tests typographiques/d'affichage ajoutés ; **NOT_RUN**, pas de CI exécutée pendant le développement.

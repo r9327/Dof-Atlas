@@ -62,6 +62,7 @@ UI_FAMILY_QSS_SELECTORS: dict[str, tuple[str, ...]] = {
         "#GuideHeader", "#GuidesHomeCategory", "#GuideDofusCard",
         "#GuideQuestLineActive", "#GuideCompactHeader",
         "#GuidePreparationPanel", "#GuideManualNav", "#GuideUltimeGeneratedView",
+        "#QuestLaunchPosition",
     ),
     "assets": ("#InlineShortcutButton", "QToolTip"),
     "motion": (),  # Unapproved animation prototypes; never promise adoption.

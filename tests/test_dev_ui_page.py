@@ -175,6 +175,19 @@ class DevUiPageTests(unittest.TestCase):
             page.close()
             page.deleteLater()
 
+    def test_quest_launch_position_preview_uses_real_shared_style(self) -> None:
+        from app.pages.dev_ui_page import DevUiPage
+
+        page = DevUiPage(on_back=lambda: None)
+        try:
+            label = page.preview_quest_start_position
+            self.assertEqual(label.objectName(), "QuestLaunchPosition")
+            self.assertIn("[4,-18]", label.text())
+            self.assertEqual(label.styleSheet(), "")
+        finally:
+            page.close()
+            page.deleteLater()
+
     def test_guide_catalog_materials_are_real_shared_dev_ui_components(self) -> None:
         from app.pages.dev_ui_page import DevUiPage
 

@@ -2890,6 +2890,16 @@ QToolButton#GuideItemIcon[state="done"] {
 }
 
 
+/* Quest launch coordinates use the same legible Unity emphasis as
+   linked /travel coordinates. The source text and navigation stay untouched. */
+QLabel#QuestLaunchPosition {
+    color: @TEXT;
+    font-size: @FONT_BODY;
+    font-weight: 800;
+    background: transparent;
+    border: none;
+}
+
 /* One semantic Unity control for Guide and Quêtes information rails. */
 QToolButton#GuideRightPanelToggle {
     background: @PANEL_2;

@@ -1310,6 +1310,15 @@ class DevUiPage(QWidget):
         )
         section.addWidget(self.guide_sample_compact_header)
 
+        self.preview_quest_start_position = QLabel(
+            "Position de lancement : [4,-18]"
+        )
+        self.preview_quest_start_position.setObjectName("QuestLaunchPosition")
+        self.preview_quest_start_position.setAccessibleName(
+            "Aperçu typographique d'une position de lancement"
+        )
+        section.addWidget(self.preview_quest_start_position)
+
         self.guide_sample_summary = QFrame()
         self.guide_sample_summary.setObjectName("GuidePreparationSummary")
         summary_layout = QVBoxLayout(self.guide_sample_summary)
