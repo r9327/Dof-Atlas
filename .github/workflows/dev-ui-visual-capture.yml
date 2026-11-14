@@ -1,5 +1,5 @@
 name: Atlas UI / Global Unity Windows Capture
-# Final Windows UI proof: 9 real AtlasWindow captures, Bestiary tab isolation, transparent Character equipment and common Unity controls.
+# Final exact-SHA Windows UI proof: stable Qt selector test, nine AtlasWindow modules, Bestiary isolation and character transparency.
 
 on:
   pull_request:
