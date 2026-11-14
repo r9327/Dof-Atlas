@@ -153,6 +153,12 @@ UNITY_UI_FAMILY_INDEX = {
         "style_owner": "app/ui/theme.py + app/ui/unity_skin.py",
         "scope": "shared",
     },
+    "scroll_resize": {
+        "title": "Défilement · listes · redimensionnement",
+        "components": ("QSplitter", "QScrollArea", "QScrollBar", "QListWidget", "Panel"),
+        "style_owner": "app/ui/theme.py + app/ui/unity_skin.py",
+        "scope": "shared",
+    },
     "fields": {
         "title": "Saisie · sélection · progression",
         "components": ("QLineEdit", "QComboBox", "QSpinBox", "QPlainTextEdit", "QCheckBox", "QRadioButton", "QProgressBar", "QSlider"),
@@ -174,12 +180,6 @@ UNITY_UI_FAMILY_INDEX = {
     "surfaces": {
         "title": "Surfaces · cartes · typographie",
         "components": ("PageTitle", "PanelTitle", "MutedLabel", "card", "Panel", "QuestPanel", "QFrame"),
-        "style_owner": "app/ui/theme.py + app/ui/unity_skin.py",
-        "scope": "shared",
-    },
-    "scroll_resize": {
-        "title": "Défilement · listes · redimensionnement",
-        "components": ("QSplitter", "QScrollArea", "QScrollBar", "QListWidget", "Panel"),
         "style_owner": "app/ui/theme.py + app/ui/unity_skin.py",
         "scope": "shared",
     },
@@ -213,17 +213,17 @@ UNITY_UI_FAMILY_INDEX = {
         "style_owner": "app/ui/unity_palette.py + app/ui/unity_skin.py",
         "scope": "shared",
     },
-    "coverage": {
-        "title": "Couverture · modules consommateurs",
-        "components": ("UNITY_UI_CONSUMERS", "UNITY_UI_FAMILY_INDEX"),
-        "style_owner": "app/ui/unity_palette.py",
-        "scope": "audit",
-    },
     "motion": {
         "title": "Motion Gallery · prototypes à comparer",
         "components": ("QPropertyAnimation", "QGraphicsOpacityEffect", "QProgressBar", "AtlasButton"),
         "style_owner": "app/pages/dev_ui_page.py",
         "scope": "prototype",
+    },
+    "coverage": {
+        "title": "Couverture · modules consommateurs",
+        "components": ("UNITY_UI_CONSUMERS", "UNITY_UI_FAMILY_INDEX"),
+        "style_owner": "app/ui/unity_palette.py",
+        "scope": "audit",
     },
     "dialogs": {
         "title": "Dialogues · icônes · typographie",
