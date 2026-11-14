@@ -1,5 +1,5 @@
 name: Dev UI / 5 Finishes Windows Capture
-# Final visual check for the shared Dev UI gallery; only this workflow edit triggers it.
+# Exact-SHA final visual check: compact Unity side-nav, 16% glass, visible breadcrumb, and shared panel borders.
 
 on:
   pull_request:
