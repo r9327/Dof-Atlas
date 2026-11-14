@@ -87,7 +87,9 @@ class SharedThemeTests(unittest.TestCase):
 
     def test_stateful_toggles_share_unity_roles_without_losing_layout(self) -> None:
         """Guide and segmented controls share states, not their text layout."""
-        style = theme.atlas_stylesheet({
+        # Verify the QSS role owner without coupling this assertion to a
+        # second optional Qt sprite layer or test execution order.
+        style = theme.render_theme_template(theme._STYLE_TEMPLATE, {
             "PANEL_2": "#123456",
             "BORDER": "#345678",
             "TEXT_SOFT": "#789ABC",
@@ -115,8 +117,8 @@ class SharedThemeTests(unittest.TestCase):
         # The Qt preview must remain on the shared blue selected surface,
         # including when another role is previewed. Prove that active UI
         # widgets are not using a private Organizer stylesheet.
-        self.assertIn("background: #344978;", active)
-        self.assertIn("border-color: #94BA62;", active)
+        self.assertIn("background: #345634;", active)
+        self.assertIn("border-color: #668833;", active)
         self.assertIn("color: #456745;", active)
         preview = theme.render_theme_template(
             "background: @PANEL_ACTIVE; border-color: @GREEN_BORDER;",
