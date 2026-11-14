@@ -157,6 +157,18 @@ class SharedThemeTests(unittest.TestCase):
         self.assertIn("border-color: #304050;", hover)
         self.assertIn("QPushButton#GuideInlineQuestButton,", style)
 
+    def test_guide_icons_preserve_transparent_background(self) -> None:
+        style = theme.atlas_stylesheet()
+        block = style.split(
+            "QLabel#GuideHeaderImage,\n"
+            "            QLabel#GuideAdventureImage,\n"
+            "            QLabel#GuideAlignmentImage,\n"
+            "            QLabel#GuideDofusImage {", 1
+        )[1].split("}", 1)[0]
+        self.assertIn("background: transparent;", block)
+        self.assertIn("border: 1px solid #354966;", block)
+        self.assertNotIn("background: #151821;", block)
+
     def test_guide_surfaces_use_the_shared_glass_in_both_stylesheet_layers(self) -> None:
         from app.ui.unity_palette import resolve_unity_colors
 

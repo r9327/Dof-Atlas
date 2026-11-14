@@ -2564,10 +2564,12 @@ QLabel#AlmanaxUnavailable { color: @TEXT_MUTED; font-size: @FONT_BODY; }
             QLabel#GuideAdventureImage,
             QLabel#GuideAlignmentImage,
             QLabel#GuideDofusImage {
-                background: #0b0f17;
-                border: 1px solid #2b3341;
+                /* Original alpha-bearing Unity icons must not inherit
+                   a solid dark rectangle behind their transparent pixels. */
+                background: transparent;
+                border: 1px solid @BORDER_SOFT;
                 border-radius: @RADIUS_SM;
-                color: #e7bf63;
+                color: @YELLOW;
             }
 
             QFrame#GuideSeriesHeader {

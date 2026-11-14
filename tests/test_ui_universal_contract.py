@@ -67,30 +67,30 @@ class UiUniversalContractTests(unittest.TestCase):
                       UI_INTERACTION_QSS_SELECTORS["data_views"])
 
     def test_guide_catalog_materials_are_fully_indexed_in_dev_ui(self):
-        from app.pages.dev_ui_page import DevUiPage
-
-        expected = (
-            "GuideHeader", "GuidesHomeCategory", "GuideDofusCard",
-            "GuideQuestLineActive", "GuideCompactHeader",
-        )
-        for name in expected:
+        gallery_source = (
+            REPO_ROOT / "app/pages/dev_ui_page.py"
+        ).read_text(encoding="utf-8")
+        # Contract tests are Qt-free: the real QApplication and interactions
+        # are exercised separately in tests/test_dev_ui_page.py.
+        for name, attribute in (
+            ("GuideHeader", "guide_sample_header"),
+            ("GuidesHomeCategory", "guide_sample_category"),
+            ("GuideDofusCard", "guide_sample_dofus_card"),
+            ("GuideQuestLineActive", "guide_sample_active_route"),
+            ("GuideCompactHeader", "guide_sample_compact_header"),
+        ):
             self.assertIn(name, UNITY_UI_FAMILY_INDEX["guides"]["components"])
             self.assertIn("#" + name, UI_FAMILY_QSS_SELECTORS["guides"])
             self.assertIn("#" + name, atlas_stylesheet())
+            self.assertIn(
+                f'self.{attribute}.setObjectName("{name}")',
+                gallery_source,
+            )
         self.assertIn("guides", UI_INTERACTION_QSS_SELECTORS)
-        page = DevUiPage(on_back=lambda: None)
-        try:
-            for attr, object_name in (
-                ("guide_sample_header", expected[0]),
-                ("guide_sample_category", expected[1]),
-                ("guide_sample_dofus_card", expected[2]),
-                ("guide_sample_active_route", expected[3]),
-                ("guide_sample_compact_header", expected[4]),
-            ):
-                self.assertEqual(getattr(page, attr).objectName(), object_name)
-        finally:
-            page.close()
-            page.deleteLater()
+        self.assertIn("AlmanaxCalendar",
+                      UNITY_UI_FAMILY_INDEX["advanced_fields"]["components"])
+        self.assertIn("QCalendarWidget#AlmanaxCalendar",
+                      UI_FAMILY_QSS_SELECTORS["advanced_fields"])
 
     def test_all_unity_design_tokens_have_one_qt_free_owner(self):
         from app.ui import theme

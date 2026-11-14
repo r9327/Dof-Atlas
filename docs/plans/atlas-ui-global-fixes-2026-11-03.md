@@ -796,3 +796,10 @@ La capture Windows `Personnage` (profil temporaire vide) a révélé que `Charac
 
 - La famille `advanced_fields` indexe désormais `QCalendarWidget#AlmanaxCalendar` et affiche un contrôle Qt réel, navigable vers les jours futurs. Les styles viennent du même `app/ui/theme.py` que l'écran Almanax du shell ; aucun QSS ni système de composants supplémentaire.
 - Le changement de date remonte dans le panneau de retour Dev UI. Test Qt ajouté ; **NOT_RUN** et aucun CI dispatch volontaire pendant le développement.
+
+
+### Sécurisation du lot — transparence Guides et contrat UI Qt-free (14/11/2026)
+
+- Les labels des logos Guides utilisent le fond transparent du matériau Unity, au lieu d'une plaque sombre derrière les PNG alpha ; une bordure `BORDER_SOFT` maintient le contour accessible. Leur texte de repli suit `YELLOW`.
+- `tests/test_ui_universal_contract.py` instançait `DevUiPage` sans `QApplication`, bien que cette suite vérifie seulement l'index QSS : risque de crash natif. Le test lit désormais les identifiants de source et vérifie les index sans créer de `QWidget` ; les interactions de la galerie restent dans la suite Qt dédiée.
+- Contrat Almanax indexé dans la même vérification. Tests NON EXÉCUTÉS à la demande du propriétaire pendant la phase de développement.
