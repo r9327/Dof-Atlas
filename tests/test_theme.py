@@ -182,7 +182,7 @@ class SharedThemeTests(unittest.TestCase):
             "RADIUS_MD": "18px",
         })
         group = style.split("QGroupBox, QTabWidget::pane {", 1)[1].split("}", 1)[0]
-        self.assertIn("border-radius: 16px;", group)
+        self.assertIn("border-radius: 18px;", group)
         featured = style.split(
             "QFrame#GuideFeaturedCard { background: qlineargradient(", 1
         )[1].split("}", 1)[0]
@@ -230,6 +230,31 @@ class SharedThemeTests(unittest.TestCase):
         self.assertIn("border-color: #135790;", button_hover)
         self.assertNotIn("#GuideUltimeGeneratedView QComboBox", style)
 
+    def test_sidebar_reuses_compact_tabs_glass_and_single_selection_language(self) -> None:
+        from app.ui.unity_palette import UNITY_GLASS_INTENSITY
+        self.assertEqual(UNITY_GLASS_INTENSITY, 0.16)
+        style = theme.atlas_stylesheet({
+            "PANEL": "#112233", "PANEL_2": "#223344",
+            "PANEL_ACTIVE": "#334455", "GREEN": "#99CC33",
+        })
+        sidebar = style.split("#sidebar, #SideNav {", 1)[1].split("}", 1)[0]
+        self.assertIn("rgba(34, 51, 68, 0.82)", sidebar)
+        self.assertIn("rgba(17, 34, 51, 0.88)", sidebar)
+        self.assertIn("border-radius: 8px;", sidebar)
+        normal = style.split(
+            "#navItem, #navItemActive, #NavButton, #ActiveNavButton,", 1
+        )[1].split("}", 1)[0]
+        active = style.split(
+            "#navItemActive, #ActiveNavButton, #TopmostButtonActive {", 1
+        )[1].split("}", 1)[0]
+        self.assertIn("min-height: 24px;", normal)
+        self.assertIn("max-height: 24px;", normal)
+        self.assertIn("border-bottom: 2px solid #99CC33;", active)
+        self.assertIn("color: #99CC33;", active)
+        self.assertIn("background: #334455;", active)
+        self.assertNotIn("border-left: 4px", active)
+        self.assertNotIn("background: #497332;", active)
+
     def test_dev_ui_shared_surface_style_reaches_real_widgets(self) -> None:
         style = theme.atlas_stylesheet({
             "PANEL": "#112233", "PANEL_2": "#223344",
@@ -240,8 +265,8 @@ class SharedThemeTests(unittest.TestCase):
             "#card, #OrganizerPanel, #Panel, #CraftPanel, #QuestPanel {", 1
         )[1].split("}", 1)[0]
         slider = style.split("QSlider::groove:horizontal {", 1)[1].split("}", 1)[0]
-        self.assertIn("rgba(34, 51, 68, 0.50)", group)
-        self.assertIn("rgba(17, 34, 51, 0.58)", group)
+        self.assertIn("rgba(34, 51, 68, 0.82)", group)
+        self.assertIn("rgba(17, 34, 51, 0.88)", group)
         self.assertIn("rgba(34, 51, 68, 0.82)", card)
         self.assertIn("rgba(17, 34, 51, 0.88)", card)
         self.assertIn("border: 1px solid #345678;", slider)
