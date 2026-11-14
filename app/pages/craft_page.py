@@ -1286,9 +1286,9 @@ class CraftPage(QWidget):
             button = AtlasButton(name)
             button.setMaximumHeight(28)
             if key == normalize_key(self.selected_job):
-                button.setObjectName("ActiveButton")
+                button.set_variant("selected")
             else:
-                button.setObjectName("SecondaryButton")
+                button.set_variant("secondary")
             # Keep the initial Craft surface independent from the local-data
             # adapter. Resolving a decorative job icon used to open the whole
             # SQLite/repository stack before the user had searched or selected
