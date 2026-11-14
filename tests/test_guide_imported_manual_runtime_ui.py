@@ -5,6 +5,7 @@ import json
 import os
 import tempfile
 import unittest
+from unittest.mock import patch
 from pathlib import Path
 
 os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
@@ -289,7 +290,12 @@ class ImportedSourceRouterQtTests(unittest.TestCase):
         self.assertEqual(self.view.stack.indexOf(second), -1)
         self.assertFalse(self.progress_path.exists())
 
-        self.view.show_home()
+        # This lifecycle test does not require the separately shipped
+        # Quest catalogue; keep the real Home state transition and cache
+        # release while isolating only the unrelated catalogue data load.
+        with patch.object(self.view, "refresh_home") as refresh_home:
+            self.view.show_home()
+        refresh_home.assert_called_once_with()
         self.assertEqual(self.view.stack.count(), baseline)
         self.assertFalse(any(
             key.startswith("source_guide:") for key in self.view._catalog_manual_views
@@ -320,7 +326,12 @@ class ImportedSourceRouterQtTests(unittest.TestCase):
         self.assertIsInstance(self.view.stack.currentWidget(), SharedGuideManualView)
         self.assertTrue(self.view.select_guide(lazy_key))
         self.assertEqual(calls, ["load", "load"])
-        self.view.show_home()
+        # This lifecycle test does not require the separately shipped
+        # Quest catalogue; keep the real Home state transition and cache
+        # release while isolating only the unrelated catalogue data load.
+        with patch.object(self.view, "refresh_home") as refresh_home:
+            self.view.show_home()
+        refresh_home.assert_called_once_with()
         self.assertNotIn(lazy_key, self.view._loaded_imported_source_services)
         self.assertNotIn(lazy_key, self.view._catalog_manual_views)
         self.assertFalse(self.progress_path.exists())
@@ -339,7 +350,12 @@ class ImportedSourceRouterQtTests(unittest.TestCase):
         self.assertTrue(self.view.select_guide(guide_id))
         old_service = self.view._loaded_imported_source_services[guide_id]
         self.assertTrue(old_service.can_write_progress())
-        self.view.show_home()
+        # This lifecycle test does not require the separately shipped
+        # Quest catalogue; keep the real Home state transition and cache
+        # release while isolating only the unrelated catalogue data load.
+        with patch.object(self.view, "refresh_home") as refresh_home:
+            self.view.show_home()
+        refresh_home.assert_called_once_with()
         self.assertNotIn(guide_id, self.view._loaded_imported_source_services)
         self.assertFalse(old_service.can_write_progress())
         with self.assertRaisesRegex(RuntimeError, "retired"):

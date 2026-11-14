@@ -266,3 +266,24 @@ plus enregistrer d'étape. La même instance ne peut pas être réautorisée :
 la factory de confiance doit créer un **nouveau service** lors d'une
 réouverture. Les services injectés explicitement par l'appelant conservent
 leur propre cycle de vie et ne sont pas retirés par cette règle.
+
+### Correction du workflow Phase 0 au SHA exact
+
+Les journaux de la CI du commit `7fdfc04` ont révélé deux défauts
+de **montage des tests**, pas de preuve que les données réelles sont
+validées :
+
+- Linux : le test pure Python était lancé par
+  `-m unittest tests.test_guide_trusted_source_package`, ce qui importe
+  `tests/__init__.py` et donc PySide6, volontairement absent du job
+  stdlib. La fixture est maintenant autonome et lancée via
+  `unittest discover -s tests -p 'test_guide_trusted_source_package.py'`.
+- Windows : trois tests du cycle de vie des routes source appelaient
+  `show_home()`, qui déclenchait aussi le chargement réel du catalogue
+  Quest (fichier `quest_categories.json` absent sur le runner).
+  Ces tests conservent la transition Home et la libération réelle des
+  lecteurs ; ils isolent uniquement `refresh_home()` via un mock dont
+  l'appel est vérifié. Ils ne prétendent pas tester le catalogue Quest.
+
+Les tests de la véritable intégration des données, du rendu Windows et
+du jeu DOFUS restent des preuves distinctes et bloquantes.

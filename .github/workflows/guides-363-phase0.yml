@@ -56,7 +56,7 @@ jobs:
       - name: Run synthetic import, conformity, storage and sequence gates
         run: |
           python -X faulthandler -m unittest discover -v -s tests -p 'test_atlas_guide_*.py'
-          python -X faulthandler -m unittest -v tests.test_guide_trusted_source_package
+          python -X faulthandler -m unittest discover -v -s tests -p 'test_guide_trusted_source_package.py'
       - name: Record machine-readable Linux Phase 0 test evidence
         shell: bash
         run: |
@@ -75,7 +75,7 @@ jobs:
               "runner_os": os.environ.get("RUNNER_OS"),
               "run_id": os.environ.get("GITHUB_RUN_ID"),
               "run_attempt": os.environ.get("GITHUB_RUN_ATTEMPT"),
-              "test_suites": ["test_atlas_guide_*.py", "tests.test_guide_trusted_source_package"],
+              "test_suites": ["test_atlas_guide_*.py", "test_guide_trusted_source_package.py (discovery, Qt-free)"],
               "real_guide_count": 0,
               "certified": False,
               "source_rights_verified": False,

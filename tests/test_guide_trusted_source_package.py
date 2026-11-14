@@ -18,7 +18,37 @@ from app.modules.encyclopedia.services.guide_trusted_source_package import (
     GuidePackageEntry,
     GuideTrustedSourcePackage,
 )
-from tests.test_guide_imported_manual_runtime_service import _source_route
+from app.modules.encyclopedia.services.guide_shared_route_contract import (
+    project_authorized_guide,
+)
+
+
+def _source_route(guide_id: str = "fictional-trusted") -> dict:
+    """Standalone stdlib fixture: never import the Qt-initializing tests package."""
+    return project_authorized_guide({
+        "guide_id": guide_id,
+        "title": f"Fictitious {guide_id}",
+        "steps": [
+            {
+                "source_step_id": "first",
+                "title": "Talk to fictional NPC",
+                "quest_ids": [123],
+                "actions": [
+                    {"action_id": "talk", "kind": "talk",
+                     "text": "Parler au PNJ fictif", "npc": "PNJ fictif"},
+                ],
+            },
+            {
+                "source_step_id": "second",
+                "title": "Travel",
+                "coordinates": [5, -2],
+                "actions": [
+                    {"action_id": "travel", "kind": "travel",
+                     "text": "Aller en [5,-2]", "coordinates": [5, -2]},
+                ],
+            },
+        ],
+    })
 
 TEST_HEAD = "a" * 40
 TEST_SOURCE = hashlib.sha256(b"fictional authorized source export").hexdigest()
