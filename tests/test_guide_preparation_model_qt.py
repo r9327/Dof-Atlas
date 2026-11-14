@@ -7,7 +7,7 @@ from pathlib import Path
 
 os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
 
-from PySide6.QtWidgets import QApplication, QLabel, QPushButton, QToolButton
+from PySide6.QtWidgets import QApplication, QLabel, QPushButton, QSpinBox, QToolButton
 
 from app.modules.encyclopedia.services.guide_progress_service import GuideProgressService
 from app.modules.encyclopedia.views.shared_manual_guide_view import SharedGuideManualView
@@ -224,6 +224,170 @@ class GuidePreparationQtFocusedTests(unittest.TestCase):
                 character, self.service.progress_id, key,
             ))
 
+
+    def test_party_shared_quantity_not_multiplied_by_selected_participants(self):
+        self.participants.save_selected_keys(
+            ("character:1", "character:2", "character:3"),
+        )
+        self.service.cards[0]["a_preparer"][0]["quantity_scope"] = "party_shared"
+        view = self._view()
+        self.assertEqual(len(view._preparation_needs), 1)
+        need = view._preparation_needs[0]
+        self.assertEqual(need.scope, "party_shared")
+        self.assertEqual(len(need.required_by_character), 3)
+        self.assertEqual(need.required_total, 2)
+
+    def test_editable_preparation_total_multiplies_and_persists_by_character(self):
+        self.participants.save_selected_keys(
+            ("character:1", "character:2", "character:3"),
+        )
+        view = self._view()
+        editor = view.preparation_panel.findChild(QSpinBox, "GuidePreparationQuantity")
+        self.assertIsNotNone(editor)
+        self.assertEqual((editor.value(), editor.maximum()), (0, 6))
+        editor.setValue(5)
+        editor.editingFinished.emit()
+        QApplication.processEvents()
+        fresh = GuideProgressService(self.path)
+        values = [fresh.preparation_quantity(
+            f"character:{index}", self.service.progress_id, "item:123"
+        ) for index in (1, 2, 3)]
+        self.assertEqual(sum(values), 5)
+        self.assertTrue(all(0 <= value <= 2 for value in values))
+        updated = view.preparation_panel.findChild(QSpinBox, "GuidePreparationQuantity")
+        self.assertEqual((updated.value(), updated.maximum()), (5, 6))
+        self.assertFalse(view._need_ready(view._preparation_needs[0]))
+        updated.setValue(6)
+        updated.editingFinished.emit()
+        QApplication.processEvents()
+        self.assertTrue(view._need_ready(view._preparation_needs[0]))
+        refreshed = view.preparation_panel.findChild(QSpinBox, "GuidePreparationQuantity")
+        self.assertEqual((refreshed.value(), refreshed.maximum()), (6, 6))
+
+    def test_legacy_noncanonical_ready_key_keeps_binary_ui_without_count_editor(self):
+        from app.modules.encyclopedia.views.shared_manual_guide_view import _PreparationNeed
+
+        self.participants.save_selected_keys(("character:1",))
+        view = self._view()
+        legacy = _PreparationNeed(
+            item_key="legacy-fictional-key",
+            item_id=None, name="Ressource fictive",
+            category="Ressources",
+            required_by_character=(("character:1", 1),),
+        )
+        self.assertFalse(view._need_ready(legacy))
+        row = view._preparation_row(legacy)
+        self.assertIsNone(row.findChild(QSpinBox, "GuidePreparationQuantity"))
+        self.assertIsNotNone(row.findChild(QToolButton, "GuidePreparationReady"))
+
+    def test_party_shared_editor_counts_once_with_atomic_team_allocation(self):
+        self.participants.save_selected_keys(
+            ("character:1", "character:2", "character:3"),
+        )
+        self.service.cards[0]["a_preparer"][0]["quantity_scope"] = "party_shared"
+        view = self._view()
+        editor = view.preparation_panel.findChild(QSpinBox, "GuidePreparationQuantity")
+        self.assertIsNotNone(editor)
+        self.assertEqual((editor.value(), editor.maximum()), (0, 2))
+        editor.setValue(2)
+        editor.editingFinished.emit()
+        QApplication.processEvents()
+        stored = GuideProgressService(self.path)
+        by_character = [
+            stored.preparation_quantity(f"character:{n}", self.service.progress_id, "item:123")
+            for n in (1, 2, 3)
+        ]
+        self.assertEqual(sum(by_character), 2)
+        self.assertTrue(view._need_ready(view._preparation_needs[0]))
+        updated = view.preparation_panel.findChild(QSpinBox, "GuidePreparationQuantity")
+        self.assertEqual((updated.value(), updated.maximum()), (2, 2))
+        updated.setValue(0)
+        updated.editingFinished.emit()
+        QApplication.processEvents()
+        stored.reload()
+        self.assertEqual(sum(
+            stored.preparation_quantity(f"character:{n}", self.service.progress_id, "item:123")
+            for n in (1, 2, 3)
+        ), 0)
+        self.assertFalse(view._need_ready(view._preparation_needs[0]))
+
+    def test_party_shared_editor_clamps_excess_after_team_selection_change(self):
+        self.participants.save_selected_keys(("character:1", "character:2"))
+        self.service.cards[0]["a_preparer"][0]["quantity_scope"] = "party_shared"
+        progress = GuideProgressService(self.path)
+        for key in ("character:1", "character:2"):
+            progress.set_preparation_quantity(
+                key, self.service.progress_id, "item:123", 2, required=2,
+            )
+        view = self._view()
+        editor = view.preparation_panel.findChild(QSpinBox, "GuidePreparationQuantity")
+        self.assertEqual((editor.value(), editor.maximum()), (2, 2))
+        editor.setValue(1)
+        editor.editingFinished.emit()
+        QApplication.processEvents()
+        stored = GuideProgressService(self.path)
+        self.assertEqual(sum(
+            stored.preparation_quantity(key, self.service.progress_id, "item:123")
+            for key in ("character:1", "character:2")
+        ), 1)
+        self.assertFalse(view._need_ready(view._preparation_needs[0]))
+
+    def test_local_typed_item_image_is_inline_and_keeps_copy_link(self):
+        from unittest.mock import patch
+        from app.modules.encyclopedia.views.shared_manual_guide_view import (
+            SharedGuideManualCard, _guide_entity_icon_path,
+        )
+        from app.core.entity_identity import canonical_entity_key
+
+        with tempfile.TemporaryDirectory() as folder:
+            image = Path(folder) / "123.png"
+            image.write_bytes(b"not-decoded-by-this-contract")
+            source = {"items": [{"item_id": 123, "name": "Poudre fictive", "quantity": 2}]}
+            original = '<a href="item-copy:Poudre%20fictive" style="color:green">Poudre fictive</a>'
+            with patch("app.modules.encyclopedia.views.shared_manual_guide_view._guide_entity_icon_path",
+                       return_value=image) as resolver:
+                decorated = SharedGuideManualCard._inline_source_item_images(original, source)
+            self.assertIn('<img src="file:', decorated)
+            self.assertIn(image.as_uri(), decorated)
+            self.assertIn(original, decorated)
+            resolver.assert_called_once_with("item", 123)
+            self.assertEqual(canonical_entity_key("object", 123), "item:123")
+
+    def test_inline_image_missing_or_unverified_id_never_changes_source_text(self):
+        from unittest.mock import patch
+        from app.modules.encyclopedia.views.shared_manual_guide_view import (
+            SharedGuideManualCard,
+        )
+        rendered = '<a href="item-copy:Poudre%20fictive">Poudre fictive</a>'
+        with patch("app.modules.encyclopedia.views.shared_manual_guide_view._guide_entity_icon_path",
+                   return_value=None):
+            self.assertEqual(SharedGuideManualCard._inline_source_item_images(
+                rendered, {"items": [{"item_id": 123, "name": "Poudre fictive"}]}
+            ), rendered)
+        self.assertEqual(SharedGuideManualCard._inline_source_item_images(
+            rendered, {"items": [{"item_id": "123", "name": "Poudre fictive"}]}
+        ), rendered)
+        self.assertEqual(SharedGuideManualCard._inline_source_item_images(
+            rendered, {"items": [{"item_id": 123, "name": "Autre objet"}]}
+        ), rendered)
+
+    def test_maximum_profession_level_displays_once_without_item_counter(self):
+        self.participants.save_selected_keys(("character:1",))
+        self.service.cards[0]["profession_gates"] = [
+            {"profession_id": 24, "name": "Alchimiste", "level": 40},
+            {"profession_id": 24, "name": "Alchimiste", "level": 100},
+        ]
+        view = self._view()
+        rows = [r for r in view._preparation_needs if r.category == "Métiers"]
+        self.assertEqual(len(rows), 1)
+        self.assertEqual(rows[0].required_level, 100)
+        button = next(b for b in view.preparation_panel.findChildren(
+            QPushButton, "GuidePreparationItemCopy"
+        ) if "Alchimiste" in b.text())
+        self.assertIn("niveau 100", button.text())
+        self.assertEqual(
+            len(view.preparation_panel.findChildren(QSpinBox, "GuidePreparationQuantity")), 1
+        )
 
 if __name__ == "__main__":
     unittest.main()

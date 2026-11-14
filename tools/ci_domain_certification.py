@@ -145,8 +145,7 @@ ORGANIZER_RUNTIME_PATHS = frozenset({
     "app/input/mouse_hooks.py",
 })
 ORGANIZER_TEST_PATHS = frozenset({
-    # Exact, Windows-offscreen screenshot producers for the Organizer UI;
-    # neither path is a game-input backend or a general tests/* wildcard.
+    # Reviewed Organizer offscreen capture scripts, never a generic wildcard.
     "tests/capture_organizer_ui.py",
     "tests/capture_organizer_shell.py",
     "tests/test_organizer_character_order.py",
@@ -361,6 +360,18 @@ def owners_for(path: str) -> frozenset[str]:
         return frozenset({"ci", "organizer"})
     if path in CRAFT_PATHS or path.startswith("app/pages/craft_"):
         return frozenset({"craft"})
+    # The independent offline source/Atlas comparator is a Guide tool, not
+    # general CI infrastructure. Exact ownership only: unrelated tools stay
+    # closed-world UNKNOWN until independently reviewed.
+    if path in {
+        "tools/atlas_guide_conformity.py",
+        "tools/atlas_guide_importer.py",
+        "tools/atlas_guide_candidate_store.py",
+        "tools/atlas_guide_sequence_gate.py",
+        "tools/atlas_guide_pipeline.py",
+        "tools/atlas_guide_package_publisher.py",
+    }:
+        return frozenset({"guides"})
     if path.startswith("app/modules/encyclopedia/services/guide_"):
         return frozenset({"guides"})
     if path == "app/modules/encyclopedia/views/memory_bound_encyclopedia_page.py":
@@ -373,11 +384,12 @@ def owners_for(path: str) -> frozenset[str]:
         return frozenset({"quests", "guides", "ui"})
     if path in {
         "app/modules/encyclopedia/views/shared_manual_guide_view.py",
+        "app/modules/encyclopedia/views/manual_route_guides_view.py",
         "app/modules/encyclopedia/views/guides_view.py",
         "app/modules/encyclopedia/views/guide_ultime_manual_view.py",
         "app/modules/encyclopedia/views/guide_ultime_universal_view.py",
     }:
-        # All four concrete guide readers have both Guide logic and Qt clients.
+        # The five reviewed Guide/router views have Guide and Qt consumers.
         # Unknown view modules remain BLOCKED; no wildcard or coverage reduction.
         return frozenset({"guides", "ui"})
     if path in {
