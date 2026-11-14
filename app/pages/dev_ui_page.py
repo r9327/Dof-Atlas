@@ -13,6 +13,7 @@ from PySide6.QtCore import QDate, QEasingCurve, QPropertyAnimation, Qt
 from PySide6.QtGui import QBrush, QColor, QLinearGradient, QPainter, QPixmap
 from PySide6.QtWidgets import (
     QCheckBox,
+    QCalendarWidget,
     QComboBox,
     QDateEdit,
     QDoubleSpinBox,
@@ -805,6 +806,22 @@ class DevUiPage(QWidget):
         checks.addWidget(self.preview_disabled_check)
         checks.addStretch(1)
         section.addLayout(checks)
+
+        # Same object name and global QSS as the real Almanax page.
+        self.preview_almanax_calendar = QCalendarWidget()
+        self.preview_almanax_calendar.setObjectName("AlmanaxCalendar")
+        self.preview_almanax_calendar.setFirstDayOfWeek(Qt.Monday)
+        self.preview_almanax_calendar.setVerticalHeaderFormat(
+            QCalendarWidget.NoVerticalHeader
+        )
+        self.preview_almanax_calendar.setMaximumHeight(215)
+        self.preview_almanax_calendar.selectionChanged.connect(
+            lambda: self._report(
+                "Almanax : "
+                + self.preview_almanax_calendar.selectedDate().toString("dd/MM/yyyy")
+            )
+        )
+        section.addWidget(self.preview_almanax_calendar)
 
     def _build_states_and_badges(self, parent: QVBoxLayout) -> None:
         section = self._section(parent, "statuses")

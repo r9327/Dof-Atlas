@@ -39,7 +39,10 @@ UI_FAMILY_QSS_SELECTORS: dict[str, tuple[str, ...]] = {
         "QLineEdit", "QComboBox", "QSpinBox", "QPlainTextEdit",
         "QCheckBox", "QRadioButton", "QSlider::groove:horizontal",
     ),
-    "advanced_fields": ("QDoubleSpinBox", "QDateEdit", "QTimeEdit"),
+    "advanced_fields": (
+        "QDoubleSpinBox", "QDateEdit", "QTimeEdit",
+        "QCalendarWidget#AlmanaxCalendar",
+    ),
     "statuses": ('#StatusBadge[state="done"]', "#StatusChip"),
     "notifications": ("#StatusBadge", "#MutedLabel", "#card"),
     "surfaces": (

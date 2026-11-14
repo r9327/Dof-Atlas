@@ -790,3 +790,9 @@ La capture Windows `Personnage` (profil temporaire vide) a révélé que `Charac
 - `create_almanax_page` fournit un **calendrier natif navigable** avec jours futurs, titre de date sélectionnée et état « Données indisponibles » explicite ; aucune lecture réseau ou écriture de profil. Le contrôle utilise les tokens Qt/Unity partagés et non un QSS local.
 - Les racines Home et Paramètres restent transparentes devant le `UnityBackdrop` existant. Test Qt de clic et de navigation future ajouté ; l'attente obsolète `GUIDE_COMPACT_SURFACE` a été retirée d'un test après la mutualisation de matériau du lot précédent.
 - **ATHM-003/ATAL-001 partiels :** les offres, bonus et objets restent indisponibles faute de source réelle. Tests/CI NON_EXÉCUTÉS à ce stade sur demande du propriétaire ; aucun verdict final ni fusion.
+
+
+### Dev UI — aperçu réel du calendrier Almanax (14/11/2026)
+
+- La famille `advanced_fields` indexe désormais `QCalendarWidget#AlmanaxCalendar` et affiche un contrôle Qt réel, navigable vers les jours futurs. Les styles viennent du même `app/ui/theme.py` que l'écran Almanax du shell ; aucun QSS ni système de composants supplémentaire.
+- Le changement de date remonte dans le panneau de retour Dev UI. Test Qt ajouté ; **NOT_RUN** et aucun CI dispatch volontaire pendant le développement.

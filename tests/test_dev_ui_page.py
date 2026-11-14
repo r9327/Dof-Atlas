@@ -157,6 +157,23 @@ class DevUiPageTests(unittest.TestCase):
             page.close()
             page.deleteLater()
 
+    def test_almanax_calendar_uses_shared_unity_component_and_future_dates(self) -> None:
+        from app.pages.dev_ui_page import DevUiPage
+        from PySide6.QtCore import QDate
+
+        page = DevUiPage(on_back=lambda: None)
+        try:
+            picker = page.preview_almanax_calendar
+            self.assertEqual(picker.objectName(), "AlmanaxCalendar")
+            self.assertEqual(picker.styleSheet(), "")
+            target = QDate.currentDate().addDays(12)
+            picker.setSelectedDate(target)
+            self.assertEqual(picker.selectedDate(), target)
+            self.assertIn(target.toString("dd/MM/yyyy"), page.feedback.text())
+        finally:
+            page.close()
+            page.deleteLater()
+
     def test_guide_catalog_materials_are_real_shared_dev_ui_components(self) -> None:
         from app.pages.dev_ui_page import DevUiPage
 

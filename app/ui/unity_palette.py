@@ -361,7 +361,10 @@ UNITY_UI_FAMILY_INDEX = {
     },
     "advanced_fields": {
         "title": "Formulaires avancés · états et formats",
-        "components": ("QLineEdit", "QDoubleSpinBox", "QDateEdit", "QTimeEdit", "QCheckBox"),
+        "components": (
+            "QLineEdit", "QDoubleSpinBox", "QDateEdit", "QTimeEdit",
+            "QCheckBox", "QCalendarWidget", "AlmanaxCalendar",
+        ),
         "style_owner": "app/ui/theme.py + app/ui/unity_skin.py",
         "scope": "shared",
     },
