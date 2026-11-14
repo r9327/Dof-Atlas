@@ -12,7 +12,6 @@ from PySide6.QtWidgets import (
     QHBoxLayout,
     QLabel,
     QProgressBar,
-    QPushButton,
     QScrollArea,
     QVBoxLayout,
     QWidget,
@@ -414,8 +413,7 @@ class GuideUltimeUniversalView(GuideUltimeGeneratedView):
         self.breadcrumb_layout = QHBoxLayout(self.breadcrumb)
         self.breadcrumb_layout.setContentsMargins(8, 5, 8, 5)
         self.breadcrumb_layout.setSpacing(5)
-        home = AtlasButton("Guides")
-        home.setObjectName("GuideBreadcrumbButton")
+        home = AtlasButton("Guides", variant="guide_breadcrumb")
         home.clicked.connect(lambda _checked=False: self._return_to_guides_catalog())
         self.breadcrumb_layout.addWidget(home)
         separator = QLabel(">")
@@ -463,16 +461,16 @@ class GuideUltimeUniversalView(GuideUltimeGeneratedView):
         nav.setObjectName("GuideRouteNav")
         nav_layout = QHBoxLayout(nav)
         nav_layout.setContentsMargins(8, 6, 8, 6)
-        self.prev_button = QPushButton("← Précédent")
+        self.prev_button = AtlasButton("← Précédent")
         self.prev_button.clicked.connect(lambda: self.navigate_relative(-1))
         nav_layout.addWidget(self.prev_button)
         nav_layout.addStretch(1)
-        self.current_button = QPushButton("Revenir à la fiche actuelle")
+        self.current_button = AtlasButton("Revenir à la fiche actuelle")
         self.current_button.setObjectName("GuideRouteCurrent")
         self.current_button.clicked.connect(self.go_active)
         nav_layout.addWidget(self.current_button)
         nav_layout.addStretch(1)
-        self.next_button = QPushButton("Suivant →")
+        self.next_button = AtlasButton("Suivant →")
         self.next_button.clicked.connect(lambda: self.navigate_relative(1))
         nav_layout.addWidget(self.next_button)
         root.addWidget(nav)

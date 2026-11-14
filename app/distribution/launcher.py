@@ -548,10 +548,10 @@ def main() -> int:
         selection = tk.Frame(window, bg=COLORS["background"])
         selection.pack(pady=(12, 2))
         tk.Label(selection, text="EMPLACEMENT DES DONNÉES ATLAS (~3 Go)", bg=COLORS["background"],
-                 fg=COLORS["text"], font=("Segoe UI", 9, "bold")).pack()
+                 fg=COLORS["text"], font=(FONT_FAMILY, 9, "bold")).pack()
         chosen = tk.StringVar(value=str(ROOT))
         tk.Label(selection, textvariable=chosen, bg=COLORS["background"],
-                 fg=COLORS["muted"], font=("Segoe UI", 9),
+                 fg=COLORS["muted"], font=(FONT_FAMILY, 9),
                   wraplength=round(515 * ui_scale)).pack()
 
         def choose_install_folder():
@@ -621,7 +621,9 @@ def main() -> int:
                 if target != ROOT:
                     last_pct = [-1]
                     def moved(done, total):
-                        pct = int(100 * done / max(total, 1))
+                        # Copy completion is not a verified installation or
+                        # Home handoff: reserve 100% for launch success.
+                        pct = min(96, int(100 * done / max(total, 1)))
                         if pct != last_pct[0]:
                             last_pct[0] = pct
                             report(f"Copie vers le nouveau disque : {pct} %", pct)

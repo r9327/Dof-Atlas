@@ -37,6 +37,7 @@ from app.modules.encyclopedia.views.related_preload_state import (
     RelatedPreloadState,
 )
 from app.pages.quest_character_cache import quest_character_source_signature
+from app.ui.components import AtlasPageTitle
 from app.quest_catalog import QuestCharacter, load_quest_characters
 
 if TYPE_CHECKING:
@@ -257,6 +258,9 @@ class EncyclopediaPage(QWidget):
 
         self.tabs = QTabWidget()
         self.tabs.setObjectName("EncyclopediaTabs")
+        # Stable per-label tab widths even when the containing page is resized
+        # between Bestiary and Encyclopedia navigation.
+        self.tabs.tabBar().setExpanding(False)
         self.tabs.tabBar().setProperty("guideActive", False)
         root.addWidget(self.tabs, 1)
 
@@ -291,8 +295,7 @@ class EncyclopediaPage(QWidget):
                 page.setObjectName("EncyclopediaUnavailableBestiary")
                 layout = QVBoxLayout(page)
                 layout.setContentsMargins(24, 24, 24, 24)
-                title = QLabel(label.title())
-                title.setObjectName("PageTitle")
+                title = AtlasPageTitle(label.title())
                 layout.addWidget(title)
                 message = QLabel(
                     "Module en préparation : ce volet du Bestiaire n'est pas encore "
@@ -320,13 +323,28 @@ class EncyclopediaPage(QWidget):
         index = self.tab_labels().index(label)
         current_label = self.current_tab_label()
         old_widget = self.tabs.widget(index)
-        self.tabs.blockSignals(True)
-        self.tabs.removeTab(index)
-        self.tabs.insertTab(index, widget, label)
-        target_label = label if current_label == label else current_label
-        if target_label in self.tab_labels():
-            self.tabs.setCurrentIndex(self.tab_labels().index(target_label))
-        self.tabs.blockSignals(False)
+        # Qt removes/reinserts a QTabWidget tab when a lazy page is hydrated.
+        # This may make OTHER hidden tabs visible again, particularly when
+        # replacing the currently selected Bestiary tab. Preserve the entire
+        # per-label visibility map, not merely the tab being replaced.
+        tab_bar = self.tabs.tabBar()
+        visibility = {
+            self.tabs.tabText(tab_index): tab_bar.isTabVisible(tab_index)
+            for tab_index in range(self.tabs.count())
+        }
+        was_blocked = self.tabs.blockSignals(True)
+        try:
+            self.tabs.removeTab(index)
+            self.tabs.insertTab(index, widget, label)
+            for tab_index, tab_name in enumerate(self.tab_labels()):
+                tab_bar.setTabVisible(
+                    tab_index, visibility.get(tab_name, True)
+                )
+            target_label = label if current_label == label else current_label
+            if target_label in self.tab_labels():
+                self.tabs.setCurrentIndex(self.tab_labels().index(target_label))
+        finally:
+            self.tabs.blockSignals(was_blocked)
         self._lazy_slots.pop(label, None)
         if old_widget is not widget:
             old_widget.deleteLater()
@@ -604,6 +622,7 @@ class EncyclopediaPage(QWidget):
 
         self._quest_load_queue: Queue[object] = Queue(maxsize=1)
         self._quest_load_started = False
+        self._quest_load_abandoned = False
         self._achievement_load_started = False
         self._achievement_ready = False
         self._catalog_context_published = False
@@ -782,7 +801,10 @@ class EncyclopediaPage(QWidget):
         if self.quest_page is not None:
             return
         if self._quest_load_started:
+            # A user who returned before the worker finished still wants it.
+            self._quest_load_abandoned = False
             return
+        self._quest_load_abandoned = False
         self._quest_load_started = True
         provider = self.quest_provider
         results = self._quest_load_queue
@@ -807,6 +829,11 @@ class EncyclopediaPage(QWidget):
             return
         self._quest_load_timer.stop()
         self._quest_load_started = False
+        if self._quest_load_abandoned:
+            # Worker cannot be forcibly interrupted; discard only the stale
+            # result, without mounting a heavy Quest widget off-screen.
+            self._quest_load_abandoned = False
+            return
         if isinstance(result, Exception):
             self.status_callback(f"Chargement Quêtes impossible : {result}")
             return
@@ -900,6 +927,11 @@ class EncyclopediaPage(QWidget):
         if self._initializing:
             self._on_tab_changed_indexed(index)
             return
+
+        if getattr(self, "_quest_load_started", False):
+            # Let the worker finish safely, but never hydrate Quests after
+            # its tab was abandoned. Returning before completion reuses it.
+            self._quest_load_abandoned = label != QUESTS_TAB
 
         # A background Success/Guide load must never steal focus back after the
         # player explicitly switches to another Encyclopedia tab.

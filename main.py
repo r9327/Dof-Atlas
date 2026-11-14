@@ -63,11 +63,12 @@ from app.distribution.startup_trace import record_startup_event
 from app.services.character_data_service import CharacterDataService
 from app.services.character_order_service import CharacterOrderService
 from app.storage import default_profiles, item_id, normalize_key, read_json, write_json
-from app.ui.components import AtlasButton, AtlasDialog, AtlasDialogHeader, AtlasPageTitle, atlas_application_icon
+from app.ui.components import AtlasButton, AtlasDialog, AtlasDialogHeader, AtlasPageTitle, AtlasStatusBadge, atlas_application_icon
 from app.ui.preload_popup import PreloadProgressPopup
 from app.ui.splash_image import clear_connected_dark_background
 from app.ui.theme import atlas_stylesheet
-from app.ui.unity_skin import UnityBackdrop, unity_enabled, register_unity_fonts, sprite_icon_path
+from app.ui.unity_palette import unity_painted_ui_color
+from app.ui.unity_skin import UnityBackdrop, unity_enabled, register_unity_fonts, sprite_icon_path, unity_settings_icon
 from app.windows.unity_windows import enable_dpi_awareness
 from app.windows.single_instance import SingleInstanceGuard
 
@@ -560,7 +561,7 @@ def run_startup_preload(app: QApplication, splash: QSplashScreen | None = None) 
         splash.showMessage(
             f"Préchargement · {label}",
             Qt.AlignBottom | Qt.AlignCenter,
-            QColor("#dbe5f2"),
+            QColor(unity_painted_ui_color("splash.status")),
         )
         splash.repaint()
 
@@ -596,9 +597,10 @@ class HoverMenuButton(AtlasButton):
     _CLOSE_GRACE_TICKS = 6
 
     def __init__(self, text: str, parent: QWidget | None = None) -> None:
-        super().__init__(text, parent)
-        self.setObjectName("TopNavButton")
-        self.setFocusPolicy(Qt.NoFocus)
+        super().__init__(text, parent, variant="navigation")
+        # Tab must reach the same menu family as mouse hover. Mouse-only
+        # NoFocus made its actions unreachable without a pointer.
+        self.setFocusPolicy(Qt.TabFocus)
         self._hover_menu: QMenu | None = None
         self._outside_ticks = 0
         self._poll_timer = QTimer(self)
@@ -614,7 +616,14 @@ class HoverMenuButton(AtlasButton):
         self.open_hover_menu()
         super().enterEvent(event)
 
-    def open_hover_menu(self) -> None:
+    def keyPressEvent(self, event) -> None:
+        if event.key() in (Qt.Key_Down, Qt.Key_F4) and self._hover_menu is not None:
+            self.open_hover_menu(keyboard=True)
+            event.accept()
+            return
+        super().keyPressEvent(event)
+
+    def open_hover_menu(self, *, keyboard: bool = False) -> None:
         menu = self._hover_menu
         if menu is None:
             return
@@ -625,15 +634,31 @@ class HoverMenuButton(AtlasButton):
 
         if menu.isVisible():
             self._outside_ticks = 0
+            if keyboard:
+                # Native QMenu handles Escape/Enter itself. Cursor polling is
+                # only valid for hover-open menus, not a keyboard popup.
+                self._poll_timer.stop()
+                self._select_first_menu_action(menu)
             return
 
         HoverMenuButton._active_button = self
         self._outside_ticks = 0
         self.setDown(False)
-        self.clearFocus()
+        if not keyboard:
+            self.clearFocus()
         menu.popup(self.mapToGlobal(QPoint(0, self.height())))
-        if not self._poll_timer.isActive():
+        if keyboard:
+            self._poll_timer.stop()
+            self._select_first_menu_action(menu)
+        elif not self._poll_timer.isActive():
             self._poll_timer.start()
+
+    @staticmethod
+    def _select_first_menu_action(menu: QMenu) -> None:
+        for action in menu.actions():
+            if action.isEnabled() and action.isVisible() and not action.isSeparator():
+                menu.setActiveAction(action)
+                return
 
     def close_hover_menu(self) -> None:
         self._poll_timer.stop()
@@ -892,12 +917,15 @@ class AtlasWindow(QMainWindow):
         self.register_page("Equipement", self.loading_page("Équipement"))
         self.register_page("Almanax", self.placeholder_page("Almanax", "Le module Almanax sera intégré ici.", badge="En travaux"))
         self.register_page("Settings", self.create_settings_page())
+        self.register_page("Dev UI", self.loading_page("Dev · UI"))
 
         self.page_factories["Organizer"] = self.create_organizer_page
         self.page_factories["Scan Monde"] = self.create_world_scan_page
         self.page_factories["Craft"] = self.create_craft_page
         self.page_factories["Quetes"] = self.create_encyclopedia_page
         self.page_factories["Equipement"] = self.create_equipment_page
+        # Loaded only when requested via Settings; never part of normal startup.
+        self.page_factories["Dev UI"] = self.create_dev_ui_page
 
         self.top_nav = self.build_top_nav()
         root.addWidget(self.top_nav)
@@ -996,8 +1024,7 @@ class AtlasWindow(QMainWindow):
         layout.addWidget(self.brand_button)
         layout.addSpacing(8)
 
-        organizer = AtlasButton("Organizer")
-        organizer.setObjectName("TopNavButton")
+        organizer = AtlasButton("Organizer", variant="navigation")
         inventory_sprite = sprite_icon_path("inventory")
         if inventory_sprite:
             organizer.setIcon(QIcon(str(inventory_sprite)))
@@ -1066,8 +1093,7 @@ class AtlasWindow(QMainWindow):
         layout.addWidget(stuffs)
         self.nav_buttons.append((stuffs, "Stuffs"))
 
-        almanax = AtlasButton("Almanax")
-        almanax.setObjectName("TopNavButton")
+        almanax = AtlasButton("Almanax", variant="navigation")
         almanax.clicked.connect(lambda: self.show_page("Almanax"))
         layout.addWidget(almanax)
         self.nav_buttons.append((almanax, "Almanax"))
@@ -1090,8 +1116,11 @@ class AtlasWindow(QMainWindow):
         self.character_combo.currentIndexChanged.connect(self.on_global_character_changed)
         layout.addWidget(self.character_combo)
 
-        self.settings_button = AtlasButton("⚙")
+        self.settings_button = AtlasButton("")
         self.settings_button.setObjectName("TopNavSettings")
+        self.settings_button.setAccessibleName("Paramètres")
+        self.settings_button.setIcon(unity_settings_icon(20))
+        self.settings_button.setIconSize(QSize(20, 20))
         self.settings_button.setFixedSize(34, 34)
         self.settings_button.setToolTip("Paramètres")
         self.settings_button.clicked.connect(lambda: self.show_page("Settings"))
@@ -1597,16 +1626,21 @@ class AtlasWindow(QMainWindow):
 
         target_index = labels.index(label)
         tab_bar = page.tabs.tabBar()
+        allowed_tabs = (
+            guide_tabs if label in guide_tabs
+            else bestiary_tabs if label in bestiary_tabs
+            else set(labels)
+        )
+
+        def restore_tab_group_visibility() -> None:
+            # Reuse one visibility rule before and after lazy tab hydration.
+            # Qt may make a hidden sibling visible during removeTab/insertTab.
+            for index, tab_name in enumerate(page.tab_labels()):
+                tab_bar.setTabVisible(index, tab_name in allowed_tabs)
 
         was_blocked = page.tabs.blockSignals(True)
         try:
-            for index, tab_name in enumerate(labels):
-                if label in guide_tabs:
-                    tab_bar.setTabVisible(index, tab_name in guide_tabs)
-                elif label in bestiary_tabs:
-                    tab_bar.setTabVisible(index, tab_name in bestiary_tabs)
-                else:
-                    tab_bar.setTabVisible(index, True)
+            restore_tab_group_visibility()
             page.tabs.setCurrentIndex(target_index)
         finally:
             page.tabs.blockSignals(was_blocked)
@@ -1617,12 +1651,15 @@ class AtlasWindow(QMainWindow):
         refreshed_labels = page.tab_labels()
         if label in refreshed_labels:
             final_index = refreshed_labels.index(label)
-            if page.tabs.currentIndex() != final_index:
-                was_blocked = page.tabs.blockSignals(True)
-                try:
+            was_blocked = page.tabs.blockSignals(True)
+            try:
+                # The view may have replaced its selected lazy tab above;
+                # enforce the group once more on the *final* tab bar.
+                restore_tab_group_visibility()
+                if page.tabs.currentIndex() != final_index:
                     page.tabs.setCurrentIndex(final_index)
-                finally:
-                    page.tabs.blockSignals(was_blocked)
+            finally:
+                page.tabs.blockSignals(was_blocked)
 
         active_group = self.page_nav_group.get("Quetes", "")
         self.refresh_nav_selection(active_group)
@@ -1635,7 +1672,9 @@ class AtlasWindow(QMainWindow):
         except (TypeError, ValueError):
             resolved_quest = None
         self.pending_guide_target = (str(guide_id), resolved_quest)
-        self.show_page("Quetes")
+        # Deep links must restore the Encyclopedia tab group, even after a
+        # Bestiary visit hid Guide/Quest/Success tabs in the shared shell.
+        self.open_encyclopedia_tab(GUIDES_TAB)
         self._schedule_owned_callback(0, self.finish_pending_guide_target)
 
     def finish_pending_guide_target(self) -> None:
@@ -1668,6 +1707,8 @@ class AtlasWindow(QMainWindow):
         if not hasattr(self, "module_subnav_layout"):
             return
 
+        self._module_subnav_spec = None
+        self._module_subnav_buttons = ()
         while self.module_subnav_layout.count():
             item = self.module_subnav_layout.takeAt(0)
             widget = item.widget()
@@ -1681,22 +1722,29 @@ class AtlasWindow(QMainWindow):
         active_label: str,
         callback,
     ) -> None:
-        self.clear_module_subnav()
+        # Reuse the actual Qt controls when only the active tool/stuff changes.
+        # Recreating the whole row on every click causes geometry flicker and
+        # briefly duplicates deleted Qt widgets until their deferred teardown.
+        spec = (group, tuple(labels), callback)
+        if getattr(self, "_module_subnav_spec", None) != spec:
+            self.clear_module_subnav()
+            buttons: list[AtlasButton] = []
+            for label in labels:
+                button = AtlasButton(label, variant="navigation")
+                button.clicked.connect(
+                    lambda _checked=False, value=label: callback(value)
+                )
+                self.module_subnav_layout.addWidget(button)
+                buttons.append(button)
+            self.module_subnav_layout.addStretch(1)
+            self._module_subnav_buttons = tuple(buttons)
+            self._module_subnav_spec = spec
 
-        for label in labels:
-            button = AtlasButton(label)
-            button.setObjectName(
-                "TopNavButtonActive"
-                if label == active_label
-                else "TopNavButton"
+        for label, button in zip(labels, self._module_subnav_buttons):
+            button.set_variant(
+                "navigation_active" if label == active_label else "navigation"
             )
-            button.setCursor(Qt.PointingHandCursor)
-            button.clicked.connect(
-                lambda _checked=False, value=label: callback(value)
-            )
-            self.module_subnav_layout.addWidget(button)
 
-        self.module_subnav_layout.addStretch(1)
         self.module_subnav.setVisible(True)
         self.refresh_nav_selection(group)
 
@@ -1786,8 +1834,7 @@ class AtlasWindow(QMainWindow):
         heading = AtlasPageTitle(title)
         layout.addWidget(heading)
         if badge:
-            state = QLabel(badge)
-            state.setObjectName("HomePlaceholderBadge")
+            state = AtlasStatusBadge(badge, state="blocked")
             layout.addWidget(state, 0, Qt.AlignLeft)
         text = QLabel(message)
         text.setObjectName("CompactLabel")
@@ -1812,8 +1859,19 @@ class AtlasWindow(QMainWindow):
         info.setObjectName("MutedLabel")
         info.setWordWrap(True)
         layout.addWidget(info)
+        developer_button = AtlasButton("Dev · Bibliothèque UI Unity", variant="secondary")
+        developer_button.setToolTip(
+            "Prévisualiser les vrais composants UI communs et tester leurs clics."
+        )
+        developer_button.clicked.connect(lambda: self.show_page("Dev UI"))
+        layout.addWidget(developer_button)
         layout.addStretch(1)
         return page
+
+    def create_dev_ui_page(self) -> QWidget:
+        from app.pages.dev_ui_page import DevUiPage
+
+        return DevUiPage(on_back=lambda: self.show_page("Settings"))
 
     def loading_page(self, name: str) -> QWidget:
         page = QWidget()
@@ -1875,6 +1933,7 @@ class AtlasWindow(QMainWindow):
             self.release_reconstructible_page("Quetes", self.create_encyclopedia_page)
             self.release_reconstructible_page("Craft", self.create_craft_page)
             self.release_reconstructible_page("Equipement", self.create_equipment_page)
+            self.release_reconstructible_page("Dev UI", self.create_dev_ui_page)
             # The cartography canvas is reconstructible; keep only the last
             # selected world/map and history, never the loaded Qt widget tree.
             # Active I/O deliberately prevents hibernation until a safe visit.
@@ -2030,13 +2089,9 @@ class AtlasWindow(QMainWindow):
 
     def refresh_nav_selection(self, active_group: str) -> None:
         for button, group in self.nav_buttons:
-            object_name = "TopNavButtonActive" if group == active_group and active_group else "TopNavButton"
-            if button.objectName() == object_name:
-                continue
-            button.setObjectName(object_name)
-            button.style().unpolish(button)
-            button.style().polish(button)
-            button.update()
+            button.set_variant(
+                "navigation_active" if group == active_group and active_group else "navigation"
+            )
 
     def ensure_page_loaded(self, name: str) -> QWidget | None:
         factory = self.page_factories.get(name)
@@ -2946,7 +3001,7 @@ def main() -> int:
             splash.showMessage(
                 "Ouverture de l'interface...",
                 Qt.AlignBottom | Qt.AlignCenter,
-                QColor("#dbe5f2"),
+                QColor(unity_painted_ui_color("splash.status")),
             )
             app.processEvents()
         app.setStyleSheet(atlas_stylesheet())

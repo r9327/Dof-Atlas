@@ -280,6 +280,21 @@ class LanyelSharedManualUiTests(unittest.TestCase):
                     for label in card.findChildren(QLabel)
                 )
             )
+            # The real shared Guide renderer must never mask the global
+            # Unity stylesheet with legacy per-row hard-coded colors.
+            themed_rows = {
+                "GuideManualCombatSection",
+                "GuideManualCombatLineRow",
+                "GuideManualCombatInlineRow",
+                "GuideManualLineRow",
+            }
+            actual = [
+                widget for widget in card.findChildren(QFrame)
+                if widget.objectName() in themed_rows
+            ]
+            self.assertTrue(actual)
+            self.assertTrue(all(widget.styleSheet() == "" for widget in actual))
+            self.assertTrue(all(checkbox.styleSheet() == "" for checkbox in combat_checks))
             first = combat_checks[0]
             before = first.isChecked()
             first.click()

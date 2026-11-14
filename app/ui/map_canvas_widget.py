@@ -8,6 +8,7 @@ from PySide6.QtGui import QColor, QMouseEvent, QPainter, QPen, QPixmap, QPolygon
 from PySide6.QtWidgets import QSizePolicy, QWidget
 
 from app.cartography.scan_status_service import get_status_color, normalize_status
+from app.ui.unity_palette import UNITY_PALETTE, unity_painted_ui_color
 
 
 class MapCanvasWidget(QWidget):
@@ -82,7 +83,7 @@ class MapCanvasWidget(QWidget):
     def paintEvent(self, _event) -> None:
         painter = QPainter(self)
         painter.setRenderHint(QPainter.Antialiasing)
-        painter.fillRect(self.rect(), QColor("#070D16"))
+        painter.fillRect(self.rect(), QColor(unity_painted_ui_color("world_scan.placeholder")))
 
         if self.view is None:
             painter.end()
@@ -136,10 +137,12 @@ class MapCanvasWidget(QWidget):
         height = 28 + line_height * len(lines)
         rect = QRectF((self.width() - width) / 2, max(margin, (self.height() - height) / 2), width, height)
         painter.save()
-        painter.setPen(QPen(QColor("#2E4058"), 1))
-        painter.setBrush(QColor(9, 17, 28, 230))
+        painter.setPen(QPen(QColor(UNITY_PALETTE["BORDER"]), 1))
+        glass = QColor(UNITY_PALETTE["PANEL_2"])
+        glass.setAlpha(230)
+        painter.setBrush(glass)
         painter.drawRoundedRect(rect, 8, 8)
-        painter.setPen(QColor("#E7EEF8"))
+        painter.setPen(QColor(UNITY_PALETTE["TEXT"]))
         painter.drawText(rect.adjusted(16, 12, -16, -12), Qt.AlignLeft | Qt.AlignVCenter, self.placeholder_text)
         painter.restore()
 

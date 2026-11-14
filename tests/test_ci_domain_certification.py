@@ -39,6 +39,84 @@ class ModularDomainRoutingTests(unittest.TestCase):
         self.assertEqual(owners_for(unknown), frozenset())
         self.assertEqual(self.route([unknown])["status"], "BLOCKED")
 
+    def test_organizer_shared_visual_host_has_exact_qt_owner(self):
+        source = "app/pages/organizer/organizer_ui.py"
+        test = "tests/test_organizer_ui.py"
+        owners = frozenset({"organizer", "ui", "identity"})
+        self.assertEqual(owners_for(source), owners)
+        self.assertEqual(owners_for(test), owners)
+        plan = self.route([source, test])
+        self.assertEqual(plan["status"], "READY_TO_EXECUTE")
+        self.assertEqual(set(plan["domains"]), set(owners))
+        # The generic "ui_" fallback is intentional; this neighbor has
+        # no reviewed Organizer/identity owner and must remain blocked.
+        unreviewed = "tests/test_organizer_unreviewed.py"
+        self.assertEqual(owners_for(unreviewed), frozenset())
+        self.assertEqual(self.route([unreviewed])["status"], "BLOCKED")
+
+    def test_shared_components_have_exact_qt_owner(self):
+        source = "app/ui/components.py"
+        test = "tests/test_components.py"
+        self.assertEqual(owners_for(source), frozenset({"ui"}))
+        self.assertEqual(owners_for(test), frozenset({"ui"}))
+        self.assertEqual(self.route([source, test])["status"], "READY_TO_EXECUTE")
+        neighbor = "tests/test_components_unreviewed.py"
+        self.assertEqual(owners_for(neighbor), frozenset())
+        self.assertEqual(self.route([neighbor])["status"], "BLOCKED")
+
+    def test_theme_direct_source_and_regression_have_exact_ui_ownership(self):
+        source = "app/ui/theme.py"
+        test = "tests/test_theme.py"
+        self.assertEqual(owners_for(source), frozenset({"ui"}))
+        self.assertEqual(owners_for(test), frozenset({"ui"}))
+        self.assertEqual(
+            self.route([source, test])["status"], "READY_TO_EXECUTE"
+        )
+        unknown = "tests/test_theme_unreviewed.py"
+        self.assertEqual(owners_for(unknown), frozenset())
+        self.assertEqual(self.route([unknown])["status"], "BLOCKED")
+
+    def test_stdlib_unity_palette_test_has_exact_ui_ownership(self):
+        source = "app/ui/unity_palette.py"
+        test = "tests/test_unity_palette.py"
+        self.assertEqual(owners_for(source), frozenset({"ui"}))
+        self.assertEqual(owners_for(test), frozenset({"ui"}))
+        self.assertEqual(
+            self.route([source, test])["status"], "READY_TO_EXECUTE"
+        )
+        unrelated = "tests/test_unity_palette_extra.py"
+        self.assertEqual(owners_for(unrelated), frozenset())
+        self.assertEqual(self.route([unrelated])["status"], "BLOCKED")
+
+    def test_shared_guide_row_source_and_direct_test_keep_both_owners(self):
+        source = "app/modules/encyclopedia/views/shared_manual_guide_view.py"
+        test = "tests/test_shared_manual_guide_view.py"
+        domains = frozenset({"guides", "ui"})
+        self.assertEqual(owners_for(source), domains)
+        self.assertEqual(owners_for(test), domains)
+        self.assertEqual(self.route([source, test])["status"], "READY_TO_EXECUTE")
+        # The broad historical 'guide' test family is already classified;
+        # this adjacent unreviewed manual helper has no approved owners.
+        unknown = "tests/test_shared_manual_roadbook_unreviewed.py"
+        self.assertEqual(owners_for(unknown), frozenset())
+        self.assertEqual(self.route([unknown])["status"], "BLOCKED")
+
+    def test_shared_quest_detail_sheet_has_exact_three_domain_ownership(self):
+        source = "app/modules/encyclopedia/widgets/quest_detail_view.py"
+        regression = "tests/test_quest_detail_view.py"
+        domains = frozenset({"quests", "guides", "ui"})
+        self.assertEqual(owners_for(source), domains)
+        self.assertEqual(owners_for(regression), domains)
+        report = self.route([source, regression])
+        self.assertEqual(report["status"], "READY_TO_EXECUTE")
+        self.assertEqual(set(report["domains"]), set(domains))
+        self.assertEqual(report["unknown_paths"], [])
+        self.assertFalse(report["phase_certified"])
+        # No sibling wildcard: unreviewed executable widgets remain blocked.
+        unexpected = "app/modules/encyclopedia/widgets/quest_detail_overlay.py"
+        self.assertEqual(owners_for(unexpected), frozenset())
+        self.assertEqual(self.route([unexpected])["status"], "BLOCKED")
+
     def test_shared_text_requires_all_product_domains_without_unknown_wildcard(self):
         domains = {"craft", "quests", "guides", "ui", "startup",
                    "identity", "data", "organizer"}
@@ -691,6 +769,23 @@ class ModularDomainRoutingTests(unittest.TestCase):
             "BLOCKED",
         )
 
+    def test_encyclopedia_lazy_tab_regression_has_exact_shared_ui_owner(self):
+        # The tab replacement is owned by the same Guide/UI shell used by
+        # Bestiaire and Encyclopedia. Unknown siblings must still be blocked.
+        source = "app/modules/encyclopedia/views/encyclopedia_page.py"
+        regression = "tests/test_encyclopedia_page.py"
+        domains = frozenset({"guides", "ui"})
+        for path in (source, regression):
+            self.assertEqual(owners_for(path), domains)
+        report = self.route([source, regression])
+        self.assertEqual(report["status"], "READY_TO_EXECUTE")
+        self.assertEqual(set(report["domains"]), set(domains))
+        self.assertEqual(report["unknown_paths"], [])
+        self.assertFalse(report["phase_certified"])
+        self.assertEqual(
+            owners_for("tests/test_encyclopedia_page_unreviewed.py"), frozenset(),
+        )
+
     def test_guide_catalog_and_local_skin_assets_have_real_domain_owners(self):
         guide_paths = [
             "app/modules/encyclopedia/views/encyclopedia_page.py",
@@ -892,6 +987,77 @@ class ModularDomainRoutingTests(unittest.TestCase):
             owners_for("app/modules/encyclopedia/services/achievement_unreviewed.py"),
             frozenset(),
         )
+
+    def test_pr365_visual_assets_capture_and_guide_have_exact_owners(self):
+        """The eight reviewed UI files are owned, but unrelated siblings fail closed."""
+        verified = {
+            "app/assets/themes/dofus_unity/sprites/atlas-control-check.svg":
+                {"ui", "data"},
+            "app/assets/themes/dofus_unity/sprites/atlas-control-down.svg":
+                {"ui", "data"},
+            "app/assets/themes/dofus_unity/sprites/atlas-control-mixed.svg":
+                {"ui", "data"},
+            "app/assets/themes/dofus_unity/sprites/atlas-control-up.svg":
+                {"ui", "data"},
+            "app/modules/encyclopedia/views/guide_ultime_generated_view.py":
+                {"guides", "ui"},
+            "tests/capture_app_shell_ui.py":
+                {"ci", "ui", "startup", "craft", "quests", "guides", "identity"},
+            "tests/test_equipment_deferred_start.py":
+                {"startup", "ui"},
+            "tools/dev_ui_snapshot.py":
+                {"ci", "ui"},
+        }
+        for path, owners in verified.items():
+            with self.subTest(path=path):
+                self.assertEqual(owners_for(path), frozenset(owners))
+        plan = self.route(list(verified))
+        self.assertEqual(plan["status"], "READY_TO_EXECUTE")
+        self.assertEqual(plan["unknown_paths"], [])
+        self.assertFalse(plan["phase_certified"])
+        for unknown in (
+            "app/assets/themes/dofus_unity/sprites/atlas-control-external.svg",
+            "app/assets/themes/dofus_unity/sprites/unknown.svg",
+            "app/modules/encyclopedia/views/guide_ultime_unreviewed_view.py",
+            "tests/capture_unreviewed_shell_ui.py",
+            "tests/test_equipment_deferred_unknown.py",
+            "tools/dev_ui_snapshot_experimental.py",
+        ):
+            with self.subTest(unknown=unknown):
+                self.assertEqual(owners_for(unknown), frozenset())
+                self.assertEqual(self.route([unknown])["status"], "BLOCKED")
+
+    def test_pr365_svg_glyphs_are_passive_static_shapes(self):
+        """Review four SVG assets without accepting embedded scripts or URLs."""
+        from pathlib import Path
+        from xml.etree import ElementTree
+
+        root = Path(__file__).resolve().parents[1]
+        names = ("check", "down", "mixed", "up")
+        allowed_tags = {"svg", "g", "path"}
+        allowed_attrs = {
+            "width", "height", "viewBox", "fill", "stroke", "stroke-width",
+            "stroke-linecap", "stroke-linejoin", "d",
+        }
+        for name in names:
+            path = root / (
+                "app/assets/themes/dofus_unity/sprites/"
+                f"atlas-control-{name}.svg"
+            )
+            data = path.read_text(encoding="utf-8")
+            self.assertLess(len(data), 4096)
+            self.assertNotIn("http:", data.replace(
+                "http://www.w3.org/2000/svg", ""
+            ))
+            self.assertNotIn("https:", data)
+            drawing = ElementTree.fromstring(data)
+            for element in drawing.iter():
+                local_tag = element.tag.rsplit("}", 1)[-1]
+                self.assertIn(local_tag, allowed_tags, path.name)
+                self.assertTrue(
+                    set(element.attrib).issubset(allowed_attrs),
+                    (path.name, element.attrib),
+                )
 
     def test_unknown_owner_blocks_instead_of_launching_full(self):
         plan = self.route(["app/new_cross_domain_provider.py"])

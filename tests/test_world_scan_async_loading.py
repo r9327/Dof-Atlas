@@ -83,6 +83,31 @@ class WorldScanAsyncLoadingTests(unittest.TestCase):
             finally:
                 self._dispose_panel(panel)
 
+
+    def test_map_buttons_reuse_the_shared_unity_button(self) -> None:
+        """Map actions use AtlasButton, preserving their existing selectors."""
+        from app.ui.components import AtlasButton, AtlasPageTitle
+
+        with patch.object(world_scan_module, "WorldService", _FakeWorldService):
+            panel = WorldScanPanel()
+            try:
+                toolbar_button = panel.make_button("Actualiser", "WorldRefreshButton")
+                self.assertIsInstance(toolbar_button, AtlasButton)
+                self.assertEqual(toolbar_button.objectName(), "WorldRefreshButton")
+                self.assertEqual(toolbar_button.height(), 30)
+                title = panel.findChild(AtlasPageTitle, "PageTitle")
+                self.assertIsNotNone(title)
+                self.assertEqual(title.text(), "Scan Monde")
+                self.assertEqual(title.height(), 28)
+                panel.rebuild_world_menu(["Amakna"])
+                self.assertIsInstance(panel.world_buttons["Amakna"], AtlasButton)
+                self.assertEqual(
+                    panel.world_buttons["Amakna"].objectName(), "WorldMenuItem"
+                )
+            finally:
+                toolbar_button.deleteLater()
+                self._dispose_panel(panel)
+
     def test_first_show_only_starts_worker_and_keeps_db_off_ui_thread(self) -> None:
         with (
             patch.object(world_scan_module, "WorldService", _FakeWorldService),

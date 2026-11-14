@@ -14,11 +14,12 @@ from unittest.mock import patch
 os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
 
 from PySide6.QtCore import QAbstractAnimation, QPoint, Qt
-from PySide6.QtWidgets import QApplication, QFrame, QLabel, QPushButton, QScrollArea
+from PySide6.QtWidgets import QApplication, QFrame, QLabel, QPushButton, QScrollArea, QWidget
 
 import app.pages.organizer_page as organizer
 import app.pages.organizer.character_sessions as organizer_sessions
 from app.pages.organizer.organizer_ui import CharacterSlotName, CharacterSlotsPanel
+from app.ui.theme import atlas_stylesheet
 
 
 class OrganizerLayoutTests(unittest.TestCase):
@@ -1098,10 +1099,27 @@ class OrganizerLayoutTests(unittest.TestCase):
                                 30,
                             )
 
+    def test_organizer_transparent_hosts_inherit_existing_glass_qss(self):
+        """No per-widget duplicate QSS; use the real Organizer card/material."""
+        with tempfile.TemporaryDirectory() as directory:
+            with self.organizer_page(Path(directory)) as page:
+                hosts = page.findChildren(QWidget, "OrganizerTransparentHost")
+                self.assertGreaterEqual(len(hosts), 2)
+                self.assertEqual(page.styleSheet(), "")
+                self.assertIn(
+                    "#organizerPage QWidget#OrganizerTransparentHost",
+                    atlas_stylesheet(),
+                )
+                for host in hosts:
+                    with self.subTest(host=host.objectName()):
+                        self.assertEqual(host.styleSheet(), "")
+                self.assertIn("GlassCard paints a cached diffused backdrop", atlas_stylesheet())
+
     def test_organizer_glass_style_covers_all_button_states(self):
         with tempfile.TemporaryDirectory() as temporary:
             with self.organizer_page(Path(temporary)) as page:
-                css = page.styleSheet()
+                self.assertEqual(page.styleSheet(), "")
+                css = atlas_stylesheet()
                 for selector in (
                     "QPushButton#secondaryButton",
                     "QPushButton#primaryButton",
@@ -1116,8 +1134,17 @@ class OrganizerLayoutTests(unittest.TestCase):
                 ):
                     with self.subTest(selector=selector):
                         self.assertIn(selector, css)
-                for state in (":hover", ":pressed", ":disabled"):
-                    self.assertIn(f"QPushButton#secondaryButton{state}", css)
+                # Organizer no longer duplicates button state rules.
+                # Hover/disabled use the shared role, press the global Qt role.
+                for selector in (
+                    "#secondaryButton:hover",
+                    "QPushButton:pressed, QToolButton:pressed",
+                    "#secondaryButton:disabled",
+                ):
+                    self.assertIn(selector, css)
+                self.assertNotIn(
+                    "#organizerPage QPushButton#secondaryButton:hover", css
+                )
                 self.assertIn("qlineargradient", css)
                 self.assertIn("border-radius: 8px", css)
                 self.assertIn("QPushButton#keyBadge", css)
@@ -1150,11 +1177,11 @@ class OrganizerLayoutTests(unittest.TestCase):
                 from app.pages.organizer.glass_material import (
                     GLASS_INTENSITY, _reflection_alpha, _surface_alpha,
                 )
-                self.assertEqual(GLASS_INTENSITY, 0.5)
-                self.assertEqual(_reflection_alpha(132), 66)
-                self.assertEqual(_reflection_alpha(60), 30)
-                self.assertEqual(_surface_alpha(143), 199)
-                self.assertEqual(_surface_alpha(173), 214)
+                self.assertEqual(GLASS_INTENSITY, 0.16)
+                self.assertEqual(_reflection_alpha(132), 21)
+                self.assertEqual(_reflection_alpha(60), 10)
+                self.assertEqual(_surface_alpha(143), 237)
+                self.assertEqual(_surface_alpha(173), 242)
                 self.assertIn(unity_glass_gradient(), css)
                 # The old invented palette must not drift away from Unity.
                 self.assertNotIn("#708BAD", css)
@@ -1191,7 +1218,8 @@ class OrganizerLayoutTests(unittest.TestCase):
                         if b.objectName() == "keyBadge"
                     )
                     self.assertEqual((shortcut.width(), shortcut.height()), (52, 22))
-                style = page.styleSheet()
+                self.assertEqual(page.styleSheet(), "")
+                style = atlas_stylesheet()
                 self.assertIn(UNITY_PALETTE["PANEL_HOVER"], style)
                 self.assertIn(UNITY_PALETTE["BORDER_STRONG"], style)
                 self.assertIsInstance(page.zaap, OrganizerZaapWidget)
@@ -1467,8 +1495,8 @@ widget.close()
                 self.assertEqual(page.sessions_refresh_button.text(), "")
                 self.assertFalse(page.quick_placeholder_1.isEnabled())
                 self.assertFalse(page.quick_placeholder_2.isEnabled())
-                self.assertIn("border-image: none", page.styleSheet())
-                self.assertIn("GlassCard paints a cached diffused backdrop", page.styleSheet())
+                self.assertIn("border-image: none", atlas_stylesheet())
+                self.assertIn("GlassCard paints a cached diffused backdrop", atlas_stylesheet())
                 self.assertFalse(page.radial_select_button.icon().isNull())
                 self.assertFalse(page.switch_character.icon().isNull())
                 self.assertFalse(page.switch_click.icon().isNull())
@@ -1555,6 +1583,12 @@ widget.close()
                 self.assertTrue(page.previous_character.isEnabled())
 
     def test_embedded_hotkey_badges_leave_space_for_full_button_labels(self):
+        # The real Atlas shell installs the global stylesheet once. An
+        # isolated Organizer test must do the same now that no private
+        # Organizer stylesheet hides the Qt default font metrics.
+        previous_qss = self.app.styleSheet()
+        self.app.setStyleSheet(atlas_stylesheet())
+        self.addCleanup(self.app.setStyleSheet, previous_qss)
         with tempfile.TemporaryDirectory() as temporary:
             with self.organizer_page(Path(temporary)) as page:
                 page.resize(1380, 900)

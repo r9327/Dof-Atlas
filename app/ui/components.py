@@ -7,18 +7,32 @@ from PySide6.QtWidgets import (
     QHBoxLayout,
     QLabel,
     QPushButton,
+    QToolButton,
     QVBoxLayout,
     QWidget,
 )
 
 from app.constants import APP_ICON_PATH
+from app.ui.unity_palette import UNITY_SIZES_PX
 from app.ui.splash_image import clear_connected_dark_background
 
 
 BUTTON_OBJECT_NAMES = {
     "primary": "PrimaryActionButton",
     "secondary": "SecondaryButton",
+    "selected": "ActiveButton",
     "danger": "DangerButton",
+    "navigation": "TopNavButton",
+    "navigation_active": "TopNavButtonActive",
+    # Shared link roles across Guides, Quêtes and Succès.
+    "guide_breadcrumb": "GuideBreadcrumbButton",
+    "guide_quest_link": "GuideInlineQuestButton",
+    "guide_achievement_link": "GuideInlineAchievementButton",
+    # Reusable, unbordered links for secondary actions and popup triggers.
+    "inline_action": "InlineActionButton",
+    "popup_link": "PopupLinkButton",
+    # Unlike read-only badges, status chips are interactive and checkable.
+    "status_chip": "StatusChip",
 }
 
 _APPLICATION_ICON: QIcon | None = None
@@ -58,7 +72,7 @@ class AtlasButton(QPushButton):
     ) -> None:
         super().__init__(text, parent)
         self.setCursor(Qt.PointingHandCursor)
-        self.setMinimumHeight(24)
+        self.setMinimumHeight(UNITY_SIZES_PX["control_compact"])
         if variant:
             self.set_variant(variant)
 
@@ -67,7 +81,82 @@ class AtlasButton(QPushButton):
             object_name = BUTTON_OBJECT_NAMES[variant]
         except KeyError as exc:
             raise ValueError(f"Unknown AtlasButton variant: {variant}") from exc
+        self.set_style_name(object_name)
+
+    def set_style_name(self, object_name: str) -> None:
+        """Refresh a changed shared Qt style role without recreating the button."""
+        if self.objectName() == object_name:
+            return
         self.setObjectName(object_name)
+        style = self.style()
+        style.unpolish(self)
+        style.polish(self)
+        self.update()
+
+
+class AtlasStatusBadge(QLabel):
+    """Read-only Unity status: corner hairline + text, never a clickable button.
+
+    The global #StatusBadge QSS owns all colors, typography and geometry.
+    Call set_state() when a status changes so Qt repolishes the shared role.
+    """
+
+    def __init__(
+        self, text: str, state: str = "neutral",
+        parent: QWidget | None = None,
+    ) -> None:
+        super().__init__(text, parent)
+        self.setObjectName("StatusBadge")
+        self.setCursor(Qt.ArrowCursor)
+        self.setAlignment(Qt.AlignLeft | Qt.AlignBottom)
+        self.setMinimumHeight(UNITY_SIZES_PX["control_compact"])
+        self.setAccessibleName(f"Statut {text}")
+        self.set_state(state)
+
+    def set_state(self, state: str) -> None:
+        if self.property("state") == state:
+            return
+        self.setProperty("state", state)
+        style = self.style()
+        style.unpolish(self)
+        style.polish(self)
+        self.update()
+
+
+class AtlasPanelToggle(QToolButton):
+    """Shared Unity control for collapsing a host-owned information panel.
+
+    Only presentation and accessibility are shared. The host retains the
+    visibility, splitter sizing, scroll restoration and click callback.
+    """
+
+    def __init__(self, parent: QWidget | None = None) -> None:
+        super().__init__(parent)
+        self.setObjectName("GuideRightPanelToggle")
+        self.setCursor(Qt.PointingHandCursor)
+        self.setFocusPolicy(Qt.StrongFocus)
+        self.setProperty("collapsed", False)
+        self.setText("›")
+        self.setToolTip("Masquer la colonne d'informations")
+        self.setAccessibleName(self.toolTip())
+
+    def set_collapsed(self, collapsed: bool) -> None:
+        """Update the shared state without extra repolish on identical values."""
+        collapsed = bool(collapsed)
+        self.setText("‹" if collapsed else "›")
+        label = (
+            "Réafficher la colonne d'informations"
+            if collapsed else "Masquer la colonne d'informations"
+        )
+        self.setToolTip(label)
+        self.setAccessibleName(label)
+        if self.property("collapsed") == collapsed:
+            return
+        self.setProperty("collapsed", collapsed)
+        style = self.style()
+        style.unpolish(self)
+        style.polish(self)
+        self.update()
 
 
 class AtlasPageTitle(QLabel):

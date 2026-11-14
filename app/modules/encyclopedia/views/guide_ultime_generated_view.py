@@ -10,7 +10,6 @@ from PySide6.QtWidgets import (
     QHBoxLayout,
     QLabel,
     QProgressBar,
-    QPushButton,
     QScrollArea,
     QSizePolicy,
     QToolButton,
@@ -18,6 +17,7 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 
+from app.ui.components import AtlasButton
 from app.modules.encyclopedia.services.guide_ultime_generated_service import (
     GuideUltimeGeneratedService,
 )
@@ -367,7 +367,7 @@ class GuideUltimeGeneratedView(QWidget):
         self.prev_button.setToolTip("Carte précédente")
         self.prev_button.clicked.connect(lambda: self.navigate_relative(-1))
         nav_layout.addWidget(self.prev_button)
-        self.current_button = QPushButton("Premier objectif non terminé")
+        self.current_button = AtlasButton("Premier objectif non terminé")
         self.current_button.setObjectName("GuideUltimeCurrentButton")
         self.current_button.clicked.connect(self.go_active)
         nav_layout.addWidget(self.current_button)

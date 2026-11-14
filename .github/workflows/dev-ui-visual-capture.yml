@@ -1,0 +1,99 @@
+name: Atlas UI / Global Unity Windows Capture
+# Exact-SHA Windows UI proof: correct QWidget equipment surface, Bestiary tab isolation and nine full-shell captures.
+
+on:
+  pull_request:
+    branches: [main]
+    types: [opened, synchronize, reopened]
+    paths:
+      - '.github/workflows/dev-ui-visual-capture.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  real-qt-capture:
+    name: Qt Windows capture + UI Dev / Organizer / Launcher contracts exact-SHA
+    runs-on: windows-latest
+    timeout-minutes: 15
+    env:
+      CANDIDATE_SHA: ${{ github.event.pull_request.head.sha }}
+      QT_QPA_PLATFORM: offscreen
+      QTWEBENGINE_CHROMIUM_FLAGS: --disable-gpu --no-sandbox
+      QTWEBENGINE_DISABLE_SANDBOX: '1'
+      PYTHONUTF8: '1'
+      PYTHONUNBUFFERED: '1'
+    steps:
+      - name: Checkout exact PR HEAD
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ env.CANDIDATE_SHA }}
+          persist-credentials: false
+          lfs: false
+      - name: Verify exact SHA
+        shell: pwsh
+        run: |
+          if ((git rev-parse HEAD).Trim() -ne $env:CANDIDATE_SHA) {
+            throw "Dev UI checkout differs from PR HEAD"
+          }
+      - name: Python 3.13
+        uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
+        with:
+          python-version: '3.13'
+      - name: Install pinned Windows Qt runtime
+        shell: pwsh
+        run: |
+          python -m pip install --require-hashes --no-deps -r requirements-pyside.txt
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+      - name: Capture actual Dev UI widget, full scroll, and dialog
+        shell: pwsh
+        run: |
+          python -X faulthandler -m tools.dev_ui_snapshot --output artifacts/dev-ui --width 1440 --height 900
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+      - name: Check capture completeness and horizontal fit
+        shell: pwsh
+        run: |
+          $manifest = Get-Content artifacts/dev-ui/dev-ui-capture.json -Raw | ConvertFrom-Json
+          $expectedFamilies = python -c "from app.ui.unity_palette import UNITY_UI_FAMILY_INDEX; print(len(UNITY_UI_FAMILY_INDEX))"
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          if ([int]$manifest.families -ne [int]$expectedFamilies.Trim()) {
+            throw "Dev UI family index and actual gallery disagree"
+          }
+          if ($manifest.background_source -notin @('local-unity-image', 'unity-blue-gradient')) {
+            throw "Unexpected/unknown Dev UI wallpaper source"
+          }
+          if ($manifest.horizontal_scroll_max -ne 0) { throw "Dev UI has horizontal overflow" }
+          if ($manifest.vertical_scroll_max -le 0) { throw "Dev UI gallery no longer scrolls" }
+          foreach ($name in @('viewport', 'complete', 'family_dropdown', 'dialog')) {
+            $imagePath = $manifest.screenshots.$name
+            if (-not (Test-Path $imagePath)) { throw "Missing real Qt screenshot: $name" }
+          }
+      - name: Syntax-check all migrated UI modules
+        shell: pwsh
+        run: |
+          python -m compileall -q app/pages app/ui app/modules/encyclopedia/views app/distribution
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+      - name: Validate UI Dev and module adoption without private palettes
+        shell: pwsh
+        run: |
+          python -X faulthandler -m unittest -v tests.test_dev_ui_page tests.test_theme tests.test_ui_universal_contract tests.test_encyclopedia_page tests.test_unity_palette tests.test_organizer_ui tests.test_launcher_ui tests.test_distribution_launcher_branding tests.test_organizer_layout.OrganizerLayoutTests.test_organizer_glass_style_covers_all_button_states tests.test_unity_skin.UnitySkinTests.test_real_shell_settings_icon_and_craft_container_use_shared_unity_roles tests.test_unity_skin.UnitySkinTests.test_unity_glass_surfaces_obey_global_color_overrides tests.test_unity_skin.UnitySkinTests.test_global_widget_families_and_focus_stay_themable tests.test_unity_skin.UnitySkinTests.test_shared_buttons_never_inherit_gold_or_neon_sprite_borders tests.test_unity_skin.UnitySkinTests.test_opaque_sprite_tiles_fall_back_to_transparent_white_icons tests.test_unity_skin.UnitySkinTests.test_shared_unity_widget_families_follow_single_palette tests.test_unity_skin.UnitySkinTests.test_advanced_form_surfaces_match_unity_palette_and_states tests.test_unity_skin.UnitySkinTests.test_optional_control_icons_fallback_keeps_native_arrows tests.test_unity_skin.UnitySkinTests.test_tabs_are_palette_owned_without_gold_selected_artwork tests.test_unity_skin.UnitySkinTests.test_original_module_icons_from_same_unity_folder_support_french_names
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+      - name: Capture actual AtlasWindow modules including empty-data Encyclopedia and Bestiary
+        if: always()
+        shell: pwsh
+        run: |
+          python -X faulthandler -m tests.capture_app_shell_ui
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          $report = Get-Content artifacts/app-shell/manifest.json -Raw | ConvertFrom-Json
+          if ($report.screenshots.Count -ne 9) {
+            throw "Full-shell capture inventory is incomplete"
+          }
+      - name: Upload screenshot artifact
+        if: always()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: dev-ui-real-qt-${{ env.CANDIDATE_SHA }}
+          path: |
+            artifacts/dev-ui/*
+            artifacts/app-shell/*
+          if-no-files-found: warn

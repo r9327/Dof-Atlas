@@ -62,7 +62,7 @@ from app.modules.encyclopedia.widgets.guide_card import (
     GuideListModel,
 )
 from app.core.text import normalize_key as normalize_text
-from app.ui.components import AtlasButton
+from app.ui.components import AtlasButton, AtlasPanelToggle
 from app.ui.theme import PALETTE, render_theme_template
 
 if TYPE_CHECKING:
@@ -1421,21 +1421,16 @@ class GuidesView(QWidget):
         self._right_panel_collapsed = False
         self._right_panel_saved_width = 230
         self._right_panel_scroll_position = 0
-        self.right_panel_toggle = QToolButton()
-        self.right_panel_toggle.setObjectName("GuideRightPanelToggle")
-        self.right_panel_toggle.setText("›")
-        self.right_panel_toggle.setToolTip("Masquer la colonne d'informations")
-        self.right_panel_toggle.setAccessibleName("Masquer la colonne d'informations")
+        self.right_panel_toggle = AtlasPanelToggle()
         self.right_panel_toggle.clicked.connect(self._toggle_right_panel)
         header_layout.addWidget(self.right_panel_toggle, 0, Qt.AlignRight | Qt.AlignVCenter)
-        root.addWidget(self.detail_header)
-
         self.breadcrumb = QFrame()
         self.breadcrumb.setObjectName("GuideBreadcrumb")
         self.breadcrumb_layout = QHBoxLayout(self.breadcrumb)
         self.breadcrumb_layout.setContentsMargins(8, 5, 8, 5)
         self.breadcrumb_layout.setSpacing(5)
         root.addWidget(self.breadcrumb)
+        root.addWidget(self.detail_header)
 
         self.splitter = FixedColumnSplitter(Qt.Horizontal)
         self.splitter.setObjectName("GuideDetailSplitter")
@@ -2347,13 +2342,7 @@ class GuidesView(QWidget):
         hidden = self._right_panel_collapsed
         self.right_panel.setMinimumWidth(0 if hidden else 220)
         self.right_panel.setVisible(not hidden)
-        self.right_panel_toggle.setText("‹" if hidden else "›")
-        caption = (
-            "Réafficher la colonne d'informations"
-            if hidden else "Masquer la colonne d'informations"
-        )
-        self.right_panel_toggle.setToolTip(caption)
-        self.right_panel_toggle.setAccessibleName(caption)
+        self.right_panel_toggle.set_collapsed(hidden)
         sizes = self.splitter.sizes()
         if len(sizes) == 3:
             self._set_classic_splitter_sizes(sizes[0], self.center_panel.minimumWidth())
@@ -2573,15 +2562,13 @@ class GuidesView(QWidget):
 
     def _render_breadcrumb(self, guide: Guide, quest_name: str = "") -> None:
         clear_layout(self.breadcrumb_layout)
-        guide_home = AtlasButton("Guides")
-        guide_home.setObjectName("GuideBreadcrumbButton")
+        guide_home = AtlasButton("Guides", variant="guide_breadcrumb")
         guide_home.clicked.connect(self.show_home)
         self.breadcrumb_layout.addWidget(guide_home)
         self._add_breadcrumb_separator()
 
         if quest_name:
-            guide_button = AtlasButton(guide.title)
-            guide_button.setObjectName("GuideBreadcrumbButton")
+            guide_button = AtlasButton(guide.title, variant="guide_breadcrumb")
             guide_button.clicked.connect(lambda _checked=False, gid=guide.id: self.show_guide_overview(gid, preserve_scroll=True))
             self.breadcrumb_layout.addWidget(guide_button)
             self._add_breadcrumb_separator()
@@ -3320,9 +3307,11 @@ class GuidesView(QWidget):
         marker.setFixedWidth(18)
         marker.setAlignment(Qt.AlignCenter)
         layout.addWidget(marker, 0, Qt.AlignTop)
-        button = AtlasButton(clean_text(text))
+        button = AtlasButton(
+            clean_text(text),
+            variant="guide_achievement_link" if success_id is not None else "guide_quest_link",
+        )
         if success_id is not None:
-            button.setObjectName("GuideInlineAchievementButton")
             button.setToolTip("Ouvrir ce succès")
             button.clicked.connect(
                 lambda _checked=False, sid=int(success_id):
@@ -3331,7 +3320,6 @@ class GuidesView(QWidget):
                 )
             )
         else:
-            button.setObjectName("GuideInlineQuestButton")
             button.setToolTip("Ouvrir cette quête")
             button.clicked.connect(
                 lambda _checked=False, qid=int(quest_id):
@@ -4219,11 +4207,11 @@ def solution_text_document(blocks: tuple[DisplaySolutionBlock, ...]) -> QLabel:
         linked = linkify_travel_text(content)
         if block.block_type == "heading":
             parts.append(
-                f'<p style="font-size:13px;font-weight:700;color:#eee7fb;margin:10px 0 4px 0;">'
+                f'<p style="font-size:@FONT_CONTENT_H3;font-weight:700;color:@TEXT_SOFT;margin:10px 0 4px 0;">'
                 f'{linked.rstrip(":")}</p>'
             )
         elif block.block_type == "combat":
-            parts.append(f'<p style="color:#e7bf63;margin:6px 0;"><b>Combat :</b> {linked}</p>')
+            parts.append(f'<p style="color:@YELLOW;margin:6px 0;"><b>Combat :</b> {linked}</p>')
         else:
             parts.append(f'<p style="margin:3px 0;line-height:1.35;">{linked}</p>')
     label = QLabel(render_theme_template("".join(parts)))
@@ -4305,8 +4293,7 @@ def icon_row(kind: str, text: str) -> QWidget:
 
 
 def travel_position_row(position: str) -> QWidget:
-    button = AtlasButton(str(position or ""))
-    button.setObjectName("GuideInlineQuestButton")
+    button = AtlasButton(str(position or ""), variant="guide_quest_link")
     button.setToolTip("Copier la commande /travel")
     button.clicked.connect(lambda _checked=False, value=str(position or ""): copy_travel_position(value))
     return button

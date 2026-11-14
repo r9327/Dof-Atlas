@@ -37,6 +37,7 @@ from app.modules.encyclopedia.widgets.dashboard import FixedColumnSplitter
 from app.core.text import normalize_key as normalize_text
 from app.ui.components import AtlasButton
 from app.ui.theme import PALETTE
+from app.ui.unity_skin import apply_unity_panel_shadow
 
 
 _LOGGER = logging.getLogger(__name__)
@@ -202,6 +203,8 @@ class AchievementsView(QWidget):
         self.list_widget.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
         self.list_widget.setItemDelegate(AchievementListDelegate(self.list_widget))
         self.list_widget.itemClicked.connect(self.on_achievement_clicked)
+        # Enter/Return (and accessible activation) must open the same detail as a click.
+        self.list_widget.itemActivated.connect(self.on_achievement_clicked)
         self.success_panel.layout().addWidget(self.list_widget, 1)
         self.success_panel.setMinimumWidth(285)
         self.splitter.addWidget(self.success_panel)
@@ -209,7 +212,10 @@ class AchievementsView(QWidget):
         self.detail_stack = QStackedWidget()
         self.detail_stack.setObjectName("AchievementDetailStack")
         self.detail_stack.setSizePolicy(QSizePolicy.Ignored, QSizePolicy.Expanding)
+        # Keep the third column present even before the first detail is loaded.
+        self.detail_stack.setMinimumWidth(240)
         self.splitter.addWidget(self.detail_stack)
+        self.splitter.setCollapsible(2, False)
 
         self.detail_scroll = QScrollArea()
         self.detail_scroll.setObjectName("GuideRightPanelScroll")
@@ -293,6 +299,7 @@ class AchievementsView(QWidget):
     def _panel(object_name: str, title: str) -> QFrame:
         panel = QFrame()
         panel.setObjectName(object_name)
+        apply_unity_panel_shadow(panel)
         layout = QVBoxLayout(panel)
         layout.setContentsMargins(10, 10, 10, 10)
         layout.setSpacing(8)
@@ -435,13 +442,9 @@ class AchievementsView(QWidget):
         if achievement_id is None:
             return
         achievement_id = int(achievement_id)
-        if (
-            self.current_achievement_id == achievement_id
-            and (self._detail_open or
-                 self._detail_requested is not None and
-                 self._detail_requested[1] == achievement_id)
-        ):
-            self.close_detail_panel()
+        # Re-activating the selected success must never silently empty column 3.
+        # A pending request is already deduplicated in show_achievement().
+        if self.current_achievement_id == achievement_id and self._detail_open:
             return
         self.show_achievement(achievement_id)
 
@@ -581,6 +584,7 @@ class AchievementsView(QWidget):
     def build_alignment_order_panel(self) -> QFrame:
         panel = QFrame()
         panel.setObjectName("AchievementAlignmentPanel")
+        apply_unity_panel_shadow(panel)
         panel.setSizePolicy(QSizePolicy.Ignored, QSizePolicy.Preferred)
         layout = QVBoxLayout(panel)
         layout.setContentsMargins(9, 8, 9, 8)
@@ -647,8 +651,9 @@ class AchievementsView(QWidget):
 
     def add_alignment_guide_button(self, layout: QVBoxLayout, side: str) -> None:
         city = "Bonta" if side == "bonta" else "Brâkmar"
-        guide_button = AtlasButton(f"Ouvrir le Guide Alignement {city}")
-        guide_button.setObjectName("GuideBreadcrumbButton")
+        guide_button = AtlasButton(
+            f"Ouvrir le Guide Alignement {city}", variant="guide_breadcrumb"
+        )
         guide_button.setSizePolicy(QSizePolicy.Ignored, QSizePolicy.Fixed)
         guide_button.clicked.connect(
             lambda _checked=False, guide_id=_alignment_guide_ids()[side]: self.open_guide(guide_id)
@@ -818,6 +823,11 @@ class AchievementsView(QWidget):
         self._detail_open = False
         self.detail_stack.setCurrentWidget(self.detail_scroll)
         self.clear_detail()
+        hint = QLabel("Sélectionnez un succès pour afficher ses détails.")
+        hint.setObjectName("MutedLabel")
+        hint.setWordWrap(True)
+        self.detail_layout.addWidget(hint)
+        self.detail_layout.addStretch(1)
 
     def closeEvent(self, event) -> None:  # noqa: N802 - Qt API
         self._detail_generation += 1

@@ -1,19 +1,16 @@
 from __future__ import annotations
 
 from PySide6.QtCore import QSize, Qt, QTimer, Signal
-from PySide6.QtGui import QIcon
+from PySide6.QtGui import QIcon, QKeySequence, QShortcut
 from app.ui.unity_skin import apply_unity_panel_shadow, sprite_icon_path
 from PySide6.QtWidgets import (
-    QFrame, QLabel, QListView, QScrollArea, QTreeWidget, QTreeWidgetItem,
-    QVBoxLayout, QWidget,
+    QAbstractItemView, QFrame, QLabel, QListView,
+    QScrollArea, QTreeWidget, QTreeWidgetItem, QVBoxLayout, QWidget,
 )
-from app.ui.theme import PALETTE
 from app.modules.encyclopedia.views.guide_featured_home import (
     FEATURED, FeaturedGuideCard, FeaturedPair,
 )
-from app.modules.encyclopedia.views.guide_library_sources import (
-    CATEGORIES, displayable_listings, load_ganymede_listings,
-)
+from app.modules.encyclopedia.views.guide_library_sources import CATEGORIES
 
 from app.modules.encyclopedia.services.guide_catalog_hints import (
     catalog_route_map_count_hint,
@@ -72,7 +69,6 @@ class GuideCatalogView(QWidget):
         self.search_text = ""
         self.guides = []
         self.visible_guides = []
-        self.ganymede_listings = ()
         self.library_category = "dofus"
         self._initial_progress_by_guide = dict(initial_progress_by_guide or {})
         self._initial_progress_character_key = str(initial_progress_character_key or "")
@@ -96,9 +92,7 @@ class GuideCatalogView(QWidget):
 
         def heading(text: str) -> QLabel:
             label = QLabel(text)
-            label.setStyleSheet(
-                f"color: {PALETTE['TEXT']}; font-size: 13px; font-weight: 800;"
-            )
+            label.setObjectName("GuideLibrarySectionTitle")
             return label
 
         # Exactly two highlighted guides; alignments remain in the browsable library.
@@ -140,8 +134,16 @@ class GuideCatalogView(QWidget):
         self.home_dofus_list.setWrapping(True)
         self.home_dofus_list.setResizeMode(QListView.Adjust)
         self.home_dofus_list.setGridSize(QSize(220, 96))
+        # A double-click emits both clicked and activated in Qt. Wiring both
+        # directly causes duplicate guide navigation (and redundant loading).
+        # Mouse uses clicked; focused keyboard users get Return/Numpad Enter.
         self.home_dofus_list.clicked.connect(self._on_clicked)
-        self.home_dofus_list.activated.connect(self._on_clicked)
+        self._grid_open_shortcuts = []
+        for key in (Qt.Key_Return, Qt.Key_Enter):
+            shortcut = QShortcut(QKeySequence(key), self.home_dofus_list)
+            shortcut.setContext(Qt.WidgetShortcut)
+            shortcut.activated.connect(self._activate_selected_card)
+            self._grid_open_shortcuts.append(shortcut)
 
         # Tree nodes are stable across refreshes: expansion is user-controlled.
         self.library_categories = QTreeWidget(self)
@@ -150,23 +152,19 @@ class GuideCatalogView(QWidget):
         self.library_categories.setIndentation(14)
         self.library_categories.setMinimumWidth(0)
         self.library_categories.setUniformRowHeights(True)
+        # Pixel scrolling ends at the final visible row, rather than exposing
+        # an extra whole item of blank viewport at the bottom of dense menus.
+        self.library_categories.setVerticalScrollMode(QAbstractItemView.ScrollPerPixel)
         self.library_categories.setMaximumHeight(250)
-        self.library_categories.setStyleSheet(
-            "QTreeWidget#GuideLibraryCategories { "
-            "background: qlineargradient(x1:0,y1:0,x2:0,y2:1, "
-            "stop:0 #293D65, stop:1 #121D34); border: 1px solid #809AC2; "
-            "border-radius: 8px; padding: 3px; }"
-            "QTreeWidget#GuideLibraryCategories::item { min-height: 23px; "
-            "padding: 2px 5px; border-radius: 4px; }"
-            "QTreeWidget#GuideLibraryCategories::item:hover { "
-            "background: rgba(91, 121, 174, 0.33); }"
-            "QTreeWidget#GuideLibraryCategories::item:selected { "
-            "background: #344978; color: #F1F6FB; }"
-        )
         self._category_nodes = {}
-        for category_key, text in CATEGORIES:
-            # These categories already have their own featured/Dofus columns.
-            if category_key in {"optimized", "dofus"}:
+        # Dofus is the default, selectable category; events come last.
+        # Featured optimized routes stay in their own permanent left column.
+        for category_key, text in sorted(
+            CATEGORIES, key=lambda entry: (
+                entry[0] != "dofus", entry[0] == "events",
+            ),
+        ):
+            if category_key == "optimized":
                 continue
             node = QTreeWidgetItem((text,))
             node.setData(0, Qt.UserRole, category_key)
@@ -175,12 +173,17 @@ class GuideCatalogView(QWidget):
                 node.setIcon(0, QIcon(str(art)))
             self.library_categories.addTopLevelItem(node)
             self._category_nodes[category_key] = node
-        self.library_categories.setCurrentItem(self._category_nodes["alignements"])
+        self.library_categories.setCurrentItem(self._category_nodes["dofus"])
         self.library_categories.currentItemChanged.connect(self._on_category_changed)
         self.library_categories.itemClicked.connect(self._toggle_library_category)
         self.library_categories.itemActivated.connect(self._activate_library_item)
-        apply_unity_panel_shadow(self.library_categories, blur=19, vertical=4)
+        # Keep the compact menu only as tall as its visible rows. Expanded
+        # categories can still scroll inside the 250px Unity panel.
+        self.library_categories.itemExpanded.connect(self._on_library_category_expanded)
+        self.library_categories.itemCollapsed.connect(self._sync_library_tree_height)
+        apply_unity_panel_shadow(self.library_categories)
         left_layout.addWidget(self.library_categories, 0)
+        self._sync_library_tree_height()
         left_layout.addStretch(1)
 
         self.library_right = QWidget(self)
@@ -238,12 +241,6 @@ class GuideCatalogView(QWidget):
             raise RuntimeError("Aucun guide chargé depuis catalog.json")
         self.graph = graph
         self.guides = list(guides)
-        # Metadata are deliberately not playable Atlas guides.
-        try:
-            self.ganymede_listings = load_ganymede_listings()
-        except (OSError, ValueError, KeyError, TypeError) as exc:
-            self.ganymede_listings = ()
-            self.status_callback(f"Inventaire Ganymède indisponible : {exc}")
         if initial_progress_by_guide is not None:
             self._initial_progress_by_guide = dict(initial_progress_by_guide)
         if initial_progress_character_key:
@@ -258,6 +255,12 @@ class GuideCatalogView(QWidget):
         guide_id = index.data(GUIDE_ID_ROLE)
         if guide_id:
             self.select_guide(str(guide_id))
+
+    def _activate_selected_card(self) -> None:
+        """Open the actual selected model item, without duplicate mouse signals."""
+        index = self.home_dofus_list.currentIndex()
+        if index.isValid():
+            self._on_clicked(index)
 
     def select_guide(self, guide_id: str) -> bool:
         guide_id = str(guide_id or "")
@@ -363,12 +366,7 @@ class GuideCatalogView(QWidget):
             )
 
     def _populate_library_tree(self) -> None:
-        """Group available guides and disabled references inside expandable menus.
-
-        The read-only source index is kept intact; metadata-only routes can
-        never dispatch a guideRequested signal.
-        """
-        catalog_ids = {str(guide.id) for guide in self.guides}
+        """Group playable Atlas guides in the expandable navigation tree."""
         featured = {guide_id for guide_id, _title in FEATURED}
         for category, parent in self._category_nodes.items():
             parent.takeChildren()
@@ -381,15 +379,35 @@ class GuideCatalogView(QWidget):
                 child.setToolTip(0, str(guide.title))
                 parent.addChild(child)
 
-            for entry in displayable_listings(self.ganymede_listings, catalog_ids, category):
-                child = QTreeWidgetItem((entry.title,))
-                child.setFlags(child.flags() & ~Qt.ItemIsEnabled & ~Qt.ItemIsSelectable)
-                child.setData(0, Qt.UserRole + 2, entry.source_id)
-                child.setToolTip(0, "Guide référencé, mais parcours non disponible dans Atlas.")
-                parent.addChild(child)
             # A dense category menu starts folded instead of occupying
             # half of the Guide home before the user chooses a section.
             parent.setExpanded(False)
+
+        self._sync_library_tree_height()
+
+    def _sync_library_tree_height(self, _item: QTreeWidgetItem | None = None) -> None:
+        """No dead space below collapsed categories; scroll expanded lists."""
+        tree = self.library_categories
+        visible_rows = tree.topLevelItemCount()
+        for index in range(tree.topLevelItemCount()):
+            parent = tree.topLevelItem(index)
+            if parent.isExpanded():
+                visible_rows += parent.childCount()
+
+        # Qt's delegate can be taller than its font on Windows/high DPI.
+        # Keep the actual styled first-row hint and a small frame/padding
+        # gutter so the last category is never clipped.
+        row_height = max(23, tree.fontMetrics().lineSpacing() + 8, tree.sizeHintForRow(0))
+        wanted = max(row_height + 12, visible_rows * row_height + 12)
+        tree.setFixedHeight(min(250, wanted))
+
+    def _on_library_category_expanded(self, item: QTreeWidgetItem) -> None:
+        """Expanding an arrow selects that same category in the right pane."""
+        self._sync_library_tree_height(item)
+        if item.data(0, Qt.UserRole) and self.library_categories.currentItem() is not item:
+            # QTreeWidget's expander arrow does not emit currentItemChanged:
+            # go through the normal selection path rather than duplicating it.
+            self.library_categories.setCurrentItem(item)
 
     def _on_category_changed(self, item: QTreeWidgetItem | None, _previous=None) -> None:
         if item is None or not (item.flags() & Qt.ItemIsEnabled):
@@ -401,6 +419,7 @@ class GuideCatalogView(QWidget):
         category = item.data(0, Qt.UserRole)
         if category:
             self.library_category = str(category)
+            self.refresh_home()
 
     def _toggle_library_category(self, item: QTreeWidgetItem, _column: int) -> None:
         if item.data(0, Qt.UserRole) and item.childCount():
@@ -421,10 +440,16 @@ class GuideCatalogView(QWidget):
         self.result_model.set_home_column(matched, "left")
         self._apply_catalog_overrides()
 
-        # Browsing the left menu does not replace the permanent Dofus grid.
+        # Only real playable routes enter this catalogue; source-index
+        # metadata stay outside the navigation and cannot become fake cards.
+        category = self.library_category
         shown_guides = [
             guide for guide in matched
-            if guide.category == "dofus" and guide.id not in featured_ids
+            if (
+                ("adventures" if guide.category == "aventure" else guide.category)
+                == category
+                and str(guide.id) not in featured_ids
+            )
         ]
 
         # Read progress only for rendered cards; no eager per-guide widget creation.
@@ -442,10 +467,16 @@ class GuideCatalogView(QWidget):
 
         self.home_dofus_model.set_home_column(shown_guides, "catalog")
         self.home_dofus_model.set_progress(progress)
-        self.library_results_title.setText("DOFUS")
+        self.library_results_title.setText(
+            dict(CATEGORIES).get(category, "Dofus").upper()
+        )
         self.home_dofus_list.setVisible(bool(shown_guides))
 
-        self.home_empty.setText("Aucun Dofus disponible.")
+        self.home_empty.setText(
+            "Aucun Dofus disponible."
+            if category == "dofus"
+            else "Aucun parcours disponible pour cette catégorie."
+        )
         self.home_empty.setVisible(not shown_guides)
         self._sync_grid_columns()
 

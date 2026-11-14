@@ -19,6 +19,7 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 
+from app.ui.unity_palette import UNITY_CONTENT_TYPOGRAPHY_PX
 from app.pages._character_page_impl import (
     CHARACTER_STAT_ROWS,
     EQUIPMENT_SLOTS,
@@ -74,8 +75,12 @@ class CharacterPage(_CharacterPage):
             stats_layout.setContentsMargins(10, 8, 10, 10)
             stats_layout.setSpacing(6)
 
-        self.equipment_panel.setMinimumWidth(650)
-        self.stats_panel.setMinimumWidth(250)
+        # A 900px shell must fit both cards plus its 20px horizontal
+        # margins and the 8px gutter. The equipment grid already needs
+        # far less than its old 650px minimum; do not force window growth
+        # just because the Personnage page was opened.
+        self.equipment_panel.setMinimumWidth(610)
+        self.stats_panel.setMinimumWidth(235)
         self.stats_panel.setMaximumWidth(340)
 
     @staticmethod
@@ -83,7 +88,8 @@ class CharacterPage(_CharacterPage):
         """Apply score typography while leaving colors to the shared theme."""
 
         font = label.font()
-        font.setPixelSize(18 if compact else 23)
+        role = "character_score_compact" if compact else "character_score_regular"
+        font.setPixelSize(UNITY_CONTENT_TYPOGRAPHY_PX[role])
         font.setBold(True)
         label.setFont(font)
 

@@ -15,6 +15,9 @@ from app.constants import LOGGER
 from app.services.maps.map_cache_builder import get_cache_summary, get_local_image_stats
 from app.services.maps.map_manifest import DEFAULT_WORLD_AREA, DEFAULT_WORLD_NAME, WORLD_MENU_NAMES
 from app.ui.map_canvas_widget import MapCanvasWidget
+from app.ui.components import AtlasButton, AtlasPageTitle
+from app.ui.unity_palette import unity_painted_ui_color
+from app.ui.unity_skin import apply_unity_panel_shadow
 
 
 DEFAULT_WORLD_CONTEXT = f"{DEFAULT_WORLD_NAME} / {DEFAULT_WORLD_AREA}"
@@ -81,8 +84,7 @@ class WorldScanPanel(QWidget):
         accent = QFrame()
         accent.setObjectName("TitleAccent")
         accent.setFixedSize(4, 24)
-        title = QLabel("Scan Monde")
-        title.setObjectName("PageTitle")
+        title = AtlasPageTitle("Scan Monde")
         title.setFixedHeight(28)
         header.addWidget(accent, alignment=Qt.AlignVCenter)
         header.addWidget(title, 1)
@@ -90,6 +92,7 @@ class WorldScanPanel(QWidget):
 
         toolbar = QFrame()
         toolbar.setObjectName("MapToolbar")
+        apply_unity_panel_shadow(toolbar)
         toolbar_layout = QHBoxLayout(toolbar)
         toolbar_layout.setContentsMargins(10, 8, 10, 8)
         toolbar_layout.setSpacing(8)
@@ -150,6 +153,7 @@ class WorldScanPanel(QWidget):
 
         self.detail_panel = QFrame()
         self.detail_panel.setObjectName("WorldDetailPanel")
+        apply_unity_panel_shadow(self.detail_panel)
         self.detail_panel.setFixedHeight(74)
         detail_layout = QVBoxLayout(self.detail_panel)
         detail_layout.setContentsMargins(12, 7, 12, 7)
@@ -190,7 +194,7 @@ class WorldScanPanel(QWidget):
         self.update_action_state()
 
     def make_button(self, text: str, object_name: str) -> QPushButton:
-        button = QPushButton(text)
+        button = AtlasButton(text)
         button.setObjectName(object_name)
         button.setFixedHeight(30)
         button.setMinimumWidth(108)
@@ -455,7 +459,7 @@ class WorldScanPanel(QWidget):
                 image = QImage()
         if image.isNull():
             image = QImage(1400, 880, QImage.Format_ARGB32)
-            image.fill(QColor("#0D1724"))
+            image.fill(QColor(unity_painted_ui_color("world_scan.placeholder")))
             is_placeholder = True
         return image, path_text, is_placeholder
 
@@ -859,7 +863,7 @@ class WorldScanPanel(QWidget):
         self._evict_world_menu_items()
         self._world_menu_suspended = False
         for world in names:
-            item = QPushButton(world)
+            item = AtlasButton(world)
             item.setObjectName("WorldMenuItem")
             item.setFixedHeight(28)
             item.setCursor(Qt.PointingHandCursor)
@@ -883,10 +887,10 @@ class WorldScanPanel(QWidget):
         pixmap.fill(Qt.transparent)
         painter = QPainter(pixmap)
         painter.setRenderHint(QPainter.Antialiasing, True)
-        pen = QPen(QColor("#F2F6FF"), 2.0)
+        pen = QPen(QColor(unity_painted_ui_color("world_scan.planet_outline")), 2.0)
         pen.setCapStyle(Qt.RoundCap)
         painter.setPen(pen)
-        painter.setBrush(QColor("#0B7F3D"))
+        painter.setBrush(QColor(unity_painted_ui_color("world_scan.planet_fill")))
         painter.drawEllipse(QRectF(5, 5, 30, 30))
         painter.setBrush(Qt.NoBrush)
         painter.drawArc(QRectF(10, 5, 20, 30), 80 * 16, 200 * 16)

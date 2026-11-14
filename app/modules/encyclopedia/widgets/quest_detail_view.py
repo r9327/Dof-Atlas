@@ -34,7 +34,7 @@ from app.modules.encyclopedia.services.guide_quest_view_model import (
 from app.modules.encyclopedia.widgets.dashboard import FixedColumnSplitter
 from app.modules.encyclopedia.widgets.quest_item_row import item_row
 from app.quest_catalog import QuestRecord, normalize_text
-from app.ui.components import AtlasButton
+from app.ui.components import AtlasButton, AtlasPanelToggle
 
 
 QuestOpener = Callable[[int], object]
@@ -124,6 +124,13 @@ class QuestDetailView(QWidget):
         self.done_button.setFocusPolicy(Qt.NoFocus)
         self.done_button.clicked.connect(self.toggle_completed)
         header_layout.addWidget(self.done_button, 0, Qt.AlignRight | Qt.AlignVCenter)
+        # The same Unity control serves Quêtes and the shared Guide quest sheet.
+        self._right_panel_collapsed = False
+        self._right_panel_saved_width = 300
+        self._right_panel_scroll_position = 0
+        self.right_panel_toggle = AtlasPanelToggle()
+        self.right_panel_toggle.clicked.connect(self.toggle_right_panel)
+        header_layout.addWidget(self.right_panel_toggle, 0, Qt.AlignRight | Qt.AlignVCenter)
         root.addWidget(self.header)
 
         self.splitter = FixedColumnSplitter(Qt.Horizontal)
@@ -167,6 +174,35 @@ class QuestDetailView(QWidget):
         scroll.setWidget(content)
         panel_root.addWidget(scroll, 1)
         return panel, scroll, layout
+
+    def toggle_right_panel(self) -> None:
+        self.set_right_panel_collapsed(not self._right_panel_collapsed)
+
+    def set_right_panel_collapsed(self, collapsed: bool) -> None:
+        """Hide only the information panel, keeping the current quest and scroll."""
+        collapsed = bool(collapsed)
+        if collapsed == self._right_panel_collapsed:
+            return
+        if collapsed:
+            sizes = self.splitter.sizes()
+            if len(sizes) == 2 and sizes[1] >= self.right_panel.minimumWidth():
+                self._right_panel_saved_width = min(self.right_panel.maximumWidth(), sizes[1])
+            self._right_panel_scroll_position = self.right_scroll.verticalScrollBar().value()
+
+        self._right_panel_collapsed = collapsed
+        self.right_panel.setVisible(not collapsed)
+        self.right_panel_toggle.set_collapsed(collapsed)
+
+        if not collapsed:
+            width = max(self.splitter.width(), sum(self.splitter.sizes()))
+            right = max(
+                self.right_panel.minimumWidth(),
+                min(self.right_panel.maximumWidth(), self._right_panel_saved_width),
+            )
+            if width > 0:
+                self.splitter.setSizes([max(self.center_panel.minimumWidth(), width - right), right])
+            bar = self.right_scroll.verticalScrollBar()
+            bar.setValue(min(self._right_panel_scroll_position, bar.maximum()))
 
     @classmethod
     def _clear_layout(cls, layout) -> None:
@@ -229,6 +265,9 @@ class QuestDetailView(QWidget):
         self._render_information(quest, guide, step, achievements)
         self.questChanged.emit(int(quest.id))
         if self.current_quest_id != previous_quest_id:
+            # A new quest always starts at its own top, even if info was hidden.
+            if self._right_panel_collapsed:
+                self._right_panel_scroll_position = 0
             for scroll in (self.center_scroll, self.right_scroll):
                 bar = scroll.verticalScrollBar()
                 bar.setValue(bar.minimum())
@@ -366,8 +405,9 @@ class QuestDetailView(QWidget):
         if achievements:
             buttons: list[QWidget] = []
             for achievement in achievements[:6]:
-                button = AtlasButton(str(getattr(achievement, "name", "")))
-                button.setObjectName("GuideInlineQuestButton")
+                button = AtlasButton(
+                    str(getattr(achievement, "name", "")), variant="guide_quest_link"
+                )
                 button.clicked.connect(
                     lambda _checked=False, achievement_id=int(getattr(achievement, "id", 0) or 0): self.open_entity(
                         "achievement", achievement_id
@@ -395,8 +435,9 @@ class QuestDetailView(QWidget):
                 record = catalog.by_id.get(int(related_id))
                 if record is None:
                     continue
-                button = AtlasButton(f"{label} : {record.name}")
-                button.setObjectName("GuideInlineQuestButton")
+                button = AtlasButton(
+                    f"{label} : {record.name}", variant="guide_quest_link"
+                )
                 button.clicked.connect(
                     lambda _checked=False, target_id=int(record.id): self.open_related_quest(target_id)
                 )

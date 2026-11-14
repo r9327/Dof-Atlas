@@ -18,13 +18,13 @@ from app.distribution import launcher, launcher_ui
 class LauncherBrandingTests(unittest.TestCase):
     def test_both_palettes_match_real_app_ui_and_remain_stdlib_only(self):
         root = Path(__file__).resolve().parents[1]
-        source = (root / "app/ui/unity_skin.py").read_text(encoding="utf-8")
+        source = (root / "app/ui/unity_palette.py").read_text(encoding="utf-8")
         palette = launcher_ui.UNITY_PALETTE
         self.assertEqual(launcher_ui.COLORS, palette)
         for local, upstream in (
             ("background", "BG"), ("panel", "PANEL"), ("border", "BORDER"),
             ("text", "TEXT"), ("muted", "TEXT_MUTED"), ("accent", "GREEN"),
-            ("accent_hover", "GREEN_HOVER"),
+            ("accent_hover", "GREEN_HOVER"), ("track", "PANEL_2"),
         ):
             self.assertIn(f'"{upstream}": "{palette[local]}"', source)
         tree = ast.parse(inspect.getsource(launcher_ui))
@@ -32,7 +32,15 @@ class LauncherBrandingTests(unittest.TestCase):
             node.module or "" for node in ast.walk(tree)
             if isinstance(node, ast.ImportFrom)
         ]
-        self.assertFalse(any(name.startswith(("PySide6", "app.ui")) for name in imports))
+        self.assertIn("app.ui.unity_palette", imports)
+        self.assertFalse(any(name.startswith("PySide6") or name in {
+            "app.ui.unity_skin", "app.ui.theme"
+        } for name in imports))
+        imports_in_source = [
+            node.module or "" for node in ast.walk(ast.parse(source))
+            if isinstance(node, ast.ImportFrom)
+        ]
+        self.assertFalse(any(name.startswith("PySide6") for name in imports_in_source))
 
     def test_dpi_multiplier_preserves_100_percent_and_enlarges_125_150(self):
         window = MagicMock()
@@ -93,7 +101,9 @@ class LauncherBrandingTests(unittest.TestCase):
         style.configure.assert_called_once()
         self.assertEqual(tk.Label.call_count, 2)
         self.assertEqual(launcher_ui.button_options()["bg"],
-                         launcher_ui.COLORS["accent"])
+                         launcher_ui.COLORS["button_bg"])
+        self.assertEqual(launcher_ui.button_options()["activebackground"],
+                         launcher_ui.COLORS["button_hover"])
 
     def test_preload_has_exact_same_minimal_surface_and_real_state_progress(self):
         source = (Path(__file__).resolve().parents[1] /

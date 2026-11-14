@@ -27,6 +27,15 @@ class CraftFixesTests(unittest.TestCase):
         self.addCleanup(page.deleteLater)
         return page
 
+    def test_craft_title_is_the_indexed_unity_component(self):
+        from app.ui.components import AtlasPageTitle
+
+        page = self.make_page()
+        title = page.findChild(AtlasPageTitle, "PageTitle")
+        self.assertIsNotNone(title)
+        self.assertEqual(title.text(), "Craft")
+        self.assertEqual(title.styleSheet(), "")
+
     def test_click_any_job_opens_leveling_automatically(self):
         page = self.make_page()
         page.jobs = [{"name": "Mineur"}, {"name": "Forgeron"}]

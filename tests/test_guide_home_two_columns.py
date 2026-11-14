@@ -258,8 +258,8 @@ class GuideHomeTwoColumnsTests(unittest.TestCase):
                         view.home_dofus_model.index(row, 0)
                     )
                     self.assertEqual(requested, ["dofus_turquoise"])
-                    # Alignements have real nested entries in the left menu;
-                    # changing the menu does NOT overwrite the right Dofus grid.
+                    # Selecting a category updates the right grid while
+                    # keeping featured optimized routes in the left column.
                     alignments = view._category_nodes["alignements"]
                     self.assertEqual(
                         sum(bool(alignments.child(i).data(0, Qt.UserRole + 1))
@@ -267,21 +267,29 @@ class GuideHomeTwoColumnsTests(unittest.TestCase):
                         2,
                     )
                     view.library_categories.setCurrentItem(alignments)
+                    self.assertEqual(view.library_results_title.text(), "ALIGNEMENTS")
                     self.assertEqual(
                         self._ids(view.home_dofus_model),
-                        ["dofus_turquoise", "dofus_cawotte"],
+                        ["alignement_bonta", "alignement_brakmar"],
                     )
                     view.library_categories.setCurrentItem(alignments.child(0))
                     self.assertEqual(requested[-1], "alignement_bonta")
                     self.assertEqual(
                         self._ids(view.home_dofus_model),
-                        ["dofus_turquoise", "dofus_cawotte"],
+                        ["alignement_bonta", "alignement_brakmar"],
                     )
                     view.set_search_text("bonta")
                     self.assertEqual(self._ids(view.result_model), ["alignement_bonta"])
-                    self.assertEqual(self._ids(view.home_dofus_model), [])
-                    self.assertFalse(view.home_dofus_list.isVisible())
+                    self.assertEqual(self._ids(view.home_dofus_model), ["alignement_bonta"])
                     view.set_search_text("")
+                    self.assertEqual(
+                        self._ids(view.home_dofus_model),
+                        ["alignement_bonta", "alignement_brakmar"],
+                    )
+                    view.library_categories.setCurrentItem(
+                        view._category_nodes["dofus"]
+                    )
+                    self.assertEqual(view.library_results_title.text(), "DOFUS")
                     self.assertEqual(
                         self._ids(view.home_dofus_model),
                         ["dofus_turquoise", "dofus_cawotte"],

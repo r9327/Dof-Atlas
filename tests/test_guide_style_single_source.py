@@ -55,6 +55,27 @@ class GuideStyleSingleSourceTests(unittest.TestCase):
 
         self.assertFalse(Path("app/ui/styles/quests.py").exists())
 
+    def test_rich_text_guides_and_quests_use_shared_content_fonts(self) -> None:
+        from app.ui.theme import render_theme_template
+        from app.ui.unity_palette import UNITY_TYPOGRAPHY
+
+        guide = Path("app/modules/encyclopedia/views/guides_view.py").read_text(
+            encoding="utf-8"
+        )
+        quest = Path("app/pages/_quests_page_impl.py").read_text(
+            encoding="utf-8"
+        )
+        self.assertIn("color:@TEXT_SOFT", guide)
+        self.assertIn("color:@YELLOW", guide)
+        self.assertIn("@FONT_CONTENT_H3", guide)
+        for token in ("FONT_BODY", "FONT_CONTENT_H1",
+                      "FONT_CONTENT_H2", "FONT_CONTENT_H3"):
+            self.assertIn("@" + token, quest)
+            self.assertEqual(
+                render_theme_template("size:@" + token),
+                "size:" + UNITY_TYPOGRAPHY[token],
+            )
+
     def test_global_theme_owns_phase2_view_selectors(self) -> None:
         source = Path("app/ui/theme.py").read_text(encoding="utf-8")
         for selector in (

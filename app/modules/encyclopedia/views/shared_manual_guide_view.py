@@ -411,7 +411,7 @@ class SharedGuideManualCard(GuideUltimeManualCard):
             label = "Validé ✓"
         else:
             label = "Valider"
-        self.page_check = QPushButton(label)
+        self.page_check = AtlasButton(label)
         self.page_check.setObjectName("GuideManualPageCheck")
         self.page_check.setCheckable(True)
         self.page_check.setChecked(bool((automatic or manual) and not blocking))
@@ -507,14 +507,7 @@ class SharedGuideManualCard(GuideUltimeManualCard):
         frame.setObjectName(
             "GuideManualWarningSection" if section_key == "prepare" else object_name
         )
-        if section_key == "boss":
-            frame.setStyleSheet(
-                "QFrame#GuideManualCombatSection {"
-                "background: rgba(174, 183, 177, 0.035);"
-                "border: 1px solid rgba(174, 183, 177, 0.16);"
-                "border-radius: 6px;"
-                "}"
-            )
+        # The global Unity stylesheet owns the combat/section material.
         layout = QVBoxLayout(frame)
         layout.setContentsMargins(10, 8, 10, 8)
         layout.setSpacing(6)
@@ -552,19 +545,9 @@ class SharedGuideManualCard(GuideUltimeManualCard):
             combat_line = self._is_combat_row(kind, text)
 
             row_widget = QFrame()
-            row_widget.setObjectName("GuideManualLineRow")
-            if section_key == "prepare":
-                row_widget.setStyleSheet(
-                    "QFrame#GuideManualLineRow { background: transparent; border: none; }"
-                )
-            elif combat_line:
-                row_widget.setStyleSheet(
-                    "QFrame#GuideManualLineRow {"
-                    "background: rgba(174, 183, 177, 0.045);"
-                    "border: 1px solid rgba(174, 183, 177, 0.14);"
-                    "border-radius: 4px;"
-                    "}"
-                )
+            row_widget.setObjectName(
+                "GuideManualCombatLineRow" if combat_line else "GuideManualLineRow"
+            )
             row_layout = QHBoxLayout(row_widget)
             row_layout.setContentsMargins(0, 0, 0, 0)
             row_layout.setSpacing(7)
@@ -582,16 +565,8 @@ class SharedGuideManualCard(GuideUltimeManualCard):
             )
             if section_key == "prepare":
                 line.setObjectName("GuideManualLine")
-                line.setStyleSheet(
-                    "QLabel#GuideManualLine { background: transparent; border: none; padding: 2px 0; }"
-                )
             elif combat_line:
                 line.setObjectName("GuideManualCombatInlineText")
-                line.setStyleSheet(
-                    "QLabel#GuideManualCombatInlineText {"
-                    "background: transparent; border: none; padding: 5px 7px;"
-                    "}"
-                )
             else:
                 line.setObjectName(self._line_object_name(kind, text))
             line.setWordWrap(True)
@@ -871,13 +846,6 @@ class SharedGuideManualCard(GuideUltimeManualCard):
 
         row = QFrame()
         row.setObjectName("GuideManualCombatInlineRow")
-        row.setStyleSheet(
-            "QFrame#GuideManualCombatInlineRow {"
-            "background: rgba(174, 183, 177, 0.055);"
-            "border: 1px solid rgba(174, 183, 177, 0.18);"
-            "border-radius: 4px;"
-            "}"
-        )
         row_layout = QHBoxLayout(row)
         row_layout.setContentsMargins(16, 3, 6, 3)
         row_layout.setSpacing(6)
@@ -895,9 +863,6 @@ class SharedGuideManualCard(GuideUltimeManualCard):
         # tooltip while the row follows the viewport width.
         checkbox.setMinimumWidth(0)
         checkbox.setSizePolicy(QSizePolicy.Ignored, QSizePolicy.Preferred)
-        checkbox.setStyleSheet(
-            "QCheckBox#GuideManualCombatCheck { background: transparent; border: none; }"
-        )
         progress = getattr(self.service, "quest_progress", None)
         checked = bool(
             progress is not None
@@ -993,7 +958,7 @@ class SharedGuideManualView(GuideUltimeManualView):
         nav_layout = QHBoxLayout(nav)
         nav_layout.setContentsMargins(8, 4, 8, 6)
         nav_layout.setSpacing(8)
-        self.prev_button = QPushButton("Précédent")
+        self.prev_button = AtlasButton("Précédent")
         self.prev_button.setObjectName("GuideManualPrev")
         self.prev_button.setIcon(
             self.prev_button.style().standardIcon(QStyle.SP_ArrowBack)
@@ -1008,14 +973,14 @@ class SharedGuideManualView(GuideUltimeManualView):
         self.validation_layout.setSpacing(0)
         nav_layout.addWidget(self.validation_host)
         nav_layout.addStretch(1)
-        self.next_button = QPushButton("Suivant")
+        self.next_button = AtlasButton("Suivant")
         self.next_button.setObjectName("GuideManualNextButton")
         self.next_button.setIcon(
             self.next_button.style().standardIcon(QStyle.SP_ArrowForward)
         )
         self.next_button.clicked.connect(lambda: self.navigate_relative(1))
         nav_layout.addWidget(self.next_button)
-        apply_unity_panel_shadow(nav, blur=14, vertical=3)
+        apply_unity_panel_shadow(nav)
         root.addWidget(nav)
 
         self.progress_details = QLabel()
@@ -1075,7 +1040,7 @@ class SharedGuideManualView(GuideUltimeManualView):
             lambda value: self._show_index(value - 1)
         )
         title_row.addWidget(self.page_jump)
-        self.current_button = QPushButton("Actuelle")
+        self.current_button = AtlasButton("Actuelle")
         self.current_button.setObjectName("GuideCompactCurrentButton")
         self.current_button.setIcon(_guide_symbol_icon(self.current_button, "current"))
         self.current_button.clicked.connect(self.go_active)
@@ -1172,7 +1137,7 @@ class SharedGuideManualView(GuideUltimeManualView):
         self.settings_panel.setVisible(False)
         self.settings_button.toggled.connect(self.settings_panel.setVisible)
         right.addWidget(self.settings_panel)
-        apply_unity_panel_shadow(header, blur=18, vertical=4)
+        apply_unity_panel_shadow(header)
         root.addWidget(header)
 
     def _build_preparation_panel(self, root: QVBoxLayout) -> None:
@@ -1202,7 +1167,7 @@ class SharedGuideManualView(GuideUltimeManualView):
         self.preparation_filter_group = QButtonGroup(self)
         self.preparation_filter_group.setExclusive(True)
         for label in ("Tout", "Prérequis", "Métiers", "Potions", "Pierres d'âme", "Clefs", "Objets"):
-            button = QPushButton(label)
+            button = AtlasButton(label)
             button.setObjectName("GuidePreparationFilter")
             button.setCheckable(True)
             button.setProperty("filterKey", label)
@@ -1229,7 +1194,7 @@ class SharedGuideManualView(GuideUltimeManualView):
         self.preparation_scroll.setWidget(self.preparation_content)
         panel_layout.addWidget(self.preparation_scroll)
         self.preparation_panel.setVisible(False)
-        apply_unity_panel_shadow(self.preparation_panel, blur=16, vertical=4)
+        apply_unity_panel_shadow(self.preparation_panel)
         root.addWidget(self.preparation_panel)
 
     def _build_sheet_header(self, root: QVBoxLayout) -> None:
@@ -1310,7 +1275,7 @@ class SharedGuideManualView(GuideUltimeManualView):
         self.summary_panel.setVisible(False)
         self.summary_button.toggled.connect(self._summary_toggled)
         layout.addWidget(self.summary_panel)
-        apply_unity_panel_shadow(header, blur=15, vertical=3)
+        apply_unity_panel_shadow(header)
         root.addWidget(header)
         self._refresh_participants_panel()
 
@@ -1741,7 +1706,7 @@ class SharedGuideManualView(GuideUltimeManualView):
     def _append_preparation_more(self, remaining: int) -> None:
         if remaining <= 0:
             return
-        button = QPushButton(f"Afficher la suite ({remaining} besoins restants)")
+        button = AtlasButton(f"Afficher la suite ({remaining} besoins restants)")
         button.setObjectName("GuidePreparationShowMore")
         button.clicked.connect(lambda _checked=False: self._show_more_preparation())
         self.preparation_rows_layout.addWidget(button)
@@ -1832,7 +1797,7 @@ class SharedGuideManualView(GuideUltimeManualView):
 
     def _copyable_preparation_item(self, name: str, display: str,
                                    item_id: int | None) -> QPushButton:
-        button = QPushButton(display)
+        button = AtlasButton(display)
         button.setObjectName("GuidePreparationItemCopy")
         button.setFlat(True)
         button.setCursor(Qt.PointingHandCursor)

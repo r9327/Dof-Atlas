@@ -205,6 +205,27 @@ class GuideUltimeManualUiNavigationTests(unittest.TestCase):
         finally:
             view.close()
 
+
+    def test_shared_guide_navigation_uses_universal_atlas_buttons(self) -> None:
+        from app.ui.components import AtlasButton
+
+        _service, view = self._view()
+        try:
+            for control in (
+                view.prev_button, view.next_button,
+                view.current_button, view.guide_button,
+            ):
+                self.assertIsInstance(control, AtlasButton)
+            self.assertEqual(view.prev_button.objectName(), "GuideManualPrev")
+            self.assertEqual(view.next_button.objectName(), "GuideManualNextButton")
+            self.assertEqual(
+                view.current_button.objectName(), "GuideCompactCurrentButton"
+            )
+            self.assertEqual(view.prev_button.text(), "Précédent")
+            self.assertEqual(view.next_button.text(), "Suivant")
+        finally:
+            view.close()
+
     def test_narrow_layout_preserves_named_actions(self) -> None:
         _service, view = self._view()
         try:

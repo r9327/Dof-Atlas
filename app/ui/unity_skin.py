@@ -5,11 +5,20 @@ Game-extracted image and font files stay outside the public Windows release.
 from __future__ import annotations
 
 import os
+from math import cos, pi, sin
+from collections.abc import Mapping
+from functools import lru_cache
 from pathlib import Path
 
-from PySide6.QtCore import QRectF
-from PySide6.QtGui import QColor, QFontDatabase, QLinearGradient, QPainter, QPixmap
+from PySide6.QtCore import QPointF, QRectF, Qt
+from PySide6.QtGui import QColor, QFontDatabase, QIcon, QImage, QLinearGradient, QPainter, QPen, QPixmap
 from PySide6.QtWidgets import QGraphicsDropShadowEffect, QWidget
+
+from app.ui.unity_palette import (
+    UNITY_ICON_FILE_ALIASES, UNITY_ICON_NAMES, UNITY_ICON_PENDING,
+    UNITY_GLASS_INTENSITY, UNITY_PANEL_SHADOW, UNITY_PALETTE, UNITY_RADII, UNITY_SIZES_PX,
+    resolve_unity_colors,
+)
 
 
 _ASSETS = Path(__file__).resolve().parents[1] / "assets" / "themes" / "dofus_unity"
@@ -19,42 +28,6 @@ _PERSONAL_ASSETS = (
     Path(os.environ.get("LOCALAPPDATA") or Path.home() / ".local" / "share")
     / "DofusAtlas" / "themes" / "dofus_unity"
 )
-UNITY_PALETTE = {
-    "BG": "#151821",
-    "BG_GRADIENT_START": "#253967",
-    "SIDEBAR": "#19243F",
-    "PANEL": "#1B2746",
-    "PANEL_2": "#213154",
-    "PANEL_HOVER": "#2C3C69",
-    "PANEL_ACTIVE": "#344978",
-    "BORDER": "#475F89",
-    "BORDER_SOFT": "#354966",
-    "BORDER_CARD": "#617CA6",
-    "BORDER_STRONG": "#7B9BC8",
-    "TEXT": "#F1F6FB",
-    "TEXT_SOFT": "#D9EAF2",
-    "TEXT_MUTED": "#B8C6E3",
-    "TEXT_DISABLED": "#8998B6",
-    "GREEN": "#9FCE51",
-    "GREEN_HOVER": "#B1DC64",
-    "GREEN_DARK": "#497332",
-    "GREEN_BORDER": "#94BA62",
-    "GUIDE_PREPARATION_BORDER": "#8299C0",
-    "GUIDE_PREPARATION_TEXT": "#FFFFFF",
-    "GUIDE_ITEM_TEXT": "#F6F8FE",
-    "GUIDE_STATUS_TEXT": "#E4EDFC",
-    "GUIDE_NAV_BORDER": "#6B87B3",
-    "GUIDE_TOGGLE_TOP": "#445B89",
-    "GUIDE_TOGGLE_BOTTOM": "#273A62",
-    "GUIDE_TOGGLE_BORDER": "#8098BF",
-    "GUIDE_TOGGLE_ACTIVE": "#536F9D",
-    "GUIDE_TOGGLE_ACTIVE_BORDER": "#B8CBE8",
-    "GUIDE_TOGGLE_HOVER": "#516EA0",
-    "SHELL_GRADIENT": "qlineargradient(x1:0, y1:0, x2:1, y2:0, stop:0 #192657, stop:1 #151821)",
-    "PANEL_GRADIENT": "qlineargradient(x1:0, y1:0, x2:1, y2:1, stop:0 #24395F, stop:1 #192657)",
-    "ACTIVE_GRADIENT": "qlineargradient(x1:0, y1:0, x2:0, y2:1, stop:0 #6E9B41, stop:1 #497332)",
-}
-
 
 def unity_enabled() -> bool:
     """The legacy Atlas presentation is retired; Unity is always active."""
@@ -84,14 +57,163 @@ def _sprite_url(filename: str) -> str | None:
 
 
 def sprite_icon_path(icon: str) -> Path | None:
-    """Keep Atlas fallback icons if a personal Unity pictogram is absent."""
-    if not unity_enabled() or icon not in {
-        "guide", "quest", "success", "encyclopedia",
-        "character", "dofus", "map", "inventory",
-    }:
+    """Find the user's original-color pictogram in the single Unity folder.
+
+    Some original exports use French module names. Check only documented
+    filename shapes in the existing sprites directory, never fabricate art.
+    Personal theme takes priority over the checkout, as for every other asset.
+    """
+    if not unity_enabled() or icon not in (*UNITY_ICON_NAMES, *UNITY_ICON_PENDING):
         return None
-    filename = f"Assets_UI_Themes_Figma_menuIcons_1x_{icon}-png.png"
-    return _asset_file(Path("sprites") / filename)
+    aliases = UNITY_ICON_FILE_ALIASES.get(icon, (icon,))
+    for root in (_PERSONAL_ASSETS, _ASSETS):
+        for alias in aliases:
+            for filename in (
+                f"Assets_UI_Themes_Figma_menuIcons_1x_{alias}-png.png",
+                f"menuIcons_1x_{alias}.png",
+            ):
+                candidate = root / "sprites" / filename
+                if candidate.is_file():
+                    return candidate
+    return None
+
+
+def _is_opaque_icon_tile(image: QImage) -> bool:
+    """Reject squared opaque sprite backgrounds; preserve transparency or use fallback."""
+    if image.isNull() or image.width() < 2 or image.height() < 2:
+        return True
+    corners = (
+        image.pixelColor(0, 0), image.pixelColor(image.width() - 1, 0),
+        image.pixelColor(0, image.height() - 1),
+        image.pixelColor(image.width() - 1, image.height() - 1),
+    )
+    return all(color.alpha() >= 250 for color in corners)
+
+
+@lru_cache(maxsize=48)
+def unity_original_preview_icon(name: str, size: int = 24) -> QIcon:
+    """Show an untouched transparent Unity sprite in Dev UI when installed.
+
+    The public checkout cannot ship game-extracted icons. The preview falls
+    back to the existing Qt pictogram without faking the source colors.
+    Production icon rendering is unchanged until visual approval.
+    """
+    if name not in (*UNITY_ICON_NAMES, *UNITY_ICON_PENDING):
+        raise ValueError(f"Unknown Unity UI icon: {name}")
+    if size not in {UNITY_SIZES_PX[key] for key in (
+        "icon_small", "icon_normal", "icon_large", "icon_xlarge"
+    )}:
+        raise ValueError(f"Unsupported Unity UI icon size: {size}")
+    path = sprite_icon_path(name)
+    if path is not None:
+        source = QImage(str(path))
+        if not source.isNull() and not _is_opaque_icon_tile(source):
+            pixmap = QPixmap.fromImage(source).scaled(
+                size, size, Qt.KeepAspectRatio, Qt.SmoothTransformation
+            )
+            return QIcon(pixmap)
+    # Only the eight existing Atlas glyphs have a truthful generic fallback.
+    # The additional module icons must wait for their real game sprites.
+    return unity_ui_icon(name, size) if name in UNITY_ICON_NAMES else QIcon()
+
+
+@lru_cache(maxsize=48)
+def unity_ui_icon(name: str, size: int = 24) -> QIcon:
+    """Actual local Unity pictogram when permitted; otherwise a clean white icon.
+
+    The fallback is drawn with Qt paths, not with a game asset or a unicode
+    glyph that might show as a colored square on Windows.
+    """
+    if name not in UNITY_ICON_NAMES:
+        raise ValueError(f"Unknown Unity UI icon: {name}")
+    if size not in {UNITY_SIZES_PX[key] for key in (
+        "icon_small", "icon_normal", "icon_large", "icon_xlarge"
+    )}:
+        raise ValueError(f"Unsupported Unity UI icon size: {size}")
+    path = sprite_icon_path(name)
+    if path is not None:
+        source = QImage(str(path))
+        # Display the actual Unity artwork in its ORIGINAL colors. Previously
+        # every pixel was recolored white; the Dev gallery and production
+        # therefore disagreed. Never render an opaque black background tile.
+        if not source.isNull() and not _is_opaque_icon_tile(source):
+            pixmap = QPixmap.fromImage(source).scaled(
+                size, size, Qt.KeepAspectRatio, Qt.SmoothTransformation
+            )
+            return QIcon(pixmap)
+
+    pix = QPixmap(size, size)
+    pix.fill(Qt.transparent)
+    painter = QPainter(pix)
+    painter.setRenderHint(QPainter.Antialiasing)
+    painter.scale(size / 24.0, size / 24.0)
+    painter.setPen(QPen(QColor(UNITY_PALETTE["TEXT"]), 1.8, Qt.SolidLine,
+                        Qt.RoundCap, Qt.RoundJoin))
+    painter.setBrush(Qt.NoBrush)
+    if name == "guide":
+        painter.drawRoundedRect(QRectF(3, 5, 18, 15), 1.5, 1.5)
+        painter.drawLine(12, 5, 12, 20)
+        painter.drawLine(6, 9, 10, 9)
+        painter.drawLine(14, 9, 18, 9)
+    elif name == "quest":
+        painter.drawRoundedRect(QRectF(5, 3, 14, 18), 2, 2)
+        for y in (8, 12, 16):
+            painter.drawLine(8, y, 16, y)
+    elif name == "success":
+        painter.drawArc(QRectF(6, 3, 12, 12), 0, 180 * 16)
+        painter.drawLine(6, 9, 9, 15)
+        painter.drawLine(18, 9, 15, 15)
+        painter.drawLine(12, 15, 12, 19)
+        painter.drawLine(8, 21, 16, 21)
+    elif name == "encyclopedia":
+        painter.drawRoundedRect(QRectF(4, 4, 13, 16), 1, 1)
+        painter.drawRoundedRect(QRectF(8, 2, 13, 16), 1, 1)
+        painter.drawLine(11, 7, 17, 7)
+        painter.drawLine(11, 11, 17, 11)
+    elif name == "character":
+        painter.drawEllipse(QRectF(8, 3, 8, 8))
+        painter.drawArc(QRectF(4, 12, 16, 11), 0, 180 * 16)
+    elif name == "dofus":
+        painter.drawEllipse(QRectF(7, 3, 10, 18))
+        painter.drawArc(QRectF(9, 6, 6, 9), 40 * 16, 100 * 16)
+    elif name == "map":
+        painter.drawEllipse(QRectF(6, 3, 12, 12))
+        painter.drawEllipse(QRectF(10, 7, 4, 4))
+        painter.drawLine(7, 14, 12, 21)
+        painter.drawLine(17, 14, 12, 21)
+    elif name == "inventory":
+        painter.drawRoundedRect(QRectF(4, 8, 16, 13), 2, 2)
+        painter.drawArc(QRectF(8, 3, 8, 10), 0, 180 * 16)
+    painter.end()
+    return QIcon(pix)
+
+@lru_cache(maxsize=4)
+def unity_settings_icon(size: int = 20) -> QIcon:
+    """Draw the shared neutral Settings glyph, never a Unicode emoji tile.
+
+    Windows' missing glyph used to render a bright yellow square in the
+    shell. This no-asset fallback uses only the indexed Unity text color.
+    """
+    if size not in (16, 20, 24, 32):
+        raise ValueError(f"Unsupported Settings icon size: {size}")
+    picture = QPixmap(size, size)
+    picture.fill(Qt.transparent)
+    painter = QPainter(picture)
+    painter.setRenderHint(QPainter.Antialiasing)
+    painter.scale(size / 24.0, size / 24.0)
+    painter.setPen(QPen(QColor(UNITY_PALETTE["TEXT_SOFT"]), 1.8,
+                        Qt.SolidLine, Qt.RoundCap, Qt.RoundJoin))
+    painter.setBrush(Qt.NoBrush)
+    for index in range(8):
+        angle = index * pi / 4
+        painter.drawLine(
+            QPointF(12 + 7.5 * cos(angle), 12 + 7.5 * sin(angle)),
+            QPointF(12 + 10 * cos(angle), 12 + 10 * sin(angle)),
+        )
+    painter.drawEllipse(QRectF(5.5, 5.5, 13, 13))
+    painter.drawEllipse(QRectF(10, 10, 4, 4))
+    painter.end()
+    return QIcon(picture)
 
 
 def register_unity_fonts() -> tuple[str, ...]:
@@ -109,23 +231,40 @@ def register_unity_fonts() -> tuple[str, ...]:
     return tuple(dict.fromkeys(families))
 
 
-def apply_unity_panel_shadow(widget: QWidget, *, blur: int = 18, vertical: int = 4) -> None:
-    """A real Qt shadow for a few fixed Guide panels, never list rows.
+def apply_unity_panel_shadow(
+    widget: QWidget, *,
+    blur: int = UNITY_PANEL_SHADOW["blur"],
+    vertical: int = UNITY_PANEL_SHADOW["vertical"],
+    alpha: int = UNITY_PANEL_SHADOW["alpha"],
+) -> None:
+    """Reuse the existing Unity panel relief on *static* surfaces only.
 
-    Qt stylesheets cannot render box-shadow. This effect is intentionally
-    reserved for lightweight, static panels to protect scrolling performance.
+    The default remains untouched for current Guide callers. A low-alpha
+    variant can be opted into elsewhere without a second shadow system or
+    any per-row graphics effects.
     """
     effect = QGraphicsDropShadowEffect(widget)
     effect.setBlurRadius(blur)
     effect.setOffset(0, vertical)
-    effect.setColor(QColor(0, 0, 0, 195))
+    effect.setColor(QColor(0, 0, 0, max(0, min(255, alpha))))
     widget.setGraphicsEffect(effect)
 
 
-def unity_skin_stylesheet() -> str:
-    """Global Qt controls, with 9-slice and local-only source sprites."""
+def unity_skin_stylesheet(palette: Mapping[str, str] | None = None) -> str:
+    """Global Qt controls, with optional preview overrides for Unity tokens."""
     if not unity_enabled():
         return ""
+    colors = resolve_unity_colors(palette)
+    radii = {
+        **UNITY_RADII,
+        **{key: value for key, value in (palette or {}).items() if key in UNITY_RADII},
+    }
+
+    def translucent(role: str, alpha: float) -> str:
+        """Keep current glass opacity while following live Unity color tokens."""
+        color = QColor(colors[role])
+        return f"rgba({color.red()}, {color.green()}, {color.blue()}, {alpha:.2f})"
+
     rules = [
         # The wallpaper is painted once by the *parent* of all shell pages.
         # Only root surfaces are translucent; data cards retain dark contrast.
@@ -143,89 +282,178 @@ def unity_skin_stylesheet() -> str:
         "QWidget#GuideLeftPanelContent, QWidget#GuideCenterPanelContent, "
         "QWidget#GuideRightPanelContent { background: transparent; }",
         # Real guide panels remain legible, but they no longer blot out the sky.
-        "QFrame#GuideHeader, QFrame#GuideBreadcrumb, "
+        "QFrame#GuideHeader, "
         "QFrame#GuidesHomeCategory, QFrame#GuidesHomeProgressionColumn, "
         "QFrame#GuideLeftPanel, QFrame#GuideCenterPanel, "
         "QFrame#GuideRightPanel, QFrame#GuidesHomeSubCategory { "
-        "background: rgba(27, 39, 70, 0.88); "
-        "border: 1px solid #475F89; }",
-        "QListView#GuidesHomeDofusGrid { "
-        "background: rgba(21, 32, 59, 0.45); }",
-        "QScrollArea { background: rgba(21, 29, 50, 0.35); border: none; }",
+        "background: %s; border: 1px solid %s; }" % (
+            translucent("PANEL", 0.88), colors["BORDER"],
+        ),
+        "QListView#GuidesHomeDofusGrid { background: %s; }" %
+        translucent("LIST_SURFACE", 0.45),
+        "QScrollArea { background: %s; border: none; }" %
+        translucent("SCROLL_SURFACE", 0.35),
         "QScrollArea > QWidget > QWidget { background: transparent; }",
         # Shared widget families, never changes their existing geometry or actions.
         "QGroupBox, QTabWidget::pane { "
-        "background: rgba(27, 39, 70, 0.78); color: #F1F6FB; "
-        "border: 1px solid #475F89; border-radius: 6px; }",
+        "background: qlineargradient(x1:0,y1:0,x2:0,y2:1,"
+        "stop:0 %s,stop:1 %s); color: %s; "
+        "border: 1px solid %s; border-top: 1px solid %s; "
+        "border-radius: %s; }" % (
+            translucent("PANEL_2", 0.82), translucent("PANEL", 0.88),
+            colors["TEXT"], colors["BORDER_SOFT"],
+            translucent("TEXT_SOFT", UNITY_GLASS_INTENSITY), radii["RADIUS_MD"],
+        ),
         "QListView, QTreeView, QTableView, QListWidget, QTreeWidget, QTableWidget { "
-        "background: rgba(21, 32, 59, 0.92); color: #F1F6FB; "
-        "alternate-background-color: rgba(33, 49, 84, 0.88); "
-        "selection-background-color: #344978; selection-color: #F1F6FB; "
-        "border: 1px solid #475F89; }",
-        "QHeaderView::section { background: rgba(33, 49, 84, 0.95); "
-        "color: #F1F6FB; border: 1px solid #475F89; }",
-        "QTabBar::tab { background: rgba(25, 38, 75, 0.93); "
-        "color: #D9EAF2; border: 1px solid #475F89; }",
-        "QTabBar::tab:hover { background: #2C3C69; }",
-        "QTabBar::tab:selected { color: #F1F6FB; background: #344978; }",
-        "QToolTip { background: #192657; color: #F1F6FB; "
-        "border: 1px solid #7B9BC8; padding: 4px; }",
-        "QProgressBar { background: rgba(21, 32, 59, 0.85); "
-        "color: #F1F6FB; border: 1px solid #475F89; "
-        "text-align: center; }",
-        "QFrame#card, QFrame#HomeCharacterCard, QFrame#HomeTrackingCard, "
+        "background: %s; color: %s; "
+        "alternate-background-color: %s; "
+        "selection-background-color: %s; selection-color: %s; "
+        "border: 1px solid %s; }" % (
+            translucent("PANEL", 0.95), colors["TEXT"],
+            translucent("PANEL", 0.95), colors["PANEL_ACTIVE"],
+            colors["TEXT"], colors["BORDER"],
+        ),
+        "QHeaderView::section { background: %s; "
+        "color: %s; border: none; border-bottom: 1px solid %s; "
+        "padding: 5px 8px; font-weight: 600; }" % (
+            translucent("PANEL_2", 0.95), colors["TEXT"], colors["BORDER_SOFT"],
+        ),
+        # Equal geometry and blue surface for all tabs; green hairline marks
+        # selection. No large green bar or alternate tab theme.
+        f"QTabBar::tab {{ background: {colors['PANEL_2']}; "
+        f"color: {colors['TEXT_SOFT']}; "
+        f"border: 1px solid {colors['BORDER_SOFT']}; "
+        f"border-bottom: 2px solid {colors['BORDER_SOFT']}; "
+        f"border-radius: {radii['RADIUS_XS']}; "
+        "padding: 5px 12px; min-height: 24px; }",
+        f"QTabBar::tab:hover {{ background: {colors['PANEL_HOVER']}; "
+        f"border-bottom-color: {colors['GREEN_BORDER']}; }}",
+        f"QTabBar::tab:selected {{ color: {colors['GREEN']}; "
+        f"background: {colors['PANEL_ACTIVE']}; "
+        f"border-bottom-color: {colors['GREEN']}; }}",
+        f"QTabBar::tab:selected:hover {{ color: {colors['GREEN_HOVER']}; "
+        f"border-bottom-color: {colors['GREEN_HOVER']}; }}",
+        "QToolTip { background: %s; color: %s; "
+        "border: 1px solid %s; padding: 4px; }" % (
+            colors["TOOLTIP_SURFACE"], colors["TEXT"], colors["BORDER_STRONG"],
+        ),
+        "QProgressBar { background: %s; "
+        "color: %s; border: 1px solid %s; "
+        "text-align: center; }" % (
+            translucent("LIST_SURFACE", 0.85), colors["TEXT"], colors["BORDER"],
+        ),
+        "QProgressBar::chunk { background: %s; }" % colors["GREEN"],
+        "QFrame#card, QFrame#GuideBreadcrumb, QFrame#HomeCharacterCard, QFrame#HomeTrackingCard, "
         "QFrame#HomeGuideCard, QFrame#HomeNetworkMiniCard, QFrame#HomeAlmanaxCard, "
         "QFrame#GuideFeaturedCard { "
-        "background: rgba(27, 39, 70, 0.88); border: 1px solid #617CA6; "
-        "border-radius: 9px; }",
+        "background: qlineargradient(x1:0,y1:0,x2:0,y2:1,"
+        "stop:0 %s,stop:1 %s); border: 1px solid %s; "
+        "border-top: 1px solid %s; border-radius: %s; }" % (
+            translucent("PANEL_2", 0.82), translucent("PANEL", 0.88),
+            colors["BORDER_SOFT"], translucent("TEXT_SOFT", 0.16),
+            radii["RADIUS_MD"],
+        ),
+        # Featured Guide cards are deliberately accented, but share the same
+        # palette and selector ownership as every other Unity surface.
+        "QFrame#GuideFeaturedCard { background: qlineargradient(x1:0,y1:0,x2:0,y2:1, "
+        "stop:0 %s, stop:1 %s); border: 1px solid %s; border-radius: %s; }"
+        % (
+            colors["PANEL_ACTIVE"], colors["PANEL"], colors["GREEN_BORDER"],
+            radii["RADIUS_MD"],
+        ),
+        "QFrame#GuideFeaturedCard:hover { background: %s; border: 1px solid %s; }"
+        % (colors["PANEL_HOVER"], colors["GREEN_HOVER"]),
+        "QFrame#GuideFeaturedCard:focus { border: 2px solid %s; }"
+        % colors["GREEN_HOVER"],
+        "QFrame#GuideFeaturedCard QLabel { border: 0; background: transparent; }",
+        "QFrame#GuideFeaturedCard QLabel#GuideFeaturedTitle { "
+        "color: %s; font-weight: 800; font-size: 12px; }" % colors["TEXT"],
+        "QFrame#GuideFeaturedCard QLabel#FeaturedSubtitle { color: %s; }"
+        % colors["TEXT_MUTED"],
+        "QFrame#GuideFeaturedCard QProgressBar#GuideFeaturedProgress { "
+        "border: 0; background: %s; border-radius: %s; }"
+        % (colors["BORDER_SOFT"], radii["RADIUS_XS"]),
+        "QFrame#GuideFeaturedCard QProgressBar#GuideFeaturedProgress::chunk { "
+        "background: %s; border-radius: %s; }"
+        % (colors["GREEN"], radii["RADIUS_XS"]),
         "QFrame#GuideCompactHeader, QFrame#GuideSheetHeader, "
         "QFrame#GuidePreparationPanel { "
-        "background: rgba(24, 37, 70, 0.93); border: 1px solid #475F89; }",
+        "background: %s; border: 1px solid %s; }" % (
+            translucent("GUIDE_COMPACT_SURFACE", 0.93), colors["BORDER"],
+        ),
         # Small bevels and stronger contrast for the real guide surfaces.
         # QSS has no native box-shadow; personal 9-slice sprites can supply
         # the game-native depth when installed.
         "QFrame#GuidePreparationSummary, QFrame#GuideManualWarningSection { "
         "background: qlineargradient(x1:0,y1:0,x2:0,y2:1, "
-        "stop:0 rgba(69, 91, 140, 0.97), stop:1 rgba(24, 38, 74, 0.97)); "
+        "stop:0 %s, stop:1 %s); "
         "border: 1px solid %s; border-radius: 5px; color: %s; }" % (
-            UNITY_PALETTE["GUIDE_PREPARATION_BORDER"], UNITY_PALETTE["GUIDE_PREPARATION_TEXT"],
+            translucent("GUIDE_SUMMARY_TOP", 0.97),
+            translucent("GUIDE_SUMMARY_BOTTOM", 0.97),
+            colors["GUIDE_PREPARATION_BORDER"], colors["GUIDE_PREPARATION_TEXT"],
         ),
         "QFrame#GuidePreparationRow, QFrame#GuidePreparationDetails { "
-        "background: rgba(31, 48, 87, 0.92); "
-        "border: 1px solid rgba(114, 149, 196, 0.65); border-radius: 5px; }",
+        "background: %s; border: 1px solid %s; border-radius: 5px; }" % (
+            translucent("GUIDE_PREPARATION_ROW", 0.92),
+            translucent("GUIDE_PREPARATION_ROW_BORDER", 0.65),
+        ),
         "QPushButton#GuidePreparationItemCopy { "
         "text-align: left; background: transparent; border: none; "
-        "color: %s; padding: 3px; }" % UNITY_PALETTE["GUIDE_ITEM_TEXT"],
+        "color: %s; padding: 3px; }" % colors["GUIDE_ITEM_TEXT"],
         "QPushButton#GuidePreparationItemCopy:hover { "
-        "background: rgba(102, 139, 196, 0.30); border-radius: 4px; }",
+        "background: %s; border-radius: %s; }" % (
+            translucent("GUIDE_COPY_HOVER", 0.30), radii["RADIUS_XS"],
+        ),
         "QLabel#GuidePreparationRowStatus, QLabel#GuidePreparationParticipantNeed { "
-        "color: %s; font-weight: 600; }" % UNITY_PALETTE["GUIDE_STATUS_TEXT"],
+        "color: %s; font-weight: 600; }" % colors["GUIDE_STATUS_TEXT"],
         "QFrame#GuideManualNav { "
-        "background: rgba(19, 31, 59, 0.94); border-top: 1px solid %s; }" % UNITY_PALETTE["GUIDE_NAV_BORDER"],
+        "background: %s; border-top: 1px solid %s; }" % (
+            translucent("GUIDE_MANUAL_NAV_SURFACE", 0.94),
+            colors["GUIDE_NAV_BORDER"],
+        ),
         "QToolButton#GuidePreparationToggle, QToolButton#GuideSummaryButton, "
         "QToolButton#GuideParticipantsButton { "
         "background: qlineargradient(x1:0,y1:0,x2:0,y2:1, "
         "stop:0 %s, stop:1 %s); "
         "color: %s; border: 1px solid %s; "
         "border-radius: 5px; padding: 3px 8px; }" % (
-            UNITY_PALETTE["GUIDE_TOGGLE_TOP"], UNITY_PALETTE["GUIDE_TOGGLE_BOTTOM"],
-            UNITY_PALETTE["GUIDE_PREPARATION_TEXT"], UNITY_PALETTE["GUIDE_TOGGLE_BORDER"],
+            colors["GUIDE_TOGGLE_TOP"], colors["GUIDE_TOGGLE_BOTTOM"],
+            colors["GUIDE_PREPARATION_TEXT"], colors["GUIDE_TOGGLE_BORDER"],
         ),
         "QToolButton#GuidePreparationToggle:checked, QToolButton#GuideSummaryButton:checked, "
         "QToolButton#GuideParticipantsButton:checked { "
         "background: %s; border: 1px solid %s; }" % (
-            UNITY_PALETTE["GUIDE_TOGGLE_ACTIVE"], UNITY_PALETTE["GUIDE_TOGGLE_ACTIVE_BORDER"],
+            colors["GUIDE_TOGGLE_ACTIVE"], colors["GUIDE_TOGGLE_ACTIVE_BORDER"],
         ),
         "QToolButton#GuidePreparationToggle:hover, QToolButton#GuideSummaryButton:hover, "
         "QToolButton#GuideParticipantsButton:hover { "
-        "background: %s; }" % UNITY_PALETTE["GUIDE_TOGGLE_HOVER"],
+        "background: %s; }" % colors["GUIDE_TOGGLE_HOVER"],
         "QDialog#AtlasDialog, QMenu { "
-        "background: rgba(25, 38, 75, 0.98); color: #F1F6FB; "
-        "border: 1px solid #617CA6; }",
-        "QLineEdit, QComboBox, QSpinBox, QDoubleSpinBox, QTextEdit, "
-        "QPlainTextEdit { "
-        "background: rgba(20, 29, 55, 0.96); color: #F1F6FB; "
-        "border: 1px solid #617CA6; }",
+        "background: %s; color: %s; "
+        "border: 1px solid %s; }" % (
+            translucent("NAV_SURFACE", 0.98), colors["TEXT"], colors["BORDER_CARD"],
+        ),
+        # Form fields should share the same blue surface and geometry.
+        # The previous near-black FIELD_SURFACE override was applied after
+        # theme.py and made Date/Time/DoubleSpinBox look native and mismatched.
+        "QLineEdit, QComboBox, QSpinBox, QDoubleSpinBox, "
+        "QDateEdit, QTimeEdit, QTextEdit, QPlainTextEdit { "
+        "background: %s; color: %s; border: 1px solid %s; "
+        "border-radius: %s; }" % (
+            translucent("PANEL_2", 0.96), colors["TEXT"], colors["BORDER"],
+            radii["RADIUS_SM"],
+        ),
+        "QLineEdit:read-only, QPlainTextEdit:read-only { "
+        "background: %s; color: %s; border: 1px solid %s; }" % (
+            translucent("PANEL", 0.96), colors["TEXT_SOFT"], colors["BORDER_SOFT"],
+        ),
+        "QLineEdit:disabled, QComboBox:disabled, QSpinBox:disabled, "
+        "QDoubleSpinBox:disabled, QDateEdit:disabled, QTimeEdit:disabled, "
+        "QTextEdit:disabled, QPlainTextEdit:disabled { "
+        "background: %s; color: %s; border: 1px solid %s; }" % (
+            translucent("PANEL", 0.94), colors["TEXT_DISABLED"], colors["BORDER_SOFT"],
+        ),
+
         # Focus must be appended AFTER all sprite rules to remain visible.
         "#PageTitle, #HomeGuideTitle, #TopNavBrandText { "
         'font-family: "Rowdies", "Lexend", "Segoe UI"; }',
@@ -250,16 +478,16 @@ def unity_skin_stylesheet() -> str:
                 insets,
             )
 
-    # Keep semantic colors / focus from shared theme; the sprite provides relief.
-    sprites_for_states(
-        "QPushButton#PrimaryActionButton, QPushButton#primaryButton, "
-        "QPushButton#HomeContinueButton, QPushButton#FeaturedGuideOpen",
-        "btn_green", 8,
-    )
-    sprites_for_states(
-        "QPushButton#SecondaryButton, QPushButton#secondaryButton",
-        "btn_yellow2", 8,
-    )
+    # Shared buttons must use the same palette everywhere. The optional
+    # darkStone btn_yellow2 image is GOLD and overrides the blue secondary
+    # role; btn_green can appear neon in Windows offscreen captures. Neither
+    # is an appropriate skin for the universal AtlasButton variants.
+    # Their normal / hover / pressed / disabled colors are already provided
+    # by app.ui.theme. Preserve optional artwork on dedicated controls only.
+    # HomeContinueButton is an AtlasButton: keep the approved blue/green
+    # semantic states from app.ui.theme, not a neon 9-slice border image.
+    # The hidden Guide-specific Open action retains its optional game sprite.
+    sprites_for_states("QPushButton#FeaturedGuideOpen", "btn_green", 8)
     sprites_for_states(
         "QPushButton#GuideManualPageCheck",
         "btn_green", 8,
@@ -275,28 +503,76 @@ def unity_skin_stylesheet() -> str:
         "QPushButton#GuideManualNavButton",
         "btn_arrow_pagination", 5,
     )
-    sprites_for_states(
-        "QPushButton#TopNavSettings",
-        "btn_green_small", 6,
+    # Settings is a neutral shell utility, not a bright green game action.
+    # The shared painted Unity gear follows the same blue shell button state.
+    # Tiny original vector glyphs preserve the real spin controls and
+    # selected/mixed checkbox state. No darkStone black checkbox tiles.
+    # If a release omits these optional files, Qt keeps its native arrows.
+    glyph_root = Path("sprites")
+    glyphs = {
+        state: _asset_file(glyph_root / f"atlas-control-{state}.svg")
+        for state in ("check", "mixed", "up", "down")
+    }
+    rules.append(
+        "QCheckBox, QRadioButton { background: transparent; "
+        "border: none; color: %s; spacing: 8px; }" % colors["TEXT_SOFT"]
     )
-    normal = _sprite_url("Assets_UI_Themes_darkStone_common_btn_checkbox_normal-png.png")
-    checked = _sprite_url("Assets_UI_Themes_darkStone_common_btn_checkbox_selected-png.png")
-    if normal and checked:
+    rules.append(
+        "QCheckBox:disabled, QRadioButton:disabled { color: %s; }"
+        % colors["TEXT_DISABLED"]
+    )
+    if glyphs["check"] and glyphs["mixed"]:
+        check_url = glyphs["check"].resolve().as_posix()
+        mixed_url = glyphs["mixed"].resolve().as_posix()
         rules.extend((
-            f'QCheckBox::indicator {{ width: 19px; height: 19px; image: url("{normal}"); }}',
-            f'QCheckBox::indicator:checked {{ image: url("{checked}"); }}',
+            "QCheckBox::indicator { width: 18px; height: 18px; "
+            "background: %s; border: 1px solid %s; border-radius: 4px; }"
+            % (colors["PANEL_2"], colors["BORDER_CARD"]),
+            "QCheckBox::indicator:checked { background: %s; border-color: %s; "
+            'image: url("%s"); }' % (
+                colors["GREEN_DARK"], colors["GREEN_BORDER"], check_url
+            ),
+            "QCheckBox::indicator:indeterminate { background: %s; "
+            'border-color: %s; image: url("%s"); }' % (
+                colors["PANEL_ACTIVE"], colors["BORDER_STRONG"], mixed_url
+            ),
+            "QCheckBox::indicator:disabled { background: %s; border-color: %s; }"
+            % (colors["PANEL"], colors["BORDER_SOFT"]),
         ))
-    selected_tab = _sprite_url("Assets_UI_Themes_darkStone_common_bg_tab_selected_normal-png.png")
-    if selected_tab:
+    if glyphs["up"] and glyphs["down"]:
+        up_url = glyphs["up"].resolve().as_posix()
+        down_url = glyphs["down"].resolve().as_posix()
+        # Style the wells only with a verified visible chevron. Without the
+        # SVG icons, native Qt arrow wells remain visible and clickable.
+        roots = ("QSpinBox", "QDoubleSpinBox", "QDateEdit", "QTimeEdit")
+        for direction, url in (("up", up_url), ("down", down_url)):
+            rules.append(
+                ", ".join(f"{root}::{direction}-button" for root in roots)
+                + " { background: %s; border: none; border-left: 1px solid %s; "
+                  "width: 17px; }" % (
+                      colors["PANEL_ACTIVE"], colors["BORDER_SOFT"]
+                  )
+            )
+            rules.append(
+                ", ".join(f"{root}::{direction}-arrow" for root in roots)
+                + f' {{ image: url("{url}"); width: 9px; height: 9px; }}'
+            )
         rules.append(
-            'QTabBar::tab:selected { border: 6px solid transparent;'
-            f' border-image: url("{selected_tab}") 6 6 6 6 stretch stretch; }}'
+            "QDateEdit::drop-down { background: %s; border: none; "
+            "border-left: 1px solid %s; width: 21px; }"
+            % (colors["PANEL_ACTIVE"], colors["BORDER_SOFT"])
         )
+    # Selected tabs use PANEL_ACTIVE / GREEN_BORDER from the real palette.
+    # The optional darkStone 9-slice has a beige-gold tint, and forcing a 6px
+    # border changes geometry. Do not let decorative art replace shared tabs.
     # Keep keyboard focus visible even when the button has a border-image.
     rules.append(
         "QPushButton:focus, QToolButton:focus, QCheckBox:focus, "
-        "QComboBox:focus, QLineEdit:focus, QTreeView:focus, QListView:focus { "
-        "border: 2px solid #D9EAF2; }"
+        "QComboBox:focus, QLineEdit:focus, QSpinBox:focus, "
+        "QDoubleSpinBox:focus, QTextEdit:focus, QPlainTextEdit:focus, "
+        "QTreeView:focus, QListView:focus, QTableView:focus, "
+        "QTreeWidget:focus, QListWidget:focus, QTableWidget:focus { "
+        "border: 2px solid %s; }" % colors["TEXT_SOFT"]
     )
     # ID-specific sprite rules otherwise outrank a generic :focus selector.
     # A visible focus outline takes priority over decorative border-images.
@@ -307,9 +583,10 @@ def unity_skin_stylesheet() -> str:
     )
     rules.append(
         ", ".join(f"QPushButton#{name}:focus" for name in focus_button_names)
-        + " { border: 2px solid #D9EAF2; border-image: none; }"
+        + " { border: 2px solid %s; border-image: none; }" % colors["TEXT_SOFT"]
     )
     return "\n".join(rules)
+
 
 
 class UnityBackdrop(QWidget):
@@ -323,9 +600,8 @@ class UnityBackdrop(QWidget):
 
     def paintEvent(self, event) -> None:  # noqa: N802 - Qt override
         painter = QPainter(self)
-        # A license-independent Unity-colored sky remains visible in public
-        # builds where the user's local wallpaper has not been installed.
-        # The verified personal background entirely covers this fallback.
+        # Official cleaned wallpaper when installed; otherwise the usual
+        # Unity blue gradient. No painted/fictional fallback stars.
         gradient = QLinearGradient(0, 0, self.width(), self.height())
         gradient.setColorAt(0.0, QColor(UNITY_PALETTE["BG_GRADIENT_START"]))
         gradient.setColorAt(0.52, QColor(UNITY_PALETTE["PANEL"]))
