@@ -327,6 +327,63 @@ class ImportedSourceRouterQtTests(unittest.TestCase):
         self.assertTrue(self.view.select_guide(lazy_key))
         self.assertEqual(calls, ["load", "load", "load"])
 
+    def test_failed_source_factory_is_invoked_only_once_per_selection(self):
+        key = "source_guide:fictional-unavailable"
+        attempted = []
+
+        def broken():
+            attempted.append(key)
+            raise RuntimeError("Synthetic source bundle unavailable")
+
+        self.view._imported_source_factories[key] = broken
+        baseline = self.view.stack.count()
+        self.assertFalse(self.view.select_guide(key))
+        self.assertEqual(attempted, [key])
+        self.assertEqual(self.view.stack.count(), baseline)
+        self.assertNotIn(key, self.view._catalog_manual_views)
+        self.assertNotIn(key, self.view._loaded_imported_source_services)
+        self.assertFalse(self.progress_path.exists())
+
+    def test_revocation_between_reader_creation_and_selection_evicts_reader(self):
+        self.approved = True
+        guide_id = self.service.guide_id
+        original_ensure = self.view.ensure_imported_source_manual_view
+
+        def revoke_after_creation(candidate_id):
+            reader = original_ensure(candidate_id)
+            self.assertIsNotNone(reader)
+            self.approved = False
+            return reader
+
+        baseline = self.view.stack.count()
+        self.view.ensure_imported_source_manual_view = revoke_after_creation
+        self.assertFalse(self.view.select_guide(guide_id))
+        self.assertIsNone(self.view.current_guide_id)
+        self.assertIs(self.view.stack.currentWidget(), self.view.home_page)
+        self.assertEqual(self.view.stack.count(), baseline)
+        self.assertNotIn(guide_id, self.view._catalog_manual_views)
+        self.assertNotIn(guide_id, self.view._catalog_manual_services)
+        self.assertFalse(self.progress_path.exists())
+
+    def test_denied_other_source_leaves_current_reader_untouched(self):
+        next_service = ImportedSourceManualRuntimeService(
+            self.quest_progress, self.achievement_progress, self.progress,
+            route=_source_route("fictional-denied"),
+        )
+        next_service.set_authorization_guard(lambda *_: False)
+        self.view._imported_source_services[next_service.guide_id] = next_service
+        self.approved = True
+        self.assertTrue(self.view.select_guide(self.service.guide_id))
+        original = self.view.stack.currentWidget()
+        baseline = self.view.stack.count()
+
+        self.assertFalse(self.view.select_guide(next_service.guide_id))
+        self.assertEqual(self.view.current_guide_id, self.service.guide_id)
+        self.assertIs(self.view.stack.currentWidget(), original)
+        self.assertEqual(self.view.stack.count(), baseline)
+        self.assertNotIn(next_service.guide_id, self.view._catalog_manual_views)
+        self.assertFalse(self.progress_path.exists())
+
     def test_lazy_factory_invalid_service_and_source_id_fail_closed(self):
         key = "source_guide:fictional-wrong"
         self.view._imported_source_factories[key] = lambda: self.service

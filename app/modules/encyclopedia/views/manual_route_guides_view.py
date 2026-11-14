@@ -243,28 +243,29 @@ class ManualRouteGuidesView(_BaseGuidesView):
         service = self._source_service(guide_id)
         return bool(service is not None and service.can_write_progress())
 
-    def _release_imported_source_readers(self, *, keep: str | None = None) -> None:
-        """Keep at most one source Guide Qt reader; preserve optimized readers.
+    def _drop_imported_source_reader(self, guide_id: str) -> None:
+        """Dispose one source route without affecting another active Guide."""
+        if not guide_id.startswith("source_guide:"):
+            return
+        reader = self._catalog_manual_views.pop(guide_id, None)
+        self._catalog_manual_services.pop(guide_id, None)
+        self._loaded_imported_source_services.pop(guide_id, None)
+        if reader is None:
+            return
+        if self.stack.currentWidget() is reader:
+            self.stack.setCurrentWidget(self.home_page)
+        self.stack.removeWidget(reader)
+        reader.deleteLater()
 
-        Each source sheet can retain a full route, images and participant UI.
-        Never accumulate 95 of them while navigating the catalogue. The
-        injected source service/authorizer stays under the composition owner;
-        only the detached Qt reader is removed here.
-        """
+    def _release_imported_source_readers(self, *, keep: str | None = None) -> None:
+        """Keep one source reader and factory-owned route; preserve optimized routes."""
         for source_id in tuple(self._catalog_manual_views):
-            if not source_id.startswith("source_guide:") or source_id == keep:
-                continue
-            reader = self._catalog_manual_views.pop(source_id)
-            self._catalog_manual_services.pop(source_id, None)
-            if self.stack.currentWidget() is reader:
-                self.stack.setCurrentWidget(self.home_page)
-            self.stack.removeWidget(reader)
-            reader.deleteLater()
-        # A factory-created service owns the projected route in memory; release
-        # it with the reader. Explicit injected services remain caller-owned.
+            if source_id.startswith("source_guide:") and source_id != keep:
+                self._drop_imported_source_reader(source_id)
+        # An attempted open can construct a service without a Qt reader.
         for source_id in tuple(self._loaded_imported_source_services):
             if source_id != keep:
-                self._loaded_imported_source_services.pop(source_id, None)
+                self._drop_imported_source_reader(source_id)
 
     def ensure_imported_source_manual_view(self, guide_id: str) -> SharedGuideManualView | None:
         """Open one explicitly authorized route in the sole shared renderer."""
@@ -306,17 +307,18 @@ class ManualRouteGuidesView(_BaseGuidesView):
         guide_id = str(guide_id or "")
         if guide_id.startswith("source_guide:"):
             view = self.ensure_imported_source_manual_view(guide_id)
-            service = self._source_service(guide_id)
-            if view is None or service is None or not self._imported_source_authorized(guide_id):
+            # Use the service actually backing the newly created reader.
+            # Resolving its factory again on failure can read the package twice
+            # and can even authorize a different service than the displayed one.
+            service = self._catalog_manual_services.get(guide_id)
+            if view is None or service is None or not service.can_write_progress():
                 if self.current_guide_id == guide_id:
                     self.current_guide_id = None
                     self.state = self.CATALOG
                     self.stack.setCurrentWidget(self.home_page)
-                    self._release_imported_source_readers()
-                else:
-                    # A denied factory result must not remain in memory, but
-                    # a different active authorized source remains untouched.
-                    self._loaded_imported_source_services.pop(guide_id, None)
+                # Authorization may be revoked AFTER the initial check but
+                # BEFORE the reader is shown. Never cache a denied widget.
+                self._drop_imported_source_reader(guide_id)
                 self.status_callback(f"Parcours source non certifié ou indisponible : {guide_id}")
                 return False
             self.current_guide_id = guide_id

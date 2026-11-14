@@ -241,3 +241,14 @@ autorisation. Un fichier modifié ou remplacé après son ouverture bloque
 un autre guide. Cette lecture bornée peut avoir un coût I/O et doit être
 mesurée sur une vraie installation avant certification. La fonction témoin
 de tests est synthétique : son retour `True` ne certifie jamais la source.
+
+### Révocation pendant la construction du lecteur
+
+Un contrôle d'autorisation peut réussir avant de créer une vue Qt puis être
+révoqué avant l'affichage effectif. Le routeur recontrôle donc **le service
+associé à la vue réellement créée** et détruit uniquement ce lecteur si le
+second contrôle refuse. Un guide source différent, déjà actif et autorisé,
+reste affiché ; aucun lecteur refusé ne persiste en cache. Si une factory
+échoue, elle est appelée une seule fois par tentative de sélection : on
+ne relit pas le même paquet en échec pendant le traitement de l'erreur.
+Des tests Qt fictifs couvrent les trois scénarios.
