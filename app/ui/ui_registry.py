@@ -1,7 +1,7 @@
 """Executable Qt-free index of the real Dev UI style contract.
 
 This is not another palette, stylesheet or component implementation.
-The 17 showcase families and the 12 consumers are owned by unity_palette;
+The 22 showcase families and the 12 consumers are owned by unity_palette;
 this index attaches real QSS selectors, interactive states and source paths
 so an audit can detect missing adoption instead of merely listing names.
 """
@@ -20,12 +20,14 @@ UI_FAMILY_QSS_SELECTORS: dict[str, tuple[str, ...]] = {
         "#InlineActionButton", "#PopupLinkButton", "#TopNavButton",
     ),
     "navigation": ("QTabBar::tab", "QTabWidget::pane", "QMenu {"),
+    "sidebar": ("#sidebar", "#navItem", "#navItemActive", "#MenuButton", "#NavSeparator"),
     "breadcrumbs": ("QFrame#GuideBreadcrumb", "QPushButton#GuideBreadcrumbButton", "QLabel#GuideBreadcrumbCurrent"),
     "data_views": ("QTreeWidget::item", "QTableWidget", "QHeaderView::section"),
     "scroll_resize": (
         "QSplitter::handle:horizontal", "QScrollBar:vertical",
         "QScrollArea", "QScrollBar::handle:vertical",
     ),
+    "layouts": ("#card", "#Panel"),
     "fields": (
         "QLineEdit", "QComboBox", "QSpinBox", "QPlainTextEdit",
         "QCheckBox", "QRadioButton", "QSlider::groove:horizontal",
@@ -76,6 +78,7 @@ UI_INTERACTION_QSS_SELECTORS = {
         "QTabBar::tab:hover", "QTabBar::tab:selected",
         "QTabBar::tab:selected:hover",
     ),
+    "sidebar": ("#navItem:hover", "#navItemActive", "#burgerButton:pressed"),
     "breadcrumbs": ("QPushButton#GuideBreadcrumbButton:hover",),
     "fields": ("QComboBox:hover", "QComboBox:disabled"),
     "statuses": ("#StatusChip:hover", "#StatusChip:checked"),
