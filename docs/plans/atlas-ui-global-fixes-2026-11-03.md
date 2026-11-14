@@ -586,3 +586,23 @@ Ne cocher aucun ID de #364 sur cette seule base. Ne pas fusionner tant que les o
 - Un test ciblé de la page contrôle le nombre de familles, les trois animations, leur propriété cible, le replay et la durée ajustable via l'horloge native Qt. **Test écrit mais pas encore exécuté sur le HEAD final** : environnement du connecteur GitHub sans PySide6 local et consigne de ne pas lancer la CI manuelle avant la fin de la globalisation.
 - **Fidélité source NON VALIDÉE** : `180 ms` et `OutCubic` sont des valeurs de prototype, non des mesures réalisées dans DOFUS Unity. Avant généralisation, comparer captures vidéo 60 FPS du client réel, relever durée, courbe, pixels et comportement au survol, au clic, au focus, à la sélection et à la fermeture. Conserver le rendu statique si le client DOFUS ne présente pas de transition sur un contrôle.
 - Les sprites et polices extraits du jeu restent des références personnelles locales sous le contrat de droits `app/assets/themes/dofus_unity/README.md` ; aucune nouvelle redistribution publique n'est autorisée par ce lot.
+
+### Complément du 14 novembre — inventaire UI Dev exhaustif des styles prévus
+
+Le catalogue `UNITY_UI_UNIFICATION_CONTRACT` recense les **31 préoccupations
+visuelles** prévues pour l'uniformisation ; chaque entrée est reliée à une
+famille et à sa démonstration UI Dev cliquable. La galerie passe de **17 à
+20 familles**, ajoutant le **fil d'Ariane complet** (vrais boutons,
+séparateurs et état courant), les **notifications/alertes** (prototypes
+inline utilisant les vrais tokens sans prétendre fournir un toast global)
+et le **fond du shell** (vrai `UnityBackdrop`, image d'origine seulement
+si disponible, sinon dégradé). La matrice de couverture conserve les
+12 consommateurs. Les états, composants et sources existants restent
+propriétaires des styles ; aucune seconde palette ni `setStyleSheet`
+local n'est introduit.
+
+Cette exhaustivité concerne **l'inventaire et la visualisation**. Elle ne
+signifie pas que les 31 préoccupations ont toutes été effectivement
+déployées sur les 12 modules, ni que le moteur de notification flottante,
+les animations ou les essais Windows sont certifiés. Aucun CI automatique
+par lot ; tests Qt et captures au SHA final avant validation.
