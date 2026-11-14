@@ -626,3 +626,21 @@ Les tests utilisent uniquement des routes fictives, injectent de très petites
 limites pour tester les rejets sans allouer 128 Mio et simulent les jonctions
 sous Linux. Ils doivent être exécutés au SHA exact avant de déclarer ce lot
 PASS. Aucun guide Ganymède n'est autorisé, importé ou certifié par ce durcissement.
+
+## GIMP-004 — préparation du paquet à témoin indépendant (Phase 0)
+
+Une étape de plus sépare le candidat prévisualisé du déploiement :
+`tools/atlas_guide_package_publisher.py` prépare **un seul** paquet JSON
+authentifié à partir d'une génération CAS encore sélectionnée. L’hôte doit
+fournir un reçu indépendant final, lié au guide, aux empreintes de la source
+et du fichier, au HEAD Git exact et à la référence du certificat. Le
+vérificateur est interrogé plusieurs fois et la sortie est relue par le
+chargeur canonique ; la moindre révocation ou corruption refuse le paquet.
+
+Aucun répertoire existant n'est réutilisé ; les pannes d'écriture et
+les redirections Windows sont testées avec des fixtures fictives. Les
+données réelles et la progression des personnages ne sont pas touchées.
+**Statut GIMP-004 : PENDING pour la publication/installateur réel et la
+recette Windows/DOFUS.** Un résultat `PACKAGE_PREPARED_NOT_INSTALLED`
+reste `certified=false`, `runtime_activation=false`, et ne doit
+jamais être présenté comme une certification du pilote Cawotte.

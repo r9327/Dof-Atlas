@@ -325,3 +325,36 @@ La fabrique ne constitue **pas** la base de Zaaps vérifiés ; aucun trajet
 réel n'est inscrit, ni aucune macro déclenchée sans click explicite.
 Le fournisseur réel et la recette Windows/DOFUS de GIMP-019 demeurent
 PENDING. Les tests ne fournissent que des routes fictives.
+
+## Préparation transactionnelle d’un paquet par guide (GIMP-004, Phase 0)
+
+Le module `tools.atlas_guide_package_publisher.prepare_attested_guide_package`
+est une API **réservée à l’hôte de confiance**, sans commande CLI et sans
+intégration automatique dans l’application. Il exige une sélection CAS
+`expected_selected` encore valide, **un seul guide complet**, une identité
+`source_guide:<id>` explicite et le témoin de certificat final indépendant
+`witness(guide_id, file_sha256, source_sha256, build_head_sha, certificate_ref)
+is True`. Le témoin est reconsulté avant et après la préparation.
+
+Le fichier JSON est borné à 16 Mio et recontrôlé avec
+`GuideTrustedSourcePackage`, qui reconstruit les fiches depuis les actions
+sources originales : une modification de rendu ne peut pas être masquée par
+l'empreinte seule. La sortie est **un nouveau répertoire dédié uniquement**,
+avec création exclusive, publication du fichier via remplacement atomique,
+relecture et suppression sur échec contrôlé. La sortie ne peut écraser ni
+un paquet préexistant, ni le magasin des candidats, ni les sources Git, ni
+les sauvegardes. Le code rejette les chemins redirigés ou les jonctions.
+
+Le retour `PACKAGE_PREPARED_NOT_INSTALLED` conserve expressément
+`certified=false` et `runtime_activation=false` : **aucun guide n'est
+installé ou enregistré dans le catalogue**. Un vrai propriétaire de
+publication devra fournir la racine de confiance indépendante, les reçus
+révocables, les métadonnées de version du build et la procédure Windows
+avec rollback avant toute mise en service. Les tests utilisent un témoin
+synthétique explicitement fictif et ne certifient aucune source Ganymède.
+
+Régressions ciblées : `tests/test_atlas_guide_package_publisher.py`,
+`tests/test_atlas_guide_candidate_store.py` et
+`tests/test_guide_trusted_source_package.py`. Le workflow Guides Phase 0
+collecte les tests `test_atlas_guide_*.py` sur Linux au SHA exact ; la
+qualification Windows/DOFUS réelle reste `NOT_RUN`.
