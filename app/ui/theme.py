@@ -5,8 +5,9 @@ from functools import lru_cache
 
 from app.ui.unity_palette import (
     UNITY_COLOR_ALIAS_ROLES, UNITY_RADII, UNITY_SIZES_PX,
-    resolve_unity_colors,
+    resolve_unity_colors, unity_glass_gradient,
 )
+from app.ui.styles.organizer import ORGANIZER_STYLE_TEMPLATE
 from app.ui.unity_skin import UNITY_PALETTE, unity_skin_stylesheet
 
 
@@ -3540,6 +3541,11 @@ QLabel[travelCopyEnabled="true"]:hover {
 """
 
 
+# The scoped Organizer CSS is part of the same global Qt stylesheet, never
+# a local page override. It keeps all approved geometry and effects.
+_STYLE_TEMPLATE += "\n" + ORGANIZER_STYLE_TEMPLATE
+
+
 def _soft_alpha(color: str, alpha: str) -> str:
     """Generate a light QSS tint from the current Unity semantic color.
 
@@ -3586,6 +3592,17 @@ def _render_theme_template(
     # Translucent Unity section styling is shared outside the Dev UI gallery.
     tokens["GLASS_SECTION_TOP"] = _soft_alpha(tokens["PANEL_2"], "0.50")
     tokens["GLASS_SECTION_BOTTOM"] = _soft_alpha(tokens["PANEL"], "0.58")
+    # The exact same Unity glass gradient is consumed by Organizer and the
+    # global stylesheet. All three derive from canonical theme overrides.
+    tokens["GLASS_BUTTON"] = unity_glass_gradient(palette=tokens)
+    tokens["GLASS_HOVER"] = unity_glass_gradient(
+        "PANEL_HOVER", "PANEL_ACTIVE",
+        top_alpha=199, bottom_alpha=206, palette=tokens,
+    )
+    tokens["GLASS_GREEN"] = unity_glass_gradient(
+        "GREEN_DARK", "GREEN_DARK",
+        top_alpha=196, bottom_alpha=218, palette=tokens,
+    )
     style = str(template)
     for literal, role in LEGACY_COLOR_ROLES.items():
         token = f"@{role}"

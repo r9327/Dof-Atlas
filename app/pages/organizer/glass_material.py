@@ -17,12 +17,17 @@ from PySide6.QtWidgets import QFrame, QWidget
 
 from app.ui.components import AtlasButton
 from app.ui.unity_skin import UNITY_PALETTE, wallpaper_path
+from app.ui.unity_palette import (
+    UNITY_GLASS_INTENSITY,
+    unity_rgba as _canonical_rgba,
+    unity_glass_gradient as _canonical_glass_gradient,
+)
 
 
 # The user-approved glass surface at 50% of the previous visual intensity.
 # A single factor controls transmission and highlights, without altering
 # the canonical Unity colors, geometry or interactive behavior.
-GLASS_INTENSITY = 0.5
+GLASS_INTENSITY = UNITY_GLASS_INTENSITY
 
 
 def _reflection_alpha(alpha: int) -> int:
@@ -35,19 +40,17 @@ def _surface_alpha(alpha: int) -> int:
 
 
 def unity_rgba(role: str, opacity: int) -> str:
-    """Give a canonical Unity color an alpha channel, not a second palette."""
-    color = QColor(UNITY_PALETTE[role])
-    return f"rgba({color.red()}, {color.green()}, {color.blue()}, {opacity})"
+    """Keep the public Organizer helper, backed by the canonical tokens."""
+    return _canonical_rgba(role, opacity)
 
 
 def unity_glass_gradient(top: str = "PANEL_ACTIVE",
                          bottom: str = "PANEL_2", *,
                          top_alpha: int = 180,
                          bottom_alpha: int = 196) -> str:
-    return (
-        "qlineargradient(x1:0,y1:0,x2:0,y2:1,"
-        f"stop:0 {unity_rgba(top, _surface_alpha(top_alpha))},"
-        f"stop:1 {unity_rgba(bottom, _surface_alpha(bottom_alpha))})"
+    """Compatibility wrapper: identical pixels, no duplicated color formula."""
+    return _canonical_glass_gradient(
+        top, bottom, top_alpha=top_alpha, bottom_alpha=bottom_alpha,
     )
 
 

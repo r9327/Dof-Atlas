@@ -38,10 +38,9 @@ from app.constants import (
 )
 from app.storage import ZaapWidget, clean_auto_group_name, profile_bool, short_label
 from app.ui.splash_image import clear_connected_dark_background
-from app.ui.theme import render_theme_template
 from app.ui.components import AtlasButton
 from .glass_material import (
-    OrganizerGlassButton, OrganizerGlassCard, unity_glass_gradient,
+    OrganizerGlassButton, OrganizerGlassCard,
 )
 from .common import (
     BUTTON_HEIGHT,
@@ -557,244 +556,8 @@ class OrganizerUiMixin:
         content = QWidget()
         content.setObjectName("OrganizerScrollContent")
         self.organizer_scroll.setWidget(content)
-        # Unity's shared yellow/green button border sprites have deep
-        # baked-in shadows. Organizer uses flat themed button surfaces only;
-        # do not remove these sprites from the other application modules.
-        # The colors come from Unity's single palette; the material adds
-        # cached background diffusion + edge glints, not a blue repaint.
-        glass_qss = """
-            #organizerPage QFrame#card {
-                /* GlassCard paints a cached diffused backdrop and specular
-                   rim; QSS cannot render a frosted material on its own. */
-                background: transparent;
-                border: none;
-                border-radius: 10px;
-                border-image: none;
-            }
-            #organizerPage QPushButton#primaryButton,
-            #organizerPage QPushButton#secondaryButton,
-            #organizerPage QPushButton#PrimaryActionButton,
-            #organizerPage QPushButton#SecondaryButton,
-            #organizerPage QPushButton#segmentedButton,
-            #organizerPage QPushButton#segmentedButtonActive,
-            #organizerPage QPushButton#dangerButton {
-                background: @GLASS_BUTTON;
-                border: 1px solid @BORDER;
-                border-radius: 8px;
-                border-image: none;
-                color: @TEXT_SOFT;
-                text-align: center;
-                padding: 0px 5px;
-            }
-            #organizerPage QPushButton#primaryButton,
-            #organizerPage QPushButton#PrimaryActionButton,
-            #organizerPage QPushButton#segmentedButtonActive {
-                background: @GLASS_GREEN;
-                border-color: @GREEN_BORDER;
-                color: @TEXT;
-            }
-            #organizerPage QPushButton#dangerButton {
-                background: @RED_DARK;
-                border-color: @RED;
-                color: @TEXT;
-                font-weight: 700;
-            }
-            #organizerPage QPushButton#primaryButton:hover,
-            #organizerPage QPushButton#secondaryButton:hover,
-            #organizerPage QPushButton#PrimaryActionButton:hover,
-            #organizerPage QPushButton#SecondaryButton:hover,
-            #organizerPage QPushButton#segmentedButton:hover,
-            #organizerPage QPushButton#segmentedButtonActive:hover {
-                background: @GLASS_HOVER;
-                border-color: @BORDER_STRONG;
-                color: @TEXT;
-            }
-            #organizerPage QPushButton#primaryButton:pressed,
-            #organizerPage QPushButton#secondaryButton:pressed,
-            #organizerPage QPushButton#PrimaryActionButton:pressed,
-            #organizerPage QPushButton#SecondaryButton:pressed,
-            #organizerPage QPushButton#segmentedButton:pressed,
-            #organizerPage QPushButton#segmentedButtonActive:pressed {
-                background: @PANEL_ACTIVE;
-                border-color: @GREEN_BORDER;
-            }
-            #organizerPage QPushButton#dangerButton:hover {
-                background: @RED_HOVER;
-                border-color: @RED;
-            }
-            #organizerPage QPushButton#dangerButton:pressed {
-                background: @RED_DARK;
-                border-color: @RED;
-            }
-            #organizerPage QPushButton#primaryButton:disabled,
-            #organizerPage QPushButton#secondaryButton:disabled,
-            #organizerPage QPushButton#PrimaryActionButton:disabled,
-            #organizerPage QPushButton#SecondaryButton:disabled,
-            #organizerPage QPushButton#segmentedButton:disabled,
-            #organizerPage QPushButton#segmentedButtonActive:disabled,
-            #organizerPage QPushButton#dangerButton:disabled {
-                background: @PANEL;
-                border-color: @BORDER_SOFT;
-                color: @TEXT_DISABLED;
-            }
-            /* All seven embedded shortcuts, STOP and character slots are
-               the SAME keyBadge family and 52x22 dimensions. */
-            #organizerPage QPushButton#keyBadge {
-                background: @GLASS_BUTTON;
-                border: 1px solid @BORDER_STRONG;
-                border-radius: 6px;
-                border-image: none;
-                color: @TEXT;
-                font-size: 10px;
-                font-weight: 700;
-                min-width: 0px;
-                /* 20px content + 2px borders = exact 22px Qt badge.
-                   A zero min-height allowed Qt to shrink them to 12px. */
-                min-height: 20px;
-                max-height: 20px;
-                padding: 0px 2px;
-                text-align: center;
-            }
-            #organizerPage QPushButton#keyBadge:hover {
-                background: @GLASS_HOVER;
-                border-color: @GREEN_BORDER;
-            }
-            #organizerPage QPushButton#keyBadge:pressed {
-                background: @GREEN_DARK;
-                border-color: @GREEN;
-            }
-            #organizerPage QPushButton#keyBadge:disabled {
-                background: @PANEL;
-                border-color: @BORDER_SOFT;
-                color: @TEXT_DISABLED;
-            }
-            #organizerPage QPushButton#iconButton,
-            #organizerPage QPushButton#iconButtonDanger {
-                background: @GLASS_BUTTON;
-                border: 1px solid @BORDER;
-                border-radius: 6px;
-                border-image: none;
-                color: @TEXT_SOFT;
-                padding: 0px;
-            }
-            #organizerPage QPushButton#iconButton:hover,
-            #organizerPage QPushButton#iconButtonDanger:hover {
-                background: @GLASS_HOVER;
-                border-color: @BORDER_STRONG;
-            }
-            #organizerPage QPushButton#iconButton:disabled,
-            #organizerPage QPushButton#iconButtonDanger:disabled {
-                background: @PANEL;
-                color: @TEXT_DISABLED;
-                border-color: @BORDER_SOFT;
-            }
-            #organizerPage QWidget#OrganizerTransparentHost {
-                background: transparent;
-                border: none;
-                border-image: none;
-            }
-            #organizerPage QLineEdit#comboField {
-                background: @PANEL_2;
-                border: 1px solid @BORDER;
-                border-radius: 8px;
-                border-image: none;
-                color: @TEXT;
-                padding: 0px 8px;
-            }
-            #organizerPage QLineEdit#comboField:focus {
-                background: @PANEL_HOVER;
-                border-color: @GREEN;
-            }
-            #organizerPage QFrame#OrganizerSpeedSelector,
-            #organizerPage QFrame#OrganizerModeSwitch {
-                background: @PANEL;
-                border: none;
-                border-radius: 8px;
-                border-image: none;
-            }
-            #organizerPage QFrame#OrganizerSpeedHighlight,
-            #organizerPage QFrame#OrganizerModeHighlight {
-                background: @GREEN_DARK;
-                border: 1px solid @GREEN_BORDER;
-                border-radius: 7px;
-                border-image: none;
-            }
-            #organizerPage QFrame#OrganizerModeHighlightArmed {
-                background: @ACTIVE_GRADIENT;
-                border: 1px solid @GREEN;
-                border-radius: 7px;
-                border-image: none;
-            }
-            #organizerPage QPushButton#OrganizerSpeedChoice,
-            #organizerPage QPushButton#OrganizerSpeedChoiceSelected,
-            #organizerPage QPushButton#OrganizerModeChoice {
-                background: transparent;
-                border: none;
-                border-image: none;
-                border-radius: 6px;
-                padding: 0px 2px;
-                color: @TEXT_SOFT;
-                font-size: 11px;
-                font-weight: 600;
-                min-height: 0px;
-            }
-            #organizerPage QPushButton#OrganizerSpeedChoiceSelected {
-                color: @TEXT;
-                font-weight: 700;
-            }
-            #organizerPage QScrollArea#OrganizerContentScroll,
-            #organizerPage QScrollArea#OrganizerZaapScroll,
-            #organizerPage QWidget#OrganizerContentViewport,
-            #organizerPage QWidget#OrganizerZaapViewport,
-            #organizerPage QWidget#OrganizerScrollContent,
-            #organizerPage QWidget#OrganizerZaapContent,
-            #organizerPage QWidget#ZaapFavoritesRow {
-                background: transparent;
-                border: none;
-                border-image: none;
-            }
-            #organizerPage QWidget#favoriteChip {
-                background: @GLASS_BUTTON;
-                border: 1px solid @BORDER_CARD;
-                border-radius: 8px;
-                border-image: none;
-            }
-            #organizerPage QWidget#favoriteChip:hover {
-                background: @GLASS_HOVER;
-                border-color: @BORDER_STRONG;
-            }
-            #organizerPage QFrame#characterSlotEmpty,
-            #organizerPage QFrame#characterSlotMissing {
-                background: @PANEL_2;
-                border: 1px solid @BORDER_SOFT;
-                border-radius: 8px;
-                border-image: none;
-            }
-            #organizerPage QFrame#characterSlot {
-                background: @PANEL_GRADIENT;
-                border: 1px solid @BORDER;
-                border-radius: 8px;
-                border-image: none;
-            }
-            #organizerPage QFrame#characterSlotDragging,
-            #organizerPage QFrame#characterSlotDropTarget {
-                background: @PANEL_ACTIVE;
-                border: 1px solid @GREEN_BORDER;
-                border-radius: 8px;
-                border-image: none;
-            }
-        """
-        glass_qss = (
-            glass_qss
-            .replace("@GLASS_BUTTON", unity_glass_gradient())
-            .replace("@GLASS_HOVER", unity_glass_gradient(
-                "PANEL_HOVER", "PANEL_ACTIVE", top_alpha=199, bottom_alpha=206,
-            ))
-            .replace("@GLASS_GREEN", unity_glass_gradient(
-                "GREEN_DARK", "GREEN_DARK", top_alpha=196, bottom_alpha=218,
-            ))
-        )
-        self.setStyleSheet(render_theme_template(glass_qss))
+        # Organizer-specific materials and buttons are now provided by the
+        # app-wide Unity stylesheet; no private page style overrides them.
         root = QVBoxLayout(content)
         # Space for the lower rounded corners and drop shadows at all DPI.
         root.setContentsMargins(14, 12, 14, 20)
@@ -983,9 +746,10 @@ class OrganizerUiMixin:
             cell.addWidget(action, 0, 0)
             if shortcut is not None:
                 # The badge is embedded, but inset from the right border.
-                action.setStyleSheet(
-                    "text-align: center; padding-left: 4px; padding-right: 64px; font-size: 10px;"
-                )
+                action.setProperty("atlasShortcutInset", True)
+                style = action.style()
+                style.unpolish(action)
+                style.polish(action)
                 badge_host = QWidget(wrapper)
                 badge_host.setObjectName("OrganizerTransparentHost")
                 badge_host.setFixedSize(shortcut.width() + 8, BUTTON_HEIGHT)

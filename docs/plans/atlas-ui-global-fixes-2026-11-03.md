@@ -96,6 +96,38 @@ la ligne « Faire les combats requis … zone Champs » sur le même
 stade INC-02 à 960/1200 px. Ne pas confondre cela avec un test des
 composants communs ni déclarer la PR certifiée sans correction indépendante.
 
+### Universalisation structurelle : catalogue exécutable et QSS unique (14/11)
+
+La galerie Dev UI n'est plus seulement une démonstration. Un registre Qt-free
+`app/ui/ui_registry.py` associe les **17 familles visuelles** à leurs
+sélecteurs réels dans le QSS et les **12 modules** à leurs propriétaires
+(`qt`, `qt_scoped` ou `tk`). Il existe des contrôles de cohérence
+stricts sur le nombre, l'ordre et les fichiers des consommateurs, et des
+tests de présence des états hover/pressed/selected/disabled/focus.
+
+Les règles de présentation auparavant *locales à Organizer*
+(`glass_qss` dans `build_organizer_ui`) ont été déplacées **sans changement
+des surfaces** dans `app/ui/styles/organizer.py`, annexées à
+`app/ui/theme.py` puis rendues par la même fonction de tokens que les
+autres modules. Le dégradé glass et son intensité sont définis de façon
+**Qt-free** dans `app/ui/unity_palette.py`, et
+`app/pages/organizer/glass_material.py` conserve ses fonctions publiques
+comme adaptateurs, sans deuxième formule. Le padding spécifique d'un
+bouton doté d'un raccourci est désormais une propriété Qt
+`atlasShortcutInset`, rendue par la feuille globale, pas un
+`setStyleSheet` privé.
+
+La galerie affiche dans les tooltips les sélecteurs réels des familles et
+dans le tableau de couverture les fichiers propriétaires et adaptateurs.
+Le Launcher Tk reste relié à `launcher_colors` sans charger PySide6.
+Le thème public de l'app n'est plus contourné par une feuille Organizer
+appliquée sur un widget.
+
+**Pas de fausse certification :** la migration n'autorise pas à considérer
+les animations prototypes, les écrans de jeu réels et les intégrations
+Windows/DOFUS comme validés. Exiger tests et captures au HEAD exact.
+Ne pas toucher aux fonctions macro/miroir/zaap dans ce lot UI.
+
 ## Dépendances / responsabilités
 
 | Branche / PR | Responsabilité | Règle pour cette PR |

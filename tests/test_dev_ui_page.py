@@ -131,6 +131,9 @@ class DevUiPageTests(unittest.TestCase):
                     self.assertEqual(group.title(), details["title"])
                     self.assertEqual(group.accessibleName(), details["title"])
                     self.assertIn(details["style_owner"], group.toolTip())
+                    from app.ui.ui_registry import UI_FAMILY_QSS_SELECTORS
+                    for selector in UI_FAMILY_QSS_SELECTORS[key]:
+                        self.assertIn(selector, group.toolTip())
                     for item in details["components"]:
                         self.assertIn(item, group.toolTip())
                     self.assertEqual(group.styleSheet(), "")
@@ -213,6 +216,15 @@ class DevUiPageTests(unittest.TestCase):
             self.assertEqual(page.preview_scope.rowCount(), 12)
             self.assertEqual(page.preview_scope.item(11, 0).text(), "Launcher")
             self.assertIn("Tk", page.preview_scope.item(11, 1).text())
+            self.assertIn(
+                "app/distribution/launcher_ui.py",
+                page.preview_scope.item(11, 1).toolTip(),
+            )
+            self.assertIn("Organizer", page.preview_scope.item(8, 0).text())
+            self.assertIn(
+                "app/ui/styles/organizer.py",
+                page.preview_scope.item(8, 1).toolTip(),
+            )
             from app.ui.unity_palette import UNITY_ICON_NAMES, UNITY_ICON_PENDING
             self.assertEqual(
                 set(page.preview_icon_labels),

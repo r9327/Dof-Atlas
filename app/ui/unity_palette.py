@@ -92,6 +92,42 @@ UNITY_MAIN_ROLES = (
     "BORDER", "TEXT", "TEXT_MUTED", "PANEL_ACTIVE", "GREEN",
 )
 
+# The exact frosted-glass intensity previously owned by Organizer is
+# centralized here so the shell, global QSS and its preview cannot drift.
+# This module stays Qt-free for the standalone Tk launcher.
+UNITY_GLASS_INTENSITY = 0.5
+
+
+def unity_rgba(
+    role: str, opacity: int, palette: Mapping[str, str] | None = None,
+) -> str:
+    """Qt-free equivalent of QColor('#RRGGBB') for QSS gradients."""
+    colors = UNITY_PALETTE if palette is None else palette
+    color = str(colors[role])
+    try:
+        if len(color) != 7 or not color.startswith("#"):
+            raise ValueError(color)
+        red, green, blue = (int(color[i:i + 2], 16) for i in (1, 3, 5))
+    except ValueError:
+        # QColor invalid-input semantics used by the previous Organizer code.
+        red, green, blue = 0, 0, 0
+    return f"rgba({red}, {green}, {blue}, {opacity})"
+
+
+def unity_glass_gradient(
+    top: str = "PANEL_ACTIVE", bottom: str = "PANEL_2", *,
+    top_alpha: int = 180, bottom_alpha: int = 196,
+    palette: Mapping[str, str] | None = None,
+) -> str:
+    """One formula for Unity Organizer glass, regardless of consumer."""
+    alpha = lambda value: 255 - round((255 - value) * UNITY_GLASS_INTENSITY)
+    return (
+        "qlineargradient(x1:0,y1:0,x2:0,y2:1,"
+        f"stop:0 {unity_rgba(top, alpha(top_alpha), palette)},"
+        f"stop:1 {unity_rgba(bottom, alpha(bottom_alpha), palette)})"
+    )
+
+
 # Pixel metrics shared by the stylesheet and the real Qt components.
 # Preserves the existing compact/normal sizing (no layout redesign).
 UNITY_SIZES_PX = {

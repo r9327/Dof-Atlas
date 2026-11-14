@@ -63,6 +63,9 @@ from app.ui.unity_palette import (
 from app.ui.unity_skin import (
     apply_unity_panel_shadow, sprite_icon_path, unity_original_preview_icon,
 )
+from app.ui.ui_registry import (
+    UI_CONSUMER_INDEX, UI_FAMILY_QSS_SELECTORS, validate_ui_index,
+)
 
 
 class UnityPopupSeparatorDelegate(QStyledItemDelegate):
@@ -187,13 +190,16 @@ class DevUiPage(QWidget):
         self.gallery_navigation.currentIndexChanged.connect(self._jump_to_section)
 
     def _section(self, parent_layout: QVBoxLayout, family_key: str) -> QVBoxLayout:
+        validate_ui_index()
         details = UNITY_UI_FAMILY_INDEX[family_key]
         group = QGroupBox(details["title"])
         group.setProperty("atlasUiFamily", family_key)
         group.setAccessibleName(details["title"])
+        qss_selectors = UI_FAMILY_QSS_SELECTORS[family_key]
         group.setToolTip(
             f"Source : {details['style_owner']}\n"
             f"Composants indexés : {', '.join(details['components'])}\n"
+            f"Règles globales : {', '.join(qss_selectors) or 'tokens / démo'}\n"
             f"Portée : {details['scope']}"
         )
         # The same subtle Unity relief on every static gallery module.
@@ -969,8 +975,15 @@ class DevUiPage(QWidget):
         self.preview_scope.horizontalHeader().setSectionResizeMode(1, QHeaderView.Stretch)
         for index, module in enumerate(modules):
             self.preview_scope.setItem(index, 0, QTableWidgetItem(module))
-            source = "Palette Unity / Tk" if module == "Launcher" else "Thème Qt commun"
-            self.preview_scope.setItem(index, 1, QTableWidgetItem(source))
+            consumer = UI_CONSUMER_INDEX[module]
+            source = {
+                "qt": "Thème Qt commun",
+                "qt_scoped": "Thème Qt + variantes Organizer",
+                "tk": "Palette Unity / Tk",
+            }[consumer["adapter"]]
+            cell = QTableWidgetItem(source)
+            cell.setToolTip("Fichiers indexés :\n" + "\n".join(consumer["paths"]))
+            self.preview_scope.setItem(index, 1, cell)
         self.preview_scope.setToolTip(
             "Inventaire du périmètre, pas une certification de migration"
         )
