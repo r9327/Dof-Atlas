@@ -864,6 +864,20 @@ class DevUiPage(QWidget):
         scale.setColumnStretch(1, 1)
         section.addLayout(scale)
 
+        accents = QHBoxLayout()
+        self.preview_title_accent = QFrame()
+        self.preview_title_accent.setObjectName("TitleAccent")
+        self.preview_title_accent.setFixedSize(4, 28)
+        accents.addWidget(self.preview_title_accent)
+        accents.addWidget(QLabel("Accent du titre"))
+        self.preview_card_accent = QFrame()
+        self.preview_card_accent.setObjectName("CardTitleAccent")
+        self.preview_card_accent.setFixedSize(3, 22)
+        accents.addWidget(self.preview_card_accent)
+        accents.addWidget(QLabel("Accent de section"))
+        accents.addStretch(1)
+        section.addLayout(accents)
+
         cards = QHBoxLayout()
         cards.setSpacing(16)
         cards.setContentsMargins(12, 8, 12, 14)
@@ -1398,6 +1412,21 @@ class DevUiPage(QWidget):
         self.dialog_button = AtlasButton("Ouvrir une popup", variant="primary")
         self.dialog_button.clicked.connect(self._open_preview_dialog)
         row.addWidget(self.dialog_button)
+        self.preview_dialog_variants: dict[str, AtlasButton] = {}
+        for state, caption in (
+            ("info", "Information"),
+            ("warning", "Attention"),
+            ("danger", "Erreur"),
+        ):
+            variant_button = AtlasButton(
+                caption, variant="danger" if state == "danger" else "secondary"
+            )
+            variant_button.clicked.connect(
+                lambda _checked=False, mode=state:
+                    self._open_preview_dialog_variant(mode)
+            )
+            self.preview_dialog_variants[state] = variant_button
+            row.addWidget(variant_button)
         for name in ("guide", "quest", "success", "character"):
             icon_label = QLabel()
             icon_label.setPixmap(unity_original_preview_icon(name).pixmap(24, 24))
@@ -1518,14 +1547,25 @@ class DevUiPage(QWidget):
                      else "Palette technique masquée")
 
     def _open_preview_dialog(self) -> None:
+        self._open_preview_dialog_variant("info")
+
+    def _open_preview_dialog_variant(self, mode: str) -> None:
+        if mode not in {"info", "warning", "danger"}:
+            raise ValueError(mode)
         dialog = AtlasDialog(self)
         dialog.setWindowTitle("Prévisualisation du dialogue Unity")
+        titles = {
+            "info": "Information", "warning": "Attention", "danger": "Erreur",
+        }
         dialog.content_layout.addWidget(
             AtlasDialogHeader(
-                "Dialogue commun",
+                f"Dialogue commun · {titles[mode]}",
                 "Même palette, même police, mêmes contrôles.",
                 icon=atlas_application_icon(),
             )
+        )
+        dialog.content_layout.addWidget(
+            AtlasStatusBadge(titles[mode], state=mode)
         )
         message = QLabel("Ce dialogue n'enregistre aucune modification.")
         message.setWordWrap(True)
