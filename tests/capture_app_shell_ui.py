@@ -22,13 +22,18 @@ SCENARIOS = (
     ("Craft", "craft", "CraftPage", "deferred-local-data"),
     ("Equipement", "stuffs", "EquipmentPage", "no-user-equipment"),
     ("Scan Monde", "carte", "WorldScanPanel", "deferred-cartography"),
-    ("Quetes", "encyclopedie", "EncyclopediaPage", "deferred-quest-providers"),
+    ("Quetes", "encyclopedie", "EncyclopediaPage", "empty-catalog-shell-only"),
+    ("Bestiaire", "bestiaire", "EncyclopediaPage", "unavailable-bestiary-placeholder"),
 )
 
 
 def capture(output: Path) -> dict[str, object]:
     from PySide6.QtWidgets import QApplication
     from app.ui.unity_skin import register_unity_fonts
+    from app.quest_catalog import QuestCatalog
+    from app.modules.encyclopedia.constants import (
+        ACHIEVEMENTS_TAB, DUNGEONS_TAB, GUIDES_TAB, QUESTS_TAB,
+    )
     import main as atlas_main
 
     app = QApplication.instance() or QApplication([])
@@ -60,18 +65,53 @@ def capture(output: Path) -> dict[str, object]:
                         "module": name, "readiness": readiness, "status": "NOT_RUN"
                     }
                     try:
-                        if name in window.page_factories:
-                            window.ensure_page_loaded(name)
-                        page = window.page_widgets.get(name)
+                        if name == "Quetes":
+                            # The hosted Windows runner has no raw Doduda
+                            # quest_categories.json. Exercise the REAL widget
+                            # with an explicitly EMPTY provider: never invent
+                            # player quests or silently mark data as validated.
+                            window.preload_results["quests"] = {
+                                "catalog": QuestCatalog([]),
+                            }
+                            window.pending_encyclopedia_tab = QUESTS_TAB
+                            record["fixture"] = "empty QuestCatalog; 0 quest records"
+                        if name == "Bestiaire":
+                            page = window.page_widgets.get("Quetes")
+                            if page is None:
+                                raise RuntimeError("Bestiaire needs the Encyclopedia shell")
+                            window.open_encyclopedia_tab(DUNGEONS_TAB)
+                            window.finish_pending_encyclopedia_tab()
+                            record["fixture"] = "real unavailable Bestiary tab (no fake monsters)"
+                        else:
+                            if name in window.page_factories:
+                                window.ensure_page_loaded(name)
+                            page = window.page_widgets.get(name)
                         if page is None:
                             raise RuntimeError("module missing from AtlasWindow")
                         if expected != "QWidget" and type(page).__name__ != expected:
                             raise RuntimeError(
                                 f"wrong widget: {type(page).__name__} instead of {expected}"
                             )
-                        window.switch_to_page(name)
+                        if name != "Bestiaire":
+                            window.switch_to_page(name)
                         for _ in range(3):
                             app.processEvents()
+                        if name == "Quetes":
+                            catalog = page.quest_provider.get_catalog()
+                            if catalog.quests or catalog.by_id:
+                                raise RuntimeError("Fixture must never show fake quests")
+                            if page.current_tab_label() != QUESTS_TAB:
+                                raise RuntimeError("Quests shell opened in wrong tab")
+                        if name == "Bestiaire":
+                            visible = {
+                                page.tabs.tabText(index)
+                                for index in range(page.tabs.count())
+                                if page.tabs.tabBar().isTabVisible(index)
+                            }
+                            if page.current_tab_label() != DUNGEONS_TAB:
+                                raise RuntimeError("Bestiary shell opened in wrong tab")
+                            if GUIDES_TAB in visible or QUESTS_TAB in visible or ACHIEVEMENTS_TAB in visible:
+                                raise RuntimeError("Bestiary leaked Guide, Quests or Success tabs")
                         if window.stack.currentWidget() is not page:
                             raise RuntimeError("screenshot not showing requested module")
                         if not app.styleSheet() or page.styleSheet():
@@ -99,7 +139,7 @@ def capture(output: Path) -> dict[str, object]:
     (output / "manifest.json").write_text(
         json.dumps(result, ensure_ascii=False, indent=2), encoding="utf-8"
     )
-    required = {"Home", "Settings", "Almanax", "Craft", "Equipement"}
+    required = {"Home", "Settings", "Almanax", "Craft", "Equipement", "Quetes", "Bestiaire"}
     failed = [
         entry["module"] for entry in result["screenshots"]
         if entry["module"] in required and entry["status"] != "CAPTURED"

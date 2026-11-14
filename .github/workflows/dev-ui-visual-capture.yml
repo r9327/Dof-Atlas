@@ -78,13 +78,13 @@ jobs:
         run: |
           python -X faulthandler -m unittest -v tests.test_dev_ui_page tests.test_theme tests.test_ui_universal_contract tests.test_unity_palette tests.test_organizer_ui tests.test_launcher_ui tests.test_distribution_launcher_branding tests.test_organizer_layout.OrganizerLayoutTests.test_organizer_glass_style_covers_all_button_states tests.test_unity_skin.UnitySkinTests.test_real_shell_settings_icon_and_craft_container_use_shared_unity_roles tests.test_unity_skin.UnitySkinTests.test_unity_glass_surfaces_obey_global_color_overrides tests.test_unity_skin.UnitySkinTests.test_global_widget_families_and_focus_stay_themable tests.test_unity_skin.UnitySkinTests.test_shared_buttons_never_inherit_gold_or_neon_sprite_borders tests.test_unity_skin.UnitySkinTests.test_opaque_sprite_tiles_fall_back_to_transparent_white_icons tests.test_unity_skin.UnitySkinTests.test_shared_unity_widget_families_follow_single_palette tests.test_unity_skin.UnitySkinTests.test_advanced_form_surfaces_match_unity_palette_and_states tests.test_unity_skin.UnitySkinTests.test_optional_control_icons_fallback_keeps_native_arrows tests.test_unity_skin.UnitySkinTests.test_tabs_are_palette_owned_without_gold_selected_artwork tests.test_unity_skin.UnitySkinTests.test_original_module_icons_from_same_unity_folder_support_french_names
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
-      - name: Capture actual AtlasWindow modules (not the Dev UI gallery)
+      - name: Capture actual AtlasWindow modules including empty-data Encyclopedia and Bestiary
         shell: pwsh
         run: |
           python -X faulthandler -m tests.capture_app_shell_ui
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           $report = Get-Content artifacts/app-shell/manifest.json -Raw | ConvertFrom-Json
-          if ($report.screenshots.Count -ne 7) {
+          if ($report.screenshots.Count -ne 8) {
             throw "Full-shell capture inventory is incomplete"
           }
       - name: Upload screenshot artifact
