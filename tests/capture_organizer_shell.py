@@ -159,9 +159,9 @@ def main() -> None:
                     if not style or page.styleSheet():
                         raise RuntimeError("Organizer must inherit global Unity QSS")
                     for selector in (
-                        "QPushButton#secondaryButton:hover",
-                        "QPushButton#secondaryButton:pressed",
-                        "QPushButton#secondaryButton:disabled",
+                        "#secondaryButton:hover",
+                        "#secondaryButton:pressed",
+                        "#secondaryButton:disabled",
                         "QLineEdit#comboField",
                     ):
                         if selector not in style:

@@ -101,7 +101,9 @@ class LauncherBrandingTests(unittest.TestCase):
         style.configure.assert_called_once()
         self.assertEqual(tk.Label.call_count, 2)
         self.assertEqual(launcher_ui.button_options()["bg"],
-                         launcher_ui.COLORS["accent"])
+                         launcher_ui.COLORS["button_bg"])
+        self.assertEqual(launcher_ui.button_options()["activebackground"],
+                         launcher_ui.COLORS["button_hover"])
 
     def test_preload_has_exact_same_minimal_surface_and_real_state_progress(self):
         source = (Path(__file__).resolve().parents[1] /

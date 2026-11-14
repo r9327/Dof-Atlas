@@ -112,9 +112,18 @@ class SharedThemeTests(unittest.TestCase):
         active = style.split(
             "#GuideHideCompletedToggle:checked, #segmentedButtonActive {", 1,
         )[1].split("}", 1)[0]
-        self.assertIn("background: #345634;", active)
-        self.assertIn("border-color: #668833;", active)
+        # The Qt preview must remain on the shared blue selected surface,
+        # including when another role is previewed. Prove that active UI
+        # widgets are not using a private Organizer stylesheet.
+        self.assertIn("background: #344978;", active)
+        self.assertIn("border-color: #94BA62;", active)
         self.assertIn("color: #456745;", active)
+        preview = theme.render_theme_template(
+            "background: @PANEL_ACTIVE; border-color: @GREEN_BORDER;",
+            {"PANEL_ACTIVE": "#345634", "GREEN_BORDER": "#668833"},
+        )
+        self.assertIn("background: #345634;", preview)
+        self.assertIn("border-color: #668833;", preview)
         guide_layout = style.split(
             "#GuideHideCompletedToggle {", 1,
         )[1].split("}", 1)[0]

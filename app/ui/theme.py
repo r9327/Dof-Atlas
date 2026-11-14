@@ -983,6 +983,11 @@ QPushButton:disabled, QToolButton:disabled {
     border-color: @GREEN;
     color: @GREEN_HOVER;
 }
+#SecondaryButton:pressed, #secondaryButton:pressed {
+    background: @PANEL_ACTIVE;
+    border-color: @GREEN_BORDER;
+    color: @GREEN;
+}
 
 /* Shared normal/hover/active surfaces for all stateful segmented and
    Guide completion toggles. Different text alignment stays module-owned. */
