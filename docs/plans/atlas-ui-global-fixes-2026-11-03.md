@@ -36,6 +36,24 @@ Ce lot n'est pas une preuve de recette visuelle sur tous les modules. Exiger
 contrôles Doctor/tests au HEAD exact et captures Windows comparées avant
 certification finale de #365.
 
+### Index intégral Dev UI (14/11) — 17 familles, sans style parallèle
+
+Le registre `UNITY_UI_FAMILY_INDEX` dans `app/ui/unity_palette.py` indexe
+**toutes les 17 sections de la galerie** : nom stable, titre, composants
+représentés, source réelle de style/code et portée (shared / module /
+prototype / audit). Le registre `UNITY_UI_CONSUMERS` indexe les 12 écrans
+cibles. `DevUiPage` construit ses sections et son menu de navigation à
+partir de ce registre ; un oubli ou un décalage est refusé par les tests.
+
+Ce registre **ne contient aucune couleur, taille, feuille QSS ou fabrique
+concurrente**. La vérité visuelle reste dans `UNITY_PALETTE`,
+`UNITY_SIZES_PX`, `SPACING`, `TYPOGRAPHY`, `app/ui/theme.py` et
+`app/ui/components.py`. Les familles `motion` (prototype non généralisé)
+et `guides` (règles de présentation spécialisées) ne sont pas présentées
+comme universellement validées. Le registre ne prouve pas que chaque
+consommateur a été migré : contrôles ciblés et captures Windows nécessaires
+avant certification de la PR.
+
 ## Dépendances / responsabilités
 
 | Branche / PR | Responsabilité | Règle pour cette PR |

@@ -68,6 +68,30 @@ class UnityPaletteTests(unittest.TestCase):
         self.assertEqual(UNITY_SIZES_PX["icon_large"], 24)
         self.assertEqual(len(UNITY_ICON_NAMES), 8)
 
+
+    def test_dev_ui_index_covers_all_families_and_original_style_owners(self) -> None:
+        from app.ui.unity_palette import (
+            UNITY_UI_CONSUMERS, UNITY_UI_FAMILY_INDEX,
+        )
+
+        self.assertEqual(len(UNITY_UI_FAMILY_INDEX), 17)
+        self.assertEqual(len(UNITY_UI_CONSUMERS), 12)
+        self.assertEqual(len({
+            item["title"] for item in UNITY_UI_FAMILY_INDEX.values()
+        }), 17)
+        for family, item in UNITY_UI_FAMILY_INDEX.items():
+            with self.subTest(family=family):
+                self.assertTrue(item["title"])
+                self.assertTrue(item["components"])
+                self.assertIn("app/", item["style_owner"])
+                self.assertIn(
+                    item["scope"], {"shared", "module", "prototype", "audit"},
+                )
+        self.assertEqual(UNITY_UI_FAMILY_INDEX["motion"]["scope"], "prototype")
+        self.assertEqual(UNITY_UI_FAMILY_INDEX["guides"]["scope"], "module")
+        self.assertEqual(UNITY_UI_FAMILY_INDEX["palette"]["scope"], "shared")
+        self.assertIn("Launcher", UNITY_UI_CONSUMERS)
+
     def test_color_module_does_not_import_qt_or_game_runtime(self) -> None:
         source = (Path(__file__).resolve().parents[1] / "app/ui/unity_palette.py").read_text(encoding="utf-8")
         tree = ast.parse(source)

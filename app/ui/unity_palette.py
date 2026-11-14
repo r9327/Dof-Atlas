@@ -130,6 +130,118 @@ UNITY_INTERACTION_STATES = (
 )
 UNITY_CHIP_TONES = ("success", "danger", "warning", "info", "neutral")
 
+# Index of the EXISTING Dev UI showcase, not a second theme or widget library.
+# Every visual family references the current Qt/theme owner and real samples.
+# "module" and "prototype" deliberately do not claim global adoption.
+# Colors, fonts, sizes and QSS stay in their existing canonical mappings.
+UNITY_UI_FAMILY_INDEX = {
+    "buttons": {
+        "title": "Boutons · variantes et états",
+        "components": ("AtlasButton", "PrimaryActionButton", "SecondaryButton", "DangerButton", "TopNavButton", "InlineActionButton", "PopupLinkButton"),
+        "style_owner": "app/ui/components.py + app/ui/theme.py",
+        "scope": "shared",
+    },
+    "navigation": {
+        "title": "Onglets · menus et navigation",
+        "components": ("QTabWidget", "QTabBar", "QMenu", "AtlasButton"),
+        "style_owner": "app/ui/theme.py + app/ui/unity_skin.py",
+        "scope": "shared",
+    },
+    "data_views": {
+        "title": "Listes · arborescences · tableaux",
+        "components": ("QTreeWidget", "QTableWidget", "QHeaderView", "QListWidget"),
+        "style_owner": "app/ui/theme.py + app/ui/unity_skin.py",
+        "scope": "shared",
+    },
+    "fields": {
+        "title": "Saisie · sélection · progression",
+        "components": ("QLineEdit", "QComboBox", "QSpinBox", "QPlainTextEdit", "QCheckBox", "QRadioButton", "QProgressBar", "QSlider"),
+        "style_owner": "app/ui/theme.py + app/ui/unity_skin.py",
+        "scope": "shared",
+    },
+    "advanced_fields": {
+        "title": "Formulaires avancés · états et formats",
+        "components": ("QLineEdit", "QDoubleSpinBox", "QDateEdit", "QTimeEdit", "QCheckBox"),
+        "style_owner": "app/ui/theme.py + app/ui/unity_skin.py",
+        "scope": "shared",
+    },
+    "statuses": {
+        "title": "États · badges · retours visuels",
+        "components": ("AtlasStatusBadge", "StatusBadge", "StatusChip", "GuideSummaryButton", "QProgressBar"),
+        "style_owner": "app/ui/components.py + app/ui/theme.py",
+        "scope": "shared",
+    },
+    "surfaces": {
+        "title": "Surfaces · cartes · typographie",
+        "components": ("PageTitle", "PanelTitle", "MutedLabel", "card", "Panel", "QuestPanel", "QFrame"),
+        "style_owner": "app/ui/theme.py + app/ui/unity_skin.py",
+        "scope": "shared",
+    },
+    "scroll_resize": {
+        "title": "Défilement · listes · redimensionnement",
+        "components": ("QSplitter", "QScrollArea", "QScrollBar", "QListWidget", "Panel"),
+        "style_owner": "app/ui/theme.py + app/ui/unity_skin.py",
+        "scope": "shared",
+    },
+    "metrics": {
+        "title": "Tailles · typographie · espacements",
+        "components": ("UNITY_SIZES_PX", "SIZES", "SPACING", "TYPOGRAPHY", "UNITY_RADII"),
+        "style_owner": "app/ui/unity_palette.py + app/ui/theme.py",
+        "scope": "shared",
+    },
+    "panels": {
+        "title": "Panneaux · transparence · réduction",
+        "components": ("AtlasPanelToggle", "GuideRightPanelToggle", "card", "QGroupBox"),
+        "style_owner": "app/ui/components.py + app/ui/theme.py",
+        "scope": "shared",
+    },
+    "startup": {
+        "title": "Préchargement · même thème Unity",
+        "components": ("PreloadPopupTitle", "PreloadPopupCurrent", "PreloadPopupProgress"),
+        "style_owner": "app/ui/preload_popup.py + app/ui/theme.py",
+        "scope": "shared",
+    },
+    "guides": {
+        "title": "Guides · panneaux Unity partagés",
+        "components": ("GuidePreparationSummary", "GuidePreparationRow", "GuideManualNav", "GuideUltimeGeneratedView", "QComboBox"),
+        "style_owner": "app/ui/theme.py + app/modules/encyclopedia/",
+        "scope": "module",
+    },
+    "assets": {
+        "title": "Icônes · raccourcis · tooltips",
+        "components": ("UNITY_ICON_NAMES", "UNITY_ICON_PENDING", "unity_original_preview_icon", "InlineShortcutButton", "QToolTip"),
+        "style_owner": "app/ui/unity_palette.py + app/ui/unity_skin.py",
+        "scope": "shared",
+    },
+    "coverage": {
+        "title": "Couverture · modules consommateurs",
+        "components": ("UNITY_UI_CONSUMERS", "UNITY_UI_FAMILY_INDEX"),
+        "style_owner": "app/ui/unity_palette.py",
+        "scope": "audit",
+    },
+    "motion": {
+        "title": "Motion Gallery · prototypes à comparer",
+        "components": ("QPropertyAnimation", "QGraphicsOpacityEffect", "QProgressBar", "AtlasButton"),
+        "style_owner": "app/pages/dev_ui_page.py",
+        "scope": "prototype",
+    },
+    "dialogs": {
+        "title": "Dialogues · icônes · typographie",
+        "components": ("AtlasDialog", "AtlasDialogHeader", "AtlasPageTitle", "MutedLabel", "unity_original_preview_icon"),
+        "style_owner": "app/ui/components.py + app/ui/theme.py",
+        "scope": "shared",
+    },
+    "palette": {
+        "title": "Palette Unity · source de vérité",
+        "components": ("UNITY_PALETTE", "UNITY_MAIN_ROLES", "UNITY_UI_USAGE", "UNITY_COLOR_ALIAS_ROLES"),
+        "style_owner": "app/ui/unity_palette.py + app/ui/theme.py",
+        "scope": "shared",
+    },
+}
+
+# Target modules for adoption/visual checks. Coverage is NOT certification.
+UNITY_UI_CONSUMERS = ("Accueil", "Personnage", "Quêtes", "Succès", "Guides", "Bestiaire", "Outils", "Stuffs", "Organizer", "Almanax", "Réseau", "Launcher")
+
 # Guide-compatible names still exist for old selectors and explicit
 # per-role previews, but their normal colors now follow shared Unity
 # surfaces. Do not maintain a second blue palette for this one module.

@@ -108,6 +108,36 @@ class DevUiPageTests(unittest.TestCase):
             page.deleteLater()
 
 
+
+    def test_all_dev_ui_sections_are_driven_by_canonical_index(self) -> None:
+        from app.pages.dev_ui_page import DevUiPage
+        from app.ui.unity_palette import UNITY_UI_FAMILY_INDEX
+
+        page = DevUiPage(on_back=lambda: None)
+        try:
+            self.assertEqual(
+                tuple(page.gallery_family_widgets), tuple(UNITY_UI_FAMILY_INDEX),
+            )
+            self.assertEqual(
+                tuple(page.gallery_navigation.itemText(i)
+                      for i in range(page.gallery_navigation.count())),
+                tuple(details["title"]
+                      for details in UNITY_UI_FAMILY_INDEX.values()),
+            )
+            for key, group in page.gallery_family_widgets.items():
+                with self.subTest(family=key):
+                    details = UNITY_UI_FAMILY_INDEX[key]
+                    self.assertEqual(group.property("atlasUiFamily"), key)
+                    self.assertEqual(group.title(), details["title"])
+                    self.assertEqual(group.accessibleName(), details["title"])
+                    self.assertIn(details["style_owner"], group.toolTip())
+                    for item in details["components"]:
+                        self.assertIn(item, group.toolTip())
+                    self.assertEqual(group.styleSheet(), "")
+        finally:
+            page.close()
+            page.deleteLater()
+
     def test_all_ui_families_are_visible_without_local_styles(self) -> None:
         """The developer catalog covers real controls and semantic style roles."""
         from app.pages.dev_ui_page import DevUiPage

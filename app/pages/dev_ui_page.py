@@ -58,6 +58,7 @@ from app.ui.theme import PALETTE, SIZES, SPACING, TYPOGRAPHY
 from app.ui.unity_palette import (
     UNITY_CHIP_TONES, UNITY_ICON_NAMES, UNITY_ICON_PENDING,
     UNITY_INTERACTION_STATES, UNITY_MAIN_ROLES, UNITY_SIZES_PX, UNITY_UI_USAGE,
+    UNITY_UI_CONSUMERS, UNITY_UI_FAMILY_INDEX,
 )
 from app.ui.unity_skin import (
     apply_unity_panel_shadow, sprite_icon_path, unity_original_preview_icon,
@@ -101,6 +102,9 @@ class DevUiPage(QWidget):
         self._preview_dialog: AtlasDialog | None = None
         self._click_count = 0
         self.gallery_sections: list[QGroupBox] = []
+        # The gallery is generated from the same index that documents every
+        # common family; consumers use the existing shared QSS/components.
+        self.gallery_family_widgets: dict[str, QGroupBox] = {}
 
         outer = QVBoxLayout(self)
         outer.setContentsMargins(16, 12, 16, 12)
@@ -174,14 +178,24 @@ class DevUiPage(QWidget):
         self._build_dialogs_and_colors(content)
         content.addStretch(1)
 
+        if tuple(self.gallery_family_widgets) != tuple(UNITY_UI_FAMILY_INDEX):
+            raise RuntimeError("Dev UI family index does not match gallery sections")
         self.gallery_navigation.addItems(
-            [section.title() for section in self.gallery_sections]
+            [details["title"] for details in UNITY_UI_FAMILY_INDEX.values()]
         )
         self.gallery_count.setText(f"{len(self.gallery_sections)} familles UI")
         self.gallery_navigation.currentIndexChanged.connect(self._jump_to_section)
 
-    def _section(self, parent_layout: QVBoxLayout, title: str) -> QVBoxLayout:
-        group = QGroupBox(title)
+    def _section(self, parent_layout: QVBoxLayout, family_key: str) -> QVBoxLayout:
+        details = UNITY_UI_FAMILY_INDEX[family_key]
+        group = QGroupBox(details["title"])
+        group.setProperty("atlasUiFamily", family_key)
+        group.setAccessibleName(details["title"])
+        group.setToolTip(
+            f"Source : {details['style_owner']}\n"
+            f"Composants indexés : {', '.join(details['components'])}\n"
+            f"Portée : {details['scope']}"
+        )
         # The same subtle Unity relief on every static gallery module.
         # Never apply graphics effects to scrolling rows or input controls.
         apply_unity_panel_shadow(group, blur=17, vertical=5, alpha=135)
@@ -190,6 +204,7 @@ class DevUiPage(QWidget):
         layout.setSpacing(9)
         parent_layout.addWidget(group)
         self.gallery_sections.append(group)
+        self.gallery_family_widgets[family_key] = group
         return layout
 
     def _jump_to_section(self, index: int) -> None:
@@ -204,7 +219,7 @@ class DevUiPage(QWidget):
         self.feedback.setText(f"Interaction {self._click_count} : {action}")
 
     def _build_buttons(self, parent: QVBoxLayout) -> None:
-        section = self._section(parent, "Boutons · variantes et états")
+        section = self._section(parent, "buttons")
         row = QHBoxLayout()
         self.preview_buttons: dict[str, AtlasButton] = {}
         for name, caption in (
@@ -289,7 +304,7 @@ class DevUiPage(QWidget):
         self._report(f"Onglet {active + 1} sélectionné")
 
     def _build_tabs_and_menus(self, parent: QVBoxLayout) -> None:
-        section = self._section(parent, "Onglets · menus et navigation")
+        section = self._section(parent, "navigation")
         self.preview_tabs = QTabWidget()
         self.preview_tabs.setObjectName("DevUiTabs")
         for title in ("Quêtes", "Succès", "Guides"):
@@ -324,7 +339,7 @@ class DevUiPage(QWidget):
 
     def _build_data_views(self, parent: QVBoxLayout) -> None:
         """Exercise the actual shared tree/table family and their Qt signals."""
-        section = self._section(parent, "Listes · arborescences · tableaux")
+        section = self._section(parent, "data_views")
         row = QHBoxLayout()
 
         self.preview_tree = QTreeWidget()
@@ -371,7 +386,7 @@ class DevUiPage(QWidget):
         section.addLayout(row)
 
     def _build_fields(self, parent: QVBoxLayout) -> None:
-        section = self._section(parent, "Saisie · sélection · progression")
+        section = self._section(parent, "fields")
         row = QHBoxLayout()
         self.preview_input = QLineEdit()
         self.preview_input.setPlaceholderText("Champ texte Unity")
@@ -434,7 +449,7 @@ class DevUiPage(QWidget):
 
     def _build_advanced_fields(self, parent: QVBoxLayout) -> None:
         """Show native Qt controls which inherit the same application QSS."""
-        section = self._section(parent, "Formulaires avancés · états et formats")
+        section = self._section(parent, "advanced_fields")
 
         form_grid = QGridLayout()
         form_grid.setHorizontalSpacing(12)
@@ -499,7 +514,7 @@ class DevUiPage(QWidget):
         section.addLayout(checks)
 
     def _build_states_and_badges(self, parent: QVBoxLayout) -> None:
-        section = self._section(parent, "États · badges · retours visuels")
+        section = self._section(parent, "statuses")
 
         badges = QHBoxLayout()
         self.preview_badges: dict[str, QLabel] = {}
@@ -591,7 +606,7 @@ class DevUiPage(QWidget):
         section.addLayout(progress_row)
 
     def _build_surfaces_and_typography(self, parent: QVBoxLayout) -> None:
-        section = self._section(parent, "Surfaces · cartes · typographie")
+        section = self._section(parent, "surfaces")
 
         # Real theme-owned roles: this is not a second typography system.
         # Designers can compare title, section, body and caption at a glance.
@@ -661,7 +676,7 @@ class DevUiPage(QWidget):
         section.addWidget(hint)
 
     def _build_scroll_and_resize(self, parent: QVBoxLayout) -> None:
-        section = self._section(parent, "Défilement · listes · redimensionnement")
+        section = self._section(parent, "scroll_resize")
         hint = QLabel(
             "Déplace la séparation, sélectionne une ligne et fais défiler la liste."
         )
@@ -705,7 +720,7 @@ class DevUiPage(QWidget):
 
     def _build_sizes(self, parent: QVBoxLayout) -> None:
         """Inspect the shared size scale without changing existing UI geometry."""
-        section = self._section(parent, "Tailles · typographie · espacements")
+        section = self._section(parent, "metrics")
         sizing_hint = QLabel(
             "Trois hauteurs de contrôles et quatre tailles d'icônes, "
             "pilotées par les mêmes métriques que le code commun."
@@ -764,7 +779,7 @@ class DevUiPage(QWidget):
         section.addWidget(self.preview_metrics)
 
     def _build_panels(self, parent: QVBoxLayout) -> None:
-        section = self._section(parent, "Panneaux · transparence · réduction")
+        section = self._section(parent, "panels")
         control_row = QHBoxLayout()
         self.panel_toggle = AtlasPanelToggle()
         self.panel_toggle.clicked.connect(self._toggle_panel)
@@ -787,7 +802,7 @@ class DevUiPage(QWidget):
 
     def _build_startup_preview(self, parent: QVBoxLayout) -> None:
         """Show startup's actual global QSS selectors without running preload."""
-        section = self._section(parent, "Préchargement · même thème Unity")
+        section = self._section(parent, "startup")
         self.startup_title = QLabel("Dofus Atlas")
         self.startup_title.setObjectName("PreloadPopupTitle")
         self.startup_title.setAlignment(Qt.AlignCenter)
@@ -806,7 +821,7 @@ class DevUiPage(QWidget):
 
     def _build_guide_samples(self, parent: QVBoxLayout) -> None:
         """Render Guide's real shared selectors; never duplicate their colors."""
-        section = self._section(parent, "Guides · panneaux Unity partagés")
+        section = self._section(parent, "guides")
         self.guide_sample_summary = QFrame()
         self.guide_sample_summary.setObjectName("GuidePreparationSummary")
         summary_layout = QVBoxLayout(self.guide_sample_summary)
@@ -847,7 +862,7 @@ class DevUiPage(QWidget):
         section.addWidget(self.guide_ultime_sample)
 
     def _build_ui_assets(self, parent: QVBoxLayout) -> None:
-        section = self._section(parent, "Icônes · raccourcis · tooltips")
+        section = self._section(parent, "assets")
 
         all_icon_names = (*UNITY_ICON_NAMES, *UNITY_ICON_PENDING)
         local_icon_count = sum(
@@ -933,7 +948,7 @@ class DevUiPage(QWidget):
 
     def _build_scope_matrix(self, parent: QVBoxLayout) -> None:
         """Show migration scope without incorrectly claiming all screens migrated."""
-        section = self._section(parent, "Couverture · modules consommateurs")
+        section = self._section(parent, "coverage")
         note = QLabel(
             "Périmètre de propagation à contrôler : la présence ici ne signifie "
             "pas que le module est déjà intégralement globalisé."
@@ -942,11 +957,7 @@ class DevUiPage(QWidget):
         note.setWordWrap(True)
         section.addWidget(note)
 
-        modules = (
-            "Accueil", "Personnage", "Quêtes", "Succès",
-            "Guides", "Bestiaire", "Outils", "Stuffs",
-            "Organizer", "Almanax", "Réseau", "Launcher",
-        )
+        modules = UNITY_UI_CONSUMERS
         self.preview_scope = QTableWidget(len(modules), 2)
         self.preview_scope.setHorizontalHeaderLabels(("Module", "Source de style cible"))
         self.preview_scope.setMaximumHeight(192)
@@ -971,7 +982,7 @@ class DevUiPage(QWidget):
         Timings are adjustable prototypes, not measured DOFUS client timings.
         Keep these isolated from production widgets until visual acceptance.
         """
-        section = self._section(parent, "Motion Gallery · prototypes à comparer")
+        section = self._section(parent, "motion")
         note = QLabel(
             "Transitions de prévisualisation Qt. Les durées ne sont pas "
             "encore mesurées sur DOFUS Unity : comparer puis valider avant "
@@ -1072,7 +1083,7 @@ class DevUiPage(QWidget):
         )
 
     def _build_dialogs_and_colors(self, parent: QVBoxLayout) -> None:
-        section = self._section(parent, "Dialogues · icônes · typographie")
+        section = self._section(parent, "dialogs")
         section.addWidget(AtlasPageTitle("Titre Atlas partagé"))
         muted = QLabel("Texte secondaire · même typographie sur chaque écran")
         muted.setObjectName("MutedLabel")
@@ -1089,7 +1100,7 @@ class DevUiPage(QWidget):
         row.addStretch(1)
         section.addLayout(row)
 
-        colors = self._section(parent, "Palette Unity · source de vérité")
+        colors = self._section(parent, "palette")
         intro = QLabel(
             "Couleurs principales et emplacement dans l'UI darkStone : "
             "les mêmes rôles sont utilisés dans les modules. "
