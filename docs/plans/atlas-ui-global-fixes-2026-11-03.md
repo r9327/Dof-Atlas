@@ -192,6 +192,35 @@ Tests ciblés : `tests/test_unity_palette.py`,
 `tests/test_dev_ui_page.py`. Les images, actions, parcours, contenus
 de quête et dimensions métier restent inchangés.
 
+### P0 — adoption des classes et rôles Dev UI sur les écrans (14/11/2026)
+
+La source de vérité reste la bibliothèque **Dev UI Unity** : `AtlasButton`,
+`AtlasStatusBadge`, les familles de `ui_registry.py` et les tokens Qt-free de
+`unity_palette.py`. Ce lot corrige des divergences réelles, pas uniquement
+l'index de présentation :
+
+- **Craft / Quêtes / Guide universel** : les rôles partagés
+  `primary`, `secondary` et `guide_breadcrumb` passent par l'API
+  `AtlasButton(variant=...)` plutôt que de redéclarer les mêmes
+  `setObjectName` dans chaque module. Signaux, raccourcis, textes, dimensions
+  et variantes métier sont laissés intacts.
+- **Shell** : les placeholders ne recréent plus le statut par le sélecteur
+  historique `HomePlaceholderBadge` ; ils utilisent `AtlasStatusBadge`
+  non interactif, avec l'état `blocked` et le style de la galerie.
+- **Carte du monde** : l'aplat de secours et le pictogramme planète peints
+  utilisent les rôles sémantiques `world_scan.*` via
+  `unity_painted_ui_color`, recensés dans `UI_FAMILY_PAINTED_ROLES`.
+  Les cartes, données géographiques et assets originaux restent inchangés.
+- **Non-régression** : contrats de rôles et de consommateurs dans
+  `tests/test_unity_palette.py`, état du badge Qt dans
+  `tests/test_components.py`, et vérification d'index existante.
+  Les tests ont été **écrits, pas exécutés** depuis cette session GitHub :
+  ni Docker/PySide6 local, ni recette visuelle Windows/DOFUS. Aucun statut
+  du rapport de livraison n'est promu sur cette seule base.
+
+Tous les commits de développement de ce lot portent `[skip ci]` ;
+conserver la validation ciblée et la CI finale pour le candidat complet.
+
 ## Dépendances / responsabilités
 
 | Branche / PR | Responsabilité | Règle pour cette PR |
