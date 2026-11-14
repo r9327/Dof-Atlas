@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import ctypes
 import ctypes.wintypes
+import logging
 import os
 import sys
 import time
@@ -405,31 +406,51 @@ def replace_chat_text_with_clipboard(
     paste_settle_ms: int = 0,
     should_stop: Callable[[], bool] | None = None,
 ) -> bool:
+    """Submit chat keystrokes; report the first failed native stage.
+
+    A successful SendInput is not proof that Unity opened chat or accepted text.
+    No new polling/injection mechanism or unsafe fallback is introduced here.
+    """
     if should_stop is not None and should_stop():
         return False
-    # Every native stage must be confirmed before the following one.
-    # Failing to open chat must not send CTRL+A/DELETE into DOFUS.
-    if press_key("SPACE") is False:
-        return False
-    if _sleep_ms(chat_open_ms, should_stop):
-        return False
-    if should_stop is not None and should_stop():
-        return False
-    press_hotkey("CTRL", "A")
-    if _sleep_ms(key_step_ms, should_stop):
-        return False
-    if should_stop is not None and should_stop():
-        return False
-    if press_key("DELETE") is False:
-        return False
-    if _sleep_ms(key_step_ms, should_stop):
-        return False
-    if should_stop is not None and should_stop():
-        return False
-    press_hotkey("CTRL", "V")
-    if _sleep_ms(paste_settle_ms, should_stop):
-        return False
-    return True
+    logger = logging.getLogger(__name__)
+    stage = "SPACE"
+    try:
+        if press_key("SPACE") is False:
+            logger.warning("Chat non émis : SPACE refusé (raccourci/Stop/SendInput).")
+            return False
+        logger.debug("Chat SPACE DOWN/UP émis ; ouverture Unity non vérifiée.")
+        stage = "attente après SPACE"
+        if _sleep_ms(chat_open_ms, should_stop):
+            logger.info("Chat interrompu après SPACE : Stop ou contexte modifié.")
+            return False
+        if should_stop is not None and should_stop():
+            return False
+        stage = "CTRL+A"
+        press_hotkey("CTRL", "A")
+        stage = "attente après CTRL+A"
+        if _sleep_ms(key_step_ms, should_stop):
+            return False
+        if should_stop is not None and should_stop():
+            return False
+        stage = "DELETE"
+        if press_key("DELETE") is False:
+            logger.warning("Chat non émis : suppression DELETE refusée.")
+            return False
+        stage = "attente après DELETE"
+        if _sleep_ms(key_step_ms, should_stop):
+            return False
+        if should_stop is not None and should_stop():
+            return False
+        stage = "CTRL+V"
+        press_hotkey("CTRL", "V")
+        stage = "attente après CTRL+V"
+        if _sleep_ms(paste_settle_ms, should_stop):
+            return False
+        return True
+    except Exception:
+        logger.exception("Chat : échec d'émission à l'étape %s.", stage)
+        raise
 
 
 def send_chat_command(

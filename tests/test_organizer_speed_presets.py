@@ -66,7 +66,20 @@ class OrganizerSpeedPresetsTests(unittest.TestCase):
         ):
             loaded = settings.load_settings()
         self.assertEqual(loaded.script_speed, "instantane")
-        self.assertEqual(loaded.timings.auto_group_chat_open_ms, 25)
+        self.assertEqual(loaded.timings.auto_group_chat_open_ms, 45)
+
+    def test_chat_cadence_is_identical_across_switch_presets(self):
+        modes = ("classique", "normal", "rapide", "instantane")
+        fields = (
+            "auto_group_chat_open_ms", "auto_group_key_step_ms",
+            "auto_group_paste_settle_ms", "auto_group_invite_gap_ms",
+        )
+        for field in fields:
+            with self.subTest(field=field):
+                self.assertEqual(
+                    len({getattr(settings.timings_for_speed(mode), field) for mode in modes}),
+                    1,
+                )
 
     def test_zaap_and_auto_group_consume_all_three_actual_speed_presets_in_both_modes(self):
         from app.macros.auto_group import AutoGroupMacro

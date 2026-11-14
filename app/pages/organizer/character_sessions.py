@@ -46,6 +46,7 @@ from app.validation_log import record_validation
 from .common import (
     RELEASE_RETRY_DELAYS_MS,
     SESSION_SLOT_COUNT,
+    KEY_SESSION_SLOT_ASSIGNMENTS,
     client_slot_hotkey_key,
     dofus_class_key_from_window_name,
     empty_session_slot,
@@ -312,9 +313,29 @@ class CharacterSessionsMixin:
                 ),
             )
         )
-        slots = ordered[:SESSION_SLOT_COUNT]
-        while len(slots) < SESSION_SLOT_COUNT:
-            slots.append(empty_session_slot())
+        # Keep logical character order canonical, but restore explicit sparse
+        # Organizer slot choices independently. An ambiguous name cannot claim
+        # a slot; an unknown/offline name leaves the position available.
+        slots = [empty_session_slot() for _ in range(SESSION_SLOT_COUNT)]
+        saved = self.profiles.get(KEY_SESSION_SLOT_ASSIGNMENTS, ())
+        if isinstance(saved, (list, tuple)):
+            for index, token in enumerate(saved[:SESSION_SLOT_COUNT]):
+                key = normalize_key(token) if isinstance(token, str) else ""
+                if not key:
+                    continue
+                matches = [
+                    row for row in ordered
+                    if self.persisted_session_order_key(row) == key
+                ]
+                if len(matches) != 1:
+                    continue
+                slots[index] = matches[0]
+                ordered.remove(matches[0])
+        for row in ordered:
+            index = next((i for i, value in enumerate(slots) if session_is_empty(value)), None)
+            if index is None:
+                break
+            slots[index] = row
         return slots
 
     def session_order_keys(self, session: dict[str, Any]) -> list[str]:
@@ -361,6 +382,28 @@ class CharacterSessionsMixin:
             return
         self.character_order_service.save_labels(order)
         self.profiles[KEY_SESSION_ORDER] = list(self.character_order_service.load_order())
+        current_slots = [
+            self.persisted_session_order_key(session) if session_is_detected(session) else ""
+            for session in self.sessions[:SESSION_SLOT_COUNT]
+        ]
+        current_slots += [""] * (SESSION_SLOT_COUNT - len(current_slots))
+        prior = self.profiles.get(KEY_SESSION_SLOT_ASSIGNMENTS, ())
+        active = {key for key in current_slots if key}
+        if isinstance(prior, (list, tuple)):
+            for index, token in enumerate(prior[:SESSION_SLOT_COUNT]):
+                # Preserve positions of disconnected users, but never leave
+                # a ghost of a character that was intentionally moved.
+                key = normalize_key(token) if isinstance(token, str) else ""
+                if not current_slots[index] and key and key not in active:
+                    current_slots[index] = key
+        if not isinstance(prior, (list, tuple)) or list(prior) != current_slots:
+            ProfileSettingsService(self._profile_file()).update_values(
+                {KEY_SESSION_SLOT_ASSIGNMENTS: current_slots},
+                default=default_profiles(),
+            )
+        self.profiles[KEY_SESSION_SLOT_ASSIGNMENTS] = current_slots
+        if hasattr(self, "_profiles_baseline"):
+            self._profiles_baseline[KEY_SESSION_SLOT_ASSIGNMENTS] = current_slots
 
     def primary_session(self) -> dict[str, Any] | None:
         primary = str(self.profiles.get(KEY_PRIMARY_WINDOW, ""))
@@ -720,10 +763,30 @@ class CharacterSessionsMixin:
         self.reload_runtime_callback()
         self.status_callback(f"Fenêtre principale : {name}")
 
+    def sync_primary_to_first_slot(self) -> None:
+        """Use the first occupied slot as the master without guessing identities.
+
+        A missing or ambiguous first session disables the mirror primary rather
+        than silently leaving a previously selected favorite in another slot.
+        """
+        first = next(
+            (session for session in self.sessions if not session_is_empty(session)),
+            None,
+        )
+        token = (
+            self.primary_token_for_session(
+                session_name(first), session_hwnd(first), first,
+            )
+            if first is not None and session_is_detected(first) else ""
+        )
+        if str(self.profiles.get(KEY_PRIMARY_WINDOW, "")).strip() != token:
+            self.profiles[KEY_PRIMARY_WINDOW] = token
+            self.save_profiles(self.profiles)
+
     def export_client_index(self) -> None:
         timestamp = datetime.now().astimezone().isoformat(timespec="seconds")
         self.save_session_order()
-        self.rebind_primary_preference()
+        self.sync_primary_to_first_slot()
         primary_token = str(self.profiles.get(KEY_PRIMARY_WINDOW, ""))
         primary_label = ""
         primary_handle = 0

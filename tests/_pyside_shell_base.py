@@ -1090,8 +1090,9 @@ class PySideShellTests(unittest.TestCase):
                 self.assertEqual(page.macro_panel.height(), page.quick_actions_panel.height())
                 self.assertEqual(page.stop_script_button.objectName(), "dangerButton")
                 self.assertLess(page.script_speed_title.width(), page.stop_script_button.width())
-                self.assertIs(page.script_speed_title.parentWidget(), page.script_speed_normal.parentWidget())
-                self.assertEqual(page.script_speed_title.y(), page.script_speed_normal.y())
+                self.assertIs(page.script_speed_title.parentWidget(), page.speed_selector.parentWidget())
+                self.assertTrue(page.speed_selector.isAncestorOf(page.script_speed_normal))
+                self.assertEqual(page.script_speed_title.y(), page.speed_selector.y())
                 page.sessions = [{"nom": "Perso 1", "hwnd": 12345}]
                 page.profiles[KEY_SWITCH_CLICK] = True
                 page.profiles[KEY_CLICK_HOTKEY] = "F8"
@@ -1180,8 +1181,9 @@ class PySideShellTests(unittest.TestCase):
                 self.assertTrue(hasattr(page, "sessions_refresh_button"))
                 self.assertEqual(page.macro_panel.height(), page.quick_actions_panel.height())
                 self.assertLess(page.script_speed_title.width(), page.stop_script_button.width())
-                self.assertIs(page.script_speed_title.parentWidget(), page.script_speed_normal.parentWidget())
-                self.assertEqual(page.script_speed_title.y(), page.script_speed_normal.y())
+                self.assertIs(page.script_speed_title.parentWidget(), page.speed_selector.parentWidget())
+                self.assertTrue(page.speed_selector.isAncestorOf(page.script_speed_normal))
+                self.assertEqual(page.script_speed_title.y(), page.speed_selector.y())
                 self.assertEqual(page.script_speed_normal.height(), page.script_speed_fast.height())
 
                 page.reload_runtime_button.click()
@@ -1421,7 +1423,7 @@ class PySideShellTests(unittest.TestCase):
                 for name, value in previous_paths.items():
                     setattr(organizer, name, value)
 
-    def test_organizer_primary_star_toggles_favorite(self):
+    def test_organizer_primary_star_follows_first_session_and_cannot_toggle(self):
         app = QApplication.instance() or QApplication([])
         import app.pages.organizer_page as organizer
 
@@ -1441,16 +1443,38 @@ class PySideShellTests(unittest.TestCase):
                     {"nom": "Perso 1 - Iop", "hwnd": 101},
                     {"nom": "Perso 2 - Cra", "hwnd": 202},
                 ])
-
-                page.set_primary_window(page.sessions[1])
+                page.export_client_index()
+                page.render_sessions()
+                app.processEvents()
+                self.assertEqual(
+                    page.profiles[organizer.KEY_PRIMARY_WINDOW],
+                    "name-class:perso_1:iop",
+                )
+                payload = json.loads(organizer.CLIENT_INDEX_JSON.read_text(encoding="utf-8"))
+                self.assertEqual(payload["global_hotkeys"]["primary_handle"], 101)
+                self.assertEqual([client["primary"] for client in payload["clients"]], [True, False])
+                # Non-interactive indicator replaces toggling favorites.
+                star = page.session_slot_widgets[0][0].findChild(QLabel, "PrimarySlotIndicator")
+                self.assertIsNotNone(star)
+                self.assertEqual(star.focusPolicy(), Qt.NoFocus)
+                self.assertTrue(star.testAttribute(Qt.WA_TransparentForMouseEvents))
+                self.assertFalse(any(
+                    button.objectName() in ("FavoriteButton", "FavoriteButtonActive")
+                    for button in page.sessions_panel.findChildren(QPushButton)
+                ))
+                page.reorder_session(0, 1)
                 self.assertEqual(
                     page.profiles[organizer.KEY_PRIMARY_WINDOW],
                     "name-class:perso_2:cra",
                 )
                 payload = json.loads(organizer.CLIENT_INDEX_JSON.read_text(encoding="utf-8"))
                 self.assertEqual(payload["global_hotkeys"]["primary_handle"], 202)
-
-                page.set_primary_window(page.sessions[1])
+                self.assertEqual([client["primary"] for client in payload["clients"]], [True, False])
+                self.assertIsNotNone(
+                    page.session_slot_widgets[0][0].findChild(QLabel, "PrimarySlotIndicator")
+                )
+                page.sessions = page.build_session_slots([])
+                page.export_client_index()
                 self.assertEqual(page.profiles[organizer.KEY_PRIMARY_WINDOW], "")
                 payload = json.loads(organizer.CLIENT_INDEX_JSON.read_text(encoding="utf-8"))
                 self.assertEqual(payload["global_hotkeys"]["primary_handle"], 0)

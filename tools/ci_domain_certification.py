@@ -145,6 +145,9 @@ ORGANIZER_RUNTIME_PATHS = frozenset({
     "app/input/mouse_hooks.py",
 })
 ORGANIZER_TEST_PATHS = frozenset({
+    # Reviewed Organizer offscreen capture scripts, never a generic wildcard.
+    "tests/capture_organizer_ui.py",
+    "tests/capture_organizer_shell.py",
     "tests/test_organizer_character_order.py",
     "tests/test_organizer_character_icon_refresh.py",
     "tests/test_organizer_icon_cache.py",

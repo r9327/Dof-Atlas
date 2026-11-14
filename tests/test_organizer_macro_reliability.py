@@ -26,6 +26,46 @@ def _runtime() -> Mock:
 
 
 class OrganizerMacroReliabilityTests(unittest.TestCase):
+    def test_space_refusal_never_sends_destructive_chat_keys(self):
+        from app.macros import input_tools
+
+        with (
+            patch.object(input_tools, "press_key", return_value=False) as key,
+            patch.object(input_tools, "press_hotkey") as hotkey,
+        ):
+            self.assertFalse(input_tools.replace_chat_text_with_clipboard(45, 12, 45))
+        key.assert_called_once_with("SPACE")
+        hotkey.assert_not_called()
+
+    def test_stop_after_space_prevents_ctrl_a_and_reports_no_success(self):
+        from app.macros import input_tools
+
+        with (
+            patch.object(input_tools, "press_key", return_value=True) as key,
+            patch.object(input_tools, "_sleep_ms", return_value=True),
+            patch.object(input_tools, "press_hotkey") as hotkey,
+        ):
+            self.assertFalse(input_tools.replace_chat_text_with_clipboard(45, 12, 45))
+        key.assert_called_once_with("SPACE")
+        hotkey.assert_not_called()
+
+    def test_chat_failure_names_first_native_keyboard_stage(self):
+        from app.macros import input_tools
+
+        def send_hotkey(*names):
+            if names == ("CTRL", "V"):
+                raise OSError("SendInput rejected")
+
+        with (
+            patch.object(input_tools, "press_key", return_value=True),
+            patch.object(input_tools, "_sleep_ms", return_value=False),
+            patch.object(input_tools, "press_hotkey", side_effect=send_hotkey),
+            self.assertLogs(input_tools.__name__, level="ERROR") as logs,
+        ):
+            with self.assertRaises(OSError):
+                input_tools.replace_chat_text_with_clipboard(45, 12, 45)
+        self.assertIn("CTRL+V", logs.output[0])
+
 
     def test_preferred_client_rejects_inflight_favorite_or_mode_changes_2_to_8(self):
         for count in (2, 4, 6, 8):
