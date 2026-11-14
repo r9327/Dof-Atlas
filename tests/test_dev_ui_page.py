@@ -21,6 +21,47 @@ class DevUiPageTests(unittest.TestCase):
     def setUpClass(cls) -> None:
         cls.app = QApplication.instance() or QApplication([])
 
+    def test_unification_contract_previews_breadcrumb_alerts_and_backdrop(self) -> None:
+        from app.pages.dev_ui_page import DevUiPage
+        from app.ui.unity_palette import (
+            UNITY_UI_UNIFICATION_CONTRACT, UNITY_UI_FAMILY_INDEX,
+        )
+
+        page = DevUiPage(on_back=lambda: None)
+        try:
+            self.assertEqual(page.preview_breadcrumb.objectName(), "GuideBreadcrumb")
+            self.assertEqual(page.preview_breadcrumb_current.text(), "Ocre")
+            self.assertEqual(page.preview_breadcrumb_current.objectName(),
+                             "GuideBreadcrumbCurrent")
+            self.assertEqual(set(page.preview_breadcrumb_links),
+                             {"Encyclopédie", "Guides", "Dofus"})
+            page.preview_breadcrumb_links["Guides"].click()
+            self.assertIn("Fil d'Ariane : Guides", page.feedback.text())
+            self.assertEqual(page.preview_backdrop.objectName(), "AtlasUnityBackdrop")
+            self.assertEqual(set(page.preview_notifications),
+                             {"done", "info", "warning", "danger"})
+            self.assertEqual(page.preview_contract.rowCount(),
+                             len(UNITY_UI_UNIFICATION_CONTRACT))
+            self.assertEqual(page.gallery_navigation.count(),
+                             len(UNITY_UI_FAMILY_INDEX))
+            for row, (label, family) in enumerate(UNITY_UI_UNIFICATION_CONTRACT):
+                self.assertEqual(page.preview_contract.item(row, 0).text(), label)
+                self.assertEqual(
+                    page.preview_contract.item(row, 1).text(),
+                    UNITY_UI_FAMILY_INDEX[family]["title"],
+                )
+            index = next(i for i, (_label, family) in
+                         enumerate(UNITY_UI_UNIFICATION_CONTRACT)
+                         if family == "breadcrumbs")
+            page.preview_contract.cellClicked.emit(index, 1)
+            self.assertEqual(page.gallery_navigation.currentIndex(),
+                             tuple(UNITY_UI_FAMILY_INDEX).index("breadcrumbs"))
+            self.assertTrue(all(widget.styleSheet() == ""
+                                for widget in page.findChildren(QWidget)))
+        finally:
+            page.close()
+            page.deleteLater()
+
     def test_dev_ui_gallery_uses_shared_widgets_and_real_clicks(self) -> None:
         from app.pages.dev_ui_page import DevUiPage
         from app.ui.components import AtlasButton, AtlasDialog, AtlasPanelToggle
@@ -320,7 +361,7 @@ class DevUiPageTests(unittest.TestCase):
                 page.gallery_navigation.view().itemDelegate(),
                 UnityPopupSeparatorDelegate,
             )
-            self.assertEqual(page.gallery_navigation.count(), 17)
+            self.assertEqual(page.gallery_navigation.count(), 20)
             self.assertEqual(page.gallery_navigation.objectName(), "DevUiFamilyCombo")
             from PySide6.QtWidgets import QStyleOptionViewItem
             row_hint = page.gallery_navigation.view().itemDelegate().sizeHint(
@@ -601,7 +642,7 @@ class DevUiPageTests(unittest.TestCase):
             page.resize(900, 680)
             page.show()
             self.app.processEvents()
-            self.assertEqual(page.gallery_navigation.count(), 17)
+            self.assertEqual(page.gallery_navigation.count(), 20)
             self.assertGreater(
                 page.gallery_scroll.verticalScrollBar().maximum(), 0
             )
