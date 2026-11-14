@@ -187,10 +187,13 @@ class ThemeRuntimeCacheTests(unittest.TestCase):
         focused = style.split(
             "#TopNavButton:focus, #TopNavButtonActive:focus {", 1
         )[1].split("}", 1)[0]
-        self.assertIn("border: 1px solid transparent;", idle)
-        self.assertIn("border-bottom: 2px solid transparent;", idle)
-        self.assertIn("border: 1px solid ", focused)
-        self.assertIn("border-bottom: 2px solid ", focused)
+        # Rest and focus share the same 1px/2px border geometry. The
+        # universal Unity tabs have subtle visible idle outlines instead
+        # of the older transparent-border proposal.
+        self.assertIn("border: 1px solid #354966;", idle)
+        self.assertIn("border-bottom: 2px solid #354966;", idle)
+        self.assertIn("border: 1px solid #94BA62;", focused)
+        self.assertIn("border-bottom: 2px solid #9FCE51;", focused)
 
     def test_atlas_stylesheet_reuses_cached_static_template(self) -> None:
         calls: list[tuple[str, object]] = []
