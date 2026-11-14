@@ -323,15 +323,23 @@ class EncyclopediaPage(QWidget):
         index = self.tab_labels().index(label)
         current_label = self.current_tab_label()
         old_widget = self.tabs.widget(index)
-        # Replacing a lazy tab removes/reinserts it in Qt, which resets hidden
-        # tabs to visible. Preserve the shell's Bestiaire/Encyclopédie filter:
-        # a late Guide/Success hydration must not leak its tab into Bestiaire.
-        was_visible = self.tabs.tabBar().isTabVisible(index)
+        # Qt removes/reinserts a QTabWidget tab when a lazy page is hydrated.
+        # This may make OTHER hidden tabs visible again, particularly when
+        # replacing the currently selected Bestiary tab. Preserve the entire
+        # per-label visibility map, not merely the tab being replaced.
+        tab_bar = self.tabs.tabBar()
+        visibility = {
+            self.tabs.tabText(tab_index): tab_bar.isTabVisible(tab_index)
+            for tab_index in range(self.tabs.count())
+        }
         was_blocked = self.tabs.blockSignals(True)
         try:
             self.tabs.removeTab(index)
             self.tabs.insertTab(index, widget, label)
-            self.tabs.tabBar().setTabVisible(index, was_visible)
+            for tab_index, tab_name in enumerate(self.tab_labels()):
+                tab_bar.setTabVisible(
+                    tab_index, visibility.get(tab_name, True)
+                )
             target_label = label if current_label == label else current_label
             if target_label in self.tab_labels():
                 self.tabs.setCurrentIndex(self.tab_labels().index(target_label))

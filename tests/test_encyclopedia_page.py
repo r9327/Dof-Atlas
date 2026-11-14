@@ -42,6 +42,27 @@ class EncyclopediaLazyTabVisibilityTests(unittest.TestCase):
         self.assertEqual(title.text(), "Donjons")
         self.assertIs(page.tabs.widget(3), unavailable)
 
+    def test_current_bestiary_tab_replacement_preserves_all_hidden_siblings(self):
+        # The first actual Bestiary view replaces the *selected* lazy slot.
+        # Every hidden Encyclopedia tab must remain hidden afterwards.
+        page = self.make_page()
+        bar = page.tabs.tabBar()
+        for index in (0, 1, 2):
+            bar.setTabVisible(index, False)
+        page.tabs.setCurrentIndex(3)
+        page._lazy_slots["DONJONS"] = page.tabs.widget(3)
+        page.replace_tab_widget = lambda label, widget: (
+            EncyclopediaPage.replace_tab_widget(page, label, widget)
+        )
+        view = EncyclopediaPage.ensure_tab_loaded(page, "DONJONS")
+        self.assertIs(page.tabs.currentWidget(), view)
+        self.assertEqual(page.current_tab_label(), "DONJONS")
+        self.assertEqual(
+            [page.tabs.tabText(i) for i in range(page.tabs.count())
+             if bar.isTabVisible(i)],
+            ["DONJONS", "MONSTRES"],
+        )
+
     def test_hidden_encyclopedia_tabs_stay_hidden_after_lazy_hydration(self):
         page = self.make_page()
         bar = page.tabs.tabBar()

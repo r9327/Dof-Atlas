@@ -125,7 +125,10 @@ def capture(output: Path) -> dict[str, object]:
                             if page.current_tab_label() != DUNGEONS_TAB:
                                 raise RuntimeError("Bestiary shell opened in wrong tab")
                             if GUIDES_TAB in visible or QUESTS_TAB in visible or ACHIEVEMENTS_TAB in visible:
-                                raise RuntimeError("Bestiary leaked Guide, Quests or Success tabs")
+                                raise RuntimeError(
+                                    "Bestiary leaked Guide, Quests or Success tabs: "
+                                    + repr(sorted(visible))
+                                )
                         if window.stack.currentWidget() is not page:
                             raise RuntimeError("screenshot not showing requested module")
                         if not app.styleSheet() or page.styleSheet():
