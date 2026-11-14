@@ -59,10 +59,10 @@ from app.ui.unity_palette import (
     UNITY_CHIP_TONES, UNITY_ICON_NAMES, UNITY_ICON_PENDING,
     UNITY_INTERACTION_STATES, UNITY_MAIN_ROLES, UNITY_ORGANIZER_METRICS_PX,
     UNITY_SIZES_PX, UNITY_UI_USAGE,
-    UNITY_UI_CONSUMERS, UNITY_UI_FAMILY_INDEX,
+    UNITY_UI_CONSUMERS, UNITY_UI_FAMILY_INDEX, UNITY_UI_UNIFICATION_CONTRACT,
 )
 from app.ui.unity_skin import (
-    apply_unity_panel_shadow, sprite_icon_path, unity_original_preview_icon,
+    UnityBackdrop, apply_unity_panel_shadow, sprite_icon_path, unity_original_preview_icon,
 )
 from app.ui.ui_registry import (
     UI_CONSUMER_INDEX, UI_FAMILY_QSS_SELECTORS,
@@ -167,14 +167,17 @@ class DevUiPage(QWidget):
 
         self._build_buttons(content)
         self._build_tabs_and_menus(content)
+        self._build_breadcrumbs(content)
         self._build_data_views(content)
         self._build_scroll_and_resize(content)
         self._build_fields(content)
         self._build_advanced_fields(content)
         self._build_states_and_badges(content)
+        self._build_notifications(content)
         self._build_surfaces_and_typography(content)
         self._build_sizes(content)
         self._build_panels(content)
+        self._build_backdrop(content)
         self._build_startup_preview(content)
         self._build_guide_samples(content)
         self._build_ui_assets(content)
@@ -347,6 +350,37 @@ class DevUiPage(QWidget):
         menu_row.addWidget(self.menu_button)
         menu_row.addStretch(1)
         section.addLayout(menu_row)
+
+    def _build_breadcrumbs(self, parent: QVBoxLayout) -> None:
+        """Real shared Guide breadcrumb states, not one isolated button."""
+        section = self._section(parent, "breadcrumbs")
+        caption = QLabel("Parcours complet : survoler et cliquer chaque niveau.")
+        caption.setObjectName("MutedLabel")
+        section.addWidget(caption)
+
+        self.preview_breadcrumb = QFrame()
+        self.preview_breadcrumb.setObjectName("GuideBreadcrumb")
+        row = QHBoxLayout(self.preview_breadcrumb)
+        row.setContentsMargins(8, 5, 8, 5)
+        row.setSpacing(5)
+        self.preview_breadcrumb_links: dict[str, AtlasButton] = {}
+        for level in ("Encyclopédie", "Guides", "Dofus"):
+            button = AtlasButton(level, variant="guide_breadcrumb")
+            button.setToolTip(f"Naviguer vers : {level}")
+            button.clicked.connect(
+                lambda _checked=False, target=level: self._report(
+                    f"Fil d'Ariane : {target}"
+                )
+            )
+            self.preview_breadcrumb_links[level] = button
+            row.addWidget(button)
+            separator = QLabel("›")
+            separator.setObjectName("GuideBreadcrumbSeparator")
+            row.addWidget(separator)
+        self.preview_breadcrumb_current = QLabel("Ocre")
+        self.preview_breadcrumb_current.setObjectName("GuideBreadcrumbCurrent")
+        row.addWidget(self.preview_breadcrumb_current, 1)
+        section.addWidget(self.preview_breadcrumb)
 
     def _build_data_views(self, parent: QVBoxLayout) -> None:
         """Exercise the actual shared tree/table family and their Qt signals."""
@@ -616,6 +650,36 @@ class DevUiPage(QWidget):
         progress_row.addWidget(self.preview_complete, 1)
         section.addLayout(progress_row)
 
+    def _build_notifications(self, parent: QVBoxLayout) -> None:
+        """Read-only notification preview; no pretend toast or duplicate QSS."""
+        section = self._section(parent, "notifications")
+        note = QLabel(
+            "Exemples intégrés utilisant les badges et surfaces Unity existants. "
+            "Le comportement des notifications flottantes reste à mutualiser."
+        )
+        note.setObjectName("MutedLabel")
+        note.setWordWrap(True)
+        section.addWidget(note)
+        self.preview_notifications: dict[str, QFrame] = {}
+        for state, title, message in (
+            ("done", "Terminé", "Opération terminée avec succès"),
+            ("info", "Information", "Nouvelle information disponible"),
+            ("warning", "Attention", "Vérifier les paramètres avant de continuer"),
+            ("danger", "Erreur", "Une opération nécessite une intervention"),
+        ):
+            frame = QFrame()
+            frame.setObjectName("card")
+            line = QHBoxLayout(frame)
+            line.setContentsMargins(10, 6, 10, 6)
+            line.setSpacing(12)
+            line.addWidget(AtlasStatusBadge(title, state=state))
+            body = QLabel(message)
+            body.setObjectName("MutedLabel")
+            body.setWordWrap(True)
+            line.addWidget(body, 1)
+            self.preview_notifications[state] = frame
+            section.addWidget(frame)
+
     def _build_surfaces_and_typography(self, parent: QVBoxLayout) -> None:
         section = self._section(parent, "surfaces")
 
@@ -814,6 +878,31 @@ class DevUiPage(QWidget):
         self.preview_panel.setHidden(collapsed)
         self._report("Panneau masqué" if collapsed else "Panneau affiché")
 
+    def _build_backdrop(self, parent: QVBoxLayout) -> None:
+        """Display the actual cached wallpaper/gradient widget used by the shell."""
+        section = self._section(parent, "backdrop")
+        note = QLabel(
+            "Fond réel du shell : image Unity d'origine lorsqu'elle est installée, "
+            "sinon dégradé partagé. Aucun motif étoilé n'est simulé."
+        )
+        note.setObjectName("MutedLabel")
+        note.setWordWrap(True)
+        section.addWidget(note)
+        self.preview_backdrop = UnityBackdrop()
+        self.preview_backdrop.setMinimumHeight(150)
+        self.preview_backdrop.setMaximumHeight(150)
+        wrapper = QVBoxLayout(self.preview_backdrop)
+        wrapper.setContentsMargins(16, 14, 16, 14)
+        card = QFrame()
+        card.setObjectName("card")
+        card_layout = QVBoxLayout(card)
+        card_layout.addWidget(AtlasPageTitle("Carte sur fond Unity"))
+        muted = QLabel("Dégradé, transparence et bordures hérités du thème")
+        muted.setObjectName("MutedLabel")
+        card_layout.addWidget(muted)
+        wrapper.addWidget(card)
+        section.addWidget(self.preview_backdrop)
+
     def _build_startup_preview(self, parent: QVBoxLayout) -> None:
         """Show startup's actual global QSS selectors without running preload."""
         section = self._section(parent, "startup")
@@ -996,6 +1085,39 @@ class DevUiPage(QWidget):
             "Inventaire du périmètre, pas une certification de migration"
         )
         section.addWidget(self.preview_scope)
+
+        contract_label = QLabel(
+            "Tous les éléments prévus en uniformisation (cliquer une ligne "
+            "pour ouvrir son exemple dans UI Dev)"
+        )
+        contract_label.setObjectName("PanelTitle")
+        section.addWidget(contract_label)
+        self.preview_contract = QTableWidget(len(UNITY_UI_UNIFICATION_CONTRACT), 2)
+        self.preview_contract.setHorizontalHeaderLabels(("Élément prévu", "Famille UI"))
+        self.preview_contract.setMaximumHeight(270)
+        self.preview_contract.setAlternatingRowColors(False)
+        self.preview_contract.setShowGrid(False)
+        self.preview_contract.verticalHeader().hide()
+        self.preview_contract.horizontalHeader().setStretchLastSection(False)
+        self.preview_contract.horizontalHeader().setSectionResizeMode(0, QHeaderView.Stretch)
+        self.preview_contract.horizontalHeader().setSectionResizeMode(1, QHeaderView.ResizeToContents)
+        family_keys = tuple(UNITY_UI_FAMILY_INDEX)
+        for index, (label, family) in enumerate(UNITY_UI_UNIFICATION_CONTRACT):
+            self.preview_contract.setItem(index, 0, QTableWidgetItem(label))
+            family_item = QTableWidgetItem(UNITY_UI_FAMILY_INDEX[family]["title"])
+            scope = UNITY_UI_FAMILY_INDEX[family]["scope"]
+            family_item.setToolTip(
+                "Démo de référence ; adoption à vérifier écran par écran"
+                if scope != "prototype" else
+                "Prototype seulement : non généralisé dans l'application"
+            )
+            self.preview_contract.setItem(index, 1, family_item)
+        self.preview_contract.cellClicked.connect(
+            lambda row, _col: self.gallery_navigation.setCurrentIndex(
+                family_keys.index(UNITY_UI_UNIFICATION_CONTRACT[row][1])
+            )
+        )
+        section.addWidget(self.preview_contract)
 
     def _build_motion_gallery(self, parent: QVBoxLayout) -> None:
         """Replay bounded Qt motions using real Unity-themed controls.
