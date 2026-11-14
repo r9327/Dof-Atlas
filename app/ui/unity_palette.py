@@ -316,15 +316,15 @@ UNITY_UI_FAMILY_INDEX = {
         "style_owner": "app/ui/theme.py + app/ui/unity_skin.py",
         "scope": "shared",
     },
-    "sidebar": {
-        "title": "Navigation latérale · menu et sélection",
-        "components": ("sidebar", "MenuButton", "navItem", "navItemActive", "NavSeparator"),
-        "style_owner": "app/ui/theme.py + app/ui/components.py",
-        "scope": "shared",
-    },
     "breadcrumbs": {
         "title": "Fil d'Ariane · niveaux et navigation",
         "components": ("GuideBreadcrumb", "GuideBreadcrumbButton", "GuideBreadcrumbSeparator", "GuideBreadcrumbCurrent"),
+        "style_owner": "app/ui/theme.py + app/ui/components.py",
+        "scope": "shared",
+    },
+    "sidebar": {
+        "title": "Navigation latérale · menu et sélection",
+        "components": ("sidebar", "MenuButton", "navItem", "navItemActive", "NavSeparator"),
         "style_owner": "app/ui/theme.py + app/ui/components.py",
         "scope": "shared",
     },
