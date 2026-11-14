@@ -28,6 +28,17 @@ class DevUiPageTests(unittest.TestCase):
         try:
             self.assertEqual(page.preview_tabs.objectName(), "EncyclopediaTabs")
             self.assertEqual(page.preview_sidebar.objectName(), "sidebar")
+            self.assertEqual(page.preview_sidebar_content.objectName(),
+                             "DevUiSidebarContent")
+            self.assertEqual(page.preview_burger.text(), "Menu")
+            self.assertIsNotNone(page.preview_sidebar.graphicsEffect())
+            self.assertEqual(page.page_breadcrumb.objectName(),
+                             "GuideBreadcrumb")
+            self.assertEqual(page.layout().itemAt(0).widget(),
+                             page.page_breadcrumb)
+            self.assertEqual(page.page_breadcrumb_back.objectName(),
+                             "GuideBreadcrumbButton")
+            self.assertIsNotNone(page.preview_breadcrumb.graphicsEffect())
             self.assertEqual(page.preview_sidebar_buttons["Encyclopédie"].objectName(),
                              "navItemActive")
             page.preview_sidebar_buttons["Outils"].click()
