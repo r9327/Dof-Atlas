@@ -7,7 +7,6 @@ from PySide6.QtCore import QSize, Qt, QTimer, Signal
 from PySide6.QtGui import QIcon, QPixmap
 from PySide6.QtWidgets import (
     QAbstractItemView,
-    QComboBox,
     QFrame,
     QGridLayout,
     QHBoxLayout,
@@ -37,6 +36,7 @@ from app.pages.organizer_icon_cache import cached_class_icon_path_for_window_nam
 from app.quest_catalog import QuestCharacter, load_quest_characters
 from app.services.character_order_service import CharacterOrderService
 from app.storage import default_profiles, read_json
+from app.ui.components import AtlasComboBox
 
 
 IconResolver = Callable[[str], str | Path | None]
@@ -194,7 +194,7 @@ class CharacterPage(QWidget):
         return panel
 
     def _build_identity_panel(self, layout: QVBoxLayout) -> None:
-        self.character_selector = QComboBox()
+        self.character_selector = AtlasComboBox()
         self.character_selector.setObjectName("CharacterPageCharacterCombo")
         self.character_selector.setIconSize(QSize(36, 36))
         self.character_selector.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)

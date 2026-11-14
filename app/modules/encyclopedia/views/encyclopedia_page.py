@@ -9,7 +9,7 @@ from threading import Thread, current_thread
 from typing import TYPE_CHECKING, Callable
 
 from PySide6.QtCore import QTimer, Qt, Signal
-from PySide6.QtWidgets import QComboBox, QHBoxLayout, QLabel, QTabWidget, QVBoxLayout, QWidget
+from PySide6.QtWidgets import QHBoxLayout, QLabel, QTabWidget, QVBoxLayout, QWidget
 
 from app.background_work import background_io_priority
 from app.core.character_identity import is_character_key
@@ -37,7 +37,7 @@ from app.modules.encyclopedia.views.related_preload_state import (
     RelatedPreloadState,
 )
 from app.pages.quest_character_cache import quest_character_source_signature
-from app.ui.components import AtlasPageTitle
+from app.ui.components import AtlasComboBox, AtlasPageTitle
 from app.quest_catalog import QuestCharacter, load_quest_characters
 
 if TYPE_CHECKING:
@@ -245,7 +245,7 @@ class EncyclopediaPage(QWidget):
         self.character_label.setObjectName("MutedLabel")
         self.character_label.setVisible(False)
         header.addWidget(self.character_label)
-        self.character_combo = QComboBox()
+        self.character_combo = AtlasComboBox()
         self.character_combo.setObjectName("EncyclopediaCharacterCombo")
         self.character_combo.setMinimumWidth(0)
         self.character_combo.setMaximumWidth(0)

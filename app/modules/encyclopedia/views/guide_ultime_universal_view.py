@@ -7,7 +7,6 @@ from PySide6.QtCore import QEvent, Qt, Signal
 from PySide6.QtWidgets import (
     QApplication,
     QCheckBox,
-    QComboBox,
     QFrame,
     QHBoxLayout,
     QLabel,
@@ -23,7 +22,7 @@ from app.modules.encyclopedia.views.guide_ultime_walkthrough_card import (
     ObjectiveWalkthrough,
     QuestWalkthroughIndex,
 )
-from app.ui.components import AtlasButton
+from app.ui.components import AtlasButton, AtlasComboBox
 
 
 SENTINEL_COORD = -2147483648
@@ -362,7 +361,7 @@ class GuideUltimeUniversalView(GuideUltimeGeneratedView):
     ) -> None:
         self.quest_provider = quest_provider
         self.walkthrough = QuestWalkthroughIndex(quest_provider, quest_graph)
-        self.order_combo: QComboBox | None = None
+        self.order_combo: AtlasComboBox | None = None
         self.travel_callback = travel_callback
         if participant_service is None:
             from app.services.guide_participant_service import GuideParticipantService
@@ -560,7 +559,7 @@ class GuideUltimeUniversalView(GuideUltimeGeneratedView):
         label = QLabel("Première quête d’Ordre : choisis l’Ordre Bonta que tu garderas jusqu’au rang 100.")
         label.setWordWrap(True)
         layout.addWidget(label, 1)
-        combo = QComboBox()
+        combo = AtlasComboBox()
         combo.setObjectName("GuideRouteInlineOrderCombo")
         combo.addItem("Choisir maintenant", "")
         for row in first.get("options", []) or []:

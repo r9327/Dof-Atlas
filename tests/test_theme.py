@@ -301,11 +301,14 @@ class SharedThemeTests(unittest.TestCase):
             "PANEL_ACTIVE": "#334455",
             "BORDER_CARD": "#445566",
         })
-        # The Guide is not allowed to maintain a parallel surface palette.
-        self.assertIn("rgba(17, 34, 51, 0.93)", style)
-        self.assertIn("rgba(34, 51, 68, 0.92)", style)
-        self.assertIn("rgba(51, 68, 85, 0.97)", style)
-        self.assertIn("rgba(68, 85, 102, 0.65)", style)
+        header = style.split("QFrame#GuideHeader, QFrame#GuidesHomeCategory,", 1)[1].split("}", 1)[0]
+        summary = style.split("QFrame#GuidePreparationSummary, QFrame#GuideManualWarningSection {", 1)[1].split("}", 1)[0]
+        row = style.split("QFrame#GuidePreparationRow, QFrame#GuidePreparationDetails {", 1)[1].split("}", 1)[0]
+        self.assertIn("rgba(17, 34, 51, 0.88)", header)
+        self.assertIn("rgba(34, 51, 68, 0.82)", header)
+        self.assertIn("rgba(51, 68, 85, 0.97)", summary)
+        self.assertIn("rgba(34, 51, 68, 0.92)", row)
+        self.assertIn("rgba(68, 85, 102, 0.65)", row)
         self.assertEqual(
             theme.SIZES["CONTROL_HEIGHT_COMPACT"],
             f'{UNITY_SIZES_PX["control_compact"]}px',

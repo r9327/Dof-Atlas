@@ -3,7 +3,6 @@ from __future__ import annotations
 from PySide6.QtCore import Qt, Signal
 from PySide6.QtWidgets import (
     QCheckBox,
-    QComboBox,
     QFrame,
     QHBoxLayout,
     QLabel,
@@ -15,6 +14,7 @@ from PySide6.QtWidgets import (
 )
 
 from app.modules.encyclopedia.models.achievement import AchievementCategory
+from app.ui.components import AtlasComboBox
 
 
 class AchievementFilterPanel(QWidget):
@@ -31,11 +31,11 @@ class AchievementFilterPanel(QWidget):
         title.setObjectName("PanelTitle")
         root.addWidget(title)
 
-        self.category_combo = QComboBox()
-        self.subcategory_combo = QComboBox()
+        self.category_combo = AtlasComboBox()
+        self.subcategory_combo = AtlasComboBox()
         self.min_level = QSpinBox()
         self.max_level = QSpinBox()
-        self.state_combo = QComboBox()
+        self.state_combo = AtlasComboBox()
         self.hide_completed = QCheckBox("Masquer les succès terminés")
 
         self.min_level.setRange(0, 999)

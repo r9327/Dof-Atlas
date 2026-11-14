@@ -12,9 +12,9 @@ from collections.abc import Callable
 from PySide6.QtCore import QDate, QEasingCurve, QPropertyAnimation, Qt
 from PySide6.QtGui import QBrush, QColor, QLinearGradient, QPainter, QPixmap
 from PySide6.QtWidgets import (
+    QAbstractItemView,
     QCheckBox,
     QCalendarWidget,
-    QComboBox,
     QDateEdit,
     QDoubleSpinBox,
     QFrame,
@@ -34,7 +34,6 @@ from PySide6.QtWidgets import (
     QSlider,
     QSpinBox,
     QStackedWidget,
-    QStyledItemDelegate,
     QSplitter,
     QTableWidget,
     QTableWidgetItem,
@@ -49,6 +48,7 @@ from PySide6.QtWidgets import (
 
 from app.ui.components import (
     AtlasButton,
+    AtlasComboBox,
     AtlasDialog,
     AtlasDialogHeader,
     AtlasPageTitle,
@@ -71,28 +71,6 @@ from app.ui.ui_registry import (
     UI_CONSUMER_INDEX, UI_FAMILY_QSS_SELECTORS,
     UI_FAMILY_PAINTED_ROLES, validate_ui_index,
 )
-
-
-class UnityPopupSeparatorDelegate(QStyledItemDelegate):
-    """Draw Unity dividers while preserving compact shared row geometry."""
-
-    def sizeHint(self, option, index):
-        hint = super().sizeHint(option, index)
-        hint.setHeight(max(hint.height(), UNITY_SIZES_PX["control_compact"]))
-        return hint
-
-    def paint(self, painter: QPainter, option, index) -> None:
-        super().paint(painter, option, index)
-        # No doubled border at the very end of the dropdown.
-        if index.row() + 1 >= index.model().rowCount(index.parent()):
-            return
-        painter.save()
-        painter.setPen(QColor(PALETTE["BORDER_SOFT"]))
-        painter.drawLine(
-            option.rect.left() + 8, option.rect.bottom(),
-            option.rect.right() - 8, option.rect.bottom(),
-        )
-        painter.restore()
 
 
 class DevUiPage(QWidget):
@@ -167,13 +145,10 @@ class DevUiPage(QWidget):
         # The index stays visible while the long catalog scrolls underneath.
         navigator = QHBoxLayout()
         navigator.addWidget(QLabel("Aller à une famille"))
-        self.gallery_navigation = QComboBox()
+        self.gallery_navigation = AtlasComboBox()
         self.gallery_navigation.setObjectName("DevUiFamilyCombo")
         self.gallery_navigation.setAccessibleName("Accès direct aux familles UI")
         self.gallery_navigation.view().setAlternatingRowColors(False)
-        self.gallery_navigation.view().setItemDelegate(
-            UnityPopupSeparatorDelegate(self.gallery_navigation.view())
-        )
         navigator.addWidget(self.gallery_navigation, 1)
         self.gallery_count = QLabel()
         self.gallery_count.setObjectName("MutedLabel")
@@ -263,6 +238,7 @@ class DevUiPage(QWidget):
         self, layout: QVBoxLayout, table: QTableWidget, label: str
     ) -> AtlasButton:
         self._expand_catalog_table(table)
+        table.setEditTriggers(QAbstractItemView.NoEditTriggers)
         table.hide()
         toggle = AtlasButton(f"Afficher {label}", variant="secondary")
         toggle.setCheckable(True)
@@ -707,7 +683,7 @@ class DevUiPage(QWidget):
             lambda text: self._report(f"Saisie : {text}")
         )
         row.addWidget(self.preview_input, 2)
-        self.preview_combo = QComboBox()
+        self.preview_combo = AtlasComboBox()
         self.preview_combo.view().setAlternatingRowColors(False)
         self.preview_combo.addItems(("Normal", "Rapide", "Instantané"))
         self.preview_combo.currentTextChanged.connect(
@@ -1156,15 +1132,15 @@ class DevUiPage(QWidget):
         section.addWidget(sizing_hint)
         self.preview_metric_buttons: dict[str, AtlasButton] = {}
         row = QHBoxLayout()
-        for label, role in (
-            ("Compact", "control_compact"),
-            ("Normal", "control_normal"),
-            ("Large", "control_large"),
+        for label, size in (
+            ("Compact", "compact"),
+            ("Normal", "normal"),
+            ("Large", "large"),
         ):
+            role = f"control_{size}"
             button = AtlasButton(
-                f"{label} · {UNITY_SIZES_PX[role]} px", variant="secondary"
+                f"{label} · {UNITY_SIZES_PX[role]} px", variant="secondary", size=size
             )
-            button.setFixedHeight(UNITY_SIZES_PX[role])
             button.setToolTip(f"{label} : {UNITY_SIZES_PX[role]} px")
             self.preview_metric_buttons[role] = button
             row.addWidget(button)
@@ -1367,7 +1343,7 @@ class DevUiPage(QWidget):
         self.guide_ultime_sample.setObjectName("GuideUltimeGeneratedView")
         guide_layout = QHBoxLayout(self.guide_ultime_sample)
         guide_layout.addWidget(QLabel("Menu Guide Ultime · style Succès"), 1)
-        self.guide_ultime_combo = QComboBox()
+        self.guide_ultime_combo = AtlasComboBox()
         self.guide_ultime_combo.view().setAlternatingRowColors(False)
         self.guide_ultime_combo.addItems(("Normal", "Rapide", "Instantané"))
         self.guide_ultime_combo.currentTextChanged.connect(
@@ -1465,22 +1441,36 @@ class DevUiPage(QWidget):
         """Show migration scope without incorrectly claiming all screens migrated."""
         section = self._section(parent, "coverage")
         note = QLabel(
-            "Périmètre de propagation à contrôler : la présence ici ne signifie "
-            "pas que le module est déjà intégralement globalisé."
+            "Exemples de réutilisation dans les modules. La couverture complète "
+            "reste à vérifier écran par écran."
         )
         note.setObjectName("MutedLabel")
         note.setWordWrap(True)
         section.addWidget(note)
 
         modules = UNITY_UI_CONSUMERS
-        self.preview_scope = QTableWidget(len(modules), 2)
-        self.preview_scope.setHorizontalHeaderLabels(("Module", "Source de style cible"))
+        shared_examples = {
+            "Accueil": "Boutons et badge Almanax",
+            "Personnage": "Menu de sélection du personnage",
+            "Quêtes": "Menus de filtre et liens",
+            "Succès": "Menus et lien d’alignement",
+            "Guides": "Menus, fil d’Ariane et liens",
+            "Outils": "Catégories et actions Crafts",
+            "Organizer": "Variantes dans la feuille Qt globale",
+            "Almanax": "Bouton et badge sur l’Accueil",
+            "Launcher": "Couleurs et typographie Unity",
+        }
+        self.preview_scope = QTableWidget(len(modules), 3)
+        self.preview_scope.setHorizontalHeaderLabels(
+            ("Module", "Source de style cible", "Exemple partagé")
+        )
         self.preview_scope.setAlternatingRowColors(False)
         self.preview_scope.setShowGrid(False)
         self.preview_scope.verticalHeader().hide()
         self.preview_scope.horizontalHeader().setStretchLastSection(False)
         self.preview_scope.horizontalHeader().setSectionResizeMode(0, QHeaderView.ResizeToContents)
-        self.preview_scope.horizontalHeader().setSectionResizeMode(1, QHeaderView.Stretch)
+        self.preview_scope.horizontalHeader().setSectionResizeMode(1, QHeaderView.ResizeToContents)
+        self.preview_scope.horizontalHeader().setSectionResizeMode(2, QHeaderView.Stretch)
         for index, module in enumerate(modules):
             self.preview_scope.setItem(index, 0, QTableWidgetItem(module))
             consumer = UI_CONSUMER_INDEX[module]
@@ -1492,6 +1482,9 @@ class DevUiPage(QWidget):
             cell = QTableWidgetItem(source)
             cell.setToolTip("Fichiers indexés :\n" + "\n".join(consumer["paths"]))
             self.preview_scope.setItem(index, 1, cell)
+            self.preview_scope.setItem(
+                index, 2, QTableWidgetItem(shared_examples.get(module, "À vérifier"))
+            )
         self.preview_scope.setToolTip(
             "Inventaire du périmètre, pas une certification de migration"
         )

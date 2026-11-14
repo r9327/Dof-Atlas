@@ -2,9 +2,15 @@ schema_version: 1
 scope: shared_ui
 kind: shared_infrastructure
 working_set:
+  - app/pages/dev_ui_page.py
   - app/ui/theme.py
   - app/ui/components.py
+  - app/ui/ui_registry.py
+  - app/ui/unity_palette.py
   - app/ui/styles/
+  - tests/test_dev_ui_page.py
+  - tests/test_theme.py
+  - tests/test_ui_universal_contract.py
 shared_dependencies: []
 context_entries:
   - main.py

@@ -18,6 +18,7 @@ UI_FAMILY_QSS_SELECTORS: dict[str, tuple[str, ...]] = {
     "buttons": (
         "#PrimaryActionButton", "#SecondaryButton", "#ActiveButton", "#DangerButton",
         "#InlineActionButton", "#PopupLinkButton", "#TopNavButton",
+        "#GuideInlineQuestButton", "#GuideInlineAchievementButton",
     ),
     "navigation": (
         "QTabBar::tab", "QTabWidget::pane", "QMenu {",
@@ -27,7 +28,7 @@ UI_FAMILY_QSS_SELECTORS: dict[str, tuple[str, ...]] = {
     "sidebar": ("#sidebar", "#navItem", "#navItemActive", "#MenuButton", "#NavSeparator"),
     "data_views": (
         "QTreeWidget::item", "QTableWidget", "QHeaderView::section",
-        "#MapViewTree::item", "#AchievementsView",
+        "#MapViewTree", "#MapViewTree::item", "#AchievementsView",
         "#AchievementDetailStack", "#GuideLeftPanel", "#GuideCenterPanel",
     ),
     "scroll_resize": (

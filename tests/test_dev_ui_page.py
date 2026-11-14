@@ -573,10 +573,19 @@ class DevUiPageTests(unittest.TestCase):
             self.assertFalse(page.preview_metrics.alternatingRowColors())
             self.assertFalse(page.preview_scope.alternatingRowColors())
             self.assertFalse(page.gallery_navigation.view().alternatingRowColors())
-            from app.pages.dev_ui_page import UnityPopupSeparatorDelegate
+            from app.ui.components import AtlasComboBox, UnityPopupSeparatorDelegate
+            from app.modules.encyclopedia.widgets.filter_panel import AchievementFilterPanel
             self.assertIsInstance(
                 page.gallery_navigation.view().itemDelegate(),
                 UnityPopupSeparatorDelegate,
+            )
+            for combo in (page.preview_combo, page.guide_ultime_combo):
+                self.assertIsInstance(combo, AtlasComboBox)
+                self.assertIsInstance(combo.view().itemDelegate(), UnityPopupSeparatorDelegate)
+            filters = AchievementFilterPanel(parent=page)
+            self.assertIsInstance(filters.category_combo, AtlasComboBox)
+            self.assertIsInstance(
+                filters.category_combo.view().itemDelegate(), UnityPopupSeparatorDelegate
             )
             self.assertEqual(page.gallery_navigation.count(), 22)
             self.assertEqual(page.gallery_navigation.objectName(), "DevUiFamilyCombo")

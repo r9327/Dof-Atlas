@@ -8,7 +8,6 @@ from typing import TYPE_CHECKING, Any, Callable
 from PySide6.QtCore import QModelIndex, Qt, QUrl
 from PySide6.QtWidgets import (
     QApplication,
-    QComboBox,
     QFrame,
     QHBoxLayout,
     QLabel,
@@ -53,7 +52,7 @@ from app.quest_catalog import (
     normalize_text,
 )
 from app.storage import IconCache, read_json, write_json
-from app.ui.components import AtlasButton
+from app.ui.components import AtlasButton, AtlasComboBox
 from app.ui.theme import PALETTE, render_theme_template
 
 if TYPE_CHECKING:
@@ -255,7 +254,7 @@ class QuestsPage(QWidget):
         self.status_callback(f"{len(self.catalog.quests)} quêtes chargées.")
 
     def _init_hidden_controls(self) -> None:
-        self.character_combo = QComboBox()
+        self.character_combo = AtlasComboBox()
         self.character_combo.setVisible(False)
         self.character_combo.currentIndexChanged.connect(self.on_character_changed)
 
@@ -265,10 +264,10 @@ class QuestsPage(QWidget):
             self.mode_list.addItem(mode)
         self.mode_list.setCurrentRow(len(self.MODES) - 1)
 
-        self.state_combo = QComboBox()
+        self.state_combo = AtlasComboBox()
         self.state_combo.setVisible(False)
         self.state_combo.addItems(["Toutes", "Disponibles", "Bloquées", "Terminées"])
-        self.type_combo = QComboBox()
+        self.type_combo = AtlasComboBox()
         self.type_combo.setVisible(False)
         self.type_combo.addItems(["Toutes", "Normales", "Répétables", "Journalières", "Hebdomadaires"])
         self.hide_done_button = HideCompletedButton()

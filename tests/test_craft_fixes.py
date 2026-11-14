@@ -50,13 +50,17 @@ class CraftFixesTests(unittest.TestCase):
             page.show()
             page.refresh_jobs()
             QApplication.processEvents()
-            for job in ("Mineur", "Forgeron"):
+            for expected_calls, job in enumerate(("Mineur", "Forgeron"), start=1):
                 with self.subTest(job=job):
                     buttons = [page.job_buttons_layout.itemAt(index).widget()
                                for index in range(page.job_buttons_layout.count())]
                     button = next(button for button in buttons if button.text() == job)
                     QTest.mouseClick(button, Qt.LeftButton)
-                    QTest.qWait(35)
+                    self.assertEqual(page.selected_job, job)
+                    for _ in range(25):
+                        if open_dialog.call_count >= expected_calls:
+                            break
+                        QTest.qWait(20)
                     open_dialog.assert_called_with(job)
             self.assertEqual(open_dialog.call_count, 2)
             page.close()

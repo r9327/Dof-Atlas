@@ -6,7 +6,6 @@ from PySide6.QtCore import QSize, Qt
 from PySide6.QtGui import QIcon, QPixmap
 from PySide6.QtWidgets import (
     QAbstractItemView,
-    QComboBox,
     QFrame,
     QGridLayout,
     QHBoxLayout,
@@ -19,12 +18,13 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 
-from app.ui.unity_palette import UNITY_CONTENT_TYPOGRAPHY_PX
 from app.pages._character_page_impl import (
     CHARACTER_STAT_ROWS,
     EQUIPMENT_SLOTS,
     CharacterPage as _CharacterPage,
 )
+from app.ui.components import AtlasComboBox
+from app.ui.unity_palette import UNITY_CONTENT_TYPOGRAPHY_PX
 
 
 _EQUIPMENT_SLOT_SIZE = 64
@@ -102,7 +102,7 @@ class CharacterPage(_CharacterPage):
         self._apply_success_style(self.achievement_points, compact=True)
         layout.addWidget(self.achievement_points)
 
-        self.character_selector = QComboBox()
+        self.character_selector = AtlasComboBox()
         self.character_selector.setObjectName("CharacterPageCharacterCombo")
         self.character_selector.setIconSize(QSize(38, 38))
         self.character_selector.setMinimumWidth(260)

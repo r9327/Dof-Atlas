@@ -355,8 +355,8 @@ UNITY_UI_FAMILY_INDEX = {
     },
     "fields": {
         "title": "Saisie · sélection · progression",
-        "components": ("QLineEdit", "QComboBox", "QSpinBox", "QPlainTextEdit", "QCheckBox", "QRadioButton", "QProgressBar", "QSlider"),
-        "style_owner": "app/ui/theme.py + app/ui/unity_skin.py",
+        "components": ("QLineEdit", "AtlasComboBox", "QComboBox", "QSpinBox", "QPlainTextEdit", "QCheckBox", "QRadioButton", "QProgressBar", "QSlider"),
+        "style_owner": "app/ui/components.py + app/ui/theme.py + app/ui/unity_skin.py",
         "scope": "shared",
     },
     "advanced_fields": {

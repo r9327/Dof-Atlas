@@ -406,7 +406,7 @@ class QuestDetailView(QWidget):
             buttons: list[QWidget] = []
             for achievement in achievements[:6]:
                 button = AtlasButton(
-                    str(getattr(achievement, "name", "")), variant="guide_quest_link"
+                    str(getattr(achievement, "name", "")), variant="guide_achievement_link"
                 )
                 button.clicked.connect(
                     lambda _checked=False, achievement_id=int(getattr(achievement, "id", 0) or 0): self.open_entity(

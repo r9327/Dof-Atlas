@@ -5,7 +5,6 @@ from typing import Any, Callable
 from PySide6.QtCore import Qt, Signal
 from PySide6.QtWidgets import (
     QCheckBox,
-    QComboBox,
     QFrame,
     QHBoxLayout,
     QLabel,
@@ -17,7 +16,7 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 
-from app.ui.components import AtlasButton
+from app.ui.components import AtlasButton, AtlasComboBox
 from app.modules.encyclopedia.services.guide_ultime_generated_service import (
     GuideUltimeGeneratedService,
 )
@@ -348,7 +347,7 @@ class GuideUltimeGeneratedView(QWidget):
         self.order_label = QLabel("Ordre Bonta :")
         self.order_label.setObjectName("GuideUltimeBranchStatus")
         branch_row.addWidget(self.order_label)
-        self.order_combo = QComboBox()
+        self.order_combo = AtlasComboBox()
         self.order_combo.setObjectName("GuideUltimeOrderCombo")
         self.order_combo.setMinimumWidth(190)
         self.order_combo.currentIndexChanged.connect(self._order_changed)
@@ -380,7 +379,7 @@ class GuideUltimeGeneratedView(QWidget):
         self.position_label = QLabel()
         self.position_label.setObjectName("GuideUltimePosition")
         nav_layout.addWidget(self.position_label)
-        self.filter_combo = QComboBox()
+        self.filter_combo = AtlasComboBox()
         self.filter_combo.addItems(["Tout", "À faire", "Terminé"])
         self.filter_combo.setCurrentText(self.filter_mode)
         self.filter_combo.currentTextChanged.connect(self._filter_changed)

@@ -566,10 +566,9 @@ class CraftPage(QWidget):
         category_row = QHBoxLayout()
         category_row.setSpacing(4)
         left.addLayout(category_row)
-        self.category_buttons: dict[str, QPushButton] = {}
+        self.category_buttons: dict[str, AtlasButton] = {}
         for key, label in (("equipment", "Équipement"), ("trophy_prysma", "Trophée / Prysmaradite"), ("resource", "Ressource craftable")):
-            button = AtlasButton(label)
-            button.setMaximumHeight(28)
+            button = AtlasButton(label, variant="secondary", size="compact")
             button.clicked.connect(lambda _checked=False, k=key: self.set_category(k))
             self.category_buttons[key] = button
             category_row.addWidget(button)
@@ -611,8 +610,7 @@ class CraftPage(QWidget):
         self.selection_list.setVerticalScrollBarPolicy(Qt.ScrollBarAlwaysOn)
         self.selection_list.setTextElideMode(Qt.ElideRight)
         right.addWidget(self.selection_list, 1)
-        craft_button = AtlasButton("Lancer le Craft", variant="primary")
-        craft_button.setFixedHeight(34)
+        craft_button = AtlasButton("Lancer le Craft", variant="primary", size="normal")
         craft_button.setMinimumWidth(180)
         right.addWidget(craft_button, alignment=Qt.AlignHCenter)
         clear_button.clicked.connect(self.clear_selection)
@@ -761,11 +759,6 @@ class CraftPage(QWidget):
         if callable(release):
             release()
 
-    def restyle_button(self, button: QPushButton) -> None:
-        button.style().unpolish(button)
-        button.style().polish(button)
-        button.update()
-
     def clear_layout(self, layout) -> None:
         while layout.count():
             item = layout.takeAt(0)
@@ -830,8 +823,7 @@ class CraftPage(QWidget):
 
     def update_category_buttons(self) -> None:
         for key, button in self.category_buttons.items():
-            button.setObjectName("ActiveButton" if key == self.category else "SecondaryButton")
-            self.restyle_button(button)
+            button.set_variant("selected" if key == self.category else "secondary")
 
     def category_for_item(self, item: dict[str, Any]) -> str:
         # SQLite/preload already classifies items. Load the normalizer only for
@@ -1315,8 +1307,7 @@ class CraftPage(QWidget):
 
         guide = self.guide_for_job(self.selected_job)
         if self.is_harvest_job(self.selected_job) and guide and guide.get("entries"):
-            leveling = AtlasButton("Leveling 0-200", variant="primary")
-            leveling.setFixedHeight(30)
+            leveling = AtlasButton("Leveling 0-200", variant="primary", size="normal")
             leveling.clicked.connect(lambda _checked=False, job=self.selected_job: self.open_leveling_dialog(job))
             self.job_actions_layout.addWidget(leveling)
         self.job_actions_layout.addStretch(1)

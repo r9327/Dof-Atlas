@@ -1,19 +1,23 @@
 from __future__ import annotations
 
+from typing import Literal
+
 from PySide6.QtCore import QSize, Qt
-from PySide6.QtGui import QIcon, QImage, QPixmap
+from PySide6.QtGui import QColor, QIcon, QImage, QPainter, QPixmap
 from PySide6.QtWidgets import (
+    QComboBox,
     QDialog,
     QHBoxLayout,
     QLabel,
     QPushButton,
+    QStyledItemDelegate,
     QToolButton,
     QVBoxLayout,
     QWidget,
 )
 
 from app.constants import APP_ICON_PATH
-from app.ui.unity_palette import UNITY_SIZES_PX
+from app.ui.unity_palette import UNITY_PALETTE, UNITY_SIZES_PX, UNITY_SPACING_PX
 from app.ui.splash_image import clear_connected_dark_background
 
 
@@ -69,10 +73,13 @@ class AtlasButton(QPushButton):
         parent: QWidget | None = None,
         *,
         variant: str | None = None,
+        size: Literal["compact", "normal", "large"] | None = None,
     ) -> None:
         super().__init__(text, parent)
         self.setCursor(Qt.PointingHandCursor)
         self.setMinimumHeight(UNITY_SIZES_PX["control_compact"])
+        if size is not None:
+            self.setFixedHeight(UNITY_SIZES_PX[f"control_{size}"])
         if variant:
             self.set_variant(variant)
 
@@ -92,6 +99,37 @@ class AtlasButton(QPushButton):
         style.unpolish(self)
         style.polish(self)
         self.update()
+
+
+class UnityPopupSeparatorDelegate(QStyledItemDelegate):
+    """Draw Unity dividers while preserving the native menu interactions."""
+
+    def sizeHint(self, option, index):
+        hint = super().sizeHint(option, index)
+        hint.setHeight(max(hint.height(), UNITY_SIZES_PX["control_compact"]))
+        return hint
+
+    def paint(self, painter: QPainter, option, index) -> None:
+        super().paint(painter, option, index)
+        if index.row() + 1 >= index.model().rowCount(index.parent()):
+            return
+        inset = UNITY_SPACING_PX["md"]
+        painter.save()
+        painter.setPen(QColor(UNITY_PALETTE["BORDER_SOFT"]))
+        painter.drawLine(
+            option.rect.left() + inset, option.rect.bottom(),
+            option.rect.right() - inset, option.rect.bottom(),
+        )
+        painter.restore()
+
+
+class AtlasComboBox(QComboBox):
+    """Native combo box with the shared Unity row separators."""
+
+    def __init__(self, parent: QWidget | None = None) -> None:
+        super().__init__(parent)
+        popup = self.view()
+        popup.setItemDelegate(UnityPopupSeparatorDelegate(popup))
 
 
 class AtlasStatusBadge(QLabel):

@@ -10,7 +10,6 @@ from typing import Any
 from PySide6.QtCore import QTimer, Qt, Signal, Slot
 from PySide6.QtGui import QColor, QPainter, QPalette
 from PySide6.QtWidgets import (
-    QComboBox,
     QFrame,
     QLabel,
     QLineEdit,
@@ -35,7 +34,7 @@ from app.modules.encyclopedia.providers import AchievementProvider, QuestProvide
 from app.modules.encyclopedia.services import AchievementProgressService, QuestGraphService, QuestProgressService
 from app.modules.encyclopedia.widgets.dashboard import FixedColumnSplitter
 from app.core.text import normalize_key as normalize_text
-from app.ui.components import AtlasButton
+from app.ui.components import AtlasButton, AtlasComboBox
 from app.ui.theme import PALETTE
 from app.ui.unity_skin import apply_unity_panel_shadow
 
@@ -600,11 +599,11 @@ class AchievementsView(QWidget):
         help_label.setWordWrap(True)
         layout.addWidget(help_label)
 
-        combo = QComboBox()
+        combo = AtlasComboBox()
         combo.setObjectName("AchievementAlignmentOrderCombo")
         combo.setSizePolicy(QSizePolicy.Ignored, QSizePolicy.Fixed)
         combo.setMinimumContentsLength(16)
-        combo.setSizeAdjustPolicy(QComboBox.AdjustToMinimumContentsLengthWithIcon)
+        combo.setSizeAdjustPolicy(AtlasComboBox.AdjustToMinimumContentsLengthWithIcon)
         combo.addItem("Choisir un Ordre...", None)
         order_quest_ids = _order_quest_ids()
         for side, orders in order_quest_ids.items():
