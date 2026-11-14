@@ -8,7 +8,7 @@ from PySide6.QtGui import QColor, QMouseEvent, QPainter, QPen, QPixmap, QPolygon
 from PySide6.QtWidgets import QSizePolicy, QWidget
 
 from app.cartography.scan_status_service import get_status_color, normalize_status
-from app.ui.unity_palette import UNITY_PALETTE
+from app.ui.unity_palette import UNITY_PALETTE, unity_painted_ui_color
 
 
 class MapCanvasWidget(QWidget):
@@ -83,7 +83,7 @@ class MapCanvasWidget(QWidget):
     def paintEvent(self, _event) -> None:
         painter = QPainter(self)
         painter.setRenderHint(QPainter.Antialiasing)
-        painter.fillRect(self.rect(), QColor(UNITY_PALETTE["PANEL"]))
+        painter.fillRect(self.rect(), QColor(unity_painted_ui_color("world_scan.placeholder")))
 
         if self.view is None:
             painter.end()

@@ -28,6 +28,8 @@ class UnitySkinTests(unittest.TestCase):
 
         app = QApplication.instance() or QApplication([])
         icon = unity_skin.unity_settings_icon(20)
+        # No neon-green sprite border is allowed on the neutral shell gear.
+        self.assertNotIn("QPushButton#TopNavSettings {", unity_skin_stylesheet())
         self.assertFalse(icon.isNull())
         self.assertFalse(icon.pixmap(20, 20).isNull())
         with self.assertRaises(ValueError):

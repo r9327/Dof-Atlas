@@ -1118,6 +1118,7 @@ class AtlasWindow(QMainWindow):
 
         self.settings_button = AtlasButton("")
         self.settings_button.setObjectName("TopNavSettings")
+        self.settings_button.setAccessibleName("Paramètres")
         self.settings_button.setIcon(unity_settings_icon(20))
         self.settings_button.setIconSize(QSize(20, 20))
         self.settings_button.setFixedSize(34, 34)

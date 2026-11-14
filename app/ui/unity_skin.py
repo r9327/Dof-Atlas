@@ -503,10 +503,8 @@ def unity_skin_stylesheet(palette: Mapping[str, str] | None = None) -> str:
         "QPushButton#GuideManualNavButton",
         "btn_arrow_pagination", 5,
     )
-    sprites_for_states(
-        "QPushButton#TopNavSettings",
-        "btn_green_small", 6,
-    )
+    # Settings is a neutral shell utility, not a bright green game action.
+    # The shared painted Unity gear follows the same blue shell button state.
     # Tiny original vector glyphs preserve the real spin controls and
     # selected/mixed checkbox state. No darkStone black checkbox tiles.
     # If a release omits these optional files, Qt keeps its native arrows.
