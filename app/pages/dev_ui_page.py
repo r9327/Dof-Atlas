@@ -235,6 +235,7 @@ class DevUiPage(QWidget):
         for name, caption in (
             ("primary", "Principal"),
             ("secondary", "Secondaire"),
+            ("selected", "Sélectionné"),
             ("danger", "Danger"),
         ):
             button = AtlasButton(caption, variant=name)
