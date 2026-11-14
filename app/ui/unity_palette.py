@@ -321,7 +321,7 @@ UNITY_UI_FAMILY_INDEX = {
     },
     "breadcrumbs": {
         "title": "Fil d'Ariane · niveaux et navigation",
-        "components": ("GuideBreadcrumb", "GuideBreadcrumbButton", "GuideBreadcrumbSeparator", "GuideBreadcrumbCurrent"),
+        "components": ("AtlasBreadcrumb", "GuideBreadcrumb", "GuideBreadcrumbButton", "GuideBreadcrumbSeparator", "GuideBreadcrumbCurrent"),
         "style_owner": "app/ui/theme.py + app/ui/components.py",
         "scope": "shared",
     },

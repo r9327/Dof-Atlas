@@ -52,7 +52,7 @@ from app.quest_catalog import (
     normalize_text,
 )
 from app.storage import IconCache, read_json, write_json
-from app.ui.components import AtlasButton, AtlasComboBox
+from app.ui.components import AtlasBreadcrumb, AtlasButton, AtlasComboBox
 from app.ui.theme import PALETTE, render_theme_template
 
 if TYPE_CHECKING:
@@ -289,11 +289,8 @@ class QuestsPage(QWidget):
         self.search.textChanged.connect(lambda _text: self.refresh_quests())
         root.addWidget(self.search)
 
-        self.breadcrumb = QFrame()
-        self.breadcrumb.setObjectName("GuideBreadcrumb")
-        self.breadcrumb_layout = QHBoxLayout(self.breadcrumb)
-        self.breadcrumb_layout.setContentsMargins(8, 5, 8, 5)
-        self.breadcrumb_layout.setSpacing(5)
+        self.breadcrumb = AtlasBreadcrumb()
+        self.breadcrumb_layout = self.breadcrumb.row
         root.addWidget(self.breadcrumb)
 
         self.quest_model = QuestListModel(self)
@@ -652,7 +649,7 @@ class QuestsPage(QWidget):
         if path is None or quest is None:
             self.breadcrumb_layout.addStretch(1)
             return
-        self.add_breadcrumb_separator()
+        self.breadcrumb.add_separator()
         category_button = AtlasButton(path.category.name, variant="guide_breadcrumb")
         category_button.setMaximumWidth(180)
         category_button.setToolTip(path.category.name)
@@ -660,7 +657,7 @@ class QuestsPage(QWidget):
             lambda _checked=False, name=path.category.name: self.focus_hierarchy_category(name)
         )
         self.breadcrumb_layout.addWidget(category_button)
-        self.add_breadcrumb_separator()
+        self.breadcrumb.add_separator()
         series_button = AtlasButton(path.series.name, variant="guide_breadcrumb")
         series_button.setMaximumWidth(280)
         series_button.setToolTip(path.series.name)
@@ -668,18 +665,10 @@ class QuestsPage(QWidget):
             lambda _checked=False, series_id=path.series.id: self.focus_hierarchy_series(series_id)
         )
         self.breadcrumb_layout.addWidget(series_button)
-        self.add_breadcrumb_separator()
-        current = QLabel(quest.name)
-        current.setObjectName("GuideBreadcrumbCurrent")
-        current.setWordWrap(False)
+        self.breadcrumb.add_separator()
+        current = self.breadcrumb.add_current(quest.name)
         current.setToolTip(quest.name)
         current.setSizePolicy(QSizePolicy.Ignored, QSizePolicy.Preferred)
-        self.breadcrumb_layout.addWidget(current, 1)
-
-    def add_breadcrumb_separator(self) -> None:
-        separator = QLabel(">")
-        separator.setObjectName("GuideBreadcrumbSeparator")
-        self.breadcrumb_layout.addWidget(separator)
 
     def focus_hierarchy_category(self, category_name: str) -> None:
         item = self.category_items.get(str(category_name))

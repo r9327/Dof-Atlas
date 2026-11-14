@@ -7,6 +7,7 @@ from PySide6.QtGui import QColor, QIcon, QImage, QPainter, QPixmap
 from PySide6.QtWidgets import (
     QComboBox,
     QDialog,
+    QFrame,
     QHBoxLayout,
     QLabel,
     QPushButton,
@@ -130,6 +131,31 @@ class AtlasComboBox(QComboBox):
         super().__init__(parent)
         popup = self.view()
         popup.setItemDelegate(UnityPopupSeparatorDelegate(popup))
+
+
+class AtlasBreadcrumb(QFrame):
+    """Shared frame and labels for a host-owned navigation path."""
+
+    def __init__(self, parent: QWidget | None = None, *, compact: bool = False) -> None:
+        super().__init__(parent)
+        self.setObjectName("GuideBreadcrumb")
+        self.row = QHBoxLayout(self)
+        inset = 3 if compact else 5
+        horizontal = UNITY_SPACING_PX["md"]
+        self.row.setContentsMargins(horizontal, inset, horizontal, inset)
+        self.row.setSpacing(5)
+
+    def add_separator(self) -> None:
+        label = QLabel("›")
+        label.setObjectName("GuideBreadcrumbSeparator")
+        self.row.addWidget(label)
+
+    def add_current(self, text: str, *, emphasized: bool = False) -> QLabel:
+        label = QLabel(text)
+        label.setObjectName("GuideBreadcrumbCurrentStrong" if emphasized else "GuideBreadcrumbCurrent")
+        label.setWordWrap(False)
+        self.row.addWidget(label, 1)
+        return label
 
 
 class AtlasStatusBadge(QLabel):

@@ -47,6 +47,7 @@ from PySide6.QtWidgets import (
 )
 
 from app.ui.components import (
+    AtlasBreadcrumb,
     AtlasButton,
     AtlasComboBox,
     AtlasDialog,
@@ -98,11 +99,8 @@ class DevUiPage(QWidget):
 
         # Real page breadcrumb, immediately under the shell's navigation tabs.
         # The same GuideBreadcrumb owner is reused by the gallery below.
-        self.page_breadcrumb = QFrame()
-        self.page_breadcrumb.setObjectName("GuideBreadcrumb")
-        breadcrumb_line = QHBoxLayout(self.page_breadcrumb)
-        breadcrumb_line.setContentsMargins(8, 3, 8, 3)
-        breadcrumb_line.setSpacing(5)
+        self.page_breadcrumb = AtlasBreadcrumb(compact=True)
+        breadcrumb_line = self.page_breadcrumb.row
         self.page_breadcrumb_back = AtlasButton(
             "Paramètres", variant="guide_breadcrumb"
         )
@@ -110,13 +108,12 @@ class DevUiPage(QWidget):
         if on_back is not None:
             self.page_breadcrumb_back.clicked.connect(on_back)
         breadcrumb_line.addWidget(self.page_breadcrumb_back)
-        for caption in ("›", "Développement", "›"):
-            crumb = QLabel(caption)
-            crumb.setObjectName("GuideBreadcrumbSeparator")
-            breadcrumb_line.addWidget(crumb)
-        current = QLabel("UI Dev")
-        current.setObjectName("GuideBreadcrumbCurrent")
-        breadcrumb_line.addWidget(current, 1)
+        self.page_breadcrumb.add_separator()
+        development = QLabel("Développement")
+        development.setObjectName("GuideBreadcrumbSeparator")
+        breadcrumb_line.addWidget(development)
+        self.page_breadcrumb.add_separator()
+        self.page_breadcrumb.add_current("UI Dev")
         apply_unity_panel_shadow(self.page_breadcrumb, **UNITY_PANEL_SHADOW)
         outer.addWidget(self.page_breadcrumb)
 
@@ -519,12 +516,9 @@ class DevUiPage(QWidget):
         caption.setObjectName("MutedLabel")
         section.addWidget(caption)
 
-        self.preview_breadcrumb = QFrame()
-        self.preview_breadcrumb.setObjectName("GuideBreadcrumb")
+        self.preview_breadcrumb = AtlasBreadcrumb()
         apply_unity_panel_shadow(self.preview_breadcrumb, **UNITY_PANEL_SHADOW)
-        row = QHBoxLayout(self.preview_breadcrumb)
-        row.setContentsMargins(8, 5, 8, 5)
-        row.setSpacing(5)
+        row = self.preview_breadcrumb.row
         self.preview_breadcrumb_links: dict[str, AtlasButton] = {}
         for level in ("Encyclopédie", "Guides", "Dofus"):
             button = AtlasButton(level, variant="guide_breadcrumb")
@@ -536,12 +530,8 @@ class DevUiPage(QWidget):
             )
             self.preview_breadcrumb_links[level] = button
             row.addWidget(button)
-            separator = QLabel("›")
-            separator.setObjectName("GuideBreadcrumbSeparator")
-            row.addWidget(separator)
-        self.preview_breadcrumb_current = QLabel("Ocre")
-        self.preview_breadcrumb_current.setObjectName("GuideBreadcrumbCurrent")
-        row.addWidget(self.preview_breadcrumb_current, 1)
+            self.preview_breadcrumb.add_separator()
+        self.preview_breadcrumb_current = self.preview_breadcrumb.add_current("Ocre")
         section.addWidget(self.preview_breadcrumb)
         variants = QHBoxLayout()
         self.preview_breadcrumb_compact = QLabel("Encyclopédie › Quêtes")

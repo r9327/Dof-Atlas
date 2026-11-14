@@ -62,7 +62,7 @@ from app.modules.encyclopedia.widgets.guide_card import (
     GuideListModel,
 )
 from app.core.text import normalize_key as normalize_text
-from app.ui.components import AtlasButton, AtlasPanelToggle
+from app.ui.components import AtlasBreadcrumb, AtlasButton, AtlasPanelToggle
 from app.ui.theme import PALETTE, render_theme_template
 
 if TYPE_CHECKING:
@@ -1424,11 +1424,8 @@ class GuidesView(QWidget):
         self.right_panel_toggle = AtlasPanelToggle()
         self.right_panel_toggle.clicked.connect(self._toggle_right_panel)
         header_layout.addWidget(self.right_panel_toggle, 0, Qt.AlignRight | Qt.AlignVCenter)
-        self.breadcrumb = QFrame()
-        self.breadcrumb.setObjectName("GuideBreadcrumb")
-        self.breadcrumb_layout = QHBoxLayout(self.breadcrumb)
-        self.breadcrumb_layout.setContentsMargins(8, 5, 8, 5)
-        self.breadcrumb_layout.setSpacing(5)
+        self.breadcrumb = AtlasBreadcrumb()
+        self.breadcrumb_layout = self.breadcrumb.row
         root.addWidget(self.breadcrumb)
         root.addWidget(self.detail_header)
 
@@ -2565,27 +2562,16 @@ class GuidesView(QWidget):
         guide_home = AtlasButton("Guides", variant="guide_breadcrumb")
         guide_home.clicked.connect(self.show_home)
         self.breadcrumb_layout.addWidget(guide_home)
-        self._add_breadcrumb_separator()
+        self.breadcrumb.add_separator()
 
         if quest_name:
             guide_button = AtlasButton(guide.title, variant="guide_breadcrumb")
             guide_button.clicked.connect(lambda _checked=False, gid=guide.id: self.show_guide_overview(gid, preserve_scroll=True))
             self.breadcrumb_layout.addWidget(guide_button)
-            self._add_breadcrumb_separator()
-            current = QLabel(quest_name)
-            current.setObjectName("GuideBreadcrumbCurrent")
-            current.setWordWrap(False)
-            self.breadcrumb_layout.addWidget(current, 1)
+            self.breadcrumb.add_separator()
+            self.breadcrumb.add_current(quest_name)
         else:
-            current = QLabel(guide.title)
-            current.setObjectName("GuideBreadcrumbCurrentStrong")
-            current.setWordWrap(False)
-            self.breadcrumb_layout.addWidget(current, 1)
-
-    def _add_breadcrumb_separator(self) -> None:
-        separator = QLabel(">")
-        separator.setObjectName("GuideBreadcrumbSeparator")
-        self.breadcrumb_layout.addWidget(separator)
+            self.breadcrumb.add_current(guide.title, emphasized=True)
 
 
     def _quest_ids_for_steps(

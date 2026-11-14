@@ -830,3 +830,12 @@ La capture Windows `Personnage` (profil temporaire vide) a révélé que `Charac
 - L'affichage natif de la position de lancement `QuestLaunchPosition` utilisait un `QLabel` sans rôle global de typographie ; les coordonnées cliquables `atlas-travel:` dans les descriptions HTML possédaient déjà `font-weight:700`.
 - Ajout d'une règle **unique** `QLabel#QuestLaunchPosition` en gras `800`, avec police et couleur provenant de `FONT_BODY`/`TEXT`. La galerie Dev UI affiche le même rôle en lecture seule ; il est ajouté à l'index Guides existant. Aucune modification du service quest, de la position de jeu ni des liens de voyage.
 - Tests typographiques/d'affichage ajoutés ; **NOT_RUN**, pas de CI exécutée pendant le développement.
+
+### Dev UI — sélection, navigation et composants communs (14/11/2026)
+
+- La sélection reste visible au repos avec le trait vert du thème Unity. Les liens Quêtes et Succès utilisent les mêmes règles, avec survol et focus. Crafts reprend les tailles compactes et normales du bouton partagé.
+- Dev UI, Quêtes, Succès, Guides, Encyclopédie et Personnage utilisent `AtlasComboBox`. Les menus partagent le séparateur, la hauteur minimale des lignes et la flèche. Une nouvelle activation de la famille déjà sélectionnée ramène à sa section Dev UI.
+- `AtlasBreadcrumb` est utilisé par Dev UI, Quêtes, les Guides standards, le Guide Ultime et Almanax. La variante compacte conserve les marges des pages Dev UI et Almanax. Les écrans gardent leurs callbacks de navigation.
+- Les tables techniques se replient et restent consultables en lecture seule. La table des modules indique des exemples réels de réutilisation et laisse les autres entrées à vérifier.
+- Vérification locale Linux Qt hors écran : 251 tests ciblés réussis. Dev UI a été capturée à 900 × 680 avec le fond Unity personnel produit par le nettoyeur existant et un défilement horizontal de 0 px. Le fond personnel n'entre pas dans le commit ni dans la distribution.
+- La recette Windows, les contrôles réseau et Launcher sur un poste réel et la validation du pilote Guide #363 restent nécessaires pour clôturer le contrat #364.

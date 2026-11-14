@@ -64,7 +64,10 @@ from app.distribution.startup_trace import record_startup_event
 from app.services.character_data_service import CharacterDataService
 from app.services.character_order_service import CharacterOrderService
 from app.storage import default_profiles, item_id, normalize_key, read_json, write_json
-from app.ui.components import AtlasButton, AtlasDialog, AtlasDialogHeader, AtlasPageTitle, AtlasStatusBadge, atlas_application_icon
+from app.ui.components import (
+    AtlasBreadcrumb, AtlasButton, AtlasDialog, AtlasDialogHeader, AtlasPageTitle,
+    AtlasStatusBadge, atlas_application_icon,
+)
 from app.ui.preload_popup import PreloadProgressPopup
 from app.ui.splash_image import clear_connected_dark_background
 from app.ui.theme import atlas_stylesheet
@@ -1857,20 +1860,12 @@ class AtlasWindow(QMainWindow):
         layout = QVBoxLayout(page)
         layout.setContentsMargins(24, 16, 24, 24)
         layout.setSpacing(12)
-        breadcrumb = QFrame()
-        breadcrumb.setObjectName("GuideBreadcrumb")
-        breadcrumb_row = QHBoxLayout(breadcrumb)
-        breadcrumb_row.setContentsMargins(8, 3, 8, 3)
-        breadcrumb_row.setSpacing(5)
+        breadcrumb = AtlasBreadcrumb(compact=True)
         breadcrumb_home = AtlasButton("Accueil", variant="guide_breadcrumb")
         breadcrumb_home.clicked.connect(lambda: self.show_page("Home"))
-        breadcrumb_row.addWidget(breadcrumb_home)
-        separator = QLabel("›")
-        separator.setObjectName("GuideBreadcrumbSeparator")
-        breadcrumb_row.addWidget(separator)
-        current = QLabel("Almanax")
-        current.setObjectName("GuideBreadcrumbCurrent")
-        breadcrumb_row.addWidget(current, 1)
+        breadcrumb.row.addWidget(breadcrumb_home)
+        breadcrumb.add_separator()
+        breadcrumb.add_current("Almanax")
         apply_unity_panel_shadow(breadcrumb)
         layout.addWidget(breadcrumb)
         layout.addWidget(AtlasPageTitle("Almanax"))

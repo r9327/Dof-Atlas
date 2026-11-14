@@ -97,6 +97,7 @@ class UnitySkinTests(unittest.TestCase):
             self.assertIn(f"atlas-control-{state}.svg", style)
         self.assertIn("QCheckBox::indicator:indeterminate", style)
         self.assertIn("QDateEdit::down-arrow", style)
+        self.assertIn("QComboBox::down-arrow", style)
         self.assertNotIn("rgba(20, 29, 55, 0.96)", style)
 
     def test_optional_control_icons_fallback_keeps_native_arrows(self) -> None:
@@ -114,6 +115,8 @@ class UnitySkinTests(unittest.TestCase):
             css = unity_skin_stylesheet()
             self.assertNotIn("atlas-control-up.svg", css)
             self.assertNotIn("QDateEdit::drop-down", css)
+            self.assertNotIn("QComboBox::drop-down", css)
+            self.assertNotIn("QComboBox::down-arrow", css)
 
     def test_shared_buttons_never_inherit_gold_or_neon_sprite_borders(self) -> None:
         """Optional Unity assets cannot silently replace semantic button colors."""
@@ -920,8 +923,8 @@ class UnitySkinTests(unittest.TestCase):
         page = AtlasWindow.create_almanax_page(shell)
         try:
             self.assertEqual(page.objectName(), "AlmanaxPage")
-            from app.ui.components import AtlasButton
-            breadcrumb = page.findChild(QWidget, "GuideBreadcrumb")
+            from app.ui.components import AtlasBreadcrumb, AtlasButton
+            breadcrumb = page.findChild(AtlasBreadcrumb, "GuideBreadcrumb")
             self.assertIsNotNone(breadcrumb)
             self.assertIsNotNone(breadcrumb.graphicsEffect())
             back = breadcrumb.findChild(AtlasButton, "GuideBreadcrumbButton")

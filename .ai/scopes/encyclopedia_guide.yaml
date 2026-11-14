@@ -11,6 +11,7 @@ working_set:
   - tests/test_guide_route_naming.py
   - tests/test_guide_team_route_order.py
   - tests/test_guide_ganymede_continuous_plan.py
+  - tests/test_guide_ultime_route_sheet_ui.py
   - app/modules/encyclopedia/views/guides_view.py
   - app/modules/encyclopedia/views/guide_ultime_generated_view.py
   - app/modules/encyclopedia/views/guide_ultime_manual_view.py

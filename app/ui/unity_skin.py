@@ -561,6 +561,13 @@ def unity_skin_stylesheet(palette: Mapping[str, str] | None = None) -> str:
             "QCheckBox::indicator:disabled { background: %s; border-color: %s; }"
             % (colors["PANEL"], colors["BORDER_SOFT"]),
         ))
+    if glyphs["down"]:
+        down_url = glyphs["down"].resolve().as_posix()
+        rules.extend((
+            "QComboBox::drop-down { border: none; border-left: 1px solid %s; width: %dpx; }"
+            % (colors["BORDER_SOFT"], UNITY_SIZES_PX["control_compact"]),
+            f'QComboBox::down-arrow {{ image: url("{down_url}"); width: 9px; height: 9px; }}',
+        ))
     if glyphs["up"] and glyphs["down"]:
         up_url = glyphs["up"].resolve().as_posix()
         down_url = glyphs["down"].resolve().as_posix()

@@ -876,12 +876,6 @@ QComboBox:disabled {
     color: @TEXT_DISABLED;
 }
 
-QComboBox::drop-down {
-    border: none;
-    border-left: 1px solid @BORDER_SOFT;
-    width: @CONTROL_HEIGHT_COMPACT;
-}
-
 QComboBox QAbstractItemView {
     background: @PANEL_2;
     color: @TEXT;

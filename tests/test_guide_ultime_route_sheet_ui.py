@@ -67,11 +67,10 @@ class GuideUltimeRouteSheetUITests(unittest.TestCase):
 
     def test_breadcrumb_uses_same_components_as_quests(self):
         source = inspect.getsource(GuideUltimeUniversalView._build_ui)
-        self.assertIn('self.breadcrumb.setObjectName("GuideBreadcrumb")', source)
-        self.assertIn('home = AtlasButton("Guides")', source)
-        self.assertIn('home.setObjectName("GuideBreadcrumbButton")', source)
-        self.assertIn('separator.setObjectName("GuideBreadcrumbSeparator")', source)
-        self.assertIn('current.setObjectName("GuideBreadcrumbCurrent")', source)
+        self.assertIn("self.breadcrumb = AtlasBreadcrumb()", source)
+        self.assertIn('home = AtlasButton("Guides", variant="guide_breadcrumb")', source)
+        self.assertIn("self.breadcrumb.add_separator()", source)
+        self.assertIn('self.breadcrumb.add_current("Guide Ultime")', source)
 
     def test_order_choice_is_not_permanent_and_only_appears_on_first_order_card(self):
         build_source = inspect.getsource(GuideUltimeUniversalView._build_ui)

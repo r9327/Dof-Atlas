@@ -105,7 +105,7 @@ class QuestsPageHierarchyTests(unittest.TestCase):
             self.assertEqual(page.quest_detail_view.current_quest_id, 101)
             self.assertEqual(page.breadcrumb_layout.contentsMargins().top(), 5)
             breadcrumb = [label.text() for label in page.breadcrumb.findChildren(QLabel)]
-            self.assertEqual(breadcrumb.count(">"), 3)
+            self.assertEqual(breadcrumb.count("›"), 3)
             self.assertIn("La terre banquise", breadcrumb)
             self.assertEqual(page.quest_detail_view.context.ordered_quest_ids, (101, 102))
             next_button = page.quest_detail_view.findChild(QPushButton, "QuestNextButton")

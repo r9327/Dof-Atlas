@@ -22,7 +22,7 @@ from app.modules.encyclopedia.views.guide_ultime_walkthrough_card import (
     ObjectiveWalkthrough,
     QuestWalkthroughIndex,
 )
-from app.ui.components import AtlasButton, AtlasComboBox
+from app.ui.components import AtlasBreadcrumb, AtlasButton, AtlasComboBox
 
 
 SENTINEL_COORD = -2147483648
@@ -407,21 +407,13 @@ class GuideUltimeUniversalView(GuideUltimeGeneratedView):
         root.setContentsMargins(0, 0, 0, 0)
         root.setSpacing(6)
 
-        self.breadcrumb = QFrame()
-        self.breadcrumb.setObjectName("GuideBreadcrumb")
-        self.breadcrumb_layout = QHBoxLayout(self.breadcrumb)
-        self.breadcrumb_layout.setContentsMargins(8, 5, 8, 5)
-        self.breadcrumb_layout.setSpacing(5)
+        self.breadcrumb = AtlasBreadcrumb()
+        self.breadcrumb_layout = self.breadcrumb.row
         home = AtlasButton("Guides", variant="guide_breadcrumb")
         home.clicked.connect(lambda _checked=False: self._return_to_guides_catalog())
         self.breadcrumb_layout.addWidget(home)
-        separator = QLabel(">")
-        separator.setObjectName("GuideBreadcrumbSeparator")
-        self.breadcrumb_layout.addWidget(separator)
-        current = QLabel("Guide Ultime")
-        current.setObjectName("GuideBreadcrumbCurrent")
-        self.breadcrumb_layout.addWidget(current)
-        self.breadcrumb_layout.addStretch(1)
+        self.breadcrumb.add_separator()
+        self.breadcrumb.add_current("Guide Ultime")
         root.addWidget(self.breadcrumb)
 
         header = QFrame()
