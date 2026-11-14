@@ -34,6 +34,7 @@ TOOL_SPEC = {
 
 EXPECTED_GUIDES = 95
 EXPECTED_STEPS = 7705
+_MAX_SOURCE_BYTES = 64 * 1024 * 1024
 
 
 def _canonical_bytes(data: Any) -> bytes:
@@ -139,12 +140,20 @@ def _load_strict_json(path: Path) -> dict[str, Any]:
             raise ValueError(f"out-of-range JSON float {raw!r}")
         return value
 
-    document = json.loads(
-        path.read_text(encoding="utf-8"),
-        object_pairs_hook=unique_pairs,
-        parse_constant=reject_nonfinite,
-        parse_float=finite_float,
-    )
+    # Bound the physical read, not just stat(): the file can grow after stat().
+    with path.open("rb") as stream:
+        raw = stream.read(_MAX_SOURCE_BYTES + 1)
+    if not raw or len(raw) > _MAX_SOURCE_BYTES:
+        raise ValueError("source JSON is empty or exceeds 64 MiB")
+    try:
+        document = json.loads(
+            raw.decode("utf-8"),
+            object_pairs_hook=unique_pairs,
+            parse_constant=reject_nonfinite,
+            parse_float=finite_float,
+        )
+    except (UnicodeError, RecursionError) as exc:
+        raise ValueError("source JSON has invalid encoding or nesting") from exc
     if not isinstance(document, dict):
         raise ValueError("JSON root must be an object")
     return document
@@ -178,8 +187,9 @@ def main(argv: list[str] | None = None) -> int:
             if any(part.casefold() in {"data", ".git", ".cache", "saves", "profiles", "user_data"}
                    for part in output.parts):
                 raise GuideRouteContractError("output must not target app data/cache/git")
-            if output.is_symlink() or any(parent.is_symlink() for parent in output.parents):
-                raise GuideRouteContractError("symlinked preview output is not supported")
+            if any(path.is_symlink() or path.is_junction()
+                   for path in (output, *output.parents)):
+                raise GuideRouteContractError("redirected preview output is not supported")
             source_root = Path(__file__).resolve().parents[1]
             try:
                 within_checkout = output.relative_to(source_root)

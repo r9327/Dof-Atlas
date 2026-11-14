@@ -352,5 +352,42 @@ class GuideImporterPreviewTests(unittest.TestCase):
             self.assertFalse(output.parent.exists())
 
 
+    def test_cli_rejects_oversized_and_deep_source_before_any_preview(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            source = root / "synthetic.json"
+            output = root / "preview.json"
+            doc = valid_export()
+            doc["complete"] = False
+            source.write_text(json.dumps(doc), encoding="utf-8")
+            with patch("tools.atlas_guide_importer._MAX_SOURCE_BYTES", 32):
+                with self.assertRaises(SystemExit) as raised:
+                    main(["--source", str(source), "--partial", "--output", str(output)])
+                self.assertEqual(raised.exception.code, 2)
+            self.assertFalse(output.exists())
+            source.write_text("[" * 1600 + "0" + "]" * 1600, encoding="utf-8")
+            with self.assertRaises(SystemExit) as raised:
+                main(["--source", str(source), "--partial", "--output", str(output)])
+            self.assertEqual(raised.exception.code, 2)
+            self.assertFalse(output.exists())
+
+    def test_cli_rejects_windows_junction_in_preview_parent(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            source = root / "synthetic.json"
+            doc = valid_export()
+            doc["complete"] = False
+            source.write_text(json.dumps(doc), encoding="utf-8")
+            junction = root / "redirected"
+            output = junction / "preview.json"
+            original = Path.is_junction
+            with patch.object(Path, "is_junction",
+                              lambda path: path == junction or original(path)):
+                with self.assertRaises(SystemExit) as raised:
+                    main(["--source", str(source), "--partial", "--output", str(output)])
+                self.assertEqual(raised.exception.code, 2)
+            self.assertFalse(junction.exists())
+
+
 if __name__ == "__main__":
     unittest.main()

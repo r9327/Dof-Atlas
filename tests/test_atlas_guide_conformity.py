@@ -1441,5 +1441,54 @@ class TestGuideConformity(unittest.TestCase):
                     self.assertIn("UNVERIFIABLE", result["issue_codes"])
 
 
+    def test_cli_rejects_oversized_and_deep_snapshots_before_reports(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            for name, data in (("reference", self.reference),
+                               ("before", self.atlas), ("after", self.atlas)):
+                (root / f"{name}.json").write_text(json.dumps(data), encoding="utf-8")
+            args = ["--reference", str(root / "reference.json"),
+                    "--before", str(root / "before.json"),
+                    "--after", str(root / "after.json"),
+                    "--output-dir", str(root / "reports")]
+            with patch("tools.atlas_guide_conformity._MAX_DOCUMENT_BYTES", 32):
+                with self.assertRaises(SystemExit) as raised:
+                    main(args)
+                self.assertEqual(raised.exception.code, 2)
+            self.assertFalse((root / "reports").exists())
+            (root / "after.json").write_text(
+                "[" * 1600 + "0" + "]" * 1600, encoding="utf-8",
+            )
+            with self.assertRaises(SystemExit) as raised:
+                main(args)
+            self.assertEqual(raised.exception.code, 2)
+            self.assertFalse((root / "reports").exists())
+
+    def test_cli_rejects_junction_and_cache_report_targets(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            for name, data in (("reference", self.reference),
+                               ("before", self.atlas), ("after", self.atlas)):
+                (root / f"{name}.json").write_text(json.dumps(data), encoding="utf-8")
+            def args_for(output):
+                return ["--reference", str(root / "reference.json"),
+                        "--before", str(root / "before.json"),
+                        "--after", str(root / "after.json"),
+                        "--output-dir", str(output)]
+            junction = root / "redirected"
+            output = junction / "reports"
+            original = Path.is_junction
+            with patch.object(Path, "is_junction",
+                              lambda path: path == junction or original(path)):
+                with self.assertRaises(SystemExit) as raised:
+                    main(args_for(output))
+                self.assertEqual(raised.exception.code, 2)
+            self.assertFalse(junction.exists())
+            with self.assertRaises(SystemExit) as raised:
+                main(args_for(root / ".cache" / "reports"))
+            self.assertEqual(raised.exception.code, 2)
+            self.assertFalse((root / ".cache").exists())
+
+
 if __name__ == "__main__":
     unittest.main()

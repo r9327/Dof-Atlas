@@ -13,6 +13,8 @@ import math
 import re
 from collections import Counter
 from pathlib import Path
+
+_MAX_DOCUMENT_BYTES = 64 * 1024 * 1024
 from typing import Any
 
 # Static contract for Atlas Doctor's derived AI tool catalog; no import side effects.
@@ -745,12 +747,20 @@ def _load_strict_json(path: Path) -> dict[str, Any]:
             raise ValueError(f"out-of-range JSON float {raw!r}")
         return value
 
-    document = json.loads(
-        path.read_text(encoding="utf-8"),
-        object_pairs_hook=unique_pairs,
-        parse_constant=reject_nonfinite,
-        parse_float=finite_float,
-    )
+    # Bound the physical read, not just stat(): the file can grow after stat().
+    with path.open("rb") as stream:
+        raw = stream.read(_MAX_DOCUMENT_BYTES + 1)
+    if not raw or len(raw) > _MAX_DOCUMENT_BYTES:
+        raise ValueError("snapshot JSON is empty or exceeds 64 MiB")
+    try:
+        document = json.loads(
+            raw.decode("utf-8"),
+            object_pairs_hook=unique_pairs,
+            parse_constant=reject_nonfinite,
+            parse_float=finite_float,
+        )
+    except (UnicodeError, RecursionError) as exc:
+        raise ValueError("snapshot JSON has invalid encoding or nesting") from exc
     if not isinstance(document, dict):
         raise ValueError("JSON root must be an object")
     return document
@@ -778,11 +788,12 @@ def main(argv: list[str] | None = None) -> int:
     if ".." in args.output_dir.parts:
         parser.error("parent traversal in report output is forbidden")
     output = args.output_dir.absolute()
-    if any(part.casefold() in {"data", ".git", "saves", "profiles", "user_data"}
+    if any(part.casefold() in {"data", ".git", ".cache", "saves", "profiles", "user_data"}
            for part in output.parts):
         parser.error("output directory must be outside Atlas data and saves")
-    if output.is_symlink() or any(parent.is_symlink() for parent in output.parents):
-        parser.error("symlinked output directories are forbidden")
+    if any(path.is_symlink() or path.is_junction()
+           for path in (output, *output.parents)):
+        parser.error("redirected output directories are forbidden")
     source_root = Path(__file__).resolve().parents[1]
     try:
         within_checkout = output.relative_to(source_root)

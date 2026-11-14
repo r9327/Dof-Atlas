@@ -44,6 +44,8 @@ _ROOT_MARKER = ".atlas-guide-candidates-v1.json"
 _SELECTED = "selected.json"
 _FORBIDDEN_PARTS = frozenset({".git", ".cache", "data", "saves", "profiles", "user_data"})
 _NO_SELECTION = "NONE"
+_MAX_STORE_METADATA_BYTES = 16 * 1024
+_MAX_CANDIDATE_BYTES = 128 * 1024 * 1024
 
 
 def _is_redirected(path: Path) -> bool:
@@ -349,17 +351,23 @@ def _read_json(path: Path, *, verified_payload: bytes | None = None) -> dict[str
         # A content-addressed generation is verified from exact bytes.
         # Reopening its path after hashing would allow a second, different
         # document to be parsed if the generation changed between reads.
-        text = (
-            path.read_text(encoding="utf-8")
-            if verified_payload is None else verified_payload.decode("utf-8")
-        )
+        if verified_payload is None:
+            with path.open("rb") as stream:
+                payload = stream.read(_MAX_STORE_METADATA_BYTES + 1)
+            if not payload or len(payload) > _MAX_STORE_METADATA_BYTES:
+                raise ValueError("store metadata is empty or oversized")
+        else:
+            payload = verified_payload
+            if not payload or len(payload) > _MAX_CANDIDATE_BYTES:
+                raise ValueError("candidate generation is empty or oversized")
+        text = payload.decode("utf-8")
         result = json.loads(
             text,
             object_pairs_hook=no_duplicate_keys,
             parse_constant=no_nonfinite,
             parse_float=finite_float,
         )
-    except (ValueError, OSError) as exc:
+    except (ValueError, OSError, RecursionError) as exc:
         raise GuideRouteContractError(f"invalid store file: {path.name}: {exc}") from exc
     if not isinstance(result, dict):
         raise GuideRouteContractError(f"invalid store JSON object: {path.name}")
@@ -430,9 +438,12 @@ def _verify_generation(root: Path, digest: str) -> dict[str, Any] | None:
     if _is_redirected(path) or _is_redirected(path.parent):
         raise GuideRouteContractError("symlinked candidate generation")
     try:
-        payload = path.read_bytes()
+        with path.open("rb") as stream:
+            payload = stream.read(_MAX_CANDIDATE_BYTES + 1)
     except OSError as exc:
         raise GuideRouteContractError(f"missing candidate generation: {digest}") from exc
+    if not payload or len(payload) > _MAX_CANDIDATE_BYTES:
+        raise GuideRouteContractError("candidate generation is empty or oversized")
     if _digest(payload) != digest:
         raise GuideRouteContractError(f"candidate generation SHA mismatch: {digest}")
     preview = _read_json(path, verified_payload=payload)
@@ -454,6 +465,8 @@ def publish_candidate(
     _validate_candidate(preview)
     _checked_pointer(expected_selected, "expected_selected")
     payload = _json_bytes(preview)
+    if len(payload) > _MAX_CANDIDATE_BYTES:
+        raise GuideRouteContractError("candidate generation exceeds 128 MiB")
     digest = _digest(payload)
     # An attempted CAS against a non-existent store can never succeed.
     # Do not leave a newly managed directory behind on a predictable failure.

@@ -1340,5 +1340,30 @@ class CandidateStoreTests(unittest.TestCase):
         ):
             publish_candidate(altered, root=self.root)
 
+    def test_unbounded_pointer_and_nested_metadata_are_fail_closed(self):
+        published = publish_candidate(self.preview, root=self.root)
+        selected = self.root / "selected.json"
+        original = selected.read_bytes()
+        for malformed in (b" " * (16 * 1024 + 1),
+                          ("[" * 1600 + "0" + "]" * 1600).encode("utf-8")):
+            with self.subTest(size=len(malformed)):
+                selected.write_bytes(malformed)
+                with self.assertRaises(GuideRouteContractError):
+                    selected_candidate(self.root)
+        selected.write_bytes(original)
+        self.assertEqual(selected_candidate(self.root), published["candidate_sha256"])
+
+    def test_generation_byte_limit_blocks_publish_and_existing_generation(self):
+        with patch("tools.atlas_guide_candidate_store._MAX_CANDIDATE_BYTES", 32):
+            with self.assertRaisesRegex(GuideRouteContractError, "exceeds"):
+                publish_candidate(self.preview, root=self.root)
+            self.assertFalse(self.root.exists())
+        published = publish_candidate(self.preview, root=self.root)
+        with patch("tools.atlas_guide_candidate_store._MAX_CANDIDATE_BYTES", 32):
+            with self.assertRaisesRegex(GuideRouteContractError, "oversized"):
+                selected_candidate(self.root)
+        self.assertEqual(selected_candidate(self.root), published["candidate_sha256"])
+
+
 if __name__ == "__main__":
     unittest.main()

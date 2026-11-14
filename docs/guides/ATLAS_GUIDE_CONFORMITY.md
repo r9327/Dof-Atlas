@@ -609,3 +609,20 @@ leurs attestations et leurs étapes sont fabriqués par le test. Aucun des
 95 guides réels n'a été extrait, comparé, certifié ni publié. La Phase 0,
 Doctor agent/Graphify exact-SHA, l'UI Qt et la recette Windows/DOFUS
 restent des contrôles distincts obligatoires.
+
+## Phase 0 — limites de lecture et redirections Windows
+
+Les trois outils de préparation utilisent désormais des lectures **bornées avant
+le décodage** : 64 Mio par export de l'importeur et par snapshot du comparateur,
+128 Mio par génération candidate, 16 Kio par pointeur/marqueur de stockage.
+Un document vide, surdimensionné, mal encodé ou profondément imbriqué est
+refusé sans publication, sans certification implicite et sans modification des
+sauvegardes. Ces limites s'appliquent à l'outillage hors runtime : elles ne
+signifient pas qu'un guide installé peut consommer autant de RAM.
+
+Les dossiers de sortie rejettent aussi les **jonctions Windows**, en plus des
+liens symboliques et des chemins protégés ; le comparateur refuse `.cache`.
+Les tests utilisent uniquement des routes fictives, injectent de très petites
+limites pour tester les rejets sans allouer 128 Mio et simulent les jonctions
+sous Linux. Ils doivent être exécutés au SHA exact avant de déclarer ce lot
+PASS. Aucun guide Ganymède n'est autorisé, importé ou certifié par ce durcissement.
