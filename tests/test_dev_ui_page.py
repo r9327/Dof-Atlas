@@ -90,6 +90,48 @@ class DevUiPageTests(unittest.TestCase):
             page.close()
             page.deleteLater()
 
+    def test_black_surface_and_density_regressions_use_shared_unity_roles(self) -> None:
+        from app.pages.dev_ui_page import DevUiPage
+        from app.ui.theme import atlas_stylesheet
+        from app.ui.unity_palette import UNITY_SIZES_PX
+        from app.ui.components import AtlasComboBox
+
+        page = DevUiPage(on_back=lambda: None)
+        try:
+            detail_shell = page.preview_success_columns["AchievementDetailStack"]
+            self.assertEqual(detail_shell.widget(0).objectName(),
+                             "AtlasTransparentHost")
+            self.assertEqual(detail_shell.styleSheet(), "")
+            self.assertEqual(page.gallery_navigation.maximumWidth(), 420)
+            self.assertEqual(page.gallery_navigation.maxVisibleItems(), 8)
+            self.assertEqual(page.preview_map_tree.maximumHeight(),
+                             3 * UNITY_SIZES_PX["control_normal"])
+            self.assertEqual(page.preview_scroll_list.maximumHeight(),
+                             4 * UNITY_SIZES_PX["control_normal"])
+            self.assertEqual(page.preview_almanax_calendar.maximumHeight(),
+                             7 * UNITY_SIZES_PX["control_normal"])
+            self.assertTrue(all(
+                frame.graphicsEffect() is not None
+                for frame in page.preview_notifications.values()
+            ))
+            self.assertIsNotNone(page.preview_panel.graphicsEffect())
+            self.assertEqual(AtlasComboBox().maxVisibleItems(), 8)
+            self.assertTrue(all(w.styleSheet() == ""
+                                for w in page.findChildren(QWidget)))
+        finally:
+            page.close()
+            page.deleteLater()
+
+        css = atlas_stylesheet()
+        self.assertIn(
+            "QCalendarWidget#AlmanaxCalendar QTableView#qt_calendar_calendarview::item",
+            css,
+        )
+        self.assertIn(
+            "QWidget#AchievementsView QStackedWidget#AchievementDetailStack > QWidget",
+            css,
+        )
+
     def test_success_three_column_shell_shares_dev_ui_materials(self) -> None:
         from app.pages.dev_ui_page import DevUiPage
         from PySide6.QtWidgets import QStackedWidget

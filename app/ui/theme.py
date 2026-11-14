@@ -1876,12 +1876,25 @@ QCalendarWidget#AlmanaxCalendar QToolButton:hover {
     background: @GLASS_HOVER;
     border-color: @GREEN_BORDER;
 }
-QCalendarWidget#AlmanaxCalendar QAbstractItemView {
-    background: @GLASS_PANEL_BOTTOM;
+/* Qt paints the calendar day grid in an inner table/viewport. Give the
+   viewport and its cells the same opaque Unity blue, never Qt black. */
+QCalendarWidget#AlmanaxCalendar QAbstractItemView,
+QCalendarWidget#AlmanaxCalendar QTableView#qt_calendar_calendarview {
+    background: @PANEL_2;
+    alternate-background-color: @PANEL_2;
     color: @TEXT;
     border: none;
+    gridline-color: @BORDER_SOFT;
     selection-background-color: @PANEL_ACTIVE;
     selection-color: @TEXT;
+}
+QCalendarWidget#AlmanaxCalendar QTableView#qt_calendar_calendarview::item {
+    background: @PANEL_2;
+    color: @TEXT;
+}
+QCalendarWidget#AlmanaxCalendar QTableView#qt_calendar_calendarview::item:selected {
+    background: @PANEL_ACTIVE;
+    color: @TEXT;
 }
 QLabel#AlmanaxSelectedDate { color: @TEXT; font-size: @FONT_SECTION; font-weight: 700; }
 QLabel#AlmanaxUnavailable { color: @TEXT_MUTED; font-size: @FONT_BODY; }
@@ -2237,10 +2250,15 @@ QLabel#AlmanaxUnavailable { color: @TEXT_MUTED; font-size: @FONT_BODY; }
                     border-left: 3px solid @GREEN;
                 }
 
-                QWidget#AchievementsView QStackedWidget#AchievementDetailStack,
+                /* Only the scroll/content canvas is opaque. The stacked
+                   detail shell keeps the same glass as the two siblings. */
                 QWidget#AchievementsView QScrollArea#GuideRightPanelScroll,
                 QWidget#AchievementsView QWidget#AchievementDetailContent {
                     background: @PANEL;
+                }
+
+                QWidget#AchievementsView QStackedWidget#AchievementDetailStack > QWidget {
+                    background: transparent;
                 }
 
                 QWidget#AchievementsView QScrollArea#GuideRightPanelScroll {

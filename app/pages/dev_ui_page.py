@@ -146,7 +146,11 @@ class DevUiPage(QWidget):
         self.gallery_navigation.setObjectName("DevUiFamilyCombo")
         self.gallery_navigation.setAccessibleName("Accès direct aux familles UI")
         self.gallery_navigation.view().setAlternatingRowColors(False)
-        navigator.addWidget(self.gallery_navigation, 1)
+        # This is a navigation chooser, not a full-width form field.
+        # The common combo itself caps popup rows for keyboard/scroll access.
+        self.gallery_navigation.setMinimumWidth(240)
+        self.gallery_navigation.setMaximumWidth(420)
+        navigator.addWidget(self.gallery_navigation)
         self.gallery_count = QLabel()
         self.gallery_count.setObjectName("MutedLabel")
         navigator.addWidget(self.gallery_count)
@@ -425,7 +429,7 @@ class DevUiPage(QWidget):
         self.preview_sidebar = QFrame()
         self.preview_sidebar.setObjectName("sidebar")
         apply_unity_panel_shadow(self.preview_sidebar, **UNITY_PANEL_SHADOW)
-        self.preview_sidebar.setMinimumWidth(195)
+        self.preview_sidebar.setMinimumWidth(192)
         self.preview_sidebar.setMaximumWidth(240)
         layout = QVBoxLayout(self.preview_sidebar)
         layout.setContentsMargins(8, 8, 8, 8)
@@ -482,7 +486,7 @@ class DevUiPage(QWidget):
                 "WorldMenuItemActive" if name == "Monde des Douze"
                 else "WorldMenuItem"
             )
-            button.setFixedHeight(28)
+            button.setFixedHeight(UNITY_SIZES_PX["control_normal"])
             button.clicked.connect(
                 lambda _checked=False, choice=name: self._select_preview_world(choice)
             )
@@ -550,7 +554,7 @@ class DevUiPage(QWidget):
 
         self.preview_tree = QTreeWidget()
         self.preview_tree.setHeaderLabels(("Famille UI", "État"))
-        self.preview_tree.setMaximumHeight(154)
+        self.preview_tree.setMaximumHeight(5 * UNITY_SIZES_PX["control_normal"])
         self.preview_tree.setAlternatingRowColors(False)
         self.preview_tree.setUniformRowHeights(True)
         self.preview_tree.setIndentation(14)
@@ -573,7 +577,7 @@ class DevUiPage(QWidget):
         self.preview_table = QTableWidget(3, 2)
         self.preview_table.setHorizontalHeaderLabels(("Contrôle", "État"))
         self.preview_table.setVerticalScrollBarPolicy(Qt.ScrollBarAsNeeded)
-        self.preview_table.setMaximumHeight(154)
+        self.preview_table.setMaximumHeight(5 * UNITY_SIZES_PX["control_normal"])
         self.preview_table.setAlternatingRowColors(False)
         self.preview_table.setShowGrid(False)
         self.preview_table.verticalHeader().hide()
@@ -595,7 +599,7 @@ class DevUiPage(QWidget):
         self.preview_map_tree = QTreeWidget()
         self.preview_map_tree.setObjectName("MapViewTree")
         self.preview_map_tree.setHeaderHidden(True)
-        self.preview_map_tree.setMaximumHeight(100)
+        self.preview_map_tree.setMaximumHeight(3 * UNITY_SIZES_PX["control_normal"])
         self.preview_map_tree.setAlternatingRowColors(False)
         for name in ("Monde des Douze", "Incarnam", "Frigost"):
             self.preview_map_tree.addTopLevelItem(QTreeWidgetItem((name,)))
@@ -623,6 +627,9 @@ class DevUiPage(QWidget):
             if object_name == "AchievementDetailStack":
                 column = QStackedWidget()
                 detail = QWidget()
+                # Reuse the already-shared transparent content host: do not
+                # paint an opaque QWidget on top of the stacked glass shell.
+                detail.setObjectName("AtlasTransparentHost")
                 detail_layout = QVBoxLayout(detail)
                 detail_layout.addWidget(QLabel(caption))
                 column.addWidget(detail)
@@ -631,7 +638,7 @@ class DevUiPage(QWidget):
                 column_layout = QVBoxLayout(column)
                 column_layout.addWidget(QLabel(caption))
             column.setObjectName(object_name)
-            column.setMinimumHeight(84)
+            column.setMinimumHeight(3 * UNITY_SIZES_PX["control_normal"])
             apply_unity_panel_shadow(column, **UNITY_PANEL_SHADOW)
             catalogue_layout.addWidget(column, 1)
             self.preview_success_columns[object_name] = column
@@ -798,7 +805,7 @@ class DevUiPage(QWidget):
         self.preview_almanax_calendar.setVerticalHeaderFormat(
             QCalendarWidget.NoVerticalHeader
         )
-        self.preview_almanax_calendar.setMaximumHeight(215)
+        self.preview_almanax_calendar.setMaximumHeight(7 * UNITY_SIZES_PX["control_normal"])
         apply_unity_panel_shadow(
             self.preview_almanax_calendar, **UNITY_PANEL_SHADOW
         )
@@ -944,6 +951,9 @@ class DevUiPage(QWidget):
         ):
             frame = QFrame()
             frame.setObjectName("card")
+            # Static preview card, unlike long scrolling rows: safe to give
+            # it the same subtle Unity relief as other shared cards.
+            apply_unity_panel_shadow(frame, **UNITY_PANEL_SHADOW)
             line = QHBoxLayout(frame)
             line.setContentsMargins(10, 6, 10, 6)
             line.setSpacing(12)
@@ -1087,7 +1097,7 @@ class DevUiPage(QWidget):
         ):
             self.preview_scroll_list.addItem(item)
         self.preview_scroll_list.setMinimumWidth(130)
-        self.preview_scroll_list.setMaximumHeight(134)
+        self.preview_scroll_list.setMaximumHeight(4 * UNITY_SIZES_PX["control_normal"])
         self.preview_scroll_list.currentTextChanged.connect(
             lambda text: self._report(f"Liste : {text}")
         )
@@ -1186,6 +1196,7 @@ class DevUiPage(QWidget):
 
         self.preview_panel = QFrame()
         self.preview_panel.setObjectName("card")
+        apply_unity_panel_shadow(self.preview_panel, **UNITY_PANEL_SHADOW)
         panel_layout = QVBoxLayout(self.preview_panel)
         panel_layout.addWidget(QLabel("Carte commune Unity · bordure et fond partagés"))
         section.addWidget(self.preview_panel)

@@ -129,6 +129,9 @@ class AtlasComboBox(QComboBox):
 
     def __init__(self, parent: QWidget | None = None) -> None:
         super().__init__(parent)
+        # Keep long lists (such as the 22 UI families) scrollable and
+        # compact in every shared Unity combo, not just the developer page.
+        self.setMaxVisibleItems(8)
         popup = self.view()
         popup.setItemDelegate(UnityPopupSeparatorDelegate(popup))
 
