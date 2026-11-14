@@ -20,8 +20,8 @@ UI_FAMILY_QSS_SELECTORS: dict[str, tuple[str, ...]] = {
         "#InlineActionButton", "#PopupLinkButton", "#TopNavButton",
     ),
     "navigation": ("QTabBar::tab", "QTabWidget::pane", "QMenu {"),
-    "sidebar": ("#sidebar", "#navItem", "#navItemActive", "#MenuButton", "#NavSeparator"),
     "breadcrumbs": ("QFrame#GuideBreadcrumb", "QPushButton#GuideBreadcrumbButton", "QLabel#GuideBreadcrumbCurrent"),
+    "sidebar": ("#sidebar", "#navItem", "#navItemActive", "#MenuButton", "#NavSeparator"),
     "data_views": ("QTreeWidget::item", "QTableWidget", "QHeaderView::section"),
     "scroll_resize": (
         "QSplitter::handle:horizontal", "QScrollBar:vertical",
