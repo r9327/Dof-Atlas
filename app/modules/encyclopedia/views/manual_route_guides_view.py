@@ -249,7 +249,9 @@ class ManualRouteGuidesView(_BaseGuidesView):
             return
         reader = self._catalog_manual_views.pop(guide_id, None)
         self._catalog_manual_services.pop(guide_id, None)
-        self._loaded_imported_source_services.pop(guide_id, None)
+        owned_service = self._loaded_imported_source_services.pop(guide_id, None)
+        if owned_service is not None:
+            owned_service.retire()
         if reader is None:
             return
         if self.stack.currentWidget() is reader:

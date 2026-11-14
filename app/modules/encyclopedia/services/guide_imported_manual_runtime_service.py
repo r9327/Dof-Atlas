@@ -84,16 +84,26 @@ class ImportedSourceManualRuntimeService(GuideUltimeGeneratedService):
             card["manual_stage_id"]: card for card in self.cards
         }
         self._authorization_guard: Callable[[str, dict], bool] | None = None
+        self._retired = False
         self._gate_evaluator = gate_evaluator
 
     def set_authorization_guard(
         self, guard: Callable[[str, dict], bool],
     ) -> None:
+        if self._retired:
+            raise RuntimeError("A retired source Guide runtime cannot be reauthorized")
         if not callable(guard):
             raise TypeError("A source authorization guard must be callable")
         self._authorization_guard = guard
 
+    def retire(self) -> None:
+        """Permanently disable a discarded factory-owned service instance."""
+        self._retired = True
+        self._authorization_guard = None
+
     def can_write_progress(self) -> bool:
+        if self._retired:
+            return False
         guard = self._authorization_guard
         if guard is None:
             return False

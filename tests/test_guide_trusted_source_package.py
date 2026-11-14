@@ -91,6 +91,21 @@ class TrustedSourcePackageTests(unittest.TestCase):
         service.route["steps"][0]["manual_title"] = "Injected UI content"
         self.assertFalse(loader.authorize(self.key, service.route))
 
+    def test_retired_imported_service_cannot_reactivate_or_persist_progress(self):
+        entry = self.write()
+        loader = self.loader(entry)
+        service = loader.factories(
+            SimpleNamespace(), SimpleNamespace(), self.progress,
+        )[self.key]()
+        service.set_authorization_guard(loader.authorize)
+        self.assertTrue(service.can_write_progress())
+        service.retire()
+        self.assertFalse(service.can_write_progress())
+        with self.assertRaisesRegex(RuntimeError, "retired"):
+            service.set_authorization_guard(loader.authorize)
+        service.set_page_checked("character:1", service.cards[0], 0, True)
+        self.assertFalse((self.root / "progress.json").exists())
+
     def test_installed_file_changes_revoke_existing_progress_permission(self):
         entry = self.write()
         loader = self.loader(entry)

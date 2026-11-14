@@ -252,3 +252,14 @@ reste affiché ; aucun lecteur refusé ne persiste en cache. Si une factory
 échoue, elle est appelée une seule fois par tentative de sélection : on
 ne relit pas le même paquet en échec pendant le traitement de l'erreur.
 Des tests Qt fictifs couvrent les trois scénarios.
+
+### Retrait irréversible des services créés à la demande
+
+Lorsque le routeur libère une instance de service issue d'une factory,
+il la marque `retired` et coupe définitivement son callback
+d'autorisation. Même si un composant Qt détient temporairement une
+ancienne référence avant `deleteLater()`, les clics tardifs ne peuvent
+plus enregistrer d'étape. La même instance ne peut pas être réautorisée :
+la factory de confiance doit créer un **nouveau service** lors d'une
+réouverture. Les services injectés explicitement par l'appelant conservent
+leur propre cycle de vie et ne sont pas retirés par cette règle.

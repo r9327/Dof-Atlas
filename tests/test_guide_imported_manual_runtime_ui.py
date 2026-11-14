@@ -327,6 +327,30 @@ class ImportedSourceRouterQtTests(unittest.TestCase):
         self.assertTrue(self.view.select_guide(lazy_key))
         self.assertEqual(calls, ["load", "load", "load"])
 
+    def test_factory_owned_runtime_cannot_write_after_home_disposal(self):
+        guide_id = "source_guide:fictional-retired"
+        self.view._imported_source_factories[guide_id] = (
+            lambda: ImportedSourceManualRuntimeService(
+                self.quest_progress, self.achievement_progress, self.progress,
+                route=_source_route("fictional-retired"),
+            )
+        )
+        self.approved = True
+        self.assertTrue(self.view.select_guide(guide_id))
+        old_service = self.view._loaded_imported_source_services[guide_id]
+        self.assertTrue(old_service.can_write_progress())
+        self.view.show_home()
+        self.assertNotIn(guide_id, self.view._loaded_imported_source_services)
+        self.assertFalse(old_service.can_write_progress())
+        with self.assertRaisesRegex(RuntimeError, "retired"):
+            old_service.set_authorization_guard(self.view._imported_source_authorizer)
+        old_service.set_page_checked("character:1", old_service.cards[0], 0, True)
+        self.assertFalse(self.progress_path.exists())
+        self.assertTrue(self.view.select_guide(guide_id))
+        new_service = self.view._loaded_imported_source_services[guide_id]
+        self.assertIsNot(new_service, old_service)
+        self.assertTrue(new_service.can_write_progress())
+
     def test_failed_source_factory_is_invoked_only_once_per_selection(self):
         key = "source_guide:fictional-unavailable"
         attempted = []
