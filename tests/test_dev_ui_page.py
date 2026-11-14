@@ -38,6 +38,9 @@ class DevUiPageTests(unittest.TestCase):
                 page.preview_buttons["primary"].objectName(),
                 "PrimaryActionButton",
             )
+            self.assertEqual(
+                page.preview_buttons["selected"].objectName(), "ActiveButton",
+            )
             self.assertFalse(page.preview_buttons["disabled"].isEnabled())
             self.assertEqual(page.startup_title.objectName(), "PreloadPopupTitle")
             self.assertEqual(page.startup_status.objectName(), "PreloadPopupCurrent")
