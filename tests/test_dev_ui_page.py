@@ -100,6 +100,21 @@ class DevUiPageTests(unittest.TestCase):
                              {"done", "info", "warning", "danger"})
             self.assertEqual(page.preview_contract.rowCount(),
                              len(UNITY_UI_UNIFICATION_CONTRACT))
+            # No hidden inventory rows in nested table scroll areas.
+            for table in (
+                page.preview_contract, page.preview_scope, page.preview_metrics,
+            ):
+                self.assertEqual(
+                    table.verticalScrollBarPolicy(), Qt.ScrollBarAlwaysOff
+                )
+                self.assertGreater(
+                    table.height(), table.horizontalHeader().sizeHint().height()
+                )
+                self.assertGreaterEqual(
+                    table.height(),
+                    table.horizontalHeader().sizeHint().height()
+                    + sum(table.rowHeight(i) for i in range(table.rowCount()))
+                )
             self.assertEqual(page.gallery_navigation.count(),
                              len(UNITY_UI_FAMILY_INDEX))
             for row, (label, family) in enumerate(UNITY_UI_UNIFICATION_CONTRACT):
