@@ -491,7 +491,9 @@ class DevUiPage(QWidget):
                 lambda _checked=False, choice=name: self._select_preview_world(choice)
             )
             self.preview_world_buttons[name] = button
-            world_layout.addWidget(button, 1)
+            world_layout.addWidget(button)
+        # Navigation labels are compact tabs, not three giant equal-width bars.
+        world_layout.addStretch(1)
         section.addWidget(self.preview_world_menu)
 
     def _toggle_preview_sidebar(self) -> None:
@@ -1803,7 +1805,10 @@ class DevUiPage(QWidget):
         dialog.content_layout.addWidget(message)
         close_button = AtlasButton("Fermer", variant="primary")
         close_button.clicked.connect(dialog.accept)
-        dialog.content_layout.addWidget(close_button)
+        footer = QHBoxLayout()
+        footer.addStretch(1)
+        footer.addWidget(close_button)
+        dialog.content_layout.addLayout(footer)
         dialog.finished.connect(
             lambda _result: self._report("Dialogue refermé")
         )

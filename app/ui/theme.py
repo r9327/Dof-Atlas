@@ -539,7 +539,8 @@ QTabWidget#EncyclopediaTabs QTabBar::tab:hover {
 
 QTreeWidget#AchievementCategoryTree,
 #AchievementsView QListWidget#QuestResultList {
-    background: @BG;
+    /* Never punch a solid near-black hole through the shared blue panel. */
+    background: @PANEL_2;
     border: none;
     color: @TEXT_MUTED;
     outline: none;

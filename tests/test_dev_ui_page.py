@@ -132,6 +132,35 @@ class DevUiPageTests(unittest.TestCase):
             css,
         )
 
+    def test_shared_dialog_keeps_real_icon_only_and_compact_actions(self) -> None:
+        from PySide6.QtGui import QIcon
+        from app.pages.dev_ui_page import DevUiPage
+        from app.ui.components import AtlasDialog, AtlasDialogHeader
+
+        empty_icon_header = AtlasDialogHeader("Test", icon=QIcon())
+        try:
+            self.assertTrue(empty_icon_header.icon_label.isHidden())
+        finally:
+            empty_icon_header.deleteLater()
+
+        dialog = AtlasDialog()
+        try:
+            self.assertGreaterEqual(dialog.minimumWidth(), 400)
+            self.assertEqual(dialog.styleSheet(), "")
+        finally:
+            dialog.deleteLater()
+
+        page = DevUiPage(on_back=lambda: None)
+        try:
+            page.preview_dialog_variants["info"].click()
+            preview = page._preview_dialog
+            self.assertIsNotNone(preview)
+            self.assertEqual(preview.content_layout.count(), 4)
+            preview.reject()
+        finally:
+            page.close()
+            page.deleteLater()
+
     def test_success_three_column_shell_shares_dev_ui_materials(self) -> None:
         from app.pages.dev_ui_page import DevUiPage
         from PySide6.QtWidgets import QStackedWidget

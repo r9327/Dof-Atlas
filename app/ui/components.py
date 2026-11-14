@@ -241,6 +241,9 @@ class AtlasDialog(QDialog):
         super().__init__(parent)
         self.setObjectName("AtlasDialog")
         self.setModal(True)
+        # Shared dialogs must leave enough room for a title and action footer
+        # instead of compressing both into the native 290 px minimum.
+        self.setMinimumWidth(400)
         self.content_layout = QVBoxLayout(self)
         self.content_layout.setContentsMargins(24, 22, 24, 22)
         self.content_layout.setSpacing(16)
@@ -269,7 +272,10 @@ class AtlasDialogHeader(QWidget):
         self.icon_label.setAlignment(Qt.AlignCenter)
         if icon is not None and not icon.isNull():
             self.icon_label.setPixmap(icon.pixmap(QSize(44, 44)))
-        self.icon_label.setVisible(self.icon_label.pixmap() is not None)
+        pixmap = self.icon_label.pixmap()
+        # Qt may return a *null QPixmap*, not None. Do not leave an empty
+        # bordered 52 px tile when the official Atlas icon is unavailable.
+        self.icon_label.setVisible(pixmap is not None and not pixmap.isNull())
         layout.addWidget(self.icon_label, 0, Qt.AlignTop)
 
         text_layout = QVBoxLayout()
