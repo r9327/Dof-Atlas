@@ -1134,8 +1134,17 @@ class OrganizerLayoutTests(unittest.TestCase):
                 ):
                     with self.subTest(selector=selector):
                         self.assertIn(selector, css)
-                for state in (":hover", ":pressed", ":disabled"):
-                    self.assertIn(f"QPushButton#secondaryButton{state}", css)
+                # Organizer no longer duplicates button state rules.
+                # Hover/disabled use the shared role, press the global Qt role.
+                for selector in (
+                    "#secondaryButton:hover",
+                    "QPushButton:pressed, QToolButton:pressed",
+                    "#secondaryButton:disabled",
+                ):
+                    self.assertIn(selector, css)
+                self.assertNotIn(
+                    "#organizerPage QPushButton#secondaryButton:hover", css
+                )
                 self.assertIn("qlineargradient", css)
                 self.assertIn("border-radius: 8px", css)
                 self.assertIn("QPushButton#keyBadge", css)
