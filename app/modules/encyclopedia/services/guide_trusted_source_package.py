@@ -14,7 +14,9 @@ from pathlib import Path
 from typing import Any, Callable, Mapping
 
 from app.modules.encyclopedia.services.guide_shared_route_contract import (
+    GuideRouteContractError,
     _identifier as _canonical_source_identifier,
+    project_authorized_guide,
 )
 
 Witness = Callable[[str, str, str], bool]
@@ -159,10 +161,37 @@ class GuideTrustedSourcePackage:
                 or not isinstance(route.get("steps"), list)
                 or not route["steps"]):
             raise GuidePackageBlocked("Invalid or mismatched projected Guide route")
+        # Rebuild the canonical reader representation from the exact authored
+        # steps embedded in this projected route. A matching file SHA alone
+        # cannot prove that the renderer faithfully exposes the source actions:
+        # reject changed UI sections, hidden steps, injected text and rerouting.
         try:
-            route_digest = hashlib.sha256(_json_bytes(route)).hexdigest()
-        except (TypeError, ValueError) as exc:
-            raise GuidePackageBlocked("Non-JSON-compatible projected route") from exc
+            metadata = route.get("source_guide_metadata")
+            if not isinstance(metadata, dict):
+                raise GuidePackageBlocked("Missing canonical source Guide metadata")
+            source_steps = []
+            for card in route["steps"]:
+                if not isinstance(card, dict):
+                    raise GuidePackageBlocked("Malformed projected Guide step")
+                runtime = card.get("manual_runtime_metadata")
+                source_step = (
+                    runtime.get("source_step")
+                    if isinstance(runtime, dict) else None
+                )
+                if not isinstance(source_step, dict):
+                    raise GuidePackageBlocked("Missing original authored source step")
+                source_steps.append(source_step)
+            reconstructed = project_authorized_guide({
+                **metadata, "steps": source_steps,
+            })
+            route_bytes = _json_bytes(route)
+            if _json_bytes(reconstructed) != route_bytes:
+                raise GuidePackageBlocked("Projected Guide differs from authored source")
+            route_digest = hashlib.sha256(route_bytes).hexdigest()
+        except (GuideRouteContractError, TypeError, ValueError) as exc:
+            if isinstance(exc, GuidePackageBlocked):
+                raise
+            raise GuidePackageBlocked("Invalid canonical source projection") from exc
         # A fresh load revokes the previous in-memory identity proof.
         self._loaded[guide_id] = (entry.sha256, route_digest)
         return route

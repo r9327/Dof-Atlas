@@ -4,6 +4,7 @@ No real Ganymede data, source certificate or installed Atlas app is used.
 """
 from __future__ import annotations
 
+import copy
 import hashlib
 import json
 import tempfile
@@ -102,6 +103,20 @@ class TrustedSourcePackageTests(unittest.TestCase):
         poisoned = dict(self.route, source_compliance="CERTIFIED")
         entry = self.write(route=poisoned)
         with self.assertRaisesRegex(GuidePackageBlocked, "Invalid"):
+            self.loader(entry).load_route(self.key)
+
+    def test_attested_file_with_forged_ui_projection_is_rejected(self):
+        # A forged or lossy projected route must fail even when the supplied
+        # synthetic witness approves its exact SHA. Metadata is not a proof.
+        forged = copy.deepcopy(self.route)
+        forged["steps"][0]["manual_title"] = "Injected UI text"
+        entry = self.write(route=forged)
+        with self.assertRaisesRegex(GuidePackageBlocked, "differs from authored source"):
+            self.loader(entry).load_route(self.key)
+        forged = copy.deepcopy(self.route)
+        forged["steps"][0]["manual_sections"]["now"].clear()
+        entry = self.write(route=forged)
+        with self.assertRaisesRegex(GuidePackageBlocked, "differs from authored source"):
             self.loader(entry).load_route(self.key)
 
     def test_duplicate_json_keys_and_nonfinite_values_are_rejected(self):

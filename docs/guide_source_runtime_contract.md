@@ -212,3 +212,13 @@ uniquement), plus le test Qt sur la révocation de l'attestation dans
 `tests.test_guide_imported_manual_runtime_ui`. Ces suites sont ajoutées
 au workflow Phase 0 Windows avec rapport exact-SHA ; une PR non fusionnée
 ne constitue pas une preuve d'exécution.
+
+### Conservation fidèle des actions à l'ouverture
+
+Le chargeur reconstruit aussi chaque fiche via
+`project_authorized_guide` à partir des étapes originales embarquées,
+puis exige une égalité de tous les champs du JSON projeté. Un dossier
+authentifié avec une fiche modifiée (texte, ordre, sections, prérequis,
+actions ou coordonnées cachées) est refusé, même si l'attestation
+synthétique accepte son empreinte. Cette comparaison structurelle ne
+remplace pas la vérification humaine indépendante contre Ganymède.
