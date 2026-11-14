@@ -13,10 +13,11 @@ from time import monotonic, sleep
 from typing import TYPE_CHECKING, Any, Callable
 from weakref import WeakSet
 
-from PySide6.QtCore import QObject, QEvent, QPoint, QSize, Qt, QTimer, Signal
+from PySide6.QtCore import QDate, QObject, QEvent, QPoint, QSize, Qt, QTimer, Signal
 from PySide6.QtGui import QCloseEvent, QColor, QIcon, QImage, QPixmap
 from PySide6.QtWidgets import (
     QApplication,
+    QCalendarWidget,
     QCheckBox,
     QComboBox,
     QDialog,
@@ -904,6 +905,7 @@ class AtlasWindow(QMainWindow):
         self.home_page.installEventFilter(self)
         self.home_page.continueRequested.connect(self.open_guide_progress)
         self.home_page.changeCharacterRequested.connect(self.open_character_selector)
+        self.home_page.almanaxRequested.connect(lambda: self.show_page("Almanax"))
         self.home_page.network_bridge.characterActivated.connect(
             self.on_network_character_activated
         )
@@ -915,7 +917,7 @@ class AtlasWindow(QMainWindow):
         self.register_page("Craft", self.loading_page("Craft"))
         self.register_page("Quetes", self.loading_page("Encyclopédie"))
         self.register_page("Equipement", self.loading_page("Équipement"))
-        self.register_page("Almanax", self.placeholder_page("Almanax", "Le module Almanax sera intégré ici.", badge="En travaux"))
+        self.register_page("Almanax", self.loading_page("Almanax"))
         self.register_page("Settings", self.create_settings_page())
         self.register_page("Dev UI", self.loading_page("Dev · UI"))
 
@@ -924,6 +926,7 @@ class AtlasWindow(QMainWindow):
         self.page_factories["Craft"] = self.create_craft_page
         self.page_factories["Quetes"] = self.create_encyclopedia_page
         self.page_factories["Equipement"] = self.create_equipment_page
+        self.page_factories["Almanax"] = self.create_almanax_page
         # Loaded only when requested via Settings; never part of normal startup.
         self.page_factories["Dev UI"] = self.create_dev_ui_page
 
@@ -1840,6 +1843,51 @@ class AtlasWindow(QMainWindow):
         text.setObjectName("CompactLabel")
         text.setWordWrap(True)
         layout.addWidget(text)
+        layout.addStretch(1)
+        return page
+
+    def create_almanax_page(self) -> QWidget:
+        """Navigable offline calendar, with no invented game rewards."""
+        page = QWidget()
+        page.setObjectName("AlmanaxPage")
+        page.setProperty("atlasUnityPage", True)
+        layout = QVBoxLayout(page)
+        layout.setContentsMargins(24, 16, 24, 24)
+        layout.setSpacing(12)
+        layout.addWidget(AtlasPageTitle("Almanax"))
+        layout.addWidget(
+            AtlasStatusBadge("Données indisponibles", state="blocked"),
+            0, Qt.AlignLeft,
+        )
+        self.almanax_calendar = QCalendarWidget(page)
+        calendar = self.almanax_calendar
+        calendar.setObjectName("AlmanaxCalendar")
+        calendar.setFirstDayOfWeek(Qt.Monday)
+        calendar.setVerticalHeaderFormat(QCalendarWidget.NoVerticalHeader)
+        calendar.setGridVisible(True)
+        calendar.setSelectedDate(QDate.currentDate())
+        calendar.setMaximumWidth(680)
+        layout.addWidget(calendar, 0, Qt.AlignHCenter)
+        self.almanax_selected_date_label = QLabel(page)
+        self.almanax_selected_date_label.setObjectName("AlmanaxSelectedDate")
+        self.almanax_selected_date_label.setAlignment(Qt.AlignCenter)
+        layout.addWidget(self.almanax_selected_date_label)
+        missing = QLabel(
+            "Aucune offrande ni bonus affiché : aucune source locale Almanax "
+            "vérifiée n'est disponible. Le calendrier reste navigable."
+        )
+        missing.setObjectName("AlmanaxUnavailable")
+        missing.setWordWrap(True)
+        missing.setAlignment(Qt.AlignCenter)
+        layout.addWidget(missing)
+
+        def update_date() -> None:
+            self.almanax_selected_date_label.setText(
+                calendar.selectedDate().toString("dddd d MMMM yyyy")
+            )
+
+        calendar.selectionChanged.connect(update_date)
+        update_date()
         layout.addStretch(1)
         return page
 

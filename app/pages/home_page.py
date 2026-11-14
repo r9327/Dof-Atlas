@@ -214,6 +214,7 @@ class HomePage(QWidget):
 
     continueRequested = Signal(str, object)
     changeCharacterRequested = Signal()
+    almanaxRequested = Signal()
 
     _DOFUS_KEYWORDS = (
         "dofus",
@@ -390,25 +391,32 @@ class HomePage(QWidget):
         self.almanax_icon.setObjectName("HomeAlmanaxPlaceholderIcon")
         self.almanax_icon.setFixedSize(150, 150)
         self.almanax_icon.setIconSize(QSize(126, 126))
-        self.almanax_icon.setEnabled(False)
-        if Path(LOGO_PATH).exists():
+        self.almanax_icon.setToolTip("Ouvrir le calendrier Almanax")
+        self.almanax_icon.clicked.connect(self.almanaxRequested.emit)
+        almanax_sprite = sprite_icon_path("almanax")
+        if almanax_sprite is not None:
+            self.almanax_icon.setIcon(QIcon(str(almanax_sprite)))
+        elif Path(LOGO_PATH).exists():
             self.almanax_icon.setIcon(atlas_application_icon())
         almanax_layout.addWidget(self.almanax_icon, 0, Qt.AlignHCenter)
 
-        badge = AtlasStatusBadge("En travaux", state="blocked")
+        badge = AtlasStatusBadge("Données indisponibles", state="blocked")
         almanax_layout.addWidget(badge, 0, Qt.AlignHCenter)
 
-        almanax_text = QLabel("Le module Almanax sera intégré ici.")
+        almanax_text = QLabel(
+            "Calendrier consultable. Offrandes et bonus en attente "
+            "de données locales vérifiées."
+        )
         almanax_text.setObjectName("HomeAlmanaxText")
         almanax_text.setAlignment(Qt.AlignCenter)
         almanax_text.setWordWrap(True)
         almanax_layout.addWidget(almanax_text)
         almanax_layout.addStretch(1)
 
-        almanax_button = AtlasButton("Voir l’Almanax")
-        almanax_button.setObjectName("HomeAlmanaxButton")
-        almanax_button.setEnabled(False)
-        almanax_layout.addWidget(almanax_button)
+        self.almanax_button = AtlasButton("Voir l’Almanax")
+        self.almanax_button.setObjectName("HomeAlmanaxButton")
+        self.almanax_button.clicked.connect(self.almanaxRequested.emit)
+        almanax_layout.addWidget(self.almanax_button)
 
         self.right_column = QWidget()
         self.right_column.setObjectName("HomeRightColumn")

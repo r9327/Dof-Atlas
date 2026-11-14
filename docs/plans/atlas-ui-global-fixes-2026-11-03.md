@@ -781,3 +781,12 @@ La capture Windows `Personnage` (profil temporaire vide) a révélé que `Charac
 - Les colonnes `GuideLeftPanel`, `GuideCenterPanel` et `AchievementDetailStack` utilisent le même dégradé glass, liseré et rayon que les panneaux Dev UI et Guides. Le contenu liste/arbre conserve sa transparence native et les états sélectionnés inchangés. `AchievementFilterPanel` hérite de `GLASS_BUTTON` plutôt qu'un fond opaque.
 - Galerie Dev UI enrichie d'un **vrai trio de panneaux Qt** sous `AchievementsView`, sans chargement d'un catalogue ni de services, avec ombre partagée sur cadres statiques. Index `data_views` enrichi et tests de contrat ajoutés.
 - Aucune campagne CI, capture ou certification déclenchée. Tous les tests ajoutés restent **NOT_RUN** jusqu'à la fin du développement #365.
+
+
+### Almanax — écran Qt navigable et raccordement Accueil (14/11/2026)
+
+- Aucun service/schéma canonique d'offrandes ou bonus Almanax vérifiés n'a été découvert dans `app/services` et `data/encyclopedia`. Ne pas inventer de récompense à partir des dates.
+- L'Accueil possède désormais un bouton et un pictogramme **cliquables** envoyant le signal `almanaxRequested` au shell ; le module est initialisé à la demande. L'icône Unity locale est préservée si disponible, sinon l'icône Atlas courante sert de repli transparent.
+- `create_almanax_page` fournit un **calendrier natif navigable** avec jours futurs, titre de date sélectionnée et état « Données indisponibles » explicite ; aucune lecture réseau ou écriture de profil. Le contrôle utilise les tokens Qt/Unity partagés et non un QSS local.
+- Les racines Home et Paramètres restent transparentes devant le `UnityBackdrop` existant. Test Qt de clic et de navigation future ajouté ; l'attente obsolète `GUIDE_COMPACT_SURFACE` a été retirée d'un test après la mutualisation de matériau du lot précédent.
+- **ATHM-003/ATAL-001 partiels :** les offres, bonus et objets restent indisponibles faute de source réelle. Tests/CI NON_EXÉCUTÉS à ce stade sur demande du propriétaire ; aucun verdict final ni fusion.

@@ -1842,8 +1842,42 @@ QMenu::separator {
     margin: 4px 6px;
 }
 
+/* Almanax is a true date picker, not a fabricated offrandes feed. */
+QWidget#AlmanaxPage { background: transparent; }
+QCalendarWidget#AlmanaxCalendar {
+    background: qlineargradient(x1:0,y1:0,x2:0,y2:1,
+        stop:0 @GLASS_PANEL_TOP,stop:1 @GLASS_PANEL_BOTTOM);
+    color: @TEXT;
+    border: 1px solid @BORDER_SOFT;
+    border-top: 1px solid @GLASS_HAIRLINE;
+    border-radius: @RADIUS_MD;
+}
+QCalendarWidget#AlmanaxCalendar QWidget#qt_calendar_navigationbar {
+    background: transparent;
+}
+QCalendarWidget#AlmanaxCalendar QToolButton {
+    background: @GLASS_BUTTON;
+    color: @TEXT;
+    border: 1px solid @BORDER_SOFT;
+    border-radius: @RADIUS_XS;
+    min-height: @CONTROL_HEIGHT_COMPACT;
+}
+QCalendarWidget#AlmanaxCalendar QToolButton:hover {
+    background: @GLASS_HOVER;
+    border-color: @GREEN_BORDER;
+}
+QCalendarWidget#AlmanaxCalendar QAbstractItemView {
+    background: @GLASS_PANEL_BOTTOM;
+    color: @TEXT;
+    border: none;
+    selection-background-color: @PANEL_ACTIVE;
+    selection-color: @TEXT;
+}
+QLabel#AlmanaxSelectedDate { color: @TEXT; font-size: @FONT_SECTION; font-weight: 700; }
+QLabel#AlmanaxUnavailable { color: @TEXT_MUTED; font-size: @FONT_BODY; }
+
 #HomePage {
-    background: @BG;
+    background: transparent;
 }
 
 #HomeLeftColumn {
@@ -2099,7 +2133,7 @@ QMenu::separator {
 
 #SettingsPage,
 #PlaceholderPage {
-    background: @BG;
+    background: transparent;
 }
 
 

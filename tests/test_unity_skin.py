@@ -265,7 +265,6 @@ class UnitySkinTests(unittest.TestCase):
             "GUIDE_MANUAL_NAV_SURFACE": "#708090",
         })
         for expected in (
-            "rgba(16, 32, 48, 0.93)",
             "rgba(32, 48, 64, 0.97)",
             "rgba(48, 64, 80, 0.97)",
             "rgba(64, 80, 96, 0.92)",
@@ -889,13 +888,52 @@ class UnitySkinTests(unittest.TestCase):
             self.assertFalse(home.continue_button.isEnabled())
             badge = home.findChild(AtlasStatusBadge, "StatusBadge")
             self.assertIsNotNone(badge)
-            self.assertEqual(badge.text(), "En travaux")
+            self.assertEqual(badge.text(), "Données indisponibles")
             self.assertEqual(badge.property("state"), "blocked")
-            self.assertEqual(badge.accessibleName(), "Statut En travaux")
+            self.assertEqual(badge.accessibleName(), "Statut Données indisponibles")
             self.assertEqual(badge.cursor().shape(), Qt.ArrowCursor)
         finally:
             home.close()
             home.deleteLater()
+
+    def test_almanax_home_click_and_future_day_are_real_qt_interactions(self) -> None:
+        from types import SimpleNamespace
+        from PySide6.QtCore import QDate
+        from PySide6.QtWidgets import QLabel
+        from app.pages.home_page import HomePage
+        from main import AtlasWindow
+
+        home = HomePage()
+        called: list[str] = []
+        home.almanaxRequested.connect(lambda: called.append("Almanax"))
+        try:
+            self.assertTrue(home.almanax_button.isEnabled())
+            home.almanax_button.click()
+            home.almanax_icon.click()
+            self.assertEqual(called, ["Almanax", "Almanax"])
+        finally:
+            home.close()
+            home.deleteLater()
+
+        shell = SimpleNamespace()
+        page = AtlasWindow.create_almanax_page(shell)
+        try:
+            self.assertEqual(page.objectName(), "AlmanaxPage")
+            future = QDate.currentDate().addDays(45)
+            shell.almanax_calendar.setSelectedDate(future)
+            self.assertEqual(shell.almanax_calendar.selectedDate(), future)
+            self.assertEqual(
+                shell.almanax_selected_date_label.text(),
+                future.toString("dddd d MMMM yyyy"),
+            )
+            self.assertIn(
+                "aucune source locale Almanax",
+                page.findChild(QLabel, "AlmanaxUnavailable").text(),
+            )
+            self.assertEqual(page.styleSheet(), "")
+        finally:
+            page.close()
+            page.deleteLater()
 
     def test_home_tracking_icons_preserve_local_alpha_and_fallback(self) -> None:
         from PySide6.QtWidgets import QLabel
