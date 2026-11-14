@@ -69,7 +69,10 @@ from app.ui.preload_popup import PreloadProgressPopup
 from app.ui.splash_image import clear_connected_dark_background
 from app.ui.theme import atlas_stylesheet
 from app.ui.unity_palette import unity_painted_ui_color
-from app.ui.unity_skin import UnityBackdrop, unity_enabled, register_unity_fonts, sprite_icon_path, unity_settings_icon
+from app.ui.unity_skin import (
+    UnityBackdrop, apply_unity_panel_shadow, unity_enabled,
+    register_unity_fonts, sprite_icon_path, unity_settings_icon,
+)
 from app.windows.unity_windows import enable_dpi_awareness
 from app.windows.single_instance import SingleInstanceGuard
 
@@ -1854,6 +1857,22 @@ class AtlasWindow(QMainWindow):
         layout = QVBoxLayout(page)
         layout.setContentsMargins(24, 16, 24, 24)
         layout.setSpacing(12)
+        breadcrumb = QFrame()
+        breadcrumb.setObjectName("GuideBreadcrumb")
+        breadcrumb_row = QHBoxLayout(breadcrumb)
+        breadcrumb_row.setContentsMargins(8, 3, 8, 3)
+        breadcrumb_row.setSpacing(5)
+        breadcrumb_home = AtlasButton("Accueil", variant="guide_breadcrumb")
+        breadcrumb_home.clicked.connect(lambda: self.show_page("Home"))
+        breadcrumb_row.addWidget(breadcrumb_home)
+        separator = QLabel("›")
+        separator.setObjectName("GuideBreadcrumbSeparator")
+        breadcrumb_row.addWidget(separator)
+        current = QLabel("Almanax")
+        current.setObjectName("GuideBreadcrumbCurrent")
+        breadcrumb_row.addWidget(current, 1)
+        apply_unity_panel_shadow(breadcrumb)
+        layout.addWidget(breadcrumb)
         layout.addWidget(AtlasPageTitle("Almanax"))
         layout.addWidget(
             AtlasStatusBadge("Données indisponibles", state="blocked"),
@@ -1867,6 +1886,7 @@ class AtlasWindow(QMainWindow):
         calendar.setGridVisible(True)
         calendar.setSelectedDate(QDate.currentDate())
         calendar.setMaximumWidth(680)
+        apply_unity_panel_shadow(calendar)
         layout.addWidget(calendar, 0, Qt.AlignHCenter)
         self.almanax_selected_date_label = QLabel(page)
         self.almanax_selected_date_label.setObjectName("AlmanaxSelectedDate")

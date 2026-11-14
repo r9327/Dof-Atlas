@@ -915,10 +915,19 @@ class UnitySkinTests(unittest.TestCase):
             home.close()
             home.deleteLater()
 
-        shell = SimpleNamespace()
+        nav = []
+        shell = SimpleNamespace(show_page=lambda name: nav.append(name))
         page = AtlasWindow.create_almanax_page(shell)
         try:
             self.assertEqual(page.objectName(), "AlmanaxPage")
+            from app.ui.components import AtlasButton
+            breadcrumb = page.findChild(QWidget, "GuideBreadcrumb")
+            self.assertIsNotNone(breadcrumb)
+            self.assertIsNotNone(breadcrumb.graphicsEffect())
+            back = breadcrumb.findChild(AtlasButton, "GuideBreadcrumbButton")
+            back.click()
+            self.assertEqual(nav, ["Home"])
+            self.assertIsNotNone(shell.almanax_calendar.graphicsEffect())
             future = QDate.currentDate().addDays(45)
             shell.almanax_calendar.setSelectedDate(future)
             self.assertEqual(shell.almanax_calendar.selectedDate(), future)

@@ -815,6 +815,9 @@ class DevUiPage(QWidget):
             QCalendarWidget.NoVerticalHeader
         )
         self.preview_almanax_calendar.setMaximumHeight(215)
+        apply_unity_panel_shadow(
+            self.preview_almanax_calendar, **UNITY_PANEL_SHADOW
+        )
         self.preview_almanax_calendar.selectionChanged.connect(
             lambda: self._report(
                 "Almanax : "

@@ -166,6 +166,7 @@ class DevUiPageTests(unittest.TestCase):
             picker = page.preview_almanax_calendar
             self.assertEqual(picker.objectName(), "AlmanaxCalendar")
             self.assertEqual(picker.styleSheet(), "")
+            self.assertIsNotNone(picker.graphicsEffect())
             target = QDate.currentDate().addDays(12)
             picker.setSelectedDate(target)
             self.assertEqual(picker.selectedDate(), target)

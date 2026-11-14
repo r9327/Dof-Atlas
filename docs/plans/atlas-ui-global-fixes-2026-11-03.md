@@ -810,3 +810,10 @@ La capture Windows `Personnage` (profil temporaire vide) a révélé que `Charac
 - La ligne de suivi Quêtes/Succès chargeait directement `QPixmap(sprite_icon_path)` et le pictogramme Almanax construisait un `QIcon` brut. Ces deux chemins contournaient la vérification alpha de `unity_original_preview_icon` utilisée par la galerie Dev UI.
 - Les deux consommateurs App utilisent désormais `unity_original_preview_icon` avec **tailles indexées** `UNITY_SIZES_PX` ; les sprites opaques avec fond noir sont rejetés et les originaux transparents gardent leurs couleurs. Repli lisible existant conservé si le sprite est absent.
 - Test de vrai PNG transparent + repli mis à jour dans `tests/test_unity_skin.py` ; aucune CI lancée pendant le développement.
+
+
+### Almanax — fil d'Ariane et relief commun (14/11/2026)
+
+- L'écran Almanax réutilise le composant `GuideBreadcrumb` au-dessus du titre, avec **vrai bouton Retour Accueil** et chevron hérité de la QSS de navigation. Aucune nouvelle implémentation de fil d'Ariane.
+- Même ombre statique `apply_unity_panel_shadow` sur le fil d'Ariane et le calendrier que sur les autres panneaux. Dev UI montre la même ombre sur son exemple de calendrier, sans doublon de style.
+- Tests ciblés de clic Retour, priorité du fil d'Ariane et présence du relief ajoutés ; **NOT_RUN** jusqu'à la fin de l'implémentation #365.
