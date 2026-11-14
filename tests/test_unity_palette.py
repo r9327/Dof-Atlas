@@ -7,7 +7,8 @@ from pathlib import Path
 
 from app.ui.unity_palette import (
     UNITY_COLOR_ALIAS_ROLES, UNITY_ICON_NAMES, UNITY_MAIN_ROLES,
-    UNITY_PALETTE, UNITY_SIZES_PX, UNITY_UI_USAGE,
+    UNITY_PALETTE, UNITY_SIZES_PX, UNITY_SPACING_PX, UNITY_TYPOGRAPHY,
+    UNITY_UI_USAGE,
     launcher_colors, resolve_unity_colors,
 )
 
@@ -66,6 +67,11 @@ class UnityPaletteTests(unittest.TestCase):
         self.assertEqual(UNITY_SIZES_PX["control_compact"], 24)
         self.assertEqual(UNITY_SIZES_PX["control_normal"], 32)
         self.assertEqual(UNITY_SIZES_PX["icon_large"], 24)
+        self.assertEqual(UNITY_SIZES_PX["top_nav_height"], 58)
+        self.assertEqual(UNITY_SPACING_PX["md"], 8)
+        self.assertEqual(UNITY_SPACING_PX["3xl"], 24)
+        self.assertEqual(UNITY_TYPOGRAPHY["FONT_BODY"], "12px")
+        self.assertEqual(UNITY_PALETTE["YELLOW"], "#D6B22D")
         self.assertEqual(len(UNITY_ICON_NAMES), 8)
 
 

@@ -56,6 +56,17 @@ UNITY_PALETTE = {
     "SHELL_GRADIENT": "qlineargradient(x1:0, y1:0, x2:1, y2:0, stop:0 #192657, stop:1 #151821)",
     "PANEL_GRADIENT": "qlineargradient(x1:0, y1:0, x2:1, y2:1, stop:0 #24395F, stop:1 #192657)",
     "ACTIVE_GRADIENT": "qlineargradient(x1:0, y1:0, x2:0, y2:1, stop:0 #6E9B41, stop:1 #497332)",
+    # Semantic statuses already used throughout Atlas QSS. Their color
+    # values live in the same Qt-free palette as the other Unity roles.
+    "RED": "#D71920",
+    "RED_HOVER": "#EF2028",
+    "RED_DARK": "#9F1016",
+    "YELLOW": "#D6B22D",
+    "DANGER_PANEL": "#2A1118",
+    "DANGER_TEXT": "#FFD6D9",
+    "BADGE_BG": "#2A2B11",
+    "BADGE_BORDER": "#7D8424",
+    "BADGE_TEXT": "#C9D44C",
 }
 
 
@@ -128,12 +139,28 @@ def unity_glass_gradient(
     )
 
 
-# Pixel metrics shared by the stylesheet and the real Qt components.
-# Preserves the existing compact/normal sizing (no layout redesign).
+# Spacing, fonts and sizes have ONE Qt-free source for both the
+# application QSS and the real QWidget layouts, with no layout redesign.
+UNITY_SPACING_PX = {
+    "xxs": 2, "xs": 4, "sm": 6, "md": 8,
+    "lg": 10, "xl": 14, "2xl": 20, "3xl": 24,
+}
+
+UNITY_TYPOGRAPHY = {
+    # Approved local font families, with standard system fallbacks.
+    "FONT_FAMILY": '"Lexend", "Segoe UI", Arial',
+    "FONT_BODY": "12px",
+    "FONT_SMALL": "11px",
+    "FONT_TITLE": "18px",
+    "FONT_SECTION": "14px",
+    "FONT_BADGE": "10px",
+}
+
 UNITY_SIZES_PX = {
     "control_compact": 24,
     "control_normal": 32,
     "control_large": 40,
+    "top_nav_height": 58,
     "icon_small": 16,
     "icon_normal": 20,
     "icon_large": 24,
@@ -221,7 +248,7 @@ UNITY_UI_FAMILY_INDEX = {
     },
     "metrics": {
         "title": "Tailles · typographie · espacements",
-        "components": ("UNITY_SIZES_PX", "SIZES", "SPACING", "TYPOGRAPHY", "UNITY_RADII"),
+        "components": ("UNITY_SIZES_PX", "UNITY_SPACING_PX", "UNITY_TYPOGRAPHY", "SIZES", "SPACING", "TYPOGRAPHY", "UNITY_RADII"),
         "style_owner": "app/ui/unity_palette.py + app/ui/theme.py",
         "scope": "shared",
     },

@@ -5,47 +5,20 @@ from functools import lru_cache
 
 from app.ui.unity_palette import (
     UNITY_COLOR_ALIAS_ROLES, UNITY_RADII, UNITY_SIZES_PX,
+    UNITY_SPACING_PX, UNITY_TYPOGRAPHY,
     resolve_unity_colors, unity_glass_gradient,
 )
 from app.ui.organizer_style import ORGANIZER_STYLE_TEMPLATE
 from app.ui.unity_skin import UNITY_PALETTE, unity_skin_stylesheet
 
 
-# One Unity visual language, shared by every Qt page. The remaining keys are
-# semantic warning/status roles, not a second (legacy) presentation.
-PALETTE = {
-    **resolve_unity_colors(),
-    "RED": "#D71920",
-    "RED_HOVER": "#EF2028",
-    "RED_DARK": "#9F1016",
-    "YELLOW": "#D6B22D",
-    "DANGER_PANEL": "#2A1118",
-    "DANGER_TEXT": "#FFD6D9",
-    "BADGE_BG": "#2A2B11",
-    "BADGE_BORDER": "#7D8424",
-    "BADGE_TEXT": "#C9D44C",
-}
-
-TYPOGRAPHY = {
-    # The app registers approved personal fonts at startup when installed.
-    # System fonts remain the fallback; packaging does not include game TTFs.
-    "FONT_FAMILY": '"Lexend", "Segoe UI", Arial',
-    "FONT_BODY": "12px",
-    "FONT_SMALL": "11px",
-    "FONT_TITLE": "18px",
-    "FONT_SECTION": "14px",
-    "FONT_BADGE": "10px",
-}
-
+# Palette, typography and spacing are all indexed in the Qt-free Unity
+# contract. QSS, dialog previews and Launcher reuse these exact same tokens.
+PALETTE = resolve_unity_colors()
+TYPOGRAPHY = dict(UNITY_TYPOGRAPHY)
 SPACING = {
-    "SPACE_XXS": "2px",
-    "SPACE_XS": "4px",
-    "SPACE_SM": "6px",
-    "SPACE_MD": "8px",
-    "SPACE_LG": "10px",
-    "SPACE_XL": "14px",
-    "SPACE_2XL": "20px",
-    "SPACE_3XL": "24px",
+    f"SPACE_{name.upper()}": f"{px}px"
+    for name, px in UNITY_SPACING_PX.items()
 }
 
 SIZES = {
@@ -57,7 +30,7 @@ SIZES = {
     "ICON_SIZE_NORMAL": f'{UNITY_SIZES_PX["icon_normal"]}px',
     "ICON_SIZE_LARGE": f'{UNITY_SIZES_PX["icon_large"]}px',
     "ICON_SIZE_XLARGE": f'{UNITY_SIZES_PX["icon_xlarge"]}px',
-    "TOP_NAV_HEIGHT": "58px",
+    "TOP_NAV_HEIGHT": f'{UNITY_SIZES_PX["top_nav_height"]}px',
 }
 
 THEME_TOKENS = {**PALETTE, **TYPOGRAPHY, **SPACING, **SIZES}

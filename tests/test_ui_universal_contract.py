@@ -45,6 +45,25 @@ class UiUniversalContractTests(unittest.TestCase):
              if data["adapter"] == "qt"},
         )
 
+    def test_all_unity_design_tokens_have_one_qt_free_owner(self):
+        from app.ui import theme
+        from app.ui.unity_palette import (
+            UNITY_SPACING_PX, UNITY_TYPOGRAPHY, UNITY_SIZES_PX,
+            resolve_unity_colors,
+        )
+        self.assertEqual(theme.PALETTE, resolve_unity_colors())
+        self.assertEqual(theme.TYPOGRAPHY, UNITY_TYPOGRAPHY)
+        self.assertEqual(theme.SPACING, {
+            f"SPACE_{role.upper()}": f"{px}px"
+            for role, px in UNITY_SPACING_PX.items()
+        })
+        self.assertEqual(
+            theme.SIZES["TOP_NAV_HEIGHT"],
+            f'{UNITY_SIZES_PX["top_nav_height"]}px',
+        )
+        self.assertEqual(theme.PALETTE["RED"], "#D71920")
+        self.assertEqual(theme.PALETTE["YELLOW"], "#D6B22D")
+
     def test_one_compiled_qss_covers_every_real_visual_family(self):
         qss = atlas_stylesheet()
         self.assertNotIn("@GLASS_BUTTON", qss)

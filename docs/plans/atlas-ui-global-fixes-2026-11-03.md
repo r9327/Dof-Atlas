@@ -128,6 +128,23 @@ les animations prototypes, les écrans de jeu réels et les intégrations
 Windows/DOFUS comme validés. Exiger tests et captures au HEAD exact.
 Ne pas toucher aux fonctions macro/miroir/zaap dans ce lot UI.
 
+### Complément design tokens — une source réellement commune
+
+Les rôles rouge/jaune/danger/badge, les 8 espacements de base, les
+6 tokens de typographie et la hauteur de la navigation supérieure
+sont désormais définis dans `app/ui/unity_palette.py` (Qt-free), à côté
+des couleurs bleu/vert, rayons, tailles et sprites déjà indexés.
+`app/ui/theme.py` **dérive** `PALETTE`, `SPACING`, `TYPOGRAPHY` et
+`SIZES` au lieu de déclarer des valeurs concurrentes. La bibliothèque
+Dev UI expose toujours les mêmes valeurs ; les appels Qt et Tk existants
+ne changent ni dimensions, ni font, ni présentation. La transparence
+Organizer partage le même facteur et la même formule Qt-free.
+
+Ce travail ne rend pas une géométrie métier (taille de portrait,
+hauteur de slot, grid de métiers, popup spéciale) globalement uniforme
+par magie : les valeurs propres à une page restent des exceptions
+intentionnelles, mais aucun nouveau style n'est à recréer par page.
+
 ## Dépendances / responsabilités
 
 | Branche / PR | Responsabilité | Règle pour cette PR |
