@@ -348,10 +348,47 @@ class DevUiPage(QWidget):
                     f"Menu : {label}"
                 )
             )
+        menu.addSeparator()
+        checked_action = menu.addAction("Action cochable")
+        checked_action.setCheckable(True)
+        checked_action.toggled.connect(
+            lambda checked: self._report(
+                "Menu : cochée" if checked else "Menu : décochée"
+            )
+        )
+        submenu = menu.addMenu("Sous-menu")
+        submenu.addAction("Sous-action").triggered.connect(
+            lambda: self._report("Sous-menu : action cliquée")
+        )
         self.menu_button.setMenu(menu)
         menu_row.addWidget(self.menu_button)
         menu_row.addStretch(1)
         section.addLayout(menu_row)
+
+        pagination = QHBoxLayout()
+        self.preview_page_index = 1
+        self.preview_page_prev = AtlasButton("‹ Précédent", variant="secondary")
+        self.preview_page_prev.setEnabled(False)
+        self.preview_page_next = AtlasButton("Suivant ›", variant="secondary")
+        self.preview_page_label = QLabel("Page 1 / 3")
+        self.preview_page_label.setObjectName("MutedLabel")
+        self.preview_page_prev.clicked.connect(lambda: self._change_preview_page(-1))
+        self.preview_page_next.clicked.connect(lambda: self._change_preview_page(1))
+        pagination.addWidget(self.preview_page_prev)
+        pagination.addWidget(self.preview_page_label)
+        pagination.addWidget(self.preview_page_next)
+        back = AtlasButton("Retour", variant="secondary")
+        back.clicked.connect(lambda: self._report("Navigation : retour"))
+        pagination.addWidget(back)
+        pagination.addStretch(1)
+        section.addLayout(pagination)
+
+    def _change_preview_page(self, step: int) -> None:
+        self.preview_page_index = max(1, min(3, self.preview_page_index + step))
+        self.preview_page_label.setText(f"Page {self.preview_page_index} / 3")
+        self.preview_page_prev.setEnabled(self.preview_page_index > 1)
+        self.preview_page_next.setEnabled(self.preview_page_index < 3)
+        self._report(f"Navigation : page {self.preview_page_index}")
 
     def _build_sidebar(self, parent: QVBoxLayout) -> None:
         """Real sidebar selectors, with live selection and collapse."""
@@ -442,6 +479,15 @@ class DevUiPage(QWidget):
         self.preview_breadcrumb_current.setObjectName("GuideBreadcrumbCurrent")
         row.addWidget(self.preview_breadcrumb_current, 1)
         section.addWidget(self.preview_breadcrumb)
+        variants = QHBoxLayout()
+        self.preview_breadcrumb_compact = QLabel("Encyclopédie › Quêtes")
+        self.preview_breadcrumb_compact.setObjectName("BreadcrumbLabel")
+        variants.addWidget(self.preview_breadcrumb_compact)
+        self.preview_breadcrumb_strong = QLabel("Étape en cours")
+        self.preview_breadcrumb_strong.setObjectName("GuideBreadcrumbCurrentStrong")
+        variants.addWidget(self.preview_breadcrumb_strong)
+        variants.addStretch(1)
+        section.addLayout(variants)
 
     def _build_data_views(self, parent: QVBoxLayout) -> None:
         """Exercise the actual shared tree/table family and their Qt signals."""
@@ -724,6 +770,29 @@ class DevUiPage(QWidget):
         state_row.addWidget(info, 1)
         section.addLayout(state_row)
 
+        # Native hover, pressed and focus states are interactive Qt controls.
+        state_row = QHBoxLayout()
+        self.preview_state_buttons: dict[str, AtlasButton] = {}
+        for state, title, variant in (
+            ("normal", "Normal", "secondary"),
+            ("hover", "Survoler", "secondary"),
+            ("pressed", "Cliquer", "secondary"),
+            ("selected", "Sélectionné", "selected"),
+            ("focus", "Focus clavier", "secondary"),
+            ("disabled", "Désactivé", "secondary"),
+        ):
+            button = AtlasButton(title, variant=variant)
+            button.setEnabled(state != "disabled")
+            button.setToolTip(f"État Qt réel : {state}")
+            button.clicked.connect(
+                lambda _checked=False, key=state:
+                    self._report(f"État : {key}")
+            )
+            self.preview_state_buttons[state] = button
+            state_row.addWidget(button)
+        state_row.addStretch(1)
+        section.addLayout(state_row)
+
         progress_row = QHBoxLayout()
         self.preview_busy = QProgressBar()
         self.preview_busy.setRange(0, 0)
@@ -957,6 +1026,14 @@ class DevUiPage(QWidget):
         panel_layout = QVBoxLayout(self.preview_panel)
         panel_layout.addWidget(QLabel("Carte commune Unity · bordure et fond partagés"))
         section.addWidget(self.preview_panel)
+
+        self.preview_glass_panel = QFrame()
+        self.preview_glass_panel.setObjectName("OrganizerPanel")
+        line = QHBoxLayout(self.preview_glass_panel)
+        glass_title = QLabel("Organizer · glass Unity et dégradé communs")
+        glass_title.setObjectName("MutedLabel")
+        line.addWidget(glass_title)
+        section.addWidget(self.preview_glass_panel)
 
     def _toggle_panel(self) -> None:
         collapsed = not bool(self.panel_toggle.property("collapsed"))
