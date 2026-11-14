@@ -200,8 +200,8 @@ La source de vérité reste la bibliothèque **Dev UI Unity** : `AtlasButton`,
 l'index de présentation :
 
 - **Craft / Quêtes / Guide universel** : les rôles partagés
-  `primary`, `secondary` et `guide_breadcrumb` passent par l'API
-  `AtlasButton(variant=...)` plutôt que de redéclarer les mêmes
+  `primary`, `secondary`, `selected` (métier actif) et `guide_breadcrumb`
+  passent par l'API `AtlasButton(variant=...)` plutôt que de redéclarer les mêmes
   `setObjectName` dans chaque module. Signaux, raccourcis, textes, dimensions
   et variantes métier sont laissés intacts.
 - **Shell** : les placeholders ne recréent plus le statut par le sélecteur
