@@ -4,7 +4,7 @@ from collections.abc import Mapping
 from functools import lru_cache
 
 from app.ui.unity_palette import (
-    UNITY_COLOR_ALIAS_ROLES, UNITY_RADII, UNITY_SIZES_PX,
+    UNITY_COLOR_ALIAS_ROLES, UNITY_GLASS_INTENSITY, UNITY_RADII, UNITY_SIZES_PX,
     UNITY_SPACING_PX, UNITY_TYPOGRAPHY,
     resolve_unity_colors, unity_glass_gradient,
 )
@@ -158,9 +158,20 @@ QToolTip {
     padding: @SPACE_XS @SPACE_SM;
 }
 
+/* Sidebar uses the same glass surface, border and radius as a panel.
+   No opaque nested black widget or separate navigation palette. */
 #sidebar, #SideNav {
-    background: @SIDEBAR;
-    border-right: 1px solid @BORDER_SOFT;
+    background: qlineargradient(x1:0, y1:0, x2:0, y2:1,
+        stop:0 @GLASS_PANEL_TOP, stop:1 @GLASS_PANEL_BOTTOM);
+    border: 1px solid @BORDER_SOFT;
+    border-top: 1px solid @GLASS_HAIRLINE;
+    border-radius: @RADIUS_MD;
+}
+/* The real side navigation and its Dev UI preview inherit transparency. */
+#sidebar QWidget#DevUiSidebarContent,
+#SideNav QWidget#DevUiSidebarContent {
+    background: transparent;
+    border: none;
 }
 
 #burgerButton, #MenuButton {
@@ -183,32 +194,47 @@ QToolTip {
     border-color: @GREEN;
 }
 
+/* Compact side-nav states use the same blue/green hairline language as
+   the selected Unity tabs, never a large full-green rectangle. */
 #navItem, #navItemActive, #NavButton, #ActiveNavButton,
 #TopmostButton, #TopmostButtonActive {
-    background: transparent;
-    border: 1px solid transparent;
-    border-radius: @RADIUS_SM;
-    color: @TEXT;
-    font-size: 13px;
-    font-weight: 600;
-    padding: 0px 9px;
+    background: @PANEL_2;
+    border: 1px solid @BORDER_SOFT;
+    border-bottom: 2px solid @BORDER_SOFT;
+    border-radius: @RADIUS_XS;
+    color: @TEXT_SOFT;
+    font-size: @FONT_SMALL;
+    font-weight: 700;
+    padding: 0px @SPACE_MD;
     text-align: left;
-    min-height: 38px;
-    max-height: 38px;
+    min-height: @CONTROL_HEIGHT_COMPACT;
+    max-height: @CONTROL_HEIGHT_COMPACT;
 }
-
 #navItem:hover, #NavButton:hover, #TopmostButton:hover {
-    background: @PANEL;
-    border-color: @BORDER_SOFT;
-}
-
-#navItemActive, #ActiveNavButton, #TopmostButtonActive {
-    background: @GREEN_DARK;
-    border: 1px solid @GREEN;
-    border-left: 4px solid @GREEN;
+    background: @PANEL_HOVER;
+    border-bottom-color: @GREEN_BORDER;
     color: @TEXT;
-    font-weight: 800;
-    padding-left: 6px;
+}
+#navItemActive, #ActiveNavButton, #TopmostButtonActive {
+    background: @PANEL_ACTIVE;
+    border-bottom: 2px solid @GREEN;
+    color: @GREEN;
+}
+#navItemActive:hover, #ActiveNavButton:hover, #TopmostButtonActive:hover {
+    background: @PANEL_HOVER;
+    border-bottom-color: @GREEN_HOVER;
+    color: @GREEN_HOVER;
+}
+#navItem:pressed, #navItemActive:pressed, #NavButton:pressed,
+#ActiveNavButton:pressed {
+    background: @PANEL_ACTIVE;
+    border-bottom-color: @GREEN_BORDER;
+}
+#navItem:disabled, #navItemActive:disabled, #NavButton:disabled,
+#ActiveNavButton:disabled {
+    background: @PANEL;
+    color: @TEXT_DISABLED;
+    border-bottom-color: @BORDER_SOFT;
 }
 
 #NavSeparator {
@@ -321,7 +347,7 @@ QWidget#DevUiPage QScrollArea#DevUiGalleryScroll > QWidget > QWidget {
 /* Dev UI section frames are the universal Unity section frames. */
 QGroupBox {
     background: qlineargradient(x1:0, y1:0, x2:0, y2:1,
-        stop:0 @GLASS_SECTION_TOP, stop:1 @GLASS_SECTION_BOTTOM);
+        stop:0 @GLASS_PANEL_TOP, stop:1 @GLASS_PANEL_BOTTOM);
     border: 1px solid @BORDER_SOFT;
     border-top: 1px solid @GLASS_HAIRLINE;
     border-radius: @RADIUS_SM;
@@ -2790,7 +2816,8 @@ QToolButton#GuideRightPanelToggle:disabled {
 /* Guide Ultime variants. */
 
 QFrame#GuideBreadcrumb {
-    background: @PANEL;
+    background: qlineargradient(x1:0, y1:0, x2:0, y2:1,
+        stop:0 @GLASS_PANEL_TOP, stop:1 @GLASS_PANEL_BOTTOM);
     border: 1px solid @BORDER;
     border-radius: @RADIUS_SM;
 }
@@ -3559,12 +3586,14 @@ def _render_theme_template(
     tokens["GLASS_SUBTLE_BORDER"] = _soft_alpha(tokens["BORDER_SOFT"], "0.18")
     # Small optical glint (16% edge), not a full iOS-style backdrop blur.
     # Blue-panel opacity remains high: stars are not smeared or washed out.
-    tokens["GLASS_HAIRLINE"] = _soft_alpha(tokens["TEXT_SOFT"], "0.16")
+    tokens["GLASS_HAIRLINE"] = _soft_alpha(
+        tokens["TEXT_SOFT"], f"{UNITY_GLASS_INTENSITY:.2f}"
+    )
     tokens["GLASS_PANEL_TOP"] = _soft_alpha(tokens["PANEL_2"], "0.82")
     tokens["GLASS_PANEL_BOTTOM"] = _soft_alpha(tokens["PANEL"], "0.88")
     # Translucent Unity section styling is shared outside the Dev UI gallery.
-    tokens["GLASS_SECTION_TOP"] = _soft_alpha(tokens["PANEL_2"], "0.50")
-    tokens["GLASS_SECTION_BOTTOM"] = _soft_alpha(tokens["PANEL"], "0.58")
+    tokens["GLASS_SECTION_TOP"] = tokens["GLASS_PANEL_TOP"]
+    tokens["GLASS_SECTION_BOTTOM"] = tokens["GLASS_PANEL_BOTTOM"]
     # The exact same Unity glass gradient is consumed by Organizer and the
     # global stylesheet. All three derive from canonical theme overrides.
     tokens["GLASS_BUTTON"] = unity_glass_gradient(palette=tokens)
