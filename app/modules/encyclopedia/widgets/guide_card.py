@@ -142,8 +142,14 @@ class GuideListModel(QAbstractListModel):
                 ("ALIGNEMENTS", [guide for guide in guides if guide.category == "alignements"]),
             )
         elif column == "right":
-            # Legacy right-column contract: filter Dofus, without a fake grid item.
-            sections = (("", [guide for guide in guides if guide.category == "dofus"]),)
+            # Preserve the historical Dofus grid, append only explicitly
+            # registered source categories. No parallel Home renderer.
+            sections = (
+                ("", [guide for guide in guides if guide.category == "dofus"]),
+                ("ÎLES", [guide for guide in guides if guide.category == "iles"]),
+                ("DIMENSIONS", [guide for guide in guides if guide.category == "dimensions"]),
+                ("ÉVÉNEMENTS", [guide for guide in guides if guide.category == "evenements"]),
+            )
         elif column == "catalog":
             # The parent already selected the category, including Alignements.
             sections = (("", list(guides)),)

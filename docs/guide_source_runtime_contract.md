@@ -358,3 +358,30 @@ Régressions ciblées : `tests/test_atlas_guide_package_publisher.py`,
 `tests/test_guide_trusted_source_package.py`. Le workflow Guides Phase 0
 collecte les tests `test_atlas_guide_*.py` sur Linux au SHA exact ; la
 qualification Windows/DOFUS réelle reste `NOT_RUN`.
+
+### Catalogue Home des guides attestés : métadonnées uniquement
+
+Le paquet de confiance expose `catalog_guides({guide_id: summary})` :
+les titres, catégories (`dofus`, `alignements`, `iles`, `dimensions`,
+`evenements`), descriptions et nombres d'étapes proviennent **du
+registre de composition de confiance**, distinct du contenu JSON des
+guides. Chaque fiche affichée correspond à un ID déclaré dans le paquet
+et à un témoin indépendant encore valable. Un témoin retiré fait
+disparaître la fiche lors du prochain rafraîchissement. Le catalogue ne
+lit **aucune étape** ni ne crée de service Qt : seules les métadonnées et
+le témoin sont consultés ; l'ouverture du guide reste soumise au
+contrôle intégral du fichier et du certificat.
+
+`EncyclopediaPage(imported_source_catalog_provider=package_catalog)`
+transmet la fabrique au même `ManualRouteGuidesView`. Le catalogue
+réutilise les modèles existants et les mêmes cartes de sélection ; les
+nouvelles catégories ne changent pas la grille Dofus historique quand
+aucun guide externe n'est déclaré. La recherche, la révocation et
+l'isolation des identités sont couvertes par tests synthétiques.
+Aucune donnée réelle Ganymède n'est déclarée par défaut. Un fournisseur
+de métadonnées non raccordé ou défaillant produit une liste vide.
+
+**Limite :** cette interface de catalogue est prête pour un futur
+installateur certifié, mais son registre de production et son autorité
+indépendante ne sont pas encore disponibles. L'affichage d'une fiche
+fictive dans un test ne constitue pas une certification de guide.

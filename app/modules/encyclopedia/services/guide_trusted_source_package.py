@@ -257,6 +257,51 @@ class GuideTrustedSourcePackage:
             and self._attested(entry)
         )
 
+    def catalog_guides(self, summaries: Mapping[str, Mapping[str, Any]]) -> tuple[Any, ...]:
+        """Publish only trusted, revocable Home metadata without loading routes.
+
+        The independent application publisher supplies titles and category
+        labels separately from authored JSON. A witnessed package identity is
+        mandatory for every visible card; the route bytes are never read here.
+        """
+        if not isinstance(summaries, Mapping):
+            raise GuidePackageBlocked("Trusted Guide catalogue must be a mapping")
+        categories = {
+            "dofus": "Dofus", "alignements": "Alignements",
+            "iles": "Îles", "dimensions": "Dimensions",
+            "evenements": "Événements",
+        }
+        from app.modules.encyclopedia.models.guide import Guide
+        from app.core.text import normalize_key
+        guides = []
+        for guide_id, summary in summaries.items():
+            entry = self._entries.get(guide_id)
+            if entry is None or not isinstance(summary, Mapping):
+                raise GuidePackageBlocked("Unregistered or invalid trusted Guide summary")
+            title = summary.get("title")
+            category = summary.get("category")
+            total = summary.get("total_steps")
+            description = summary.get("description", "")
+            if (not isinstance(title, str) or not title.strip()
+                    or len(title) > 180 or not isinstance(category, str)
+                    or category not in categories
+                    or type(total) is not int or not 0 < total <= 10000
+                    or not isinstance(description, str) or len(description) > 600):
+                raise GuidePackageBlocked("Invalid trusted Guide catalogue fields")
+            if not self._attested(entry):
+                continue
+            guides.append(Guide(
+                id=guide_id, title=title.strip(), category=category,
+                category_label=categories[category],
+                description=description,
+                total_steps=total,
+                search_text=normalize_key(f"{title} {category} {description}"),
+            ))
+        return tuple(sorted(
+            guides,
+            key=lambda g: (list(categories).index(g.category), g.title.casefold(), g.id),
+        ))
+
     def factories(
         self, quest_progress: Any, achievement_progress: Any, guide_progress: Any,
         *,

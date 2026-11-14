@@ -1,10 +1,11 @@
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Callable, Mapping
+from typing import TYPE_CHECKING, Callable, Mapping, Sequence
 
 from app.modules.encyclopedia.services.guide_catalog_route_stats import (
     catalog_route_map_count_hint,
 )
+from app.core.character_identity import is_character_key
 from app.modules.encyclopedia.views.guides_view import (
     GUIDE_ULTIME_LEGACY_ID,
     GuidesView as _BaseGuidesView,
@@ -20,6 +21,7 @@ if TYPE_CHECKING:
     from app.modules.encyclopedia.views.shared_manual_guide_view import (
         SharedGuideManualView,
     )
+    from app.modules.encyclopedia.models.guide import Guide
 
 
 CATALOG_MANUAL_GUIDE_IDS = frozenset({"dofus_sylvestre"})
@@ -34,6 +36,7 @@ class ManualRouteGuidesView(_BaseGuidesView):
         imported_source_services: Mapping[str, ImportedSourceManualRuntimeService] | None = None,
         imported_source_factories: Mapping[str, Callable[[], ImportedSourceManualRuntimeService]] | None = None,
         imported_source_authorizer: Callable[[str, dict], bool] | None = None,
+        imported_source_catalog_provider: Callable[[], Sequence[Guide]] | None = None,
         **kwargs,
     ) -> None:
         # An imported route is never discovered from a candidate store, user
@@ -45,6 +48,10 @@ class ManualRouteGuidesView(_BaseGuidesView):
             raise ValueError("Source Guide activation requires an independent authorizer")
         if sources.keys() & factories.keys():
             raise ValueError("A source Guide must have exactly one runtime owner")
+        if imported_source_catalog_provider is not None and (
+            not callable(imported_source_catalog_provider) or not (sources or factories)
+        ):
+            raise ValueError("Trusted source catalogue requires registered authorized Guides")
         if sources or factories:
             from app.modules.encyclopedia.services.guide_imported_manual_runtime_service import (
                 ImportedSourceManualRuntimeService,
@@ -69,6 +76,9 @@ class ManualRouteGuidesView(_BaseGuidesView):
         self._imported_source_factories = factories
         self._loaded_imported_source_services: dict[str, ImportedSourceManualRuntimeService] = {}
         self._imported_source_authorizer = imported_source_authorizer
+        self._imported_source_catalog_provider = imported_source_catalog_provider
+        self._source_catalog_guides: tuple[Guide, ...] = ()
+        self._source_catalog_signature: tuple[tuple[object, ...], ...] = ()
         if imported_source_authorizer is not None:
             for service in sources.values():
                 service.set_authorization_guard(imported_source_authorizer)
@@ -109,7 +119,81 @@ class ManualRouteGuidesView(_BaseGuidesView):
                 f"Parcours optimisé · {count} {suffix}",
             )
 
+    def _trusted_source_catalog(self) -> tuple[Guide, ...]:
+        """Only explicitly registered, separately approved lightweight cards."""
+        provider = self._imported_source_catalog_provider
+        if provider is None:
+            return ()
+        try:
+            from app.modules.encyclopedia.models.guide import Guide
+            listed = tuple(provider())
+            known = self._imported_source_factories.keys() | self._imported_source_services.keys()
+            if len(listed) > 95:
+                return ()
+            seen: set[str] = set()
+            for item in listed:
+                if (not isinstance(item, Guide) or item.id not in known
+                        or item.id in seen
+                        or not item.id.startswith("source_guide:")
+                        or item.category not in {
+                            "dofus", "alignements", "iles", "dimensions", "evenements",
+                        }):
+                    return ()
+                seen.add(item.id)
+            return listed
+        except Exception:
+            # An unavailable witness or malformed catalogue must not expose
+            # unqualified source entries on Home.
+            return ()
+
+    def _refresh_home_uncached(self) -> None:
+        super()._refresh_home_uncached()
+        if not self._source_catalog_guides:
+            return
+        from app.core.text import normalize_key
+        terms = tuple(filter(None, normalize_key(self.search_text).split("_")))
+        visible = [
+            guide for guide in self._source_catalog_guides
+            if all(token in normalize_key(
+                f"{guide.title} {guide.description} {guide.category_label}"
+            ) for token in terms)
+        ]
+        if not visible:
+            return
+        self.visible_guides = [*self.visible_guides, *visible]
+        self.result_model.set_home_column(self.visible_guides, "left")
+        self.home_dofus_model.set_home_column(self.visible_guides, "right")
+        progress = dict(self.result_model.progress_by_guide)
+        for guide in visible:
+            total = guide.total_steps or 0
+            checked = (
+                len(self.guide_progress_service.manual_steps(
+                    self.current_character_key, guide.id,
+                ))
+                if is_character_key(self.current_character_key) else 0
+            )
+            done = min(checked, total)
+            progress[guide.id] = (
+                done, total,
+                "Terminé" if total and done == total
+                else "En cours" if done else "Non commencé",
+            )
+        self.result_model.set_progress(progress)
+        self.home_dofus_model.set_progress(progress)
+        self.home_empty.setVisible(False)
+        self.home_list.setVisible(bool(self.result_model.guides))
+        self.home_dofus_list.setVisible(bool(self.home_dofus_model.guides))
+
     def refresh_home(self) -> None:
+        catalog = self._trusted_source_catalog()
+        signature = tuple(
+            (item.id, item.title, item.category, item.description, item.total_steps)
+            for item in catalog
+        )
+        if signature != self._source_catalog_signature:
+            self._source_catalog_signature = signature
+            self._home_render_signature = None
+        self._source_catalog_guides = catalog
         super().refresh_home()
         self._refresh_catalog_route_home_labels()
 

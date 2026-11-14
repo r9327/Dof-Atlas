@@ -242,6 +242,46 @@ class TrustedSourcePackageTests(unittest.TestCase):
                     )
         self.assertEqual(self.witness_calls, [])
 
+    def test_catalog_is_metadata_only_and_revocable_at_each_refresh(self):
+        entry = self.write()
+        loader = self.loader(entry)
+        summaries = {
+            self.key: {
+                "title": "Dofus fictif", "category": "dofus",
+                "description": "Données de démonstration", "total_steps": 2,
+            },
+        }
+        with patch.object(loader, "load_route", side_effect=AssertionError("eager route load")):
+            visible = loader.catalog_guides(summaries)
+        self.assertEqual(len(visible), 1)
+        self.assertEqual(visible[0].id, self.key)
+        self.assertEqual(visible[0].category, "dofus")
+        self.assertEqual(visible[0].total_steps, 2)
+        self.assertEqual(loader._loaded, {})
+        self.assertFalse((self.root / "progress.json").exists())
+        self.approved = False
+        self.assertEqual(loader.catalog_guides(summaries), ())
+        self.approved = True
+        self.assertEqual(len(loader.catalog_guides(summaries)), 1)
+
+    def test_trusted_catalog_rejects_foreign_or_invalid_metadata(self):
+        loader = self.loader(self.write())
+        valid = {"title": "Guide fictif", "category": "iles", "total_steps": 2}
+        bad = (
+            {"source_guide:unknown": valid},
+            {self.key: dict(valid, title="")},
+            {self.key: dict(valid, category="aventure")},
+            {self.key: dict(valid, category=[])},
+            {self.key: dict(valid, total_steps=0)},
+            {self.key: dict(valid, total_steps=True)},
+            [valid],
+        )
+        for summary in bad:
+            with self.subTest(summary=str(summary)):
+                with self.assertRaises(GuidePackageBlocked):
+                    loader.catalog_guides(summary)
+        self.assertEqual(loader._loaded, {})
+
     def test_lazy_factory_binds_exact_route_to_recheckable_authorizer(self):
         entry = self.write()
         loader = self.loader(entry)

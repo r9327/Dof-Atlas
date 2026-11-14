@@ -18,6 +18,8 @@ from app.modules.encyclopedia.providers import (
 from app.modules.encyclopedia.services.guide_progress_service import (
     GuideProgressService,
 )
+from app.modules.encyclopedia.models.guide import Guide
+from app.modules.encyclopedia.widgets.guide_card import GUIDE_ID_ROLE
 from app.modules.encyclopedia.services.serialized_achievement_progress_service import (
     AchievementProgressService,
 )
@@ -101,6 +103,67 @@ class ImportedSourceRouterQtTests(unittest.TestCase):
         self.view.deleteLater()
         QApplication.processEvents()
 
+    def test_metadata_only_source_catalog_reuses_both_home_columns(self):
+        # No source factory runs merely to list a title or search by it.
+        source_id = self.service.guide_id
+        catalog = Guide(
+            id=source_id, title="Fictional island route",
+            category="iles", category_label="Îles", total_steps=2,
+        )
+        self.view._imported_source_catalog_provider = (
+            lambda: (catalog,) if self.approved else ()
+        )
+        self.view._runtime_ready = True
+        self.approved = True
+        with patch.object(self.provider, "search", return_value=[]):
+            self.view.refresh_home()
+            row = self.view.home_dofus_model.row_for_guide(source_id)
+            self.assertGreaterEqual(row, 0)
+            self.assertEqual(
+                self.view.home_dofus_model.index(row, 0).data(GUIDE_ID_ROLE),
+                source_id,
+            )
+            self.assertNotIn(source_id, self.view._catalog_manual_views)
+            self.assertNotIn(source_id, self.view._loaded_imported_source_services)
+            self.assertFalse(self.progress_path.exists())
+            self.view.search_text = "not-found"
+            self.view.refresh_home()
+            self.assertEqual(self.view.home_dofus_model.row_for_guide(source_id), -1)
+            self.view.search_text = "fictional"
+            self.view.refresh_home()
+            self.assertGreaterEqual(self.view.home_dofus_model.row_for_guide(source_id), 0)
+            self.approved = False
+            self.view.refresh_home()
+            self.assertEqual(self.view.home_dofus_model.row_for_guide(source_id), -1)
+
+    def test_source_catalog_must_be_trusted_before_encyclopedia_initialization(self):
+        from app.modules.encyclopedia.views.encyclopedia_page import EncyclopediaPage
+        with self.assertRaisesRegex(ValueError, "Trusted source catalogue"):
+            EncyclopediaPage(
+                self.messages.append,
+                imported_source_catalog_provider=lambda: (),
+            )
+        with self.assertRaisesRegex(ValueError, "Trusted source catalogue"):
+            EncyclopediaPage(
+                self.messages.append,
+                imported_source_services={self.service.guide_id: self.service},
+                imported_source_authorizer=lambda *_: True,
+                imported_source_catalog_provider=[],
+            )
+
+    def test_unregistered_source_catalog_never_enters_home(self):
+        catalog = Guide(
+            id="source_guide:unregistered", title="Fake Guide",
+            category="dofus", category_label="Dofus", total_steps=1,
+        )
+        self.view._imported_source_catalog_provider = lambda: (catalog,)
+        self.view._runtime_ready = True
+        with patch.object(self.provider, "search", return_value=[]):
+            self.view.refresh_home()
+            self.assertEqual(self.view.home_dofus_model.row_for_guide(catalog.id), -1)
+            self.assertEqual(self.view.result_model.row_for_guide(catalog.id), -1)
+            self.assertFalse(self.progress_path.exists())
+
     def test_encyclopedia_shell_forwards_authorized_sources_only_on_guide_open(self):
         from app.modules.encyclopedia.views.encyclopedia_page import (
             EncyclopediaPage,
@@ -161,6 +224,7 @@ class ImportedSourceRouterQtTests(unittest.TestCase):
         from app.modules.encyclopedia.constants import DUNGEONS_TAB
         root = Path(self.tmp.name)
         factory_calls = []
+        source_catalog = lambda: ()
 
         def build_source():
             factory_calls.append("selected")
@@ -188,6 +252,7 @@ class ImportedSourceRouterQtTests(unittest.TestCase):
             client_index_path=root / "clients.json",
             imported_source_factories={guide_id: build_source},
             imported_source_authorizer=lambda _id, _route: self.approved,
+            imported_source_catalog_provider=source_catalog,
             quest_graph=object(),
             initial_tab=DUNGEONS_TAB,
         )
@@ -197,6 +262,7 @@ class ImportedSourceRouterQtTests(unittest.TestCase):
             reader = shell.ensure_full_guides_view()
             self.assertFalse(factory_calls)
             self.assertIn(guide_id, reader._imported_source_factories)
+            self.assertIs(reader._imported_source_catalog_provider, source_catalog)
             reader.current_character_key = "character:1"
             self.approved = True
             self.assertTrue(reader.select_guide(guide_id))
