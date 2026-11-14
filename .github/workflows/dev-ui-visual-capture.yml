@@ -1,5 +1,5 @@
 name: Atlas UI / Global Unity Windows Capture
-# One final exact-SHA Windows UI regression: 9 full-shell modules, 22 Dev UI families, Organizer and Launcher contracts.
+# Final Windows UI regression after Bestiary visibility fix: 9 real shell modules and one shared Unity contract.
 
 on:
   pull_request:
