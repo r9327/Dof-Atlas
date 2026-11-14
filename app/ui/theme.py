@@ -201,7 +201,7 @@ QToolTip {
    the selected Unity tabs, never a large full-green rectangle. */
 #navItem, #navItemActive, #NavButton, #ActiveNavButton,
 #TopmostButton, #TopmostButtonActive {
-    background: @PANEL_2;
+    background: @GLASS_BUTTON;
     border: 1px solid @BORDER_SOFT;
     border-bottom: 2px solid @BORDER_SOFT;
     border-radius: @RADIUS_XS;
@@ -214,28 +214,28 @@ QToolTip {
     max-height: @CONTROL_HEIGHT_COMPACT;
 }
 #navItem:hover, #NavButton:hover, #TopmostButton:hover {
-    background: @PANEL_HOVER;
+    background: @GLASS_HOVER;
     border-bottom-color: @GREEN_BORDER;
     color: @TEXT;
 }
 #navItemActive, #ActiveNavButton, #TopmostButtonActive {
-    background: @PANEL_ACTIVE;
+    background: @GLASS_HOVER;
     border-bottom: 2px solid @GREEN;
     color: @GREEN;
 }
 #navItemActive:hover, #ActiveNavButton:hover, #TopmostButtonActive:hover {
-    background: @PANEL_HOVER;
+    background: @GLASS_HOVER;
     border-bottom-color: @GREEN_HOVER;
     color: @GREEN_HOVER;
 }
 #navItem:pressed, #navItemActive:pressed, #NavButton:pressed,
 #ActiveNavButton:pressed {
-    background: @PANEL_ACTIVE;
+    background: @GLASS_HOVER;
     border-bottom-color: @GREEN_BORDER;
 }
 #navItem:disabled, #navItemActive:disabled, #NavButton:disabled,
 #ActiveNavButton:disabled {
-    background: @PANEL;
+    background: @GLASS_BUTTON;
     color: @TEXT_DISABLED;
     border-bottom-color: @BORDER_SOFT;
 }

@@ -713,3 +713,10 @@ La matrice de captures intègre également la vraie page `Personnage` affichée 
 
 
 La capture Windows `Personnage` (profil temporaire vide) a révélé que `CharacterEquipmentGrid` et `CharacterEquipmentCenter` peignaient le fond QWidget natif presque noir devant leur carte `HomeTrackingCard`. Ils héritent désormais de la règle de surface transparente commune `AtlasTransparentHost`, sans renommer les widgets, toucher les emplacements d'équipement ou introduire un matériau local concurrent. Test dédié ajouté à `tests/test_theme.py`; les valeurs et données des statistiques ne sont pas simulées.
+
+
+### Navigation latérale — unification glass (14/11/2026)
+
+- Fond des boutons de navigation (normal/actif/survol/pressé/désactivé) raccordé aux **mêmes** tokens `GLASS_BUTTON` et `GLASS_HOVER` utilisés par le thème Unity global, à intensité canonique 16 %. La ligne verte de sélection, la hauteur compacte et les états existants restent inchangés.
+- La démonstration Dev UI et les consommateurs `#navItem` / `#ActiveNavButton` / `#TopmostButtonActive` héritent de la même QSS. Aucun nouveau composant, QSS local ou changement de callback.
+- Test de non-régression ajouté dans `tests/test_ui_universal_contract.py`. **Exécution Qt/Windows, Doctor et certification globale : NOT_RUN** pour ce lot ; le statut Draft et les 43 exigences PENDING restent inchangés.

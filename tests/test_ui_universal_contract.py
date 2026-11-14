@@ -163,6 +163,25 @@ class UiUniversalContractTests(unittest.TestCase):
         self.assertEqual(opts["activeforeground"], UNITY_PALETTE["GREEN"])
         self.assertEqual(COLORS["button_focus"], UNITY_PALETTE["GREEN_BORDER"])
 
+    def test_sidebar_states_use_the_shared_16_percent_glass(self):
+        """Sidebar and Dev UI preview must share one translucent state system."""
+        qss = atlas_stylesheet()
+        section = qss.split("/* Compact side-nav states", 1)[1].split(
+            "#NavSeparator", 1
+        )[0]
+        glass = unity_glass_gradient()
+        hover = unity_glass_gradient(
+            "PANEL_HOVER", "PANEL_ACTIVE",
+            top_alpha=199, bottom_alpha=206,
+        )
+        # Ordinary, active, hovered, pressed and disabled navigation
+        # must not fall back to old opaque, per-sidebar color blocks.
+        self.assertEqual(section.count(f"background: {glass};"), 2)
+        self.assertEqual(section.count(f"background: {hover};"), 4)
+        self.assertNotIn("background: #344978;", section)
+        self.assertNotIn("background: #213154;", section)
+        self.assertIn("border-bottom: 2px solid", section)
+
     def test_glass_gradient_is_shared_and_override_aware(self):
         from app.pages.organizer.glass_material import (
             GLASS_INTENSITY, unity_glass_gradient as organizer_gradient,
