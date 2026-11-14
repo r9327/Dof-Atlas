@@ -344,25 +344,16 @@ QWidget#DevUiPage QScrollArea#DevUiGalleryScroll > QWidget,
 QWidget#DevUiPage QScrollArea#DevUiGalleryScroll > QWidget > QWidget {
     background: transparent;
 }
-QWidget#DevUiPage QGroupBox {
+/* Dev UI section frames are the universal Unity section frames. */
+QGroupBox {
     background: qlineargradient(x1:0, y1:0, x2:0, y2:1,
-        stop:0 @DEV_GALLERY_PANEL_TOP, stop:1 @DEV_GALLERY_PANEL_BOTTOM);
+        stop:0 @GLASS_SECTION_TOP, stop:1 @GLASS_SECTION_BOTTOM);
     border: 1px solid @BORDER_SOFT;
     border-top: 1px solid @GLASS_HAIRLINE;
     border-radius: @RADIUS_SM;
     margin-top: @SPACE_LG;
 }
-/* A very restrained 15–20% glass highlight; surfaces stay blue Unity.
-   The existing translucent QGroupBox remains intact underneath. */
-QWidget#DevUiPage QFrame#card,
-QWidget#DevUiPage QFrame#Panel,
-QWidget#DevUiPage QFrame#QuestPanel {
-    background: qlineargradient(x1:0, y1:0, x2:0, y2:1,
-        stop:0 @GLASS_PANEL_TOP, stop:1 @GLASS_PANEL_BOTTOM);
-    border: 1px solid @BORDER_SOFT;
-    border-top: 1px solid @GLASS_HAIRLINE;
-}
-QWidget#DevUiPage QGroupBox::title {
+QGroupBox::title {
     subcontrol-origin: margin;
     subcontrol-position: top left;
     top: @SPACE_MD;
@@ -372,7 +363,7 @@ QWidget#DevUiPage QGroupBox::title {
     font-size: @FONT_SECTION;
     font-weight: 700;
 }
-QWidget#DevUiPage QHeaderView::section {
+QHeaderView::section {
     font-size: @FONT_SMALL;
     font-weight: 600;
 }
@@ -393,32 +384,17 @@ QWidget#DevUiPage QLabel#DevUiMissingIconText {
     background: transparent;
     border: none;
 }
-QWidget#DevUiPage QTreeWidget::item {
+QTreeWidget::item {
     min-height: 24px;
     padding: 2px @SPACE_XS;
 }
 
-/* UI gallery: retire the near-black wells, without changing the other
-   modules or inventing another palette. Selection remains explicit. */
-QWidget#DevUiPage QTabWidget::pane,
+/* Lists, dropdowns and tab panes inherit the shared application styles.
+   Only these two preview-specific surfaces need a local selector. */
 QWidget#DevUiPage QWidget#DevUiTabPage,
-QWidget#DevUiPage QFrame#GuideUltimeGeneratedView {
+QFrame#GuideUltimeGeneratedView {
     background: @PANEL;
     color: @TEXT;
-}
-QWidget#DevUiPage QTreeWidget,
-QWidget#DevUiPage QTableWidget,
-QWidget#DevUiPage QListWidget {
-    background: @PANEL;
-    alternate-background-color: @PANEL;
-    selection-background-color: @PANEL_ACTIVE;
-    selection-color: @TEXT;
-}
-QWidget#DevUiPage QComboBox QAbstractItemView {
-    background: @PANEL_2;
-    alternate-background-color: @PANEL_2;
-    selection-background-color: @PANEL_ACTIVE;
-    selection-color: @TEXT;
 }
 /* The family selector keeps the original green active row. Only its
    unobtrusive separators and fixed row height are preview-specific. */
@@ -429,49 +405,49 @@ QWidget#DevUiPage QComboBox#DevUiFamilyCombo QAbstractItemView {
 
 /* Replace Qt's near-black native slider with the existing Unity surface
    and active green, without changing the geometry of other app sliders. */
-QWidget#DevUiPage QSlider#DevUiProgressSlider {
+QSlider {
     background: transparent;
     min-height: 24px;
 }
-QWidget#DevUiPage QSlider#DevUiProgressSlider::groove:horizontal {
+QSlider::groove:horizontal {
     background: @PANEL_2;
     border: 1px solid @BORDER_SOFT;
     height: 6px;
     border-radius: 3px;
 }
-QWidget#DevUiPage QSlider#DevUiProgressSlider::sub-page:horizontal {
+QSlider::sub-page:horizontal {
     background: @GREEN_DARK;
     border: 1px solid @GREEN_BORDER;
     border-radius: 3px;
 }
-QWidget#DevUiPage QSlider#DevUiProgressSlider::add-page:horizontal {
+QSlider::add-page:horizontal {
     background: @PANEL_2;
     border: 1px solid @BORDER_SOFT;
     border-radius: 3px;
 }
-QWidget#DevUiPage QSlider#DevUiProgressSlider::handle:horizontal {
+QSlider::handle:horizontal {
     background: @PANEL_ACTIVE;
     border: 2px solid @GREEN_BORDER;
     width: 14px;
     margin: -6px 0;
     border-radius: 7px;
 }
-QWidget#DevUiPage QSlider#DevUiProgressSlider::handle:horizontal:hover {
+QSlider::handle:horizontal:hover {
     background: @PANEL_HOVER;
     border-color: @GREEN;
 }
 
 /* Preview-only resize and scroll surfaces: remove the native dark splitter
    strip and opaque Qt scrollbar track while leaving the thumb usable. */
-QWidget#DevUiPage QSplitter#DevUiResizeSplitter {
+QSplitter {
     background: transparent;
 }
-QWidget#DevUiPage QSplitter#DevUiResizeSplitter::handle:horizontal {
+QSplitter::handle:horizontal {
     background: @PANEL_2;
     border-left: 1px solid @BORDER_SOFT;
     border-right: 1px solid @BORDER_SOFT;
 }
-QWidget#DevUiPage QSplitter#DevUiResizeSplitter::handle:horizontal:hover {
+QSplitter::handle:horizontal:hover {
     background: @PANEL_HOVER;
     border-left-color: @BORDER_CARD;
     border-right-color: @BORDER_CARD;
@@ -483,31 +459,6 @@ QWidget#DevUiPage QListWidget QScrollBar:vertical {
 }
 QWidget#DevUiPage QScrollArea#DevUiGalleryScroll QScrollBar:vertical {
     background: transparent;
-}
-QWidget#DevUiPage QScrollBar:vertical {
-    background: @PANEL;
-    width: 8px;
-    margin: 0px;
-    border: none;
-}
-QWidget#DevUiPage QScrollBar::handle:vertical {
-    background: @BORDER_CARD;
-    border-radius: @RADIUS_XS;
-    min-height: 26px;
-}
-QWidget#DevUiPage QScrollBar::handle:vertical:hover {
-    background: @BORDER_STRONG;
-}
-QWidget#DevUiPage QScrollBar::add-line:vertical,
-QWidget#DevUiPage QScrollBar::sub-line:vertical {
-    background: transparent;
-    border: none;
-    height: 0px;
-}
-QWidget#DevUiPage QScrollBar::add-page:vertical,
-QWidget#DevUiPage QScrollBar::sub-page:vertical {
-    background: transparent;
-    border: none;
 }
 /* A transparent page over a QListWidget reveals its native Qt base, not
    the shell wallpaper. Match the canonical list panel instead of black. */
@@ -815,9 +766,12 @@ QSplitter#AchievementCatalogSplitter::handle {
     border-radius: 2px;
 }
 
+/* One common softly graded blue Unity panel, exactly as in Dev UI. */
 #card, #OrganizerPanel, #Panel, #CraftPanel, #QuestPanel {
-    background: @PANEL;
-    border: 1px solid @BORDER;
+    background: qlineargradient(x1:0, y1:0, x2:0, y2:1,
+        stop:0 @GLASS_PANEL_TOP, stop:1 @GLASS_PANEL_BOTTOM);
+    border: 1px solid @BORDER_SOFT;
+    border-top: 1px solid @GLASS_HAIRLINE;
     border-radius: @RADIUS_MD;
 }
 
@@ -1653,21 +1607,30 @@ QScrollBar:horizontal {
     background: transparent;
 }
 
+/* Global compact scrollbars match Dev UI without opaque native wells. */
 QScrollBar:vertical {
     background: @PANEL;
     width: 8px;
-    margin: 1px;
+    margin: 0px;
+    border: none;
     border-radius: @RADIUS_XS;
 }
-
 QScrollBar::handle:vertical {
-    background: #344863;
+    background: @BORDER_CARD;
     min-height: 26px;
     border-radius: @RADIUS_XS;
 }
-
 QScrollBar::handle:vertical:hover {
-    background: #49617F;
+    background: @BORDER_STRONG;
+}
+QScrollBar::add-line:vertical, QScrollBar::sub-line:vertical {
+    background: transparent;
+    border: none;
+    height: 0px;
+}
+QScrollBar::add-page:vertical, QScrollBar::sub-page:vertical {
+    background: transparent;
+    border: none;
 }
 
 QCheckBox::indicator {
@@ -3630,10 +3593,9 @@ def _render_theme_template(
     tokens["GLASS_HAIRLINE"] = _soft_alpha(tokens["TEXT_SOFT"], "0.16")
     tokens["GLASS_PANEL_TOP"] = _soft_alpha(tokens["PANEL_2"], "0.82")
     tokens["GLASS_PANEL_BOTTOM"] = _soft_alpha(tokens["PANEL"], "0.88")
-    # Dev UI preview only: translucent official blue tokens, no custom sky
-    # asset or secondary color palette. Normal modules retain their opacity.
-    tokens["DEV_GALLERY_PANEL_TOP"] = _soft_alpha(tokens["PANEL_2"], "0.50")
-    tokens["DEV_GALLERY_PANEL_BOTTOM"] = _soft_alpha(tokens["PANEL"], "0.58")
+    # Translucent Unity section styling is shared outside the Dev UI gallery.
+    tokens["GLASS_SECTION_TOP"] = _soft_alpha(tokens["PANEL_2"], "0.50")
+    tokens["GLASS_SECTION_BOTTOM"] = _soft_alpha(tokens["PANEL"], "0.58")
     style = str(template)
     for literal, role in LEGACY_COLOR_ROLES.items():
         token = f"@{role}"

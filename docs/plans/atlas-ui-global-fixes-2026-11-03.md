@@ -21,6 +21,21 @@ L'architecture existante est la source de vérité : `app/ui/unity_skin.py` (pal
 - **Logos Unity** : toujours afficher les pixels RGBA d'origine en production comme en galerie, sans recoloration blanche. Huit PNG menuIcons sont effectivement dans `app/assets/themes/dofus_unity/sprites/` ; les six autres emplacements restent conditionnels à la présence d'un fichier local, sans icône inventée.
 - **Anti-régression** : établir une matrice écrans × composants, vérifier les consommateurs avec Graphify du SHA exact avant refactor, tests des contrats UI partagés, screenshots Doctor UI sous Windows. Ne pas lancer de refonte générale spéculative, réutiliser ce qui fonctionne.
 
+### Décision du 14 novembre — Dev UI = référence stylistique de toute l'app
+
+Les familles Dev UI ne doivent plus posséder de variantes QSS locales pour les
+composants communs. Un seul thème Unity (`app/ui/theme.py`,
+`app/ui/unity_skin.py`, `app/ui/components.py`) couvre panneaux,
+cartes, sections, listes, tableaux, menus, sliders, splitters, scrollbars,
+boutons, onglets, liens et badges. Dégradés bleus très légers, contours fins,
+palette Unity et tailles communes ; seules les géométries métier restent
+spécifiques. Les transparences et couleurs originales des sprites sont
+conservées. Le Launcher Tk conserve son adaptateur existant.
+
+Ce lot n'est pas une preuve de recette visuelle sur tous les modules. Exiger
+contrôles Doctor/tests au HEAD exact et captures Windows comparées avant
+certification finale de #365.
+
 ## Dépendances / responsabilités
 
 | Branche / PR | Responsabilité | Règle pour cette PR |

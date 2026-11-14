@@ -230,6 +230,36 @@ class SharedThemeTests(unittest.TestCase):
         self.assertIn("border-color: #135790;", button_hover)
         self.assertNotIn("#GuideUltimeGeneratedView QComboBox", style)
 
+    def test_dev_ui_shared_surface_style_reaches_real_widgets(self) -> None:
+        style = theme.atlas_stylesheet({
+            "PANEL": "#112233", "PANEL_2": "#223344",
+            "BORDER_SOFT": "#345678",
+        })
+        group = style.split("QGroupBox {", 1)[1].split("}", 1)[0]
+        card = style.split(
+            "#card, #OrganizerPanel, #Panel, #CraftPanel, #QuestPanel {", 1
+        )[1].split("}", 1)[0]
+        slider = style.split("QSlider::groove:horizontal {", 1)[1].split("}", 1)[0]
+        self.assertIn("rgba(34, 51, 68, 0.50)", group)
+        self.assertIn("rgba(17, 34, 51, 0.58)", group)
+        self.assertIn("rgba(34, 51, 68, 0.82)", card)
+        self.assertIn("rgba(17, 34, 51, 0.88)", card)
+        self.assertIn("border: 1px solid #345678;", slider)
+        for common in (
+            "QGroupBox::title {", "QTreeWidget::item {",
+            "QSplitter::handle:horizontal {",
+            "QScrollBar::handle:vertical {",
+            "QComboBox QAbstractItemView {",
+        ):
+            self.assertIn(common, style)
+        for obsolete in (
+            "QWidget#DevUiPage QGroupBox {",
+            "QWidget#DevUiPage QSlider#DevUiProgressSlider",
+            "QWidget#DevUiPage QSplitter#DevUiResizeSplitter",
+            "QWidget#DevUiPage QTreeWidget::item {",
+        ):
+            self.assertNotIn(obsolete, style)
+
 
 if __name__ == "__main__":
     unittest.main()

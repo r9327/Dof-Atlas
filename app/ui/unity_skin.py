@@ -263,18 +263,21 @@ def unity_skin_stylesheet(palette: Mapping[str, str] | None = None) -> str:
         "QScrollArea > QWidget > QWidget { background: transparent; }",
         # Shared widget families, never changes their existing geometry or actions.
         "QGroupBox, QTabWidget::pane { "
-        "background: %s; color: %s; "
-        "border: 1px solid %s; border-radius: %s; }" % (
-            translucent("PANEL", 0.78), colors["TEXT"], colors["BORDER"],
-            radii["RADIUS_SM"],
+        "background: qlineargradient(x1:0,y1:0,x2:0,y2:1,"
+        "stop:0 %s,stop:1 %s); color: %s; "
+        "border: 1px solid %s; border-top: 1px solid %s; "
+        "border-radius: %s; }" % (
+            translucent("PANEL_2", 0.50), translucent("PANEL", 0.58),
+            colors["TEXT"], colors["BORDER"],
+            translucent("TEXT_SOFT", 0.16), radii["RADIUS_SM"],
         ),
         "QListView, QTreeView, QTableView, QListWidget, QTreeWidget, QTableWidget { "
         "background: %s; color: %s; "
         "alternate-background-color: %s; "
         "selection-background-color: %s; selection-color: %s; "
         "border: 1px solid %s; }" % (
-            translucent("LIST_SURFACE", 0.92), colors["TEXT"],
-            translucent("PANEL_2", 0.88), colors["PANEL_ACTIVE"],
+            translucent("PANEL", 0.95), colors["TEXT"],
+            translucent("PANEL", 0.95), colors["PANEL_ACTIVE"],
             colors["TEXT"], colors["BORDER"],
         ),
         "QHeaderView::section { background: %s; "
@@ -310,9 +313,12 @@ def unity_skin_stylesheet(palette: Mapping[str, str] | None = None) -> str:
         "QFrame#card, QFrame#HomeCharacterCard, QFrame#HomeTrackingCard, "
         "QFrame#HomeGuideCard, QFrame#HomeNetworkMiniCard, QFrame#HomeAlmanaxCard, "
         "QFrame#GuideFeaturedCard { "
-        "background: %s; border: 1px solid %s; "
-        "border-radius: 9px; }" % (
-            translucent("PANEL", 0.88), colors["BORDER_CARD"],
+        "background: qlineargradient(x1:0,y1:0,x2:0,y2:1,"
+        "stop:0 %s,stop:1 %s); border: 1px solid %s; "
+        "border-top: 1px solid %s; border-radius: %s; }" % (
+            translucent("PANEL_2", 0.82), translucent("PANEL", 0.88),
+            colors["BORDER_SOFT"], translucent("TEXT_SOFT", 0.16),
+            radii["RADIUS_MD"],
         ),
         # Featured Guide cards are deliberately accented, but share the same
         # palette and selector ownership as every other Unity surface.
