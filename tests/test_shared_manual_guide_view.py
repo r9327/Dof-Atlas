@@ -29,7 +29,9 @@ class SharedGuideManualViewThemeTests(unittest.TestCase):
             "QFrame#GuideManualCombatInlineRow",
             "QFrame#GuideManualLineRow",
             "QLabel#GuideManualCombatInlineText",
-            "QCheckBox#GuideManualCombatCheck",
+            # This global role intentionally works on either a checkbox
+            # or another checkable control; do not tie QSS to its class.
+            "#GuideManualCombatCheck",
         ):
             with self.subTest(selector=selector):
                 self.assertIn(selector, style)

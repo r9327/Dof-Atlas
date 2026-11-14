@@ -197,17 +197,21 @@ class UnitySkinTests(unittest.TestCase):
             "TOOLTIP_SURFACE": "#667788",
             "FIELD_SURFACE": "#778899",
         })
+        # After Dev UI unification, sections/cards/lists/fields use the
+        # same PANEL/PANEL_2 tokens. Keep explicit override propagation
+        # assertions rather than expecting the superseded opaque palette.
         for expected in (
             "rgba(17, 34, 51, 0.88)",  # cards and Guide panels
-            "rgba(17, 34, 51, 0.78)",  # shared tab/group panes
-            "rgba(34, 51, 68, 0.88)",  # alternate list rows
-            "rgba(51, 68, 85, 0.92)",  # lists and tables
+            "rgba(17, 34, 51, 0.58)",  # shared section bottom
+            "rgba(34, 51, 68, 0.50)",  # shared section top
+            "rgba(17, 34, 51, 0.95)",  # list body + alternate rows
+            "rgba(34, 51, 68, 0.82)",  # home card top
+            "rgba(51, 68, 85, 0.45)",  # Guide Dofus listing
             "rgba(51, 68, 85, 0.85)",  # shared progress
-            "rgba(68, 85, 102, 0.93)",  # common tabs
             "rgba(68, 85, 102, 0.98)",  # dialogs and menus
             "rgba(85, 102, 119, 0.35)",  # scroll surfaces
             "background: #667788;",  # tooltips
-            "rgba(119, 136, 153, 0.96)",  # shared text fields and combos
+            "rgba(34, 51, 68, 0.96)",  # shared text fields and combos
         ):
             with self.subTest(expected=expected):
                 self.assertIn(expected, style)
@@ -613,7 +617,8 @@ class UnitySkinTests(unittest.TestCase):
             "QTableView", "QPlainTextEdit", "QHeaderView::section",
         ):
             self.assertIn(selector, style)
-        self.assertIn("rgba(27, 39, 70, 0.78)", style)
+        self.assertIn("rgba(27, 39, 70, 0.58)", style)
+        self.assertIn("rgba(33, 49, 84, 0.50)", style)
         self.assertIn('QWidget[atlasUnityPage="true"]', style)
         self.assertIn("QPushButton#FeaturedGuideOpen:focus", style)
         for root_name in ("GuidesView", "GuidesHomePage", "GuidesHomeContent", "GuidesDetailPage"):
