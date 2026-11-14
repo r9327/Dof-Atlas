@@ -174,6 +174,29 @@ class UnityPaletteTests(unittest.TestCase):
         self.assertIn('AtlasStatusBadge(badge, state="blocked")', shell)
         self.assertNotIn('setObjectName("HomePlaceholderBadge")', shell)
 
+    def test_shared_button_consumers_use_canonical_variants(self) -> None:
+        root = Path(__file__).resolve().parents[1]
+        paths = (
+            "app/pages/craft_page.py",
+            "app/pages/_quests_page_impl.py",
+            "app/modules/encyclopedia/views/guide_ultime_universal_view.py",
+        )
+        for path in paths:
+            with self.subTest(path=path):
+                source = (root / path).read_text(encoding="utf-8")
+                for name in (
+                    "PrimaryActionButton", "SecondaryButton",
+                    "GuideBreadcrumbButton",
+                ):
+                    self.assertNotIn(f'.setObjectName("{name}")', source)
+        craft = (root / paths[0]).read_text(encoding="utf-8")
+        quests = (root / paths[1]).read_text(encoding="utf-8")
+        guides = (root / paths[2]).read_text(encoding="utf-8")
+        self.assertIn('variant="primary"', craft)
+        self.assertIn('variant="secondary"', craft)
+        self.assertEqual(quests.count('variant="guide_breadcrumb"'), 3)
+        self.assertIn('variant="guide_breadcrumb"', guides)
+
     def test_rich_text_and_character_fonts_share_unity_metrics(self) -> None:
         self.assertEqual(UNITY_CONTENT_TYPOGRAPHY_PX, {
             "quest_h1": 22,
