@@ -153,7 +153,11 @@ def main() -> None:
                     for button in (page.macro_mode_button, page.mirror_mode_button):
                         if button.icon().isNull():
                             raise RuntimeError("Macro/Miroir mode glyph missing")
-                    style = page.styleSheet()
+                    # AtlasWindow installs the single stylesheet at QApplication
+                    # scope. The Organizer page must not shadow it locally.
+                    style = app.styleSheet()
+                    if not style or page.styleSheet():
+                        raise RuntimeError("Organizer must inherit global Unity QSS")
                     for selector in (
                         "QPushButton#secondaryButton:hover",
                         "QPushButton#secondaryButton:pressed",
@@ -189,7 +193,7 @@ def main() -> None:
                     from app.pages.organizer.glass_material import (
                         OrganizerGlassCard, unity_glass_gradient,
                     )
-                    if unity_glass_gradient() not in page.styleSheet():
+                    if unity_glass_gradient() not in style:
                         raise RuntimeError("Organizer not using translucent Unity glass")
                     if not all(isinstance(panel, OrganizerGlassCard) for panel in (
                         page.macro_panel, page.quick_actions_panel,
