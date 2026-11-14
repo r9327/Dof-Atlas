@@ -743,3 +743,10 @@ La capture Windows `Personnage` (profil temporaire vide) a révélé que `Charac
 - Cause : des panneaux, cartes et états Guides conservaient une palette sombre opaque et le skin Unity **réécrivait** les mêmes surfaces après le QSS commun ; une modification des tokens Dev UI ne se répercutait donc pas fidèlement.
 - Mise à jour **deux couches QSS existantes, sans nouvelle palette** : les racines Guides deviennent transparentes ; les panneaux, catégories, en-têtes compacts, cartes, états de survol et zones vides réutilisent `GLASS_PANEL_TOP/BOTTOM`, `GLASS_BUTTON/HOVER`, `GLASS_HAIRLINE`, `BORDER_SOFT` et les rayons Unity ; sélection par liseré inférieur vert fin.
 - Test de propagation des tokens ajouté dans `tests/test_theme.py`. Aucune logique métier, données Ganymède, progression, clic, ni route modifiés. **Tests/CI non exécutés pendant ce lot**, à conserver pour la validation finale de la PR toujours Draft.
+
+
+### UI Dev — cinq vraies surfaces Guides visibles (14 novembre 2026)
+
+- La famille Guides montre maintenant dans la galerie les identifiants de composants utilisés par les écrans réels : `GuideHeader`, `GuidesHomeCategory`, `GuideDofusCard`, `GuideQuestLineActive` et `GuideCompactHeader`.
+- Les cadres de démo statiques réutilisent `UNITY_PANEL_SHADOW` ; la ligne active ne reçoit pas d'effet graphique par ligne. Aucune feuille de style locale, aucune fausse progression ou donnée de jeu.
+- Test UI ajouté dans `tests/test_dev_ui_page.py` (objectName, style vide et règle d'ombrage). **Exécution différée à l'audit de fin du développement**, pas de certification ni fusion sur ce seul lot.

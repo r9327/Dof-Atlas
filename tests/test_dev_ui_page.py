@@ -90,6 +90,34 @@ class DevUiPageTests(unittest.TestCase):
             page.close()
             page.deleteLater()
 
+    def test_guide_catalog_materials_are_real_shared_dev_ui_components(self) -> None:
+        from app.pages.dev_ui_page import DevUiPage
+
+        page = DevUiPage(on_back=lambda: None)
+        try:
+            examples = {
+                "guide_sample_header": "GuideHeader",
+                "guide_sample_category": "GuidesHomeCategory",
+                "guide_sample_dofus_card": "GuideDofusCard",
+                "guide_sample_active_route": "GuideQuestLineActive",
+                "guide_sample_compact_header": "GuideCompactHeader",
+            }
+            for attr, object_name in examples.items():
+                with self.subTest(object_name=object_name):
+                    widget = getattr(page, attr)
+                    self.assertEqual(widget.objectName(), object_name)
+                    self.assertEqual(widget.styleSheet(), "")
+            for attr in (
+                "guide_sample_header", "guide_sample_category",
+                "guide_sample_dofus_card", "guide_sample_compact_header",
+            ):
+                self.assertIsNotNone(getattr(page, attr).graphicsEffect())
+            # Shadows are reserved for static panels, not each selected row.
+            self.assertIsNone(page.guide_sample_active_route.graphicsEffect())
+        finally:
+            page.close()
+            page.deleteLater()
+
     def test_unification_contract_previews_breadcrumb_alerts_and_backdrop(self) -> None:
         from app.pages.dev_ui_page import DevUiPage
         from app.ui.unity_palette import (

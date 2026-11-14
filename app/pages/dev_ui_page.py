@@ -1144,6 +1144,48 @@ class DevUiPage(QWidget):
     def _build_guide_samples(self, parent: QVBoxLayout) -> None:
         """Render Guide's real shared selectors; never duplicate their colors."""
         section = self._section(parent, "guides")
+        # Production Guide selectors, rendered side by side with the same
+        # shared QSS as the rest of Dev UI (no fake quests or local palette).
+        guide_surfaces = QHBoxLayout()
+        self.guide_sample_header = QFrame()
+        self.guide_sample_header.setObjectName("GuideHeader")
+        header_layout = QVBoxLayout(self.guide_sample_header)
+        header_layout.addWidget(QLabel("En-tête · panneau glass Unity"))
+        apply_unity_panel_shadow(self.guide_sample_header, **UNITY_PANEL_SHADOW)
+        guide_surfaces.addWidget(self.guide_sample_header, 1)
+
+        self.guide_sample_category = QFrame()
+        self.guide_sample_category.setObjectName("GuidesHomeCategory")
+        category_layout = QVBoxLayout(self.guide_sample_category)
+        category_layout.addWidget(QLabel("Catégorie · même matériau"))
+        apply_unity_panel_shadow(self.guide_sample_category, **UNITY_PANEL_SHADOW)
+        guide_surfaces.addWidget(self.guide_sample_category, 1)
+        section.addLayout(guide_surfaces)
+
+        guide_cards = QHBoxLayout()
+        self.guide_sample_dofus_card = QFrame()
+        self.guide_sample_dofus_card.setObjectName("GuideDofusCard")
+        card_layout = QVBoxLayout(self.guide_sample_dofus_card)
+        card_layout.addWidget(QLabel("Dofus · état normal"))
+        apply_unity_panel_shadow(self.guide_sample_dofus_card, **UNITY_PANEL_SHADOW)
+        guide_cards.addWidget(self.guide_sample_dofus_card, 1)
+
+        self.guide_sample_active_route = QFrame()
+        self.guide_sample_active_route.setObjectName("GuideQuestLineActive")
+        route_layout = QVBoxLayout(self.guide_sample_active_route)
+        route_layout.addWidget(QLabel("Étape active · trait vert fin"))
+        guide_cards.addWidget(self.guide_sample_active_route, 1)
+        section.addLayout(guide_cards)
+
+        self.guide_sample_compact_header = QFrame()
+        self.guide_sample_compact_header.setObjectName("GuideCompactHeader")
+        compact_layout = QVBoxLayout(self.guide_sample_compact_header)
+        compact_layout.addWidget(QLabel("Guide compact · mêmes bordures"))
+        apply_unity_panel_shadow(
+            self.guide_sample_compact_header, **UNITY_PANEL_SHADOW
+        )
+        section.addWidget(self.guide_sample_compact_header)
+
         self.guide_sample_summary = QFrame()
         self.guide_sample_summary.setObjectName("GuidePreparationSummary")
         summary_layout = QVBoxLayout(self.guide_sample_summary)
