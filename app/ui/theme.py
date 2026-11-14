@@ -955,22 +955,38 @@ QPushButton:disabled, QToolButton:disabled {
 
 /* Shared action hierarchy: blue at rest, green only for interaction/state.
    No large neon/solid-green rectangles on ordinary Atlas buttons. */
-#primaryButton, #ActiveButton, #PrimaryActionButton {
+#primaryButton, #PrimaryActionButton {
     background: @PANEL_2;
     border-color: @BORDER_CARD;
     color: @TEXT;
     font-weight: 700;
 }
-#primaryButton:hover, #ActiveButton:hover, #PrimaryActionButton:hover {
+#primaryButton:hover, #PrimaryActionButton:hover {
     background: @PANEL_HOVER;
     border-color: @GREEN_BORDER;
     color: @GREEN;
 }
-#primaryButton:pressed, #ActiveButton:pressed, #PrimaryActionButton:pressed,
-#primaryButton:checked, #ActiveButton:checked, #PrimaryActionButton:checked {
+#primaryButton:pressed, #PrimaryActionButton:pressed,
+#primaryButton:checked, #PrimaryActionButton:checked {
     background: @PANEL_ACTIVE;
     border-color: @GREEN_BORDER;
     color: @GREEN;
+}
+
+#ActiveButton {
+    background: @PANEL_ACTIVE;
+    border-color: @BORDER_CARD;
+    border-bottom: 2px solid @GREEN;
+    color: @GREEN;
+    font-weight: 700;
+}
+#ActiveButton:hover, #ActiveButton:pressed {
+    background: @PANEL_HOVER;
+    color: @GREEN_HOVER;
+}
+#ActiveButton:focus {
+    border-color: @TEXT_SOFT;
+    border-bottom-color: @GREEN;
 }
 
 #secondaryButton, #SecondaryButton {
@@ -2685,6 +2701,35 @@ QLabel#AlmanaxUnavailable { color: @TEXT_MUTED; font-size: @FONT_BODY; }
             }
 
             QPushButton#GuideInlineQuestButton,
+            QPushButton#GuideInlineAchievementButton {
+                background: transparent;
+                border: 1px solid transparent;
+                border-radius: @RADIUS_XS;
+                color: @TEXT_SOFT;
+                font-size: @FONT_SMALL;
+                font-weight: 600;
+                text-decoration: underline;
+                min-height: 22px;
+                max-height: 22px;
+                padding: 0px @SPACE_LG;
+                text-align: left;
+            }
+
+            QPushButton#GuideInlineQuestButton:hover,
+            QPushButton#GuideInlineAchievementButton:hover {
+                color: @GREEN;
+            }
+
+            QPushButton#GuideInlineQuestButton:focus,
+            QPushButton#GuideInlineAchievementButton:focus {
+                border-color: @BORDER_STRONG;
+            }
+
+            QPushButton#GuideInlineQuestButton:disabled,
+            QPushButton#GuideInlineAchievementButton:disabled {
+                color: @TEXT_DISABLED;
+            }
+
             QPushButton#GuideItemNameButton {
                 background: transparent;
                 border: 1px solid transparent;
@@ -2698,7 +2743,6 @@ QLabel#AlmanaxUnavailable { color: @TEXT_MUTED; font-size: @FONT_BODY; }
                 text-align: left;
             }
 
-            QPushButton#GuideInlineQuestButton:hover,
             QPushButton#GuideItemNameButton:hover {
                 background: #1a202b;
                 border-color: #5e3d93;

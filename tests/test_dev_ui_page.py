@@ -238,9 +238,14 @@ class DevUiPageTests(unittest.TestCase):
             self.assertEqual(page.preview_contract.rowCount(),
                              len(UNITY_UI_UNIFICATION_CONTRACT))
             # No hidden inventory rows in nested table scroll areas.
-            for table in (
-                page.preview_contract, page.preview_scope, page.preview_metrics,
+            for table, toggle in (
+                (page.preview_contract, page.preview_contract_toggle),
+                (page.preview_scope, page.preview_scope_toggle),
+                (page.preview_metrics, page.preview_metrics_toggle),
             ):
+                self.assertTrue(table.isHidden())
+                toggle.click()
+                self.assertFalse(table.isHidden())
                 self.assertEqual(
                     table.verticalScrollBarPolicy(), Qt.ScrollBarAlwaysOff
                 )
@@ -252,6 +257,8 @@ class DevUiPageTests(unittest.TestCase):
                     table.horizontalHeader().sizeHint().height()
                     + sum(table.rowHeight(i) for i in range(table.rowCount()))
                 )
+                toggle.click()
+                self.assertTrue(table.isHidden())
             self.assertEqual(page.gallery_navigation.count(),
                              len(UNITY_UI_FAMILY_INDEX))
             for row, (label, family) in enumerate(UNITY_UI_UNIFICATION_CONTRACT):
@@ -886,13 +893,22 @@ class DevUiPageTests(unittest.TestCase):
             page.show()
             self.app.processEvents()
             bar = page.gallery_scroll.verticalScrollBar()
-            page.gallery_navigation.setCurrentIndex(
-                page.gallery_navigation.count() - 1
-            )
+            combo = page.gallery_navigation
+            combo.setFocus()
+            QTest.keyClick(combo, Qt.Key_End)
             self.app.processEvents()
             self.assertGreater(bar.maximum(), 0)
             self.assertGreater(bar.value(), 0)
-            self.assertEqual(page.gallery_navigation.currentText(), "Palette Unity · source de vérité")
+            self.assertEqual(combo.currentText(), "Palette Unity · source de vérité")
+
+            bar.setValue(0)
+            combo.showPopup()
+            self.app.processEvents()
+            view = combo.view()
+            current = view.model().index(combo.currentIndex(), 0)
+            QTest.mouseClick(view.viewport(), Qt.LeftButton, pos=view.visualRect(current).center())
+            self.app.processEvents()
+            self.assertGreater(bar.value(), 0)
         finally:
             page.close()
             page.deleteLater()

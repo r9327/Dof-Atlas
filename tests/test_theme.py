@@ -66,17 +66,18 @@ class SharedThemeTests(unittest.TestCase):
             self.assertIn(rule, common)
 
         primary = style.split(
-            "#primaryButton, #ActiveButton, #PrimaryActionButton {", 1
+            "#primaryButton, #PrimaryActionButton {", 1
         )[1].split("}", 1)[0]
-        # The first occurrence belongs to the shared primary/secondary
-        # typography block; inspect the final variant-specific color rule.
         secondary = style.rsplit(
             "#secondaryButton, #SecondaryButton {", 1
         )[1].split("}", 1)[0]
+        selected = style.split("#ActiveButton {", 1)[1].split("}", 1)[0]
         self.assertIn("background: ", primary)
         self.assertIn("background: ", secondary)
         self.assertNotIn("padding-left", primary)
         self.assertNotIn("padding-left", secondary)
+        self.assertNotIn("border-bottom", primary)
+        self.assertIn(f'border-bottom: 2px solid {theme.PALETTE["GREEN"]};', selected)
         self.assertIn("font-size: 16px;", style)
         self.assertIn("border-radius: 9px;", style)
 
@@ -155,7 +156,12 @@ class SharedThemeTests(unittest.TestCase):
         self.assertIn("color: #102030;", normal)
         self.assertIn("background: #203040;", hover)
         self.assertIn("border-color: #304050;", hover)
-        self.assertIn("QPushButton#GuideInlineQuestButton,", style)
+        links = style.split(
+            "QPushButton#GuideInlineQuestButton,\n"
+            "            QPushButton#GuideInlineAchievementButton {", 1
+        )[1].split("}", 1)[0]
+        self.assertIn("text-decoration: underline;", links)
+        self.assertIn(f'color: {theme.PALETTE["TEXT_SOFT"]};', links)
 
     def test_quest_launch_position_has_unified_bold_typography(self) -> None:
         from app.ui.unity_palette import UNITY_UI_FAMILY_INDEX

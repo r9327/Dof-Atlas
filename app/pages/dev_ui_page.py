@@ -222,7 +222,7 @@ class DevUiPage(QWidget):
             [details["title"] for details in UNITY_UI_FAMILY_INDEX.values()]
         )
         self.gallery_count.setText(f"{len(self.gallery_sections)} familles UI")
-        self.gallery_navigation.currentIndexChanged.connect(self._jump_to_section)
+        self.gallery_navigation.activated.connect(self._jump_to_section)
 
     def _section(self, parent_layout: QVBoxLayout, family_key: str) -> QVBoxLayout:
         validate_ui_index()
@@ -259,9 +259,27 @@ class DevUiPage(QWidget):
         header_height = table.horizontalHeader().sizeHint().height()
         table.setFixedHeight(header_height + row_height + 2 * table.frameWidth() + 6)
 
+    def _add_catalog_table(
+        self, layout: QVBoxLayout, table: QTableWidget, label: str
+    ) -> AtlasButton:
+        self._expand_catalog_table(table)
+        table.hide()
+        toggle = AtlasButton(f"Afficher {label}", variant="secondary")
+        toggle.setCheckable(True)
+        toggle.toggled.connect(table.setVisible)
+        toggle.toggled.connect(
+            lambda expanded: toggle.setText(
+                f"{'Masquer' if expanded else 'Afficher'} {label}"
+            )
+        )
+        layout.addWidget(toggle, alignment=Qt.AlignLeft)
+        layout.addWidget(table)
+        return toggle
+
     def _jump_to_section(self, index: int) -> None:
         """Scroll to the real section; no duplicate or floating UI catalog."""
         if 0 <= index < len(self.gallery_sections):
+            self.gallery_navigation.setCurrentIndex(index)
             self.gallery_scroll.ensureWidgetVisible(
                 self.gallery_sections[index], 0, 12
             )
@@ -1173,7 +1191,6 @@ class DevUiPage(QWidget):
             + len(UNITY_ORGANIZER_METRICS_PX), 2
         )
         self.preview_metrics.setHorizontalHeaderLabels(("Token commun", "Valeur"))
-        self.preview_metrics.setMaximumHeight(178)
         self.preview_metrics.setAlternatingRowColors(False)
         self.preview_metrics.setShowGrid(False)
         self.preview_metrics.verticalHeader().hide()
@@ -1187,8 +1204,9 @@ class DevUiPage(QWidget):
         )):
             self.preview_metrics.setItem(index, 0, QTableWidgetItem(name))
             self.preview_metrics.setItem(index, 1, QTableWidgetItem(value))
-        self._expand_catalog_table(self.preview_metrics)
-        section.addWidget(self.preview_metrics)
+        self.preview_metrics_toggle = self._add_catalog_table(
+            section, self.preview_metrics, "les dimensions et espacements"
+        )
 
     def _build_panels(self, parent: QVBoxLayout) -> None:
         section = self._section(parent, "panels")
@@ -1457,7 +1475,6 @@ class DevUiPage(QWidget):
         modules = UNITY_UI_CONSUMERS
         self.preview_scope = QTableWidget(len(modules), 2)
         self.preview_scope.setHorizontalHeaderLabels(("Module", "Source de style cible"))
-        self.preview_scope.setMaximumHeight(192)
         self.preview_scope.setAlternatingRowColors(False)
         self.preview_scope.setShowGrid(False)
         self.preview_scope.verticalHeader().hide()
@@ -1478,8 +1495,9 @@ class DevUiPage(QWidget):
         self.preview_scope.setToolTip(
             "Inventaire du périmètre, pas une certification de migration"
         )
-        self._expand_catalog_table(self.preview_scope)
-        section.addWidget(self.preview_scope)
+        self.preview_scope_toggle = self._add_catalog_table(
+            section, self.preview_scope, "les modules consommateurs"
+        )
 
         contract_label = QLabel(
             "Tous les éléments prévus en uniformisation (cliquer une ligne "
@@ -1489,7 +1507,6 @@ class DevUiPage(QWidget):
         section.addWidget(contract_label)
         self.preview_contract = QTableWidget(len(UNITY_UI_UNIFICATION_CONTRACT), 2)
         self.preview_contract.setHorizontalHeaderLabels(("Élément prévu", "Famille UI"))
-        self.preview_contract.setMaximumHeight(270)
         self.preview_contract.setAlternatingRowColors(False)
         self.preview_contract.setShowGrid(False)
         self.preview_contract.verticalHeader().hide()
@@ -1508,12 +1525,13 @@ class DevUiPage(QWidget):
             )
             self.preview_contract.setItem(index, 1, family_item)
         self.preview_contract.cellClicked.connect(
-            lambda row, _col: self.gallery_navigation.setCurrentIndex(
+            lambda row, _col: self._jump_to_section(
                 family_keys.index(UNITY_UI_UNIFICATION_CONTRACT[row][1])
             )
         )
-        self._expand_catalog_table(self.preview_contract)
-        section.addWidget(self.preview_contract)
+        self.preview_contract_toggle = self._add_catalog_table(
+            section, self.preview_contract, "le détail par famille"
+        )
 
     def _build_motion_gallery(self, parent: QVBoxLayout) -> None:
         """Replay bounded Qt motions using real Unity-themed controls.
