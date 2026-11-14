@@ -1,5 +1,5 @@
 name: Atlas UI / Global Unity Windows Capture
-# One exact-SHA UI regression suite after the common theme adoption by all 12 indexed consumers.
+# Final exact-SHA UI regression: global blue selection, disabled states, Organizer, Tk Launcher, real Qt gallery.
 
 on:
   pull_request:
