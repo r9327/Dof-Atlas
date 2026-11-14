@@ -173,7 +173,12 @@ class GuideTrustedSourcePackage:
                 object_pairs_hook=_no_duplicate_keys,
                 parse_constant=_reject_constant,
             )
-        except (OSError, UnicodeError, json.JSONDecodeError) as exc:
+        except GuidePackageBlocked:
+            # Preserve explicit duplicate-key and strict-number rejection details.
+            raise
+        except (OSError, ValueError, OverflowError, RecursionError) as exc:
+            # The JSON decoder can also raise for excessive nesting or integer
+            # digit limits. Malformed files must fail as controlled package blocks.
             raise GuidePackageBlocked("Unable to read strict packaged Guide JSON") from exc
         if (not isinstance(route, dict)
                 or route.get("id") != entry.guide_id

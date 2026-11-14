@@ -9,6 +9,7 @@ import hashlib
 import json
 import tempfile
 import unittest
+from unittest.mock import patch
 from pathlib import Path
 from types import SimpleNamespace
 
@@ -222,6 +223,28 @@ class TrustedSourcePackageTests(unittest.TestCase):
         entry = self.write(raw=raw)
         with self.assertRaises(GuidePackageBlocked):
             self.loader(entry).load_route(self.key)
+
+    def test_pathological_json_decode_failures_are_controlled_blocks(self):
+        # Decoder recursion and numeric limits are untrusted-file failures,
+        # not unhandled exceptions allowed to escape into the Qt event loop.
+        deeply_nested = b"[" * 12000 + b"0" + b"]" * 12000
+        entry = self.write(raw=deeply_nested)
+        with self.assertRaisesRegex(
+            GuidePackageBlocked, "Unable to read strict packaged Guide JSON",
+        ):
+            self.loader(entry).load_route(self.key)
+
+        # Simulate a Python-version-dependent integer digit limit without
+        # relying on the host interpreter's global JSON configuration.
+        entry = self.write()
+        with patch(
+            "app.modules.encyclopedia.services.guide_trusted_source_package.json.loads",
+            side_effect=ValueError("integer string conversion limit"),
+        ):
+            with self.assertRaisesRegex(
+                GuidePackageBlocked, "Unable to read strict packaged Guide JSON",
+            ):
+                self.loader(entry).load_route(self.key)
 
     def test_traversal_wrong_root_and_duplicate_package_ownership_are_rejected(self):
         entry = self.write()
