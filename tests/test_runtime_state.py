@@ -7,9 +7,11 @@ from __future__ import annotations
 
 import threading
 import unittest
+from dataclasses import replace
 from unittest.mock import Mock, patch
 
 from app.core.runtime_state import AtlasRuntime
+from app.core.settings import AtlasClient, AtlasSettings, ZaapTimings, timings_for_speed
 
 
 def _runtime() -> AtlasRuntime:
@@ -27,6 +29,33 @@ def _runtime() -> AtlasRuntime:
     return runtime
 
 
+def _mirror_settings() -> AtlasSettings:
+    """Production-shaped settings: reload_hotkeys uses dataclasses.replace."""
+    return AtlasSettings(
+        clients=(
+            AtlasClient(index=1, label="P1", name="P1", handle=101),
+            AtlasClient(index=2, label="P2", name="P2", handle=202),
+        ),
+        switch_character_enabled=False,
+        switch_click_enabled=False,
+        switch_click_hotkey="",
+        switch_double_click_enabled=False,
+        switch_double_click_hotkey="",
+        movement_enabled=False,
+        stop_hotkey="",
+        script_speed="normal",
+        debug_enabled=False,
+        travel_text="",
+        primary_handle=101,
+        zaap_click_position=(0, 0),
+        zaap_click_ratios=None,
+        timings=timings_for_speed("normal"),
+        zaap_timings=ZaapTimings(),
+        macro_mode="mirror",
+        mirror_toggle_hotkey="F8",
+    )
+
+
 class RuntimeStopOwnerTests(unittest.TestCase):
     def test_noop_runtime_reload_preserves_mirror_consent_but_profile_change_revokes_it(self):
         from types import SimpleNamespace
@@ -34,14 +63,7 @@ class RuntimeStopOwnerTests(unittest.TestCase):
 
         runtime = object.__new__(AtlasRuntime)
         runtime._settings_lock = threading.RLock()
-        initial = SimpleNamespace(
-            macro_mode="mirror", primary_handle=101, debug_enabled=False,
-            mirror_toggle_hotkey="F8",
-            clients=(
-                SimpleNamespace(index=1, handle=101),
-                SimpleNamespace(index=2, handle=202),
-            ),
-        )
+        initial = _mirror_settings()
         runtime._settings = initial
         runtime._mirror_armed = True
         runtime._mirror_arm_epoch = 1
@@ -56,19 +78,27 @@ class RuntimeStopOwnerTests(unittest.TestCase):
         runtime._emit_active = Mock()
         runtime._emit_status = Mock()
         runtime._pending_physical_switch = None
-        identical = SimpleNamespace(**initial.__dict__)
-        changed = SimpleNamespace(**{**initial.__dict__, "primary_handle": 202})
+        identical = replace(initial)
+        speed_only = replace(
+            initial, script_speed="rapide", timings=timings_for_speed("rapide"),
+        )
+        debug_only = replace(speed_only, debug_enabled=True)
+        changed = replace(debug_only, primary_handle=202)
 
         with (
-            patch("app.core.runtime_state.load_settings", side_effect=[identical, changed]),
+            patch(
+                "app.core.runtime_state.load_settings",
+                side_effect=[identical, speed_only, debug_only, changed],
+            ),
             patch("app.core.runtime_state.set_debug_logging"),
             patch("app.core.runtime_state.build_runtime_hotkey_actions", return_value=[]),
             patch("app.core.runtime_state.audit_client_admin_rights",
                   return_value=SimpleNamespace(ok=True)),
         ):
-            runtime.reload_hotkeys()
-            self.assertTrue(runtime.mirror_armed)
-            self.assertIs(runtime.settings, identical)
+            for expected in (identical, speed_only, debug_only):
+                runtime.reload_hotkeys()
+                self.assertTrue(runtime.mirror_armed)
+                self.assertIs(runtime.settings, expected)
             runtime.reload_hotkeys()
             self.assertFalse(runtime.mirror_armed)
             self.assertIs(runtime.settings, changed)
@@ -79,10 +109,7 @@ class RuntimeStopOwnerTests(unittest.TestCase):
 
         runtime = object.__new__(AtlasRuntime)
         runtime._settings_lock = threading.RLock()
-        profile = SimpleNamespace(
-            macro_mode="mirror", primary_handle=101, debug_enabled=False,
-            clients=(SimpleNamespace(handle=101), SimpleNamespace(handle=202)),
-        )
+        profile = _mirror_settings()
         runtime._settings = profile
         runtime._mirror_armed = True
         runtime._mirror_arm_epoch = 3
@@ -101,7 +128,7 @@ class RuntimeStopOwnerTests(unittest.TestCase):
             runtime._mirror_arm_epoch += 1
             runtime._mirror_armed = False
             runtime.macro_lock.request_stop("bouton stop", latch=True)
-            return SimpleNamespace(**profile.__dict__)
+            return replace(profile)
 
         with (
             patch("app.core.runtime_state.load_settings", side_effect=concurrent_stop),
