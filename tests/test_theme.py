@@ -317,13 +317,13 @@ class SharedThemeTests(unittest.TestCase):
     def test_character_equipment_dressing_inherits_shared_panel_material(self) -> None:
         # The equipment grid must not hide its parent HomeTrackingCard with a
         # solid dark QWidget background when no player data is present.
-        from PySide6.QtWidgets import QApplication, QFrame, QWidget
+        from PySide6.QtWidgets import QApplication, QWidget
         from app.pages.character_page import CharacterPage
         app = QApplication.instance() or QApplication([])
         style = theme.atlas_stylesheet()
         self.assertIn("QWidget#AtlasTransparentHost,", style)
         self.assertIn("QWidget#CharacterEquipmentGrid,", style)
-        rule = style.split("QFrame#CharacterEquipmentCenter {", 1)[1].split("}", 1)[0]
+        rule = style.split("QWidget#CharacterEquipmentCenter {", 1)[1].split("}", 1)[0]
         self.assertIn("background: transparent;", rule)
         self.assertIn("border: none;", rule)
         from pathlib import Path
@@ -337,7 +337,7 @@ class SharedThemeTests(unittest.TestCase):
             )
             try:
                 self.assertIsNotNone(page.findChild(QWidget, "CharacterEquipmentGrid"))
-                self.assertIsNotNone(page.findChild(QFrame, "CharacterEquipmentCenter"))
+                self.assertIsNotNone(page.findChild(QWidget, "CharacterEquipmentCenter"))
             finally:
                 page.close()
                 page.deleteLater()
