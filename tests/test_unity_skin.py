@@ -198,7 +198,8 @@ class UnitySkinTests(unittest.TestCase):
             ("QToolTip {", ("color: #102030;", "border: 1px solid #607080;")),
             ("QProgressBar {", ("color: #102030;", "border: 1px solid #405060;")),
             ("QFrame#GuideFeaturedCard {", ("border: 1px solid #8192A3;",)),
-            ("QDialog#AtlasDialog, QMenu {", ("color: #102030;", "border: 1px solid #506070;")),
+            ("QDialog#AtlasDialog {", ("color: #102030;", "border: 1px solid #506070;")),
+            ("QMenu {", ("color: #102030;", "border: 1px solid #405060;")),
             ("QPlainTextEdit {", ("color: #102030;", "border: 1px solid #405060;")),
         ):
             with self.subTest(selector=selector):
@@ -282,7 +283,8 @@ class UnitySkinTests(unittest.TestCase):
             "TEXT": "#142536",
             "BORDER_CARD": "#253647",
         })
-        self.assertIn("QDialog#AtlasDialog, QMenu {", preview)
+        self.assertIn("QDialog#AtlasDialog {", preview)
+        self.assertIn("QMenu {", preview)
         self.assertIn("color: #142536; border: 1px solid #253647;", preview)
         self.assertEqual(UNITY_PALETTE, original)
 

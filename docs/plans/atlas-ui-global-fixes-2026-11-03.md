@@ -757,3 +757,11 @@ La capture Windows `Personnage` (profil temporaire vide) a révélé que `Charac
 - Les cinq rôles affichés dans la galerie sont maintenant enregistrés dans **les deux index canoniques existants** : `UNITY_UI_FAMILY_INDEX["guides"]` et `UI_FAMILY_QSS_SELECTORS["guides"]` ; le survol Dofus, la sélection active et l'état terminé sont également présents dans `UI_INTERACTION_QSS_SELECTORS`.
 - Les propriétaires déclarés des surfaces Guide sont `app/ui/theme.py` et `app/ui/unity_skin.py` (pas de nouvelle classe de style). Un test direct relie les noms affichés dans Dev UI aux sélecteurs globaux réels. Aucune donnée ni interaction de Guide n'est substituée.
 - Ces index décrivent le code présent ; ils **n'impliquent pas** une validation visuelle complète des écrans. Tests/CI reportés après le développement, comme demandé.
+
+
+### Menu Monde, Carte et menus Qt — mêmes matériaux Dev UI (14/11/2026)
+
+- Diagnostic de source : la Carte/Monde utilisait encore des aplats privés presque noirs (`#0A121D`, `#09121F`, `#08111D`), et le `QMenu` canonique était recouvert par une surface indépendante à 98 % dans la couche Unity tardive. Les menus n'avaient donc pas le même glass que Dev UI.
+- Dans `app/ui/theme.py`, les menu Monde, panneaux Carte statiques, valeurs de détail, scrollbars et états de sélection héritent désormais des rôles `GLASS_PANEL_TOP/BOTTOM`, `GLASS_BUTTON/HOVER`, `BORDER_SOFT`, `BORDER_CARD` et rayons globaux. Le canvas cartographique conserve volontairement sa surface de peinture, et les hauteurs de lignes/contrôles restent inchangées. L'état sélectionné reste bleu avec un fin trait vert.
+- Dans `app/ui/unity_skin.py`, les menus `QMenu` réutilisent le même dégradé glass, sans dégrader le contraste spécifique des dialogues `AtlasDialog`. Aucun nouveau matériau ou framework.
+- Tests de propagation des tokens et des sélecteurs ajoutés dans les suites existantes `test_theme.py` et `test_unity_skin.py`. **NOT_RUN** pendant le développement, aucune CI ni capture déclenchée ; seuls les tests de fin de lot seront exécutés à la demande en phase finale.

@@ -338,6 +338,45 @@ class SharedThemeTests(unittest.TestCase):
         self.assertIn("color: #99CC33;", block)
         self.assertNotIn("background: #497332;", block)
 
+    def test_world_map_menu_and_detail_values_use_shared_material(self) -> None:
+        from app.ui.unity_palette import resolve_unity_colors
+
+        overrides = {
+            "PANEL": "#112233", "PANEL_2": "#223344",
+            "PANEL_HOVER": "#2A3A4A", "PANEL_ACTIVE": "#334455",
+            "BORDER_SOFT": "#445566", "BORDER_CARD": "#556677",
+            "BORDER_STRONG": "#667788", "TEXT_SOFT": "#BBDDEE",
+            "GREEN": "#99CC33", "GREEN_BORDER": "#668833",
+            "RADIUS_MD": "12px", "RADIUS_SM": "9px",
+        }
+        style = theme.atlas_stylesheet(overrides)
+        expected_button = theme.unity_glass_gradient(
+            palette=resolve_unity_colors(overrides),
+        )
+        for selector in ("#WorldDetailValue, #MapDetailValue {",
+                         "#MapToolbar, #WorldDetailPanel {",
+                         "#WorldMenu {"):
+            self.assertIn(selector, style)
+
+        value = style.split("#WorldDetailValue, #MapDetailValue {", 1)[1].split("}", 1)[0]
+        self.assertIn(f"background: {expected_button};", value)
+        self.assertIn("border-radius: 9px;", value)
+        for selector in ("#MapToolbar, #WorldDetailPanel {", "#WorldMenu {", "QMenu {"):
+            block = style.split(selector, 1)[1].split("}", 1)[0]
+            self.assertIn("rgba(34, 51, 68, 0.82)", block)
+            self.assertIn("rgba(17, 34, 51, 0.88)", block)
+            self.assertIn("border-radius: 12px;", block)
+        active = style.split("\n#WorldMenuItemActive {", 1)[1].split("}", 1)[0]
+        self.assertIn("background: #334455;", active)
+        self.assertIn("border-bottom: 2px solid #99CC33;", active)
+        hover = style.split("\n#WorldMenuItem:hover {", 1)[1].split("}", 1)[0]
+        self.assertIn("background:", hover)
+        self.assertIn("border-color: #667788;", hover)
+        self.assertNotIn("#16263A", hover)
+        scroll = style.split("#WorldMenuScroll QScrollBar:vertical {", 1)[1].split("}", 1)[0]
+        self.assertIn("background: rgba(17, 34, 51, 0.88);", scroll)
+        self.assertIn("#MapCanvas {", style)
+
     def test_all_module_selections_use_blue_surfaces_and_fine_green_accents(self) -> None:
         style = theme.atlas_stylesheet()
         for selector in (

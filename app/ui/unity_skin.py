@@ -438,10 +438,22 @@ def unity_skin_stylesheet(palette: Mapping[str, str] | None = None) -> str:
         "QToolButton#GuidePreparationToggle:hover, QToolButton#GuideSummaryButton:hover, "
         "QToolButton#GuideParticipantsButton:hover { "
         "background: %s; }" % colors["GUIDE_TOGGLE_HOVER"],
-        "QDialog#AtlasDialog, QMenu { "
+        # Dialogs retain their high-contrast material; menus instead
+        # share the panel glass from Dev UI, with one canonical role set.
+        "QDialog#AtlasDialog { "
         "background: %s; color: %s; "
         "border: 1px solid %s; }" % (
             translucent("NAV_SURFACE", 0.98), colors["TEXT"], colors["BORDER_CARD"],
+        ),
+        "QMenu { "
+        "background: qlineargradient(x1:0,y1:0,x2:0,y2:1,"
+        "stop:0 %s,stop:1 %s); color: %s; "
+        "border: 1px solid %s; border-top: 1px solid %s; "
+        "border-radius: %s; }" % (
+            translucent("PANEL_2", 0.82), translucent("PANEL", 0.88),
+            colors["TEXT"], colors["BORDER_SOFT"],
+            translucent("TEXT_SOFT", UNITY_GLASS_INTENSITY),
+            radii["RADIUS_MD"],
         ),
         # Form fields should share the same blue surface and geometry.
         # The previous near-black FIELD_SURFACE override was applied after

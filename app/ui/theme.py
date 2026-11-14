@@ -1437,28 +1437,33 @@ QListWidget::item:selected {
     border-radius: @RADIUS_SM;
 }
 
-#WorldDetailValue {
-    background: #09121F;
+/* Map and World read-only values share one glass material.
+   Local height and inset remain explicit because their layouts differ. */
+#WorldDetailValue, #MapDetailValue {
+    background: @GLASS_BUTTON;
     border: 1px solid @BORDER_SOFT;
-    border-radius: 5px;
+    border-radius: @RADIUS_SM;
     color: @TEXT;
     font-size: @FONT_SMALL;
+}
+#WorldDetailValue {
     padding: 4px 6px;
     min-height: 18px;
 }
 
-#MapToolbar, #MapCanvas, #WorldDetailPanel {
-    background: @PANEL;
-    border: 1px solid @BORDER;
+/* Static map chrome uses the same panel glass as the Dev UI gallery.
+   The interactive canvas retains its dedicated painting surface. */
+#MapToolbar, #WorldDetailPanel {
+    background: qlineargradient(x1:0,y1:0,x2:0,y2:1,
+        stop:0 @GLASS_PANEL_TOP,stop:1 @GLASS_PANEL_BOTTOM);
+    border: 1px solid @BORDER_SOFT;
+    border-top: 1px solid @GLASS_HAIRLINE;
     border-radius: @RADIUS_MD;
 }
-
-#MapToolbar {
+#MapCanvas {
     background: @PANEL;
-}
-
-#WorldDetailPanel {
-    background: @PANEL;
+    border: 1px solid @BORDER_SOFT;
+    border-radius: @RADIUS_MD;
 }
 
 #WorldDetailTitle {
@@ -1507,8 +1512,10 @@ QListWidget::item:selected {
 }
 
 #WorldMenu {
-    background: #0A121D;
-    border: 1px solid @BORDER;
+    background: qlineargradient(x1:0,y1:0,x2:0,y2:1,
+        stop:0 @GLASS_PANEL_TOP,stop:1 @GLASS_PANEL_BOTTOM);
+    border: 1px solid @BORDER_SOFT;
+    border-top: 1px solid @GLASS_HAIRLINE;
     border-radius: @RADIUS_MD;
 }
 
@@ -1518,7 +1525,7 @@ QListWidget::item:selected {
 }
 
 #WorldMenuScroll QScrollBar:vertical {
-    background: #08111D;
+    background: @GLASS_PANEL_BOTTOM;
     border: none;
     border-radius: @RADIUS_XS;
     margin: 4px 0px 4px 0px;
@@ -1526,13 +1533,13 @@ QListWidget::item:selected {
 }
 
 #WorldMenuScroll QScrollBar::handle:vertical {
-    background: #2A3A51;
+    background: @BORDER_CARD;
     border-radius: @RADIUS_XS;
     min-height: 36px;
 }
 
 #WorldMenuScroll QScrollBar::handle:vertical:hover {
-    background: #334B66;
+    background: @BORDER_STRONG;
 }
 
 #WorldMenuScroll QScrollBar::add-line:vertical,
@@ -1556,24 +1563,35 @@ QListWidget::item:selected {
 #WorldMenuItem, #WorldMenuItemActive {
     background: transparent;
     border: 1px solid transparent;
+    border-bottom: 2px solid transparent;
     border-radius: @RADIUS_SM;
-    color: #DCE5F2;
+    color: @TEXT_SOFT;
     font-size: @FONT_BODY;
     font-weight: 650;
     padding: 0px 10px;
     text-align: left;
 }
-
 #WorldMenuItem:hover {
-    background: #16263A;
-    border-color: #334761;
+    background: @GLASS_HOVER;
+    border-color: @BORDER_STRONG;
+    color: @TEXT;
 }
-
 #WorldMenuItemActive {
     background: @PANEL_ACTIVE;
     border-color: @GREEN_BORDER;
+    border-bottom: 2px solid @GREEN;
     color: @GREEN;
     font-weight: 800;
+}
+#WorldMenuItemActive:hover {
+    background: @PANEL_HOVER;
+    border-color: @GREEN_HOVER;
+    border-bottom-color: @GREEN_HOVER;
+}
+#WorldMenuItem:disabled, #WorldMenuItemActive:disabled {
+    background: @GLASS_PANEL_BOTTOM;
+    border-color: @BORDER_SOFT;
+    color: @TEXT_DISABLED;
 }
 
 #MapViewTree {
@@ -1587,11 +1605,12 @@ QListWidget::item:selected {
     min-height: 28px;
     border-radius: @RADIUS_SM;
     padding: 0px 7px;
-    color: #DCE5F2;
+    color: @TEXT_SOFT;
 }
 
 #MapViewTree::item:hover {
-    background: #16263A;
+    background: @GLASS_HOVER;
+    color: @TEXT;
 }
 
 #MapViewTree::item:selected {
@@ -1601,11 +1620,6 @@ QListWidget::item:selected {
 }
 
 #MapDetailValue {
-    background: #09121F;
-    border: 1px solid @BORDER_SOFT;
-    border-radius: @RADIUS_SM;
-    color: @TEXT;
-    font-size: @FONT_SMALL;
     padding: 5px 7px;
     min-height: 20px;
 }
@@ -1795,10 +1809,12 @@ QCheckBox::indicator:checked {
 }
 
 QMenu {
-    background: @PANEL_2;
+    background: qlineargradient(x1:0,y1:0,x2:0,y2:1,
+        stop:0 @GLASS_PANEL_TOP,stop:1 @GLASS_PANEL_BOTTOM);
     color: @TEXT;
-    border: 1px solid @BORDER;
-    border-radius: @RADIUS_SM;
+    border: 1px solid @BORDER_SOFT;
+    border-top: 1px solid @GLASS_HAIRLINE;
+    border-radius: @RADIUS_MD;
     padding: @SPACE_XS;
 }
 
