@@ -63,7 +63,7 @@ from app.distribution.startup_trace import record_startup_event
 from app.services.character_data_service import CharacterDataService
 from app.services.character_order_service import CharacterOrderService
 from app.storage import default_profiles, item_id, normalize_key, read_json, write_json
-from app.ui.components import AtlasButton, AtlasDialog, AtlasDialogHeader, AtlasPageTitle, atlas_application_icon
+from app.ui.components import AtlasButton, AtlasDialog, AtlasDialogHeader, AtlasPageTitle, AtlasStatusBadge, atlas_application_icon
 from app.ui.preload_popup import PreloadProgressPopup
 from app.ui.splash_image import clear_connected_dark_background
 from app.ui.theme import atlas_stylesheet
@@ -1823,8 +1823,7 @@ class AtlasWindow(QMainWindow):
         heading = AtlasPageTitle(title)
         layout.addWidget(heading)
         if badge:
-            state = QLabel(badge)
-            state.setObjectName("HomePlaceholderBadge")
+            state = AtlasStatusBadge(badge, state="blocked")
             layout.addWidget(state, 0, Qt.AlignLeft)
         text = QLabel(message)
         text.setObjectName("CompactLabel")
