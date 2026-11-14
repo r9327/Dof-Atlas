@@ -627,6 +627,11 @@ class UnityBackdrop(QWidget):
         image = wallpaper_path()
         self._pixmap = QPixmap(str(image)) if image else QPixmap()
 
+    @property
+    def has_wallpaper(self) -> bool:
+        """Whether the cleaned Unity image was successfully decoded."""
+        return not self._pixmap.isNull()
+
     def paintEvent(self, event) -> None:  # noqa: N802 - Qt override
         painter = QPainter(self)
         # Official cleaned wallpaper when installed; otherwise the usual
@@ -638,7 +643,7 @@ class UnityBackdrop(QWidget):
         gradient.setColorAt(0.52, QColor(UNITY_PALETTE["PANEL_2"]))
         gradient.setColorAt(1.0, QColor(UNITY_PALETTE["SIDEBAR"]))
         painter.fillRect(self.rect(), gradient)
-        if not self._pixmap.isNull() and self.width() > 0 and self.height() > 0:
+        if self.has_wallpaper and self.width() > 0 and self.height() > 0:
             source_w = self._pixmap.width()
             source_h = self._pixmap.height()
             dest_w, dest_h = self.width(), self.height()

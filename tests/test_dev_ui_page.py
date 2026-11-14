@@ -947,13 +947,18 @@ class DevUiPageTests(unittest.TestCase):
             page.deleteLater()
 
     def test_dev_ui_asset_fallback_is_explicit_without_pretend_artwork(self) -> None:
+        from tempfile import TemporaryDirectory
         from unittest.mock import patch
         from app.pages.dev_ui_page import DevUiPage
         from app.ui.theme import atlas_stylesheet
 
-        with patch("app.pages.dev_ui_page.wallpaper_path", return_value=None):
-            page = DevUiPage(on_back=lambda: None)
+        with TemporaryDirectory() as folder:
+            invalid_wallpaper = Path(folder) / "background_selection_clean.png"
+            invalid_wallpaper.write_bytes(b"unreadable image")
+            with patch("app.ui.unity_skin.wallpaper_path", return_value=invalid_wallpaper):
+                page = DevUiPage(on_back=lambda: None)
         try:
+            self.assertFalse(page.preview_backdrop.has_wallpaper)
             self.assertIn("dégradé Unity de secours",
                           page.preview_wallpaper_status.text())
             self.assertEqual(page.preview_wallpaper_status.styleSheet(), "")

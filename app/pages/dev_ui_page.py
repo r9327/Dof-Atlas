@@ -68,7 +68,6 @@ from app.ui.unity_palette import (
 )
 from app.ui.unity_skin import (
     UnityBackdrop, apply_unity_panel_shadow, sprite_icon_path, unity_original_preview_icon,
-    wallpaper_path,
 )
 from app.ui.ui_registry import (
     UI_CONSUMER_INDEX, UI_FAMILY_QSS_SELECTORS,
@@ -1224,11 +1223,11 @@ class DevUiPage(QWidget):
     def _build_backdrop(self, parent: QVBoxLayout) -> None:
         """Display the actual cached wallpaper/gradient widget used by the shell."""
         section = self._section(parent, "backdrop")
-        image_loaded = wallpaper_path() is not None
+        self.preview_backdrop = UnityBackdrop()
         self.preview_wallpaper_status = QLabel(
             "Fond actif : image étoilée Unity locale nettoyée."
-            if image_loaded else
-            "Fond actif : dégradé Unity de secours (image étoilée non installée)."
+            if self.preview_backdrop.has_wallpaper else
+            "Fond actif : dégradé Unity de secours (image étoilée indisponible)."
         )
         self.preview_wallpaper_status.setObjectName("MutedLabel")
         section.addWidget(self.preview_wallpaper_status)
@@ -1239,7 +1238,6 @@ class DevUiPage(QWidget):
         note.setObjectName("MutedLabel")
         note.setWordWrap(True)
         section.addWidget(note)
-        self.preview_backdrop = UnityBackdrop()
         self.preview_backdrop.setFixedHeight(5 * UNITY_SIZES_PX["control_normal"])
         wrapper = QVBoxLayout(self.preview_backdrop)
         wrapper.setContentsMargins(16, 14, 16, 14)

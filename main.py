@@ -66,7 +66,7 @@ from app.services.character_order_service import CharacterOrderService
 from app.storage import default_profiles, item_id, normalize_key, read_json, write_json
 from app.ui.components import (
     AtlasBreadcrumb, AtlasButton, AtlasDialog, AtlasDialogHeader, AtlasPageTitle,
-    AtlasStatusBadge, atlas_application_icon,
+    AtlasStatusBadge, apply_unity_calendar_weekdays, atlas_application_icon,
 )
 from app.ui.preload_popup import PreloadProgressPopup
 from app.ui.splash_image import clear_connected_dark_background
@@ -1877,6 +1877,7 @@ class AtlasWindow(QMainWindow):
         calendar = self.almanax_calendar
         calendar.setObjectName("AlmanaxCalendar")
         calendar.setFirstDayOfWeek(Qt.Monday)
+        apply_unity_calendar_weekdays(calendar)
         calendar.setVerticalHeaderFormat(QCalendarWidget.NoVerticalHeader)
         calendar.setGridVisible(True)
         calendar.setSelectedDate(QDate.currentDate())

@@ -902,6 +902,7 @@ class UnitySkinTests(unittest.TestCase):
     def test_almanax_home_click_and_future_day_are_real_qt_interactions(self) -> None:
         from types import SimpleNamespace
         from PySide6.QtCore import QDate
+        from PySide6.QtGui import QColor
         from PySide6.QtWidgets import QLabel
         from app.pages.home_page import HomePage
         from main import AtlasWindow
@@ -931,6 +932,9 @@ class UnitySkinTests(unittest.TestCase):
             back.click()
             self.assertEqual(nav, ["Home"])
             self.assertIsNotNone(shell.almanax_calendar.graphicsEffect())
+            for day in (Qt.Saturday, Qt.Sunday):
+                color = shell.almanax_calendar.weekdayTextFormat(day).foreground().color()
+                self.assertEqual(color, QColor(UNITY_PALETTE["TEXT_SOFT"]))
             future = QDate.currentDate().addDays(45)
             shell.almanax_calendar.setSelectedDate(future)
             self.assertEqual(shell.almanax_calendar.selectedDate(), future)

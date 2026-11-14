@@ -45,7 +45,7 @@ def capture(output: Path, *, width: int = 1100, height: int = 800) -> dict[str, 
         # Identify the real source. A blue fallback must never be represented
         # as the user's missing personal Unity wallpaper.
         "background_source": (
-            "local-unity-image" if not backdrop._pixmap.isNull()
+            "local-unity-image" if backdrop.has_wallpaper
             else "unity-blue-gradient"
         ),
         "screenshots": {},
