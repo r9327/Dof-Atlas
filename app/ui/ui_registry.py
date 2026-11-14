@@ -15,7 +15,7 @@ from app.ui.unity_palette import (
 
 UI_FAMILY_QSS_SELECTORS: dict[str, tuple[str, ...]] = {
     "buttons": (
-        "#PrimaryActionButton", "#SecondaryButton", "#DangerButton",
+        "#PrimaryActionButton", "#SecondaryButton", "#ActiveButton", "#DangerButton",
         "#InlineActionButton", "#PopupLinkButton", "#TopNavButton",
     ),
     "navigation": ("QTabBar::tab", "QTabWidget::pane", "QMenu {"),
