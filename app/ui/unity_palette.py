@@ -402,8 +402,13 @@ UNITY_UI_FAMILY_INDEX = {
     },
     "guides": {
         "title": "Guides · panneaux Unity partagés",
-        "components": ("GuidePreparationSummary", "GuidePreparationRow", "GuideManualNav", "GuideUltimeGeneratedView", "QComboBox"),
-        "style_owner": "app/ui/theme.py + app/modules/encyclopedia/",
+        "components": (
+            "GuideHeader", "GuidesHomeCategory", "GuideDofusCard",
+            "GuideQuestLineActive", "GuideCompactHeader",
+            "GuidePreparationSummary", "GuidePreparationRow",
+            "GuideManualNav", "GuideUltimeGeneratedView", "QComboBox",
+        ),
+        "style_owner": "app/ui/theme.py + app/ui/unity_skin.py",
         "scope": "module",
     },
     "assets": {

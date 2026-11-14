@@ -750,3 +750,10 @@ La capture Windows `Personnage` (profil temporaire vide) a révélé que `Charac
 - La famille Guides montre maintenant dans la galerie les identifiants de composants utilisés par les écrans réels : `GuideHeader`, `GuidesHomeCategory`, `GuideDofusCard`, `GuideQuestLineActive` et `GuideCompactHeader`.
 - Les cadres de démo statiques réutilisent `UNITY_PANEL_SHADOW` ; la ligne active ne reçoit pas d'effet graphique par ligne. Aucune feuille de style locale, aucune fausse progression ou donnée de jeu.
 - Test UI ajouté dans `tests/test_dev_ui_page.py` (objectName, style vide et règle d'ombrage). **Exécution différée à l'audit de fin du développement**, pas de certification ni fusion sur ce seul lot.
+
+
+### Index Dev UI — Guides complet, composants et états (14 novembre 2026)
+
+- Les cinq rôles affichés dans la galerie sont maintenant enregistrés dans **les deux index canoniques existants** : `UNITY_UI_FAMILY_INDEX["guides"]` et `UI_FAMILY_QSS_SELECTORS["guides"]` ; le survol Dofus, la sélection active et l'état terminé sont également présents dans `UI_INTERACTION_QSS_SELECTORS`.
+- Les propriétaires déclarés des surfaces Guide sont `app/ui/theme.py` et `app/ui/unity_skin.py` (pas de nouvelle classe de style). Un test direct relie les noms affichés dans Dev UI aux sélecteurs globaux réels. Aucune donnée ni interaction de Guide n'est substituée.
+- Ces index décrivent le code présent ; ils **n'impliquent pas** une validation visuelle complète des écrans. Tests/CI reportés après le développement, comme demandé.

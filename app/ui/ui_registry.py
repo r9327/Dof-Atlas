@@ -46,6 +46,8 @@ UI_FAMILY_QSS_SELECTORS: dict[str, tuple[str, ...]] = {
         "#PreloadPopupTitle", "#PreloadPopupCurrent", "#PreloadPopupProgress",
     ),
     "guides": (
+        "#GuideHeader", "#GuidesHomeCategory", "#GuideDofusCard",
+        "#GuideQuestLineActive", "#GuideCompactHeader",
         "#GuidePreparationPanel", "#GuideManualNav", "#GuideUltimeGeneratedView",
     ),
     "assets": ("#InlineShortcutButton", "QToolTip"),
@@ -80,6 +82,11 @@ UI_INTERACTION_QSS_SELECTORS = {
     ),
     "sidebar": ("#navItem:hover", "#navItemActive", "#burgerButton:pressed"),
     "breadcrumbs": ("QPushButton#GuideBreadcrumbButton:hover",),
+    "guides": (
+        "QFrame#GuideDofusCard:hover",
+        "QFrame#GuideQuestLineActive",
+        'QFrame#GuideQuestLine[state="done"]',
+    ),
     "fields": ("QComboBox:hover", "QComboBox:disabled"),
     "statuses": ("#StatusChip:hover", "#StatusChip:checked"),
     "panels": (
