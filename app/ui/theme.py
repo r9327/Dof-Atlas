@@ -1055,6 +1055,19 @@ QPushButton:disabled, QToolButton:disabled {
     color: @TEXT;
 }
 
+/* Disabled has the highest priority for each shared button identity.
+   Without a matching ID selector the normal text color can override
+   the generic QPushButton:disabled rule on some Windows Qt styles. */
+#primaryButton:disabled, #ActiveButton:disabled,
+#PrimaryActionButton:disabled, #secondaryButton:disabled,
+#SecondaryButton:disabled, #segmentedButton:disabled,
+#segmentedButtonActive:disabled, #GuideHideCompletedToggle:disabled,
+#dangerButton:disabled, #DangerButton:disabled {
+    background: @PANEL;
+    border-color: @BORDER_SOFT;
+    color: @TEXT_DISABLED;
+}
+
 /* Reusable clickable text vs. real buttons. Native QPushButton semantics
    retain keyboard activation and a visible :focus outline. */
 #InlineActionButton, #PopupLinkButton {

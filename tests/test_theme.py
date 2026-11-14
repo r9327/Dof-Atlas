@@ -255,6 +255,16 @@ class SharedThemeTests(unittest.TestCase):
         self.assertNotIn("border-left: 4px", active)
         self.assertNotIn("background: #497332;", active)
 
+    def test_disabled_shared_actions_override_normal_identity_colors(self) -> None:
+        style = theme.atlas_stylesheet()
+        disabled = style.split(
+            "#primaryButton:disabled, #ActiveButton:disabled,", 1
+        )[1].split("}", 1)[0]
+        self.assertIn("#DangerButton:disabled", disabled)
+        self.assertIn("#segmentedButtonActive:disabled", disabled)
+        self.assertIn("background: #1B2746;", disabled)
+        self.assertIn("color: #8998B6;", disabled)
+
     def test_all_selected_segments_follow_dev_ui_no_solid_green(self) -> None:
         style = theme.atlas_stylesheet({
             "PANEL_ACTIVE": "#334455", "GREEN_BORDER": "#668833",
