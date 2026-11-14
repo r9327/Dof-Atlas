@@ -1168,11 +1168,11 @@ class OrganizerLayoutTests(unittest.TestCase):
                 from app.pages.organizer.glass_material import (
                     GLASS_INTENSITY, _reflection_alpha, _surface_alpha,
                 )
-                self.assertEqual(GLASS_INTENSITY, 0.5)
-                self.assertEqual(_reflection_alpha(132), 66)
-                self.assertEqual(_reflection_alpha(60), 30)
-                self.assertEqual(_surface_alpha(143), 199)
-                self.assertEqual(_surface_alpha(173), 214)
+                self.assertEqual(GLASS_INTENSITY, 0.16)
+                self.assertEqual(_reflection_alpha(132), 21)
+                self.assertEqual(_reflection_alpha(60), 10)
+                self.assertEqual(_surface_alpha(143), 237)
+                self.assertEqual(_surface_alpha(173), 242)
                 self.assertIn(unity_glass_gradient(), css)
                 # The old invented palette must not drift away from Unity.
                 self.assertNotIn("#708BAD", css)

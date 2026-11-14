@@ -56,6 +56,7 @@ from app.storage import (
     write_json,
 )
 from app.ui.components import AtlasButton, AtlasPageTitle
+from app.ui.unity_skin import apply_unity_panel_shadow
 
 
 LOGGER = logging.getLogger(__name__)
@@ -557,6 +558,7 @@ class CraftPage(QWidget):
 
         self.craft_left_panel = QFrame()
         self.craft_left_panel.setObjectName("CraftPanel")
+        apply_unity_panel_shadow(self.craft_left_panel)
         self.craft_left_panel.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Preferred)
         left = QVBoxLayout(self.craft_left_panel)
         left.setContentsMargins(8, 8, 8, 8)
@@ -589,6 +591,7 @@ class CraftPage(QWidget):
 
         self.craft_right_panel = QFrame()
         self.craft_right_panel.setObjectName("CraftPanel")
+        apply_unity_panel_shadow(self.craft_right_panel)
         self.craft_right_panel.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Preferred)
         right = QVBoxLayout(self.craft_right_panel)
         right.setContentsMargins(8, 8, 8, 8)
@@ -618,6 +621,7 @@ class CraftPage(QWidget):
 
         self.jobs_panel = QFrame()
         self.jobs_panel.setObjectName("CraftPanel")
+        apply_unity_panel_shadow(self.jobs_panel)
         jobs_root = QVBoxLayout(self.jobs_panel)
         jobs_root.setContentsMargins(8, 8, 8, 8)
         jobs_root.setSpacing(6)

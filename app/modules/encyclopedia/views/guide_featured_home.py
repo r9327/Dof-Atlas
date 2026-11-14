@@ -31,7 +31,7 @@ class FeaturedGuideCard(QFrame):
         self.setCursor(Qt.PointingHandCursor)
         self.setAccessibleName(title)
         # All card/child colors and states come from the shared Unity QSS.
-        apply_unity_panel_shadow(self, blur=16, vertical=3)
+        apply_unity_panel_shadow(self)
         layout = QVBoxLayout(self)
         layout.setContentsMargins(9, 6, 9, 6)
         layout.setSpacing(3)

@@ -22,7 +22,7 @@ from PySide6.QtWidgets import (
 from app.constants import LOGO_PATH, QUEST_PROGRESS_FILE, ROOT_DIR
 from app.network.application_coordinator import NetworkApplicationStatus
 from app.ui.components import AtlasButton, AtlasStatusBadge, atlas_application_icon
-from app.ui.unity_skin import sprite_icon_path
+from app.ui.unity_skin import apply_unity_panel_shadow, sprite_icon_path
 from app.ui.network_bridge import network_ui_bridge
 
 if TYPE_CHECKING:
@@ -420,6 +420,7 @@ class HomePage(QWidget):
 
         self.network_card = QFrame()
         self.network_card.setObjectName("HomeNetworkMiniCard")
+        apply_unity_panel_shadow(self.network_card)
         self.network_card.setMinimumHeight(64)
         self.network_card.setMaximumHeight(72)
         network_layout = QHBoxLayout(self.network_card)
@@ -459,6 +460,7 @@ class HomePage(QWidget):
     def _card(object_name: str) -> QFrame:
         card = QFrame()
         card.setObjectName(object_name)
+        apply_unity_panel_shadow(card)
         layout = QVBoxLayout(card)
         layout.setContentsMargins(20, 20, 20, 20)
         layout.setSpacing(10)

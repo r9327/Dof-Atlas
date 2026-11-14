@@ -17,6 +17,7 @@ from app.services.maps.map_manifest import DEFAULT_WORLD_AREA, DEFAULT_WORLD_NAM
 from app.ui.map_canvas_widget import MapCanvasWidget
 from app.ui.components import AtlasButton, AtlasPageTitle
 from app.ui.unity_palette import unity_painted_ui_color
+from app.ui.unity_skin import apply_unity_panel_shadow
 
 
 DEFAULT_WORLD_CONTEXT = f"{DEFAULT_WORLD_NAME} / {DEFAULT_WORLD_AREA}"
@@ -91,6 +92,7 @@ class WorldScanPanel(QWidget):
 
         toolbar = QFrame()
         toolbar.setObjectName("MapToolbar")
+        apply_unity_panel_shadow(toolbar)
         toolbar_layout = QHBoxLayout(toolbar)
         toolbar_layout.setContentsMargins(10, 8, 10, 8)
         toolbar_layout.setSpacing(8)
@@ -151,6 +153,7 @@ class WorldScanPanel(QWidget):
 
         self.detail_panel = QFrame()
         self.detail_panel.setObjectName("WorldDetailPanel")
+        apply_unity_panel_shadow(self.detail_panel)
         self.detail_panel.setFixedHeight(74)
         detail_layout = QVBoxLayout(self.detail_panel)
         detail_layout.setContentsMargins(12, 7, 12, 7)

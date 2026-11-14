@@ -181,7 +181,7 @@ class GuideCatalogView(QWidget):
         # categories can still scroll inside the 250px Unity panel.
         self.library_categories.itemExpanded.connect(self._on_library_category_expanded)
         self.library_categories.itemCollapsed.connect(self._sync_library_tree_height)
-        apply_unity_panel_shadow(self.library_categories, blur=19, vertical=4)
+        apply_unity_panel_shadow(self.library_categories)
         left_layout.addWidget(self.library_categories, 0)
         self._sync_library_tree_height()
         left_layout.addStretch(1)

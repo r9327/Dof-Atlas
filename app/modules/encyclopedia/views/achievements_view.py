@@ -37,6 +37,7 @@ from app.modules.encyclopedia.widgets.dashboard import FixedColumnSplitter
 from app.core.text import normalize_key as normalize_text
 from app.ui.components import AtlasButton
 from app.ui.theme import PALETTE
+from app.ui.unity_skin import apply_unity_panel_shadow
 
 
 _LOGGER = logging.getLogger(__name__)
@@ -298,6 +299,7 @@ class AchievementsView(QWidget):
     def _panel(object_name: str, title: str) -> QFrame:
         panel = QFrame()
         panel.setObjectName(object_name)
+        apply_unity_panel_shadow(panel)
         layout = QVBoxLayout(panel)
         layout.setContentsMargins(10, 10, 10, 10)
         layout.setSpacing(8)
@@ -582,6 +584,7 @@ class AchievementsView(QWidget):
     def build_alignment_order_panel(self) -> QFrame:
         panel = QFrame()
         panel.setObjectName("AchievementAlignmentPanel")
+        apply_unity_panel_shadow(panel)
         panel.setSizePolicy(QSizePolicy.Ignored, QSizePolicy.Preferred)
         layout = QVBoxLayout(panel)
         layout.setContentsMargins(9, 8, 9, 8)

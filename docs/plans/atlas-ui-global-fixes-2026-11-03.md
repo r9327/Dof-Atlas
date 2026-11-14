@@ -666,3 +666,34 @@ Les tests de contrat, de thème et de Qt contrôlent les styles source,
 la position du fil d'Ariane et les interactions. La capture offscreen
 Windows reste une preuve de rendu, pas un test manuel à taille native.
 Aucun changement de logique métier, de launcher, ni de texture propriétaire.
+
+
+### Lot de généralisation des composants UI Dev (14 novembre 2026)
+
+Application effective de l'inventaire 22 familles / 39 rubriques vers les consommateurs Qt :
+
+- `app/ui/theme.py` est propriétaire des états normal/survol/actif/pressé/
+  désactivé des boutons et segments ; la sélection est bleue avec un accent
+  vert fin, sans ancien grand aplat vert.
+- `app/ui/organizer_style.py` ne redéfinit plus les couleurs des boutons
+  et champs communs. Il conserve uniquement la géométrie de l'Organizer,
+  les raccourcis incrustés et les éléments réellement propres au module.
+- `app/ui/unity_palette.py` reste propriétaire de l'intensité du glass 16 %,
+  des rayons et des paramètres d'ombre ; `apply_unity_panel_shadow` en est
+  désormais l'adaptateur unique pour les panneaux statiques.
+- Ombres statiques mutualisées sur les cartes Accueil, Réseau et Almanax,
+  les trois panneaux Craft, Scan Monde, catégories et détail Succès,
+  les deux cartes mises en avant du Guide et les panneaux Organizer.
+- Le matériau glass dessiné dans Organizer conserve son rendu personnalisé
+  sans inventer de couleurs de reflets en dur : le reflet utilise le
+  rôle `TEXT_SOFT` de la palette Unity.
+- Quêtes, Bestiaire, Personnage, Stuffs, Almanax et Launcher conservent leur
+  propriétaire actuel de thème. Ne pas convertir en widgets Qt les panneaux
+  Tk du Launcher ni modifier la logique des événements métiers.
+- Garde-fou AST : les fichiers indexés des douze modules Qt ne doivent pas
+  appeler `setStyleSheet` localement. Les exceptions spécialisées
+  (textures, disposition du Guide, focus et overlays) restent explicites.
+
+Cette migration du code ne constitue pas une validation écran-par-écran.
+Les animations non validées, certains pictogrammes Unity et le fond étoilé
+non installé sur la machine de capture restent hors de ce lot.
