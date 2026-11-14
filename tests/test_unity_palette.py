@@ -26,6 +26,13 @@ class UnityPaletteTests(unittest.TestCase):
             "muted": UNITY_PALETTE["TEXT_MUTED"],
             "accent": UNITY_PALETTE["GREEN"],
             "accent_hover": UNITY_PALETTE["GREEN_HOVER"],
+            "button_bg": UNITY_PALETTE["PANEL_2"],
+            "button_hover": UNITY_PALETTE["PANEL_HOVER"],
+            "button_fg": UNITY_PALETTE["TEXT_SOFT"],
+            "button_hover_fg": UNITY_PALETTE["GREEN"],
+            "button_border": UNITY_PALETTE["BORDER_SOFT"],
+            "button_focus": UNITY_PALETTE["GREEN_BORDER"],
+            "disabled_text": UNITY_PALETTE["TEXT_DISABLED"],
         })
 
     def test_override_changes_tk_colors_without_mutating_unity_palette(self) -> None:

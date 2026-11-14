@@ -119,6 +119,17 @@ class UiUniversalContractTests(unittest.TestCase):
         self.assertNotIn("#organizerPage QPushButton#primaryButton:hover",
                          ORGANIZER_STYLE_TEMPLATE)
 
+    def test_tk_launcher_keeps_unity_color_and_font_adapter(self):
+        from app.distribution.launcher_ui import COLORS, FONT_FAMILY, button_options
+        from app.ui.unity_palette import UNITY_PALETTE, UNITY_TYPOGRAPHY
+        self.assertEqual(FONT_FAMILY, "Lexend")
+        self.assertIn(FONT_FAMILY, UNITY_TYPOGRAPHY["FONT_FAMILY"])
+        opts = button_options()
+        self.assertEqual(opts["bg"], UNITY_PALETTE["PANEL_2"])
+        self.assertEqual(opts["activebackground"], UNITY_PALETTE["PANEL_HOVER"])
+        self.assertEqual(opts["activeforeground"], UNITY_PALETTE["GREEN"])
+        self.assertEqual(COLORS["button_focus"], UNITY_PALETTE["GREEN_BORDER"])
+
     def test_glass_gradient_is_shared_and_override_aware(self):
         from app.pages.organizer.glass_material import (
             GLASS_INTENSITY, unity_glass_gradient as organizer_gradient,

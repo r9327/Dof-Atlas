@@ -25,8 +25,13 @@ class LauncherUiTests(unittest.TestCase):
         self.assertFalse(any(name.startswith("PySide6") for name in imports))
 
     def test_tk_controls_still_receive_expected_active_colors(self) -> None:
-        self.assertEqual(launcher_ui.button_options()["bg"], UNITY_PALETTE["GREEN"])
-        self.assertEqual(launcher_ui.button_options()["activebackground"], UNITY_PALETTE["GREEN_HOVER"])
+        self.assertEqual(launcher_ui.button_options()["bg"], UNITY_PALETTE["PANEL_2"])
+        self.assertEqual(launcher_ui.button_options()["fg"], UNITY_PALETTE["TEXT_SOFT"])
+        self.assertEqual(launcher_ui.button_options()["activebackground"], UNITY_PALETTE["PANEL_HOVER"])
+        self.assertEqual(launcher_ui.button_options()["activeforeground"], UNITY_PALETTE["GREEN"])
+        self.assertEqual(launcher_ui.button_options()["highlightcolor"], UNITY_PALETTE["GREEN_BORDER"])
+        self.assertEqual(launcher_ui.button_options()["highlightthickness"], 1)
+        self.assertEqual(launcher_ui.button_options()["font"][0], launcher_ui.FONT_FAMILY)
         style = MagicMock()
         launcher_ui.progress_style(style)
         self.assertEqual(style.configure.call_args.kwargs["troughcolor"], UNITY_PALETTE["PANEL_2"])

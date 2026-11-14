@@ -492,6 +492,13 @@ _LAUNCHER_ROLES = {
     "muted": "TEXT_MUTED",
     "accent": "GREEN",
     "accent_hover": "GREEN_HOVER",
+    "button_bg": "PANEL_2",
+    "button_hover": "PANEL_HOVER",
+    "button_fg": "TEXT_SOFT",
+    "button_hover_fg": "GREEN",
+    "button_border": "BORDER_SOFT",
+    "button_focus": "GREEN_BORDER",
+    "disabled_text": "TEXT_DISABLED",
 }
 
 

@@ -548,10 +548,10 @@ def main() -> int:
         selection = tk.Frame(window, bg=COLORS["background"])
         selection.pack(pady=(12, 2))
         tk.Label(selection, text="EMPLACEMENT DES DONNÉES ATLAS (~3 Go)", bg=COLORS["background"],
-                 fg=COLORS["text"], font=("Segoe UI", 9, "bold")).pack()
+                 fg=COLORS["text"], font=(FONT_FAMILY, 9, "bold")).pack()
         chosen = tk.StringVar(value=str(ROOT))
         tk.Label(selection, textvariable=chosen, bg=COLORS["background"],
-                 fg=COLORS["muted"], font=("Segoe UI", 9),
+                 fg=COLORS["muted"], font=(FONT_FAMILY, 9),
                   wraplength=round(515 * ui_scale)).pack()
 
         def choose_install_folder():

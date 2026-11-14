@@ -6,12 +6,12 @@ from __future__ import annotations
 
 import math
 
-from app.ui.unity_palette import launcher_colors
+from app.ui.unity_palette import UNITY_TYPOGRAPHY, launcher_colors
 
 # Keep the standalone Tk entry lightweight: this imports a stdlib-only palette.
 UNITY_PALETTE = launcher_colors()
 COLORS = UNITY_PALETTE
-FONT_FAMILY = "Lexend"
+FONT_FAMILY = UNITY_TYPOGRAPHY["FONT_FAMILY"].split(",")[0].strip().strip('"')
 
 # Exact existing Atlas application icon, not a substitute game logo.
 LOGO_PNG_BASE64 = (
@@ -186,11 +186,16 @@ def progress_style(style) -> None:
 def button_options() -> dict[str, object]:
     """For first-install folder selection only, never the normal startup."""
     return {
-        "bg": COLORS["accent"],
-        "fg": COLORS["background"],
-        "activebackground": COLORS["accent_hover"],
-        "activeforeground": COLORS["background"],
-        "font": ("Lexend", 10, "bold"),
+        # The same blue/green, subtle hover and focus contract as Qt AtlasButton.
+        "bg": COLORS["button_bg"],
+        "fg": COLORS["button_fg"],
+        "activebackground": COLORS["button_hover"],
+        "activeforeground": COLORS["button_hover_fg"],
+        "disabledforeground": COLORS["disabled_text"],
+        "highlightbackground": COLORS["button_border"],
+        "highlightcolor": COLORS["button_focus"],
+        "highlightthickness": 1,
+        "font": (FONT_FAMILY, 10, "bold"),
         "relief": "flat", "bd": 0, "padx": 16, "pady": 8,
         "cursor": "hand2",
     }
