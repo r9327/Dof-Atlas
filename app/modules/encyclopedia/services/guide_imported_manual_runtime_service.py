@@ -29,6 +29,7 @@ class ImportedSourceManualRuntimeService(GuideUltimeGeneratedService):
         *,
         route: dict[str, Any],
         gate_evaluator: Callable[[str, dict[str, Any]], bool] | None = None,
+        verified_zaap_planner: Callable[[tuple[int, int], tuple[str, ...]], Any] | None = None,
     ) -> None:
         # Never call the generated V5 loader: its artifact paths and progress
         # identity belong to the two pre-existing optimized routes.
@@ -86,6 +87,25 @@ class ImportedSourceManualRuntimeService(GuideUltimeGeneratedService):
         self._authorization_guard: Callable[[str, dict], bool] | None = None
         self._retired = False
         self._gate_evaluator = gate_evaluator
+        self._verified_zaap_planner = verified_zaap_planner
+
+    def plan_verified_zaap_travel(
+        self, destination: tuple[int, int], participant_keys: tuple[str, ...],
+    ) -> Any | None:
+        """Request the existing verified planner, never infer Zaaps from source JSON.
+
+        The shared Guide view validates the resulting GuideTravelPlan (mode,
+        destination, exact participants) before dispatch. This service checks
+        independent source approval both before and after the planner callback.
+        """
+        planner = self._verified_zaap_planner
+        if not callable(planner) or not self.can_write_progress():
+            return None
+        try:
+            plan = planner(destination, participant_keys)
+        except Exception:
+            return None
+        return plan if self.can_write_progress() else None
 
     def set_authorization_guard(
         self, guard: Callable[[str, dict], bool],
@@ -100,6 +120,7 @@ class ImportedSourceManualRuntimeService(GuideUltimeGeneratedService):
         """Permanently disable a discarded factory-owned service instance."""
         self._retired = True
         self._authorization_guard = None
+        self._verified_zaap_planner = None
 
     def can_write_progress(self) -> bool:
         if self._retired:

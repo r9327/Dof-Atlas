@@ -261,6 +261,7 @@ class GuideTrustedSourcePackage:
         self, quest_progress: Any, achievement_progress: Any, guide_progress: Any,
         *,
         gate_evaluators: Mapping[str, Callable[[str, dict[str, Any]], bool]] | None = None,
+        zaap_planners: Mapping[str, Callable[[tuple[int, int], tuple[str, ...]], Any]] | None = None,
     ) -> dict[str, Callable[[], Any]]:
         """Adapter for EncyclopediaPage(imported_source_factories=...).
 
@@ -275,9 +276,17 @@ class GuideTrustedSourcePackage:
         for guide_id, evaluator in evaluators.items():
             if guide_id not in self._entries or not callable(evaluator):
                 raise GuidePackageBlocked("Unregistered or invalid source Guide gate evaluator")
+        if zaap_planners is not None and not isinstance(zaap_planners, Mapping):
+            raise GuidePackageBlocked("Trusted Zaap planner registry must be a mapping")
+        planners = dict(zaap_planners or {})
+        for guide_id, planner in planners.items():
+            if guide_id not in self._entries or not callable(planner):
+                raise GuidePackageBlocked("Unregistered or invalid verified Zaap planner")
 
         def make(
-            guide_id: str, evaluator: Callable[[str, dict[str, Any]], bool] | None,
+            guide_id: str,
+            evaluator: Callable[[str, dict[str, Any]], bool] | None,
+            planner: Callable[[tuple[int, int], tuple[str, ...]], Any] | None,
         ) -> Callable[[], Any]:
             def build() -> Any:
                 from app.modules.encyclopedia.services.guide_imported_manual_runtime_service import (
@@ -287,10 +296,11 @@ class GuideTrustedSourcePackage:
                     quest_progress, achievement_progress, guide_progress,
                     route=self.load_route(guide_id),
                     gate_evaluator=evaluator,
+                    verified_zaap_planner=planner,
                 )
             return build
         return {
-            guide_id: make(guide_id, evaluators.get(guide_id))
+            guide_id: make(guide_id, evaluators.get(guide_id), planners.get(guide_id))
             for guide_id in self._entries
         }
 

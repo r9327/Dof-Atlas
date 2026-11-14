@@ -22,6 +22,10 @@ from app.modules.encyclopedia.services.guide_trusted_source_package import (
 from app.modules.encyclopedia.services.guide_shared_route_contract import (
     project_authorized_guide,
 )
+from app.modules.encyclopedia.services.adventure_route_engine import RouteLocation
+from app.modules.encyclopedia.services.guide_route_planner import (
+    GuideTravelPlan, TravelMode,
+)
 
 
 def _source_route(guide_id: str = "fictional-trusted") -> dict:
@@ -140,6 +144,71 @@ class TrustedSourcePackageTests(unittest.TestCase):
         approved.set_page_checked("character:1", approved.cards[1], 0, True)
         self.assertFalse(approved.page_checked("character:1", approved.cards[1]))
 
+    def test_attested_zaap_planner_is_injected_revocable_and_not_automatic(self):
+        entry = self.write()
+        loader = self.loader(entry)
+        calls = []
+        plan = GuideTravelPlan(
+            TravelMode.ZAAP_THEN_TRAVEL,
+            RouteLocation(x=5, y=-2),
+            ("character:1",),
+            world="fictional-world",
+            zaap=RouteLocation(x=1, y=-1),
+            evidence="fictional-verified-route",
+        )
+
+        def verified_planner(destination, participants):
+            calls.append((destination, participants))
+            return plan
+
+        factory = loader.factories(
+            SimpleNamespace(), SimpleNamespace(), self.progress,
+            zaap_planners={self.key: verified_planner},
+        )[self.key]
+        self.assertEqual(calls, [])
+        service = factory()
+        service.set_authorization_guard(loader.authorize)
+        self.assertEqual(calls, [])
+        self.assertIs(
+            service.plan_verified_zaap_travel((5, -2), ("character:1",)), plan,
+        )
+        self.assertEqual(calls, [((5, -2), ("character:1",))])
+        self.approved = False
+        self.assertIsNone(
+            service.plan_verified_zaap_travel((5, -2), ("character:1",)),
+        )
+        self.assertEqual(len(calls), 1)
+        self.approved = True
+        service.retire()
+        self.assertIsNone(
+            service.plan_verified_zaap_travel((5, -2), ("character:1",)),
+        )
+        self.assertEqual(len(calls), 1)
+
+    def test_zaap_planner_revocation_during_call_refuses_result(self):
+        entry = self.write()
+        loader = self.loader(entry)
+        def revoke_during_plan(*_):
+            self.approved = False
+            return object()
+        service = loader.factories(
+            SimpleNamespace(), SimpleNamespace(), self.progress,
+            zaap_planners={self.key: revoke_during_plan},
+        )[self.key]()
+        service.set_authorization_guard(loader.authorize)
+        self.assertIsNone(
+            service.plan_verified_zaap_travel((5, -2), ("character:1",)),
+        )
+        self.approved = True
+        # An absent planner remains safe without an implicit direct command.
+        empty = loader.factories(
+            SimpleNamespace(), SimpleNamespace(), self.progress,
+        )[self.key]()
+        empty.set_authorization_guard(loader.authorize)
+        self.assertIsNone(
+            empty.plan_verified_zaap_travel((5, -2), ("character:1",)),
+        )
+
     def test_external_gate_registry_must_be_explicit_and_known(self):
         entry = self.write()
         loader = self.loader(entry)
@@ -154,6 +223,22 @@ class TrustedSourcePackageTests(unittest.TestCase):
                     loader.factories(
                         SimpleNamespace(), SimpleNamespace(), self.progress,
                         gate_evaluators=invalid,
+                    )
+        self.assertEqual(self.witness_calls, [])
+
+    def test_zaap_planner_registry_rejects_unknown_or_noncallable(self):
+        loader = self.loader(self.write())
+        for invalid in (
+            {"source_guide:unknown": lambda *_: None},
+            {self.key: True},
+            {self.key: None},
+            [self.key],
+        ):
+            with self.subTest(invalid=str(invalid)):
+                with self.assertRaises(GuidePackageBlocked):
+                    loader.factories(
+                        SimpleNamespace(), SimpleNamespace(), self.progress,
+                        zaap_planners=invalid,
                     )
         self.assertEqual(self.witness_calls, [])
 

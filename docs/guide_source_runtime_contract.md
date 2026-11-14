@@ -307,3 +307,21 @@ certifié et n'active aucun guide. Les politiques de prérequis spécifiques,
 leurs sources de vérité, et leur recette Windows/DOFUS restent à
 implémenter et qualifier guide par guide. Des fixtures fictives
 vérifient le raccordement et l'isolation par personnage.
+
+### Zaap — raccordement du service importé sans trajet inventé
+
+`GuideTrustedSourcePackage.factories(..., zaap_planners={guide_id: planner})`
+accepte désormais uniquement un callback qualifié provenant de la
+composition de confiance, pas du contenu source. Le service importé expose
+`plan_verified_zaap_travel(destination, participant_keys)`, appelé **au clic
+sur l'icône Zaap** par le lecteur partagé. Il demande le plan au fournisseur
+et revérifie l'attestation indépendante avant et après l'appel. Absence,
+exception, révocation ou fermeture du guide : retour `None` et repli
+existant sur la copie de `/travel`. Le lecteur partagé garde l'autorité
+de vérifier `GuideTravelPlan`, la destination, le mode Zaap et l'équipe
+connectée avant toute commande.
+
+La fabrique ne constitue **pas** la base de Zaaps vérifiés ; aucun trajet
+réel n'est inscrit, ni aucune macro déclenchée sans click explicite.
+Le fournisseur réel et la recette Windows/DOFUS de GIMP-019 demeurent
+PENDING. Les tests ne fournissent que des routes fictives.
