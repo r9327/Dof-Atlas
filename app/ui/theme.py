@@ -781,7 +781,9 @@ QSplitter#AchievementCatalogSplitter::handle {
 
 /* Reusable nested content role: panels keep their own glass material.
    Never let a plain QWidget hide it with the application root background. */
-QWidget#AtlasTransparentHost {
+QWidget#AtlasTransparentHost,
+QWidget#CharacterEquipmentGrid,
+QFrame#CharacterEquipmentCenter {
     background: transparent;
     border: none;
 }

@@ -710,3 +710,6 @@ La première capture `AtlasWindow/Quetes` rendait `QuestSourceError` parce que l
 
 
 La matrice de captures intègre également la vraie page `Personnage` affichée dans `AtlasWindow` avec trois fichiers de profil **temporaires et vides** ; aucune donnée personnelle, compte ou statistique d'un joueur n'est injectée. Le rendu de la page et des cartes est testé séparément de la disponibilité des personnages en jeu.
+
+
+La capture Windows `Personnage` (profil temporaire vide) a révélé que `CharacterEquipmentGrid` et `CharacterEquipmentCenter` peignaient le fond QWidget natif presque noir devant leur carte `HomeTrackingCard`. Ils héritent désormais de la règle de surface transparente commune `AtlasTransparentHost`, sans renommer les widgets, toucher les emplacements d'équipement ou introduire un matériau local concurrent. Test dédié ajouté à `tests/test_theme.py`; les valeurs et données des statistiques ne sont pas simulées.
