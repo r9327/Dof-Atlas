@@ -93,6 +93,35 @@ class AtlasButton(QPushButton):
         self.update()
 
 
+class AtlasStatusBadge(QLabel):
+    """Read-only Unity status: corner hairline + text, never a clickable button.
+
+    The global #StatusBadge QSS owns all colors, typography and geometry.
+    Call set_state() when a status changes so Qt repolishes the shared role.
+    """
+
+    def __init__(
+        self, text: str, state: str = "neutral",
+        parent: QWidget | None = None,
+    ) -> None:
+        super().__init__(text, parent)
+        self.setObjectName("StatusBadge")
+        self.setCursor(Qt.ArrowCursor)
+        self.setAlignment(Qt.AlignLeft | Qt.AlignBottom)
+        self.setMinimumHeight(UNITY_SIZES_PX["control_compact"])
+        self.setAccessibleName(f"Statut {text}")
+        self.set_state(state)
+
+    def set_state(self, state: str) -> None:
+        if self.property("state") == state:
+            return
+        self.setProperty("state", state)
+        style = self.style()
+        style.unpolish(self)
+        style.polish(self)
+        self.update()
+
+
 class AtlasPanelToggle(QToolButton):
     """Shared Unity control for collapsing a host-owned information panel.
 

@@ -51,6 +51,7 @@ from app.ui.components import (
     AtlasDialogHeader,
     AtlasPageTitle,
     AtlasPanelToggle,
+    AtlasStatusBadge,
     atlas_application_icon,
 )
 from app.ui.theme import PALETTE, SIZES, SPACING, TYPOGRAPHY
@@ -511,17 +512,17 @@ class DevUiPage(QWidget):
             ("info", "Information"),
             ("neutral", "Neutre"),
         ):
-            badge = QLabel(f"• {caption}")
-            badge.setObjectName("StatusBadge")
-            badge.setProperty("state", state)
-            badge.setAlignment(Qt.AlignCenter)
-            badge.setAccessibleName(f"Statut {caption}")
+            badge = AtlasStatusBadge(caption, state=state)
             self.preview_badges[state] = badge
             badges.addWidget(badge)
         badges.addStretch(1)
         section.addLayout(badges)
 
-        # Passive badges above have no hover. These *interactive* chips do.
+        # Passive corner badges do not respond to hover. Clickable chips below
+        # are separate, underlined actions with full hover/focus states.
+        chip_hint = QLabel("Actions de statut cliquables · survol et sélection")
+        chip_hint.setObjectName("MutedLabel")
+        section.addWidget(chip_hint)
         chip_row = QHBoxLayout()
         self.preview_chips: dict[str, AtlasButton] = {}
         chip_captions = {
@@ -529,14 +530,14 @@ class DevUiPage(QWidget):
             "info": "Information", "neutral": "Neutre",
         }
         for tone in UNITY_CHIP_TONES:
-            chip = AtlasButton(f"• {chip_captions[tone]}", variant="status_chip")
+            chip = AtlasButton(chip_captions[tone], variant="status_chip")
             chip.setMinimumHeight(20)
             chip.setMaximumHeight(24)
             chip.setProperty("tone", tone)
             chip.setCheckable(True)
             chip.setChecked(tone == "success")
-            chip.setAccessibleName(f"Badge interactif {chip_captions[tone]}")
-            chip.setToolTip(f"Badge {tone} · clic, survol, sélection et focus")
+            chip.setAccessibleName(f"Action de statut {chip_captions[tone]}")
+            chip.setToolTip(f"Action {tone} · clic, survol, sélection et focus")
             chip.toggled.connect(
                 lambda checked, selected=tone: self._report(
                     f"Badge {selected} {'activé' if checked else 'désactivé'}"

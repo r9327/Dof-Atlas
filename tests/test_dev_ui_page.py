@@ -138,7 +138,9 @@ class DevUiPageTests(unittest.TestCase):
                 "done", "active", "blocked", "danger", "warning", "info",
                 "neutral",
             })
-            from app.ui.unity_palette import UNITY_CHIP_TONES, UNITY_INTERACTION_STATES
+            from app.ui.unity_palette import (
+                UNITY_CHIP_TONES, UNITY_INTERACTION_STATES, UNITY_SIZES_PX,
+            )
             self.assertEqual(set(page.preview_chips), set(UNITY_CHIP_TONES))
             self.assertEqual(page.preview_interaction_states, UNITY_INTERACTION_STATES)
             self.assertEqual(set(page.preview_text_actions), {"inline_action", "popup_link"})
@@ -148,7 +150,7 @@ class DevUiPageTests(unittest.TestCase):
             self.assertIn("Badge danger activé", page.feedback.text())
             self.assertFalse(page.preview_chips["info"].isChecked())
             self.assertTrue(all(
-                chip.text().startswith("• ")
+                not chip.text().startswith("• ")
                 and chip.minimumHeight() == 20
                 and chip.maximumHeight() == 24
                 and chip.cursor().shape() == Qt.PointingHandCursor
@@ -164,7 +166,9 @@ class DevUiPageTests(unittest.TestCase):
             for state, badge in page.preview_badges.items():
                 self.assertEqual(badge.objectName(), "StatusBadge")
                 self.assertEqual(badge.property("state"), state)
-                self.assertTrue(badge.text().startswith("• "))
+                self.assertNotIn("•", badge.text())
+                self.assertEqual(badge.minimumHeight(), UNITY_SIZES_PX["control_compact"])
+                self.assertEqual(badge.accessibleName(), f"Statut {badge.text()}")
                 self.assertEqual(badge.cursor().shape(), Qt.ArrowCursor)
             self.assertEqual(set(page.preview_cards), {"card", "Panel", "QuestPanel"})
             self.assertEqual(page.preview_busy.minimum(), 0)
@@ -288,6 +292,9 @@ class DevUiPageTests(unittest.TestCase):
             self.assertIn("QWidget#DevUiPage QGroupBox::title", css)
             self.assertIn("#StatusChip {\n    background: transparent;", css)
             self.assertIn("#StatusBadge, #ActivityBadge {\n    background: transparent;", css)
+            self.assertIn("border-top: 2px solid", css)
+            self.assertIn("border-left: 2px solid", css)
+            self.assertIn("#StatusBadge[state=\"danger\"]", css)
             self.assertIn("#StatusChip[tone=\"success\"]:hover", css)
             self.assertIn("#StatusChip[tone=\"danger\"]:checked", css)
             self.assertIn("#InlineActionButton:hover", css)

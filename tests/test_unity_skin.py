@@ -403,7 +403,7 @@ class UnitySkinTests(unittest.TestCase):
                     self.assertGreater(pix.pixelColor(12, 12).alpha(), 0)
                     self.assertEqual(
                         pix.pixelColor(12, 12).name(),
-                        QColor(UNITY_PALETTE["TEXT"]).name(),
+                        "#ffffff",
                     )
                 finally:
                     unity_ui_icon.cache_clear()
@@ -417,14 +417,13 @@ class UnitySkinTests(unittest.TestCase):
                 unity_ui_icon.cache_clear()
                 try:
                     pix = unity_ui_icon("guide", 24).pixmap(24, 24).toImage()
-                    self.assertGreater(
-                        pix.pixelColor(12, 12).alpha(),
-                        pix.pixelColor(12, 11).alpha(),
-                    )
+                    self.assertEqual(pix.pixelColor(12, 12).alpha(), 255)
+                    self.assertEqual(pix.pixelColor(12, 11).alpha(), 255)
                     self.assertEqual(
                         pix.pixelColor(12, 12).name(),
-                        QColor(UNITY_PALETTE["TEXT"]).name(),
+                        QColor(UNITY_PALETTE["GREEN"]).name(),
                     )
+                    self.assertEqual(pix.pixelColor(12, 11).name(), "#080808")
                 finally:
                     unity_ui_icon.cache_clear()
 

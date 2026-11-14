@@ -684,36 +684,36 @@ QSplitter#AchievementCatalogSplitter::handle {
     border: none;
 }
 
-/* Passive statuses are compact annotations, not pretend buttons: no pill,
-   raised panel, border, hover or action cursor. Dot/text carry the meaning. */
+/* Read-only Unity status: a light top/left corner above the label.
+   No full border, fill, pill, hover or pointer cursor: this is not a button.
+   Both arms always inherit the SAME semantic token as the text. */
 #StatusBadge, #ActivityBadge {
     background: transparent;
     border: none;
+    border-top: 2px solid @TEXT_MUTED;
+    border-left: 2px solid @TEXT_MUTED;
     border-radius: 0px;
     color: @TEXT_MUTED;
     font-size: @FONT_BADGE;
     font-weight: 700;
-    padding: 1px 3px;
+    padding: 7px 7px 2px 10px;
 }
 
 #StatusBadge[state="done"] {
     color: @GREEN;
-    border-color: @GREEN_DARK;
+    border-color: @GREEN;
 }
-
 #StatusBadge[state="blocked"] {
     color: @TEXT_MUTED;
+    border-color: @TEXT_MUTED;
 }
-
 #StatusBadge[state="active"] {
     color: @TEXT_SOFT;
-    border-color: @BORDER_STRONG;
+    border-color: @TEXT_SOFT;
 }
-
-/* Semantic, compact, non-action badges. These must never look clickable. */
 #StatusBadge[state="danger"] {
     color: @RED_HOVER;
-    border-color: @RED;
+    border-color: @RED_HOVER;
 }
 #StatusBadge[state="warning"] {
     color: @YELLOW;
@@ -721,11 +721,11 @@ QSplitter#AchievementCatalogSplitter::handle {
 }
 #StatusBadge[state="info"] {
     color: @TEXT_SOFT;
-    border-color: @BORDER_CARD;
+    border-color: @TEXT_SOFT;
 }
 #StatusBadge[state="neutral"] {
     color: @TEXT_MUTED;
-    border-color: @BORDER_SOFT;
+    border-color: @TEXT_MUTED;
 }
 
 #GuideManualStepCheck {
@@ -1130,7 +1130,7 @@ QPushButton:disabled, QToolButton:disabled {
 /* Shared semantic interactive chips with normal / hover / pressed /
    selected / keyboard-focus / disabled states. Unlike StatusBadge QLabel,
    these are real actions, not passive statuses. */
-/* Interactive status chips are underline controls, never miniature buttons:
+/* Clickable chips remain underlined actions, deliberately distinct from passive corner badges:
    transparent at rest, no perimeter; semantic underline on hover/selection.
    Native QPushButton still gives keyboard, click, focus and tooltips. */
 #StatusChip {
