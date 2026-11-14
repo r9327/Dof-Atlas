@@ -5,6 +5,7 @@ from typing import Literal
 from PySide6.QtCore import QSize, Qt
 from PySide6.QtGui import QColor, QIcon, QImage, QPainter, QPixmap
 from PySide6.QtWidgets import (
+    QCalendarWidget,
     QComboBox,
     QDialog,
     QFrame,
@@ -122,6 +123,18 @@ class UnityPopupSeparatorDelegate(QStyledItemDelegate):
             option.rect.right() - inset, option.rect.bottom(),
         )
         painter.restore()
+
+
+def apply_unity_calendar_weekdays(calendar: QCalendarWidget) -> None:
+    """Keep the built-in calendar's weekend text in the canonical Unity palette.
+
+    QCalendarWidget formats Saturday/Sunday with native red on some Qt
+    platforms; QSS cannot reliably override Qt's per-day text formats.
+    """
+    for day in (Qt.Saturday, Qt.Sunday):
+        format = calendar.weekdayTextFormat(day)
+        format.setForeground(QColor(UNITY_PALETTE["TEXT_SOFT"]))
+        calendar.setWeekdayTextFormat(day, format)
 
 
 class AtlasComboBox(QComboBox):

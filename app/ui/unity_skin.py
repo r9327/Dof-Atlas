@@ -633,8 +633,10 @@ class UnityBackdrop(QWidget):
         # Unity blue gradient. No painted/fictional fallback stars.
         gradient = QLinearGradient(0, 0, self.width(), self.height())
         gradient.setColorAt(0.0, QColor(UNITY_PALETTE["BG_GRADIENT_START"]))
-        gradient.setColorAt(0.52, QColor(UNITY_PALETTE["PANEL"]))
-        gradient.setColorAt(1.0, QColor(UNITY_PALETTE["BG"]))
+        # Keep the fallback in the same blue Unity panel family instead of
+        # fading to the nearly-black window BG. Personal wallpaper still wins.
+        gradient.setColorAt(0.52, QColor(UNITY_PALETTE["PANEL_2"]))
+        gradient.setColorAt(1.0, QColor(UNITY_PALETTE["SIDEBAR"]))
         painter.fillRect(self.rect(), gradient)
         if not self._pixmap.isNull() and self.width() > 0 and self.height() > 0:
             source_w = self._pixmap.width()

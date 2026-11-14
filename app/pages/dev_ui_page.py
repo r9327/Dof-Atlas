@@ -56,6 +56,7 @@ from app.ui.components import (
     AtlasPanelToggle,
     AtlasStatusBadge,
     atlas_application_icon,
+    apply_unity_calendar_weekdays,
 )
 from app.ui.theme import PALETTE, SIZES, SPACING, TYPOGRAPHY
 from app.ui.unity_palette import (
@@ -804,6 +805,7 @@ class DevUiPage(QWidget):
         self.preview_almanax_calendar = QCalendarWidget()
         self.preview_almanax_calendar.setObjectName("AlmanaxCalendar")
         self.preview_almanax_calendar.setFirstDayOfWeek(Qt.Monday)
+        apply_unity_calendar_weekdays(self.preview_almanax_calendar)
         self.preview_almanax_calendar.setVerticalHeaderFormat(
             QCalendarWidget.NoVerticalHeader
         )

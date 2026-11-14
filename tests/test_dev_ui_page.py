@@ -238,6 +238,13 @@ class DevUiPageTests(unittest.TestCase):
             self.assertEqual(picker.objectName(), "AlmanaxCalendar")
             self.assertEqual(picker.styleSheet(), "")
             self.assertIsNotNone(picker.graphicsEffect())
+            from app.ui.unity_palette import UNITY_PALETTE
+            from PySide6.QtGui import QColor
+            for day in (Qt.Saturday, Qt.Sunday):
+                self.assertEqual(
+                    picker.weekdayTextFormat(day).foreground().color(),
+                    QColor(UNITY_PALETTE["TEXT_SOFT"]),
+                )
             target = QDate.currentDate().addDays(12)
             picker.setSelectedDate(target)
             self.assertEqual(picker.selectedDate(), target)
