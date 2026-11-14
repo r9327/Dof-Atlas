@@ -93,7 +93,8 @@ class SharedThemeTests(unittest.TestCase):
             "TEXT_SOFT": "#789ABC",
             "PANEL_HOVER": "#234567",
             "BORDER_STRONG": "#456789",
-            "GREEN_DARK": "#345634",
+            "PANEL_ACTIVE": "#345634",
+            "GREEN_BORDER": "#668833",
             "GREEN": "#456745",
         })
         shared = style.split(
@@ -112,7 +113,8 @@ class SharedThemeTests(unittest.TestCase):
             "#GuideHideCompletedToggle:checked, #segmentedButtonActive {", 1,
         )[1].split("}", 1)[0]
         self.assertIn("background: #345634;", active)
-        self.assertIn("border-color: #456745;", active)
+        self.assertIn("border-color: #668833;", active)
+        self.assertIn("color: #456745;", active)
         guide_layout = style.split(
             "#GuideHideCompletedToggle {", 1,
         )[1].split("}", 1)[0]
@@ -122,7 +124,10 @@ class SharedThemeTests(unittest.TestCase):
         self.assertIn("text-align: left;", guide_layout)
         self.assertIn("text-align: center;", segment_layout)
         self.assertIn("border: 1px solid #345678;", segment_layout)
-        self.assertIn("#GuideHideCompletedToggle:checked:hover {", style)
+        self.assertIn(
+            "#GuideHideCompletedToggle:checked:hover, #segmentedButtonActive:hover {",
+            style,
+        )
 
     def test_breadcrumb_has_one_global_owner_and_live_unity_tokens(self) -> None:
         style = theme.atlas_stylesheet({
@@ -282,7 +287,7 @@ class SharedThemeTests(unittest.TestCase):
         style = theme.atlas_stylesheet()
         for selector in (
             "#EncyclopediaResultList::item:selected, #GuideResultList::item:selected {",
-            "#WorldMenuItemActive {",
+            "\n#WorldMenuItemActive {",
             "#MapViewTree::item:selected {",
         ):
             block = style.split(selector, 1)[1].split("}", 1)[0]
