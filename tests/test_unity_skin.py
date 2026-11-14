@@ -202,8 +202,8 @@ class UnitySkinTests(unittest.TestCase):
         # assertions rather than expecting the superseded opaque palette.
         for expected in (
             "rgba(17, 34, 51, 0.88)",  # cards and Guide panels
-            "rgba(17, 34, 51, 0.58)",  # shared section bottom
-            "rgba(34, 51, 68, 0.50)",  # shared section top
+            "rgba(17, 34, 51, 0.88)",  # shared panel/section bottom
+            "rgba(34, 51, 68, 0.82)",  # shared panel/section top
             "rgba(17, 34, 51, 0.95)",  # list body + alternate rows
             "rgba(34, 51, 68, 0.82)",  # home card top
             "rgba(51, 68, 85, 0.45)",  # Guide Dofus listing
@@ -617,8 +617,8 @@ class UnitySkinTests(unittest.TestCase):
             "QTableView", "QPlainTextEdit", "QHeaderView::section",
         ):
             self.assertIn(selector, style)
-        self.assertIn("rgba(27, 39, 70, 0.58)", style)
-        self.assertIn("rgba(33, 49, 84, 0.50)", style)
+        self.assertIn("rgba(27, 39, 70, 0.88)", style)
+        self.assertIn("rgba(33, 49, 84, 0.82)", style)
         self.assertIn('QWidget[atlasUnityPage="true"]', style)
         self.assertIn("QPushButton#FeaturedGuideOpen:focus", style)
         for root_name in ("GuidesView", "GuidesHomePage", "GuidesHomeContent", "GuidesDetailPage"):
