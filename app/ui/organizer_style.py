@@ -18,6 +18,8 @@ ORGANIZER_STYLE_TEMPLATE = r"""
                 border-radius: 10px;
                 border-image: none;
             }
+            /* Organizer-only alignment: every visual button state now lives
+               in the same global Unity QSS as Dev UI, Home and Guides. */
             #organizerPage QPushButton#primaryButton,
             #organizerPage QPushButton#secondaryButton,
             #organizerPage QPushButton#PrimaryActionButton,
@@ -25,64 +27,9 @@ ORGANIZER_STYLE_TEMPLATE = r"""
             #organizerPage QPushButton#segmentedButton,
             #organizerPage QPushButton#segmentedButtonActive,
             #organizerPage QPushButton#dangerButton {
-                background: @GLASS_BUTTON;
-                border: 1px solid @BORDER;
-                border-radius: 8px;
-                border-image: none;
-                color: @TEXT_SOFT;
                 text-align: center;
-                padding: 0px 5px;
-            }
-            #organizerPage QPushButton#primaryButton,
-            #organizerPage QPushButton#PrimaryActionButton,
-            #organizerPage QPushButton#segmentedButtonActive {
-                background: @GLASS_GREEN;
-                border-color: @GREEN_BORDER;
-                color: @TEXT;
-            }
-            #organizerPage QPushButton#dangerButton {
-                background: @RED_DARK;
-                border-color: @RED;
-                color: @TEXT;
-                font-weight: 700;
-            }
-            #organizerPage QPushButton#primaryButton:hover,
-            #organizerPage QPushButton#secondaryButton:hover,
-            #organizerPage QPushButton#PrimaryActionButton:hover,
-            #organizerPage QPushButton#SecondaryButton:hover,
-            #organizerPage QPushButton#segmentedButton:hover,
-            #organizerPage QPushButton#segmentedButtonActive:hover {
-                background: @GLASS_HOVER;
-                border-color: @BORDER_STRONG;
-                color: @TEXT;
-            }
-            #organizerPage QPushButton#primaryButton:pressed,
-            #organizerPage QPushButton#secondaryButton:pressed,
-            #organizerPage QPushButton#PrimaryActionButton:pressed,
-            #organizerPage QPushButton#SecondaryButton:pressed,
-            #organizerPage QPushButton#segmentedButton:pressed,
-            #organizerPage QPushButton#segmentedButtonActive:pressed {
-                background: @PANEL_ACTIVE;
-                border-color: @GREEN_BORDER;
-            }
-            #organizerPage QPushButton#dangerButton:hover {
-                background: @RED_HOVER;
-                border-color: @RED;
-            }
-            #organizerPage QPushButton#dangerButton:pressed {
-                background: @RED_DARK;
-                border-color: @RED;
-            }
-            #organizerPage QPushButton#primaryButton:disabled,
-            #organizerPage QPushButton#secondaryButton:disabled,
-            #organizerPage QPushButton#PrimaryActionButton:disabled,
-            #organizerPage QPushButton#SecondaryButton:disabled,
-            #organizerPage QPushButton#segmentedButton:disabled,
-            #organizerPage QPushButton#segmentedButtonActive:disabled,
-            #organizerPage QPushButton#dangerButton:disabled {
-                background: @PANEL;
-                border-color: @BORDER_SOFT;
-                color: @TEXT_DISABLED;
+                padding: 0px @SPACE_SM;
+                border-image: none;
             }
             /* All seven embedded shortcuts, STOP and character slots are
                the SAME keyBadge family and 52x22 dimensions. */
@@ -107,8 +54,9 @@ ORGANIZER_STYLE_TEMPLATE = r"""
                 border-color: @GREEN_BORDER;
             }
             #organizerPage QPushButton#keyBadge:pressed {
-                background: @GREEN_DARK;
+                background: @PANEL_ACTIVE;
                 border-color: @GREEN;
+                color: @GREEN;
             }
             #organizerPage QPushButton#keyBadge:disabled {
                 background: @PANEL;
@@ -141,16 +89,9 @@ ORGANIZER_STYLE_TEMPLATE = r"""
                 border-image: none;
             }
             #organizerPage QLineEdit#comboField {
-                background: @PANEL_2;
-                border: 1px solid @BORDER;
-                border-radius: 8px;
+                /* Input fill, border, focus and disabled state are global. */
+                padding: 0px @SPACE_MD;
                 border-image: none;
-                color: @TEXT;
-                padding: 0px 8px;
-            }
-            #organizerPage QLineEdit#comboField:focus {
-                background: @PANEL_HOVER;
-                border-color: @GREEN;
             }
             #organizerPage QFrame#OrganizerSpeedSelector,
             #organizerPage QFrame#OrganizerModeSwitch {
@@ -160,17 +101,16 @@ ORGANIZER_STYLE_TEMPLATE = r"""
                 border-image: none;
             }
             #organizerPage QFrame#OrganizerSpeedHighlight,
-            #organizerPage QFrame#OrganizerModeHighlight {
-                background: @GREEN_DARK;
+            #organizerPage QFrame#OrganizerModeHighlight,
+            #organizerPage QFrame#OrganizerModeHighlightArmed {
+                /* Active segments are blue with a fine green stroke. */
+                background: @PANEL_ACTIVE;
                 border: 1px solid @GREEN_BORDER;
-                border-radius: 7px;
+                border-radius: @RADIUS_SM;
                 border-image: none;
             }
             #organizerPage QFrame#OrganizerModeHighlightArmed {
-                background: @ACTIVE_GRADIENT;
-                border: 1px solid @GREEN;
-                border-radius: 7px;
-                border-image: none;
+                border-color: @GREEN;
             }
             #organizerPage QPushButton#OrganizerSpeedChoice,
             #organizerPage QPushButton#OrganizerSpeedChoiceSelected,

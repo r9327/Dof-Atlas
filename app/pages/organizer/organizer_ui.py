@@ -7,7 +7,6 @@ from PySide6.QtCore import QEasingCurve, QPoint, QPointF, QPropertyAnimation, QR
 from PySide6.QtGui import QColor, QIcon, QPainter, QPen, QPixmap, QPolygonF
 from PySide6.QtWidgets import (
     QFrame,
-    QGraphicsDropShadowEffect,
     QGridLayout,
     QHBoxLayout,
     QLabel,
@@ -40,6 +39,7 @@ from app.storage import ZaapWidget, clean_auto_group_name, profile_bool, short_l
 from app.ui.splash_image import clear_connected_dark_background
 from app.ui.components import AtlasButton
 from app.ui.unity_palette import unity_painted_ui_color
+from app.ui.unity_skin import apply_unity_panel_shadow
 from .glass_material import (
     OrganizerGlassButton, OrganizerGlassCard,
 )
@@ -215,14 +215,8 @@ def _organizer_action_icon(kind: str) -> QIcon:
 
 
 def _organizer_card_shadow(panel: QFrame) -> None:
-    """Subtle Unity-style separation, never a black-filled backing rectangle."""
-    shadow = QGraphicsDropShadowEffect(panel)
-    shadow.setBlurRadius(18)
-    shadow.setOffset(0, 3)
-    shadow_color = QColor(unity_painted_ui_color("organizer.shadow"))
-    shadow_color.setAlpha(75)
-    shadow.setColor(shadow_color)
-    panel.setGraphicsEffect(shadow)
+    """One shared Unity shadow on static cards, not a private Organizer effect."""
+    apply_unity_panel_shadow(panel)
 
 
 class OrganizerZaapWidget(ZaapWidget):

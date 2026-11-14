@@ -1015,19 +1015,19 @@ QPushButton:disabled, QToolButton:disabled {
 }
 
 #GuideHideCompletedToggle:checked, #segmentedButtonActive {
-    background: @GREEN_DARK;
-    border-color: @GREEN;
-    color: @TEXT;
+    background: @PANEL_ACTIVE;
+    border-color: @GREEN_BORDER;
+    color: @GREEN;
 }
 
 #segmentedButtonActive {
     font-weight: 700;
 }
 
-#GuideHideCompletedToggle:checked:hover {
-    background: @GREEN_HOVER;
+#GuideHideCompletedToggle:checked:hover, #segmentedButtonActive:hover {
+    background: @PANEL_HOVER;
     border-color: @GREEN_HOVER;
-    color: @TEXT;
+    color: @GREEN_HOVER;
 }
 
 /* Red stays a meaning, not a huge rectangle. Critical Stop Urgence is

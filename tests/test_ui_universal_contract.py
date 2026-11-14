@@ -98,6 +98,27 @@ class UiUniversalContractTests(unittest.TestCase):
         )
         self.assertIn("#organizerPage QFrame#card", atlas_stylesheet())
 
+    def test_all_qt_consumers_inherit_global_qss_without_local_stylesheets(self):
+        import ast
+        for module, entry in UI_CONSUMER_INDEX.items():
+            if entry["adapter"] == "tk":
+                continue
+            for filename in entry["paths"]:
+                with self.subTest(module=module, filename=filename):
+                    tree = ast.parse((REPO_ROOT / filename).read_text(encoding="utf-8"))
+                    local_styles = [
+                        node for node in ast.walk(tree)
+                        if isinstance(node, ast.Call)
+                        and isinstance(node.func, ast.Attribute)
+                        and node.func.attr == "setStyleSheet"
+                    ]
+                    self.assertFalse(local_styles, f"{filename}: local QSS bypasses UI Dev")
+        self.assertNotIn("background: @GLASS_GREEN;", ORGANIZER_STYLE_TEMPLATE)
+        self.assertNotIn("background: @ACTIVE_GRADIENT;", ORGANIZER_STYLE_TEMPLATE)
+        self.assertNotIn("background: @RED_DARK;", ORGANIZER_STYLE_TEMPLATE)
+        self.assertNotIn("#organizerPage QPushButton#primaryButton:hover",
+                         ORGANIZER_STYLE_TEMPLATE)
+
     def test_glass_gradient_is_shared_and_override_aware(self):
         from app.pages.organizer.glass_material import (
             GLASS_INTENSITY, unity_glass_gradient as organizer_gradient,
@@ -110,10 +131,11 @@ class UiUniversalContractTests(unittest.TestCase):
             "PANEL_2": "#223344",
             "PANEL_HOVER": "#334455",
         })
-        self.assertIn("stop:0 rgba(17, 34, 51, 217)", style)
-        self.assertIn("stop:1 rgba(34, 51, 68, 225)", style)
-        self.assertIn("stop:0 rgba(51, 68, 85, 227)", style)
-        self.assertIn("#organizerPage QPushButton#primaryButton:hover", style)
+        self.assertIn("stop:0 rgba(17, 34, 51, 243)", style)
+        self.assertIn("stop:1 rgba(34, 51, 68, 246)", style)
+        self.assertIn("stop:0 rgba(51, 68, 85, 246)", style)
+        self.assertIn("#primaryButton:hover", style)
+        self.assertNotIn("#organizerPage QPushButton#primaryButton:hover", style)
 
 
 if __name__ == "__main__":

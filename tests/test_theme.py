@@ -255,6 +255,19 @@ class SharedThemeTests(unittest.TestCase):
         self.assertNotIn("border-left: 4px", active)
         self.assertNotIn("background: #497332;", active)
 
+    def test_all_selected_segments_follow_dev_ui_no_solid_green(self) -> None:
+        style = theme.atlas_stylesheet({
+            "PANEL_ACTIVE": "#334455", "GREEN_BORDER": "#668833",
+            "GREEN": "#99CC33",
+        })
+        block = style.split(
+            "#GuideHideCompletedToggle:checked, #segmentedButtonActive {", 1
+        )[1].split("}", 1)[0]
+        self.assertIn("background: #334455;", block)
+        self.assertIn("border-color: #668833;", block)
+        self.assertIn("color: #99CC33;", block)
+        self.assertNotIn("background: #497332;", block)
+
     def test_dev_ui_shared_surface_style_reaches_real_widgets(self) -> None:
         style = theme.atlas_stylesheet({
             "PANEL": "#112233", "PANEL_2": "#223344",

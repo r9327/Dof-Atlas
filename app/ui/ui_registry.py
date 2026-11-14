@@ -83,9 +83,9 @@ UI_INTERACTION_QSS_SELECTORS = {
     "fields": ("QComboBox:hover", "QComboBox:disabled"),
     "statuses": ("#StatusChip:hover", "#StatusChip:checked"),
     "panels": (
-        '#organizerPage QPushButton#primaryButton:hover',
-        '#organizerPage QPushButton#primaryButton:pressed',
-        '#organizerPage QPushButton#primaryButton:disabled',
+        "#primaryButton:hover",
+        "#primaryButton:pressed",
+        "#primaryButton:disabled",
         '#organizerPage QPushButton[atlasShortcutInset="true"]',
     ),
 }

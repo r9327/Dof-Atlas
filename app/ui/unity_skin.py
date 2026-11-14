@@ -15,7 +15,7 @@ from PySide6.QtWidgets import QGraphicsDropShadowEffect, QWidget
 
 from app.ui.unity_palette import (
     UNITY_ICON_FILE_ALIASES, UNITY_ICON_NAMES, UNITY_ICON_PENDING,
-    UNITY_GLASS_INTENSITY, UNITY_PALETTE, UNITY_RADII, UNITY_SIZES_PX,
+    UNITY_GLASS_INTENSITY, UNITY_PANEL_SHADOW, UNITY_PALETTE, UNITY_RADII, UNITY_SIZES_PX,
     resolve_unity_colors,
 )
 
@@ -202,7 +202,10 @@ def register_unity_fonts() -> tuple[str, ...]:
 
 
 def apply_unity_panel_shadow(
-    widget: QWidget, *, blur: int = 18, vertical: int = 4, alpha: int = 195
+    widget: QWidget, *,
+    blur: int = UNITY_PANEL_SHADOW["blur"],
+    vertical: int = UNITY_PANEL_SHADOW["vertical"],
+    alpha: int = UNITY_PANEL_SHADOW["alpha"],
 ) -> None:
     """Reuse the existing Unity panel relief on *static* surfaces only.
 
