@@ -475,6 +475,28 @@ class DevUiPage(QWidget):
         row.addWidget(note, 1)
         section.addLayout(row)
 
+        # Real World Scan menu identities, not a second navigation skin.
+        self.preview_world_menu = QFrame()
+        self.preview_world_menu.setObjectName("WorldMenu")
+        apply_unity_panel_shadow(self.preview_world_menu, **UNITY_PANEL_SHADOW)
+        world_layout = QHBoxLayout(self.preview_world_menu)
+        world_layout.setContentsMargins(8, 8, 8, 8)
+        world_layout.setSpacing(6)
+        self.preview_world_buttons: dict[str, AtlasButton] = {}
+        for name in ("Monde des Douze", "Incarnam", "Frigost"):
+            button = AtlasButton(name)
+            button.set_style_name(
+                "WorldMenuItemActive" if name == "Monde des Douze"
+                else "WorldMenuItem"
+            )
+            button.setFixedHeight(28)
+            button.clicked.connect(
+                lambda _checked=False, choice=name: self._select_preview_world(choice)
+            )
+            self.preview_world_buttons[name] = button
+            world_layout.addWidget(button, 1)
+        section.addWidget(self.preview_world_menu)
+
     def _toggle_preview_sidebar(self) -> None:
         collapsed = not self.preview_sidebar_content.isHidden()
         self.preview_sidebar_content.setHidden(collapsed)
@@ -486,6 +508,13 @@ class DevUiPage(QWidget):
                 "navItemActive" if label == selected else "navItem"
             )
         self._report(f"Navigation latérale : {selected}")
+
+    def _select_preview_world(self, selected: str) -> None:
+        for name, button in self.preview_world_buttons.items():
+            button.set_style_name(
+                "WorldMenuItemActive" if name == selected else "WorldMenuItem"
+            )
+        self._report(f"Navigation Monde : {selected}")
 
     def _build_breadcrumbs(self, parent: QVBoxLayout) -> None:
         """Real shared Guide breadcrumb states, not one isolated button."""
@@ -575,6 +604,21 @@ class DevUiPage(QWidget):
         )
         row.addWidget(self.preview_table, 1)
         section.addLayout(row)
+
+        # Map catalog's production selector, with real Qt selection.
+        self.preview_map_tree = QTreeWidget()
+        self.preview_map_tree.setObjectName("MapViewTree")
+        self.preview_map_tree.setHeaderHidden(True)
+        self.preview_map_tree.setMaximumHeight(100)
+        self.preview_map_tree.setAlternatingRowColors(False)
+        for name in ("Monde des Douze", "Incarnam", "Frigost"):
+            self.preview_map_tree.addTopLevelItem(QTreeWidgetItem((name,)))
+        self.preview_map_tree.currentItemChanged.connect(
+            lambda item, _previous: self._report(
+                f"Arbre Carte : {item.text(0)}"
+            ) if item is not None else None
+        )
+        section.addWidget(self.preview_map_tree)
 
     def _build_layouts(self, parent: QVBoxLayout) -> None:
         """Existing card QSS inside an elastic two-column grid."""
@@ -946,6 +990,34 @@ class DevUiPage(QWidget):
             self.preview_cards[role] = card
             cards.addWidget(card, 1)
         section.addLayout(cards)
+
+        # Real World Scan shells + read-only value chips. The canvas isn't
+        # copied: its own painter is deliberately left untouched.
+        world_chrome = QHBoxLayout()
+        self.preview_map_chrome: dict[str, QFrame] = {}
+        for role, title in (
+            ("MapToolbar", "Barre Carte"), ("WorldDetailPanel", "Détails Monde"),
+        ):
+            panel = QFrame()
+            panel.setObjectName(role)
+            panel_layout = QVBoxLayout(panel)
+            panel_layout.addWidget(QLabel(title))
+            apply_unity_panel_shadow(panel, **UNITY_PANEL_SHADOW)
+            world_chrome.addWidget(panel, 1)
+            self.preview_map_chrome[role] = panel
+        section.addLayout(world_chrome)
+
+        value_row = QHBoxLayout()
+        self.preview_map_values: dict[str, QLabel] = {}
+        for role, title in (
+            ("WorldDetailValue", "Position : [0,0]"),
+            ("MapDetailValue", "Carte : démonstration"),
+        ):
+            value = QLabel(title)
+            value.setObjectName(role)
+            value_row.addWidget(value, 1)
+            self.preview_map_values[role] = value
+        section.addLayout(value_row)
 
         separator = QFrame()
         separator.setFrameShape(QFrame.HLine)

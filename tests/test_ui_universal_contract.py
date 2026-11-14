@@ -45,6 +45,27 @@ class UiUniversalContractTests(unittest.TestCase):
              if data["adapter"] == "qt"},
         )
 
+    def test_world_map_preview_and_interaction_states_are_indexed(self):
+        expected = {
+            "navigation": (
+                "WorldMenu", "WorldMenuItem", "WorldMenuItemActive",
+            ),
+            "data_views": ("MapViewTree",),
+            "surfaces": (
+                "MapToolbar", "WorldDetailPanel",
+                "WorldDetailValue", "MapDetailValue",
+            ),
+        }
+        for family, names in expected.items():
+            for name in names:
+                self.assertIn(name, UNITY_UI_FAMILY_INDEX[family]["components"])
+                self.assertIn("#" + name, UI_FAMILY_QSS_SELECTORS[family])
+                self.assertIn("#" + name, atlas_stylesheet())
+        self.assertIn("#WorldMenuItem:hover",
+                      UI_INTERACTION_QSS_SELECTORS["navigation"])
+        self.assertIn("#MapViewTree::item:selected",
+                      UI_INTERACTION_QSS_SELECTORS["data_views"])
+
     def test_guide_catalog_materials_are_fully_indexed_in_dev_ui(self):
         from app.pages.dev_ui_page import DevUiPage
 

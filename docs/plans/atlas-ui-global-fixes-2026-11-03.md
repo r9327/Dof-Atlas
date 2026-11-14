@@ -765,3 +765,11 @@ La capture Windows `Personnage` (profil temporaire vide) a révélé que `Charac
 - Dans `app/ui/theme.py`, les menu Monde, panneaux Carte statiques, valeurs de détail, scrollbars et états de sélection héritent désormais des rôles `GLASS_PANEL_TOP/BOTTOM`, `GLASS_BUTTON/HOVER`, `BORDER_SOFT`, `BORDER_CARD` et rayons globaux. Le canvas cartographique conserve volontairement sa surface de peinture, et les hauteurs de lignes/contrôles restent inchangées. L'état sélectionné reste bleu avec un fin trait vert.
 - Dans `app/ui/unity_skin.py`, les menus `QMenu` réutilisent le même dégradé glass, sans dégrader le contraste spécifique des dialogues `AtlasDialog`. Aucun nouveau matériau ou framework.
 - Tests de propagation des tokens et des sélecteurs ajoutés dans les suites existantes `test_theme.py` et `test_unity_skin.py`. **NOT_RUN** pendant le développement, aucune CI ni capture déclenchée ; seuls les tests de fin de lot seront exécutés à la demande en phase finale.
+
+
+### UI Dev — navigation Monde, arbre Carte et valeurs partagées (14/11/2026)
+
+- La galerie Dev UI **Navigation latérale** contient un vrai `QFrame#WorldMenu` et trois `AtlasButton` utilisant les mêmes `WorldMenuItem` / `WorldMenuItemActive` que la page Carte. Le clic change réellement l'état Qt des boutons, sans changer le monde actif du runtime.
+- La galerie **Listes et tableaux** montre un `QTreeWidget#MapViewTree` réellement sélectionnable. La galerie **Surfaces** présente `MapToolbar`, `WorldDetailPanel`, `WorldDetailValue` et `MapDetailValue` ; ombre commune uniquement sur les panneaux statiques.
+- Toutes ces identités sont ajoutées aux familles existantes `UNITY_UI_FAMILY_INDEX`, `UI_FAMILY_QSS_SELECTORS` et aux états `UI_INTERACTION_QSS_SELECTORS` ; aucun nouveau thème, instance métier, donnée de Carte ni animation.
+- Tests de contrat dans `tests/test_dev_ui_page.py` et `tests/test_ui_universal_contract.py`. **NOT_RUN** : la phase d'audit/CI est explicitement différée jusqu'à la fin du développement, et aucune validation de captures n'est revendiquée.

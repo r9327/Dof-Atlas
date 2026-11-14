@@ -312,7 +312,10 @@ UNITY_UI_FAMILY_INDEX = {
     },
     "navigation": {
         "title": "Onglets · menus et navigation",
-        "components": ("QTabWidget", "QTabBar", "QMenu", "AtlasButton"),
+        "components": (
+            "QTabWidget", "QTabBar", "QMenu", "AtlasButton",
+            "WorldMenu", "WorldMenuItem", "WorldMenuItemActive",
+        ),
         "style_owner": "app/ui/theme.py + app/ui/unity_skin.py",
         "scope": "shared",
     },
@@ -330,7 +333,10 @@ UNITY_UI_FAMILY_INDEX = {
     },
     "data_views": {
         "title": "Listes · arborescences · tableaux",
-        "components": ("QTreeWidget", "QTableWidget", "QHeaderView", "QListWidget"),
+        "components": (
+            "QTreeWidget", "QTableWidget", "QHeaderView", "QListWidget",
+            "MapViewTree",
+        ),
         "style_owner": "app/ui/theme.py + app/ui/unity_skin.py",
         "scope": "shared",
     },
@@ -372,7 +378,11 @@ UNITY_UI_FAMILY_INDEX = {
     },
     "surfaces": {
         "title": "Surfaces · cartes · typographie",
-        "components": ("AtlasPageTitle", "PageTitle", "PanelTitle", "MutedLabel", "card", "Panel", "QuestPanel", "QFrame"),
+        "components": (
+            "AtlasPageTitle", "PageTitle", "PanelTitle", "MutedLabel",
+            "card", "Panel", "QuestPanel", "QFrame",
+            "MapToolbar", "WorldDetailPanel", "WorldDetailValue", "MapDetailValue",
+        ),
         "style_owner": "app/ui/theme.py + app/ui/unity_skin.py",
         "scope": "shared",
     },

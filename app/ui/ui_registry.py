@@ -19,10 +19,16 @@ UI_FAMILY_QSS_SELECTORS: dict[str, tuple[str, ...]] = {
         "#PrimaryActionButton", "#SecondaryButton", "#ActiveButton", "#DangerButton",
         "#InlineActionButton", "#PopupLinkButton", "#TopNavButton",
     ),
-    "navigation": ("QTabBar::tab", "QTabWidget::pane", "QMenu {"),
+    "navigation": (
+        "QTabBar::tab", "QTabWidget::pane", "QMenu {",
+        "#WorldMenu", "#WorldMenuItem", "#WorldMenuItemActive",
+    ),
     "breadcrumbs": ("QFrame#GuideBreadcrumb", "QPushButton#GuideBreadcrumbButton", "QLabel#GuideBreadcrumbCurrent"),
     "sidebar": ("#sidebar", "#navItem", "#navItemActive", "#MenuButton", "#NavSeparator"),
-    "data_views": ("QTreeWidget::item", "QTableWidget", "QHeaderView::section"),
+    "data_views": (
+        "QTreeWidget::item", "QTableWidget", "QHeaderView::section",
+        "#MapViewTree::item",
+    ),
     "scroll_resize": (
         "QSplitter::handle:horizontal", "QScrollBar:vertical",
         "QScrollArea", "QScrollBar::handle:vertical",
@@ -35,7 +41,10 @@ UI_FAMILY_QSS_SELECTORS: dict[str, tuple[str, ...]] = {
     "advanced_fields": ("QDoubleSpinBox", "QDateEdit", "QTimeEdit"),
     "statuses": ('#StatusBadge[state="done"]', "#StatusChip"),
     "notifications": ("#StatusBadge", "#MutedLabel", "#card"),
-    "surfaces": ("#PageTitle", "#PanelTitle", "#MutedLabel", "#card"),
+    "surfaces": (
+        "#PageTitle", "#PanelTitle", "#MutedLabel", "#card",
+        "#MapToolbar", "#WorldDetailPanel", "#WorldDetailValue", "#MapDetailValue",
+    ),
     "metrics": (),  # Values resolve into QSS, not standalone selectors.
     "panels": (
         "#OrganizerPanel", "#GuideRightPanelToggle",
@@ -79,6 +88,11 @@ UI_INTERACTION_QSS_SELECTORS = {
     "navigation": (
         "QTabBar::tab:hover", "QTabBar::tab:selected",
         "QTabBar::tab:selected:hover",
+        "#WorldMenuItem:hover", "#WorldMenuItemActive:hover",
+        "#WorldMenuItem:disabled",
+    ),
+    "data_views": (
+        "#MapViewTree::item:hover", "#MapViewTree::item:selected",
     ),
     "sidebar": ("#navItem:hover", "#navItemActive", "#burgerButton:pressed"),
     "breadcrumbs": ("QPushButton#GuideBreadcrumbButton:hover",),

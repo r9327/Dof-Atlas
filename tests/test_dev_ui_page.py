@@ -90,6 +90,47 @@ class DevUiPageTests(unittest.TestCase):
             page.close()
             page.deleteLater()
 
+    def test_world_map_navigation_and_panels_are_real_dev_ui_samples(self) -> None:
+        from app.pages.dev_ui_page import DevUiPage
+
+        page = DevUiPage(on_back=lambda: None)
+        try:
+            self.assertEqual(page.preview_world_menu.objectName(), "WorldMenu")
+            self.assertIsNotNone(page.preview_world_menu.graphicsEffect())
+            self.assertEqual(
+                page.preview_world_buttons["Monde des Douze"].objectName(),
+                "WorldMenuItemActive",
+            )
+            page.preview_world_buttons["Frigost"].click()
+            self.assertEqual(
+                page.preview_world_buttons["Frigost"].objectName(),
+                "WorldMenuItemActive",
+            )
+            self.assertEqual(
+                page.preview_world_buttons["Monde des Douze"].objectName(),
+                "WorldMenuItem",
+            )
+            self.assertIn("Navigation Monde : Frigost", page.feedback.text())
+            self.assertEqual(page.preview_map_tree.objectName(), "MapViewTree")
+            page.preview_map_tree.setCurrentItem(
+                page.preview_map_tree.topLevelItem(1)
+            )
+            self.assertIn("Arbre Carte : Incarnam", page.feedback.text())
+            self.assertEqual(set(page.preview_map_chrome),
+                             {"MapToolbar", "WorldDetailPanel"})
+            self.assertEqual(set(page.preview_map_values),
+                             {"WorldDetailValue", "MapDetailValue"})
+            for frame in page.preview_map_chrome.values():
+                self.assertIsNotNone(frame.graphicsEffect())
+            for widget in (*page.preview_map_chrome.values(),
+                           *page.preview_map_values.values()):
+                self.assertEqual(widget.styleSheet(), "")
+            self.assertTrue(all(child.styleSheet() == ""
+                                for child in page.findChildren(QWidget)))
+        finally:
+            page.close()
+            page.deleteLater()
+
     def test_guide_catalog_materials_are_real_shared_dev_ui_components(self) -> None:
         from app.pages.dev_ui_page import DevUiPage
 
