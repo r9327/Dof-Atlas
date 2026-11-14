@@ -520,14 +520,20 @@ QTabWidget#EncyclopediaTabs QTabBar::tab:hover {
     max-height: 28px;
 }
 
-#AchievementsView, #AchievementFilterPanel {
-    background: @BG;
+/* The Success catalogue must not cover the Unity sky with an opaque root. */
+#AchievementsView {
+    background: transparent;
+}
+#AchievementFilterPanel {
+    background: @GLASS_BUTTON;
 }
 
 #AchievementsView #GuideLeftPanel,
 #AchievementsView #GuideCenterPanel {
-    background: @PANEL;
-    border: 1px solid @BORDER;
+    background: qlineargradient(x1:0,y1:0,x2:0,y2:1,
+        stop:0 @GLASS_PANEL_TOP,stop:1 @GLASS_PANEL_BOTTOM);
+    border: 1px solid @BORDER_SOFT;
+    border-top: 1px solid @GLASS_HAIRLINE;
     border-radius: @RADIUS_MD;
 }
 
@@ -2100,7 +2106,7 @@ QMenu::separator {
 /* Phase 2 views: application-level visual rules live here. */
 
                 QWidget#AchievementsView {
-                    background: @BG;
+                    background: transparent;
                 }
 
                 QWidget#AchievementsView QLineEdit#EncyclopediaSearch {
@@ -2121,8 +2127,10 @@ QMenu::separator {
                 QWidget#AchievementsView QFrame#GuideLeftPanel,
                 QWidget#AchievementsView QFrame#GuideCenterPanel,
                 QWidget#AchievementsView QStackedWidget#AchievementDetailStack {
-                    background: @PANEL;
-                    border: 1px solid @BORDER;
+                    background: qlineargradient(x1:0,y1:0,x2:0,y2:1,
+                        stop:0 @GLASS_PANEL_TOP,stop:1 @GLASS_PANEL_BOTTOM);
+                    border: 1px solid @BORDER_SOFT;
+                    border-top: 1px solid @GLASS_HAIRLINE;
                     border-radius: @RADIUS_MD;
                 }
 

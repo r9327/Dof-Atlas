@@ -335,7 +335,8 @@ UNITY_UI_FAMILY_INDEX = {
         "title": "Listes · arborescences · tableaux",
         "components": (
             "QTreeWidget", "QTableWidget", "QHeaderView", "QListWidget",
-            "MapViewTree",
+            "MapViewTree", "AchievementsView", "GuideLeftPanel",
+            "GuideCenterPanel", "AchievementDetailStack",
         ),
         "style_owner": "app/ui/theme.py + app/ui/unity_skin.py",
         "scope": "shared",

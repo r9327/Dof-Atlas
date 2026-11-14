@@ -27,7 +27,8 @@ UI_FAMILY_QSS_SELECTORS: dict[str, tuple[str, ...]] = {
     "sidebar": ("#sidebar", "#navItem", "#navItemActive", "#MenuButton", "#NavSeparator"),
     "data_views": (
         "QTreeWidget::item", "QTableWidget", "QHeaderView::section",
-        "#MapViewTree::item",
+        "#MapViewTree::item", "#AchievementsView",
+        "#AchievementDetailStack", "#GuideLeftPanel", "#GuideCenterPanel",
     ),
     "scroll_resize": (
         "QSplitter::handle:horizontal", "QScrollBar:vertical",

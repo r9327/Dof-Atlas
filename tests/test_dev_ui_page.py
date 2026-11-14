@@ -90,6 +90,32 @@ class DevUiPageTests(unittest.TestCase):
             page.close()
             page.deleteLater()
 
+    def test_success_three_column_shell_shares_dev_ui_materials(self) -> None:
+        from app.pages.dev_ui_page import DevUiPage
+        from PySide6.QtWidgets import QStackedWidget
+
+        page = DevUiPage(on_back=lambda: None)
+        try:
+            self.assertEqual(
+                page.preview_success_catalogue.objectName(),
+                "AchievementsView",
+            )
+            self.assertEqual(set(page.preview_success_columns),
+                             {"GuideLeftPanel", "GuideCenterPanel",
+                              "AchievementDetailStack"})
+            self.assertIsInstance(
+                page.preview_success_columns["AchievementDetailStack"],
+                QStackedWidget,
+            )
+            for name, column in page.preview_success_columns.items():
+                self.assertEqual(column.objectName(), name)
+                self.assertEqual(column.styleSheet(), "")
+                self.assertIsNotNone(column.graphicsEffect())
+            self.assertEqual(page.preview_success_catalogue.styleSheet(), "")
+        finally:
+            page.close()
+            page.deleteLater()
+
     def test_world_map_navigation_and_panels_are_real_dev_ui_samples(self) -> None:
         from app.pages.dev_ui_page import DevUiPage
 

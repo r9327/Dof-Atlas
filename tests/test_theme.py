@@ -338,6 +338,25 @@ class SharedThemeTests(unittest.TestCase):
         self.assertIn("color: #99CC33;", block)
         self.assertNotIn("background: #497332;", block)
 
+    def test_success_catalogue_root_reveals_unity_sky_and_shared_panel_glass(self) -> None:
+        style = theme.atlas_stylesheet({
+            "PANEL_2": "#223344", "PANEL": "#112233",
+            "BORDER_SOFT": "#445566", "TEXT_SOFT": "#AABBCC",
+            "RADIUS_MD": "14px",
+        })
+        root = style.split("QWidget#AchievementsView {", 1)[1].split("}", 1)[0]
+        self.assertIn("background: transparent;", root)
+        self.assertNotIn("background: #", root)
+        self.assertIn("#AchievementFilterPanel {", style)
+        columns = style.split(
+            "QWidget#AchievementsView QFrame#GuideLeftPanel,\n", 1
+        )[1].split("}", 1)[0]
+        self.assertIn("QStackedWidget#AchievementDetailStack", columns)
+        self.assertIn("rgba(34, 51, 68, 0.82)", columns)
+        self.assertIn("rgba(17, 34, 51, 0.88)", columns)
+        self.assertIn("border: 1px solid #445566;", columns)
+        self.assertIn("border-radius: 14px;", columns)
+
     def test_world_map_menu_and_detail_values_use_shared_material(self) -> None:
         from app.ui.unity_palette import resolve_unity_colors
 

@@ -32,6 +32,7 @@ from PySide6.QtWidgets import (
     QScrollArea,
     QSlider,
     QSpinBox,
+    QStackedWidget,
     QStyledItemDelegate,
     QSplitter,
     QTableWidget,
@@ -619,6 +620,37 @@ class DevUiPage(QWidget):
             ) if item is not None else None
         )
         section.addWidget(self.preview_map_tree)
+
+        # Success catalogue: same real root/column selectors as the live
+        # three-column view, without loading any achievements or providers.
+        self.preview_success_catalogue = QWidget()
+        self.preview_success_catalogue.setObjectName("AchievementsView")
+        self.preview_success_catalogue.setProperty("atlasUnityPage", True)
+        catalogue_layout = QHBoxLayout(self.preview_success_catalogue)
+        catalogue_layout.setContentsMargins(4, 4, 4, 4)
+        catalogue_layout.setSpacing(8)
+        self.preview_success_columns: dict[str, QWidget] = {}
+        for object_name, caption in (
+            ("GuideLeftPanel", "Catégories"),
+            ("GuideCenterPanel", "Succès"),
+            ("AchievementDetailStack", "Détails"),
+        ):
+            if object_name == "AchievementDetailStack":
+                column = QStackedWidget()
+                detail = QWidget()
+                detail_layout = QVBoxLayout(detail)
+                detail_layout.addWidget(QLabel(caption))
+                column.addWidget(detail)
+            else:
+                column = QFrame()
+                column_layout = QVBoxLayout(column)
+                column_layout.addWidget(QLabel(caption))
+            column.setObjectName(object_name)
+            column.setMinimumHeight(84)
+            apply_unity_panel_shadow(column, **UNITY_PANEL_SHADOW)
+            catalogue_layout.addWidget(column, 1)
+            self.preview_success_columns[object_name] = column
+        section.addWidget(self.preview_success_catalogue)
 
     def _build_layouts(self, parent: QVBoxLayout) -> None:
         """Existing card QSS inside an elastic two-column grid."""

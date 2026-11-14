@@ -773,3 +773,11 @@ La capture Windows `Personnage` (profil temporaire vide) a révélé que `Charac
 - La galerie **Listes et tableaux** montre un `QTreeWidget#MapViewTree` réellement sélectionnable. La galerie **Surfaces** présente `MapToolbar`, `WorldDetailPanel`, `WorldDetailValue` et `MapDetailValue` ; ombre commune uniquement sur les panneaux statiques.
 - Toutes ces identités sont ajoutées aux familles existantes `UNITY_UI_FAMILY_INDEX`, `UI_FAMILY_QSS_SELECTORS` et aux états `UI_INTERACTION_QSS_SELECTORS` ; aucun nouveau thème, instance métier, donnée de Carte ni animation.
 - Tests de contrat dans `tests/test_dev_ui_page.py` et `tests/test_ui_universal_contract.py`. **NOT_RUN** : la phase d'audit/CI est explicitement différée jusqu'à la fin du développement, et aucune validation de captures n'est revendiquée.
+
+
+### Succès — racine étoilée et trois colonnes sur glass commun (14/11/2026)
+
+- Le QSS du catalogue `AchievementsView` repeignait `@BG` sur sa racine, bloquant le fond Unity de la pile shell malgré le drapeau `atlasUnityPage`. Cette racine est désormais **transparente dans les deux sélecteurs existants**, sans modifier le layout ni les données de succès.
+- Les colonnes `GuideLeftPanel`, `GuideCenterPanel` et `AchievementDetailStack` utilisent le même dégradé glass, liseré et rayon que les panneaux Dev UI et Guides. Le contenu liste/arbre conserve sa transparence native et les états sélectionnés inchangés. `AchievementFilterPanel` hérite de `GLASS_BUTTON` plutôt qu'un fond opaque.
+- Galerie Dev UI enrichie d'un **vrai trio de panneaux Qt** sous `AchievementsView`, sans chargement d'un catalogue ni de services, avec ombre partagée sur cadres statiques. Index `data_views` enrichi et tests de contrat ajoutés.
+- Aucune campagne CI, capture ou certification déclenchée. Tous les tests ajoutés restent **NOT_RUN** jusqu'à la fin du développement #365.
