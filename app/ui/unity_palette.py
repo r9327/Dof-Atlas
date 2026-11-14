@@ -170,6 +170,16 @@ UNITY_SPACING_PX = {
     "lg": 10, "xl": 14, "2xl": 20, "3xl": 24,
 }
 
+# Rich text headings and Character score keep their existing pixel sizes.
+# Only the token registry owns these typographic measurements.
+UNITY_CONTENT_TYPOGRAPHY_PX = {
+    "quest_h1": 22,
+    "quest_h2": 15,
+    "quest_h3": 13,
+    "character_score_compact": 18,
+    "character_score_regular": 23,
+}
+
 UNITY_TYPOGRAPHY = {
     # Approved local font families, with standard system fallbacks.
     "FONT_FAMILY": '"Lexend", "Segoe UI", Arial',
@@ -178,6 +188,11 @@ UNITY_TYPOGRAPHY = {
     "FONT_TITLE": "18px",
     "FONT_SECTION": "14px",
     "FONT_BADGE": "10px",
+    "FONT_CONTENT_H1": f'{UNITY_CONTENT_TYPOGRAPHY_PX["quest_h1"]}px',
+    "FONT_CONTENT_H2": f'{UNITY_CONTENT_TYPOGRAPHY_PX["quest_h2"]}px',
+    "FONT_CONTENT_H3": f'{UNITY_CONTENT_TYPOGRAPHY_PX["quest_h3"]}px',
+    "FONT_CHARACTER_SCORE_COMPACT": f'{UNITY_CONTENT_TYPOGRAPHY_PX["character_score_compact"]}px',
+    "FONT_CHARACTER_SCORE_REGULAR": f'{UNITY_CONTENT_TYPOGRAPHY_PX["character_score_regular"]}px',
 }
 
 UNITY_SIZES_PX = {
@@ -285,7 +300,7 @@ UNITY_UI_FAMILY_INDEX = {
     },
     "metrics": {
         "title": "Tailles · typographie · espacements",
-        "components": ("UNITY_SIZES_PX", "UNITY_ORGANIZER_METRICS_PX", "UNITY_SPACING_PX", "UNITY_TYPOGRAPHY", "SIZES", "SPACING", "TYPOGRAPHY", "UNITY_RADII"),
+        "components": ("UNITY_SIZES_PX", "UNITY_ORGANIZER_METRICS_PX", "UNITY_CONTENT_TYPOGRAPHY_PX", "UNITY_SPACING_PX", "UNITY_TYPOGRAPHY", "SIZES", "SPACING", "TYPOGRAPHY", "UNITY_RADII"),
         "style_owner": "app/ui/unity_palette.py + app/ui/theme.py",
         "scope": "shared",
     },

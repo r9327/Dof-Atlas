@@ -95,24 +95,46 @@ UI_CONSUMER_INDEX = {
         "adapter": "qt",
     },
     "Quêtes": {
-        "paths": ("app/pages/_quests_page_impl.py",), "adapter": "qt",
+        "paths": (
+            "app/pages/_quests_page_impl.py",
+            "app/pages/quests_page.py",
+            "app/pages/lazy_quests_page.py",
+        ), "adapter": "qt",
     },
     "Succès": {
-        "paths": ("app/modules/encyclopedia/views/achievements_view.py",),
+        "paths": (
+            "app/modules/encyclopedia/views/achievements_view.py",
+            "app/modules/encyclopedia/views/deferred_achievement_guides_view.py",
+        ),
         "adapter": "qt",
     },
     "Guides": {
         "paths": (
             "app/modules/encyclopedia/views/guides_view.py",
+            "app/modules/encyclopedia/views/guide_catalog_view.py",
+            "app/modules/encyclopedia/views/guide_featured_home.py",
+            "app/modules/encyclopedia/views/guide_continuous_route_panel.py",
+            "app/modules/encyclopedia/views/manual_route_guides_view.py",
+            "app/modules/encyclopedia/views/guide_ultime_generated_view.py",
+            "app/modules/encyclopedia/views/guide_ultime_manual_view.py",
+            "app/modules/encyclopedia/views/guide_ultime_universal_view.py",
+            "app/modules/encyclopedia/views/guide_ultime_walkthrough_card.py",
             "app/modules/encyclopedia/views/shared_manual_guide_view.py",
         ), "adapter": "qt",
     },
     "Bestiaire": {
-        "paths": ("app/modules/encyclopedia/views/encyclopedia_page.py",),
+        "paths": (
+            "app/modules/encyclopedia/views/encyclopedia_page.py",
+            "app/modules/encyclopedia/views/memory_bound_encyclopedia_page.py",
+        ),
         "adapter": "qt",
     },
     "Outils": {
-        "paths": ("app/pages/craft_page.py", "app/ui/world_scan_panel.py"),
+        "paths": (
+            "app/pages/craft_page.py",
+            "app/ui/world_scan_panel.py",
+            "app/ui/map_canvas_widget.py",
+        ),
         "adapter": "qt",
     },
     "Stuffs": {
@@ -120,7 +142,11 @@ UI_CONSUMER_INDEX = {
     },
     "Organizer": {
         "paths": (
+            "app/pages/organizer_page.py",
             "app/pages/organizer/organizer_ui.py",
+            "app/pages/organizer/glass_material.py",
+            "app/pages/organizer/radial_overlay.py",
+            "app/pages/organizer/radial_selection.py",
             "app/ui/organizer_style.py",
         ), "adapter": "qt_scoped",
     },

@@ -4207,11 +4207,11 @@ def solution_text_document(blocks: tuple[DisplaySolutionBlock, ...]) -> QLabel:
         linked = linkify_travel_text(content)
         if block.block_type == "heading":
             parts.append(
-                f'<p style="font-size:13px;font-weight:700;color:#eee7fb;margin:10px 0 4px 0;">'
+                f'<p style="font-size:@FONT_CONTENT_H3;font-weight:700;color:@TEXT_SOFT;margin:10px 0 4px 0;">'
                 f'{linked.rstrip(":")}</p>'
             )
         elif block.block_type == "combat":
-            parts.append(f'<p style="color:#e7bf63;margin:6px 0;"><b>Combat :</b> {linked}</p>')
+            parts.append(f'<p style="color:@YELLOW;margin:6px 0;"><b>Combat :</b> {linked}</p>')
         else:
             parts.append(f'<p style="margin:3px 0;line-height:1.35;">{linked}</p>')
     label = QLabel(render_theme_template("".join(parts)))

@@ -7,7 +7,8 @@ from pathlib import Path
 
 from app.ui.unity_palette import (
     UNITY_COLOR_ALIAS_ROLES, UNITY_ICON_NAMES, UNITY_MAIN_ROLES,
-    UNITY_ORGANIZER_METRICS_PX, UNITY_PAINTED_UI_ROLES,
+    UNITY_CONTENT_TYPOGRAPHY_PX, UNITY_ORGANIZER_METRICS_PX,
+    UNITY_PAINTED_UI_ROLES,
     UNITY_PALETTE, UNITY_SIZES_PX, UNITY_SPACING_PX, UNITY_TYPOGRAPHY,
     UNITY_UI_USAGE,
     launcher_colors, resolve_unity_colors, unity_painted_ui_color,
@@ -151,6 +152,40 @@ class UnityPaletteTests(unittest.TestCase):
                 source = (root / relative).read_text(encoding="utf-8")
                 self.assertNotIn('QColor("#', source)
                 self.assertNotIn("QColor('#", source)
+
+    def test_rich_text_and_character_fonts_share_unity_metrics(self) -> None:
+        self.assertEqual(UNITY_CONTENT_TYPOGRAPHY_PX, {
+            "quest_h1": 22,
+            "quest_h2": 15,
+            "quest_h3": 13,
+            "character_score_compact": 18,
+            "character_score_regular": 23,
+        })
+        from app.ui.unity_palette import UNITY_TYPOGRAPHY
+        self.assertEqual(
+            UNITY_TYPOGRAPHY["FONT_CONTENT_H3"],
+            f'{UNITY_CONTENT_TYPOGRAPHY_PX["quest_h3"]}px',
+        )
+        root = Path(__file__).resolve().parents[1]
+        sources = {
+            "app/pages/_quests_page_impl.py": (
+                "@FONT_BODY", "@FONT_CONTENT_H1",
+                "@FONT_CONTENT_H2", "@FONT_CONTENT_H3",
+            ),
+            "app/modules/encyclopedia/views/guides_view.py": (
+                "@FONT_CONTENT_H3", "color:@TEXT_SOFT", "color:@YELLOW",
+            ),
+            "app/pages/character_page.py": (
+                "UNITY_CONTENT_TYPOGRAPHY_PX[role]",
+            ),
+        }
+        for relative, required in sources.items():
+            with self.subTest(file=relative):
+                content = (root / relative).read_text(encoding="utf-8")
+                for expected in required:
+                    self.assertIn(expected, content)
+                self.assertNotIn("color:#eee7fb", content)
+                self.assertNotIn("color:#e7bf63", content)
 
     def test_color_module_does_not_import_qt_or_game_runtime(self) -> None:
         source = (Path(__file__).resolve().parents[1] / "app/ui/unity_palette.py").read_text(encoding="utf-8")

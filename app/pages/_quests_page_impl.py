@@ -1148,12 +1148,12 @@ body {{
   font-family: @FONT_FAMILY;
   background: @PANEL;
   color: @TEXT;
-  font-size: 12px;
+  font-size: @FONT_BODY;
   margin: 0;
 }}
-h1 {{ font-size: 22px; margin: 0 0 6px 0; }}
-h2 {{ font-size: 15px; margin: 18px 0 6px 0; color: @TEXT; }}
-h3 {{ font-size: 13px; margin: 12px 0 4px 0; color: @TEXT_SOFT; }}
+h1 {{ font-size: @FONT_CONTENT_H1; margin: 0 0 6px 0; }}
+h2 {{ font-size: @FONT_CONTENT_H2; margin: 18px 0 6px 0; color: @TEXT; }}
+h3 {{ font-size: @FONT_CONTENT_H3; margin: 12px 0 4px 0; color: @TEXT_SOFT; }}
 p {{ line-height: 1.35; margin: 0; padding: 0; }}
 ul {{ margin: 0 0 0 14px; padding: 0; }}
 li {{ line-height: 1.35; margin: 0; padding: 0; }}

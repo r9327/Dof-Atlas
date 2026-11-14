@@ -19,6 +19,7 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 
+from app.ui.unity_palette import UNITY_CONTENT_TYPOGRAPHY_PX
 from app.pages._character_page_impl import (
     CHARACTER_STAT_ROWS,
     EQUIPMENT_SLOTS,
@@ -87,7 +88,8 @@ class CharacterPage(_CharacterPage):
         """Apply score typography while leaving colors to the shared theme."""
 
         font = label.font()
-        font.setPixelSize(18 if compact else 23)
+        role = "character_score_compact" if compact else "character_score_regular"
+        font.setPixelSize(UNITY_CONTENT_TYPOGRAPHY_PX[role])
         font.setBold(True)
         label.setFont(font)
 

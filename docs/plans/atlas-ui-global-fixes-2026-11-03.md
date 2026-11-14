@@ -171,6 +171,27 @@ La validation d'un index ne constitue pas une capture ni une
 certification de tous les écrans. Windows/Doctor au SHA exact restent
 nécessaires avant tout verdict global.
 
+### Complément — sous-vues et typographie de contenu Unity
+
+Le registre des douze consommateurs couvre désormais aussi leurs
+**sous-vues réelles** : catalogue et parcours Guides, Guides généré et
+manuel, Quêtes lazy, Succès différés, couches et overlay Organizer,
+Bestiaire à chargement paresseux, Carte/Craft. Ce registre reste un
+inventaire à auditer, pas une preuve de chaque clic.
+
+Le RichText Quêtes/Guides ne doit plus échapper aux tokens Unity :
+ses couleurs `@TEXT_SOFT` et `@YELLOW`, ainsi que
+`@FONT_BODY` et `@FONT_CONTENT_H1/H2/H3`, sont dérivés de la
+typographie globale ; les tailles visuelles 12, 22, 15 et 13 px sont
+conservées. Les compteurs Personnage conservent 18/23 px mais
+lisent `UNITY_CONTENT_TYPOGRAPHY_PX`. La galerie Dev UI récupère
+automatiquement ces rôles dans la catégorie Typographie.
+
+Tests ciblés : `tests/test_unity_palette.py`,
+`tests/test_guide_style_single_source.py`,
+`tests/test_dev_ui_page.py`. Les images, actions, parcours, contenus
+de quête et dimensions métier restent inchangés.
+
 ## Dépendances / responsabilités
 
 | Branche / PR | Responsabilité | Règle pour cette PR |
