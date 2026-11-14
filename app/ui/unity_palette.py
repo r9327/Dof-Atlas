@@ -153,6 +153,10 @@ UNITY_PAINTED_UI_ROLES = {
     "organizer.action": "TEXT_SOFT",
     "organizer.action_fill": "TEXT_SOFT",
     "organizer.shadow": "BG",
+    # World Map placeholder and planet glyph use the same Unity chrome roles.
+    "world_scan.placeholder": "PANEL",
+    "world_scan.planet_outline": "TEXT",
+    "world_scan.planet_fill": "GREEN_DARK",
 }
 
 
