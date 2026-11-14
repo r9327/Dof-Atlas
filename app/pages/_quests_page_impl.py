@@ -642,8 +642,7 @@ class QuestsPage(QWidget):
             if widget is not None:
                 widget.setParent(None)
                 widget.deleteLater()
-        home = AtlasButton("Quêtes")
-        home.setObjectName("GuideBreadcrumbButton")
+        home = AtlasButton("Quêtes", variant="guide_breadcrumb")
         home.clicked.connect(lambda _checked=False: self.hierarchy_tree.setFocus())
         self.breadcrumb_layout.addWidget(home)
         if self.selected_quest_id is None:
@@ -655,8 +654,7 @@ class QuestsPage(QWidget):
             self.breadcrumb_layout.addStretch(1)
             return
         self.add_breadcrumb_separator()
-        category_button = AtlasButton(path.category.name)
-        category_button.setObjectName("GuideBreadcrumbButton")
+        category_button = AtlasButton(path.category.name, variant="guide_breadcrumb")
         category_button.setMaximumWidth(180)
         category_button.setToolTip(path.category.name)
         category_button.clicked.connect(
@@ -664,8 +662,7 @@ class QuestsPage(QWidget):
         )
         self.breadcrumb_layout.addWidget(category_button)
         self.add_breadcrumb_separator()
-        series_button = AtlasButton(path.series.name)
-        series_button.setObjectName("GuideBreadcrumbButton")
+        series_button = AtlasButton(path.series.name, variant="guide_breadcrumb")
         series_button.setMaximumWidth(280)
         series_button.setToolTip(path.series.name)
         series_button.clicked.connect(
