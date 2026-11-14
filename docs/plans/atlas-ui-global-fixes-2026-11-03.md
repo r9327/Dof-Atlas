@@ -635,3 +635,34 @@ principal**, sans tableaux imbriqués dissimulant des entrées.
 Le test Qt contrôle cette contrainte. Les nuances techniques de palette
 restent volontairement derrière leur commande de détail pour préserver
 la lisibilité ; les composants et familles restent tous indexés.
+
+### Ajustements de cohérence UI Dev — validation visuelle du 14 novembre
+
+Retour sur la capture Qt Windows du HEAD 235087d2 : menu latéral
+opaque presque noir, sélection verte surdimensionnée (38 px), relief
+inégal, fil d'Ariane sous la ligne de flottaison de la capture. Le code
+n'était donc pas visuellement approuvé malgré l'inventaire 22/22.
+
+Corrections réutilisant les propriétaires de style existants :
+- `#sidebar/#SideNav`, `#card`, `QGroupBox` et
+  `#GuideBreadcrumb` héritent du même dégradé PANEL_2 → PANEL,
+  de la bordure/du rayon Unity et de la même glint optique 16 %
+  (`UNITY_GLASS_INTENSITY`, pas d'autre palette).
+- Navigation latérale : 24 px compacts, fond bleu au repos,
+  état actif bleu légèrement éclairci + fin soulignement vert comme
+  les onglets, pas de bloc vert plein et aucun changement de taille
+  entre normal/survol/sélectionné.
+- Le contenu du menu de démo est explicitement transparent ;
+  le bouton menu utilise le texte « Menu » plutôt qu'un pictogramme
+  Unicode absent de la fonte Windows.
+- Le fil d'Ariane réel est désormais placé **au-dessus du titre**
+  d'UI Dev, sous la navigation globale, avec retour Paramètres actif.
+  Sa démonstration détaillée remonte également avant le menu latéral.
+- Le relief de démonstration est appliqué par le helper Qt existant,
+  avec les mêmes mesures `UNITY_PANEL_SHADOW` sur les cadres statiques
+  (aucun effet sur chaque ligne défilante ou bouton individuel).
+
+Les tests de contrat, de thème et de Qt contrôlent les styles source,
+la position du fil d'Ariane et les interactions. La capture offscreen
+Windows reste une preuve de rendu, pas un test manuel à taille native.
+Aucun changement de logique métier, de launcher, ni de texture propriétaire.
