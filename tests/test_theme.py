@@ -328,13 +328,21 @@ class SharedThemeTests(unittest.TestCase):
         )[1].split("}", 1)[0]
         self.assertIn("background: transparent;", rule)
         self.assertIn("border: none;", rule)
-        page = CharacterPage()
-        try:
-            self.assertIsNotNone(page.findChild(QWidget, "CharacterEquipmentGrid"))
-            self.assertIsNotNone(page.findChild(QFrame, "CharacterEquipmentCenter"))
-        finally:
-            page.close()
-            page.deleteLater()
+        from pathlib import Path
+        from tempfile import TemporaryDirectory
+        with TemporaryDirectory() as directory:
+            root = Path(directory)
+            page = CharacterPage(
+                profile_path=root / "profiles.json",
+                client_index_path=root / "clients.json",
+                binding_path=root / "bindings.json",
+            )
+            try:
+                self.assertIsNotNone(page.findChild(QWidget, "CharacterEquipmentGrid"))
+                self.assertIsNotNone(page.findChild(QFrame, "CharacterEquipmentCenter"))
+            finally:
+                page.close()
+                page.deleteLater()
 
     def test_dev_ui_shared_surface_style_reaches_real_widgets(self) -> None:
         style = theme.atlas_stylesheet({
