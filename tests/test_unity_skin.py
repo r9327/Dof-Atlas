@@ -22,6 +22,36 @@ from app.ui.unity_skin import (
 
 
 class UnitySkinTests(unittest.TestCase):
+    def test_real_shell_settings_icon_and_craft_container_use_shared_unity_roles(self):
+        from app.pages.craft_page import CraftPage
+        from app.ui.map_canvas_widget import MapCanvasWidget
+
+        app = QApplication.instance() or QApplication([])
+        icon = unity_skin.unity_settings_icon(20)
+        self.assertFalse(icon.isNull())
+        self.assertFalse(icon.pixmap(20, 20).isNull())
+        with self.assertRaises(ValueError):
+            unity_skin.unity_settings_icon(19)
+
+        craft = CraftPage(lambda _text: None, preload=None, defer_runtime=True)
+        map_canvas = MapCanvasWidget()
+        try:
+            self.assertEqual(craft.job_content.objectName(), "AtlasTransparentHost")
+            self.assertEqual(craft.job_content.styleSheet(), "")
+            map_canvas.resize(440, 330)
+            map_canvas.show()
+            app.processEvents()
+            actual = map_canvas.grab().toImage().pixelColor(200, 200)
+            self.assertEqual(
+                actual.name().upper(),
+                QColor(UNITY_PALETTE["PANEL"]).name().upper(),
+            )
+        finally:
+            map_canvas.close()
+            map_canvas.deleteLater()
+            craft.close()
+            craft.deleteLater()
+
     def test_atlas_button_variants_and_navigation_use_one_style_switch(self) -> None:
         from app.ui.components import AtlasButton
 

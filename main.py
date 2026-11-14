@@ -68,7 +68,7 @@ from app.ui.preload_popup import PreloadProgressPopup
 from app.ui.splash_image import clear_connected_dark_background
 from app.ui.theme import atlas_stylesheet
 from app.ui.unity_palette import unity_painted_ui_color
-from app.ui.unity_skin import UnityBackdrop, unity_enabled, register_unity_fonts, sprite_icon_path
+from app.ui.unity_skin import UnityBackdrop, unity_enabled, register_unity_fonts, sprite_icon_path, unity_settings_icon
 from app.windows.unity_windows import enable_dpi_awareness
 from app.windows.single_instance import SingleInstanceGuard
 
@@ -1116,8 +1116,10 @@ class AtlasWindow(QMainWindow):
         self.character_combo.currentIndexChanged.connect(self.on_global_character_changed)
         layout.addWidget(self.character_combo)
 
-        self.settings_button = AtlasButton("⚙")
+        self.settings_button = AtlasButton("")
         self.settings_button.setObjectName("TopNavSettings")
+        self.settings_button.setIcon(unity_settings_icon(20))
+        self.settings_button.setIconSize(QSize(20, 20))
         self.settings_button.setFixedSize(34, 34)
         self.settings_button.setToolTip("Paramètres")
         self.settings_button.clicked.connect(lambda: self.show_page("Settings"))

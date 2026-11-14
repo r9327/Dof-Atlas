@@ -779,6 +779,13 @@ QSplitter#AchievementCatalogSplitter::handle {
     border-radius: @RADIUS_MD;
 }
 
+/* Reusable nested content role: panels keep their own glass material.
+   Never let a plain QWidget hide it with the application root background. */
+QWidget#AtlasTransparentHost {
+    background: transparent;
+    border: none;
+}
+
 #DialogToolbar {
     background: transparent;
     border: none;

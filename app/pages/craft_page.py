@@ -632,6 +632,9 @@ class CraftPage(QWidget):
         self.job_actions_layout.setSpacing(4)
         jobs_root.addLayout(self.job_actions_layout)
         self.job_content = QWidget()
+        # Nested panel content is transparent: QWidget's default QSS fill
+        # otherwise paints a near-black rectangle over the Unity glass card.
+        self.job_content.setObjectName("AtlasTransparentHost")
         self.job_grid = QGridLayout(self.job_content)
         self.job_grid.setContentsMargins(0, 0, 0, 0)
         self.job_grid.setSpacing(4)

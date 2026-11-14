@@ -1,5 +1,5 @@
 name: Atlas UI / Global Unity Windows Capture
-# Final exact-SHA UI regression: global blue selection, QSS role overrides, Organizer, Tk Launcher, real Qt gallery.
+# Final exact-SHA UI regression: real AtlasWindow module captures, transparent panel content, Unity map placeholder and painted Settings icon.
 
 on:
   pull_request:

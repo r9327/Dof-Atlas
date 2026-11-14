@@ -697,3 +697,8 @@ Application effective de l'inventaire 22 familles / 39 rubriques vers les consom
 Cette migration du code ne constitue pas une validation écran-par-écran.
 Les animations non validées, certains pictogrammes Unity et le fond étoilé
 non installé sur la machine de capture restent hors de ce lot.
+
+
+### Vérification écrans réellement montés dans AtlasWindow (14/11, lot PR #365)
+
+Capture Windows Qt offscreen au commit `d452b0dd201d69a3a41fc54aa57c93adb8671af1`, par `tests/capture_app_shell_ui.py`, sans données joueur ni client DOFUS. Six surfaces réellement enregistrées : Accueil, Paramètres, Almanax, Craft, Stuffs, Carte. Encyclopédie : **ERROR**, manque la source locale `data/cache/dofus_maps/raw/doduda_cli/quest_categories.json` sur le runner ; aucun PASS de rendu Encyclopédie n’est déclaré. Les cartes Craft / Scan Monde apparaissent presque noires en état différé : ce lot supprime le fond opaque du conteneur Craft et indexe la couleur vide du Canvas sur la palette Unity. Le bouton Paramètres utilisait une roue dentée Unicode qui apparaissait comme carré coloré ; remplacement par un pictogramme Qt neutre relié à la palette unique. Le fond étoilé reste non installé sur CI : l’image nettoyée `background_selection_clean.png` est personnelle et exclue des releases faute de droits confirmés. La capture offscreen valide un rendu réel de widget, pas les données en jeu, hooks, navigation ou interactivité Windows native.

@@ -5,11 +5,12 @@ Game-extracted image and font files stay outside the public Windows release.
 from __future__ import annotations
 
 import os
+from math import cos, pi, sin
 from collections.abc import Mapping
 from functools import lru_cache
 from pathlib import Path
 
-from PySide6.QtCore import QRectF, Qt
+from PySide6.QtCore import QPointF, QRectF, Qt
 from PySide6.QtGui import QColor, QFontDatabase, QIcon, QImage, QLinearGradient, QPainter, QPen, QPixmap
 from PySide6.QtWidgets import QGraphicsDropShadowEffect, QWidget
 
@@ -185,6 +186,35 @@ def unity_ui_icon(name: str, size: int = 24) -> QIcon:
         painter.drawArc(QRectF(8, 3, 8, 10), 0, 180 * 16)
     painter.end()
     return QIcon(pix)
+
+@lru_cache(maxsize=4)
+def unity_settings_icon(size: int = 20) -> QIcon:
+    """Draw the shared neutral Settings glyph, never a Unicode emoji tile.
+
+    Windows' missing glyph used to render a bright yellow square in the
+    shell. This no-asset fallback uses only the indexed Unity text color.
+    """
+    if size not in (16, 20, 24, 32):
+        raise ValueError(f"Unsupported Settings icon size: {size}")
+    picture = QPixmap(size, size)
+    picture.fill(Qt.transparent)
+    painter = QPainter(picture)
+    painter.setRenderHint(QPainter.Antialiasing)
+    painter.scale(size / 24.0, size / 24.0)
+    painter.setPen(QPen(QColor(UNITY_PALETTE["TEXT_SOFT"]), 1.8,
+                        Qt.SolidLine, Qt.RoundCap, Qt.RoundJoin))
+    painter.setBrush(Qt.NoBrush)
+    for index in range(8):
+        angle = index * pi / 4
+        painter.drawLine(
+            QPointF(12 + 7.5 * cos(angle), 12 + 7.5 * sin(angle)),
+            QPointF(12 + 10 * cos(angle), 12 + 10 * sin(angle)),
+        )
+    painter.drawEllipse(QRectF(5.5, 5.5, 13, 13))
+    painter.drawEllipse(QRectF(10, 10, 4, 4))
+    painter.end()
+    return QIcon(picture)
+
 
 def register_unity_fonts() -> tuple[str, ...]:
     """Register local fonts only after QApplication exists; never package them."""
