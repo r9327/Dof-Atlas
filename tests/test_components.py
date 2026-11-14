@@ -15,6 +15,7 @@ from app.ui.components import (
     AtlasDialog,
     AtlasPageTitle,
     AtlasPanelToggle,
+    AtlasStatusBadge,
     BUTTON_OBJECT_NAMES,
 )
 from app.ui.theme import atlas_stylesheet
@@ -79,6 +80,24 @@ class SharedUiComponentsTests(unittest.TestCase):
             self.assertEqual(events, [True, False])
             self.assertIn("Masquer", toggle.accessibleName())
             self.assertEqual(toggle.styleSheet(), "")
+        finally:
+            root.close()
+            root.deleteLater()
+
+    def test_status_badge_is_passive_and_uses_shared_state(self) -> None:
+        root = QWidget()
+        root.setStyleSheet(atlas_stylesheet())
+        badge = AtlasStatusBadge("En travaux", state="blocked", parent=root)
+        try:
+            self.assertEqual(badge.objectName(), "StatusBadge")
+            self.assertEqual(badge.property("state"), "blocked")
+            self.assertEqual(badge.cursor().shape(), Qt.ArrowCursor)
+            self.assertEqual(badge.styleSheet(), "")
+            badge.set_state("done")
+            self.assertEqual(badge.property("state"), "done")
+            badge.set_state("danger")
+            self.assertEqual(badge.property("state"), "danger")
+            self.assertIn("Statut En travaux", badge.accessibleName())
         finally:
             root.close()
             root.deleteLater()
