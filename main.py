@@ -1626,16 +1626,21 @@ class AtlasWindow(QMainWindow):
 
         target_index = labels.index(label)
         tab_bar = page.tabs.tabBar()
+        allowed_tabs = (
+            guide_tabs if label in guide_tabs
+            else bestiary_tabs if label in bestiary_tabs
+            else set(labels)
+        )
+
+        def restore_tab_group_visibility() -> None:
+            # Reuse one visibility rule before and after lazy tab hydration.
+            # Qt may make a hidden sibling visible during removeTab/insertTab.
+            for index, tab_name in enumerate(page.tab_labels()):
+                tab_bar.setTabVisible(index, tab_name in allowed_tabs)
 
         was_blocked = page.tabs.blockSignals(True)
         try:
-            for index, tab_name in enumerate(labels):
-                if label in guide_tabs:
-                    tab_bar.setTabVisible(index, tab_name in guide_tabs)
-                elif label in bestiary_tabs:
-                    tab_bar.setTabVisible(index, tab_name in bestiary_tabs)
-                else:
-                    tab_bar.setTabVisible(index, True)
+            restore_tab_group_visibility()
             page.tabs.setCurrentIndex(target_index)
         finally:
             page.tabs.blockSignals(was_blocked)
@@ -1646,12 +1651,15 @@ class AtlasWindow(QMainWindow):
         refreshed_labels = page.tab_labels()
         if label in refreshed_labels:
             final_index = refreshed_labels.index(label)
-            if page.tabs.currentIndex() != final_index:
-                was_blocked = page.tabs.blockSignals(True)
-                try:
+            was_blocked = page.tabs.blockSignals(True)
+            try:
+                # The view may have replaced its selected lazy tab above;
+                # enforce the group once more on the *final* tab bar.
+                restore_tab_group_visibility()
+                if page.tabs.currentIndex() != final_index:
                     page.tabs.setCurrentIndex(final_index)
-                finally:
-                    page.tabs.blockSignals(was_blocked)
+            finally:
+                page.tabs.blockSignals(was_blocked)
 
         active_group = self.page_nav_group.get("Quetes", "")
         self.refresh_nav_selection(active_group)

@@ -720,3 +720,11 @@ La capture Windows `Personnage` (profil temporaire vide) a révélé que `Charac
 - Fond des boutons de navigation (normal/actif/survol/pressé/désactivé) raccordé aux **mêmes** tokens `GLASS_BUTTON` et `GLASS_HOVER` utilisés par le thème Unity global, à intensité canonique 16 %. La ligne verte de sélection, la hauteur compacte et les états existants restent inchangés.
 - La démonstration Dev UI et les consommateurs `#navItem` / `#ActiveNavButton` / `#TopmostButtonActive` héritent de la même QSS. Aucun nouveau composant, QSS local ou changement de callback.
 - Test de non-régression ajouté dans `tests/test_ui_universal_contract.py`. **Exécution Qt/Windows, Doctor et certification globale : NOT_RUN** pour ce lot ; le statut Draft et les 43 exigences PENDING restent inchangés.
+
+
+### Correctif de navigation Bestiaire ↔ Encyclopédie (14/11/2026)
+
+- Capture Windows au SHA `a254824ad` : 78/79 assertions UI ciblées réussies ; le test d'ancienne couleur opaque de la navigation latérale est obsolète après raccordement au glass commun. La capture shell signale aussi la réapparition de **QUÊTES** lors de l'ouverture du Bestiaire : ces deux échecs sont réels au SHA examiné.
+- `tests/test_theme.py` attend désormais la formule du gradient partagé et ses surcharges sémantiques, pas la couleur pleine antérieure.
+- `AtlasWindow.finish_pending_encyclopedia_tab()` réapplique le groupe d'onglets **après** l'hydratation différée de la vue, qui peut réinsérer le widget et révéler un onglet auparavant masqué. Le filtrage groupe reste centralisé dans un seul bloc, sans nouveau thème ni donnée métier.
+- La capture réelle `tests/capture_app_shell_ui.py` vérifie aussi le retour Bestiaire → Quêtes. **CI au nouveau SHA en attente ; aucun résultat PASS nouveau ni certification Windows/DOFUS Unity revendiqué.**

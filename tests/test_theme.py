@@ -267,7 +267,15 @@ class SharedThemeTests(unittest.TestCase):
         self.assertIn("max-height: 24px;", normal)
         self.assertIn("border-bottom: 2px solid #99CC33;", active)
         self.assertIn("color: #99CC33;", active)
-        self.assertIn("background: #334455;", active)
+        expected_active_glass = theme.unity_glass_gradient(
+            "PANEL_HOVER", "PANEL_ACTIVE",
+            top_alpha=199, bottom_alpha=206,
+            palette=theme.resolve_unity_colors({
+                "PANEL": "#112233", "PANEL_2": "#223344",
+                "PANEL_ACTIVE": "#334455", "GREEN": "#99CC33",
+            }),
+        )
+        self.assertIn(f"background: {expected_active_glass};", active)
         self.assertNotIn("border-left: 4px", active)
         self.assertNotIn("background: #497332;", active)
 

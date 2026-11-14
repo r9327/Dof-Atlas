@@ -144,6 +144,27 @@ def capture(output: Path) -> dict[str, object]:
                             widget=type(page).__name__,
                             size=[shot.width(), shot.height()],
                         )
+                        if name == "Bestiaire":
+                            # Return through the *real* shell to make sure
+                            # neither navigation direction leaks the other tab group.
+                            window.open_encyclopedia_tab(QUESTS_TAB)
+                            window.finish_pending_encyclopedia_tab()
+                            app.processEvents()
+                            visible = {
+                                page.tabs.tabText(index)
+                                for index in range(page.tabs.count())
+                                if page.tabs.tabBar().isTabVisible(index)
+                            }
+                            if (
+                                page.current_tab_label() != QUESTS_TAB
+                                or DUNGEONS_TAB in visible
+                                or GUIDES_TAB not in visible
+                                or ACHIEVEMENTS_TAB not in visible
+                            ):
+                                raise RuntimeError(
+                                    "Return from Bestiary leaked or lost Encyclopedia tabs: "
+                                    + repr(sorted(visible))
+                                )
                     except Exception as error:
                         # Do not turn an unrendered page into a false PASS.
                         record.update(status="ERROR", error=f"{type(error).__name__}: {error}")
