@@ -107,7 +107,7 @@ tests de présence des états hover/pressed/selected/disabled/focus.
 
 Les règles de présentation auparavant *locales à Organizer*
 (`glass_qss` dans `build_organizer_ui`) ont été déplacées **sans changement
-des surfaces** dans `app/ui/styles/organizer.py`, annexées à
+des surfaces** dans `app/ui/organizer_style.py`, annexées à
 `app/ui/theme.py` puis rendues par la même fonction de tokens que les
 autres modules. Le dégradé glass et son intensité sont définis de façon
 **Qt-free** dans `app/ui/unity_palette.py`, et

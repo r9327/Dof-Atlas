@@ -222,7 +222,7 @@ class DevUiPageTests(unittest.TestCase):
             )
             self.assertIn("Organizer", page.preview_scope.item(8, 0).text())
             self.assertIn(
-                "app/ui/styles/organizer.py",
+                "app/ui/organizer_style.py",
                 page.preview_scope.item(8, 1).toolTip(),
             )
             from app.ui.unity_palette import UNITY_ICON_NAMES, UNITY_ICON_PENDING

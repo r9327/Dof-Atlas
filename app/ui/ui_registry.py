@@ -108,7 +108,7 @@ UI_CONSUMER_INDEX = {
     "Organizer": {
         "paths": (
             "app/pages/organizer/organizer_ui.py",
-            "app/ui/styles/organizer.py",
+            "app/ui/organizer_style.py",
         ), "adapter": "qt_scoped",
     },
     "Almanax": {

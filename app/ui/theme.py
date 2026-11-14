@@ -7,7 +7,7 @@ from app.ui.unity_palette import (
     UNITY_COLOR_ALIAS_ROLES, UNITY_RADII, UNITY_SIZES_PX,
     resolve_unity_colors, unity_glass_gradient,
 )
-from app.ui.styles.organizer import ORGANIZER_STYLE_TEMPLATE
+from app.ui.organizer_style import ORGANIZER_STYLE_TEMPLATE
 from app.ui.unity_skin import UNITY_PALETTE, unity_skin_stylesheet
 
 

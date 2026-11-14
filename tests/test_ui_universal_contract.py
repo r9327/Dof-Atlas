@@ -19,7 +19,7 @@ from app.ui.unity_palette import (
     UNITY_UI_FAMILY_INDEX, UNITY_UI_CONSUMERS,
     UNITY_GLASS_INTENSITY, unity_glass_gradient,
 )
-from app.ui.styles.organizer import ORGANIZER_STYLE_TEMPLATE
+from app.ui.organizer_style import ORGANIZER_STYLE_TEMPLATE
 
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
