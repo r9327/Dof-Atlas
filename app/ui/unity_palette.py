@@ -256,7 +256,7 @@ UNITY_CHIP_TONES = ("success", "danger", "warning", "info", "neutral")
 UNITY_UI_FAMILY_INDEX = {
     "buttons": {
         "title": "Boutons · variantes et états",
-        "components": ("AtlasButton", "PrimaryActionButton", "SecondaryButton", "DangerButton", "TopNavButton", "InlineActionButton", "PopupLinkButton"),
+        "components": ("AtlasButton", "PrimaryActionButton", "SecondaryButton", "ActiveButton", "DangerButton", "TopNavButton", "InlineActionButton", "PopupLinkButton"),
         "style_owner": "app/ui/components.py + app/ui/theme.py",
         "scope": "shared",
     },
