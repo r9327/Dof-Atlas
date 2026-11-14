@@ -318,12 +318,12 @@ class DevUiPageTests(unittest.TestCase):
             self.assertIn("QScrollBar:vertical", css)
             self.assertIn("QScrollBar::add-page:vertical", css)
             self.assertIn("QScrollBar::sub-page:vertical", css)
-            # Only the gallery transparency changes; global panel tokens
-            # and the real shell background source are untouched.
+            # The same palette and list surfaces now apply globally, while
+            # the real shell wallpaper and widget behavior stay unchanged.
             self.assertIn("QGroupBox {", css)
             self.assertIn("QComboBox QAbstractItemView", css)
             self.assertIn("QFrame#GuideUltimeGeneratedView", css)
-            self.assertIn("alternate-background-color: #1B2746", css)
+            self.assertIn("alternate-background-color: rgba(27, 39, 70, 0.95)", css)
             self.assertIn("#card, #OrganizerPanel, #Panel, #CraftPanel, #QuestPanel", css)
             self.assertIn("rgba(217, 234, 242, 0.16)", css)
             self.assertIn("stop:0 rgba(33, 49, 84, 0.82)", css)
