@@ -184,13 +184,14 @@ class EncyclopediaPage(QWidget):
         guide_progress_character_key: str = "",
         launch_travel_callback: Callable[[str, tuple[str, ...]], None] | None = None,
         imported_source_services: Mapping[str, ImportedSourceManualRuntimeService] | None = None,
+        imported_source_factories: Mapping[str, Callable[[], ImportedSourceManualRuntimeService]] | None = None,
         imported_source_authorizer: Callable[[str, dict], bool] | None = None,
         related_data_ready_callback: Callable[[AchievementProvider, GuideProvider], None] | None = None,
         initial_tab: str = DEFAULT_TAB,
     ) -> None:
         # Reject an unapproved imported Guide before any provider/graph I/O.
         # Constructing the ordinary Encyclopedia must remain safe and lazy.
-        if imported_source_services and not callable(imported_source_authorizer):
+        if (imported_source_services or imported_source_factories) and not callable(imported_source_authorizer):
             raise ValueError("Imported Guides require an independent authorizer")
         super().__init__(parent)
         self.setObjectName("EncyclopediaPage")
@@ -236,6 +237,7 @@ class EncyclopediaPage(QWidget):
         # A future certified installer must explicitly inject its services
         # together with a separate authorization witness.
         self._imported_source_services = dict(imported_source_services or {})
+        self._imported_source_factories = dict(imported_source_factories or {})
         self._imported_source_authorizer = imported_source_authorizer
         self._related_data_ready_callback = related_data_ready_callback
         self._lazy_slots: dict[str, QWidget] = {}
@@ -1373,6 +1375,7 @@ class EncyclopediaPage(QWidget):
             navigate_callback=self.navigate_to_entity,
             launch_travel_callback=self._launch_travel_callback,
             imported_source_services=self._imported_source_services,
+            imported_source_factories=self._imported_source_factories,
             imported_source_authorizer=self._imported_source_authorizer,
             character_key=self.current_character_key,
             graph=self._quest_graph,

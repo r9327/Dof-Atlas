@@ -146,3 +146,29 @@ The optimized Guide Ultime/Sylvestre readers are not evicted. This bounds
 retained *Qt reader* instances, not the caller-provided source services: the
 composition owner must still avoid constructing 95 source services at startup.
 No guide is certified or activated by this lifecycle optimization.
+
+## Factories de services vérifiées à la demande (Phase 0)
+
+L'installateur futur peut fournir explicitement à `EncyclopediaPage`
+`imported_source_factories={source_guide_id: factory}`. Chaque fabrique
+est une fonction sans argument qui retourne un `ImportedSourceManualRuntimeService`
+avec exactement le même identifiant canonique. Aucun parcours n'est créé
+pendant l'affichage de l'accueil. Lorsqu'un guide est sélectionné, sa fabrique
+est appelée uniquement pour lui, puis le contrôle indépendant
+`imported_source_authorizer` doit rendre littéralement `True` avant
+l'ouverture. Un refus, une exception ou une identité erronée échoue fermé,
+sans repli sur une autre route. L'Encyclopédie refuse un registre de
+fabriques sans authorizer dès sa construction ; les identifiants et types
+sont contrôlés lorsque le routeur Guides est créé, avant toute fabrique.
+
+Le service construit à la demande est libéré avec son unique lecteur Qt lors
+d'un retour à l'accueil, changement de guide ou retrait d'autorisation.
+Les services explicitement injectés restent la propriété de l'appelant.
+Attention : une closure de fabrique qui capture toutes les routes réelles
+annulerait ce gain mémoire ; le futur fournisseur doit lui-même conserver un
+index de métadonnées léger sans précharger les données des 95 guides.
+
+Ce mécanisme n'effectue aucune découverte des dossiers locaux, ne certifie
+aucun contenu et n'active aucun guide Ganymède réel. La preuve actuelle
+porte uniquement sur des fixtures fictives ; l'autorisation indépendante
+et la recette native Windows/DOFUS restent obligatoires.

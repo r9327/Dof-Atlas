@@ -149,6 +149,59 @@ class ImportedSourceRouterQtTests(unittest.TestCase):
             shell.deleteLater()
             QApplication.processEvents()
 
+    def test_encyclopedia_forwards_lazy_factory_without_home_hydration(self):
+        from app.modules.encyclopedia.views.encyclopedia_page import EncyclopediaPage
+        from app.modules.encyclopedia.constants import DUNGEONS_TAB
+        root = Path(self.tmp.name)
+        factory_calls = []
+
+        def build_source():
+            factory_calls.append("selected")
+            return ImportedSourceManualRuntimeService(
+                self.quest_progress, self.achievement_progress, self.progress,
+                route=_source_route("fictional-shell"),
+            )
+
+        guide_id = "source_guide:fictional-shell"
+        with self.assertRaisesRegex(ValueError, "independent authorizer"):
+            EncyclopediaPage(
+                self.messages.append,
+                imported_source_factories={guide_id: build_source},
+            )
+        self.assertFalse(factory_calls)
+        shell = EncyclopediaPage(
+            self.messages.append,
+            quest_provider=self.quests,
+            achievement_provider=self.achievements,
+            guide_provider=self.provider,
+            progress_path=root / "quest_progress.json",
+            achievement_progress_path=root / "achievements.json",
+            guide_progress_path=self.progress_path,
+            profile_path=root / "profiles.json",
+            client_index_path=root / "clients.json",
+            imported_source_factories={guide_id: build_source},
+            imported_source_authorizer=lambda _id, _route: self.approved,
+            quest_graph=object(),
+            initial_tab=DUNGEONS_TAB,
+        )
+        try:
+            self.assertFalse(factory_calls)
+            self.assertIsNone(shell.guides_view)
+            reader = shell.ensure_full_guides_view()
+            self.assertFalse(factory_calls)
+            self.assertIn(guide_id, reader._imported_source_factories)
+            reader.current_character_key = "character:1"
+            self.approved = True
+            self.assertTrue(reader.select_guide(guide_id))
+            self.assertEqual(factory_calls, ["selected"])
+            reader.show_home()
+            self.assertNotIn(guide_id, reader._loaded_imported_source_services)
+            self.assertFalse(self.progress_path.exists())
+        finally:
+            shell.close()
+            shell.deleteLater()
+            QApplication.processEvents()
+
     def test_missing_registry_and_untrusted_registration_never_select_source(self):
         with self.assertRaisesRegex(ValueError, "independent authorizer"):
             ManualRouteGuidesView(
@@ -236,6 +289,58 @@ class ImportedSourceRouterQtTests(unittest.TestCase):
             key.startswith("source_guide:") for key in self.view._catalog_manual_views
         ))
         self.assertFalse(self.progress_path.exists())
+
+    def test_lazy_source_factory_only_loads_on_select_and_releases_on_home(self):
+        calls = []
+
+        def make_source():
+            calls.append("load")
+            return ImportedSourceManualRuntimeService(
+                self.quest_progress, self.achievement_progress, self.progress,
+                route=_source_route("fictional-lazy"),
+            )
+
+        lazy_key = "source_guide:fictional-lazy"
+        self.view._imported_source_factories[lazy_key] = make_source
+        self.assertEqual(calls, [])
+        self.assertFalse(self.view.select_guide(lazy_key))
+        self.assertEqual(calls, ["load"])
+        self.assertFalse(self.view._loaded_imported_source_services)
+        self.assertFalse(self.progress_path.exists())
+
+        self.approved = True
+        self.assertTrue(self.view.select_guide(lazy_key))
+        self.assertEqual(calls, ["load", "load"])
+        self.assertIsInstance(self.view.stack.currentWidget(), SharedGuideManualView)
+        self.assertTrue(self.view.select_guide(lazy_key))
+        self.assertEqual(calls, ["load", "load"])
+        self.view.show_home()
+        self.assertNotIn(lazy_key, self.view._loaded_imported_source_services)
+        self.assertNotIn(lazy_key, self.view._catalog_manual_views)
+        self.assertFalse(self.progress_path.exists())
+        self.assertTrue(self.view.select_guide(lazy_key))
+        self.assertEqual(calls, ["load", "load", "load"])
+
+    def test_lazy_factory_invalid_service_and_source_id_fail_closed(self):
+        key = "source_guide:fictional-wrong"
+        self.view._imported_source_factories[key] = lambda: self.service
+        self.approved = True
+        self.assertFalse(self.view.select_guide(key))
+        self.assertNotIn(key, self.view._loaded_imported_source_services)
+        self.assertFalse(self.progress_path.exists())
+
+        with self.assertRaisesRegex(ValueError, "independent authorizer"):
+            ManualRouteGuidesView(
+                self.messages.append,
+                imported_source_factories={"source_guide:fictional-lazy": lambda: self.service},
+            )
+        with self.assertRaisesRegex(ValueError, "exactly one runtime owner"):
+            ManualRouteGuidesView(
+                self.messages.append,
+                imported_source_services={self.service.guide_id: self.service},
+                imported_source_factories={self.service.guide_id: lambda: self.service},
+                imported_source_authorizer=lambda *_: True,
+            )
 
     def test_shared_validation_uses_source_id_and_does_not_touch_other_guides(self):
         self.approved = True

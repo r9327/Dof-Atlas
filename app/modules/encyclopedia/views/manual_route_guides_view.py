@@ -32,6 +32,7 @@ class ManualRouteGuidesView(_BaseGuidesView):
         self,
         *args,
         imported_source_services: Mapping[str, ImportedSourceManualRuntimeService] | None = None,
+        imported_source_factories: Mapping[str, Callable[[], ImportedSourceManualRuntimeService]] | None = None,
         imported_source_authorizer: Callable[[str, dict], bool] | None = None,
         **kwargs,
     ) -> None:
@@ -39,18 +40,34 @@ class ManualRouteGuidesView(_BaseGuidesView):
         # file or the old Quest catalogue. Future certified app composition
         # injects only explicit source services and an independent authorizer.
         sources = dict(imported_source_services or {})
-        if sources:
+        factories = dict(imported_source_factories or {})
+        if (sources or factories) and not callable(imported_source_authorizer):
+            raise ValueError("Source Guide activation requires an independent authorizer")
+        if sources.keys() & factories.keys():
+            raise ValueError("A source Guide must have exactly one runtime owner")
+        if sources or factories:
             from app.modules.encyclopedia.services.guide_imported_manual_runtime_service import (
                 ImportedSourceManualRuntimeService,
             )
-        if sources and not callable(imported_source_authorizer):
-            raise ValueError("Source Guide activation requires an independent authorizer")
+            from app.modules.encyclopedia.services.guide_shared_route_contract import (
+                _identifier as canonical_source_identifier,
+            )
+        for guide_id in sources.keys() | factories.keys():
+            if not isinstance(guide_id, str) or not guide_id.startswith("source_guide:"):
+                raise ValueError("Mismatched or non-canonical imported Guide service")
+            canonical_source_identifier(guide_id.removeprefix("source_guide:"), "source guide ID")
         for guide_id, service in sources.items():
-            if (not str(guide_id).startswith("source_guide:")
-                    or not isinstance(service, ImportedSourceManualRuntimeService)
+            if (not isinstance(service, ImportedSourceManualRuntimeService)
                     or service.guide_id != guide_id):
                 raise ValueError("Mismatched or non-canonical imported Guide service")
+        for guide_id, factory in factories.items():
+            if not callable(factory):
+                raise ValueError(f"Source Guide factory must be callable: {guide_id}")
         self._imported_source_services = sources
+        # Factories come only from trusted composition, not discovered from
+        # candidate files. They are called for the selected guide, never at Home.
+        self._imported_source_factories = factories
+        self._loaded_imported_source_services: dict[str, ImportedSourceManualRuntimeService] = {}
         self._imported_source_authorizer = imported_source_authorizer
         if imported_source_authorizer is not None:
             for service in sources.values():
@@ -195,9 +212,35 @@ class ManualRouteGuidesView(_BaseGuidesView):
         self._refresh_catalog_route_home_labels()
         return view
 
+    def _source_service(self, guide_id: str) -> ImportedSourceManualRuntimeService | None:
+        """Resolve only an explicitly registered source, on demand and once."""
+        service = self._imported_source_services.get(guide_id)
+        if service is not None:
+            return service
+        service = self._loaded_imported_source_services.get(guide_id)
+        if service is not None:
+            return service
+        factory = self._imported_source_factories.get(guide_id)
+        if factory is None:
+            return None
+        from app.modules.encyclopedia.services.guide_imported_manual_runtime_service import (
+            ImportedSourceManualRuntimeService,
+        )
+        try:
+            service = factory()
+            if (not isinstance(service, ImportedSourceManualRuntimeService)
+                    or service.guide_id != guide_id):
+                return None
+            service.set_authorization_guard(self._imported_source_authorizer)
+        except Exception:
+            # A bad factory must not fall through to the legacy catalogue.
+            return None
+        self._loaded_imported_source_services[guide_id] = service
+        return service
+
     def _imported_source_authorized(self, guide_id: str) -> bool:
         """Fail closed on absent, revoked or failing independent approval."""
-        service = self._imported_source_services.get(guide_id)
+        service = self._source_service(guide_id)
         return bool(service is not None and service.can_write_progress())
 
     def _release_imported_source_readers(self, *, keep: str | None = None) -> None:
@@ -217,6 +260,11 @@ class ManualRouteGuidesView(_BaseGuidesView):
                 self.stack.setCurrentWidget(self.home_page)
             self.stack.removeWidget(reader)
             reader.deleteLater()
+        # A factory-created service owns the projected route in memory; release
+        # it with the reader. Explicit injected services remain caller-owned.
+        for source_id in tuple(self._loaded_imported_source_services):
+            if source_id != keep:
+                self._loaded_imported_source_services.pop(source_id, None)
 
     def ensure_imported_source_manual_view(self, guide_id: str) -> SharedGuideManualView | None:
         """Open one explicitly authorized route in the sole shared renderer."""
@@ -228,8 +276,8 @@ class ManualRouteGuidesView(_BaseGuidesView):
         existing = self._catalog_manual_views.get(guide_id)
         if existing is not None:
             return existing
-        service = self._imported_source_services[guide_id]
-        if not service.available:
+        service = self._source_service(guide_id)
+        if service is None or not service.available:
             return None
         view = SharedGuideManualView(
             service,
@@ -258,13 +306,17 @@ class ManualRouteGuidesView(_BaseGuidesView):
         guide_id = str(guide_id or "")
         if guide_id.startswith("source_guide:"):
             view = self.ensure_imported_source_manual_view(guide_id)
-            service = self._imported_source_services.get(guide_id)
+            service = self._source_service(guide_id)
             if view is None or service is None or not self._imported_source_authorized(guide_id):
                 if self.current_guide_id == guide_id:
                     self.current_guide_id = None
                     self.state = self.CATALOG
                     self.stack.setCurrentWidget(self.home_page)
                     self._release_imported_source_readers()
+                else:
+                    # A denied factory result must not remain in memory, but
+                    # a different active authorized source remains untouched.
+                    self._loaded_imported_source_services.pop(guide_id, None)
                 self.status_callback(f"Parcours source non certifié ou indisponible : {guide_id}")
                 return False
             self.current_guide_id = guide_id
@@ -329,7 +381,9 @@ class ManualRouteGuidesView(_BaseGuidesView):
             self._release_imported_source_readers()
             self.status_callback("Autorisation du parcours source retirée.")
             return
-        if active not in CATALOG_MANUAL_GUIDE_IDS and active not in self._imported_source_services:
+        if (active not in CATALOG_MANUAL_GUIDE_IDS
+                and active not in self._imported_source_services
+                and active not in self._imported_source_factories):
             super().refresh_external_progress()
             return
 
