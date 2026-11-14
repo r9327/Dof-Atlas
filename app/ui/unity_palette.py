@@ -249,6 +249,43 @@ UNITY_INTERACTION_STATES = (
 )
 UNITY_CHIP_TONES = ("success", "danger", "warning", "info", "neutral")
 
+# The global UI-unification checklist, linked to live Dev UI families.
+# Every planned visual concern has a reachable preview; this list makes no
+# claim that all 12 consumer screens have been migrated or certified.
+UNITY_UI_UNIFICATION_CONTRACT = (
+    ("Boutons et variantes", "buttons"),
+    ("Textes cliquables et actions popup", "buttons"),
+    ("Onglets et sélection", "navigation"),
+    ("Menus contextuels", "navigation"),
+    ("Fil d'Ariane et hiérarchie", "breadcrumbs"),
+    ("Listes, tableaux, arborescences", "data_views"),
+    ("Défilement et scrollbars", "scroll_resize"),
+    ("Resize et séparateurs de panneaux", "scroll_resize"),
+    ("Saisie, focus et placeholders", "fields"),
+    ("Menus déroulants et sélections", "fields"),
+    ("Cases, radios et commutateurs", "fields"),
+    ("Formats numériques, date et heure", "advanced_fields"),
+    ("États normal, survol, actif et désactivé", "statuses"),
+    ("Badges passifs et actions de statut", "statuses"),
+    ("Chargement, progression et succès", "statuses"),
+    ("Notifications et messages d'alerte", "notifications"),
+    ("Titres, textes et légendes", "surfaces"),
+    ("Cartes, ombres et bordures", "surfaces"),
+    ("Tailles, marges et espacements", "metrics"),
+    ("Typographies, rayons et dimensions", "metrics"),
+    ("Panneaux ouverts et repliés", "panels"),
+    ("Effets glass et transparence", "panels"),
+    ("Fond Unity, sprite et dégradé", "backdrop"),
+    ("Préchargement et transitions de lancement", "startup"),
+    ("Guides et panneaux spécialisés", "guides"),
+    ("Icônes Unity d'origine et transparence", "assets"),
+    ("Raccourcis clavier et infobulles", "assets"),
+    ("Animations et transitions candidates", "motion"),
+    ("Écrans et adaptateurs consommateurs", "coverage"),
+    ("Dialogues et fenêtres popup", "dialogs"),
+    ("Palette et dégradés sémantiques", "palette"),
+)
+
 # Index of the EXISTING Dev UI showcase, not a second theme or widget library.
 # Every visual family references the current Qt/theme owner and real samples.
 # "module" and "prototype" deliberately do not claim global adoption.
@@ -264,6 +301,12 @@ UNITY_UI_FAMILY_INDEX = {
         "title": "Onglets · menus et navigation",
         "components": ("QTabWidget", "QTabBar", "QMenu", "AtlasButton"),
         "style_owner": "app/ui/theme.py + app/ui/unity_skin.py",
+        "scope": "shared",
+    },
+    "breadcrumbs": {
+        "title": "Fil d'Ariane · niveaux et navigation",
+        "components": ("GuideBreadcrumb", "GuideBreadcrumbButton", "GuideBreadcrumbSeparator", "GuideBreadcrumbCurrent"),
+        "style_owner": "app/ui/theme.py + app/ui/components.py",
         "scope": "shared",
     },
     "data_views": {
@@ -296,6 +339,12 @@ UNITY_UI_FAMILY_INDEX = {
         "style_owner": "app/ui/components.py + app/ui/theme.py",
         "scope": "shared",
     },
+    "notifications": {
+        "title": "Notifications · messages et alertes",
+        "components": ("AtlasStatusBadge", "StatusBadge", "QLabel", "card"),
+        "style_owner": "app/ui/components.py + app/ui/theme.py",
+        "scope": "prototype",
+    },
     "surfaces": {
         "title": "Surfaces · cartes · typographie",
         "components": ("AtlasPageTitle", "PageTitle", "PanelTitle", "MutedLabel", "card", "Panel", "QuestPanel", "QFrame"),
@@ -312,6 +361,12 @@ UNITY_UI_FAMILY_INDEX = {
         "title": "Panneaux · transparence · réduction",
         "components": ("AtlasPanelToggle", "GuideRightPanelToggle", "card", "QGroupBox"),
         "style_owner": "app/ui/components.py + app/ui/theme.py",
+        "scope": "shared",
+    },
+    "backdrop": {
+        "title": "Fond Unity · texture et dégradé",
+        "components": ("UnityBackdrop", "AtlasUnityBackdrop", "card"),
+        "style_owner": "app/ui/unity_skin.py + app/ui/theme.py",
         "scope": "shared",
     },
     "startup": {
