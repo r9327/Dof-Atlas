@@ -44,7 +44,7 @@ class SharedUiComponentsTests(unittest.TestCase):
             self.assertEqual(calls, ["SecondaryButton"])
 
             for variant in (
-                "primary", "danger", "navigation", "navigation_active",
+                "primary", "danger", "selected", "navigation", "navigation_active",
                 "guide_breadcrumb", "guide_quest_link", "guide_achievement_link",
             ):
                 button.set_variant(variant)
