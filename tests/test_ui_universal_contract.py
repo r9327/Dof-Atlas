@@ -1,6 +1,6 @@
 """Regression gate: Dev UI is the single contract for all Atlas modules.
 
-Checks actual compiled Qt QSS, all 20 indexed families and 12 module owners.
+Checks actual compiled Qt QSS, all 22 indexed families and 12 module owners.
 Only validated widget states are treated as shared; prototypes are excluded.
 """
 from __future__ import annotations
@@ -28,7 +28,7 @@ REPO_ROOT = Path(__file__).resolve().parents[1]
 class UiUniversalContractTests(unittest.TestCase):
     def test_every_gallery_family_and_consumer_is_registered(self):
         validate_ui_index()
-        self.assertEqual(len(UI_FAMILY_QSS_SELECTORS), 20)
+        self.assertEqual(len(UI_FAMILY_QSS_SELECTORS), 22)
         self.assertEqual(len(UI_CONSUMER_INDEX), 12)
         self.assertEqual(tuple(UI_FAMILY_QSS_SELECTORS), tuple(UNITY_UI_FAMILY_INDEX))
         self.assertEqual(tuple(UI_CONSUMER_INDEX), UNITY_UI_CONSUMERS)
