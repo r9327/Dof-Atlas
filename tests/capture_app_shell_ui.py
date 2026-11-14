@@ -18,7 +18,7 @@ os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
 SCENARIOS = (
     ("Home", "accueil", "HomePage", "no-game-preview"),
     ("Settings", "parametres", "QWidget", "no-game-preview"),
-    ("Almanax", "almanax", "QWidget", "not-implemented"),
+    ("Almanax", "almanax", "QWidget", "offline-calendar-no-offering-data"),
     ("Craft", "craft", "CraftPage", "deferred-local-data"),
     ("Equipement", "stuffs", "EquipmentPage", "no-user-equipment"),
     ("Scan Monde", "carte", "WorldScanPanel", "deferred-cartography"),
@@ -29,7 +29,8 @@ SCENARIOS = (
 
 
 def capture(output: Path) -> dict[str, object]:
-    from PySide6.QtWidgets import QApplication
+    from PySide6.QtCore import QDate
+    from PySide6.QtWidgets import QApplication, QCalendarWidget, QLabel
     from app.ui.unity_skin import register_unity_fonts
     from app.quest_catalog import QuestCatalog
     from app.modules.encyclopedia.constants import (
@@ -110,6 +111,27 @@ def capture(output: Path) -> dict[str, object]:
                             window.switch_to_page(name)
                         for _ in range(3):
                             app.processEvents()
+                        if name == "Almanax":
+                            # Real calendar, real date selection, no invented
+                            # offerings: the source is explicitly unavailable.
+                            calendar = page.findChild(
+                                QCalendarWidget, "AlmanaxCalendar"
+                            )
+                            label = page.findChild(QLabel, "AlmanaxSelectedDate")
+                            unavailable = page.findChild(QLabel, "AlmanaxUnavailable")
+                            breadcrumb = page.findChild(QLabel, "GuideBreadcrumbCurrent")
+                            if not calendar or not label or not unavailable or not breadcrumb:
+                                raise RuntimeError("Almanax calendar/breadcrumb missing")
+                            future = QDate.currentDate().addDays(40)
+                            calendar.setSelectedDate(future)
+                            app.processEvents()
+                            if calendar.selectedDate() != future:
+                                raise RuntimeError("Almanax future-day selection failed")
+                            if label.text() != future.toString("dddd d MMMM yyyy"):
+                                raise RuntimeError("Almanax selected date is stale")
+                            if "source locale Almanax" not in unavailable.text():
+                                raise RuntimeError("Almanax claims unverified offering data")
+                            record["fixture"] = "offline calendar, future selected, 0 game records"
                         if name == "Quetes":
                             catalog = page.quest_provider.get_catalog()
                             if catalog.quests or catalog.by_id:

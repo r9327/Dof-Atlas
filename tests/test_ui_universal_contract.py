@@ -26,6 +26,19 @@ REPO_ROOT = Path(__file__).resolve().parents[1]
 
 
 class UiUniversalContractTests(unittest.TestCase):
+    def test_shell_capture_exercises_real_almanax_and_no_fake_tributes(self):
+        from tests.capture_app_shell_ui import SCENARIOS
+        almanax = [row for row in SCENARIOS if row[0] == "Almanax"]
+        self.assertEqual(len(almanax), 1)
+        self.assertEqual(almanax[0][3], "offline-calendar-no-offering-data")
+        source = (REPO_ROOT / "tests/capture_app_shell_ui.py").read_text(
+            encoding="utf-8"
+        )
+        self.assertIn('QCalendarWidget, "AlmanaxCalendar"', source)
+        self.assertIn('QDate.currentDate().addDays(40)', source)
+        self.assertIn("Almanax future-day selection failed", source)
+        self.assertIn("0 game records", source)
+
     def test_every_gallery_family_and_consumer_is_registered(self):
         validate_ui_index()
         self.assertEqual(len(UI_FAMILY_QSS_SELECTORS), 22)

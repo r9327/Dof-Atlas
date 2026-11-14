@@ -817,3 +817,9 @@ La capture Windows `Personnage` (profil temporaire vide) a révélé que `Charac
 - L'écran Almanax réutilise le composant `GuideBreadcrumb` au-dessus du titre, avec **vrai bouton Retour Accueil** et chevron hérité de la QSS de navigation. Aucune nouvelle implémentation de fil d'Ariane.
 - Même ombre statique `apply_unity_panel_shadow` sur le fil d'Ariane et le calendrier que sur les autres panneaux. Dev UI montre la même ombre sur son exemple de calendrier, sans doublon de style.
 - Tests ciblés de clic Retour, priorité du fil d'Ariane et présence du relief ajoutés ; **NOT_RUN** jusqu'à la fin de l'implémentation #365.
+
+
+### Capture AtlasWindow — Almanax réellement testable (14/11/2026)
+
+- Le scénario existant `tests/capture_app_shell_ui.py` marquait encore Almanax « not-implemented », malgré le calendrier désormais monté dans `AtlasWindow`. Il contrôle maintenant la **vraie** instance `AlmanaxCalendar`, la présence du fil d'Ariane, la sélection d'une date future et le message d'absence de source, puis photographie le shell.
+- La preuve screenshot signale explicitement `offline-calendar-no-offering-data` et zéro contenu de jeu fictif ; elle ne vaut ni validation des offrandes ni recette Windows native. Contrat d'inventaire ajouté sans QApplication dans la suite universelle. **Non exécuté**, conformément à la cadence demandée.
