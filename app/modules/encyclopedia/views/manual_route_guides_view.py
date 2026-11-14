@@ -200,6 +200,24 @@ class ManualRouteGuidesView(_BaseGuidesView):
         service = self._imported_source_services.get(guide_id)
         return bool(service is not None and service.can_write_progress())
 
+    def _release_imported_source_readers(self, *, keep: str | None = None) -> None:
+        """Keep at most one source Guide Qt reader; preserve optimized readers.
+
+        Each source sheet can retain a full route, images and participant UI.
+        Never accumulate 95 of them while navigating the catalogue. The
+        injected source service/authorizer stays under the composition owner;
+        only the detached Qt reader is removed here.
+        """
+        for source_id in tuple(self._catalog_manual_views):
+            if not source_id.startswith("source_guide:") or source_id == keep:
+                continue
+            reader = self._catalog_manual_views.pop(source_id)
+            self._catalog_manual_services.pop(source_id, None)
+            if self.stack.currentWidget() is reader:
+                self.stack.setCurrentWidget(self.home_page)
+            self.stack.removeWidget(reader)
+            reader.deleteLater()
+
     def ensure_imported_source_manual_view(self, guide_id: str) -> SharedGuideManualView | None:
         """Open one explicitly authorized route in the sole shared renderer."""
         from app.modules.encyclopedia.views.shared_manual_guide_view import (
@@ -232,6 +250,10 @@ class ManualRouteGuidesView(_BaseGuidesView):
         self._catalog_manual_views[guide_id] = view
         return view
 
+    def show_home(self) -> None:
+        self._release_imported_source_readers()
+        super().show_home()
+
     def select_guide(self, guide_id: str) -> bool:
         guide_id = str(guide_id or "")
         if guide_id.startswith("source_guide:"):
@@ -242,6 +264,7 @@ class ManualRouteGuidesView(_BaseGuidesView):
                     self.current_guide_id = None
                     self.state = self.CATALOG
                     self.stack.setCurrentWidget(self.home_page)
+                    self._release_imported_source_readers()
                 self.status_callback(f"Parcours source non certifié ou indisponible : {guide_id}")
                 return False
             self.current_guide_id = guide_id
@@ -249,11 +272,15 @@ class ManualRouteGuidesView(_BaseGuidesView):
             self.state = self.GUIDE_OVERVIEW
             view.set_character_key(self.current_character_key)
             self.stack.setCurrentWidget(view)
+            self._release_imported_source_readers(keep=guide_id)
             done, total = service.route_sheet_progress(self.current_character_key)
             self.status_callback(f"{service.guide_title} — parcours ({done}/{total} fiches)")
             return True
         if guide_id not in CATALOG_MANUAL_GUIDE_IDS:
-            return bool(super().select_guide(guide_id))
+            selected = bool(super().select_guide(guide_id))
+            if selected:
+                self._release_imported_source_readers()
+            return selected
 
         guide = self.provider.get_by_id(guide_id)
         view = self.ensure_catalog_manual_view(guide_id)
@@ -267,6 +294,7 @@ class ManualRouteGuidesView(_BaseGuidesView):
         self.state = self.GUIDE_OVERVIEW
         view.set_character_key(self.current_character_key)
         self.stack.setCurrentWidget(view)
+        self._release_imported_source_readers()
         completed, total = service.route_sheet_progress(self.current_character_key)
         self.status_callback(
             f"{guide.title} — parcours optimisé ({completed}/{total} fiches)"
@@ -280,6 +308,8 @@ class ManualRouteGuidesView(_BaseGuidesView):
             self.select_guide(guide_id)
             return
         super().show_guide_overview(guide_id, preserve_scroll=False)
+        if not str(self.current_guide_id or "").startswith("source_guide:"):
+            self._release_imported_source_readers()
 
     def set_character_key(self, character_key: str) -> None:
         previous = self.current_character_key
@@ -296,6 +326,7 @@ class ManualRouteGuidesView(_BaseGuidesView):
             self.current_guide_id = None
             self.state = self.CATALOG
             self.stack.setCurrentWidget(self.home_page)
+            self._release_imported_source_readers()
             self.status_callback("Autorisation du parcours source retirée.")
             return
         if active not in CATALOG_MANUAL_GUIDE_IDS and active not in self._imported_source_services:

@@ -198,6 +198,45 @@ class ImportedSourceRouterQtTests(unittest.TestCase):
         self.assertTrue(self.view.select_guide(self.service.guide_id))
         self.assertIs(self.view.stack.currentWidget(), reader)
 
+    def test_switching_source_guides_releases_old_qt_reader_without_progress_write(self):
+        next_service = ImportedSourceManualRuntimeService(
+            self.quest_progress,
+            self.achievement_progress,
+            self.progress,
+            route=_source_route("fictional-next"),
+        )
+        next_service.set_authorization_guard(self.view._imported_source_authorizer)
+        self.view._imported_source_services[next_service.guide_id] = next_service
+        self.approved = True
+        baseline = self.view.stack.count()
+
+        self.assertTrue(self.view.select_guide(self.service.guide_id))
+        first = self.view.stack.currentWidget()
+        self.assertEqual(self.view.stack.count(), baseline + 1)
+
+        self.assertTrue(self.view.select_guide(next_service.guide_id))
+        second = self.view.stack.currentWidget()
+        self.assertIsInstance(second, SharedGuideManualView)
+        self.assertIsNot(second, first)
+        self.assertEqual(self.view.stack.count(), baseline + 1)
+        self.assertEqual(self.view.stack.indexOf(first), -1)
+        self.assertNotIn(self.service.guide_id, self.view._catalog_manual_views)
+        self.assertNotIn(self.service.guide_id, self.view._catalog_manual_services)
+        self.assertIs(self.view._catalog_manual_views[next_service.guide_id], second)
+
+        self.assertTrue(self.view.select_guide(self.service.guide_id))
+        self.assertEqual(self.view.stack.count(), baseline + 1)
+        self.assertIsNot(self.view.stack.currentWidget(), first)
+        self.assertEqual(self.view.stack.indexOf(second), -1)
+        self.assertFalse(self.progress_path.exists())
+
+        self.view.show_home()
+        self.assertEqual(self.view.stack.count(), baseline)
+        self.assertFalse(any(
+            key.startswith("source_guide:") for key in self.view._catalog_manual_views
+        ))
+        self.assertFalse(self.progress_path.exists())
+
     def test_shared_validation_uses_source_id_and_does_not_touch_other_guides(self):
         self.approved = True
         self.assertTrue(self.view.select_guide(self.service.guide_id))
@@ -351,8 +390,9 @@ class ImportedSourceRouterQtTests(unittest.TestCase):
         # An immediately revoked route is also hidden, not left on screen.
         self.assertEqual(self.view.stack.currentWidget(), self.view.home_page)
         self.assertIsNone(self.view.current_guide_id)
-        # Reopen attempts fail closed and never create a second Qt reader.
-        self.assertIs(self.view._catalog_manual_views[self.service.guide_id], reader)
+        # Revocation also disposes the cached source reader; no stale Qt route.
+        self.assertNotIn(self.service.guide_id, self.view._catalog_manual_views)
+        self.assertEqual(self.view.stack.indexOf(reader), -1)
         self.view.refresh_external_progress()
         self.assertEqual(self.view.state, self.view.CATALOG)
         self.assertIsNone(self.view.current_guide_id)

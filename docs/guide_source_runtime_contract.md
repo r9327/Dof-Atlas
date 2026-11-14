@@ -125,3 +125,24 @@ Focused contract tests:
 `GuideTravelPlan`, no planning during render). Run with Doctor
 `agent plan/check/validate` and include Windows/DOFUS interaction proof
 before marking GIMP-019 PASS. Status until then: **PENDING / NOT_RUN**.
+
+## Shared UI / Dev UI styling and bounded reader lifetime
+
+The developer UI gallery in PR #365 (`app/pages/dev_ui_page.py`,
+`app/ui/ui_registry.py`) is the **visual reference** for Guide controls:
+Unity tokens, typography, icons, button states, badges, breadcrumbs,
+scrolling, panels, spacing and hover/focus behavior. PR #363 must keep
+using `SharedGuideManualView`, `AtlasButton` and the existing global Qt
+stylesheet; no Guide-specific parallel palette or second style system. The
+styling rollout remains owned by #365, which is not yet merged; this
+architecture change intentionally does not cherry-pick its QSS or widgets.
+
+A source Guide reader is now cached only while that source route is active.
+Selecting another source, an existing optimized/legacy route, going Home,
+or losing authorization releases the previous source reader from the Qt stack
+with deferred deletion. Reopening reconstructs the same **shared renderer**
+from the explicitly injected service and independently checked authorization.
+The optimized Guide Ultime/Sylvestre readers are not evicted. This bounds
+retained *Qt reader* instances, not the caller-provided source services: the
+composition owner must still avoid constructing 95 source services at startup.
+No guide is certified or activated by this lifecycle optimization.
