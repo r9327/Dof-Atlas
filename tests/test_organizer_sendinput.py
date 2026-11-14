@@ -19,7 +19,7 @@ class OrganizerSendInputTests(unittest.TestCase):
             patch.object(input_tools, "_sleep_ms") as wait,
         ):
             self.assertFalse(input_tools.replace_chat_text_with_clipboard())
-        press.assert_called_once_with("SPACE")
+        press.assert_called_once_with("SPACE", hold_ms=40)
         chord.assert_not_called()
         wait.assert_not_called()
 
@@ -30,7 +30,7 @@ class OrganizerSendInputTests(unittest.TestCase):
             patch.object(input_tools, "_sleep_ms", return_value=False),
         ):
             self.assertFalse(input_tools.replace_chat_text_with_clipboard())
-        self.assertEqual(press.call_args_list, [call("SPACE"), call("DELETE")])
+        self.assertEqual(press.call_args_list, [call("SPACE", hold_ms=40), call("DELETE")])
         chord.assert_called_once_with("CTRL", "A")
 
     def test_chat_first_enter_refusal_does_not_claim_command_sent(self) -> None:
@@ -270,7 +270,7 @@ class OrganizerSendInputTests(unittest.TestCase):
             patch.object(input_tools, "press_hotkey") as chord,
         ):
             self.assertFalse(input_tools.send_chat_command("/zaap 1,2", logger))
-        press.assert_called_once_with("SPACE")
+        press.assert_called_once_with("SPACE", hold_ms=40)
         chord.assert_not_called()
         clipboard.SetClipboardText.assert_called_once_with("/zaap 1,2", 13)
         logger.warning.assert_any_call("Clipboard modifie pendant le chat: envoi annule.")

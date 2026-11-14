@@ -30,9 +30,8 @@ class OrganizerHotkeysMixin:
         mode = "mirror" if value == "mirror" else "macro"
         if mode == self.profiles.get(KEY_ORGANIZER_MACRO_MODE, "macro"):
             return
-        # Do not let an active classic macro survive the mode change.
-        if callable(self.stop_runtime_callback):
-            invoke_compatible_callback(self.stop_runtime_callback, True)
+        # Hot mode transition: only the old in-flight gesture generation
+        # is invalidated. The hook runtime and emergency-stop latch stay live.
         self.profiles[KEY_ORGANIZER_MACRO_MODE] = mode
         self.save_profiles(self.profiles)
         self.export_client_index()
@@ -156,10 +155,8 @@ class OrganizerHotkeysMixin:
         # cancel a live 2–8 client worker without changing any effective delay.
         if previous == resolved and schema_v2:
             return
-        # Both a speed change and an old-profile schema migration replace the
-        # runtime settings generation. Stop the worker before persisting.
-        if callable(getattr(self, "stop_runtime_callback", None)):
-            invoke_compatible_callback(self.stop_runtime_callback, True)
+        # New actions use the selected speed without stopping the runtime.
+        # Existing workers retain their focus/roster generation checks.
         self.profiles[KEY_SCRIPT_SPEED] = resolved
         # Persist the schema together with the chosen preset. Otherwise a
         # future reload would reinterpret a v2 Rapide as legacy v1 Rapide.

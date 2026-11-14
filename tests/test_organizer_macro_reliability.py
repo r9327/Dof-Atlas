@@ -26,6 +26,13 @@ def _runtime() -> Mock:
 
 
 class OrganizerMacroReliabilityTests(unittest.TestCase):
+    def test_zaap_legacy_favorites_send_travel_command(self):
+        from app.macros.zaap import parse_zaap_command, zaap_command
+
+        self.assertEqual(parse_zaap_command("/zaap -5,12"), (-5, 12))
+        self.assertEqual(parse_zaap_command("/travel -5,12"), (-5, 12))
+        self.assertEqual(zaap_command(-5, 12), "/travel -5,12")
+
     def test_space_refusal_never_sends_destructive_chat_keys(self):
         from app.macros import input_tools
 
@@ -34,7 +41,7 @@ class OrganizerMacroReliabilityTests(unittest.TestCase):
             patch.object(input_tools, "press_hotkey") as hotkey,
         ):
             self.assertFalse(input_tools.replace_chat_text_with_clipboard(45, 12, 45))
-        key.assert_called_once_with("SPACE")
+        key.assert_called_once_with("SPACE", hold_ms=40)
         hotkey.assert_not_called()
 
     def test_stop_after_space_prevents_ctrl_a_and_reports_no_success(self):
@@ -46,7 +53,7 @@ class OrganizerMacroReliabilityTests(unittest.TestCase):
             patch.object(input_tools, "press_hotkey") as hotkey,
         ):
             self.assertFalse(input_tools.replace_chat_text_with_clipboard(45, 12, 45))
-        key.assert_called_once_with("SPACE")
+        key.assert_called_once_with("SPACE", hold_ms=40)
         hotkey.assert_not_called()
 
     def test_chat_failure_names_first_native_keyboard_stage(self):
@@ -4661,7 +4668,7 @@ class OrganizerMacroReliabilityTests(unittest.TestCase):
                         ZaapMacro(runtime)._run("/zaap 1,2")
                     focus.assert_called_once()
                     self.assertEqual(send.call_count, int(phase == "chat"))
-                    self.assertEqual(calls, ["/zaap 1,2"] if phase == "chat" else [])
+                    self.assertEqual(calls, ["/travel 1,2"] if phase == "chat" else [])
                     runtime.switch_character.restore_preferred_client.assert_not_called()
                     runtime._emit_status.assert_called_once_with(
                         f"Auto zaap interrompu : 0/{count} commandes émises "

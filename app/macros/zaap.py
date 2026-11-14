@@ -13,7 +13,7 @@ if TYPE_CHECKING:
     from app.core.runtime_state import AtlasRuntime
 
 
-_ZAAP_COMMAND_RE = re.compile(r"^/zaap\s+(-?\d+)\s*,\s*(-?\d+)$", re.IGNORECASE)
+_ZAAP_COMMAND_RE = re.compile(r"^/(?:zaap|travel)\s+(-?\d+)\s*,\s*(-?\d+)$", re.IGNORECASE)
 
 
 def parse_zaap_command(value: str) -> tuple[int, int] | None:
@@ -32,7 +32,7 @@ def parse_zaap_command(value: str) -> tuple[int, int] | None:
 
 
 def zaap_command(x: int, y: int) -> str:
-    return f"/zaap {int(x)},{int(y)}"
+    return f"/travel {int(x)},{int(y)}"
 
 
 class ZaapMacro:
@@ -43,7 +43,7 @@ class ZaapMacro:
         del click_position, click_ratios  # Legacy callback compatibility only.
         command = str(text or "").replace("\r", " ").replace("\n", " ").strip()
         if parse_zaap_command(command) is None:
-            self.runtime.logger.info("Auto zaap refuse: commande /zaap invalide.")
+            self.runtime.logger.info("Auto zaap refuse: commande /zaap ou /travel invalide.")
             return False
         profile_at_dispatch = self.runtime.settings
         if profile_at_dispatch is None:
@@ -71,7 +71,7 @@ class ZaapMacro:
     ) -> None:
         coords = parse_zaap_command(command)
         if coords is None:
-            self.runtime.logger.info("Auto zaap ignore: commande /zaap invalide.")
+            self.runtime.logger.info("Auto zaap ignore: commande /zaap ou /travel invalide.")
             self.runtime._emit_status("Auto zaap ignoré : commande invalide.")
             return
         command = zaap_command(*coords)

@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import threading
 from time import monotonic
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from logging import Logger
 from typing import Callable
 
@@ -486,7 +486,14 @@ class AtlasRuntime:
         self.synthetic_guard.reset()
         self.input_state.reset_armed()
         if (was_armed and previous_settings is not None
-                and previous_settings == refreshed_settings
+                # Speed/debug changes do not revoke explicit Mirror arming
+                # when the roster, mode and hotkey bindings are unchanged.
+                and replace(
+                    previous_settings,
+                    script_speed=refreshed_settings.script_speed,
+                    timings=refreshed_settings.timings,
+                    debug_enabled=refreshed_settings.debug_enabled,
+                ) == refreshed_settings
                 and getattr(refreshed_settings, "macro_mode", None) == "mirror"
                 and self._running and self._admin_ok
                 and self.__dict__.get("_mirror_arm_epoch", 0) == arm_epoch

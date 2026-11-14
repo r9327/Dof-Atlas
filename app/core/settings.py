@@ -173,49 +173,52 @@ def normalize_script_speed(value: Any, *, legacy: bool = False) -> str:
 def timings_for_speed(speed: str) -> MacroTimings:
     mode = normalize_script_speed(speed)
     if mode == "instantane":
-        # Unity click reliability remains protected by sender-side 35ms DOWN
-        # and 50ms hover floors even in this optional fastest preset.
+        # No voluntary switch/click gap. Native key/button releases still
+        # retain their sender-side safety floors for Unity.
         return replace(
             timings_for_speed("normal"),
-            click_focus_settle_ms=4, input_double_gap_ms=4,
-            travel_focus_settle_ms=6, activate_min_settle_ms=5,
-            activate_retry_ms=8, activate_attempts=5,
-            switch_background_pre_click_ms=10, switch_background_post_up_ms=2,
-            # La cadence chat est fixe pour les quatre profils ; seules
-            # les actions de switch/clic suivent le sélecteur de vitesse.
-            movement_key_hold_ms=16,
+            click_focus_settle_ms=0, input_double_gap_ms=0,
+            travel_focus_settle_ms=0, activate_min_settle_ms=0,
+            activate_retry_ms=0, activate_attempts=5,
+            switch_background_pre_click_ms=0, switch_background_post_up_ms=0,
+            switch_humanize_min_ms=0, switch_humanize_max_ms=0,
+            auto_group_chat_open_ms=30, auto_group_key_step_ms=8,
+            auto_group_paste_settle_ms=20, auto_group_invite_gap_ms=0,
+            movement_key_hold_ms=10,
         )
     if mode == "rapide":
         return replace(
             timings_for_speed("normal"),
-            click_focus_settle_ms=6, input_double_gap_ms=4,
-            travel_focus_settle_ms=10, activate_min_settle_ms=6,
-            activate_retry_ms=10, activate_attempts=6,
-            switch_background_pre_click_ms=14, switch_background_post_up_ms=3,
-            # Les temporisations chat héritent du profil Normal fiable.
-            movement_key_hold_ms=17,
+            click_focus_settle_ms=0, input_double_gap_ms=3,
+            travel_focus_settle_ms=3, activate_min_settle_ms=1,
+            activate_retry_ms=3, activate_attempts=6,
+            switch_background_pre_click_ms=3, switch_background_post_up_ms=0,
+            switch_humanize_min_ms=0, switch_humanize_max_ms=0,
+            auto_group_chat_open_ms=35, auto_group_key_step_ms=10,
+            auto_group_paste_settle_ms=30, auto_group_invite_gap_ms=20,
+            movement_key_hold_ms=12,
         )
     if mode == "normal":
         return MacroTimings(
-            click_focus_settle_ms=8,
+            click_focus_settle_ms=0,
             input_click_down_ms=1,
             input_double_gap_ms=5,
-            travel_focus_settle_ms=12,
-            activate_min_settle_ms=6,
-            activate_retry_ms=12,
+            travel_focus_settle_ms=8,
+            activate_min_settle_ms=3,
+            activate_retry_ms=8,
             activate_attempts=8,
             switch_client_settle_ms=0,
             switch_click_down_ms=1,
             switch_click_post_up_ms=2,
-            switch_background_pre_click_ms=18,
-            switch_background_post_up_ms=5,
-            switch_humanize_min_ms=4,
-            switch_humanize_max_ms=9,
+            switch_background_pre_click_ms=10,
+            switch_background_post_up_ms=2,
+            switch_humanize_min_ms=0,
+            switch_humanize_max_ms=0,
             auto_group_chat_open_ms=45,
             auto_group_key_step_ms=12,
             auto_group_paste_settle_ms=45,
-            auto_group_invite_gap_ms=140,
-            movement_key_hold_ms=18,
+            auto_group_invite_gap_ms=60,
+            movement_key_hold_ms=14,
         )
     return MacroTimings(
         click_focus_settle_ms=16,

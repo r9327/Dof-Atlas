@@ -416,7 +416,7 @@ def replace_chat_text_with_clipboard(
     logger = logging.getLogger(__name__)
     stage = "SPACE"
     try:
-        if press_key("SPACE") is False:
+        if press_key("SPACE", hold_ms=40) is False:
             logger.warning("Chat non émis : SPACE refusé (raccourci/Stop/SendInput).")
             return False
         logger.debug("Chat SPACE DOWN/UP émis ; ouverture Unity non vérifiée.")

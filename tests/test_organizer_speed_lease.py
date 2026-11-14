@@ -4,7 +4,7 @@ import unittest
 from types import SimpleNamespace
 from unittest.mock import Mock
 
-from app.constants import KEY_SCRIPT_SPEED, KEY_SCRIPT_SPEED_SCHEMA
+from app.constants import KEY_ORGANIZER_MACRO_MODE, KEY_SCRIPT_SPEED, KEY_SCRIPT_SPEED_SCHEMA
 from app.core.macro_lock import MacroLock
 from app.pages.organizer.organizer_hotkeys import OrganizerHotkeysMixin
 
@@ -32,7 +32,7 @@ class OrganizerSpeedAndLeaseTests(unittest.TestCase):
         )
         return owner, events
 
-    def test_changed_effective_speed_stops_before_writing_new_profile(self):
+    def test_changed_effective_speed_updates_without_stopping_runtime(self):
         for initial, changed in (
             ("classique", "normal"), ("normal", "rapide"),
             ("rapide", "instantane"), ("instantane", "classique"),
@@ -40,9 +40,9 @@ class OrganizerSpeedAndLeaseTests(unittest.TestCase):
             with self.subTest(initial=initial, changed=changed):
                 owner, events = self._owner(initial)
                 OrganizerHotkeysMixin.set_script_speed(owner, changed)
-                self.assertEqual(events, ["stop", "save", "export", "reload"])
+                self.assertEqual(events, ["save", "export", "reload"])
                 self.assertEqual(owner.profiles[KEY_SCRIPT_SPEED], changed)
-                owner.stop_runtime_callback.assert_called_once_with(True)
+                owner.stop_runtime_callback.assert_not_called()
 
     def test_reselecting_same_speed_does_not_interrupt_inflight_macro(self):
         for speed in ("classique", "normal", "rapide", "instantane"):
@@ -55,13 +55,32 @@ class OrganizerSpeedAndLeaseTests(unittest.TestCase):
                 owner.reload_runtime_callback.assert_not_called()
                 owner.stop_runtime_callback.assert_not_called()
 
-    def test_legacy_speed_label_migration_stops_before_reload(self):
+    def test_legacy_speed_label_migration_keeps_runtime_running(self):
         owner, events = self._owner("rapide")
         owner.profiles[KEY_SCRIPT_SPEED_SCHEMA] = 1
         OrganizerHotkeysMixin.set_script_speed(owner, "normal")
-        self.assertEqual(events, ["stop", "save", "export", "reload"])
+        self.assertEqual(events, ["save", "export", "reload"])
         self.assertEqual(owner.profiles[KEY_SCRIPT_SPEED_SCHEMA], 2)
-        owner.stop_runtime_callback.assert_called_once_with(True)
+        owner.stop_runtime_callback.assert_not_called()
+
+    def test_switching_macro_mirror_keeps_runtime_running(self):
+        events = []
+        owner = SimpleNamespace(
+            profiles={KEY_ORGANIZER_MACRO_MODE: "macro"},
+            stop_runtime_callback=Mock(),
+            save_profiles=Mock(),
+            export_client_index=Mock(),
+            update_macro_mode_buttons=Mock(),
+            update_switch_buttons=Mock(),
+            reload_runtime_callback=Mock(side_effect=lambda: events.append("reload")),
+            status_callback=Mock(),
+        )
+        OrganizerHotkeysMixin.set_macro_mode(owner, "mirror")
+        self.assertEqual(owner.profiles[KEY_ORGANIZER_MACRO_MODE], "mirror")
+        OrganizerHotkeysMixin.set_macro_mode(owner, "macro")
+        self.assertEqual(owner.profiles[KEY_ORGANIZER_MACRO_MODE], "macro")
+        self.assertEqual(events, ["reload", "reload"])
+        owner.stop_runtime_callback.assert_not_called()
 
     def test_wrong_owner_cannot_release_active_macro_lease(self):
         for current in ("Miroir clavier", "Miroir molette", "Auto zaap"):
