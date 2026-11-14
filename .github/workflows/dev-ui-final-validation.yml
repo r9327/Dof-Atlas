@@ -50,6 +50,9 @@ jobs:
           if ([int]$proof.families -ne 22 -or [int]$proof.horizontal_scroll_max -ne 0) {
             throw "Dev UI index or width contract failed"
           }
+          if ([int]$proof.family_dropdown_height -gt 230) {
+            throw "Dev UI list popup exceeds compact 8-row contract"
+          }
           foreach ($key in @('viewport','complete','page_complete','part_1','part_2','part_3','family_dropdown','dialog')) {
             if (-not (Test-Path $proof.screenshots.$key)) { throw "Missing Qt capture $key" }
           }

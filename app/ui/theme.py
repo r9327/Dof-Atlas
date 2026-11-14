@@ -867,6 +867,12 @@ QLineEdit:focus, QComboBox:focus, QSpinBox:focus, #inputField:focus, #comboField
     border-color: @GREEN;
 }
 
+/* Force list-style Qt popups so maxVisibleItems works with non-editable
+   Unity combos on Windows (native menu-style popups ignore that limit). */
+QComboBox {
+    combobox-popup: 0;
+}
+
 /* One popup contract for all native dropdowns (including Successes). */
 QComboBox:hover {
     border-color: @BORDER_STRONG;

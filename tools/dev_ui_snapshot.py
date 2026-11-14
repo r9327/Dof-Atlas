@@ -120,6 +120,16 @@ def capture(output: Path, *, width: int = 1100, height: int = 800) -> dict[str, 
         try:
             family_popup_file = output / "dev-ui-family-dropdown.png"
             dropdown_view = page.gallery_navigation.view()
+            # A 22-row popup is a genuine visual regression even if
+            # setMaxVisibleItems(8) was called: Qt native styles may ignore it.
+            row_height = dropdown_view.sizeHintForRow(0)
+            row_limit = page.gallery_navigation.maxVisibleItems()
+            if row_height > 0 and dropdown_view.height() > row_height * row_limit + 24:
+                raise RuntimeError(
+                    f"Dev UI dropdown is too tall: {dropdown_view.height()} px "
+                    f"for {row_limit} rows of {row_height} px"
+                )
+            results["family_dropdown_height"] = dropdown_view.height()
             if not dropdown_view.grab().save(str(family_popup_file), "PNG"):
                 raise RuntimeError(f"Unable to capture {family_popup_file}")
             results["screenshots"]["family_dropdown"] = str(family_popup_file)

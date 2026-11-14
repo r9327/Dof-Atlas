@@ -104,6 +104,7 @@ class DevUiPageTests(unittest.TestCase):
             self.assertEqual(detail_shell.styleSheet(), "")
             self.assertEqual(page.gallery_navigation.maximumWidth(), 420)
             self.assertEqual(page.gallery_navigation.maxVisibleItems(), 8)
+            self.assertIn("combobox-popup: 0;", atlas_stylesheet())
             self.assertEqual(page.preview_map_tree.maximumHeight(),
                              3 * UNITY_SIZES_PX["control_normal"])
             self.assertEqual(page.preview_scroll_list.maximumHeight(),
