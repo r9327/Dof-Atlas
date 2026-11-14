@@ -21,6 +21,64 @@ class DevUiPageTests(unittest.TestCase):
     def setUpClass(cls) -> None:
         cls.app = QApplication.instance() or QApplication([])
 
+    def test_ui_gallery_final_coverage_of_navigation_grid_and_variants(self) -> None:
+        from app.pages.dev_ui_page import DevUiPage
+        from app.ui.components import AtlasStatusBadge
+        page = DevUiPage(on_back=lambda: None)
+        try:
+            self.assertEqual(page.preview_tabs.objectName(), "EncyclopediaTabs")
+            self.assertEqual(page.preview_sidebar.objectName(), "sidebar")
+            self.assertEqual(page.preview_sidebar_buttons["Encyclopédie"].objectName(),
+                             "navItemActive")
+            page.preview_sidebar_buttons["Outils"].click()
+            self.assertEqual(page.preview_sidebar_buttons["Outils"].objectName(),
+                             "navItemActive")
+            self.assertEqual(page.preview_sidebar_buttons["Encyclopédie"].objectName(),
+                             "navItem")
+            page.preview_burger.click()
+            self.assertTrue(page.preview_sidebar_content.isHidden())
+            page.preview_burger.click()
+            self.assertFalse(page.preview_sidebar_content.isHidden())
+            self.assertFalse(page.preview_page_prev.isEnabled())
+            page.preview_page_next.click()
+            self.assertEqual(page.preview_page_index, 2)
+            page.preview_page_prev.click()
+            self.assertEqual(page.preview_page_index, 1)
+            self.assertEqual(page.preview_breadcrumb_compact.objectName(),
+                             "BreadcrumbLabel")
+            self.assertEqual(page.preview_breadcrumb_strong.objectName(),
+                             "GuideBreadcrumbCurrentStrong")
+            self.assertEqual(len(page.preview_layout_cards), 4)
+            self.assertTrue(all(c.objectName() == "card"
+                                for c in page.preview_layout_cards))
+            self.assertEqual(set(page.preview_state_buttons),
+                             {"normal", "hover", "pressed", "selected",
+                              "focus", "disabled"})
+            self.assertFalse(page.preview_state_buttons["disabled"].isEnabled())
+            self.assertEqual(page.preview_glass_panel.objectName(),
+                             "OrganizerPanel")
+            self.assertEqual(page.preview_title_accent.objectName(),
+                             "TitleAccent")
+            self.assertEqual(page.preview_card_accent.objectName(),
+                             "CardTitleAccent")
+            menu = page.menu_button.menu()
+            self.assertTrue(any(a.menu() is not None for a in menu.actions()))
+            self.assertTrue(any(a.isCheckable() for a in menu.actions()))
+            self.assertEqual(set(page.preview_dialog_variants),
+                             {"info", "warning", "danger"})
+            page.preview_dialog_variants["danger"].click()
+            self.assertIsNotNone(page._preview_dialog)
+            self.assertTrue(any(
+                badge.property("state") == "danger"
+                for badge in page._preview_dialog.findChildren(AtlasStatusBadge)
+            ))
+            page._preview_dialog.reject()
+            self.assertTrue(all(widget.styleSheet() == ""
+                                for widget in page.findChildren(QWidget)))
+        finally:
+            page.close()
+            page.deleteLater()
+
     def test_unification_contract_previews_breadcrumb_alerts_and_backdrop(self) -> None:
         from app.pages.dev_ui_page import DevUiPage
         from app.ui.unity_palette import (
@@ -361,7 +419,7 @@ class DevUiPageTests(unittest.TestCase):
                 page.gallery_navigation.view().itemDelegate(),
                 UnityPopupSeparatorDelegate,
             )
-            self.assertEqual(page.gallery_navigation.count(), 20)
+            self.assertEqual(page.gallery_navigation.count(), 22)
             self.assertEqual(page.gallery_navigation.objectName(), "DevUiFamilyCombo")
             from PySide6.QtWidgets import QStyleOptionViewItem
             row_hint = page.gallery_navigation.view().itemDelegate().sizeHint(
@@ -642,7 +700,7 @@ class DevUiPageTests(unittest.TestCase):
             page.resize(900, 680)
             page.show()
             self.app.processEvents()
-            self.assertEqual(page.gallery_navigation.count(), 20)
+            self.assertEqual(page.gallery_navigation.count(), 22)
             self.assertGreater(
                 page.gallery_scroll.verticalScrollBar().maximum(), 0
             )
