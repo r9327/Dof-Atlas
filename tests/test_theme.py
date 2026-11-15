@@ -520,5 +520,30 @@ class SharedThemeTests(unittest.TestCase):
             self.assertNotIn(obsolete, style)
 
 
+    def test_global_scrollbars_keep_one_shared_unity_owner(self) -> None:
+        # A later unscoped Guide rule used to silently override the shared
+        # thumb with a dark color and an inconsistent 7 px geometry.
+        source = theme._STYLE_TEMPLATE
+        self.assertEqual(source.count("\\nQScrollBar:vertical {"), 1)
+        self.assertEqual(source.count("\\nQScrollBar::handle:vertical {"), 1)
+        self.assertEqual(source.count("\\nQScrollBar::handle:vertical:hover {"), 1)
+        style = theme.atlas_stylesheet({
+            "BORDER_CARD": "#ABCDEF", "BORDER_STRONG": "#FEDCBA",
+        })
+        normal = style.split("\\nQScrollBar::handle:vertical {", 1)[1].split("}", 1)[0]
+        hover = style.split("\\nQScrollBar::handle:vertical:hover {", 1)[1].split("}", 1)[0]
+        self.assertIn("background: #ABCDEF;", normal)
+        self.assertIn("background: #FEDCBA;", hover)
+        self.assertNotIn("background: #2b3341;", style)
+        self.assertNotIn("width: 7px;", style)
+
+    def test_quest_hierarchy_reuses_shared_list_surface(self) -> None:
+        style = theme.atlas_stylesheet({"LIST_SURFACE": "#123456"})
+        hierarchy = style.split("QTreeWidget#QuestHierarchyTree {", 1)[1].split("}", 1)[0]
+        self.assertIn("background: #123456;", hierarchy)
+        self.assertNotIn("background: #151821;", hierarchy)
+
+
+
 if __name__ == "__main__":
     unittest.main()
