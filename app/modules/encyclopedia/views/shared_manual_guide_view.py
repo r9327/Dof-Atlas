@@ -998,26 +998,23 @@ class SharedGuideManualView(GuideUltimeManualView):
         outer.setContentsMargins(10, 6, 10, 7)
         outer.setSpacing(10)
 
-        # One compact column: context above, live progress, count below.
-        donut_column = QVBoxLayout()
-        donut_column.setSpacing(2)
-        donut_column.addStretch(1)
-        donut_heading = QLabel("PROGRESSION")
-        donut_heading.setObjectName("GuideCompactDonutHeading")
-        donut_heading.setAlignment(Qt.AlignCenter)
-        donut_column.addWidget(donut_heading)
-        self.progress_donut = _GuideProgressDonut()
-        donut_column.addWidget(self.progress_donut, 0, Qt.AlignHCenter)
-        self.donut_count_label = QLabel("— / — fiches")
-        self.donut_count_label.setObjectName("GuideCompactDonutCount")
-        self.donut_count_label.setAlignment(Qt.AlignCenter)
-        donut_column.addWidget(self.donut_count_label)
-        donut_column.addStretch(1)
-        outer.addLayout(donut_column, 0)
-
         right = QVBoxLayout()
         right.setSpacing(6)
         outer.addLayout(right, 1)
+        # Retain the historical progress object for internal callers, but
+        # do not paint a second route indicator in the header.
+        self.progress_donut = _GuideProgressDonut()
+        self.progress_donut.hide()
+        self.donut_count_label = QLabel()
+        self.donut_count_label.hide()
+        self.global_progress_bar = QProgressBar()
+        self.global_progress_bar.setObjectName("GuideGlobalProgress")
+        self.global_progress_bar.setRange(0, 100)
+        self.global_progress_bar.setTextVisible(False)
+        self.global_progress_bar.setFixedHeight(11)
+        self.global_progress_label = QLabel("—")
+        self.global_progress_label.setObjectName("GuideCompactMetricValue")
+        self._metric_columns: dict[str, QVBoxLayout] = {}
 
         # Row 1: active guide, instant sheet selector and compact commands.
         title_row = QHBoxLayout()
@@ -1068,7 +1065,16 @@ class SharedGuideManualView(GuideUltimeManualView):
         right.addLayout(title_row)
         self._compact_title_row = title_row
 
-        # Row 2: route and preparation only; no duplicate Successes bar.
+        overall_caption = QHBoxLayout()
+        overall_title = QLabel("PROGRESSION GLOBALE")
+        overall_title.setObjectName("GuideGlobalProgressTitle")
+        overall_caption.addWidget(overall_title)
+        overall_caption.addStretch(1)
+        overall_caption.addWidget(self.global_progress_label)
+        right.addLayout(overall_caption)
+        right.addWidget(self.global_progress_bar)
+
+        # Two original progress bars, retaining their navigation and values.
         metrics = QHBoxLayout()
         metrics.setSpacing(12)
         self._metric_caption_labels: dict[str, QLabel] = {}
@@ -1119,6 +1125,7 @@ class SharedGuideManualView(GuideUltimeManualView):
             else:
                 self.preparation_button = arrow
             self._metric_dropdown_buttons[name] = arrow
+            self._metric_columns[name] = block
             metrics.addLayout(block, 1)
 
         self.route_bar = GuideManualProgressBar()
@@ -1133,7 +1140,11 @@ class SharedGuideManualView(GuideUltimeManualView):
         self.preparation_progress_label = QLabel("—")
         add_metric("Préparation", "cube", "GREEN", self.preparation_bar, self.preparation_progress_label)
 
+        self._participants_control_column = QVBoxLayout()
+        self._participants_control_column.setSpacing(3)
+        metrics.addLayout(self._participants_control_column, 0)
         right.addLayout(metrics)
+        self._header_content_layout = right
 
         # No duplicate Sommaire/Préparation buttons on a third row.
         # Participants remains next to the header settings icon.
@@ -1197,7 +1208,7 @@ class SharedGuideManualView(GuideUltimeManualView):
         panel_layout.addWidget(self.preparation_scroll)
         self.preparation_panel.setVisible(False)
         apply_unity_panel_shadow(self.preparation_panel)
-        root.addWidget(self.preparation_panel)
+        self._metric_columns["Préparation"].addWidget(self.preparation_panel)
 
     def _build_sheet_header(self, root: QVBoxLayout) -> None:
         header = QFrame()
@@ -1246,9 +1257,8 @@ class SharedGuideManualView(GuideUltimeManualView):
         self.participants_button.setCursor(Qt.PointingHandCursor)
         # Arrow is owned by the Route progress metric.
         self.summary_button.toggled.connect(self._summary_toggled)
-        self._compact_title_row.insertWidget(
-            max(0, self._compact_title_row.count() - 1),
-            self.participants_button,
+        self._participants_control_column.addWidget(
+            self.participants_button, 0, Qt.AlignTop
         )
         layout.addLayout(top)
 
@@ -1259,7 +1269,7 @@ class SharedGuideManualView(GuideUltimeManualView):
         self.participants_layout.setSpacing(5)
         self.participants_panel.setVisible(False)
         self.participants_button.toggled.connect(self.participants_panel.setVisible)
-        layout.addWidget(self.participants_panel)
+        self._header_content_layout.addWidget(self.participants_panel)
 
         self.summary_panel = QFrame()
         self.summary_panel.setObjectName("GuideSummaryPanel")
@@ -1279,7 +1289,7 @@ class SharedGuideManualView(GuideUltimeManualView):
         summary_layout.addWidget(self.summary_list)
         self.summary_panel.setVisible(False)
         # Display the Route dropdown directly below the compact header, not inside the sheet title.
-        root.addWidget(self.summary_panel)
+        self._metric_columns["Route"].addWidget(self.summary_panel)
         apply_unity_panel_shadow(header)
         root.addWidget(header)
         self._refresh_participants_panel()
@@ -1846,7 +1856,6 @@ class SharedGuideManualView(GuideUltimeManualView):
         top.addWidget(item_button, 1)
         status_label = QLabel(status)
         status_label.setObjectName("GuidePreparationRowStatus")
-        top.addWidget(status_label)
         if quantity is not None and quantity > 0 and need.category not in {"Prérequis", "Métiers"}:
             counter = QSpinBox()
             counter.setObjectName("GuidePreparationQuantity")
@@ -1863,26 +1872,18 @@ class SharedGuideManualView(GuideUltimeManualView):
                 self._preparation_quantity_drafts.__setitem__(key, value)
             )
             top.addWidget(counter)
-        ready_button = QToolButton()
+        ready_button = QCheckBox()
         ready_button.setObjectName("GuidePreparationReady")
-        ready_button.setIcon(_guide_symbol_icon(ready_button, "check", size=14))
-        ready_button.setIconSize(QSize(14, 14))
-        ready_button.setText("Validé" if ready else "Valider")
-        ready_button.setToolButtonStyle(Qt.ToolButtonTextBesideIcon)
-        ready_button.setCheckable(True)
         ready_button.setChecked(ready)
         ready_button.setToolTip("Confirmer Prêt pour les participants sélectionnés concernés")
+        ready_button.setAccessibleName(f"Valider {need.name}")
+        ready_button.setCursor(Qt.PointingHandCursor)
         if len(need.required_by_character) > 1 and not callable(
             getattr(getattr(self.service, "guide_progress", None),
                     "set_manual_steps_for_characters", None)
         ):
             ready_button.setEnabled(False)
             ready_button.setToolTip("Sauvegarde atomique indisponible")
-        ready_button.toggled.connect(
-            lambda checked, button=ready_button: button.setText(
-                "Validé" if checked else "Valider"
-            )
-        )
         ready_button.toggled.connect(
             lambda checked, row=need: self._preparation_quantity_drafts.__setitem__(
                 row.item_key, int(row.required_total or 0) if checked else 0
@@ -1892,6 +1893,7 @@ class SharedGuideManualView(GuideUltimeManualView):
             lambda checked, row=need: self._set_need_ready(row, checked)
         )
         top.addWidget(ready_button)
+        top.addWidget(status_label)
         details_button = QToolButton()
         details_button.setObjectName("GuidePreparationDetailsButton")
         details_button.setArrowType(Qt.RightArrow)
@@ -2060,12 +2062,18 @@ class SharedGuideManualView(GuideUltimeManualView):
             self.route_bar.setValue(completed)
             self.route_progress_label.setText(f"{percent} %")
             self.progress_donut.set_percent(percent)
+            self.global_progress_bar.setRange(0, max(1, total))
+            self.global_progress_bar.setValue(completed)
+            self.global_progress_label.setText(f"{percent} %")
             self.donut_count_label.setText(f"{completed} fiches validées")
         else:
             self.route_bar.setRange(0, 1)
             self.route_bar.setValue(0)
             self.route_progress_label.setText("—")
             self.progress_donut.set_percent(None)
+            self.global_progress_bar.setRange(0, 1)
+            self.global_progress_bar.setValue(0)
+            self.global_progress_label.setText("—")
             self.donut_count_label.setText("Fiches à valider")
 
         self._update_preparation_progress()
