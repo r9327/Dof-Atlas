@@ -644,6 +644,8 @@ class DevUiPageTests(unittest.TestCase):
                 cell = page.preview_icon_grid.itemAt(index).widget()
                 self.assertEqual(cell.objectName(), "DevUiIconCell")
                 self.assertEqual(cell.styleSheet(), "")
+            self.assertEqual(page.preview_tree.objectName(), "QuestHierarchyTree")
+            self.assertEqual(page.preview_tree.styleSheet(), "")
             self.assertEqual(page.preview_tree.columnWidth(1), 150)
             self.assertFalse(page.preview_table.showGrid())
             self.assertFalse(page.preview_scope.showGrid())
