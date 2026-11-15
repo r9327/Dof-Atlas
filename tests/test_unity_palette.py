@@ -114,6 +114,34 @@ class UnityPaletteTests(unittest.TestCase):
             [1, 1, 2, 2, 3],
         )
 
+    def test_stable_layout_metrics_interpolate_between_four_unforced_sizes(self) -> None:
+        from app.ui.unity_palette import (
+            UNITY_LAYOUT_PROFILE_PX, UNITY_WINDOW_PRESETS_PX,
+            unity_layout_metrics,
+        )
+        self.assertEqual(
+            tuple(UNITY_LAYOUT_PROFILE_PX), tuple(UNITY_WINDOW_PRESETS_PX)
+        )
+        for name, (width, _height) in UNITY_WINDOW_PRESETS_PX.items():
+            self.assertEqual(unity_layout_metrics(width), UNITY_LAYOUT_PROFILE_PX[name])
+        self.assertEqual(unity_layout_metrics(0), UNITY_LAYOUT_PROFILE_PX["compact"])
+        self.assertEqual(unity_layout_metrics(2500), UNITY_LAYOUT_PROFILE_PX["full_hd"])
+        for left_key, right_key in zip(
+            tuple(UNITY_WINDOW_PRESETS_PX)[:-1],
+            tuple(UNITY_WINDOW_PRESETS_PX)[1:],
+        ):
+            left = UNITY_WINDOW_PRESETS_PX[left_key][0]
+            right = UNITY_WINDOW_PRESETS_PX[right_key][0]
+            middle = unity_layout_metrics((left + right) // 2)
+            for metric in ("page_margin", "module_padding", "module_gap"):
+                self.assertLessEqual(
+                    UNITY_LAYOUT_PROFILE_PX[left_key][metric],
+                    middle[metric],
+                )
+                self.assertLessEqual(
+                    middle[metric], UNITY_LAYOUT_PROFILE_PX[right_key][metric]
+                )
+
     def test_dev_ui_index_covers_all_families_and_original_style_owners(self) -> None:
         from app.ui.unity_palette import (
             UNITY_UI_CONSUMERS, UNITY_UI_FAMILY_INDEX,

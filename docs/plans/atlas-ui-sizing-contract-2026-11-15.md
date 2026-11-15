@@ -12,7 +12,8 @@ Le présent document ne certifie aucune recette Windows ni aucune capture.
 - Composants communs : `app/ui/components.py` réutilise les métriques de
   dialogue ; `app/ui/theme.py` conserve son QSS global et ses tokens historiques.
 - Dev UI : la famille existante `metrics` expose la table complète et une
-  grille de trois vrais widgets Qt réorganisés selon la largeur du conteneur.
+  grille de trois vrais widgets Qt dont les emplacements restent fixes
+  indépendamment de la largeur du conteneur.
   Elle ne contient pas de moteur de layout parallèle, de palette locale ou de
   fausse capture Windows.
 - La sélection d'un format **plafonne la largeur** de la démonstration, mais
@@ -29,10 +30,12 @@ Le présent document ne certifie aucune recette Windows ni aucune capture.
 | Grande | 1440 × 900 px |
 | Full HD | 1920 × 1080 px |
 
-La grille de démonstration utilise 1 colonne en-dessous de 560 px utiles,
-2 colonnes entre 560 et 999 px, et 3 à partir de 1000 px. Ces seuils
-portent sur la **largeur du contenu**, pas sur l'écran entier. Les modules
-avec contraintes métier peuvent avoir une variante documentée.
+**Décision d'architecture (15/11/2026) :** la structure d'une page ne
+change jamais d'ordre ni de colonne au redimensionnement. Les trois panneaux
+de démonstration utilisent toujours la même rangée 50/25/25.
+Les breakpoints historiques restent disponibles uniquement pour les
+*collections de cartes indépendantes*, jamais pour déplacer les modules,
+sous-menus ou zones de sélection d'une page.
 
 ## Contrôles et garde-fous
 
@@ -62,7 +65,7 @@ avec contraintes métier peuvent avoir une variante documentée.
    ne certifier aucune plateforme sans preuve de son exécution.
 
 Tests ajoutés dans ce lot : contrats Qt-free de dimensions et grille Dev UI
-(rendu, choix du format, reflow 1/2/3 colonnes, index visuel préservé).
+(rendu, choix du format, positions constantes, index visuel préservé).
 **Exécution locale non disponible dans l'environnement de ce lot** :
 les validations Qt réelles restent à lancer avant la généralisation.
 
@@ -94,4 +97,32 @@ reproduit désormais l'initialisation du vrai shell.
 L'aperçu 1920×1080 montrait en outre un bandeau « Actions » occupant
 inutilement toute la largeur : la grille à trois *modules* utilise désormais
 une répartition 50/25/25 sur une seule rangée. Les modes une et deux
-colonnes conservent leurs comportements précédents.
+colonnes conservaient leur comportement précédent jusqu'au changement de
+contrat du 15/11 ; voir décision ci-dessous.
+
+## Contrat de stabilité validé pour la phase Dev UI — 15/11/2026
+
+- Quatre **repères de calibration**, sans snap, sélection obligatoire ni
+  largeur forcée : 900×600, 1180×720, 1440×900, 1920×1080.
+- `UNITY_LAYOUT_PROFILE_PX` donne les marges/paddings/espacements aux
+  quatre repères et `unity_layout_metrics(width)` interpole entre eux.
+  En-dehors de ces repères, les valeurs restent plafonnées ; pas de marges
+  qui grossissent indéfiniment.
+- Les tailles sémantiques des contrôles, listes, sélections, flèches,
+  menus déroulants et icônes restent liées à leurs tokens existants ;
+  pas de zoom proportionnel généralisé.
+- Les modules de structure conservent **exactement les mêmes rangées,
+  colonnes et ordre** au resize. Seuls la largeur utile, les marges et
+  le contenu flexible s'adaptent.
+- La galerie Dev UI montre la disposition fixe 50/25/25 et les
+  références d'espacement. Le pilote ne change pas l'Organizer métier,
+  ni les guides de la PR #363.
+- `tools/dev_ui_snapshot.py` compare les positions des trois vrais
+  QWidget dans les quatre formats et refuse toute permutation.
+- Pour le déploiement P1 : valider les minima réels des écrans, l'ancrage
+  des popups et sous-menus, le défilement vertical sans barre horizontale,
+  les troncatures, le focus clavier et les DPI Windows 125/150 %.
+
+**Statut :** pilote Dev UI et contrat partagés ajoutés ; migration intégrale
+des écrans et dialogues non encore certifiée. Les anciens screenshots
+montrant 1/2/3 colonnes sont antérieurs au nouveau contrat.

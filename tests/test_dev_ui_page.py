@@ -1103,10 +1103,11 @@ class DevUiPageTests(unittest.TestCase):
             page.deleteLater()
 
 
-    def test_responsive_dimensions_preview_reflows_real_unity_widgets(self) -> None:
+    def test_responsive_dimensions_preview_keeps_panels_in_place(self) -> None:
         from app.pages.dev_ui_page import DevUiPage
         from app.ui.unity_palette import (
-            UNITY_LAYOUT_SIZES_PX, UNITY_WINDOW_PRESETS_PX,
+            UNITY_LAYOUT_PROFILE_PX, UNITY_LAYOUT_SIZES_PX,
+            UNITY_WINDOW_PRESETS_PX, unity_layout_metrics,
         )
 
         page = DevUiPage(on_back=lambda: None)
@@ -1118,45 +1119,49 @@ class DevUiPageTests(unittest.TestCase):
                 UNITY_WINDOW_PRESETS_PX["standard"][0]
                 - 2 * UNITY_LAYOUT_SIZES_PX["page_margin"],
             )
-            self.assertEqual(page.preview_responsive_grid.spacing(),
-                             UNITY_LAYOUT_SIZES_PX["module_gap"])
-            for usable_width, expected_columns, expected_first_span in (
-                (480, 1, 1), (850, 2, 2), (1250, 3, 2),
-            ):
-                page._relayout_responsive_cards(usable_width)
-                self.assertEqual(page.preview_responsive_columns, expected_columns)
-                index = page.preview_responsive_grid.indexOf(
-                    page.preview_responsive_cards[0]
+            stable_positions = ((0, 0, 1, 2), (0, 2, 1, 1), (0, 3, 1, 1))
+            for available in (480, 850, 1100, 1250, 1600, 1850):
+                page._relayout_responsive_cards(available)
+                self.assertEqual(page.preview_responsive_columns, 3)
+                positions = tuple(
+                    page.preview_responsive_grid.getItemPosition(
+                        page.preview_responsive_grid.indexOf(card)
+                    )
+                    for card in page.preview_responsive_cards
                 )
+                self.assertEqual(positions, stable_positions)
+                expected = unity_layout_metrics(min(available, 1180))
                 self.assertEqual(
-                    page.preview_responsive_grid.getItemPosition(index)[3],
-                    expected_first_span,
+                    page.preview_responsive_grid.spacing(), expected["module_gap"]
                 )
-                if expected_columns == 3:
-                    # All three panels share one row: no oversized empty
-                    # Actions panel across the entire screen.
-                    for card in page.preview_responsive_cards:
-                        card_index = page.preview_responsive_grid.indexOf(card)
-                        self.assertEqual(
-                            page.preview_responsive_grid.getItemPosition(card_index)[0],
-                            0,
+            for name, (width, height) in UNITY_WINDOW_PRESETS_PX.items():
+                index = page.preview_window_selector.findData(name)
+                self.assertGreaterEqual(index, 0)
+                page.preview_window_selector.setCurrentIndex(index)
+                self.assertEqual(
+                    page.preview_responsive_host.maximumWidth(),
+                    width - 2 * UNITY_LAYOUT_SIZES_PX["page_margin"],
+                )
+                self.assertIn(f"{width} × {height}", page.preview_window_description.text())
+                self.assertEqual(page.preview_responsive_columns, 3)
+                self.assertEqual(
+                    tuple(
+                        page.preview_responsive_grid.getItemPosition(
+                            page.preview_responsive_grid.indexOf(card)
                         )
-            self.assertTrue(all(
-                card.objectName() == "card"
-                for card in page.preview_responsive_cards
-            ))
-            full = page.preview_window_selector.findData("full_hd")
-            self.assertGreaterEqual(full, 0)
-            page.preview_window_selector.setCurrentIndex(full)
-            self.assertEqual(
-                page.preview_responsive_host.maximumWidth(),
-                UNITY_WINDOW_PRESETS_PX["full_hd"][0]
-                - 2 * UNITY_LAYOUT_SIZES_PX["page_margin"],
+                        for card in page.preview_responsive_cards
+                    ),
+                    stable_positions,
+                )
+            self.assertTrue(
+                any(
+                    page.preview_metrics.item(i, 0).text()
+                    == "PROFILE_STANDARD_MODULE_GAP"
+                    for i in range(page.preview_metrics.rowCount())
+                )
             )
-            self.assertIn("1920 × 1080", page.preview_window_description.text())
-            self.assertTrue(any(
-                page.preview_metrics.item(row, 0).text() == "WINDOW_STANDARD"
-                for row in range(page.preview_metrics.rowCount())
+            self.assertTrue(all(
+                card.objectName() == "card" for card in page.preview_responsive_cards
             ))
             self.assertEqual(page.styleSheet(), "")
         finally:
@@ -1168,7 +1173,7 @@ class DevUiPageTests(unittest.TestCase):
         from app.pages.dev_ui_page import DevUiPage
         from app.ui.theme import atlas_stylesheet
         from app.ui.unity_palette import (
-            UNITY_WINDOW_PRESETS_PX, unity_responsive_columns,
+            UNITY_WINDOW_PRESETS_PX,
         )
         from app.ui.unity_skin import UnityBackdrop
         from PySide6.QtWidgets import QVBoxLayout
@@ -1192,11 +1197,15 @@ class DevUiPageTests(unittest.TestCase):
                     # styled Windows capture at all four presets. A standalone
                     # test can retain native min-size hints from other tests;
                     # it checks the responsive algorithm, not those hints.
+                    self.assertEqual(page.preview_responsive_columns, 3)
                     self.assertEqual(
-                        page.preview_responsive_columns,
-                        unity_responsive_columns(
-                            page.preview_responsive_host.width()
+                        tuple(
+                            page.preview_responsive_grid.getItemPosition(
+                                page.preview_responsive_grid.indexOf(card)
+                            )
+                            for card in page.preview_responsive_cards
                         ),
+                        ((0, 0, 1, 2), (0, 2, 1, 1), (0, 3, 1, 1)),
                     )
                     self.assertLessEqual(
                         page.preview_responsive_host.width(), width

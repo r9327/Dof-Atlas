@@ -69,7 +69,7 @@ from app.ui.unity_palette import (
     UNITY_INTERACTION_STATES, UNITY_MAIN_ROLES, UNITY_ORGANIZER_METRICS_PX,
     UNITY_SIZES_PX, UNITY_SPACING_PX, UNITY_UI_USAGE,
     UNITY_CONTROL_SIZES_PX, UNITY_LAYOUT_SIZES_PX, UNITY_LAYOUT_BREAKPOINTS_PX,
-    UNITY_WINDOW_PRESETS_PX, unity_responsive_columns,
+    UNITY_WINDOW_PRESETS_PX, UNITY_LAYOUT_PROFILE_PX, unity_layout_metrics,
     UNITY_UI_CONSUMERS, UNITY_UI_FAMILY_INDEX, UNITY_UI_UNIFICATION_CONTRACT,
 )
 from app.ui.unity_skin import (
@@ -1618,6 +1618,9 @@ class DevUiPage(QWidget):
             *SIZES.items(), *SPACING.items(), *TYPOGRAPHY.items(),
             *((f"WINDOW_{key.upper()}", f"{width} × {height} px")
               for key, (width, height) in UNITY_WINDOW_PRESETS_PX.items()),
+            *((f"PROFILE_{key.upper()}_{metric.upper()}", f"{value}px")
+              for key, profile in UNITY_LAYOUT_PROFILE_PX.items()
+              for metric, value in profile.items()),
             *((f"LAYOUT_{key.upper()}", f"{value}px")
               for key, value in UNITY_LAYOUT_SIZES_PX.items()),
             *((f"CONTROL_{key.upper()}", f"{value}px")
@@ -1644,10 +1647,9 @@ class DevUiPage(QWidget):
 
 
     def _build_responsive_reference(self, section: QVBoxLayout) -> None:
-        """Real Unity panels laid out by the actual available widget width.
+        """Show a stable panel hierarchy at every reference and intermediate size.
 
-        Presets cap the reference width; they never pretend that an offscreen
-        gallery at 900px is a physical 1920px Windows capture.
+        Presets cap the reference width; no virtual screenshot or reordering.
         """
         title = QLabel("Dimensions & responsive · aperçu des modules")
         title.setObjectName("PanelTitle")
@@ -1753,9 +1755,10 @@ class DevUiPage(QWidget):
         margin = UNITY_LAYOUT_SIZES_PX["page_margin"]
         self.preview_responsive_host.setMaximumWidth(width - 2 * margin)
         self.preview_window_description.setText(
-            f"Référence : {width} × {height} px. Aperçu limité par la largeur "
-            "réellement disponible dans Dev UI : les panneaux changent de "
-            "disposition, sans agrandir artificiellement boutons et textes."
+            f"Référence : {width} × {height} px. La fenêtre reste librement "
+            "redimensionnable entre les quatre repères. Panneaux, sous-menus "
+            "et sélections conservent leur emplacement ; seules les dimensions "
+            "flexibles et les espacements s'adaptent."
         )
         self._relayout_responsive_cards()
 
@@ -1766,34 +1769,45 @@ class DevUiPage(QWidget):
         return super().eventFilter(watched, event)
 
     def _relayout_responsive_cards(self, width: int | None = None) -> None:
-        """Reflow the same live widgets, preserving state and signal handlers."""
-        available = self.preview_responsive_host.width() if width is None else width
-        columns = unity_responsive_columns(max(0, available))
-        if columns == self.preview_responsive_columns:
-            return
+        """Keep all structural panels in their original positions on resize.
+
+        Only shared margins, padding and gaps evolve between four references.
+        Existing Qt widgets and their signal connections are never recreated.
+        """
         grid = self.preview_responsive_grid
-        while grid.count():
-            grid.takeAt(0)
-        # Four equal grid units produce three functional panels at large
-        # widths: 50% main content and two 25% utility cards, *one row*.
-        # A full-width action strip would waste most of a 1920px window.
-        units = 4 if columns == 3 else columns
-        for column in range(4):
-            grid.setColumnStretch(column, 1 if column < units else 0)
-        if columns == 3:
-            positions = ((0, 0, 1, 2), (0, 2, 1, 1), (0, 3, 1, 1))
-        elif columns == 2:
-            positions = ((0, 0, 1, 2), (1, 0, 1, 1), (1, 1, 1, 1))
-        else:
-            positions = ((0, 0, 1, 1), (1, 0, 1, 1), (2, 0, 1, 1))
-        for card, (row, column, row_span, column_span) in zip(
-            self.preview_responsive_cards, positions
+        requested_width = (
+            self.preview_responsive_host.width() if width is None else width
+        )
+        preset_width = UNITY_WINDOW_PRESETS_PX[
+            self.preview_window_selector.currentData()
+        ][0]
+        metrics = unity_layout_metrics(min(max(0, requested_width), preset_width))
+        inset = metrics["module_padding"]
+        margins = grid.contentsMargins()
+        if (
+            margins.left() != inset or margins.top() != inset
+            or margins.right() != inset or margins.bottom() != inset
         ):
-            grid.addWidget(card, row, column, row_span, column_span)
-        self.preview_responsive_columns = columns
+            grid.setContentsMargins(inset, inset, inset, inset)
+        if grid.spacing() != metrics["module_gap"]:
+            grid.setSpacing(metrics["module_gap"])
+
+        # Fixed semantic order: main content | information | actions.
+        # Four stretch units give a stable 50 / 25 / 25 grid, even at 900 px.
+        # No QLayout.takeAt or breakpoint-driven panel movement.
+        if self.preview_responsive_columns != 3:
+            positions = ((0, 0, 1, 2), (0, 2, 1, 1), (0, 3, 1, 1))
+            for column in range(4):
+                grid.setColumnStretch(column, 1)
+            for card, (row, column, row_span, column_span) in zip(
+                self.preview_responsive_cards, positions
+            ):
+                grid.addWidget(card, row, column, row_span, column_span)
+            self.preview_responsive_columns = 3
         self.preview_responsive_mode.setText(
-            f"{columns} colonne{'s' if columns > 1 else ''} · "
-            "mêmes contrôles, proportions et alignements réorganisés"
+            "Disposition fixe 50 / 25 / 25 · 3 modules dans le même ordre · "
+            f"marge {metrics['page_margin']} px · "
+            f"espacement {metrics['module_gap']} px"
         )
 
     def _build_panels(self, parent: QVBoxLayout) -> None:

@@ -246,8 +246,49 @@ UNITY_CONTROL_SIZES_PX = {
     "dialog_min_width": 400,
 }
 
-# A grid rearranges its panels only when the usable width makes room.
-# It must not scale controls or fonts proportionally with the screen size.
+# The four reference sizes are calibration points, NOT forced window sizes.
+# Layout geometry interpolates smoothly between them. Do not resize text,
+# icons, checkboxes, buttons or menu rows proportionally with the window.
+# These remain semantic control roles, regardless of the viewport.
+UNITY_LAYOUT_PROFILE_PX = {
+    "compact": {"page_margin": 12, "module_padding": 10, "module_gap": 8},
+    "standard": {
+        "page_margin": UNITY_LAYOUT_SIZES_PX["page_margin"],
+        "module_padding": UNITY_LAYOUT_SIZES_PX["module_padding"],
+        "module_gap": UNITY_LAYOUT_SIZES_PX["module_gap"],
+    },
+    "large": {"page_margin": 18, "module_padding": 14, "module_gap": 12},
+    "full_hd": {"page_margin": 20, "module_padding": 16, "module_gap": 14},
+}
+
+
+def unity_layout_metrics(window_width: int) -> dict[str, int]:
+    """Interpolate spacing at any width, without changing panel placement.
+
+    Widths below compact or beyond Full HD use the nearest reference, rather
+    than extrapolating huge margins. Qt-free for all widgets and the Launcher.
+    """
+    sizes = list(UNITY_WINDOW_PRESETS_PX)
+    left_key = sizes[0]
+    if window_width <= UNITY_WINDOW_PRESETS_PX[left_key][0]:
+        return dict(UNITY_LAYOUT_PROFILE_PX[left_key])
+    for right_key in sizes[1:]:
+        left_width = UNITY_WINDOW_PRESETS_PX[left_key][0]
+        right_width = UNITY_WINDOW_PRESETS_PX[right_key][0]
+        if window_width <= right_width:
+            portion = (window_width - left_width) / (right_width - left_width)
+            left_metrics = UNITY_LAYOUT_PROFILE_PX[left_key]
+            right_metrics = UNITY_LAYOUT_PROFILE_PX[right_key]
+            return {
+                key: round(left_metrics[key] + portion * (right_metrics[key] - left_metrics[key]))
+                for key in left_metrics
+            }
+        left_key = right_key
+    return dict(UNITY_LAYOUT_PROFILE_PX[sizes[-1]])
+
+
+# Optional, *only* for collections of independent cards. Never use these
+# breakpoints to reorder a page's structural modules, controls or submenus.
 UNITY_LAYOUT_BREAKPOINTS_PX = {
     "two_columns_min": 560,
     "three_columns_min": 1000,
@@ -465,6 +506,7 @@ UNITY_UI_FAMILY_INDEX = {
         "title": "Dimensions · responsive · typographie · espacements",
         "components": (
             "UNITY_SIZES_PX", "UNITY_WINDOW_PRESETS_PX", "UNITY_LAYOUT_SIZES_PX",
+            "UNITY_LAYOUT_PROFILE_PX", "unity_layout_metrics",
             "UNITY_CONTROL_SIZES_PX", "UNITY_LAYOUT_BREAKPOINTS_PX",
             "unity_responsive_columns", "UNITY_ORGANIZER_METRICS_PX",
             "UNITY_CONTENT_TYPOGRAPHY_PX", "UNITY_SPACING_PX", "UNITY_TYPOGRAPHY",

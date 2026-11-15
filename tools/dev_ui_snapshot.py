@@ -84,6 +84,7 @@ def capture(output: Path, *, width: int = 1100, height: int = 800) -> dict[str, 
         # captures the shared sizing section after a genuine window resize;
         # no scaled mockup or fabricated Windows/DPI evidence is used.
         results["viewport_profiles"] = {}
+        baseline_positions = None
         for preset, (viewport_width, viewport_height) in UNITY_WINDOW_PRESETS_PX.items():
             selector_index = page.preview_window_selector.findData(preset)
             if selector_index < 0:
@@ -101,10 +102,24 @@ def capture(output: Path, *, width: int = 1100, height: int = 800) -> dict[str, 
             if not backdrop.grab().save(str(profile_image), "PNG"):
                 raise RuntimeError(f"Unable to capture real Qt viewport: {preset}")
             results["screenshots"][f"responsive_{preset}"] = str(profile_image)
+            positions = [
+                list(page.preview_responsive_grid.getItemPosition(
+                    page.preview_responsive_grid.indexOf(card)
+                ))
+                for card in page.preview_responsive_cards
+            ]
+            if baseline_positions is None:
+                baseline_positions = positions
+            if positions != baseline_positions or page.preview_responsive_columns != 3:
+                raise RuntimeError(
+                    f"Structural panels changed position in {preset}: {positions}"
+                )
             results["viewport_profiles"][preset] = {
                 "size": [viewport_width, viewport_height],
                 "preview_width": page.preview_responsive_host.width(),
                 "columns": page.preview_responsive_columns,
+                "module_positions": positions,
+                "module_gap": page.preview_responsive_grid.spacing(),
                 "horizontal_scroll_max": horizontal_overflow,
             }
             if horizontal_overflow:
