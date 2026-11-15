@@ -1,6 +1,7 @@
 from __future__ import annotations
 
-from PySide6.QtCore import QSize, Qt
+from functools import lru_cache
+from PySide6.QtCore import QRect, QSize, Qt
 from PySide6.QtGui import QIcon, QImage, QPixmap, QTransform, QPainter
 from PySide6.QtWidgets import (
     QDialog,
@@ -14,7 +15,7 @@ from PySide6.QtWidgets import (
 
 from app.constants import APP_ICON_PATH
 from app.ui.splash_image import clear_connected_dark_background
-from app.ui.unity_skin import unity_guide_chevron_path
+from app.ui.unity_skin import sprite_icon_path, unity_guide_chevron_path
 
 
 # Mirrored from Dev UI's indexed guide_character_button / guide_character_icon
@@ -76,6 +77,41 @@ class AtlasButton(QPushButton):
         except KeyError as exc:
             raise ValueError(f"Unknown AtlasButton variant: {variant}") from exc
         self.setObjectName(object_name)
+
+
+@lru_cache(maxsize=8)
+def atlas_guide_character_icon(size: int) -> QIcon:
+    """Render the original Unity Character sprite without transparent padding.
+
+    The original icon occupies only a fraction of its PNG; cropping transparent
+    pixels gives the existing artwork a legible size without recoloring it.
+    """
+    path = sprite_icon_path("character")
+    if path is None:
+        return QIcon()
+    source = QPixmap(str(path))
+    if source.isNull():
+        return QIcon()
+    image = source.toImage()
+    if image.hasAlphaChannel():
+        left, top = image.width(), image.height()
+        right, bottom = -1, -1
+        for y in range(image.height()):
+            for x in range(image.width()):
+                if image.pixelColor(x, y).alpha() > 32:
+                    left, top = min(left, x), min(top, y)
+                    right, bottom = max(right, x), max(bottom, y)
+        if right >= left and bottom >= top:
+            source = source.copy(QRect(
+                left, top, right - left + 1, bottom - top + 1
+            ))
+    pixmap = source.scaled(
+        QSize(size, size), Qt.KeepAspectRatio, Qt.SmoothTransformation
+    )
+    icon = QIcon()
+    icon.addPixmap(pixmap, QIcon.Normal)
+    icon.addPixmap(pixmap, QIcon.Disabled)
+    return icon
 
 
 def atlas_guide_arrow_icon(direction: str) -> QIcon:
