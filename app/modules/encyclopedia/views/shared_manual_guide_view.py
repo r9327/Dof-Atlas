@@ -263,10 +263,9 @@ class _ParticipantPortraitButton(QToolButton):
         super().paintEvent(event)
         painter = QPainter(self)
         painter.setRenderHint(QPainter.Antialiasing)
-        color = (
-            self.palette().highlight().color()
-            if self.isChecked()
-            else self.palette().mid().color()
+        # Keep the ring in Unity accents; gray looks like a disabled portrait.
+        color = QColor(
+            PALETTE["GREEN"] if self.isChecked() else PALETTE["BORDER_STRONG"]
         )
         pen = QPen(color, 3)
         pen.setCapStyle(Qt.RoundCap)
@@ -997,8 +996,20 @@ class SharedGuideManualView(GuideUltimeManualView):
         outer.setContentsMargins(10, 6, 10, 7)
         outer.setSpacing(10)
 
+        # One compact column: context above, live progress, count below.
+        donut_column = QVBoxLayout()
+        donut_column.setSpacing(2)
+        donut_heading = QLabel("PROGRESSION")
+        donut_heading.setObjectName("GuideCompactDonutHeading")
+        donut_heading.setAlignment(Qt.AlignCenter)
+        donut_column.addWidget(donut_heading)
         self.progress_donut = _GuideProgressDonut()
-        outer.addWidget(self.progress_donut, 0, Qt.AlignVCenter)
+        donut_column.addWidget(self.progress_donut, 0, Qt.AlignHCenter)
+        self.donut_count_label = QLabel("— / — fiches")
+        self.donut_count_label.setObjectName("GuideCompactDonutCount")
+        self.donut_count_label.setAlignment(Qt.AlignCenter)
+        donut_column.addWidget(self.donut_count_label)
+        outer.addLayout(donut_column, 0)
 
         right = QVBoxLayout()
         right.setSpacing(6)
@@ -1030,22 +1041,7 @@ class SharedGuideManualView(GuideUltimeManualView):
         self.guide_title_label.setToolTip(self._guide_title())
         title_row.addWidget(self.guide_title_label, 1)
 
-        self.page_jump = QSpinBox()
-        self.page_jump.setObjectName("GuideCompactPageJump")
-        self.page_jump.setPrefix("Fiche ")
-        self.page_jump.setRange(1, max(1, len(self.service.cards)))
-        self.page_jump.setMaximumWidth(115)
-        self.page_jump.setToolTip("Ouvrir directement la fiche sélectionnée")
-        self.page_jump.valueChanged.connect(
-            lambda value: self._show_index(value - 1)
-        )
-        title_row.addWidget(self.page_jump)
-        self.current_button = AtlasButton("Actuelle")
-        self.current_button.setObjectName("GuideCompactCurrentButton")
-        self.current_button.setIcon(_guide_symbol_icon(self.current_button, "current"))
-        self.current_button.clicked.connect(self.go_active)
-        title_row.addWidget(self.current_button)
-        # Compatibility-only sheet position; sheet title appears once below.
+        # The sheet selector lives beside its stage title, not here.
         self.nav_page_label = QLabel(self)
         self.nav_page_label.setObjectName("GuideManualNavPage")
         self.nav_page_label.setVisible(False)
@@ -1067,7 +1063,7 @@ class SharedGuideManualView(GuideUltimeManualView):
         title_row.addWidget(self.settings_button)
         right.addLayout(title_row)
 
-        # Row 2: THREE horizontal, equal-width blocks (never vertical stack).
+        # Row 2: route and preparation only; no duplicate Successes bar.
         metrics = QHBoxLayout()
         metrics.setSpacing(12)
         self._metric_caption_labels: dict[str, QLabel] = {}
@@ -1111,10 +1107,6 @@ class SharedGuideManualView(GuideUltimeManualView):
         self.preparation_progress_label = QLabel("—")
         add_metric("Préparation", "cube", "GREEN", self.preparation_bar, self.preparation_progress_label)
 
-        self.success_bar = QProgressBar()
-        self.success_bar.setObjectName("GuideCompactSuccessProgress")
-        self.success_progress_label = QLabel("—")
-        add_metric("Succès", "trophy", "YELLOW", self.success_bar, self.success_progress_label)
         right.addLayout(metrics)
 
         # Row 3: populated by the existing preparation, summary and participant
@@ -1216,6 +1208,17 @@ class SharedGuideManualView(GuideUltimeManualView):
         self.sheet_title_label.setWordWrap(True)
         labels.addWidget(self.sheet_title_label)
         top.addLayout(labels, 1)
+        self.page_jump = QSpinBox()
+        self.page_jump.setObjectName("GuideCompactPageJump")
+        self.page_jump.setRange(1, max(1, len(self.service.cards)))
+        self.page_jump.setSuffix(f" / {len(self.service.cards)}")
+        self.page_jump.setMaximumWidth(110)
+        self.page_jump.setToolTip("Ouvrir directement la fiche sélectionnée")
+        self.page_jump.setAccessibleName("Sélectionner la fiche du guide")
+        self.page_jump.valueChanged.connect(
+            lambda value: self._show_index(value - 1)
+        )
+        top.addWidget(self.page_jump, 0, Qt.AlignTop)
 
         self.participants_button = QToolButton()
         self.participants_button.setObjectName("GuideParticipantsButton")
@@ -1299,15 +1302,8 @@ class SharedGuideManualView(GuideUltimeManualView):
         self.participants_button.setToolTip(
             "Choisir les identités stables utilisées par la progression et les déplacements."
         )
-        if hasattr(self, "current_button"):
-            current_label = str(self.current_button.property("guideFullText") or "Actuelle")
-            self.current_button.setText("" if narrow else current_label)
-            self.current_button.setAccessibleName(current_label)
-            self.current_button.setToolTip(
-                "Revenir à la fiche actuelle" if current_label == "Actuelle"
-                else "Toutes les fiches sont terminées."
-            ) if narrow else None
-            self.page_jump.setMaximumWidth(93 if narrow else 115)
+        if hasattr(self, "page_jump"):
+            self.page_jump.setMaximumWidth(90 if narrow else 110)
 
     def resizeEvent(self, event) -> None:  # noqa: N802 - Qt API
         super().resizeEvent(event)
@@ -1353,7 +1349,7 @@ class SharedGuideManualView(GuideUltimeManualView):
                 button.setIcon(QIcon(icon_path))
             else:
                 button.setIcon(
-                    button.style().standardIcon(QStyle.SP_DirHomeIcon)
+                    _guide_symbol_icon(button, "people", color=PALETTE["TEXT_SOFT"])
                 )
             button.setProperty("guideClassLabel", class_label)
             button.setToolTip(self._participant_tooltip(character, class_label, progress))
@@ -1978,8 +1974,6 @@ class SharedGuideManualView(GuideUltimeManualView):
     def go_active(self) -> None:
         index = self._actual_index_for_participants()
         if index is None:
-            self.current_button.setEnabled(False)
-            self.current_button.setToolTip("Étape actuelle indisponible : progression non déterminable.")
             return
         self.active_index = index
         self._show_index(index)
@@ -2036,35 +2030,14 @@ class SharedGuideManualView(GuideUltimeManualView):
             self.route_bar.setValue(completed)
             self.route_progress_label.setText(f"{percent} %")
             self.progress_donut.set_percent(percent)
+            self.donut_count_label.setText(f"{completed} / {total} fiches")
         else:
             self.route_bar.setRange(0, 1)
             self.route_bar.setValue(0)
             self.route_progress_label.setText("—")
             self.progress_donut.set_percent(None)
+            self.donut_count_label.setText("— / — fiches")
 
-        success_rows: list[tuple[int, int]] = []
-        progress_getter = getattr(self.service, "progress", None)
-        if callable(progress_getter):
-            for character_key in keys:
-                try:
-                    progress = progress_getter(character_key)
-                    success_rows.append(
-                        (
-                            int(getattr(progress, "full_success_completed", 0) or 0),
-                            int(getattr(progress, "full_success_total", 0) or 0),
-                        )
-                    )
-                except (AttributeError, KeyError, TypeError, ValueError):
-                    success_rows = []
-                    break
-        success_total = max((total for _done, total in success_rows), default=0)
-        success_done = min((done for done, _total in success_rows), default=0)
-        self.success_bar.setRange(0, max(1, success_total))
-        self.success_bar.setValue(success_done)
-        self.success_progress_label.setText(
-            f"{max(0, min(100, round(success_done * 100 / success_total)))} %"
-            if success_total else "—"
-        )
         self._update_preparation_progress()
 
         total_cards = len(self.service.cards)
@@ -2072,30 +2045,14 @@ class SharedGuideManualView(GuideUltimeManualView):
         card = self.service.cards[index] if total_cards else {}
         chapter = str(card.get("manual_chapter_label") or "Guide").strip()
         title = str(card.get("manual_title") or card.get("destination") or "Fiche").strip()
-        self.sheet_meta_label.setText(f"FICHE {index + 1} · {chapter.upper()}")
+        self.sheet_meta_label.setText(f"ÉTAPE · {chapter.upper()}")
         self.sheet_title_label.setText(title)
         self.nav_page_label.setText(f"Page {index + 1} / {total_cards}")
         self.page_jump.blockSignals(True)
         self.page_jump.setRange(1, max(1, total_cards))
+        self.page_jump.setSuffix(f" / {total_cards}")
         self.page_jump.setValue(index + 1)
         self.page_jump.blockSignals(False)
-        actual_index = self._actual_index_for_participants()
-        route_finished = bool(keys) and bool(progress_rows) and all(
-            total > 0 and completed >= total for completed, total in progress_rows
-        )
-        self.current_button.setProperty(
-            "guideFullText", "Terminé" if route_finished else "Actuelle"
-        )
-        self._sync_compact_action_labels()
-        self.current_button.setEnabled(actual_index is not None)
-        self.current_button.setToolTip(
-            "Toutes les fiches sont terminées pour les personnages sélectionnés."
-            if route_finished else (
-                "Revenir à la première fiche encore nécessaire pour au moins un participant."
-                if actual_index is not None
-                else "Sélectionnez des personnages pour retrouver leur fiche actuelle."
-            )
-        )
 
     def _restore_route_lock_state(self) -> None:
         locked = False
