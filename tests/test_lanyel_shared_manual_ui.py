@@ -16,6 +16,7 @@ from PySide6.QtWidgets import (
     QCheckBox,
     QFrame,
     QGraphicsDropShadowEffect,
+    QGridLayout,
     QLabel,
     QProgressBar,
     QPushButton,
@@ -500,21 +501,48 @@ class LanyelSharedManualUiTests(unittest.TestCase):
                     "GuideManualNextButton",
                 ],
             )
+            self.assertIsNotNone(compact.findChild(QProgressBar, "GuideGlobalProgress"))
             self.assertIsNotNone(compact.findChild(QProgressBar, "GuideManualProgress"))
-            for symbol in ("Target", "Cube", "Trophy"):
+            self.assertIsNotNone(compact.findChild(QProgressBar, "GuideCompactPreparationProgress"))
+            self.assertIsNone(compact.findChild(QLabel, "GuideCompactDonutHeading"))
+            self.assertIsNone(compact.findChild(QLabel, "GuideCompactMetricIconTrophy"))
+            for symbol in ("Target", "Cube"):
                 metric_icon = compact.findChild(QLabel, f"GuideCompactMetricIcon{symbol}")
                 self.assertIsNotNone(metric_icon)
                 self.assertFalse(metric_icon.pixmap().isNull())
             self.assertIsNotNone(compact.findChild(QLabel, "GuideCompactTitleIcon"))
             self.assertIsNotNone(compact.findChild(QToolButton, "GuideManualProgressLock"))
-            self.assertIsNotNone(compact.findChild(QToolButton, "GuideParticipantsButton"))
-            self.assertIsNotNone(compact.findChild(QToolButton, "GuideSummaryButton"))
-            self.assertIsNotNone(compact.findChild(QToolButton, "GuidePreparationToggle"))
-            self.assertIsNone(sheet_header.findChild(QToolButton, "GuideParticipantsButton"))
+            self.assertIs(compact.findChild(QToolButton, "GuideParticipantsButton"),
+                          shared.participants_button)
             self.assertEqual(
-                [shared.header_actions_row.itemAt(i).widget().objectName() for i in range(3)],
-                ["GuidePreparationToggle", "GuideSummaryButton", "GuideParticipantsButton"],
+                set(compact.findChildren(QToolButton, "GuideMetricDropdown")),
+                {shared.summary_button, shared.preparation_button},
             )
+            self.assertEqual(shared.participants_button.size(), shared.summary_button.size())
+            self.assertEqual(shared.preparation_button.size(), shared.summary_button.size())
+            grid = shared._participants_control_column.parent()
+            self.assertIsInstance(grid, QGridLayout)
+            self.assertIs(grid.itemAtPosition(1, 2).layout(),
+                          shared._participants_control_column)
+            self.assertIs(grid.itemAtPosition(1, 0).layout().itemAt(1).widget(),
+                          shared.summary_button)
+            self.assertIs(grid.itemAtPosition(1, 1).layout().itemAt(1).widget(),
+                          shared.preparation_button)
+            self.assertFalse(hasattr(shared, "header_actions_row"))
+            self.assertIsNone(sheet_header.findChild(QToolButton, "GuideParticipantsButton"))
+            # Expanded menus must never move the shared Personnages control.
+            shared.summary_button.setChecked(True)
+            shared.preparation_button.setChecked(True)
+            shared.participants_button.setChecked(True)
+            self.app.processEvents()
+            self.assertIs(grid.itemAtPosition(1, 2).layout(),
+                          shared._participants_control_column)
+            self.assertTrue(shared.summary_panel.isVisibleTo(compact))
+            self.assertTrue(shared.preparation_panel.isVisibleTo(compact))
+            self.assertTrue(shared.participants_panel.isVisibleTo(compact))
+            shared.summary_button.setChecked(False)
+            shared.preparation_button.setChecked(False)
+            shared.participants_button.setChecked(False)
             self.assertFalse(hasattr(shared, "page_jump_button"))
             # The compact header starts with the guide icon/title; the
             # working catalogue back action belongs to the sheet below.
@@ -541,7 +569,9 @@ class LanyelSharedManualUiTests(unittest.TestCase):
             shared._refresh_participants_panel()
             shared._refresh_header()
             self.assertTrue(shared.route_progress_label.text().endswith(" %"))
-            self.assertIsNotNone(shared.progress_donut._percent)
+            self.assertTrue(shared.progress_donut.isHidden())
+            self.assertGreaterEqual(shared.global_progress_bar.maximum(), 1)
+            self.assertTrue(shared.global_progress_label.text().endswith(" %"))
             validation = shared.findChild(QPushButton, "GuideManualPageCheck")
             self.assertIsNotNone(validation)
             self.assertIn(validation.text(), ("Choisir des personnages", "Valider"))

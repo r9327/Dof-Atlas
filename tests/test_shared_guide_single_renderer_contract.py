@@ -78,10 +78,13 @@ class SharedGuideSingleRendererContractTests(unittest.TestCase):
         assert "sylvestre" not in source
 
 
-    def test_both_sources_construct_the_exact_same_shared_view(self) -> None:
+    def test_guide_succes_and_catalogue_routes_share_the_same_renderer(self) -> None:
         source = ROUTER.read_text(encoding="utf-8")
         assert 'CATALOG_MANUAL_GUIDE_IDS = frozenset({"dofus_sylvestre"})' in source
         assert source.count("view = SharedGuideManualView(") == 2
+        # Any added guide entry must reuse SharedGuideManualView, not a fork.
+        assert "SharedGuideManualView(" in source
+        assert "class Sylvestre" not in source
         assert "GuideUltimeManualRuntimeService(" in source
         assert "GuideCatalogManualRuntimeService(" in source
 
