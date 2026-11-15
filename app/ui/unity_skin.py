@@ -310,6 +310,15 @@ def unity_skin_stylesheet() -> str:
         ", ".join(f"QPushButton#{name}:focus" for name in focus_button_names)
         + " { border: 2px solid #D9EAF2; border-image: none; }"
     )
+    # Same indexed vector chevrons already used by Dev UI/Unity widgets.
+    # A styled spin-button needs explicit artwork or Qt drops native glyphs.
+    for direction in ("up", "down"):
+        artwork = _sprite_url(f"atlas-control-{direction}.svg")
+        if artwork:
+            rules.append(
+                f'QSpinBox#GuideCompactPageJump::{direction}-arrow {{ '
+                f'image: url("{artwork}"); width: 9px; height: 9px; }}'
+            )
     return "\n".join(rules)
 
 

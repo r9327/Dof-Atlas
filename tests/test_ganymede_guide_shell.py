@@ -18,6 +18,7 @@ from app.modules.encyclopedia.views.guide_catalog_view import GuideCatalogView
 from app.modules.encyclopedia.views.ganymede_guide_shell import GanymedeGuideShell
 from app.modules.encyclopedia.views.shared_manual_guide_view import SharedGuideManualView
 from app.modules.encyclopedia.views.guide_library_sources import load_ganymede_listings
+from app.ui.theme import atlas_stylesheet
 
 
 class GanymedeGuideShellTests(unittest.TestCase):
@@ -45,6 +46,9 @@ class GanymedeGuideShellTests(unittest.TestCase):
         self.assertIsNotNone(shell.findChild(QSpinBox, "GuideCompactPageJump"))
         self.assertFalse(shell.page_jump.isEnabled())
         self.assertEqual(shell.page_jump.text(), "—")
+        stylesheet = atlas_stylesheet()
+        self.assertIn("QSpinBox#GuideCompactPageJump::up-arrow", stylesheet)
+        self.assertIn("QSpinBox#GuideCompactPageJump::down-arrow", stylesheet)
         self.assertEqual(shell.summary_button.arrowType(), Qt.DownArrow)
         self.assertEqual(shell.preparation_button.arrowType(), Qt.DownArrow)
         self.assertFalse(shell.summary_button.isEnabled())
