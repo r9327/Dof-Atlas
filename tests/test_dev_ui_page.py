@@ -296,11 +296,10 @@ class DevUiPageTests(unittest.TestCase):
                 },
             )
             from app.modules.encyclopedia.views.shared_manual_guide_view import (
-                _GuideProgressDonut, _ParticipantPortraitButton,
+                _ParticipantPortraitButton,
             )
-            self.assertIsInstance(page.preview_header_donut, _GuideProgressDonut)
-            self.assertEqual(page.preview_header_donut._percent, 35)
-            self.assertEqual(page.preview_header_donut_count.text(), "7 fiches validées")
+            self.assertEqual(page.preview_header_global_progress.value(), 35)
+            self.assertIsNone(page.preview_compact_header.findChild(QWidget, "GuideCompactDonut"))
             self.assertEqual(page.preview_header_page_jump.suffix(), " / 20")
             self.assertIs(
                 page.preview_header_page_jump.parentWidget(),
@@ -319,9 +318,11 @@ class DevUiPageTests(unittest.TestCase):
             self.assertEqual(len(page.preview_header_preparation_rows), 3)
             quantity, validate = page.preview_header_preparation_rows[1]
             self.assertEqual(quantity.suffix(), " / 1")
-            self.assertEqual(validate.text(), "Valider")
+            from PySide6.QtWidgets import QCheckBox
+            self.assertIsInstance(validate, QCheckBox)
+            self.assertFalse(validate.isChecked())
             validate.click()
-            self.assertEqual((quantity.value(), validate.text()), (1, "Validé"))
+            self.assertEqual((quantity.value(), validate.isChecked()), (1, True))
             filters = page.preview_header_filter_group.buttons()
             filters[1].click()
             self.assertEqual(sum(button.isChecked() for button in filters), 1)
