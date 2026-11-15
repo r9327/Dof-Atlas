@@ -13,7 +13,7 @@ os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
 
 from PySide6.QtCore import Qt
 from PySide6.QtTest import QTest
-from PySide6.QtWidgets import QApplication, QLabel, QLineEdit, QWidget
+from PySide6.QtWidgets import QApplication, QGridLayout, QLabel, QLineEdit, QWidget
 
 
 class DevUiPageTests(unittest.TestCase):
@@ -314,7 +314,21 @@ class DevUiPageTests(unittest.TestCase):
             )
             self.assertEqual(
                 page.preview_header_controls["Préparation"].objectName(), "GuideMetricDropdown"
+            ) 
+            # All three controls share the identical grid row.
+            header_grid = page.preview_header_people_control_column.parent()
+            self.assertIsInstance(header_grid, QGridLayout)
+            self.assertEqual(
+                (header_grid.itemAtPosition(1, 0).layout() is not None,
+                 header_grid.itemAtPosition(1, 1).layout() is not None,
+                 header_grid.itemAtPosition(1, 2).layout() is page.preview_header_people_control_column),
+                (True, True, True),
             )
+            self.assertEqual(
+                page.preview_header_controls["Personnages"].size(),
+                page.preview_header_controls["Sommaire"].size(),
+            )
+
             self.assertEqual(len(page.preview_header_preparation_rows), 3)
             quantity, validate = page.preview_header_preparation_rows[1]
             self.assertEqual(quantity.suffix(), " / 1")

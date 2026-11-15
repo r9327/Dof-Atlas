@@ -1079,15 +1079,15 @@ class SharedGuideManualView(GuideUltimeManualView):
         right.addWidget(self.global_progress_bar)
 
         # Two original progress bars, retaining their navigation and values.
-        metrics = QHBoxLayout()
-        metrics.setSpacing(12)
+        metrics = QGridLayout()
+        metrics.setHorizontalSpacing(12)
+        metrics.setVerticalSpacing(2)
         self._metric_caption_labels: dict[str, QLabel] = {}
         self._metric_dropdown_buttons: dict[str, QToolButton] = {}
         def add_metric(
             name: str, symbol: str, color_key: str, bar: QProgressBar, value: QLabel
         ) -> None:
-            block = QVBoxLayout()
-            block.setSpacing(2)
+            column = len(self._metric_columns)
             caption = QHBoxLayout()
             caption.setSpacing(4)
             icon = QLabel()
@@ -1105,7 +1105,7 @@ class SharedGuideManualView(GuideUltimeManualView):
             caption.addStretch(1)
             value.setObjectName("GuideCompactMetricValue")
             caption.addWidget(value)
-            block.addLayout(caption)
+            metrics.addLayout(caption, 0, column)
             bar.setTextVisible(False)
             bar.setFixedHeight(7)
             # The bar keeps its original progress/navigation behaviour.
@@ -1123,15 +1123,17 @@ class SharedGuideManualView(GuideUltimeManualView):
             arrow.setToolTip(f"Ouvrir {target}")
             arrow.setAccessibleName(f"Afficher {target}")
             line.addWidget(arrow)
-            block.addLayout(line)
+            metrics.addLayout(line, 1, column)
             if name == "Route":
                 self.summary_button = arrow
             else:
                 self.preparation_button = arrow
             self._metric_dropdown_buttons[name] = arrow
-            self._metric_columns[name] = block
-            metrics.addLayout(block, 1)
-            metrics.setAlignment(block, Qt.AlignTop)
+            drawer_column = QVBoxLayout()
+            drawer_column.setContentsMargins(0, 0, 0, 0)
+            self._metric_columns[name] = drawer_column
+            metrics.addLayout(drawer_column, 2, column, Qt.AlignTop)
+            metrics.setColumnStretch(column, 1)
 
         self.route_bar = GuideManualProgressBar()
         self.route_bar.setObjectName("GuideManualProgress")
@@ -1145,9 +1147,11 @@ class SharedGuideManualView(GuideUltimeManualView):
         self.preparation_progress_label = QLabel("—")
         add_metric("Préparation", "cube", "GREEN", self.preparation_bar, self.preparation_progress_label)
 
+        # Same grid row as both dropdown arrows: exact alignment at any DPI,
+        # including while Route or Preparation is expanded.
         self._participants_control_column = QVBoxLayout()
-        self._participants_control_column.setSpacing(3)
-        metrics.addLayout(self._participants_control_column, 0)
+        self._participants_control_column.setContentsMargins(0, 0, 0, 0)
+        metrics.addLayout(self._participants_control_column, 1, 2, Qt.AlignVCenter)
         right.addLayout(metrics)
         self._header_content_layout = right
 
@@ -1257,7 +1261,7 @@ class SharedGuideManualView(GuideUltimeManualView):
         )
         self.participants_button.setToolButtonStyle(Qt.ToolButtonIconOnly)
         self.participants_button.setSizePolicy(QSizePolicy.Fixed, QSizePolicy.Fixed)
-        self.participants_button.setFixedSize(32, 28)
+        self.participants_button.setFixedSize(28, 24)
         self.participants_button.setIconSize(QSize(19, 19))
         self.participants_button.setCheckable(True)
         self.participants_button.setCursor(Qt.PointingHandCursor)

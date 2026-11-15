@@ -546,15 +546,15 @@ class DevUiPage(QWidget):
         self.preview_header_metrics: dict[str, QProgressBar] = {}
         self.preview_header_metric_icons: dict[str, QLabel] = {}
         self.preview_header_controls: dict[str, QToolButton] = {}
-        metrics = QHBoxLayout()
-        metrics.setSpacing(12)
+        metrics = QGridLayout()
+        metrics.setHorizontalSpacing(12)
+        metrics.setVerticalSpacing(2)
         self.preview_header_metric_columns: dict[str, QVBoxLayout] = {}
         for name, role, amount, icon_symbol, color_role in (
             ("Route", "GuideManualProgress", 35, "target", "RED"),
             ("Préparation", "GuideCompactPreparationProgress", 60, "cube", "GREEN"),
         ):
-            block = QVBoxLayout()
-            block.setSpacing(2)
+            column = len(self.preview_header_metric_columns)
             caption = QHBoxLayout()
             caption.setSpacing(4)
             metric_icon = QLabel()
@@ -575,7 +575,7 @@ class DevUiPage(QWidget):
             value = QLabel(f"{amount} %")
             value.setObjectName("GuideCompactMetricValue")
             caption.addWidget(value)
-            block.addLayout(caption)
+            metrics.addLayout(caption, 0, column)
             bar = GuideManualProgressBar() if name == "Route" else QProgressBar()
             bar.setObjectName(role)
             bar.setRange(0, 100)
@@ -602,14 +602,19 @@ class DevUiPage(QWidget):
             arrow.setToolTip(f"Ouvrir {target}")
             arrow.setAccessibleName(f"Afficher {target}")
             meter_row.addWidget(arrow)
-            block.addLayout(meter_row)
-            metrics.addLayout(block, 1)
-            metrics.setAlignment(block, Qt.AlignTop)
-            self.preview_header_metric_columns[target] = block
+            metrics.addLayout(meter_row, 1, column)
+            drawer_column = QVBoxLayout()
+            drawer_column.setContentsMargins(0, 0, 0, 0)
+            metrics.addLayout(drawer_column, 2, column, Qt.AlignTop)
+            metrics.setColumnStretch(column, 1)
+            self.preview_header_metric_columns[target] = drawer_column
             self.preview_header_controls[target] = arrow
             self.preview_header_metrics[name] = bar
         self.preview_header_people_control_column = QVBoxLayout()
-        metrics.addLayout(self.preview_header_people_control_column, 0)
+        self.preview_header_people_control_column.setContentsMargins(0, 0, 0, 0)
+        metrics.addLayout(
+            self.preview_header_people_control_column, 1, 2, Qt.AlignVCenter
+        )
         right.addLayout(metrics)
 
         # The progress arrows own both dropdowns; no duplicate text buttons.
@@ -618,7 +623,7 @@ class DevUiPage(QWidget):
         character_toggle.setIcon(_guide_symbol_icon(character_toggle, "people"))
         character_toggle.setIconSize(QSize(16, 16))
         character_toggle.setToolButtonStyle(Qt.ToolButtonIconOnly)
-        character_toggle.setFixedSize(32, 28)
+        character_toggle.setFixedSize(28, 24)
         character_toggle.setToolTip("Personnages")
         character_toggle.setAccessibleName("Personnages")
         character_toggle.setCheckable(True)
