@@ -29,21 +29,16 @@ class GanymedeGuideShell(SharedGuideManualView):
         on_back: Callable[[], None],
         parent: QWidget | None = None,
     ) -> None:
-        # Do not call the playable Guide constructor: that triggers service
-        # refresh, progress, participant and source-route loading.
-        QWidget.__init__(self, parent)
-        self.setObjectName("GuideUltimeGeneratedView")
-        self.service = _MetadataOnlyGuide()
-        self.character_key = ""
-        self.active_index = 0
-        self.view_index = 0
-        self.rendered_card_count = 0
         self._listing: GanymedeListing | None = None
 
-        # This method is the canonical SharedGuideManualView layout verbatim:
-        # compact header, route/preparation dropdowns, sheet header, scroll,
-        # navigation and indexed stylesheet selectors.
-        self._build_ui()
+        # Initialize the real Qt inheritance chain. The preview overrides
+        # refresh and participant loading, so this only constructs the shared
+        # widgets; no playable route or progress service is ever created.
+        super().__init__(
+            _MetadataOnlyGuide(),
+            parent=parent,
+            participant_service=object(),
+        )
 
         self.backToGuidesRequested.connect(on_back)
         self.guide_button.setToolTip("Retour au catalogue des Guides")
