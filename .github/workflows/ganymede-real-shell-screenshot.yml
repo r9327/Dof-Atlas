@@ -35,6 +35,7 @@ jobs:
       - name: Verify 95 metadata containers and indexed shared UI
         run: python -X faulthandler -m unittest -v tests.test_ganymede_guide_shell
       - name: Capture real indexed container at 1280 x 720
+        if: always()
         shell: bash
         run: |
           python - <<'PY'
@@ -56,8 +57,11 @@ jobs:
           backdrop.setWindowTitle("Atlas - Guide Ganymede - vrai conteneur Qt")
           backdrop.resize(1280, 720)
           layout = QVBoxLayout(backdrop)
+          print("DEBUG: before shell construction", flush=True)
           shell = GanymedeGuideShell(lambda: None, backdrop)
+          print("DEBUG: shell constructed", flush=True)
           shell.set_listing(cawotte)
+          print("DEBUG: listing attached", flush=True)
           layout.addWidget(shell)
           backdrop.show()
           app.processEvents()
