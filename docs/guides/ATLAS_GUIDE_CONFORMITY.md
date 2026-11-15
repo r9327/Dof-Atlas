@@ -705,7 +705,7 @@ limites pour tester les rejets sans allouer 128 Mio et simulent les jonctions
 sous Linux. Ils doivent être exécutés au SHA exact avant de déclarer ce lot
 PASS. Aucun guide Ganymède n'est autorisé, importé ou certifié par ce durcissement.
 
-## GIMP-004 — préparation du paquet à témoin indépendant (Phase 0)
+## GIMP-004 — publication et installation transactionnelles (Phase 0)
 
 Une étape de plus sépare le candidat prévisualisé du déploiement :
 `tools/atlas_guide_package_publisher.py` prépare **un seul** paquet JSON
@@ -715,10 +715,36 @@ et du fichier, au HEAD Git exact et à la référence du certificat. Le
 vérificateur est interrogé plusieurs fois et la sortie est relue par le
 chargeur canonique ; la moindre révocation ou corruption refuse le paquet.
 
-Aucun répertoire existant n'est réutilisé ; les pannes d'écriture et
-les redirections Windows sont testées avec des fixtures fictives. Les
-données réelles et la progression des personnages ne sont pas touchées.
-**Statut GIMP-004 : PENDING pour la publication/installateur réel et la
-recette Windows/DOFUS.** Un résultat `PACKAGE_PREPARED_NOT_INSTALLED`
-reste `certified=false`, `runtime_activation=false`, et ne doit
-jamais être présenté comme une certification du pilote Cawotte.
+Aucun répertoire existant n'est réutilisé lors de la préparation ; les pannes
+d'écriture et les redirections Windows sont testées avec des fixtures fictives.
+Les données réelles et la progression des personnages ne sont pas touchées.
+Un résultat `PACKAGE_PREPARED_NOT_INSTALLED` reste `certified=false`,
+`runtime_activation=false`, et ne doit jamais être présenté comme une
+certification du pilote Cawotte.
+
+Le même publieur possède maintenant l'unique étape d'installation
+`install_attested_guide_package`. Elle copie le paquet dans un magasin dédié
+versionné, sous verrou exclusif, puis publie un pointeur CAS `selected.json`.
+Avant et après la publication du pointeur, le fichier, l'entrée, le HEAD Git,
+la source, le certificat révocable et la reconstruction canonique du lecteur
+sont relus. Une panne après `os.replace`, y compris le cas ambigu « écriture
+réussie puis exception », restaure et vérifie le pointeur précédent avant de
+supprimer uniquement la nouvelle génération créée par la transaction.
+
+`rollback_installed_guide_package` exige la sélection exacte observée et ne
+peut restaurer qu'une génération immuable dont l'entrée, le SHA et le témoin
+sont encore valides. Le perdant d'une course de verrou ne supprime jamais le
+verrou du gagnant. L'installation et le rollback conservent
+`runtime_activation=false`, ne modifient ni `data/`, ni `saves/`, ni les deux
+guides optimisés, ni la progression des personnages. Le raccordement runtime
+reste une autorité séparée et révocable du `GuideTrustedSourcePackage`.
+
+Suite reproductible, uniquement avec des parcours fictifs :
+
+    py -3.13 -X utf8 -m unittest -v tests.test_atlas_guide_package_publisher
+
+Ces tests couvrent installation initiale, deux générations, rollback CAS,
+corruption/révocation, sélection périmée, panne post-pointeur, remplacement
+ambigu et verrou concurrent. Ils qualifient le contrat de code GIMP-004 mais
+ne constituent ni une installation de Cawotte, ni une activation, ni une
+preuve Windows/DOFUS, ni un certificat de guide réel.

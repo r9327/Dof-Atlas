@@ -21,8 +21,11 @@ from tools.atlas_guide_candidate_store import (
     publish_candidate, rollback_candidate, selected_candidate,
 )
 from tools.atlas_guide_importer import prepare_preview
+from tools import atlas_guide_package_publisher as publisher
 from tools.atlas_guide_package_publisher import (
-    GuidePackagePublishBlocked, prepare_attested_guide_package,
+    GuidePackagePublishBlocked, install_attested_guide_package,
+    prepare_attested_guide_package, rollback_installed_guide_package,
+    selected_installed_guide_package,
 )
 
 HEAD = "a" * 40
@@ -55,6 +58,7 @@ class GuidePackagePublisherTests(unittest.TestCase):
         self.root = Path(tmp.name)
         self.store = self.root / "candidates"
         self.out = self.root / "package-one"
+        self.install = self.root / "installed"
         self.preview = prepare_preview(
             source(), expected_guides=1, expected_steps=1,
         )
@@ -258,6 +262,193 @@ class GuidePackagePublisherTests(unittest.TestCase):
         with self.assertRaises(ValueError):
             package.load_route(GUIDE)
         self.assertFalse(package.authorize(GUIDE, self.preview["routes"][0]))
+
+    def test_transactional_install_rechecks_and_never_activates_runtime(self):
+        prepared = prepare_attested_guide_package(**self.args())
+        result = install_attested_guide_package(
+            prepared=prepared, install_root=self.install,
+            build_head_sha=HEAD, witness=self.witness,
+        )
+        self.assertEqual(result["status"], "PACKAGE_INSTALLED_NOT_ACTIVATED")
+        self.assertEqual(result["previous_sha256"], "NONE")
+        self.assertEqual(result["selected_sha256"], prepared["package_sha256"])
+        self.assertFalse(result["certified"])
+        self.assertFalse(result["runtime_activation"])
+        selected = selected_installed_guide_package(
+            install_root=self.install, build_head_sha=HEAD, witness=self.witness,
+        )
+        self.assertEqual(selected["selected_sha256"], prepared["package_sha256"])
+        self.assertFalse((self.root / "progress.json").exists())
+        self.assertTrue(self.out.is_dir())
+
+    def test_install_stale_selection_and_revocation_fail_without_store_creation(self):
+        prepared = prepare_attested_guide_package(**self.args())
+        for expected, witness in (("b" * 64, self.witness), ("NONE", lambda *args: False)):
+            with self.subTest(expected=expected):
+                with self.assertRaises(GuidePackagePublishBlocked):
+                    install_attested_guide_package(
+                        prepared=prepared, install_root=self.install,
+                        expected_selected=expected,
+                        build_head_sha=HEAD, witness=witness,
+                    )
+        self.assertFalse(self.install.exists())
+
+    def test_installed_selection_rejects_unexpected_metadata(self):
+        prepared = prepare_attested_guide_package(**self.args())
+        install_attested_guide_package(
+            prepared=prepared, install_root=self.install,
+            build_head_sha=HEAD, witness=self.witness,
+        )
+        selected_file = self.install / "selected.json"
+        payload = json.loads(selected_file.read_text(encoding="utf-8"))
+        payload["ignored_override"] = True
+        selected_file.write_text(
+            json.dumps(payload, sort_keys=True), encoding="utf-8",
+        )
+        with self.assertRaisesRegex(
+                GuidePackagePublishBlocked, "selection contract"):
+            selected_installed_guide_package(
+                install_root=self.install,
+                build_head_sha=HEAD,
+                witness=self.witness,
+            )
+
+    def test_post_install_failure_restores_pointer_and_removes_new_generation(self):
+        prepared = prepare_attested_guide_package(**self.args())
+        original = publisher._verify_installed_generation
+        calls = 0
+
+        def fail_after_pointer(*args, **kwargs):
+            nonlocal calls
+            calls += 1
+            if calls == 3:
+                raise GuidePackagePublishBlocked("synthetic post-pointer failure")
+            return original(*args, **kwargs)
+
+        with patch.object(publisher, "_verify_installed_generation", fail_after_pointer):
+            with self.assertRaisesRegex(GuidePackagePublishBlocked, "post-pointer"):
+                install_attested_guide_package(
+                    prepared=prepared, install_root=self.install,
+                    build_head_sha=HEAD, witness=self.witness,
+                )
+        selected = selected_installed_guide_package(
+            install_root=self.install, build_head_sha=HEAD, witness=self.witness,
+        )
+        self.assertEqual(selected["selected_sha256"], "NONE")
+        self.assertEqual(list((self.install / "generations").iterdir()), [])
+
+    def test_ambiguous_pointer_replace_is_detected_and_rolled_back(self):
+        prepared = prepare_attested_guide_package(**self.args())
+        original = publisher._atomic_document
+        injected = False
+
+        def replace_then_fail(path, payload):
+            nonlocal injected
+            original(path, payload)
+            if (path.name == "selected.json"
+                    and payload.get("selected_sha256") != "NONE"
+                    and not injected):
+                injected = True
+                raise OSError("synthetic success then failure")
+
+        with patch.object(publisher, "_atomic_document", replace_then_fail):
+            with self.assertRaises(GuidePackagePublishBlocked):
+                install_attested_guide_package(
+                    prepared=prepared, install_root=self.install,
+                    build_head_sha=HEAD, witness=self.witness,
+                )
+        selected = selected_installed_guide_package(
+            install_root=self.install, build_head_sha=HEAD, witness=self.witness,
+        )
+        self.assertEqual(selected["selected_sha256"], "NONE")
+        self.assertEqual(list((self.install / "generations").iterdir()), [])
+
+    def test_concurrent_install_lock_is_never_removed_by_loser(self):
+        prepared = prepare_attested_guide_package(**self.args())
+        publisher._managed_install_root(self.install, initialize=True)
+        lock = self.install / ".install.lock"
+        lock.write_text("other transaction", encoding="utf-8")
+        with self.assertRaisesRegex(GuidePackagePublishBlocked, "already running"):
+            install_attested_guide_package(
+                prepared=prepared, install_root=self.install,
+                build_head_sha=HEAD, witness=self.witness,
+            )
+        self.assertEqual(lock.read_text(encoding="utf-8"), "other transaction")
+
+    def test_explicit_installed_rollback_is_cas_and_post_verified(self):
+        prepared = prepare_attested_guide_package(**self.args())
+        installed = install_attested_guide_package(
+            prepared=prepared, install_root=self.install,
+            build_head_sha=HEAD, witness=self.witness,
+        )
+        with self.assertRaisesRegex(GuidePackagePublishBlocked, "Stale"):
+            rollback_installed_guide_package(
+                install_root=self.install, expected_selected="b" * 64,
+                build_head_sha=HEAD, witness=self.witness,
+            )
+        rollback = rollback_installed_guide_package(
+            install_root=self.install,
+            expected_selected=installed["selected_sha256"],
+            build_head_sha=HEAD, witness=self.witness,
+        )
+        self.assertEqual(rollback["status"], "INSTALLED_PACKAGE_ROLLED_BACK")
+        self.assertEqual(rollback["selected_sha256"], "NONE")
+        selected = selected_installed_guide_package(
+            install_root=self.install, build_head_sha=HEAD, witness=self.witness,
+        )
+        self.assertEqual(selected["status"], "NO_PACKAGE_INSTALLED")
+
+    def test_install_two_generations_then_restore_previous_verified_package(self):
+        prepared_one = prepare_attested_guide_package(**self.args())
+        installed_one = install_attested_guide_package(
+            prepared=prepared_one, install_root=self.install,
+            build_head_sha=HEAD, witness=self.witness,
+        )
+        changed_source = source()
+        changed_source["guides"][0]["steps"][0]["actions"][0]["text"] = (
+            "Aller prudemment en [4,-7]"
+        )
+        preview_two = prepare_preview(
+            changed_source, expected_guides=1, expected_steps=1,
+        )
+        staged_two = publish_candidate(
+            preview_two, root=self.store,
+            expected_selected=self.staged["candidate_sha256"],
+        )
+        out_two = self.root / "package-two"
+
+        def both_sources(guide_id, digest, source_sha, head, certificate):
+            return (guide_id == GUIDE and head == HEAD and certificate == CERT
+                    and source_sha in {
+                        self.preview["source_sha256"], preview_two["source_sha256"],
+                    }
+                    and isinstance(digest, str) and len(digest) == 64)
+
+        prepared_two = prepare_attested_guide_package(
+            candidate_root=self.store,
+            expected_selected=staged_two["candidate_sha256"],
+            route_id=GUIDE, destination=out_two,
+            build_head_sha=HEAD, certificate_ref=CERT, witness=both_sources,
+        )
+        installed_two = install_attested_guide_package(
+            prepared=prepared_two, install_root=self.install,
+            expected_selected=installed_one["selected_sha256"],
+            build_head_sha=HEAD, witness=both_sources,
+        )
+        self.assertNotEqual(
+            installed_two["selected_sha256"], installed_one["selected_sha256"],
+        )
+        restored = rollback_installed_guide_package(
+            install_root=self.install,
+            expected_selected=installed_two["selected_sha256"],
+            restore_sha256=installed_one["selected_sha256"],
+            build_head_sha=HEAD, witness=both_sources,
+        )
+        self.assertEqual(restored["selected_sha256"], installed_one["selected_sha256"])
+        selected = selected_installed_guide_package(
+            install_root=self.install, build_head_sha=HEAD, witness=both_sources,
+        )
+        self.assertEqual(selected["selected_sha256"], installed_one["selected_sha256"])
 
 
 if __name__ == "__main__":
