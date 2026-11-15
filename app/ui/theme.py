@@ -3162,21 +3162,28 @@ QLabel#GuideGlobalProgressTitle {
     font-size: @FONT_SMALL;
     font-weight: 700;
 }
-QToolButton#GuideMetricDropdown,
+/* Inline Route/Preparation chevrons: small invisible hit target at rest. */
+QToolButton#GuideMetricDropdown {
+    background: transparent;
+    border: 1px solid transparent;
+    border-radius: @RADIUS_XS;
+    padding: 0;
+}
+QToolButton#GuideMetricDropdown:hover,
+QToolButton#GuideMetricDropdown:checked {
+    background: @GLASS_HOVER;
+    border-color: @GUIDE_TOGGLE_BORDER;
+}
 QToolButton#GuideParticipantsButton {
     background: @GLASS_BUTTON;
     border: 1px solid @GUIDE_TOGGLE_BORDER;
     border-radius: @RADIUS_XS;
-    color: @TEXT_SOFT;
     padding: 0;
 }
-QToolButton#GuideMetricDropdown:hover,
-QToolButton#GuideMetricDropdown:checked,
 QToolButton#GuideParticipantsButton:hover,
 QToolButton#GuideParticipantsButton:checked {
     background: @GLASS_HOVER;
     border-color: @GREEN_BORDER;
-    color: @TEXT;
 }
 
 /* Shared Guide navigation never falls back to a black native button. */
@@ -3572,7 +3579,7 @@ QFrame#GuideManualWarningSection QLabel#GuideManualLine {
 
 #GuideManualPrev,
 #GuideManualNextButton {
-    background: @PANEL_HOVER;
+    background: @GLASS_BUTTON;
     color: @TEXT_SOFT;
     border: 1px solid @BORDER;
     border-radius: @RADIUS_XS;

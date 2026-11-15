@@ -4,7 +4,7 @@ from pathlib import Path
 from typing import Literal
 
 from PySide6.QtCore import QSize, Qt
-from PySide6.QtGui import QColor, QIcon, QImage, QPainter, QPixmap
+from PySide6.QtGui import QColor, QIcon, QImage, QPainter, QPixmap, QTransform
 from PySide6.QtWidgets import (
     QCalendarWidget,
     QComboBox,
@@ -26,7 +26,7 @@ from app.ui.unity_palette import (
     UNITY_SIZES_PX, UNITY_SPACING_PX,
 )
 from app.ui.splash_image import clear_connected_dark_background
-from app.ui.unity_skin import sprite_icon_path
+from app.ui.unity_skin import sprite_icon_path, unity_guide_chevron_path
 
 
 BUTTON_OBJECT_NAMES = {
@@ -231,6 +231,21 @@ class AtlasGuideCover(QLabel):
         return not pixmap.isNull()
 
 
+def atlas_guide_arrow_icon(direction: Literal["up", "down", "left", "right"]) -> QIcon:
+    """One original Unity chevron source for all Guide arrows."""
+    path = unity_guide_chevron_path("down" if direction in ("left", "right") else direction)
+    if path is None:
+        return QIcon()
+    pixmap = QIcon(str(path)).pixmap(QSize(14, 14))
+    if direction in ("left", "right"):
+        pixmap = pixmap.transformed(QTransform().rotate(
+            90 if direction == "left" else -90), Qt.SmoothTransformation)
+    icon = QIcon()
+    icon.addPixmap(pixmap, QIcon.Normal)
+    icon.addPixmap(pixmap, QIcon.Disabled)
+    return icon
+
+
 class AtlasGuideDisclosure(QToolButton):
     """Shared Guide dropdown: down opens, up closes, with indexed Unity QSS."""
 
@@ -240,11 +255,15 @@ class AtlasGuideDisclosure(QToolButton):
         self.setCheckable(True)
         self.setCursor(Qt.PointingHandCursor)
         self.setFocusPolicy(Qt.StrongFocus)
-        self.setArrowType(Qt.DownArrow)
+        self.setIconSize(QSize(14, 14))
         self.toggled.connect(self._sync_direction)
+        self._sync_direction(False)
 
     def _sync_direction(self, opened: bool) -> None:
-        self.setArrowType(Qt.UpArrow if opened else Qt.DownArrow)
+        icon = atlas_guide_arrow_icon("up" if opened else "down")
+        self.setArrowType(Qt.NoArrow if not icon.isNull() else
+                          Qt.UpArrow if opened else Qt.DownArrow)
+        self.setIcon(icon)
 
 
 class AtlasPanelToggle(QToolButton):

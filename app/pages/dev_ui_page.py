@@ -59,6 +59,7 @@ from app.ui.components import (
     AtlasPageTitle,
     AtlasPanelToggle,
     AtlasGuideDisclosure,
+    atlas_guide_arrow_icon,
     AtlasGuideCover,
     AtlasStatusBadge,
     atlas_application_icon,
@@ -641,9 +642,6 @@ class DevUiPage(QWidget):
                         f"Guide · navigation route {round(fraction * 100)} % (aperçu)"
                     )
                 )
-            meter_row = QHBoxLayout()
-            meter_row.setSpacing(5)
-            meter_row.addWidget(bar, 1, Qt.AlignVCenter)
             arrow = AtlasGuideDisclosure()
             arrow.setFixedSize(
                 UNITY_CONTROL_SIZES_PX["progress_toggle_width"],
@@ -653,8 +651,8 @@ class DevUiPage(QWidget):
             target = "Sommaire" if name == "Route" else "Préparation"
             arrow.setToolTip(f"Ouvrir {target}")
             arrow.setAccessibleName(f"Afficher {target}")
-            meter_row.addWidget(arrow)
-            metrics.addLayout(meter_row, 1, column)
+            caption.insertWidget(2, arrow, 0, Qt.AlignVCenter)
+            metrics.addWidget(bar, 1, column, Qt.AlignVCenter)
             drawer_column = QVBoxLayout()
             drawer_column.setContentsMargins(0, 0, 0, 0)
             metrics.addLayout(drawer_column, 2, column, Qt.AlignTop)
@@ -665,7 +663,7 @@ class DevUiPage(QWidget):
         self.preview_header_people_control_column = QVBoxLayout()
         self.preview_header_people_control_column.setContentsMargins(0, 0, 0, 0)
         metrics.addLayout(
-            self.preview_header_people_control_column, 1, 2, Qt.AlignVCenter
+            self.preview_header_people_control_column, 0, 2, Qt.AlignVCenter
         )
         right.addLayout(metrics)
 

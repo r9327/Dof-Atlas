@@ -319,22 +319,21 @@ class DevUiPageTests(unittest.TestCase):
             header_grid = page.preview_header_people_control_column.parent()
             self.assertIsInstance(header_grid, QGridLayout)
             self.assertEqual(
-                (header_grid.itemAtPosition(1, 0).layout() is not None,
-                 header_grid.itemAtPosition(1, 1).layout() is not None,
-                 header_grid.itemAtPosition(1, 2).layout() is page.preview_header_people_control_column),
+                (header_grid.itemAtPosition(0, 0).layout() is not None,
+                 header_grid.itemAtPosition(0, 1).layout() is not None,
+                 header_grid.itemAtPosition(0, 2).layout() is page.preview_header_people_control_column),
                 (True, True, True),
             )
-            self.assertEqual(
-                page.preview_header_controls["Personnages"].size(),
-                page.preview_header_controls["Sommaire"].size(),
-            )
+            self.assertEqual(page.preview_header_controls["Sommaire"].width(), 18)
+            self.assertEqual(page.preview_header_controls["Personnages"].width(), 18)
             from PySide6.QtCore import Qt
             disclosure = page.preview_header_controls["Sommaire"]
-            self.assertEqual(disclosure.arrowType(), Qt.DownArrow)
+            self.assertFalse(disclosure.icon().isNull())
+            self.assertEqual(disclosure.arrowType(), Qt.NoArrow)
             disclosure.click()
-            self.assertEqual(disclosure.arrowType(), Qt.UpArrow)
+            self.assertTrue(disclosure.isChecked())
             disclosure.click()
-            self.assertEqual(disclosure.arrowType(), Qt.DownArrow)
+            self.assertFalse(disclosure.isChecked())
             self.assertEqual(
                 page.guide_manual_scroll_sample.objectName(), "GuideManualScroll"
             )
