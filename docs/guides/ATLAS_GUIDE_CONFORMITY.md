@@ -61,6 +61,84 @@ the user is authorized to consult. Do not publish protected source text in logs.
 The library CLI and 95/7705 fixtures exercise the **tool contract** only.
 The GitHub Delivery Guard remains blocking while GIMP criteria are PENDING.
 
+## GIMP-011 — protocole documentaire reproductible
+
+Cette section est le registre documentaire de GIMP-011. Elle ne transforme
+aucune preuve synthétique en certificat de guide réel. Toutes les commandes
+doivent partir d'un checkout complet et propre du **même SHA exact** :
+
+    git rev-parse HEAD
+    py -3.13 -X utf8 -m unittest -v tests.test_atlas_guide_conformity tests.test_atlas_guide_importer_preview tests.test_atlas_guide_pipeline tests.test_atlas_guide_package_publisher
+    py -3.13 -X utf8 -m tools.atlas_doctor graph --rebuild --json
+    py -3.13 -X utf8 -m tools.atlas_doctor agent check tools/atlas_guide_conformity.py tools/atlas_guide_pipeline.py tools/atlas_guide_package_publisher.py --base-ref <base-sha> --run-tests --json
+    py -3.13 -X utf8 -m tools.atlas_doctor agent validate tools/atlas_guide_conformity.py tools/atlas_guide_pipeline.py tools/atlas_guide_package_publisher.py --base-ref <base-sha> --json
+    py -3.13 -X utf8 -m tools.atlas_guide_conformity --reference reference_authorized.json --before before_atlas.json --after after_atlas.json --output-dir artifacts/guide_conformity/<guide-id>-<head-sha>
+
+`<base-sha>`, `<guide-id>` et `<head-sha>` doivent être remplacés par les
+valeurs réellement contrôlées. Un dossier de rapports neuf est obligatoire.
+Conserver `before.json`, `after.json`, `before_after.json`, le SHA-256 des trois
+entrées, le SHA Git, les sorties Doctor/Graphify et les liens des jobs CI du
+même SHA. Ne jamais recopier un PASS obtenu sur un HEAD précédent.
+
+### Matrice des preuves obligatoires
+
+| Preuve | Producteur indépendant ou commande | Seuil d'acceptation | État tant qu'elle manque |
+|---|---|---|---|
+| Droits de la source | Autorité autorisée, distincte de l'export Atlas | reçu valide lié au SHA source | `NOT_CERTIFIED` |
+| Référence indépendante | Collecteur/vérificateur distinct de l'importeur | inventaire complet, reçu valide, identité distincte | `NOT_CERTIFIED` |
+| AVANT/APRÈS/delta | `tools.atlas_guide_conformity` | statut PASS et zéro anomalie | `BLOCKED` |
+| Projection lecteur commun | adaptateur canonique + tests ciblés | aucune action perdue, dupliquée ou réordonnée | `BLOCKED` |
+| Code et architecture | Doctor + Graphify au SHA exact | PASS sans blocker, graphe de provenance exact | `NOT_RUN` ou `BLOCKED` |
+| UI Qt synthétique | CI Windows au SHA exact | jobs requis PASS, aucun skip présenté comme PASS | `NOT_RUN` |
+| Windows/DOFUS réel | opérateur humain selon #362 | recette entière signée sur le pilote | `NOT_RUN` |
+| Certificat final | hôte de confiance indépendant | source, code, règles, runtime et guide liés aux SHA exacts | `NOT_CERTIFIED` |
+
+Le seuil du comparateur est strict : `after.issue_count == 0`, aucune entrée
+dans `persistent` ou `introduced`, inventaires complets et compteurs strictement
+égaux. `resolved` peut conserver la trace des anomalies corrigées entre AVANT
+et APRÈS, mais ne dispense jamais de vérifier que l'état APRÈS est entièrement
+vert. Toute anomalie `MISSING_*`, `EXTRA_*`, `VALUE_MISMATCH`,
+`TYPE_MISMATCH`, `DUPLICATE`, `AMBIGUOUS` ou `UNVERIFIABLE` est bloquante.
+Un test non exécuté, un skip, une preuve périmée ou un rollback incomplet vaut
+également `BLOCKED`, jamais PASS.
+
+### Exemples de diffs réellement émis par le comparateur
+
+Les exemples suivants proviennent des fixtures fictives de
+`tests.test_atlas_guide_conformity`; ils montrent le format réel sans exposer
+de contenu Ganymède. La suppression d'une branche produit notamment :
+
+    MISSING_GUIDE  .guides[2220]
+    MISSING_STEP   .guides[2220].steps[one]
+    MISSING_ACTION .guides[2220].steps[one].actions[fight]
+
+Une coordonnée modifiée ou incomplète produit notamment :
+
+    VALUE_MISMATCH .guides[2219].steps[B].actions[move].coordinates[0]
+    MISSING_FIELD  .guides[2219].steps[B].actions[move].coordinates[1]
+    VALUE_MISMATCH .guides[2219].steps[B].actions[move].coordinates.length
+
+Ces lignes sont des exemples de diagnostic, pas des faits DOFUS ni des preuves
+sur Cawotte. Les rapports JSON complets conservent aussi les valeurs attendue
+et observée, l'identité stable, `evidence_ref` et la correction proposée.
+
+### Confidentialité et limites de l'automatisation
+
+Les exports autorisés et références indépendantes restent hors Git, hors logs
+publics et hors captures. Les rapports partagés ne doivent contenir que les
+identifiants bornés, compteurs, empreintes, codes d'anomalie et références de
+preuve nécessaires ; supprimer les textes protégés, URLs privées, jetons,
+identités de compte et données de personnage. Une empreinte prouve seulement
+l'identité d'octets, jamais les droits, l'indépendance ou l'exactitude métier.
+
+Les tests automatiques prouvent le comportement du code sur leurs entrées. Ils
+ne prouvent ni l'autorisation de la source, ni l'exhaustivité réelle des 95
+guides, ni la fidélité visuelle, les clics dans DOFUS, la progression d'un vrai
+personnage, les performances Windows, le rollback d'une installation réelle
+ou l'indépendance du certificateur. La recette humaine Windows/DOFUS reste
+séparée dans l'issue #362, conformément à GIMP-007 ; son report explicite est
+suivi dans cette issue et ne peut pas être remplacé par cette documentation.
+
 
 ## Création structurée et utilisation commune (PR #363)
 
