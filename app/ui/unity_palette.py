@@ -462,8 +462,14 @@ UNITY_UI_FAMILY_INDEX = {
         "scope": "shared",
     },
     "metrics": {
-        "title": "Tailles · typographie · espacements",
-        "components": ("UNITY_SIZES_PX", "UNITY_ORGANIZER_METRICS_PX", "UNITY_CONTENT_TYPOGRAPHY_PX", "UNITY_SPACING_PX", "UNITY_TYPOGRAPHY", "SIZES", "SPACING", "TYPOGRAPHY", "UNITY_RADII"),
+        "title": "Dimensions · responsive · typographie · espacements",
+        "components": (
+            "UNITY_SIZES_PX", "UNITY_WINDOW_PRESETS_PX", "UNITY_LAYOUT_SIZES_PX",
+            "UNITY_CONTROL_SIZES_PX", "UNITY_LAYOUT_BREAKPOINTS_PX",
+            "unity_responsive_columns", "UNITY_ORGANIZER_METRICS_PX",
+            "UNITY_CONTENT_TYPOGRAPHY_PX", "UNITY_SPACING_PX", "UNITY_TYPOGRAPHY",
+            "SIZES", "SPACING", "TYPOGRAPHY", "UNITY_RADII",
+        ),
         "style_owner": "app/ui/unity_palette.py + app/ui/theme.py",
         "scope": "shared",
     },
