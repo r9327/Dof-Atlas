@@ -486,7 +486,9 @@ class DevUiPage(QWidget):
         outer.setSpacing(10)
 
         # Exact Qt-painted donut from the real shared Guide implementation.
-        donut_column = QVBoxLayout()
+        donut_block = QWidget()
+        donut_column = QVBoxLayout(donut_block)
+        donut_column.setContentsMargins(0, 0, 0, 0)
         donut_column.setSpacing(2)
         donut_heading = QLabel("PROGRESSION")
         donut_heading.setObjectName("GuideCompactDonutHeading")
@@ -499,7 +501,7 @@ class DevUiPage(QWidget):
         self.preview_header_donut_count.setObjectName("GuideCompactDonutCount")
         self.preview_header_donut_count.setAlignment(Qt.AlignCenter)
         donut_column.addWidget(self.preview_header_donut_count)
-        outer.addLayout(donut_column, 0)
+        outer.addWidget(donut_block, 0, Qt.AlignVCenter)
 
         right = QVBoxLayout()
         right.setSpacing(6)
