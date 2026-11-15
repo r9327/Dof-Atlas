@@ -109,29 +109,35 @@ def capture(output: Path, *, width: int = 1100, height: int = 800) -> dict[str, 
             ):
                 raise RuntimeError(f"Unable to save {part}")
             results["screenshots"][f"part_{number + 1}"] = str(part)
-        # Two actual opened-state captures of the new shared Guide controls.
-        # Capture only this developer-only preview, never real gameplay data.
+        # Actual Qt screenshots: six independent combinations requested by user.
         backdrop.resize(width, height)
         app.processEvents()
-        page.gallery_scroll.ensureWidgetVisible(page.preview_compact_header, 0, 8)
+        combinations = (
+            ("classique", False, False, False),
+            ("personnages", False, False, True),
+            ("preparation", True, False, False),
+            ("preparation-personnages", True, False, True),
+            ("sommaire", False, True, False),
+            ("sommaire-personnages", False, True, True),
+        )
+        for label, preparation, summary, people in combinations:
+            page.preview_header_controls["Préparation"].setChecked(preparation)
+            page.preview_header_controls["Sommaire"].setChecked(summary)
+            page.preview_header_controls["Personnages"].setChecked(people)
+            app.processEvents()
+            page.gallery_scroll.ensureWidgetVisible(page.preview_compact_header, 0, 8)
+            app.processEvents()
+            file = output / f"dev-ui-entete-{label}.png"
+            if not backdrop.grab().save(str(file), "PNG"):
+                raise RuntimeError(f"Unable to capture {file}")
+            results["screenshots"][f"header_{label}"] = str(file)
+            if label == "preparation":
+                results["screenshots"]["header_preparation"] = str(file)
+            elif label == "sommaire":
+                results["screenshots"]["header_summary"] = str(file)
+        for key in ("Préparation", "Sommaire", "Personnages"):
+            page.preview_header_controls[key].setChecked(False)
         app.processEvents()
-        for key, file_name in (
-            ("Préparation", "dev-ui-entetes-preparation.png"),
-            ("Sommaire", "dev-ui-entetes-sommaire.png"),
-        ):
-            toggle = page.preview_header_controls[key]
-            toggle.setChecked(True)
-            app.processEvents()
-            page.gallery_scroll.ensureWidgetVisible(
-                page.preview_compact_header, 0, 8
-            )
-            app.processEvents()
-            shot = output / file_name
-            if not backdrop.grab().save(str(shot), "PNG"):
-                raise RuntimeError(f"Unable to capture {shot}")
-            results["screenshots"][f"header_{'preparation' if key == 'Préparation' else 'summary'}"] = str(shot)
-            toggle.setChecked(False)
-            app.processEvents()
         # Restore the user-sized viewport before opening native popups.
         backdrop.resize(width, height)
         app.processEvents()
