@@ -182,7 +182,7 @@ def unity_skin_stylesheet() -> str:
         "background: rgba(24, 37, 70, 0.93); border: 1px solid #475F89; }",
         "QFrame#GuidePreparationPanel { "
         "background: %s; border: 1px solid %s; }" % (
-            UNITY_PALETTE["GUIDE_COMPACT_SURFACE"], UNITY_PALETTE["BORDER_SOFT"],
+            UNITY_PALETTE["PANEL_2"], UNITY_PALETTE["BORDER_SOFT"],
         ),
         # Small bevels and stronger contrast for the real guide surfaces.
         # QSS has no native box-shadow; personal 9-slice sprites can supply
