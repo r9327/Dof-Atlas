@@ -85,6 +85,18 @@ class UnityPaletteTests(unittest.TestCase):
 
 
 
+    def test_quests_and_achievement_filters_keep_indexed_geometry(self) -> None:
+        from app.ui.unity_palette import UNITY_MODULE_GEOMETRY_PX
+
+        quests = UNITY_MODULE_GEOMETRY_PX["quests"]
+        self.assertEqual(quests["hierarchy_open_width"], 300)
+        self.assertEqual(quests["hierarchy_collapsed_width"], 44)
+        self.assertEqual(quests["search_min_height"], 34)
+        self.assertEqual(quests["detail_initial_width"], 900)
+        filters = UNITY_MODULE_GEOMETRY_PX["achievement_filters"]
+        self.assertEqual(filters["page_margins"], (8, 8, 8, 8))
+        self.assertEqual(filters["card_margins"], (7, 6, 7, 6))
+
     def test_startup_and_equipment_geometry_are_indexed_without_new_sizes(self) -> None:
         from app.ui.unity_palette import (
             UNITY_MODULE_GEOMETRY_OWNERS, UNITY_MODULE_GEOMETRY_PX,

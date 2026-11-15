@@ -409,6 +409,21 @@ UNITY_MODULE_GEOMETRY_PX = {
         "summary_height": 74, "menu_button_min_width": 108,
     },
     "world_map": {"canvas_min_size": (420, 320)},
+    # Existing Quêtes hierarchy and search dimensions, not forced across modules.
+    "quests": {
+        "hierarchy_open_width": 300, "hierarchy_collapsed_width": 44,
+        "search_min_height": 34, "quest_list_max_height": 220,
+        "collapse_button_box": UNITY_SIZES_PX["icon_large"],
+        "detail_initial_width": 900, "deferred_detail_padding": 18,
+        "category_button_max_width": 180, "series_button_max_width": 280,
+        "item_quantity_width": 88,
+    },
+    # Existing Succès filter panel: preserve its distinct card/selector spacing.
+    "achievement_filters": {
+        "page_margins": (8, 8, 8, 8), "page_spacing": 7,
+        "category_spacing": 5, "card_margins": (7, 6, 7, 6),
+        "card_spacing": 4,
+    },
     # Existing lightweight equipment entry (no embedded browser).
     "equipment": {"page_margins": (18, 16, 18, 18), "page_spacing": 12},
     # Existing startup modal dimensions; do not force global dialog sizes.
@@ -430,6 +445,8 @@ UNITY_MODULE_GEOMETRY_OWNERS = {
     "guide_route": "app/modules/encyclopedia/views/guide_continuous_route_panel.py",
     "world_scan": "app/ui/world_scan_panel.py",
     "world_map": "app/ui/map_canvas_widget.py",
+    "quests": "app/pages/_quests_page_impl.py",
+    "achievement_filters": "app/modules/encyclopedia/widgets/filter_panel.py",
     "equipment": "app/pages/equipment_page.py",
     "preload_popup": "app/ui/preload_popup.py",
 }

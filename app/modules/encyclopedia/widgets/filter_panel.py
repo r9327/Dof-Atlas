@@ -15,6 +15,10 @@ from PySide6.QtWidgets import (
 
 from app.modules.encyclopedia.models.achievement import AchievementCategory
 from app.ui.components import AtlasComboBox
+from app.ui.unity_palette import UNITY_MODULE_GEOMETRY_PX
+
+
+FILTER_GEOMETRY = UNITY_MODULE_GEOMETRY_PX["achievement_filters"]
 
 
 class AchievementFilterPanel(QWidget):
@@ -25,8 +29,8 @@ class AchievementFilterPanel(QWidget):
         self.setObjectName("AchievementFilterPanel")
         self.categories: list[AchievementCategory] = []
         root = QVBoxLayout(self)
-        root.setContentsMargins(8, 8, 8, 8)
-        root.setSpacing(7)
+        root.setContentsMargins(*FILTER_GEOMETRY["page_margins"])
+        root.setSpacing(FILTER_GEOMETRY["page_spacing"])
         title = QLabel("Filtres")
         title.setObjectName("PanelTitle")
         root.addWidget(title)
@@ -61,7 +65,7 @@ class AchievementFilterPanel(QWidget):
         self.category_content = QWidget()
         self.category_layout = QVBoxLayout(self.category_content)
         self.category_layout.setContentsMargins(0, 0, 0, 0)
-        self.category_layout.setSpacing(5)
+        self.category_layout.setSpacing(FILTER_GEOMETRY["category_spacing"])
         self.category_area.setWidget(self.category_content)
         root.addWidget(self._label("Progression catégories"))
         root.addWidget(self.category_area, 1)
@@ -94,8 +98,8 @@ class AchievementFilterPanel(QWidget):
             card = QFrame()
             card.setObjectName("CategoryProgressCard")
             layout = QVBoxLayout(card)
-            layout.setContentsMargins(7, 6, 7, 6)
-            layout.setSpacing(4)
+            layout.setContentsMargins(*FILTER_GEOMETRY["card_margins"])
+            layout.setSpacing(FILTER_GEOMETRY["card_spacing"])
             row = QHBoxLayout()
             label = QLabel(name)
             label.setObjectName("CompactLabel")

@@ -45,6 +45,8 @@ class UiUniversalContractTests(unittest.TestCase):
         paths = (
             "main.py", "app/pages/home_page.py", "app/pages/character_page.py",
             "app/pages/craft_page.py",
+            "app/pages/_quests_page_impl.py",
+            "app/modules/encyclopedia/widgets/filter_panel.py",
             "app/modules/encyclopedia/views/achievements_view.py",
             "app/modules/encyclopedia/views/guide_catalog_view.py",
             "app/modules/encyclopedia/views/guides_view.py",

@@ -54,6 +54,10 @@ from app.quest_catalog import (
 from app.storage import IconCache, read_json, write_json
 from app.ui.components import AtlasBreadcrumb, AtlasButton, AtlasComboBox
 from app.ui.theme import PALETTE, render_theme_template
+from app.ui.unity_palette import UNITY_MODULE_GEOMETRY_PX
+
+
+QUEST_GEOMETRY = UNITY_MODULE_GEOMETRY_PX["quests"]
 
 if TYPE_CHECKING:
     from app.modules.encyclopedia.widgets.quest_detail_view import QuestDetailView
@@ -94,8 +98,8 @@ TRAVEL_URL_RE = re.compile(r"(-?\d+)\s*,\s*(-?\d+)")
 QUEST_PANEL_ITEM_OBJECTIVE_TYPES = {2, 3, 17}
 KEY_LAST_SELECTED_QUEST_ID = "encyclopedia_last_quest_id"
 MIN_QUEST_SEARCH_CHARS = 5
-QUEST_HIERARCHY_OPEN_WIDTH = 300
-QUEST_HIERARCHY_COLLAPSED_WIDTH = 44
+QUEST_HIERARCHY_OPEN_WIDTH = QUEST_GEOMETRY["hierarchy_open_width"]
+QUEST_HIERARCHY_COLLAPSED_WIDTH = QUEST_GEOMETRY["hierarchy_collapsed_width"]
 HIERARCHY_KIND_ROLE = Qt.UserRole + 101
 HIERARCHY_ID_ROLE = Qt.UserRole + 102
 
@@ -285,7 +289,7 @@ class QuestsPage(QWidget):
         self.search.setObjectName("EncyclopediaSearch")
         self.search.setPlaceholderText("Rechercher une quête...")
         self.search.setClearButtonEnabled(True)
-        self.search.setMinimumHeight(34)
+        self.search.setMinimumHeight(QUEST_GEOMETRY["search_min_height"])
         self.search.textChanged.connect(lambda _text: self.refresh_quests())
         root.addWidget(self.search)
 
@@ -296,7 +300,7 @@ class QuestsPage(QWidget):
         self.quest_model = QuestListModel(self)
         self.quest_list = QuestListFacade(self)
         self.quest_list.setModel(self.quest_model)
-        self.quest_list.setMaximumHeight(220)
+        self.quest_list.setMaximumHeight(QUEST_GEOMETRY["quest_list_max_height"])
         self.quest_list.setVisible(False)
         root.addWidget(self.quest_list)
 
@@ -358,7 +362,7 @@ class QuestsPage(QWidget):
                 self.body_splitter.addWidget(view)
             self._quest_detail_placeholder = None
             self.body_splitter.setStretchFactor(1, 1)
-            self.body_splitter.setSizes([QUEST_HIERARCHY_OPEN_WIDTH, 900])
+            self.body_splitter.setSizes([QUEST_HIERARCHY_OPEN_WIDTH, QUEST_GEOMETRY["detail_initial_width"]])
             # QSplitter.replaceWidget() does not inherit the replaced
             # placeholder's visible state. Without this, the first selected
             # quest owns a hydrated detail widget that remains explicitly
@@ -392,7 +396,8 @@ class QuestsPage(QWidget):
         self.hierarchy_collapse_button = QToolButton()
         self.hierarchy_collapse_button.setObjectName("GuideStepsCollapseButton")
         self.hierarchy_collapse_button.setText("\u2039")
-        self.hierarchy_collapse_button.setFixedSize(24, 24)
+        collapse_box = QUEST_GEOMETRY["collapse_button_box"]
+        self.hierarchy_collapse_button.setFixedSize(collapse_box, collapse_box)
         self.hierarchy_collapse_button.setFocusPolicy(Qt.NoFocus)
         self.hierarchy_collapse_button.setToolTip("Réduire la colonne")
         self.hierarchy_collapse_button.clicked.connect(lambda: self.set_hierarchy_collapsed(True))
@@ -420,7 +425,8 @@ class QuestsPage(QWidget):
             placeholder.setObjectName("QuestDetailDeferred")
             placeholder.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
             placeholder_layout = QVBoxLayout(placeholder)
-            placeholder_layout.setContentsMargins(18, 18, 18, 18)
+            inset = QUEST_GEOMETRY["deferred_detail_padding"]
+            placeholder_layout.setContentsMargins(inset, inset, inset, inset)
             hint = QLabel("Sélectionnez une quête pour afficher sa fiche.")
             hint.setObjectName("MutedLabel")
             hint.setAlignment(Qt.AlignCenter)
@@ -431,7 +437,7 @@ class QuestsPage(QWidget):
             self.body_splitter.addWidget(placeholder)
         self.body_splitter.setStretchFactor(0, 0)
         self.body_splitter.setStretchFactor(1, 1)
-        self.body_splitter.setSizes([QUEST_HIERARCHY_OPEN_WIDTH, 900])
+        self.body_splitter.setSizes([QUEST_HIERARCHY_OPEN_WIDTH, QUEST_GEOMETRY["detail_initial_width"]])
         root.addWidget(self.body_splitter, 1)
         self._bind_detail_view_aliases()
 
@@ -656,7 +662,7 @@ class QuestsPage(QWidget):
             return
         self.breadcrumb.add_separator()
         category_button = AtlasButton(path.category.name, variant="guide_breadcrumb")
-        category_button.setMaximumWidth(180)
+        category_button.setMaximumWidth(QUEST_GEOMETRY["category_button_max_width"])
         category_button.setToolTip(path.category.name)
         category_button.clicked.connect(
             lambda _checked=False, name=path.category.name: self.focus_hierarchy_category(name)
@@ -664,7 +670,7 @@ class QuestsPage(QWidget):
         self.breadcrumb_layout.addWidget(category_button)
         self.breadcrumb.add_separator()
         series_button = AtlasButton(path.series.name, variant="guide_breadcrumb")
-        series_button.setMaximumWidth(280)
+        series_button.setMaximumWidth(QUEST_GEOMETRY["series_button_max_width"])
         series_button.setToolTip(path.series.name)
         series_button.clicked.connect(
             lambda _checked=False, series_id=path.series.id: self.focus_hierarchy_series(series_id)
@@ -1065,7 +1071,7 @@ class QuestsPage(QWidget):
         quantity.setObjectName("QuestItemQuantity")
         quantity.setRange(0, required)
         quantity.setValue(owned)
-        quantity.setFixedWidth(88)
+        quantity.setFixedWidth(QUEST_GEOMETRY["item_quantity_width"])
         quantity.setAlignment(Qt.AlignCenter)
         quantity.valueChanged.connect(lambda value, data=dict(item), maximum=required: self.set_owned_item_quantity(data, value, maximum))
         layout.addWidget(quantity)
