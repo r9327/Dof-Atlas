@@ -1190,6 +1190,12 @@ class DevUiPageTests(unittest.TestCase):
         try:
             for key, (width, height) in UNITY_WINDOW_PRESETS_PX.items():
                 with self.subTest(preset=key):
+                    # The real capture also selects the reference profile
+                    # before resizing; otherwise the standard 1148px cap
+                    # remains active during the 900px fixture.
+                    index = page.preview_window_selector.findData(key)
+                    self.assertGreaterEqual(index, 0)
+                    page.preview_window_selector.setCurrentIndex(index)
                     backdrop.resize(width, height)
                     backdrop.show()
                     self.app.processEvents()

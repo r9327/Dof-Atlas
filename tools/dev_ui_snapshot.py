@@ -98,6 +98,16 @@ def capture(output: Path, *, width: int = 1100, height: int = 800) -> dict[str, 
             page.gallery_scroll.verticalScrollBar().setValue(max(0, metrics_y - 8))
             app.processEvents()
             horizontal_overflow = page.gallery_scroll.horizontalScrollBar().maximum()
+            actual_size = [backdrop.width(), backdrop.height()]
+            if actual_size != [viewport_width, viewport_height]:
+                raise RuntimeError(
+                    f"Wrong actual Qt size in {preset}: {actual_size}, "
+                    f"expected {[viewport_width, viewport_height]}"
+                )
+            if page.preview_responsive_host.width() > viewport_width:
+                raise RuntimeError(
+                    f"Responsive preview exceeds the real {preset} viewport"
+                )
             profile_image = output / f"dev-ui-responsive-{preset}.png"
             if not backdrop.grab().save(str(profile_image), "PNG"):
                 raise RuntimeError(f"Unable to capture real Qt viewport: {preset}")
@@ -115,7 +125,7 @@ def capture(output: Path, *, width: int = 1100, height: int = 800) -> dict[str, 
                     f"Structural panels changed position in {preset}: {positions}"
                 )
             results["viewport_profiles"][preset] = {
-                "size": [viewport_width, viewport_height],
+                "size": actual_size,
                 "preview_width": page.preview_responsive_host.width(),
                 "columns": page.preview_responsive_columns,
                 "module_positions": positions,
