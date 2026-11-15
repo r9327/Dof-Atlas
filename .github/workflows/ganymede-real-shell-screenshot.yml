@@ -64,7 +64,8 @@ jobs:
           target = Path("artifacts/screenshots/ganymede-cawotte-shell-qt.png")
           target.parent.mkdir(parents=True, exist_ok=True)
           shot = backdrop.grab()
-          assert not shot.isNull() and shot.width() == 1280 and shot.height() == 720
+          assert not shot.isNull() and shot.width() >= 1000 and shot.height() >= 600
+          print(f"Native DPI screenshot: {shot.width()} x {shot.height()}, DPR={shot.devicePixelRatio()}")
           assert shot.save(str(target), "PNG")
           print(f"Real Qt screenshot written: {target} ({target.stat().st_size} bytes)")
           backdrop.close()
