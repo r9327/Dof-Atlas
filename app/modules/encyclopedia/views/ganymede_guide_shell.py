@@ -45,6 +45,11 @@ class GanymedeGuideShell(SharedGuideManualView):
         self.guide_button.setAccessibleName("Retour aux Guides")
         self.sheet_meta_label.setText("Ganymède · parcours non certifié")
         self.sheet_title_label.setText("Aucune fiche chargée")
+        # An empty indexed route has no page 1. Keep the original selector
+        # present but disabled, without displaying a fictitious "1 / 0".
+        self.page_jump.setSuffix("")
+        self.page_jump.setRange(0, 0)
+        self.page_jump.setSpecialValueText("—")
 
         # The shell shows structure only. No invented progression, actions,
         # controls or enabled behavior without an authorized source route.

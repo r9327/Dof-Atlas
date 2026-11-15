@@ -41,6 +41,7 @@ class GanymedeGuideShellTests(unittest.TestCase):
         self.assertIsNotNone(shell.findChild(QFrame, "GuideManualNav"))
         self.assertIsNotNone(shell.findChild(QSpinBox, "GuideCompactPageJump"))
         self.assertFalse(shell.page_jump.isEnabled())
+        self.assertEqual(shell.page_jump.text(), "—")
         self.assertFalse(shell.summary_button.isEnabled())
         self.assertFalse(shell.preparation_button.isEnabled())
         self.assertFalse(shell.participants_button.isEnabled())
@@ -87,7 +88,7 @@ class GanymedeGuideShellTests(unittest.TestCase):
                 shell = catalog._ganymede_shell
                 self.assertIsNotNone(shell)
             self.assertIs(catalog._ganymede_shell, shell)
-            self.assertEqual(shell.title_label.text(), entry.title)
+            self.assertEqual(shell.guide_title_label.text(), entry.title)
             self.assertEqual(catalog.pages.count(), 2)
         self.assertIsNone(catalog.current_guide_id)
         self.assertEqual(requested, [])
