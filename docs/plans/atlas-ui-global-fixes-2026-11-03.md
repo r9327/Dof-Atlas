@@ -869,3 +869,15 @@ La capture Windows `Personnage` (profil temporaire vide) a révélé que `Charac
   scroll) sont désormais définis par `app/ui/components.py` pour le shell.
 - Garde-fou source ajouté dans `tests/test_ui_universal_contract.py`,
   exécution Qt / CI reportée à la validation finale conformément à la demande.
+
+
+### Dev UI — index des états actifs et arborescence Quêtes (15/11/2026)
+
+- La galerie montrait déjà `TopNavButtonActive` et
+  `GuideBreadcrumbCurrentStrong`, mais leurs rôles manquaient aux deux
+  index canoniques. Les entrées sont ajoutées sans nouveau composant/QSS.
+- L'arbre interactif déjà présent dans Dev UI porte désormais
+  `QuestHierarchyTree`, comme le vrai menu des Quêtes ; même matériau de
+  liste `LIST_SURFACE`, même sélecteur dans le registre, aucun guide fictif.
+- Les tests de contrat et de galerie couvrent ces trois identités ainsi que
+  l'absence de stylesheet local. **CI non déclenchée manuellement**.
