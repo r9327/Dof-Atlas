@@ -85,6 +85,23 @@ class UnityPaletteTests(unittest.TestCase):
 
 
 
+    def test_launcher_sizes_are_indexed_as_existing_tk_values(self) -> None:
+        from app.ui.unity_palette import (
+            UNITY_MODULE_GEOMETRY_PX, UNITY_MODULE_GEOMETRY_OWNERS,
+        )
+        self.assertEqual(
+            UNITY_MODULE_GEOMETRY_PX["launcher"]["normal_window_size"],
+            (470, 252),
+        )
+        self.assertEqual(
+            UNITY_MODULE_GEOMETRY_PX["launcher"]["install_window_size"],
+            (520, 425),
+        )
+        self.assertEqual(
+            set(UNITY_MODULE_GEOMETRY_PX),
+            set(UNITY_MODULE_GEOMETRY_OWNERS),
+        )
+
     def test_quests_and_achievement_filters_keep_indexed_geometry(self) -> None:
         from app.ui.unity_palette import UNITY_MODULE_GEOMETRY_PX
 

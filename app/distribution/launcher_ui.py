@@ -6,7 +6,9 @@ from __future__ import annotations
 
 import math
 
-from app.ui.unity_palette import UNITY_TYPOGRAPHY, launcher_colors
+from app.ui.unity_palette import UNITY_MODULE_GEOMETRY_PX, UNITY_TYPOGRAPHY, launcher_colors
+
+LAUNCHER_GEOMETRY = UNITY_MODULE_GEOMETRY_PX["launcher"]
 
 # Keep the standalone Tk entry lightweight: this imports a stdlib-only palette.
 UNITY_PALETTE = launcher_colors()
@@ -158,12 +160,12 @@ def display_message(message: str) -> str:
 def add_header(tk, window) -> None:
     """Only product icon and application title, no navigation or decorative UI."""
     header = tk.Frame(window, bg=COLORS["background"])
-    header.pack(fill="x", pady=(24, 0))
+    header.pack(fill="x", pady=(LAUNCHER_GEOMETRY["header_top_padding"], 0))
     try:
         logo = tk.PhotoImage(data=LOGO_PNG_BASE64, format="png")
         icon = tk.Label(header, image=logo, bg=COLORS["background"])
         icon.image = logo  # Tk images need a live Python reference.
-        icon.pack(pady=(0, 11))
+        icon.pack(pady=(0, LAUNCHER_GEOMETRY["logo_bottom_padding"]))
     except (tk.TclError, ValueError):
         # Displaying a damaged icon must not block a safe update or startup.
         pass
@@ -178,7 +180,7 @@ def progress_style(style) -> None:
     style.configure(
         "Atlas.Horizontal.TProgressbar",
         troughcolor=COLORS["track"], background=COLORS["accent"],
-        borderwidth=0, thickness=12,
+        borderwidth=0, thickness=LAUNCHER_GEOMETRY["progress_thickness"],
         lightcolor=COLORS["accent"], darkcolor=COLORS["accent"],
     )
 
@@ -196,6 +198,8 @@ def button_options() -> dict[str, object]:
         "highlightcolor": COLORS["button_focus"],
         "highlightthickness": 1,
         "font": (FONT_FAMILY, 10, "bold"),
-        "relief": "flat", "bd": 0, "padx": 16, "pady": 8,
+        "relief": "flat", "bd": 0,
+        "padx": LAUNCHER_GEOMETRY["button_padding_x"],
+        "pady": LAUNCHER_GEOMETRY["button_padding_y"],
         "cursor": "hand2",
     }

@@ -424,6 +424,14 @@ UNITY_MODULE_GEOMETRY_PX = {
         "category_spacing": 5, "card_margins": (7, 6, 7, 6),
         "card_spacing": 4,
     },
+    # Existing Tk geometry, separate from the Qt four-size window calibration.
+    "launcher": {
+        "normal_window_size": (470, 252), "install_window_size": (520, 425),
+        "install_path_wrap_length": 515, "status_wrap_length": 420,
+        "progress_width": 408, "header_top_padding": 24,
+        "logo_bottom_padding": 11, "progress_thickness": 12,
+        "button_padding_x": 16, "button_padding_y": 8,
+    },
     # Existing lightweight equipment entry (no embedded browser).
     "equipment": {"page_margins": (18, 16, 18, 18), "page_spacing": 12},
     # Existing startup modal dimensions; do not force global dialog sizes.
@@ -447,6 +455,7 @@ UNITY_MODULE_GEOMETRY_OWNERS = {
     "world_map": "app/ui/map_canvas_widget.py",
     "quests": "app/pages/_quests_page_impl.py",
     "achievement_filters": "app/modules/encyclopedia/widgets/filter_panel.py",
+    "launcher": "app/distribution/launcher.py",
     "equipment": "app/pages/equipment_page.py",
     "preload_popup": "app/ui/preload_popup.py",
 }

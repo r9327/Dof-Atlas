@@ -24,6 +24,25 @@ class LauncherUiTests(unittest.TestCase):
         self.assertNotIn("app.ui.theme", imports)
         self.assertFalse(any(name.startswith("PySide6") for name in imports))
 
+    def test_launcher_geometry_is_shared_with_dev_ui_without_qt(self) -> None:
+        from pathlib import Path
+        from app.ui.unity_palette import UNITY_MODULE_GEOMETRY_PX
+
+        size = UNITY_MODULE_GEOMETRY_PX["launcher"]
+        self.assertEqual(size["normal_window_size"], (470, 252))
+        self.assertEqual(size["install_window_size"], (520, 425))
+        self.assertEqual(size["progress_width"], 408)
+        self.assertEqual(launcher_ui.button_options()["padx"],
+                         size["button_padding_x"])
+        self.assertEqual(launcher_ui.button_options()["pady"],
+                         size["button_padding_y"])
+        source = (Path(__file__).resolve().parents[1] /
+                  "app/distribution/launcher.py").read_text(encoding="utf-8")
+        self.assertIn('LAUNCHER_GEOMETRY = UNITY_MODULE_GEOMETRY_PX["launcher"]',
+                      source)
+        self.assertNotIn('(520, 425) if choosing_install else (470, 252)',
+                         source)
+
     def test_tk_controls_still_receive_expected_active_colors(self) -> None:
         self.assertEqual(launcher_ui.button_options()["bg"], UNITY_PALETTE["PANEL_2"])
         self.assertEqual(launcher_ui.button_options()["fg"], UNITY_PALETTE["TEXT_SOFT"])
