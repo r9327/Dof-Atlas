@@ -1038,6 +1038,8 @@ class ModularDomainRoutingTests(unittest.TestCase):
                 {"ci", "ui", "startup", "craft", "quests", "guides", "identity"},
             "tests/capture_app_popups_ui.py":
                 {"ci", "ui", "startup", "craft", "guides", "organizer"},
+            "tests/test_popup_interaction_inventory.py":
+                {"ci", "ui", "startup", "craft", "guides", "organizer"},
             "tests/test_equipment_deferred_start.py":
                 {"startup", "ui"},
             "tools/dev_ui_snapshot.py":
