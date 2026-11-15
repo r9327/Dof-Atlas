@@ -17,19 +17,21 @@ from app.ui.unity_palette import (
 UI_FAMILY_QSS_SELECTORS: dict[str, tuple[str, ...]] = {
     "buttons": (
         "#PrimaryActionButton", "#SecondaryButton", "#ActiveButton", "#DangerButton",
-        "#InlineActionButton", "#PopupLinkButton", "#TopNavButton",
+        "#InlineActionButton", "#PopupLinkButton", "#TopNavButton", "#TopNavButtonActive",
         "#GuideInlineQuestButton", "#GuideInlineAchievementButton",
     ),
     "navigation": (
         "QTabBar::tab", "QTabWidget::pane", "QMenu {",
         "#WorldMenu", "#WorldMenuItem", "#WorldMenuItemActive",
     ),
-    "breadcrumbs": ("QFrame#GuideBreadcrumb", "QPushButton#GuideBreadcrumbButton", "QLabel#GuideBreadcrumbCurrent"),
+    "breadcrumbs": ("QFrame#GuideBreadcrumb", "QPushButton#GuideBreadcrumbButton", "QLabel#GuideBreadcrumbCurrent",
+                    "QLabel#GuideBreadcrumbCurrentStrong"),
     "sidebar": ("#sidebar", "#navItem", "#navItemActive", "#MenuButton", "#NavSeparator"),
     "data_views": (
         "QTreeWidget::item", "QTableWidget", "QHeaderView::section",
         "#MapViewTree", "#MapViewTree::item", "#AchievementsView",
         "#AchievementDetailStack", "#GuideLeftPanel", "#GuideCenterPanel",
+        "QTreeWidget#QuestHierarchyTree",
     ),
     "scroll_resize": (
         "QSplitter::handle:horizontal", "QScrollBar:vertical",
