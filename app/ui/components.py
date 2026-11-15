@@ -133,6 +133,32 @@ def atlas_guide_arrow_icon(direction: str) -> QIcon:
     return icon
 
 
+class AtlasGuideCharacterButton(QToolButton):
+    """Use indexed Unity portrait even when an empty Guide disables selection."""
+
+    def __init__(self, parent: QWidget | None = None) -> None:
+        super().__init__(parent)
+        self.setObjectName("GuideParticipantsButton")
+
+    def paintEvent(self, event) -> None:  # noqa: N802 - Qt
+        super().paintEvent(event)
+        if self.isEnabled() or self.icon().isNull():
+            return
+        # Render the *original* image on top of Qt's disabled icon
+        # transformation. The button remains non-interactive.
+        glyph = self.icon().pixmap(self.iconSize(), QIcon.Normal)
+        if glyph.isNull():
+            return
+        ratio = glyph.devicePixelRatio()
+        painter = QPainter(self)
+        painter.drawPixmap(
+            int((self.width() - glyph.width() / ratio) / 2),
+            int((self.height() - glyph.height() / ratio) / 2),
+            glyph,
+        )
+        painter.end()
+
+
 class AtlasGuideDisclosure(QToolButton):
     """Shared Guide dropdown: down opens, up closes, with indexed Unity QSS."""
 

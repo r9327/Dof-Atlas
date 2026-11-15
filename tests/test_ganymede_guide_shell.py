@@ -19,6 +19,7 @@ from app.modules.encyclopedia.views.ganymede_guide_shell import GanymedeGuideShe
 from app.modules.encyclopedia.views.shared_manual_guide_view import SharedGuideManualView
 from app.modules.encyclopedia.views.guide_library_sources import load_ganymede_listings
 from app.ui.theme import atlas_stylesheet
+from app.ui.components import AtlasGuideCharacterButton
 
 
 class GanymedeGuideShellTests(unittest.TestCase):
@@ -61,6 +62,7 @@ class GanymedeGuideShellTests(unittest.TestCase):
         self.assertFalse(shell.summary_button.isEnabled())
         self.assertFalse(shell.preparation_button.isEnabled())
         self.assertFalse(shell.participants_button.isEnabled())
+        self.assertIsInstance(shell.participants_button, AtlasGuideCharacterButton)
         self.assertFalse(shell.participants_button.icon().isNull())
         self.assertEqual(shell.participants_button.width(), 24)
         # Personnages is centered in its own row between global and metrics.
