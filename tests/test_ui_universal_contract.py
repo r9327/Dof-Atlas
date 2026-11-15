@@ -39,6 +39,15 @@ class UiUniversalContractTests(unittest.TestCase):
         self.assertIn("Almanax future-day selection failed", source)
         self.assertIn("0 game records", source)
 
+    def test_shell_character_selector_uses_the_shared_unity_combo(self):
+        # The shell used a bare QComboBox, whose popup could show every
+        # character and lacked the Dev UI separator/scroll contract.
+        # Keep creation lazy; the real popup is exercised in Dev UI Qt tests.
+        source = (REPO_ROOT / "main.py").read_text(encoding="utf-8")
+        self.assertIn("self.character_combo = AtlasComboBox()", source)
+        self.assertNotIn("self.character_combo = QComboBox()", source)
+        self.assertIn("AtlasComboBox,", source)
+
     def test_every_gallery_family_and_consumer_is_registered(self):
         validate_ui_index()
         self.assertEqual(len(UI_FAMILY_QSS_SELECTORS), 22)
