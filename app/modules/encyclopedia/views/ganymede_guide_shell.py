@@ -47,7 +47,8 @@ class GanymedeGuideShell(SharedGuideManualView):
         self.backToGuidesRequested.connect(on_back)
         self.guide_button.setToolTip("Retour au catalogue des Guides")
         self.guide_button.setAccessibleName("Retour aux Guides")
-        self.sheet_meta_label.setText("Ganymède · parcours non certifié")
+        self.sheet_meta_label.clear()
+        self.sheet_meta_label.hide()
         self.sheet_title_label.setText("Aucune fiche chargée")
         # An empty indexed route has no page 1. Keep the original selector
         # present but disabled, without displaying a fictitious "1 / 0".
@@ -119,5 +120,5 @@ class GanymedeGuideShell(SharedGuideManualView):
         else:
             self.guide_icon_label.clear()
             self.guide_icon_label.hide()
-        self.sheet_meta_label.setText("Ganymède · parcours non certifié")
+
         self.sheet_title_label.setText("Aucune fiche chargée")

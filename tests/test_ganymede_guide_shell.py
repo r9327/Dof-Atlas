@@ -41,6 +41,8 @@ class GanymedeGuideShellTests(unittest.TestCase):
         self.assertIsNotNone(shell.findChild(QFrame, "GuideCompactHeader"))
         self.assertIsNotNone(shell.findChild(QFrame, "GuideSheetHeader"))
         self.assertIsNotNone(shell.findChild(QFrame, "GuideManualNav"))
+        self.assertEqual(shell.sheet_meta_label.text(), "")
+        self.assertTrue(shell.sheet_meta_label.isHidden())
         self.assertEqual(shell.guide_icon_label.size().width(), 32)
         self.assertEqual(shell.guide_icon_label.size().height(), 32)
         self.assertIsNotNone(shell.findChild(QSpinBox, "GuideCompactPageJump"))
@@ -67,6 +69,8 @@ class GanymedeGuideShellTests(unittest.TestCase):
             shell.set_listing(entry)
             self.assertEqual(shell.guide_title_label.text(), entry.title)
             self.assertEqual(shell.sheet_title_label.text(), "Aucune fiche chargée")
+            self.assertEqual(shell.sheet_meta_label.text(), "")
+            self.assertTrue(shell.sheet_meta_label.isHidden())
             self.assertTrue(all(
                 not progress.isEnabled()
                 for progress in shell.findChildren(QProgressBar)
