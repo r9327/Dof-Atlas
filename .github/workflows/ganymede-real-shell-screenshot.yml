@@ -7,6 +7,8 @@ on:
       - feat/atlas-guide-importer-pr337-20261102
     paths:
       - .github/workflows/ganymede-real-shell-screenshot.yml
+      - app/modules/encyclopedia/views/ganymede_guide_shell.py
+      - tests/test_ganymede_guide_shell.py
 
 permissions:
   contents: read
