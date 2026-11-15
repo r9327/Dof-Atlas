@@ -20,6 +20,7 @@ def capture(output: Path, *, width: int = 1100, height: int = 800) -> dict[str, 
     from PySide6.QtWidgets import QApplication, QVBoxLayout
     from app.pages.dev_ui_page import DevUiPage
     from app.ui.theme import atlas_stylesheet
+    from app.ui.unity_palette import UNITY_WINDOW_PRESETS_PX
     from app.ui.unity_skin import UnityBackdrop, register_unity_fonts
 
     output.mkdir(parents=True, exist_ok=True)
@@ -78,6 +79,46 @@ def capture(output: Path, *, width: int = 1100, height: int = 800) -> dict[str, 
             "viewport": str(viewport),
             "complete": str(complete),
         }
+
+        # Real Qt layouts at all four reference window sizes. Each image
+        # captures the shared sizing section after a genuine window resize;
+        # no scaled mockup or fabricated Windows/DPI evidence is used.
+        results["viewport_profiles"] = {}
+        for preset, (viewport_width, viewport_height) in UNITY_WINDOW_PRESETS_PX.items():
+            selector_index = page.preview_window_selector.findData(preset)
+            if selector_index < 0:
+                raise RuntimeError(f"Missing Dev UI window preset: {preset}")
+            page.preview_window_selector.setCurrentIndex(selector_index)
+            backdrop.resize(viewport_width, viewport_height)
+            app.processEvents()
+            metrics_y = page.gallery_family_widgets["metrics"].mapTo(
+                page.gallery_scroll.widget(), QPoint(0, 0)
+            ).y()
+            page.gallery_scroll.verticalScrollBar().setValue(max(0, metrics_y - 8))
+            app.processEvents()
+            horizontal_overflow = page.gallery_scroll.horizontalScrollBar().maximum()
+            profile_image = output / f"dev-ui-responsive-{preset}.png"
+            if not backdrop.grab().save(str(profile_image), "PNG"):
+                raise RuntimeError(f"Unable to capture real Qt viewport: {preset}")
+            results["screenshots"][f"responsive_{preset}"] = str(profile_image)
+            results["viewport_profiles"][preset] = {
+                "size": [viewport_width, viewport_height],
+                "preview_width": page.preview_responsive_host.width(),
+                "columns": page.preview_responsive_columns,
+                "horizontal_scroll_max": horizontal_overflow,
+            }
+            if horizontal_overflow:
+                raise RuntimeError(
+                    f"Unexpected horizontal scroll in {preset}: {horizontal_overflow}"
+                )
+        # Return to the requested viewport before the full-page stitching.
+        page.preview_window_selector.setCurrentIndex(
+            page.preview_window_selector.findData("standard")
+        )
+        backdrop.resize(width, height)
+        page.gallery_scroll.verticalScrollBar().setValue(0)
+        app.processEvents()
+
         # Record scroll evidence *before* expanding the real Qt window.
         results["horizontal_scroll_max"] = page.gallery_scroll.horizontalScrollBar().maximum()
         results["vertical_scroll_max"] = page.gallery_scroll.verticalScrollBar().maximum()
@@ -154,7 +195,7 @@ def capture(output: Path, *, width: int = 1100, height: int = 800) -> dict[str, 
         try:
             family_popup_file = output / "dev-ui-family-dropdown.png"
             dropdown_view = page.gallery_navigation.view()
-            # A 22-row popup is a genuine visual regression even if
+            # An uncapped family popup is a genuine visual regression even if
             # setMaxVisibleItems(8) was called: Qt native styles may ignore it.
             row_height = dropdown_view.sizeHintForRow(0)
             row_limit = page.gallery_navigation.maxVisibleItems()
@@ -197,8 +238,8 @@ def main() -> None:
     parser.add_argument("--width", type=int, default=1100)
     parser.add_argument("--height", type=int, default=800)
     args = parser.parse_args()
-    if args.width < 900 or args.height < 640:
-        parser.error("Minimum capture window: 900 x 640 px")
+    if args.width < 900 or args.height < 600:
+        parser.error("Minimum capture window: 900 x 600 px")
     print(json.dumps(
         capture(args.output, width=args.width, height=args.height),
         indent=2, ensure_ascii=False,

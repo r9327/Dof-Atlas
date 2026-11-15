@@ -119,11 +119,11 @@ class UnityPaletteTests(unittest.TestCase):
             UNITY_UI_CONSUMERS, UNITY_UI_FAMILY_INDEX,
         )
 
-        self.assertEqual(len(UNITY_UI_FAMILY_INDEX), 22)
+        self.assertGreaterEqual(len(UNITY_UI_FAMILY_INDEX), 23)
         self.assertEqual(len(UNITY_UI_CONSUMERS), 12)
         self.assertEqual(len({
             item["title"] for item in UNITY_UI_FAMILY_INDEX.values()
-        }), 22)
+        }), len(UNITY_UI_FAMILY_INDEX))
         for family, item in UNITY_UI_FAMILY_INDEX.items():
             with self.subTest(family=family):
                 self.assertTrue(item["title"])

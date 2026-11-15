@@ -65,3 +65,20 @@ Tests ajoutés dans ce lot : contrats Qt-free de dimensions et grille Dev UI
 (rendu, choix du format, reflow 1/2/3 colonnes, index visuel préservé).
 **Exécution locale non disponible dans l'environnement de ce lot** :
 les validations Qt réelles restent à lancer avant la généralisation.
+
+## Captures de référence à quatre résolutions
+
+`tools/dev_ui_snapshot.py` produit à présent quatre captures **réelles de
+QWidget Qt offscreen** (une par preset), avec les métadonnées
+`viewport_profiles.<preset>.size/columns/horizontal_scroll_max`. Les images
+sont nommées `dev-ui-responsive-compact.png`,
+`dev-ui-responsive-standard.png`, `dev-ui-responsive-large.png`,
+`dev-ui-responsive-full_hd.png`.
+
+Les deux workflows Dev UI valident l'absence de défilement horizontal
+pour chacun des formats. Les tests ne codent plus en dur un nombre obsolète
+de familles (23 sont actuellement enregistrées).
+
+Une capture Qt offscreen sous Windows n'est pas une preuve de DPI réel,
+de polices installées chez l'utilisateur ou de rendu des données privées.
+La recette manuelle reste requise avant fusion et généralisation P1.

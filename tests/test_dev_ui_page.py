@@ -1154,6 +1154,35 @@ class DevUiPageTests(unittest.TestCase):
             page.close()
             page.deleteLater()
 
+
+    def test_responsive_reference_fits_all_real_window_presets(self) -> None:
+        from app.pages.dev_ui_page import DevUiPage
+        from app.ui.unity_palette import (
+            UNITY_WINDOW_PRESETS_PX, unity_responsive_columns,
+        )
+        page = DevUiPage(on_back=lambda: None)
+        try:
+            for key, (width, height) in UNITY_WINDOW_PRESETS_PX.items():
+                with self.subTest(preset=key):
+                    page.resize(width, height)
+                    page.show()
+                    self.app.processEvents()
+                    self.assertEqual(
+                        page.gallery_scroll.horizontalScrollBar().maximum(), 0
+                    )
+                    self.assertEqual(
+                        page.preview_responsive_columns,
+                        unity_responsive_columns(
+                            page.preview_responsive_host.width()
+                        ),
+                    )
+                    self.assertLessEqual(
+                        page.preview_responsive_host.width(), width
+                    )
+        finally:
+            page.close()
+            page.deleteLater()
+
     def test_gallery_renders_real_qt_full_height_in_reduced_window(self) -> None:
         """Viewport and full scroll content must be real, grab-able Qt pixels."""
         from app.pages.dev_ui_page import DevUiPage

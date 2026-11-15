@@ -64,6 +64,15 @@ jobs:
           }
           if ($manifest.horizontal_scroll_max -ne 0) { throw "Dev UI has horizontal overflow" }
           if ($manifest.vertical_scroll_max -le 0) { throw "Dev UI gallery no longer scrolls" }
+          foreach ($preset in @('compact','standard','large','full_hd')) {
+            $profile = $manifest.viewport_profiles.$preset
+            if ($null -eq $profile -or [int]$profile.horizontal_scroll_max -ne 0 -or [int]$profile.columns -lt 1) {
+              throw "Responsive Qt capture failed for $preset"
+            }
+            if (-not (Test-Path $manifest.screenshots."responsive_$preset")) {
+              throw "Missing responsive Qt image for $preset"
+            }
+          }
           foreach ($name in @('viewport', 'complete', 'family_dropdown', 'dialog')) {
             $imagePath = $manifest.screenshots.$name
             if (-not (Test-Path $imagePath)) { throw "Missing real Qt screenshot: $name" }
