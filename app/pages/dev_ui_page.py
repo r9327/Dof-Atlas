@@ -9,7 +9,7 @@ from __future__ import annotations
 import re
 from collections.abc import Callable
 
-from PySide6.QtCore import QDate, QEasingCurve, QPropertyAnimation, QSize, Qt
+from PySide6.QtCore import QDate, QEasingCurve, QEvent, QPropertyAnimation, QSize, Qt
 from PySide6.QtGui import QBrush, QColor, QIcon, QLinearGradient, QPainter, QPixmap
 from PySide6.QtWidgets import (
     QAbstractItemView,
@@ -68,6 +68,8 @@ from app.ui.unity_palette import (
     UNITY_PANEL_SHADOW,
     UNITY_INTERACTION_STATES, UNITY_MAIN_ROLES, UNITY_ORGANIZER_METRICS_PX,
     UNITY_SIZES_PX, UNITY_UI_USAGE,
+    UNITY_CONTROL_SIZES_PX, UNITY_LAYOUT_SIZES_PX, UNITY_LAYOUT_BREAKPOINTS_PX,
+    UNITY_WINDOW_PRESETS_PX, unity_responsive_columns,
     UNITY_UI_CONSUMERS, UNITY_UI_FAMILY_INDEX, UNITY_UI_UNIFICATION_CONTRACT,
 )
 from app.ui.unity_skin import (
@@ -1570,7 +1572,7 @@ class DevUiPage(QWidget):
         section.addWidget(self.preview_splitter)
 
     def _build_sizes(self, parent: QVBoxLayout) -> None:
-        """Inspect the shared size scale without changing existing UI geometry."""
+        """Show shared sizing rules and live layouts before module migration."""
         section = self._section(parent, "metrics")
         sizing_hint = QLabel(
             "Trois hauteurs de contrôles et quatre tailles d'icônes, "
@@ -1579,6 +1581,7 @@ class DevUiPage(QWidget):
         sizing_hint.setObjectName("MutedLabel")
         sizing_hint.setWordWrap(True)
         section.addWidget(sizing_hint)
+        self._build_responsive_reference(section)
         self.preview_metric_buttons: dict[str, AtlasButton] = {}
         row = QHBoxLayout()
         for label, size in (
@@ -1611,10 +1614,20 @@ class DevUiPage(QWidget):
         icons.addStretch(1)
         section.addLayout(icons)
 
-        self.preview_metrics = QTableWidget(
-            len(SIZES) + len(SPACING) + len(TYPOGRAPHY)
-            + len(UNITY_ORGANIZER_METRICS_PX), 2
+        metric_rows = (
+            *SIZES.items(), *SPACING.items(), *TYPOGRAPHY.items(),
+            *((f"WINDOW_{key.upper()}", f"{width} × {height} px")
+              for key, (width, height) in UNITY_WINDOW_PRESETS_PX.items()),
+            *((f"LAYOUT_{key.upper()}", f"{value}px")
+              for key, value in UNITY_LAYOUT_SIZES_PX.items()),
+            *((f"CONTROL_{key.upper()}", f"{value}px")
+              for key, value in UNITY_CONTROL_SIZES_PX.items()),
+            *((f"BREAKPOINT_{key.upper()}", f"{value}px")
+              for key, value in UNITY_LAYOUT_BREAKPOINTS_PX.items()),
+            *((f"ORGANIZER_{key.upper()}", f"{value}px")
+              for key, value in UNITY_ORGANIZER_METRICS_PX.items()),
         )
+        self.preview_metrics = QTableWidget(len(metric_rows), 2)
         self.preview_metrics.setHorizontalHeaderLabels(("Token commun", "Valeur"))
         self.preview_metrics.setAlternatingRowColors(False)
         self.preview_metrics.setShowGrid(False)
@@ -1622,15 +1635,161 @@ class DevUiPage(QWidget):
         self.preview_metrics.horizontalHeader().setStretchLastSection(False)
         self.preview_metrics.horizontalHeader().setSectionResizeMode(0, QHeaderView.ResizeToContents)
         self.preview_metrics.horizontalHeader().setSectionResizeMode(1, QHeaderView.Stretch)
-        for index, (name, value) in enumerate((
-            *SIZES.items(), *SPACING.items(), *TYPOGRAPHY.items(),
-            *((f"ORGANIZER_{key.upper()}", f"{value}px")
-              for key, value in UNITY_ORGANIZER_METRICS_PX.items()),
-        )):
+        for index, (name, value) in enumerate(metric_rows):
             self.preview_metrics.setItem(index, 0, QTableWidgetItem(name))
             self.preview_metrics.setItem(index, 1, QTableWidgetItem(value))
         self.preview_metrics_toggle = self._add_catalog_table(
             section, self.preview_metrics, "les dimensions et espacements"
+        )
+
+
+    def _build_responsive_reference(self, section: QVBoxLayout) -> None:
+        """Real Unity panels laid out by the actual available widget width.
+
+        Presets cap the reference width; they never pretend that an offscreen
+        gallery at 900px is a physical 1920px Windows capture.
+        """
+        title = QLabel("Dimensions & responsive · aperçu des modules")
+        title.setObjectName("PanelTitle")
+        section.addWidget(title)
+
+        selector_row = QHBoxLayout()
+        selector_row.setSpacing(UNITY_SPACING_PX["md"])
+        selector_row.addWidget(QLabel("Format de fenêtre"))
+        self.preview_window_selector = AtlasComboBox()
+        self.preview_window_selector.setObjectName("DevUiWindowPreset")
+        self.preview_window_selector.setAccessibleName("Format de fenêtre de référence")
+        for key, (width, height) in UNITY_WINDOW_PRESETS_PX.items():
+            caption = {
+                "compact": "Compact",
+                "standard": "Standard",
+                "large": "Grand",
+                "full_hd": "Full HD",
+            }[key]
+            self.preview_window_selector.addItem(
+                f"{caption} · {width} × {height}", key
+            )
+        self.preview_window_selector.setCurrentIndex(1)
+        selector_row.addWidget(self.preview_window_selector)
+        selector_row.addStretch(1)
+        section.addLayout(selector_row)
+
+        self.preview_window_description = QLabel()
+        self.preview_window_description.setObjectName("MutedLabel")
+        self.preview_window_description.setWordWrap(True)
+        section.addWidget(self.preview_window_description)
+
+        self.preview_responsive_mode = QLabel()
+        self.preview_responsive_mode.setObjectName("MutedLabel")
+        section.addWidget(self.preview_responsive_mode)
+
+        self.preview_responsive_host = QFrame()
+        self.preview_responsive_host.setObjectName("Panel")
+        self.preview_responsive_host.setMinimumWidth(0)
+        self.preview_responsive_host.setSizePolicy(
+            QSizePolicy.Expanding, QSizePolicy.Preferred
+        )
+        self.preview_responsive_grid = QGridLayout(self.preview_responsive_host)
+        self.preview_responsive_grid.setContentsMargins(
+            *([UNITY_LAYOUT_SIZES_PX["module_padding"]] * 4)
+        )
+        self.preview_responsive_grid.setSpacing(
+            UNITY_LAYOUT_SIZES_PX["module_gap"]
+        )
+        self.preview_responsive_cards: list[QFrame] = []
+        for index, (name, summary) in enumerate((
+            ("Contenu principal", "Liste, détails et progression sans largeur fixe"),
+            ("Informations", "Sélection et état compact"),
+            ("Actions", "Commandes alignées et largeur disponible"),
+        )):
+            card = QFrame()
+            card.setObjectName("card")
+            card.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Maximum)
+            apply_unity_panel_shadow(card, **UNITY_PANEL_SHADOW)
+            content = QVBoxLayout(card)
+            inset = UNITY_LAYOUT_SIZES_PX["module_padding"]
+            content.setContentsMargins(inset, inset, inset, inset)
+            content.setSpacing(UNITY_SPACING_PX["md"])
+            heading = QLabel(name)
+            heading.setObjectName("PanelTitle")
+            content.addWidget(heading)
+            description = QLabel(summary)
+            description.setObjectName("MutedLabel")
+            description.setWordWrap(True)
+            content.addWidget(description)
+            if index == 0:
+                progress = QProgressBar()
+                progress.setObjectName("GuideGlobalProgress")
+                progress.setRange(0, 100)
+                progress.setValue(45)
+                progress.setTextVisible(False)
+                progress.setFixedHeight(UNITY_CONTROL_SIZES_PX["progress_primary"])
+                content.addWidget(progress)
+            elif index == 1:
+                selector = AtlasComboBox()
+                selector.addItems(("Personnage 1", "Personnage 2"))
+                content.addWidget(selector)
+            else:
+                action = AtlasButton(
+                    "Tester l'action", variant="secondary", size="compact"
+                )
+                action.clicked.connect(
+                    lambda _checked=False: self._report("Responsive : clic reçu")
+                )
+                content.addWidget(action, 0, Qt.AlignLeft)
+            self.preview_responsive_cards.append(card)
+
+        section.addWidget(self.preview_responsive_host)
+        self.preview_responsive_columns = 0
+        self.preview_responsive_host.installEventFilter(self)
+        self.preview_window_selector.currentIndexChanged.connect(
+            self._update_responsive_reference
+        )
+        self._update_responsive_reference()
+
+    def _update_responsive_reference(self, _index: int = -1) -> None:
+        key = self.preview_window_selector.currentData()
+        width, height = UNITY_WINDOW_PRESETS_PX[key]
+        margin = UNITY_LAYOUT_SIZES_PX["page_margin"]
+        self.preview_responsive_host.setMaximumWidth(width - 2 * margin)
+        self.preview_window_description.setText(
+            f"Référence : {width} × {height} px. Aperçu limité par la largeur "
+            "réellement disponible dans Dev UI : les panneaux changent de "
+            "disposition, sans agrandir artificiellement boutons et textes."
+        )
+        self._relayout_responsive_cards()
+
+    def eventFilter(self, watched: QWidget, event: QEvent) -> bool:
+        if (watched is getattr(self, "preview_responsive_host", None)
+                and event.type() == QEvent.Resize):
+            self._relayout_responsive_cards()
+        return super().eventFilter(watched, event)
+
+    def _relayout_responsive_cards(self, width: int | None = None) -> None:
+        """Reflow the same live widgets, preserving state and signal handlers."""
+        available = self.preview_responsive_host.width() if width is None else width
+        columns = unity_responsive_columns(max(0, available))
+        if columns == self.preview_responsive_columns:
+            return
+        grid = self.preview_responsive_grid
+        while grid.count():
+            grid.takeAt(0)
+        for column in range(3):
+            grid.setColumnStretch(column, 1 if column < columns else 0)
+        if columns == 3:
+            positions = ((0, 0, 1, 2), (0, 2, 1, 1), (1, 0, 1, 3))
+        elif columns == 2:
+            positions = ((0, 0, 1, 2), (1, 0, 1, 1), (1, 1, 1, 1))
+        else:
+            positions = ((0, 0, 1, 1), (1, 0, 1, 1), (2, 0, 1, 1))
+        for card, (row, column, row_span, column_span) in zip(
+            self.preview_responsive_cards, positions
+        ):
+            grid.addWidget(card, row, column, row_span, column_span)
+        self.preview_responsive_columns = columns
+        self.preview_responsive_mode.setText(
+            f"{columns} colonne{'s' if columns > 1 else ''} · "
+            "mêmes contrôles, proportions et alignements réorganisés"
         )
 
     def _build_panels(self, parent: QVBoxLayout) -> None:

@@ -84,6 +84,36 @@ class UnityPaletteTests(unittest.TestCase):
         self.assertEqual(len(UNITY_ICON_NAMES), 8)
 
 
+
+    def test_window_and_layout_reference_sizes_are_qt_free(self) -> None:
+        from app.constants import (
+            DEFAULT_WINDOW_WIDTH, DEFAULT_WINDOW_HEIGHT,
+            MIN_WINDOW_WIDTH, MIN_WINDOW_HEIGHT,
+        )
+        from app.ui.unity_palette import (
+            UNITY_CONTROL_SIZES_PX, UNITY_LAYOUT_BREAKPOINTS_PX,
+            UNITY_LAYOUT_SIZES_PX, UNITY_WINDOW_PRESETS_PX,
+            unity_responsive_columns,
+        )
+        self.assertEqual(
+            (DEFAULT_WINDOW_WIDTH, DEFAULT_WINDOW_HEIGHT),
+            UNITY_WINDOW_PRESETS_PX["standard"],
+        )
+        self.assertEqual(
+            (MIN_WINDOW_WIDTH, MIN_WINDOW_HEIGHT),
+            UNITY_WINDOW_PRESETS_PX["compact"],
+        )
+        self.assertEqual(len(UNITY_WINDOW_PRESETS_PX), 4)
+        self.assertEqual(UNITY_LAYOUT_SIZES_PX["module_gap"], 10)
+        self.assertEqual(UNITY_CONTROL_SIZES_PX["progress_primary"], 11)
+        two = UNITY_LAYOUT_BREAKPOINTS_PX["two_columns_min"]
+        three = UNITY_LAYOUT_BREAKPOINTS_PX["three_columns_min"]
+        self.assertLess(two, three)
+        self.assertEqual(
+            [unity_responsive_columns(w) for w in (0, two - 1, two, three - 1, three)],
+            [1, 1, 2, 2, 3],
+        )
+
     def test_dev_ui_index_covers_all_families_and_original_style_owners(self) -> None:
         from app.ui.unity_palette import (
             UNITY_UI_CONSUMERS, UNITY_UI_FAMILY_INDEX,

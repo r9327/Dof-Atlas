@@ -4,6 +4,8 @@ import logging
 import os
 from pathlib import Path
 
+from app.ui.unity_palette import UNITY_WINDOW_PRESETS_PX
+
 ROOT_DIR = Path(__file__).resolve().parents[1]
 APP_DIR = ROOT_DIR / "app"
 DATA_DIR = ROOT_DIR / "data"
@@ -39,10 +41,8 @@ RAW_QUEST_DATA_DIR = DATA_DIR / "cache" / "dofus_maps" / "raw" / "doduda_cli"
 HARVEST_ASSET_REPORT = REPORTS_DIR / "pyside_harvest_assets_report.json"
 HUZOUNET_URL = "https://huzounet.fr/equipments"
 APP_NAME = "Dofus Atlas"
-DEFAULT_WINDOW_WIDTH = 1180
-DEFAULT_WINDOW_HEIGHT = 720
-MIN_WINDOW_WIDTH = 900
-MIN_WINDOW_HEIGHT = 600
+DEFAULT_WINDOW_WIDTH, DEFAULT_WINDOW_HEIGHT = UNITY_WINDOW_PRESETS_PX["standard"]
+MIN_WINDOW_WIDTH, MIN_WINDOW_HEIGHT = UNITY_WINDOW_PRESETS_PX["compact"]
 
 PYSIDE_LOG_FILE = LOG_DIR / "session_manager_pyside.log"
 START_LOG_FILE = LOG_DIR / "start_log.txt"

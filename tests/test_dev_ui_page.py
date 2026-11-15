@@ -1102,6 +1102,58 @@ class DevUiPageTests(unittest.TestCase):
             page.close()
             page.deleteLater()
 
+
+    def test_responsive_dimensions_preview_reflows_real_unity_widgets(self) -> None:
+        from app.pages.dev_ui_page import DevUiPage
+        from app.ui.unity_palette import (
+            UNITY_LAYOUT_SIZES_PX, UNITY_WINDOW_PRESETS_PX,
+        )
+
+        page = DevUiPage(on_back=lambda: None)
+        try:
+            self.assertEqual(page.preview_window_selector.count(), 4)
+            self.assertEqual(len(page.preview_responsive_cards), 3)
+            self.assertEqual(
+                page.preview_responsive_host.maximumWidth(),
+                UNITY_WINDOW_PRESETS_PX["standard"][0]
+                - 2 * UNITY_LAYOUT_SIZES_PX["page_margin"],
+            )
+            self.assertEqual(page.preview_responsive_grid.spacing(),
+                             UNITY_LAYOUT_SIZES_PX["module_gap"])
+            for usable_width, expected_columns, expected_first_span in (
+                (480, 1, 1), (850, 2, 2), (1250, 3, 2),
+            ):
+                page._relayout_responsive_cards(usable_width)
+                self.assertEqual(page.preview_responsive_columns, expected_columns)
+                index = page.preview_responsive_grid.indexOf(
+                    page.preview_responsive_cards[0]
+                )
+                self.assertEqual(
+                    page.preview_responsive_grid.getItemPosition(index)[3],
+                    expected_first_span,
+                )
+            self.assertTrue(all(
+                card.objectName() == "card"
+                for card in page.preview_responsive_cards
+            ))
+            full = page.preview_window_selector.findData("full_hd")
+            self.assertGreaterEqual(full, 0)
+            page.preview_window_selector.setCurrentIndex(full)
+            self.assertEqual(
+                page.preview_responsive_host.maximumWidth(),
+                UNITY_WINDOW_PRESETS_PX["full_hd"][0]
+                - 2 * UNITY_LAYOUT_SIZES_PX["page_margin"],
+            )
+            self.assertIn("1920 × 1080", page.preview_window_description.text())
+            self.assertTrue(any(
+                page.preview_metrics.item(row, 0).text() == "WINDOW_STANDARD"
+                for row in range(page.preview_metrics.rowCount())
+            ))
+            self.assertEqual(page.styleSheet(), "")
+        finally:
+            page.close()
+            page.deleteLater()
+
     def test_gallery_renders_real_qt_full_height_in_reduced_window(self) -> None:
         """Viewport and full scroll content must be real, grab-able Qt pixels."""
         from app.pages.dev_ui_page import DevUiPage

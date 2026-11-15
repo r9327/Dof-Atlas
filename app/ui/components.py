@@ -19,7 +19,10 @@ from PySide6.QtWidgets import (
 )
 
 from app.constants import APP_ICON_PATH
-from app.ui.unity_palette import UNITY_PALETTE, UNITY_SIZES_PX, UNITY_SPACING_PX
+from app.ui.unity_palette import (
+    UNITY_CONTROL_SIZES_PX, UNITY_LAYOUT_SIZES_PX, UNITY_PALETTE,
+    UNITY_SIZES_PX, UNITY_SPACING_PX,
+)
 from app.ui.splash_image import clear_connected_dark_background
 
 
@@ -256,10 +259,15 @@ class AtlasDialog(QDialog):
         self.setModal(True)
         # Shared dialogs must leave enough room for a title and action footer
         # instead of compressing both into the native 290 px minimum.
-        self.setMinimumWidth(400)
+        self.setMinimumWidth(UNITY_CONTROL_SIZES_PX["dialog_min_width"])
         self.content_layout = QVBoxLayout(self)
-        self.content_layout.setContentsMargins(24, 22, 24, 22)
-        self.content_layout.setSpacing(16)
+        self.content_layout.setContentsMargins(
+            UNITY_LAYOUT_SIZES_PX["dialog_padding_x"],
+            UNITY_LAYOUT_SIZES_PX["dialog_padding_y"],
+            UNITY_LAYOUT_SIZES_PX["dialog_padding_x"],
+            UNITY_LAYOUT_SIZES_PX["dialog_padding_y"],
+        )
+        self.content_layout.setSpacing(UNITY_LAYOUT_SIZES_PX["dialog_gap"])
 
 
 class AtlasDialogHeader(QWidget):

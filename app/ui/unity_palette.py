@@ -214,6 +214,55 @@ UNITY_SIZES_PX = {
     "icon_large": 24,
     "icon_xlarge": 32,
 }
+
+# Window geometry remains Qt-free so both the shell and Dev UI use exactly the
+# same values. These are reference viewport sizes, not global widget scaling.
+UNITY_WINDOW_PRESETS_PX = {
+    "compact": (900, 600),
+    "standard": (1180, 720),
+    "large": (1440, 900),
+    "full_hd": (1920, 1080),
+}
+
+# Layout metrics specify reusable relationships, not compulsory fixed panel
+# widths. Specific content (maps, equipment grids) can require exceptions.
+UNITY_LAYOUT_SIZES_PX = {
+    "page_margin": 16,
+    "module_padding": 12,
+    "module_gap": 10,
+    "splitter_handle": 6,
+    "dialog_padding_x": 24,
+    "dialog_padding_y": 22,
+    "dialog_gap": 16,
+}
+
+UNITY_CONTROL_SIZES_PX = {
+    "dropdown_row": 24,
+    "checkbox_indicator": 18,
+    "progress_primary": 11,
+    "progress_secondary": 7,
+    "progress_toggle_width": 28,
+    "progress_toggle_height": 24,
+    "dialog_min_width": 400,
+}
+
+# A grid rearranges its panels only when the usable width makes room.
+# It must not scale controls or fonts proportionally with the screen size.
+UNITY_LAYOUT_BREAKPOINTS_PX = {
+    "two_columns_min": 560,
+    "three_columns_min": 1000,
+}
+
+
+def unity_responsive_columns(usable_width: int) -> int:
+    """Shared width-only decision, safe to use without a QApplication."""
+    if usable_width >= UNITY_LAYOUT_BREAKPOINTS_PX["three_columns_min"]:
+        return 3
+    if usable_width >= UNITY_LAYOUT_BREAKPOINTS_PX["two_columns_min"]:
+        return 2
+    return 1
+
+
 UNITY_ORGANIZER_METRICS_PX = {
     # Preserved module-specific geometry, now visible in the global UI index.
     "card_padding": 12,
