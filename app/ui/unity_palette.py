@@ -374,6 +374,18 @@ UNITY_MODULE_GEOMETRY_PX = {
         "equipment_slot_box": 64, "equipment_icon": 54,
         "portrait_min_size": (230, 300), "portrait_max_size": (300, 360),
     },
+    # Existing compatibility character view, distinct from the active page.
+    "character_compat": {
+        "page_margins": (20, 18, 20, 20), "page_spacing": 12,
+        "columns_spacing": 14, "identity_min_width": 270,
+        "identity_max_width": 340, "stats_min_width": 250,
+        "equipment_min_width": 460, "panel_padding": 16,
+        "panel_spacing": 10, "selector_icon": 36,
+        "order_icon": 30, "order_min_height": 132,
+        "order_max_height": 190, "equipment_grid_margins": (6, 8, 6, 6),
+        "equipment_slot_box": 62, "equipment_icon": 52,
+        "portrait_min_size": (214, 292), "portrait_max_size": (274, 332),
+    },
     "achievements": {
         "category_min_width": 235, "category_max_width": 300,
         "success_list_min_width": 285, "detail_min_width": 240,
@@ -455,6 +467,7 @@ UNITY_MODULE_GEOMETRY_OWNERS = {
     "shell": "main.py",
     "home": "app/pages/home_page.py",
     "character": "app/pages/character_page.py",
+    "character_compat": "app/pages/_character_page_impl.py",
     "achievements": "app/modules/encyclopedia/views/achievements_view.py",
     "craft": "app/pages/craft_page.py",
     "guide_catalog": "app/modules/encyclopedia/views/guide_catalog_view.py",

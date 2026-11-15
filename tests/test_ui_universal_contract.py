@@ -67,6 +67,19 @@ class UiUniversalContractTests(unittest.TestCase):
             UNITY_MODULE_GEOMETRY_PX["world_map"]["canvas_min_size"], (420, 320),
         )
 
+    def test_compat_character_dimensions_are_indexed_without_moving_panels(self):
+        from app.ui.unity_palette import UNITY_MODULE_GEOMETRY_PX
+
+        data = UNITY_MODULE_GEOMETRY_PX["character_compat"]
+        source = (REPO_ROOT / "app/pages/_character_page_impl.py").read_text(
+            encoding="utf-8"
+        )
+        self.assertEqual(data["equipment_slot_box"], 62)
+        self.assertEqual(data["portrait_min_size"], (214, 292))
+        self.assertIn("CHARACTER_COMPAT_GEOMETRY =", source)
+        self.assertIn('CHARACTER_COMPAT_GEOMETRY["equipment_slot_box"]', source)
+        self.assertIn('CHARACTER_COMPAT_GEOMETRY["page_margins"]', source)
+
     def test_shell_character_selector_uses_the_shared_unity_combo(self):
         # The shell used a bare QComboBox, whose popup could show every
         # character and lacked the Dev UI separator/scroll contract.

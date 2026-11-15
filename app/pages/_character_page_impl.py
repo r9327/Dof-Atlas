@@ -37,6 +37,9 @@ from app.quest_catalog import QuestCharacter, load_quest_characters
 from app.services.character_order_service import CharacterOrderService
 from app.storage import default_profiles, read_json
 from app.ui.components import AtlasComboBox
+from app.ui.unity_palette import UNITY_MODULE_GEOMETRY_PX
+
+CHARACTER_COMPAT_GEOMETRY = UNITY_MODULE_GEOMETRY_PX["character_compat"]
 
 
 IconResolver = Callable[[str], str | Path | None]
@@ -145,8 +148,8 @@ class CharacterPage(QWidget):
         self._runtime_refresh_timer.timeout.connect(self._refresh_runtime_projection)
 
         root = QVBoxLayout(self)
-        root.setContentsMargins(20, 18, 20, 20)
-        root.setSpacing(12)
+        root.setContentsMargins(*CHARACTER_COMPAT_GEOMETRY["page_margins"])
+        root.setSpacing(CHARACTER_COMPAT_GEOMETRY["page_spacing"])
 
         title = QLabel("Mon personnage")
         title.setObjectName("PageTitle")
@@ -158,22 +161,22 @@ class CharacterPage(QWidget):
 
         columns = QHBoxLayout()
         columns.setContentsMargins(0, 4, 0, 0)
-        columns.setSpacing(14)
+        columns.setSpacing(CHARACTER_COMPAT_GEOMETRY["columns_spacing"])
         root.addLayout(columns, 1)
 
         self.identity_panel = self._panel(None, "HomeCharacterCard")
-        self.identity_panel.setMinimumWidth(270)
-        self.identity_panel.setMaximumWidth(340)
+        self.identity_panel.setMinimumWidth(CHARACTER_COMPAT_GEOMETRY["identity_min_width"])
+        self.identity_panel.setMaximumWidth(CHARACTER_COMPAT_GEOMETRY["identity_max_width"])
         columns.addWidget(self.identity_panel, 25)
         self._build_identity_panel(self.identity_panel.layout())
 
         self.stats_panel = self._panel("Statistiques", "HomeTrackingCard")
-        self.stats_panel.setMinimumWidth(250)
+        self.stats_panel.setMinimumWidth(CHARACTER_COMPAT_GEOMETRY["stats_min_width"])
         columns.addWidget(self.stats_panel, 25)
         self._build_stats_panel(self.stats_panel.layout())
 
         self.equipment_panel = self._panel("Équipement", "HomeTrackingCard")
-        self.equipment_panel.setMinimumWidth(460)
+        self.equipment_panel.setMinimumWidth(CHARACTER_COMPAT_GEOMETRY["equipment_min_width"])
         columns.addWidget(self.equipment_panel, 50)
         self._build_equipment_panel(self.equipment_panel.layout())
 
@@ -185,8 +188,9 @@ class CharacterPage(QWidget):
         panel.setObjectName(object_name)
         panel.setFrameShape(QFrame.StyledPanel)
         layout = QVBoxLayout(panel)
-        layout.setContentsMargins(16, 16, 16, 16)
-        layout.setSpacing(10)
+        inset = CHARACTER_COMPAT_GEOMETRY["panel_padding"]
+        layout.setContentsMargins(inset, inset, inset, inset)
+        layout.setSpacing(CHARACTER_COMPAT_GEOMETRY["panel_spacing"])
         if title:
             label = QLabel(title)
             label.setObjectName("PanelTitle")
@@ -196,7 +200,8 @@ class CharacterPage(QWidget):
     def _build_identity_panel(self, layout: QVBoxLayout) -> None:
         self.character_selector = AtlasComboBox()
         self.character_selector.setObjectName("CharacterPageCharacterCombo")
-        self.character_selector.setIconSize(QSize(36, 36))
+        icon_size = CHARACTER_COMPAT_GEOMETRY["selector_icon"]
+        self.character_selector.setIconSize(QSize(icon_size, icon_size))
         self.character_selector.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
         self.character_selector.setToolTip("Changer de personnage")
         self.character_selector.currentIndexChanged.connect(
@@ -239,14 +244,15 @@ class CharacterPage(QWidget):
 
         self.character_order_list = QListWidget()
         self.character_order_list.setObjectName("CharacterOrderList")
-        self.character_order_list.setIconSize(QSize(30, 30))
+        icon_size = CHARACTER_COMPAT_GEOMETRY["order_icon"]
+        self.character_order_list.setIconSize(QSize(icon_size, icon_size))
         self.character_order_list.setSelectionMode(QAbstractItemView.SingleSelection)
         self.character_order_list.setDragDropMode(QAbstractItemView.InternalMove)
         self.character_order_list.setDefaultDropAction(Qt.MoveAction)
         self.character_order_list.setDropIndicatorShown(True)
         self.character_order_list.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
-        self.character_order_list.setMinimumHeight(132)
-        self.character_order_list.setMaximumHeight(190)
+        self.character_order_list.setMinimumHeight(CHARACTER_COMPAT_GEOMETRY["order_min_height"])
+        self.character_order_list.setMaximumHeight(CHARACTER_COMPAT_GEOMETRY["order_max_height"])
         self.character_order_list.itemDoubleClicked.connect(
             self._on_character_order_item_activated
         )
@@ -332,21 +338,21 @@ class CharacterPage(QWidget):
         equipment_widget.setObjectName("CharacterEquipmentGrid")
         equipment_widget.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
         grid = QGridLayout(equipment_widget)
-        grid.setContentsMargins(6, 8, 6, 6)
+        grid.setContentsMargins(*CHARACTER_COMPAT_GEOMETRY["equipment_grid_margins"])
         grid.setHorizontalSpacing(8)
         grid.setVerticalSpacing(8)
         self.equipment_slots: dict[str, QToolButton] = {}
 
         for column in range(6):
-            grid.setColumnMinimumWidth(column, 62)
+            grid.setColumnMinimumWidth(column, CHARACTER_COMPAT_GEOMETRY["equipment_slot_box"])
         for row in range(7):
-            grid.setRowMinimumHeight(row, 62)
+            grid.setRowMinimumHeight(row, CHARACTER_COMPAT_GEOMETRY["equipment_slot_box"])
 
         self.portrait = QLabel("◈")
         self.portrait.setObjectName("HomeCharacterPortrait")
         self.portrait.setAlignment(Qt.AlignCenter)
-        self.portrait.setMinimumSize(214, 292)
-        self.portrait.setMaximumSize(274, 332)
+        self.portrait.setMinimumSize(*CHARACTER_COMPAT_GEOMETRY["portrait_min_size"])
+        self.portrait.setMaximumSize(*CHARACTER_COMPAT_GEOMETRY["portrait_max_size"])
         self.portrait.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
         grid.addWidget(self.portrait, 0, 1, 6, 4, Qt.AlignCenter)
 
@@ -354,8 +360,10 @@ class CharacterPage(QWidget):
             button = QToolButton()
             button.setObjectName("SecondaryButton")
             button.setProperty("equipmentSlot", slot_key)
-            button.setFixedSize(62, 62)
-            button.setIconSize(QSize(52, 52))
+            slot_box = CHARACTER_COMPAT_GEOMETRY["equipment_slot_box"]
+            button.setFixedSize(slot_box, slot_box)
+            icon_box = CHARACTER_COMPAT_GEOMETRY["equipment_icon"]
+            button.setIconSize(QSize(icon_box, icon_box))
             button.setEnabled(False)
             button.setToolTip(slot_label)
             button.setText("")

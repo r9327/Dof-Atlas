@@ -85,6 +85,19 @@ class UnityPaletteTests(unittest.TestCase):
 
 
 
+    def test_character_compat_geometry_is_covered_by_dev_ui(self) -> None:
+        from app.ui.unity_palette import (
+            UNITY_MODULE_GEOMETRY_PX, UNITY_MODULE_GEOMETRY_OWNERS,
+        )
+        self.assertEqual(
+            UNITY_MODULE_GEOMETRY_PX["character_compat"]["equipment_slot_box"],
+            62,
+        )
+        self.assertEqual(
+            UNITY_MODULE_GEOMETRY_OWNERS["character_compat"],
+            "app/pages/_character_page_impl.py",
+        )
+
     def test_quest_detail_keeps_existing_splitter_sizes(self) -> None:
         from app.ui.unity_palette import UNITY_MODULE_GEOMETRY_PX
 
