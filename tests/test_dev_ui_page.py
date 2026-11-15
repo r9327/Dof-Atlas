@@ -1170,17 +1170,23 @@ class DevUiPageTests(unittest.TestCase):
         from app.ui.unity_palette import (
             UNITY_WINDOW_PRESETS_PX, unity_responsive_columns,
         )
-        # Match the actual shell (which applies the global QSS before
-        # constructing Dev UI). An unstyled, standalone QWidget can report
-        # a wildly different minimum size due to native Qt widget metrics.
+        from app.ui.unity_skin import UnityBackdrop
+        from PySide6.QtWidgets import QVBoxLayout
+        # Same true widget tree as tools.dev_ui_snapshot: the viewport must
+        # belong to a styled shell, not a free-floating QWidget.
         previous_style = self.app.styleSheet()
         self.app.setStyleSheet(atlas_stylesheet())
-        page = DevUiPage(on_back=lambda: None)
+        backdrop = UnityBackdrop()
+        layout = QVBoxLayout(backdrop)
+        layout.setContentsMargins(0, 0, 0, 0)
+        layout.setSpacing(0)
+        page = DevUiPage(on_back=lambda: None, parent=backdrop)
+        layout.addWidget(page)
         try:
             for key, (width, height) in UNITY_WINDOW_PRESETS_PX.items():
                 with self.subTest(preset=key):
-                    page.resize(width, height)
-                    page.show()
+                    backdrop.resize(width, height)
+                    backdrop.show()
                     self.app.processEvents()
                     self.assertEqual(
                         page.gallery_scroll.horizontalScrollBar().maximum(), 0
@@ -1195,8 +1201,9 @@ class DevUiPageTests(unittest.TestCase):
                         page.preview_responsive_host.width(), width
                     )
         finally:
-            page.close()
+            backdrop.close()
             page.deleteLater()
+            backdrop.deleteLater()
             self.app.setStyleSheet(previous_style)
 
     def test_gallery_renders_real_qt_full_height_in_reduced_window(self) -> None:
