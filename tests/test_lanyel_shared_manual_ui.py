@@ -407,7 +407,7 @@ class LanyelSharedManualUiTests(unittest.TestCase):
             shared.preparation_button.setChecked(True)
             self.app.processEvents()
             self.assertEqual(shared._preparation_needs, ())
-            self.assertFalse(shared.preparation_panel.findChildren(QToolButton, "GuidePreparationReady"))
+            self.assertFalse(shared.preparation_panel.findChildren(QCheckBox, "GuidePreparationReady"))
             description = shared.preparation_panel.findChild(QLabel, "GuidePreparationEmpty")
             self.assertIsNotNone(description)
             self.assertIn("Aperçu des préparatifs", description.text())
