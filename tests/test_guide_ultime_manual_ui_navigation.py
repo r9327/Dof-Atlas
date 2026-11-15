@@ -200,7 +200,7 @@ class GuideUltimeManualUiNavigationTests(unittest.TestCase):
             self.assertEqual(view.donut_count_label.text(), "0 / 2 fiches")
             self.assertFalse(hasattr(view, "success_bar"))
             self.assertFalse(hasattr(view, "current_button"))
-            self.assertEqual(view.sheet_meta_label.text(), "ÉTAPE · GUIDE")
+            self.assertEqual(view.sheet_meta_label.text(), "ÉTAPE · CHAPITRE UN")
             self.assertEqual(view.nav_page_label.text(), "Page 1 / 2")
             self.assertNotIn("Quêtes", view.route_progress_label.text())
             self.assertNotIn("Donjons", view.route_progress_label.text())
