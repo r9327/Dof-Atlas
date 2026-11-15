@@ -101,6 +101,20 @@ class ModularDomainRoutingTests(unittest.TestCase):
         self.assertEqual(owners_for(unknown), frozenset())
         self.assertEqual(self.route([unknown])["status"], "BLOCKED")
 
+    def test_continuous_guide_route_panel_has_exact_guide_ui_ownership(self):
+        source = "app/modules/encyclopedia/views/guide_continuous_route_panel.py"
+        test = "tests/test_guide_continuous_route_panel.py"
+        domains = frozenset({"guides", "ui"})
+        self.assertEqual(owners_for(source), domains)
+        self.assertEqual(owners_for(test), domains)
+        report = self.route([source, test])
+        self.assertEqual(report["status"], "READY_TO_EXECUTE")
+        self.assertEqual(set(report["domains"]), set(domains))
+        self.assertEqual(report["unknown_paths"], [])
+        unreviewed = "app/modules/encyclopedia/views/guide_route_overlay.py"
+        self.assertEqual(owners_for(unreviewed), frozenset())
+        self.assertEqual(self.route([unreviewed])["status"], "BLOCKED")
+
     def test_shared_quest_detail_sheet_has_exact_three_domain_ownership(self):
         source = "app/modules/encyclopedia/widgets/quest_detail_view.py"
         regression = "tests/test_quest_detail_view.py"

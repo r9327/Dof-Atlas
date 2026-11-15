@@ -61,8 +61,14 @@ class LauncherBrandingTests(unittest.TestCase):
         self.assertIn("dpi_multiplier(window)", source)
         self.assertIn("round(base_width * ui_scale)", source)
         self.assertIn("round(base_height * ui_scale)", source)
-        self.assertIn("wraplength=round(420 * ui_scale)", source)
-        self.assertIn("length=round(408 * ui_scale)", source)
+        self.assertIn(
+            'wraplength=round(LAUNCHER_GEOMETRY["status_wrap_length"] * ui_scale)',
+            source,
+        )
+        self.assertIn(
+            'length=round(LAUNCHER_GEOMETRY["progress_width"] * ui_scale)',
+            source,
+        )
 
     def test_launcher_does_not_allow_legacy_palette(self):
         self.assertFalse(hasattr(launcher_ui, "ATLAS_PALETTE"))
