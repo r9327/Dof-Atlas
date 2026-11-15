@@ -1278,7 +1278,6 @@ class SharedGuideManualView(GuideUltimeManualView):
         self.summary_list.itemClicked.connect(self._summary_item_clicked)
         summary_layout.addWidget(self.summary_list)
         self.summary_panel.setVisible(False)
-        self.summary_button.toggled.connect(self._summary_toggled)
         # Display the Route dropdown directly below the compact header, not inside the sheet title.
         root.addWidget(self.summary_panel)
         apply_unity_panel_shadow(header)
