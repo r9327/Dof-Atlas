@@ -2567,6 +2567,60 @@ QFrame#GuidePreparationDetails {
     border-radius: @RADIUS_XS;
 }
 
+QToolButton#GuideMetricDropdown {
+    background: @PANEL_2;
+    border: 1px solid @BORDER_SOFT;
+    border-radius: @RADIUS_XS;
+    color: @TEXT_SOFT;
+    padding: 1px;
+}
+QToolButton#GuideMetricDropdown:hover,
+QToolButton#GuideMetricDropdown:checked {
+    background: @PANEL_ACTIVE;
+    border-color: @GREEN_BORDER;
+    color: @TEXT;
+}
+
+QPushButton#GuideManualGuideButton {
+    background: @PANEL_2;
+    color: @TEXT;
+    border: 1px solid @BORDER;
+    border-radius: @RADIUS_XS;
+    padding: 3px 8px;
+    font-weight: 700;
+}
+QPushButton#GuideManualGuideButton:hover {
+    background: @PANEL_HOVER;
+    border-color: @GREEN_BORDER;
+}
+
+QSpinBox#GuideCompactPageJump,
+QSpinBox#GuidePreparationQuantity {
+    background: @PANEL_2;
+    color: @TEXT;
+    border: 1px solid @BORDER_SOFT;
+    border-radius: @RADIUS_XS;
+    min-height: 22px;
+    padding: 3px 4px;
+}
+QSpinBox#GuideCompactPageJump:focus,
+QSpinBox#GuidePreparationQuantity:focus {
+    border-color: @GREEN_BORDER;
+}
+QListWidget#GuideSummaryList::item {
+    background: transparent;
+    color: @TEXT_SOFT;
+    padding: 5px 8px;
+}
+QListWidget#GuideSummaryList::item:hover {
+    background: @PANEL_HOVER;
+}
+QListWidget#GuideSummaryList::item:selected {
+    background: @PANEL_ACTIVE;
+    border-left: 2px solid @GREEN_BORDER;
+    color: @TEXT;
+}
+
 QToolButton#GuidePreparationToggle {
     background: @PANEL;
     color: @TEXT;
@@ -2612,17 +2666,19 @@ QLabel#GuidePreparationRowLabel {
 }
 
 QToolButton#GuidePreparationReady {
-    background: transparent;
-    color: @TEXT_MUTED;
+    background: @PANEL_2;
+    color: @TEXT_SOFT;
     border: 1px solid @BORDER_SOFT;
-    border-radius: 10px;
-    min-width: 20px;
-    max-width: 20px;
-    min-height: 20px;
-    max-height: 20px;
-    padding: 0;
+    border-radius: @RADIUS_XS;
+    min-width: 63px;
+    min-height: 24px;
+    padding: 2px 7px;
+    font-weight: 700;
 }
-
+QToolButton#GuidePreparationReady:hover {
+    background: @PANEL_HOVER;
+    border-color: @GREEN_BORDER;
+}
 QToolButton#GuidePreparationReady:checked {
     background: @GREEN;
     border-color: @GREEN;

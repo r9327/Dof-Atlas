@@ -1305,7 +1305,7 @@ class SharedGuideManualView(GuideUltimeManualView):
         self._restore_route_lock_state()
 
     def _build_compact_header(self, root: QVBoxLayout) -> None:
-        """One left donut, three horizontally expanding metrics, three real panel controls."""
+        """Keep both progress bars and pair each with a compact dropdown arrow."""
         header = QFrame()
         header.setObjectName("GuideCompactHeader")
         outer = QHBoxLayout(header)
@@ -1380,11 +1380,13 @@ class SharedGuideManualView(GuideUltimeManualView):
         self.settings_button.setCheckable(True)
         title_row.addWidget(self.settings_button)
         right.addLayout(title_row)
+        self._compact_title_row = title_row
 
         # Row 2: route and preparation only; no duplicate Successes bar.
         metrics = QHBoxLayout()
         metrics.setSpacing(12)
         self._metric_caption_labels: dict[str, QLabel] = {}
+        self._metric_dropdown_buttons: dict[str, QToolButton] = {}
         def add_metric(
             name: str, symbol: str, color_key: str, bar: QProgressBar, value: QLabel
         ) -> None:
@@ -1410,7 +1412,25 @@ class SharedGuideManualView(GuideUltimeManualView):
             block.addLayout(caption)
             bar.setTextVisible(False)
             bar.setFixedHeight(7)
-            block.addWidget(bar)
+            meter_row = QHBoxLayout()
+            meter_row.setSpacing(5)
+            meter_row.addWidget(bar, 1, Qt.AlignVCenter)
+            arrow = QToolButton()
+            arrow.setObjectName("GuideMetricDropdown")
+            arrow.setCheckable(True)
+            arrow.setArrowType(Qt.RightArrow)
+            arrow.setFixedSize(28, 24)
+            arrow.setCursor(Qt.PointingHandCursor)
+            target = "Sommaire" if name == "Route" else "Préparation"
+            arrow.setToolTip(f"Ouvrir {target}")
+            arrow.setAccessibleName(f"Afficher {target}")
+            meter_row.addWidget(arrow)
+            block.addLayout(meter_row)
+            if name == "Route":
+                self.summary_button = arrow
+            else:
+                self.preparation_button = arrow
+            self._metric_dropdown_buttons[name] = arrow
             metrics.addLayout(block, 1)
 
         self.route_bar = GuideManualProgressBar()
@@ -1427,11 +1447,7 @@ class SharedGuideManualView(GuideUltimeManualView):
 
         right.addLayout(metrics)
 
-        # Row 3: populated by the existing preparation, summary and participant
-        # builders. Their original panels/signals remain owned by those builders.
-        self.header_actions_row = QHBoxLayout()
-        self.header_actions_row.setSpacing(7)
-        right.addLayout(self.header_actions_row)
+        # Only the arrows next to the bars open Route/Preparation panels.
 
         self.settings_panel = QFrame()
         self.settings_panel.setObjectName("GuideCompactSettingsPanel")
@@ -1451,21 +1467,7 @@ class SharedGuideManualView(GuideUltimeManualView):
         root.addWidget(header)
 
     def _build_preparation_panel(self, root: QVBoxLayout) -> None:
-        self.preparation_button = QToolButton()
-        self.preparation_button.setObjectName("GuidePreparationToggle")
-        self.preparation_button.setText("Préparation")
-        self.preparation_button.setIcon(
-            _guide_symbol_icon(self.preparation_button, "clipboard")
-        )
-        self.preparation_button.setToolButtonStyle(Qt.ToolButtonTextBesideIcon)
-        self.preparation_button.setSizePolicy(QSizePolicy.Fixed, QSizePolicy.Fixed)
-        self.preparation_button.setFixedHeight(28)
-        self.preparation_button.setMaximumWidth(148)
-        self.preparation_button.setArrowType(Qt.RightArrow)
-        self.preparation_button.setCheckable(True)
-        self.preparation_button.setCursor(Qt.PointingHandCursor)
         self.preparation_button.toggled.connect(self._preparation_toggled)
-        self.header_actions_row.addWidget(self.preparation_button, 0)
 
         self.preparation_panel = QFrame()
         self.preparation_panel.setObjectName("GuidePreparationPanel")
@@ -1552,20 +1554,11 @@ class SharedGuideManualView(GuideUltimeManualView):
         self.participants_button.setIconSize(QSize(19, 19))
         self.participants_button.setCheckable(True)
         self.participants_button.setCursor(Qt.PointingHandCursor)
-        self.summary_button = QToolButton()
-        self.summary_button.setObjectName("GuideSummaryButton")
-        self.summary_button.setText("Sommaire")
-        self.summary_button.setIcon(_guide_symbol_icon(self.summary_button, "summary"))
-        self.summary_button.setToolButtonStyle(Qt.ToolButtonTextBesideIcon)
-        self.summary_button.setSizePolicy(QSizePolicy.Fixed, QSizePolicy.Fixed)
-        self.summary_button.setFixedHeight(28)
-        self.summary_button.setMaximumWidth(122)
-        self.summary_button.setArrowType(Qt.RightArrow)
-        self.summary_button.setCheckable(True)
-        self.summary_button.setCursor(Qt.PointingHandCursor)
-        self.header_actions_row.addWidget(self.summary_button, 0)
-        self.header_actions_row.addWidget(self.participants_button, 0)
-        self.header_actions_row.addStretch(1)
+        self.summary_button.toggled.connect(self._summary_toggled)
+        self._compact_title_row.insertWidget(
+            max(0, self._compact_title_row.count() - 1),
+            self.participants_button,
+        )
         layout.addLayout(top)
 
         self.participants_panel = QFrame()
@@ -1595,7 +1588,7 @@ class SharedGuideManualView(GuideUltimeManualView):
         summary_layout.addWidget(self.summary_list)
         self.summary_panel.setVisible(False)
         self.summary_button.toggled.connect(self._summary_toggled)
-        layout.addWidget(self.summary_panel)
+        root.addWidget(self.summary_panel)
         apply_unity_panel_shadow(header, blur=15, vertical=3)
         root.addWidget(header)
         self._refresh_participants_panel()
@@ -2340,9 +2333,11 @@ class SharedGuideManualView(GuideUltimeManualView):
         ready_button.setObjectName("GuidePreparationReady")
         ready_button.setIcon(_guide_symbol_icon(ready_button, "check", size=14))
         ready_button.setIconSize(QSize(14, 14))
+        ready_button.setText("Validé" if ready else "Valider")
+        ready_button.setToolButtonStyle(Qt.ToolButtonTextBesideIcon)
         ready_button.setCheckable(True)
         ready_button.setChecked(ready)
-        ready_button.setToolTip("Déclarer Prêt pour les participants sélectionnés concernés")
+        ready_button.setToolTip("Confirmer Prêt pour les participants sélectionnés concernés")
         source_authorized = getattr(self.service, "can_write_progress", None)
         if callable(source_authorized) and not source_authorized():
             ready_button.setEnabled(False)
@@ -2353,6 +2348,11 @@ class SharedGuideManualView(GuideUltimeManualView):
         ):
             ready_button.setEnabled(False)
             ready_button.setToolTip("Sauvegarde atomique indisponible")
+        ready_button.toggled.connect(
+            lambda checked, widget=ready_button: widget.setText(
+                "Validé" if checked else "Valider"
+            )
+        )
         ready_button.toggled.connect(
             lambda checked, row=need: self._set_need_ready(row, checked)
         )
@@ -2525,13 +2525,13 @@ class SharedGuideManualView(GuideUltimeManualView):
             self.route_bar.setValue(completed)
             self.route_progress_label.setText(f"{percent} %")
             self.progress_donut.set_percent(percent)
-            self.donut_count_label.setText(f"{completed} / {total} fiches")
+            self.donut_count_label.setText(f"{completed} fiches validées")
         else:
             self.route_bar.setRange(0, 1)
             self.route_bar.setValue(0)
             self.route_progress_label.setText("—")
             self.progress_donut.set_percent(None)
-            self.donut_count_label.setText("— / — fiches")
+            self.donut_count_label.setText("Fiches à valider")
 
         self._update_preparation_progress()
 
