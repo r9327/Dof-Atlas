@@ -712,31 +712,24 @@ class DevUiPage(QWidget):
                 portraits_row = QHBoxLayout()
                 portraits_row.setSpacing(5)
                 self.preview_header_portraits: list[_ParticipantPortraitButton] = []
-                from app.pages.organizer.common import class_icon_candidates
-                for index, (class_key, percent) in enumerate((
-                    ("pandawa", 35), ("huppermage", 60), ("enutrof", 10)
-                ), start=1):
+                # The same visible local Unity character artwork as the
+                # original Dev UI sample (no empty/gray class placeholders).
+                portrait_icon = sprite_icon_path("character")
+                for index, percent in enumerate((35, 60, 10), start=1):
                     portrait = _ParticipantPortraitButton(
                         f"character:demo_{index}", progress=percent,
                     )
                     portrait.setToolTip(
-                        f"{class_key.title()} fictif · progression {percent} %"
+                        f"Personnage fictif {index} · progression {percent} %"
                     )
                     portrait.setAccessibleName(f"Personnage fictif {index}")
                     portrait.setChecked(index == 1)
-                    class_image = next(
-                        (path for path in class_icon_candidates(class_key)
-                         if path.is_file()), None
-                    )
-                    if class_image is not None:
-                        portrait.setIcon(QIcon(str(class_image)))
+                    if portrait_icon:
+                        portrait.setIcon(QIcon(str(portrait_icon)))
                     else:
-                        # Missing Unity sprites are explicit; never display a
-                        # gray generic avatar masquerading as a class logo.
-                        tone = ("GREEN", "YELLOW", "TEXT_SOFT")[index - 1]
                         portrait.setIcon(
                             _guide_symbol_icon(
-                                portrait, "people", color=PALETTE[tone]
+                                portrait, "people", color=PALETTE["TEXT_SOFT"]
                             )
                         )
                     portrait.toggled.connect(
