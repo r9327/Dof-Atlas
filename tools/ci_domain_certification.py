@@ -208,6 +208,10 @@ def owners_for(path: str) -> frozenset[str]:
         raise ValueError("Unsafe changed path")
     if path in REVIEWED_CI_INSTRUCTION_PATHS:
         return frozenset({"ci"})
+    if path == "tests/test_doctor_ui_qt.py":
+        # Exact contract suite for the real Qt Doctor evidence collector.
+        # Future Qt tests must acquire ownership independently.
+        return frozenset({"ci", "ui"})
     # Only the reviewed Organizer feature contracts are owned documentation.
     # Generic docs remain excluded rather than inheriting a broad wildcard.
     if path in {

@@ -129,6 +129,9 @@ class GuideLogicalRowOracleTests(unittest.TestCase):
         plain = QFrame(sheet)
         plain.setObjectName("GuideManualLineRow")
         QLabel("• Sans position", plain)
+        combat = QFrame(sheet)
+        combat.setObjectName("GuideManualCombatLineRow")
+        QLabel("• Faire les combats requis", combat)
         paired = QFrame(sheet)
         paired.setObjectName("GuideManualLineRow")
         layout = QHBoxLayout(paired)
@@ -145,7 +148,13 @@ class GuideLogicalRowOracleTests(unittest.TestCase):
         layout.addWidget(shortcut)
         self.assertEqual(
             mounted_action_line_html(sheet),
-            ["• Sans position", "• [1,2]", "• [1,2]", "— Dubious duplicate"],
+            [
+                "• Sans position",
+                "• Faire les combats requis",
+                "• [1,2]",
+                "• [1,2]",
+                "— Dubious duplicate",
+            ],
         )
         sheet.deleteLater()
 

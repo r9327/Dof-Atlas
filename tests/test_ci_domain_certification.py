@@ -486,8 +486,10 @@ class ModularDomainRoutingTests(unittest.TestCase):
         filter_panel = "app/modules/encyclopedia/widgets/filter_panel.py"
         filter_owners = frozenset({"quests", "guides", "ui"})
         self.assertEqual(owners_for(filter_panel), filter_owners)
+        doctor_ui_test = "tests/test_doctor_ui_qt.py"
+        self.assertEqual(owners_for(doctor_ui_test), frozenset({"ci", "ui"}))
 
-        report = self.route([*manifests, filter_panel])
+        report = self.route([*manifests, filter_panel, doctor_ui_test])
         self.assertEqual(report["status"], "READY_TO_EXECUTE")
         self.assertEqual(report["unknown_paths"], [])
         self.assertEqual(set(report["domains"]), {"ci", *filter_owners})
@@ -496,6 +498,7 @@ class ModularDomainRoutingTests(unittest.TestCase):
         for unknown in (
             ".ai/scopes/pr365_unreviewed.yaml",
             "app/modules/encyclopedia/widgets/filter_panel_unreviewed.py",
+            "tests/test_unreviewed_oracle_contract.py",
         ):
             with self.subTest(unknown=unknown):
                 self.assertEqual(owners_for(unknown), frozenset())

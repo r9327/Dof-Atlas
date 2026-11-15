@@ -543,7 +543,10 @@ def mounted_action_line_html(sheet) -> list[str]:
     from PySide6.QtWidgets import QFrame, QLabel, QToolButton
 
     actual = []
-    for row in sheet.findChildren(QFrame, "GuideManualLineRow"):
+    row_names = {"GuideManualLineRow", "GuideManualCombatLineRow"}
+    for row in sheet.findChildren(QFrame):
+        if row.objectName() not in row_names:
+            continue
         labels = [
             widget for widget in row.findChildren(QLabel)
             if widget.parentWidget() is row
