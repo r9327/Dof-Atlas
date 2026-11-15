@@ -3168,6 +3168,14 @@ QToolButton#GuideMetricDropdown {
     border: 1px solid transparent;
     border-radius: @RADIUS_XS;
     padding: 0;
+    min-width: 18px;
+    max-width: 18px;
+    min-height: 18px;
+    max-height: 18px;
+}
+QToolButton#GuideMetricDropdown:disabled {
+    background: transparent;
+    border-color: transparent;
 }
 QToolButton#GuideMetricDropdown:hover,
 QToolButton#GuideMetricDropdown:checked {
