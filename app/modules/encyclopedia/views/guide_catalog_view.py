@@ -4,7 +4,7 @@ from PySide6.QtCore import QSize, Qt, QTimer, Signal
 from PySide6.QtGui import QIcon
 from app.ui.unity_skin import apply_unity_panel_shadow, sprite_icon_path
 from PySide6.QtWidgets import (
-    QFrame, QLabel, QListView, QScrollArea, QTreeWidget, QTreeWidgetItem,
+    QFrame, QLabel, QListView, QScrollArea, QStackedWidget, QTreeWidget, QTreeWidgetItem,
     QVBoxLayout, QWidget,
 )
 from app.ui.theme import PALETTE
@@ -73,6 +73,8 @@ class GuideCatalogView(QWidget):
         self.guides = []
         self.visible_guides = []
         self.ganymede_listings = ()
+        self._ganymede_by_id = {}
+        self._ganymede_shell = None
         self.library_category = "dofus"
         self._initial_progress_by_guide = dict(initial_progress_by_guide or {})
         self._initial_progress_character_key = str(initial_progress_character_key or "")
@@ -92,7 +94,11 @@ class GuideCatalogView(QWidget):
         root.setContentsMargins(8, 8, 8, 8)
         root.setSpacing(8)
         self.home_scroll.setWidget(content)
-        shell.addWidget(self.home_scroll, 1)
+        # One lazy metadata-only container for all 95 indexed source IDs.
+        # It cannot dispatch a playable guide or allocate 95 Qt pages at Home.
+        self.pages = QStackedWidget(self)
+        self.pages.addWidget(self.home_scroll)
+        shell.addWidget(self.pages, 1)
 
         def heading(text: str) -> QLabel:
             label = QLabel(text)
@@ -241,8 +247,10 @@ class GuideCatalogView(QWidget):
         # Metadata are deliberately not playable Atlas guides.
         try:
             self.ganymede_listings = load_ganymede_listings()
+            self._ganymede_by_id = {row.source_id: row for row in self.ganymede_listings}
         except (OSError, ValueError, KeyError, TypeError) as exc:
             self.ganymede_listings = ()
+            self._ganymede_by_id = {}
             self.status_callback(f"Inventaire Ganymède indisponible : {exc}")
         if initial_progress_by_guide is not None:
             self._initial_progress_by_guide = dict(initial_progress_by_guide)
@@ -266,6 +274,7 @@ class GuideCatalogView(QWidget):
         if not any(str(getattr(guide, "id", "")) == guide_id for guide in self.guides):
             return False
         self.current_guide_id = guide_id
+        self.pages.setCurrentWidget(self.home_scroll)
         self.guideRequested.emit(guide_id)
         return True
 
@@ -363,10 +372,10 @@ class GuideCatalogView(QWidget):
             )
 
     def _populate_library_tree(self) -> None:
-        """Group available guides and disabled references inside expandable menus.
+        """Group real guides and preview-only Ganymède references.
 
-        The read-only source index is kept intact; metadata-only routes can
-        never dispatch a guideRequested signal.
+        Source-index rows open only the empty UI container; they cannot
+        dispatch guideRequested or acquire a route/runtime service.
         """
         catalog_ids = {str(guide.id) for guide in self.guides}
         featured = {guide_id for guide_id, _title in FEATURED}
@@ -383,9 +392,8 @@ class GuideCatalogView(QWidget):
 
             for entry in displayable_listings(self.ganymede_listings, catalog_ids, category):
                 child = QTreeWidgetItem((entry.title,))
-                child.setFlags(child.flags() & ~Qt.ItemIsEnabled & ~Qt.ItemIsSelectable)
                 child.setData(0, Qt.UserRole + 2, entry.source_id)
-                child.setToolTip(0, "Guide référencé, mais parcours non disponible dans Atlas.")
+                child.setToolTip(0, "Voir le conteneur UI — parcours indisponible dans Atlas.")
                 parent.addChild(child)
             # A dense category menu starts folded instead of occupying
             # half of the Guide home before the user chooses a section.
@@ -398,9 +406,34 @@ class GuideCatalogView(QWidget):
         if guide_id:
             self.select_guide(str(guide_id))
             return
+        source_id = item.data(0, Qt.UserRole + 2)
+        if type(source_id) is int:
+            self.open_ganymede_container(source_id)
+            return
         category = item.data(0, Qt.UserRole)
         if category:
             self.library_category = str(category)
+
+    def open_ganymede_container(self, source_id: int) -> bool:
+        """Show one of the 95 UI-only shells, never a playable source Guide."""
+        if type(source_id) is not int:
+            return False
+        listing = self._ganymede_by_id.get(source_id)
+        if listing is None or listing.playable:
+            return False
+        if self._ganymede_shell is None:
+            from app.modules.encyclopedia.views.ganymede_guide_shell import (
+                GanymedeGuideShell,
+            )
+            self._ganymede_shell = GanymedeGuideShell(self._show_ganymede_catalog, self)
+            self.pages.addWidget(self._ganymede_shell)
+        self._ganymede_shell.set_listing(listing)
+        self.current_guide_id = None
+        self.pages.setCurrentWidget(self._ganymede_shell)
+        return True
+
+    def _show_ganymede_catalog(self) -> None:
+        self.pages.setCurrentWidget(self.home_scroll)
 
     def _toggle_library_category(self, item: QTreeWidgetItem, _column: int) -> None:
         if item.data(0, Qt.UserRole) and item.childCount():
