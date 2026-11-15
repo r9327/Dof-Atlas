@@ -293,7 +293,6 @@ class DevUiPageTests(unittest.TestCase):
                 {
                     "Route": "GuideManualProgress",
                     "Préparation": "GuideCompactPreparationProgress",
-                    "Succès": "GuideCompactSuccessProgress",
                 },
             )
             from app.modules.encyclopedia.views.shared_manual_guide_view import (
@@ -301,10 +300,16 @@ class DevUiPageTests(unittest.TestCase):
             )
             self.assertIsInstance(page.preview_header_donut, _GuideProgressDonut)
             self.assertEqual(page.preview_header_donut._percent, 35)
+            self.assertEqual(page.preview_header_donut_count.text(), "7 / 20 fiches")
+            self.assertEqual(page.preview_header_page_jump.suffix(), " / 20")
+            self.assertIs(
+                page.preview_header_page_jump.parentWidget(),
+                page.preview_sheet_header,
+            )
             self.assertFalse(page.preview_header_guide_icon.pixmap().isNull())
             self.assertFalse(page.preview_header_overlay.isEnabled())
             self.assertEqual(set(page.preview_header_metric_icons),
-                             {"Route", "Préparation", "Succès"})
+                             {"Route", "Préparation"})
             self.assertTrue(all(not icon.pixmap().isNull()
                                 for icon in page.preview_header_metric_icons.values()))
             self.assertTrue(page.preview_header_panels["Personnages"].isVisibleTo(
@@ -323,8 +328,17 @@ class DevUiPageTests(unittest.TestCase):
 
             page.preview_header_page_jump.setValue(8)
             self.assertIn("fiche 8", page.feedback.text())
+            page.preview_header_controls["Préparation"].click()
+            self.assertIn("Préparation : ouvert", page.feedback.text())
+            self.assertTrue(page.preview_header_panels["Préparation"].isVisibleTo(
+                page.preview_compact_header
+            ))
             page.preview_header_controls["Sommaire"].click()
             self.assertIn("Sommaire : ouvert", page.feedback.text())
+            self.assertTrue(page.preview_header_panels["Sommaire"].isVisibleTo(
+                page.preview_compact_header
+            ))
+            self.assertIn("Rechercher", page.preview_header_summary_search.placeholderText())
             self.assertTrue(all(
                 widget.styleSheet() == ""
                 for widget in page.findChildren(QWidget)

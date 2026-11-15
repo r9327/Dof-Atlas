@@ -33,7 +33,8 @@ UI_FAMILY_QSS_SELECTORS: dict[str, tuple[str, ...]] = {
         "QFrame#GuideSheetHeader", "QLabel#GuideSheetMeta",
         "QLabel#GuideSheetTitle", "#GuideManualProgress",
         "QProgressBar#GuideCompactPreparationProgress",
-        "QProgressBar#GuideCompactSuccessProgress", "#DialogHeader",
+        "#GuideCompactDonutHeading", "#GuideCompactDonutCount",
+        "#DialogHeader",
     ),
     "sidebar": ("#sidebar", "#navItem", "#navItemActive", "#MenuButton", "#NavSeparator"),
     "data_views": (

@@ -3048,6 +3048,18 @@ QLabel#GuideCompactTitle {
     font-weight: 800;
 }
 
+QLabel#GuideCompactDonutHeading {
+    color: @TEXT_MUTED;
+    font-size: @FONT_SMALL;
+    font-weight: 700;
+}
+
+QLabel#GuideCompactDonutCount {
+    color: @TEXT_SOFT;
+    font-size: @FONT_SMALL;
+    font-weight: 700;
+}
+
 QLabel#GuideCompactMetricValue,
 QLabel#GuideSheetMeta,
 QLabel#GuidePreparationParticipantNeed,
@@ -3061,8 +3073,7 @@ QLabel#GuideCompactMetricValue {
     min-width: 52px;
 }
 
-QProgressBar#GuideCompactPreparationProgress,
-QProgressBar#GuideCompactSuccessProgress {
+QProgressBar#GuideCompactPreparationProgress {
     background: @PANEL_2;
     border: 1px solid @BORDER_SOFT;
     border-radius: 3px;
@@ -3070,11 +3081,6 @@ QProgressBar#GuideCompactSuccessProgress {
 
 QProgressBar#GuideCompactPreparationProgress::chunk {
     background: @GREEN;
-    border-radius: 2px;
-}
-
-QProgressBar#GuideCompactSuccessProgress::chunk {
-    background: @YELLOW;
     border-radius: 2px;
 }
 

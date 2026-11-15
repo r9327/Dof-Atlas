@@ -486,9 +486,20 @@ class DevUiPage(QWidget):
         outer.setSpacing(10)
 
         # Exact Qt-painted donut from the real shared Guide implementation.
+        donut_column = QVBoxLayout()
+        donut_column.setSpacing(2)
+        donut_heading = QLabel("PROGRESSION")
+        donut_heading.setObjectName("GuideCompactDonutHeading")
+        donut_heading.setAlignment(Qt.AlignCenter)
+        donut_column.addWidget(donut_heading)
         self.preview_header_donut = _GuideProgressDonut()
         self.preview_header_donut.set_percent(35)
-        outer.addWidget(self.preview_header_donut, 0, Qt.AlignVCenter)
+        donut_column.addWidget(self.preview_header_donut, 0, Qt.AlignHCenter)
+        self.preview_header_donut_count = QLabel("7 / 20 fiches")
+        self.preview_header_donut_count.setObjectName("GuideCompactDonutCount")
+        self.preview_header_donut_count.setAlignment(Qt.AlignCenter)
+        donut_column.addWidget(self.preview_header_donut_count)
+        outer.addLayout(donut_column, 0)
 
         right = QVBoxLayout()
         right.setSpacing(6)
@@ -509,22 +520,6 @@ class DevUiPage(QWidget):
         title.setMinimumWidth(0)
         title.setSizePolicy(QSizePolicy.Ignored, QSizePolicy.Preferred)
         heading.addWidget(title, 1)
-        self.preview_header_page_jump = QSpinBox()
-        self.preview_header_page_jump.setObjectName("GuideCompactPageJump")
-        self.preview_header_page_jump.setPrefix("Fiche ")
-        self.preview_header_page_jump.setRange(1, 20)
-        self.preview_header_page_jump.setValue(4)
-        self.preview_header_page_jump.setMaximumWidth(115)
-        self.preview_header_page_jump.valueChanged.connect(
-            lambda value: self._report(f"Guide · fiche {value}")
-        )
-        heading.addWidget(self.preview_header_page_jump)
-
-        current = AtlasButton("Actuelle")
-        current.setObjectName("GuideCompactCurrentButton")
-        current.setIcon(_guide_symbol_icon(current, "current"))
-        current.clicked.connect(lambda: self.preview_header_page_jump.setValue(4))
-        heading.addWidget(current)
         self.preview_header_overlay = QToolButton()
         self.preview_header_overlay.setObjectName("GuideCompactOverlayButton")
         self.preview_header_overlay.setIcon(
@@ -553,7 +548,6 @@ class DevUiPage(QWidget):
         for name, role, amount, icon_symbol, color_role in (
             ("Route", "GuideManualProgress", 35, "target", "RED"),
             ("Préparation", "GuideCompactPreparationProgress", 60, "cube", "GREEN"),
-            ("Succès", "GuideCompactSuccessProgress", 20, "trophy", "YELLOW"),
         ):
             block = QVBoxLayout()
             block.setSpacing(2)
@@ -638,15 +632,76 @@ class DevUiPage(QWidget):
             panel_layout.setContentsMargins(8, 5, 8, 5)
             panel_layout.setSpacing(4)
             if label == "Préparation":
-                panel_layout.addWidget(QLabel("Prérequis · exemple de préparation"))
+                heading = QLabel("Préparer avant de partir · exemple fictif")
+                heading.setObjectName("GuidePreparationSummary")
+                panel_layout.addWidget(heading)
+                filters = QHBoxLayout()
+                for name in ("Tout", "Objets", "Potions", "Clefs"):
+                    button = AtlasButton(name, variant="secondary")
+                    button.setObjectName("GuidePreparationFilter")
+                    button.setCheckable(True)
+                    button.setChecked(name == "Tout")
+                    button.clicked.connect(
+                        lambda _checked=False, value=name: self._report(
+                            f"Préparation · filtre {value} (aperçu)"
+                        )
+                    )
+                    filters.addWidget(button)
+                filters.addStretch(1)
+                panel_layout.addLayout(filters)
+                for name, quantity, done in (
+                    ("Potion de rappel", 2, True),
+                    ("Clef du donjon", 1, False),
+                    ("Ressources à récupérer", 8, False),
+                ):
+                    row_frame = QFrame()
+                    row_frame.setObjectName("GuidePreparationRow")
+                    row = QHBoxLayout(row_frame)
+                    row.setContentsMargins(8, 3, 8, 3)
+                    label_widget = QLabel(f"{quantity}× {name}")
+                    label_widget.setObjectName("GuidePreparationRowLabel")
+                    row.addWidget(label_widget, 1)
+                    check = QToolButton()
+                    check.setObjectName("GuidePreparationReady")
+                    check.setCheckable(True)
+                    check.setChecked(done)
+                    check.setToolTip("Marquer comme prêt · aperçu fictif")
+                    check.setText("✓" if done else "")
+                    check.toggled.connect(
+                        lambda value, widget=check: widget.setText(
+                            "✓" if value else ""
+                        )
+                    )
+                    row.addWidget(check)
+                    panel_layout.addWidget(row_frame)
             elif label == "Sommaire":
+                self.preview_header_summary_search = QLineEdit()
+                self.preview_header_summary_search.setObjectName("GuideSummarySearch")
+                self.preview_header_summary_search.setPlaceholderText(
+                    "Rechercher une fiche…"
+                )
+                panel_layout.addWidget(self.preview_header_summary_search)
                 summary = QListWidget()
                 summary.setObjectName("GuideSummaryList")
                 summary.addItems((
-                    "Fiche 1 · Introduction", "Fiche 4 · Étape actuelle",
-                    "Fiche 20 · Fin du guide",
+                    "1 · Introduction au village",
+                    "2 · Préparer le départ",
+                    "3 · Traverser la forêt",
+                    "4 · Parler au PNJ du village",
+                    "5 · Première quête",
+                    "6 · Prochaine étape",
                 ))
-                summary.setMaximumHeight(75)
+                summary.setCurrentRow(3)
+                summary.setMaximumHeight(150)
+                self.preview_header_summary_search.textChanged.connect(
+                    lambda value, list_widget=summary: [
+                        list_widget.item(i).setHidden(
+                            value.casefold() not in
+                            list_widget.item(i).text().casefold()
+                        )
+                        for i in range(list_widget.count())
+                    ]
+                )
                 summary.itemClicked.connect(
                     lambda item: self._report(
                         f"Guide · sommaire : {item.text()} (aperçu)"
@@ -657,20 +712,33 @@ class DevUiPage(QWidget):
                 portraits_row = QHBoxLayout()
                 portraits_row.setSpacing(5)
                 self.preview_header_portraits: list[_ParticipantPortraitButton] = []
-                portrait_path = sprite_icon_path("character")
-                for index, percent in enumerate((35, 60, 10), start=1):
+                from app.pages.organizer.common import class_icon_candidates
+                for index, (class_key, percent) in enumerate((
+                    ("pandawa", 35), ("huppermage", 60), ("enutrof", 10)
+                ), start=1):
                     portrait = _ParticipantPortraitButton(
                         f"character:demo_{index}", progress=percent,
                     )
                     portrait.setToolTip(
-                        f"Personnage fictif {index} · progression {percent} %"
+                        f"{class_key.title()} fictif · progression {percent} %"
                     )
                     portrait.setAccessibleName(f"Personnage fictif {index}")
                     portrait.setChecked(index == 1)
-                    if portrait_path:
-                        portrait.setIcon(QIcon(str(portrait_path)))
+                    class_image = next(
+                        (path for path in class_icon_candidates(class_key)
+                         if path.is_file()), None
+                    )
+                    if class_image is not None:
+                        portrait.setIcon(QIcon(str(class_image)))
                     else:
-                        portrait.setIcon(_guide_symbol_icon(portrait, "people"))
+                        # Missing Unity sprites are explicit; never display a
+                        # gray generic avatar masquerading as a class logo.
+                        tone = ("GREEN", "YELLOW", "TEXT_SOFT")[index - 1]
+                        portrait.setIcon(
+                            _guide_symbol_icon(
+                                portrait, "people", color=PALETTE[tone]
+                            )
+                        )
                     portrait.toggled.connect(
                         lambda checked, number=index: self._report(
                             f"Guide · personnage {number} {'choisi' if checked else 'retiré'} (aperçu)"
@@ -737,7 +805,7 @@ class DevUiPage(QWidget):
         sheet_row.addWidget(sheet_back)
         labels = QVBoxLayout()
         labels.setSpacing(1)
-        meta = QLabel("ÉTAPE 4 / 20")
+        meta = QLabel("ÉTAPE · VILLAGE")
         meta.setObjectName("GuideSheetMeta")
         labels.addWidget(meta)
         sheet_title = QLabel("Exemple · parler au PNJ du village")
@@ -745,6 +813,18 @@ class DevUiPage(QWidget):
         sheet_title.setWordWrap(True)
         labels.addWidget(sheet_title)
         sheet_row.addLayout(labels, 1)
+        self.preview_header_page_jump = QSpinBox()
+        self.preview_header_page_jump.setObjectName("GuideCompactPageJump")
+        self.preview_header_page_jump.setRange(1, 20)
+        self.preview_header_page_jump.setSuffix(" / 20")
+        self.preview_header_page_jump.setValue(4)
+        self.preview_header_page_jump.setMaximumWidth(110)
+        self.preview_header_page_jump.setToolTip("Ouvrir directement la fiche sélectionnée")
+        self.preview_header_page_jump.setAccessibleName("Sélectionner la fiche du guide")
+        self.preview_header_page_jump.valueChanged.connect(
+            lambda value: self._report(f"Guide · fiche {value} / 20")
+        )
+        sheet_row.addWidget(self.preview_header_page_jump, 0, Qt.AlignTop)
         apply_unity_panel_shadow(self.preview_sheet_header, **UNITY_PANEL_SHADOW)
         section.addWidget(self.preview_sheet_header)
 

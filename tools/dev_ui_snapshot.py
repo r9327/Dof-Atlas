@@ -109,6 +109,29 @@ def capture(output: Path, *, width: int = 1100, height: int = 800) -> dict[str, 
             ):
                 raise RuntimeError(f"Unable to save {part}")
             results["screenshots"][f"part_{number + 1}"] = str(part)
+        # Two actual opened-state captures of the new shared Guide controls.
+        # Capture only this developer-only preview, never real gameplay data.
+        backdrop.resize(width, height)
+        app.processEvents()
+        page.gallery_scroll.ensureWidgetVisible(page.preview_compact_header, 0, 8)
+        app.processEvents()
+        for key, file_name in (
+            ("Préparation", "dev-ui-entetes-preparation.png"),
+            ("Sommaire", "dev-ui-entetes-sommaire.png"),
+        ):
+            toggle = page.preview_header_controls[key]
+            toggle.setChecked(True)
+            app.processEvents()
+            page.gallery_scroll.ensureWidgetVisible(
+                page.preview_compact_header, 0, 8
+            )
+            app.processEvents()
+            shot = output / file_name
+            if not backdrop.grab().save(str(shot), "PNG"):
+                raise RuntimeError(f"Unable to capture {shot}")
+            results["screenshots"][f"header_{'preparation' if key == 'Préparation' else 'summary'}"] = str(shot)
+            toggle.setChecked(False)
+            app.processEvents()
         # Restore the user-sized viewport before opening native popups.
         backdrop.resize(width, height)
         app.processEvents()
