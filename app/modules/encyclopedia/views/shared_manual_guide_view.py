@@ -39,7 +39,7 @@ from app.modules.encyclopedia.views.guide_ultime_manual_view import (
     GuideUltimeManualView,
 )
 from app.core.text import normalize_key as normalize_text
-from app.ui.components import AtlasButton, AtlasGuideDisclosure
+from app.ui.components import AtlasButton, AtlasGuideDisclosure, AtlasGuideCover
 from app.ui.unity_palette import UNITY_CONTROL_SIZES_PX, UNITY_SIZES_PX
 from app.ui.unity_skin import apply_unity_panel_shadow, sprite_icon_path
 from app.constants import DATA_DIR
@@ -1037,12 +1037,12 @@ class SharedGuideManualView(GuideUltimeManualView):
         )
         # Keep the back action available beside the sheet title, outside
         # the three-row compact progress header agreed with the user.
-        guide_icon = QLabel()
-        guide_icon.setObjectName("GuideCompactTitleIcon")
-        guide_symbol = "trophy" if "succès" in self._guide_title().casefold() else "guide"
-        guide_icon.setPixmap(_guide_symbol_icon(guide_icon, guide_symbol, size=16).pixmap(16, 16))
-        guide_icon.setFixedSize(
-            UNITY_SIZES_PX["icon_small"], UNITY_SIZES_PX["icon_small"]
+        guide_icon = AtlasGuideCover()
+        self.guide_icon_label = guide_icon
+        guide_data = getattr(self.service, "guide", None)
+        guide_icon.set_artwork(
+            getattr(self.service, "image_path", None) or getattr(guide_data, "image_path", None),
+            category="dofus" if "dofus" in self._guide_title().casefold() else "guide",
         )
         title_row.addWidget(guide_icon)
         self.guide_title_label = QLabel(self._guide_title())

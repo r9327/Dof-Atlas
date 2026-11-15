@@ -59,6 +59,7 @@ from app.ui.components import (
     AtlasPageTitle,
     AtlasPanelToggle,
     AtlasGuideDisclosure,
+    AtlasGuideCover,
     AtlasStatusBadge,
     atlas_application_icon,
     apply_unity_calendar_weekdays,
@@ -544,15 +545,8 @@ class DevUiPage(QWidget):
         outer.addLayout(right, 1)
         heading = QHBoxLayout()
         heading.setSpacing(6)
-        self.preview_header_guide_icon = QLabel()
-        self.preview_header_guide_icon.setObjectName("GuideCompactTitleIcon")
-        self.preview_header_guide_icon.setPixmap(
-            _guide_symbol_icon(self.preview_header_guide_icon, "guide", size=16)
-            .pixmap(16, 16)
-        )
-        self.preview_header_guide_icon.setFixedSize(
-            UNITY_SIZES_PX["icon_small"], UNITY_SIZES_PX["icon_small"]
-        )
+        self.preview_header_guide_icon = AtlasGuideCover()
+        self.preview_header_guide_icon.set_artwork(category="dofus")
         heading.addWidget(self.preview_header_guide_icon)
 
         title = QLabel("Dofus Cawotte · exemple fictif")

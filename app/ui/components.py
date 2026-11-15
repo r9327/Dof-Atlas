@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from pathlib import Path
 from typing import Literal
 
 from PySide6.QtCore import QSize, Qt
@@ -25,6 +26,7 @@ from app.ui.unity_palette import (
     UNITY_SIZES_PX, UNITY_SPACING_PX,
 )
 from app.ui.splash_image import clear_connected_dark_background
+from app.ui.unity_skin import sprite_icon_path
 
 
 BUTTON_OBJECT_NAMES = {
@@ -207,6 +209,26 @@ class AtlasStatusBadge(QLabel):
         style.unpolish(self)
         style.polish(self)
         self.update()
+
+
+class AtlasGuideCover(QLabel):
+    """Single indexed Guide artwork slot, retaining original local Unity colors."""
+
+    def __init__(self, parent: QWidget | None = None) -> None:
+        super().__init__(parent)
+        self.setObjectName("GuideCompactTitleIcon")
+        self.setFixedSize(QSize(UNITY_SIZES_PX["icon_xlarge"], UNITY_SIZES_PX["icon_xlarge"]))
+        self.setAlignment(Qt.AlignCenter)
+
+    def set_artwork(self, image_path: str | Path | None = None, *, category: str = "guide") -> bool:
+        """Show a verified local cover or an explicitly generic Unity pictogram."""
+        cover = Path(image_path) if isinstance(image_path, (str, Path)) and image_path else None
+        if cover is None or not cover.is_file():
+            cover = sprite_icon_path("dofus" if category == "dofus" else "guide")
+        pixmap = QIcon(str(cover)).pixmap(self.size()) if cover else QPixmap()
+        self.setPixmap(pixmap)
+        self.setVisible(not pixmap.isNull())
+        return not pixmap.isNull()
 
 
 class AtlasGuideDisclosure(QToolButton):
