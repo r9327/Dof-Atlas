@@ -559,6 +559,8 @@ class DevUiPage(QWidget):
         row = QHBoxLayout()
 
         self.preview_tree = QTreeWidget()
+        # Exercise the actual Quest hierarchy canvas, not an unstyled sample.
+        self.preview_tree.setObjectName("QuestHierarchyTree")
         self.preview_tree.setHeaderLabels(("Famille UI", "État"))
         self.preview_tree.setMaximumHeight(5 * UNITY_SIZES_PX["control_normal"])
         self.preview_tree.setAlternatingRowColors(False)
