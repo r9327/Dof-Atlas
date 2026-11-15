@@ -2610,10 +2610,6 @@ QToolButton#GuideMetricDropdown {
     min-height: 18px;
     max-height: 18px;
 }
-QToolButton#GuideMetricDropdown:disabled {
-    background: transparent;
-    border-color: transparent;
-}
 QToolButton#GuideMetricDropdown:hover,
 QToolButton#GuideMetricDropdown:checked {
     background: @PANEL_HOVER;

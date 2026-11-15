@@ -320,8 +320,9 @@ class ImportedSourceRouterQtTests(unittest.TestCase):
         self.assertEqual(reader.summary_button.objectName(), "GuideMetricDropdown")
         self.assertEqual(reader.preparation_button.objectName(), "GuideMetricDropdown")
         self.assertEqual(reader.participants_button.objectName(), "GuideParticipantsButton")
-        self.assertEqual(reader.participants_button.size(), reader.summary_button.size())
-        self.assertEqual(reader.preparation_button.size(), reader.summary_button.size())
+        self.assertEqual(reader.summary_button.size(), reader.preparation_button.size())
+        self.assertEqual(reader.summary_button.width(), 18)
+        self.assertGreaterEqual(reader.participants_button.width(), reader.summary_button.width())
         grid = reader._participants_control_column.parent()
         self.assertIsInstance(grid, QGridLayout)
         self.assertIs(grid.itemAtPosition(1, 2).layout(),

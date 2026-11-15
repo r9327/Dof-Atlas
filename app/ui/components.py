@@ -110,23 +110,6 @@ class AtlasGuideDisclosure(QToolButton):
                           Qt.UpArrow if opened else Qt.DownArrow)
         self.setIcon(icon)
 
-    def paintEvent(self, event) -> None:  # noqa: N802 - Qt
-        super().paintEvent(event)
-        # Qt/Windows suppresses QToolButton SVG icons in disabled state
-        # even though the same QIcon works on the navigation QPushButtons.
-        # Draw the unchanged indexed artwork on top of the shared chrome.
-        if self.isEnabled() or self.icon().isNull():
-            return
-        pixmap = self.icon().pixmap(self.iconSize(), QIcon.Normal)
-        if pixmap.isNull():
-            return
-        painter = QPainter(self)
-        painter.drawPixmap(
-            (self.width() - pixmap.width()) // 2,
-            (self.height() - pixmap.height()) // 2,
-            pixmap,
-        )
-
     def paintEvent(self, event) -> None:  # noqa: N802 - Qt override
         super().paintEvent(event)
         if self.isEnabled() or self.icon().isNull():
