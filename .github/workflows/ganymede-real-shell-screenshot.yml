@@ -16,7 +16,7 @@ jobs:
     runs-on: windows-latest
     timeout-minutes: 12
     env:
-      QT_QPA_PLATFORM: offscreen
+      QT_QPA_PLATFORM: windows
       PYTHONUTF8: "1"
     steps:
       - name: Checkout actual PR branch
@@ -36,6 +36,7 @@ jobs:
           python - <<'PY'
           from pathlib import Path
           from PySide6.QtWidgets import QApplication, QVBoxLayout, QProgressBar
+          from PySide6.QtGui import QFontDatabase
           from app.ui.theme import atlas_stylesheet
           from app.ui.unity_skin import UnityBackdrop
           from app.modules.encyclopedia.views.guide_catalog_view import GanymedeGuideShell
@@ -45,6 +46,7 @@ jobs:
           assert len(entries) == 95
           cawotte = next(entry for entry in entries if entry.source_id == 2205)
           app = QApplication([])
+          print("Windows Qt available fonts:", QFontDatabase.families()[:30])
           app.setStyleSheet(atlas_stylesheet())
           backdrop = UnityBackdrop()
           backdrop.setWindowTitle("Atlas - Guide Ganymede - vrai conteneur Qt")
