@@ -323,6 +323,18 @@ class DevUiPageTests(unittest.TestCase):
             self.assertFalse(validate.isChecked())
             validate.click()
             self.assertEqual((quantity.value(), validate.isChecked()), (1, True))
+            line = validate.parentWidget().layout()
+            self.assertIs(line.itemAt(0).widget(), validate)
+            self.assertIs(line.itemAt(1).widget(), quantity)
+            name_button = line.itemAt(2).widget()
+            self.assertEqual(name_button.objectName(), "GuidePreparationItemCopy")
+            QApplication.clipboard().clear()
+            name_button.click()
+            self.assertEqual(QApplication.clipboard().text(), "Clef du donjon")
+            sheet_back = page.preview_sheet_header.findChild(
+                QWidget, "GuideManualGuideButton"
+            )
+            self.assertFalse(sheet_back.icon().isNull())
             filters = page.preview_header_filter_group.buttons()
             filters[1].click()
             self.assertEqual(sum(button.isChecked() for button in filters), 1)
