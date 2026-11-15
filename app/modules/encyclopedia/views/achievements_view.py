@@ -302,7 +302,6 @@ class AchievementsView(QWidget):
     def _panel(object_name: str, title: str) -> QFrame:
         panel = QFrame()
         panel.setObjectName(object_name)
-        apply_unity_panel_shadow(panel)
         layout = QVBoxLayout(panel)
         layout.setContentsMargins(10, 10, 10, 10)
         layout.setSpacing(8)
