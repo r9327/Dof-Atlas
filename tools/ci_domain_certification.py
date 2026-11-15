@@ -385,6 +385,8 @@ def owners_for(path: str) -> frozenset[str]:
         # interact with Quest and Guide providers; fail closed for siblings.
         return frozenset({"quests", "guides", "ui"})
     if path in {
+        "app/modules/encyclopedia/views/ganymede_guide_shell.py",
+        "app/modules/encyclopedia/views/guide_continuous_route_panel.py",
         "app/modules/encyclopedia/views/shared_manual_guide_view.py",
         "app/modules/encyclopedia/views/manual_route_guides_view.py",
         "app/modules/encyclopedia/views/guides_view.py",
@@ -403,6 +405,13 @@ def owners_for(path: str) -> frozenset[str]:
     }:
         # Catalog widgets and the Encyclopedia shell have Guide and UI consumers.
         return frozenset({"guides", "ui"})
+    if path in {
+        "app/assets/themes/dofus_unity/sprites/atlas-control-down.svg",
+        "app/assets/themes/dofus_unity/sprites/atlas-control-up.svg",
+    }:
+        # Exact reviewed passive Guide control glyphs. Keep unrelated SVG
+        # siblings unowned instead of widening the existing asset suffix rule.
+        return frozenset({"ui", "data"})
     if path.startswith("app/assets/themes/dofus_unity/"):
         # Owned *only* as UI/data inputs, not approved for redistribution.
         if Path(path).suffix.lower() in {".png", ".ttf", ".md"}:

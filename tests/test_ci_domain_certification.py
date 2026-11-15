@@ -708,6 +708,33 @@ class ModularDomainRoutingTests(unittest.TestCase):
         self.assertEqual(plan["unknown_paths"], [])
         self.assertEqual(owners_for("app/modules/encyclopedia/views/unknown.py"), frozenset())
 
+    def test_pr363_guide_shell_panel_and_glyphs_have_exact_owners(self):
+        guide_paths = (
+            "app/modules/encyclopedia/views/ganymede_guide_shell.py",
+            "app/modules/encyclopedia/views/guide_continuous_route_panel.py",
+        )
+        glyph_paths = (
+            "app/assets/themes/dofus_unity/sprites/atlas-control-down.svg",
+            "app/assets/themes/dofus_unity/sprites/atlas-control-up.svg",
+        )
+        for path in guide_paths:
+            self.assertEqual(owners_for(path), frozenset({"guides", "ui"}))
+        for path in glyph_paths:
+            self.assertEqual(owners_for(path), frozenset({"ui", "data"}))
+
+        plan = self.route([*guide_paths, *glyph_paths])
+        self.assertEqual(plan["status"], "READY_TO_EXECUTE")
+        self.assertEqual(plan["unknown_paths"], [])
+        self.assertEqual(set(plan["domains"]), {"guides", "ui", "data"})
+        self.assertFalse(plan["phase_certified"])
+
+        for path in (
+            "app/modules/encyclopedia/views/ganymede_guide_overlay.py",
+            "app/assets/themes/dofus_unity/sprites/atlas-control-external.svg",
+        ):
+            self.assertEqual(owners_for(path), frozenset())
+            self.assertEqual(self.route([path])["status"], "BLOCKED")
+
     def test_classic_and_manual_guide_readers_require_both_domains(self):
         paths = [
             "app/modules/encyclopedia/views/guides_view.py",
