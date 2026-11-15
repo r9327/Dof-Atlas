@@ -1587,7 +1587,6 @@ class SharedGuideManualView(GuideUltimeManualView):
         self.summary_list.itemClicked.connect(self._summary_item_clicked)
         summary_layout.addWidget(self.summary_list)
         self.summary_panel.setVisible(False)
-        self.summary_button.toggled.connect(self._summary_toggled)
         root.addWidget(self.summary_panel)
         apply_unity_panel_shadow(header, blur=15, vertical=3)
         root.addWidget(header)
