@@ -839,3 +839,21 @@ La capture Windows `Personnage` (profil temporaire vide) a révélé que `Charac
 - Les tables techniques se replient et restent consultables en lecture seule. La table des modules indique des exemples réels de réutilisation et laisse les autres entrées à vérifier.
 - Vérification locale Linux Qt hors écran : 251 tests ciblés réussis. Dev UI a été capturée à 900 × 680 avec le fond Unity personnel produit par le nettoyeur existant et un défilement horizontal de 0 px. Le fond personnel n'entre pas dans le commit ni dans la distribution.
 - La recette Windows, les contrôles réseau et Launcher sur un poste réel et la validation du pilote Guide #363 restent nécessaires pour clôturer le contrat #364.
+
+
+### P0 — suppression d'une surcharge globale scrollbar / fond Quêtes (15/11/2026)
+
+- Audit de la QSS existante : une seconde définition **non ciblée** des
+  `QScrollBar` dans le bloc Guides, plus bas que le propriétaire global,
+  remplaçait les dimensions 8 px et les rôles `BORDER_CARD/BORDER_STRONG`
+  par un pouce visuellement sombre et une piste de 7 px. Suppression de
+  **cette seule redéfinition globale** ; les règles particulières, explicites
+  `#WorldMenuScroll` et `#DevUiGalleryScroll` restent intactes.
+- `QuestHierarchyTree` utilisait le fond de fenêtre `BG` presque noir
+  contrairement aux autres listes ; il consomme maintenant `LIST_SURFACE`,
+  déjà défini dans la palette Unity et modifiable au même endroit.
+- Deux tests ciblés ajoutés à `tests/test_theme.py` : unicité des
+  sélecteurs scrollbar globaux et propagation des tokens aux deux vues.
+  **Tests non exécutés ici**, pas de CI intermédiaire demandée.
+- Ces correctifs réduisent un écart réel entre Dev UI et écrans
+  consommateurs ; ils ne certifient pas les autres critères de la PR #365.
