@@ -77,6 +77,13 @@ def wallpaper_path() -> Path | None:
     return _asset_file(Path("background_selection_clean.png"))
 
 
+def unity_guide_chevron_path(direction: str) -> Path | None:
+    """Original indexed Unity up/down glyphs shared by all Guide controls."""
+    if direction not in {"up", "down"}:
+        raise ValueError("Unsupported Unity chevron direction")
+    return _asset_file(Path("sprites") / f"atlas-control-{direction}.svg")
+
+
 def _sprite_url(filename: str) -> str | None:
     """Render from personal files first, without changing release packaging."""
     candidate = _asset_file(Path("sprites") / filename)

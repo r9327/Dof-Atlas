@@ -43,7 +43,7 @@ from app.modules.encyclopedia.views.guide_ultime_manual_view import (
     GuideUltimeManualView,
 )
 from app.core.text import normalize_key as normalize_text
-from app.ui.components import AtlasButton, AtlasGuideDisclosure
+from app.ui.components import AtlasButton, AtlasGuideDisclosure, atlas_guide_arrow_icon
 from app.ui.unity_skin import apply_unity_panel_shadow, sprite_icon_path
 from app.constants import DATA_DIR
 from app.modules.encyclopedia.services.image_service import ENCYCLOPEDIA_IMAGE_SERVICE
@@ -1280,9 +1280,8 @@ class SharedGuideManualView(GuideUltimeManualView):
         nav_layout.setSpacing(8)
         self.prev_button = QPushButton("Précédent")
         self.prev_button.setObjectName("GuideManualPrev")
-        self.prev_button.setIcon(
-            _guide_symbol_icon(self.prev_button, "back", color=PALETTE["TEXT_SOFT"])
-        )
+        self.prev_button.setIcon(atlas_guide_arrow_icon("left"))
+        self.prev_button.setIconSize(QSize(14, 14))
         self.prev_button.clicked.connect(lambda: self.navigate_relative(-1))
         nav_layout.addWidget(self.prev_button)
         nav_layout.addStretch(1)
@@ -1295,9 +1294,8 @@ class SharedGuideManualView(GuideUltimeManualView):
         nav_layout.addStretch(1)
         self.next_button = QPushButton("Suivant")
         self.next_button.setObjectName("GuideManualNextButton")
-        self.next_button.setIcon(
-            self.next_button.style().standardIcon(QStyle.SP_ArrowForward)
-        )
+        self.next_button.setIcon(atlas_guide_arrow_icon("right"))
+        self.next_button.setIconSize(QSize(14, 14))
         self.next_button.clicked.connect(lambda: self.navigate_relative(1))
         nav_layout.addWidget(self.next_button)
         apply_unity_panel_shadow(nav, blur=14, vertical=3)
@@ -1336,7 +1334,9 @@ class SharedGuideManualView(GuideUltimeManualView):
         # Row 1: active guide, instant sheet selector and compact commands.
         title_row = QHBoxLayout()
         title_row.setSpacing(6)
-        self.guide_button = AtlasButton("←")
+        self.guide_button = AtlasButton("")
+        self.guide_button.setIcon(atlas_guide_arrow_icon("left"))
+        self.guide_button.setIconSize(QSize(14, 14))
         self.guide_button.setObjectName("GuideManualGuideButton")
         self.guide_button.setToolTip("Revenir à la fiche actuelle, puis au catalogue des guides")
         self.guide_button.setAccessibleName("Fiche actuelle ou catalogue des guides")
@@ -1422,17 +1422,14 @@ class SharedGuideManualView(GuideUltimeManualView):
             metrics.addLayout(caption, 0, column)
             bar.setTextVisible(False)
             bar.setFixedHeight(7)
-            meter_row = QHBoxLayout()
-            meter_row.setSpacing(5)
-            meter_row.addWidget(bar, 1, Qt.AlignVCenter)
             arrow = AtlasGuideDisclosure()
-            arrow.setFixedSize(22, 22)
+            arrow.setFixedSize(18, 18)
             arrow.setCursor(Qt.PointingHandCursor)
             target = "Sommaire" if name == "Route" else "Préparation"
             arrow.setToolTip(f"Ouvrir {target}")
             arrow.setAccessibleName(f"Afficher {target}")
-            meter_row.addWidget(arrow)
-            metrics.addLayout(meter_row, 1, column)
+            caption.insertWidget(2, arrow, 0, Qt.AlignVCenter)
+            metrics.addWidget(bar, 1, column, Qt.AlignVCenter)
             if name == "Route":
                 self.summary_button = arrow
             else:
@@ -1459,7 +1456,7 @@ class SharedGuideManualView(GuideUltimeManualView):
         # Place Personnages in the same Qt grid row as both dropdown arrows.
         self._participants_control_column = QVBoxLayout()
         self._participants_control_column.setContentsMargins(0, 0, 0, 0)
-        metrics.addLayout(self._participants_control_column, 1, 2, Qt.AlignVCenter)
+        metrics.addLayout(self._participants_control_column, 0, 2, Qt.AlignVCenter)
         right.addLayout(metrics)
         self._header_content_layout = right
 

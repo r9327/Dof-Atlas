@@ -7,10 +7,8 @@ from __future__ import annotations
 
 from collections.abc import Callable
 
-from pathlib import Path
-
-from PySide6.QtCore import QSize
-from PySide6.QtGui import QIcon
+from PySide6.QtCore import QSize, Qt
+from PySide6.QtGui import QIcon, QPixmap
 from PySide6.QtWidgets import QWidget
 
 from app.ui.unity_skin import sprite_icon_path
@@ -98,7 +96,7 @@ class GanymedeGuideShell(SharedGuideManualView):
     def refresh(self, *, reset_to_active: bool = False) -> None:
         """No progress or guide-runtime refresh is permitted in preview."""
 
-    def set_listing(self, listing: GanymedeListing) -> None:
+    def set_listing(self, listing: GanymedeListing, *, artwork: QPixmap | None = None) -> None:
         """Update only verified title metadata; never turn it into a route."""
         if not isinstance(listing, GanymedeListing):
             raise TypeError("GanymedeListing required")
@@ -108,13 +106,12 @@ class GanymedeGuideShell(SharedGuideManualView):
         self.service.guide_title = listing.title
         self.guide_title_label.setText(listing.title)
         self.guide_title_label.setToolTip(listing.title)
-        # Display verified local cover artwork, or the existing Unity category
-        # pictogram. Never pretend a category glyph is a guide-specific image.
-        local_cover = getattr(listing, "image_path", None)
-        cover = Path(local_cover) if isinstance(local_cover, (str, Path)) and local_cover else None
-        if cover is None or not cover.is_file():
-            cover = sprite_icon_path("dofus" if listing.category == "dofus" else "guide")
-        pixmap = QIcon(str(cover)).pixmap(QSize(32, 32)) if cover else None
+        # Use the Home card's own artwork, never a mismatched Dofus icon.
+        if artwork is not None and not artwork.isNull():
+            pixmap = artwork.scaled(QSize(32, 32), Qt.KeepAspectRatio, Qt.SmoothTransformation)
+        else:
+            fallback = sprite_icon_path("guide")
+            pixmap = QIcon(str(fallback)).pixmap(QSize(32, 32)) if fallback else None
         if pixmap is not None and not pixmap.isNull():
             self.guide_icon_label.setPixmap(pixmap)
             self.guide_icon_label.setToolTip(listing.title)

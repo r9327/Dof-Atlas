@@ -13,7 +13,7 @@ from app.modules.encyclopedia.views.guide_featured_home import (
     FEATURED, FeaturedGuideCard, FeaturedPair,
 )
 from app.modules.encyclopedia.views.guide_library_sources import (
-    CATEGORIES, displayable_listings, load_ganymede_listings,
+    ATLAS_EQUIVALENTS, CATEGORIES, displayable_listings, load_ganymede_listings,
 )
 
 from app.modules.encyclopedia.services.guide_catalog_hints import (
@@ -431,7 +431,16 @@ class GuideCatalogView(QWidget):
 
             self._ganymede_shell = GanymedeGuideShell(self._show_ganymede_catalog, self)
             self.pages.addWidget(self._ganymede_shell)
-        self._ganymede_shell.set_listing(listing)
+        # Pass the very same cached local artwork as the Home Guide card.
+        atlas_id = ATLAS_EQUIVALENTS.get(source_id)
+        local_guide = next(
+            (guide for guide in self.guides if guide.id == atlas_id), None
+        ) if atlas_id else None
+        artwork = (
+            self.home_dofus_model.artwork_for_guide(local_guide)
+            if local_guide is not None else None
+        )
+        self._ganymede_shell.set_listing(listing, artwork=artwork)
         self.current_guide_id = None
         self.pages.setCurrentWidget(self._ganymede_shell)
         return True

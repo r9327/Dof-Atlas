@@ -2599,21 +2599,28 @@ QLabel#GuideGlobalProgressTitle {
     font-size: @FONT_SMALL;
     font-weight: 700;
 }
-QToolButton#GuideMetricDropdown,
+/* In-label, 18px Guide disclosure: no detached square at the bar edge. */
+QToolButton#GuideMetricDropdown {
+    background: transparent;
+    border: 1px solid transparent;
+    border-radius: @RADIUS_XS;
+    padding: 0;
+}
+QToolButton#GuideMetricDropdown:hover,
+QToolButton#GuideMetricDropdown:checked {
+    background: @PANEL_HOVER;
+    border-color: @BORDER_STRONG;
+}
 QToolButton#GuideParticipantsButton {
     background: @PANEL_GRADIENT;
     border: 1px solid @BORDER_STRONG;
     border-radius: @RADIUS_XS;
-    color: @TEXT_SOFT;
     padding: 0;
 }
-QToolButton#GuideMetricDropdown:hover,
-QToolButton#GuideMetricDropdown:checked,
 QToolButton#GuideParticipantsButton:hover,
 QToolButton#GuideParticipantsButton:checked {
     background: @PANEL_HOVER;
     border-color: @GREEN_BORDER;
-    color: @TEXT;
 }
 
 QPushButton#GuideManualGuideButton {
@@ -2964,7 +2971,7 @@ QToolButton#GuideParticipantPortrait:checked {
 
 #GuideManualPrev,
 #GuideManualNextButton {
-    background: @PANEL_HOVER;
+    background: @PANEL_GRADIENT;
     color: @TEXT_SOFT;
     border: 1px solid @BORDER;
     border-radius: @RADIUS_XS;

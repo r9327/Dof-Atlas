@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from PySide6.QtCore import QSize, Qt
-from PySide6.QtGui import QIcon, QImage, QPixmap
+from PySide6.QtGui import QIcon, QImage, QPixmap, QTransform
 from PySide6.QtWidgets import (
     QDialog,
     QHBoxLayout,
@@ -14,6 +14,7 @@ from PySide6.QtWidgets import (
 
 from app.constants import APP_ICON_PATH
 from app.ui.splash_image import clear_connected_dark_background
+from app.ui.unity_skin import unity_guide_chevron_path
 
 
 BUTTON_OBJECT_NAMES = {
@@ -71,6 +72,25 @@ class AtlasButton(QPushButton):
         self.setObjectName(object_name)
 
 
+def atlas_guide_arrow_icon(direction: str) -> QIcon:
+    """Reuse the indexed Unity chevron for Guide drawers and navigation."""
+    if direction not in {"up", "down", "left", "right"}:
+        raise ValueError("Unknown Guide arrow direction")
+    path = unity_guide_chevron_path("down" if direction in {"left", "right"} else direction)
+    if path is None:
+        return QIcon()
+    pixmap = QIcon(str(path)).pixmap(QSize(14, 14))
+    if direction in {"left", "right"}:
+        pixmap = pixmap.transformed(
+            QTransform().rotate(90 if direction == "left" else -90),
+            Qt.SmoothTransformation,
+        )
+    icon = QIcon()
+    icon.addPixmap(pixmap, QIcon.Normal)
+    icon.addPixmap(pixmap, QIcon.Disabled)
+    return icon
+
+
 class AtlasGuideDisclosure(QToolButton):
     """Shared Guide dropdown: down opens, up closes, with indexed Unity QSS."""
 
@@ -80,11 +100,15 @@ class AtlasGuideDisclosure(QToolButton):
         self.setCheckable(True)
         self.setCursor(Qt.PointingHandCursor)
         self.setFocusPolicy(Qt.StrongFocus)
-        self.setArrowType(Qt.DownArrow)
+        self.setIconSize(QSize(14, 14))
         self.toggled.connect(self._sync_direction)
+        self._sync_direction(False)
 
     def _sync_direction(self, opened: bool) -> None:
-        self.setArrowType(Qt.UpArrow if opened else Qt.DownArrow)
+        icon = atlas_guide_arrow_icon("up" if opened else "down")
+        self.setArrowType(Qt.NoArrow if not icon.isNull() else
+                          Qt.UpArrow if opened else Qt.DownArrow)
+        self.setIcon(icon)
 
 
 class AtlasPageTitle(QLabel):

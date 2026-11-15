@@ -47,6 +47,8 @@ jobs:
           from app.ui.unity_skin import UnityBackdrop
           from app.modules.encyclopedia.views.ganymede_guide_shell import GanymedeGuideShell
           from app.modules.encyclopedia.views.guide_library_sources import load_ganymede_listings
+          from app.modules.encyclopedia.providers.guide_provider import GuideProvider
+          from app.modules.encyclopedia.widgets.guide_card import GuideListModel
 
           entries = load_ganymede_listings()
           assert len(entries) == 95
@@ -59,7 +61,10 @@ jobs:
           backdrop.resize(1280, 720)
           layout = QVBoxLayout(backdrop)
           shell = GanymedeGuideShell(lambda: None, backdrop)
-          shell.set_listing(cawotte)
+          # Real Cawotte artwork is resolved through the SAME model as Home.
+          local_guide = GuideProvider().get_by_id("dofus_cawotte")
+          artwork = GuideListModel().artwork_for_guide(local_guide) if local_guide else None
+          shell.set_listing(cawotte, artwork=artwork)
           layout.addWidget(shell)
           backdrop.show()
           app.processEvents()
