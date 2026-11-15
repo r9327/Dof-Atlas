@@ -10,7 +10,7 @@ from pathlib import Path
 
 os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
 
-from PySide6.QtWidgets import QApplication, QGridLayout, QToolButton
+from PySide6.QtWidgets import QApplication, QCheckBox, QGridLayout, QToolButton
 
 from app.modules.encyclopedia.providers import (
     AchievementProvider, GuideProvider, QuestProvider,
@@ -698,7 +698,7 @@ class ImportedSourceRouterQtTests(unittest.TestCase):
         # Hold the Python owner: Qt destroys child widgets if the temporary
         # parent frame goes out of scope before the assertions.
         row = reader._preparation_row(need)
-        ready = row.findChild(QToolButton, "GuidePreparationReady")
+        ready = row.findChild(QCheckBox, "GuidePreparationReady")
         self.assertIsNotNone(ready)
         self.assertTrue(ready.isEnabled())
         # Approval can disappear AFTER this checkbox was rendered.
@@ -707,7 +707,7 @@ class ImportedSourceRouterQtTests(unittest.TestCase):
         QApplication.processEvents()
         self.assertFalse(self.progress_path.exists())
         denied_row = reader._preparation_row(need)
-        disabled = denied_row.findChild(QToolButton, "GuidePreparationReady")
+        disabled = denied_row.findChild(QCheckBox, "GuidePreparationReady")
         self.assertIsNotNone(disabled)
         self.assertFalse(disabled.isEnabled())
         self.assertIn("non autorisé", disabled.toolTip())
