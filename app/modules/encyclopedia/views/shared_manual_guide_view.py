@@ -1901,8 +1901,19 @@ class SharedGuideManualView(GuideUltimeManualView):
         ready_button.toggled.connect(
             lambda checked, row=need: self._set_need_ready(row, checked)
         )
-        top.addWidget(ready_button)
-        top.addWidget(status_label)
+        # Same indexed row in every guide: ready | quantity | copyable name.
+        ready_button.setFixedWidth(22)
+        top.addWidget(ready_button, 0, Qt.AlignVCenter)
+        if counter is not None:
+            top.addWidget(counter, 0, Qt.AlignVCenter)
+        else:
+            missing_quantity = QLabel("—")
+            missing_quantity.setObjectName("GuidePreparationQuantityPlaceholder")
+            missing_quantity.setFixedWidth(100)
+            missing_quantity.setAlignment(Qt.AlignCenter)
+            top.addWidget(missing_quantity, 0, Qt.AlignVCenter)
+        top.addWidget(item_button, 1, Qt.AlignVCenter)
+        top.addWidget(status_label, 0, Qt.AlignVCenter)
         details_button = QToolButton()
         details_button.setObjectName("GuidePreparationDetailsButton")
         details_button.setArrowType(Qt.RightArrow)
