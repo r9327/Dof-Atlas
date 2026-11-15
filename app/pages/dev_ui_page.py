@@ -547,10 +547,10 @@ class DevUiPage(QWidget):
         heading = QHBoxLayout()
         heading.setSpacing(6)
         self.preview_header_guide_icon = AtlasGuideCover()
-        self.preview_header_guide_icon.set_artwork(category="dofus")
+        self.preview_header_guide_icon.set_artwork(category="guide")
         heading.addWidget(self.preview_header_guide_icon)
 
-        title = QLabel("Dofus Cawotte · exemple fictif")
+        title = QLabel("Guide · aperçu fictif")
         title.setObjectName("GuideCompactTitle")
         title.setMinimumWidth(0)
         title.setSizePolicy(QSizePolicy.Ignored, QSizePolicy.Preferred)
