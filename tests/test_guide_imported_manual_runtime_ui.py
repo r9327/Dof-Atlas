@@ -10,7 +10,7 @@ from pathlib import Path
 
 os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
 
-from PySide6.QtWidgets import QApplication, QToolButton
+from PySide6.QtWidgets import QApplication, QGridLayout, QToolButton
 
 from app.modules.encyclopedia.providers import (
     AchievementProvider, GuideProvider, QuestProvider,
@@ -314,6 +314,23 @@ class ImportedSourceRouterQtTests(unittest.TestCase):
         reader = self.view.stack.currentWidget()
         self.assertIsInstance(reader, SharedGuideManualView)
         self.assertIs(self.view._catalog_manual_views[self.service.guide_id], reader)
+        # Every certified Ganymède source inherits the shared header, not
+        # a per-guide copy of buttons or a second stylesheet.
+        self.assertEqual(reader.global_progress_bar.objectName(), "GuideGlobalProgress")
+        self.assertEqual(reader.summary_button.objectName(), "GuideMetricDropdown")
+        self.assertEqual(reader.preparation_button.objectName(), "GuideMetricDropdown")
+        self.assertEqual(reader.participants_button.objectName(), "GuideParticipantsButton")
+        self.assertEqual(reader.participants_button.size(), reader.summary_button.size())
+        self.assertEqual(reader.preparation_button.size(), reader.summary_button.size())
+        grid = reader._participants_control_column.parent()
+        self.assertIsInstance(grid, QGridLayout)
+        self.assertIs(grid.itemAtPosition(1, 2).layout(),
+                      reader._participants_control_column)
+        self.assertIs(grid.itemAtPosition(1, 0).layout().itemAt(1).widget(),
+                      reader.summary_button)
+        self.assertIs(grid.itemAtPosition(1, 1).layout().itemAt(1).widget(),
+                      reader.preparation_button)
+        self.assertFalse(hasattr(reader, "header_actions_row"))
         self.assertEqual(self.view.current_guide_id, self.service.guide_id)
         self.assertEqual(self.view.state, self.view.GUIDE_OVERVIEW)
         self.assertIsNone(self.view.guide_ultime_view)
