@@ -13,9 +13,10 @@ os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
 
 from PySide6.QtWidgets import QApplication, QProgressBar
 
-from app.modules.encyclopedia.views.guide_catalog_view import GuideCatalogView
+from app.modules.encyclopedia.views.guide_catalog_view import (
+    GuideCatalogView, GanymedeGuideShell,
+)
 from app.modules.encyclopedia.views.guide_library_sources import load_ganymede_listings
-from app.modules.encyclopedia.views.ganymede_guide_shell import GanymedeGuideShell
 
 
 class GanymedeGuideShellTests(unittest.TestCase):
