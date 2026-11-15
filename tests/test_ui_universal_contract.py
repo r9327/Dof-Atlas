@@ -67,6 +67,26 @@ class UiUniversalContractTests(unittest.TestCase):
              if data["adapter"] == "qt"},
         )
 
+    def test_dev_ui_indexes_actual_nav_and_quest_hierarchy_styles(self):
+        # These real controls were already in the gallery but missing from
+        # its auditable family index (including the active top tab).
+        source = (REPO_ROOT / "app/pages/dev_ui_page.py").read_text(
+            encoding="utf-8"
+        )
+        cases = (
+            ("buttons", "TopNavButtonActive", "#TopNavButtonActive"),
+            ("breadcrumbs", "GuideBreadcrumbCurrentStrong",
+             "QLabel#GuideBreadcrumbCurrentStrong"),
+            ("data_views", "QuestHierarchyTree", "QTreeWidget#QuestHierarchyTree"),
+        )
+        qss = atlas_stylesheet()
+        for family, name, selector in cases:
+            with self.subTest(name=name):
+                self.assertIn(name, UNITY_UI_FAMILY_INDEX[family]["components"])
+                self.assertIn(selector, UI_FAMILY_QSS_SELECTORS[family])
+                self.assertIn(selector, qss)
+        self.assertIn('self.preview_tree.setObjectName("QuestHierarchyTree")', source)
+
     def test_world_map_preview_and_interaction_states_are_indexed(self):
         expected = {
             "navigation": (
