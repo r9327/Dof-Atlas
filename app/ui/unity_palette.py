@@ -306,7 +306,8 @@ UNITY_UI_UNIFICATION_CONTRACT = (
 UNITY_UI_FAMILY_INDEX = {
     "buttons": {
         "title": "Boutons · variantes et états",
-        "components": ("AtlasButton", "PrimaryActionButton", "SecondaryButton", "ActiveButton", "DangerButton", "TopNavButton", "InlineActionButton", "PopupLinkButton"),
+        "components": ("AtlasButton", "PrimaryActionButton", "SecondaryButton", "ActiveButton", "DangerButton", "TopNavButton", "TopNavButtonActive",
+                       "InlineActionButton", "PopupLinkButton"),
         "style_owner": "app/ui/components.py + app/ui/theme.py",
         "scope": "shared",
     },
@@ -321,7 +322,8 @@ UNITY_UI_FAMILY_INDEX = {
     },
     "breadcrumbs": {
         "title": "Fil d'Ariane · niveaux et navigation",
-        "components": ("AtlasBreadcrumb", "GuideBreadcrumb", "GuideBreadcrumbButton", "GuideBreadcrumbSeparator", "GuideBreadcrumbCurrent"),
+        "components": ("AtlasBreadcrumb", "GuideBreadcrumb", "GuideBreadcrumbButton", "GuideBreadcrumbSeparator", "GuideBreadcrumbCurrent",
+                       "GuideBreadcrumbCurrentStrong"),
         "style_owner": "app/ui/theme.py + app/ui/components.py",
         "scope": "shared",
     },
@@ -335,7 +337,8 @@ UNITY_UI_FAMILY_INDEX = {
         "title": "Listes · arborescences · tableaux",
         "components": (
             "QTreeWidget", "QTableWidget", "QHeaderView", "QListWidget",
-            "MapViewTree", "AchievementsView", "GuideLeftPanel",
+            "MapViewTree", "QuestHierarchyTree",
+            "AchievementsView", "GuideLeftPanel",
             "GuideCenterPanel", "AchievementDetailStack",
         ),
         "style_owner": "app/ui/theme.py + app/ui/unity_skin.py",
