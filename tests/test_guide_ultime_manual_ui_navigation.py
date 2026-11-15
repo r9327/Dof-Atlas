@@ -225,10 +225,15 @@ class GuideUltimeManualUiNavigationTests(unittest.TestCase):
             self.assertEqual(view.preparation_button.objectName(), "GuideMetricDropdown")
             self.assertEqual(view.summary_button.width(), 18)
             self.assertGreaterEqual(view.participants_button.width(), view.summary_button.width())
-            controls_grid = view._participants_control_column.parent()
-            self.assertIsInstance(controls_grid, QGridLayout)
-            self.assertIs(controls_grid.itemAtPosition(0, 2).layout(),
+            from PySide6.QtWidgets import QHBoxLayout
+            participants_row = view._participants_control_column.parent()
+            self.assertIsInstance(participants_row, QHBoxLayout)
+            self.assertEqual(participants_row.count(), 3)
+            self.assertIs(participants_row.itemAt(1).layout(),
                           view._participants_control_column)
+            controls_grid = view._metric_columns["Route"].parent()
+            self.assertIsInstance(controls_grid, QGridLayout)
+            self.assertEqual(controls_grid.columnCount(), 2)
             self.assertEqual(view.page_jump.suffix(), " / 2")
             self.assertEqual(view._metric_caption_labels["Préparation"].text(), "Prép.")
             self.assertEqual(view._metric_caption_labels["Préparation"].toolTip(), "Préparation")
