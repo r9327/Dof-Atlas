@@ -524,14 +524,14 @@ class SharedThemeTests(unittest.TestCase):
         # A later unscoped Guide rule used to silently override the shared
         # thumb with a dark color and an inconsistent 7 px geometry.
         source = theme._STYLE_TEMPLATE
-        self.assertEqual(source.count("\\nQScrollBar:vertical {"), 1)
-        self.assertEqual(source.count("\\nQScrollBar::handle:vertical {"), 1)
-        self.assertEqual(source.count("\\nQScrollBar::handle:vertical:hover {"), 1)
+        self.assertEqual(source.count("\nQScrollBar:vertical {"), 1)
+        self.assertEqual(source.count("\nQScrollBar::handle:vertical {"), 1)
+        self.assertEqual(source.count("\nQScrollBar::handle:vertical:hover {"), 1)
         style = theme.atlas_stylesheet({
             "BORDER_CARD": "#ABCDEF", "BORDER_STRONG": "#FEDCBA",
         })
-        normal = style.split("\\nQScrollBar::handle:vertical {", 1)[1].split("}", 1)[0]
-        hover = style.split("\\nQScrollBar::handle:vertical:hover {", 1)[1].split("}", 1)[0]
+        normal = style.split("\nQScrollBar::handle:vertical {", 1)[1].split("}", 1)[0]
+        hover = style.split("\nQScrollBar::handle:vertical:hover {", 1)[1].split("}", 1)[0]
         self.assertIn("background: #ABCDEF;", normal)
         self.assertIn("background: #FEDCBA;", hover)
         self.assertNotIn("background: #2b3341;", style)
