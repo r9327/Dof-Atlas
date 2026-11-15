@@ -344,6 +344,15 @@ UNITY_ORGANIZER_METRICS_PX = {
     "root_margin_right": 14,
     "root_margin_bottom": 20,
     "panel_gutter": 8,
+    # Existing visual constraints in Organizer UI; no Macro/Zaap behavior.
+    "control_panel_height": 146,
+    "key_badge_width": 52,
+    "speed_row_gap": 4,
+    "root_spacing": 12,
+    "slot_name_height": UNITY_SIZES_PX["control_compact"],
+    "slot_indicator_width": UNITY_SIZES_PX["icon_small"],
+    "slot_horizontal_spacing": 8,
+    "slot_vertical_spacing": 6,
 }
 
 # Module-specific content sizes and geometry actually present in Atlas source.

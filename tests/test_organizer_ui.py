@@ -10,13 +10,31 @@ from PySide6.QtCore import Qt
 from PySide6.QtTest import QTest
 from PySide6.QtWidgets import QApplication, QPushButton
 
-from app.pages.organizer.organizer_ui import CharacterSlotsPanel
+from app.pages.organizer.organizer_ui import CharacterSlotsPanel, OrganizerModeSwitch
+from app.ui.unity_palette import UNITY_ORGANIZER_METRICS_PX
 
 
 class OrganizerUiSharedStyleTests(unittest.TestCase):
     @classmethod
     def setUpClass(cls) -> None:
         cls.app = QApplication.instance() or QApplication([])
+
+    def test_mode_switch_and_slot_grid_use_shared_dev_ui_dimensions(self):
+        metrics = UNITY_ORGANIZER_METRICS_PX
+        switch = OrganizerModeSwitch(QPushButton("Macro"), QPushButton("Miroir"))
+        refresh = QPushButton("Actualiser")
+        slots = CharacterSlotsPanel(refresh)
+        try:
+            self.assertEqual(switch.minimumWidth(), metrics["mode_switch_width"])
+            self.assertEqual(switch.maximumWidth(), metrics["mode_switch_width"])
+            self.assertEqual(switch.minimumHeight(), metrics["button_height"])
+            self.assertEqual(slots.grid.horizontalSpacing(),
+                             metrics["slot_horizontal_spacing"])
+            self.assertEqual(slots.grid.verticalSpacing(),
+                             metrics["slot_vertical_spacing"])
+        finally:
+            switch.deleteLater()
+            slots.deleteLater()
 
     def test_character_panel_inherits_transparent_host_without_local_qss(self):
         events = []

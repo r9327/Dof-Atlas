@@ -85,6 +85,16 @@ class UnityPaletteTests(unittest.TestCase):
 
 
 
+    def test_organizer_visual_geometry_has_a_single_existing_index(self) -> None:
+        from app.ui.unity_palette import UNITY_ORGANIZER_METRICS_PX
+
+        geometry = UNITY_ORGANIZER_METRICS_PX
+        self.assertEqual(geometry["mode_switch_width"], 396)
+        self.assertEqual(geometry["mode_button_width"], 194)
+        self.assertEqual(geometry["control_panel_height"], 146)
+        self.assertEqual(geometry["key_badge_width"], 52)
+        self.assertEqual(geometry["root_spacing"], 12)
+
     def test_character_compat_geometry_is_covered_by_dev_ui(self) -> None:
         from app.ui.unity_palette import (
             UNITY_MODULE_GEOMETRY_PX, UNITY_MODULE_GEOMETRY_OWNERS,

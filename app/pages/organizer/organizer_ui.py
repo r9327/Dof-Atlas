@@ -38,7 +38,9 @@ from app.constants import (
 from app.storage import ZaapWidget, clean_auto_group_name, profile_bool, short_label
 from app.ui.splash_image import clear_connected_dark_background
 from app.ui.components import AtlasButton
-from app.ui.unity_palette import unity_painted_ui_color
+from app.ui.unity_palette import UNITY_ORGANIZER_METRICS_PX, unity_painted_ui_color
+
+ORGANIZER_GEOMETRY = UNITY_ORGANIZER_METRICS_PX
 from app.ui.unity_skin import apply_unity_panel_shadow
 from .glass_material import (
     OrganizerGlassButton, OrganizerGlassCard,
@@ -239,14 +241,14 @@ class CharacterSlotName(QWidget):
         self.full_name = full_name
         self.setObjectName("OrganizerTransparentHost")
         self.setMinimumWidth(0)
-        self.setFixedHeight(24)
+        self.setFixedHeight(ORGANIZER_GEOMETRY["slot_name_height"])
         self.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
         line = QHBoxLayout(self)
         line.setContentsMargins(0, 0, 0, 0)
         line.setSpacing(4)
         self.name_label = QLabel(full_name)
         self.name_label.setObjectName("CompactLabel" if detected else "MutedLabel")
-        self.name_label.setFixedHeight(24)
+        self.name_label.setFixedHeight(ORGANIZER_GEOMETRY["slot_name_height"])
         self.name_label.setMinimumWidth(0)
         self.name_label.setSizePolicy(QSizePolicy.Preferred, QSizePolicy.Fixed)
         self.name_label.setAlignment(Qt.AlignLeft | Qt.AlignVCenter)
@@ -259,7 +261,10 @@ class CharacterSlotName(QWidget):
             indicator = QLabel()
             indicator.setObjectName("PrimarySlotIndicator")
             indicator.setPixmap(_organizer_favorite_icon(True).pixmap(QSize(16, 16)))
-            indicator.setFixedSize(16, 24)
+            indicator.setFixedSize(
+                ORGANIZER_GEOMETRY["slot_indicator_width"],
+                ORGANIZER_GEOMETRY["slot_name_height"],
+            )
             indicator.setAlignment(Qt.AlignCenter)
             indicator.setFocusPolicy(Qt.NoFocus)
             indicator.setAttribute(Qt.WA_TransparentForMouseEvents, True)
@@ -293,8 +298,8 @@ class CharacterSlotsPanel(OrganizerGlassCard):
         slot_count: int = SESSION_SLOT_COUNT,
         row_height: int = CHARACTER_SLOT_HEIGHT,
         columns: int = 2,
-        horizontal_spacing: int = 8,
-        vertical_spacing: int = 6,
+        horizontal_spacing: int = ORGANIZER_GEOMETRY["slot_horizontal_spacing"],
+        vertical_spacing: int = ORGANIZER_GEOMETRY["slot_vertical_spacing"],
         card_padding: int = CARD_PADDING,
         card_spacing: int = CARD_SPACING,
         parent: QWidget | None = None,
@@ -471,7 +476,7 @@ class OrganizerModeSwitch(QFrame):
         super().__init__()
         self.setObjectName("OrganizerModeSwitch")
         # Match the 194 + 8 + 194 grid exactly, including both column starts.
-        self.setFixedSize(396, BUTTON_HEIGHT)
+        self.setFixedSize(ORGANIZER_GEOMETRY["mode_switch_width"], BUTTON_HEIGHT)
         self._choices = (macro, mirror_cell)
         self._selected = -1
         self.highlight = QFrame(self)
@@ -557,8 +562,13 @@ class OrganizerUiMixin:
         # app-wide Unity stylesheet; no private page style overrides them.
         root = QVBoxLayout(content)
         # Space for the lower rounded corners and drop shadows at all DPI.
-        root.setContentsMargins(14, 12, 14, 20)
-        root.setSpacing(12)
+        root.setContentsMargins(
+            ORGANIZER_GEOMETRY["root_margin_left"],
+            ORGANIZER_GEOMETRY["root_margin_top"],
+            ORGANIZER_GEOMETRY["root_margin_right"],
+            ORGANIZER_GEOMETRY["root_margin_bottom"],
+        )
+        root.setSpacing(ORGANIZER_GEOMETRY["root_spacing"])
         root.setAlignment(Qt.AlignTop)
 
         header = QHBoxLayout()
@@ -582,8 +592,8 @@ class OrganizerUiMixin:
 
         self.macro_mode_button = OrganizerGlassButton("Macro")
         self.mirror_mode_button = OrganizerGlassButton("Miroir")
-        self.macro_mode_button.setFixedSize(194, BUTTON_HEIGHT)
-        self.mirror_mode_button.setFixedSize(194, BUTTON_HEIGHT)
+        self.macro_mode_button.setFixedSize(ORGANIZER_GEOMETRY["mode_button_width"], BUTTON_HEIGHT)
+        self.mirror_mode_button.setFixedSize(ORGANIZER_GEOMETRY["mode_button_width"], BUTTON_HEIGHT)
         self.macro_mode_button.setToolTip("Revenir aux macros classiques")
         self.mirror_mode_button.setToolTip("Activer ou arrêter Miroir")
         self.quick_actions_title = QLabel("Action rapide")
@@ -624,16 +634,16 @@ class OrganizerUiMixin:
         self.stop_script_clear = OrganizerGlassButton("x")
         self.click_clear = OrganizerGlassButton("x")
 
-        control_size = QSize(194, BUTTON_HEIGHT)
+        control_size = QSize(ORGANIZER_GEOMETRY["mode_button_width"], BUTTON_HEIGHT)
         # Use the same one-line control height as neighboring modules.
         radial_control_size = control_size
         # Extra bottom breathing room keeps Qt rounded borders/shadows visible.
-        controls_panel_height = 146
-        panel_inner_width = control_size.width() * 2 + 8
+        controls_panel_height = ORGANIZER_GEOMETRY["control_panel_height"]
+        panel_inner_width = control_size.width() * 2 + ORGANIZER_GEOMETRY["panel_gutter"]
         panel_width = panel_inner_width + CARD_PADDING * 2
-        stop_hotkey_size = QSize(52, KEY_BADGE_HEIGHT)
+        stop_hotkey_size = QSize(ORGANIZER_GEOMETRY["key_badge_width"], KEY_BADGE_HEIGHT)
         stop_size = QSize(panel_inner_width, BUTTON_HEIGHT)
-        shortcut_size = QSize(52, KEY_BADGE_HEIGHT)
+        shortcut_size = QSize(ORGANIZER_GEOMETRY["key_badge_width"], KEY_BADGE_HEIGHT)
 
         for button in (
             self.switch_character,
@@ -701,9 +711,9 @@ class OrganizerUiMixin:
         self.previous_character_hotkey_button.setAccessibleName("Raccourci personnage précédent")
         self.mirror_toggle_hotkey_button.setAccessibleName("Raccourci activation Miroir")
         self.script_speed_title.setObjectName("MutedLabel")
-        self.script_speed_title.setFixedSize(52, BUTTON_HEIGHT)
+        self.script_speed_title.setFixedSize(ORGANIZER_GEOMETRY["speed_caption_width"], BUTTON_HEIGHT)
         self.script_speed_title.setAlignment(Qt.AlignLeft | Qt.AlignVCenter)
-        self.script_speed_legacy.setFixedSize(78, BUTTON_HEIGHT)
+        self.script_speed_legacy.setFixedSize(ORGANIZER_GEOMETRY["speed_legacy_width"], BUTTON_HEIGHT)
         self.script_speed_legacy.setObjectName("segmentedButton")
         self.click_button.setToolTip("Raccourci Switch Clique")
         self.double_click_button.setToolTip("Raccourci Switch clic x2")
@@ -887,7 +897,10 @@ class OrganizerUiMixin:
             self.script_speed_normal, self.script_speed_fast,
             self.script_speed_instant,
         )
-        self.speed_selector.setFixedWidth(panel_inner_width - 52 - 4)
+        self.speed_selector.setFixedWidth(
+            panel_inner_width - ORGANIZER_GEOMETRY["speed_caption_width"]
+            - ORGANIZER_GEOMETRY["speed_row_gap"]
+        )
         speed_row_layout.addWidget(self.speed_selector)
         # Preserve an existing Classique profile without silently accelerating
         # it. This legacy-only choice is no longer offered to the user.
