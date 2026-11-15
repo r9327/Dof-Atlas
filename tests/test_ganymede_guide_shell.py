@@ -61,6 +61,17 @@ class GanymedeGuideShellTests(unittest.TestCase):
         self.assertFalse(shell.summary_button.isEnabled())
         self.assertFalse(shell.preparation_button.isEnabled())
         self.assertFalse(shell.participants_button.isEnabled())
+        self.assertFalse(shell.participants_button.icon().isNull())
+        self.assertEqual(shell.participants_button.width(), 24)
+        # Personnages is centered in its own row between global and metrics.
+        from PySide6.QtWidgets import QHBoxLayout, QGridLayout
+        participants_row = shell._participants_control_column.parent()
+        self.assertIsInstance(participants_row, QHBoxLayout)
+        self.assertIs(participants_row.itemAt(1).layout(),
+                      shell._participants_control_column)
+        metrics = shell._metric_columns["Route"].parent()
+        self.assertIsInstance(metrics, QGridLayout)
+        self.assertEqual(metrics.columnCount(), 2)
         self.assertEqual(shell.rendered_card_count, 0)
         self.assertEqual(shell.cards_layout.count(), 0)
         before = len(shell.findChildren(QProgressBar))

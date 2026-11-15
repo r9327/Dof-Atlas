@@ -17,6 +17,12 @@ from app.ui.splash_image import clear_connected_dark_background
 from app.ui.unity_skin import unity_guide_chevron_path
 
 
+# Mirrored from Dev UI's indexed guide_character_button / guide_character_icon
+# until PR #365 is merged into this metadata-only Guide branch.
+GUIDE_CHARACTER_BUTTON_PX = 24
+GUIDE_CHARACTER_ICON_PX = 20
+
+
 BUTTON_OBJECT_NAMES = {
     "primary": "PrimaryActionButton",
     "secondary": "SecondaryButton",

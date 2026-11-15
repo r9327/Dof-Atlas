@@ -2597,7 +2597,10 @@ QProgressBar#GuideGlobalProgress::chunk {
 QLabel#GuideGlobalProgressTitle {
     color: @TEXT_SOFT;
     font-size: @FONT_SMALL;
-    font-weight: 700;
+    font-weight: 600;
+    background: transparent;
+    border-left: 2px solid @GREEN_BORDER;
+    padding-left: 7px;
 }
 /* In-label, 18px Guide disclosure: no detached square at the bar edge. */
 QToolButton#GuideMetricDropdown {

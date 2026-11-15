@@ -43,7 +43,10 @@ from app.modules.encyclopedia.views.guide_ultime_manual_view import (
     GuideUltimeManualView,
 )
 from app.core.text import normalize_key as normalize_text
-from app.ui.components import AtlasButton, AtlasGuideDisclosure, atlas_guide_arrow_icon
+from app.ui.components import (
+    AtlasButton, AtlasGuideDisclosure, atlas_guide_arrow_icon,
+    GUIDE_CHARACTER_BUTTON_PX, GUIDE_CHARACTER_ICON_PX,
+)
 from app.ui.unity_skin import apply_unity_panel_shadow, sprite_icon_path
 from app.constants import DATA_DIR
 from app.modules.encyclopedia.services.image_service import ENCYCLOPEDIA_IMAGE_SERVICE
@@ -1384,13 +1387,25 @@ class SharedGuideManualView(GuideUltimeManualView):
         self._compact_title_row = title_row
 
         overall_caption = QHBoxLayout()
-        overall_title = QLabel("PROGRESSION GLOBALE")
+        overall_title = QLabel("Progression globale")
         overall_title.setObjectName("GuideGlobalProgressTitle")
         overall_caption.addWidget(overall_title)
         overall_caption.addStretch(1)
         overall_caption.addWidget(self.global_progress_label)
         right.addLayout(overall_caption)
         right.addWidget(self.global_progress_bar)
+
+        # The character pictogram occupies the gap BETWEEN progress levels,
+        # not a third metric column. Both levels span the same outer width.
+        participants_row = QHBoxLayout()
+        participants_row.setContentsMargins(0, 0, 0, 0)
+        participants_row.setSpacing(0)
+        participants_row.addStretch(1)
+        self._participants_control_column = QVBoxLayout()
+        self._participants_control_column.setContentsMargins(0, 0, 0, 0)
+        participants_row.addLayout(self._participants_control_column)
+        participants_row.addStretch(1)
+        right.addLayout(participants_row)
 
         # Two original bars, each with its own dropdown.
         metrics = QGridLayout()
@@ -1453,10 +1468,7 @@ class SharedGuideManualView(GuideUltimeManualView):
         self.preparation_progress_label = QLabel("—")
         add_metric("Préparation", "cube", "GREEN", self.preparation_bar, self.preparation_progress_label)
 
-        # Place Personnages in the same Qt grid row as both dropdown arrows.
-        self._participants_control_column = QVBoxLayout()
-        self._participants_control_column.setContentsMargins(0, 0, 0, 0)
-        metrics.addLayout(self._participants_control_column, 0, 2, Qt.AlignVCenter)
+        # Exactly two metric columns: global and secondary edges align.
         right.addLayout(metrics)
         self._header_content_layout = right
 
@@ -1558,14 +1570,26 @@ class SharedGuideManualView(GuideUltimeManualView):
         self.participants_button.setObjectName("GuideParticipantsButton")
         self.participants_button.setText("")
         portrait_icon = sprite_icon_path("character")
-        self.participants_button.setIcon(
-            QIcon(str(portrait_icon)) if portrait_icon else
-            _guide_symbol_icon(self.participants_button, "people")
-        )
+        if portrait_icon:
+            character_icon = QIcon(str(portrait_icon))
+            character_icon.addPixmap(
+                character_icon.pixmap(
+                    QSize(GUIDE_CHARACTER_ICON_PX, GUIDE_CHARACTER_ICON_PX),
+                    QIcon.Normal,
+                ),
+                QIcon.Disabled,
+            )
+        else:
+            character_icon = _guide_symbol_icon(self.participants_button, "people")
+        self.participants_button.setIcon(character_icon)
         self.participants_button.setToolButtonStyle(Qt.ToolButtonIconOnly)
         self.participants_button.setSizePolicy(QSizePolicy.Fixed, QSizePolicy.Fixed)
-        self.participants_button.setFixedSize(22, 22)
-        self.participants_button.setIconSize(QSize(19, 19))
+        self.participants_button.setFixedSize(
+            GUIDE_CHARACTER_BUTTON_PX, GUIDE_CHARACTER_BUTTON_PX
+        )
+        self.participants_button.setIconSize(QSize(
+            GUIDE_CHARACTER_ICON_PX, GUIDE_CHARACTER_ICON_PX
+        ))
         self.participants_button.setCheckable(True)
         self.participants_button.setCursor(Qt.PointingHandCursor)
         self.summary_button.toggled.connect(self._summary_toggled)
