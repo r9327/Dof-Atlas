@@ -125,7 +125,12 @@ def capture(output: Path, *, width: int = 1100, height: int = 800) -> dict[str, 
             page.preview_header_controls["Sommaire"].setChecked(summary)
             page.preview_header_controls["Personnages"].setChecked(people)
             app.processEvents()
-            page.gallery_scroll.ensureWidgetVisible(page.preview_compact_header, 0, 8)
+            # Place the actual Guide header near the top so the sheet selector
+            # and expanded menus stay visible in the same 900px screenshot.
+            header_y = page.preview_compact_header.mapTo(
+                page.gallery_scroll.widget(), QPoint(0, 0)
+            ).y()
+            page.gallery_scroll.verticalScrollBar().setValue(max(0, header_y - 12))
             app.processEvents()
             file = output / f"dev-ui-entete-{label}.png"
             if not backdrop.grab().save(str(file), "PNG"):
