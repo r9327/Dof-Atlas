@@ -920,6 +920,8 @@ class SharedGuideManualView(GuideUltimeManualView):
         self._preparation_preview: tuple[tuple[str, str, int, int | None], ...] = ()
         self._preparation_loaded = False
         self._preparation_visible_limit = 80
+        # Draft counts are session-local; only the explicit Prêt action is persisted.
+        self._preparation_quantity_drafts: dict[str, int] = {}
         self._participant_buttons: dict[str, _ParticipantPortraitButton] = {}
         # One bounded SQLite detail per tick. A navigation change stops the
         # previous neighborhood before reading anything for the new sheet.
@@ -989,7 +991,7 @@ class SharedGuideManualView(GuideUltimeManualView):
         self._restore_route_lock_state()
 
     def _build_compact_header(self, root: QVBoxLayout) -> None:
-        """One left donut, three horizontally expanding metrics, three real panel controls."""
+        """Compact shared guide header with route and preparation expandable beside each bar."""
         header = QFrame()
         header.setObjectName("GuideCompactHeader")
         outer = QHBoxLayout(header)
@@ -1064,11 +1066,13 @@ class SharedGuideManualView(GuideUltimeManualView):
         self.settings_button.setCheckable(True)
         title_row.addWidget(self.settings_button)
         right.addLayout(title_row)
+        self._compact_title_row = title_row
 
         # Row 2: route and preparation only; no duplicate Successes bar.
         metrics = QHBoxLayout()
         metrics.setSpacing(12)
         self._metric_caption_labels: dict[str, QLabel] = {}
+        self._metric_dropdown_buttons: dict[str, QToolButton] = {}
         def add_metric(
             name: str, symbol: str, color_key: str, bar: QProgressBar, value: QLabel
         ) -> None:
@@ -1094,7 +1098,27 @@ class SharedGuideManualView(GuideUltimeManualView):
             block.addLayout(caption)
             bar.setTextVisible(False)
             bar.setFixedHeight(7)
-            block.addWidget(bar)
+            # The bar keeps its original progress/navigation behaviour.
+            # Its neighboring arrow alone controls the corresponding dropdown.
+            line = QHBoxLayout()
+            line.setSpacing(5)
+            line.addWidget(bar, 1, Qt.AlignVCenter)
+            arrow = QToolButton()
+            arrow.setObjectName("GuideMetricDropdown")
+            arrow.setCheckable(True)
+            arrow.setArrowType(Qt.RightArrow)
+            arrow.setFixedSize(28, 24)
+            arrow.setCursor(Qt.PointingHandCursor)
+            target = "Sommaire" if name == "Route" else "Préparation"
+            arrow.setToolTip(f"Ouvrir {target}")
+            arrow.setAccessibleName(f"Afficher {target}")
+            line.addWidget(arrow)
+            block.addLayout(line)
+            if name == "Route":
+                self.summary_button = arrow
+            else:
+                self.preparation_button = arrow
+            self._metric_dropdown_buttons[name] = arrow
             metrics.addLayout(block, 1)
 
         self.route_bar = GuideManualProgressBar()
@@ -1111,11 +1135,8 @@ class SharedGuideManualView(GuideUltimeManualView):
 
         right.addLayout(metrics)
 
-        # Row 3: populated by the existing preparation, summary and participant
-        # builders. Their original panels/signals remain owned by those builders.
-        self.header_actions_row = QHBoxLayout()
-        self.header_actions_row.setSpacing(7)
-        right.addLayout(self.header_actions_row)
+        # No duplicate Sommaire/Préparation buttons on a third row.
+        # Participants remains next to the header settings icon.
 
         self.settings_panel = QFrame()
         self.settings_panel.setObjectName("GuideCompactSettingsPanel")
@@ -1135,21 +1156,8 @@ class SharedGuideManualView(GuideUltimeManualView):
         root.addWidget(header)
 
     def _build_preparation_panel(self, root: QVBoxLayout) -> None:
-        self.preparation_button = QToolButton()
-        self.preparation_button.setObjectName("GuidePreparationToggle")
-        self.preparation_button.setText("Préparation")
-        self.preparation_button.setIcon(
-            _guide_symbol_icon(self.preparation_button, "clipboard")
-        )
-        self.preparation_button.setToolButtonStyle(Qt.ToolButtonTextBesideIcon)
-        self.preparation_button.setSizePolicy(QSizePolicy.Fixed, QSizePolicy.Fixed)
-        self.preparation_button.setFixedHeight(28)
-        self.preparation_button.setMaximumWidth(148)
-        self.preparation_button.setArrowType(Qt.RightArrow)
-        self.preparation_button.setCheckable(True)
-        self.preparation_button.setCursor(Qt.PointingHandCursor)
+        # Arrow is owned by the Preparation progress metric.
         self.preparation_button.toggled.connect(self._preparation_toggled)
-        self.header_actions_row.addWidget(self.preparation_button, 0)
 
         self.preparation_panel = QFrame()
         self.preparation_panel.setObjectName("GuidePreparationPanel")
@@ -1236,20 +1244,12 @@ class SharedGuideManualView(GuideUltimeManualView):
         self.participants_button.setIconSize(QSize(19, 19))
         self.participants_button.setCheckable(True)
         self.participants_button.setCursor(Qt.PointingHandCursor)
-        self.summary_button = QToolButton()
-        self.summary_button.setObjectName("GuideSummaryButton")
-        self.summary_button.setText("Sommaire")
-        self.summary_button.setIcon(_guide_symbol_icon(self.summary_button, "summary"))
-        self.summary_button.setToolButtonStyle(Qt.ToolButtonTextBesideIcon)
-        self.summary_button.setSizePolicy(QSizePolicy.Fixed, QSizePolicy.Fixed)
-        self.summary_button.setFixedHeight(28)
-        self.summary_button.setMaximumWidth(122)
-        self.summary_button.setArrowType(Qt.RightArrow)
-        self.summary_button.setCheckable(True)
-        self.summary_button.setCursor(Qt.PointingHandCursor)
-        self.header_actions_row.addWidget(self.summary_button, 0)
-        self.header_actions_row.addWidget(self.participants_button, 0)
-        self.header_actions_row.addStretch(1)
+        # Arrow is owned by the Route progress metric.
+        self.summary_button.toggled.connect(self._summary_toggled)
+        self._compact_title_row.insertWidget(
+            max(0, self._compact_title_row.count() - 1),
+            self.participants_button,
+        )
         layout.addLayout(top)
 
         self.participants_panel = QFrame()
@@ -1279,7 +1279,8 @@ class SharedGuideManualView(GuideUltimeManualView):
         summary_layout.addWidget(self.summary_list)
         self.summary_panel.setVisible(False)
         self.summary_button.toggled.connect(self._summary_toggled)
-        layout.addWidget(self.summary_panel)
+        # Display the Route dropdown directly below the compact header, not inside the sheet title.
+        root.addWidget(self.summary_panel)
         apply_unity_panel_shadow(header)
         root.addWidget(header)
         self._refresh_participants_panel()
@@ -1847,19 +1848,47 @@ class SharedGuideManualView(GuideUltimeManualView):
         status_label = QLabel(status)
         status_label.setObjectName("GuidePreparationRowStatus")
         top.addWidget(status_label)
+        if quantity is not None and quantity > 0 and need.category not in {"Prérequis", "Métiers"}:
+            counter = QSpinBox()
+            counter.setObjectName("GuidePreparationQuantity")
+            counter.setRange(0, max(1, int(quantity)))
+            counter.setSuffix(f" / {quantity}")
+            counter.setMaximumWidth(112)
+            counter.setToolTip("Quantité déjà possédée (brouillon de cette session)")
+            draft = self._preparation_quantity_drafts.get(
+                need.item_key, int(quantity) if ready else 0
+            )
+            counter.setValue(max(0, min(int(quantity), draft)))
+            counter.valueChanged.connect(
+                lambda value, key=need.item_key:
+                self._preparation_quantity_drafts.__setitem__(key, value)
+            )
+            top.addWidget(counter)
         ready_button = QToolButton()
         ready_button.setObjectName("GuidePreparationReady")
         ready_button.setIcon(_guide_symbol_icon(ready_button, "check", size=14))
         ready_button.setIconSize(QSize(14, 14))
+        ready_button.setText("Validé" if ready else "Valider")
+        ready_button.setToolButtonStyle(Qt.ToolButtonTextBesideIcon)
         ready_button.setCheckable(True)
         ready_button.setChecked(ready)
-        ready_button.setToolTip("Déclarer Prêt pour les participants sélectionnés concernés")
+        ready_button.setToolTip("Confirmer Prêt pour les participants sélectionnés concernés")
         if len(need.required_by_character) > 1 and not callable(
             getattr(getattr(self.service, "guide_progress", None),
                     "set_manual_steps_for_characters", None)
         ):
             ready_button.setEnabled(False)
             ready_button.setToolTip("Sauvegarde atomique indisponible")
+        ready_button.toggled.connect(
+            lambda checked, button=ready_button: button.setText(
+                "Validé" if checked else "Valider"
+            )
+        )
+        ready_button.toggled.connect(
+            lambda checked, row=need: self._preparation_quantity_drafts.__setitem__(
+                row.item_key, int(row.required_total or 0) if checked else 0
+            )
+        )
         ready_button.toggled.connect(
             lambda checked, row=need: self._set_need_ready(row, checked)
         )
@@ -2032,13 +2061,13 @@ class SharedGuideManualView(GuideUltimeManualView):
             self.route_bar.setValue(completed)
             self.route_progress_label.setText(f"{percent} %")
             self.progress_donut.set_percent(percent)
-            self.donut_count_label.setText(f"{completed} / {total} fiches")
+            self.donut_count_label.setText(f"{completed} fiches validées")
         else:
             self.route_bar.setRange(0, 1)
             self.route_bar.setValue(0)
             self.route_progress_label.setText("—")
             self.progress_donut.set_percent(None)
-            self.donut_count_label.setText("— / — fiches")
+            self.donut_count_label.setText("Fiches à valider")
 
         self._update_preparation_progress()
 
