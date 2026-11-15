@@ -315,17 +315,20 @@ class DevUiPageTests(unittest.TestCase):
             self.assertEqual(
                 page.preview_header_controls["Préparation"].objectName(), "GuideMetricDropdown"
             ) 
-            # All three controls share the identical grid row.
-            header_grid = page.preview_header_people_control_column.parent()
-            self.assertIsInstance(header_grid, QGridLayout)
-            self.assertEqual(
-                (header_grid.itemAtPosition(0, 0).layout() is not None,
-                 header_grid.itemAtPosition(0, 1).layout() is not None,
-                 header_grid.itemAtPosition(0, 2).layout() is page.preview_header_people_control_column),
-                (True, True, True),
-            )
+            # The character logo is centered between the two bar levels:
+            # no third metric column stealing width from the progress bars.
+            from PySide6.QtWidgets import QHBoxLayout
+            participants_row = page.preview_header_people_control_column.parent()
+            self.assertIsInstance(participants_row, QHBoxLayout)
+            self.assertEqual(participants_row.count(), 3)
+            self.assertIs(participants_row.itemAt(1).layout(),
+                          page.preview_header_people_control_column)
             self.assertEqual(page.preview_header_controls["Sommaire"].width(), 18)
-            self.assertEqual(page.preview_header_controls["Personnages"].width(), 18)
+            self.assertEqual(
+                page.preview_header_controls["Personnages"].width(),
+                UNITY_CONTROL_SIZES_PX["guide_character_button"],
+            )
+            self.assertFalse(page.preview_header_controls["Personnages"].icon().isNull())
             from PySide6.QtCore import Qt
             disclosure = page.preview_header_controls["Sommaire"]
             self.assertFalse(disclosure.icon().isNull())

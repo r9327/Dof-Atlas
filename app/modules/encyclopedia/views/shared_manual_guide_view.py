@@ -1076,13 +1076,26 @@ class SharedGuideManualView(GuideUltimeManualView):
         self._compact_title_row = title_row
 
         overall_caption = QHBoxLayout()
-        overall_title = QLabel("PROGRESSION GLOBALE")
+        overall_title = QLabel("Progression globale")
         overall_title.setObjectName("GuideGlobalProgressTitle")
         overall_caption.addWidget(overall_title)
         overall_caption.addStretch(1)
         overall_caption.addWidget(self.global_progress_label)
         right.addLayout(overall_caption)
+
         right.addWidget(self.global_progress_bar)
+
+        # The indexed character control sits BETWEEN the two progress
+        # levels. The three bars share the same full-width left/right edges.
+        participants_row = QHBoxLayout()
+        participants_row.setContentsMargins(0, 0, 0, 0)
+        participants_row.setSpacing(0)
+        participants_row.addStretch(1)
+        self._participants_control_column = QVBoxLayout()
+        self._participants_control_column.setContentsMargins(0, 0, 0, 0)
+        participants_row.addLayout(self._participants_control_column)
+        participants_row.addStretch(1)
+        right.addLayout(participants_row)
 
         # Two original progress bars, retaining their navigation and values.
         metrics = QGridLayout()
@@ -1152,11 +1165,7 @@ class SharedGuideManualView(GuideUltimeManualView):
         self.preparation_progress_label = QLabel("—")
         add_metric("Préparation", "cube", "GREEN", self.preparation_bar, self.preparation_progress_label)
 
-        # Same grid row as both dropdown arrows: exact alignment at any DPI,
-        # including while Route or Preparation is expanded.
-        self._participants_control_column = QVBoxLayout()
-        self._participants_control_column.setContentsMargins(0, 0, 0, 0)
-        metrics.addLayout(self._participants_control_column, 0, 2, Qt.AlignVCenter)
+        # Two columns only: their outside edges align with the global bar.
         right.addLayout(metrics)
         self._header_content_layout = right
 
@@ -1260,17 +1269,30 @@ class SharedGuideManualView(GuideUltimeManualView):
         self.participants_button.setObjectName("GuideParticipantsButton")
         self.participants_button.setText("")
         portrait_icon = sprite_icon_path("character")
-        self.participants_button.setIcon(
-            QIcon(str(portrait_icon)) if portrait_icon else
-            _guide_symbol_icon(self.participants_button, "people")
-        )
+        if portrait_icon:
+            character_icon = QIcon(str(portrait_icon))
+            # Keep original Unity colors when metadata shells disable input.
+            character_icon.addPixmap(
+                character_icon.pixmap(
+                    QSize(UNITY_CONTROL_SIZES_PX["guide_character_icon"],
+                          UNITY_CONTROL_SIZES_PX["guide_character_icon"]),
+                    QIcon.Normal,
+                ),
+                QIcon.Disabled,
+            )
+        else:
+            character_icon = _guide_symbol_icon(self.participants_button, "people")
+        self.participants_button.setIcon(character_icon)
         self.participants_button.setToolButtonStyle(Qt.ToolButtonIconOnly)
         self.participants_button.setSizePolicy(QSizePolicy.Fixed, QSizePolicy.Fixed)
         self.participants_button.setFixedSize(
-            UNITY_CONTROL_SIZES_PX["progress_toggle_width"],
-            UNITY_CONTROL_SIZES_PX["progress_toggle_height"],
+            UNITY_CONTROL_SIZES_PX["guide_character_button"],
+            UNITY_CONTROL_SIZES_PX["guide_character_button"],
         )
-        self.participants_button.setIconSize(QSize(19, 19))
+        self.participants_button.setIconSize(QSize(
+            UNITY_CONTROL_SIZES_PX["guide_character_icon"],
+            UNITY_CONTROL_SIZES_PX["guide_character_icon"],
+        ))
         self.participants_button.setCheckable(True)
         self.participants_button.setCursor(Qt.PointingHandCursor)
         # Arrow is owned by the Route progress metric.

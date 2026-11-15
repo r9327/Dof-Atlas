@@ -576,7 +576,7 @@ class DevUiPage(QWidget):
         heading.addWidget(self.preview_header_settings)
         right.addLayout(heading)
         overall_caption = QHBoxLayout()
-        overall_title = QLabel("PROGRESSION GLOBALE")
+        overall_title = QLabel("Progression globale")
         overall_title.setObjectName("GuideGlobalProgressTitle")
         overall_caption.addWidget(overall_title)
         overall_caption.addStretch(1)
@@ -593,6 +593,17 @@ class DevUiPage(QWidget):
             UNITY_CONTROL_SIZES_PX["progress_primary"]
         )
         right.addWidget(self.preview_header_global_progress)
+
+        # Same indexed, centered participant row as the live Guide header.
+        participants_row = QHBoxLayout()
+        participants_row.setContentsMargins(0, 0, 0, 0)
+        participants_row.setSpacing(0)
+        participants_row.addStretch(1)
+        self.preview_header_people_control_column = QVBoxLayout()
+        self.preview_header_people_control_column.setContentsMargins(0, 0, 0, 0)
+        participants_row.addLayout(self.preview_header_people_control_column)
+        participants_row.addStretch(1)
+        right.addLayout(participants_row)
 
         self.preview_header_metrics: dict[str, QProgressBar] = {}
         self.preview_header_metric_icons: dict[str, QLabel] = {}
@@ -660,22 +671,24 @@ class DevUiPage(QWidget):
             self.preview_header_metric_columns[target] = drawer_column
             self.preview_header_controls[target] = arrow
             self.preview_header_metrics[name] = bar
-        self.preview_header_people_control_column = QVBoxLayout()
-        self.preview_header_people_control_column.setContentsMargins(0, 0, 0, 0)
-        metrics.addLayout(
-            self.preview_header_people_control_column, 0, 2, Qt.AlignVCenter
-        )
         right.addLayout(metrics)
 
         # The progress arrows own both dropdowns; no duplicate text buttons.
         character_toggle = QToolButton()
         character_toggle.setObjectName("GuideParticipantsButton")
-        character_toggle.setIcon(_guide_symbol_icon(character_toggle, "people"))
-        character_toggle.setIconSize(QSize(16, 16))
+        portrait_icon = sprite_icon_path("character")
+        character_toggle.setIcon(
+            QIcon(str(portrait_icon)) if portrait_icon else
+            _guide_symbol_icon(character_toggle, "people")
+        )
+        character_toggle.setIconSize(QSize(
+            UNITY_CONTROL_SIZES_PX["guide_character_icon"],
+            UNITY_CONTROL_SIZES_PX["guide_character_icon"],
+        ))
         character_toggle.setToolButtonStyle(Qt.ToolButtonIconOnly)
         character_toggle.setFixedSize(
-            UNITY_CONTROL_SIZES_PX["progress_toggle_width"],
-            UNITY_CONTROL_SIZES_PX["progress_toggle_height"],
+            UNITY_CONTROL_SIZES_PX["guide_character_button"],
+            UNITY_CONTROL_SIZES_PX["guide_character_button"],
         )
         character_toggle.setToolTip("Personnages")
         character_toggle.setAccessibleName("Personnages")
