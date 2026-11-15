@@ -142,6 +142,27 @@ class UnityPaletteTests(unittest.TestCase):
                     middle[metric], UNITY_LAYOUT_PROFILE_PX[right_key][metric]
                 )
 
+
+    def test_shared_combo_and_dialog_geometry_come_from_indexed_tokens(self) -> None:
+        from app.ui.unity_palette import (
+            UNITY_CONTROL_LIMITS, UNITY_CONTROL_SIZES_PX,
+            UNITY_LAYOUT_SIZES_PX,
+        )
+        from pathlib import Path
+        root = Path(__file__).resolve().parents[1]
+        code = (root / "app/ui/components.py").read_text(encoding="utf-8")
+        self.assertIn('UNITY_CONTROL_LIMITS["dropdown_visible_rows"]', code)
+        self.assertIn('UNITY_CONTROL_SIZES_PX["dropdown_row"]', code)
+        self.assertIn('UNITY_CONTROL_SIZES_PX["dialog_header_icon_box"]', code)
+        self.assertIn('UNITY_CONTROL_SIZES_PX["dialog_header_icon_artwork"]', code)
+        self.assertIn('UNITY_LAYOUT_SIZES_PX["dialog_header_gap"]', code)
+        self.assertEqual(UNITY_CONTROL_LIMITS["dropdown_visible_rows"], 8)
+        self.assertGreater(
+            UNITY_CONTROL_SIZES_PX["dialog_header_icon_box"],
+            UNITY_CONTROL_SIZES_PX["dialog_header_icon_artwork"],
+        )
+        self.assertGreater(UNITY_LAYOUT_SIZES_PX["dialog_header_gap"], 0)
+
     def test_dev_ui_index_covers_all_families_and_original_style_owners(self) -> None:
         from app.ui.unity_palette import (
             UNITY_UI_CONSUMERS, UNITY_UI_FAMILY_INDEX,

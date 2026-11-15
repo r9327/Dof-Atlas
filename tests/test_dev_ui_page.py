@@ -1169,6 +1169,81 @@ class DevUiPageTests(unittest.TestCase):
             page.deleteLater()
 
 
+
+    def test_all_gallery_families_use_shared_geometry_on_each_window_size(self) -> None:
+        from app.pages.dev_ui_page import DevUiPage
+        from app.ui.theme import atlas_stylesheet
+        from app.ui.unity_palette import (
+            UNITY_CONTROL_LIMITS, UNITY_CONTROL_SIZES_PX,
+            UNITY_LAYOUT_SIZES_PX, UNITY_WINDOW_PRESETS_PX,
+            unity_layout_metrics,
+        )
+        from app.ui.unity_skin import UnityBackdrop
+        from PySide6.QtWidgets import QVBoxLayout
+
+        previous_style = self.app.styleSheet()
+        self.app.setStyleSheet(atlas_stylesheet())
+        backdrop = UnityBackdrop()
+        layout = QVBoxLayout(backdrop)
+        layout.setContentsMargins(0, 0, 0, 0)
+        layout.setSpacing(0)
+        page = DevUiPage(parent=backdrop)
+        layout.addWidget(page)
+        try:
+            original_order = tuple(page.gallery_family_widgets)
+            self.assertEqual(len(page._gallery_section_layouts), len(original_order))
+            self.assertEqual(
+                page.gallery_navigation.maxVisibleItems(),
+                UNITY_CONTROL_LIMITS["dropdown_visible_rows"],
+            )
+            for key, (width, height) in UNITY_WINDOW_PRESETS_PX.items():
+                with self.subTest(viewport=key):
+                    backdrop.resize(width, height)
+                    backdrop.show()
+                    self.app.processEvents()
+                    expected = unity_layout_metrics(page.width())
+                    margins = page._gallery_outer_layout.contentsMargins()
+                    self.assertEqual(margins.left(), expected["page_margin"])
+                    self.assertEqual(margins.right(), expected["page_margin"])
+                    self.assertEqual(
+                        page._gallery_content_layout.spacing(),
+                        expected["module_gap"],
+                    )
+                    for section_layout in page._gallery_section_layouts:
+                        self.assertEqual(
+                            section_layout.contentsMargins().left(),
+                            expected["module_padding"],
+                        )
+                        self.assertEqual(
+                            section_layout.contentsMargins().right(),
+                            expected["module_padding"],
+                        )
+                    self.assertEqual(tuple(page.gallery_family_widgets), original_order)
+            self.assertEqual(
+                page.preview_header_global_progress.height(),
+                UNITY_CONTROL_SIZES_PX["progress_primary"],
+            )
+            self.assertEqual(
+                page.preview_header_metrics["Préparation"].height(),
+                UNITY_CONTROL_SIZES_PX["progress_secondary"],
+            )
+            for toggle in page.preview_header_controls.values():
+                if toggle.objectName() in ("GuideMetricDropdown", "GuideParticipantsButton"):
+                    self.assertEqual(
+                        toggle.width(),
+                        UNITY_CONTROL_SIZES_PX["progress_toggle_width"],
+                    )
+            row_names = {
+                page.preview_metrics.item(i, 0).text()
+                for i in range(page.preview_metrics.rowCount())
+            }
+            self.assertIn("LIMIT_DROPDOWN_VISIBLE_ROWS", row_names)
+        finally:
+            backdrop.close()
+            page.deleteLater()
+            backdrop.deleteLater()
+            self.app.setStyleSheet(previous_style)
+
     def test_responsive_reference_fits_all_real_window_presets(self) -> None:
         from app.pages.dev_ui_page import DevUiPage
         from app.ui.theme import atlas_stylesheet

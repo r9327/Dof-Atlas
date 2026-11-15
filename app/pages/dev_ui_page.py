@@ -68,7 +68,8 @@ from app.ui.unity_palette import (
     UNITY_PANEL_SHADOW,
     UNITY_INTERACTION_STATES, UNITY_MAIN_ROLES, UNITY_ORGANIZER_METRICS_PX,
     UNITY_SIZES_PX, UNITY_SPACING_PX, UNITY_UI_USAGE,
-    UNITY_CONTROL_SIZES_PX, UNITY_LAYOUT_SIZES_PX, UNITY_LAYOUT_BREAKPOINTS_PX,
+    UNITY_CONTROL_LIMITS, UNITY_CONTROL_SIZES_PX,
+    UNITY_LAYOUT_SIZES_PX, UNITY_LAYOUT_BREAKPOINTS_PX,
     UNITY_WINDOW_PRESETS_PX, UNITY_LAYOUT_PROFILE_PX, unity_layout_metrics,
     UNITY_UI_CONSUMERS, UNITY_UI_FAMILY_INDEX, UNITY_UI_UNIFICATION_CONTRACT,
 )
@@ -96,13 +97,15 @@ class DevUiPage(QWidget):
         self._preview_dialog: AtlasDialog | None = None
         self._click_count = 0
         self.gallery_sections: list[QGroupBox] = []
+        self._gallery_section_layouts: list[QVBoxLayout] = []
         # The gallery is generated from the same index that documents every
         # common family; consumers use the existing shared QSS/components.
         self.gallery_family_widgets: dict[str, QGroupBox] = {}
 
         outer = QVBoxLayout(self)
+        self._gallery_outer_layout = outer
         outer.setContentsMargins(16, 12, 16, 12)
-        outer.setSpacing(10)
+        outer.setSpacing(UNITY_LAYOUT_SIZES_PX["module_gap"])
 
         # Real page breadcrumb, immediately under the shell's navigation tabs.
         # The same GuideBreadcrumb owner is reused by the gallery below.
@@ -157,8 +160,12 @@ class DevUiPage(QWidget):
         self.gallery_navigation.view().setAlternatingRowColors(False)
         # This is a navigation chooser, not a full-width form field.
         # The common combo itself caps popup rows for keyboard/scroll access.
-        self.gallery_navigation.setMinimumWidth(240)
-        self.gallery_navigation.setMaximumWidth(420)
+        self.gallery_navigation.setMinimumWidth(
+            UNITY_CONTROL_SIZES_PX["gallery_selector_min_width"]
+        )
+        self.gallery_navigation.setMaximumWidth(
+            UNITY_CONTROL_SIZES_PX["gallery_selector_max_width"]
+        )
         navigator.addWidget(self.gallery_navigation)
         self.gallery_count = QLabel()
         self.gallery_count.setObjectName("MutedLabel")
@@ -174,8 +181,9 @@ class DevUiPage(QWidget):
         body = QWidget()
         body.setProperty("atlasUnityPage", True)
         content = QVBoxLayout(body)
+        self._gallery_content_layout = content
         content.setContentsMargins(7, 7, 7, 16)
-        content.setSpacing(10)
+        content.setSpacing(UNITY_LAYOUT_SIZES_PX["module_gap"])
         scroll.setWidget(body)
         outer.addWidget(scroll, 1)
 
@@ -210,6 +218,40 @@ class DevUiPage(QWidget):
         )
         self.gallery_count.setText(f"{len(self.gallery_sections)} familles UI")
         self.gallery_navigation.activated.connect(self._jump_to_section)
+        self._apply_gallery_geometry(self.width())
+
+    def _apply_gallery_geometry(self, viewport_width: int) -> None:
+        """Apply one shared spacing profile to all 23 real UI families.
+
+        This never reparents or changes the order of any module. The gallery
+        stays vertically scrollable, and only margins/padding/gaps change.
+        """
+        metrics = unity_layout_metrics(viewport_width)
+        page_margin = metrics["page_margin"]
+        module_padding = metrics["module_padding"]
+        module_gap = metrics["module_gap"]
+        top_bottom = max(8, page_margin - 4)
+        self._gallery_outer_layout.setContentsMargins(
+            page_margin, top_bottom, page_margin, top_bottom
+        )
+        self._gallery_outer_layout.setSpacing(module_gap)
+        gallery_inset = max(6, module_padding - 4)
+        self._gallery_content_layout.setContentsMargins(
+            gallery_inset, gallery_inset, gallery_inset, page_margin
+        )
+        self._gallery_content_layout.setSpacing(module_gap)
+        for layout in self._gallery_section_layouts:
+            layout.setContentsMargins(
+                module_padding,
+                UNITY_LAYOUT_SIZES_PX["gallery_section_header_inset"],
+                module_padding,
+                module_padding,
+            )
+            layout.setSpacing(UNITY_SPACING_PX["md"])
+
+    def resizeEvent(self, event: QEvent) -> None:
+        super().resizeEvent(event)
+        self._apply_gallery_geometry(event.size().width())
 
     def _section(self, parent_layout: QVBoxLayout, family_key: str) -> QVBoxLayout:
         validate_ui_index()
@@ -230,8 +272,14 @@ class DevUiPage(QWidget):
         # Never apply graphics effects to scrolling rows or input controls.
         apply_unity_panel_shadow(group, **UNITY_PANEL_SHADOW)
         layout = QVBoxLayout(group)
-        layout.setContentsMargins(14, 22, 14, 12)
-        layout.setSpacing(9)
+        layout.setContentsMargins(
+            UNITY_LAYOUT_SIZES_PX["module_padding"],
+            UNITY_LAYOUT_SIZES_PX["gallery_section_header_inset"],
+            UNITY_LAYOUT_SIZES_PX["module_padding"],
+            UNITY_LAYOUT_SIZES_PX["module_padding"],
+        )
+        layout.setSpacing(UNITY_SPACING_PX["md"])
+        self._gallery_section_layouts.append(layout)
         parent_layout.addWidget(group)
         self.gallery_sections.append(group)
         self.gallery_family_widgets[family_key] = group
@@ -542,7 +590,9 @@ class DevUiPage(QWidget):
         self.preview_header_global_progress.setRange(0, 100)
         self.preview_header_global_progress.setValue(35)
         self.preview_header_global_progress.setTextVisible(False)
-        self.preview_header_global_progress.setFixedHeight(11)
+        self.preview_header_global_progress.setFixedHeight(
+            UNITY_CONTROL_SIZES_PX["progress_primary"]
+        )
         right.addWidget(self.preview_header_global_progress)
 
         self.preview_header_metrics: dict[str, QProgressBar] = {}
@@ -583,7 +633,7 @@ class DevUiPage(QWidget):
             bar.setRange(0, 100)
             bar.setValue(amount)
             bar.setTextVisible(False)
-            bar.setFixedHeight(7)
+            bar.setFixedHeight(UNITY_CONTROL_SIZES_PX["progress_secondary"])
             if name == "Route":
                 bar.setCursor(Qt.PointingHandCursor)
                 bar.navigationRequested.connect(
@@ -598,7 +648,10 @@ class DevUiPage(QWidget):
             arrow.setObjectName("GuideMetricDropdown")
             arrow.setCheckable(True)
             arrow.setArrowType(Qt.RightArrow)
-            arrow.setFixedSize(28, 24)
+            arrow.setFixedSize(
+                UNITY_CONTROL_SIZES_PX["progress_toggle_width"],
+                UNITY_CONTROL_SIZES_PX["progress_toggle_height"],
+            )
             arrow.setCursor(Qt.PointingHandCursor)
             target = "Sommaire" if name == "Route" else "Préparation"
             arrow.setToolTip(f"Ouvrir {target}")
@@ -625,7 +678,10 @@ class DevUiPage(QWidget):
         character_toggle.setIcon(_guide_symbol_icon(character_toggle, "people"))
         character_toggle.setIconSize(QSize(16, 16))
         character_toggle.setToolButtonStyle(Qt.ToolButtonIconOnly)
-        character_toggle.setFixedSize(28, 24)
+        character_toggle.setFixedSize(
+            UNITY_CONTROL_SIZES_PX["progress_toggle_width"],
+            UNITY_CONTROL_SIZES_PX["progress_toggle_height"],
+        )
         character_toggle.setToolTip("Personnages")
         character_toggle.setAccessibleName("Personnages")
         character_toggle.setCheckable(True)
@@ -693,7 +749,7 @@ class DevUiPage(QWidget):
                     amount.setRange(0, quantity)
                     amount.setValue(quantity if done else 0)
                     amount.setSuffix(f" / {quantity}")
-                    amount.setFixedWidth(100)
+                    amount.setFixedWidth(UNITY_CONTROL_SIZES_PX["guide_quantity_width"])
                     amount.setToolTip("Quantité possédée · aperçu fictif")
                     validate = QCheckBox()
                     validate.setObjectName("GuidePreparationReady")
@@ -705,7 +761,7 @@ class DevUiPage(QWidget):
                             spin.maximum() if checked else 0
                         )
                     )
-                    validate.setFixedWidth(22)
+                    validate.setFixedWidth(UNITY_CONTROL_SIZES_PX["guide_validation_width"])
                     row.addWidget(validate, 0, Qt.AlignVCenter)
                     row.addWidget(amount, 0, Qt.AlignVCenter)
                     row.addWidget(name_button, 1, Qt.AlignVCenter)
@@ -875,8 +931,12 @@ class DevUiPage(QWidget):
         self.preview_sidebar = QFrame()
         self.preview_sidebar.setObjectName("sidebar")
         apply_unity_panel_shadow(self.preview_sidebar, **UNITY_PANEL_SHADOW)
-        self.preview_sidebar.setMinimumWidth(192)
-        self.preview_sidebar.setMaximumWidth(240)
+        self.preview_sidebar.setMinimumWidth(
+            UNITY_CONTROL_SIZES_PX["gallery_sidebar_min_width"]
+        )
+        self.preview_sidebar.setMaximumWidth(
+            UNITY_CONTROL_SIZES_PX["gallery_sidebar_max_width"]
+        )
         layout = QVBoxLayout(self.preview_sidebar)
         layout.setContentsMargins(8, 8, 8, 8)
         layout.setSpacing(6)
@@ -1616,6 +1676,8 @@ class DevUiPage(QWidget):
 
         metric_rows = (
             *SIZES.items(), *SPACING.items(), *TYPOGRAPHY.items(),
+            *((f"LIMIT_{key.upper()}", f"{value} lignes")
+              for key, value in UNITY_CONTROL_LIMITS.items()),
             *((f"WINDOW_{key.upper()}", f"{width} × {height} px")
               for key, (width, height) in UNITY_WINDOW_PRESETS_PX.items()),
             *((f"PROFILE_{key.upper()}_{metric.upper()}", f"{value}px")

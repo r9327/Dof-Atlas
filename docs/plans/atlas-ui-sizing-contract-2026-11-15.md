@@ -126,3 +126,23 @@ contrat du 15/11 ; voir décision ci-dessous.
 **Statut :** pilote Dev UI et contrat partagés ajoutés ; migration intégrale
 des écrans et dialogues non encore certifiée. Les anciens screenshots
 montrant 1/2/3 colonnes sont antérieurs au nouveau contrat.
+
+## Lot suivant — géométrie des 23 familles Dev UI
+
+Les 23 groupes de la galerie utilisent désormais `unity_layout_metrics(width)`
+pour leurs marges latérales et leur espacement vertical. Les contrôles ne
+changent ni d'ordre ni de colonne. L'implémentation réutilise le QVBoxLayout
+déjà présent sur chaque groupe ; elle ne crée aucun nouveau moteur responsive.
+
+La limite d'éléments visibles du menu partagé `AtlasComboBox` utilise
+`UNITY_CONTROL_LIMITS["dropdown_visible_rows"]` (8 lignes), son délégué
+la hauteur `UNITY_CONTROL_SIZES_PX["dropdown_row"]`. L'en-tête des dialogues
+réutilise les tailles indexées de son icône et ses espacements. Les flèches,
+les barres de progression et les contrôles Guide de Dev UI utilisent les
+mêmes tokens que leurs composants de référence.
+
+Une modification des tokens se propage aux consommateurs **qui y sont
+branchés**, au prochain chargement du composant. Les dimensions spécifiques
+d'un écran qui ne consomme pas encore ces tokens ne sont pas automatiques.
+Les tests Qt ciblés vérifient les quatre dimensions et le maintien de l'ordre
+des 23 familles.

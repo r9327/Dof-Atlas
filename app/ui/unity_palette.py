@@ -234,6 +234,10 @@ UNITY_LAYOUT_SIZES_PX = {
     "dialog_padding_x": 24,
     "dialog_padding_y": 22,
     "dialog_gap": 16,
+    "dialog_header_gap": 14,
+    "dialog_header_text_gap": 5,
+    "breadcrumb_item_gap": 5,
+    "gallery_section_header_inset": 22,
 }
 
 UNITY_CONTROL_SIZES_PX = {
@@ -244,6 +248,19 @@ UNITY_CONTROL_SIZES_PX = {
     "progress_toggle_width": 28,
     "progress_toggle_height": 24,
     "dialog_min_width": 400,
+    "dialog_header_icon_box": 52,
+    "dialog_header_icon_artwork": 44,
+    "gallery_selector_min_width": 240,
+    "gallery_selector_max_width": 420,
+    "gallery_sidebar_min_width": 192,
+    "gallery_sidebar_max_width": 240,
+    "guide_quantity_width": 100,
+    "guide_validation_width": 22,
+}
+
+# Counts are not pixel sizes and must remain distinct from geometry tokens.
+UNITY_CONTROL_LIMITS = {
+    "dropdown_visible_rows": 8,
 }
 
 # The four reference sizes are calibration points, NOT forced window sizes.
@@ -507,7 +524,8 @@ UNITY_UI_FAMILY_INDEX = {
         "components": (
             "UNITY_SIZES_PX", "UNITY_WINDOW_PRESETS_PX", "UNITY_LAYOUT_SIZES_PX",
             "UNITY_LAYOUT_PROFILE_PX", "unity_layout_metrics",
-            "UNITY_CONTROL_SIZES_PX", "UNITY_LAYOUT_BREAKPOINTS_PX",
+            "UNITY_CONTROL_SIZES_PX", "UNITY_CONTROL_LIMITS",
+            "UNITY_LAYOUT_BREAKPOINTS_PX",
             "unity_responsive_columns", "UNITY_ORGANIZER_METRICS_PX",
             "UNITY_CONTENT_TYPOGRAPHY_PX", "UNITY_SPACING_PX", "UNITY_TYPOGRAPHY",
             "SIZES", "SPACING", "TYPOGRAPHY", "UNITY_RADII",

@@ -20,7 +20,8 @@ from PySide6.QtWidgets import (
 
 from app.constants import APP_ICON_PATH
 from app.ui.unity_palette import (
-    UNITY_CONTROL_SIZES_PX, UNITY_LAYOUT_SIZES_PX, UNITY_PALETTE,
+    UNITY_CONTROL_LIMITS, UNITY_CONTROL_SIZES_PX, UNITY_LAYOUT_SIZES_PX,
+    UNITY_PALETTE,
     UNITY_SIZES_PX, UNITY_SPACING_PX,
 )
 from app.ui.splash_image import clear_connected_dark_background
@@ -111,7 +112,7 @@ class UnityPopupSeparatorDelegate(QStyledItemDelegate):
 
     def sizeHint(self, option, index):
         hint = super().sizeHint(option, index)
-        hint.setHeight(max(hint.height(), UNITY_SIZES_PX["control_compact"]))
+        hint.setHeight(max(hint.height(), UNITY_CONTROL_SIZES_PX["dropdown_row"]))
         return hint
 
     def paint(self, painter: QPainter, option, index) -> None:
@@ -145,9 +146,9 @@ class AtlasComboBox(QComboBox):
 
     def __init__(self, parent: QWidget | None = None) -> None:
         super().__init__(parent)
-        # Keep long lists (such as the 22 UI families) scrollable and
-        # compact in every shared Unity combo, not just the developer page.
-        self.setMaxVisibleItems(8)
+        # A single row-limit contract for every Unity dropdown, including
+        # selectors created by future modules. Keep native keyboard/scroll.
+        self.setMaxVisibleItems(UNITY_CONTROL_LIMITS["dropdown_visible_rows"])
         popup = self.view()
         popup.setItemDelegate(UnityPopupSeparatorDelegate(popup))
 
@@ -162,7 +163,7 @@ class AtlasBreadcrumb(QFrame):
         inset = 3 if compact else 5
         horizontal = UNITY_SPACING_PX["md"]
         self.row.setContentsMargins(horizontal, inset, horizontal, inset)
-        self.row.setSpacing(5)
+        self.row.setSpacing(UNITY_LAYOUT_SIZES_PX["breadcrumb_item_gap"])
 
     def add_separator(self) -> None:
         label = QLabel("›")
@@ -285,14 +286,16 @@ class AtlasDialogHeader(QWidget):
         self.setObjectName("DialogHeader")
         layout = QHBoxLayout(self)
         layout.setContentsMargins(0, 0, 0, 0)
-        layout.setSpacing(14)
+        layout.setSpacing(UNITY_LAYOUT_SIZES_PX["dialog_header_gap"])
 
         self.icon_label = QLabel()
         self.icon_label.setObjectName("DialogLogo")
-        self.icon_label.setFixedSize(QSize(52, 52))
+        icon_box = UNITY_CONTROL_SIZES_PX["dialog_header_icon_box"]
+        self.icon_label.setFixedSize(QSize(icon_box, icon_box))
         self.icon_label.setAlignment(Qt.AlignCenter)
         if icon is not None and not icon.isNull():
-            self.icon_label.setPixmap(icon.pixmap(QSize(44, 44)))
+            artwork_size = UNITY_CONTROL_SIZES_PX["dialog_header_icon_artwork"]
+            self.icon_label.setPixmap(icon.pixmap(QSize(artwork_size, artwork_size)))
         pixmap = self.icon_label.pixmap()
         # Qt may return a *null QPixmap*, not None. Do not leave an empty
         # bordered 52 px tile when the official Atlas icon is unavailable.
@@ -301,7 +304,7 @@ class AtlasDialogHeader(QWidget):
 
         text_layout = QVBoxLayout()
         text_layout.setContentsMargins(0, 1, 0, 0)
-        text_layout.setSpacing(5)
+        text_layout.setSpacing(UNITY_LAYOUT_SIZES_PX["dialog_header_text_gap"])
         self.title_label = QLabel(title)
         self.title_label.setObjectName("DialogTitle")
         self.title_label.setWordWrap(True)
