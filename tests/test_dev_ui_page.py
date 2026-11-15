@@ -329,9 +329,12 @@ class DevUiPageTests(unittest.TestCase):
 
             self.assertTrue(all(not icon.pixmap().isNull()
                                 for icon in page.preview_header_metric_icons.values()))
+            self.assertFalse(page.preview_header_panels["Personnages"].isVisible())
+            page.preview_header_controls["Personnages"].setChecked(True)
             self.assertTrue(page.preview_header_panels["Personnages"].isVisibleTo(
                 page.preview_compact_header
             ))
+            page.preview_header_controls["Personnages"].setChecked(False)
             self.assertEqual(len(page.preview_header_portraits), 3)
             self.assertTrue(all(isinstance(p, _ParticipantPortraitButton)
                                 for p in page.preview_header_portraits))
