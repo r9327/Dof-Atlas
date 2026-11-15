@@ -30,6 +30,8 @@ jobs:
           python-version: '3.13'
       - name: Install pinned Qt runtime
         run: python -m pip install --require-hashes --no-deps -r requirements-pyside.txt
+      - name: Verify 95 metadata containers and indexed shared UI
+        run: python -X faulthandler -m unittest -v tests.test_ganymede_guide_shell
       - name: Capture real indexed container at 1280 x 720
         shell: bash
         run: |
@@ -39,7 +41,7 @@ jobs:
           from PySide6.QtGui import QFontDatabase
           from app.ui.theme import atlas_stylesheet
           from app.ui.unity_skin import UnityBackdrop
-          from app.modules.encyclopedia.views.guide_catalog_view import GanymedeGuideShell
+          from app.modules.encyclopedia.views.ganymede_guide_shell import GanymedeGuideShell
           from app.modules.encyclopedia.views.guide_library_sources import load_ganymede_listings
 
           entries = load_ganymede_listings()
@@ -57,10 +59,10 @@ jobs:
           layout.addWidget(shell)
           backdrop.show()
           app.processEvents()
-          assert shell.title_label.text() == cawotte.title
+          assert shell.guide_title_label.text() == cawotte.title
           assert len(shell.findChildren(QProgressBar)) == 3
           assert all(not bar.isEnabled() for bar in shell.findChildren(QProgressBar))
-          assert shell.sheet_title.text() == "Aucune fiche chargée"
+          assert shell.sheet_title_label.text() == "Aucune fiche chargée"
           target = Path("artifacts/screenshots/ganymede-cawotte-shell-qt.png")
           target.parent.mkdir(parents=True, exist_ok=True)
           shot = backdrop.grab()
