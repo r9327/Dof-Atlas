@@ -24,7 +24,8 @@ from app.modules.encyclopedia.services.guide_shared_route_contract import (
 )
 from app.modules.encyclopedia.services.adventure_route_engine import RouteLocation
 from app.modules.encyclopedia.services.guide_route_planner import (
-    GuideTravelPlan, TravelMode,
+    GuideParticipantState, TravelMode, VerifiedZaapRoute,
+    VerifiedZaapTravelPlanner,
 )
 
 
@@ -148,18 +149,26 @@ class TrustedSourcePackageTests(unittest.TestCase):
         entry = self.write()
         loader = self.loader(entry)
         calls = []
-        plan = GuideTravelPlan(
-            TravelMode.ZAAP_THEN_TRAVEL,
-            RouteLocation(x=5, y=-2),
-            ("character:1",),
-            world="fictional-world",
+        route = VerifiedZaapRoute(
+            destination=RouteLocation(x=5, y=-2),
             zaap=RouteLocation(x=1, y=-1),
+            world="fictional-world",
+            eligible_character_keys=frozenset({"character:1"}),
+            beneficial=True,
             evidence="fictional-verified-route",
         )
 
-        def verified_planner(destination, participants):
+        def verified_routes(destination, participants):
             calls.append((destination, participants))
-            return plan
+            return (route,)
+
+        verified_planner = VerifiedZaapTravelPlanner(
+            lambda keys: tuple(
+                GuideParticipantState(key, world="fictional-world")
+                for key in keys
+            ),
+            verified_routes,
+        )
 
         factory = loader.factories(
             SimpleNamespace(), SimpleNamespace(), self.progress,
@@ -169,31 +178,45 @@ class TrustedSourcePackageTests(unittest.TestCase):
         service = factory()
         service.set_authorization_guard(loader.authorize)
         self.assertEqual(calls, [])
-        self.assertIs(
-            service.plan_verified_zaap_travel((5, -2), ("character:1",)), plan,
-        )
-        self.assertEqual(calls, [((5, -2), ("character:1",))])
+        plan = service.plan_verified_zaap_travel((5, -2), ("character:1",))
+        self.assertEqual(plan.mode, TravelMode.ZAAP_THEN_TRAVEL)
+        self.assertEqual(calls, [((5, -2), ("character:1",))] * 2)
         self.approved = False
         self.assertIsNone(
             service.plan_verified_zaap_travel((5, -2), ("character:1",)),
         )
-        self.assertEqual(len(calls), 1)
+        self.assertEqual(len(calls), 2)
         self.approved = True
         service.retire()
         self.assertIsNone(
             service.plan_verified_zaap_travel((5, -2), ("character:1",)),
         )
-        self.assertEqual(len(calls), 1)
+        self.assertEqual(len(calls), 2)
 
     def test_zaap_planner_revocation_during_call_refuses_result(self):
         entry = self.write()
         loader = self.loader(entry)
+        route = VerifiedZaapRoute(
+            destination=RouteLocation(x=5, y=-2),
+            zaap=RouteLocation(x=1, y=-1),
+            world="fictional-world",
+            eligible_character_keys=frozenset({"character:1"}),
+            beneficial=True,
+            evidence="fictional-verified-route",
+        )
         def revoke_during_plan(*_):
             self.approved = False
-            return object()
+            return (route,)
+        planner = VerifiedZaapTravelPlanner(
+            lambda keys: tuple(
+                GuideParticipantState(key, world="fictional-world")
+                for key in keys
+            ),
+            revoke_during_plan,
+        )
         service = loader.factories(
             SimpleNamespace(), SimpleNamespace(), self.progress,
-            zaap_planners={self.key: revoke_during_plan},
+            zaap_planners={self.key: planner},
         )[self.key]()
         service.set_authorization_guard(loader.authorize)
         self.assertIsNone(

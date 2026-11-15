@@ -112,10 +112,14 @@ conditions hold. Missing route evidence, unavailable planner, unconnected
 participants, a non-Zaap/direct plan or mismatched destination always
 copies the classical `/travel x,y` instead; no fictitious Zaap is chosen.
 
-The plan provider is an **optional, explicitly trusted composition input**:
-this PR has not established any live verified Zaap/character-position
-registry for imported guides. Do not treat the Qt icon or a synthetic test
-callback as proof that an optimized route can be used in production.
+The plan provider is an **optional, explicitly trusted composition input**.
+It must be a `VerifiedZaapTravelPlanner`, backed by separate providers for
+verified participant snapshots and `VerifiedZaapRoute` snapshots. Both
+snapshots are bounded and read twice around the canonical planning decision;
+identity, world, position, destination, eligibility or evidence changes fail
+closed. No callable supplied directly by Guide content is accepted. This PR
+does not populate a live registry: do not treat the Qt icon or a synthetic
+provider as proof that an optimized route can be used in production.
 Route planning is on-demand at click time and is never run while rendering
 the Guide. The original optimized guides retain their shared renderer.
 
@@ -311,8 +315,11 @@ vérifient le raccordement et l'isolation par personnage.
 ### Zaap — raccordement du service importé sans trajet inventé
 
 `GuideTrustedSourcePackage.factories(..., zaap_planners={guide_id: planner})`
-accepte désormais uniquement un callback qualifié provenant de la
-composition de confiance, pas du contenu source. Le service importé expose
+accepte désormais uniquement une instance `VerifiedZaapTravelPlanner`
+provenant de la composition de confiance, pas un callback arbitraire ni le
+contenu source. L'adaptateur réutilise la sélection Zaap du
+`GuideRoutePlanner`, borne les participants/routes et relit deux fois les
+snapshots vérifiés autour du calcul. Le service importé expose
 `plan_verified_zaap_travel(destination, participant_keys)`, appelé **au clic
 sur l'icône Zaap** par le lecteur partagé. Il demande le plan au fournisseur
 et revérifie l'attestation indépendante avant et après l'appel. Absence,
@@ -321,10 +328,14 @@ existant sur la copie de `/travel`. Le lecteur partagé garde l'autorité
 de vérifier `GuideTravelPlan`, la destination, le mode Zaap et l'équipe
 connectée avant toute commande.
 
+Chaque `VerifiedZaapRoute` porte en plus une décision `beneficial` booléenne
+explicite. Une route absente, inéligible ou marquée non rentable est ignorée :
+le lecteur conserve alors son repli `/travel x,y` sans choisir de Zaap.
+
 La fabrique ne constitue **pas** la base de Zaaps vérifiés ; aucun trajet
-réel n'est inscrit, ni aucune macro déclenchée sans click explicite.
-Le fournisseur réel et la recette Windows/DOFUS de GIMP-019 demeurent
-PENDING. Les tests ne fournissent que des routes fictives.
+réel n'est inscrit, ni aucune macro déclenchée sans clic explicite. La base
+live et la recette Windows/DOFUS demeurent séparées du contrat de code ; les
+tests de Phase 0 ne fournissent que des routes fictives.
 
 ## Préparation transactionnelle d’un paquet par guide (GIMP-004, Phase 0)
 

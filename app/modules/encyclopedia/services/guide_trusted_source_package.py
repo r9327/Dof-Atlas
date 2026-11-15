@@ -306,7 +306,7 @@ class GuideTrustedSourcePackage:
         self, quest_progress: Any, achievement_progress: Any, guide_progress: Any,
         *,
         gate_evaluators: Mapping[str, Callable[[str, dict[str, Any]], bool]] | None = None,
-        zaap_planners: Mapping[str, Callable[[tuple[int, int], tuple[str, ...]], Any]] | None = None,
+        zaap_planners: Mapping[str, Any] | None = None,
     ) -> dict[str, Callable[[], Any]]:
         """Adapter for EncyclopediaPage(imported_source_factories=...).
 
@@ -323,9 +323,13 @@ class GuideTrustedSourcePackage:
                 raise GuidePackageBlocked("Unregistered or invalid source Guide gate evaluator")
         if zaap_planners is not None and not isinstance(zaap_planners, Mapping):
             raise GuidePackageBlocked("Trusted Zaap planner registry must be a mapping")
+        from app.modules.encyclopedia.services.guide_route_planner import (
+            VerifiedZaapTravelPlanner,
+        )
         planners = dict(zaap_planners or {})
         for guide_id, planner in planners.items():
-            if guide_id not in self._entries or not callable(planner):
+            if (guide_id not in self._entries
+                    or type(planner) is not VerifiedZaapTravelPlanner):
                 raise GuidePackageBlocked("Unregistered or invalid verified Zaap planner")
 
         def make(
