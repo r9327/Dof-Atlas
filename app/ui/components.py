@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from PySide6.QtCore import QSize, Qt
-from PySide6.QtGui import QIcon, QImage, QPixmap, QTransform
+from PySide6.QtGui import QIcon, QImage, QPixmap, QTransform, QPainter
 from PySide6.QtWidgets import (
     QDialog,
     QHBoxLayout,
@@ -109,6 +109,23 @@ class AtlasGuideDisclosure(QToolButton):
         self.setArrowType(Qt.NoArrow if not icon.isNull() else
                           Qt.UpArrow if opened else Qt.DownArrow)
         self.setIcon(icon)
+
+    def paintEvent(self, event) -> None:  # noqa: N802 - Qt override
+        super().paintEvent(event)
+        if self.isEnabled() or self.icon().isNull():
+            return
+        # Windows may omit disabled QToolButton icons even though the vector
+        # QIcon has a Disabled pixmap. Keep the UI-only Guide arrows visible.
+        glyph = self.icon().pixmap(self.iconSize(), QIcon.Disabled)
+        if glyph.isNull():
+            return
+        painter = QPainter(self)
+        painter.drawPixmap(
+            (self.width() - glyph.width()) // 2,
+            (self.height() - glyph.height()) // 2,
+            glyph,
+        )
+        painter.end()
 
 
 class AtlasPageTitle(QLabel):

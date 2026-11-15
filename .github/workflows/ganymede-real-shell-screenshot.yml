@@ -9,6 +9,9 @@ on:
       - .github/workflows/ganymede-real-shell-screenshot.yml
       - app/modules/encyclopedia/views/ganymede_guide_shell.py
       - app/modules/encyclopedia/views/guide_catalog_view.py
+      - app/ui/components.py
+      - app/ui/theme.py
+      - app/ui/unity_skin.py
       - tests/test_ganymede_guide_shell.py
 
 permissions:

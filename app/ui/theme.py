@@ -2611,6 +2611,10 @@ QToolButton#GuideMetricDropdown:checked {
     background: @PANEL_HOVER;
     border-color: @BORDER_STRONG;
 }
+QToolButton#GuideMetricDropdown:disabled {
+    background: transparent;
+    border: 1px solid transparent;
+}
 QToolButton#GuideParticipantsButton {
     background: @PANEL_GRADIENT;
     border: 1px solid @BORDER_STRONG;
