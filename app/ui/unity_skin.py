@@ -268,7 +268,7 @@ def unity_skin_stylesheet() -> str:
     # at Windows DPI. Keep the dark-stone beveled QSS above for secondary
     # toggles; reserve green action sprites for the actual Valider command.
     add_border(
-        "QFrame#GuidePreparationPanel, QFrame#GuideSummaryPanel, QFrame#GuideParticipantsPanel",
+        "QFrame#GuidePreparationPanel, QFrame#GuideSummaryPanel",
         "Assets_UI_Themes_darkStone_common_bg_small_border_light-png.png", 6,
     )
     sprites_for_states(
