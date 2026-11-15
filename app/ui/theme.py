@@ -2840,52 +2840,15 @@ QLabel#AlmanaxUnavailable { color: @TEXT_MUTED; font-size: @FONT_BODY; }
                 font-weight: 800;
             }
 
-            QScrollBar:vertical {
-                background: transparent;
-                width: 7px;
-                margin: 2px 0px 2px 0px;
-            }
-
-            QScrollBar::handle:vertical {
-                background: #2b3341;
-                border-radius: 3px;
-                min-height: 28px;
-            }
-
-            QScrollBar::handle:vertical:hover {
-                background: #465166;
-            }
-
-            QScrollBar::add-line:vertical,
-            QScrollBar::sub-line:vertical,
-            QScrollBar::add-page:vertical,
-            QScrollBar::sub-page:vertical {
-                background: transparent;
-                border: none;
-                height: 0px;
-            }
-
-            QScrollBar:horizontal {
-                background: transparent;
-                height: 0px;
-                margin: 0px;
-            }
-
-            QScrollBar::handle:horizontal,
-            QScrollBar::add-line:horizontal,
-            QScrollBar::sub-line:horizontal,
-            QScrollBar::add-page:horizontal,
-            QScrollBar::sub-page:horizontal {
-                background: transparent;
-                border: none;
-                width: 0px;
-            }
+            /* Scrollbars inherit the single global Unity QSS above.
+               Never override their shared colors and dimensions from Guides. */
 
 
 /* Quest hierarchy and reusable guide/quest item states. */
 
 QTreeWidget#QuestHierarchyTree {
-    background: @BG;
+    /* Inherit the same list canvas as the rest of the app, not the window BG. */
+    background: @LIST_SURFACE;
     border: none;
     color: @TEXT_MUTED;
     outline: none;
