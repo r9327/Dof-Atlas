@@ -8,7 +8,7 @@ from PySide6.QtGui import QColor, QMouseEvent, QPainter, QPen, QPixmap, QPolygon
 from PySide6.QtWidgets import QSizePolicy, QWidget
 
 from app.cartography.scan_status_service import get_status_color, normalize_status
-from app.ui.unity_palette import UNITY_PALETTE, unity_painted_ui_color
+from app.ui.unity_palette import UNITY_MODULE_GEOMETRY_PX, UNITY_PALETTE, unity_painted_ui_color
 
 
 class MapCanvasWidget(QWidget):
@@ -20,7 +20,7 @@ class MapCanvasWidget(QWidget):
     def __init__(self, parent: QWidget | None = None):
         super().__init__(parent)
         self.setObjectName("MapCanvas")
-        self.setMinimumSize(420, 320)
+        self.setMinimumSize(*UNITY_MODULE_GEOMETRY_PX["world_map"]["canvas_min_size"])
         self.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
         self.setMouseTracking(True)
         self.setFocusPolicy(Qt.StrongFocus)

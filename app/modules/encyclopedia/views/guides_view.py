@@ -64,6 +64,9 @@ from app.modules.encyclopedia.widgets.guide_card import (
 from app.core.text import normalize_key as normalize_text
 from app.ui.components import AtlasBreadcrumb, AtlasButton, AtlasPanelToggle
 from app.ui.theme import PALETTE, render_theme_template
+from app.ui.unity_palette import UNITY_MODULE_GEOMETRY_PX
+
+GUIDE_CARD_GEOMETRY = UNITY_MODULE_GEOMETRY_PX["guide_cards"]
 
 if TYPE_CHECKING:
     from app.modules.encyclopedia.services.guide_quest_view_model import (
@@ -166,14 +169,14 @@ CATEGORY_LABELS = {
     "dofus": "DOFUS",
 }
 TRAVEL_COORD_RE = re.compile(r"\[(-?\d+)\s*,\s*(-?\d+)\]")
-DOFUS_CARD_MIN_WIDTH = 86
-DOFUS_CARD_MAX_WIDTH = 126
-DOFUS_CARD_HEIGHT = 118
-DOFUS_GRID_SPACING = 8
-DOFUS_GRID_MAX_COLUMNS = 5
-HOME_GUIDE_LEFT_MIN_WIDTH = 285
-HOME_GUIDE_LEFT_MAX_WIDTH = 360
-GUIDE_STEPS_OPEN_WIDTH = 190
+DOFUS_CARD_MIN_WIDTH = GUIDE_CARD_GEOMETRY["dofus_card_min_width"]
+DOFUS_CARD_MAX_WIDTH = GUIDE_CARD_GEOMETRY["dofus_card_max_width"]
+DOFUS_CARD_HEIGHT = GUIDE_CARD_GEOMETRY["dofus_card_height"]
+DOFUS_GRID_SPACING = GUIDE_CARD_GEOMETRY["dofus_grid_gap"]
+DOFUS_GRID_MAX_COLUMNS = GUIDE_CARD_GEOMETRY["dofus_grid_max_columns"]
+HOME_GUIDE_LEFT_MIN_WIDTH = GUIDE_CARD_GEOMETRY["home_left_min_width"]
+HOME_GUIDE_LEFT_MAX_WIDTH = GUIDE_CARD_GEOMETRY["home_left_max_width"]
+GUIDE_STEPS_OPEN_WIDTH = GUIDE_CARD_GEOMETRY["guide_steps_open_width"]
 GUIDE_STEPS_COLLAPSED_WIDTH = 44
 GUIDE_SERIES_INITIAL_STEP_LIMIT = 40
 GUIDE_OVERVIEW_REWARD_LIMIT = 12
@@ -338,17 +341,17 @@ class GuideHomeCard(QFrame):
         )
 
     def _build_adventure_card(self) -> None:
-        self.setMinimumWidth(245)
-        self.setMaximumWidth(275)
-        self.setMinimumHeight(172)
+        self.setMinimumWidth(GUIDE_CARD_GEOMETRY["featured_min_width"])
+        self.setMaximumWidth(GUIDE_CARD_GEOMETRY["featured_max_width"])
+        self.setMinimumHeight(GUIDE_CARD_GEOMETRY["featured_min_height"])
         root = QVBoxLayout(self)
         root.setContentsMargins(12, 12, 12, 12)
         root.setSpacing(8)
 
         image = QLabel()
         image.setObjectName("GuideAdventureImage")
-        image.setFixedHeight(86)
-        image.setMinimumWidth(210)
+        image.setFixedHeight(GUIDE_CARD_GEOMETRY["featured_image_height"])
+        image.setMinimumWidth(GUIDE_CARD_GEOMETRY["featured_image_min_width"])
         image.setAlignment(Qt.AlignCenter)
         image.setAttribute(Qt.WA_TransparentForMouseEvents, True)
         if self._load_image(image, QSize(230, 86)):
@@ -377,9 +380,9 @@ class GuideHomeCard(QFrame):
             root.addWidget(count)
 
     def _build_alignment_card(self) -> None:
-        self.setMinimumWidth(126)
-        self.setMaximumWidth(150)
-        self.setMinimumHeight(138)
+        self.setMinimumWidth(GUIDE_CARD_GEOMETRY["small_min_width"])
+        self.setMaximumWidth(GUIDE_CARD_GEOMETRY["small_max_width"])
+        self.setMinimumHeight(GUIDE_CARD_GEOMETRY["small_min_height"])
         root = QVBoxLayout(self)
         root.setContentsMargins(12, 12, 12, 12)
         root.setSpacing(9)

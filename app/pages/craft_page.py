@@ -56,6 +56,9 @@ from app.storage import (
     write_json,
 )
 from app.ui.components import AtlasButton, AtlasPageTitle
+from app.ui.unity_palette import UNITY_MODULE_GEOMETRY_PX
+
+CRAFT_GEOMETRY = UNITY_MODULE_GEOMETRY_PX["craft"]
 from app.ui.unity_skin import apply_unity_panel_shadow
 
 
@@ -122,8 +125,8 @@ def quantity_spinbox(value: int, maximum: int = 999) -> QSpinBox:
     spinbox.setObjectName("QuantitySpinBox")
     spinbox.setRange(1, maximum)
     spinbox.setValue(max(1, min(maximum, int(value or 1))))
-    spinbox.setMinimumWidth(86)
-    spinbox.setMaximumWidth(86)
+    spinbox.setMinimumWidth(CRAFT_GEOMETRY["quantity_width"])
+    spinbox.setMaximumWidth(CRAFT_GEOMETRY["quantity_width"])
     spinbox.setAlignment(Qt.AlignCenter)
     spinbox.setToolTip("Quantité")
     return spinbox
@@ -137,7 +140,7 @@ class CraftResourceDialog(QDialog):
         self.resource_checks: list[QCheckBox] = []
         self.setObjectName("CraftResourceDialog")
         self.setWindowTitle("Ressources craft")
-        self.resize(500, 540)
+        self.resize(*CRAFT_GEOMETRY["resource_dialog_size"])
         self.setWindowFlag(Qt.WindowStaysOnTopHint, True)
         root = QVBoxLayout(self)
         root.setContentsMargins(14, 12, 14, 12)
@@ -192,7 +195,8 @@ class CraftResourceDialog(QDialog):
             multiplier = QLabel("x")
             multiplier.setObjectName("MutedLabel")
             icon = QLabel()
-            icon.setFixedSize(28, 28)
+            box = CRAFT_GEOMETRY["resource_icon_box"]
+            icon.setFixedSize(box, box)
             icon.setAlignment(Qt.AlignCenter)
             item_info = info.get("item") if isinstance(info.get("item"), dict) else {"name": name, "image_path": info.get("image_path", "")}
             resource_icon = self.icon_cache.icon_for_item(craft_image_item(item_info)).pixmap(24, 24)
@@ -258,7 +262,7 @@ class ItemSetDialog(QDialog):
         self.add_callback = add_callback
         self.icon_cache = IconCache(28)
         self.setWindowTitle("Panoplie")
-        self.resize(390, 460)
+        self.resize(*CRAFT_GEOMETRY["item_set_dialog_size"])
         self.setWindowFlag(Qt.WindowStaysOnTopHint, True)
 
         root = QVBoxLayout(self)
@@ -319,7 +323,7 @@ class LevelingDialog(QDialog):
         local = guide.get("source") == "atlas-local"
         harvest = local and guide.get("kind") == "harvest"
         self.setWindowTitle(f"{job_name} — Repères locaux" if local else f"{job_name} 0-200")
-        self.resize(660, 560)
+        self.resize(*CRAFT_GEOMETRY["leveling_dialog_size"])
         self.setWindowFlag(Qt.WindowStaysOnTopHint, True)
 
         root = QVBoxLayout(self)
@@ -359,7 +363,8 @@ class LevelingDialog(QDialog):
             layout.setContentsMargins(8, 5, 8, 5)
             layout.setSpacing(8)
             icon = QLabel()
-            icon.setFixedSize(30, 30)
+            box = CRAFT_GEOMETRY["leveling_icon_box"]
+            icon.setFixedSize(box, box)
             icon.setAlignment(Qt.AlignCenter)
             if item:
                 icon.setPixmap(self.icon_cache.icon_for_item(craft_image_item(item)).pixmap(28, 28))
@@ -420,7 +425,7 @@ class RouteDialog(QDialog):
         self.step = 1
         self.zoom = 1.0
         self.setWindowTitle(f"{job_name} - {item.get('name', 'Ressource')}")
-        self.resize(560, 420)
+        self.resize(*CRAFT_GEOMETRY["route_dialog_size"])
         self.setWindowFlag(Qt.WindowStaysOnTopHint, True)
 
         root = QVBoxLayout(self)
@@ -575,7 +580,7 @@ class CraftPage(QWidget):
         self.search = QLineEdit()
         self.search.setObjectName("CraftSearch")
         self.search.setPlaceholderText("Rechercher un item...")
-        self.search.setMaximumWidth(360)
+        self.search.setMaximumWidth(CRAFT_GEOMETRY["search_max_width"])
         self.search.textChanged.connect(lambda _text: self.search_timer.start(120))
         left.addWidget(self.search)
         self.results = QListWidget()

@@ -16,7 +16,9 @@ from app.services.maps.map_cache_builder import get_cache_summary, get_local_ima
 from app.services.maps.map_manifest import DEFAULT_WORLD_AREA, DEFAULT_WORLD_NAME, WORLD_MENU_NAMES
 from app.ui.map_canvas_widget import MapCanvasWidget
 from app.ui.components import AtlasButton, AtlasPageTitle
-from app.ui.unity_palette import unity_painted_ui_color
+from app.ui.unity_palette import UNITY_MODULE_GEOMETRY_PX, unity_painted_ui_color
+
+WORLD_SCAN_GEOMETRY = UNITY_MODULE_GEOMETRY_PX["world_scan"]
 from app.ui.unity_skin import apply_unity_panel_shadow
 
 
@@ -75,8 +77,8 @@ class WorldScanPanel(QWidget):
         self._restore_selected_coord: tuple[int, int] | None = None
 
         root = QVBoxLayout(self)
-        root.setContentsMargins(12, 10, 12, 10)
-        root.setSpacing(8)
+        root.setContentsMargins(*WORLD_SCAN_GEOMETRY["page_margins"])
+        root.setSpacing(WORLD_SCAN_GEOMETRY["page_gutter"])
 
         header = QHBoxLayout()
         header.setContentsMargins(0, 0, 0, 0)
@@ -121,10 +123,12 @@ class WorldScanPanel(QWidget):
 
         self.planet_button = QToolButton(self.canvas)
         self.planet_button.setObjectName("WorldPlanetButton")
-        self.planet_button.setFixedSize(60, 60)
+        icon_box = WORLD_SCAN_GEOMETRY["world_icon_box"]
+        self.planet_button.setFixedSize(icon_box, icon_box)
         self.planet_button.setCursor(Qt.PointingHandCursor)
         self.planet_button.setIcon(self.planet_icon())
-        self.planet_button.setIconSize(QSize(34, 34))
+        icon_art = WORLD_SCAN_GEOMETRY["world_icon_artwork"]
+        self.planet_button.setIconSize(QSize(icon_art, icon_art))
         self.planet_button.setToolTip("Sélection du monde")
         self.planet_button.clicked.connect(self.toggle_world_menu)
         self.planet_button.move(14, 14)
@@ -154,7 +158,7 @@ class WorldScanPanel(QWidget):
         self.detail_panel = QFrame()
         self.detail_panel.setObjectName("WorldDetailPanel")
         apply_unity_panel_shadow(self.detail_panel)
-        self.detail_panel.setFixedHeight(74)
+        self.detail_panel.setFixedHeight(WORLD_SCAN_GEOMETRY["summary_height"])
         detail_layout = QVBoxLayout(self.detail_panel)
         detail_layout.setContentsMargins(12, 7, 12, 7)
         detail_layout.setSpacing(4)
@@ -197,7 +201,7 @@ class WorldScanPanel(QWidget):
         button = AtlasButton(text)
         button.setObjectName(object_name)
         button.setFixedHeight(30)
-        button.setMinimumWidth(108)
+        button.setMinimumWidth(WORLD_SCAN_GEOMETRY["menu_button_min_width"])
         button.setCursor(Qt.PointingHandCursor)
         return button
 

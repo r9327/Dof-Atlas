@@ -36,6 +36,9 @@ from app.modules.encyclopedia.widgets.dashboard import FixedColumnSplitter
 from app.core.text import normalize_key as normalize_text
 from app.ui.components import AtlasButton, AtlasComboBox
 from app.ui.theme import PALETTE
+from app.ui.unity_palette import UNITY_MODULE_GEOMETRY_PX
+
+ACHIEVEMENT_GEOMETRY = UNITY_MODULE_GEOMETRY_PX["achievements"]
 from app.ui.unity_skin import apply_unity_panel_shadow
 
 
@@ -192,8 +195,8 @@ class AchievementsView(QWidget):
         self.category_tree.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
         self.category_tree.currentItemChanged.connect(self.on_category_changed)
         self.category_panel.layout().addWidget(self.category_tree, 1)
-        self.category_panel.setMinimumWidth(235)
-        self.category_panel.setMaximumWidth(300)
+        self.category_panel.setMinimumWidth(ACHIEVEMENT_GEOMETRY["category_min_width"])
+        self.category_panel.setMaximumWidth(ACHIEVEMENT_GEOMETRY["category_max_width"])
         self.splitter.addWidget(self.category_panel)
 
         self.success_panel = self._panel("GuideCenterPanel", "SUCCÈS")
@@ -205,14 +208,14 @@ class AchievementsView(QWidget):
         # Enter/Return (and accessible activation) must open the same detail as a click.
         self.list_widget.itemActivated.connect(self.on_achievement_clicked)
         self.success_panel.layout().addWidget(self.list_widget, 1)
-        self.success_panel.setMinimumWidth(285)
+        self.success_panel.setMinimumWidth(ACHIEVEMENT_GEOMETRY["success_list_min_width"])
         self.splitter.addWidget(self.success_panel)
 
         self.detail_stack = QStackedWidget()
         self.detail_stack.setObjectName("AchievementDetailStack")
         self.detail_stack.setSizePolicy(QSizePolicy.Ignored, QSizePolicy.Expanding)
         # Keep the third column present even before the first detail is loaded.
-        self.detail_stack.setMinimumWidth(240)
+        self.detail_stack.setMinimumWidth(ACHIEVEMENT_GEOMETRY["detail_min_width"])
         self.splitter.addWidget(self.detail_stack)
         self.splitter.setCollapsible(2, False)
 
@@ -227,14 +230,15 @@ class AchievementsView(QWidget):
         self.detail_content.setObjectName("AchievementDetailContent")
         self.detail_content.setSizePolicy(QSizePolicy.Ignored, QSizePolicy.Preferred)
         self.detail_layout = QVBoxLayout(self.detail_content)
-        self.detail_layout.setContentsMargins(12, 12, 12, 12)
-        self.detail_layout.setSpacing(10)
+        inset = ACHIEVEMENT_GEOMETRY["detail_padding"]
+        self.detail_layout.setContentsMargins(inset, inset, inset, inset)
+        self.detail_layout.setSpacing(ACHIEVEMENT_GEOMETRY["detail_gap"])
         self.detail_scroll.setWidget(self.detail_content)
 
         self.splitter.setStretchFactor(0, 0)
         self.splitter.setStretchFactor(1, 0)
         self.splitter.setStretchFactor(2, 1)
-        self.splitter.setSizes([245, 315, 640])
+        self.splitter.setSizes(list(ACHIEVEMENT_GEOMETRY["initial_splitter_sizes"]))
 
         if defer_runtime:
             self.show_runtime_loading()

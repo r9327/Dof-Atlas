@@ -24,11 +24,13 @@ from app.pages._character_page_impl import (
     CharacterPage as _CharacterPage,
 )
 from app.ui.components import AtlasComboBox
-from app.ui.unity_palette import UNITY_CONTENT_TYPOGRAPHY_PX
+from app.ui.unity_palette import UNITY_CONTENT_TYPOGRAPHY_PX, UNITY_MODULE_GEOMETRY_PX
+
+CHARACTER_GEOMETRY = UNITY_MODULE_GEOMETRY_PX["character"]
 
 
-_EQUIPMENT_SLOT_SIZE = 64
-_EQUIPMENT_ICON_SIZE = 54
+_EQUIPMENT_SLOT_SIZE = CHARACTER_GEOMETRY["equipment_slot_box"]
+_EQUIPMENT_ICON_SIZE = CHARACTER_GEOMETRY["equipment_icon"]
 
 
 class CharacterPage(_CharacterPage):
@@ -47,7 +49,7 @@ class CharacterPage(_CharacterPage):
                 widget = item.widget() if item is not None else None
                 if widget is not None:
                     widget.hide()
-            root.setContentsMargins(10, 8, 10, 10)
+            root.setContentsMargins(*CHARACTER_GEOMETRY["page_margins"])
             root.setSpacing(6)
 
         if columns is not None:
@@ -79,9 +81,9 @@ class CharacterPage(_CharacterPage):
         # margins and the 8px gutter. The equipment grid already needs
         # far less than its old 650px minimum; do not force window growth
         # just because the Personnage page was opened.
-        self.equipment_panel.setMinimumWidth(610)
-        self.stats_panel.setMinimumWidth(235)
-        self.stats_panel.setMaximumWidth(340)
+        self.equipment_panel.setMinimumWidth(CHARACTER_GEOMETRY["equipment_min_width"])
+        self.stats_panel.setMinimumWidth(CHARACTER_GEOMETRY["stats_min_width"])
+        self.stats_panel.setMaximumWidth(CHARACTER_GEOMETRY["stats_max_width"])
 
     @staticmethod
     def _apply_success_style(label: QLabel, *, compact: bool = False) -> None:
@@ -104,9 +106,10 @@ class CharacterPage(_CharacterPage):
 
         self.character_selector = AtlasComboBox()
         self.character_selector.setObjectName("CharacterPageCharacterCombo")
-        self.character_selector.setIconSize(QSize(38, 38))
-        self.character_selector.setMinimumWidth(260)
-        self.character_selector.setMaximumWidth(360)
+        selector_icon = CHARACTER_GEOMETRY["selector_icon"]
+        self.character_selector.setIconSize(QSize(selector_icon, selector_icon))
+        self.character_selector.setMinimumWidth(CHARACTER_GEOMETRY["selector_min_width"])
+        self.character_selector.setMaximumWidth(CHARACTER_GEOMETRY["selector_max_width"])
         self.character_selector.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
         self.character_selector.setToolTip("Sélectionner un personnage")
         self.character_selector.currentIndexChanged.connect(
@@ -248,8 +251,8 @@ class CharacterPage(_CharacterPage):
         self.portrait.setObjectName("HomeCharacterPortrait")
         self.portrait.setAlignment(Qt.AlignCenter)
         self.portrait.setWordWrap(True)
-        self.portrait.setMinimumSize(230, 300)
-        self.portrait.setMaximumSize(300, 360)
+        self.portrait.setMinimumSize(*CHARACTER_GEOMETRY["portrait_min_size"])
+        self.portrait.setMaximumSize(*CHARACTER_GEOMETRY["portrait_max_size"])
         self.portrait.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
         skin_layout.addWidget(self.portrait, 1, Qt.AlignCenter)
 

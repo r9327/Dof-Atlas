@@ -39,6 +39,32 @@ class UiUniversalContractTests(unittest.TestCase):
         self.assertIn("Almanax future-day selection failed", source)
         self.assertIn("0 game records", source)
 
+    def test_real_module_geometry_reads_one_dev_ui_index(self):
+        """Preserve original visual sizes while linking primary consumers."""
+        root = REPO_ROOT
+        paths = (
+            "main.py", "app/pages/home_page.py", "app/pages/character_page.py",
+            "app/pages/craft_page.py",
+            "app/modules/encyclopedia/views/achievements_view.py",
+            "app/modules/encyclopedia/views/guide_catalog_view.py",
+            "app/modules/encyclopedia/views/guides_view.py",
+            "app/ui/map_canvas_widget.py", "app/ui/world_scan_panel.py",
+        )
+        for path in paths:
+            with self.subTest(path=path):
+                source = (root / path).read_text(encoding="utf-8")
+                self.assertIn("UNITY_MODULE_GEOMETRY_PX", source)
+        from app.ui.unity_palette import UNITY_MODULE_GEOMETRY_PX
+        self.assertEqual(
+            UNITY_MODULE_GEOMETRY_PX["shell"]["settings_button_box"], 34,
+        )
+        self.assertEqual(
+            UNITY_MODULE_GEOMETRY_PX["home"]["right_column_min_width"], 205,
+        )
+        self.assertEqual(
+            UNITY_MODULE_GEOMETRY_PX["world_map"]["canvas_min_size"], (420, 320),
+        )
+
     def test_shell_character_selector_uses_the_shared_unity_combo(self):
         # The shell used a bare QComboBox, whose popup could show every
         # character and lacked the Dev UI separator/scroll contract.

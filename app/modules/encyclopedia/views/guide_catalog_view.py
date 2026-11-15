@@ -3,6 +3,9 @@ from __future__ import annotations
 from PySide6.QtCore import QSize, Qt, QTimer, Signal
 from PySide6.QtGui import QIcon, QKeySequence, QShortcut
 from app.ui.unity_skin import apply_unity_panel_shadow, sprite_icon_path
+from app.ui.unity_palette import UNITY_MODULE_GEOMETRY_PX
+
+GUIDE_CATALOG_GEOMETRY = UNITY_MODULE_GEOMETRY_PX["guide_catalog"]
 from PySide6.QtWidgets import (
     QAbstractItemView, QFrame, QLabel, QListView,
     QScrollArea, QTreeWidget, QTreeWidgetItem, QVBoxLayout, QWidget,
@@ -155,7 +158,7 @@ class GuideCatalogView(QWidget):
         # Pixel scrolling ends at the final visible row, rather than exposing
         # an extra whole item of blank viewport at the bottom of dense menus.
         self.library_categories.setVerticalScrollMode(QAbstractItemView.ScrollPerPixel)
-        self.library_categories.setMaximumHeight(250)
+        self.library_categories.setMaximumHeight(GUIDE_CATALOG_GEOMETRY["category_tree_max_height"])
         self._category_nodes = {}
         # Dofus is the default, selectable category; events come last.
         # Featured optimized routes stay in their own permanent left column.
@@ -399,7 +402,7 @@ class GuideCatalogView(QWidget):
         # gutter so the last category is never clipped.
         row_height = max(23, tree.fontMetrics().lineSpacing() + 8, tree.sizeHintForRow(0))
         wanted = max(row_height + 12, visible_rows * row_height + 12)
-        tree.setFixedHeight(min(250, wanted))
+        tree.setFixedHeight(min(GUIDE_CATALOG_GEOMETRY["category_tree_max_height"], wanted))
 
     def _on_library_category_expanded(self, item: QTreeWidgetItem) -> None:
         """Expanding an arrow selects that same category in the right pane."""

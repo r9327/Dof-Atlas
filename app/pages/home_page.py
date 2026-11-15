@@ -22,7 +22,9 @@ from PySide6.QtWidgets import (
 from app.constants import LOGO_PATH, QUEST_PROGRESS_FILE, ROOT_DIR
 from app.network.application_coordinator import NetworkApplicationStatus
 from app.ui.components import AtlasButton, AtlasStatusBadge, atlas_application_icon
-from app.ui.unity_palette import UNITY_SIZES_PX
+from app.ui.unity_palette import UNITY_MODULE_GEOMETRY_PX, UNITY_SIZES_PX
+
+HOME_GEOMETRY = UNITY_MODULE_GEOMETRY_PX["home"]
 from app.ui.unity_skin import apply_unity_panel_shadow, unity_original_preview_icon
 from app.ui.network_bridge import network_ui_bridge
 
@@ -130,8 +132,8 @@ class HomeBannerLabel(QLabel):
         super().__init__(parent)
         self.setObjectName("HomeGuideBanner")
         self.setAlignment(Qt.AlignCenter)
-        self.setMinimumHeight(145)
-        self.setMaximumHeight(205)
+        self.setMinimumHeight(HOME_GEOMETRY["banner_min_height"])
+        self.setMaximumHeight(HOME_GEOMETRY["banner_max_height"])
         self.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
         self._source = QPixmap(str(image_path)) if image_path.exists() else QPixmap()
         self.setVisible(not self._source.isNull())
@@ -268,13 +270,14 @@ class HomePage(QWidget):
         self.network_bridge.progressChanged.connect(self._on_network_progress_changed)
 
         root = QHBoxLayout(self)
-        root.setContentsMargins(26, 26, 26, 26)
-        root.setSpacing(18)
+        page_margin = HOME_GEOMETRY["page_margin"]
+        root.setContentsMargins(page_margin, page_margin, page_margin, page_margin)
+        root.setSpacing(HOME_GEOMETRY["column_gutter"])
 
         self.left_column = QWidget()
         self.left_column.setObjectName("HomeLeftColumn")
-        self.left_column.setMinimumWidth(286)
-        self.left_column.setMaximumWidth(350)
+        self.left_column.setMinimumWidth(HOME_GEOMETRY["left_column_min_width"])
+        self.left_column.setMaximumWidth(HOME_GEOMETRY["left_column_max_width"])
         left_layout = QVBoxLayout(self.left_column)
         left_layout.setContentsMargins(0, 0, 0, 0)
         left_layout.setSpacing(16)
@@ -288,8 +291,10 @@ class HomePage(QWidget):
         identity.setSpacing(14)
         self.character_portrait = QToolButton()
         self.character_portrait.setObjectName("HomeCharacterPortrait")
-        self.character_portrait.setFixedSize(98, 98)
-        self.character_portrait.setIconSize(QSize(88, 88))
+        portrait_box = HOME_GEOMETRY["portrait_box"]
+        self.character_portrait.setFixedSize(portrait_box, portrait_box)
+        portrait_icon = HOME_GEOMETRY["portrait_artwork"]
+        self.character_portrait.setIconSize(QSize(portrait_icon, portrait_icon))
         self.character_portrait.setEnabled(False)
         identity.addWidget(self.character_portrait, 0, Qt.AlignVCenter)
 
@@ -337,7 +342,7 @@ class HomePage(QWidget):
         left_layout.addWidget(self.tracking_card, 1)
 
         self.guide_card = self._card("HomeGuideCard")
-        self.guide_card.setMinimumWidth(300)
+        self.guide_card.setMinimumWidth(HOME_GEOMETRY["guide_min_width"])
         guide_layout = self.guide_card.layout()
         self._add_card_title(guide_layout, "Guide progression")
 
@@ -381,16 +386,18 @@ class HomePage(QWidget):
         guide_layout.addWidget(self.continue_button)
 
         self.almanax_card = self._card("HomeAlmanaxCard")
-        self.almanax_card.setMinimumWidth(205)
-        self.almanax_card.setMaximumWidth(330)
+        self.almanax_card.setMinimumWidth(HOME_GEOMETRY["right_column_min_width"])
+        self.almanax_card.setMaximumWidth(HOME_GEOMETRY["right_column_max_width"])
         almanax_layout = self.almanax_card.layout()
         self._add_card_title(almanax_layout, "Almanax")
         almanax_layout.addStretch(1)
 
         self.almanax_icon = QToolButton()
         self.almanax_icon.setObjectName("HomeAlmanaxPlaceholderIcon")
-        self.almanax_icon.setFixedSize(150, 150)
-        self.almanax_icon.setIconSize(QSize(126, 126))
+        almanax_box = HOME_GEOMETRY["almanax_box"]
+        self.almanax_icon.setFixedSize(almanax_box, almanax_box)
+        almanax_icon = HOME_GEOMETRY["almanax_artwork"]
+        self.almanax_icon.setIconSize(QSize(almanax_icon, almanax_icon))
         self.almanax_icon.setToolTip("Ouvrir le calendrier Almanax")
         self.almanax_icon.clicked.connect(self.almanaxRequested.emit)
         almanax_sprite = unity_original_preview_icon(
@@ -422,8 +429,8 @@ class HomePage(QWidget):
 
         self.right_column = QWidget()
         self.right_column.setObjectName("HomeRightColumn")
-        self.right_column.setMinimumWidth(205)
-        self.right_column.setMaximumWidth(330)
+        self.right_column.setMinimumWidth(HOME_GEOMETRY["right_column_min_width"])
+        self.right_column.setMaximumWidth(HOME_GEOMETRY["right_column_max_width"])
         right_layout = QVBoxLayout(self.right_column)
         right_layout.setContentsMargins(0, 0, 0, 0)
         right_layout.setSpacing(12)
@@ -431,8 +438,8 @@ class HomePage(QWidget):
         self.network_card = QFrame()
         self.network_card.setObjectName("HomeNetworkMiniCard")
         apply_unity_panel_shadow(self.network_card)
-        self.network_card.setMinimumHeight(64)
-        self.network_card.setMaximumHeight(72)
+        self.network_card.setMinimumHeight(HOME_GEOMETRY["network_card_min_height"])
+        self.network_card.setMaximumHeight(HOME_GEOMETRY["network_card_max_height"])
         network_layout = QHBoxLayout(self.network_card)
         network_layout.setContentsMargins(15, 10, 15, 10)
         network_layout.setSpacing(10)
@@ -472,7 +479,8 @@ class HomePage(QWidget):
         card.setObjectName(object_name)
         apply_unity_panel_shadow(card)
         layout = QVBoxLayout(card)
-        layout.setContentsMargins(20, 20, 20, 20)
+        inset = HOME_GEOMETRY["card_padding"]
+        layout.setContentsMargins(inset, inset, inset, inset)
         layout.setSpacing(10)
         return card
 

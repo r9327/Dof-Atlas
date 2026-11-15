@@ -70,7 +70,7 @@ from app.ui.components import (
 from app.ui.preload_popup import PreloadProgressPopup
 from app.ui.splash_image import clear_connected_dark_background
 from app.ui.theme import atlas_stylesheet
-from app.ui.unity_palette import unity_painted_ui_color
+from app.ui.unity_palette import UNITY_MODULE_GEOMETRY_PX, unity_painted_ui_color
 from app.ui.unity_skin import (
     UnityBackdrop, apply_unity_panel_shadow, unity_enabled,
     register_unity_fonts, sprite_icon_path, unity_settings_icon,
@@ -1017,14 +1017,15 @@ class AtlasWindow(QMainWindow):
         self.brand_button.setObjectName("TopNavBrand")
         self.brand_button.setIcon(self.shell_icon)
         self.brand_button.setIconSize(QSize(0, 0))
-        self.brand_button.setMinimumWidth(170)
+        self.brand_button.setMinimumWidth(UNITY_MODULE_GEOMETRY_PX["shell"]["brand_min_width"])
         self.brand_button.setCursor(Qt.PointingHandCursor)
         brand_layout = QHBoxLayout(self.brand_button)
         brand_layout.setContentsMargins(8, 0, 8, 0)
         brand_layout.setSpacing(8)
         self.brand_icon_label = QLabel()
         self.brand_icon_label.setObjectName("TopNavBrandIcon")
-        self.brand_icon_label.setFixedSize(32, 32)
+        brand_box = UNITY_MODULE_GEOMETRY_PX["shell"]["brand_icon_box"]
+        self.brand_icon_label.setFixedSize(brand_box, brand_box)
         self.brand_icon_label.setAlignment(Qt.AlignCenter)
         self.brand_icon_label.setPixmap(self.shell_icon.pixmap(QSize(30, 30)))
         self.brand_icon_label.setAttribute(Qt.WA_TransparentForMouseEvents, True)
@@ -1123,8 +1124,8 @@ class AtlasWindow(QMainWindow):
 
         self.character_combo = AtlasComboBox()
         self.character_combo.setObjectName("TopNavCharacterCombo")
-        self.character_combo.setMinimumWidth(150)
-        self.character_combo.setMaximumWidth(210)
+        self.character_combo.setMinimumWidth(UNITY_MODULE_GEOMETRY_PX["shell"]["character_selector_min_width"])
+        self.character_combo.setMaximumWidth(UNITY_MODULE_GEOMETRY_PX["shell"]["character_selector_max_width"])
         self.character_combo.setToolTip("Personnage actif")
         self.character_combo.currentIndexChanged.connect(self.on_global_character_changed)
         layout.addWidget(self.character_combo)
@@ -1134,7 +1135,8 @@ class AtlasWindow(QMainWindow):
         self.settings_button.setAccessibleName("Paramètres")
         self.settings_button.setIcon(unity_settings_icon(20))
         self.settings_button.setIconSize(QSize(20, 20))
-        self.settings_button.setFixedSize(34, 34)
+        settings_box = UNITY_MODULE_GEOMETRY_PX["shell"]["settings_button_box"]
+        self.settings_button.setFixedSize(settings_box, settings_box)
         self.settings_button.setToolTip("Paramètres")
         self.settings_button.clicked.connect(lambda: self.show_page("Settings"))
         layout.addWidget(self.settings_button)
