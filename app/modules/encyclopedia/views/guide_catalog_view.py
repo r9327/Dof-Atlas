@@ -48,8 +48,9 @@ class GanymedeGuideShell(QWidget):
         self._listing: GanymedeListing | None = None
 
         root = QVBoxLayout(self)
-        root.setContentsMargins(0, 0, 0, 0)
-        root.setSpacing(_space("SPACE_MD"))
+        margin = _space("SPACE_MD")
+        root.setContentsMargins(margin, margin, margin, margin)
+        root.setSpacing(margin)
 
         header = QFrame(self)
         header.setObjectName("GuideCompactHeader")
@@ -117,7 +118,6 @@ class GanymedeGuideShell(QWidget):
         root.addWidget(sheet_header)
 
         self.scroll = QScrollArea(self)
-        self.scroll.setObjectName("GuideManualScroll")
         self.scroll.setWidgetResizable(True)
         self.scroll.setFrameShape(QFrame.NoFrame)
         self.scroll.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
