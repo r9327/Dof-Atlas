@@ -219,6 +219,10 @@ def _cached_guide_symbol_icon(symbol: str, size: int, color: str) -> QIcon:
     elif symbol == "unlock":
         painter.drawRoundedRect(QRectF(4, 8, 10, 8), 1.5, 1.5)
         painter.drawArc(QRectF(8, 2, 6, 9), 0, 180 * 16)
+    elif symbol == "back":
+        painter.drawLine(QPointF(13, 9), QPointF(3, 9))
+        painter.drawLine(QPointF(8, 4), QPointF(3, 9))
+        painter.drawLine(QPointF(3, 9), QPointF(8, 14))
     elif symbol == "check":
         painter.drawLine(QPointF(3, 9), QPointF(7, 13))
         painter.drawLine(QPointF(7, 13), QPointF(15, 4))
@@ -1276,7 +1280,7 @@ class SharedGuideManualView(GuideUltimeManualView):
         self.prev_button = QPushButton("Précédent")
         self.prev_button.setObjectName("GuideManualPrev")
         self.prev_button.setIcon(
-            self.prev_button.style().standardIcon(QStyle.SP_ArrowBack)
+            _guide_symbol_icon(self.prev_button, "back", color=PALETTE["TEXT_SOFT"])
         )
         self.prev_button.clicked.connect(lambda: self.navigate_relative(-1))
         nav_layout.addWidget(self.prev_button)
@@ -1510,6 +1514,7 @@ class SharedGuideManualView(GuideUltimeManualView):
         self.preparation_scroll.setMinimumHeight(126)
         self.preparation_scroll.setMaximumHeight(210)
         self.preparation_content = QWidget()
+        self.preparation_content.setObjectName("GuidePreparationContent")
         self.preparation_rows_layout = QVBoxLayout(self.preparation_content)
         self.preparation_rows_layout.setContentsMargins(0, 0, 0, 0)
         self.preparation_rows_layout.setSpacing(4)
@@ -2284,7 +2289,7 @@ class SharedGuideManualView(GuideUltimeManualView):
         label = (
             f"{need.name} · métier niveau {need.required_level} requis"
             if need.category == "Métiers" and need.required_level is not None
-            else f"{amount}{need.name}"
+            else need.name
         )
         image_kind = "profession" if need.category == "Métiers" else "item"
         image_id = need.profession_id if need.category == "Métiers" else need.item_id
@@ -2297,12 +2302,12 @@ class SharedGuideManualView(GuideUltimeManualView):
         )
         item_button.setToolTip("Cliquer pour copier le nom · " +
                                (" ; ".join(need.sources[:8]) or "Provenance à confirmer"))
-        top.addWidget(item_button, 1)
         status_label = QLabel(status)
         status_label.setObjectName("GuidePreparationRowStatus")
         progress = getattr(self.service, "guide_progress", None)
         getter = getattr(progress, "preparation_quantity", None)
         batcher = getattr(progress, "set_preparation_quantities_for_characters", None)
+        editor = None
         if (need.scope in {"per_character", "party_shared"} and quantity is not None
                 and need.item_key == self._preparation_item_key(
                     need.item_id, need.name
@@ -2314,6 +2319,7 @@ class SharedGuideManualView(GuideUltimeManualView):
             ))
             editor = QSpinBox(frame)
             editor.setObjectName("GuidePreparationQuantity")
+            editor.setFixedWidth(100)
             editor.setRange(0, quantity)
             editor.setValue(acquired)
             editor.setSuffix(f" / {quantity}")
@@ -2335,7 +2341,6 @@ class SharedGuideManualView(GuideUltimeManualView):
             if acquired == quantity:
                 status_label.setText("Complet")
                 status_label.setStyleSheet(f"color: {PALETTE['GREEN']};")
-            top.addWidget(editor)
         ready_button = QCheckBox()
         ready_button.setObjectName("GuidePreparationReady")
         ready_button.setChecked(ready)
