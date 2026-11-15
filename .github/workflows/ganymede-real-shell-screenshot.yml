@@ -1,0 +1,76 @@
+name: Ganymede / real Qt shell screenshot
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - feat/atlas-guide-importer-pr337-20261102
+    paths:
+      - .github/workflows/ganymede-real-shell-screenshot.yml
+
+permissions:
+  contents: read
+
+jobs:
+  capture:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    env:
+      QT_QPA_PLATFORM: offscreen
+      PYTHONUTF8: "1"
+    steps:
+      - name: Checkout actual PR branch
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          lfs: false
+          persist-credentials: false
+      - name: Python 3.13
+        uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
+        with:
+          python-version: '3.13'
+      - name: Install pinned Qt runtime
+        run: python -m pip install --require-hashes --no-deps -r requirements-pyside.txt
+      - name: Capture real indexed container at 1280 x 720
+        shell: bash
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          from PySide6.QtWidgets import QApplication, QVBoxLayout, QProgressBar
+          from app.ui.theme import atlas_stylesheet
+          from app.ui.unity_skin import UnityBackdrop
+          from app.modules.encyclopedia.views.guide_catalog_view import GanymedeGuideShell
+          from app.modules.encyclopedia.views.guide_library_sources import load_ganymede_listings
+
+          entries = load_ganymede_listings()
+          assert len(entries) == 95
+          cawotte = next(entry for entry in entries if entry.source_id == 2205)
+          app = QApplication([])
+          app.setStyleSheet(atlas_stylesheet())
+          backdrop = UnityBackdrop()
+          backdrop.setWindowTitle("Atlas - Guide Ganymede - vrai conteneur Qt")
+          backdrop.resize(1280, 720)
+          layout = QVBoxLayout(backdrop)
+          shell = GanymedeGuideShell(lambda: None, backdrop)
+          shell.set_listing(cawotte)
+          layout.addWidget(shell)
+          backdrop.show()
+          app.processEvents()
+          assert shell.title_label.text() == cawotte.title
+          assert len(shell.findChildren(QProgressBar)) == 3
+          assert all(not bar.isEnabled() for bar in shell.findChildren(QProgressBar))
+          assert shell.sheet_title.text() == "Aucune fiche chargée"
+          target = Path("artifacts/screenshots/ganymede-cawotte-shell-qt.png")
+          target.parent.mkdir(parents=True, exist_ok=True)
+          shot = backdrop.grab()
+          assert not shot.isNull() and shot.width() == 1280 and shot.height() == 720
+          assert shot.save(str(target), "PNG")
+          print(f"Real Qt screenshot written: {target} ({target.stat().st_size} bytes)")
+          backdrop.close()
+          PY
+      - name: Upload screenshot, including failed test artifacts
+        if: always()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: ganymede-real-qt-shell-${{ github.sha }}
+          path: artifacts/screenshots/*.png
+          if-no-files-found: warn
