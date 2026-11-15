@@ -26,6 +26,15 @@ UI_FAMILY_QSS_SELECTORS: dict[str, tuple[str, ...]] = {
     ),
     "breadcrumbs": ("QFrame#GuideBreadcrumb", "QPushButton#GuideBreadcrumbButton", "QLabel#GuideBreadcrumbCurrent",
                     "QLabel#GuideBreadcrumbCurrentStrong"),
+    "headers": (
+        "#PageTitle", "#PanelTitle", "QFrame#GuideHeader",
+        "QLabel#GuideHeaderTitle", "QLabel#GuideHeaderMeta",
+        "QFrame#GuideCompactHeader", "QLabel#GuideCompactTitle",
+        "QFrame#GuideSheetHeader", "QLabel#GuideSheetMeta",
+        "QLabel#GuideSheetTitle", "#GuideManualProgress",
+        "QProgressBar#GuideCompactPreparationProgress",
+        "QProgressBar#GuideCompactSuccessProgress", "#DialogHeader",
+    ),
     "sidebar": ("#sidebar", "#navItem", "#navItemActive", "#MenuButton", "#NavSeparator"),
     "data_views": (
         "QTreeWidget::item", "QTableWidget", "QHeaderView::section",

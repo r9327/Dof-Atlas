@@ -31,6 +31,7 @@ from PySide6.QtWidgets import (
     QProgressBar,
     QRadioButton,
     QScrollArea,
+    QSizePolicy,
     QSlider,
     QSpinBox,
     QStackedWidget,
@@ -176,6 +177,7 @@ class DevUiPage(QWidget):
         self._build_buttons(content)
         self._build_tabs_and_menus(content)
         self._build_breadcrumbs(content)
+        self._build_headers(content)
         self._build_sidebar(content)
         self._build_data_views(content)
         self._build_scroll_and_resize(content)
@@ -425,6 +427,156 @@ class DevUiPage(QWidget):
         self.preview_page_prev.setEnabled(self.preview_page_index > 1)
         self.preview_page_next.setEnabled(self.preview_page_index < 3)
         self._report(f"Navigation : page {self.preview_page_index}")
+
+    def _build_headers(self, parent: QVBoxLayout) -> None:
+        """Preview existing header selectors without duplicating QSS or runtime."""
+        section = self._section(parent, "headers")
+        note = QLabel(
+            "En-têtes de référence · vrais styles Unity, exemples fictifs. "
+            "La certification Ganymède relève de la PR #363."
+        )
+        note.setObjectName("MutedLabel")
+        note.setWordWrap(True)
+        section.addWidget(note)
+
+        self.preview_page_header = QFrame()
+        self.preview_page_header.setObjectName("card")
+        page_row = QHBoxLayout(self.preview_page_header)
+        page_row.setContentsMargins(12, 9, 12, 9)
+        page_row.addWidget(AtlasPageTitle("Encyclopédie"), 1)
+        back = AtlasButton("Retour", variant="secondary")
+        back.clicked.connect(lambda: self._report("En-tête page · retour"))
+        page_row.addWidget(back)
+        apply_unity_panel_shadow(self.preview_page_header, **UNITY_PANEL_SHADOW)
+        section.addWidget(self.preview_page_header)
+
+        self.preview_module_header = QFrame()
+        self.preview_module_header.setObjectName("GuideHeader")
+        module_row = QHBoxLayout(self.preview_module_header)
+        module_row.setContentsMargins(12, 9, 12, 9)
+        module_titles = QVBoxLayout()
+        module_title = QLabel("Guides Dofus")
+        module_title.setObjectName("GuideHeaderTitle")
+        module_titles.addWidget(module_title)
+        module_meta = QLabel("En-tête de module · sous-titre Unity")
+        module_meta.setObjectName("GuideHeaderMeta")
+        module_titles.addWidget(module_meta)
+        module_row.addLayout(module_titles, 1)
+        module_action = AtlasButton("Parcourir", variant="secondary")
+        module_action.clicked.connect(
+            lambda: self._report("En-tête module · parcourir")
+        )
+        module_row.addWidget(module_action)
+        apply_unity_panel_shadow(self.preview_module_header, **UNITY_PANEL_SHADOW)
+        section.addWidget(self.preview_module_header)
+
+        # The three real progress selectors from SharedGuideManualView.
+        # Do not copy its QPainter donut or initialize a Guide runtime here.
+        self.preview_compact_header = QFrame()
+        self.preview_compact_header.setObjectName("GuideCompactHeader")
+        compact = QVBoxLayout(self.preview_compact_header)
+        compact.setContentsMargins(10, 6, 10, 7)
+        compact.setSpacing(6)
+        heading = QHBoxLayout()
+        title = QLabel("Dofus Cawotte · exemple fictif")
+        title.setObjectName("GuideCompactTitle")
+        title.setMinimumWidth(0)
+        title.setSizePolicy(QSizePolicy.Ignored, QSizePolicy.Preferred)
+        heading.addWidget(title, 1)
+        self.preview_header_page_jump = QSpinBox()
+        self.preview_header_page_jump.setObjectName("GuideCompactPageJump")
+        self.preview_header_page_jump.setPrefix("Fiche ")
+        self.preview_header_page_jump.setRange(1, 20)
+        self.preview_header_page_jump.setValue(4)
+        self.preview_header_page_jump.setMaximumWidth(115)
+        self.preview_header_page_jump.valueChanged.connect(
+            lambda value: self._report(f"Guide · fiche {value}")
+        )
+        heading.addWidget(self.preview_header_page_jump)
+        current = AtlasButton("Actuelle", variant="secondary")
+        current.set_style_name("GuideCompactCurrentButton")
+        current.clicked.connect(lambda: self.preview_header_page_jump.setValue(4))
+        heading.addWidget(current)
+        compact.addLayout(heading)
+
+        self.preview_header_metrics: dict[str, QProgressBar] = {}
+        metrics = QHBoxLayout()
+        metrics.setSpacing(12)
+        for name, role, amount in (
+            ("Route", "GuideManualProgress", 35),
+            ("Préparation", "GuideCompactPreparationProgress", 60),
+            ("Succès", "GuideCompactSuccessProgress", 20),
+        ):
+            block = QVBoxLayout()
+            block.setSpacing(2)
+            caption = QHBoxLayout()
+            caption.addWidget(QLabel(name))
+            caption.addStretch(1)
+            value = QLabel(f"{amount} %")
+            value.setObjectName("GuideCompactMetricValue")
+            caption.addWidget(value)
+            block.addLayout(caption)
+            bar = QProgressBar()
+            bar.setObjectName(role)
+            bar.setRange(0, 100)
+            bar.setValue(amount)
+            bar.setTextVisible(False)
+            bar.setFixedHeight(7)
+            block.addWidget(bar)
+            metrics.addLayout(block, 1)
+            self.preview_header_metrics[name] = bar
+        compact.addLayout(metrics)
+        controls = QHBoxLayout()
+        self.preview_header_controls: dict[str, QToolButton] = {}
+        for label, role in (
+            ("Préparation", "GuidePreparationToggle"),
+            ("Sommaire", "GuideSummaryButton"),
+            ("Personnages", "GuideParticipantsButton"),
+        ):
+            toggle = QToolButton()
+            toggle.setObjectName(role)
+            toggle.setText(label if label != "Personnages" else "Pers.")
+            toggle.setToolTip(label)
+            toggle.setCheckable(True)
+            toggle.clicked.connect(
+                lambda checked, name=label: self._report(
+                    f"Guide · {name} : {'ouvert' if checked else 'fermé'} (aperçu)"
+                )
+            )
+            controls.addWidget(toggle)
+            self.preview_header_controls[label] = toggle
+        controls.addStretch(1)
+        compact.addLayout(controls)
+        apply_unity_panel_shadow(self.preview_compact_header, **UNITY_PANEL_SHADOW)
+        section.addWidget(self.preview_compact_header)
+
+        self.preview_sheet_header = QFrame()
+        self.preview_sheet_header.setObjectName("GuideSheetHeader")
+        sheet_row = QHBoxLayout(self.preview_sheet_header)
+        sheet_row.setContentsMargins(10, 7, 10, 7)
+        sheet_back = AtlasButton("←", variant="guide_breadcrumb")
+        sheet_back.setMaximumWidth(35)
+        sheet_back.clicked.connect(
+            lambda: self._report("En-tête fiche · retour")
+        )
+        sheet_row.addWidget(sheet_back)
+        labels = QVBoxLayout()
+        labels.setSpacing(1)
+        meta = QLabel("ÉTAPE 4 / 20")
+        meta.setObjectName("GuideSheetMeta")
+        labels.addWidget(meta)
+        sheet_title = QLabel("Exemple · parler au PNJ du village")
+        sheet_title.setObjectName("GuideSheetTitle")
+        sheet_title.setWordWrap(True)
+        labels.addWidget(sheet_title)
+        sheet_row.addLayout(labels, 1)
+        apply_unity_panel_shadow(self.preview_sheet_header, **UNITY_PANEL_SHADOW)
+        section.addWidget(self.preview_sheet_header)
+
+        self.preview_dialog_header = AtlasDialogHeader(
+            "Confirmation", "En-tête commun aux fenêtres et popups"
+        )
+        section.addWidget(self.preview_dialog_header)
 
     def _build_sidebar(self, parent: QVBoxLayout) -> None:
         """Real sidebar selectors, with live selection and collapse."""

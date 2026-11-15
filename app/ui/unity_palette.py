@@ -267,6 +267,7 @@ UNITY_UI_UNIFICATION_CONTRACT = (
     ("Pagination, précédent, suivant et retour", "navigation"),
     ("Fil d'Ariane et hiérarchie", "breadcrumbs"),
     ("Fil d'Ariane compact et niveau courant", "breadcrumbs"),
+    ("En-têtes de page, module, guide et dialogue", "headers"),
     ("Listes, tableaux, arborescences", "data_views"),
     ("Défilement et scrollbars", "scroll_resize"),
     ("Resize et séparateurs de panneaux", "scroll_resize"),
@@ -325,6 +326,19 @@ UNITY_UI_FAMILY_INDEX = {
         "components": ("AtlasBreadcrumb", "GuideBreadcrumb", "GuideBreadcrumbButton", "GuideBreadcrumbSeparator", "GuideBreadcrumbCurrent",
                        "GuideBreadcrumbCurrentStrong"),
         "style_owner": "app/ui/theme.py + app/ui/components.py",
+        "scope": "shared",
+    },
+    "headers": {
+        "title": "En-têtes · page, module, guide et dialogue",
+        "components": (
+            "AtlasPageTitle", "PageTitle", "PanelTitle", "GuideHeader",
+            "GuideHeaderTitle", "GuideHeaderMeta", "GuideCompactHeader",
+            "GuideCompactTitle", "GuideCompactPageJump",
+            "GuideManualProgress", "GuideCompactPreparationProgress",
+            "GuideCompactSuccessProgress", "GuideSheetHeader",
+            "GuideSheetMeta", "GuideSheetTitle", "AtlasDialogHeader",
+        ),
+        "style_owner": "app/ui/components.py + app/ui/theme.py + app/modules/encyclopedia/views/shared_manual_guide_view.py",
         "scope": "shared",
     },
     "sidebar": {

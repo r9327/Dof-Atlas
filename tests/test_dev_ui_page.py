@@ -267,6 +267,47 @@ class DevUiPageTests(unittest.TestCase):
             page.close()
             page.deleteLater()
 
+    def test_headers_gallery_shares_real_styles_and_controls(self) -> None:
+        from app.pages.dev_ui_page import DevUiPage
+
+        page = DevUiPage(on_back=lambda: None)
+        try:
+            self.assertIn("headers", page.gallery_family_widgets)
+            self.assertEqual(
+                page.gallery_family_widgets["headers"].title(),
+                "En-têtes · page, module, guide et dialogue",
+            )
+            for attribute, role in (
+                ("preview_page_header", "card"),
+                ("preview_module_header", "GuideHeader"),
+                ("preview_compact_header", "GuideCompactHeader"),
+                ("preview_sheet_header", "GuideSheetHeader"),
+                ("preview_dialog_header", "DialogHeader"),
+            ):
+                widget = getattr(page, attribute)
+                self.assertEqual(widget.objectName(), role)
+                self.assertEqual(widget.styleSheet(), "")
+            self.assertEqual(
+                {name: bar.objectName()
+                 for name, bar in page.preview_header_metrics.items()},
+                {
+                    "Route": "GuideManualProgress",
+                    "Préparation": "GuideCompactPreparationProgress",
+                    "Succès": "GuideCompactSuccessProgress",
+                },
+            )
+            page.preview_header_page_jump.setValue(8)
+            self.assertIn("fiche 8", page.feedback.text())
+            page.preview_header_controls["Sommaire"].click()
+            self.assertIn("Sommaire : ouvert", page.feedback.text())
+            self.assertTrue(all(
+                widget.styleSheet() == ""
+                for widget in page.findChildren(QWidget)
+            ))
+        finally:
+            page.close()
+            page.deleteLater()
+
     def test_guide_catalog_materials_are_real_shared_dev_ui_components(self) -> None:
         from app.pages.dev_ui_page import DevUiPage
 
