@@ -10,7 +10,7 @@ from types import SimpleNamespace
 
 os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
 
-from PySide6.QtWidgets import QApplication
+from PySide6.QtWidgets import QApplication, QFrame, QGridLayout, QProgressBar
 
 from app.modules.encyclopedia.services.guide_progress_service import (
     GuideProgressService,
@@ -67,14 +67,39 @@ class ContinuousGuideRoutePanelTests(unittest.TestCase):
         self.panel.summary_toggle.click()
         self.assertTrue(self.panel.summary.isVisibleTo(self.panel))
 
-    def test_character_and_summary_controls_belong_to_the_active_card_header(self):
+    def test_all_trusted_continuous_routes_use_aligned_unity_shared_header(self):
         card = self.panel.title_label.parentWidget()
         self.assertEqual(card.objectName(), "GuideContinuousCard")
-        for control in (
-            self.panel.position_label, self.panel.participants_button,
-            self.panel.summary_toggle,
-        ):
-            self.assertIs(control.parentWidget(), card)
+        header = self.panel.compact_header
+        self.assertIsInstance(header, QFrame)
+        self.assertEqual(header.objectName(), "GuideCompactHeader")
+        self.assertIs(self.panel.position_label.parentWidget(), header)
+        self.assertIs(self.panel.participants_button.parentWidget(), header)
+        self.assertIs(self.panel.summary_toggle.parentWidget(), header)
+        self.assertIs(self.panel.preparation_toggle.parentWidget(), header)
+        self.assertEqual(self.panel.global_progress_bar.objectName(),
+                         "GuideGlobalProgress")
+        self.assertEqual(self.panel.preparation_bar.objectName(),
+                         "GuideCompactPreparationProgress")
+        self.assertIsInstance(self.panel.global_progress_bar, QProgressBar)
+        self.assertIsInstance(self.panel._metric_grid, QGridLayout)
+        grid = self.panel._metric_grid
+        self.assertIs(grid.itemAtPosition(1, 0).layout().itemAt(1).widget(),
+                      self.panel.summary_toggle)
+        self.assertIs(grid.itemAtPosition(1, 1).layout().itemAt(1).widget(),
+                      self.panel.preparation_toggle)
+        self.assertIs(grid.itemAtPosition(1, 2).widget(),
+                      self.panel.participants_button)
+        self.assertEqual(self.panel.participants_button.size(),
+                         self.panel.summary_toggle.size())
+        self.assertEqual(self.panel.preparation_toggle.size(),
+                         self.panel.summary_toggle.size())
+        self.assertIs(grid.itemAtPosition(2, 0).widget(), self.panel.summary)
+        self.assertIs(grid.itemAtPosition(2, 1).widget(),
+                      self.panel.preparation_scroll)
+        # Uncertified item references cannot be counted as ready or completed.
+        self.assertEqual(self.panel.preparation_bar.value(), 0)
+        self.assertEqual(self.panel.preparation_bar.maximum(), 1)
         self.assertEqual(self.panel.position_label.text(), "FICHE 1")
         self.assertFalse(self.panel._characters_menu.isVisible())
         self.addCleanup(self.panel.hide)
@@ -82,16 +107,18 @@ class ContinuousGuideRoutePanelTests(unittest.TestCase):
         for width in (900, 1200):
             with self.subTest(width=width):
                 self.panel.resize(width, 600)
-                self.panel.summary.setVisible(True)
+                self.panel.summary_toggle.click()
                 self.app.processEvents()
-                self.assertFalse(self.panel.participants_button.geometry().intersects(
-                    self.panel.summary_toggle.geometry(),
-                ))
-                self.assertLess(
-                    self.panel.participants_button.geometry().bottom(),
-                    self.panel.title_label.geometry().top(),
+                self.assertFalse(
+                    self.panel.participants_button.geometry().intersects(
+                        self.panel.summary_toggle.geometry()
+                    )
                 )
-                self.assertTrue(card.rect().contains(self.panel.summary_toggle.geometry()))
+                self.assertEqual(
+                    grid.itemAtPosition(1, 2).widget(),
+                    self.panel.participants_button,
+                )
+                self.panel.summary_toggle.click()
 
     def test_validation_is_real_and_per_character_only(self):
         self.panel.validate_button.click()

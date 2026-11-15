@@ -89,6 +89,23 @@ class SharedGuideSingleRendererContractTests(unittest.TestCase):
         assert "GuideCatalogManualRuntimeService(" in source
 
 
+    def test_all_authorized_ganymede_entrypoints_use_indexed_guide_header(self) -> None:
+        """Both trusted continuous cutovers and imported manual guides share
+        the indexed Guide header controls; metadata-only rows stay disabled."""
+        source = ROUTER.read_text(encoding="utf-8")
+        continuous_router = (VIEWS / "guides_view.py").read_text(encoding="utf-8")
+        continuous = (VIEWS / "guide_continuous_route_panel.py").read_text(encoding="utf-8")
+        shared = SHARED.read_text(encoding="utf-8")
+        assert "SharedGuideManualView(" in source
+        assert "ContinuousGuideRoutePanel(" in continuous_router
+        assert 'replacement_status") == "TRUSTED_SOURCE_STEPS"' in continuous_router
+        for renderer in (continuous, shared):
+            for role in ("GuideCompactHeader", "GuideGlobalProgress",
+                         "GuideMetricDropdown", "GuideParticipantsButton",
+                         "GuideCompactPreparationProgress"):
+                assert role in renderer, (role, renderer[:80])
+        assert "background" not in (VIEWS / "guide_continuous_route_panel.py").name
+
     def test_sylvestre_has_no_dedicated_qss_or_style_selector(self) -> None:
         for path in UI_STYLES.rglob("*.py") if UI_STYLES.exists() else ():
             source = path.read_text(encoding="utf-8").casefold()
