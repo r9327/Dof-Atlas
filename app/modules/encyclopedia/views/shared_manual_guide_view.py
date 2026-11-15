@@ -404,7 +404,7 @@ class SharedGuideManualCard(GuideUltimeManualCard):
         # Existing Guide Succès/catalogue cards keep their provider path.
         # Both existing optimized routes also declare manual_source=True.
         # Only the authorized importer adds source_step_id: do not bypass the
-        # legacy section provider for Guide Succès or Dofus Sylvestre.
+        # shared section provider for every authorized Guide runtime.
         source_card = card.get("manual_source") is True and "source_step_id" in card
         if source_card:
             sections = card.get("manual_sections")
