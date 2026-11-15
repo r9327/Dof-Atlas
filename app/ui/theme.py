@@ -2567,6 +2567,20 @@ QFrame#GuidePreparationDetails {
     border-radius: @RADIUS_XS;
 }
 
+QProgressBar#GuideGlobalProgress {
+    background: @PANEL_2;
+    border: 1px solid @BORDER_SOFT;
+    border-radius: 4px;
+}
+QProgressBar#GuideGlobalProgress::chunk {
+    background: @GREEN;
+    border-radius: 3px;
+}
+QLabel#GuideGlobalProgressTitle {
+    color: @TEXT_SOFT;
+    font-size: @FONT_SMALL;
+    font-weight: 700;
+}
 QToolButton#GuideMetricDropdown {
     background: @PANEL_2;
     border: 1px solid @BORDER_SOFT;
@@ -2638,9 +2652,9 @@ QToolButton#GuidePreparationToggle:checked {
 }
 
 QPushButton#GuidePreparationFilter {
-    background: transparent;
-    color: @TEXT_MUTED;
-    border: 1px solid @BORDER_SOFT;
+    background: @PANEL_2;
+    color: @BORDER;
+    border: 1px solid @BORDER;
     border-radius: @RADIUS_XS;
     padding: 4px 9px;
     font-weight: 700;
@@ -2650,7 +2664,7 @@ QPushButton#GuidePreparationFilter:hover,
 QPushButton#GuidePreparationFilter:checked {
     background: @PANEL_ACTIVE;
     border-color: @GREEN_BORDER;
-    color: @TEXT;
+    color: @GREEN_BORDER;
 }
 
 QFrame#GuidePreparationSummary,
@@ -2665,24 +2679,25 @@ QLabel#GuidePreparationRowLabel {
     font-size: @FONT_BODY;
 }
 
-QToolButton#GuidePreparationReady {
-    background: @PANEL_2;
-    color: @TEXT_SOFT;
-    border: 1px solid @BORDER_SOFT;
+QCheckBox#GuidePreparationReady {
+    background: transparent;
+    color: @GREEN_BORDER;
+    spacing: 0;
+}
+QCheckBox#GuidePreparationReady::indicator {
+    width: 17px;
+    height: 17px;
+    border: 1px solid @BORDER;
     border-radius: @RADIUS_XS;
-    min-width: 63px;
-    min-height: 24px;
-    padding: 2px 7px;
-    font-weight: 700;
+    background: transparent;
 }
-QToolButton#GuidePreparationReady:hover {
-    background: @PANEL_HOVER;
+QCheckBox#GuidePreparationReady::indicator:hover {
     border-color: @GREEN_BORDER;
+    background: @PANEL_HOVER;
 }
-QToolButton#GuidePreparationReady:checked {
+QCheckBox#GuidePreparationReady::indicator:checked {
     background: @GREEN;
     border-color: @GREEN;
-    color: @BG;
 }
 
 QLabel#GuideSheetTitle {
@@ -2693,7 +2708,7 @@ QLabel#GuideSheetTitle {
 
 QLineEdit#GuideSummarySearch,
 QListWidget#GuideSummaryList {
-    background: @PANEL;
+    background: @PANEL_2;
     color: @TEXT;
     border: 1px solid @BORDER_SOFT;
     border-radius: @RADIUS_XS;
