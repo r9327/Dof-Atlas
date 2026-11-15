@@ -709,7 +709,7 @@ class DevUiPageTests(unittest.TestCase):
             self.assertIsInstance(
                 filters.category_combo.view().itemDelegate(), UnityPopupSeparatorDelegate
             )
-            self.assertEqual(page.gallery_navigation.count(), 22)
+            self.assertEqual(page.gallery_navigation.count(), len(page.gallery_sections))
             self.assertEqual(page.gallery_navigation.objectName(), "DevUiFamilyCombo")
             from PySide6.QtWidgets import QStyleOptionViewItem
             row_hint = page.gallery_navigation.view().itemDelegate().sizeHint(
@@ -1029,7 +1029,7 @@ class DevUiPageTests(unittest.TestCase):
             combo = page.gallery_navigation
             label = next(label for label in page.findChildren(QLabel) if label.buddy() is combo)
             self.assertLess(combo.x() - label.geometry().right(), 16)
-            self.assertEqual(page.gallery_navigation.count(), 22)
+            self.assertEqual(page.gallery_navigation.count(), len(page.gallery_sections))
             self.assertGreater(
                 page.gallery_scroll.verticalScrollBar().maximum(), 0
             )
