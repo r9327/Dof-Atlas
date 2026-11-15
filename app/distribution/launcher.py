@@ -29,9 +29,9 @@ from .startup_trace import record_startup_event
 from .launcher_ui import (COLORS, FONT_FAMILY, add_header, button_options,
                           display_message, progress_style, dpi_multiplier)
 from app.ui.unity_palette import UNITY_MODULE_GEOMETRY_PX
+from app.windows.single_instance import SingleInstanceGuard
 
 LAUNCHER_GEOMETRY = UNITY_MODULE_GEOMETRY_PX["launcher"]
-from app.windows.single_instance import SingleInstanceGuard
 
 APP_DIR = Path(os.environ.get("LOCALAPPDATA") or Path.home() / ".local" / "share") / "DofusAtlas"
 

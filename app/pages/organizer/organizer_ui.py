@@ -39,8 +39,6 @@ from app.storage import ZaapWidget, clean_auto_group_name, profile_bool, short_l
 from app.ui.splash_image import clear_connected_dark_background
 from app.ui.components import AtlasButton
 from app.ui.unity_palette import UNITY_ORGANIZER_METRICS_PX, unity_painted_ui_color
-
-ORGANIZER_GEOMETRY = UNITY_ORGANIZER_METRICS_PX
 from app.ui.unity_skin import apply_unity_panel_shadow
 from .glass_material import (
     OrganizerGlassButton, OrganizerGlassCard,
@@ -61,6 +59,9 @@ from .common import (
     session_is_empty,
     session_name,
 )
+
+
+ORGANIZER_GEOMETRY = UNITY_ORGANIZER_METRICS_PX
 
 
 @lru_cache(maxsize=48)
