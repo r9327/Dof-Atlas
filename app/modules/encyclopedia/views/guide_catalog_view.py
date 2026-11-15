@@ -424,7 +424,12 @@ class GuideCatalogView(QWidget):
         if listing is None or listing.playable:
             return False
         if self._ganymede_shell is None:
-            # Import the canonical Guide reader only when a preview is opened.\n            from app.modules.encyclopedia.views.ganymede_guide_shell import (\n                GanymedeGuideShell,\n            )\n\n            self._ganymede_shell = GanymedeGuideShell(self._show_ganymede_catalog, self)
+            # Import the canonical Guide reader only when a preview is opened.
+            from app.modules.encyclopedia.views.ganymede_guide_shell import (
+                GanymedeGuideShell,
+            )
+
+            self._ganymede_shell = GanymedeGuideShell(self._show_ganymede_catalog, self)
             self.pages.addWidget(self._ganymede_shell)
         self._ganymede_shell.set_listing(listing)
         self.current_guide_id = None
