@@ -2493,6 +2493,14 @@ QFrame#GuideSheetHeader {
     border-radius: @RADIUS_SM;
 }
 
+/* Expanded preparation must retain the blue Unity surface,
+   not Qt's native gray scroll/panel background. */
+QFrame#GuidePreparationPanel {
+    background: @PANEL;
+    border: 1px solid @BORDER_SOFT;
+    border-radius: @RADIUS_MD;
+}
+
 QLabel#GuideCompactTitle {
     color: @TEXT;
     font-size: 15px;
