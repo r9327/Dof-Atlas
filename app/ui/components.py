@@ -283,6 +283,34 @@ def atlas_guide_arrow_icon(direction: Literal["up", "down", "left", "right"]) ->
     return icon
 
 
+class AtlasGuideParticipantButton(QToolButton):
+    """Keep the indexed Unity Character artwork legible in disabled shells.
+
+    QStyle may wash out only the central pixels of disabled PNG icons on
+    Windows. Repaint the existing normal sprite above the disabled chrome,
+    without enabling a control that has no certified route.
+    """
+
+    def __init__(self, parent: QWidget | None = None) -> None:
+        super().__init__(parent)
+        self.setObjectName("GuideParticipantsButton")
+
+    def paintEvent(self, event) -> None:
+        super().paintEvent(event)
+        if self.isEnabled() or self.icon().isNull():
+            return
+        pixmap = self.icon().pixmap(self.iconSize(), QIcon.Normal)
+        if pixmap.isNull():
+            return
+        painter = QPainter(self)
+        painter.setRenderHint(QPainter.SmoothPixmapTransform)
+        painter.drawPixmap(
+            (self.width() - pixmap.width()) // 2,
+            (self.height() - pixmap.height()) // 2,
+            pixmap,
+        )
+
+
 class AtlasGuideDisclosure(QToolButton):
     """Shared Guide dropdown: down opens, up closes, with indexed Unity QSS."""
 

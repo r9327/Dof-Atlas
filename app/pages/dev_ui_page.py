@@ -61,6 +61,7 @@ from app.ui.components import (
     AtlasGuideDisclosure,
     atlas_guide_arrow_icon,
     atlas_guide_character_icon,
+    AtlasGuideParticipantButton,
     AtlasGuideCover,
     AtlasStatusBadge,
     atlas_application_icon,
@@ -675,7 +676,7 @@ class DevUiPage(QWidget):
         right.addLayout(metrics)
 
         # The progress arrows own both dropdowns; no duplicate text buttons.
-        character_toggle = QToolButton()
+        character_toggle = AtlasGuideParticipantButton()
         character_toggle.setObjectName("GuideParticipantsButton")
         character_icon = atlas_guide_character_icon(UNITY_CONTROL_SIZES_PX["guide_character_icon"])
         if character_icon.isNull():

@@ -39,7 +39,7 @@ from app.modules.encyclopedia.views.guide_ultime_manual_view import (
     GuideUltimeManualView,
 )
 from app.core.text import normalize_key as normalize_text
-from app.ui.components import AtlasButton, AtlasGuideDisclosure, AtlasGuideCover, atlas_guide_arrow_icon, atlas_guide_character_icon
+from app.ui.components import AtlasButton, AtlasGuideDisclosure, AtlasGuideCover, AtlasGuideParticipantButton, atlas_guide_arrow_icon, atlas_guide_character_icon
 from app.ui.unity_palette import UNITY_CONTROL_SIZES_PX, UNITY_SIZES_PX
 from app.ui.unity_skin import apply_unity_panel_shadow, sprite_icon_path
 from app.constants import DATA_DIR
@@ -1265,7 +1265,7 @@ class SharedGuideManualView(GuideUltimeManualView):
         )
         top.addWidget(self.page_jump, 0, Qt.AlignTop)
 
-        self.participants_button = QToolButton()
+        self.participants_button = AtlasGuideParticipantButton()
         self.participants_button.setObjectName("GuideParticipantsButton")
         self.participants_button.setText("")
         character_icon = atlas_guide_character_icon(UNITY_CONTROL_SIZES_PX["guide_character_icon"])
