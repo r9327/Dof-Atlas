@@ -183,6 +183,10 @@ def _cached_guide_symbol_icon(symbol: str, size: int, color: str) -> QIcon:
     elif symbol == "unlock":
         painter.drawRoundedRect(QRectF(4, 8, 10, 8), 1.5, 1.5)
         painter.drawArc(QRectF(8, 2, 6, 9), 0, 180 * 16)
+    elif symbol == "back":
+        painter.drawLine(QPointF(13, 9), QPointF(3, 9))
+        painter.drawLine(QPointF(8, 4), QPointF(3, 9))
+        painter.drawLine(QPointF(3, 9), QPointF(8, 14))
     elif symbol == "check":
         painter.drawLine(QPointF(3, 9), QPointF(7, 13))
         painter.drawLine(QPointF(7, 13), QPointF(15, 4))
@@ -962,7 +966,7 @@ class SharedGuideManualView(GuideUltimeManualView):
         self.prev_button = AtlasButton("Précédent")
         self.prev_button.setObjectName("GuideManualPrev")
         self.prev_button.setIcon(
-            self.prev_button.style().standardIcon(QStyle.SP_ArrowBack)
+            _guide_symbol_icon(self.prev_button, "back", color=PALETTE["TEXT_SOFT"])
         )
         self.prev_button.clicked.connect(lambda: self.navigate_relative(-1))
         nav_layout.addWidget(self.prev_button)
@@ -1202,6 +1206,7 @@ class SharedGuideManualView(GuideUltimeManualView):
         self.preparation_scroll.setMinimumHeight(126)
         self.preparation_scroll.setMaximumHeight(210)
         self.preparation_content = QWidget()
+        self.preparation_content.setObjectName("GuidePreparationContent")
         self.preparation_rows_layout = QVBoxLayout(self.preparation_content)
         self.preparation_rows_layout.setContentsMargins(0, 0, 0, 0)
         self.preparation_rows_layout.setSpacing(4)
@@ -1850,19 +1855,19 @@ class SharedGuideManualView(GuideUltimeManualView):
         )
         status = "Prêt" if ready else f"{confirmed}/{total} prêts"
         item_button = self._copyable_preparation_item(
-            need.name, f"{amount}{need.name}", need.item_id,
+            need.name, need.name, need.item_id,
         )
         item_button.setToolTip("Cliquer pour copier le nom · " +
                                (" ; ".join(need.sources[:8]) or "Provenance à confirmer"))
-        top.addWidget(item_button, 1)
         status_label = QLabel(status)
         status_label.setObjectName("GuidePreparationRowStatus")
+        counter = None
         if quantity is not None and quantity > 0 and need.category not in {"Prérequis", "Métiers"}:
             counter = QSpinBox()
             counter.setObjectName("GuidePreparationQuantity")
             counter.setRange(0, max(1, int(quantity)))
             counter.setSuffix(f" / {quantity}")
-            counter.setMaximumWidth(112)
+            counter.setFixedWidth(100)
             counter.setToolTip("Quantité déjà possédée (brouillon de cette session)")
             draft = self._preparation_quantity_drafts.get(
                 need.item_key, int(quantity) if ready else 0
@@ -1872,7 +1877,6 @@ class SharedGuideManualView(GuideUltimeManualView):
                 lambda value, key=need.item_key:
                 self._preparation_quantity_drafts.__setitem__(key, value)
             )
-            top.addWidget(counter)
         ready_button = QCheckBox()
         ready_button.setObjectName("GuidePreparationReady")
         ready_button.setChecked(ready)
