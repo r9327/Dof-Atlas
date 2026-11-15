@@ -264,7 +264,12 @@ class UnityPaletteTests(unittest.TestCase):
             "favorite_chip_height": 28, "character_slot_height": 36,
             "stop_button_height": 34,
         }
-        self.assertEqual(UNITY_ORGANIZER_METRICS_PX, expected)
+        # New semantic dimensions may be indexed before their individual
+        # Organizer consumers migrate. Preserve the exact historical contract
+        # for the nine already-connected shared roles.
+        self.assertEqual(
+            {key: UNITY_ORGANIZER_METRICS_PX[key] for key in expected}, expected
+        )
         source = (
             Path(__file__).resolve().parents[1]
             / "app/pages/organizer/common.py"
