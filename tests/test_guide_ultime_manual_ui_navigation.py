@@ -740,6 +740,18 @@ class GuideUltimeManualUiNavigationTests(unittest.TestCase):
             )
             potions.click()
             ready = view.findChild(QCheckBox, "GuidePreparationReady")
+            # Exact visual/functional row order, shared by Guide and Ganymède.
+            line = ready.parentWidget().layout().itemAt(0).layout()
+            self.assertIs(line.itemAt(0).widget(), ready)
+            self.assertIn(
+                line.itemAt(1).widget().objectName(),
+                {"GuidePreparationQuantity", "GuidePreparationQuantityPlaceholder"},
+            )
+            copy_button = line.itemAt(2).widget()
+            self.assertEqual(copy_button.objectName(), "GuidePreparationItemCopy")
+            QApplication.clipboard().clear()
+            copy_button.click()
+            self.assertIn("Potion de test", QApplication.clipboard().text())
             ready.click()
             self.assertTrue(ready.isChecked())
             view.participants_button.click()
