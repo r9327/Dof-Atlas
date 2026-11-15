@@ -107,6 +107,7 @@ def capture(output: Path) -> dict[str, object]:
             patch.object(atlas_main.AtlasWindow, "start_preload", return_value=None),
         ):
             window = atlas_main.AtlasWindow()
+            encyclopedia = None
             try:
                 if real_data:
                     quest_provider = QuestProvider()
@@ -433,6 +434,12 @@ def capture(output: Path) -> dict[str, object]:
                     result["screenshots"].append(record)
                     print("ATLAS_MODULE_CAPTURE=" + json.dumps(record, ensure_ascii=False))
             finally:
+                if encyclopedia is not None:
+                    # Closing the parent shell does not deliver closeEvent to
+                    # child pages. Stop their timers and join the Guide/Quest
+                    # workers before TemporaryDirectory removes the SQLite DB.
+                    encyclopedia.close()
+                    app.processEvents()
                 window.quit_requested = True
                 window.close()
                 app.processEvents()
