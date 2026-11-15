@@ -265,6 +265,23 @@ class AtlasGuideDisclosure(QToolButton):
                           Qt.UpArrow if opened else Qt.DownArrow)
         self.setIcon(icon)
 
+    def paintEvent(self, event) -> None:  # noqa: N802 - Qt override
+        super().paintEvent(event)
+        if self.isEnabled() or self.icon().isNull():
+            return
+        # Some Windows Qt styles suppress QToolButton icons when disabled.
+        # Paint the exact indexed SVG, without re-enabling empty Guide actions.
+        glyph = self.icon().pixmap(self.iconSize(), QIcon.Disabled)
+        if glyph.isNull():
+            return
+        painter = QPainter(self)
+        painter.drawPixmap(
+            (self.width() - glyph.width()) // 2,
+            (self.height() - glyph.height()) // 2,
+            glyph,
+        )
+        painter.end()
+
 
 class AtlasPanelToggle(QToolButton):
     """Shared Unity control for collapsing a host-owned information panel.

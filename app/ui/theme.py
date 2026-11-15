@@ -3174,6 +3174,10 @@ QToolButton#GuideMetricDropdown:checked {
     background: @GLASS_HOVER;
     border-color: @GUIDE_TOGGLE_BORDER;
 }
+QToolButton#GuideMetricDropdown:disabled {
+    background: transparent;
+    border: 1px solid transparent;
+}
 QToolButton#GuideParticipantsButton {
     background: @GLASS_BUTTON;
     border: 1px solid @GUIDE_TOGGLE_BORDER;
