@@ -1132,6 +1132,15 @@ class DevUiPageTests(unittest.TestCase):
                     page.preview_responsive_grid.getItemPosition(index)[3],
                     expected_first_span,
                 )
+                if expected_columns == 3:
+                    # All three panels share one row: no oversized empty
+                    # Actions panel across the entire screen.
+                    for card in page.preview_responsive_cards:
+                        card_index = page.preview_responsive_grid.indexOf(card)
+                        self.assertEqual(
+                            page.preview_responsive_grid.getItemPosition(card_index)[0],
+                            0,
+                        )
             self.assertTrue(all(
                 card.objectName() == "card"
                 for card in page.preview_responsive_cards
@@ -1157,9 +1166,15 @@ class DevUiPageTests(unittest.TestCase):
 
     def test_responsive_reference_fits_all_real_window_presets(self) -> None:
         from app.pages.dev_ui_page import DevUiPage
+        from app.ui.theme import atlas_stylesheet
         from app.ui.unity_palette import (
             UNITY_WINDOW_PRESETS_PX, unity_responsive_columns,
         )
+        # Match the actual shell (which applies the global QSS before
+        # constructing Dev UI). An unstyled, standalone QWidget can report
+        # a wildly different minimum size due to native Qt widget metrics.
+        previous_style = self.app.styleSheet()
+        self.app.setStyleSheet(atlas_stylesheet())
         page = DevUiPage(on_back=lambda: None)
         try:
             for key, (width, height) in UNITY_WINDOW_PRESETS_PX.items():
@@ -1182,6 +1197,7 @@ class DevUiPageTests(unittest.TestCase):
         finally:
             page.close()
             page.deleteLater()
+            self.app.setStyleSheet(previous_style)
 
     def test_gallery_renders_real_qt_full_height_in_reduced_window(self) -> None:
         """Viewport and full scroll content must be real, grab-able Qt pixels."""

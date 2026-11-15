@@ -1774,10 +1774,14 @@ class DevUiPage(QWidget):
         grid = self.preview_responsive_grid
         while grid.count():
             grid.takeAt(0)
-        for column in range(3):
-            grid.setColumnStretch(column, 1 if column < columns else 0)
+        # Four equal grid units produce three functional panels at large
+        # widths: 50% main content and two 25% utility cards, *one row*.
+        # A full-width action strip would waste most of a 1920px window.
+        units = 4 if columns == 3 else columns
+        for column in range(4):
+            grid.setColumnStretch(column, 1 if column < units else 0)
         if columns == 3:
-            positions = ((0, 0, 1, 2), (0, 2, 1, 1), (1, 0, 1, 3))
+            positions = ((0, 0, 1, 2), (0, 2, 1, 1), (0, 3, 1, 1))
         elif columns == 2:
             positions = ((0, 0, 1, 2), (1, 0, 1, 1), (1, 1, 1, 1))
         else:

@@ -82,3 +82,16 @@ de familles (23 sont actuellement enregistrées).
 Une capture Qt offscreen sous Windows n'est pas une preuve de DPI réel,
 de polices installées chez l'utilisateur ou de rendu des données privées.
 La recette manuelle reste requise avant fusion et généralisation P1.
+
+## Correction issue des captures réelles du 15/11/2026
+
+Les captures sous Windows Qt hors écran au SHA `7cb8a9f` ont mesuré
+`horizontal_scroll_max=0` aux **quatre** tailles de référence (avec le
+QSS global appliqué). Un test autonome reproduisait incorrectement le
+rendu sans QSS et échouait sur les dimensions natives de Qt ; le test
+reproduit désormais l'initialisation du vrai shell.
+
+L'aperçu 1920×1080 montrait en outre un bandeau « Actions » occupant
+inutilement toute la largeur : la grille à trois *modules* utilise désormais
+une répartition 50/25/25 sur une seule rangée. Les modes une et deux
+colonnes conservent leurs comportements précédents.
