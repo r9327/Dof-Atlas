@@ -471,6 +471,36 @@ class ModularDomainRoutingTests(unittest.TestCase):
             self.assertFalse(owners_for(unknown))
             self.assertEqual(self.route([unknown])["status"], "BLOCKED")
 
+    def test_pr365_scope_manifests_and_success_filter_have_exact_owners(self):
+        manifests = (
+            ".ai/scopes/craft.yaml",
+            ".ai/scopes/encyclopedia_achievements.yaml",
+            ".ai/scopes/encyclopedia_guide.yaml",
+            ".ai/scopes/encyclopedia_quests.yaml",
+            ".ai/scopes/shared_ui.yaml",
+        )
+        for path in manifests:
+            with self.subTest(path=path):
+                self.assertEqual(owners_for(path), frozenset({"ci"}))
+
+        filter_panel = "app/modules/encyclopedia/widgets/filter_panel.py"
+        filter_owners = frozenset({"quests", "guides", "ui"})
+        self.assertEqual(owners_for(filter_panel), filter_owners)
+
+        report = self.route([*manifests, filter_panel])
+        self.assertEqual(report["status"], "READY_TO_EXECUTE")
+        self.assertEqual(report["unknown_paths"], [])
+        self.assertEqual(set(report["domains"]), {"ci", *filter_owners})
+        self.assertFalse(report["phase_certified"])
+
+        for unknown in (
+            ".ai/scopes/pr365_unreviewed.yaml",
+            "app/modules/encyclopedia/widgets/filter_panel_unreviewed.py",
+        ):
+            with self.subTest(unknown=unknown):
+                self.assertEqual(owners_for(unknown), frozenset())
+                self.assertEqual(self.route([unknown])["status"], "BLOCKED")
+
     def test_doctor_performance_lab_has_exact_ci_ownership_only(self):
         paths = [
             "tools/atlas_doctor.py",

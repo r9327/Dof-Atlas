@@ -46,6 +46,13 @@ REVIEWED_CI_INSTRUCTION_PATHS = frozenset({
     # Additional reviewed AI guidance and skills; exact paths only.
     ".ai/context-map.yaml",
     ".ai/scopes/quality_ci.yaml",
+    # Reviewed PR #365 scope manifests. These files only route AI context;
+    # keep each path explicit so a future scope cannot inherit CI ownership.
+    ".ai/scopes/craft.yaml",
+    ".ai/scopes/encyclopedia_achievements.yaml",
+    ".ai/scopes/encyclopedia_guide.yaml",
+    ".ai/scopes/encyclopedia_quests.yaml",
+    ".ai/scopes/shared_ui.yaml",
     # Reviewed Organizer Mirror scope manifests, not a broad scope wildcard.
     ".ai/scopes/organizer.yaml",
     ".ai/scopes/macro_runtime.yaml",
@@ -370,6 +377,11 @@ def owners_for(path: str) -> frozenset[str]:
     if path == "app/modules/encyclopedia/views/achievements_view.py":
         # The Success catalogue is a Qt view whose detail links and completion
         # interact with Quest and Guide providers; fail closed for siblings.
+        return frozenset({"quests", "guides", "ui"})
+    if path == "app/modules/encyclopedia/widgets/filter_panel.py":
+        # Exact-SHA Graphify confirms the Success filter uses the shared Qt
+        # components and is exercised by the Dev UI contract. Keep the same
+        # cross-domain coverage as the Success catalogue; no widget wildcard.
         return frozenset({"quests", "guides", "ui"})
     if path in {
         "app/modules/encyclopedia/widgets/quest_detail_view.py",

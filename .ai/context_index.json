@@ -27,7 +27,7 @@
     },
     ".github": {
       "mode": "040000",
-      "sha": "8167b5311efd42f52c11f8b778af28e11ea3050d",
+      "sha": "61a16dc9009f8f158952af82d2725b8bd8164c41",
       "type": "tree"
     },
     ".gitignore": {
@@ -117,7 +117,7 @@
     },
     "app": {
       "mode": "040000",
-      "sha": "189cd30745fb996175241d13c51ac350adedfa9f",
+      "sha": "0ce0ca96e4680145d88261d4c80dfc7dbe1e3eff",
       "type": "tree"
     },
     "data": {
@@ -127,7 +127,7 @@
     },
     "docs": {
       "mode": "040000",
-      "sha": "aa67dffb2e569c51739bff0ec9e16c50e9937c90",
+      "sha": "21d9673200e890bb88ae16ce8164339dcfe6b99f",
       "type": "tree"
     },
     "launch.py": {
@@ -142,7 +142,7 @@
     },
     "main.py": {
       "mode": "100644",
-      "sha": "5d2158d3d22f37f7361b5ca1e01a459c7a0c8878",
+      "sha": "a5a78aef54ca770db4d7099cc3c6a7202290f0e1",
       "type": "blob"
     },
     "requirements-pyside.txt": {
@@ -162,12 +162,12 @@
     },
     "tests": {
       "mode": "040000",
-      "sha": "f56d7690a306e1f4b7947f6dcb5eca35c4837581",
+      "sha": "539b43f2e1335f14fd1da22a725f0830bdc22605",
       "type": "tree"
     },
     "tools": {
       "mode": "040000",
-      "sha": "e130128d9363979b003820f356fb7bbbc0989919",
+      "sha": "c63d3073bc088ac80121ab2b37403b0fa1ca335e",
       "type": "tree"
     }
   },
