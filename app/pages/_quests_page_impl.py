@@ -359,6 +359,11 @@ class QuestsPage(QWidget):
             self._quest_detail_placeholder = None
             self.body_splitter.setStretchFactor(1, 1)
             self.body_splitter.setSizes([QUEST_HIERARCHY_OPEN_WIDTH, 900])
+            # QSplitter.replaceWidget() does not inherit the replaced
+            # placeholder's visible state. Without this, the first selected
+            # quest owns a hydrated detail widget that remains explicitly
+            # hidden behind an empty splitter column.
+            view.show()
         self._bind_detail_view_aliases()
         view.set_character_key(self.current_character_key)
         return view

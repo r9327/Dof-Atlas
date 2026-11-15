@@ -86,6 +86,7 @@ class AtlasWindowRuntimeCleanupTests(unittest.TestCase):
         shell.create_encyclopedia_page = lambda: QWidget()
         shell.create_craft_page = lambda: QWidget()
         shell.create_equipment_page = lambda: QWidget()
+        shell.create_dev_ui_page = lambda: QWidget()
         shell.rebuild_page_indexes = lambda: setattr(
             shell, "page_indexes",
             {name: shell.stack.indexOf(widget)
