@@ -1313,7 +1313,9 @@ class SharedGuideManualView(GuideUltimeManualView):
         outer.setSpacing(10)
 
         # One compact column: context above, live progress, count below.
-        donut_column = QVBoxLayout()
+        donut_block = QWidget()
+        donut_column = QVBoxLayout(donut_block)
+        donut_column.setContentsMargins(0, 0, 0, 0)
         donut_column.setSpacing(2)
         donut_heading = QLabel("PROGRESSION")
         donut_heading.setObjectName("GuideCompactDonutHeading")
@@ -1325,7 +1327,7 @@ class SharedGuideManualView(GuideUltimeManualView):
         self.donut_count_label.setObjectName("GuideCompactDonutCount")
         self.donut_count_label.setAlignment(Qt.AlignCenter)
         donut_column.addWidget(self.donut_count_label)
-        outer.addLayout(donut_column, 0)
+        outer.addWidget(donut_block, 0, Qt.AlignVCenter)
 
         right = QVBoxLayout()
         right.setSpacing(6)
