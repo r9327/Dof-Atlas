@@ -197,6 +197,8 @@ class GuideUltimeManualUiNavigationTests(unittest.TestCase):
             self.assertEqual(view.route_progress_label.text(), "0 %")
             self.assertEqual((view.route_bar.value(), view.route_bar.maximum()), (0, 2))
             self.assertEqual(view.progress_donut._percent, 0)
+            self.assertTrue(view.progress_donut.isHidden())
+            self.assertEqual(view.global_progress_bar.value(), 0)
             self.assertEqual(view.donut_count_label.text(), "0 fiches validées")
             self.assertFalse(hasattr(view, "success_bar"))
             self.assertFalse(hasattr(view, "current_button"))
