@@ -13,6 +13,7 @@ from PySide6.QtCore import QDate, QEasingCurve, QPropertyAnimation, QSize, Qt
 from PySide6.QtGui import QBrush, QColor, QIcon, QLinearGradient, QPainter, QPixmap
 from PySide6.QtWidgets import (
     QAbstractItemView,
+    QApplication,
     QCheckBox,
     QCalendarWidget,
     QButtonGroup,
@@ -658,7 +659,8 @@ class DevUiPage(QWidget):
                     filters.addWidget(button)
                 filters.addStretch(1)
                 panel_layout.addLayout(filters)
-                self.preview_header_preparation_rows: list[tuple[QSpinBox, QToolButton]] = []
+                self.preview_header_preparation_rows: list[tuple[QSpinBox, QCheckBox]] = []
+                self.preview_header_preparation_names: list[AtlasButton] = []
                 for name, quantity, done in (
                     ("Potion de rappel", 2, True),
                     ("Clef du donjon", 1, False),
@@ -668,17 +670,24 @@ class DevUiPage(QWidget):
                     row_frame.setObjectName("GuidePreparationRow")
                     row = QHBoxLayout(row_frame)
                     row.setContentsMargins(8, 3, 8, 3)
-                    label_widget = QLabel(name)
-                    label_widget.setObjectName("GuidePreparationRowLabel")
-                    row.addWidget(label_widget, 1)
+                    name_button = AtlasButton(name, variant="secondary")
+                    name_button.setObjectName("GuidePreparationItemCopy")
+                    name_button.setFlat(True)
+                    name_button.setCursor(Qt.PointingHandCursor)
+                    name_button.setToolTip(f"Cliquer pour copier : {name}")
+                    name_button.setAccessibleName(f"Copier {name}")
+                    name_button.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
+                    name_button.clicked.connect(
+                        lambda _checked=False, value=name:
+                        QApplication.clipboard().setText(value)
+                    )
                     amount = QSpinBox()
                     amount.setObjectName("GuidePreparationQuantity")
                     amount.setRange(0, quantity)
                     amount.setValue(quantity if done else 0)
                     amount.setSuffix(f" / {quantity}")
-                    amount.setMaximumWidth(112)
+                    amount.setFixedWidth(100)
                     amount.setToolTip("Quantité possédée · aperçu fictif")
-                    row.addWidget(amount)
                     validate = QCheckBox()
                     validate.setObjectName("GuidePreparationReady")
                     validate.setChecked(done)
@@ -689,8 +698,12 @@ class DevUiPage(QWidget):
                             spin.maximum() if checked else 0
                         )
                     )
-                    row.addWidget(validate)
+                    validate.setFixedWidth(22)
+                    row.addWidget(validate, 0, Qt.AlignVCenter)
+                    row.addWidget(amount, 0, Qt.AlignVCenter)
+                    row.addWidget(name_button, 1, Qt.AlignVCenter)
                     self.preview_header_preparation_rows.append((amount, validate))
+                    self.preview_header_preparation_names.append(name_button)
                     panel_layout.addWidget(row_frame)
             elif label == "Sommaire":
                 self.preview_header_summary_search = QLineEdit()
@@ -810,7 +823,9 @@ class DevUiPage(QWidget):
         sheet_row.setSpacing(7)
         sheet_back = AtlasButton("Retour", variant="guide_breadcrumb")
         sheet_back.setObjectName("GuideManualGuideButton")
-        sheet_back.setIcon(sheet_back.style().standardIcon(QStyle.SP_ArrowBack))
+        sheet_back.setIcon(
+            _guide_symbol_icon(sheet_back, "back", size=16, color=PALETTE["TEXT_SOFT"])
+        )
         sheet_back.setToolTip("Retour à la fiche ou au catalogue des guides")
         sheet_back.clicked.connect(
             lambda: self._report("En-tête fiche · retour")
