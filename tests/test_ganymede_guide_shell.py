@@ -66,15 +66,15 @@ class GanymedeGuideShellTests(unittest.TestCase):
         self.assertFalse(catalog.open_ganymede_container(True))
         self.assertEqual(catalog.pages.count(), 1)
 
-        first, second = catalog.ganymede_listings[0], catalog.ganymede_listings[-1]
-        self.assertTrue(catalog.open_ganymede_container(first.source_id))
-        shell = catalog._ganymede_shell
-        self.assertIsNotNone(shell)
-        self.assertEqual(shell.title_label.text(), first.title)
-        self.assertTrue(catalog.open_ganymede_container(second.source_id))
-        self.assertIs(catalog._ganymede_shell, shell)
-        self.assertEqual(shell.title_label.text(), second.title)
-        self.assertEqual(catalog.pages.count(), 2)
+        shell = None
+        for entry in catalog.ganymede_listings:
+            self.assertTrue(catalog.open_ganymede_container(entry.source_id))
+            if shell is None:
+                shell = catalog._ganymede_shell
+                self.assertIsNotNone(shell)
+            self.assertIs(catalog._ganymede_shell, shell)
+            self.assertEqual(shell.title_label.text(), entry.title)
+            self.assertEqual(catalog.pages.count(), 2)
         self.assertIsNone(catalog.current_guide_id)
         self.assertEqual(requested, [])
         shell.back_button.click()
