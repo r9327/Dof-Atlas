@@ -296,6 +296,31 @@ class DevUiPageTests(unittest.TestCase):
                     "Succès": "GuideCompactSuccessProgress",
                 },
             )
+            from app.modules.encyclopedia.views.shared_manual_guide_view import (
+                _GuideProgressDonut, _ParticipantPortraitButton,
+            )
+            self.assertIsInstance(page.preview_header_donut, _GuideProgressDonut)
+            self.assertEqual(page.preview_header_donut._percent, 35)
+            self.assertFalse(page.preview_header_guide_icon.pixmap().isNull())
+            self.assertFalse(page.preview_header_overlay.isEnabled())
+            self.assertEqual(set(page.preview_header_metric_icons),
+                             {"Route", "Préparation", "Succès"})
+            self.assertTrue(all(not icon.pixmap().isNull()
+                                for icon in page.preview_header_metric_icons.values()))
+            self.assertTrue(page.preview_header_panels["Personnages"].isVisibleTo(
+                page.preview_compact_header
+            ))
+            self.assertEqual(len(page.preview_header_portraits), 3)
+            self.assertTrue(all(isinstance(p, _ParticipantPortraitButton)
+                                for p in page.preview_header_portraits))
+            self.assertTrue(page.preview_header_portraits[0].isChecked())
+            page.preview_header_settings.click()
+            self.assertTrue(page.preview_header_settings_panel.isVisibleTo(
+                page.preview_compact_header
+            ))
+            page.preview_header_route_lock.click()
+            self.assertIn("verrouillée", page.feedback.text())
+
             page.preview_header_page_jump.setValue(8)
             self.assertIn("fiche 8", page.feedback.text())
             page.preview_header_controls["Sommaire"].click()

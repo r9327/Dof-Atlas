@@ -9,8 +9,8 @@ from __future__ import annotations
 import re
 from collections.abc import Callable
 
-from PySide6.QtCore import QDate, QEasingCurve, QPropertyAnimation, Qt
-from PySide6.QtGui import QBrush, QColor, QLinearGradient, QPainter, QPixmap
+from PySide6.QtCore import QDate, QEasingCurve, QPropertyAnimation, QSize, Qt
+from PySide6.QtGui import QBrush, QColor, QIcon, QLinearGradient, QPainter, QPixmap
 from PySide6.QtWidgets import (
     QAbstractItemView,
     QCheckBox,
@@ -36,6 +36,7 @@ from PySide6.QtWidgets import (
     QSpinBox,
     QStackedWidget,
     QSplitter,
+    QStyle,
     QTableWidget,
     QTableWidgetItem,
     QTabWidget,
@@ -429,11 +430,19 @@ class DevUiPage(QWidget):
         self._report(f"Navigation : page {self.preview_page_index}")
 
     def _build_headers(self, parent: QVBoxLayout) -> None:
-        """Preview existing header selectors without duplicating QSS or runtime."""
+        """Show real shared Guide header parts without a second UI skin or runtime."""
+        # Import only when the developer-only page is explicitly opened.
+        from app.modules.encyclopedia.views.shared_manual_guide_view import (
+            _GuideProgressDonut, _ParticipantPortraitButton, _guide_symbol_icon,
+        )
+        from app.modules.encyclopedia.views.guide_ultime_manual_view import (
+            GuideManualProgressBar,
+        )
+
         section = self._section(parent, "headers")
         note = QLabel(
-            "En-têtes de référence · vrais styles Unity, exemples fictifs. "
-            "La certification Ganymède relève de la PR #363."
+            "En-têtes de référence · composants et thème Unity existants. "
+            "Progression et personnages fictifs : aucune donnée Ganymède chargée."
         )
         note.setObjectName("MutedLabel")
         note.setWordWrap(True)
@@ -470,14 +479,31 @@ class DevUiPage(QWidget):
         apply_unity_panel_shadow(self.preview_module_header, **UNITY_PANEL_SHADOW)
         section.addWidget(self.preview_module_header)
 
-        # The three real progress selectors from SharedGuideManualView.
-        # Do not copy its QPainter donut or initialize a Guide runtime here.
         self.preview_compact_header = QFrame()
         self.preview_compact_header.setObjectName("GuideCompactHeader")
-        compact = QVBoxLayout(self.preview_compact_header)
-        compact.setContentsMargins(10, 6, 10, 7)
-        compact.setSpacing(6)
+        outer = QHBoxLayout(self.preview_compact_header)
+        outer.setContentsMargins(10, 6, 10, 7)
+        outer.setSpacing(10)
+
+        # Exact Qt-painted donut from the real shared Guide implementation.
+        self.preview_header_donut = _GuideProgressDonut()
+        self.preview_header_donut.set_percent(35)
+        outer.addWidget(self.preview_header_donut, 0, Qt.AlignVCenter)
+
+        right = QVBoxLayout()
+        right.setSpacing(6)
+        outer.addLayout(right, 1)
         heading = QHBoxLayout()
+        heading.setSpacing(6)
+        self.preview_header_guide_icon = QLabel()
+        self.preview_header_guide_icon.setObjectName("GuideCompactTitleIcon")
+        self.preview_header_guide_icon.setPixmap(
+            _guide_symbol_icon(self.preview_header_guide_icon, "guide", size=16)
+            .pixmap(16, 16)
+        )
+        self.preview_header_guide_icon.setFixedSize(16, 16)
+        heading.addWidget(self.preview_header_guide_icon)
+
         title = QLabel("Dofus Cawotte · exemple fictif")
         title.setObjectName("GuideCompactTitle")
         title.setMinimumWidth(0)
@@ -493,60 +519,206 @@ class DevUiPage(QWidget):
             lambda value: self._report(f"Guide · fiche {value}")
         )
         heading.addWidget(self.preview_header_page_jump)
-        current = AtlasButton("Actuelle", variant="secondary")
-        current.set_style_name("GuideCompactCurrentButton")
+
+        current = AtlasButton("Actuelle")
+        current.setObjectName("GuideCompactCurrentButton")
+        current.setIcon(_guide_symbol_icon(current, "current"))
         current.clicked.connect(lambda: self.preview_header_page_jump.setValue(4))
         heading.addWidget(current)
-        compact.addLayout(heading)
+        self.preview_header_overlay = QToolButton()
+        self.preview_header_overlay.setObjectName("GuideCompactOverlayButton")
+        self.preview_header_overlay.setIcon(
+            _guide_symbol_icon(self.preview_header_overlay, "map")
+        )
+        self.preview_header_overlay.setToolTip("Overlay indisponible dans ce runtime")
+        self.preview_header_overlay.setAccessibleName("Overlay")
+        self.preview_header_overlay.setEnabled(False)
+        heading.addWidget(self.preview_header_overlay)
+
+        self.preview_header_settings = QToolButton()
+        self.preview_header_settings.setObjectName("GuideCompactSettingsButton")
+        self.preview_header_settings.setIcon(
+            _guide_symbol_icon(self.preview_header_settings, "settings")
+        )
+        self.preview_header_settings.setToolTip("Paramètres du Guide")
+        self.preview_header_settings.setAccessibleName("Paramètres du Guide")
+        self.preview_header_settings.setCheckable(True)
+        heading.addWidget(self.preview_header_settings)
+        right.addLayout(heading)
 
         self.preview_header_metrics: dict[str, QProgressBar] = {}
+        self.preview_header_metric_icons: dict[str, QLabel] = {}
         metrics = QHBoxLayout()
         metrics.setSpacing(12)
-        for name, role, amount in (
-            ("Route", "GuideManualProgress", 35),
-            ("Préparation", "GuideCompactPreparationProgress", 60),
-            ("Succès", "GuideCompactSuccessProgress", 20),
+        for name, role, amount, icon_symbol, color_role in (
+            ("Route", "GuideManualProgress", 35, "target", "RED"),
+            ("Préparation", "GuideCompactPreparationProgress", 60, "cube", "GREEN"),
+            ("Succès", "GuideCompactSuccessProgress", 20, "trophy", "YELLOW"),
         ):
             block = QVBoxLayout()
             block.setSpacing(2)
             caption = QHBoxLayout()
+            caption.setSpacing(4)
+            metric_icon = QLabel()
+            metric_icon.setObjectName(
+                f"GuideCompactMetricIcon{icon_symbol.title()}"
+            )
+            metric_icon.setPixmap(
+                _guide_symbol_icon(
+                    metric_icon, icon_symbol, size=16,
+                    color=PALETTE[color_role],
+                ).pixmap(16, 16)
+            )
+            metric_icon.setFixedSize(16, 16)
+            caption.addWidget(metric_icon)
+            self.preview_header_metric_icons[name] = metric_icon
             caption.addWidget(QLabel(name))
             caption.addStretch(1)
             value = QLabel(f"{amount} %")
             value.setObjectName("GuideCompactMetricValue")
             caption.addWidget(value)
             block.addLayout(caption)
-            bar = QProgressBar()
+            bar = GuideManualProgressBar() if name == "Route" else QProgressBar()
             bar.setObjectName(role)
             bar.setRange(0, 100)
             bar.setValue(amount)
             bar.setTextVisible(False)
             bar.setFixedHeight(7)
+            if name == "Route":
+                bar.setCursor(Qt.PointingHandCursor)
+                bar.navigationRequested.connect(
+                    lambda fraction: self._report(
+                        f"Guide · navigation route {round(fraction * 100)} % (aperçu)"
+                    )
+                )
             block.addWidget(bar)
             metrics.addLayout(block, 1)
             self.preview_header_metrics[name] = bar
-        compact.addLayout(metrics)
+        right.addLayout(metrics)
+
         controls = QHBoxLayout()
+        controls.setSpacing(7)
         self.preview_header_controls: dict[str, QToolButton] = {}
-        for label, role in (
-            ("Préparation", "GuidePreparationToggle"),
-            ("Sommaire", "GuideSummaryButton"),
-            ("Personnages", "GuideParticipantsButton"),
+        for label, role, icon_symbol in (
+            ("Préparation", "GuidePreparationToggle", "clipboard"),
+            ("Sommaire", "GuideSummaryButton", "summary"),
+            ("Personnages", "GuideParticipantsButton", "people"),
         ):
             toggle = QToolButton()
             toggle.setObjectName(role)
-            toggle.setText(label if label != "Personnages" else "Pers.")
+            toggle.setIcon(_guide_symbol_icon(toggle, icon_symbol))
+            toggle.setIconSize(QSize(16, 16))
+            toggle.setText(label if label != "Personnages" else "")
+            toggle.setToolButtonStyle(
+                Qt.ToolButtonIconOnly if label == "Personnages"
+                else Qt.ToolButtonTextBesideIcon
+            )
+            toggle.setFixedHeight(28)
             toggle.setToolTip(label)
+            toggle.setAccessibleName(label)
             toggle.setCheckable(True)
+            if label == "Personnages":
+                toggle.setFixedWidth(32)
+            else:
+                toggle.setArrowType(Qt.RightArrow)
+            controls.addWidget(toggle)
+            self.preview_header_controls[label] = toggle
+        controls.addStretch(1)
+        right.addLayout(controls)
+
+        self.preview_header_panels: dict[str, QFrame] = {}
+        for label, role in (
+            ("Préparation", "GuidePreparationPanel"),
+            ("Sommaire", "GuideSummaryPanel"),
+            ("Personnages", "GuideParticipantsPanel"),
+        ):
+            panel = QFrame()
+            panel.setObjectName(role)
+            panel_layout = QVBoxLayout(panel)
+            panel_layout.setContentsMargins(8, 5, 8, 5)
+            panel_layout.setSpacing(4)
+            if label == "Préparation":
+                panel_layout.addWidget(QLabel("Prérequis · exemple de préparation"))
+            elif label == "Sommaire":
+                summary = QListWidget()
+                summary.setObjectName("GuideSummaryList")
+                summary.addItems((
+                    "Fiche 1 · Introduction", "Fiche 4 · Étape actuelle",
+                    "Fiche 20 · Fin du guide",
+                ))
+                summary.setMaximumHeight(75)
+                summary.itemClicked.connect(
+                    lambda item: self._report(
+                        f"Guide · sommaire : {item.text()} (aperçu)"
+                    )
+                )
+                panel_layout.addWidget(summary)
+            else:
+                portraits_row = QHBoxLayout()
+                portraits_row.setSpacing(5)
+                self.preview_header_portraits: list[_ParticipantPortraitButton] = []
+                portrait_path = sprite_icon_path("character")
+                for index, percent in enumerate((35, 60, 10), start=1):
+                    portrait = _ParticipantPortraitButton(
+                        f"character:demo_{index}", progress=percent,
+                    )
+                    portrait.setToolTip(
+                        f"Personnage fictif {index} · progression {percent} %"
+                    )
+                    portrait.setAccessibleName(f"Personnage fictif {index}")
+                    portrait.setChecked(index == 1)
+                    if portrait_path:
+                        portrait.setIcon(QIcon(str(portrait_path)))
+                    else:
+                        portrait.setIcon(_guide_symbol_icon(portrait, "people"))
+                    portrait.toggled.connect(
+                        lambda checked, number=index: self._report(
+                            f"Guide · personnage {number} {'choisi' if checked else 'retiré'} (aperçu)"
+                        )
+                    )
+                    portraits_row.addWidget(portrait)
+                    self.preview_header_portraits.append(portrait)
+                portraits_row.addStretch(1)
+                panel_layout.addLayout(portraits_row)
+            panel.setVisible(False)
+            right.addWidget(panel)
+            toggle = self.preview_header_controls[label]
+            toggle.toggled.connect(panel.setVisible)
+            if label != "Personnages":
+                toggle.toggled.connect(
+                    lambda checked, button=toggle: button.setArrowType(
+                        Qt.DownArrow if checked else Qt.RightArrow
+                    )
+                )
             toggle.clicked.connect(
                 lambda checked, name=label: self._report(
                     f"Guide · {name} : {'ouvert' if checked else 'fermé'} (aperçu)"
                 )
             )
-            controls.addWidget(toggle)
-            self.preview_header_controls[label] = toggle
-        controls.addStretch(1)
-        compact.addLayout(controls)
+            self.preview_header_panels[label] = panel
+        # Expose the individual progress rings immediately for visual review.
+        self.preview_header_controls["Personnages"].setChecked(True)
+
+        self.preview_header_settings_panel = QFrame()
+        self.preview_header_settings_panel.setObjectName("GuideCompactSettingsPanel")
+        settings_row = QHBoxLayout(self.preview_header_settings_panel)
+        settings_row.setContentsMargins(8, 5, 8, 5)
+        self.preview_header_route_lock = QToolButton()
+        self.preview_header_route_lock.setObjectName("GuideManualProgressLock")
+        self.preview_header_route_lock.setCheckable(True)
+        self.preview_header_route_lock.setText("Verrouiller la progression")
+        self.preview_header_route_lock.toggled.connect(
+            lambda checked: self._report(
+                f"Guide · progression {'verrouillée' if checked else 'déverrouillée'} (aperçu)"
+            )
+        )
+        settings_row.addWidget(self.preview_header_route_lock)
+        settings_row.addStretch(1)
+        self.preview_header_settings_panel.setVisible(False)
+        self.preview_header_settings.toggled.connect(
+            self.preview_header_settings_panel.setVisible
+        )
+        right.addWidget(self.preview_header_settings_panel)
         apply_unity_panel_shadow(self.preview_compact_header, **UNITY_PANEL_SHADOW)
         section.addWidget(self.preview_compact_header)
 
@@ -554,8 +726,11 @@ class DevUiPage(QWidget):
         self.preview_sheet_header.setObjectName("GuideSheetHeader")
         sheet_row = QHBoxLayout(self.preview_sheet_header)
         sheet_row.setContentsMargins(10, 7, 10, 7)
-        sheet_back = AtlasButton("←", variant="guide_breadcrumb")
-        sheet_back.setMaximumWidth(35)
+        sheet_row.setSpacing(7)
+        sheet_back = AtlasButton("Retour", variant="guide_breadcrumb")
+        sheet_back.setObjectName("GuideManualGuideButton")
+        sheet_back.setIcon(sheet_back.style().standardIcon(QStyle.SP_ArrowBack))
+        sheet_back.setToolTip("Retour à la fiche ou au catalogue des guides")
         sheet_back.clicked.connect(
             lambda: self._report("En-tête fiche · retour")
         )
