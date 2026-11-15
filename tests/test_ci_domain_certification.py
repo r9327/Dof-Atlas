@@ -957,6 +957,7 @@ class ModularDomainRoutingTests(unittest.TestCase):
         expected = {
             "tests/test_truthful_module_availability.py": {"craft", "ui", "startup"},
             "tests/test_encyclopedia_corrective.py": {"quests", "guides", "ui", "data"},
+            "tests/test_encyclopedia_final_mission.py": {"quests", "guides", "ui", "data"},
         }
         for path, owners in expected.items():
             self.assertEqual(owners_for(path), frozenset(owners), path)

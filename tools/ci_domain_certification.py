@@ -578,6 +578,10 @@ def owners_for(path: str) -> frozenset[str]:
             # fallback ("achievement" -> Guides only) under-reported its
             # closed-world owners.
             return frozenset({"quests", "guides", "ui", "data"})
+        if leaf == "encyclopedia_final_mission":
+            # Exact real-provider Qt contract for Quest detail, Guide routes,
+            # retained Successes and their local catalogue inputs.
+            return frozenset({"quests", "guides", "ui", "data"})
         if leaf == "release_certification_fixes":
             # Exact reviewed test: Guide identity and CI/RAM thresholds.
             return frozenset({"ci", "craft", "guides"})
