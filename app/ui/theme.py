@@ -3114,12 +3114,18 @@ QToolButton#GuideCompactOverlayButton:disabled {
 }
 
 QFrame#GuideCompactSettingsPanel,
-QFrame#GuideParticipantsPanel,
 QFrame#GuideSummaryPanel,
 QFrame#GuidePreparationDetails {
     background: @GLASS_BUTTON;
     border: 1px solid @BORDER_SOFT;
     border-radius: @RADIUS_MD;
+}
+
+/* The participant row sits inside the glass Guide header already.
+   A second gray/opaque slab here hides the Unity gradient behind portraits. */
+QFrame#GuideParticipantsPanel {
+    background: transparent;
+    border: none;
 }
 
 QToolButton#GuidePreparationToggle {
