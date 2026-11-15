@@ -16,6 +16,7 @@ working_set:
   - app/modules/encyclopedia/views/manual_route_guides_view.py
   - app/modules/encyclopedia/views/shared_manual_guide_view.py
   - app/modules/encyclopedia/services/guide_imported_manual_runtime_service.py
+  - app/modules/encyclopedia/services/guide_route_planner.py
   - app/modules/encyclopedia/services/guide_shared_route_contract.py
   - app/modules/encyclopedia/services/guide_trusted_source_package.py
   - app/modules/encyclopedia/services/guide_ultime_manual_runtime_service.py
@@ -34,6 +35,7 @@ working_set:
   - tests/test_guide_imported_manual_runtime_service.py
   - tests/test_guide_imported_manual_runtime_ui.py
   - tests/test_guide_manual_selected_validation.py
+  - tests/test_guide_route_planner.py
   - tests/test_guide_shared_route_contract.py
   - tests/test_guide_trusted_source_package.py
   - docs/guide_source_runtime_contract.md
