@@ -47,7 +47,7 @@ jobs:
           from app.ui.unity_skin import UnityBackdrop
           from app.modules.encyclopedia.views.ganymede_guide_shell import GanymedeGuideShell
           from app.modules.encyclopedia.views.guide_library_sources import load_ganymede_listings
-          from app.modules.encyclopedia.providers.guide_provider import GuideProvider
+          from app.modules.encyclopedia.models.guide import Guide
           from app.modules.encyclopedia.widgets.guide_card import GuideListModel
 
           entries = load_ganymede_listings()
@@ -61,9 +61,13 @@ jobs:
           backdrop.resize(1280, 720)
           layout = QVBoxLayout(backdrop)
           shell = GanymedeGuideShell(lambda: None, backdrop)
-          # Real Cawotte artwork is resolved through the SAME model as Home.
-          local_guide = GuideProvider().get_by_id("dofus_cawotte")
-          artwork = GuideListModel().artwork_for_guide(local_guide) if local_guide else None
+          # The Windows capture checkout intentionally omits the local Doduda
+          # quest/item corpus. Use the Home model's *same* documented fallback
+          # without loading quest routes or fabricating a Cawotte item image.
+          # In the running catalogue, GuideCatalogView passes the actual
+          # Guide.image_path through this exact artwork_for_guide() method.
+          local_guide = Guide(id="dofus_cawotte", title="Dofus Cawotte", category="dofus")
+          artwork = GuideListModel().artwork_for_guide(local_guide)
           shell.set_listing(cawotte, artwork=artwork)
           layout.addWidget(shell)
           backdrop.show()
