@@ -2449,6 +2449,16 @@ QLabel#GuideBreadcrumbCurrent {
     border: none;
 }
 
+/* Shared guide content glass keeps the outer border visible at all edges. */
+QScrollArea#GuideManualScroll {
+    background: @PANEL_GRADIENT;
+    border: 1px solid @BORDER_STRONG;
+    border-radius: @RADIUS_MD;
+}
+QWidget#GuideManualContent {
+    background: transparent;
+}
+
 #GuideManualProgress {
     background: @PANEL_2;
     border: 1px solid @BORDER_SOFT;
@@ -2589,16 +2599,19 @@ QLabel#GuideGlobalProgressTitle {
     font-size: @FONT_SMALL;
     font-weight: 700;
 }
-QToolButton#GuideMetricDropdown {
-    background: @PANEL_2;
-    border: 1px solid @BORDER_SOFT;
+QToolButton#GuideMetricDropdown,
+QToolButton#GuideParticipantsButton {
+    background: @PANEL_GRADIENT;
+    border: 1px solid @BORDER_STRONG;
     border-radius: @RADIUS_XS;
     color: @TEXT_SOFT;
-    padding: 1px;
+    padding: 0;
 }
 QToolButton#GuideMetricDropdown:hover,
-QToolButton#GuideMetricDropdown:checked {
-    background: @PANEL_ACTIVE;
+QToolButton#GuideMetricDropdown:checked,
+QToolButton#GuideParticipantsButton:hover,
+QToolButton#GuideParticipantsButton:checked {
+    background: @PANEL_HOVER;
     border-color: @GREEN_BORDER;
     color: @TEXT;
 }
@@ -2628,6 +2641,17 @@ QSpinBox#GuidePreparationQuantity {
 QSpinBox#GuideCompactPageJump:focus,
 QSpinBox#GuidePreparationQuantity:focus {
     border-color: @GREEN_BORDER;
+}
+QSpinBox#GuideCompactPageJump::up-button,
+QSpinBox#GuideCompactPageJump::down-button {
+    background: @PANEL_GRADIENT;
+    border-left: 1px solid @BORDER_STRONG;
+    width: 17px;
+}
+QSpinBox#GuideCompactPageJump::up-button:hover,
+QSpinBox#GuideCompactPageJump::down-button:hover {
+    background: @PANEL_HOVER;
+    border-left-color: @GREEN_BORDER;
 }
 QListWidget#GuideSummaryList::item {
     background: transparent;

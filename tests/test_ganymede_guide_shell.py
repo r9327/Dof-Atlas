@@ -11,6 +11,7 @@ from pathlib import Path
 
 os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
 
+from PySide6.QtCore import Qt
 from PySide6.QtWidgets import QApplication, QFrame, QProgressBar, QSpinBox
 
 from app.modules.encyclopedia.views.guide_catalog_view import GuideCatalogView
@@ -39,9 +40,13 @@ class GanymedeGuideShellTests(unittest.TestCase):
         self.assertIsNotNone(shell.findChild(QFrame, "GuideCompactHeader"))
         self.assertIsNotNone(shell.findChild(QFrame, "GuideSheetHeader"))
         self.assertIsNotNone(shell.findChild(QFrame, "GuideManualNav"))
+        self.assertEqual(shell.guide_icon_label.size().width(), 32)
+        self.assertEqual(shell.guide_icon_label.size().height(), 32)
         self.assertIsNotNone(shell.findChild(QSpinBox, "GuideCompactPageJump"))
         self.assertFalse(shell.page_jump.isEnabled())
         self.assertEqual(shell.page_jump.text(), "—")
+        self.assertEqual(shell.summary_button.arrowType(), Qt.DownArrow)
+        self.assertEqual(shell.preparation_button.arrowType(), Qt.DownArrow)
         self.assertFalse(shell.summary_button.isEnabled())
         self.assertFalse(shell.preparation_button.isEnabled())
         self.assertFalse(shell.participants_button.isEnabled())

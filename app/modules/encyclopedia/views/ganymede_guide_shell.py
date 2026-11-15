@@ -7,7 +7,13 @@ from __future__ import annotations
 
 from collections.abc import Callable
 
+from pathlib import Path
+
+from PySide6.QtCore import QSize
+from PySide6.QtGui import QIcon
 from PySide6.QtWidgets import QWidget
+
+from app.ui.unity_skin import sprite_icon_path
 
 from app.modules.encyclopedia.views.guide_library_sources import GanymedeListing
 from app.modules.encyclopedia.views.shared_manual_guide_view import SharedGuideManualView
@@ -102,5 +108,19 @@ class GanymedeGuideShell(SharedGuideManualView):
         self.service.guide_title = listing.title
         self.guide_title_label.setText(listing.title)
         self.guide_title_label.setToolTip(listing.title)
+        # Display verified local cover artwork, or the existing Unity category
+        # pictogram. Never pretend a category glyph is a guide-specific image.
+        local_cover = getattr(listing, "image_path", None)
+        cover = Path(local_cover) if isinstance(local_cover, (str, Path)) and local_cover else None
+        if cover is None or not cover.is_file():
+            cover = sprite_icon_path("dofus" if listing.category == "dofus" else "guide")
+        pixmap = QIcon(str(cover)).pixmap(QSize(32, 32)) if cover else None
+        if pixmap is not None and not pixmap.isNull():
+            self.guide_icon_label.setPixmap(pixmap)
+            self.guide_icon_label.setToolTip(listing.title)
+            self.guide_icon_label.show()
+        else:
+            self.guide_icon_label.clear()
+            self.guide_icon_label.hide()
         self.sheet_meta_label.setText("Ganymède · parcours non certifié")
         self.sheet_title_label.setText("Aucune fiche chargée")

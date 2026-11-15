@@ -7,6 +7,7 @@ from PySide6.QtWidgets import (
     QHBoxLayout,
     QLabel,
     QPushButton,
+    QToolButton,
     QVBoxLayout,
     QWidget,
 )
@@ -68,6 +69,22 @@ class AtlasButton(QPushButton):
         except KeyError as exc:
             raise ValueError(f"Unknown AtlasButton variant: {variant}") from exc
         self.setObjectName(object_name)
+
+
+class AtlasGuideDisclosure(QToolButton):
+    """Shared Guide dropdown: down opens, up closes, with indexed Unity QSS."""
+
+    def __init__(self, parent: QWidget | None = None) -> None:
+        super().__init__(parent)
+        self.setObjectName("GuideMetricDropdown")
+        self.setCheckable(True)
+        self.setCursor(Qt.PointingHandCursor)
+        self.setFocusPolicy(Qt.StrongFocus)
+        self.setArrowType(Qt.DownArrow)
+        self.toggled.connect(self._sync_direction)
+
+    def _sync_direction(self, opened: bool) -> None:
+        self.setArrowType(Qt.UpArrow if opened else Qt.DownArrow)
 
 
 class AtlasPageTitle(QLabel):

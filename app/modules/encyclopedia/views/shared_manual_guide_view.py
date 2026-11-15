@@ -43,7 +43,7 @@ from app.modules.encyclopedia.views.guide_ultime_manual_view import (
     GuideUltimeManualView,
 )
 from app.core.text import normalize_key as normalize_text
-from app.ui.components import AtlasButton
+from app.ui.components import AtlasButton, AtlasGuideDisclosure
 from app.ui.unity_skin import apply_unity_panel_shadow, sprite_icon_path
 from app.constants import DATA_DIR
 from app.modules.encyclopedia.services.image_service import ENCYCLOPEDIA_IMAGE_SERVICE
@@ -1266,6 +1266,7 @@ class SharedGuideManualView(GuideUltimeManualView):
         self.scroll.setFrameShape(QFrame.NoFrame)
         self.scroll.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
         self.content = QWidget()
+        self.content.setObjectName("GuideManualContent")
         self.cards_layout = QVBoxLayout(self.content)
         self.cards_layout.setContentsMargins(8, 2, 8, 8)
         self.cards_layout.setSpacing(8)
@@ -1349,7 +1350,8 @@ class SharedGuideManualView(GuideUltimeManualView):
         guide_icon.setObjectName("GuideCompactTitleIcon")
         guide_symbol = "trophy" if "succès" in self._guide_title().casefold() else "guide"
         guide_icon.setPixmap(_guide_symbol_icon(guide_icon, guide_symbol, size=16).pixmap(16, 16))
-        guide_icon.setFixedSize(16, 16)
+        guide_icon.setFixedSize(32, 32)
+        self.guide_icon_label = guide_icon
         title_row.addWidget(guide_icon)
         self.guide_title_label = QLabel(self._guide_title())
         self.guide_title_label.setObjectName("GuideCompactTitle")
@@ -1423,11 +1425,8 @@ class SharedGuideManualView(GuideUltimeManualView):
             meter_row = QHBoxLayout()
             meter_row.setSpacing(5)
             meter_row.addWidget(bar, 1, Qt.AlignVCenter)
-            arrow = QToolButton()
-            arrow.setObjectName("GuideMetricDropdown")
-            arrow.setCheckable(True)
-            arrow.setArrowType(Qt.RightArrow)
-            arrow.setFixedSize(28, 24)
+            arrow = AtlasGuideDisclosure()
+            arrow.setFixedSize(22, 22)
             arrow.setCursor(Qt.PointingHandCursor)
             target = "Sommaire" if name == "Route" else "Préparation"
             arrow.setToolTip(f"Ouvrir {target}")
@@ -1568,13 +1567,13 @@ class SharedGuideManualView(GuideUltimeManualView):
         )
         self.participants_button.setToolButtonStyle(Qt.ToolButtonIconOnly)
         self.participants_button.setSizePolicy(QSizePolicy.Fixed, QSizePolicy.Fixed)
-        self.participants_button.setFixedSize(28, 24)
+        self.participants_button.setFixedSize(22, 22)
         self.participants_button.setIconSize(QSize(19, 19))
         self.participants_button.setCheckable(True)
         self.participants_button.setCursor(Qt.PointingHandCursor)
         self.summary_button.toggled.connect(self._summary_toggled)
         self._participants_control_column.addWidget(
-            self.participants_button, 0, Qt.AlignTop
+            self.participants_button, 0, Qt.AlignVCenter
         )
         layout.addLayout(top)
 
@@ -1741,9 +1740,6 @@ class SharedGuideManualView(GuideUltimeManualView):
 
     def _summary_toggled(self, opened: bool) -> None:
         self.summary_panel.setVisible(bool(opened))
-        self.summary_button.setArrowType(
-            Qt.DownArrow if opened else Qt.RightArrow
-        )
         if opened and self.summary_list.count() == 0:
             self._populate_summary()
 
@@ -1782,9 +1778,6 @@ class SharedGuideManualView(GuideUltimeManualView):
         # Sommaire button may close it.
 
     def _preparation_toggled(self, opened: bool) -> None:
-        self.preparation_button.setArrowType(
-            Qt.DownArrow if opened else Qt.RightArrow
-        )
         self.preparation_panel.setVisible(bool(opened))
         if not opened:
             return

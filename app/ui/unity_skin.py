@@ -208,8 +208,7 @@ def unity_skin_stylesheet() -> str:
         "color: %s; font-weight: 600; }" % UNITY_PALETTE["GUIDE_STATUS_TEXT"],
         "QFrame#GuideManualNav { "
         "background: rgba(19, 31, 59, 0.94); border-top: 1px solid %s; }" % UNITY_PALETTE["GUIDE_NAV_BORDER"],
-        "QToolButton#GuidePreparationToggle, QToolButton#GuideSummaryButton, "
-        "QToolButton#GuideParticipantsButton { "
+        "QToolButton#GuidePreparationToggle, QToolButton#GuideSummaryButton { "
         "background: qlineargradient(x1:0,y1:0,x2:0,y2:1, "
         "stop:0 %s, stop:1 %s); "
         "color: %s; border: 1px solid %s; "
@@ -217,13 +216,11 @@ def unity_skin_stylesheet() -> str:
             UNITY_PALETTE["GUIDE_TOGGLE_TOP"], UNITY_PALETTE["GUIDE_TOGGLE_BOTTOM"],
             UNITY_PALETTE["GUIDE_PREPARATION_TEXT"], UNITY_PALETTE["GUIDE_TOGGLE_BORDER"],
         ),
-        "QToolButton#GuidePreparationToggle:checked, QToolButton#GuideSummaryButton:checked, "
-        "QToolButton#GuideParticipantsButton:checked { "
+        "QToolButton#GuidePreparationToggle:checked, QToolButton#GuideSummaryButton:checked { "
         "background: %s; border: 1px solid %s; }" % (
             UNITY_PALETTE["GUIDE_TOGGLE_ACTIVE"], UNITY_PALETTE["GUIDE_TOGGLE_ACTIVE_BORDER"],
         ),
-        "QToolButton#GuidePreparationToggle:hover, QToolButton#GuideSummaryButton:hover, "
-        "QToolButton#GuideParticipantsButton:hover { "
+        "QToolButton#GuidePreparationToggle:hover, QToolButton#GuideSummaryButton:hover { "
         "background: %s; }" % UNITY_PALETTE["GUIDE_TOGGLE_HOVER"],
         "QDialog#AtlasDialog, QMenu { "
         "background: rgba(25, 38, 75, 0.98); color: #F1F6FB; "
