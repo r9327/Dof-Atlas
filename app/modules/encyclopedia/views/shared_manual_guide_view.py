@@ -1437,6 +1437,7 @@ class SharedGuideManualView(GuideUltimeManualView):
             self._metric_dropdown_buttons[name] = arrow
             self._metric_columns[name] = block
             metrics.addLayout(block, 1)
+            metrics.setAlignment(block, Qt.AlignTop)
 
         self.route_bar = GuideManualProgressBar()
         self.route_bar.setObjectName("GuideManualProgress")
