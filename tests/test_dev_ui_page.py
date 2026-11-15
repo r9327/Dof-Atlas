@@ -14,6 +14,7 @@ os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
 from PySide6.QtCore import Qt
 from PySide6.QtTest import QTest
 from PySide6.QtWidgets import QApplication, QGridLayout, QLabel, QLineEdit, QWidget
+from app.ui.unity_palette import UNITY_CONTROL_SIZES_PX
 
 
 class DevUiPageTests(unittest.TestCase):
@@ -1245,10 +1246,12 @@ class DevUiPageTests(unittest.TestCase):
             )
             for toggle in page.preview_header_controls.values():
                 if toggle.objectName() in ("GuideMetricDropdown", "GuideParticipantsButton"):
-                    self.assertEqual(
-                        toggle.width(),
-                        UNITY_CONTROL_SIZES_PX["progress_toggle_width"],
+                    expected_width = (
+                        UNITY_CONTROL_SIZES_PX["guide_character_button"]
+                        if toggle.objectName() == "GuideParticipantsButton"
+                        else UNITY_CONTROL_SIZES_PX["progress_toggle_width"]
                     )
+                    self.assertEqual(toggle.width(), expected_width)
             row_names = {
                 page.preview_metrics.item(i, 0).text()
                 for i in range(page.preview_metrics.rowCount())
