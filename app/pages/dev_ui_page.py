@@ -603,6 +603,7 @@ class DevUiPage(QWidget):
             meter_row.addWidget(arrow)
             block.addLayout(meter_row)
             metrics.addLayout(block, 1)
+            metrics.setAlignment(block, Qt.AlignTop)
             self.preview_header_metric_columns[target] = block
             self.preview_header_controls[target] = arrow
             self.preview_header_metrics[name] = bar
