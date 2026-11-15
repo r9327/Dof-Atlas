@@ -146,3 +146,18 @@ branchés**, au prochain chargement du composant. Les dimensions spécifiques
 d'un écran qui ne consomme pas encore ces tokens ne sont pas automatiques.
 Les tests Qt ciblés vérifient les quatre dimensions et le maintien de l'ordre
 des 23 familles.
+
+## Adoption initiale dans le Guide réel — PR #365
+
+L'en-tête commun de `shared_manual_guide_view.py` (employé par les
+guides, sans en modifier les contenus) consomme maintenant les tokens
+`progress_primary`, `progress_secondary`,
+`progress_toggle_width/height` et les mêmes largeurs de
+quantité/validation que la démonstration Dev UI. Les icônes compactes
+utilisent le même rôle `icon_small`. Une modification du token partagé
+est donc répercutée sur Dev UI **et** sur ce rendu Guide réel au prochain
+chargement ; les autres vues qui n'ont pas adopté ces métriques restent
+à migrer séparément.
+
+Seules les tailles existantes ont été rebranchées ; aucune logique métier,
+sélection de participants, traitement de quête ou donnée Ganymède changée.

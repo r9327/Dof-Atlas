@@ -163,6 +163,27 @@ class UnityPaletteTests(unittest.TestCase):
         )
         self.assertGreater(UNITY_LAYOUT_SIZES_PX["dialog_header_gap"], 0)
 
+
+    def test_real_guide_header_and_dev_ui_share_all_progress_dimensions(self) -> None:
+        """The real Guide renderer must consume the very same metrics as Dev UI."""
+        from pathlib import Path
+        from app.ui.unity_palette import UNITY_CONTROL_SIZES_PX
+        root = Path(__file__).resolve().parents[1]
+        source = (
+            root / "app/modules/encyclopedia/views/shared_manual_guide_view.py"
+        ).read_text(encoding="utf-8")
+        gallery = (root / "app/pages/dev_ui_page.py").read_text(encoding="utf-8")
+        for key in (
+            "progress_primary", "progress_secondary",
+            "progress_toggle_width", "progress_toggle_height",
+            "guide_quantity_width", "guide_validation_width",
+        ):
+            with self.subTest(token=key):
+                usage = f'UNITY_CONTROL_SIZES_PX["{key}"]'
+                self.assertIn(usage, source)
+                self.assertIn(usage, gallery)
+                self.assertGreater(UNITY_CONTROL_SIZES_PX[key], 0)
+
     def test_dev_ui_index_covers_all_families_and_original_style_owners(self) -> None:
         from app.ui.unity_palette import (
             UNITY_UI_CONSUMERS, UNITY_UI_FAMILY_INDEX,

@@ -548,7 +548,9 @@ class DevUiPage(QWidget):
             _guide_symbol_icon(self.preview_header_guide_icon, "guide", size=16)
             .pixmap(16, 16)
         )
-        self.preview_header_guide_icon.setFixedSize(16, 16)
+        self.preview_header_guide_icon.setFixedSize(
+            UNITY_SIZES_PX["icon_small"], UNITY_SIZES_PX["icon_small"]
+        )
         heading.addWidget(self.preview_header_guide_icon)
 
         title = QLabel("Dofus Cawotte · exemple fictif")
@@ -619,7 +621,9 @@ class DevUiPage(QWidget):
                     color=PALETTE[color_role],
                 ).pixmap(16, 16)
             )
-            metric_icon.setFixedSize(16, 16)
+            metric_icon.setFixedSize(
+                UNITY_SIZES_PX["icon_small"], UNITY_SIZES_PX["icon_small"]
+            )
             caption.addWidget(metric_icon)
             self.preview_header_metric_icons[name] = metric_icon
             caption.addWidget(QLabel(name))

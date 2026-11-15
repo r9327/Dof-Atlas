@@ -40,6 +40,7 @@ from app.modules.encyclopedia.views.guide_ultime_manual_view import (
 )
 from app.core.text import normalize_key as normalize_text
 from app.ui.components import AtlasButton
+from app.ui.unity_palette import UNITY_CONTROL_SIZES_PX, UNITY_SIZES_PX
 from app.ui.unity_skin import apply_unity_panel_shadow, sprite_icon_path
 from app.constants import DATA_DIR
 from app.modules.encyclopedia.services.image_service import ENCYCLOPEDIA_IMAGE_SERVICE
@@ -1015,7 +1016,9 @@ class SharedGuideManualView(GuideUltimeManualView):
         self.global_progress_bar.setObjectName("GuideGlobalProgress")
         self.global_progress_bar.setRange(0, 100)
         self.global_progress_bar.setTextVisible(False)
-        self.global_progress_bar.setFixedHeight(11)
+        self.global_progress_bar.setFixedHeight(
+            UNITY_CONTROL_SIZES_PX["progress_primary"]
+        )
         self.global_progress_label = QLabel("—")
         self.global_progress_label.setObjectName("GuideCompactMetricValue")
         self._metric_columns: dict[str, QVBoxLayout] = {}
@@ -1037,7 +1040,9 @@ class SharedGuideManualView(GuideUltimeManualView):
         guide_icon.setObjectName("GuideCompactTitleIcon")
         guide_symbol = "trophy" if "succès" in self._guide_title().casefold() else "guide"
         guide_icon.setPixmap(_guide_symbol_icon(guide_icon, guide_symbol, size=16).pixmap(16, 16))
-        guide_icon.setFixedSize(16, 16)
+        guide_icon.setFixedSize(
+            UNITY_SIZES_PX["icon_small"], UNITY_SIZES_PX["icon_small"]
+        )
         title_row.addWidget(guide_icon)
         self.guide_title_label = QLabel(self._guide_title())
         self.guide_title_label.setObjectName("GuideCompactTitle")
@@ -1095,7 +1100,9 @@ class SharedGuideManualView(GuideUltimeManualView):
             icon.setPixmap(
                 _guide_symbol_icon(icon, symbol, size=16, color=PALETTE[color_key]).pixmap(16, 16)
             )
-            icon.setFixedSize(16, 16)
+            icon.setFixedSize(
+                UNITY_SIZES_PX["icon_small"], UNITY_SIZES_PX["icon_small"]
+            )
             caption.addWidget(icon)
             caption_label = QLabel(name)
             caption_label.setToolTip(name)
@@ -1107,7 +1114,7 @@ class SharedGuideManualView(GuideUltimeManualView):
             caption.addWidget(value)
             metrics.addLayout(caption, 0, column)
             bar.setTextVisible(False)
-            bar.setFixedHeight(7)
+            bar.setFixedHeight(UNITY_CONTROL_SIZES_PX["progress_secondary"])
             # The bar keeps its original progress/navigation behaviour.
             # Its neighboring arrow alone controls the corresponding dropdown.
             line = QHBoxLayout()
@@ -1117,7 +1124,10 @@ class SharedGuideManualView(GuideUltimeManualView):
             arrow.setObjectName("GuideMetricDropdown")
             arrow.setCheckable(True)
             arrow.setArrowType(Qt.RightArrow)
-            arrow.setFixedSize(28, 24)
+            arrow.setFixedSize(
+                UNITY_CONTROL_SIZES_PX["progress_toggle_width"],
+                UNITY_CONTROL_SIZES_PX["progress_toggle_height"],
+            )
             arrow.setCursor(Qt.PointingHandCursor)
             target = "Sommaire" if name == "Route" else "Préparation"
             arrow.setToolTip(f"Ouvrir {target}")
@@ -1261,7 +1271,10 @@ class SharedGuideManualView(GuideUltimeManualView):
         )
         self.participants_button.setToolButtonStyle(Qt.ToolButtonIconOnly)
         self.participants_button.setSizePolicy(QSizePolicy.Fixed, QSizePolicy.Fixed)
-        self.participants_button.setFixedSize(28, 24)
+        self.participants_button.setFixedSize(
+            UNITY_CONTROL_SIZES_PX["progress_toggle_width"],
+            UNITY_CONTROL_SIZES_PX["progress_toggle_height"],
+        )
         self.participants_button.setIconSize(QSize(19, 19))
         self.participants_button.setCheckable(True)
         self.participants_button.setCursor(Qt.PointingHandCursor)
@@ -1871,7 +1884,9 @@ class SharedGuideManualView(GuideUltimeManualView):
             counter.setObjectName("GuidePreparationQuantity")
             counter.setRange(0, max(1, int(quantity)))
             counter.setSuffix(f" / {quantity}")
-            counter.setFixedWidth(100)
+            counter.setFixedWidth(
+                UNITY_CONTROL_SIZES_PX["guide_quantity_width"]
+            )
             counter.setToolTip("Quantité déjà possédée (brouillon de cette session)")
             draft = self._preparation_quantity_drafts.get(
                 need.item_key, int(quantity) if ready else 0
@@ -1902,14 +1917,18 @@ class SharedGuideManualView(GuideUltimeManualView):
             lambda checked, row=need: self._set_need_ready(row, checked)
         )
         # Same indexed row in every guide: ready | quantity | copyable name.
-        ready_button.setFixedWidth(22)
+        ready_button.setFixedWidth(
+            UNITY_CONTROL_SIZES_PX["guide_validation_width"]
+        )
         top.addWidget(ready_button, 0, Qt.AlignVCenter)
         if counter is not None:
             top.addWidget(counter, 0, Qt.AlignVCenter)
         else:
             missing_quantity = QLabel("—")
             missing_quantity.setObjectName("GuidePreparationQuantityPlaceholder")
-            missing_quantity.setFixedWidth(100)
+            missing_quantity.setFixedWidth(
+                UNITY_CONTROL_SIZES_PX["guide_quantity_width"]
+            )
             missing_quantity.setAlignment(Qt.AlignCenter)
             top.addWidget(missing_quantity, 0, Qt.AlignVCenter)
         top.addWidget(item_button, 1, Qt.AlignVCenter)
