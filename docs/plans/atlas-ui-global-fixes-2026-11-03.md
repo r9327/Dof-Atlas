@@ -857,3 +857,15 @@ La capture Windows `Personnage` (profil temporaire vide) a révélé que `Charac
   **Tests non exécutés ici**, pas de CI intermédiaire demandée.
 - Ces correctifs réduisent un écart réel entre Dev UI et écrans
   consommateurs ; ils ne certifient pas les autres critères de la PR #365.
+
+
+### Navigation principale — sélecteur Personnage sur le composant commun (15/11/2026)
+
+- Le sélecteur `TopNavCharacterCombo` du shell instanciant encore un
+  `QComboBox` natif, contrairement à la Dev UI, Quêtes, Succès et Personnage,
+  est passé à `AtlasComboBox` **sans changer son objectName, son signal,
+  sa largeur, ses items, ni le chargement différé des portraits**.
+- Le même délégué de séparation et la limite de huit lignes visibles (avec
+  scroll) sont désormais définis par `app/ui/components.py` pour le shell.
+- Garde-fou source ajouté dans `tests/test_ui_universal_contract.py`,
+  exécution Qt / CI reportée à la validation finale conformément à la demande.
