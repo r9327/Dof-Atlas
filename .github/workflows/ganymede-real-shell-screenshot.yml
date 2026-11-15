@@ -8,6 +8,7 @@ on:
     paths:
       - .github/workflows/ganymede-real-shell-screenshot.yml
       - app/modules/encyclopedia/views/ganymede_guide_shell.py
+      - app/modules/encyclopedia/views/guide_catalog_view.py
       - tests/test_ganymede_guide_shell.py
 
 permissions:
@@ -57,11 +58,8 @@ jobs:
           backdrop.setWindowTitle("Atlas - Guide Ganymede - vrai conteneur Qt")
           backdrop.resize(1280, 720)
           layout = QVBoxLayout(backdrop)
-          print("DEBUG: before shell construction", flush=True)
           shell = GanymedeGuideShell(lambda: None, backdrop)
-          print("DEBUG: shell constructed", flush=True)
           shell.set_listing(cawotte)
-          print("DEBUG: listing attached", flush=True)
           layout.addWidget(shell)
           backdrop.show()
           app.processEvents()
