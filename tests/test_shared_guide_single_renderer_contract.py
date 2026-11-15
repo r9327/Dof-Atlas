@@ -101,9 +101,14 @@ class SharedGuideSingleRendererContractTests(unittest.TestCase):
         assert 'replacement_status") == "TRUSTED_SOURCE_STEPS"' in continuous_router
         for renderer in (continuous, shared):
             for role in ("GuideCompactHeader", "GuideGlobalProgress",
-                         "GuideMetricDropdown", "GuideParticipantsButton",
-                         "GuideCompactPreparationProgress"):
+                         "GuideParticipantsButton", "GuideCompactPreparationProgress"):
                 assert role in renderer, (role, renderer[:80])
+        # Drawer geometry/arrow behaviour now lives in the indexed shared
+        # component instead of duplicating an object name in every renderer.
+        controls = (ROOT / "app/ui/components.py").read_text(encoding="utf-8")
+        assert 'self.setObjectName("GuideMetricDropdown")' in controls
+        assert "AtlasGuideDisclosure(" in shared
+        assert "GuideMetricDropdown" in continuous
         assert "background" not in (VIEWS / "guide_continuous_route_panel.py").name
 
     def test_sylvestre_has_no_dedicated_qss_or_style_selector(self) -> None:
