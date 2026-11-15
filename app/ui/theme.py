@@ -2674,6 +2674,33 @@ QFrame#GuidePreparationRow {
     border-radius: @RADIUS_XS;
 }
 
+/* The preparation viewport must not paint native gray over the Unity panel. */
+QScrollArea#GuidePreparationScroll,
+QWidget#GuidePreparationContent,
+QScrollArea#GuidePreparationScroll > QWidget#qt_scrollarea_viewport {
+    background: transparent;
+    border: none;
+}
+QLabel#GuidePreparationQuantityPlaceholder {
+    background: transparent;
+    color: @TEXT_MUTED;
+    font-size: @FONT_SMALL;
+}
+QPushButton#GuidePreparationItemCopy {
+    background: transparent;
+    color: @BORDER;
+    border: 1px solid transparent;
+    border-radius: @RADIUS_XS;
+    padding: 3px 5px;
+    text-align: left;
+}
+QPushButton#GuidePreparationItemCopy:hover,
+QPushButton#GuidePreparationItemCopy:focus {
+    background: @PANEL_HOVER;
+    border-color: @GREEN_BORDER;
+    color: @GREEN_BORDER;
+}
+
 QLabel#GuidePreparationRowLabel {
     color: @TEXT_SOFT;
     font-size: @FONT_BODY;
