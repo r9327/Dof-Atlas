@@ -19,7 +19,6 @@ from PySide6.QtWidgets import (
     QApplication,
     QCalendarWidget,
     QCheckBox,
-    QComboBox,
     QDialog,
     QFrame,
     QHBoxLayout,
@@ -65,7 +64,7 @@ from app.services.character_data_service import CharacterDataService
 from app.services.character_order_service import CharacterOrderService
 from app.storage import default_profiles, item_id, normalize_key, read_json, write_json
 from app.ui.components import (
-    AtlasBreadcrumb, AtlasButton, AtlasDialog, AtlasDialogHeader, AtlasPageTitle,
+    AtlasBreadcrumb, AtlasButton, AtlasComboBox, AtlasDialog, AtlasDialogHeader, AtlasPageTitle,
     AtlasStatusBadge, apply_unity_calendar_weekdays, atlas_application_icon,
 )
 from app.ui.preload_popup import PreloadProgressPopup
@@ -1122,7 +1121,7 @@ class AtlasWindow(QMainWindow):
 
         layout.addStretch(1)
 
-        self.character_combo = QComboBox()
+        self.character_combo = AtlasComboBox()
         self.character_combo.setObjectName("TopNavCharacterCombo")
         self.character_combo.setMinimumWidth(150)
         self.character_combo.setMaximumWidth(210)
