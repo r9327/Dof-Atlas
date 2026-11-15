@@ -461,11 +461,13 @@ class ModularDomainRoutingTests(unittest.TestCase):
     def test_reviewed_ai_skills_are_ci_owned_without_opening_unknown_paths(self):
         from tools.ci_domain_certification import REVIEWED_CI_INSTRUCTION_PATHS
 
-        # All 11 new paths reuse the existing, canonical reviewed-path set.
+        # These exact paths reuse the existing, canonical reviewed-path set.
         new_paths = (
             ".ai/context-map.yaml",
             ".ai/scopes/quality_ci.yaml",
+            ".ai/scopes/encyclopedia_guide.yaml",
             "tests/test_ai_workflow_skills.py",
+            "tests/test_agent_scope_tests.py",
             ".agents/skills/codebase-navigation/SKILL.md",
             ".agents/skills/dofus-data-provenance/SKILL.md",
             ".agents/skills/evidence-driven-validation/SKILL.md",
@@ -475,6 +477,7 @@ class ModularDomainRoutingTests(unittest.TestCase):
             ".agents/skills/root-cause-debugging/SKILL.md",
             ".agents/skills/safe-architecture-cleanup/SKILL.md",
         )
+        self.assertEqual(len(new_paths), 13)
         self.assertEqual(len(set(new_paths)), len(new_paths))
         self.assertTrue(set(new_paths).issubset(REVIEWED_CI_INSTRUCTION_PATHS))
         for path in new_paths:
@@ -490,6 +493,8 @@ class ModularDomainRoutingTests(unittest.TestCase):
             ".agents/skills/unreviewed/SKILL.md",
             ".agents/skills/unreviewed/execute.py",
             ".ai/scopes/unreviewed.yaml",
+            ".ai/scopes/encyclopedia_unreviewed.yaml",
+            "tests/test_agent_scope_unreviewed.py",
             "tests/test_unknown_ai_workflow.py",
         ):
             self.assertFalse(owners_for(path), path)

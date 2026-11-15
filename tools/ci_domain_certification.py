@@ -46,11 +46,13 @@ REVIEWED_CI_INSTRUCTION_PATHS = frozenset({
     # Additional reviewed AI guidance and skills; exact paths only.
     ".ai/context-map.yaml",
     ".ai/scopes/quality_ci.yaml",
+    ".ai/scopes/encyclopedia_guide.yaml",
     # Reviewed Organizer Mirror scope manifests, not a broad scope wildcard.
     ".ai/scopes/organizer.yaml",
     ".ai/scopes/macro_runtime.yaml",
     ".ai/scopes/persistence_identity.yaml",
     "tests/test_ai_workflow_skills.py",
+    "tests/test_agent_scope_tests.py",
     ".agents/skills/codebase-navigation/SKILL.md",
     ".agents/skills/dofus-data-provenance/SKILL.md",
     ".agents/skills/evidence-driven-validation/SKILL.md",
