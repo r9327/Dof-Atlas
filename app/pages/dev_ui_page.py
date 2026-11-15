@@ -434,7 +434,7 @@ class DevUiPage(QWidget):
         """Show real shared Guide header parts without a second UI skin or runtime."""
         # Import only when the developer-only page is explicitly opened.
         from app.modules.encyclopedia.views.shared_manual_guide_view import (
-            _GuideProgressDonut, _ParticipantPortraitButton, _guide_symbol_icon,
+            _ParticipantPortraitButton, _guide_symbol_icon,
         )
         from app.modules.encyclopedia.views.guide_ultime_manual_view import (
             GuideManualProgressBar,
@@ -486,24 +486,6 @@ class DevUiPage(QWidget):
         outer.setContentsMargins(10, 6, 10, 7)
         outer.setSpacing(10)
 
-        # Exact Qt-painted donut from the real shared Guide implementation.
-        donut_column = QVBoxLayout()
-        donut_column.setSpacing(2)
-        donut_column.addStretch(1)
-        donut_heading = QLabel("PROGRESSION")
-        donut_heading.setObjectName("GuideCompactDonutHeading")
-        donut_heading.setAlignment(Qt.AlignCenter)
-        donut_column.addWidget(donut_heading)
-        self.preview_header_donut = _GuideProgressDonut()
-        self.preview_header_donut.set_percent(35)
-        donut_column.addWidget(self.preview_header_donut, 0, Qt.AlignHCenter)
-        self.preview_header_donut_count = QLabel("7 fiches validées")
-        self.preview_header_donut_count.setObjectName("GuideCompactDonutCount")
-        self.preview_header_donut_count.setAlignment(Qt.AlignCenter)
-        donut_column.addWidget(self.preview_header_donut_count)
-        donut_column.addStretch(1)
-        outer.addLayout(donut_column, 0)
-
         right = QVBoxLayout()
         right.setSpacing(6)
         outer.addLayout(right, 1)
@@ -543,12 +525,29 @@ class DevUiPage(QWidget):
         self.preview_header_settings.setCheckable(True)
         heading.addWidget(self.preview_header_settings)
         right.addLayout(heading)
+        overall_caption = QHBoxLayout()
+        overall_title = QLabel("PROGRESSION GLOBALE")
+        overall_title.setObjectName("GuideGlobalProgressTitle")
+        overall_caption.addWidget(overall_title)
+        overall_caption.addStretch(1)
+        overall_value = QLabel("35 %")
+        overall_value.setObjectName("GuideCompactMetricValue")
+        overall_caption.addWidget(overall_value)
+        right.addLayout(overall_caption)
+        self.preview_header_global_progress = QProgressBar()
+        self.preview_header_global_progress.setObjectName("GuideGlobalProgress")
+        self.preview_header_global_progress.setRange(0, 100)
+        self.preview_header_global_progress.setValue(35)
+        self.preview_header_global_progress.setTextVisible(False)
+        self.preview_header_global_progress.setFixedHeight(11)
+        right.addWidget(self.preview_header_global_progress)
 
         self.preview_header_metrics: dict[str, QProgressBar] = {}
         self.preview_header_metric_icons: dict[str, QLabel] = {}
         self.preview_header_controls: dict[str, QToolButton] = {}
         metrics = QHBoxLayout()
         metrics.setSpacing(12)
+        self.preview_header_metric_columns: dict[str, QVBoxLayout] = {}
         for name, role, amount, icon_symbol, color_role in (
             ("Route", "GuideManualProgress", 35, "target", "RED"),
             ("Préparation", "GuideCompactPreparationProgress", 60, "cube", "GREEN"),
@@ -604,8 +603,11 @@ class DevUiPage(QWidget):
             meter_row.addWidget(arrow)
             block.addLayout(meter_row)
             metrics.addLayout(block, 1)
+            self.preview_header_metric_columns[target] = block
             self.preview_header_controls[target] = arrow
             self.preview_header_metrics[name] = bar
+        self.preview_header_people_control_column = QVBoxLayout()
+        metrics.addLayout(self.preview_header_people_control_column, 0)
         right.addLayout(metrics)
 
         # The progress arrows own both dropdowns; no duplicate text buttons.
@@ -618,7 +620,9 @@ class DevUiPage(QWidget):
         character_toggle.setToolTip("Personnages")
         character_toggle.setAccessibleName("Personnages")
         character_toggle.setCheckable(True)
-        heading.insertWidget(max(0, heading.count() - 1), character_toggle)
+        self.preview_header_people_control_column.addWidget(
+            character_toggle, 0, Qt.AlignTop
+        )
         self.preview_header_controls["Personnages"] = character_toggle
 
         self.preview_header_panels: dict[str, QFrame] = {}
@@ -674,19 +678,14 @@ class DevUiPage(QWidget):
                     amount.setMaximumWidth(112)
                     amount.setToolTip("Quantité possédée · aperçu fictif")
                     row.addWidget(amount)
-                    validate = QToolButton()
+                    validate = QCheckBox()
                     validate.setObjectName("GuidePreparationReady")
-                    validate.setCheckable(True)
                     validate.setChecked(done)
-                    validate.setIcon(_guide_symbol_icon(validate, "check", size=14))
-                    validate.setIconSize(QSize(14, 14))
-                    validate.setToolButtonStyle(Qt.ToolButtonTextBesideIcon)
-                    validate.setText("Validé" if done else "Valider")
                     validate.setToolTip("Marquer comme prêt · aperçu fictif")
+                    validate.setAccessibleName(f"Valider {name}")
                     validate.toggled.connect(
-                        lambda checked, widget=validate, spin=amount: (
-                            widget.setText("Validé" if checked else "Valider"),
-                            spin.setValue(spin.maximum() if checked else 0),
+                        lambda checked, spin=amount: spin.setValue(
+                            spin.maximum() if checked else 0
                         )
                     )
                     row.addWidget(validate)
@@ -760,7 +759,10 @@ class DevUiPage(QWidget):
                 portraits_row.addStretch(1)
                 panel_layout.addLayout(portraits_row)
             panel.setVisible(False)
-            right.addWidget(panel)
+            if label == "Personnages":
+                right.addWidget(panel)
+            else:
+                self.preview_header_metric_columns[label].addWidget(panel)
             toggle = self.preview_header_controls[label]
             toggle.toggled.connect(panel.setVisible)
             if label != "Personnages":
@@ -775,8 +777,7 @@ class DevUiPage(QWidget):
                 )
             )
             self.preview_header_panels[label] = panel
-        # Expose the individual progress rings immediately for visual review.
-        self.preview_header_controls["Personnages"].setChecked(True)
+        # Capture each real state independently; start with every menu closed.
 
         self.preview_header_settings_panel = QFrame()
         self.preview_header_settings_panel.setObjectName("GuideCompactSettingsPanel")
