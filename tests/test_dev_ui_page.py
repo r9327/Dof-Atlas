@@ -316,14 +316,18 @@ class DevUiPageTests(unittest.TestCase):
             self.assertEqual(
                 page.preview_header_controls["Préparation"].objectName(), "GuideMetricDropdown"
             ) 
-            # The character logo is centered between the two bar levels:
-            # no third metric column stealing width from the progress bars.
-            from PySide6.QtWidgets import QHBoxLayout
-            participants_row = page.preview_header_people_control_column.parent()
-            self.assertIsInstance(participants_row, QHBoxLayout)
-            self.assertEqual(participants_row.count(), 3)
-            self.assertIs(participants_row.itemAt(1).layout(),
-                          page.preview_header_people_control_column)
+            # Personnages stays beside Paramètres. Opening its drawer
+            # inserts content right under the action row, before global progress.
+            person_button = page.preview_header_controls["Personnages"]
+            self.assertIs(
+                page.preview_header_title_row.itemAt(
+                    page.preview_header_title_row.count() - 2
+                ).widget(), person_button,
+            )
+            self.assertIs(
+                page.preview_header_content_layout.itemAt(1).widget(),
+                page.preview_header_panels["Personnages"],
+            )
             self.assertEqual(page.preview_header_controls["Sommaire"].width(), 18)
             self.assertEqual(
                 page.preview_header_controls["Personnages"].width(),

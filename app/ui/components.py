@@ -247,7 +247,10 @@ def atlas_guide_character_icon(size: int) -> QIcon:
     source = QPixmap(str(path))
     if source.isNull():
         return QIcon()
-    image = source.toImage()
+    # Reuse Atlas's existing edge-connected dark-background removal,
+    # then crop only the transparent padding of the original Unity sprite.
+    image = clear_connected_dark_background(source.toImage())
+    source = QPixmap.fromImage(image)
     if image.hasAlphaChannel():
         left, top = image.width(), image.height()
         right, bottom = -1, -1

@@ -1085,18 +1085,6 @@ class SharedGuideManualView(GuideUltimeManualView):
 
         right.addWidget(self.global_progress_bar)
 
-        # The indexed character control sits BETWEEN the two progress
-        # levels. The three bars share the same full-width left/right edges.
-        participants_row = QHBoxLayout()
-        participants_row.setContentsMargins(0, 0, 0, 0)
-        participants_row.setSpacing(0)
-        participants_row.addStretch(1)
-        self._participants_control_column = QVBoxLayout()
-        self._participants_control_column.setContentsMargins(0, 0, 0, 0)
-        participants_row.addLayout(self._participants_control_column)
-        participants_row.addStretch(1)
-        right.addLayout(participants_row)
-
         # Two original progress bars, retaining their navigation and values.
         metrics = QGridLayout()
         metrics.setHorizontalSpacing(12)
@@ -1286,8 +1274,10 @@ class SharedGuideManualView(GuideUltimeManualView):
         self.participants_button.setCursor(Qt.PointingHandCursor)
         # Arrow is owned by the Route progress metric.
         self.summary_button.toggled.connect(self._summary_toggled)
-        self._participants_control_column.addWidget(
-            self.participants_button, 0, Qt.AlignVCenter
+        # One row with Guide title / Overlay / Personnages / Paramètres.
+        self._compact_title_row.insertWidget(
+            self._compact_title_row.count() - 1,
+            self.participants_button, 0, Qt.AlignVCenter,
         )
         layout.addLayout(top)
 
@@ -1298,7 +1288,9 @@ class SharedGuideManualView(GuideUltimeManualView):
         self.participants_layout.setSpacing(5)
         self.participants_panel.setVisible(False)
         self.participants_button.toggled.connect(self.participants_panel.setVisible)
-        self._header_content_layout.addWidget(self.participants_panel)
+        # Character dropdown unfolds immediately below the title/actions,
+        # above the global-progress caption and bar.
+        self._header_content_layout.insertWidget(1, self.participants_panel)
 
         self.summary_panel = QFrame()
         self.summary_panel.setObjectName("GuideSummaryPanel")

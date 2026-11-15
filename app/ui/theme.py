@@ -3191,8 +3191,9 @@ QToolButton#GuideMetricDropdown:disabled {
     border: 1px solid transparent;
 }
 QToolButton#GuideParticipantsButton {
-    background: @GLASS_BUTTON;
-    border: 1px solid @GUIDE_TOGGLE_BORDER;
+    /* No second black slab: the clean Unity sprite sits on the title row. */
+    background: transparent;
+    border: 1px solid transparent;
     border-radius: @RADIUS_XS;
     padding: 0;
 }
@@ -3200,6 +3201,10 @@ QToolButton#GuideParticipantsButton:hover,
 QToolButton#GuideParticipantsButton:checked {
     background: @GLASS_HOVER;
     border-color: @GREEN_BORDER;
+}
+QToolButton#GuideParticipantsButton:disabled {
+    background: transparent;
+    border-color: transparent;
 }
 
 /* Shared Guide navigation never falls back to a black native button. */

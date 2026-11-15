@@ -577,6 +577,8 @@ class DevUiPage(QWidget):
         self.preview_header_settings.setCheckable(True)
         heading.addWidget(self.preview_header_settings)
         right.addLayout(heading)
+        self.preview_header_title_row = heading
+        self.preview_header_content_layout = right
         overall_caption = QHBoxLayout()
         overall_title = QLabel("Progression globale")
         overall_title.setObjectName("GuideGlobalProgressTitle")
@@ -595,17 +597,6 @@ class DevUiPage(QWidget):
             UNITY_CONTROL_SIZES_PX["progress_primary"]
         )
         right.addWidget(self.preview_header_global_progress)
-
-        # Same indexed, centered participant row as the live Guide header.
-        participants_row = QHBoxLayout()
-        participants_row.setContentsMargins(0, 0, 0, 0)
-        participants_row.setSpacing(0)
-        participants_row.addStretch(1)
-        self.preview_header_people_control_column = QVBoxLayout()
-        self.preview_header_people_control_column.setContentsMargins(0, 0, 0, 0)
-        participants_row.addLayout(self.preview_header_people_control_column)
-        participants_row.addStretch(1)
-        right.addLayout(participants_row)
 
         self.preview_header_metrics: dict[str, QProgressBar] = {}
         self.preview_header_metric_icons: dict[str, QLabel] = {}
@@ -694,8 +685,9 @@ class DevUiPage(QWidget):
         character_toggle.setToolTip("Personnages")
         character_toggle.setAccessibleName("Personnages")
         character_toggle.setCheckable(True)
-        self.preview_header_people_control_column.addWidget(
-            character_toggle, 0, Qt.AlignVCenter
+        self.preview_header_title_row.insertWidget(
+            self.preview_header_title_row.count() - 1,
+            character_toggle, 0, Qt.AlignVCenter,
         )
         self.preview_header_controls["Personnages"] = character_toggle
 
@@ -846,7 +838,7 @@ class DevUiPage(QWidget):
                 panel_layout.addLayout(portraits_row)
             panel.setVisible(False)
             if label == "Personnages":
-                right.addWidget(panel)
+                right.insertWidget(1, panel)
             else:
                 self.preview_header_metric_columns[label].addWidget(panel)
             toggle = self.preview_header_controls[label]
