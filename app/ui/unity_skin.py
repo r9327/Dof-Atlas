@@ -381,14 +381,20 @@ def unity_skin_stylesheet(palette: Mapping[str, str] | None = None) -> str:
         "QFrame#GuideFeaturedCard QProgressBar#GuideFeaturedProgress::chunk { "
         "background: %s; border-radius: %s; }"
         % (colors["GREEN"], radii["RADIUS_XS"]),
-        "QFrame#GuideCompactHeader, QFrame#GuideSheetHeader, "
-        "QFrame#GuidePreparationPanel { "
+        "QFrame#GuideCompactHeader, QFrame#GuideSheetHeader { "
         "background: qlineargradient(x1:0,y1:0,x2:0,y2:1,"
         "stop:0 %s,stop:1 %s); border: 1px solid %s; "
         "border-top: 1px solid %s; border-radius: %s; }" % (
             translucent("PANEL_2", 0.82), translucent("PANEL", 0.88),
             colors["BORDER_SOFT"],
             translucent("TEXT_SOFT", UNITY_GLASS_INTENSITY),
+            radii["RADIUS_MD"],
+        ),
+        # The expanded preparation drawer uses the indexed blue Unity surface.
+        # Do not inherit the separate darkStone 9-slice or grey glass gradient.
+        "QFrame#GuidePreparationPanel { "
+        "background: %s; border: 1px solid %s; border-radius: %s; }" % (
+            colors["GUIDE_COMPACT_SURFACE"], colors["BORDER_SOFT"],
             radii["RADIUS_MD"],
         ),
         # Small bevels and stronger contrast for the real guide surfaces.
@@ -409,10 +415,11 @@ def unity_skin_stylesheet(palette: Mapping[str, str] | None = None) -> str:
         ),
         "QPushButton#GuidePreparationItemCopy { "
         "text-align: left; background: transparent; border: none; "
-        "color: %s; padding: 3px; }" % colors["GUIDE_ITEM_TEXT"],
+        "color: %s; padding: 3px; }" % colors["GUIDE_TOGGLE_BORDER"],
         "QPushButton#GuidePreparationItemCopy:hover { "
-        "background: %s; border-radius: %s; }" % (
-            translucent("GUIDE_COPY_HOVER", 0.30), radii["RADIUS_XS"],
+        "background: %s; border: 1px solid %s; color: %s; border-radius: %s; }" % (
+            translucent("GUIDE_COPY_HOVER", 0.30),
+            colors["GREEN_BORDER"], colors["GREEN_BORDER"], radii["RADIUS_XS"],
         ),
         "QLabel#GuidePreparationRowStatus, QLabel#GuidePreparationParticipantNeed { "
         "color: %s; font-weight: 600; }" % colors["GUIDE_STATUS_TEXT"],
@@ -517,10 +524,8 @@ def unity_skin_stylesheet(palette: Mapping[str, str] | None = None) -> str:
     # The tiny green button sprite turns the whole Guide header neon yellow
     # at Windows DPI. Keep the dark-stone beveled QSS above for secondary
     # toggles; reserve green action sprites for the actual Valider command.
-    add_border(
-        "QFrame#GuidePreparationPanel, QFrame#GuideSummaryPanel",
-        "Assets_UI_Themes_darkStone_common_bg_small_border_light-png.png", 6,
-    )
+    # No darkStone 9-slice on Guide drawers: its grey texture overrides
+    # the blue palette surface and the subtle glass-style border.
     sprites_for_states(
         "QPushButton#GuideManualNavButton",
         "btn_arrow_pagination", 5,
