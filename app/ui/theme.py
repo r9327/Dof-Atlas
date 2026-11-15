@@ -3128,8 +3128,78 @@ QFrame#GuideParticipantsPanel {
     border: none;
 }
 
+/* The arrow complements its progress bar; it is not a replacement bar. */
+QToolButton#GuideMetricDropdown {
+    background: @GLASS_BUTTON;
+    border: 1px solid @GUIDE_TOGGLE_BORDER;
+    border-radius: @RADIUS_XS;
+    color: @TEXT_SOFT;
+    padding: 1px;
+}
+QToolButton#GuideMetricDropdown:hover,
+QToolButton#GuideMetricDropdown:checked {
+    background: @PANEL_ACTIVE;
+    border-color: @GREEN_BORDER;
+    color: @TEXT;
+}
+
+/* Shared Guide navigation never falls back to a black native button. */
+QPushButton#GuideManualGuideButton {
+    background: qlineargradient(x1:0,y1:0,x2:0,y2:1,
+        stop:0 @GUIDE_TOGGLE_TOP,stop:1 @GUIDE_TOGGLE_BOTTOM);
+    border: 1px solid @GUIDE_TOGGLE_BORDER;
+    border-radius: @RADIUS_XS;
+    color: @TEXT;
+    padding: 3px 8px;
+    font-weight: 700;
+}
+QPushButton#GuideManualGuideButton:hover {
+    background: @GUIDE_TOGGLE_HOVER;
+    border-color: @GUIDE_TOGGLE_ACTIVE_BORDER;
+}
+QPushButton#GuideManualGuideButton:pressed {
+    background: @GUIDE_TOGGLE_ACTIVE;
+}
+
+/* Guide menus, selection surfaces and counters share the Unity roles. */
+QSpinBox#GuideCompactPageJump,
+QSpinBox#GuidePreparationQuantity {
+    background: @FIELD_SURFACE;
+    color: @TEXT;
+    border: 1px solid @GUIDE_TOGGLE_BORDER;
+    border-radius: @RADIUS_XS;
+    padding: 3px 4px;
+    min-height: 22px;
+}
+QSpinBox#GuideCompactPageJump:focus,
+QSpinBox#GuidePreparationQuantity:focus {
+    border-color: @GREEN_BORDER;
+}
+QSpinBox#GuideCompactPageJump::up-button,
+QSpinBox#GuideCompactPageJump::down-button,
+QSpinBox#GuidePreparationQuantity::up-button,
+QSpinBox#GuidePreparationQuantity::down-button {
+    background: @NAV_SURFACE;
+    border-left: 1px solid @BORDER_SOFT;
+    width: 16px;
+}
+QListWidget#GuideSummaryList::item {
+    background: transparent;
+    color: @TEXT_SOFT;
+    padding: 5px 8px;
+}
+QListWidget#GuideSummaryList::item:hover {
+    background: @PANEL_HOVER;
+    color: @TEXT;
+}
+QListWidget#GuideSummaryList::item:selected {
+    background: @PANEL_ACTIVE;
+    border-left: 2px solid @GREEN_BORDER;
+    color: @TEXT;
+}
+
 QToolButton#GuidePreparationToggle {
-    background: @PANEL;
+    background: @GLASS_BUTTON;
     color: @TEXT;
     border: 1px solid @BORDER;
     border-radius: @RADIUS_SM;
@@ -3145,7 +3215,7 @@ QToolButton#GuidePreparationToggle:checked {
 }
 
 QPushButton#GuidePreparationFilter {
-    background: transparent;
+    background: @GLASS_BUTTON;
     color: @TEXT_MUTED;
     border: 1px solid @BORDER_SOFT;
     border-radius: @RADIUS_XS;
@@ -3162,7 +3232,7 @@ QPushButton#GuidePreparationFilter:checked {
 
 QFrame#GuidePreparationSummary,
 QFrame#GuidePreparationRow {
-    background: @PANEL_2;
+    background: @GLASS_BUTTON;
     border: 1px solid @BORDER_SOFT;
     border-radius: @RADIUS_XS;
 }
@@ -3173,15 +3243,18 @@ QLabel#GuidePreparationRowLabel {
 }
 
 QToolButton#GuidePreparationReady {
-    background: transparent;
-    color: @TEXT_MUTED;
-    border: 1px solid @BORDER_SOFT;
-    border-radius: @RADIUS_LG;
-    min-width: 20px;
-    max-width: 20px;
-    min-height: 20px;
-    max-height: 20px;
-    padding: 0;
+    background: @GLASS_BUTTON;
+    color: @TEXT_SOFT;
+    border: 1px solid @GUIDE_TOGGLE_BORDER;
+    border-radius: @RADIUS_XS;
+    min-height: 24px;
+    min-width: 63px;
+    padding: 2px 7px;
+    font-weight: 700;
+}
+QToolButton#GuidePreparationReady:hover {
+    background: @PANEL_HOVER;
+    border-color: @GREEN_BORDER;
 }
 
 QToolButton#GuidePreparationReady:checked {

@@ -300,7 +300,7 @@ class DevUiPageTests(unittest.TestCase):
             )
             self.assertIsInstance(page.preview_header_donut, _GuideProgressDonut)
             self.assertEqual(page.preview_header_donut._percent, 35)
-            self.assertEqual(page.preview_header_donut_count.text(), "7 / 20 fiches")
+            self.assertEqual(page.preview_header_donut_count.text(), "7 fiches validées")
             self.assertEqual(page.preview_header_page_jump.suffix(), " / 20")
             self.assertIs(
                 page.preview_header_page_jump.parentWidget(),
@@ -310,6 +310,22 @@ class DevUiPageTests(unittest.TestCase):
             self.assertFalse(page.preview_header_overlay.isEnabled())
             self.assertEqual(set(page.preview_header_metric_icons),
                              {"Route", "Préparation"})
+            self.assertEqual(
+                page.preview_header_controls["Sommaire"].objectName(), "GuideMetricDropdown"
+            )
+            self.assertEqual(
+                page.preview_header_controls["Préparation"].objectName(), "GuideMetricDropdown"
+            )
+            self.assertEqual(len(page.preview_header_preparation_rows), 3)
+            quantity, validate = page.preview_header_preparation_rows[1]
+            self.assertEqual(quantity.suffix(), " / 1")
+            self.assertEqual(validate.text(), "Valider")
+            validate.click()
+            self.assertEqual((quantity.value(), validate.text()), (1, "Validé"))
+            filters = page.preview_header_filter_group.buttons()
+            filters[1].click()
+            self.assertEqual(sum(button.isChecked() for button in filters), 1)
+
             self.assertTrue(all(not icon.pixmap().isNull()
                                 for icon in page.preview_header_metric_icons.values()))
             self.assertTrue(page.preview_header_panels["Personnages"].isVisibleTo(

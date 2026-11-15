@@ -15,6 +15,7 @@ from PySide6.QtWidgets import (
     QAbstractItemView,
     QCheckBox,
     QCalendarWidget,
+    QButtonGroup,
     QDateEdit,
     QDoubleSpinBox,
     QFrame,
@@ -496,7 +497,7 @@ class DevUiPage(QWidget):
         self.preview_header_donut = _GuideProgressDonut()
         self.preview_header_donut.set_percent(35)
         donut_column.addWidget(self.preview_header_donut, 0, Qt.AlignHCenter)
-        self.preview_header_donut_count = QLabel("7 / 20 fiches")
+        self.preview_header_donut_count = QLabel("7 fiches validées")
         self.preview_header_donut_count.setObjectName("GuideCompactDonutCount")
         self.preview_header_donut_count.setAlignment(Qt.AlignCenter)
         donut_column.addWidget(self.preview_header_donut_count)
@@ -545,6 +546,7 @@ class DevUiPage(QWidget):
 
         self.preview_header_metrics: dict[str, QProgressBar] = {}
         self.preview_header_metric_icons: dict[str, QLabel] = {}
+        self.preview_header_controls: dict[str, QToolButton] = {}
         metrics = QHBoxLayout()
         metrics.setSpacing(12)
         for name, role, amount, icon_symbol, color_role in (
@@ -587,40 +589,37 @@ class DevUiPage(QWidget):
                         f"Guide · navigation route {round(fraction * 100)} % (aperçu)"
                     )
                 )
-            block.addWidget(bar)
+            meter_row = QHBoxLayout()
+            meter_row.setSpacing(5)
+            meter_row.addWidget(bar, 1, Qt.AlignVCenter)
+            arrow = QToolButton()
+            arrow.setObjectName("GuideMetricDropdown")
+            arrow.setCheckable(True)
+            arrow.setArrowType(Qt.RightArrow)
+            arrow.setFixedSize(28, 24)
+            arrow.setCursor(Qt.PointingHandCursor)
+            target = "Sommaire" if name == "Route" else "Préparation"
+            arrow.setToolTip(f"Ouvrir {target}")
+            arrow.setAccessibleName(f"Afficher {target}")
+            meter_row.addWidget(arrow)
+            block.addLayout(meter_row)
             metrics.addLayout(block, 1)
+            self.preview_header_controls[target] = arrow
             self.preview_header_metrics[name] = bar
         right.addLayout(metrics)
 
-        controls = QHBoxLayout()
-        controls.setSpacing(7)
-        self.preview_header_controls: dict[str, QToolButton] = {}
-        for label, role, icon_symbol in (
-            ("Préparation", "GuidePreparationToggle", "clipboard"),
-            ("Sommaire", "GuideSummaryButton", "summary"),
-            ("Personnages", "GuideParticipantsButton", "people"),
-        ):
-            toggle = QToolButton()
-            toggle.setObjectName(role)
-            toggle.setIcon(_guide_symbol_icon(toggle, icon_symbol))
-            toggle.setIconSize(QSize(16, 16))
-            toggle.setText(label if label != "Personnages" else "")
-            toggle.setToolButtonStyle(
-                Qt.ToolButtonIconOnly if label == "Personnages"
-                else Qt.ToolButtonTextBesideIcon
-            )
-            toggle.setFixedHeight(28)
-            toggle.setToolTip(label)
-            toggle.setAccessibleName(label)
-            toggle.setCheckable(True)
-            if label == "Personnages":
-                toggle.setFixedWidth(32)
-            else:
-                toggle.setArrowType(Qt.RightArrow)
-            controls.addWidget(toggle)
-            self.preview_header_controls[label] = toggle
-        controls.addStretch(1)
-        right.addLayout(controls)
+        # The progress arrows own both dropdowns; no duplicate text buttons.
+        character_toggle = QToolButton()
+        character_toggle.setObjectName("GuideParticipantsButton")
+        character_toggle.setIcon(_guide_symbol_icon(character_toggle, "people"))
+        character_toggle.setIconSize(QSize(16, 16))
+        character_toggle.setToolButtonStyle(Qt.ToolButtonIconOnly)
+        character_toggle.setFixedSize(32, 28)
+        character_toggle.setToolTip("Personnages")
+        character_toggle.setAccessibleName("Personnages")
+        character_toggle.setCheckable(True)
+        heading.insertWidget(max(0, heading.count() - 1), character_toggle)
+        self.preview_header_controls["Personnages"] = character_toggle
 
         self.preview_header_panels: dict[str, QFrame] = {}
         for label, role in (
@@ -638,11 +637,14 @@ class DevUiPage(QWidget):
                 heading.setObjectName("GuidePreparationSummary")
                 panel_layout.addWidget(heading)
                 filters = QHBoxLayout()
+                self.preview_header_filter_group = QButtonGroup(self)
+                self.preview_header_filter_group.setExclusive(True)
                 for name in ("Tout", "Objets", "Potions", "Clefs"):
                     button = AtlasButton(name, variant="secondary")
                     button.setObjectName("GuidePreparationFilter")
                     button.setCheckable(True)
                     button.setChecked(name == "Tout")
+                    self.preview_header_filter_group.addButton(button)
                     button.clicked.connect(
                         lambda _checked=False, value=name: self._report(
                             f"Préparation · filtre {value} (aperçu)"
@@ -651,6 +653,7 @@ class DevUiPage(QWidget):
                     filters.addWidget(button)
                 filters.addStretch(1)
                 panel_layout.addLayout(filters)
+                self.preview_header_preparation_rows: list[tuple[QSpinBox, QToolButton]] = []
                 for name, quantity, done in (
                     ("Potion de rappel", 2, True),
                     ("Clef du donjon", 1, False),
@@ -660,21 +663,34 @@ class DevUiPage(QWidget):
                     row_frame.setObjectName("GuidePreparationRow")
                     row = QHBoxLayout(row_frame)
                     row.setContentsMargins(8, 3, 8, 3)
-                    label_widget = QLabel(f"{quantity}× {name}")
+                    label_widget = QLabel(name)
                     label_widget.setObjectName("GuidePreparationRowLabel")
                     row.addWidget(label_widget, 1)
-                    check = QToolButton()
-                    check.setObjectName("GuidePreparationReady")
-                    check.setCheckable(True)
-                    check.setChecked(done)
-                    check.setToolTip("Marquer comme prêt · aperçu fictif")
-                    check.setText("✓" if done else "")
-                    check.toggled.connect(
-                        lambda value, widget=check: widget.setText(
-                            "✓" if value else ""
+                    amount = QSpinBox()
+                    amount.setObjectName("GuidePreparationQuantity")
+                    amount.setRange(0, quantity)
+                    amount.setValue(quantity if done else 0)
+                    amount.setSuffix(f" / {quantity}")
+                    amount.setMaximumWidth(112)
+                    amount.setToolTip("Quantité possédée · aperçu fictif")
+                    row.addWidget(amount)
+                    validate = QToolButton()
+                    validate.setObjectName("GuidePreparationReady")
+                    validate.setCheckable(True)
+                    validate.setChecked(done)
+                    validate.setIcon(_guide_symbol_icon(validate, "check", size=14))
+                    validate.setIconSize(QSize(14, 14))
+                    validate.setToolButtonStyle(Qt.ToolButtonTextBesideIcon)
+                    validate.setText("Validé" if done else "Valider")
+                    validate.setToolTip("Marquer comme prêt · aperçu fictif")
+                    validate.toggled.connect(
+                        lambda checked, widget=validate, spin=amount: (
+                            widget.setText("Validé" if checked else "Valider"),
+                            spin.setValue(spin.maximum() if checked else 0),
                         )
                     )
-                    row.addWidget(check)
+                    row.addWidget(validate)
+                    self.preview_header_preparation_rows.append((amount, validate))
                     panel_layout.addWidget(row_frame)
             elif label == "Sommaire":
                 self.preview_header_summary_search = QLineEdit()
