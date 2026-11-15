@@ -946,8 +946,12 @@ class AtlasWindow(QMainWindow):
         self.module_subnav = QFrame()
         self.module_subnav.setObjectName("ModuleSubNav")
         self.module_subnav_layout = QHBoxLayout(self.module_subnav)
-        self.module_subnav_layout.setContentsMargins(10, 4, 10, 4)
-        self.module_subnav_layout.setSpacing(4)
+        self.module_subnav_layout.setContentsMargins(
+            *UNITY_MODULE_GEOMETRY_PX["shell"]["subnav_margins"]
+        )
+        self.module_subnav_layout.setSpacing(
+            UNITY_MODULE_GEOMETRY_PX["shell"]["subnav_spacing"]
+        )
         self.module_subnav.setVisible(False)
         root.addWidget(self.module_subnav)
 
@@ -1010,8 +1014,8 @@ class AtlasWindow(QMainWindow):
         nav = QFrame()
         nav.setObjectName("TopNav")
         layout = QHBoxLayout(nav)
-        layout.setContentsMargins(10, 6, 10, 6)
-        layout.setSpacing(4)
+        layout.setContentsMargins(*UNITY_MODULE_GEOMETRY_PX["shell"]["top_nav_margins"])
+        layout.setSpacing(UNITY_MODULE_GEOMETRY_PX["shell"]["top_nav_spacing"])
 
         self.brand_button = AtlasButton("")
         self.brand_button.setObjectName("TopNavBrand")
@@ -1020,14 +1024,16 @@ class AtlasWindow(QMainWindow):
         self.brand_button.setMinimumWidth(UNITY_MODULE_GEOMETRY_PX["shell"]["brand_min_width"])
         self.brand_button.setCursor(Qt.PointingHandCursor)
         brand_layout = QHBoxLayout(self.brand_button)
-        brand_layout.setContentsMargins(8, 0, 8, 0)
-        brand_layout.setSpacing(8)
+        brand_inset = UNITY_MODULE_GEOMETRY_PX["shell"]["brand_padding_x"]
+        brand_layout.setContentsMargins(brand_inset, 0, brand_inset, 0)
+        brand_layout.setSpacing(UNITY_MODULE_GEOMETRY_PX["shell"]["brand_spacing"])
         self.brand_icon_label = QLabel()
         self.brand_icon_label.setObjectName("TopNavBrandIcon")
         brand_box = UNITY_MODULE_GEOMETRY_PX["shell"]["brand_icon_box"]
         self.brand_icon_label.setFixedSize(brand_box, brand_box)
         self.brand_icon_label.setAlignment(Qt.AlignCenter)
-        self.brand_icon_label.setPixmap(self.shell_icon.pixmap(QSize(30, 30)))
+        brand_artwork = UNITY_MODULE_GEOMETRY_PX["shell"]["brand_artwork"]
+        self.brand_icon_label.setPixmap(self.shell_icon.pixmap(QSize(brand_artwork, brand_artwork)))
         self.brand_icon_label.setAttribute(Qt.WA_TransparentForMouseEvents, True)
         brand_layout.addWidget(self.brand_icon_label)
         brand_text = QLabel(APP_NAME)
@@ -1036,13 +1042,14 @@ class AtlasWindow(QMainWindow):
         brand_layout.addWidget(brand_text, 1)
         self.brand_button.clicked.connect(lambda: self.show_page("Home"))
         layout.addWidget(self.brand_button)
-        layout.addSpacing(8)
+        layout.addSpacing(UNITY_MODULE_GEOMETRY_PX["shell"]["nav_content_gap"])
 
         organizer = AtlasButton("Organizer", variant="navigation")
         inventory_sprite = sprite_icon_path("inventory")
         if inventory_sprite:
             organizer.setIcon(QIcon(str(inventory_sprite)))
-            organizer.setIconSize(QSize(18, 18))
+            nav_icon = UNITY_MODULE_GEOMETRY_PX["shell"]["nav_icon"]
+            organizer.setIconSize(QSize(nav_icon, nav_icon))
         organizer.clicked.connect(lambda: self.show_page("Organizer"))
         layout.addWidget(organizer)
         self.nav_buttons.append((organizer, "Organizer"))
@@ -1133,8 +1140,9 @@ class AtlasWindow(QMainWindow):
         self.settings_button = AtlasButton("")
         self.settings_button.setObjectName("TopNavSettings")
         self.settings_button.setAccessibleName("Paramètres")
-        self.settings_button.setIcon(unity_settings_icon(20))
-        self.settings_button.setIconSize(QSize(20, 20))
+        settings_icon = UNITY_MODULE_GEOMETRY_PX["shell"]["settings_icon"]
+        self.settings_button.setIcon(unity_settings_icon(settings_icon))
+        self.settings_button.setIconSize(QSize(settings_icon, settings_icon))
         settings_box = UNITY_MODULE_GEOMETRY_PX["shell"]["settings_button_box"]
         self.settings_button.setFixedSize(settings_box, settings_box)
         self.settings_button.setToolTip("Paramètres")

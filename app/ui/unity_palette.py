@@ -237,6 +237,8 @@ UNITY_LAYOUT_SIZES_PX = {
     "dialog_header_gap": 14,
     "dialog_header_text_gap": 5,
     "breadcrumb_item_gap": 5,
+    "breadcrumb_compact_inset": 3,
+    "breadcrumb_normal_inset": 5,
     "gallery_section_header_inset": 22,
 }
 
@@ -363,6 +365,10 @@ UNITY_MODULE_GEOMETRY_PX = {
         "brand_min_width": 170, "brand_icon_box": 32,
         "character_selector_min_width": 150, "character_selector_max_width": 210,
         "settings_button_box": 34, "settings_icon": 20, "nav_icon": 18,
+        "subnav_margins": (10, 4, 10, 4), "subnav_spacing": 4,
+        "top_nav_margins": (10, 6, 10, 6), "top_nav_spacing": 4,
+        "brand_padding_x": 8, "brand_spacing": 8, "brand_artwork": 30,
+        "nav_content_gap": 8,
     },
     "home": {
         "page_margin": 26, "column_gutter": 18,

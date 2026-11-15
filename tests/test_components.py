@@ -12,6 +12,7 @@ from PySide6.QtWidgets import QApplication, QWidget
 
 from app.ui.components import (
     AtlasButton,
+    AtlasBreadcrumb,
     AtlasDialog,
     AtlasPageTitle,
     AtlasPanelToggle,
@@ -25,6 +26,26 @@ class SharedUiComponentsTests(unittest.TestCase):
     @classmethod
     def setUpClass(cls) -> None:
         cls.app = QApplication.instance() or QApplication([])
+
+    def test_breadcrumb_insets_use_the_shared_size_index(self) -> None:
+        from app.ui.unity_palette import UNITY_LAYOUT_SIZES_PX, UNITY_SPACING_PX
+
+        values = UNITY_LAYOUT_SIZES_PX
+        for compact, inset_key in (
+            (True, "breadcrumb_compact_inset"),
+            (False, "breadcrumb_normal_inset"),
+        ):
+            breadcrumb = AtlasBreadcrumb(compact=compact)
+            try:
+                inset = values[inset_key]
+                self.assertEqual(
+                    breadcrumb.row.getContentsMargins(),
+                    (UNITY_SPACING_PX["md"], inset, UNITY_SPACING_PX["md"], inset),
+                )
+                self.assertEqual(breadcrumb.row.spacing(),
+                                 values["breadcrumb_item_gap"])
+            finally:
+                breadcrumb.deleteLater()
 
     def test_shared_button_variant_roles_and_real_qt_click(self) -> None:
         root = QWidget()

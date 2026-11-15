@@ -160,7 +160,9 @@ class AtlasBreadcrumb(QFrame):
         super().__init__(parent)
         self.setObjectName("GuideBreadcrumb")
         self.row = QHBoxLayout(self)
-        inset = 3 if compact else 5
+        inset = UNITY_LAYOUT_SIZES_PX[
+            "breadcrumb_compact_inset" if compact else "breadcrumb_normal_inset"
+        ]
         horizontal = UNITY_SPACING_PX["md"]
         self.row.setContentsMargins(horizontal, inset, horizontal, inset)
         self.row.setSpacing(UNITY_LAYOUT_SIZES_PX["breadcrumb_item_gap"])

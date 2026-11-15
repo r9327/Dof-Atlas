@@ -80,6 +80,18 @@ class UiUniversalContractTests(unittest.TestCase):
         self.assertIn('CHARACTER_COMPAT_GEOMETRY["equipment_slot_box"]', source)
         self.assertIn('CHARACTER_COMPAT_GEOMETRY["page_margins"]', source)
 
+    def test_shell_nav_uses_indexed_spacing_without_changing_order(self):
+        from app.ui.unity_palette import UNITY_MODULE_GEOMETRY_PX
+
+        geometry = UNITY_MODULE_GEOMETRY_PX["shell"]
+        source = (REPO_ROOT / "main.py").read_text(encoding="utf-8")
+        self.assertEqual(geometry["subnav_margins"], (10, 4, 10, 4))
+        self.assertEqual(geometry["top_nav_margins"], (10, 6, 10, 6))
+        self.assertIn('UNITY_MODULE_GEOMETRY_PX["shell"]["subnav_margins"]',
+                      source)
+        self.assertIn('UNITY_MODULE_GEOMETRY_PX["shell"]["top_nav_margins"]',
+                      source)
+
     def test_shell_character_selector_uses_the_shared_unity_combo(self):
         # The shell used a bare QComboBox, whose popup could show every
         # character and lacked the Dev UI separator/scroll contract.
