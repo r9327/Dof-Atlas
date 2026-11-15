@@ -9,6 +9,10 @@ from PySide6.QtWidgets import QLabel, QVBoxLayout, QWidget
 
 from app.constants import HUZOUNET_URL
 from app.ui.components import AtlasButton, AtlasPageTitle
+from app.ui.unity_palette import UNITY_MODULE_GEOMETRY_PX
+
+
+EQUIPMENT_GEOMETRY = UNITY_MODULE_GEOMETRY_PX["equipment"]
 
 
 # Legacy shell tests may inject a lightweight fake through the historical module
@@ -48,8 +52,8 @@ class EquipmentPage(QWidget):
         self._legacy_view = None
 
         root = QVBoxLayout(self)
-        root.setContentsMargins(18, 16, 18, 18)
-        root.setSpacing(12)
+        root.setContentsMargins(*EQUIPMENT_GEOMETRY["page_margins"])
+        root.setSpacing(EQUIPMENT_GEOMETRY["page_spacing"])
 
         title = AtlasPageTitle("Équipement")
         root.addWidget(title)

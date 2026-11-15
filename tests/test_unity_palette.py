@@ -85,6 +85,26 @@ class UnityPaletteTests(unittest.TestCase):
 
 
 
+    def test_startup_and_equipment_geometry_are_indexed_without_new_sizes(self) -> None:
+        from app.ui.unity_palette import (
+            UNITY_MODULE_GEOMETRY_OWNERS, UNITY_MODULE_GEOMETRY_PX,
+        )
+
+        self.assertEqual(
+            UNITY_MODULE_GEOMETRY_PX["equipment"]["page_margins"],
+            (18, 16, 18, 18),
+        )
+        self.assertEqual(
+            UNITY_MODULE_GEOMETRY_PX["preload_popup"]["dialog_width"], 470,
+        )
+        self.assertEqual(
+            UNITY_MODULE_GEOMETRY_PX["preload_popup"]["logo_box"], 64,
+        )
+        self.assertEqual(
+            set(UNITY_MODULE_GEOMETRY_OWNERS),
+            set(UNITY_MODULE_GEOMETRY_PX),
+        )
+
     def test_window_and_layout_reference_sizes_are_qt_free(self) -> None:
         from app.constants import (
             DEFAULT_WINDOW_WIDTH, DEFAULT_WINDOW_HEIGHT,

@@ -409,6 +409,13 @@ UNITY_MODULE_GEOMETRY_PX = {
         "summary_height": 74, "menu_button_min_width": 108,
     },
     "world_map": {"canvas_min_size": (420, 320)},
+    # Existing lightweight equipment entry (no embedded browser).
+    "equipment": {"page_margins": (18, 16, 18, 18), "page_spacing": 12},
+    # Existing startup modal dimensions; do not force global dialog sizes.
+    "preload_popup": {
+        "dialog_width": 470, "page_margins": (32, 24, 32, 28),
+        "page_spacing": 14, "logo_box": 64,
+    },
 }
 
 # Each visible Dev UI entry links to the code owning the real constraint.
@@ -423,6 +430,8 @@ UNITY_MODULE_GEOMETRY_OWNERS = {
     "guide_route": "app/modules/encyclopedia/views/guide_continuous_route_panel.py",
     "world_scan": "app/ui/world_scan_panel.py",
     "world_map": "app/ui/map_canvas_widget.py",
+    "equipment": "app/pages/equipment_page.py",
+    "preload_popup": "app/ui/preload_popup.py",
 }
 
 

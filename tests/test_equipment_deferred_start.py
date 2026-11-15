@@ -28,6 +28,19 @@ class EquipmentDeferredStartTests(unittest.TestCase):
         finally:
             page.deleteLater()
 
+    def test_equipment_layout_keeps_indexed_geometry(self) -> None:
+        from app.ui.unity_palette import UNITY_MODULE_GEOMETRY_PX
+
+        page = EquipmentPage(lambda _text: None)
+        try:
+            geometry = UNITY_MODULE_GEOMETRY_PX["equipment"]
+            self.assertEqual(page.layout().getContentsMargins(),
+                             geometry["page_margins"])
+            self.assertEqual(page.layout().spacing(),
+                             geometry["page_spacing"])
+        finally:
+            page.deleteLater()
+
     def test_equipment_shell_is_navigation_ready_before_webengine(self) -> None:
         page = EquipmentPage(lambda _text: None)
         self.assertTrue(page.is_navigation_ready())
