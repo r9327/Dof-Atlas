@@ -26,6 +26,10 @@ from app.modules.encyclopedia.services.guide_continuous_preparation import (
 )
 from app.modules.encyclopedia.services.guide_progress_service import GuideProgressService
 from app.modules.encyclopedia.views.shared_manual_guide_view import _guide_symbol_icon
+from app.ui.unity_palette import UNITY_CONTROL_SIZES_PX, UNITY_MODULE_GEOMETRY_PX
+
+
+ROUTE_GEOMETRY = UNITY_MODULE_GEOMETRY_PX["guide_route"]
 
 
 class _GuideCharacterProgressButton(QToolButton):
@@ -142,7 +146,8 @@ class ContinuousGuideRoutePanel(QWidget):
             button = _GuideCharacterProgressButton()
             button.setObjectName("GuideContinuousCharacterPortrait")
             button.setCheckable(True)
-            button.setFixedSize(34, 34)
+            icon_box = ROUTE_GEOMETRY["route_icon_box"]
+            button.setFixedSize(icon_box, icon_box)
             button.setCursor(Qt.PointingHandCursor)
             button.setToolTip(str(getattr(character, "label", "") or character.key))
             class_key = str(getattr(character, "class_key", "") or "").strip().lower()
@@ -151,7 +156,8 @@ class ContinuousGuideRoutePanel(QWidget):
                 icon = QIcon(str(image_path))
                 if not icon.isNull():
                     button.setIcon(icon)
-                    button.setIconSize(QSize(21, 21))
+                    artwork_size = ROUTE_GEOMETRY["route_icon_artwork"]
+                    button.setIconSize(QSize(artwork_size, artwork_size))
                     button.setToolButtonStyle(Qt.ToolButtonIconOnly)
             if button.icon().isNull():
                 button.setText(button.toolTip()[:1].upper() or "?")
@@ -171,7 +177,7 @@ class ContinuousGuideRoutePanel(QWidget):
         work.setSpacing(9)
         self.summary = QListView()
         self.summary.setObjectName("GuideContinuousSommaire")
-        self.summary.setMinimumWidth(170)
+        self.summary.setMinimumWidth(ROUTE_GEOMETRY["selector_min_width"])
         self.summary_model = QStringListModel([
             f"Fiche {i} — {str(row.get('title') or f'Étape {i}')}"
             for i, row in enumerate(self.rows, 1)
@@ -207,7 +213,7 @@ class ContinuousGuideRoutePanel(QWidget):
         self.preparation_scroll = QScrollArea()
         self.preparation_scroll.setObjectName("GuideContinuousPreparationScroll")
         self.preparation_scroll.setWidgetResizable(True)
-        self.preparation_scroll.setMaximumHeight(136)
+        self.preparation_scroll.setMaximumHeight(ROUTE_GEOMETRY["detail_max_height"])
         self.preparation_label = QLabel()
         self.preparation_label.setObjectName("GuideContinuousPreparationItems")
         self.preparation_label.setTextFormat(Qt.PlainText)
@@ -268,14 +274,14 @@ class ContinuousGuideRoutePanel(QWidget):
         self.global_progress_bar.setObjectName("GuideGlobalProgress")
         self.global_progress_bar.setRange(0, 100)
         self.global_progress_bar.setTextVisible(False)
-        self.global_progress_bar.setFixedHeight(11)
+        self.global_progress_bar.setFixedHeight(UNITY_CONTROL_SIZES_PX["progress_primary"])
         header.addWidget(self.global_progress_bar)
         self.preparation_bar = QProgressBar()
         self.preparation_bar.setObjectName("GuideCompactPreparationProgress")
         self.preparation_bar.setRange(0, 1)
         self.preparation_bar.setValue(0)
         self.preparation_bar.setTextVisible(False)
-        self.preparation_bar.setFixedHeight(7)
+        self.preparation_bar.setFixedHeight(UNITY_CONTROL_SIZES_PX["progress_secondary"])
         self.preparation_bar.setToolTip(
             "Préparation non certifiée : uniquement des références indicatives"
         )
@@ -285,14 +291,23 @@ class ContinuousGuideRoutePanel(QWidget):
         self.summary_toggle.setAccessibleName("Afficher Sommaire")
         self.summary_toggle.setToolButtonStyle(Qt.ToolButtonIconOnly)
         self.summary_toggle.setArrowType(Qt.RightArrow)
-        self.summary_toggle.setFixedSize(28, 24)
+        self.summary_toggle.setFixedSize(
+            UNITY_CONTROL_SIZES_PX["progress_toggle_width"],
+            UNITY_CONTROL_SIZES_PX["progress_toggle_height"],
+        )
         self.preparation_toggle.setObjectName("GuideMetricDropdown")
         self.preparation_toggle.setAccessibleName("Afficher Préparation")
         self.preparation_toggle.setToolButtonStyle(Qt.ToolButtonIconOnly)
         self.preparation_toggle.setArrowType(Qt.RightArrow)
-        self.preparation_toggle.setFixedSize(28, 24)
+        self.preparation_toggle.setFixedSize(
+            UNITY_CONTROL_SIZES_PX["progress_toggle_width"],
+            UNITY_CONTROL_SIZES_PX["progress_toggle_height"],
+        )
         self.participants_button.setObjectName("GuideParticipantsButton")
-        self.participants_button.setFixedSize(28, 24)
+        self.participants_button.setFixedSize(
+            UNITY_CONTROL_SIZES_PX["progress_toggle_width"],
+            UNITY_CONTROL_SIZES_PX["progress_toggle_height"],
+        )
         self.participants_button.setToolButtonStyle(Qt.ToolButtonIconOnly)
         self.participants_button.setIcon(
             _guide_symbol_icon(self.participants_button, "people")

@@ -39,6 +39,45 @@ class ContinuousGuideRoutePanelTests(unittest.TestCase):
         )
         self.addCleanup(self.panel.deleteLater)
 
+    def test_route_header_geometry_uses_dev_ui_tokens_at_four_sizes(self):
+        from app.ui.unity_palette import (
+            UNITY_CONTROL_SIZES_PX, UNITY_MODULE_GEOMETRY_PX,
+            UNITY_WINDOW_PRESETS_PX,
+        )
+
+        geometry = UNITY_MODULE_GEOMETRY_PX["guide_route"]
+        controls = UNITY_CONTROL_SIZES_PX
+        self.assertEqual(self.panel.summary.minimumWidth(),
+                         geometry["selector_min_width"])
+        self.assertEqual(self.panel.preparation_scroll.maximumHeight(),
+                         geometry["detail_max_height"])
+        self.assertEqual(self.panel.global_progress_bar.minimumHeight(),
+                         controls["progress_primary"])
+        self.assertEqual(self.panel.global_progress_bar.maximumHeight(),
+                         controls["progress_primary"])
+        self.assertEqual(self.panel.preparation_bar.minimumHeight(),
+                         controls["progress_secondary"])
+        for preset, dimensions in UNITY_WINDOW_PRESETS_PX.items():
+            with self.subTest(preset=preset):
+                self.panel.resize(*dimensions)
+                self.app.processEvents()
+                for widget in (
+                    self.panel.summary_toggle,
+                    self.panel.preparation_toggle,
+                    self.panel.participants_button,
+                ):
+                    self.assertEqual(widget.minimumWidth(),
+                                     controls["progress_toggle_width"])
+                    self.assertEqual(widget.maximumHeight(),
+                                     controls["progress_toggle_height"])
+                grid = self.panel._metric_grid
+                self.assertIs(grid.itemAtPosition(1, 0).layout().itemAt(1).widget(),
+                              self.panel.summary_toggle)
+                self.assertIs(grid.itemAtPosition(1, 1).layout().itemAt(1).widget(),
+                              self.panel.preparation_toggle)
+                self.assertIs(grid.itemAtPosition(1, 2).widget(),
+                              self.panel.participants_button)
+
     def test_actual_summary_and_navigation_keep_popup_open(self):
         self.assertEqual(
             self.panel.navigation.position().viewed_step_id,
