@@ -209,6 +209,22 @@ class AtlasStatusBadge(QLabel):
         self.update()
 
 
+class AtlasGuideDisclosure(QToolButton):
+    """Shared Guide dropdown: down opens, up closes, with indexed Unity QSS."""
+
+    def __init__(self, parent: QWidget | None = None) -> None:
+        super().__init__(parent)
+        self.setObjectName("GuideMetricDropdown")
+        self.setCheckable(True)
+        self.setCursor(Qt.PointingHandCursor)
+        self.setFocusPolicy(Qt.StrongFocus)
+        self.setArrowType(Qt.DownArrow)
+        self.toggled.connect(self._sync_direction)
+
+    def _sync_direction(self, opened: bool) -> None:
+        self.setArrowType(Qt.UpArrow if opened else Qt.DownArrow)
+
+
 class AtlasPanelToggle(QToolButton):
     """Shared Unity control for collapsing a host-owned information panel.
 

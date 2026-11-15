@@ -328,6 +328,20 @@ class DevUiPageTests(unittest.TestCase):
                 page.preview_header_controls["Personnages"].size(),
                 page.preview_header_controls["Sommaire"].size(),
             )
+            from PySide6.QtCore import Qt
+            disclosure = page.preview_header_controls["Sommaire"]
+            self.assertEqual(disclosure.arrowType(), Qt.DownArrow)
+            disclosure.click()
+            self.assertEqual(disclosure.arrowType(), Qt.UpArrow)
+            disclosure.click()
+            self.assertEqual(disclosure.arrowType(), Qt.DownArrow)
+            self.assertEqual(
+                page.guide_manual_scroll_sample.objectName(), "GuideManualScroll"
+            )
+            self.assertEqual(
+                page.guide_manual_scroll_sample.widget().objectName(),
+                "GuideManualContent",
+            )
 
             self.assertEqual(len(page.preview_header_preparation_rows), 3)
             quantity, validate = page.preview_header_preparation_rows[1]

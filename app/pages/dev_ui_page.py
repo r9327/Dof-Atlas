@@ -58,6 +58,7 @@ from app.ui.components import (
     AtlasDialogHeader,
     AtlasPageTitle,
     AtlasPanelToggle,
+    AtlasGuideDisclosure,
     AtlasStatusBadge,
     atlas_application_icon,
     apply_unity_calendar_weekdays,
@@ -649,10 +650,7 @@ class DevUiPage(QWidget):
             meter_row = QHBoxLayout()
             meter_row.setSpacing(5)
             meter_row.addWidget(bar, 1, Qt.AlignVCenter)
-            arrow = QToolButton()
-            arrow.setObjectName("GuideMetricDropdown")
-            arrow.setCheckable(True)
-            arrow.setArrowType(Qt.RightArrow)
+            arrow = AtlasGuideDisclosure()
             arrow.setFixedSize(
                 UNITY_CONTROL_SIZES_PX["progress_toggle_width"],
                 UNITY_CONTROL_SIZES_PX["progress_toggle_height"],
@@ -691,7 +689,7 @@ class DevUiPage(QWidget):
         character_toggle.setAccessibleName("Personnages")
         character_toggle.setCheckable(True)
         self.preview_header_people_control_column.addWidget(
-            character_toggle, 0, Qt.AlignTop
+            character_toggle, 0, Qt.AlignVCenter
         )
         self.preview_header_controls["Personnages"] = character_toggle
 
@@ -847,12 +845,6 @@ class DevUiPage(QWidget):
                 self.preview_header_metric_columns[label].addWidget(panel)
             toggle = self.preview_header_controls[label]
             toggle.toggled.connect(panel.setVisible)
-            if label != "Personnages":
-                toggle.toggled.connect(
-                    lambda checked, button=toggle: button.setArrowType(
-                        Qt.DownArrow if checked else Qt.RightArrow
-                    )
-                )
             toggle.clicked.connect(
                 lambda checked, name=label: self._report(
                     f"Guide · {name} : {'ouvert' if checked else 'fermé'} (aperçu)"
@@ -2074,6 +2066,18 @@ class DevUiPage(QWidget):
         nav_layout = QHBoxLayout(self.guide_manual_nav)
         nav_layout.addWidget(QLabel("Navigation du guide · fond partagé"))
         section.addWidget(self.guide_manual_nav)
+
+        # Preview the real guide reading surface, without a local stylesheet.
+        self.guide_manual_scroll_sample = QScrollArea()
+        self.guide_manual_scroll_sample.setObjectName("GuideManualScroll")
+        self.guide_manual_scroll_sample.setWidgetResizable(True)
+        self.guide_manual_scroll_sample.setFixedHeight(88)
+        content = QWidget()
+        content.setObjectName("GuideManualContent")
+        content_row = QVBoxLayout(content)
+        content_row.addWidget(QLabel("Zone du texte du guide · bordure complète"))
+        self.guide_manual_scroll_sample.setWidget(content)
+        section.addWidget(self.guide_manual_scroll_sample)
 
         # Use the real Guide Ultime parent selector and the same native
         # QComboBox as Successes. Never apply a per-widget QSS override.

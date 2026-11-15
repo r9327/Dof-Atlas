@@ -428,8 +428,7 @@ def unity_skin_stylesheet(palette: Mapping[str, str] | None = None) -> str:
             translucent("GUIDE_MANUAL_NAV_SURFACE", 0.94),
             colors["GUIDE_NAV_BORDER"],
         ),
-        "QToolButton#GuidePreparationToggle, QToolButton#GuideSummaryButton, "
-        "QToolButton#GuideParticipantsButton { "
+        "QToolButton#GuidePreparationToggle, QToolButton#GuideSummaryButton { "
         "background: qlineargradient(x1:0,y1:0,x2:0,y2:1, "
         "stop:0 %s, stop:1 %s); "
         "color: %s; border: 1px solid %s; "
@@ -437,13 +436,11 @@ def unity_skin_stylesheet(palette: Mapping[str, str] | None = None) -> str:
             colors["GUIDE_TOGGLE_TOP"], colors["GUIDE_TOGGLE_BOTTOM"],
             colors["GUIDE_PREPARATION_TEXT"], colors["GUIDE_TOGGLE_BORDER"],
         ),
-        "QToolButton#GuidePreparationToggle:checked, QToolButton#GuideSummaryButton:checked, "
-        "QToolButton#GuideParticipantsButton:checked { "
+        "QToolButton#GuidePreparationToggle:checked, QToolButton#GuideSummaryButton:checked { "
         "background: %s; border: 1px solid %s; }" % (
             colors["GUIDE_TOGGLE_ACTIVE"], colors["GUIDE_TOGGLE_ACTIVE_BORDER"],
         ),
-        "QToolButton#GuidePreparationToggle:hover, QToolButton#GuideSummaryButton:hover, "
-        "QToolButton#GuideParticipantsButton:hover { "
+        "QToolButton#GuidePreparationToggle:hover, QToolButton#GuideSummaryButton:hover { "
         "background: %s; }" % colors["GUIDE_TOGGLE_HOVER"],
         # Dialogs retain their high-contrast material; menus instead
         # share the panel glass from Dev UI, with one canonical role set.

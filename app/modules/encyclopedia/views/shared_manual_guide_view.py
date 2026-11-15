@@ -39,7 +39,7 @@ from app.modules.encyclopedia.views.guide_ultime_manual_view import (
     GuideUltimeManualView,
 )
 from app.core.text import normalize_key as normalize_text
-from app.ui.components import AtlasButton
+from app.ui.components import AtlasButton, AtlasGuideDisclosure
 from app.ui.unity_palette import UNITY_CONTROL_SIZES_PX, UNITY_SIZES_PX
 from app.ui.unity_skin import apply_unity_panel_shadow, sprite_icon_path
 from app.constants import DATA_DIR
@@ -953,6 +953,7 @@ class SharedGuideManualView(GuideUltimeManualView):
         self.scroll.setFrameShape(QFrame.NoFrame)
         self.scroll.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
         self.content = QWidget()
+        self.content.setObjectName("GuideManualContent")
         self.cards_layout = QVBoxLayout(self.content)
         self.cards_layout.setContentsMargins(8, 2, 8, 8)
         self.cards_layout.setSpacing(8)
@@ -1120,10 +1121,7 @@ class SharedGuideManualView(GuideUltimeManualView):
             line = QHBoxLayout()
             line.setSpacing(5)
             line.addWidget(bar, 1, Qt.AlignVCenter)
-            arrow = QToolButton()
-            arrow.setObjectName("GuideMetricDropdown")
-            arrow.setCheckable(True)
-            arrow.setArrowType(Qt.RightArrow)
+            arrow = AtlasGuideDisclosure()
             arrow.setFixedSize(
                 UNITY_CONTROL_SIZES_PX["progress_toggle_width"],
                 UNITY_CONTROL_SIZES_PX["progress_toggle_height"],
@@ -1281,7 +1279,7 @@ class SharedGuideManualView(GuideUltimeManualView):
         # Arrow is owned by the Route progress metric.
         self.summary_button.toggled.connect(self._summary_toggled)
         self._participants_control_column.addWidget(
-            self.participants_button, 0, Qt.AlignTop
+            self.participants_button, 0, Qt.AlignVCenter
         )
         layout.addLayout(top)
 
@@ -1449,9 +1447,6 @@ class SharedGuideManualView(GuideUltimeManualView):
 
     def _summary_toggled(self, opened: bool) -> None:
         self.summary_panel.setVisible(bool(opened))
-        self.summary_button.setArrowType(
-            Qt.DownArrow if opened else Qt.RightArrow
-        )
         if opened and self.summary_list.count() == 0:
             self._populate_summary()
 
@@ -1490,9 +1485,6 @@ class SharedGuideManualView(GuideUltimeManualView):
         # Sommaire button may close it.
 
     def _preparation_toggled(self, opened: bool) -> None:
-        self.preparation_button.setArrowType(
-            Qt.DownArrow if opened else Qt.RightArrow
-        )
         self.preparation_panel.setVisible(bool(opened))
         if not opened:
             return
