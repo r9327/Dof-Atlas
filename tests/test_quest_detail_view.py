@@ -18,6 +18,25 @@ class QuestDetailViewColumnTests(unittest.TestCase):
     def setUpClass(cls) -> None:
         cls.app = QApplication.instance() or QApplication([])
 
+    def test_detail_geometry_is_shared_with_dev_ui(self) -> None:
+        from app.ui.unity_palette import UNITY_MODULE_GEOMETRY_PX
+
+        geom = UNITY_MODULE_GEOMETRY_PX["quest_detail"]
+        sheet = QuestDetailView(object(), object(), object())
+        try:
+            self.assertEqual(sheet._right_panel_saved_width,
+                             geom["saved_right_width"])
+            self.assertEqual(sheet.center_panel.minimumWidth(),
+                             geom["center_min_width"])
+            self.assertEqual(sheet.right_panel.minimumWidth(),
+                             geom["right_min_width"])
+            self.assertEqual(sheet.right_panel.maximumWidth(),
+                             geom["right_max_width"])
+            self.assertEqual(sheet.header.layout().getContentsMargins(),
+                             geom["header_margins"])
+        finally:
+            sheet.deleteLater()
+
     def test_right_column_round_trip_preserves_quest_and_scroll(self) -> None:
         # clear() is sufficient for layout tests; no game catalogue is fetched.
         sheet = QuestDetailView(object(), object(), object())

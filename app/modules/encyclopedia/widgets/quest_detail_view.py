@@ -35,6 +35,9 @@ from app.modules.encyclopedia.widgets.dashboard import FixedColumnSplitter
 from app.modules.encyclopedia.widgets.quest_item_row import item_row
 from app.quest_catalog import QuestRecord, normalize_text
 from app.ui.components import AtlasButton, AtlasPanelToggle
+from app.ui.unity_palette import UNITY_MODULE_GEOMETRY_PX
+
+QUEST_DETAIL_GEOMETRY = UNITY_MODULE_GEOMETRY_PX["quest_detail"]
 
 
 QuestOpener = Callable[[int], object]
@@ -100,16 +103,16 @@ class QuestDetailView(QWidget):
         self.prerequisite_expanded: dict[tuple[str, int], bool] = {}
         root = QVBoxLayout(self)
         root.setContentsMargins(0, 0, 0, 0)
-        root.setSpacing(6)
+        root.setSpacing(QUEST_DETAIL_GEOMETRY["root_spacing"])
 
         self.header = QFrame()
         self.header.setObjectName("GuideHeader")
         header_layout = QHBoxLayout(self.header)
-        header_layout.setContentsMargins(8, 8, 10, 8)
-        header_layout.setSpacing(10)
+        header_layout.setContentsMargins(*QUEST_DETAIL_GEOMETRY["header_margins"])
+        header_layout.setSpacing(QUEST_DETAIL_GEOMETRY["header_spacing"])
         title_layout = QVBoxLayout()
         title_layout.setContentsMargins(0, 0, 0, 0)
-        title_layout.setSpacing(2)
+        title_layout.setSpacing(QUEST_DETAIL_GEOMETRY["title_spacing"])
         self.title_label = QLabel()
         self.title_label.setObjectName("GuideHeaderTitle")
         self.title_label.setWordWrap(True)
@@ -126,7 +129,7 @@ class QuestDetailView(QWidget):
         header_layout.addWidget(self.done_button, 0, Qt.AlignRight | Qt.AlignVCenter)
         # The same Unity control serves Quêtes and the shared Guide quest sheet.
         self._right_panel_collapsed = False
-        self._right_panel_saved_width = 300
+        self._right_panel_saved_width = QUEST_DETAIL_GEOMETRY["saved_right_width"]
         self._right_panel_scroll_position = 0
         self.right_panel_toggle = AtlasPanelToggle()
         self.right_panel_toggle.clicked.connect(self.toggle_right_panel)
@@ -137,14 +140,14 @@ class QuestDetailView(QWidget):
         self.splitter.setObjectName("QuestDetailSplitter")
         self.center_panel, self.center_scroll, self.center_layout = self._build_column("GuideCenterPanel")
         self.right_panel, self.right_scroll, self.right_layout = self._build_column("GuideRightPanel")
-        self.center_panel.setMinimumWidth(340)
-        self.right_panel.setMinimumWidth(240)
-        self.right_panel.setMaximumWidth(380)
+        self.center_panel.setMinimumWidth(QUEST_DETAIL_GEOMETRY["center_min_width"])
+        self.right_panel.setMinimumWidth(QUEST_DETAIL_GEOMETRY["right_min_width"])
+        self.right_panel.setMaximumWidth(QUEST_DETAIL_GEOMETRY["right_max_width"])
         self.splitter.addWidget(self.center_panel)
         self.splitter.addWidget(self.right_panel)
         self.splitter.setStretchFactor(0, 70)
         self.splitter.setStretchFactor(1, 30)
-        self.splitter.setSizes([680, 300])
+        self.splitter.setSizes(list(QUEST_DETAIL_GEOMETRY["initial_splitter_sizes"]))
         root.addWidget(self.splitter, 1)
 
         # Keep the empty Quests screen lightweight. Importing the Guide view here
@@ -156,8 +159,9 @@ class QuestDetailView(QWidget):
         panel = QFrame()
         panel.setObjectName(object_name)
         panel_root = QVBoxLayout(panel)
-        panel_root.setContentsMargins(8, 8, 8, 8)
-        panel_root.setSpacing(6)
+        inset = QUEST_DETAIL_GEOMETRY["panel_padding"]
+        panel_root.setContentsMargins(inset, inset, inset, inset)
+        panel_root.setSpacing(QUEST_DETAIL_GEOMETRY["panel_spacing"])
         scroll = QScrollArea()
         scroll.setObjectName(f"{object_name}Scroll")
         scroll.setWidgetResizable(True)
@@ -170,7 +174,7 @@ class QuestDetailView(QWidget):
         content.setSizePolicy(QSizePolicy.Ignored, QSizePolicy.Preferred)
         layout = QVBoxLayout(content)
         layout.setContentsMargins(0, 0, 0, 0)
-        layout.setSpacing(6)
+        layout.setSpacing(QUEST_DETAIL_GEOMETRY["content_spacing"])
         scroll.setWidget(content)
         panel_root.addWidget(scroll, 1)
         return panel, scroll, layout

@@ -85,6 +85,14 @@ class UnityPaletteTests(unittest.TestCase):
 
 
 
+    def test_quest_detail_keeps_existing_splitter_sizes(self) -> None:
+        from app.ui.unity_palette import UNITY_MODULE_GEOMETRY_PX
+
+        geometry = UNITY_MODULE_GEOMETRY_PX["quest_detail"]
+        self.assertEqual(geometry["initial_splitter_sizes"], (680, 300))
+        self.assertEqual(geometry["right_min_width"], 240)
+        self.assertEqual(geometry["right_max_width"], 380)
+
     def test_launcher_sizes_are_indexed_as_existing_tk_values(self) -> None:
         from app.ui.unity_palette import (
             UNITY_MODULE_GEOMETRY_PX, UNITY_MODULE_GEOMETRY_OWNERS,

@@ -424,6 +424,15 @@ UNITY_MODULE_GEOMETRY_PX = {
         "category_spacing": 5, "card_margins": (7, 6, 7, 6),
         "card_spacing": 4,
     },
+    # Existing Quêtes / Guides detail splitter and panel geometry.
+    "quest_detail": {
+        "root_spacing": 6, "header_margins": (8, 8, 10, 8),
+        "header_spacing": 10, "title_spacing": 2,
+        "saved_right_width": 300, "center_min_width": 340,
+        "right_min_width": 240, "right_max_width": 380,
+        "initial_splitter_sizes": (680, 300),
+        "panel_padding": 8, "panel_spacing": 6, "content_spacing": 6,
+    },
     # Existing Tk geometry, separate from the Qt four-size window calibration.
     "launcher": {
         "normal_window_size": (470, 252), "install_window_size": (520, 425),
@@ -455,6 +464,7 @@ UNITY_MODULE_GEOMETRY_OWNERS = {
     "world_map": "app/ui/map_canvas_widget.py",
     "quests": "app/pages/_quests_page_impl.py",
     "achievement_filters": "app/modules/encyclopedia/widgets/filter_panel.py",
+    "quest_detail": "app/modules/encyclopedia/widgets/quest_detail_view.py",
     "launcher": "app/distribution/launcher.py",
     "equipment": "app/pages/equipment_page.py",
     "preload_popup": "app/ui/preload_popup.py",
