@@ -17,13 +17,17 @@ os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
 # Name, displayed filename, widget type, data-readiness note.
 SCENARIOS = (
     ("Home", "accueil", "HomePage", "no-game-preview"),
+    ("Organizer", "organizer", "OrganizerPage", "no-native-game-sessions"),
     ("Settings", "parametres", "QWidget", "no-game-preview"),
+    ("Dev UI", "bibliotheque-ui", "DevUiPage", "component-library"),
     ("Almanax", "almanax", "QWidget", "offline-calendar-no-offering-data"),
     ("Craft", "craft", "CraftPage", "deferred-local-data"),
     ("Equipement", "stuffs", "EquipmentPage", "no-user-equipment"),
     ("Scan Monde", "carte", "WorldScanPanel", "deferred-cartography"),
     ("Personnage", "personnage", "CharacterPage", "empty-personal-profile"),
     ("Quetes", "encyclopedie", "EncyclopediaPage", "empty-catalog-shell-only"),
+    ("Guides", "guides", "EncyclopediaPage", "unavailable-guide-provider"),
+    ("Succes", "succes", "EncyclopediaPage", "unavailable-achievement-provider"),
     ("Bestiaire", "bestiaire", "EncyclopediaPage", "unavailable-bestiary-placeholder"),
 )
 
@@ -33,6 +37,8 @@ def capture(output: Path) -> dict[str, object]:
     from PySide6.QtWidgets import QApplication, QCalendarWidget, QLabel
     from app.ui.unity_skin import register_unity_fonts
     from app.quest_catalog import QuestCatalog
+    from app.modules.encyclopedia.providers.achievement_provider import AchievementProvider
+    from app.modules.encyclopedia.providers.guide_provider import GuideProvider
     from app.modules.encyclopedia.constants import (
         ACHIEVEMENTS_TAB, DUNGEONS_TAB, GUIDES_TAB, QUESTS_TAB,
     )
@@ -51,6 +57,12 @@ def capture(output: Path) -> dict[str, object]:
         "screenshots": [],
     }
     with tempfile.TemporaryDirectory() as tmp:
+        # Scan Monde initializes a writable SQLite/WAL database. Redirect it
+        # before constructing AtlasWindow so a visual fixture never mutates
+        # the repository's tracked data file or a user's launcher profile.
+        from app.cartography.world_db import reset_database_for_tests
+
+        reset_database_for_tests(Path(tmp) / "dofus_atlas_world.db")
         with (
             patch.object(atlas_main, "PROFILE_FILE", Path(tmp) / "profiles.json"),
             patch.object(atlas_main.AtlasWindow, "start_startup_preload_sequence", return_value=None),
@@ -85,18 +97,36 @@ def capture(output: Path) -> dict[str, object]:
                             # quest_categories.json. Exercise the REAL widget
                             # with an explicitly EMPTY provider: never invent
                             # player quests or silently mark data as validated.
+                            achievement_provider = AchievementProvider(
+                                data_dir=Path(tmp) / "empty-achievements"
+                            )
+                            achievement_provider._loaded = True
+                            guide_provider = GuideProvider(
+                                guides_dir=Path(tmp) / "empty-guides",
+                                achievement_provider=achievement_provider,
+                            )
+                            guide_provider._loaded = True
                             window.preload_results["quests"] = {
                                 "catalog": QuestCatalog([]),
+                                "achievement_provider": achievement_provider,
+                                "guide_provider": guide_provider,
                             }
                             window.pending_encyclopedia_tab = QUESTS_TAB
                             record["fixture"] = "empty QuestCatalog; 0 quest records"
-                        if name == "Bestiaire":
+                        if name in {"Guides", "Succes", "Bestiaire"}:
                             page = window.page_widgets.get("Quetes")
                             if page is None:
-                                raise RuntimeError("Bestiaire needs the Encyclopedia shell")
-                            window.open_encyclopedia_tab(DUNGEONS_TAB)
+                                raise RuntimeError(f"{name} needs the Encyclopedia shell")
+                            target_tab = {
+                                "Guides": GUIDES_TAB,
+                                "Succes": ACHIEVEMENTS_TAB,
+                                "Bestiaire": DUNGEONS_TAB,
+                            }[name]
+                            window.open_encyclopedia_tab(target_tab)
                             window.finish_pending_encyclopedia_tab()
-                            record["fixture"] = "real unavailable Bestiary tab (no fake monsters)"
+                            record["fixture"] = (
+                                f"real {target_tab} tab with unavailable provider; no fake records"
+                            )
                         else:
                             if name in window.page_factories:
                                 window.ensure_page_loaded(name)
@@ -138,15 +168,24 @@ def capture(output: Path) -> dict[str, object]:
                                 raise RuntimeError("Fixture must never show fake quests")
                             if page.current_tab_label() != QUESTS_TAB:
                                 raise RuntimeError("Quests shell opened in wrong tab")
-                        if name == "Bestiaire":
+                        if name in {"Guides", "Succes", "Bestiaire"}:
                             visible = {
                                 page.tabs.tabText(index)
                                 for index in range(page.tabs.count())
                                 if page.tabs.tabBar().isTabVisible(index)
                             }
-                            if page.current_tab_label() != DUNGEONS_TAB:
-                                raise RuntimeError("Bestiary shell opened in wrong tab")
-                            if GUIDES_TAB in visible or QUESTS_TAB in visible or ACHIEVEMENTS_TAB in visible:
+                            expected_tab = {
+                                "Guides": GUIDES_TAB,
+                                "Succes": ACHIEVEMENTS_TAB,
+                                "Bestiaire": DUNGEONS_TAB,
+                            }[name]
+                            if page.current_tab_label() != expected_tab:
+                                raise RuntimeError(f"{name} shell opened in wrong tab")
+                            if name == "Bestiaire" and (
+                                GUIDES_TAB in visible
+                                or QUESTS_TAB in visible
+                                or ACHIEVEMENTS_TAB in visible
+                            ):
                                 raise RuntimeError(
                                     "Bestiary leaked Guide, Quests or Success tabs: "
                                     + repr(sorted(visible))
@@ -166,7 +205,7 @@ def capture(output: Path) -> dict[str, object]:
                             widget=type(page).__name__,
                             size=[shot.width(), shot.height()],
                         )
-                        if name == "Bestiaire":
+                        if name in {"Guides", "Succes", "Bestiaire"}:
                             # Return through the *real* shell to make sure
                             # neither navigation direction leaks the other tab group.
                             window.open_encyclopedia_tab(QUESTS_TAB)
@@ -199,7 +238,7 @@ def capture(output: Path) -> dict[str, object]:
     (output / "manifest.json").write_text(
         json.dumps(result, ensure_ascii=False, indent=2), encoding="utf-8"
     )
-    required = {"Home", "Settings", "Almanax", "Craft", "Equipement", "Personnage", "Quetes", "Bestiaire"}
+    required = {entry[0] for entry in SCENARIOS}
     failed = [
         entry["module"] for entry in result["screenshots"]
         if entry["module"] in required and entry["status"] != "CAPTURED"

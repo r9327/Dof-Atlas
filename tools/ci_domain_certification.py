@@ -494,6 +494,10 @@ def owners_for(path: str) -> frozenset[str]:
         # Exact real-shell screenshot scenario: Home, Craft, Quest/Guide shell,
         # character view and the startup navigation lifecycle. No tests/* rule.
         return frozenset({"ci", "ui", "startup", "craft", "quests", "guides", "identity"})
+    if path == "tests/capture_app_popups_ui.py":
+        # Exact Qt popup/dialog inventory. It paints shared UI, Craft, Guide,
+        # Zaap and startup surfaces but performs no native game input.
+        return frozenset({"ci", "ui", "startup", "craft", "guides", "organizer"})
     if path == "tests/test_equipment_deferred_start.py":
         # Real Qt Equipment lifecycle + shared component presentation.
         return frozenset({"startup", "ui"})

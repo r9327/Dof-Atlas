@@ -1022,7 +1022,7 @@ class ModularDomainRoutingTests(unittest.TestCase):
         )
 
     def test_pr365_visual_assets_capture_and_guide_have_exact_owners(self):
-        """The eight reviewed UI files are owned, but unrelated siblings fail closed."""
+        """The reviewed UI files are owned, but unrelated siblings fail closed."""
         verified = {
             "app/assets/themes/dofus_unity/sprites/atlas-control-check.svg":
                 {"ui", "data"},
@@ -1036,6 +1036,8 @@ class ModularDomainRoutingTests(unittest.TestCase):
                 {"guides", "ui"},
             "tests/capture_app_shell_ui.py":
                 {"ci", "ui", "startup", "craft", "quests", "guides", "identity"},
+            "tests/capture_app_popups_ui.py":
+                {"ci", "ui", "startup", "craft", "guides", "organizer"},
             "tests/test_equipment_deferred_start.py":
                 {"startup", "ui"},
             "tools/dev_ui_snapshot.py":
