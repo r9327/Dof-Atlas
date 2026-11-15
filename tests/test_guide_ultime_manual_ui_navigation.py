@@ -739,14 +739,14 @@ class GuideUltimeManualUiNavigationTests(unittest.TestCase):
                 if button.property("filterKey") == "Potions"
             )
             potions.click()
-            ready = view.findChild(QToolButton, "GuidePreparationReady")
+            ready = view.findChild(QCheckBox, "GuidePreparationReady")
             ready.click()
             self.assertTrue(ready.isChecked())
             view.participants_button.click()
             portraits = view.findChildren(QToolButton, "GuideParticipantPortrait")
             portraits[1].click()
             QApplication.processEvents()
-            self.assertFalse(view.findChild(QToolButton, "GuidePreparationReady").isChecked())
+            self.assertFalse(view.findChild(QCheckBox, "GuidePreparationReady").isChecked())
         finally:
             view.close()
 
