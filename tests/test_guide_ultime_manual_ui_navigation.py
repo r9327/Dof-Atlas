@@ -11,6 +11,7 @@ from PySide6.QtWidgets import (
     QApplication,
     QCheckBox,
     QFrame,
+    QGridLayout,
     QLabel,
     QPushButton,
     QSizePolicy,
@@ -222,6 +223,11 @@ class GuideUltimeManualUiNavigationTests(unittest.TestCase):
             self.assertEqual(view.page_jump.maximumWidth(), 90)
             self.assertEqual(view.summary_button.objectName(), "GuideMetricDropdown")
             self.assertEqual(view.preparation_button.objectName(), "GuideMetricDropdown")
+            self.assertEqual(view.participants_button.size(), view.summary_button.size())
+            controls_grid = view._participants_control_column.parent()
+            self.assertIsInstance(controls_grid, QGridLayout)
+            self.assertIs(controls_grid.itemAtPosition(1, 2).layout(),
+                          view._participants_control_column)
             self.assertEqual(view.page_jump.suffix(), " / 2")
             self.assertEqual(view._metric_caption_labels["Préparation"].text(), "Prép.")
             self.assertEqual(view._metric_caption_labels["Préparation"].toolTip(), "Préparation")
