@@ -3129,6 +3129,20 @@ QFrame#GuideParticipantsPanel {
 }
 
 /* The arrow complements its progress bar; it is not a replacement bar. */
+QProgressBar#GuideGlobalProgress {
+    background: @NAV_SURFACE;
+    border: 1px solid @BORDER_SOFT;
+    border-radius: 4px;
+}
+QProgressBar#GuideGlobalProgress::chunk {
+    background: @GREEN;
+    border-radius: 3px;
+}
+QLabel#GuideGlobalProgressTitle {
+    color: @TEXT_SOFT;
+    font-size: @FONT_SMALL;
+    font-weight: 700;
+}
 QToolButton#GuideMetricDropdown {
     background: @GLASS_BUTTON;
     border: 1px solid @GUIDE_TOGGLE_BORDER;
@@ -3195,7 +3209,7 @@ QListWidget#GuideSummaryList::item:hover {
 QListWidget#GuideSummaryList::item:selected {
     background: @PANEL_ACTIVE;
     border-left: 2px solid @GREEN_BORDER;
-    color: @TEXT;
+    color: @GREEN_BORDER;
 }
 
 QToolButton#GuidePreparationToggle {
@@ -3216,8 +3230,8 @@ QToolButton#GuidePreparationToggle:checked {
 
 QPushButton#GuidePreparationFilter {
     background: @GLASS_BUTTON;
-    color: @TEXT_MUTED;
-    border: 1px solid @BORDER_SOFT;
+    color: @GUIDE_TOGGLE_BORDER;
+    border: 1px solid @GUIDE_TOGGLE_BORDER;
     border-radius: @RADIUS_XS;
     padding: 4px 9px;
     font-weight: 700;
@@ -3227,7 +3241,7 @@ QPushButton#GuidePreparationFilter:hover,
 QPushButton#GuidePreparationFilter:checked {
     background: @PANEL_ACTIVE;
     border-color: @GREEN_BORDER;
-    color: @TEXT;
+    color: @GREEN_BORDER;
 }
 
 QFrame#GuidePreparationSummary,
@@ -3242,25 +3256,25 @@ QLabel#GuidePreparationRowLabel {
     font-size: @FONT_BODY;
 }
 
-QToolButton#GuidePreparationReady {
-    background: @GLASS_BUTTON;
-    color: @TEXT_SOFT;
+QCheckBox#GuidePreparationReady {
+    background: transparent;
+    color: @GREEN_BORDER;
+    spacing: 0;
+}
+QCheckBox#GuidePreparationReady::indicator {
+    width: 17px;
+    height: 17px;
     border: 1px solid @GUIDE_TOGGLE_BORDER;
     border-radius: @RADIUS_XS;
-    min-height: 24px;
-    min-width: 63px;
-    padding: 2px 7px;
-    font-weight: 700;
+    background: transparent;
 }
-QToolButton#GuidePreparationReady:hover {
-    background: @PANEL_HOVER;
+QCheckBox#GuidePreparationReady::indicator:hover {
     border-color: @GREEN_BORDER;
+    background: @PANEL_HOVER;
 }
-
-QToolButton#GuidePreparationReady:checked {
+QCheckBox#GuidePreparationReady::indicator:checked {
     background: @GREEN;
     border-color: @GREEN;
-    color: @BG;
 }
 
 QLabel#GuideSheetTitle {
@@ -3271,7 +3285,7 @@ QLabel#GuideSheetTitle {
 
 QLineEdit#GuideSummarySearch,
 QListWidget#GuideSummaryList {
-    background: @PANEL;
+    background: @GLASS_BUTTON;
     color: @TEXT;
     border: 1px solid @BORDER_SOFT;
     border-radius: @RADIUS_XS;
