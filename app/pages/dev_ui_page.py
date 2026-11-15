@@ -71,6 +71,7 @@ from app.ui.unity_palette import (
     UNITY_CONTROL_LIMITS, UNITY_CONTROL_SIZES_PX,
     UNITY_LAYOUT_SIZES_PX, UNITY_LAYOUT_BREAKPOINTS_PX,
     UNITY_WINDOW_PRESETS_PX, UNITY_LAYOUT_PROFILE_PX, unity_layout_metrics,
+    UNITY_MODULE_GEOMETRY_PX, UNITY_MODULE_GEOMETRY_OWNERS,
     UNITY_UI_CONSUMERS, UNITY_UI_FAMILY_INDEX, UNITY_UI_UNIFICATION_CONTRACT,
 )
 from app.ui.unity_skin import (
@@ -1709,6 +1710,43 @@ class DevUiPage(QWidget):
             self.preview_metrics.setItem(index, 1, QTableWidgetItem(value))
         self.preview_metrics_toggle = self._add_catalog_table(
             section, self.preview_metrics, "les dimensions et espacements"
+        )
+        module_intro = QLabel(
+            "Dimensions relevées dans les modules réels. Indexé ne veut pas "
+            "dire raccordé : les pages doivent consommer ces valeurs pour "
+            "hériter d'une modification future."
+        )
+        module_intro.setObjectName("MutedLabel")
+        module_intro.setWordWrap(True)
+        section.addWidget(module_intro)
+        module_rows = tuple(
+            (module, role, size)
+            for module, values in UNITY_MODULE_GEOMETRY_PX.items()
+            for role, size in values.items()
+        )
+        self.preview_module_geometry = QTableWidget(len(module_rows), 3)
+        self.preview_module_geometry.setObjectName("DevUiModuleGeometryTable")
+        self.preview_module_geometry.setHorizontalHeaderLabels(
+            ("Module", "Contrainte indexée", "Valeur existante")
+        )
+        self.preview_module_geometry.setAlternatingRowColors(False)
+        self.preview_module_geometry.setShowGrid(False)
+        for i, (module, role, value) in enumerate(module_rows):
+            item = QTableWidgetItem(module)
+            item.setToolTip(UNITY_MODULE_GEOMETRY_OWNERS[module])
+            self.preview_module_geometry.setItem(i, 0, item)
+            self.preview_module_geometry.setItem(i, 1, QTableWidgetItem(role))
+            label = (
+                " × ".join(str(v) for v in value) + " px"
+                if isinstance(value, tuple)
+                else f"{value} px"
+            )
+            if role == "dofus_grid_max_columns":
+                label = f"{value} colonnes"
+            self.preview_module_geometry.setItem(i, 2, QTableWidgetItem(label))
+        self.preview_module_geometry_toggle = self._add_catalog_table(
+            section, self.preview_module_geometry,
+            "les dimensions indexées des modules"
         )
 
 

@@ -161,3 +161,23 @@ chargement ; les autres vues qui n'ont pas adopté ces métriques restent
 
 Seules les tailles existantes ont été rebranchées ; aucune logique métier,
 sélection de participants, traitement de quête ou donnée Ganymède changée.
+
+## Index de géométrie par module — nouveau lot P0
+
+Les tailles existantes des modules ont été relevées dans les sources et
+regroupées dans `UNITY_MODULE_GEOMETRY_PX` et
+`UNITY_MODULE_GEOMETRY_OWNERS`, avec une table inspectable dans la famille
+« Dimensions » de Dev UI. L'Organizer reste indexé dans son dictionnaire
+`UNITY_ORGANIZER_METRICS_PX` existant, étendu avec ses contraintes
+réellement présentes. Les rôles ne créent aucune nouvelle taille visuelle.
+
+Trois catégories sont distinctes : dimensions communes réutilisables
+(`UNITY_SIZES_PX` et `UNITY_LAYOUT_SIZES_PX`), règles de resize des quatre
+références (`UNITY_LAYOUT_PROFILE_PX`), et contraintes intrinsèques des
+contenus (`UNITY_MODULE_GEOMETRY_PX`). Ces dernières ne doivent pas être
+appliquées indistinctement à tous les modules.
+
+**Attention** : l'inventaire ne certifie pas que chaque valeur est déjà
+consommée. Cette distinction reste explicite dans Dev UI. La migration des
+consommateurs est le lot suivant et doit conserver les dimensions réelles
+sans changer leur placement.

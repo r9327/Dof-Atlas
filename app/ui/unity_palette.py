@@ -332,7 +332,99 @@ UNITY_ORGANIZER_METRICS_PX = {
     "favorite_chip_height": 28,
     "character_slot_height": 36,
     "stop_button_height": 34,
+    # Existing Organizer dimensions, indexed without changing #325 logic.
+    "mode_switch_width": 396,
+    "mode_button_width": 194,
+    "zaap_panel_min_width": 220,
+    "refresh_button_width": 32,
+    "speed_caption_width": 52,
+    "speed_legacy_width": 78,
+    "root_margin_left": 14,
+    "root_margin_top": 12,
+    "root_margin_right": 14,
+    "root_margin_bottom": 20,
+    "panel_gutter": 8,
 }
+
+# Module-specific content sizes and geometry actually present in Atlas source.
+# These must NOT replace common control metrics or move structural panels.
+# A module only inherits future changes after being explicitly connected.
+UNITY_MODULE_GEOMETRY_PX = {
+    "shell": {
+        "brand_min_width": 170, "brand_icon_box": 32,
+        "character_selector_min_width": 150, "character_selector_max_width": 210,
+        "settings_button_box": 34, "settings_icon": 20, "nav_icon": 18,
+    },
+    "home": {
+        "page_margin": 26, "column_gutter": 18,
+        "left_column_min_width": 286, "left_column_max_width": 350,
+        "guide_min_width": 300,
+        "right_column_min_width": 205, "right_column_max_width": 330,
+        "portrait_box": 98, "portrait_artwork": 88,
+        "almanax_box": 150, "almanax_artwork": 126,
+        "banner_min_height": 145, "banner_max_height": 205,
+        "network_card_min_height": 64, "network_card_max_height": 72,
+        "card_padding": 20, "card_gutter": 10,
+    },
+    "character": {
+        "page_margins": (10, 8, 10, 10),
+        "equipment_min_width": 610, "stats_min_width": 235,
+        "stats_max_width": 340, "selector_min_width": 260,
+        "selector_max_width": 360, "selector_icon": 38,
+        "equipment_slot_box": 64, "equipment_icon": 54,
+        "portrait_min_size": (230, 300), "portrait_max_size": (300, 360),
+    },
+    "achievements": {
+        "category_min_width": 235, "category_max_width": 300,
+        "success_list_min_width": 285, "detail_min_width": 240,
+        "initial_splitter_sizes": (245, 315, 640),
+        "detail_padding": 12, "detail_gap": 10,
+    },
+    "craft": {
+        "quantity_width": 86, "search_max_width": 360,
+        "resource_dialog_size": (500, 540), "item_set_dialog_size": (390, 460),
+        "leveling_dialog_size": (660, 560), "route_dialog_size": (560, 420),
+        "resource_icon_box": 28, "leveling_icon_box": 30,
+    },
+    "guide_catalog": {"category_tree_max_height": 250},
+    "guide_cards": {
+        "featured_min_width": 245, "featured_max_width": 275,
+        "featured_min_height": 172, "featured_image_height": 86,
+        "featured_image_min_width": 210,
+        "small_min_width": 126, "small_max_width": 150,
+        "small_min_height": 138,
+        "dofus_card_min_width": 86, "dofus_card_max_width": 126,
+        "dofus_card_height": 118, "dofus_grid_gap": 8,
+        "dofus_grid_max_columns": 5,
+        "home_left_min_width": 285, "home_left_max_width": 360,
+        "guide_steps_open_width": 190,
+    },
+    "guide_route": {
+        "selector_min_width": 170, "route_icon_box": 34,
+        "route_icon_artwork": 21, "detail_max_height": 136,
+    },
+    "world_scan": {
+        "page_margins": (12, 10, 12, 10), "page_gutter": 8,
+        "world_icon_box": 60, "world_icon_artwork": 34,
+        "summary_height": 74, "menu_button_min_width": 108,
+    },
+    "world_map": {"canvas_min_size": (420, 320)},
+}
+
+# Each visible Dev UI entry links to the code owning the real constraint.
+UNITY_MODULE_GEOMETRY_OWNERS = {
+    "shell": "main.py",
+    "home": "app/pages/home_page.py",
+    "character": "app/pages/character_page.py",
+    "achievements": "app/modules/encyclopedia/views/achievements_view.py",
+    "craft": "app/pages/craft_page.py",
+    "guide_catalog": "app/modules/encyclopedia/views/guide_catalog_view.py",
+    "guide_cards": "app/modules/encyclopedia/views/guides_view.py",
+    "guide_route": "app/modules/encyclopedia/views/guide_continuous_route_panel.py",
+    "world_scan": "app/ui/world_scan_panel.py",
+    "world_map": "app/ui/map_canvas_widget.py",
+}
+
 
 UNITY_ICON_NAMES = (
     "guide", "quest", "success", "encyclopedia",
@@ -525,6 +617,7 @@ UNITY_UI_FAMILY_INDEX = {
             "UNITY_SIZES_PX", "UNITY_WINDOW_PRESETS_PX", "UNITY_LAYOUT_SIZES_PX",
             "UNITY_LAYOUT_PROFILE_PX", "unity_layout_metrics",
             "UNITY_CONTROL_SIZES_PX", "UNITY_CONTROL_LIMITS",
+            "UNITY_MODULE_GEOMETRY_PX", "UNITY_MODULE_GEOMETRY_OWNERS",
             "UNITY_LAYOUT_BREAKPOINTS_PX",
             "unity_responsive_columns", "UNITY_ORGANIZER_METRICS_PX",
             "UNITY_CONTENT_TYPOGRAPHY_PX", "UNITY_SPACING_PX", "UNITY_TYPOGRAPHY",

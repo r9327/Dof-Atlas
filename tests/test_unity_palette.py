@@ -184,6 +184,27 @@ class UnityPaletteTests(unittest.TestCase):
                 self.assertIn(usage, gallery)
                 self.assertGreater(UNITY_CONTROL_SIZES_PX[key], 0)
 
+    def test_indexed_module_dimensions_match_existing_constraints(self) -> None:
+        from pathlib import Path
+        from app.ui.unity_palette import (
+            UNITY_MODULE_GEOMETRY_OWNERS, UNITY_MODULE_GEOMETRY_PX,
+            UNITY_ORGANIZER_METRICS_PX,
+        )
+        self.assertEqual(set(UNITY_MODULE_GEOMETRY_PX), set(UNITY_MODULE_GEOMETRY_OWNERS))
+        self.assertGreaterEqual(sum(len(v) for v in UNITY_MODULE_GEOMETRY_PX.values()), 70)
+        root = Path(__file__).resolve().parents[1]
+        for module, values in UNITY_MODULE_GEOMETRY_PX.items():
+            with self.subTest(module=module):
+                self.assertTrue((root / UNITY_MODULE_GEOMETRY_OWNERS[module]).is_file())
+                for key, size in values.items():
+                    numbers = size if isinstance(size, tuple) else (size,)
+                    self.assertTrue(all(type(n) is int and n > 0 for n in numbers), key)
+        self.assertEqual(UNITY_MODULE_GEOMETRY_PX["home"]["portrait_box"], 98)
+        self.assertEqual(UNITY_MODULE_GEOMETRY_PX["character"]["equipment_slot_box"], 64)
+        self.assertEqual(UNITY_MODULE_GEOMETRY_PX["craft"]["leveling_dialog_size"], (660, 560))
+        self.assertEqual(UNITY_MODULE_GEOMETRY_PX["achievements"]["initial_splitter_sizes"], (245, 315, 640))
+        self.assertEqual(UNITY_ORGANIZER_METRICS_PX["mode_switch_width"], 396)
+
     def test_dev_ui_index_covers_all_families_and_original_style_owners(self) -> None:
         from app.ui.unity_palette import (
             UNITY_UI_CONSUMERS, UNITY_UI_FAMILY_INDEX,

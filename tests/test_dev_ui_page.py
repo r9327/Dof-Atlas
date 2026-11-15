@@ -1244,6 +1244,40 @@ class DevUiPageTests(unittest.TestCase):
             backdrop.deleteLater()
             self.app.setStyleSheet(previous_style)
 
+    def test_module_geometry_inventory_displays_actual_owner_and_values(self) -> None:
+        from app.pages.dev_ui_page import DevUiPage
+        from app.ui.unity_palette import (
+            UNITY_MODULE_GEOMETRY_PX, UNITY_MODULE_GEOMETRY_OWNERS,
+        )
+        page = DevUiPage(on_back=lambda: None)
+        try:
+            table = page.preview_module_geometry
+            self.assertFalse(table.isVisible())
+            self.assertEqual(
+                table.rowCount(),
+                sum(map(len, UNITY_MODULE_GEOMETRY_PX.values())),
+            )
+            actual = {
+                (table.item(row, 0).text(), table.item(row, 1).text())
+                for row in range(table.rowCount())
+            }
+            expected = {
+                (module, role)
+                for module, roles in UNITY_MODULE_GEOMETRY_PX.items()
+                for role in roles
+            }
+            self.assertEqual(actual, expected)
+            for row in range(table.rowCount()):
+                module = table.item(row, 0).text()
+                self.assertEqual(
+                    table.item(row, 0).toolTip(),
+                    UNITY_MODULE_GEOMETRY_OWNERS[module],
+                )
+            self.assertEqual(page.styleSheet(), "")
+        finally:
+            page.close()
+            page.deleteLater()
+
     def test_responsive_reference_fits_all_real_window_presets(self) -> None:
         from app.pages.dev_ui_page import DevUiPage
         from app.ui.theme import atlas_stylesheet
