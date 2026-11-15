@@ -39,7 +39,7 @@ from app.modules.encyclopedia.views.guide_ultime_manual_view import (
     GuideUltimeManualView,
 )
 from app.core.text import normalize_key as normalize_text
-from app.ui.components import AtlasButton, AtlasGuideDisclosure, AtlasGuideCover, atlas_guide_arrow_icon
+from app.ui.components import AtlasButton, AtlasGuideDisclosure, AtlasGuideCover, atlas_guide_arrow_icon, atlas_guide_character_icon
 from app.ui.unity_palette import UNITY_CONTROL_SIZES_PX, UNITY_SIZES_PX
 from app.ui.unity_skin import apply_unity_panel_shadow, sprite_icon_path
 from app.constants import DATA_DIR
@@ -1268,19 +1268,8 @@ class SharedGuideManualView(GuideUltimeManualView):
         self.participants_button = QToolButton()
         self.participants_button.setObjectName("GuideParticipantsButton")
         self.participants_button.setText("")
-        portrait_icon = sprite_icon_path("character")
-        if portrait_icon:
-            character_icon = QIcon(str(portrait_icon))
-            # Keep original Unity colors when metadata shells disable input.
-            character_icon.addPixmap(
-                character_icon.pixmap(
-                    QSize(UNITY_CONTROL_SIZES_PX["guide_character_icon"],
-                          UNITY_CONTROL_SIZES_PX["guide_character_icon"]),
-                    QIcon.Normal,
-                ),
-                QIcon.Disabled,
-            )
-        else:
+        character_icon = atlas_guide_character_icon(UNITY_CONTROL_SIZES_PX["guide_character_icon"])
+        if character_icon.isNull():
             character_icon = _guide_symbol_icon(self.participants_button, "people")
         self.participants_button.setIcon(character_icon)
         self.participants_button.setToolButtonStyle(Qt.ToolButtonIconOnly)

@@ -1,9 +1,10 @@
 from __future__ import annotations
 
+from functools import lru_cache
 from pathlib import Path
 from typing import Literal
 
-from PySide6.QtCore import QSize, Qt
+from PySide6.QtCore import QRect, QSize, Qt
 from PySide6.QtGui import QColor, QIcon, QImage, QPainter, QPixmap, QTransform
 from PySide6.QtWidgets import (
     QCalendarWidget,
@@ -230,6 +231,42 @@ class AtlasGuideCover(QLabel):
         self.setVisible(not pixmap.isNull())
         return not pixmap.isNull()
 
+
+
+@lru_cache(maxsize=8)
+def atlas_guide_character_icon(size: int) -> QIcon:
+    """Render the *existing* Unity Character sprite without empty PNG margins.
+
+    The original sprite has substantial transparent space: QIcon scaling the
+    entire source shrinks the pictogram to a nearly invisible dot. Keep its
+    original pixels/colors; only crop transparent margins and scale once.
+    """
+    path = sprite_icon_path("character")
+    if path is None:
+        return QIcon()
+    source = QPixmap(str(path))
+    if source.isNull():
+        return QIcon()
+    image = source.toImage()
+    if image.hasAlphaChannel():
+        left, top = image.width(), image.height()
+        right, bottom = -1, -1
+        for y in range(image.height()):
+            for x in range(image.width()):
+                if image.pixelColor(x, y).alpha() > 32:
+                    left, top = min(left, x), min(top, y)
+                    right, bottom = max(right, x), max(bottom, y)
+        if right >= left and bottom >= top:
+            source = source.copy(QRect(
+                left, top, right - left + 1, bottom - top + 1
+            ))
+    pixmap = source.scaled(
+        QSize(size, size), Qt.KeepAspectRatio, Qt.SmoothTransformation
+    )
+    icon = QIcon()
+    icon.addPixmap(pixmap, QIcon.Normal)
+    icon.addPixmap(pixmap, QIcon.Disabled)
+    return icon
 
 def atlas_guide_arrow_icon(direction: Literal["up", "down", "left", "right"]) -> QIcon:
     """One original Unity chevron source for all Guide arrows."""
