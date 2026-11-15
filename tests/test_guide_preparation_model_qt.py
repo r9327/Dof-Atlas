@@ -7,7 +7,7 @@ from pathlib import Path
 
 os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
 
-from PySide6.QtWidgets import QApplication, QLabel, QPushButton, QToolButton
+from PySide6.QtWidgets import QCheckBox, QApplication, QLabel, QPushButton, QToolButton
 
 from app.modules.encyclopedia.services.guide_progress_service import GuideProgressService
 from app.modules.encyclopedia.views.shared_manual_guide_view import SharedGuideManualView
@@ -81,7 +81,7 @@ class GuidePreparationQtFocusedTests(unittest.TestCase):
         need = view._preparation_needs[0]
         self.assertEqual(len(need.required_by_character), 6)
         key = view._ready_progress_key(need)
-        ready = view.preparation_panel.findChild(QToolButton, "GuidePreparationReady")
+        ready = view.preparation_panel.findChild(QCheckBox, "GuidePreparationReady")
         self.assertTrue(ready.isEnabled())
         ready.click()
         QApplication.processEvents()
@@ -105,12 +105,12 @@ class GuidePreparationQtFocusedTests(unittest.TestCase):
         ]
         view = self._view()
         self.assertEqual(len(view._preparation_needs), 235)
-        rows = view.preparation_panel.findChildren(QToolButton, "GuidePreparationReady")
+        rows = view.preparation_panel.findChildren(QCheckBox, "GuidePreparationReady")
         self.assertLessEqual(len(rows), 80)
         self.assertIsNotNone(view.preparation_panel.findChild(
             QLabel, "GuidePreparationEmpty"
         ) if not view._preparation_needs else view.preparation_panel.findChild(
-            QToolButton, "GuidePreparationReady"
+            QCheckBox, "GuidePreparationReady"
         ))
         more = view.preparation_panel.findChild(
             __import__("PySide6.QtWidgets", fromlist=["QPushButton"]).QPushButton,
@@ -120,7 +120,7 @@ class GuidePreparationQtFocusedTests(unittest.TestCase):
         more.click()
         QApplication.processEvents()
         self.assertLessEqual(
-            len(view.preparation_panel.findChildren(QToolButton, "GuidePreparationReady")),
+            len(view.preparation_panel.findChildren(QCheckBox, "GuidePreparationReady")),
             160,
         )
 
@@ -180,7 +180,7 @@ class GuidePreparationQtFocusedTests(unittest.TestCase):
         self.assertEqual(view._preparation_needs, ())
         self.assertTrue(view._preparation_preview)
         self.assertFalse(view.preparation_panel.findChildren(
-            QToolButton, "GuidePreparationReady",
+            QCheckBox, "GuidePreparationReady",
         ))
         label = view.preparation_panel.findChild(QLabel, "GuidePreparationEmpty")
         self.assertIsNotNone(label)
@@ -197,7 +197,7 @@ class GuidePreparationQtFocusedTests(unittest.TestCase):
             {"character:1": 2, "character:2": 2},
         )
         key = view._ready_progress_key(needs[0])
-        button = view.preparation_panel.findChild(QToolButton, "GuidePreparationReady")
+        button = view.preparation_panel.findChild(QCheckBox, "GuidePreparationReady")
         self.assertIsNotNone(button)
         self.assertTrue(button.isEnabled())
         button.click()
@@ -213,7 +213,7 @@ class GuidePreparationQtFocusedTests(unittest.TestCase):
         view._load_preparation_needs()
         view._render_preparation("Tout")
         QApplication.processEvents()
-        undo_button = view.preparation_panel.findChild(QToolButton, "GuidePreparationReady")
+        undo_button = view.preparation_panel.findChild(QCheckBox, "GuidePreparationReady")
         self.assertIsNotNone(undo_button)
         self.assertTrue(undo_button.isChecked())
         undo_button.click()

@@ -207,7 +207,9 @@ class GuideManualSelectedValidationTests(unittest.TestCase):
         self.assertIn("0 %", known_zero.toolTip())
         self.assertEqual(self.view.route_progress_label.text(), "—")
         self.assertIsNone(self.view.progress_donut._percent)
-        self.assertFalse(self.view.current_button.isEnabled())
+        self.assertEqual(self.view.global_progress_label.text(), "—")
+        self.assertEqual(self.view.global_progress_bar.value(), 0)
+        self.assertFalse(hasattr(self.view, "current_button"))
 
     def test_known_zero_progress_still_displays_zero(self) -> None:
         self.participants.save_selected_keys(("character:1",))
@@ -261,10 +263,11 @@ class GuideManualSelectedValidationTests(unittest.TestCase):
         QApplication.processEvents()
         self.assertEqual(self.view.route_progress_label.text(), "100 %")
         self.assertEqual((self.view.route_bar.value(), self.view.route_bar.maximum()), (2, 2))
-        self.assertEqual(self.view.current_button.property("guideFullText"), "Terminé")
-        # Compact viewport hides only the caption, not its meaning.
-        self.assertEqual(self.view.current_button.accessibleName(), "Terminé")
-        self.assertFalse(self.view.current_button.isEnabled())
+        # Completion lives in the global bar; the duplicate "Actuelle" action is gone.
+        self.assertFalse(hasattr(self.view, "current_button"))
+        self.assertEqual(self.view.global_progress_label.text(), "100 %")
+        self.assertEqual(self.view.global_progress_bar.value(), 2)
+        self.assertEqual(self.view.page_jump.suffix(), " / 2")
         self.assertEqual(
             self.view.validation_layout.itemAt(0).widget().text(), "Annuler validation"
         )
@@ -281,7 +284,9 @@ class GuideManualSelectedValidationTests(unittest.TestCase):
         self.view.refresh()
         self.assertEqual(self.view.route_progress_label.text(), "100 %")
         self.assertEqual((self.view.route_bar.value(), self.view.route_bar.maximum()), (2, 2))
-        self.assertFalse(self.view.current_button.isEnabled())
+        self.assertFalse(hasattr(self.view, "current_button"))
+        self.assertEqual(self.view.global_progress_label.text(), "100 %")
+        self.assertEqual(self.view.global_progress_bar.value(), 2)
 
 
 if __name__ == "__main__":
