@@ -323,14 +323,14 @@ class ImportedSourceRouterQtTests(unittest.TestCase):
         self.assertEqual(reader.summary_button.size(), reader.preparation_button.size())
         self.assertEqual(reader.summary_button.width(), 18)
         self.assertGreaterEqual(reader.participants_button.width(), reader.summary_button.width())
-        # Personnages is centered in its own row between the progress levels;
-        # Route / Préparation keep their chevrons inline with each label.
-        from PySide6.QtWidgets import QHBoxLayout
-        participants_row = reader._participants_control_column.parent()
-        self.assertIsInstance(participants_row, QHBoxLayout)
-        self.assertEqual(participants_row.count(), 3)
-        self.assertIs(participants_row.itemAt(1).layout(),
-                      reader._participants_control_column)
+        # Personnages sits beside Settings and its drawer opens above progress.
+        self.assertIs(
+            reader._compact_title_row.itemAt(
+                reader._compact_title_row.count() - 2
+            ).widget(), reader.participants_button,
+        )
+        self.assertIs(reader._header_content_layout.itemAt(1).widget(),
+                      reader.participants_panel)
         grid = reader._metric_columns["Route"].parent()
         self.assertIsInstance(grid, QGridLayout)
         self.assertEqual(grid.columnCount(), 2)

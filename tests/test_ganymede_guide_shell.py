@@ -65,12 +65,17 @@ class GanymedeGuideShellTests(unittest.TestCase):
         self.assertIsInstance(shell.participants_button, AtlasGuideCharacterButton)
         self.assertFalse(shell.participants_button.icon().isNull())
         self.assertEqual(shell.participants_button.width(), 24)
-        # Personnages is centered in its own row between global and metrics.
-        from PySide6.QtWidgets import QHBoxLayout, QGridLayout
-        participants_row = shell._participants_control_column.parent()
-        self.assertIsInstance(participants_row, QHBoxLayout)
-        self.assertIs(participants_row.itemAt(1).layout(),
-                      shell._participants_control_column)
+        # Personnages is beside Settings and expands ABOVE global progress.
+        from PySide6.QtWidgets import QGridLayout
+        self.assertIs(
+            shell._compact_title_row.itemAt(
+                shell._compact_title_row.count() - 2
+            ).widget(), shell.participants_button,
+        )
+        self.assertIs(
+            shell._header_content_layout.itemAt(1).widget(),
+            shell.participants_panel,
+        )
         metrics = shell._metric_columns["Route"].parent()
         self.assertIsInstance(metrics, QGridLayout)
         self.assertEqual(metrics.columnCount(), 2)

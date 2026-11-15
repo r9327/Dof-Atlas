@@ -92,7 +92,10 @@ def atlas_guide_character_icon(size: int) -> QIcon:
     source = QPixmap(str(path))
     if source.isNull():
         return QIcon()
-    image = source.toImage()
+    # Reuse the existing Atlas algorithm to make edge-connected near-black
+    # Unity PNG backgrounds transparent, then trim only transparent margins.
+    image = clear_connected_dark_background(source.toImage())
+    source = QPixmap.fromImage(image)
     if image.hasAlphaChannel():
         left, top = image.width(), image.height()
         right, bottom = -1, -1

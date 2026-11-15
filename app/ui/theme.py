@@ -2624,8 +2624,9 @@ QToolButton#GuideMetricDropdown:disabled {
     border: 1px solid transparent;
 }
 QToolButton#GuideParticipantsButton {
-    background: @PANEL_GRADIENT;
-    border: 1px solid @BORDER_STRONG;
+    /* Keep the original Unity pictogram on transparent Guide glass. */
+    background: transparent;
+    border: 1px solid transparent;
     border-radius: @RADIUS_XS;
     padding: 0;
 }
@@ -2633,6 +2634,10 @@ QToolButton#GuideParticipantsButton:hover,
 QToolButton#GuideParticipantsButton:checked {
     background: @PANEL_HOVER;
     border-color: @GREEN_BORDER;
+}
+QToolButton#GuideParticipantsButton:disabled {
+    background: transparent;
+    border-color: transparent;
 }
 
 QPushButton#GuideManualGuideButton {
