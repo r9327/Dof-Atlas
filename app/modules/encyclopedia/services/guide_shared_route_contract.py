@@ -10,6 +10,10 @@ import copy
 import re
 from typing import Any
 
+from app.modules.encyclopedia.services.guide_source_rich_blocks import (
+    GuideRichContentError, validate_source_rich_blocks,
+)
+
 _ID = re.compile(r"[A-Za-z0-9][A-Za-z0-9._-]{0,119}\Z")
 _TRAVEL_COORDINATE = re.compile(r"\[\s*(-?\d+)\s*,\s*(-?\d+)\s*\]")
 _SECTIONS = ("now", "opportunity", "keep", "boss", "before_leave")
@@ -50,7 +54,7 @@ _EVIDENCE_ONLY_FIELDS = frozenset({
 })
 _SUPPORTED_ACTION_FIELDS = frozenset({
     "action_id", "kind", "text", "coordinates", "items", "monsters",
-    "npc", "dialogue_choice", "section", "quest_ids",
+    "npc", "dialogue_choice", "section", "quest_ids", "rich_blocks",
 }) | _EVIDENCE_ONLY_FIELDS | _UNRENDERED_ACTION_FIELDS
 _SUPPORTED_STEP_FIELDS = frozenset({
     "source_step_id", "title", "coordinates", "actions",
@@ -193,6 +197,7 @@ def assert_source_fidelity(
                 row.get("source_action") != action
                 or row.get("source_action_id") != str(action.get("action_id"))
                 or row.get("text") != action.get("text")
+                or (row.get("source_rich_blocks") != action.get("rich_blocks"))
             ):
                 raise GuideRouteContractError(f"{label}: source action changed")
         visible = [
@@ -269,6 +274,13 @@ def project_authorized_guide(guide: dict[str, Any]) -> dict[str, Any]:
                         f"{label}.{field}: unsupported authored UI content"
                     )
             text = _text(action.get("text"), f"{label}.text")
+            if "rich_blocks" in action:
+                try:
+                    validate_source_rich_blocks(
+                        action["rich_blocks"], text, f"{label}.rich_blocks",
+                    )
+                except GuideRichContentError as exc:
+                    raise GuideRouteContractError(str(exc)) from exc
             position = _position(action.get("coordinates"), f"{label}.coordinates") or step_position
             names = _items(action.get("items"), f"{label}.items")
             if kind == "travel" and not position:
@@ -354,6 +366,8 @@ def project_authorized_guide(guide: dict[str, Any]) -> dict[str, Any]:
                 "source_action_kind": kind,
                 "source_action": copy.deepcopy(action),
             }
+            if "rich_blocks" in action:
+                row["source_rich_blocks"] = copy.deepcopy(action["rich_blocks"])
             if section == "prepare":
                 if not names:
                     raise GuideRouteContractError(
