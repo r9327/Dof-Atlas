@@ -151,6 +151,72 @@ class AtlasGuideHtmlCaptureTests(unittest.TestCase):
         ))
         self.assertNotIn("icon.png", json.dumps(blocks))
 
+    def test_real_cawotte_html_shapes_are_lossless_and_indexed(self):
+        # Fictional prose, but the actual Cawotte HTML structures: relative
+        # guide-step link, dungeon glyph, and five authored RGB highlights.
+        from app.modules.encyclopedia.services.guide_shared_route_contract import (
+            project_authorized_guide,
+        )
+        source = """<article id="step-1"><h2>Step 1 [25,-4]</h2>
+          <div class="guide-content"><p>Fiche fictive.</p>
+          <p><span style="color: rgb(98, 172, 255);">Bleu</span>
+          <span style="color: rgb(255, 255, 0);">Jaune</span>
+          <span style="color: rgb(255, 255, 255);">Blanc</span>
+          <span style="color: rgb(5, 160, 69);">Vert</span>
+          <span style="color: rgb(250, 0, 0);">Rouge</span></p>
+          <p><a href="/guides/3?page=1&amp;stepsPerPage=1">Guide lié</a></p>
+          <p><span data-type="custom-tag" type="dungeon"><img
+          src="https://example.org/icon-dungeon.png" alt="dungeon">Donjon fictif</span></p>
+          </div></article>"""
+        result = extract_saved_html(source)
+        blocks = result[0]["step"]["actions"][0]["rich_blocks"]
+        colors = [run["role"] for run in blocks[1]["runs"]
+                  if run["role"].startswith("source-")]
+        self.assertEqual(colors, [
+            "source-blue", "source-yellow", "source-white",
+            "source-green", "source-red",
+        ])
+        self.assertEqual(
+            blocks[2]["runs"][0]["href"],
+            "https://ganymede-app.com/guides/3?page=1&stepsPerPage=1",
+        )
+        self.assertEqual(blocks[3]["runs"][0]["text"], "Donjon fictif")
+        self.assertTrue(project_authorized_guide({
+            "guide_id": "fictive", "title": "Test",
+            "steps": [result[0]["step"]],
+        })["steps"])
+
+    def test_source_unknown_color_or_unsafe_link_is_blocked(self):
+        for markup, fragment in (
+            ('<span style="color: rgb(1, 2, 3);">X</span>',
+             "unmapped source text color"),
+            ('<a href="//evil.example/attack">X</a>', "unsupported source link"),
+            ('<span style="opacity:0.2">X</span>', "unmapped source inline CSS"),
+        ):
+            with self.subTest(markup=markup):
+                html = (
+                    '<article id="step-1"><h2>Step 1</h2>'
+                    '<div class="guide-content"><p>Premier.</p><p>'
+                    + markup + '</p></div></article>'
+                )
+                with self.assertRaisesRegex(SourceCaptureError, fragment):
+                    extract_saved_html(html)
+
+    def test_unlabelled_source_image_keeps_bytes_with_accessible_fallback(self):
+        html = STEP_TWO_WITH_MEDIA.replace(
+            'alt="Illustration fictive"', 'alt=""',
+        )
+        (self.root / "two.html").write_text(html, encoding="utf-8")
+        (self.root / "photo.png").write_bytes(PNG)
+        self.manifest["guides"][0]["media_files"] = {
+            "https://example.org/photo.png": "photo.png",
+        }
+        blocks = convert_manifest(self.manifest, root=self.root)[
+            "guides"][0]["steps"][1]["actions"][0]["rich_blocks"]
+        self.assertEqual(blocks[1]["type"], "image")
+        self.assertEqual(blocks[1]["alt"], "Illustration sans légende source")
+        self.assertEqual(blocks[1]["sha256"], hashlib.sha256(PNG).hexdigest())
+
     def test_semantic_media_is_embedded_by_verified_explicit_sidecar(self):
         (self.root / "two.html").write_text(STEP_TWO_WITH_MEDIA, encoding="utf-8")
         (self.root / "photo.png").write_bytes(PNG)
