@@ -67,6 +67,22 @@ class ContinuousGuideRoutePanelTests(unittest.TestCase):
         self.panel.summary_toggle.click()
         self.assertTrue(self.panel.summary.isVisibleTo(self.panel))
 
+    def test_sheet_selector_replaces_visible_summary_without_losing_navigation(self):
+        self.panel.show()
+        self.app.processEvents()
+        self.assertTrue(self.panel.summary_toggle.isHidden())
+        self.assertFalse(self.panel.summary.isVisible())
+        self.assertEqual(self.panel.page_jump.value(), 1)
+        self.assertEqual(self.panel.page_jump.suffix(),
+                         f" / {len(self.panel.navigation.step_ids)}")
+        self.panel.page_jump.setValue(2)
+        self.assertEqual(self.panel.navigation.position().viewed_step_id,
+                         "ganymede_2205_step_0002")
+        self.panel.previous_button.click()
+        self.assertEqual(self.panel.page_jump.value(), 1)
+        self.assertEqual(self.panel.navigation.position().viewed_step_id,
+                         "ganymede_2205_step_0001")
+
     def test_all_trusted_continuous_routes_use_aligned_unity_shared_header(self):
         card = self.panel.title_label.parentWidget()
         self.assertEqual(card.objectName(), "GuideContinuousCard")
