@@ -222,7 +222,6 @@ def assert_source_fidelity(
                 or row.get("source_action") != action
                 or row.get("source_action_id") != str(action.get("action_id"))
                 or row.get("text") != action.get("text")
-                or row.get("source_rich_blocks") != action.get("rich_blocks")
             ):
                 raise GuideRouteContractError(f"{label}: source action changed")
         visible = [
@@ -385,8 +384,6 @@ def project_authorized_guide(guide: dict[str, Any]) -> dict[str, Any]:
                 "source_section": section,
                 "source_action": copy.deepcopy(action),
             }
-            if "rich_blocks" in action:
-                row["source_rich_blocks"] = copy.deepcopy(action["rich_blocks"])
             if section == "prepare":
                 if not names:
                     raise GuideRouteContractError(
