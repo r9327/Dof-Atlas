@@ -66,7 +66,7 @@ from app.ui.components import (
     atlas_application_icon,
     apply_unity_calendar_weekdays,
 )
-from app.ui.theme import PALETTE, SIZES, SPACING, TYPOGRAPHY
+from app.ui.theme import PALETTE, GUIDE_ENTITY_LINK_COLORS, SIZES, SPACING, TYPOGRAPHY
 from app.ui.unity_palette import (
     UNITY_CHIP_TONES, UNITY_ICON_NAMES, UNITY_ICON_PENDING,
     UNITY_PANEL_SHADOW,
@@ -2078,6 +2078,32 @@ class DevUiPage(QWidget):
         content_row.addWidget(QLabel("Zone du texte du guide · bordure complète"))
         self.guide_manual_scroll_sample.setWidget(content)
         section.addWidget(self.guide_manual_scroll_sample)
+
+        # Semantic links consume exactly the same indexed Unity color roles
+        # as the shared Guide renderer; no additional stylesheet or colors.
+        link_caption = QLabel("Liens des étapes · couleurs Unity communes")
+        link_caption.setObjectName("MutedLabel")
+        section.addWidget(link_caption)
+        link_grid = QGridLayout()
+        link_grid.setHorizontalSpacing(10)
+        link_grid.setVerticalSpacing(4)
+        self.preview_guide_link_labels: dict[str, QLabel] = {}
+        for index, (category, name) in enumerate((
+            ("monster", "Monstre"), ("boss", "Boss"),
+            ("item", "Objet"), ("equipment", "Équipement"),
+            ("npc", "PNJ"), ("position", "Position"),
+            ("quest", "Quête"),
+        )):
+            color = GUIDE_ENTITY_LINK_COLORS[category]
+            label = QLabel(
+                f'<span style="color:{color};font-weight:600;">{name}</span>'
+            )
+            label.setTextFormat(Qt.RichText)
+            label.setAccessibleName(f"Couleur de lien Guide : {name}")
+            label.setToolTip(f"{name} · rôle Unity : {category}")
+            link_grid.addWidget(label, index // 4, index % 4)
+            self.preview_guide_link_labels[category] = label
+        section.addLayout(link_grid)
 
         # Use the real Guide Ultime parent selector and the same native
         # QComboBox as Successes. Never apply a per-widget QSS override.
