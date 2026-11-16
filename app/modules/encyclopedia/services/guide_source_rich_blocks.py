@@ -13,13 +13,18 @@ import re
 from urllib.parse import urlsplit
 from typing import Any
 
-from app.ui.entity_link_roles import ENTITY_LINK_COLOR_ROLES
+from app.ui.entity_link_roles import (
+    ENTITY_LINK_COLOR_ROLES, GUIDE_SOURCE_HIGHLIGHT_COLOR_ROLES,
+)
 
 _MAX_BLOCKS = 128
 _MAX_TEXT_CHARS = 16000
 _MAX_IMAGE_BYTES = 2 * 1024 * 1024
 _MAX_CHECK_ITEMS = 128
-_ROLES = frozenset((*ENTITY_LINK_COLOR_ROLES, "plain", "warning"))
+_ROLES = frozenset((
+    *ENTITY_LINK_COLOR_ROLES, *GUIDE_SOURCE_HIGHLIGHT_COLOR_ROLES,
+    "plain", "warning",
+))
 _MIMES = frozenset(("image/png", "image/jpeg", "image/webp"))
 _SHA256 = re.compile(r"[0-9a-f]{64}\Z")
 _ID = re.compile(r"[A-Za-z0-9][A-Za-z0-9._-]{0,119}\Z")
