@@ -574,25 +574,61 @@ def mounted_action_line_html(sheet) -> list[str]:
 
 
 def sheet_observations(view, expected_card) -> dict:
-    from PySide6.QtWidgets import QFrame, QLabel
+    """Check the selected sheet, plus bounded read-ahead as separate evidence.
+
+    Only the selected source step may own active validation. Read-ahead cards
+    are permitted if they match the exact next canonical service cards.
+    Duplicates and stale extra widgets remain failures, never false PASS.
+    """
+    from PySide6.QtWidgets import QFrame
 
     sheets = [s for s in view.findChildren(QFrame, "GuideManualSheet") if s.isVisible()]
-    result = {"sheet_count": len(sheets), "expected_stage_id": expected_card.get("manual_stage_id"),
-              "stage_ids": [s.card.get("manual_stage_id") for s in sheets],
-              "mounted": all(s.parentWidget() is view.content for s in sheets)}
-    # Provenance-aware line oracle: reconstruct expected HTML from the canonical
-    # service rows using the production formatter, then compare a multiset.
+    expected_id = expected_card.get("manual_stage_id")
+    selected_index = int(view.view_index)
+    active = [
+        sheet for sheet in sheets
+        if getattr(sheet, "index", None) == selected_index
+        or getattr(sheet, "card", {}).get("manual_stage_id") == expected_id
+    ]
+    actual_ids = [getattr(s, "card", {}).get("manual_stage_id") for s in sheets]
+    expected_ids = [
+        card.get("manual_stage_id")
+        for card in view.service.cards[
+            selected_index:selected_index + int(
+                getattr(view, "READING_WINDOW_SIZE", 1)
+            )
+        ]
+    ]
+    if not expected_ids:
+        expected_ids = [expected_id]
+    read_ahead_ok = (
+        actual_ids == expected_ids
+        and len(set(actual_ids)) == len(actual_ids)
+        and len(active) == 1
+        and active[0].card.get("manual_stage_id") == expected_id
+    )
+    result = {
+        "sheet_count": len(active),
+        "total_sheet_count": len(sheets),
+        "expected_stage_id": expected_id,
+        "stage_ids": [
+            s.card.get("manual_stage_id") for s in active
+        ],
+        "read_ahead_stage_ids": actual_ids,
+        "read_ahead_expected_stage_ids": expected_ids,
+        "read_ahead_ok": read_ahead_ok,
+        "mounted": all(s.parentWidget() is view.content for s in sheets),
+    }
+    # Provenance-aware line oracle: inspect only the active sheet.
+    # Following steps must not be treated as missing/stale active actions.
     expected = []
-    if len(sheets) == 1:
-        sheet = sheets[0]
-        # Formatting coalesces repeated coordinates; replay that sequence from
-        # its initial state and restore it so inspection cannot mutate the view.
+    if len(active) == 1:
+        sheet = active[0]
         last_position = sheet._last_route_position_key
         sheet._last_route_position_key = ""
         sections = sheet._without_prepare_duplicates(
-            view.service.manual_sections_for_card(view.character_key, expected_card))
-        # Preparation is intentionally global in the compact Guide UI. The
-        # active sheet must not repeat those rows.
+            view.service.manual_sections_for_card(view.character_key, expected_card)
+        )
         for section_key in ("now", "opportunity", "keep", "boss", "before_leave"):
             rows = sections.get(section_key, [])
             for row in rows:
@@ -601,15 +637,25 @@ def sheet_observations(view, expected_card) -> dict:
                     continue
                 position = sheet._display_position(str(row.get("position") or ""))
                 prefix = "⚠ " if row.get("kind") == "warning" else "• "
-                expected.append(sheet._format_line_html(prefix, position, text,
-                                sheet._npc_names(text), sheet._resource_names))
+                expected.append(sheet._format_line_html(
+                    prefix, position, text, sheet._npc_names(text),
+                    sheet._resource_names,
+                ))
         sheet._last_route_position_key = last_position
         actual = mounted_action_line_html(sheet)
-        result.update(missing_lines=list((Counter(expected) - Counter(actual)).elements())[:5],
-                      stale_or_duplicate_lines=list((Counter(actual) - Counter(expected)).elements())[:5],
-                      expected_line_count=len(expected), actual_line_count=len(actual))
+        result.update(
+            missing_lines=list((Counter(expected) - Counter(actual)).elements())[:5],
+            stale_or_duplicate_lines=list(
+                (Counter(actual) - Counter(expected)).elements()
+            )[:5],
+            expected_line_count=len(expected),
+            actual_line_count=len(actual),
+        )
     else:
-        result.update(missing_lines=["No unique mounted sheet"], stale_or_duplicate_lines=[])
+        result.update(
+            missing_lines=["No unique active sheet"],
+            stale_or_duplicate_lines=[],
+        )
     return result
 
 
@@ -617,11 +663,20 @@ def check_sheet(session, page, view, key):
     card = view.service.cards[view.view_index]
     session.card_id = str(card.get("manual_stage_id") or "")
     observed = sheet_observations(view, card)
-    ok = (observed["sheet_count"] == 1 and observed["mounted"]
-          and observed["stage_ids"] == [card.get("manual_stage_id")]
-          and not observed["missing_lines"] and not observed["stale_or_duplicate_lines"])
-    session.check(key, "Inspect mounted sheet after Qt DeferredDelete", "One current canonical sheet and exact current lines",
-                  observed, ok, page)
+    ok = (
+        observed["sheet_count"] == 1
+        and observed["mounted"]
+        and observed["stage_ids"] == [card.get("manual_stage_id")]
+        and observed["read_ahead_ok"]
+        and not observed["missing_lines"]
+        and not observed["stale_or_duplicate_lines"]
+    )
+    session.check(
+        key, "Inspect mounted sheet after Qt DeferredDelete",
+        "One active canonical step, bounded read-ahead and exact lines",
+        observed, ok, page,
+    )
+
 
 
 def guide_runtime_identity(service) -> str | None:
