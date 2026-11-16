@@ -79,7 +79,7 @@ def _native_visual_probe(route: dict, cover_png: bytes) -> None:
     """
     from PySide6.QtCore import QPoint, Qt
     from PySide6.QtGui import QPixmap
-    from PySide6.QtWidgets import QApplication, QFrame, QLabel, QVBoxLayout
+    from PySide6.QtWidgets import QApplication, QCheckBox, QFrame, QLabel, QVBoxLayout
     from app.ui.theme import GUIDE_READING_METRICS
     from app.ui.theme import atlas_stylesheet
     from app.ui.unity_skin import UnityBackdrop
@@ -140,6 +140,20 @@ def _native_visual_probe(route: dict, cover_png: bytes) -> None:
             expected_title = cards[index]["manual_title"]
             if expected_title.startswith("Step "):
                 expected_title = expected_title.replace("Step ", "Étape ", 1)
+            if index == 0:
+                # Text prerequisite rows stay in Prérequis ONLY.
+                texts = [label.text() for label in frame.findChildren(QLabel)]
+                for forbidden in (
+                    "nécessaire d'être niveau 60",
+                    "Vous devriez avoir fait le guide",
+                    "Intrusion chez les wabbits",
+                ):
+                    if any(forbidden in label for label in texts):
+                        raise AssertionError(
+                            f"Prerequisite duplicated in Route: {forbidden}"
+                        )
+            if frame.findChildren(QCheckBox, "GuideManualSourceChecklist"):
+                raise AssertionError("Source checklist still draws selection squares")
             if shell.sheet_title_label.text() != expected_title:
                 raise AssertionError(f"step {index + 1}: wrong source title")
             if shell.page_jump.value() != index + 1:

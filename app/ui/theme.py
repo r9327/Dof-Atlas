@@ -62,8 +62,8 @@ GUIDE_READING_METRICS = {
     "row_spacing": _GUIDE_SPACE_PX["SPACE_XS"],
     "reading_gap": _GUIDE_SPACE_PX["SPACE_SM"],
     # Shared thumbnail dimensions for original embedded guide media.
-    "source_image_max_width": 360,
-    "source_image_max_height": 280,
+    "source_image_max_width": 240,
+    "source_image_max_height": 160,
 }
 
 SIZES = {

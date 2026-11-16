@@ -362,5 +362,39 @@ class AtlasGuideHtmlCaptureTests(unittest.TestCase):
         self.assertNotIn("prerequisites", extract_saved_html(page)[0]["step"])
 
 
+    def test_cawotte_prerequisites_are_indexed_out_of_route_not_deleted(self):
+        # Exact structural pattern from the French Wabbit/Cawotte source.
+        page = """<article id="step-1"><h2>Step 1 [25,-4]</h2>
+          <div class="guide-content">
+          <p>Ce guide permet l'obtention d'un dofus fictif.</p>
+          <p>Il est nécessaire d'être niveau 60 pour finir ce guide.</p>
+          <p>Une information de trajet à conserver.</p>
+          <p>Vous devriez avoir fait le guide
+          <a href="/guides/3"><span data-type="guide-step" guideid="3">
+            Guide de départ</span></a> et particulièrement les quêtes suivantes :</p>
+          <ul data-type="taskList">
+            <li data-checked="false"><div><p><span data-type="custom-tag"
+              type="quest" dofusdbid="827"><img alt="quest" src="https://example.org/q.png"
+              >Quête préalable</span></p></div></li>
+          </ul>
+          <p>Continuer ensuite jusqu'au prochain PNJ.</p>
+          </div></article>"""
+        captured = extract_saved_html(page)[0]["step"]
+        self.assertEqual(captured["prerequisite_block_indexes"], [1, 3, 4])
+        from app.modules.encyclopedia.services.guide_shared_route_contract import (
+            project_authorized_guide,
+        )
+        route = project_authorized_guide({
+            "guide_id": "fictional", "title": "Fictional",
+            "steps": [captured],
+        })
+        card = route["steps"][0]
+        self.assertEqual(card["manual_prerequisite_block_indexes"], [1, 3, 4])
+        self.assertEqual(len(card["hard_runtime_gates"]), 3)
+        self.assertEqual(
+            len(card["manual_runtime_metadata"]["source_step"]["actions"][0]["rich_blocks"]), 6
+        )
+
+
 if __name__ == "__main__":
     unittest.main()

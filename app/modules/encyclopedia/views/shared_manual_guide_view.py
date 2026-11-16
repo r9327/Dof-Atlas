@@ -802,38 +802,20 @@ class SharedGuideManualCard(GuideUltimeManualCard):
                 label.setWordWrap(True)
                 target_layout.addWidget(label)
             elif kind == "checklist":
+                # Source checkboxes are editorial bullets, NOT Atlas validation.
+                # Preserve text and links in their original order, without
+                # drawing a second selectable control on the Guide sheet.
                 for item in block["items"]:
-                    typed_runs = item.get("runs")
-                    check = QCheckBox(
-                        "" if typed_runs else str(item["text"])
+                    label = QLabel()
+                    label.setObjectName("GuideManualSourceChecklistText")
+                    runs = item.get("runs")
+                    self._set_clickable_text(
+                        label,
+                        self._source_rich_markup(runs)
+                        if isinstance(runs, list) else html.escape(str(item["text"])),
                     )
-                    check.setObjectName("GuideManualSourceChecklist")
-                    check.setChecked(bool(item["checked"]))
-                    # Source checkbox status is display-only, not a Dofus
-                    # achievement/quest completion confirmation.
-                    check.setEnabled(False)
-                    check.setToolTip(
-                        "Case du guide source, lecture seule jusqu'à une "
-                        "progression par action vérifiée"
-                    )
-                    if isinstance(typed_runs, list):
-                        row = QWidget()
-                        row.setObjectName("GuideManualSourceChecklistRow")
-                        links = QHBoxLayout(row)
-                        links.setContentsMargins(0, 0, 0, 0)
-                        links.setSpacing(GUIDE_READING_METRICS["row_spacing"])
-                        links.addWidget(check, 0, Qt.AlignTop)
-                        label = QLabel(row)
-                        # Reuse indexed Dev UI line typography and colors.
-                        label.setObjectName("GuideManualSourceChecklistText")
-                        self._set_clickable_text(
-                            label, self._source_rich_markup(typed_runs),
-                        )
-                        label.setWordWrap(True)
-                        links.addWidget(label, 1)
-                        target_layout.addWidget(row)
-                    else:
-                        target_layout.addWidget(check)
+                    label.setWordWrap(True)
+                    target_layout.addWidget(label)
             elif kind == "image":
                 label = QLabel()
                 label.setObjectName("GuideManualSourceImage")
@@ -933,6 +915,22 @@ class SharedGuideManualCard(GuideUltimeManualCard):
         if quest_names is None:
             quest_names = dict(self._quest_rows)
         for row_index, row in enumerate(visible):
+            source_action_data = row.get("source_action") if self._continuous_source else None
+            rich_original = (
+                source_action_data.get("rich_blocks")
+                if isinstance(source_action_data, dict) else None
+            )
+            source_rich = rich_original
+            if isinstance(rich_original, list):
+                skipped = set(self.card.get("manual_prerequisite_block_indexes", ()))
+                source_rich = [
+                    block for block_index, block in enumerate(rich_original)
+                    if block_index not in skipped
+                ]
+                if not source_rich:
+                    # The sheet can consist exclusively of prerequisites.
+                    # Keep them in Prérequis, not as an empty selectable row.
+                    continue
             text = str(row.get("text") or "").strip()
             position = (
                 "" if review_only else
@@ -1032,21 +1030,27 @@ class SharedGuideManualCard(GuideUltimeManualCard):
                 rendered_text = self._inline_source_item_images(
                     rendered_text, source_action,
                 )
-            source_rich = (
-                source_action.get("rich_blocks")
-                if isinstance(source_action, dict) else None
-            )
-            if isinstance(source_rich, list) and source_rich:
-                # The first paragraph is validated against action.text.
-                # Its author-defined inline roles win over heuristic coloring.
-                rendered_text = (
-                    html.escape(
-                        "" if self._continuous_source
-                        else "— " if is_coordinate else prefix
-                    )
-                    + self._source_rich_markup(source_rich[0]["runs"])
+            if not self._continuous_source:
+                source_rich = (
+                    source_action.get("rich_blocks")
+                    if isinstance(source_action, dict) else None
                 )
+            if isinstance(source_rich, list) and source_rich:
+                # The first VISIBLE block may differ from the first source
+                # block when a prerequisite was moved to its dedicated tab.
+                if source_rich[0]["type"] in {"paragraph", "heading"}:
+                    rendered_text = (
+                        html.escape(
+                            "" if self._continuous_source
+                            else "— " if is_coordinate else prefix
+                        )
+                        + self._source_rich_markup(source_rich[0]["runs"])
+                    )
+                else:
+                    rendered_text = ""
             self._set_clickable_text(line, rendered_text)
+            if not rendered_text:
+                line.hide()
             if section_key == "prepare":
                 line.setObjectName("GuideManualLine")
                 line.setStyleSheet(
@@ -1136,8 +1140,11 @@ class SharedGuideManualCard(GuideUltimeManualCard):
                 group_position = ""
                 layout.addWidget(row_widget)
             target_layout = group_layout if adjacent else layout
-            if isinstance(source_rich, list) and len(source_rich) > 1:
-                self._add_source_rich_followups(target_layout, source_rich[1:])
+            if isinstance(source_rich, list) and source_rich:
+                first_visible_is_text = source_rich[0]["type"] in {"paragraph", "heading"}
+                followups = source_rich[1:] if first_visible_is_text else source_rich
+                if followups:
+                    self._add_source_rich_followups(target_layout, followups)
 
             # Typed data from the authorized source must remain visible even
             # when the author omitted a quantity, NPC or dialogue choice in

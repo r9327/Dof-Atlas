@@ -404,6 +404,35 @@ def _source_explicit_prerequisites(container: _Node) -> list[dict[str, Any]]:
     return gates
 
 
+
+def _prerequisite_block_indexes(
+    blocks: list[dict[str, Any]], gates: list[dict[str, Any]],
+) -> list[int]:
+    """Display explicit prerequisite blocks in Prérequis, never twice.
+
+    We preserve the original rich_blocks AND all source text. Only the
+    presentation index moves the verified prerequisite paragraph/checklist
+    out of Route; an unrecognized checklist remains a normal route line.
+    """
+    if not gates:
+        return []
+    result: list[int] = []
+    has_level = any(g.get("source_kind") == "explicit_level_requirement" for g in gates)
+    has_guide = any(g.get("source_kind") == "guide_dependency" for g in gates)
+    has_quest = any(g.get("source_kind") == "quest_prerequisite" for g in gates)
+    for index, block in enumerate(blocks):
+        if block["type"] != "paragraph":
+            continue
+        content = "".join(run["text"] for run in block["runs"])
+        if (_REQUIRED_LEVEL.search(content) and has_level
+                or _PRIOR_GUIDE.search(content) and has_guide):
+            result.append(index)
+            if (has_quest and _PRIOR_QUESTS.search(content)
+                    and index + 1 < len(blocks)
+                    and blocks[index + 1]["type"] == "checklist"):
+                result.append(index + 1)
+    return sorted(set(result))
+
 def extract_saved_html(html: str, *, assets: dict[str, Path] | None = None
                        ) -> list[dict[str, Any]]:
     """Capture exactly the visible article boundaries from one saved HTML page."""
@@ -467,6 +496,9 @@ def extract_saved_html(html: str, *, assets: dict[str, Path] | None = None
         gates = _source_explicit_prerequisites(contents[0])
         if gates:
             stage["prerequisites"] = gates
+            indexes = _prerequisite_block_indexes(blocks, gates)
+            if indexes:
+                stage["prerequisite_block_indexes"] = indexes
         result.append({"number": number, "step": stage})
     return result
 

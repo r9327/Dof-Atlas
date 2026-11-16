@@ -403,10 +403,12 @@ class ImportedSourceRouterQtTests(unittest.TestCase):
             service, "character:1", service.cards[0], 0,
         )
         self.addCleanup(widget.deleteLater)
-        check = widget.findChild(QCheckBox, "GuideManualSourceChecklist")
-        self.assertIsNotNone(check)
-        self.assertEqual(check.text(), "Objectif de l'auteur")
-        self.assertFalse(check.isEnabled())
+        # One source checklist item is readable text only, never a second
+        # checkbox competing with the Guide's single page-validation control.
+        self.assertIsNone(widget.findChild(QCheckBox, "GuideManualSourceChecklist"))
+        source_lines = widget.findChildren(QLabel, "GuideManualSourceChecklistText")
+        self.assertEqual(len(source_lines), 1)
+        self.assertIn("Objectif de l'auteur", source_lines[0].text())
         picture = widget.findChild(QLabel, "GuideManualSourceImage")
         self.assertIsNotNone(picture)
         self.assertIsNotNone(picture.pixmap())
@@ -474,8 +476,10 @@ class ImportedSourceRouterQtTests(unittest.TestCase):
         self.assertIn('href="https://example.org/object/2"', text)
         self.assertIn(f'color:{PALETTE["GREEN"]}', text)
         checks = widget.findChildren(QCheckBox, "GuideManualSourceChecklist")
-        self.assertEqual(len(checks), 1)
-        self.assertFalse(checks[0].isEnabled())
+        self.assertFalse(checks)
+        self.assertEqual(len(
+            widget.findChildren(QLabel, "GuideManualSourceChecklistText")
+        ), 1)
         self.assertEqual(
             widget.card["manual_runtime_metadata"]["source_step"]["actions"][0],
             action,
