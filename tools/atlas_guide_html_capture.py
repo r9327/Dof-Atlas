@@ -49,6 +49,15 @@ _ALLOWED_ROLES = {"quest", "npc", "item", "equipment", "monster", "boss", "posit
 _DECORATIVE_TAG_IMAGE_ALTS = frozenset(
     {"item", "quest", "monster", "GuideStep", "boss", "dungeon"}
 )
+# Source CSS is interpreted as semantic highlights, not copied into Qt.
+# Any unknown author color is BLOCKED rather than silently flattened.
+_GANYMEDE_COLOR_ROLES = {
+    "rgb(98,172,255)": "source-blue",
+    "rgb(255,255,0)": "source-yellow",
+    "rgb(255,255,255)": "source-white",
+    "rgb(5,160,69)": "source-green",
+    "rgb(250,0,0)": "source-red",
+}
 
 
 class SourceCaptureError(ValueError):
@@ -126,6 +135,23 @@ def _runs(node: _Node) -> list[dict[str, str]]:
              icon: bool = False) -> None:
         if current.tag in {"script", "style", "iframe", "video", "canvas"}:
             raise SourceCaptureError(f"unsupported source element <{current.tag}>")
+        raw_style = current.attrs.get("style", "")
+        if raw_style:
+            for declaration in raw_style.split(";"):
+                if not declaration.strip():
+                    continue
+                name, sep, value = declaration.partition(":")
+                if not sep or name.strip().lower() != "color":
+                    raise SourceCaptureError(
+                        "unmapped source inline CSS: refuse style loss"
+                    )
+                normalized = re.sub(r"\\s+", "", value).lower()
+                highlight_role = _GANYMEDE_COLOR_ROLES.get(normalized)
+                if highlight_role is None:
+                    raise SourceCaptureError(
+                        f"unmapped source text color: {value.strip()}"
+                    )
+                role = highlight_role
         marker = current.attrs.get("data-type", "")
         if marker == "custom-tag":
             typed = current.attrs.get("type", "")
