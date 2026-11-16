@@ -643,7 +643,7 @@ class GuideUltimeManualCard(QFrame):
                     or entity_kind not in {"monster", "boss"}
                     or type(entity_id) is not int or entity_id <= 0):
                 continue
-            pattern = re.compile(rf"(?<!\\w){re.escape(name)}(?!\\w)", re.IGNORECASE)
+            pattern = re.compile(rf"(?<!\w){re.escape(name)}(?!\w)", re.IGNORECASE)
             for match in pattern.finditer(plain):
                 add_span(match.start(), match.end(), "entity", f"{entity_kind}:{entity_id}")
         for name in sorted({value for value in npc_names if value}, key=len, reverse=True):
