@@ -50,7 +50,7 @@ from app.ui.components import (
 from app.ui.unity_skin import apply_unity_panel_shadow, sprite_icon_path
 from app.constants import DATA_DIR
 from app.modules.encyclopedia.services.image_service import ENCYCLOPEDIA_IMAGE_SERVICE
-from app.ui.theme import PALETTE
+from app.ui.theme import PALETTE, GUIDE_READING_METRICS
 from app.ui.entity_link_roles import ENTITY_LINK_COLOR_ROLES, entity_text_markup
 from app.modules.encyclopedia.services.guide_source_rich_blocks import image_bytes
 
@@ -389,8 +389,12 @@ class SharedGuideManualCard(GuideUltimeManualCard):
         self.setObjectName("GuideManualSheet")
 
         root = QVBoxLayout(self)
-        root.setContentsMargins(18, 16, 18, 18)
-        root.setSpacing(9)
+        spacing = GUIDE_READING_METRICS
+        root.setContentsMargins(
+            spacing["sheet_horizontal"], spacing["sheet_vertical"],
+            spacing["sheet_horizontal"], spacing["sheet_vertical"],
+        )
+        root.setSpacing(spacing["sheet_spacing"])
 
         if index == 0 and card.get("manual_review_only") is not True:
             self._add_legend(root)
@@ -812,14 +816,21 @@ class SharedGuideManualCard(GuideUltimeManualCard):
                 "}"
             )
         layout = QVBoxLayout(frame)
-        layout.setContentsMargins(10, 8, 10, 8)
-        layout.setSpacing(6)
-
-        heading = QLabel(title)
-        heading.setObjectName("GuideManualSectionTitle")
-        layout.addWidget(heading)
+        spacing = GUIDE_READING_METRICS
+        layout.setContentsMargins(
+            spacing["section_horizontal"], spacing["section_vertical"],
+            spacing["section_horizontal"], spacing["section_vertical"],
+        )
+        layout.setSpacing(spacing["section_spacing"])
 
         review_only = self.card.get("manual_review_only") is True
+        # In a metadata-only review every single source step has one "now"
+        # block: repeating the same "À faire maintenant" heading 64 times
+        # adds no information. Authorized multi-section guides retain titles.
+        if not (review_only and section_key == "now"):
+            heading = QLabel(title)
+            heading.setObjectName("GuideManualSectionTitle")
+            layout.addWidget(heading)
         if review_only and section_key == "now":
             # One source map per review sheet: the position belongs ABOVE the
             # actions at the same left edge, never beside a fictional Zaap.
@@ -895,7 +906,7 @@ class SharedGuideManualCard(GuideUltimeManualCard):
                 )
             row_layout = QHBoxLayout(row_widget)
             row_layout.setContentsMargins(0, 0, 0, 0)
-            row_layout.setSpacing(7)
+            row_layout.setSpacing(GUIDE_READING_METRICS["row_spacing"])
 
             # Use the exact typed NPC on imported source actions. The
             # heuristic for legacy prose cannot recognize every capitalization
@@ -1475,7 +1486,7 @@ class SharedGuideManualView(GuideUltimeManualView):
         self.content.setObjectName("GuideManualContent")
         self.cards_layout = QVBoxLayout(self.content)
         self.cards_layout.setContentsMargins(8, 2, 8, 8)
-        self.cards_layout.setSpacing(8)
+        self.cards_layout.setSpacing(GUIDE_READING_METRICS["reading_gap"])
         self.scroll.setWidget(self.content)
         root.addWidget(self.scroll, 1)
 
