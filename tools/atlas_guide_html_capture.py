@@ -14,7 +14,7 @@ import json
 from pathlib import Path
 import re
 from typing import Any
-from urllib.parse import urlsplit
+from urllib.parse import urljoin, urlsplit
 
 from app.modules.encyclopedia.services.guide_shared_route_contract import (
     project_authorized_guide,
@@ -131,8 +131,14 @@ def _runs(node: _Node) -> list[dict[str, str]]:
         if current.tag == "a":
             link = current.attrs.get("href", "")
             if link:
+                # Ganymède uses relative internal guide-step links. Resolve
+                # them against its fixed HTTPS origin, never against the
+                # user's machine or a caller-supplied arbitrary base.
+                if link.startswith("/") and not link.startswith("//"):
+                    link = urljoin("https://ganymede-app.com", link)
                 parts = urlsplit(link)
-                if parts.scheme != "https" or not parts.hostname:
+                if (parts.scheme != "https" or not parts.hostname
+                        or parts.username or parts.password):
                     raise SourceCaptureError(f"unsupported source link {link!r}")
                 href = link
         if current.tag == "img":
@@ -179,9 +185,9 @@ def _runs(node: _Node) -> list[dict[str, str]]:
 
 def _media(node: _Node, assets: dict[str, Path]) -> dict[str, Any]:
     src = node.attrs.get("src", "")
-    alt = node.attrs.get("alt", "")
-    if not alt.strip():
-        raise SourceCaptureError("source image has no authored alt text")
+    # Many authored guide images have an empty HTML alt. This fallback is
+    # accessibility-only, never displayed as original author instructions.
+    alt = node.attrs.get("alt", "").strip() or "Illustration sans légende source"
     if src.startswith("data:"):
         match = re.fullmatch(r"data:(image/(?:png|jpeg|webp));base64,([A-Za-z0-9+/=]+)", src)
         if not match:
