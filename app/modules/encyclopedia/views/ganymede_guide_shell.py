@@ -227,6 +227,10 @@ class GanymedeGuideShell(SharedGuideManualView):
             # a single long source step scrolls instead of clipping text.
             widget.setMinimumHeight(max(1, estimated))
             self.cards_layout.addWidget(widget)
+            # Newly created orphan QFrames inserted into an already shown
+            # QScrollArea do not always auto-show on Windows Qt. A hidden
+            # sheet is also ignored by the parent layout/scroll height.
+            widget.show()
             used += required
             end += 1
 
