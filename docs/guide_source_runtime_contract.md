@@ -542,3 +542,21 @@ de métadonnées non raccordé ou défaillant produit une liste vide.
 installateur certifié, mais son registre de production et son autorité
 indépendante ne sont pas encore disponibles. L'affichage d'une fiche
 fictive dans un test ne constitue pas une certification de guide.
+
+
+### Live Cawotte source parser diagnostic (read-only; NOT a certificate)
+
+The targeted guides-cawotte-live-diagnostic.yml GitHub workflow makes
+one transient public request per source page (7) and fetches only authored
+guide images needed by the parser. It verifies all 64 article boundaries,
+candidate coordinates, rich content parsing and the canonical route
+projector. It never stores live source HTML/author images in git or workflow
+artifacts, never sets rights_verified/reference_verified, never writes
+progress or installs a route, and **cannot** authorize publication.
+
+A PASS here demonstrates the technical parser can consume the currently
+public source shape. Rights/licensing, version selection (2205 English vs
+24 French), semantic prereq review, UI visual parity on the real route,
+and Windows/DOFUS validation remain independent gates. A FAILED job
+identifies a real parser/source incompatibility; fix its cause rather than
+lowering source fidelity checks or certifying the 191 summaries.

@@ -1,0 +1,34 @@
+name: Guides 363 / Cawotte live parser diagnostic (not certification)
+
+on:
+  push:
+    branches:
+      - feat/atlas-guide-importer-pr337-20261102
+    paths:
+      - .github/workflows/guides-cawotte-live-diagnostic.yml
+      - tests/test_atlas_guide_live_cawotte_probe.py
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  cawotte-live-parser:
+    name: Cawotte / 64 source articles and rich blocks (read-only)
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    env:
+      PYTHONUTF8: "1"
+      ATLAS_LIVE_CAWOTTE: "1"
+    steps:
+      - name: Checkout exact Guide PR commit without LFS
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+          lfs: false
+      - name: Python 3.13
+        uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
+        with:
+          python-version: '3.13'
+      - name: Read-only live source-to-canonical diagnostic (no artifacts)
+        run: python -X utf8 -m unittest -v tests.test_atlas_guide_live_cawotte_probe
