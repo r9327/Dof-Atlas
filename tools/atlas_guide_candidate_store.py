@@ -174,9 +174,21 @@ def _validate_candidate(preview: dict[str, Any]) -> None:
                 raise GuideRouteContractError("projected UI action coverage mismatch")
             if step.get("manual_lines") != rendered:
                 raise GuideRouteContractError("rendered UI lines differ from projected sections")
+            authored_ids = [str(action.get("action_id")) for action in actions]
+            if step.get("manual_source_action_order") != authored_ids:
+                raise GuideRouteContractError("original source action ordering changed")
+            by_action_id = {
+                row.get("source_action_id"): (section, row)
+                for section, row in presented
+            }
+            if len(by_action_id) != len(actions) or any(
+                action_id not in by_action_id for action_id in authored_ids
+            ):
+                raise GuideRouteContractError("missing/duplicate projected source action")
             resource_names: list[str] = []
             preparation: list[dict[str, Any]] = []
-            for (section, row), action in zip(presented, actions):
+            for action in actions:
+                section, row = by_action_id[str(action["action_id"])]
                 kind = action.get("kind")
                 if not isinstance(kind, str):
                     raise GuideRouteContractError("invalid source action kind")
@@ -190,8 +202,10 @@ def _validate_candidate(preview: dict[str, Any]) -> None:
                     _source_coordinates(source_step.get("coordinates"))
                 )
                 if (section != expected_section
+                        or row.get("source_section") != section
                         or row.get("source_action_id") != str(action.get("action_id"))
                         or row.get("source_action_kind") != kind
+                        or row.get("source_rich_blocks") != action.get("rich_blocks")
                         or row.get("source_action") != action
                         or row.get("kind") != expected_kind
                         or row.get("text") != action.get("text")
