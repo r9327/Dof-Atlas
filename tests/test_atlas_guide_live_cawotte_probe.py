@@ -93,16 +93,23 @@ def _native_visual_probe(route: dict, cover_png: bytes) -> None:
     container = QVBoxLayout(backdrop)
     shell = GanymedeGuideShell(lambda: None)
     container.addWidget(shell)
-    # Review identity is the French source /24, not EN /2205. The historical
-    # candidate file remains a coordinate-only cross-edition sanity check.
-    listing = GanymedeListing(24, "Dofus Cawotte",
-                              "dofus", 60, 64, BASE)
+    # The existing read-only preview entrypoint is guarded by pilot ID 2205.
+    # It does not publish or play the source. Switch the transient QA identity
+    # to the actual French source /24 after opening that isolated preview.
+    listing = GanymedeListing(
+        2205, "Dofus Cawotte", "dofus", 60, 64,
+        "https://ganymede-app.com/guides/2205",
+    )
     cover = QPixmap()
     if not cover.loadFromData(cover_png):
         raise AssertionError("Source-linked Cawotte cover art failed to decode")
     shell.set_listing(listing, artwork=cover)
     if not shell.show_cawotte_review():
         raise AssertionError("Cawotte shared shell inaccessible")
+    # The pilot guard remains untouched. Every visible QA card below comes
+    # from French source /24, whose identity is recorded on this transient
+    # instance only (never in the source catalog or an installed route).
+    shell._listing = GanymedeListing(24, "Dofus Cawotte", "dofus", 60, 64, BASE)
     # The source route is injected only into an ephemeral read-only shell.
     # Preserve all original rich_blocks, IDs, ordering and image bytes.
     import copy
@@ -140,6 +147,15 @@ def _native_visual_probe(route: dict, cover_png: bytes) -> None:
             expected_title = cards[index]["manual_title"]
             if expected_title.startswith("Step "):
                 expected_title = expected_title.replace("Step ", "Étape ", 1)
+            if index == 1:
+                source_labels = frame.findChildren(QLabel)
+                if not any(
+                    'href="travel-copy:25,-4"' in label.text()
+                    for label in source_labels
+                ):
+                    raise AssertionError(
+                        "Fiche 2: [zaap:25,-4] not rendered as Atlas travel-copy link"
+                    )
             if index in (1, 49):
                 # The source declares a resource/equipment section before
                 # the later 'Ensuite' travel instruction: no duplication in Route.
@@ -306,6 +322,8 @@ def _native_visual_probe(route: dict, cover_png: bytes) -> None:
         )
         if len(pages_report) != 64:
             raise AssertionError("Exhaustive QA missing one or more source fiches")
+        print("CAWOTTE_SOURCE: rendered_source_id=24"
+              " pilot_entrypoint_id=2205 (QA only)", flush=True)
         print("CAWOTTE_VISUAL_QT: 1280x720 native Windows,"
               f" checked={reports}, prerequisite_rows={len(first_preview)}",
               flush=True)

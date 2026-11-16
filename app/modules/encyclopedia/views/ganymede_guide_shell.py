@@ -272,6 +272,8 @@ class GanymedeGuideShell(SharedGuideManualView):
             self.page_jump.setEnabled(False)
             self.prev_button.setEnabled(False)
             self.next_button.setEnabled(False)
+        # Switching source must not retain the previous guide's drawer tab.
+        self._source_prerequisites_defaulted = False
         self._listing = listing
         self.service.guide_title = listing.title
         self.guide_title_label.setText(listing.title)
