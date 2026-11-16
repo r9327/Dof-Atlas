@@ -165,6 +165,11 @@ class GanymedeGuideShell(SharedGuideManualView):
         self._preparation_needs = ()
         self._preparation_preview = ()
         self.preparation_button.setEnabled(True)
+        for tab in self.preparation_tab_group.buttons():
+            if tab.property("tabKey") == "Prérequis":
+                tab.setChecked(True)
+                break
+        self._preparation_tab_changed("Prérequis")
         self._populate_summary()
         self._refresh_header()
         self._render_window()
@@ -308,6 +313,11 @@ class GanymedeGuideShell(SharedGuideManualView):
             self._preparation_loaded = False
             self._preparation_preview = ()
             self._preparation_needs = ()
+            for tab in self.preparation_tab_group.buttons():
+                if tab.property("tabKey") == "À préparer":
+                    tab.setChecked(True)
+                    break
+            self._preparation_tab_changed("À préparer")
             self.summary_list.clear()
             self.service.cards = ()
             self._clear_cards()
