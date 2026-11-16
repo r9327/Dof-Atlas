@@ -995,6 +995,32 @@ class DevUiPageTests(unittest.TestCase):
             page.close()
             page.deleteLater()
 
+    def test_guide_entity_colors_use_one_unity_index_and_are_visible(self) -> None:
+        from app.pages.dev_ui_page import DevUiPage
+        from app.ui.theme import PALETTE, GUIDE_ENTITY_LINK_COLORS
+        from app.ui.unity_palette import GUIDE_ENTITY_LINK_ROLES
+
+        page = DevUiPage(on_back=lambda: None)
+        try:
+            self.assertEqual(
+                set(page.preview_guide_link_labels), set(GUIDE_ENTITY_LINK_ROLES)
+            )
+            for category, role in GUIDE_ENTITY_LINK_ROLES.items():
+                with self.subTest(category=category):
+                    color = PALETTE[role]
+                    self.assertEqual(GUIDE_ENTITY_LINK_COLORS[category], color)
+                    sample = page.preview_guide_link_labels[category]
+                    self.assertIn(f"color:{color}", sample.text())
+                    self.assertIn(category, sample.toolTip())
+            self.assertEqual(
+                len({GUIDE_ENTITY_LINK_COLORS[key] for key in (
+                    "monster", "boss", "item", "equipment", "npc", "position"
+                )}), 6
+            )
+        finally:
+            page.close()
+            page.deleteLater()
+
     def test_game_ui_colors_sizes_icons_and_gradient_preview(self) -> None:
         from app.pages.dev_ui_page import DevUiPage
         from app.ui.unity_palette import (
