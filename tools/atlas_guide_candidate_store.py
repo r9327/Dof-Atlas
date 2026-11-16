@@ -205,7 +205,6 @@ def _validate_candidate(preview: dict[str, Any]) -> None:
                         or row.get("source_section") != section
                         or row.get("source_action_id") != str(action.get("action_id"))
                         or row.get("source_action_kind") != kind
-                        or row.get("source_rich_blocks") != action.get("rich_blocks")
                         or row.get("source_action") != action
                         or row.get("kind") != expected_kind
                         or row.get("text") != action.get("text")
