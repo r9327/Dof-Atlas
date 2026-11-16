@@ -8,6 +8,7 @@ import unittest
 
 from app.modules.encyclopedia.services.guide_shared_route_contract import (
     GuideRouteContractError,
+    assert_source_fidelity,
     project_authorized_guide,
 )
 
@@ -494,6 +495,51 @@ class TestSharedRouteContract(unittest.TestCase):
         )
         self.assertNotIn("steps", route["source_guide_metadata"])
         self.assertNotIn("source_guide_metadata", route["steps"][0])
+
+    def test_imported_source_roundtrip_rejects_rewritten_or_lost_actions(self):
+        source = sample()
+        source["steps"][0]["actions"].insert(0, {
+            "action_id": "prepare", "kind": "prepare",
+            "text": "Préparer les objets de la fiche originale",
+            "items": [{"name": "Objet fictif", "quantity": 3}],
+        })
+        source["steps"][0]["author"] = "fictitious"
+        before = copy.deepcopy(source)
+        route = project_authorized_guide(source)
+        self.assertEqual(source, before)
+        assert_source_fidelity(source, route)
+        self.assertEqual(
+            route["steps"][0]["manual_runtime_metadata"]["source_step"],
+            source["steps"][0],
+        )
+        self.assertEqual(
+            [row["source_action_id"] for row in route["steps"][0]["manual_sections"]["prepare"]],
+            ["prepare"],
+        )
+        # The source preparation is still part of that exact step. Atlas
+        # additionally aggregates its quantities in a separate overlay.
+        self.assertEqual(route["steps"][0]["a_preparer"][0]["quantity"], 3)
+        for mutation in ("source text", "drop action", "reorder actions", "title", "metadata"):
+            with self.subTest(mutation=mutation):
+                changed = copy.deepcopy(route)
+                if mutation == "source text":
+                    changed["steps"][0]["manual_sections"]["now"][0]["text"] = "Réécriture interdite"
+                elif mutation == "drop action":
+                    changed["steps"][0]["manual_sections"]["now"].pop()
+                elif mutation == "reorder actions":
+                    rows = changed["steps"][0]["manual_sections"]["now"]
+                    rows[0], rows[1] = rows[1], rows[0]
+                elif mutation == "title":
+                    changed["steps"][0]["manual_title"] = "Résumé inventé"
+                else:
+                    changed["source_guide_metadata"]["title"] = "Source modifiée"
+                with self.assertRaisesRegex(GuideRouteContractError, "source fidelity"):
+                    assert_source_fidelity(source, changed)
+        # The original captured step is separately immutable for parity.
+        changed = copy.deepcopy(route)
+        changed["steps"][0]["manual_runtime_metadata"]["source_step"]["actions"][0]["text"] = "Faux"
+        with self.assertRaisesRegex(GuideRouteContractError, "source snapshot changed"):
+            assert_source_fidelity(source, changed)
 
     def test_stage_identity_does_not_shift_when_step_inserted(self):
         initial = sample()
