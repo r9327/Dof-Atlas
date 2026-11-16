@@ -761,7 +761,7 @@ class SharedGuideManualCard(GuideUltimeManualCard):
                 pieces: list[str] = []
                 cursor = 0
                 for match in re.finditer(
-                    r"\\[zaap:(-?\\d{1,5}),(-?\\d{1,5})\\]", text, re.I
+                    r"\[zaap:(-?\d{1,5}),(-?\d{1,5})\]", text, re.I
                 ):
                     pieces.append(html.escape(text[cursor:match.start()]))
                     x, y = int(match.group(1)), int(match.group(2))
