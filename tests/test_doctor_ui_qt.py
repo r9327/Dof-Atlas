@@ -371,6 +371,30 @@ class DoctorUiQtFaultTests(unittest.TestCase):
         overlay.deleteLater()
         settle()
 
+    def test_bottom_scroll_rejects_missing_or_duplicate_read_ahead(self):
+        from PySide6.QtWidgets import QVBoxLayout
+
+        current = self.service.cards[0]
+        last = self.view.findChildren(QFrame, "GuideManualSheet")[-1]
+        last.hide()
+        settle()
+        missing = bottom_guide_observations(self.view, self.view, current)
+        self.assertEqual(missing["status"], "FAIL", missing)
+        self.assertEqual(missing["reason"], "BOTTOM_STAGE_CHANGED")
+        last.show()
+        duplicate = QFrame(self.view.content)
+        duplicate.setObjectName("GuideManualSheet")
+        duplicate.card = current
+        duplicate.setLayout(QVBoxLayout())
+        self.view.cards_layout.addWidget(duplicate)
+        duplicate.show()
+        settle()
+        observed = bottom_guide_observations(self.view, self.view, current)
+        self.assertEqual(observed["status"], "FAIL", observed)
+        self.assertEqual(observed["reason"], "BOTTOM_STAGE_CHANGED")
+        duplicate.deleteLater()
+        settle()
+
     def test_collision_overlay_hidden_scroll_and_wrong_lock_are_detectable(self):
         overlay = QPushButton("Occluding overlay", self.view)
         overlay.setGeometry(self.view.next_button.geometry())
