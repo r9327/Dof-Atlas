@@ -1712,11 +1712,34 @@ class SharedGuideManualView(GuideUltimeManualView):
         panel_layout = QVBoxLayout(self.preparation_panel)
         panel_layout.setContentsMargins(10, 8, 10, 9)
         panel_layout.setSpacing(7)
-        filters = QHBoxLayout()
+        # Two actual tabs, sharing the indexed Unity selection style.
+        # Prerequisites must not be mixed into the materials list.
+        self._preparation_tab = "Prérequis"
+        self.preparation_tab_group = QButtonGroup(self)
+        self.preparation_tab_group.setExclusive(True)
+        tab_row = QHBoxLayout()
+        tab_row.setSpacing(5)
+        for tab in ("Prérequis", "À préparer"):
+            button = QPushButton(tab)
+            button.setObjectName("GuidePreparationModeTab")
+            button.setCheckable(True)
+            button.setChecked(tab == self._preparation_tab)
+            button.setProperty("tabKey", tab)
+            self.preparation_tab_group.addButton(button)
+            button.clicked.connect(
+                lambda _checked=False, value=tab: self._preparation_tab_changed(value)
+            )
+            tab_row.addWidget(button)
+        tab_row.addStretch(1)
+        panel_layout.addLayout(tab_row)
+
+        self.preparation_filter_host = QFrame()
+        filters = QHBoxLayout(self.preparation_filter_host)
+        filters.setContentsMargins(0, 0, 0, 0)
         filters.setSpacing(5)
         self.preparation_filter_group = QButtonGroup(self)
         self.preparation_filter_group.setExclusive(True)
-        for label in ("Tout", "Prérequis", "Métiers", "Potions", "Pierres d'âme", "Clefs", "Objets"):
+        for label in ("Tout", "Métiers", "Potions", "Pierres d'âme", "Clefs", "Objets"):
             button = QPushButton(label)
             button.setObjectName("GuidePreparationFilter")
             button.setCheckable(True)
@@ -1728,7 +1751,8 @@ class SharedGuideManualView(GuideUltimeManualView):
             )
             filters.addWidget(button)
         filters.addStretch(1)
-        panel_layout.addLayout(filters)
+        self.preparation_filter_host.hide()
+        panel_layout.addWidget(self.preparation_filter_host)
 
         self.preparation_scroll = QScrollArea()
         self.preparation_scroll.setObjectName("GuidePreparationScroll")
@@ -2025,6 +2049,20 @@ class SharedGuideManualView(GuideUltimeManualView):
         self._show_index(index)
         # The summary is deliberately sticky. Only an explicit click on the
         # Sommaire button may close it.
+
+    def _preparation_tab_changed(self, tab: str) -> None:
+        if tab not in {"Prérequis", "À préparer"}:
+            return
+        self._preparation_tab = tab
+        self.preparation_filter_host.setVisible(tab == "À préparer")
+        self._preparation_visible_limit = 80
+        if self.preparation_panel.isVisible():
+            if not self._preparation_loaded:
+                self._load_preparation_needs()
+            checked = self.preparation_filter_group.checkedButton()
+            self._render_preparation(
+                str(checked.property("filterKey") if checked else "Tout")
+            )
 
     def _preparation_toggled(self, opened: bool) -> None:
         self.preparation_panel.setVisible(bool(opened))
@@ -2403,13 +2441,21 @@ class SharedGuideManualView(GuideUltimeManualView):
 
     def _render_preparation(self, selected_filter: str) -> None:
         self._clear_preparation_rows()
+        prerequisites_tab = self._preparation_tab == "Prérequis"
         if not self.selected_participant_keys():
-            label = QLabel("Aperçu des préparatifs · sélectionne un personnage pour activer Prêt.")
+            label = QLabel(
+                "Prérequis déclarés · vérification en jeu non effectuée."
+                if prerequisites_tab else
+                "Aperçu des préparatifs · sélectionne un personnage pour activer Prêt."
+            )
             label.setObjectName("GuidePreparationEmpty")
             label.setWordWrap(True)
             self.preparation_rows_layout.addWidget(label)
-            preview = self._preparation_preview
-            if selected_filter != "Tout":
+            preview = tuple(
+                row for row in self._preparation_preview
+                if (row[0] == "Prérequis") == prerequisites_tab
+            )
+            if not prerequisites_tab and selected_filter != "Tout":
                 preview = tuple(row for row in preview if row[0] == selected_filter)
             if not preview:
                 self.preparation_rows_layout.addWidget(QLabel("Aucun besoin structuré fiable."))
@@ -2423,7 +2469,9 @@ class SharedGuideManualView(GuideUltimeManualView):
                     row_layout = QHBoxLayout(row)
                     row_layout.setContentsMargins(8, 3, 8, 3)
                     row_layout.addWidget(self._copyable_preparation_item(
-                        name, f"{quantity if quantity else '?'} × {name} ({category})",
+                        name,
+                        name if prerequisites_tab else
+                        f"{quantity if quantity else '?'} × {name} ({category})",
                         item_id,
                     ))
                     self.preparation_rows_layout.addWidget(row)
@@ -2433,9 +2481,25 @@ class SharedGuideManualView(GuideUltimeManualView):
             self.preparation_rows_layout.addStretch(1)
             return
 
+        if prerequisites_tab:
+            matching = [
+                need for need in self._preparation_needs
+                if need.category == "Prérequis"
+            ]
+            if not matching:
+                empty = QLabel("Aucun prérequis structuré fiable.")
+                empty.setObjectName("GuidePreparationEmpty")
+                self.preparation_rows_layout.addWidget(empty)
+            for need in matching[:self._preparation_visible_limit]:
+                self.preparation_rows_layout.addWidget(self._preparation_row(need))
+            self._append_preparation_more(
+                len(matching) - self._preparation_visible_limit
+            )
+            self.preparation_rows_layout.addStretch(1)
+            return
+
         if selected_filter == "Tout":
             groups = (
-                ("Prérequis", lambda need: need.category == "Prérequis"),
                 ("Métiers", lambda need: need.category == "Métiers"),
                 ("Potions", lambda need: need.category == "Potions"),
                 ("Pierres d'âme", lambda need: need.category == "Pierres d'âme"
@@ -2467,7 +2531,8 @@ class SharedGuideManualView(GuideUltimeManualView):
                     self.preparation_rows_layout.addWidget(self._preparation_row(need))
                 rendered_count += min(len(matching), available)
             self._append_preparation_more(
-                len(self._preparation_needs) - rendered_count
+                sum(1 for need in self._preparation_needs
+                    if need.category != "Prérequis") - rendered_count
             )
             self.preparation_rows_layout.addStretch(1)
             return
@@ -2660,8 +2725,14 @@ class SharedGuideManualView(GuideUltimeManualView):
         return frame
 
     def _update_preparation_progress(self) -> None:
-        total = len(self._preparation_needs)
-        ready = sum(1 for need in self._preparation_needs if self._need_ready(need))
+        # The preparation percentage measures equipment/materials, not quest
+        # or guide prerequisites now shown in their dedicated tab.
+        materials = tuple(
+            need for need in self._preparation_needs
+            if need.category != "Prérequis"
+        )
+        total = len(materials)
+        ready = sum(1 for need in materials if self._need_ready(need))
         self.preparation_bar.setRange(0, max(1, total))
         self.preparation_bar.setValue(ready)
         self.preparation_progress_label.setText(
