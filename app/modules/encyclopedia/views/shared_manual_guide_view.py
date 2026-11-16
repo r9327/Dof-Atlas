@@ -3503,6 +3503,18 @@ class SharedGuideManualView(GuideUltimeManualView):
         self._clear_cards()
         if not self.service.cards:
             return
+        # One actual source fiche is often short. Do not paint a huge empty
+        # bordered scroll panel below it: the original authored sheet keeps
+        # its indexed glass and real content height instead.
+        source_scroll = self._is_imported_source_guide()
+        scroll_name = (
+            "GuideManualSourceScroll" if source_scroll
+            else "GuideManualScroll"
+        )
+        if self.scroll.objectName() != scroll_name:
+            self.scroll.setObjectName(scroll_name)
+            self.scroll.style().unpolish(self.scroll)
+            self.scroll.style().polish(self.scroll)
         index = max(0, min(self.view_index, len(self.service.cards) - 1))
         for number in self._reading_step_range(index):
             card = self.service.cards[number]

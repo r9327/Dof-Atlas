@@ -141,6 +141,8 @@ def _native_visual_probe(route: dict, cover_png: bytes) -> None:
             frame = shell.cards_layout.itemAt(0).widget()
             if shell.rendered_card_count != 1 or frame is None:
                 raise AssertionError(f"step {index + 1}: not exactly one Atlas sheet")
+            if shell.scroll.objectName() != "GuideManualSourceScroll":
+                raise AssertionError("Source sheet still uses full-height bordered glass")
             sheets = shell.findChildren(QFrame, "GuideManualSheet")
             if sum(int(w.isVisibleTo(shell)) for w in sheets) != 1:
                 raise AssertionError(f"step {index + 1}: duplicate visible Qt sheet")
@@ -298,11 +300,19 @@ def _native_visual_probe(route: dict, cover_png: bytes) -> None:
         if shell._preparation_tab != "À préparer":
             raise AssertionError("Materials tab cannot be selected")
         source_materials = shell.preparation_panel.findChildren(QLabel, "GuideManualLine")
-        if len(source_materials) < 6:
-            raise AssertionError("Source materials drawer missing items/quantities")
+        source_context = shell.preparation_panel.findChildren(
+            QLabel, "GuidePreparationSourceContext"
+        )
+        if len(source_materials) < 3:
+            raise AssertionError("Source materials drawer missing typed item rows")
         materials_text = " ".join(label.text() for label in source_materials)
+        contexts_text = " ".join(label.text() for label in source_context)
         if "Cawotte" not in materials_text or "Couronne" not in materials_text:
             raise AssertionError("Cawotte item and equipment links are absent")
+        if "Art gastronomique" in materials_text or "L'œuf ou la cawotte" in materials_text:
+            raise AssertionError("Source Quest/section titles masquerade as items")
+        if "Art gastronomique" not in contexts_text or "L'œuf ou la cawotte" not in contexts_text:
+            raise AssertionError("Original authored headings were lost")
         if not backdrop.grab().save(str(out / "onglet-objets-a-preparer.png"), "PNG"):
             raise AssertionError("Materials tab screenshot failed")
         shell.preparation_button.setChecked(False)

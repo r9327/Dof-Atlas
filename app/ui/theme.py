@@ -2487,6 +2487,13 @@ QScrollArea#GuideManualScroll {
     border: 1px solid @BORDER_STRONG;
     border-radius: @RADIUS_MD;
 }
+/* On source-only 1:1 sheets, the glass belongs to the authored card;
+   don't surround 100px of content with an otherwise empty 430px border. */
+QScrollArea#GuideManualSourceScroll,
+QScrollArea#GuideManualSourceScroll > QWidget#qt_scrollarea_viewport {
+    background: transparent;
+    border: none;
+}
 QWidget#GuideManualContent {
     background: transparent;
 }
