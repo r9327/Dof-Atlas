@@ -107,6 +107,14 @@ def _items(raw: Any, label: str) -> tuple[str, ...]:
         quantity = value.get("quantity")
         if type(quantity) is not int or quantity <= 0:
             raise GuideRouteContractError(f"{label}[{index}].quantity: positive integer required")
+        # UI may color equipment differently only with an explicit typed
+        # source category. No name-based equipment inference is permitted.
+        if "item_type" in value and value["item_type"] not in (
+            "item", "resource", "equipment",
+        ):
+            raise GuideRouteContractError(
+                f"{label}[{index}].item_type: unsupported item category"
+            )
         if "item_id" in value and value["item_id"] is not None and (
             type(value["item_id"]) is not int or value["item_id"] <= 0
         ):
