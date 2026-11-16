@@ -223,9 +223,9 @@ class GanymedeGuideShell(SharedGuideManualView):
         for number in self._reading_step_range(index):
             widget = SharedGuideManualCard(
                 self.service, self.character_key, cards[number], number,
-                # The active stage title already lives in GuideSheetHeader.
-                # Following read-ahead stages retain their own titles.
-                show_header_title=number != index,
+                # One active step indicator in GuideSheetHeader; following
+                # source actions continue after a simple layout line break.
+                show_header_title=False,
             )
             widget.page_check.setEnabled(False)
             widget.page_check.hide()
