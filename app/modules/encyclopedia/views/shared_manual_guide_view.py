@@ -1734,6 +1734,7 @@ class SharedGuideManualView(GuideUltimeManualView):
         panel_layout.addLayout(tab_row)
 
         self.preparation_filter_host = QFrame()
+        self.preparation_filter_host.setObjectName("GuidePreparationFilterHost")
         filters = QHBoxLayout(self.preparation_filter_host)
         filters.setContentsMargins(0, 0, 0, 0)
         filters.setSpacing(5)
