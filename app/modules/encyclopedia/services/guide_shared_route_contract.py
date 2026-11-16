@@ -221,6 +221,21 @@ def project_authorized_guide(guide: dict[str, Any]) -> dict[str, Any]:
             monsters = action.get("monsters")
             if monsters is not None:
                 _items(monsters, f"{label}.monsters")
+                for monster_index, monster in enumerate(monsters):
+                    typed_ids = tuple(
+                        field for field in ("monster_id", "boss_id")
+                        if monster.get(field) is not None
+                    )
+                    if len(typed_ids) > 1:
+                        raise GuideRouteContractError(
+                            f"{label}.monsters[{monster_index}]: one typed Bestiary ID required"
+                        )
+                    for field in typed_ids:
+                        game_id = monster[field]
+                        if type(game_id) is not int or game_id <= 0:
+                            raise GuideRouteContractError(
+                                f"{label}.monsters[{monster_index}].{field}: positive integer ID required"
+                            )
             if kind in {"fight", "combat"} and not monsters:
                 raise GuideRouteContractError(f"{label}: combat requires structured monsters")
             section = action.get("section", _SECTION_BY_KIND.get(kind, "now"))
