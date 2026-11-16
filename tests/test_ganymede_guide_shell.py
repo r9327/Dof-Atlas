@@ -5,6 +5,7 @@ certified, or silently manufactured by a catalogue preview.
 """
 from __future__ import annotations
 
+import json
 import os
 import unittest
 from pathlib import Path
@@ -12,6 +13,7 @@ from pathlib import Path
 os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
 
 from PySide6.QtCore import Qt
+from PySide6.QtTest import QTest
 from PySide6.QtWidgets import QApplication, QFrame, QProgressBar, QSpinBox
 
 from app.modules.encyclopedia.views.guide_catalog_view import GuideCatalogView
@@ -98,6 +100,74 @@ class GanymedeGuideShellTests(unittest.TestCase):
             self.assertEqual(shell.rendered_card_count, 0)
             self.assertEqual(shell.service.cards, ())
         self.assertFalse(shell.findChildren(QProgressBar)[0].isEnabled())
+
+    def test_first_cawotte_ui_pilot_opens_from_catalog_and_preserves_real_guide(self) -> None:
+        from app.modules.encyclopedia.models.guide import Guide
+        from app.modules.encyclopedia.views.guide_library_sources import INDEX_PATH
+
+        candidate_file = INDEX_PATH.parent / "ganymede_2205_action_candidates.json"
+        candidate = json.loads(candidate_file.read_text(encoding="utf-8"))
+        self.assertEqual(candidate["source_guide_id"], 2205)
+        self.assertEqual(candidate["source_step_count"], 64)
+        self.assertEqual(len(candidate["steps"]), 64)
+        self.assertEqual(candidate["certified_actions"], 0)
+        self.assertFalse(candidate["ready_to_replace"])
+
+        catalog = GuideCatalogView(
+            lambda _message: None,
+            provider=object(),
+            quest_progress_path=Path("unused_cawotte_pilot.json"),
+            defer_runtime=True,
+        )
+        self.addCleanup(catalog.deleteLater)
+        self.addCleanup(catalog.close)
+        catalog.guides = [Guide(id="dofus_cawotte", title="Dofus Cawotte", category="dofus")]
+        catalog.ganymede_listings = load_ganymede_listings()
+        catalog._ganymede_by_id = {
+            entry.source_id: entry for entry in catalog.ganymede_listings
+        }
+        catalog._populate_library_tree()
+        pilot = catalog._cawotte_pilot_item
+        self.assertIsNotNone(pilot)
+        self.assertEqual(pilot.data(0, Qt.UserRole + 2), 2205)
+        self.assertIn("Cawotte", pilot.text(0))
+        catalog._populate_library_tree()
+        self.assertIs(catalog._cawotte_pilot_item, pilot)
+        requests = []
+        catalog.guideRequested.connect(requests.append)
+
+        catalog.resize(1180, 720)
+        catalog.show()
+        self.app.processEvents()
+        tree = catalog.library_categories
+        tree.scrollToItem(pilot)
+        self.app.processEvents()
+        rect = tree.visualItemRect(pilot)
+        self.assertTrue(rect.isValid())
+        QTest.mouseClick(tree.viewport(), Qt.LeftButton, pos=rect.center())
+        self.app.processEvents()
+        shell = catalog._ganymede_shell
+        self.assertIsInstance(shell, GanymedeGuideShell)
+        self.assertIs(catalog.pages.currentWidget(), shell)
+        self.assertEqual(shell._listing.source_id, 2205)
+        self.assertEqual(shell.rendered_card_count, 0)
+        self.assertFalse(shell.page_jump.isEnabled())
+        self.assertEqual(requests, [])
+
+        shell.guide_button.click()
+        self.assertIs(catalog.pages.currentWidget(), catalog.home_scroll)
+        QTest.mouseClick(tree.viewport(), Qt.LeftButton, pos=rect.center())
+        self.app.processEvents()
+        self.assertIs(catalog.pages.currentWidget(), shell)
+        shell.guide_button.click()
+        tree.setFocus()
+        QTest.keyClick(tree, Qt.Key_Return)
+        self.app.processEvents()
+        self.assertIs(catalog.pages.currentWidget(), shell)
+        self.assertEqual(requests, [])
+        shell.guide_button.click()
+        self.assertTrue(catalog.select_guide("dofus_cawotte"))
+        self.assertEqual(requests, ["dofus_cawotte"])
 
     def test_catalogue_reuses_one_preview_and_does_not_dispatch_guide(self) -> None:
         catalog = GuideCatalogView(

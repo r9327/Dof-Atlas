@@ -77,6 +77,8 @@ class GuideCatalogView(QWidget):
         self.ganymede_listings = ()
         self._ganymede_by_id = {}
         self._ganymede_shell = None
+        # One labeled UI pilot, never a playable replacement for Atlas Cawotte.
+        self._cawotte_pilot_item: QTreeWidgetItem | None = None
         self.library_category = "dofus"
         self._initial_progress_by_guide = dict(initial_progress_by_guide or {})
         self._initial_progress_character_key = str(initial_progress_character_key or "")
@@ -379,6 +381,22 @@ class GuideCatalogView(QWidget):
         Source-index rows open only the empty UI container; they cannot
         dispatch guideRequested or acquire a route/runtime service.
         """
+        # Cawotte is suppressed from ordinary metadata lists because Atlas
+        # already has its own Guide card. Offer a distinct first UI pilot,
+        # without replacing the real guide or enabling uncertified steps.
+        cawotte = self._ganymede_by_id.get(2205)
+        if cawotte is not None and not cawotte.playable:
+            if self._cawotte_pilot_item is None:
+                pilot = QTreeWidgetItem(("Cawotte · Test UI",))
+                pilot.setData(0, Qt.UserRole + 2, 2205)
+                pilot.setToolTip(0, "Aperçu du conteneur Cawotte, sans fiches chargées")
+                self.library_categories.insertTopLevelItem(0, pilot)
+                self._cawotte_pilot_item = pilot
+        elif self._cawotte_pilot_item is not None:
+            index = self.library_categories.indexOfTopLevelItem(self._cawotte_pilot_item)
+            if index >= 0:
+                self.library_categories.takeTopLevelItem(index)
+            self._cawotte_pilot_item = None
         catalog_ids = {str(guide.id) for guide in self.guides}
         featured = {guide_id for guide_id, _title in FEATURED}
         for category, parent in self._category_nodes.items():
@@ -449,12 +467,24 @@ class GuideCatalogView(QWidget):
         self.pages.setCurrentWidget(self.home_scroll)
 
     def _toggle_library_category(self, item: QTreeWidgetItem, _column: int) -> None:
+        source_id = item.data(0, Qt.UserRole + 2)
+        if type(source_id) is int:
+            # Clicking the same selected item after Back must reopen it;
+            # currentItemChanged does not fire on repeated selection.
+            if self.pages.currentWidget() is self.home_scroll:
+                self.open_ganymede_container(source_id)
+            return
         if item.data(0, Qt.UserRole) and item.childCount():
             item.setExpanded(not item.isExpanded())
 
     def _activate_library_item(self, item: QTreeWidgetItem, column: int) -> None:
-        # A child was already selected via currentItemChanged; activation must
-        # never dispatch guideRequested a second time (Enter/double-click).
+        # Enter also reopens an already selected source-only UI shell.
+        # Existing playable routes still dispatch guideRequested unchanged.
+        source_id = item.data(0, Qt.UserRole + 2)
+        if type(source_id) is int:
+            if self.pages.currentWidget() is self.home_scroll:
+                self.open_ganymede_container(source_id)
+            return
         if item.data(0, Qt.UserRole):
             self._toggle_library_category(item, column)
 

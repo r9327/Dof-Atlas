@@ -45,13 +45,15 @@ jobs:
           python - <<'PY'
           from pathlib import Path
           from PySide6.QtWidgets import QApplication, QVBoxLayout, QProgressBar
+          from PySide6.QtCore import Qt
+          from PySide6.QtTest import QTest
           from PySide6.QtGui import QFontDatabase
           from app.ui.theme import atlas_stylesheet
           from app.ui.unity_skin import UnityBackdrop
           from app.modules.encyclopedia.views.ganymede_guide_shell import GanymedeGuideShell
+          from app.modules.encyclopedia.views.guide_catalog_view import GuideCatalogView
           from app.modules.encyclopedia.views.guide_library_sources import load_ganymede_listings
           from app.modules.encyclopedia.models.guide import Guide
-          from app.modules.encyclopedia.widgets.guide_card import GuideListModel
 
           entries = load_ganymede_listings()
           assert len(entries) == 95
@@ -63,18 +65,36 @@ jobs:
           backdrop.setWindowTitle("Atlas - Guide Ganymede - vrai conteneur Qt")
           backdrop.resize(1280, 720)
           layout = QVBoxLayout(backdrop)
-          shell = GanymedeGuideShell(lambda: None, backdrop)
-          # The Windows capture checkout intentionally omits the local Doduda
-          # quest/item corpus. Use the Home model's *same* documented fallback
-          # without loading quest routes or fabricating a Cawotte item image.
-          # In the running catalogue, GuideCatalogView passes the actual
-          # Guide.image_path through this exact artwork_for_guide() method.
-          local_guide = Guide(id="dofus_cawotte", title="Dofus Cawotte", category="dofus")
-          artwork = GuideListModel().artwork_for_guide(local_guide)
-          shell.set_listing(cawotte, artwork=artwork)
-          layout.addWidget(shell)
+          # Go through the user's actual Guide catalogue, not an isolated
+          # synthetic screenshot of a widget that cannot be opened in-app.
+          catalog = GuideCatalogView(
+              lambda _message: None, provider=object(),
+              quest_progress_path=Path("unused_cawotte_screenshot.json"),
+              defer_runtime=True,
+          )
+          catalog.guides = [Guide(id="dofus_cawotte", title="Dofus Cawotte", category="dofus")]
+          catalog.ganymede_listings = entries
+          catalog._ganymede_by_id = {entry.source_id: entry for entry in entries}
+          catalog._populate_library_tree()
+          pilot = catalog._cawotte_pilot_item
+          assert pilot is not None and pilot.data(0, Qt.UserRole + 2) == 2205
+          layout.addWidget(catalog)
           backdrop.show()
           app.processEvents()
+          tree = catalog.library_categories
+          tree.scrollToItem(pilot)
+          app.processEvents()
+          rect = tree.visualItemRect(pilot)
+          assert rect.isValid()
+          before = Path("artifacts/screenshots/ganymede-cawotte-pilot-catalog-qt.png")
+          before.parent.mkdir(parents=True, exist_ok=True)
+          assert backdrop.grab().save(str(before), "PNG")
+          QTest.mouseClick(tree.viewport(), Qt.LeftButton, pos=rect.center())
+          app.processEvents()
+          shell = catalog._ganymede_shell
+          assert isinstance(shell, GanymedeGuideShell)
+          assert catalog.pages.currentWidget() is shell
+          assert shell._listing.source_id == 2205
           assert shell.guide_title_label.text() == cawotte.title
           assert len(shell.findChildren(QProgressBar)) == 3
           assert all(not bar.isEnabled() for bar in shell.findChildren(QProgressBar))
