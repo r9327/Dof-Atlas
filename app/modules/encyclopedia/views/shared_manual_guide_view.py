@@ -2162,6 +2162,13 @@ class SharedGuideManualView(GuideUltimeManualView):
         # its tooltip and accessibility label without stretching the header.
         self.participants_button.setText("")
         source_guide = self._is_imported_source_guide()
+        # The page jump and prev/next already navigate every imported source
+        # page. Keep Route progress but remove its redundant dropdown.
+        if hasattr(self, "summary_button"):
+            self.summary_button.setVisible(not source_guide)
+            if source_guide:
+                self.summary_button.setChecked(False)
+                self.summary_panel.hide()
         for name, label in getattr(self, "_metric_caption_labels", {}).items():
             if name == "Préparation" and source_guide:
                 label.setText("Prérequis")
@@ -2806,6 +2813,163 @@ class SharedGuideManualView(GuideUltimeManualView):
         button.clicked.connect(lambda _checked=False: self._show_more_preparation())
         self.preparation_rows_layout.addWidget(button)
 
+    def _source_global_material_total(self, row: dict[str, Any]) -> int:
+        """Explicit manual counter for selected participants, never live stock."""
+        item_id, required = row.get("item_id"), row.get("quantity")
+        if type(item_id) is not int or type(required) is not int:
+            return 0
+        progress = getattr(self.service, "guide_progress", None)
+        getter = getattr(progress, "preparation_quantity", None)
+        if not callable(getter):
+            return 0
+        guide = str(getattr(self.service, "progress_id", "") or "")
+        item_key = f"item:{item_id}"
+        acquired = 0
+        for key in sorted(self.selected_participant_keys()):
+            acquired += min(required, getter(key, guide, item_key))
+        return min(required, acquired)
+
+    def _set_source_global_material_total(
+        self, row: dict[str, Any], target: int,
+    ) -> None:
+        """CAS-save one global ID, never invent a character or bypass revocation."""
+        from app.modules.encyclopedia.services.guide_source_preparation_rows import (
+            global_source_material_rows,
+        )
+        item_id, required = row.get("item_id"), row.get("quantity")
+        if type(item_id) is not int or type(required) is not int or required <= 0:
+            return
+        current = next((
+            item for item in global_source_material_rows(self.service.cards)
+            if item["item_id"] == item_id
+        ), None)
+        if current is None or current["quantity"] != required:
+            return  # A changed source cannot inherit the previous item's state.
+        authorized = getattr(self.service, "can_write_progress", None)
+        if not callable(authorized) or authorized() is not True:
+            return
+        keys = tuple(sorted(self.selected_participant_keys()))
+        if not keys:
+            return
+        progress = getattr(self.service, "guide_progress", None)
+        getter = getattr(progress, "preparation_quantity", None)
+        writer = getattr(progress, "set_preparation_quantities_for_characters", None)
+        if not callable(getter) or not callable(writer):
+            return
+        guide = str(getattr(self.service, "progress_id", "") or "")
+        item_key = f"item:{item_id}"
+        expected = {key: getter(key, guide, item_key) for key in keys}
+        target = max(0, min(int(target), required))
+        amounts = {}
+        remaining = target
+        # Preserve already-entered amounts first, then fill remaining slots.
+        for key in keys:
+            amounts[key] = min(expected[key], required, remaining)
+            remaining -= amounts[key]
+        for key in keys:
+            if not remaining:
+                break
+            addition = min(remaining, required - amounts[key])
+            amounts[key] += addition
+            remaining -= addition
+        try:
+            writer(
+                guide, item_key, amounts,
+                {key: required for key in keys},
+                expected_quantities=expected,
+            )
+        except (ValueError, RuntimeError):
+            self.service.reload_progress()
+        self._render_preparation("Tout")
+        self._update_preparation_progress()
+
+    def _render_source_global_materials(self) -> bool:
+        """One row per typed item ID: validate | X/X | icon + copyable name."""
+        if not self._is_imported_source_guide():
+            return False
+        from app.modules.encyclopedia.services.guide_source_preparation_rows import (
+            global_source_material_rows,
+        )
+        rows = global_source_material_rows(self.service.cards)
+        if not rows:
+            return False
+        source_guard = getattr(self.service, "can_write_progress", None)
+        authorized = callable(source_guard) and source_guard() is True
+        progress = getattr(self.service, "guide_progress", None)
+        can_edit = (
+            authorized and bool(self.selected_participant_keys())
+            and callable(getattr(progress, "preparation_quantity", None))
+            and callable(getattr(progress, "set_preparation_quantities_for_characters", None))
+        )
+        for item in rows[:self._preparation_visible_limit]:
+            item_id, quantity = item.get("item_id"), item.get("quantity")
+            verified = (
+                type(item_id) is int and type(quantity) is int and quantity > 0
+                and not item.get("optional")
+            )
+            frame = QFrame()
+            frame.setObjectName("GuidePreparationRow")
+            frame.setMinimumHeight(int(SIZES["CONTROL_HEIGHT"].removesuffix("px")))
+            layout = QHBoxLayout(frame)
+            layout.setContentsMargins(
+                GUIDE_READING_METRICS["section_horizontal"],
+                GUIDE_READING_METRICS["section_vertical"],
+                GUIDE_READING_METRICS["section_horizontal"],
+                GUIDE_READING_METRICS["section_vertical"],
+            )
+            layout.setSpacing(GUIDE_READING_METRICS["row_spacing"])
+            acquired = self._source_global_material_total(item) if verified else 0
+            valid = QCheckBox()
+            valid.setObjectName("GuidePreparationReady")
+            valid.setAccessibleName(f"Valider {item['name']}")
+            valid.setToolTip("Valider l'objet pour le groupe sélectionné")
+            valid.setChecked(verified and acquired == quantity)
+            valid.setFixedWidth(22)
+            valid.setEnabled(can_edit and verified)
+            if can_edit and verified:
+                valid.toggled.connect(
+                    lambda checked, row=item: self._set_source_global_material_total(
+                        row, row["quantity"] if checked else 0
+                    )
+                )
+            layout.addWidget(valid, 0, Qt.AlignVCenter)
+            if verified:
+                editor = QSpinBox(frame)
+                editor.setObjectName("GuidePreparationQuantity")
+                editor.setFixedWidth(GUIDE_READING_METRICS["source_quantity_width"])
+                editor.setRange(0, quantity)
+                editor.setValue(acquired)
+                editor.setSuffix(f" / {quantity}")
+                editor.setEnabled(can_edit)
+                editor.setToolTip(
+                    "Quantité préparée pour le groupe sélectionné"
+                    if can_edit else "Compteur en lecture seule : source non autorisée ou aucun personnage"
+                )
+                if can_edit:
+                    editor.editingFinished.connect(
+                        lambda row=item, spin=editor: self._set_source_global_material_total(
+                            row, spin.value()
+                        )
+                    )
+                layout.addWidget(editor, 0, Qt.AlignVCenter)
+            else:
+                missing = QLabel("? / ?")
+                missing.setObjectName("GuidePreparationQuantityPlaceholder")
+                missing.setFixedWidth(GUIDE_READING_METRICS["source_quantity_width"])
+                missing.setToolTip("Quantité ou identifiant non vérifié dans la source")
+                missing.setAlignment(Qt.AlignCenter)
+                layout.addWidget(missing, 0, Qt.AlignVCenter)
+            button = self._copyable_preparation_item(
+                item["name"], item["name"], item_id
+                if type(item_id) is int else None,
+            )
+            # Use the indexed icon lookup, never a downloaded or invented image.
+            layout.addWidget(button, 1, Qt.AlignVCenter)
+            self.preparation_rows_layout.addWidget(frame)
+        self._append_preparation_more(len(rows) - self._preparation_visible_limit)
+        self.preparation_rows_layout.addStretch(1)
+        return True
+
     def _render_imported_source_blocks(self, *, prerequisites: bool) -> bool:
         """Render only actual typed items as material rows, context as headings.
 
@@ -2816,10 +2980,7 @@ class SharedGuideManualView(GuideUltimeManualView):
             return False
         rows: list[dict[str, Any]] = []
         if not prerequisites:
-            from app.modules.encyclopedia.services.guide_source_preparation_rows import (
-                authored_material_rows,
-            )
-            rows = list(authored_material_rows(self.service.cards))
+            return self._render_source_global_materials()
         else:
             for card in self.service.cards:
                 source = card.get("manual_runtime_metadata") or {}
