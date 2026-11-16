@@ -27,12 +27,12 @@ from app.modules.encyclopedia.services.guide_quest_view_model import (
 )
 from app.modules.encyclopedia.views.guide_ultime_universal_view import GuideUltimeUniversalView
 from app.core.text import normalize_key as normalize_text
-from app.ui.theme import PALETTE
+from app.ui.theme import PALETTE, GUIDE_ENTITY_LINK_COLORS
 
 
-NPC_COLOR = PALETTE["YELLOW"]
-RESOURCE_COLOR = PALETTE["GREEN"]
-POSITION_COLOR = PALETTE["TEXT_SOFT"]
+NPC_COLOR = GUIDE_ENTITY_LINK_COLORS["npc"]
+RESOURCE_COLOR = GUIDE_ENTITY_LINK_COLORS["item"]
+POSITION_COLOR = GUIDE_ENTITY_LINK_COLORS["position"]
 _COORD_RE = re.compile(r"\[(-?\d+)\s*,\s*(-?\d+)\]")
 _COMBAT_QUANTITY_RE = re.compile(r"\bx\s*(\d+)\b", re.IGNORECASE)
 _NAME_WORD = r"[A-ZÀ-ÖØ-Þ][A-Za-zÀ-ÖØ-öø-ÿ'’.-]*"
@@ -622,10 +622,18 @@ class GuideUltimeManualCard(QFrame):
         resource_names: list[str],
         *,
         entity_links: tuple[tuple[str, str, int], ...] = (),
+        item_kinds: tuple[tuple[str, str], ...] = (),
     ) -> str:
         prefix_text = str(prefix or "")
         plain = prefix_text + (f"{position} — " if position else "") + str(text or "")
         spans: list[tuple[int, int, str, str]] = []
+        # Only the authored item type, never a guess from its name, can
+        # change the resource color to the equipment color.
+        item_kind_by_name = {
+            normalize_text(name): kind
+            for name, kind in item_kinds
+            if isinstance(name, str) and kind in {"item", "equipment"}
+        }
 
         def add_span(start: int, end: int, kind: str, payload: str = "") -> None:
             if start >= end:
@@ -669,10 +677,14 @@ class GuideUltimeManualCard(QFrame):
                 rendered.append(f'<span style="color:{NPC_COLOR};"><b>{value}</b></span>')
             elif kind == "entity":
                 href = html.escape(f"atlas-entity:{payload}", quote=True)
-                rendered.append(f'<a href="{href}" style="color:{RESOURCE_COLOR};text-decoration:none;"><b>{value}</b></a>')
+                entity_type = payload.split(":", 1)[0]
+                color = GUIDE_ENTITY_LINK_COLORS[entity_type]
+                rendered.append(f'<a href="{href}" style="color:{color};text-decoration:none;"><b>{value}</b></a>')
             elif kind == "resource":
                 href = html.escape(f"item-copy:{quote(payload, safe='')}", quote=True)
-                rendered.append(f'<a href="{href}" style="color:{RESOURCE_COLOR};text-decoration:none;"><b>{value}</b></a>')
+                category = item_kind_by_name.get(normalize_text(payload), "item")
+                color = GUIDE_ENTITY_LINK_COLORS[category]
+                rendered.append(f'<a href="{href}" style="color:{color};text-decoration:none;"><b>{value}</b></a>')
             else:
                 href = html.escape(f"travel-copy:{payload}", quote=True)
                 rendered.append(f'<a href="{href}" style="color:{POSITION_COLOR};text-decoration:none;"><b>{value}</b></a>')
