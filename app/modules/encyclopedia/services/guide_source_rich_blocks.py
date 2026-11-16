@@ -38,8 +38,16 @@ def _nonempty(value: Any, label: str) -> str:
 def _link(url: Any, label: str) -> None:
     if not isinstance(url, str) or len(url) > 2048 or any(c.isspace() for c in url):
         raise GuideRichContentError(f"{label}: unsafe source link")
-    parts = urlsplit(url)
-    if parts.scheme != "https" or not parts.hostname or parts.username or parts.password:
+    try:
+        parts = urlsplit(url)
+        host = parts.hostname
+        username = parts.username
+        password = parts.password
+        port = parts.port
+    except ValueError as exc:
+        raise GuideRichContentError(f"{label}: malformed HTTPS source link") from exc
+    if (parts.scheme != "https" or not host or username or password
+            or (port is not None and not 1 <= port <= 65535)):
         raise GuideRichContentError(f"{label}: HTTPS source link required")
 
 
@@ -56,7 +64,7 @@ def _runs(raw: Any, label: str) -> str:
         if not isinstance(text, str) or not text or len(text) > _MAX_TEXT_CHARS:
             raise GuideRichContentError(f"{field}.text: nonempty source span required")
         role = run.get("role", "plain")
-        if role not in _ROLES:
+        if not isinstance(role, str) or role not in _ROLES:
             raise GuideRichContentError(f"{field}.role: unmapped Dev UI role")
         if "href" in run:
             _link(run["href"], f"{field}.href")
@@ -72,7 +80,8 @@ def image_bytes(block: dict[str, Any], label: str = "image") -> bytes:
     mime = block.get("mime")
     digest = block.get("sha256")
     encoded = block.get("data_base64")
-    if mime not in _MIMES or not isinstance(digest, str) or not _SHA256.fullmatch(digest):
+    if (not isinstance(mime, str) or mime not in _MIMES
+            or not isinstance(digest, str) or not _SHA256.fullmatch(digest)):
         raise GuideRichContentError(f"{label}: typed media and SHA-256 required")
     if not isinstance(encoded, str) or len(encoded) > (_MAX_IMAGE_BYTES * 4 // 3 + 8):
         raise GuideRichContentError(f"{label}: source media exceeds size limit")
@@ -109,6 +118,8 @@ def validate_source_rich_blocks(raw: Any, action_text: str, label: str) -> None:
         if not isinstance(block, dict):
             raise GuideRichContentError(f"{field}: source block object required")
         kind = block.get("type")
+        if not isinstance(kind, str):
+            raise GuideRichContentError(f"{field}: source block type must be text")
         if kind in {"paragraph", "heading"}:
             allowed = {"type", "runs"} | ({"level"} if kind == "heading" else set())
             if set(block) != ({"type", "runs"} | ({"level"} if "level" in block else set())) or set(block) - allowed:
