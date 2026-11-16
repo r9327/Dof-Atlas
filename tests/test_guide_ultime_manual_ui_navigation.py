@@ -200,7 +200,7 @@ class GuideUltimeManualUiNavigationTests(unittest.TestCase):
             self.assertTrue(view.route_bar.isHidden())
             self.assertTrue(view.summary_button.isHidden())
             self.assertIs(view.summary_button.parentWidget(),
-                          view.findChild(QFrame, "GuideSheetHeader"))
+                          view.findChild(QFrame, "GuideCompactHeader"))
             self.assertEqual(view.progress_donut._percent, 0)
             self.assertEqual(view.donut_count_label.text(), "0 fiches validées")
             self.assertFalse(hasattr(view, "success_bar"))
