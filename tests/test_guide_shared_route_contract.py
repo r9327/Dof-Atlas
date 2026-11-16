@@ -58,6 +58,28 @@ class TestSharedRouteContract(unittest.TestCase):
         with self.assertRaisesRegex(GuideRouteContractError, "one typed Bestiary ID required"):
             project_authorized_guide(conflict)
 
+    def test_item_type_is_explicit_and_preserved_for_color_mapping(self):
+        source = sample()
+        resource = source["steps"][0]["actions"][2]["items"][0]
+        resource["item_id"] = 234
+        resource["item_type"] = "equipment"
+        card = project_authorized_guide(source)["steps"][0]
+        item = card["manual_sections"]["now"][2]["source_action"]["items"][0]
+        self.assertEqual(item["item_type"], "equipment")
+        self.assertEqual(item["item_id"], 234)
+        self.assertEqual(card["a_preparer"], [])
+        for kind in ("item", "resource", "equipment"):
+            source["steps"][0]["actions"][2]["items"][0]["item_type"] = kind
+            self.assertEqual(
+                project_authorized_guide(source)["steps"][0]["manual_sections"]["now"][2]
+                ["source_action"]["items"][0]["item_type"],
+                kind,
+            )
+        for kind in ("weapon", "", None, 42, False):
+            source["steps"][0]["actions"][2]["items"][0]["item_type"] = kind
+            with self.assertRaisesRegex(GuideRouteContractError, "unsupported item category"):
+                project_authorized_guide(source)
+
     def test_unrecognized_source_fields_must_get_explicit_ui_mapping(self):
         for scope, field, value in (
             ("action", "make_unexpected_decision", "Choose another route"),
