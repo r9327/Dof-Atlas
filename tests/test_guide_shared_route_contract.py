@@ -560,6 +560,80 @@ class TestSharedRouteContract(unittest.TestCase):
         self.assertNotEqual(aa["id"], bb["id"])
         self.assertNotEqual(aa["steps"][0]["manual_stage_id"], bb["steps"][0]["manual_stage_id"])
 
+    def test_authorized_rich_text_checklist_and_embedded_image_are_lossless(self):
+        import base64
+        import hashlib
+        import struct
+        import zlib
+
+        def png_chunk(tag, payload):
+            return (
+                struct.pack(">I", len(payload)) + tag + payload
+                + struct.pack(">I", zlib.crc32(tag + payload))
+            )
+
+        png = (
+            b"\x89PNG\r\n\x1a\n"
+            + png_chunk(b"IHDR", struct.pack(">IIBBBBB", 1, 1, 8, 6, 0, 0, 0))
+            + png_chunk(b"IDAT", zlib.compress(bytes((0, 255, 0, 0, 255))))
+            + png_chunk(b"IEND", b"")
+        )
+        media = {
+            "type": "image", "alt": "Capture originale de la carte fictive",
+            "mime": "image/png",
+            "sha256": hashlib.sha256(png).hexdigest(),
+            "data_base64": base64.b64encode(png).decode("ascii"),
+        }
+        source = sample()
+        action = source["steps"][0]["actions"][1]
+        action["rich_blocks"] = [
+            {"type": "paragraph", "runs": [
+                {"text": "Parler ", "role": "plain"},
+                {"text": "au ", "role": "plain"},
+                {"text": "PNJ Exemple", "role": "npc"},
+            ]},
+            {"type": "heading", "level": 2, "runs": [
+                {"text": "Exigences", "role": "plain"}
+            ]},
+            {"type": "checklist", "items": [
+                {"id": "source-check-1", "text": "Réponse vérifiée", "checked": False}
+            ]},
+            media,
+            {"type": "paragraph", "runs": [
+                {"text": "Voir la source",
+                 "role": "quest", "href": "https://example.org/authorized"}
+            ]},
+        ]
+        before = copy.deepcopy(source)
+        route = project_authorized_guide(source)
+        self.assertEqual(source, before)
+        assert_source_fidelity(source, route)
+        row = route["steps"][0]["manual_sections"]["now"][1]
+        self.assertEqual(row["source_rich_blocks"], action["rich_blocks"])
+        self.assertEqual(
+            route["steps"][0]["manual_source_action_order"],
+            [a["action_id"] for a in source["steps"][0]["actions"]],
+        )
+        for invalid in ("modified_text", "missing_image", "digest", "unsafe_link",
+                        "renumber_checkbox", "missing_run"):
+            with self.subTest(invalid=invalid):
+                bad = copy.deepcopy(source)
+                blocks = bad["steps"][0]["actions"][1]["rich_blocks"]
+                if invalid == "modified_text":
+                    blocks[0]["runs"][0]["text"] = "Résumé "
+                elif invalid == "missing_image":
+                    blocks[3] = {"type": "image", "alt": "Capture", "url": "https://example.org/a.png"}
+                elif invalid == "digest":
+                    blocks[3]["sha256"] = "0" * 64
+                elif invalid == "unsafe_link":
+                    blocks[4]["runs"][0]["href"] = "javascript:alert(1)"
+                elif invalid == "renumber_checkbox":
+                    blocks[2]["items"].append(copy.deepcopy(blocks[2]["items"][0]))
+                else:
+                    blocks[0]["runs"].pop()
+                with self.assertRaises(GuideRouteContractError):
+                    project_authorized_guide(bad)
+
     def test_fail_closed_unknown_action_and_keep_source_order(self):
         bad = sample()
         bad["steps"][0]["actions"][0]["kind"] = "teleport_unknown"
