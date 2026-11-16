@@ -116,6 +116,23 @@ class AtlasGuideHtmlCaptureTests(unittest.TestCase):
             ["authored-page-content"],
         )
 
+    def test_any_silent_source_text_drop_is_blocking(self):
+        # Cross-check parser output against the original DOM independently,
+        # so future HTML/layout changes cannot recreate three-line summaries.
+        from unittest.mock import patch
+        from tools import atlas_guide_html_capture as capture
+
+        original = capture._blocks
+
+        def faulty_projection(container, assets):
+            return original(container, assets)[:-1]
+
+        with patch.object(capture, "_blocks", side_effect=faulty_projection):
+            with self.assertRaisesRegex(
+                SourceCaptureError, "authored page text differs after capture",
+            ):
+                extract_saved_html(STEP_ONE)
+
     def test_incomplete_paginated_capture_must_fail_not_summarize(self):
         self.manifest["guides"][0]["pages"] = ["one.html"]
         with self.assertRaisesRegex(SourceCaptureError, "incomplete paginated capture: 1/2"):
