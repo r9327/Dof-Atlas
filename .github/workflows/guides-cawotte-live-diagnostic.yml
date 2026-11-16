@@ -30,5 +30,9 @@ jobs:
         uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
         with:
           python-version: '3.13'
+      - name: Install browser renderer for client-side Ganymede articles
+        run: |
+          python -m pip install --disable-pip-version-check playwright==1.56.0
+          python -m playwright install --with-deps chromium
       - name: Read-only live source-to-canonical diagnostic (no artifacts)
         run: python -X utf8 -m unittest discover -v -s tests -p 'test_atlas_guide_live_cawotte_probe.py'
