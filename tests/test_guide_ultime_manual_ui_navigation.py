@@ -604,6 +604,58 @@ class GuideUltimeManualUiNavigationTests(unittest.TestCase):
             card.page_check.deleteLater()
             card.close()
 
+    def test_typed_bestiary_links_use_names_without_extra_buttons(self) -> None:
+        service = _FakeManualUiService()
+        card_data = dict(service.cards[0])
+        card_data.update({
+            "manual_source": True,
+            "source_step_id": "SOURCE-BESTIARY",
+            "manual_stage_id": "SOURCE-BESTIARY",
+            "manual_quest_ids": [],
+            "manual_sections": {
+                "now": [
+                    {
+                        "kind": "combat",
+                        "position": "",
+                        "text": "Affronter Bouftou et Boss test.",
+                        "source_action": {
+                            "monsters": [
+                                {"name": "Bouftou", "quantity": 2, "monster_id": 123},
+                                {"name": "Boss test", "quantity": 1, "boss_id": 456},
+                            ],
+                        },
+                    },
+                    {
+                        "kind": "combat",
+                        "position": "",
+                        "text": "Affronter Monstre inconnu.",
+                        "source_action": {
+                            "monsters": [{"name": "Monstre inconnu", "quantity": 1}],
+                        },
+                    },
+                ],
+            },
+        })
+        card = SharedGuideManualCard(service, "character:1", card_data, 0)
+        try:
+            labels = card.findChildren(QLabel, "GuideManualCombatInlineText")
+            linked = [label for label in labels if "atlas-entity:" in label.text()]
+            self.assertEqual(len(linked), 1)
+            self.assertIn('href="atlas-entity:monster:123"', linked[0].text())
+            self.assertIn('href="atlas-entity:boss:456"', linked[0].text())
+            self.assertNotIn("atlas-entity:", labels[1].text())
+            self.assertFalse(card.findChildren(QToolButton, "GuideManualQuestInlineButton"))
+            requested: list[tuple[str, int]] = []
+            card.entityRequested.connect(lambda kind, game_id: requested.append((kind, game_id)))
+            linked[0].linkActivated.emit("atlas-entity:monster:123")
+            linked[0].linkActivated.emit("atlas-entity:boss:456")
+            self.assertEqual(requested, [("monster", 123), ("boss", 456)])
+            linked[0].linkActivated.emit("atlas-entity:monster:0")
+            self.assertEqual(len(requested), 2)
+        finally:
+            card.page_check.deleteLater()
+            card.close()
+
     def test_contiguous_actions_at_exact_same_map_share_visual_group_only(self) -> None:
         service = _FakeManualUiService()
         card_data = dict(service.cards[0])
