@@ -656,6 +656,48 @@ class GuideUltimeManualUiNavigationTests(unittest.TestCase):
             card.page_check.deleteLater()
             card.close()
 
+    def test_source_equipment_color_preserves_item_copy_action(self) -> None:
+        from app.ui.theme import GUIDE_ENTITY_LINK_COLORS
+
+        service = _FakeManualUiService()
+        card_data = dict(service.cards[0])
+        card_data.update({
+            "manual_source": True,
+            "source_step_id": "SOURCE-EQUIPMENT",
+            "manual_stage_id": "SOURCE-EQUIPMENT",
+            "manual_resource_names": ["Bottes", "Ortie"],
+            "manual_sections": {
+                "now": [{
+                    "kind": "action", "position": "",
+                    "text": "Prendre Bottes et Ortie.",
+                    "source_action": {
+                        "items": [
+                            {"name": "Bottes", "quantity": 1,
+                             "item_id": 234, "item_type": "equipment"},
+                            {"name": "Ortie", "quantity": 1,
+                             "item_id": 235, "item_type": "resource"},
+                        ],
+                    },
+                }],
+            },
+        })
+        card = SharedGuideManualCard(service, "character:1", card_data, 0)
+        try:
+            labels = [
+                label for label in card.findChildren(QLabel)
+                if 'href="item-copy:Bottes"' in label.text()
+            ]
+            self.assertEqual(len(labels), 1)
+            markup = labels[0].text()
+            self.assertIn(f'color:{GUIDE_ENTITY_LINK_COLORS["equipment"]}', markup)
+            self.assertIn(f'color:{GUIDE_ENTITY_LINK_COLORS["item"]}', markup)
+            QApplication.clipboard().setText("before")
+            labels[0].linkActivated.emit("item-copy:Bottes")
+            self.assertEqual(QApplication.clipboard().text(), "Bottes")
+        finally:
+            card.page_check.deleteLater()
+            card.close()
+
     def test_inline_entity_colors_are_distinct_and_share_unity_theme(self) -> None:
         from app.ui.theme import GUIDE_ENTITY_LINK_COLORS, GUIDE_ENTITY_LINK_ROLES, PALETTE
 
