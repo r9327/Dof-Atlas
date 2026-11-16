@@ -287,8 +287,8 @@ class HomePage(QWidget):
         self._add_card_title(char_layout, "Personnage sélectionné")
 
         identity = QHBoxLayout()
-        identity.setContentsMargins(0, 4, 0, 2)
-        identity.setSpacing(14)
+        identity.setContentsMargins(*HOME_GEOMETRY["identity_margins"])
+        identity.setSpacing(HOME_GEOMETRY["identity_spacing"])
         self.character_portrait = QToolButton()
         self.character_portrait.setObjectName("HomeCharacterPortrait")
         portrait_box = HOME_GEOMETRY["portrait_box"]
@@ -300,7 +300,7 @@ class HomePage(QWidget):
 
         identity_text = QVBoxLayout()
         identity_text.setContentsMargins(0, 0, 0, 0)
-        identity_text.setSpacing(8)
+        identity_text.setSpacing(HOME_GEOMETRY["identity_text_spacing"])
         identity_text.addStretch(1)
         self.character_name = QLabel(self.character_label)
         self.character_name.setObjectName("HomeCharacterName")
@@ -355,8 +355,8 @@ class HomePage(QWidget):
         guide_layout.addWidget(self.guide_banner)
 
         progress_row = QHBoxLayout()
-        progress_row.setContentsMargins(0, 7, 0, 0)
-        progress_row.setSpacing(8)
+        progress_row.setContentsMargins(*HOME_GEOMETRY["guide_progress_margins"])
+        progress_row.setSpacing(HOME_GEOMETRY["guide_progress_spacing"])
         progress_label = QLabel("Progression générale")
         progress_label.setObjectName("HomeGuideProgressLabel")
         self.progress_percent = QLabel("0 %")
@@ -441,8 +441,8 @@ class HomePage(QWidget):
         self.network_card.setMinimumHeight(HOME_GEOMETRY["network_card_min_height"])
         self.network_card.setMaximumHeight(HOME_GEOMETRY["network_card_max_height"])
         network_layout = QHBoxLayout(self.network_card)
-        network_layout.setContentsMargins(15, 10, 15, 10)
-        network_layout.setSpacing(10)
+        network_layout.setContentsMargins(*HOME_GEOMETRY["network_card_margins"])
+        network_layout.setSpacing(HOME_GEOMETRY["network_card_spacing"])
         self.network_indicator = QLabel("●")
         self.network_indicator.setObjectName("HomeNetworkIndicator")
         self.network_indicator.setProperty("state", "pending")
@@ -451,7 +451,7 @@ class HomePage(QWidget):
 
         network_text = QVBoxLayout()
         network_text.setContentsMargins(0, 0, 0, 0)
-        network_text.setSpacing(1)
+        network_text.setSpacing(HOME_GEOMETRY["network_text_spacing"])
         network_title = QLabel("Suivi automatique")
         network_title.setObjectName("HomeNetworkMiniTitle")
         network_text.addWidget(network_title)
@@ -496,13 +496,13 @@ class HomePage(QWidget):
         row = QWidget()
         row.setObjectName("HomeGuideDetailRow")
         row_layout = QHBoxLayout(row)
-        row_layout.setContentsMargins(5, 9, 5, 9)
-        row_layout.setSpacing(10)
+        row_layout.setContentsMargins(*HOME_GEOMETRY["detail_row_margins"])
+        row_layout.setSpacing(HOME_GEOMETRY["detail_row_spacing"])
 
         icon_label = QLabel(icon)
         icon_label.setObjectName("HomeGuideDetailIcon")
         icon_label.setAlignment(Qt.AlignCenter)
-        icon_label.setFixedWidth(28)
+        icon_label.setFixedWidth(HOME_GEOMETRY["detail_row_icon_width"])
         row_layout.addWidget(icon_label)
 
         label_widget = QLabel(label)

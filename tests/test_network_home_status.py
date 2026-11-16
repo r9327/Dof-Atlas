@@ -87,6 +87,12 @@ class NetworkHomeStatusTests(unittest.TestCase):
             self.assertEqual(tracking.bar.minimumWidth(), geometry["tracking_bar_min_width"])
             self.assertEqual(tracking.value.minimumWidth(), geometry["tracking_value_min_width"])
         self.assertEqual(page.character_card.layout().spacing(), geometry["card_gutter"])
+        self.assertEqual(page.network_card.layout().spacing(), geometry["network_card_spacing"])
+        margins = page.network_card.layout().contentsMargins()
+        self.assertEqual(
+            (margins.left(), margins.top(), margins.right(), margins.bottom()),
+            geometry["network_card_margins"],
+        )
 
         page.deleteLater()
         self.app.processEvents()

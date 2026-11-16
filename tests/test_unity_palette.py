@@ -210,6 +210,20 @@ class UnityPaletteTests(unittest.TestCase):
         self.assertEqual(world["toolbar_button_height"], 30)
         self.assertEqual(world["world_menu_item_height"], 28)
 
+    def test_home_and_world_scan_extra_geometry_is_indexed(self) -> None:
+        from app.ui.unity_palette import UNITY_MODULE_GEOMETRY_PX
+
+        home = UNITY_MODULE_GEOMETRY_PX["home"]
+        self.assertEqual(home["identity_margins"], (0, 4, 0, 2))
+        self.assertEqual(home["network_card_margins"], (15, 10, 15, 10))
+        self.assertEqual(home["detail_row_margins"], (5, 9, 5, 9))
+        self.assertEqual(home["detail_row_icon_width"], 28)
+        world = UNITY_MODULE_GEOMETRY_PX["world_scan"]
+        self.assertEqual(world["header_accent_size"], (4, 24))
+        self.assertEqual(world["toolbar_margins"], (10, 8, 10, 8))
+        self.assertEqual(world["detail_margins"], (12, 7, 12, 7))
+        self.assertEqual(world["menu_divider_height"], 1)
+
     def test_window_and_layout_reference_sizes_are_qt_free(self) -> None:
         from app.constants import (
             DEFAULT_WINDOW_WIDTH, DEFAULT_WINDOW_HEIGHT,

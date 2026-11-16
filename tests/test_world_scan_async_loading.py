@@ -97,6 +97,16 @@ class WorldScanAsyncLoadingTests(unittest.TestCase):
                 from app.ui.unity_palette import UNITY_MODULE_GEOMETRY_PX
                 geometry = UNITY_MODULE_GEOMETRY_PX["world_scan"]
                 self.assertEqual(toolbar_button.height(), geometry["toolbar_button_height"])
+                toolbar = panel.findChild(world_scan_module.QFrame, "MapToolbar")
+                margins = toolbar.layout().contentsMargins()
+                self.assertEqual(
+                    (margins.left(), margins.top(), margins.right(), margins.bottom()),
+                    geometry["toolbar_margins"],
+                )
+                self.assertEqual(toolbar.layout().spacing(), geometry["toolbar_spacing"])
+                self.assertEqual(panel.detail_panel.layout().spacing(), geometry["detail_spacing"])
+                self.assertEqual(panel.world_menu_list.spacing(), geometry["menu_item_spacing"])
+                self.assertEqual(panel.status_label.height(), geometry["status_height"])
                 title = panel.findChild(AtlasPageTitle, "PageTitle")
                 self.assertIsNotNone(title)
                 self.assertEqual(title.text(), "Scan Monde")
