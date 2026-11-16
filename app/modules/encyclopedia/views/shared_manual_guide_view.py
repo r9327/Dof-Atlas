@@ -2222,6 +2222,10 @@ class SharedGuideManualView(GuideUltimeManualView):
                 GUIDE_READING_METRICS["source_drawer_max_height"]
                 if source else GUIDE_READING_METRICS["normal_drawer_max_height"]
             )
+            self.preparation_scroll.setMinimumHeight(
+                GUIDE_READING_METRICS["source_drawer_min_height"]
+                if source else GUIDE_READING_METRICS["normal_drawer_min_height"]
+            )
             self.preparation_filter_host.setVisible(
                 self._preparation_tab == "À préparer" and not source
             )
@@ -3007,6 +3011,19 @@ class SharedGuideManualView(GuideUltimeManualView):
         return frame
 
     def _update_preparation_progress(self) -> None:
+        if self._is_imported_source_guide():
+            # A source declaration is not game evidence. Preserve this
+            # count when expanding/reloading the drawer; no fake percentage.
+            declared = sum(
+                len(card.get("hard_runtime_gates", ()) or ())
+                for card in self.service.cards
+            )
+            self.preparation_bar.setRange(0, 1)
+            self.preparation_bar.setValue(0)
+            self.preparation_progress_label.setText(
+                f"{declared} à vérifier" if declared else "—"
+            )
+            return
         # The preparation percentage measures equipment/materials, not quest
         # or guide prerequisites now shown in their dedicated tab.
         materials = tuple(

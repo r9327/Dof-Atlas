@@ -68,7 +68,9 @@ GUIDE_READING_METRICS = {
     # Indexed full-width source drawer: enough room to browse requirements,
     # while retaining a scrollbar for unusually long preparation lists.
     "source_drawer_max_height": 340,
+    "source_drawer_min_height": 280,
     "normal_drawer_max_height": 210,
+    "normal_drawer_min_height": 126,
 }
 
 SIZES = {

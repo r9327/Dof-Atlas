@@ -278,6 +278,10 @@ def _native_visual_probe(route: dict, cover_png: bytes) -> None:
         if shell._preparation_tab != "Prérequis":
             raise AssertionError("Imported guide opens the wrong prerequisite tab")
         first_preview = tuple(shell._preparation_preview)
+        if shell.preparation_scroll.minimumHeight() < 250:
+            raise AssertionError("Source prerequisite drawer is clipped by old minimum")
+        if shell.preparation_progress_label.text() != "5 à vérifier":
+            raise AssertionError("Prerequisite count vanished after opening its drawer")
         source_labels = shell.preparation_panel.findChildren(QLabel, "GuideManualLine")
         if len(source_labels) < 4:
             raise AssertionError("Prérequis should retain four source-authored lines")
