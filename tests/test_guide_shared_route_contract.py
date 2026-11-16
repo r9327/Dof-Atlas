@@ -609,7 +609,7 @@ class TestSharedRouteContract(unittest.TestCase):
         self.assertEqual(source, before)
         assert_source_fidelity(source, route)
         row = route["steps"][0]["manual_sections"]["now"][1]
-        self.assertEqual(row["source_rich_blocks"], action["rich_blocks"])
+        self.assertEqual(row["source_action"]["rich_blocks"], action["rich_blocks"])
         self.assertEqual(
             route["steps"][0]["manual_source_action_order"],
             [a["action_id"] for a in source["steps"][0]["actions"]],
