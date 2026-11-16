@@ -1129,15 +1129,12 @@ class ImportedSourceSharedManualUiTests(unittest.TestCase):
             service.manual_sections_for_card = forbidden_provider
             service.manual_lines_for_card = forbidden_provider
             from app.modules.encyclopedia.views.shared_manual_guide_view import SharedGuideManualCard
-            sheet = SharedGuideManualCard(service, "character:1", source, 0)
-            try:
-                texts = "\n".join(label.text() for label in sheet.findChildren(QLabel))
-                self.assertNotIn("Vaincre le Monstre fictif", texts)
-                self.assertNotIn("Aller en [-5,2]", texts)
-            finally:
-                sheet.close()
-                sheet.deleteLater()
-                QApplication.processEvents()
+            # Exact-source mode must fail closed, never paint an apparently
+            # valid but empty fiche when the authored sections are missing.
+            with self.assertRaisesRegex(
+                ValueError, "source-action order is incomplete",
+            ):
+                SharedGuideManualCard(service, "character:1", source, 0)
 
     def test_existing_guides_still_use_their_original_section_provider(self) -> None:
         with tempfile.TemporaryDirectory() as temp:
