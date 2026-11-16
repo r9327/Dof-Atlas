@@ -14,7 +14,7 @@ os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
 
 from PySide6.QtCore import Qt
 from PySide6.QtTest import QTest
-from PySide6.QtWidgets import QApplication, QFrame, QLabel, QProgressBar, QSpinBox, QToolButton
+from PySide6.QtWidgets import QApplication, QFrame, QLabel, QProgressBar, QPushButton, QSpinBox, QToolButton
 
 from app.modules.encyclopedia.views.guide_catalog_view import GuideCatalogView
 from app.modules.encyclopedia.views.ganymede_guide_shell import GanymedeGuideShell
@@ -198,6 +198,49 @@ class GanymedeGuideShellTests(unittest.TestCase):
         self.assertIn("travel-copy:25,-4", position_labels[0].text())
         self.assertEqual(shell.findChildren(QToolButton, "GuideManualZaapShortcut"), [])
         self.assertEqual(shell.findChildren(QFrame, "GuideManualActionGroup"), [])
+        self.assertEqual(active_sheet.findChildren(QFrame, "GuideManualReviewSection"), [])
+        self.assertEqual(
+            len(next_sheet.findChildren(QFrame, "GuideManualReviewSection")), 1,
+        )
+        self.assertEqual(
+            len(active_sheet.findChildren(QLabel, "GuideManualReviewInfo")), 1,
+        )
+        # Prerequisites and material preparation are actual separate tabs,
+        # readable from candidate data without granting gameplay progress.
+        self.assertTrue(shell.preparation_button.isEnabled())
+        shell.preparation_button.click()
+        self.app.processEvents()
+        self.assertTrue(shell.preparation_panel.isVisibleTo(shell))
+        self.assertEqual(shell._preparation_tab, "Prérequis")
+        self.assertEqual(len(shell._preparation_preview), 10)
+        self.assertFalse(shell.preparation_filter_host.isVisibleTo(shell))
+        def visible_preparation_labels():
+            labels = []
+            for i in range(shell.preparation_rows_layout.count()):
+                widget = shell.preparation_rows_layout.itemAt(i).widget()
+                if isinstance(widget, QFrame) and widget.objectName() == "GuidePreparationRow":
+                    button = widget.findChild(QPushButton, "GuidePreparationItemCopy")
+                    if button is not None:
+                        labels.append(button.text())
+            return labels
+        self.assertEqual(len(visible_preparation_labels()), 3)
+        self.assertIn("Contrôler l'accès aux Wabbits", visible_preparation_labels())
+        material_tab = next(
+            button for button in shell.preparation_tab_group.buttons()
+            if button.text() == "À préparer"
+        )
+        material_tab.click()
+        self.app.processEvents()
+        self.assertTrue(shell.preparation_filter_host.isVisibleTo(shell))
+        self.assertEqual(shell._preparation_tab, "À préparer")
+        self.assertEqual(len(visible_preparation_labels()), 7)
+        self.assertTrue(all(
+            "Contrôler l'accès aux Wabbits" not in label
+            for label in visible_preparation_labels()
+        ))
+        self.assertFalse(shell.preparation_bar.isEnabled())
+        self.assertEqual(shell.selected_participant_keys(), ())
+        shell.preparation_button.click()
         action_labels = shell.findChildren(QLabel, "GuideManualLine")
         self.assertGreaterEqual(len(action_labels), 3)
         self.assertTrue(all(
@@ -271,6 +314,8 @@ class GanymedeGuideShellTests(unittest.TestCase):
         self.assertEqual(shell.summary_list.count(), 0)
         self.assertFalse(shell.summary_button.isEnabled())
         self.assertTrue(shell.summary_panel.isHidden())
+        self.assertFalse(shell.preparation_button.isEnabled())
+        self.assertTrue(shell.preparation_panel.isHidden())
         self.assertEqual(shell.validation_layout.count(), 0)
         self.assertFalse(shell.page_jump.isEnabled())
         self.assertEqual(shell.page_jump.text(), "—")
