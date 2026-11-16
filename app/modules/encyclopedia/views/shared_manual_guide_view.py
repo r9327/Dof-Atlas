@@ -846,7 +846,7 @@ class SharedGuideManualCard(GuideUltimeManualCard):
             else "GuideManualSourceReadingSection"
             if self._continuous_source else object_name
         )
-        if section_key == "boss":
+        if section_key == "boss" and not self._continuous_source:
             frame.setStyleSheet(
                 "QFrame#GuideManualCombatSection {"
                 "background: rgba(174, 183, 177, 0.035);"
@@ -921,7 +921,7 @@ class SharedGuideManualCard(GuideUltimeManualCard):
                 row_widget.setStyleSheet(
                     "QFrame#GuideManualLineRow { background: transparent; border: none; }"
                 )
-            elif combat_line:
+            elif combat_line and not self._continuous_source:
                 row_widget.setStyleSheet(
                     "QFrame#GuideManualLineRow {"
                     "background: rgba(174, 183, 177, 0.045);"
