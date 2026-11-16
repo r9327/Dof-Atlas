@@ -169,11 +169,17 @@ class GanymedeGuideShellTests(unittest.TestCase):
         self.app.processEvents()
         self.assertIs(catalog.pages.currentWidget(), shell)
         self.assertEqual(requests, [])
-        shell.next_button.click()
-        self.assertEqual(shell.sheet_title_label.text(), "Étape 2")
-        self.assertEqual(shell.page_jump.value(), 2)
-        shell.page_jump.setValue(64)
-        self.app.processEvents()
+        # Walk every real candidate step, rather than sampling only pages 1/64.
+        for step in range(2, 65):
+            with self.subTest(step=step):
+                self.assertTrue(shell.next_button.isEnabled())
+                shell.next_button.click()
+                self.assertEqual(shell.sheet_title_label.text(), f"Étape {step}")
+                self.assertEqual(shell.page_jump.value(), step)
+                self.assertEqual(shell.rendered_card_count, 1)
+                self.assertFalse(shell.validation_layout.itemAt(0).widget().isEnabled())
+                if step % 8 == 0:
+                    self.app.processEvents()
         self.assertEqual(shell.sheet_title_label.text(), "Étape 64")
         self.assertFalse(shell.next_button.isEnabled())
         self.assertFalse(shell.validation_layout.itemAt(0).widget().isEnabled())
@@ -185,6 +191,7 @@ class GanymedeGuideShellTests(unittest.TestCase):
         self.assertTrue(catalog.open_ganymede_container(other.source_id))
         self.assertEqual(shell.service.cards, ())
         self.assertEqual(shell.rendered_card_count, 0)
+        self.assertEqual(shell.validation_layout.count(), 0)
         self.assertFalse(shell.page_jump.isEnabled())
         self.assertTrue(catalog.select_guide("dofus_cawotte"))
         self.assertEqual(requests, ["dofus_cawotte"])

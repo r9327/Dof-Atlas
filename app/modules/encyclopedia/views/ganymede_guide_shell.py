@@ -111,6 +111,10 @@ class GanymedeGuideShell(SharedGuideManualView):
     def selected_participant_keys(self) -> tuple[str, ...]:
         return ()
 
+    def _progress_participant_keys(self) -> tuple[str, ...]:
+        # The review has NO participant service and must never resolve one.
+        return ()
+
     def refresh(self, *, reset_to_active: bool = False) -> None:
         """No progress or guide-runtime refresh is permitted in preview."""
 
@@ -147,6 +151,15 @@ class GanymedeGuideShell(SharedGuideManualView):
             self._inspection_active = False
             self.service.cards = ()
             self._clear_cards()
+            # The validation host owns the temporary read-only check button,
+            # so clearing cards alone would leave an orphaned widget visible.
+            while self.validation_layout.count():
+                item = self.validation_layout.takeAt(0)
+                widget = item.widget()
+                if widget is not None:
+                    widget.hide()
+                    widget.setParent(None)
+                    widget.deleteLater()
             self.sheet_meta_label.clear()
             self.sheet_meta_label.hide()
             self.page_jump.blockSignals(True)
