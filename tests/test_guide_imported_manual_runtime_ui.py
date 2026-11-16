@@ -385,8 +385,6 @@ class ImportedSourceRouterQtTests(unittest.TestCase):
         texts = [label.text() for label in widget.findChildren(QLabel, "GuideManualLine")]
         self.assertTrue(any("Préparer exactement deux objets fictifs" in text
                             for text in texts))
-        self.assertTrue(any("Préparer exactement deux objets fictifs" in text
-                            for text in texts))
         # Dialogue text can be split by source-aware inline styling; it must
         # still remain present in a regular QLabel in the same source card.
         self.assertTrue(any("Parler" in label.text()
