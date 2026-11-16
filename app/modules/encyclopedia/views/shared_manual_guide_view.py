@@ -862,7 +862,6 @@ class SharedGuideManualCard(GuideUltimeManualCard):
             if section_key == "now" or (explicit_source_link and related_quest_ids):
                 self._add_inline_quest_links(
                     row_layout, row, quest_ids=related_quest_ids,
-                    allow_repeat=explicit_source_link,
                 )
 
             current_key = group_keys[row_index]
