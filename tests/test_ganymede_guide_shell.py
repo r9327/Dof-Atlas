@@ -150,7 +150,7 @@ class GanymedeGuideShellTests(unittest.TestCase):
         self.assertIsInstance(shell, GanymedeGuideShell)
         self.assertIs(catalog.pages.currentWidget(), shell)
         self.assertEqual(shell._listing.source_id, 2205)
-        self.assertEqual(shell.rendered_card_count, 3)
+        self.assertEqual(shell.rendered_card_count, 1)
         self.assertEqual(shell._review_end_index, shell.rendered_card_count)
         self.assertEqual(len(shell.service.cards), 64)
         first_visible = shell.cards_layout.itemAt(0).widget()
@@ -162,14 +162,12 @@ class GanymedeGuideShellTests(unittest.TestCase):
         self.assertEqual(shell.sheet_title_label.text(), "Étape 1")
         # The active title is in GuideSheetHeader; no duplicate Qt stage label.
         active_sheet = shell.cards_layout.itemAt(0).widget()
-        next_sheet = shell.cards_layout.itemAt(1).widget()
+        self.assertEqual(
+            len(shell.findChildren(QFrame, "GuideManualSheet")), 1,
+        )
+        self.assertTrue(active_sheet.property("continuousGuideReading"))
         self.assertEqual(
             active_sheet.findChildren(QLabel, "GuideManualStageTitle"), [],
-        )
-        self.assertEqual(
-            [label.text() for label in next_sheet.findChildren(
-                QLabel, "GuideManualStageTitle",
-            )], ["Étape 2"],
         )
         self.assertEqual(
             active_sheet.findChildren(QLabel, "GuideManualSectionTitle"), [],
@@ -185,7 +183,7 @@ class GanymedeGuideShellTests(unittest.TestCase):
                 GUIDE_READING_METRICS["sheet_vertical"],
             ),
         )
-        # Every source step is indexed once; nearby steps fill the scroll.
+        # Each source step is indexed once and no next step leaks into this sheet.
         self.assertTrue(shell.summary_button.isEnabled())
         self.assertEqual(shell.summary_list.count(), 64)
         self.assertTrue(shell.summary_list.item(0).text().startswith(
@@ -194,13 +192,13 @@ class GanymedeGuideShellTests(unittest.TestCase):
         self.assertNotIn("Étape 1", shell.summary_list.item(0).text())
         self.assertTrue(shell.page_jump.isEnabled())
         position_labels = shell.findChildren(QLabel, "GuideManualPositionCopy")
-        self.assertEqual(len(position_labels), 3)
+        self.assertEqual(len(position_labels), 1)
         self.assertIn("travel-copy:25,-4", position_labels[0].text())
         self.assertEqual(shell.findChildren(QToolButton, "GuideManualZaapShortcut"), [])
         self.assertEqual(shell.findChildren(QFrame, "GuideManualActionGroup"), [])
         self.assertEqual(active_sheet.findChildren(QFrame, "GuideManualReviewSection"), [])
-        self.assertEqual(
-            len(next_sheet.findChildren(QFrame, "GuideManualReviewSection")), 1,
+        self.assertFalse(
+            shell.findChildren(QFrame, "GuideManualSourceReadingSection"),
         )
         self.assertEqual(
             len(active_sheet.findChildren(QLabel, "GuideManualReviewInfo")), 1,
@@ -256,6 +254,10 @@ class GanymedeGuideShellTests(unittest.TestCase):
         self.assertFalse(shell.preparation_bar.isEnabled())
         self.assertEqual(shell.selected_participant_keys(), ())
         shell.preparation_button.click()
+        # Step 1 is prerequisites-only, so navigate to the source's third
+        # step to verify its three real action lines are kept in ONE sheet.
+        shell._show_index(2)
+        self.assertEqual(shell.rendered_card_count, 1)
         action_labels = shell.findChildren(QLabel, "GuideManualLine")
         self.assertGreaterEqual(len(action_labels), 3)
         self.assertTrue(all(
@@ -277,23 +279,23 @@ class GanymedeGuideShellTests(unittest.TestCase):
         self.app.processEvents()
         self.assertIs(catalog.pages.currentWidget(), shell)
         self.assertEqual(requests, [])
-        # Sommaire jumps to any step while keeping bounded read-ahead.
+        # Sommaire jumps to any original source sheet, never a 3-step window.
         shell.summary_button.click()
         self.assertTrue(shell.summary_panel.isVisibleTo(shell))
         shell._summary_item_clicked(shell.summary_list.item(39))
         self.assertEqual(shell.view_index, 39)
-        self.assertEqual(shell.rendered_card_count, 3)
+        self.assertEqual(shell.rendered_card_count, 1)
         self.assertEqual(shell.cards_layout.itemAt(0).widget().card["source_step_id"],
                          "ganymede_2205_step_0040")
         self.assertTrue(shell.summary_panel.isVisibleTo(shell))
         shell._show_index(0)
-        # Every step can be active; read-ahead never skips navigation.
+        # Every original source step is independently navigable and mounted once.
         visited = []
         while True:
             start = shell.view_index
             end = shell._review_end_index
-            self.assertEqual(end, min(64, start + 3))
-            self.assertEqual(shell.rendered_card_count, end - start)
+            self.assertEqual(end, start + 1)
+            self.assertEqual(shell.rendered_card_count, 1)
             visible = [
                 shell.cards_layout.itemAt(i).widget()
                 for i in range(shell.rendered_card_count)
@@ -338,7 +340,7 @@ class GanymedeGuideShellTests(unittest.TestCase):
         self.assertEqual(requests, ["dofus_cawotte"])
 
 
-    def test_read_ahead_survives_resize_and_long_text(self) -> None:
+    def test_single_sheet_survives_resize_and_long_text(self) -> None:
         import copy
 
         shell = GanymedeGuideShell(lambda: None)
@@ -354,8 +356,8 @@ class GanymedeGuideShellTests(unittest.TestCase):
         self.assertTrue(shell.show_cawotte_review())
         self.app.processEvents()
         large_count = shell.rendered_card_count
-        self.assertEqual(large_count, 3)
-        self.assertEqual(shell._review_end_index, 3)
+        self.assertEqual(large_count, 1)
+        self.assertEqual(shell._review_end_index, 1)
         self.assertEqual(shell.summary_list.count(), len(shell.service.cards))
         self.assertEqual(
             shell.cards_layout.itemAt(0).widget().findChildren(
@@ -365,11 +367,11 @@ class GanymedeGuideShellTests(unittest.TestCase):
 
         shell.resize(760, 560)
         self.app.processEvents()
-        self.assertEqual(shell.rendered_card_count, 3)
-        self.assertEqual(shell._review_end_index, 3)
+        self.assertEqual(shell.rendered_card_count, 1)
+        self.assertEqual(shell._review_end_index, 1)
 
-        # Extra-long real-text wrapping keeps all three source steps intact
-        # in the scroll area, even when only the first fits initially.
+        # Extra-long authored text scrolls within the ONE selected sheet,
+        # never bringing the next source step into the same Atlas page.
         # Step 1 consists only of prerequisites (no in-route action).
         # Stress a real walkthrough row on step 2 instead.
         extended = copy.deepcopy(shell.service.cards[1])
@@ -381,8 +383,8 @@ class GanymedeGuideShellTests(unittest.TestCase):
         )
         shell._show_index(1)
         self.app.processEvents()
-        self.assertEqual(shell.rendered_card_count, 3)
-        self.assertEqual(shell._review_end_index, 4)
+        self.assertEqual(shell.rendered_card_count, 1)
+        self.assertEqual(shell._review_end_index, 2)
         self.assertGreater(shell.scroll.verticalScrollBar().maximum(), 0)
         self.assertGreater(
             shell.cards_layout.itemAt(0).widget().minimumHeight(),
