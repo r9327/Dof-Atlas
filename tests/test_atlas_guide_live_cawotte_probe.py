@@ -82,6 +82,7 @@ def _native_visual_probe(route: dict, cover_png: bytes) -> None:
     from html import unescape
     from PySide6.QtCore import QPoint, Qt, QTimer
     from PySide6.QtGui import QPixmap
+    from PySide6.QtTest import QTest
     from PySide6.QtWidgets import (
         QApplication, QCheckBox, QDialog, QFrame, QLabel, QSlider, QVBoxLayout,
     )
@@ -200,7 +201,8 @@ def _native_visual_probe(route: dict, cover_png: bytes) -> None:
                         raise AssertionError("Zoom does not enlarge original image")
                     modal.accept()
                 QTimer.singleShot(0, exercise_zoom)
-                label.open_zoom()
+                # Test the actual visible click, not the dialog method.
+                QTest.mouseClick(label, Qt.LeftButton)
                 zoom_checked = True
         if page_index == 0:
             # Source prerequisites stay in their own drawer.
@@ -289,6 +291,8 @@ def _native_visual_probe(route: dict, cover_png: bytes) -> None:
     old_page_count = len(pages)
     backdrop.resize(820, 720)
     app.processEvents()
+    if backdrop.width() > 900:
+        raise AssertionError("Qt resize is blocked by a hidden minimum width")
     shell._source_resize_reflow()
     app.processEvents()
     narrow = shell._source_reading_pages()
