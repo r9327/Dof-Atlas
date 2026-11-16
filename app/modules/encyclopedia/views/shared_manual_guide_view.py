@@ -1837,7 +1837,7 @@ class SharedGuideManualView(GuideUltimeManualView):
     def _summary_step_title(card: dict[str, Any]) -> str:
         """One source-derived title, without repeating the indexed step number."""
         title = str(card.get("manual_title") or card.get("destination") or "").strip()
-        generic = re.fullmatch(r"(?:étape|etape|step)\\s*\\d+", title, re.IGNORECASE)
+        generic = re.fullmatch(r"(?:étape|etape|step)\s*\d+", title, re.IGNORECASE)
         if generic:
             sections = card.get("manual_sections") or {}
             rows = sections.get("now") if isinstance(sections, dict) else ()
