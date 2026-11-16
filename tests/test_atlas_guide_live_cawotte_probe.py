@@ -208,6 +208,11 @@ def _native_visual_probe(route: dict, cover_png: bytes) -> None:
         if shell._preparation_tab != "Prérequis":
             raise AssertionError("Imported guide opens the wrong prerequisite tab")
         first_preview = tuple(shell._preparation_preview)
+        source_labels = shell.preparation_panel.findChildren(QLabel, "GuideManualLine")
+        if len(source_labels) < 4:
+            raise AssertionError("Prérequis should retain four source-authored lines")
+        if not any('href="' in label.text() for label in source_labels):
+            raise AssertionError("Authored prerequisite links became plain copy-only text")
         if not backdrop.grab().save(str(out / "real-cawotte-prerequisites.png"), "PNG"):
             raise AssertionError("Prerequisites screenshot failed")
         print("CAWOTTE_VISUAL_QT: 1280x720 native Windows,"

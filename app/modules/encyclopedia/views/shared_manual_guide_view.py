@@ -2576,9 +2576,76 @@ class SharedGuideManualView(GuideUltimeManualView):
         button.clicked.connect(lambda _checked=False: self._show_more_preparation())
         self.preparation_rows_layout.addWidget(button)
 
+    def _render_imported_source_prerequisites(self) -> bool:
+        """Show source-authored prerequisite lines and original clickable links.
+
+        The contract indexes these blocks without moving or editing the source
+        snapshot. Route excludes the indexed blocks; this dedicated tab keeps
+        the precise wording, colors and HTTPS links. No completion checkbox.
+        """
+        if not self._is_imported_source_guide():
+            return False
+        rows: list[list[dict[str, Any]]] = []
+        for card in self.service.cards:
+            indexes = card.get("manual_prerequisite_block_indexes") or ()
+            if not indexes:
+                continue
+            source = card.get("manual_runtime_metadata") or {}
+            step = source.get("source_step") if isinstance(source, dict) else None
+            actions = step.get("actions") if isinstance(step, dict) else None
+            if not isinstance(actions, list) or len(actions) != 1:
+                raise ValueError("Source prerequisite references require one authored step")
+            blocks = actions[0].get("rich_blocks")
+            if not isinstance(blocks, list):
+                raise ValueError("Missing immutable source rich content")
+            for index in indexes:
+                if type(index) is not int or not 0 <= index < len(blocks):
+                    raise ValueError("Invalid source prerequisite block index")
+                block = blocks[index]
+                if block["type"] in {"paragraph", "heading"}:
+                    rows.append(block["runs"])
+                elif block["type"] == "checklist":
+                    for item in block["items"]:
+                        rows.append(item.get("runs") or [
+                            {"text": item["text"], "role": "plain"}
+                        ])
+                else:
+                    raise ValueError("Unsupported prerequisite block kind")
+        if not rows:
+            return False
+
+        note = QLabel("Prérequis du guide source · état non vérifié dans le jeu.")
+        note.setObjectName("GuidePreparationEmpty")
+        note.setWordWrap(True)
+        self.preparation_rows_layout.addWidget(note)
+        for runs in rows[:self._preparation_visible_limit]:
+            frame = QFrame()
+            frame.setObjectName("GuidePreparationRow")
+            layout = QVBoxLayout(frame)
+            layout.setContentsMargins(
+                GUIDE_READING_METRICS["section_horizontal"],
+                GUIDE_READING_METRICS["section_vertical"],
+                GUIDE_READING_METRICS["section_horizontal"],
+                GUIDE_READING_METRICS["section_vertical"],
+            )
+            label = QLabel()
+            label.setObjectName("GuideManualLine")
+            label.setTextFormat(Qt.RichText)
+            label.setTextInteractionFlags(Qt.TextBrowserInteraction)
+            label.setOpenExternalLinks(True)
+            label.setWordWrap(True)
+            label.setText(SharedGuideManualCard._source_rich_markup(runs))
+            layout.addWidget(label)
+            self.preparation_rows_layout.addWidget(frame)
+        self._append_preparation_more(len(rows) - self._preparation_visible_limit)
+        self.preparation_rows_layout.addStretch(1)
+        return True
+
     def _render_preparation(self, selected_filter: str) -> None:
         self._clear_preparation_rows()
         prerequisites_tab = self._preparation_tab == "Prérequis"
+        if prerequisites_tab and self._render_imported_source_prerequisites():
+            return
         if not self.selected_participant_keys():
             label = QLabel(
                 "Prérequis déclarés · vérification en jeu non effectuée."
