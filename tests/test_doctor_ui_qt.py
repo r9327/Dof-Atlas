@@ -395,6 +395,24 @@ class DoctorUiQtFaultTests(unittest.TestCase):
         duplicate.deleteLater()
         settle()
 
+    def test_bottom_oracle_detects_changed_source_action_order(self):
+        last = self.view.findChildren(QFrame, "GuideManualSheet")[-1]
+        last.card["manual_source_action_order"] = ["authored-one"]
+        rows = last.findChildren(QFrame, "GuideManualLineRow")
+        self.assertEqual(len(rows), 1)
+        rows[0].setProperty("sourceActionId", "authored-one")
+        healthy = bottom_guide_observations(
+            self.view, self.view, self.service.cards[0],
+        )
+        self.assertEqual(healthy["status"], "PASS", healthy)
+        rows[0].setProperty("sourceActionId", "substituted")
+        broken = bottom_guide_observations(
+            self.view, self.view, self.service.cards[0],
+        )
+        self.assertEqual(broken["status"], "FAIL", broken)
+        self.assertEqual(broken["reason"], "SOURCE_ACTION_ORDER_CHANGED")
+        self.assertEqual(len(broken["source_order_mismatches"]), 1)
+
     def test_collision_overlay_hidden_scroll_and_wrong_lock_are_detectable(self):
         overlay = QPushButton("Occluding overlay", self.view)
         overlay.setGeometry(self.view.next_button.geometry())
