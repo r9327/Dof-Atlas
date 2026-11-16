@@ -97,13 +97,15 @@ jobs:
           assert isinstance(shell, GanymedeGuideShell)
           assert catalog.pages.currentWidget() is shell
           assert shell._listing.source_id == 2205
-          assert shell.guide_title_label.text() == cawotte.title
+          assert shell.guide_title_label.text() == "Dofus Cawotte"
           assert len(shell.findChildren(QProgressBar)) == 3
           assert all(not bar.isEnabled() for bar in shell.findChildren(QProgressBar))
           assert shell.sheet_title_label.text() == "Étape 1"
           assert len(shell.service.cards) == 64
           assert shell.rendered_card_count == 1
           assert shell.page_jump.maximum() == 64
+          assert shell.page_jump.text() == "1 / 64"
+          assert shell.validation_host.isHidden()
           assert not shell.validation_layout.itemAt(0).widget().isEnabled()
           target = Path("artifacts/screenshots/ganymede-cawotte-shell-qt.png")
           target.parent.mkdir(parents=True, exist_ok=True)

@@ -153,8 +153,11 @@ class GanymedeGuideShellTests(unittest.TestCase):
         self.assertEqual(shell.rendered_card_count, 1)
         self.assertEqual(len(shell.service.cards), 64)
         self.assertEqual(shell.page_jump.maximum(), 64)
+        self.assertEqual(shell.page_jump.text(), "1 / 64")
+        self.assertEqual(shell.guide_title_label.text(), "Dofus Cawotte")
         self.assertEqual(shell.sheet_title_label.text(), "Étape 1")
         self.assertTrue(shell.page_jump.isEnabled())
+        self.assertTrue(shell.validation_host.isHidden())
         self.assertFalse(shell.validation_layout.itemAt(0).widget().isEnabled())
         self.assertEqual(requests, [])
 
@@ -193,6 +196,7 @@ class GanymedeGuideShellTests(unittest.TestCase):
         self.assertEqual(shell.rendered_card_count, 0)
         self.assertEqual(shell.validation_layout.count(), 0)
         self.assertFalse(shell.page_jump.isEnabled())
+        self.assertEqual(shell.page_jump.text(), "—")
         self.assertTrue(catalog.select_guide("dofus_cawotte"))
         self.assertEqual(requests, ["dofus_cawotte"])
 

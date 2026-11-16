@@ -133,9 +133,18 @@ class GanymedeGuideShell(SharedGuideManualView):
         )
         self.service.cards = cawotte_review_cards()
         self._inspection_active = True
+        self.service.guide_title = "Dofus Cawotte"
+        self.guide_title_label.setText(self.service.guide_title)
+        self.guide_title_label.setToolTip(self.service.guide_title)
         self.view_index = 0
         self.active_index = 0
+        # The metadata shell uses a special dash for its 0/0 selector;
+        # clear that sentinel before the real 1-based draft navigation.
+        self.page_jump.setSpecialValueText("")
         self.page_jump.setEnabled(True)
+        # A disabled lime validation button still looks actionable in Unity;
+        # the review has no completion authority, so show only navigation.
+        self.validation_host.hide()
         self.sheet_meta_label.show()
         self._refresh_header()
         self._render_window()
@@ -165,6 +174,7 @@ class GanymedeGuideShell(SharedGuideManualView):
             self.page_jump.blockSignals(True)
             self.page_jump.setRange(0, 0)
             self.page_jump.setSuffix("")
+            self.page_jump.setSpecialValueText("—")
             self.page_jump.blockSignals(False)
             self.page_jump.setEnabled(False)
             self.prev_button.setEnabled(False)
