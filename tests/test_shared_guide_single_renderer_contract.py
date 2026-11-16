@@ -130,12 +130,32 @@ class SharedGuideSingleRendererContractTests(unittest.TestCase):
         assert "for index, card in enumerate(self.service.cards):" in shared
         assert "self.summary_list.addItem(item)" in shared
         assert 'label = f"{index + 1}. {title}"' in shared
-        assert "for number in self._reading_step_range(index):" in preview
-        assert "self._review_end_index = end" in preview
+        # The metadata pilot MUST NOT have its own Qt sheet loop; it must
+        # inherit the very same source layout as every authorized import.
+        assert "super()._render_window(reset_scroll=reset_scroll)" in preview
+        assert "for number in self._reading_step_range(index):" not in preview
+        assert "SharedGuideManualCard(" not in preview
+        assert "_configure_imported_sheet_layout(" in shared
+        assert "self._review_end_index = self.view_index + self.rendered_card_count" in preview
         assert "pair_fills_gap" not in preview
         assert "for i, row in enumerate(self.rows, 1)" in continuous
         assert "self.title_label.setText(str(row.get(" in continuous
         assert "self.rendered_card_count = 1" in generated
+
+    def test_all_authored_source_pages_share_one_to_one_universal_policy(self) -> None:
+        """No Cawotte-specific page composition or author-specific styling."""
+        shared = SHARED.read_text(encoding="utf-8")
+        shell = (VIEWS / "ganymede_guide_shell.py").read_text(encoding="utf-8")
+        stylesheet = (ROOT / "app/ui/theme.py").read_text(encoding="utf-8")
+        assert "count = 1 if source_sheet else self.READING_WINDOW_SIZE" in shared
+        assert 'card.get("manual_review_only") is True' in shared
+        assert "self._configure_imported_sheet_layout(widget, card)" in shared
+        assert "widget.page_check.hide()" in shared
+        assert 'self._continuous_source' in shared
+        assert "GuideManualSourceReadingSection" not in shell
+        assert "QFrame#GuideManualSheet" not in shell
+        assert "#GuideManualSheet" in stylesheet
+        assert "GuideManualSourceReadingSection" not in stylesheet
 
     def test_sylvestre_has_no_dedicated_qss_or_style_selector(self) -> None:
         for path in UI_STYLES.rglob("*.py") if UI_STYLES.exists() else ():
