@@ -51,7 +51,10 @@ from app.ui.unity_skin import apply_unity_panel_shadow, sprite_icon_path
 from app.constants import DATA_DIR
 from app.modules.encyclopedia.services.image_service import ENCYCLOPEDIA_IMAGE_SERVICE
 from app.ui.theme import PALETTE, GUIDE_READING_METRICS, SIZES
-from app.ui.entity_link_roles import ENTITY_LINK_COLOR_ROLES, entity_text_markup
+from app.ui.entity_link_roles import (
+    ENTITY_LINK_COLOR_ROLES, GUIDE_SOURCE_HIGHLIGHT_COLOR_ROLES,
+    entity_text_markup,
+)
 from app.modules.encyclopedia.services.guide_source_rich_blocks import image_bytes
 
 LOGGER = logging.getLogger(__name__)
@@ -760,13 +763,18 @@ class SharedGuideManualCard(GuideUltimeManualCard):
                     f'<span style="color:{PALETTE["DANGER_TEXT"]};">'
                     f'{html.escape(text)}</span>'
                 )
+            elif role in GUIDE_SOURCE_HIGHLIGHT_COLOR_ROLES:
+                color = PALETTE[GUIDE_SOURCE_HIGHLIGHT_COLOR_ROLES[role]]
+                mark = f'<span style="color:{color};">{html.escape(text)}</span>'
             else:
                 mark = entity_text_markup(text, role, PALETTE)
             href = run.get("href")
             if isinstance(href, str):
                 # All source URLs are prevalidated as explicit HTTPS links.
                 color = PALETTE[
-                    ENTITY_LINK_COLOR_ROLES.get(role, "TEXT_SOFT")
+                    GUIDE_SOURCE_HIGHLIGHT_COLOR_ROLES.get(
+                        role, ENTITY_LINK_COLOR_ROLES.get(role, "TEXT_SOFT")
+                    )
                 ]
                 mark = (
                     f'<a href="{html.escape(href, quote=True)}" '
