@@ -101,12 +101,23 @@ Example local manifest, with fictional IDs and *user-supplied* capture files:
 ```bash
 python -m tools.atlas_guide_html_capture \
   --manifest local/authorized-guide-manifest.json \
+  --inventory-only --output artifacts/source-media-inventory.json
+
+python -m tools.atlas_guide_html_capture \
+  --manifest local/authorized-guide-manifest.json \
   --output artifacts/authorized-full-source.json
 
 python -m tools.atlas_guide_importer \
   --source artifacts/authorized-full-source.json \
   --partial --output artifacts/authorized-preview.json
 ```
+
+The optional `--inventory-only` preflight checks all saved article numbers
+and reports every non-decorative source image requiring an explicitly supplied
+local `media_files` sidecar. It writes only image URLs and step counts, **no
+source-authored text or image bytes**. It still demands a declared authorized
+capture, never claims text fidelity, and cannot activate a guide. A clean
+inventory is not a successful conversion; run full capture afterwards.
 
 The converter checks every sequential step number and exact
 `expected_steps`. Missing pages, duplicates, external images without local

@@ -380,6 +380,103 @@ def extract_saved_html(html: str, *, assets: dict[str, Path] | None = None
     return result
 
 
+
+
+def inspect_saved_capture(manifest: dict[str, Any], *, root: Path) -> dict[str, Any]:
+    """Inventory saved authorized pages and missing media without copying prose.
+
+    This is a source-file preflight, NOT an import or source-fidelity proof.
+    In particular, it cannot mark rights, rendered UI or gameplay certified.
+    """
+    if manifest.get("rights_verified") is not True or manifest.get("reference_verified") is not True:
+        raise SourceCaptureError("explicit authorized rights/reference evidence required")
+    guides = manifest.get("guides")
+    if not isinstance(guides, list) or not guides:
+        raise SourceCaptureError("nonempty guides manifest required")
+    report: list[dict[str, Any]] = []
+    seen_guides: set[str] = set()
+    for guide in guides:
+        if not isinstance(guide, dict):
+            raise SourceCaptureError("invalid guide manifest entry")
+        guide_id, count, pages = (
+            guide.get("guide_id"), guide.get("expected_steps"), guide.get("pages"),
+        )
+        media_files = guide.get("media_files") or {}
+        if (not isinstance(guide_id, str) or not guide_id.strip()
+                or guide_id in seen_guides or type(count) is not int or count < 1
+                or not isinstance(pages, list) or not pages
+                or not isinstance(media_files, dict)):
+            raise SourceCaptureError("invalid guide inventory entry")
+        seen_guides.add(guide_id)
+        required: set[str] = set()
+        missing: set[str] = set()
+        number = 0
+        for filename in pages:
+            path = _within(root, filename)
+            if not path.is_file() or path.stat().st_size > 16 * 1024 * 1024:
+                raise SourceCaptureError("missing or oversized saved HTML page")
+            dom = _DOM(path.read_text(encoding="utf-8"))
+            articles = [
+                node for node in _desc(dom.root)
+                if node.tag == "article" and _STEP.fullmatch(node.attrs.get("id", ""))
+            ]
+            if not articles:
+                raise SourceCaptureError("no Ganymede step articles in saved HTML")
+            for article in articles:
+                found = int(_STEP.fullmatch(article.attrs["id"]).group(1))
+                number += 1
+                if found != number:
+                    raise SourceCaptureError(
+                        f"guide {guide_id}: missing/duplicate/reordered step "
+                        f"{number}, found {found}"
+                    )
+                if len([node for node in _desc(article) if node.tag == "h2"]) != 1:
+                    raise SourceCaptureError(f"step {number}: missing/ambiguous heading")
+                content = [
+                    node for node in _desc(article)
+                    if node.tag == "div"
+                    and "guide-content" in node.attrs.get("class", "").split()
+                ]
+                if len(content) != 1:
+                    raise SourceCaptureError(
+                        f"step {number}: missing/ambiguous source content"
+                    )
+                for node in _desc(content[0]):
+                    if node.tag != "img" or node.attrs.get("alt") in _DECORATIVE_TAG_IMAGE_ALTS:
+                        continue
+                    src = node.attrs.get("src", "")
+                    if src.startswith("data:"):
+                        continue  # Inlined image validation occurs during full conversion.
+                    if not src.startswith("https://"):
+                        raise SourceCaptureError(
+                            f"step {number}: unsupported external image URL"
+                        )
+                    required.add(src)
+                    local_name = media_files.get(src)
+                    if local_name is None:
+                        missing.add(src)
+                    else:
+                        local_path = _within(root, local_name)
+                        if not local_path.is_file() or local_path.is_symlink():
+                            missing.add(src)
+        if number != count:
+            raise SourceCaptureError(
+                f"guide {guide_id}: incomplete paginated capture: {number}/{count}"
+            )
+        report.append({
+            "guide_id": guide_id,
+            "steps": number,
+            "required_media_urls": sorted(required),
+            "missing_media_urls": sorted(missing),
+        })
+    return {
+        "status": "INVENTORY_ONLY_NOT_CERTIFIED",
+        "guides": report,
+        "certified": False,
+        "text_fidelity_verified": False,
+        "safe_to_activate": False,
+    }
+
 def convert_manifest(manifest: dict[str, Any], *, root: Path) -> dict[str, Any]:
     """Convert local, authorized, paginated HTML. Never fetch or invent text."""
     if manifest.get("rights_verified") is not True or manifest.get("reference_verified") is not True:
@@ -460,6 +557,8 @@ def _within(root: Path, filename: Any) -> Path:
 
 def main(argv: list[str] | None = None) -> int:
     cli = argparse.ArgumentParser(description="Offline authorized Ganymede HTML -> full Atlas JSON")
+    cli.add_argument("--inventory-only", action="store_true",
+                     help="List all missing source images without importing guide text")
     cli.add_argument("--manifest", type=Path, required=True)
     cli.add_argument("--output", type=Path, required=True,
                      help="New explicit .json under artifacts/, never installed data")
@@ -471,13 +570,23 @@ def main(argv: list[str] | None = None) -> int:
                 or "artifacts" not in args.output.parts
                 or any(x in {".git", "data", "saves", "profiles"} for x in args.output.parts)):
             raise SourceCaptureError("output must be a new artifacts/*.json file")
-        result = convert_manifest(manifest, root=args.manifest.parent.resolve())
+        result = (inspect_saved_capture(manifest, root=args.manifest.parent.resolve())
+                  if args.inventory_only
+                  else convert_manifest(manifest, root=args.manifest.parent.resolve()))
         output.parent.mkdir(parents=True, exist_ok=True)
         output.write_text(json.dumps(result, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
         print(json.dumps({
-            "status": "FULL_SOURCE_CAPTURE_PREVIEW_ONLY",
+            "status": ("INVENTORY_ONLY_NOT_CERTIFIED" if args.inventory_only
+                       else "FULL_SOURCE_CAPTURE_PREVIEW_ONLY"),
             "guides": len(result["guides"]),
-            "steps": sum(len(g["steps"]) for g in result["guides"]),
+            "steps": sum(
+                g["steps"] if args.inventory_only else len(g["steps"])
+                for g in result["guides"]
+            ),
+            "missing_media": (
+                sum(len(g["missing_media_urls"]) for g in result["guides"])
+                if args.inventory_only else 0
+            ),
             "certified": False,
         }, ensure_ascii=False))
         return 0

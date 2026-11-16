@@ -13,7 +13,7 @@ from app.modules.encyclopedia.services.guide_shared_route_contract import (
     assert_source_fidelity,
 )
 from tools.atlas_guide_html_capture import (
-    SourceCaptureError, convert_manifest, extract_saved_html,
+    SourceCaptureError, convert_manifest, extract_saved_html, inspect_saved_capture,
 )
 from tools.atlas_guide_importer import prepare_preview
 
@@ -276,6 +276,42 @@ class AtlasGuideHtmlCaptureTests(unittest.TestCase):
         self.manifest["guides"][0]["pages"] = ["missing.html"]
         with self.assertRaisesRegex(SourceCaptureError, "missing or oversized"):
             convert_manifest(self.manifest, root=self.root)
+
+
+    def test_saved_full_source_inventory_counts_and_lists_missing_images(self):
+        # Real Ganymède structure, fictional prose and local image URL.
+        (self.root / "two.html").write_text(STEP_TWO_WITH_MEDIA, encoding="utf-8")
+        inventory = inspect_saved_capture(self.manifest, root=self.root)
+        self.assertEqual(inventory["status"], "INVENTORY_ONLY_NOT_CERTIFIED")
+        self.assertEqual(inventory["guides"][0]["steps"], 2)
+        self.assertEqual(
+            inventory["guides"][0]["missing_media_urls"],
+            ["https://example.org/photo.png"],
+        )
+        self.assertFalse(inventory["certified"])
+        self.assertFalse(inventory["text_fidelity_verified"])
+        self.assertFalse(inventory["safe_to_activate"])
+        with self.assertRaisesRegex(SourceCaptureError, "missing local authorized asset"):
+            convert_manifest(self.manifest, root=self.root)
+        (self.root / "photo.png").write_bytes(PNG)
+        self.manifest["guides"][0]["media_files"] = {
+            "https://example.org/photo.png": "photo.png",
+        }
+        inventory = inspect_saved_capture(self.manifest, root=self.root)
+        self.assertEqual(inventory["guides"][0]["missing_media_urls"], [])
+        self.assertEqual(len(inventory["guides"][0]["required_media_urls"]), 1)
+        self.assertEqual(len(convert_manifest(self.manifest, root=self.root)["guides"][0]["steps"]), 2)
+
+    def test_saved_source_inventory_rejects_missing_pages_and_unverified_rights(self):
+        self.manifest["guides"][0]["pages"] = ["two.html", "one.html"]
+        with self.assertRaisesRegex(SourceCaptureError, "missing/duplicate/reordered"):
+            inspect_saved_capture(self.manifest, root=self.root)
+        self.manifest["guides"][0]["pages"] = ["one.html"]
+        with self.assertRaisesRegex(SourceCaptureError, "incomplete paginated capture"):
+            inspect_saved_capture(self.manifest, root=self.root)
+        self.manifest["rights_verified"] = False
+        with self.assertRaisesRegex(SourceCaptureError, "rights/reference"):
+            inspect_saved_capture(self.manifest, root=self.root)
 
 
 if __name__ == "__main__":
