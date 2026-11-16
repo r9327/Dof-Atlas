@@ -478,7 +478,7 @@ def compare(reference: dict[str, Any], atlas: dict[str, Any]) -> dict[str, Any]:
                            "nonempty ordered actions", actions)
                     continue
                 inspected[f"{side}_full_actions"] += len(actions)
-                previous_rank = -1
+                # Source order wins over the UI section grouping.
                 for ai, action in enumerate(actions):
                     action_path = f"{prefix}.actions[{ai}]"
                     if not isinstance(action, dict):
@@ -531,25 +531,11 @@ def compare(reference: dict[str, Any], atlas: dict[str, Any]) -> dict[str, Any]:
                     elif section == "prepare":
                         if kind != "prepare":
                             report("UNVERIFIABLE", f"{action_path}.section",
-                                   "only prepare actions in the inventory panel", section)
-                        if previous_rank >= 0:
-                            report("UNVERIFIABLE", f"{action_path}.section",
-                                   "preparation before all other visible actions",
-                                   section)
+                                   "only prepare actions in source preparation", section)
                     elif kind == "prepare":
                         report("UNVERIFIABLE", f"{action_path}.section",
-                               "prepare action belongs in the inventory panel", section)
-                        rank = _RENDER_ORDER.index(section)
-                        if rank < previous_rank:
-                            report("UNVERIFIABLE", f"{action_path}.section",
-                                   "monotonic shared UI section order", section)
-                        previous_rank = max(previous_rank, rank)
-                    else:
-                        rank = _RENDER_ORDER.index(section)
-                        if rank < previous_rank:
-                            report("UNVERIFIABLE", f"{action_path}.section",
-                                   "monotonic shared UI section order", section)
-                        previous_rank = max(previous_rank, rank)
+                               "prepare action belongs to source preparation", section)
+                    # Interleaved source categories remain in authored order.
                     # The canonical shared UI places section=prepare in its
                     # dedicated item panel. A pair of identical non-item
                     # actions in that section is not renderable as preparation.
