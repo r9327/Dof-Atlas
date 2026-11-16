@@ -3192,6 +3192,39 @@ class SharedGuideManualView(GuideUltimeManualView):
         count = 1 if source_sheet else self.READING_WINDOW_SIZE
         return range(begin, min(total, begin + count))
 
+    def _configure_imported_sheet_layout(
+        self, widget: SharedGuideManualCard, card: dict,
+    ) -> None:
+        """One content-sized Atlas sheet for any authored source page.
+
+        Both certified imports and read-only metadata reviews use this single
+        policy. Long paragraphs keep their full scrollable height; short
+        source pages do not expand into empty nested cards.
+        """
+        widget.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Maximum)
+        widget.layout().setAlignment(Qt.AlignTop)
+        entries = card.get("manual_sections", {})
+        if not isinstance(entries, dict):
+            entries = {}
+        authored = [
+            row for rows in entries.values() if isinstance(rows, list)
+            for row in rows if isinstance(row, dict)
+        ]
+        if any(len(str(row.get("text") or "")) > 160 for row in authored):
+            viewport = self.scroll.viewport()
+            margins = self.cards_layout.contentsMargins()
+            label_width = max(
+                120, viewport.width() - margins.left() - margins.right() - 88
+            )
+            estimated = max(1, widget.sizeHint().height())
+            for label in widget.findChildren(QLabel):
+                if label.wordWrap() and label.hasHeightForWidth():
+                    wrapped = label.heightForWidth(label_width)
+                    estimated += max(0, wrapped - label.sizeHint().height())
+            widget.setMinimumHeight(estimated)
+        else:
+            widget.setMinimumHeight(0)
+
     def _render_window(self, *, reset_scroll: bool = False) -> None:
         self._catalog_prefetch_timer.stop()
         self._catalog_prefetch_index = None
@@ -3202,7 +3235,8 @@ class SharedGuideManualView(GuideUltimeManualView):
         for number in self._reading_step_range(index):
             card = self.service.cards[number]
             active = number == index
-            if active:
+            review_only = card.get("manual_review_only") is True
+            if active and not review_only:
                 self._add_manual_order_choice(card)
             widget = SharedGuideManualCard(
                 self.service,
@@ -3223,15 +3257,19 @@ class SharedGuideManualView(GuideUltimeManualView):
                         self._page_toggled_for_participants(
                             sheet, sheet_index, bool(checked)
                         )
-                    )) if active else None
+                    )) if active and not review_only else None
                 ),
             )
+            if card.get("manual_source") is True and "source_step_id" in card:
+                self._configure_imported_sheet_layout(widget, card)
             widget.questRequested.connect(self._open_quest_from_card)
             widget.entityRequested.connect(self._open_entity_from_card)
-            if active:
+            if active and not review_only:
                 self._sync_validation_control(widget.page_check, card, number)
                 self._set_validation_widget(widget.page_check)
             else:
+                # Read-only source review and inactive read-ahead cards have
+                # no validation control or progress-write callback.
                 # Read-ahead cards are informational only; progress and
                 # selected identity always belong to the active source step.
                 widget.page_check.setEnabled(False)
