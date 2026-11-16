@@ -629,6 +629,26 @@ class SharedGuideManualCard(GuideUltimeManualCard):
         return rendered
 
     @staticmethod
+    def _source_item_kinds(source_action: Any) -> tuple[tuple[str, str], ...]:
+        """Use explicit source categories; unknown items remain regular items."""
+        if not isinstance(source_action, dict):
+            return ()
+        items = source_action.get("items")
+        if not isinstance(items, list):
+            return ()
+        result: list[tuple[str, str]] = []
+        for item in items:
+            if not isinstance(item, dict):
+                continue
+            name = item.get("name")
+            kind = item.get("item_type")
+            if isinstance(name, str) and name.strip() and kind in {
+                "item", "resource", "equipment"
+            }:
+                result.append((name.strip(), "equipment" if kind == "equipment" else "item"))
+        return tuple(result)
+
+    @staticmethod
     def _source_monster_entity_links(
         source_action: Any,
     ) -> tuple[tuple[str, str, int], ...]:
@@ -830,6 +850,7 @@ class SharedGuideManualCard(GuideUltimeManualCard):
                 "" if is_coordinate else position,
                 text, npc_names, self._resource_names,
                 entity_links=self._source_monster_entity_links(source_action),
+                item_kinds=self._source_item_kinds(source_action),
             )
             if isinstance(source_action, dict):
                 rendered_text = self._inline_source_item_images(
@@ -978,6 +999,8 @@ class SharedGuideManualCard(GuideUltimeManualCard):
                                     else []
                                 ),
                                 self._resource_names,
+                                entity_links=self._source_monster_entity_links(source_action),
+                                item_kinds=self._source_item_kinds(source_action),
                             ),
                         )
                         detail_label.setWordWrap(True)
