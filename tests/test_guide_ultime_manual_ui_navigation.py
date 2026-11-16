@@ -250,7 +250,7 @@ class GuideUltimeManualUiNavigationTests(unittest.TestCase):
             self.assertEqual(view.participants_button.text(), "")
             self.assertEqual(view.participants_button.accessibleName(), "Mes personnages · 1")
             self.assertEqual(view.page_jump.maximumWidth(), 110)
-            self.assertEqual(view._metric_caption_labels["Préparation"].text(), "Préparation")
+            self.assertEqual(view._metric_caption_labels["Préparation"].text(), "À préparer")
         finally:
             view.close()
 
