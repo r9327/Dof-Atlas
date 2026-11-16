@@ -124,6 +124,19 @@ jobs:
           print(f"Native DPI screenshot: {shot.width()} x {shot.height()}, DPR={shot.devicePixelRatio()}")
           assert shot.save(str(target), "PNG")
           print(f"Real Qt screenshot written: {target} ({target.stat().st_size} bytes)")
+          # Also demonstrate a taller window genuinely containing several
+          # short source steps with no fabricated action text.
+          backdrop.resize(1280, 1050)
+          app.processEvents()
+          shell._refit_review_cards()
+          app.processEvents()
+          assert shell.rendered_card_count >= 2
+          grouped = Path("artifacts/screenshots/ganymede-cawotte-grouped-large-qt.png")
+          assert backdrop.grab().save(str(grouped), "PNG")
+          backdrop.resize(1280, 720)
+          app.processEvents()
+          shell._refit_review_cards()
+          app.processEvents()
           first_end = shell._review_end_index
           shell.next_button.click()
           app.processEvents()

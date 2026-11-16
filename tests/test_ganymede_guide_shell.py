@@ -12,7 +12,7 @@ from pathlib import Path
 
 os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
 
-from PySide6.QtCore import Qt
+from PySide6.QtCore import QPoint, Qt
 from PySide6.QtTest import QTest
 from PySide6.QtWidgets import QApplication, QFrame, QLabel, QProgressBar, QSpinBox, QToolButton
 
@@ -256,6 +256,10 @@ class GanymedeGuideShellTests(unittest.TestCase):
         large_count = shell.rendered_card_count
         self.assertGreaterEqual(large_count, 2)
         self.assertEqual(shell._review_end_index, large_count)
+        # Multiple cards fit without clipping below the viewport.
+        last = shell.cards_layout.itemAt(large_count - 1).widget()
+        bottom = last.mapTo(shell.scroll.viewport(), QPoint(0, last.height())).y()
+        self.assertLessEqual(bottom, shell.scroll.viewport().height() + 2)
 
         shell.resize(760, 560)
         self.app.processEvents()

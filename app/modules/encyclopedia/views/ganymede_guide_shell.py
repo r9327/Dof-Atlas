@@ -9,7 +9,7 @@ from collections.abc import Callable
 
 from PySide6.QtCore import QSize, Qt, QTimer
 from PySide6.QtGui import QIcon, QPixmap
-from PySide6.QtWidgets import QWidget
+from PySide6.QtWidgets import QLabel, QWidget
 
 from app.ui.unity_skin import sprite_icon_path
 
@@ -210,21 +210,23 @@ class GanymedeGuideShell(SharedGuideManualView):
             )
             widget.page_check.setEnabled(False)
             widget.page_check.hide()
-            layout = widget.layout()
-            estimated = (
-                layout.heightForWidth(width)
-                if layout is not None and layout.hasHeightForWidth()
-                else widget.sizeHint().height()
-            )
-            if estimated <= 0:
-                estimated = widget.sizeHint().height()
+            # QWidget layout.heightForWidth() alone overestimates short
+            # multi-line Qt rich-text rows, leaving giant empty sheets.
+            # Start with the compact natural size, then add ONLY the extra
+            # wrapped-line height at the actual available label width.
+            estimated = max(1, widget.sizeHint().height())
+            label_width = max(120, width - 72)  # shared sheet + section margins
+            for label in widget.findChildren(QLabel):
+                if label.wordWrap() and label.hasHeightForWidth():
+                    wrapped = label.heightForWidth(label_width)
+                    if wrapped > label.sizeHint().height():
+                        estimated += wrapped - label.sizeHint().height()
             required = max(1, estimated) + (spacing if end > start else 0)
             if end > start and used + required > budget:
                 widget.deleteLater()
                 break
-            # A resizable QScrollArea can otherwise shrink an overlong QLabel
-            # to its viewport height: force the real wrapped-card height so
-            # a single long source step scrolls instead of clipping text.
+            # Only genuine word-wrap expansion grows the compact sheet. A
+            # single source step larger than the viewport scrolls unchanged.
             widget.setMinimumHeight(max(1, estimated))
             self.cards_layout.addWidget(widget)
             # Newly created orphan QFrames inserted into an already shown
