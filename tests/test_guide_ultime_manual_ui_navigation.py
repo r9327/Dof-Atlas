@@ -198,6 +198,7 @@ class GuideUltimeManualUiNavigationTests(unittest.TestCase):
             self.assertEqual(view.route_progress_label.text(), "0 %")
             self.assertEqual((view.route_bar.value(), view.route_bar.maximum()), (0, 2))
             self.assertTrue(view.route_bar.isHidden())
+            self.assertTrue(view.summary_button.isHidden())
             self.assertIs(view.summary_button.parentWidget(),
                           view.findChild(QFrame, "GuideSheetHeader"))
             self.assertEqual(view.progress_donut._percent, 0)
