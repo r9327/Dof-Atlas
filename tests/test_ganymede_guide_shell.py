@@ -160,6 +160,31 @@ class GanymedeGuideShellTests(unittest.TestCase):
         self.assertEqual(shell.page_jump.text(), "1 / 64")
         self.assertEqual(shell.guide_title_label.text(), "Dofus Cawotte")
         self.assertEqual(shell.sheet_title_label.text(), "Étape 1")
+        # The active title is in GuideSheetHeader; no duplicate Qt stage label.
+        active_sheet = shell.cards_layout.itemAt(0).widget()
+        next_sheet = shell.cards_layout.itemAt(1).widget()
+        self.assertEqual(
+            active_sheet.findChildren(QLabel, "GuideManualStageTitle"), [],
+        )
+        self.assertEqual(
+            [label.text() for label in next_sheet.findChildren(
+                QLabel, "GuideManualStageTitle",
+            )], ["Étape 2"],
+        )
+        self.assertEqual(
+            active_sheet.findChildren(QLabel, "GuideManualSectionTitle"), [],
+        )
+        from app.ui.theme import GUIDE_READING_METRICS
+        m = active_sheet.layout().contentsMargins()
+        self.assertEqual(
+            (m.left(), m.top(), m.right(), m.bottom()),
+            (
+                GUIDE_READING_METRICS["sheet_horizontal"],
+                GUIDE_READING_METRICS["sheet_vertical"],
+                GUIDE_READING_METRICS["sheet_horizontal"],
+                GUIDE_READING_METRICS["sheet_vertical"],
+            ),
+        )
         # Every source step is indexed once; nearby steps fill the scroll.
         self.assertTrue(shell.summary_button.isEnabled())
         self.assertEqual(shell.summary_list.count(), 64)
@@ -272,6 +297,11 @@ class GanymedeGuideShellTests(unittest.TestCase):
         self.assertEqual(large_count, 3)
         self.assertEqual(shell._review_end_index, 3)
         self.assertEqual(shell.summary_list.count(), len(shell.service.cards))
+        self.assertEqual(
+            shell.cards_layout.itemAt(0).widget().findChildren(
+                QLabel, "GuideManualStageTitle",
+            ), [],
+        )
 
         shell.resize(760, 560)
         self.app.processEvents()
