@@ -642,7 +642,7 @@ class SharedGuideManualCard(GuideUltimeManualCard):
                 continue
             name = item.get("name")
             kind = item.get("item_type")
-            if isinstance(name, str) and name.strip() and kind in {
+            if isinstance(name, str) and name.strip() and isinstance(kind, str) and kind in {
                 "item", "resource", "equipment"
             }:
                 result.append((name.strip(), "equipment" if kind == "equipment" else "item"))
