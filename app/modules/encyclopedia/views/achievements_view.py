@@ -36,7 +36,7 @@ from app.modules.encyclopedia.widgets.dashboard import FixedColumnSplitter
 from app.core.text import normalize_key as normalize_text
 from app.ui.components import AtlasButton, AtlasComboBox
 from app.ui.theme import PALETTE
-from app.ui.unity_palette import UNITY_MODULE_GEOMETRY_PX
+from app.ui.unity_palette import UNITY_MODULE_GEOMETRY_PX, UNITY_SPACING_PX
 
 ACHIEVEMENT_GEOMETRY = UNITY_MODULE_GEOMETRY_PX["achievements"]
 from app.ui.unity_skin import apply_unity_panel_shadow
@@ -174,7 +174,7 @@ class AchievementsView(QWidget):
 
         root = QVBoxLayout(self)
         root.setContentsMargins(0, 0, 0, 0)
-        root.setSpacing(8)
+        root.setSpacing(UNITY_SPACING_PX["md"])
 
         self.search = QLineEdit()
         self.search.setObjectName("EncyclopediaSearch")
@@ -303,8 +303,9 @@ class AchievementsView(QWidget):
         panel = QFrame()
         panel.setObjectName(object_name)
         layout = QVBoxLayout(panel)
-        layout.setContentsMargins(10, 10, 10, 10)
-        layout.setSpacing(8)
+        inset = UNITY_SPACING_PX["lg"]
+        layout.setContentsMargins(inset, inset, inset, inset)
+        layout.setSpacing(UNITY_SPACING_PX["md"])
         label = QLabel(title)
         label.setObjectName("GuideSectionTitle")
         layout.addWidget(label)

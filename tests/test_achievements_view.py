@@ -56,6 +56,16 @@ class AchievementsThirdColumnTests(unittest.TestCase):
         self.assertIs(view.splitter.widget(2), view.detail_stack)
         self.assertFalse(view.splitter.isCollapsible(2))
         self.assertGreaterEqual(view.detail_stack.minimumWidth(), 240)
+        from app.ui.unity_palette import UNITY_SPACING_PX
+        self.assertEqual(view.layout().spacing(), UNITY_SPACING_PX["md"])
+        for panel in (view.category_panel, view.success_panel):
+            layout = panel.layout()
+            self.assertEqual(layout.spacing(), UNITY_SPACING_PX["md"])
+            margins = layout.contentsMargins()
+            self.assertEqual(
+                (margins.left(), margins.top(), margins.right(), margins.bottom()),
+                (UNITY_SPACING_PX["lg"],) * 4,
+            )
         self.assertIs(view.detail_stack.currentWidget(), view.detail_scroll)
         self.assertIn(
             "Sélectionnez un succès",

@@ -56,7 +56,7 @@ from app.storage import (
     write_json,
 )
 from app.ui.components import AtlasButton, AtlasPageTitle
-from app.ui.unity_palette import UNITY_MODULE_GEOMETRY_PX
+from app.ui.unity_palette import UNITY_MODULE_GEOMETRY_PX, UNITY_SPACING_PX
 
 CRAFT_GEOMETRY = UNITY_MODULE_GEOMETRY_PX["craft"]
 from app.ui.unity_skin import apply_unity_panel_shadow
@@ -529,7 +529,9 @@ class CraftPage(QWidget):
         self.resource_dialog: CraftResourceDialog | None = None
 
         root = QVBoxLayout(self)
-        root.setContentsMargins(6, 6, 6, 6)
+        compact_gap = UNITY_SPACING_PX["sm"]
+        panel_padding = UNITY_SPACING_PX["md"]
+        root.setContentsMargins(compact_gap, compact_gap, compact_gap, compact_gap)
         title = AtlasPageTitle("Craft")
         root.addWidget(title)
         self.retry_preload_button = AtlasButton("Réessayer le chargement Craft")
@@ -547,18 +549,19 @@ class CraftPage(QWidget):
         self.global_scroll.setVerticalScrollBarPolicy(Qt.ScrollBarAlwaysOn)
         scroll_content = QWidget()
         content_root = QVBoxLayout(scroll_content)
-        content_root.setContentsMargins(4, 4, 4, 4)
-        content_root.setSpacing(6)
+        compact_inset = UNITY_SPACING_PX["xs"]
+        content_root.setContentsMargins(compact_inset, compact_inset, compact_inset, compact_inset)
+        content_root.setSpacing(compact_gap)
         self.global_scroll.setWidget(scroll_content)
         root.addWidget(self.global_scroll, 1)
 
         main_split = QVBoxLayout()
-        main_split.setSpacing(6)
+        main_split.setSpacing(compact_gap)
         content_root.addLayout(main_split, 1)
 
         self.craft_body_narrow = False
         self.craft_body = QGridLayout()
-        self.craft_body.setSpacing(6)
+        self.craft_body.setSpacing(compact_gap)
         main_split.addLayout(self.craft_body, 1)
 
         self.craft_left_panel = QFrame()
@@ -566,10 +569,10 @@ class CraftPage(QWidget):
         apply_unity_panel_shadow(self.craft_left_panel)
         self.craft_left_panel.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Preferred)
         left = QVBoxLayout(self.craft_left_panel)
-        left.setContentsMargins(8, 8, 8, 8)
-        left.setSpacing(6)
+        left.setContentsMargins(panel_padding, panel_padding, panel_padding, panel_padding)
+        left.setSpacing(compact_gap)
         category_row = QHBoxLayout()
-        category_row.setSpacing(4)
+        category_row.setSpacing(compact_inset)
         left.addLayout(category_row)
         self.category_buttons: dict[str, AtlasButton] = {}
         for key, label in (("equipment", "Équipement"), ("trophy_prysma", "Trophée / Prysmaradite"), ("resource", "Ressource craftable")):
@@ -598,8 +601,8 @@ class CraftPage(QWidget):
         apply_unity_panel_shadow(self.craft_right_panel)
         self.craft_right_panel.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Preferred)
         right = QVBoxLayout(self.craft_right_panel)
-        right.setContentsMargins(8, 8, 8, 8)
-        right.setSpacing(6)
+        right.setContentsMargins(panel_padding, panel_padding, panel_padding, panel_padding)
+        right.setSpacing(compact_gap)
         selection_header = QHBoxLayout()
         selection_title = QLabel("Sélection")
         selection_title.setObjectName("PanelTitle")
@@ -626,13 +629,13 @@ class CraftPage(QWidget):
         self.jobs_panel.setObjectName("CraftPanel")
         apply_unity_panel_shadow(self.jobs_panel)
         jobs_root = QVBoxLayout(self.jobs_panel)
-        jobs_root.setContentsMargins(8, 8, 8, 8)
-        jobs_root.setSpacing(6)
+        jobs_root.setContentsMargins(panel_padding, panel_padding, panel_padding, panel_padding)
+        jobs_root.setSpacing(compact_gap)
         self.job_buttons_layout = QGridLayout()
-        self.job_buttons_layout.setSpacing(4)
+        self.job_buttons_layout.setSpacing(compact_inset)
         jobs_root.addLayout(self.job_buttons_layout)
         self.job_actions_layout = QHBoxLayout()
-        self.job_actions_layout.setSpacing(4)
+        self.job_actions_layout.setSpacing(compact_inset)
         jobs_root.addLayout(self.job_actions_layout)
         self.job_content = QWidget()
         # Nested panel content is transparent: QWidget's default QSS fill
@@ -640,7 +643,7 @@ class CraftPage(QWidget):
         self.job_content.setObjectName("AtlasTransparentHost")
         self.job_grid = QGridLayout(self.job_content)
         self.job_grid.setContentsMargins(0, 0, 0, 0)
-        self.job_grid.setSpacing(4)
+        self.job_grid.setSpacing(compact_inset)
         jobs_root.addWidget(self.job_content, 1)
         main_split.addWidget(self.jobs_panel, 1)
 
