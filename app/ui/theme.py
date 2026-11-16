@@ -2936,9 +2936,7 @@ QToolButton#GuideParticipantPortrait:checked {
    Its action sections are borderless reading lines, not nested cards. */
 /* Action rows/sections are layout surfaces, never extra nested cards. */
 QFrame#GuideManualActionGroup,
-QFrame#GuideManualLineRow,
-QFrame#GuideManualReviewSection,
-QFrame#GuideManualSourceReadingSection {
+QFrame#GuideManualLineRow {
     background: transparent;
     border: none;
 }
