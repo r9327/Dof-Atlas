@@ -13,6 +13,21 @@ H = "b" * 40
 
 
 class ModularDomainRoutingTests(unittest.TestCase):
+    def test_html_source_capture_has_exact_guide_owner_only(self):
+        tool = "tools/atlas_guide_html_capture.py"
+        test = "tests/test_atlas_guide_html_capture.py"
+        self.assertEqual(owners_for(tool), frozenset({"guides"}))
+        self.assertEqual(owners_for(test), frozenset({"guides"}))
+        plan = self.route([tool, test])
+        self.assertEqual(plan["status"], "READY_TO_EXECUTE")
+        self.assertEqual(plan["unknown_paths"], [])
+        self.assertFalse(plan["phase_certified"])
+        # Future network collectors remain UNKNOWN until independently
+        # reviewed; no tools/atlas_guide_* ownership wildcard.
+        unknown = "tools/atlas_guide_unreviewed_scraper.py"
+        self.assertEqual(owners_for(unknown), frozenset())
+        self.assertEqual(self.route([unknown])["status"], "BLOCKED")
+
     def test_runtime_regression_contracts_keep_all_reviewed_consumers(self):
         domains = {"organizer", "guides", "identity", "data", "ui", "startup"}
         path = "tests/test_runtime_regression_contracts.py"
