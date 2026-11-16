@@ -39,7 +39,7 @@ from app.modules.encyclopedia.views.guide_ultime_manual_view import (
 )
 from app.core.text import normalize_key as normalize_text
 from app.ui.components import AtlasButton, AtlasComboBox, AtlasGuideDisclosure, AtlasGuideCover, AtlasGuideParticipantButton, atlas_guide_arrow_icon, atlas_guide_character_icon
-from app.ui.unity_palette import UNITY_CONTROL_SIZES_PX, UNITY_LAYOUT_BREAKPOINTS_PX, UNITY_SIZES_PX
+from app.ui.unity_palette import UNITY_CONTROL_SIZES_PX, UNITY_LAYOUT_BREAKPOINTS_PX, UNITY_LAYOUT_SIZES_PX, UNITY_SIZES_PX
 from app.ui.unity_skin import apply_unity_panel_shadow, sprite_icon_path
 from app.constants import DATA_DIR
 from app.modules.encyclopedia.services.image_service import ENCYCLOPEDIA_IMAGE_SERVICE
@@ -1004,11 +1004,16 @@ class SharedGuideManualView(GuideUltimeManualView):
         header = QFrame()
         header.setObjectName("GuideCompactHeader")
         outer = QHBoxLayout(header)
-        outer.setContentsMargins(10, 6, 10, 7)
-        outer.setSpacing(10)
+        outer.setContentsMargins(
+            UNITY_LAYOUT_SIZES_PX["guide_header_margin_x"],
+            UNITY_LAYOUT_SIZES_PX["guide_header_margin_top"],
+            UNITY_LAYOUT_SIZES_PX["guide_header_margin_x"],
+            UNITY_LAYOUT_SIZES_PX["guide_header_margin_bottom"],
+        )
+        outer.setSpacing(UNITY_LAYOUT_SIZES_PX["guide_header_outer_spacing"])
 
         right = QVBoxLayout()
-        right.setSpacing(6)
+        right.setSpacing(UNITY_LAYOUT_SIZES_PX["guide_header_content_spacing"])
         outer.addLayout(right, 1)
         # Retain the historical progress object for internal callers, but
         # do not paint a second route indicator in the header.
@@ -1030,7 +1035,7 @@ class SharedGuideManualView(GuideUltimeManualView):
 
         # Row 1: active guide, instant sheet selector and compact commands.
         title_row = QHBoxLayout()
-        title_row.setSpacing(6)
+        title_row.setSpacing(UNITY_LAYOUT_SIZES_PX["guide_header_content_spacing"])
         self.guide_button = AtlasButton("")
         self.guide_button.setIcon(atlas_guide_arrow_icon("left"))
         self.guide_button.setIconSize(QSize(14, 14))
@@ -1094,8 +1099,8 @@ class SharedGuideManualView(GuideUltimeManualView):
         # Two original progress bars, retaining their navigation and values.
         metrics = QGridLayout()
         metrics.setContentsMargins(0, 0, 0, 0)
-        metrics.setHorizontalSpacing(12)
-        metrics.setVerticalSpacing(2)
+        metrics.setHorizontalSpacing(UNITY_LAYOUT_SIZES_PX["guide_metric_column_spacing"])
+        metrics.setVerticalSpacing(UNITY_LAYOUT_SIZES_PX["guide_metric_row_spacing"])
         self._metric_caption_labels: dict[str, QLabel] = {}
         self._metric_dropdown_buttons: dict[str, QToolButton] = {}
         def add_metric(
@@ -1103,7 +1108,7 @@ class SharedGuideManualView(GuideUltimeManualView):
         ) -> None:
             column = len(self._metric_columns)
             caption = QHBoxLayout()
-            caption.setSpacing(4)
+            caption.setSpacing(UNITY_LAYOUT_SIZES_PX["guide_metric_caption_spacing"])
             icon = QLabel()
             icon.setObjectName(f"GuideCompactMetricIcon{symbol.title()}")
             icon.setPixmap(

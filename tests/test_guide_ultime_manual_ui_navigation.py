@@ -191,6 +191,34 @@ class GuideUltimeManualUiNavigationTests(unittest.TestCase):
         QApplication.processEvents()
         return service, view
 
+    def test_progress_header_uses_canonical_layout_metrics(self) -> None:
+        from app.ui.unity_palette import UNITY_LAYOUT_SIZES_PX
+
+        _service, view = self._view()
+        try:
+            header = view.findChild(QFrame, "GuideCompactHeader")
+            self.assertIsNotNone(header)
+            margins = header.layout().contentsMargins()
+            self.assertEqual(
+                (margins.left(), margins.top(), margins.right(), margins.bottom()),
+                (
+                    UNITY_LAYOUT_SIZES_PX["guide_header_margin_x"],
+                    UNITY_LAYOUT_SIZES_PX["guide_header_margin_top"],
+                    UNITY_LAYOUT_SIZES_PX["guide_header_margin_x"],
+                    UNITY_LAYOUT_SIZES_PX["guide_header_margin_bottom"],
+                ),
+            )
+            self.assertEqual(
+                view._header_content_layout.spacing(),
+                UNITY_LAYOUT_SIZES_PX["guide_header_content_spacing"],
+            )
+            self.assertEqual(
+                header.layout().spacing(),
+                UNITY_LAYOUT_SIZES_PX["guide_header_outer_spacing"],
+            )
+        finally:
+            view.close()
+
     def test_progress_header_is_compact_and_page_is_in_bottom_navigation(self) -> None:
         _service, view = self._view()
         try:

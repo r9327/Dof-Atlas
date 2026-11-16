@@ -539,14 +539,19 @@ class DevUiPage(QWidget):
         self.preview_compact_header = QFrame()
         self.preview_compact_header.setObjectName("GuideCompactHeader")
         outer = QHBoxLayout(self.preview_compact_header)
-        outer.setContentsMargins(10, 6, 10, 7)
-        outer.setSpacing(10)
+        outer.setContentsMargins(
+            UNITY_LAYOUT_SIZES_PX["guide_header_margin_x"],
+            UNITY_LAYOUT_SIZES_PX["guide_header_margin_top"],
+            UNITY_LAYOUT_SIZES_PX["guide_header_margin_x"],
+            UNITY_LAYOUT_SIZES_PX["guide_header_margin_bottom"],
+        )
+        outer.setSpacing(UNITY_LAYOUT_SIZES_PX["guide_header_outer_spacing"])
 
         right = QVBoxLayout()
-        right.setSpacing(6)
+        right.setSpacing(UNITY_LAYOUT_SIZES_PX["guide_header_content_spacing"])
         outer.addLayout(right, 1)
         heading = QHBoxLayout()
-        heading.setSpacing(6)
+        heading.setSpacing(UNITY_LAYOUT_SIZES_PX["guide_header_content_spacing"])
         self.preview_header_guide_icon = AtlasGuideCover()
         self.preview_header_guide_icon.set_artwork(category="guide")
         heading.addWidget(self.preview_header_guide_icon)
@@ -603,8 +608,8 @@ class DevUiPage(QWidget):
         self.preview_header_controls: dict[str, QToolButton] = {}
         metrics = QGridLayout()
         metrics.setContentsMargins(0, 0, 0, 0)
-        metrics.setHorizontalSpacing(12)
-        metrics.setVerticalSpacing(2)
+        metrics.setHorizontalSpacing(UNITY_LAYOUT_SIZES_PX["guide_metric_column_spacing"])
+        metrics.setVerticalSpacing(UNITY_LAYOUT_SIZES_PX["guide_metric_row_spacing"])
         self.preview_header_metric_columns: dict[str, QVBoxLayout] = {}
         for name, role, amount, icon_symbol, color_role in (
             ("Route", "GuideManualProgress", 35, "target", "RED"),
@@ -612,7 +617,7 @@ class DevUiPage(QWidget):
         ):
             column = len(self.preview_header_metric_columns)
             caption = QHBoxLayout()
-            caption.setSpacing(4)
+            caption.setSpacing(UNITY_LAYOUT_SIZES_PX["guide_metric_caption_spacing"])
             metric_icon = QLabel()
             metric_icon.setObjectName(
                 f"GuideCompactMetricIcon{icon_symbol.title()}"

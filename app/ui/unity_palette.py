@@ -240,6 +240,15 @@ UNITY_LAYOUT_SIZES_PX = {
     "breadcrumb_compact_inset": 3,
     "breadcrumb_normal_inset": 5,
     "gallery_section_header_inset": 22,
+    # The exact same Guide header geometry is used by the live viewer and Dev UI.
+    "guide_header_margin_x": 10,
+    "guide_header_margin_top": 6,
+    "guide_header_margin_bottom": 7,
+    "guide_header_outer_spacing": 10,
+    "guide_header_content_spacing": 6,
+    "guide_metric_column_spacing": 12,
+    "guide_metric_row_spacing": 2,
+    "guide_metric_caption_spacing": 4,
 }
 
 UNITY_CONTROL_SIZES_PX = {

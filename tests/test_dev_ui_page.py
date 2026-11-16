@@ -299,6 +299,22 @@ class DevUiPageTests(unittest.TestCase):
             from app.modules.encyclopedia.views.shared_manual_guide_view import (
                 _ParticipantPortraitButton,
             )
+            from app.ui.unity_palette import UNITY_LAYOUT_SIZES_PX
+            header_margins = page.preview_compact_header.layout().contentsMargins()
+            self.assertEqual(
+                (header_margins.left(), header_margins.top(),
+                 header_margins.right(), header_margins.bottom()),
+                (
+                    UNITY_LAYOUT_SIZES_PX["guide_header_margin_x"],
+                    UNITY_LAYOUT_SIZES_PX["guide_header_margin_top"],
+                    UNITY_LAYOUT_SIZES_PX["guide_header_margin_x"],
+                    UNITY_LAYOUT_SIZES_PX["guide_header_margin_bottom"],
+                ),
+            )
+            self.assertEqual(
+                page.preview_header_content_layout.spacing(),
+                UNITY_LAYOUT_SIZES_PX["guide_header_content_spacing"],
+            )
             self.assertEqual(page.preview_header_global_progress.value(), 35)
             self.assertIsNone(page.preview_compact_header.findChild(QWidget, "GuideCompactDonut"))
             self.assertEqual(page.preview_header_page_jump.suffix(), " / 20")
