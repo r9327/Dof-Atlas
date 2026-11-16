@@ -42,6 +42,36 @@ def _download(url: str, limit: int) -> bytes:
     return data
 
 
+
+def _render_source_pages() -> list[str]:
+    """Read only the real browser DOM. Ganymede step articles are JS-rendered."""
+    from playwright.sync_api import sync_playwright
+    pages: list[str] = []
+    with sync_playwright() as playwright:
+        browser = playwright.chromium.launch(headless=True, args=["--no-sandbox"])
+        try:
+            context = browser.new_context(locale="en-US")
+            page = context.new_page()
+            for number in range(1, 8):
+                page.goto(
+                    f"{BASE}?page={number}&stepsPerPage=10",
+                    wait_until="domcontentloaded", timeout=45000,
+                )
+                expected = 4 if number == 7 else 10
+                page.wait_for_function(
+                    """expected => document.querySelectorAll(
+                        'article[id^="step-"]').length === expected""",
+                    arg=expected, timeout=40000,
+                )
+                html = page.content()
+                if len(html.encode("utf-8")) > MAX_PAGE_BYTES:
+                    raise ValueError("Rendered HTML page exceeds size limit")
+                pages.append(html)
+        finally:
+            browser.close()
+    return pages
+
+
 def _guide_image_urls(html: str) -> set[str]:
     dom = _DOM(html)
     found: set[str] = set()
@@ -76,10 +106,7 @@ class CawotteLiveSourceDiagnostic(unittest.TestCase):
         # This only probes source HTML parsing in an ephemeral CI workspace.
         candidate = json.loads(CANDIDATE.read_text(encoding="utf-8"))
         self.assertEqual(candidate["source_step_count"], 64)
-        page_html: list[str] = []
-        for page in range(1, 8):
-            raw = _download(f"{BASE}?page={page}&stepsPerPage=10", MAX_PAGE_BYTES)
-            page_html.append(raw.decode("utf-8"))
+        page_html = _render_source_pages()
         urls: set[str] = set()
         for html in page_html:
             urls.update(_guide_image_urls(html))
