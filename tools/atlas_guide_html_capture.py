@@ -143,7 +143,7 @@ def _runs(node: _Node) -> list[dict[str, str]]:
         if current.tag == "input":
             return
         if current.tag == "br":
-            append("\n", role, href)
+            append("\u2028", role, href)
             return
         for child in current.children:
             if isinstance(child, str):
@@ -152,7 +152,28 @@ def _runs(node: _Node) -> list[dict[str, str]]:
                 walk(child, role, href, icon)
 
     walk(node)
-    return result
+    # HTML indentation is not authored prose: browsers collapse formatting
+    # whitespace. Keep inline roles/links while matching visible text.
+    # The explicit <br> sentinel remains a real Atlas line break.
+    normalized: list[dict[str, str]] = []
+    for original in result:
+        entry = dict(original)
+        entry["text"] = re.sub(
+            r"[ \\t\\r\\n]+", " ", entry["text"]
+        ).replace("\u2028", "\n")
+        if not normalized:
+            entry["text"] = entry["text"].lstrip(" ")
+        elif normalized[-1]["text"].endswith(" "):
+            entry["text"] = entry["text"].lstrip(" ")
+        if entry["text"].lstrip(" ").startswith((".", ",", ":", ";", "!", "?")):
+            if normalized:
+                normalized[-1]["text"] = normalized[-1]["text"].rstrip(" ")
+            entry["text"] = entry["text"].lstrip(" ")
+        if entry["text"]:
+            normalized.append(entry)
+    if normalized:
+        normalized[-1]["text"] = normalized[-1]["text"].rstrip(" ")
+    return [entry for entry in normalized if entry["text"]]
 
 
 def _media(node: _Node, assets: dict[str, Path]) -> dict[str, Any]:
