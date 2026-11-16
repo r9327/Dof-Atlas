@@ -420,6 +420,62 @@ class ImportedSourceRouterQtTests(unittest.TestCase):
             action,
         )
 
+    def test_source_highlights_and_checklist_links_use_unity_tokens(self):
+        """Author color spans + linked checks use ONE indexed shared renderer."""
+        from PySide6.QtWidgets import QCheckBox
+        from app.ui.theme import PALETTE
+        from app.ui.entity_link_roles import GUIDE_SOURCE_HIGHLIGHT_COLOR_ROLES
+
+        colored = [
+            {"text": f"Rôle {role}", "role": role}
+            for role in GUIDE_SOURCE_HIGHLIGHT_COLOR_ROLES
+        ]
+        action = {
+            "action_id": "rich-colors", "kind": "quest", "text": "Début fictif.",
+            "rich_blocks": [
+                {"type": "paragraph", "runs": [{"text": "Début fictif."}]},
+                {"type": "paragraph", "runs": colored},
+                {"type": "checklist", "items": [{
+                    "id": "link-check", "text": "Objet lié fictif",
+                    "checked": False,
+                    "runs": [{
+                        "text": "Objet lié fictif", "role": "item",
+                        "href": "https://example.org/object/2",
+                    }],
+                }]},
+            ],
+        }
+        route = project_authorized_guide({
+            "guide_id": "fictional-colors", "title": "Test coloré",
+            "steps": [{"source_step_id": "one", "title": "Test",
+                       "actions": [action]}],
+        })
+        service = ImportedSourceManualRuntimeService(
+            self.quest_progress, self.achievement_progress, self.progress,
+            route=route,
+        )
+        widget = SharedGuideManualCard(
+            service, "character:1", service.cards[0], 0,
+        )
+        self.addCleanup(widget.deleteLater)
+        text = "\\n".join(
+            child.text() for child in widget.findChildren(QLabel, "GuideManualLine")
+        )
+        for role, palette_key in GUIDE_SOURCE_HIGHLIGHT_COLOR_ROLES.items():
+            self.assertIn(
+                f'<span style="color:{PALETTE[palette_key]};">Rôle {role}</span>',
+                text,
+            )
+        self.assertIn('href="https://example.org/object/2"', text)
+        self.assertIn(f'color:{PALETTE["GREEN"]}', text)
+        checks = widget.findChildren(QCheckBox, "GuideManualSourceChecklist")
+        self.assertEqual(len(checks), 1)
+        self.assertFalse(checks[0].isEnabled())
+        self.assertEqual(
+            widget.card["manual_runtime_metadata"]["source_step"]["actions"][0],
+            action,
+        )
+
     def test_source_preparation_stays_in_original_sheet_beside_atlas_overlay(self):
         """The source's own instruction must not vanish into global inventory."""
         route = project_authorized_guide({
