@@ -368,6 +368,7 @@ def owners_for(path: str) -> frozenset[str]:
     if path in {
         "tools/atlas_guide_conformity.py",
         "tools/atlas_guide_importer.py",
+        "tools/atlas_guide_html_capture.py",
         "tools/atlas_guide_candidate_store.py",
         "tools/atlas_guide_sequence_gate.py",
         "tools/atlas_guide_pipeline.py",
