@@ -341,6 +341,26 @@ def extract_saved_html(html: str, *, assets: dict[str, Path] | None = None
         if len(contents) != 1:
             raise SourceCaptureError(f"step {number}: missing/ambiguous source content")
         blocks = _blocks(contents[0], assets or {})
+        # Independent text parity against the original article DOM.
+        # Whitespace is presentation; removing even one authored character
+        # is not. Never accept a "successful" shortened source page.
+        original_plain = "".join(_plain(contents[0]).split())
+        converted_plain = "".join(
+            block_run["text"] if isinstance(block_run, dict) else ""
+            for block in blocks
+            for block_run in (
+                block.get("runs", ())
+                if block.get("type") in {"paragraph", "heading"}
+                else (
+                    {"text": item["text"]} for item in block.get("items", ())
+                ) if block.get("type") == "checklist"
+                else ()
+            )
+        )
+        if "".join(converted_plain.split()) != original_plain:
+            raise SourceCaptureError(
+                f"step {number}: authored page text differs after capture"
+            )
         if not blocks or blocks[0]["type"] != "paragraph":
             raise SourceCaptureError(f"step {number}: source starts without paragraph")
         text = "".join(run["text"] for run in blocks[0]["runs"])
