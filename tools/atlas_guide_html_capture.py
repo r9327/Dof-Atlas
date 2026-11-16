@@ -145,7 +145,7 @@ def _runs(node: _Node) -> list[dict[str, str]]:
                     raise SourceCaptureError(
                         "unmapped source inline CSS: refuse style loss"
                     )
-                normalized = re.sub(r"\\s+", "", value).lower()
+                normalized = re.sub(r"\s+", "", value).lower()
                 highlight_role = _GANYMEDE_COLOR_ROLES.get(normalized)
                 if highlight_role is None:
                     raise SourceCaptureError(
