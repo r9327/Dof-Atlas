@@ -68,5 +68,63 @@ class SourceMaterialDisplayTests(unittest.TestCase):
         self.assertTrue(all("quantity" not in r for r in rows))
 
 
+    def test_global_rows_merge_same_verified_item_id_without_quest_titles(self):
+        blocks = [
+            {"type": "paragraph", "runs": [
+                {"text": "Quest A", "role": "quest"},
+            ]},
+            {"type": "paragraph", "runs": [
+                {"text": "3 ", "role": "plain"},
+                {"text": "Cawotte", "role": "item", "entity_id": 44},
+            ]},
+            {"type": "paragraph", "runs": [
+                {"text": "Quest B", "role": "quest"},
+            ]},
+            {"type": "paragraph", "runs": [
+                {"text": "5 ", "role": "plain"},
+                {"text": "Cawotte", "role": "item", "entity_id": 44},
+            ]},
+            {"type": "paragraph", "runs": [
+                {"text": "2 ", "role": "plain"},
+                {"text": "Une autre Cawotte", "role": "item", "entity_id": 88},
+            ]},
+        ]
+        card = {"manual_preparation_block_indexes": list(range(len(blocks))),
+                "manual_runtime_metadata": {
+                    "source_step": {"actions": [{"rich_blocks": blocks}]}
+                }}
+        before = copy.deepcopy(card)
+        from app.modules.encyclopedia.services.guide_source_preparation_rows import (
+            global_source_material_rows,
+        )
+        entries = global_source_material_rows([card])
+        self.assertEqual(len(entries), 2)
+        self.assertEqual([(r["item_id"], r["quantity"]) for r in entries],
+                         [(44, 8), (88, 2)])
+        self.assertEqual(card, before)
+        self.assertTrue(all("Quest" not in r["name"] for r in entries))
+
+    def test_unknown_amount_never_becomes_complete_count(self):
+        blocks = [
+            {"type": "paragraph", "runs": [
+                {"text": "Cawotte", "role": "item", "entity_id": 44},
+            ]},
+            {"type": "paragraph", "runs": [
+                {"text": "2 ", "role": "plain"},
+                {"text": "Cawotte", "role": "item", "entity_id": 44},
+            ]},
+        ]
+        card = {"manual_preparation_block_indexes": [0, 1],
+                "manual_runtime_metadata": {
+                    "source_step": {"actions": [{"rich_blocks": blocks}]}
+                }}
+        from app.modules.encyclopedia.services.guide_source_preparation_rows import (
+            global_source_material_rows,
+        )
+        row = global_source_material_rows([card])[0]
+        self.assertEqual(row["item_id"], 44)
+        self.assertIsNone(row["quantity"])
+
+
 if __name__ == "__main__":
     unittest.main()

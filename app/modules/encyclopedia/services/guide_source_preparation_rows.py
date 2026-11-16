@@ -36,6 +36,7 @@ def _typed_material_row(runs: list[dict[str, Any]]) -> dict[str, Any]:
         "kind": next(iter(kinds)),
         "name": item_name,
         "quantity": int(quantity.group(1)) if quantity else None,
+        "item_id": typed[0].get("entity_id"),
         "runs": runs,
     }
 
@@ -69,3 +70,59 @@ def authored_material_rows(cards: Any) -> tuple[dict[str, Any], ...]:
             else:
                 raise ValueError("Unrenderable source material block")
     return tuple(rows)
+
+
+_OPTIONAL_WORDS = re.compile(
+    r"(?:\b(?:facultatif|facultative|optionnel|optionnelle|optional)\b"
+    r"|\bsi vous (?:souhaitez|voulez)\b)", re.I,
+)
+
+
+def global_source_material_rows(cards: Any) -> tuple[dict[str, Any], ...]:
+    """One global row per verified Ganymède item ID, never per Quest or step.
+
+    Quantities sum only for explicit non-optional mentions, and an unknown
+    quantity never becomes 1. A missing ID stays individually identifiable
+    only as an unverified row; names are not trusted identifiers.
+    """
+    original = authored_material_rows(cards)
+    grouped: dict[int, dict[str, Any]] = {}
+    untyped: list[dict[str, Any]] = []
+    for row in original:
+        if row["kind"] == "context":
+            continue  # Source headings/Quest titles belong in the author text.
+        item_id = row.get("item_id")
+        if type(item_id) is not int or item_id <= 0:
+            untyped.append({
+                "item_id": None, "kind": row["kind"], "name": row["name"],
+                "quantity": None, "verified_quantity": False,
+                "optional": False,
+            })
+            continue
+        optional = bool(_OPTIONAL_WORDS.search(
+            "".join(str(run["text"]) for run in row["runs"])
+        ))
+        if item_id not in grouped:
+            grouped[item_id] = {
+                "item_id": item_id, "kind": row["kind"],
+                "name": row["name"], "quantity": 0,
+                "verified_quantity": True, "optional": True,
+            }
+        current = grouped[item_id]
+        if current["name"] != row["name"]:
+            # Same verified ID takes precedence over an alternative spelling.
+            # Never present the author's two labels as two different objects.
+            pass
+        if not optional:
+            current["optional"] = False
+            if row["quantity"] is None:
+                current["verified_quantity"] = False
+            elif current["verified_quantity"]:
+                current["quantity"] += row["quantity"]
+    return tuple(
+        {**entry, "quantity": (
+            entry["quantity"] if entry["verified_quantity"] and not entry["optional"]
+            else None
+        )}
+        for entry in grouped.values()
+    ) + tuple(untyped)

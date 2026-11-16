@@ -475,5 +475,30 @@ class AtlasGuideHtmlCaptureTests(unittest.TestCase):
         self.assertNotIn("preparation_block_indexes", step)
 
 
+    def test_rich_typed_object_id_roundtrip_and_invalid_role_rejected(self):
+        html = """<article id="step-1"><h2>Step 1 [1,1]</h2>
+        <div class="guide-content"><p>Préparez les objets suivants :</p>
+         <p>3 <a href="https://example.org/object/44"><span
+          data-type="custom-tag" type="item" dofusdbid="44">Cawotte</span></a></p>
+        </div></article>"""
+        step = extract_saved_html(html)[0]["step"]
+        block = step["actions"][0]["rich_blocks"][1]
+        self.assertEqual(block["runs"][-1]["entity_id"], 44)
+        from app.modules.encyclopedia.services.guide_shared_route_contract import (
+            project_authorized_guide, assert_source_fidelity,
+        )
+        guide = {"guide_id": "fictional", "title": "Fixture", "steps": [step]}
+        result = project_authorized_guide(guide)
+        assert_source_fidelity(guide, result)
+        self.assertEqual(
+            result["steps"][0]["manual_runtime_metadata"]["source_step"]
+                ["actions"][0]["rich_blocks"][1]["runs"][-1]["entity_id"], 44
+        )
+        broken = copy.deepcopy(guide)
+        broken["steps"][0]["actions"][0]["rich_blocks"][1]["runs"][-1]["entity_id"] = True
+        with self.assertRaises(ValueError):
+            project_authorized_guide(broken)
+
+
 if __name__ == "__main__":
     unittest.main()

@@ -62,7 +62,7 @@ def _runs(raw: Any, label: str) -> str:
     chunks: list[str] = []
     for i, run in enumerate(raw):
         field = f"{label}[{i}]"
-        if not isinstance(run, dict) or set(run) - {"text", "role", "href"}:
+        if not isinstance(run, dict) or set(run) - {"text", "role", "href", "entity_id"}:
             raise GuideRichContentError(f"{field}: unknown inline source fields")
         text = run.get("text")
         # Separately styled spaces are significant in an exact source export.
@@ -73,6 +73,12 @@ def _runs(raw: Any, label: str) -> str:
             raise GuideRichContentError(f"{field}.role: unmapped Dev UI role")
         if "href" in run:
             _link(run["href"], f"{field}.href")
+        if "entity_id" in run and (
+            role not in {"item", "equipment"}
+            or type(run["entity_id"]) is not int
+            or not 0 < run["entity_id"] <= 2**31 - 1
+        ):
+            raise GuideRichContentError(f"{field}.entity_id: verified typed item ID required")
         chunks.append(text)
     plain = "".join(chunks)
     if len(plain) > _MAX_TEXT_CHARS:

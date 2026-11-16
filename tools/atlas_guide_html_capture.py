@@ -118,12 +118,15 @@ def _plain(node: _Node) -> str:
 def _runs(node: _Node) -> list[dict[str, str]]:
     result: list[dict[str, str]] = []
 
-    def append(value: str, role: str, href: str | None) -> None:
+    def append(value: str, role: str, href: str | None,
+               entity_id: int | None = None) -> None:
         if not value:
             return
         run = {"text": value, "role": role}
         if href:
             run["href"] = href
+        if entity_id is not None and role in {"item", "equipment"}:
+            run["entity_id"] = entity_id
         if result and {k: v for k, v in result[-1].items() if k != "text"} == {
             k: v for k, v in run.items() if k != "text"
         }:
@@ -132,7 +135,7 @@ def _runs(node: _Node) -> list[dict[str, str]]:
             result.append(run)
 
     def walk(current: _Node, role: str = "plain", href: str | None = None,
-             icon: bool = False) -> None:
+             icon: bool = False, entity_id: int | None = None) -> None:
         if current.tag in {"script", "style", "iframe", "video", "canvas"}:
             raise SourceCaptureError(f"unsupported source element <{current.tag}>")
         raw_style = current.attrs.get("style", "")
@@ -157,6 +160,12 @@ def _runs(node: _Node) -> list[dict[str, str]]:
             typed = current.attrs.get("type", "")
             if typed in _ALLOWED_ROLES:
                 role = typed
+                if typed in {"item", "equipment"}:
+                    raw_id = current.attrs.get("dofusdbid", "")
+                    if raw_id:
+                        if not raw_id.isascii() or not raw_id.isdigit() or not 0 < int(raw_id) <= 2**31 - 1:
+                            raise SourceCaptureError("invalid typed object ID")
+                        entity_id = int(raw_id)
             icon = True
         if current.tag == "a":
             link = current.attrs.get("href", "")
@@ -180,13 +189,13 @@ def _runs(node: _Node) -> list[dict[str, str]]:
         if current.tag == "input":
             return
         if current.tag == "br":
-            append("\u2028", role, href)
+            append("\u2028", role, href, entity_id)
             return
         for child in current.children:
             if isinstance(child, str):
-                append(child, role, href)
+                append(child, role, href, entity_id)
             else:
-                walk(child, role, href, icon)
+                walk(child, role, href, icon, entity_id)
 
     walk(node)
     # HTML indentation is not authored prose: browsers collapse formatting
