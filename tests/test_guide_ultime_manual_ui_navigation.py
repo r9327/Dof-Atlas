@@ -686,9 +686,13 @@ class GuideUltimeManualUiNavigationTests(unittest.TestCase):
             labels = [
                 label for label in card.findChildren(QLabel)
                 if 'href="item-copy:Bottes"' in label.text()
+                and label.objectName() != "GuideManualSourceActionDetail"
             ]
             self.assertEqual(len(labels), 1)
             markup = labels[0].text()
+            details = card.findChildren(QLabel, "GuideManualSourceActionDetail")
+            self.assertEqual(len(details), 1)
+            self.assertIn(f'color:{GUIDE_ENTITY_LINK_COLORS["equipment"]}', details[0].text())
             self.assertIn(f'color:{GUIDE_ENTITY_LINK_COLORS["equipment"]}', markup)
             self.assertIn(f'color:{GUIDE_ENTITY_LINK_COLORS["item"]}', markup)
             QApplication.clipboard().setText("before")
