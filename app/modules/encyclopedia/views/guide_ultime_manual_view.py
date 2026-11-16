@@ -27,12 +27,10 @@ from app.modules.encyclopedia.services.guide_quest_view_model import (
 from app.modules.encyclopedia.views.guide_ultime_universal_view import GuideUltimeUniversalView
 from app.core.text import normalize_key as normalize_text
 from app.ui.theme import PALETTE
+from app.ui.entity_link_roles import entity_link_markup, entity_text_markup
 from app.ui.components import AtlasButton
 
 
-NPC_COLOR = PALETTE["YELLOW"]
-RESOURCE_COLOR = PALETTE["GREEN"]
-POSITION_COLOR = PALETTE["TEXT_SOFT"]
 _COORD_RE = re.compile(r"\[(-?\d+)\s*,\s*(-?\d+)\]")
 _COMBAT_QUANTITY_RE = re.compile(r"\bx\s*(\d+)\b", re.IGNORECASE)
 _NAME_WORD = r"[A-ZÀ-ÖØ-Þ][A-Za-zÀ-ÖØ-öø-ÿ'’.-]*"
@@ -658,15 +656,17 @@ class GuideUltimeManualCard(QFrame):
             if start < cursor:
                 continue
             rendered.append(html.escape(plain[cursor:start]))
-            value = html.escape(plain[start:end])
+            value = plain[start:end]
             if kind == "npc":
-                rendered.append(f'<span style="color:{NPC_COLOR};"><b>{value}</b></span>')
+                rendered.append(entity_text_markup(value, "npc", PALETTE))
             elif kind == "resource":
-                href = html.escape(f"item-copy:{quote(payload, safe='')}", quote=True)
-                rendered.append(f'<a href="{href}" style="color:{RESOURCE_COLOR};text-decoration:none;"><b>{value}</b></a>')
+                rendered.append(entity_link_markup(
+                    value, "item", f"item-copy:{quote(payload, safe='')}", PALETTE,
+                ))
             else:
-                href = html.escape(f"travel-copy:{payload}", quote=True)
-                rendered.append(f'<a href="{href}" style="color:{POSITION_COLOR};text-decoration:none;"><b>{value}</b></a>')
+                rendered.append(entity_link_markup(
+                    value, "position", f"travel-copy:{payload}", PALETTE,
+                ))
             cursor = end
         rendered.append(html.escape(plain[cursor:]))
         return "".join(rendered)
