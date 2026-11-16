@@ -21,7 +21,7 @@ from tools.atlas_guide_html_capture import (
     _DECORATIVE_TAG_IMAGE_ALTS, _DOM, _STEP, _desc, extract_saved_html,
 )
 
-BASE = "https://ganymede-app.com/guides/2205"
+BASE = "https://ganymede-app.com/guides/24"
 CANDIDATE = DATA_DIR / "encyclopedia" / "guides" / "ganymede_2205_action_candidates.json"
 MAX_PAGE_BYTES = 4 * 1024 * 1024
 MAX_IMAGE_BYTES = 2 * 1024 * 1024
@@ -50,7 +50,7 @@ def _render_source_pages() -> list[str]:
     with sync_playwright() as playwright:
         browser = playwright.chromium.launch(headless=True, args=["--no-sandbox"])
         try:
-            context = browser.new_context(locale="en-US")
+            context = browser.new_context(locale="fr-FR")
             page = context.new_page()
             for number in range(1, 8):
                 page.goto(
@@ -72,13 +72,15 @@ def _render_source_pages() -> list[str]:
     return pages
 
 
-def _native_visual_probe(route: dict) -> None:
+def _native_visual_probe(route: dict, cover_png: bytes) -> None:
     """Render real source cards in Atlas' existing shared Qt reader, read-only.
 
     Screenshots are limited QA excerpts, never installed/published guide data.
     """
     from PySide6.QtCore import QPoint, Qt
+    from PySide6.QtGui import QPixmap
     from PySide6.QtWidgets import QApplication, QFrame, QLabel, QVBoxLayout
+    from app.ui.theme import GUIDE_READING_METRICS
     from app.ui.theme import atlas_stylesheet
     from app.ui.unity_skin import UnityBackdrop
     from app.modules.encyclopedia.views.ganymede_guide_shell import GanymedeGuideShell
@@ -91,9 +93,13 @@ def _native_visual_probe(route: dict) -> None:
     container = QVBoxLayout(backdrop)
     shell = GanymedeGuideShell(lambda: None)
     container.addWidget(shell)
-    listing = GanymedeListing(2205, "Dofus Cawotte · QA source réelle",
-                              "dofus", 60, 64, BASE)
-    shell.set_listing(listing)
+    listing = GanymedeListing(2205, "Dofus Cawotte",
+                              "dofus", 60, 64,
+                              "https://ganymede-app.com/guides/2205")
+    cover = QPixmap()
+    if not cover.loadFromData(cover_png):
+        raise AssertionError("Source-linked Cawotte cover art failed to decode")
+    shell.set_listing(listing, artwork=cover)
     if not shell.show_cawotte_review():
         raise AssertionError("Cawotte shared shell inaccessible")
     # The source route is injected only into an ephemeral read-only shell.
@@ -103,7 +109,7 @@ def _native_visual_probe(route: dict) -> None:
     for card in cards:
         card["manual_review_only"] = True
     shell.service.cards = tuple(cards)
-    shell.service.guide_title = "Dofus Cawotte · QA NON CERTIFIÉ"
+    shell.service.guide_title = "Dofus Cawotte"
     shell.guide_title_label.setText(shell.service.guide_title)
     shell.guide_title_label.setToolTip(shell.service.guide_title)
     shell._preparation_loaded = False
@@ -131,15 +137,22 @@ def _native_visual_probe(route: dict) -> None:
             sheets = shell.findChildren(QFrame, "GuideManualSheet")
             if sum(int(w.isVisibleTo(shell)) for w in sheets) != 1:
                 raise AssertionError(f"step {index + 1}: duplicate visible Qt sheet")
-            if shell.sheet_title_label.text() != cards[index]["manual_title"]:
+            expected_title = cards[index]["manual_title"]
+            if expected_title.startswith("Step "):
+                expected_title = expected_title.replace("Step ", "Étape ", 1)
+            if shell.sheet_title_label.text() != expected_title:
                 raise AssertionError(f"step {index + 1}: wrong source title")
             if shell.page_jump.value() != index + 1:
                 raise AssertionError(f"step {index + 1}: broken page selector")
             if frame.width() > shell.scroll.viewport().width() + 2:
                 raise AssertionError(f"step {index + 1}: horizontal sheet clipping")
             for image_label in frame.findChildren(QLabel, "GuideManualSourceImage"):
-                if image_label.pixmap() is None or image_label.pixmap().isNull():
+                pixmap = image_label.pixmap()
+                if pixmap is None or pixmap.isNull():
                     raise AssertionError(f"step {index + 1}: image not rendered")
+                if (pixmap.width() > GUIDE_READING_METRICS["source_image_max_width"]
+                        or pixmap.height() > GUIDE_READING_METRICS["source_image_max_height"]):
+                    raise AssertionError(f"step {index + 1}: source image too large")
             for line in frame.findChildren(QLabel):
                 if not line.isVisibleTo(frame):
                     continue
@@ -180,12 +193,31 @@ def _native_visual_probe(route: dict) -> None:
               f" checked={reports}, prerequisite_rows={len(first_preview)}",
               flush=True)
         # Report the gap without changing the authored source or inventing gates.
-        if not any(category == "Prérequis" for category, *_ in first_preview):
-            print("CAWOTTE_VISUAL_GAP: source prerequisite prose/checklist"
-                  " not mapped to the dedicated Prérequis panel", flush=True)
+        if len([1 for category, *_ in first_preview if category == "Prérequis"]) < 3:
+            raise AssertionError("Step 1: authored prerequisites absent from dedicated tab")
     finally:
         backdrop.close()
         app.processEvents()
+
+
+def _cover_image_from_original_html(html: str) -> bytes:
+    """Fetch only the Dofus icon explicitly linked by source step 1."""
+    expected_url = "https://api.dofusdb.fr/img/items/23006.png"
+    dom = _DOM(html)
+    linked = [
+        n for n in _desc(dom.root)
+        if n.attrs.get("type") == "item" and n.attrs.get("dofusdbid") == "972"
+        and n.attrs.get("imageurl") == expected_url
+    ]
+    if not linked:
+        raise AssertionError("Cannot ground Cawotte icon in original guide markup")
+    with urlopen(Request(expected_url, headers={
+        "User-Agent": "DOFUS-ATLAS-Visual-Source-Icon/1.0",
+    }), timeout=20) as response:
+        data = response.read(256 * 1024 + 1)
+    if not data.startswith(b"\x89PNG\r\n\x1a\n") or len(data) > 256 * 1024:
+        raise AssertionError("Invalid source-linked icon bytes")
+    return data
 
 
 def _guide_image_urls(html: str) -> set[str]:
@@ -256,12 +288,12 @@ class CawotteLiveSourceDiagnostic(unittest.TestCase):
             # Can it pass the exact canonical converter? No staging/activation.
             projected = project_authorized_guide({
                 "guide_id": "cawotte_probe_unverified",
-                "title": "Cawotte technical probe (NOT_CERTIFIED)",
+                "title": "Dofus Cawotte",
                 "steps": steps,
             })
             self.assertEqual(len(projected["steps"]), 64)
             if os.environ.get("ATLAS_CAWOTTE_VISUAL") == "1":
-                _native_visual_probe(projected)
+                _native_visual_probe(projected, _cover_image_from_original_html(page_html[0]))
             print(
                 "READ_ONLY_NOT_CERTIFIED: "
                 f"source_articles={len(steps)} "
