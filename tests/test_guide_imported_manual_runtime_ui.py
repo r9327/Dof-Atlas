@@ -1030,6 +1030,9 @@ class ImportedSourceRouterQtTests(unittest.TestCase):
         self.assertTrue(editors[0].isEnabled())
         self.assertEqual(editors[0].value(), 0)
         self.assertEqual(editors[0].suffix(), " / 8")
+        # A render rebuild deletes the old Qt widgets via deleteLater.
+        # Do not keep Python wrappers to those retired C++ children alive.
+        del button, buttons, editors
 
         reader._set_source_global_material_total(rows[0], 3)
         saved = sum(self.progress.preparation_quantity(
@@ -1051,6 +1054,10 @@ class ImportedSourceRouterQtTests(unittest.TestCase):
         self.assertFalse(reader.preparation_panel.findChild(
             QSpinBox, "GuidePreparationQuantity"
         ).isEnabled())
+        # Drain deferred row destruction before the class-wide QApplication
+        # teardown on Windows; avoid a stale Qt pointer at interpreter exit.
+        reader._clear_preparation_rows()
+        QApplication.processEvents()
 
     def test_revoked_authorization_blocks_reopen_and_exits_on_refresh(self):
         self.approved = True
