@@ -26,6 +26,7 @@ from app.modules.encyclopedia.services.guide_continuous_preparation import (
 )
 from app.modules.encyclopedia.services.guide_progress_service import GuideProgressService
 from app.modules.encyclopedia.views.shared_manual_guide_view import _guide_symbol_icon
+from app.ui.components import AtlasGuideDisclosure
 from app.ui.unity_palette import UNITY_CONTROL_SIZES_PX, UNITY_MODULE_GEOMETRY_PX
 
 
@@ -134,10 +135,9 @@ class ContinuousGuideRoutePanel(QWidget):
         if not self._character_actions:
             empty = self._characters_menu.addAction("Aucun personnage identifié")
             empty.setEnabled(False)
-        self.summary_toggle = QToolButton()
-        self.summary_toggle.setObjectName("GuideContinuousSommaireButton")
+        self.summary_toggle = AtlasGuideDisclosure()
         self.summary_toggle.setText("Sommaire")
-        self.summary_toggle.clicked.connect(self.toggle_summary)
+        self.summary_toggle.toggled.connect(self._on_summary_toggled)
         portraits = QHBoxLayout()
         portraits.setSpacing(4)
         for character in self.available_characters:
@@ -203,13 +203,12 @@ class ContinuousGuideRoutePanel(QWidget):
         detail.addWidget(self.body_label)
         # Bounded, optional view: even a guide with dozens of object hints
         # must not push step navigation out of the visible window.
-        self.preparation_toggle = self._button(
-            "À préparer", "GuideContinuousPreparationToggle"
-        )
+        self.preparation_toggle = AtlasGuideDisclosure()
+        self.preparation_toggle.setText("À préparer")
         self.preparation_toggle.setToolTip(
             "Références d'objets à vérifier — quantités et achats non certifiés"
         )
-        self.preparation_toggle.clicked.connect(self.toggle_preparation)
+        self.preparation_toggle.toggled.connect(self._on_preparation_toggled)
         self.preparation_scroll = QScrollArea()
         self.preparation_scroll.setObjectName("GuideContinuousPreparationScroll")
         self.preparation_scroll.setWidgetResizable(True)
@@ -287,18 +286,14 @@ class ContinuousGuideRoutePanel(QWidget):
         )
         prep_label = QLabel("—")
         prep_label.setObjectName("GuideCompactMetricValue")
-        self.summary_toggle.setObjectName("GuideMetricDropdown")
         self.summary_toggle.setAccessibleName("Afficher Sommaire")
         self.summary_toggle.setToolButtonStyle(Qt.ToolButtonIconOnly)
-        self.summary_toggle.setArrowType(Qt.RightArrow)
         self.summary_toggle.setFixedSize(
             UNITY_CONTROL_SIZES_PX["progress_toggle_width"],
             UNITY_CONTROL_SIZES_PX["progress_toggle_height"],
         )
-        self.preparation_toggle.setObjectName("GuideMetricDropdown")
         self.preparation_toggle.setAccessibleName("Afficher Préparation")
         self.preparation_toggle.setToolButtonStyle(Qt.ToolButtonIconOnly)
-        self.preparation_toggle.setArrowType(Qt.RightArrow)
         self.preparation_toggle.setFixedSize(
             UNITY_CONTROL_SIZES_PX["progress_toggle_width"],
             UNITY_CONTROL_SIZES_PX["progress_toggle_height"],
@@ -354,13 +349,26 @@ class ContinuousGuideRoutePanel(QWidget):
         return button
 
     def toggle_summary(self) -> None:
-        self._summary_open = not self._summary_open
-        self.summary.setVisible(self._summary_open)
+        self.summary_toggle.setChecked(not self.summary_toggle.isChecked())
+
+    def _on_summary_toggled(self, opened: bool) -> None:
+        self._summary_open = opened
+        self.summary.setVisible(opened)
+        self.summary_toggle.setAccessibleName(
+            "Masquer Sommaire" if opened else "Afficher Sommaire"
+        )
 
     def toggle_preparation(self) -> None:
-        self._preparation_open = not self._preparation_open
+        if self.preparation_toggle.isEnabled():
+            self.preparation_toggle.setChecked(not self.preparation_toggle.isChecked())
+
+    def _on_preparation_toggled(self, opened: bool) -> None:
+        self._preparation_open = opened
         self.preparation_scroll.setVisible(
-            self._preparation_open and self.preparation_toggle.isVisibleTo(self)
+            opened and self.preparation_toggle.isEnabled()
+        )
+        self.preparation_toggle.setAccessibleName(
+            "Masquer Préparation" if opened else "Afficher Préparation"
         )
 
     def set_characters(self, character_keys: Iterable[str]) -> None:
@@ -559,6 +567,10 @@ class ContinuousGuideRoutePanel(QWidget):
         )
         self.preparation_toggle.setText(f"À préparer ({len(references)})")
         self.preparation_toggle.setEnabled(bool(references))
+        if not references and self.preparation_toggle.isChecked():
+            # A new source step without references must not leave an invisible
+            # drawer logically open with its shared chevron pointing upward.
+            self.preparation_toggle.setChecked(False)
         self.preparation_scroll.setVisible(bool(references) and self._preparation_open)
         self.preparation_label.setText(
             "Références à vérifier (aucun achat présumé) :\n"

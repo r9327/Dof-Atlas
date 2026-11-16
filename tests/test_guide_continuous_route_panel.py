@@ -11,6 +11,7 @@ from types import SimpleNamespace
 os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
 
 from PySide6.QtWidgets import QApplication, QFrame, QGridLayout, QProgressBar
+from app.ui.components import AtlasGuideDisclosure
 
 from app.modules.encyclopedia.services.guide_progress_service import (
     GuideProgressService,
@@ -77,6 +78,28 @@ class ContinuousGuideRoutePanelTests(unittest.TestCase):
                               self.panel.preparation_toggle)
                 self.assertIs(grid.itemAtPosition(1, 2).widget(),
                               self.panel.participants_button)
+
+    def test_disclosure_controls_keep_shared_unity_direction_and_panel_state(self):
+        summary = self.panel.summary_toggle
+        preparation = self.panel.preparation_toggle
+        self.assertIsInstance(summary, AtlasGuideDisclosure)
+        self.assertIsInstance(preparation, AtlasGuideDisclosure)
+        self.assertEqual(summary.objectName(), "GuideMetricDropdown")
+        self.assertEqual(preparation.objectName(), "GuideMetricDropdown")
+        self.assertFalse(summary.isChecked())
+        self.assertFalse(preparation.isChecked())
+        summary.click()
+        self.assertTrue(summary.isChecked())
+        self.assertTrue(self.panel._summary_open)
+        self.assertEqual(summary.accessibleName(), "Masquer Sommaire")
+        self.panel.toggle_summary()  # External callers use the same state owner.
+        self.assertFalse(summary.isChecked())
+        self.assertFalse(self.panel._summary_open)
+        self.assertEqual(summary.accessibleName(), "Afficher Sommaire")
+        # This fixture has no certified preparation references.
+        self.assertFalse(preparation.isEnabled())
+        self.assertFalse(self.panel._preparation_open)
+        self.assertEqual(preparation.accessibleName(), "Afficher Préparation")
 
     def test_actual_summary_and_navigation_keep_popup_open(self):
         self.assertEqual(
@@ -332,6 +355,9 @@ class ContinuousGuideRoutePanelTests(unittest.TestCase):
         self.assertEqual(panel.preparation_toggle.text(), "À préparer (2)")
         self.assertFalse(panel.preparation_scroll.isVisible())
         panel.preparation_toggle.click()
+        self.assertTrue(panel.preparation_toggle.isChecked())
+        self.assertTrue(panel._preparation_open)
+        self.assertEqual(panel.preparation_toggle.accessibleName(), "Masquer Préparation")
         self.assertIn("Cawottes facultatives", panel.preparation_label.text())
         self.assertIn("étape 3", panel.preparation_label.text())
         self.assertIn("aucun achat présumé", panel.preparation_label.text())
