@@ -458,8 +458,13 @@ class ImportedSourceRouterQtTests(unittest.TestCase):
             service, "character:1", service.cards[0], 0,
         )
         self.addCleanup(widget.deleteLater)
+        # Checklists now own a distinct transparent Dev UI selector.
+        # Their real source links must still be visible/clickable in the same sheet.
         text = "\\n".join(
-            child.text() for child in widget.findChildren(QLabel, "GuideManualLine")
+            child.text() for child in widget.findChildren(QLabel)
+            if child.objectName() in {
+                "GuideManualLine", "GuideManualSourceChecklistText",
+            }
         )
         for role, palette_key in GUIDE_SOURCE_HIGHLIGHT_COLOR_ROLES.items():
             self.assertIn(
