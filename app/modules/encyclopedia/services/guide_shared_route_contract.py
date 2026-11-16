@@ -178,7 +178,7 @@ def assert_source_fidelity(
             raise GuideRouteContractError(f"{prefix}: source sections missing")
         rows = []
         for section in section_order:
-            entries = sections.get(section)
+            entries = sections.get(section, [])
             if not isinstance(entries, list):
                 raise GuideRouteContractError(f"{prefix}: malformed {section} section")
             rows.extend(entries)
