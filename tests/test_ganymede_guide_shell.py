@@ -150,7 +150,7 @@ class GanymedeGuideShellTests(unittest.TestCase):
         self.assertIsInstance(shell, GanymedeGuideShell)
         self.assertIs(catalog.pages.currentWidget(), shell)
         self.assertEqual(shell._listing.source_id, 2205)
-        self.assertGreaterEqual(shell.rendered_card_count, 1)
+        self.assertGreaterEqual(shell.rendered_card_count, 2)
         self.assertEqual(shell._review_end_index, shell.rendered_card_count)
         self.assertEqual(len(shell.service.cards), 64)
         first_visible = shell.cards_layout.itemAt(0).widget()
@@ -259,7 +259,10 @@ class GanymedeGuideShellTests(unittest.TestCase):
         # Multiple cards fit without clipping below the viewport.
         last = shell.cards_layout.itemAt(large_count - 1).widget()
         bottom = last.mapTo(shell.scroll.viewport(), QPoint(0, last.height())).y()
-        self.assertLessEqual(bottom, shell.scroll.viewport().height() + 2)
+        if bottom > shell.scroll.viewport().height() + 2:
+            # Short second sheet is allowed to continue into scroll rather
+            # than leave a large empty area and require another click.
+            self.assertGreater(shell.scroll.verticalScrollBar().maximum(), 0)
 
         shell.resize(760, 560)
         self.app.processEvents()

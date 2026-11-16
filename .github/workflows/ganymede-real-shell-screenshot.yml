@@ -102,7 +102,7 @@ jobs:
           assert all(not bar.isEnabled() for bar in shell.findChildren(QProgressBar))
           assert shell.sheet_title_label.text() == "Étape 1"
           assert len(shell.service.cards) == 64
-          assert 1 <= shell.rendered_card_count <= 12
+          assert 2 <= shell.rendered_card_count <= 12
           assert shell._review_end_index == shell.rendered_card_count
           first_card = shell.cards_layout.itemAt(0).widget()
           assert first_card.isVisible() and first_card.height() > 0

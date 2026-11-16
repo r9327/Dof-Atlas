@@ -9,7 +9,7 @@ from collections.abc import Callable
 
 from PySide6.QtCore import QSize, Qt, QTimer
 from PySide6.QtGui import QIcon, QPixmap
-from PySide6.QtWidgets import QLabel, QWidget
+from PySide6.QtWidgets import QLabel, QSizePolicy, QWidget
 
 from app.ui.unity_skin import sprite_icon_path
 
@@ -181,6 +181,17 @@ class GanymedeGuideShell(SharedGuideManualView):
             )
             super()._show_index(previous)
 
+    @staticmethod
+    def _compact_review_card(card: dict) -> bool:
+        """Conservative short-step guard for a two-sheet scrollable page."""
+        rows = card.get("manual_sections", {}).get("now", ())
+        return (
+            isinstance(rows, list)
+            and 0 < len(rows) <= 8
+            and all(isinstance(row.get("text"), str)
+                    and len(row["text"]) <= 160 for row in rows)
+        )
+
     def _render_window(self, *, reset_scroll: bool = False) -> None:
         if not self._inspection_active:
             super()._render_window(reset_scroll=reset_scroll)
@@ -223,11 +234,26 @@ class GanymedeGuideShell(SharedGuideManualView):
                         estimated += wrapped - label.sizeHint().height()
             required = max(1, estimated) + (spacing if end > start else 0)
             if end > start and used + required > budget:
-                widget.deleteLater()
-                break
-            # Only genuine word-wrap expansion grows the compact sheet. A
-            # single source step larger than the viewport scrolls unchanged.
-            widget.setMinimumHeight(max(1, estimated))
+                # A short first sheet should not strand the bottom half of
+                # the screen. Include the next short sheet, with vertical
+                # scrolling rather than truncating either source step.
+                pair_fills_gap = (
+                    end == start + 1
+                    and self._compact_review_card(cards[start])
+                    and self._compact_review_card(cards[index])
+                )
+                if not pair_fills_gap:
+                    widget.deleteLater()
+                    break
+            widget.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Minimum)
+            widget.layout().setAlignment(Qt.AlignTop)
+            # Qt's layout.heightForWidth may massively overestimate short
+            # rich-text labels, which made normal sheets 400px tall. Enforce
+            # the full wrap height only for genuinely long source text.
+            if not self._compact_review_card(cards[index]):
+                widget.setMinimumHeight(max(1, estimated))
+            else:
+                widget.setMinimumHeight(widget.minimumSizeHint().height())
             self.cards_layout.addWidget(widget)
             # Newly created orphan QFrames inserted into an already shown
             # QScrollArea do not always auto-show on Windows Qt. A hidden
