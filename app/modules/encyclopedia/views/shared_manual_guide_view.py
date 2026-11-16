@@ -443,9 +443,18 @@ class SharedGuideManualCard(GuideUltimeManualCard):
         sections = self._without_prepare_duplicates(sections)
         self._combat_targets = self._quest_combat_targets(sections)
 
-        # Preparation belongs to the single global, participant-aware panel.
-        # Repeating every requirement on each sheet made the route unreadable
-        # and could contradict the saved ``Prêt`` state.
+        # Imported source guides must retain their own authored preparation
+        # instructions in the original source step, in addition to Atlas'
+        # global inventory overlay. Legacy optimized guides keep their
+        # existing compact preparation-only behavior.
+        if source_card:
+            self._add_line_section(
+                root,
+                "À PRÉPARER",
+                sections.get("prepare"),
+                "GuideManualResourceSection",
+                "prepare",
+            )
         self._add_line_section(
             root,
             "À FAIRE MAINTENANT",
@@ -702,9 +711,7 @@ class SharedGuideManualCard(GuideUltimeManualCard):
             return
 
         frame = QFrame()
-        frame.setObjectName(
-            "GuideManualWarningSection" if section_key == "prepare" else object_name
-        )
+        frame.setObjectName(object_name)
         if section_key == "boss":
             frame.setStyleSheet(
                 "QFrame#GuideManualCombatSection {"
