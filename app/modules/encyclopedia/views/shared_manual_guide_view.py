@@ -840,22 +840,24 @@ class SharedGuideManualCard(GuideUltimeManualCard):
         if not visible:
             return
 
-        frame = QFrame()
         review_only = self.card.get("manual_review_only") is True
-        frame.setObjectName(
-            "GuideManualReviewSection" if review_only and section_key == "now"
-            else "GuideManualSourceReadingSection"
-            if self._continuous_source else object_name
-        )
-        if section_key == "boss" and not self._continuous_source:
-            frame.setStyleSheet(
-                "QFrame#GuideManualCombatSection {"
-                "background: rgba(174, 183, 177, 0.035);"
-                "border: 1px solid rgba(174, 183, 177, 0.16);"
-                "border-radius: 6px;"
-                "}"
-            )
-        layout = QVBoxLayout(frame)
+        if self._continuous_source:
+            # An authored step already owns the outer Atlas sheet. Its
+            # actions are lines inside that sheet, not another boxed fiche.
+            frame = None
+            layout = QVBoxLayout()
+        else:
+            frame = QFrame()
+            frame.setObjectName(object_name)
+            if section_key == "boss":
+                frame.setStyleSheet(
+                    "QFrame#GuideManualCombatSection {"
+                    "background: rgba(174, 183, 177, 0.035);"
+                    "border: 1px solid rgba(174, 183, 177, 0.16);"
+                    "border-radius: 6px;"
+                    "}"
+                )
+            layout = QVBoxLayout(frame)
         spacing = GUIDE_READING_METRICS
         if self._continuous_source:
             # Newlines, not section cards or sub-step labels, separate actions.
@@ -1177,7 +1179,10 @@ class SharedGuideManualCard(GuideUltimeManualCard):
             for target in combat_targets:
                 self._add_combat_target(target_layout, target)
 
-        root.addWidget(frame)
+        if self._continuous_source:
+            root.addLayout(layout)
+        else:
+            root.addWidget(frame)
 
     @staticmethod
     def _combat_key(target: dict[str, Any]) -> tuple[int, int]:
