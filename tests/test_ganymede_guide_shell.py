@@ -84,7 +84,7 @@ class GanymedeGuideShellTests(unittest.TestCase):
         self.assertEqual(metrics.columnCount(), 2)
         self.assertTrue(shell.route_bar.isHidden())
         self.assertIs(shell.summary_button.parentWidget(),
-                      shell.findChild(QFrame, "GuideSheetHeader"))
+                      shell.findChild(QFrame, "GuideCompactHeader"))
         self.assertEqual(shell.rendered_card_count, 0)
         self.assertEqual(shell.cards_layout.count(), 0)
         before = len(shell.findChildren(QProgressBar))
