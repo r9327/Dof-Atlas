@@ -28,7 +28,7 @@ TOOL_SPEC = {
     "capabilities": ["guide", "conversion"],
     "modes": ["offline_html", "dry_run", "explicit_source_export"],
     "cost_hint": "low",
-    "side_effects": "explicit_artifact_only",
+    "side_effects": "artifact_output",
     "structured_output": True,
     "canonical": False,
     "recommended_tests": ["tests.test_atlas_guide_html_capture"],
