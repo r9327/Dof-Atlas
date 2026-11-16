@@ -971,6 +971,87 @@ class ImportedSourceRouterQtTests(unittest.TestCase):
                 character, self.service.progress_id, key,
             ))
 
+    def test_global_source_items_have_unique_id_counter_and_atomic_manual_state(self):
+        """A genuine authorized source writes X/X once per game item ID."""
+        from PySide6.QtWidgets import QPushButton, QSpinBox
+        from app.modules.encyclopedia.services.guide_source_preparation_rows import (
+            global_source_material_rows,
+        )
+
+        def authored_step(suffix: str, quantity: int) -> dict:
+            intro = "Prévoyez les ressources suivantes :"
+            return {
+                "source_step_id": suffix, "title": f"Step {suffix}",
+                "preparation_block_indexes": [1],
+                "actions": [{
+                    "action_id": "a_" + suffix, "kind": "talk",
+                    "text": intro,
+                    "rich_blocks": [
+                        {"type": "paragraph", "runs": [{"text": intro}]},
+                        {"type": "paragraph", "runs": [
+                            {"text": f"{quantity} ", "role": "plain"},
+                            {"text": "Cawotte", "role": "item", "entity_id": 44},
+                        ]},
+                    ],
+                }],
+            }
+
+        source = project_authorized_guide({
+            "guide_id": "source_fixture", "title": "Fixture",
+            "steps": [authored_step("first", 3), authored_step("second", 5)],
+        })
+        self.approved = True
+        self.assertTrue(self.view.select_guide(self.service.guide_id))
+        reader = self.view.stack.currentWidget()
+        self.view.guide_participant_service.save_selected_keys(
+            ("character:1", "character:2")
+        )
+        reader.service.cards = tuple(source["steps"])
+        reader._render_preparation("Tout")
+        rows = global_source_material_rows(reader.service.cards)
+        self.assertEqual(len(rows), 1)
+        self.assertEqual(rows[0]["item_id"], 44)
+        self.assertEqual(rows[0]["quantity"], 8)
+        self.assertFalse(reader.summary_button.isVisibleTo(reader))
+
+        buttons = reader.preparation_panel.findChildren(
+            QPushButton, "GuidePreparationItemCopy"
+        )
+        self.assertEqual(len(buttons), 1)
+        self.assertEqual(buttons[0].text(), "Cawotte")
+        button = buttons[0]
+        button.click()
+        self.assertEqual(QApplication.clipboard().text(), "Cawotte")
+
+        editors = reader.preparation_panel.findChildren(
+            QSpinBox, "GuidePreparationQuantity"
+        )
+        self.assertEqual(len(editors), 1)
+        self.assertTrue(editors[0].isEnabled())
+        self.assertEqual(editors[0].value(), 0)
+        self.assertEqual(editors[0].suffix(), " / 8")
+
+        reader._set_source_global_material_total(rows[0], 3)
+        saved = sum(self.progress.preparation_quantity(
+            char, self.service.progress_id, "item:44",
+        ) for char in ("character:1", "character:2"))
+        self.assertEqual(saved, 3)
+        self.assertFalse(self.progress.preparation_quantity(
+            "character:1", "guide_ultime_v5", "item:44"
+        ))
+        reader._set_source_global_material_total(rows[0], 8)
+        self.assertEqual(reader._source_global_material_total(rows[0]), 8)
+        reader._set_source_global_material_total(rows[0], 0)
+        self.assertEqual(reader._source_global_material_total(rows[0]), 0)
+
+        self.approved = False
+        reader._set_source_global_material_total(rows[0], 8)
+        self.assertEqual(reader._source_global_material_total(rows[0]), 0)
+        reader._render_preparation("Tout")
+        self.assertFalse(reader.preparation_panel.findChild(
+            QSpinBox, "GuidePreparationQuantity"
+        ).isEnabled())
+
     def test_revoked_authorization_blocks_reopen_and_exits_on_refresh(self):
         self.approved = True
         self.assertTrue(self.view.select_guide(self.service.guide_id))
