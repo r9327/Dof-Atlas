@@ -2048,7 +2048,11 @@ class SharedGuideManualView(GuideUltimeManualView):
         self.page_jump.setToolTip("Ouvrir directement la fiche sélectionnée")
         self.page_jump.setAccessibleName("Sélectionner la fiche du guide")
         self.page_jump.valueChanged.connect(
-            lambda value: self._show_index(value - 1)
+            lambda value: (
+                self._show_reading_page(value - 1)
+                if self._is_imported_source_guide()
+                else self._show_index(value - 1)
+            )
         )
         top.addWidget(self.page_jump, 0, Qt.AlignTop)
 
@@ -2304,6 +2308,16 @@ class SharedGuideManualView(GuideUltimeManualView):
 
     def _populate_summary(self) -> None:
         self.summary_list.clear()
+        if self._is_imported_source_guide():
+            # Only visual pages, not 64 repetitive 'Step N [x,y]' entries.
+            for number, _page in enumerate(self._source_reading_pages()):
+                label = f"Page {number + 1}"
+                item = QListWidgetItem(label)
+                item.setData(Qt.UserRole, number)
+                item.setData(Qt.UserRole + 1, normalize_text(label))
+                self.summary_list.addItem(item)
+            self._filter_summary(self.summary_search.text())
+            return
         for index, card in enumerate(self.service.cards):
             title = self._summary_step_title(card)
             label = f"{index + 1}. {title}"
@@ -2331,7 +2345,10 @@ class SharedGuideManualView(GuideUltimeManualView):
             index = int(item.data(Qt.UserRole))
         except (TypeError, ValueError):
             return
-        self._show_index(index)
+        if self._is_imported_source_guide():
+            self._show_reading_page(index)
+        else:
+            self._show_index(index)
         # The summary is deliberately sticky. Only an explicit click on the
         # Sommaire button may close it.
 
@@ -3349,14 +3366,29 @@ class SharedGuideManualView(GuideUltimeManualView):
         # remains intact in the source snapshot and fidelity contract.
         if card.get("manual_source") is True and "source_step_id" in card:
             title = re.sub(r"^Step (?=\d+\b)", "Étape ", title)
-        self.sheet_meta_label.setText(f"ÉTAPE · {chapter.upper()}")
-        self.sheet_title_label.setText(title)
-        self.nav_page_label.setText(f"Page {index + 1} / {total_cards}")
-        self.page_jump.blockSignals(True)
-        self.page_jump.setRange(1, max(1, total_cards))
-        self.page_jump.setSuffix(f" / {total_cards}")
-        self.page_jump.setValue(index + 1)
-        self.page_jump.blockSignals(False)
+        if self._is_imported_source_guide():
+            # Continuous authored reading: no generated 'Étape', no repeated
+            # Quest titles. Progress remains bound to original source IDs.
+            pages = self._source_reading_pages()
+            page_number = self._source_current_page_number(pages)
+            count = max(1, len(pages))
+            self.sheet_meta_label.setText("LECTURE")
+            self.sheet_title_label.setText("Parcours")
+            self.nav_page_label.setText(f"Page {page_number + 1} / {count}")
+            self.page_jump.blockSignals(True)
+            self.page_jump.setRange(1, count)
+            self.page_jump.setSuffix(f" / {count}")
+            self.page_jump.setValue(page_number + 1)
+            self.page_jump.blockSignals(False)
+        else:
+            self.sheet_meta_label.setText(f"ÉTAPE · {chapter.upper()}")
+            self.sheet_title_label.setText(title)
+            self.nav_page_label.setText(f"Page {index + 1} / {total_cards}")
+            self.page_jump.blockSignals(True)
+            self.page_jump.setRange(1, max(1, total_cards))
+            self.page_jump.setSuffix(f" / {total_cards}")
+            self.page_jump.setValue(index + 1)
+            self.page_jump.blockSignals(False)
 
     def _restore_route_lock_state(self) -> None:
         locked = False
@@ -3578,6 +3610,92 @@ class SharedGuideManualView(GuideUltimeManualView):
         # False/0 rejection is not evidence of successful dispatch.
         return acknowledged is None or acknowledged is True
 
+    def _source_reading_pages(self) -> tuple[tuple[dict[str, Any], ...], ...]:
+        """Only 1 content container is hydrated, for one source reading page.
+
+        Width changes reflow complete original paragraphs; the canonical
+        source cards remain untouched and can still be validated separately.
+        """
+        from app.modules.encyclopedia.services.guide_source_reading_pages import (
+            authored_reading_blocks, paginate_authored_blocks,
+        )
+        cards = self.service.cards
+        viewport = self.scroll.viewport()
+        width = max(240, viewport.width() - 60)
+        font_width = max(5, self.fontMetrics().averageCharWidth())
+        chars = max(24, width // font_width)
+        bucket = max(24, int(chars // 8) * 8)
+        key = (id(cards), len(cards), bucket)
+        if getattr(self, "_source_pages_cache_key", None) != key:
+            self._source_pages_cache_key = key
+            blocks = authored_reading_blocks(cards)
+            self._source_pages_cache = paginate_authored_blocks(
+                blocks, chars_per_line=bucket,
+            )
+        return self._source_pages_cache
+
+    def _source_current_page_number(self, pages=None) -> int:
+        if pages is None:
+            pages = self._source_reading_pages()
+        explicit = getattr(self, "_source_page_override", None)
+        if isinstance(explicit, int):
+            return max(0, min(explicit, max(0, len(pages) - 1)))
+        from app.modules.encyclopedia.services.guide_source_reading_pages import (
+            source_page_for_index,
+        )
+        return source_page_for_index(pages, self.view_index)
+
+    def _show_reading_page(self, page_number: int) -> None:
+        if not self._is_imported_source_guide():
+            self._show_index(page_number)
+            return
+        pages = self._source_reading_pages()
+        if not pages:
+            return
+        page = max(0, min(int(page_number), len(pages) - 1))
+        self._source_page_override = page
+        self.view_index = pages[page][0]["source_index"]
+        self._refresh_header()
+        self._render_window(reset_scroll=True)
+
+    def _show_index(self, index: int) -> None:
+        # Keep source-identity lookup for Route progress, Quest links and
+        # native callers. Only explicit reading pagination sets page override.
+        if self._is_imported_source_guide():
+            self._source_page_override = None
+        super()._show_index(index)
+
+    def navigate_relative(self, delta: int) -> None:
+        if self._is_imported_source_guide():
+            self._show_reading_page(self._source_current_page_number() + int(delta))
+        else:
+            super().navigate_relative(delta)
+
+    def _source_resize_reflow(self) -> None:
+        if not self._is_imported_source_guide() or not self.service.cards:
+            return
+        width = self.scroll.viewport().width()
+        bucket = max(1, width // 80)
+        if bucket == getattr(self, "_source_resize_bucket", None):
+            return
+        self._source_resize_bucket = bucket
+        # Preserve the currently visible reading page index as far as
+        # possible after the viewport's natural wrapping changes.
+        self._source_pages_cache_key = None
+        pages = self._source_reading_pages()
+        self._source_page_override = min(
+            self._source_current_page_number(pages),
+            max(0, len(pages) - 1),
+        )
+        self._populate_summary()
+        self._refresh_header()
+        self._render_window(reset_scroll=True)
+
+    def resizeEvent(self, event) -> None:  # noqa: N802 - Qt override
+        super().resizeEvent(event)
+        if self._is_imported_source_guide() and hasattr(self, "scroll"):
+            QTimer.singleShot(0, self._source_resize_reflow)
+
     # One selected step owns navigation and validation. Nearby steps are
     # visible below for reading, never independently validated by scrolling.
     READING_WINDOW_SIZE = 3
@@ -3648,6 +3766,27 @@ class SharedGuideManualView(GuideUltimeManualView):
             self.scroll.style().unpolish(self.scroll)
             self.scroll.style().polish(self.scroll)
         index = max(0, min(self.view_index, len(self.service.cards) - 1))
+        if self._is_imported_source_guide():
+            pages = self._source_reading_pages()
+            page_idx = self._source_current_page_number(pages)
+            entries = pages[page_idx] if pages else ()
+            widget = _GuideContinuousSourcePage(entries, parent=self.content)
+            self.cards_layout.addWidget(widget)
+            widget.show()
+            self.rendered_card_count = 1
+            # One page is purely presentation. Never silently mark multiple
+            # original source fiches as validated by one checkbox.
+            self.validation_host.hide()
+            self.prev_button.setEnabled(page_idx > 0)
+            self.next_button.setEnabled(page_idx + 1 < len(pages))
+            self.guide_button.setToolTip(
+                "Revenir au Guide actif." if index != self.active_index
+                else "Retour au catalogue des guides."
+            )
+            self.cards_layout.addStretch(1)
+            if reset_scroll:
+                self._reset_scroll_to_top()
+            return
         for number in self._reading_step_range(index):
             card = self.service.cards[number]
             active = number == index
