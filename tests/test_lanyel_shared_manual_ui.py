@@ -499,33 +499,27 @@ class LanyelSharedManualUiTests(unittest.TestCase):
             self.assertIsNotNone(compact.findChild(QToolButton, "GuideManualProgressLock"))
             self.assertIs(compact.findChild(QToolButton, "GuideParticipantsButton"),
                           shared.participants_button)
+            # Sommaire and Route remain internal for compatibility, but
+            # X/X is now the only direct sheet selector.
             self.assertEqual(
                 set(compact.findChildren(QToolButton, "GuideMetricDropdown")),
-                {shared.summary_button, shared.preparation_button},
+                {shared.preparation_button},
             )
-            self.assertEqual(shared.participants_button.size(), shared.summary_button.size())
-            self.assertEqual(shared.preparation_button.size(), shared.summary_button.size())
-            grid = shared._participants_control_column.parent()
+            self.assertTrue(shared.summary_button.isHidden())
+            self.assertTrue(shared.route_bar.isHidden())
+            self.assertEqual(shared._metric_caption_labels["Préparation"].text(), "À préparer")
+            grid = shared._metric_columns["Préparation"].parent()
             self.assertIsInstance(grid, QGridLayout)
-            self.assertIs(grid.itemAtPosition(1, 2).layout(),
-                          shared._participants_control_column)
-            self.assertIs(grid.itemAtPosition(1, 0).layout().itemAt(1).widget(),
-                          shared.summary_button)
-            self.assertIs(grid.itemAtPosition(1, 1).layout().itemAt(1).widget(),
-                          shared.preparation_button)
-            self.assertFalse(hasattr(shared, "header_actions_row"))
+            self.assertIs(shared._compact_title_row.itemAt(
+                shared._compact_title_row.count() - 2
+            ).widget(), shared.participants_button)
             self.assertIsNone(sheet_header.findChild(QToolButton, "GuideParticipantsButton"))
-            # Expanded menus must never move the shared Personnages control.
-            shared.summary_button.setChecked(True)
             shared.preparation_button.setChecked(True)
             shared.participants_button.setChecked(True)
             self.app.processEvents()
-            self.assertIs(grid.itemAtPosition(1, 2).layout(),
-                          shared._participants_control_column)
-            self.assertTrue(shared.summary_panel.isVisibleTo(compact))
+            self.assertTrue(shared.summary_panel.isHidden())
             self.assertTrue(shared.preparation_panel.isVisibleTo(compact))
             self.assertTrue(shared.participants_panel.isVisibleTo(compact))
-            shared.summary_button.setChecked(False)
             shared.preparation_button.setChecked(False)
             shared.participants_button.setChecked(False)
             self.assertFalse(hasattr(shared, "page_jump_button"))
@@ -538,7 +532,7 @@ class LanyelSharedManualUiTests(unittest.TestCase):
                 sheet_header.findChild(QPushButton, "GuideManualGuideButton"),
                 shared.guide_button,
             )
-            self.assertEqual(shared.guide_button.text(), "←")
+            self.assertFalse(shared.guide_button.icon().isNull())
             self.assertFalse(shared.overlay_button.isEnabled())
             self.assertGreater(len(shared.service.cards), 1)
             shared.page_jump.setValue(2)
