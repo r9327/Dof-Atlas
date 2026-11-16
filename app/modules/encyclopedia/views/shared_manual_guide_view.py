@@ -402,7 +402,8 @@ class SharedGuideManualCard(GuideUltimeManualCard):
         )
         root.setSpacing(spacing["sheet_spacing"])
 
-        if index == 0 and card.get("manual_review_only") is not True:
+        if (index == 0 and not self._continuous_source
+                and card.get("manual_review_only") is not True):
             self._add_legend(root)
 
         title_text = self._visible_stage_title()
@@ -877,7 +878,7 @@ class SharedGuideManualCard(GuideUltimeManualCard):
         # coordinates. Preserve each authored action, its click targets and
         # exact ordering; never fuse objectives or infer that a zone is a map.
         def group_key(row: dict[str, Any]) -> str:
-            if review_only:
+            if self._continuous_source:
                 return ""
             if section_key != "now" or str(row.get("kind") or "") != "action":
                 return ""
@@ -1162,7 +1163,12 @@ class SharedGuideManualCard(GuideUltimeManualCard):
                         detail_label.setWordWrap(True)
                         target_layout.addWidget(detail_label)
 
-            combat_targets = self._combat_targets_for_row(row, section_key)
+            # Never insert generated combat substeps into verbatim source
+            # reading. Source monsters stay in their authored action/link.
+            combat_targets = (
+                [] if self._continuous_source
+                else self._combat_targets_for_row(row, section_key)
+            )
             if combat_targets and not combat_heading_added:
                 combat_heading = QLabel("Faire les combats :")
                 combat_heading.setObjectName("GuideManualCombatTargetsTitle")
