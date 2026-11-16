@@ -222,6 +222,10 @@ class GanymedeGuideShell(SharedGuideManualView):
             if end > start and used + required > budget:
                 widget.deleteLater()
                 break
+            # A resizable QScrollArea can otherwise shrink an overlong QLabel
+            # to its viewport height: force the real wrapped-card height so
+            # a single long source step scrolls instead of clipping text.
+            widget.setMinimumHeight(max(1, estimated))
             self.cards_layout.addWidget(widget)
             used += required
             end += 1
@@ -241,6 +245,15 @@ class GanymedeGuideShell(SharedGuideManualView):
     def resizeEvent(self, event) -> None:  # noqa: N802 - Qt override
         super().resizeEvent(event)
         if self._inspection_active and hasattr(self, "_review_resize_timer"):
+            self._review_resize_timer.start(0)
+
+    def showEvent(self, event) -> None:  # noqa: N802 - Qt override
+        super().showEvent(event)
+        if self._inspection_active and hasattr(self, "_review_resize_timer"):
+            # The real catalogue sets the page visible AFTER the initial
+            # candidate construction. Qt must lay out the actual viewport
+            # before we measure/present cards, or page 1 may paint blank.
+            self._review_viewport_size = (0, 0)
             self._review_resize_timer.start(0)
 
     def _refit_review_cards(self) -> None:

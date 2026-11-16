@@ -153,6 +153,9 @@ class GanymedeGuideShellTests(unittest.TestCase):
         self.assertGreaterEqual(shell.rendered_card_count, 1)
         self.assertEqual(shell._review_end_index, shell.rendered_card_count)
         self.assertEqual(len(shell.service.cards), 64)
+        first_visible = shell.cards_layout.itemAt(0).widget()
+        self.assertTrue(first_visible.isVisible())
+        self.assertGreater(first_visible.height(), 0)
         self.assertEqual(shell.page_jump.maximum(), 64)
         self.assertEqual(shell.page_jump.text(), "1 / 64")
         self.assertEqual(shell.guide_title_label.text(), "Dofus Cawotte")
@@ -271,6 +274,10 @@ class GanymedeGuideShellTests(unittest.TestCase):
         self.assertEqual(shell.rendered_card_count, 1)
         self.assertEqual(shell._review_end_index, 1)
         self.assertGreater(shell.scroll.verticalScrollBar().maximum(), 0)
+        self.assertGreater(
+            shell.cards_layout.itemAt(0).widget().minimumHeight(),
+            shell.scroll.viewport().height(),
+        )
         self.assertTrue(shell.next_button.isEnabled())
         shell.next_button.click()
         self.assertEqual(shell.view_index, 1)

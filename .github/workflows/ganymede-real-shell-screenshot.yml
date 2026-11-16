@@ -104,6 +104,8 @@ jobs:
           assert len(shell.service.cards) == 64
           assert 1 <= shell.rendered_card_count <= 12
           assert shell._review_end_index == shell.rendered_card_count
+          first_card = shell.cards_layout.itemAt(0).widget()
+          assert first_card.isVisible() and first_card.height() > 0
           assert shell.page_jump.maximum() == 64
           assert shell.page_jump.text() == "1 / 64"
           pos = shell.findChildren(QLabel, "GuideManualPositionCopy")
