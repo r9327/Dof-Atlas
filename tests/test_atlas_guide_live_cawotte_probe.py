@@ -84,7 +84,8 @@ def _native_visual_probe(route: dict, cover_png: bytes) -> None:
     from PySide6.QtGui import QPixmap
     from PySide6.QtTest import QTest
     from PySide6.QtWidgets import (
-        QApplication, QCheckBox, QDialog, QFrame, QLabel, QSlider, QVBoxLayout,
+        QApplication, QCheckBox, QDialog, QFrame, QLabel, QPushButton,
+        QSpinBox, QSlider, QVBoxLayout,
     )
     from app.ui.theme import GUIDE_READING_METRICS, atlas_stylesheet
     from app.ui.unity_skin import UnityBackdrop
@@ -238,20 +239,19 @@ def _native_visual_probe(route: dict, cover_png: bytes) -> None:
     if not zoom_checked:
         raise AssertionError("Source image zoom not tested")
 
-    # Route and Prérequis are INDEPENDENT half-width drawers.
+    # The page selector already navigates Route; imported source removes its
+    # duplicate dropdown while keeping the Route progress bar.
     shell._show_reading_page(0)
-    shell.summary_button.setChecked(True)
     shell.preparation_button.setChecked(True)
     app.processEvents()
-    if not shell.summary_panel.isVisibleTo(shell):
-        raise AssertionError("Route drawer fails to open")
+    if shell.summary_button.isVisibleTo(shell) or shell.summary_panel.isVisibleTo(shell):
+        raise AssertionError("Redundant imported Route dropdown remains")
     if not shell.preparation_panel.isVisibleTo(shell):
-        raise AssertionError("Prérequis drawer cannot remain open with Route")
-    if (shell.summary_panel.width() > shell.route_bar.width() + 45
-            or shell.preparation_panel.width() > shell.preparation_bar.width() + 45):
-        raise AssertionError("Guide drawer wider than its progress-bar column")
-    if not backdrop.grab().save(str(out / "route-et-prerequis-ouverts.png"), "PNG"):
-        raise AssertionError("Cannot capture both open drawers")
+        raise AssertionError("Prérequis drawer cannot open")
+    if shell.preparation_panel.width() > shell.preparation_bar.width() + 45:
+        raise AssertionError("Prérequis drawer wider than its progress column")
+    if not backdrop.grab().save(str(out / "prerequis-sans-route-menu.png"), "PNG"):
+        raise AssertionError("Cannot capture source header with only prerequisite drawer")
     if shell._preparation_tab != "Prérequis":
         raise AssertionError("Wrong default Prérequis subtab")
     if shell.preparation_progress_label.text() != "5 à vérifier":
@@ -270,22 +270,37 @@ def _native_visual_probe(route: dict, cover_png: bytes) -> None:
     app.processEvents()
     if shell._preparation_tab != "À préparer":
         raise AssertionError("Cannot open material subtab")
-    material_lines = shell.preparation_panel.findChildren(QLabel, "GuideManualLine")
-    captions = shell.preparation_panel.findChildren(
-        QLabel, "GuidePreparationSourceContext"
+    from app.modules.encyclopedia.services.guide_source_preparation_rows import (
+        global_source_material_rows,
     )
-    objects = unescape(" ".join(line.text() for line in material_lines))
-    context = unescape(" ".join(label.text() for label in captions))
-    if "Cawotte" not in objects or "Couronne" not in objects:
-        raise AssertionError("Typed source item or equipment disappeared")
-    if "Art gastronomique" in objects or "L'œuf ou la cawotte" in objects:
-        raise AssertionError("Context masquerades as repeated item row")
-    if "Art gastronomique" not in context or "L'œuf ou la cawotte" not in context:
-        raise AssertionError("Author section headings were lost")
+    grouped = global_source_material_rows(cards)
+    material_buttons = shell.preparation_panel.findChildren(
+        QPushButton, "GuidePreparationItemCopy"
+    )
+    material_spins = shell.preparation_panel.findChildren(
+        QSpinBox, "GuidePreparationQuantity"
+    )
+    ready_boxes = shell.preparation_panel.findChildren(QCheckBox, "GuidePreparationReady")
+    names = [button.text() for button in material_buttons if button.isVisibleTo(shell)]
+    if not grouped or len(names) != len(grouped):
+        raise AssertionError("Global source inventory is missing or duplicated")
+    if "Cawotte" not in " ".join(names) or "Couronne" not in " ".join(names):
+        raise AssertionError("Source typed object names missing")
+    if any("Art gastronomique" in name or "L'œuf ou la cawotte" in name
+           for name in names):
+        raise AssertionError("Quest or category leaked into global inventory")
+    if len({row["item_id"] for row in grouped if row["item_id"] is not None}) != sum(
+        row["item_id"] is not None for row in grouped
+    ):
+        raise AssertionError("Item IDs were not deduplicated")
+    if len(ready_boxes) != len(grouped):
+        raise AssertionError("One validation checkbox required per global item")
+    if any(box.isEnabled() for box in ready_boxes):
+        raise AssertionError("Read-only source cannot write fake inventory progress")
+    if not material_spins or any(spin.isEnabled() for spin in material_spins):
+        raise AssertionError("Source X/X controls must be read-only in QA preview")
     if not backdrop.grab().save(str(out / "onglet-a-preparer.png"), "PNG"):
-        raise AssertionError("Cannot capture original material/context groups")
-    if not shell.summary_panel.isVisibleTo(shell):
-        raise AssertionError("Opening À préparer closed Route unexpectedly")
+        raise AssertionError("Cannot capture deduplicated global source inventory")
 
     # Responsive QA at half-width: paragraphs stay whole, page model adapts.
     old_page_count = len(pages)
@@ -310,13 +325,17 @@ def _native_visual_probe(route: dict, cover_png: bytes) -> None:
         "pages_at_desktop_width": old_page_count,
         "pages_at_narrow_width": len(narrow),
         "zoom_popup_checked": zoom_checked,
-        "both_drawers_checked": True,
+        "redundant_route_drawer_removed": True,
+        "unique_material_item_ids": sum(
+            item["item_id"] is not None for item in grouped
+        ),
         "pages": reports,
     }, indent=2, ensure_ascii=False), encoding="utf-8")
     print(
         "CAWOTTE_RESPONSIVE_QT: source_fiches=64,"
         f" pages={old_page_count}, narrow_pages={len(narrow)},"
-        f" zoom={zoom_checked}, both_drawers=True",
+        f" zoom={zoom_checked}, global_items={len(grouped)},"
+        f" route_dropdown_removed=True",
         flush=True,
     )
     backdrop.close()
