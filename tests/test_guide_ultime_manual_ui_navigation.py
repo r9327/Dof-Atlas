@@ -674,6 +674,32 @@ class GuideUltimeManualUiNavigationTests(unittest.TestCase):
         finally:
             view.close()
 
+    def test_existing_guide_inline_links_share_universal_styles_and_copy(self) -> None:
+        from app.ui.entity_link_roles import ENTITY_LINK_COLOR_ROLES
+        from app.ui.theme import PALETTE
+
+        rendered = GuideUltimeManualCard._format_line_html(
+            "", "[5,-3]", "Parler à PNJ Exemple puis ramasser Ortie.",
+            ["PNJ Exemple"], ["Ortie"],
+        )
+        for kind, href in (
+            ("position", 'href="travel-copy:5,-3"'),
+            ("item", 'href="item-copy:Ortie"'),
+        ):
+            with self.subTest(kind=kind):
+                self.assertIn(href, rendered)
+                self.assertIn(f"color:{PALETTE[ENTITY_LINK_COLOR_ROLES[kind]]}", rendered)
+        self.assertIn(
+            f"color:{PALETTE[ENTITY_LINK_COLOR_ROLES['npc']]}", rendered
+        )
+        self.assertEqual(
+            GuideUltimeManualCard._copy_text_for_link("item-copy:Ortie"), "Ortie"
+        )
+        self.assertEqual(
+            GuideUltimeManualCard._copy_text_for_link("travel-copy:5,-3"),
+            "/travel 5,-3",
+        )
+
     def test_manual_line_positions_are_bold(self) -> None:
         rendered = GuideUltimeManualCard._format_line_html(
             "• ",
