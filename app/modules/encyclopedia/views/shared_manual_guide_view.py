@@ -50,7 +50,7 @@ from app.ui.components import (
 from app.ui.unity_skin import apply_unity_panel_shadow, sprite_icon_path
 from app.constants import DATA_DIR
 from app.modules.encyclopedia.services.image_service import ENCYCLOPEDIA_IMAGE_SERVICE
-from app.ui.theme import PALETTE, GUIDE_READING_METRICS
+from app.ui.theme import PALETTE, GUIDE_READING_METRICS, SIZES
 from app.ui.entity_link_roles import ENTITY_LINK_COLOR_ROLES, entity_text_markup
 from app.modules.encyclopedia.services.guide_source_rich_blocks import image_bytes
 
@@ -1764,8 +1764,11 @@ class SharedGuideManualView(GuideUltimeManualView):
         self.preparation_content = QWidget()
         self.preparation_content.setObjectName("GuidePreparationContent")
         self.preparation_rows_layout = QVBoxLayout(self.preparation_content)
+        # Keep each real row's minimum size even when more items fit than
+        # the visible drawer. The Qt scroll area, not the rows, must scroll.
+        self.preparation_rows_layout.setSizeConstraint(QLayout.SetMinimumSize)
         self.preparation_rows_layout.setContentsMargins(0, 0, 0, 0)
-        self.preparation_rows_layout.setSpacing(4)
+        self.preparation_rows_layout.setSpacing(GUIDE_READING_METRICS["row_spacing"])
         self.preparation_scroll.setWidget(self.preparation_content)
         panel_layout.addWidget(self.preparation_scroll)
         self.preparation_panel.setVisible(False)
@@ -2497,6 +2500,7 @@ class SharedGuideManualView(GuideUltimeManualView):
                 for category, name, quantity, item_id in visible:
                     row = QFrame()
                     row.setObjectName("GuidePreparationRow")
+                    row.setMinimumHeight(int(SIZES["CONTROL_HEIGHT"].removesuffix("px")))
                     row_layout = QHBoxLayout(row)
                     row_layout.setContentsMargins(8, 3, 8, 3)
                     row_layout.addWidget(self._copyable_preparation_item(
@@ -2609,6 +2613,7 @@ class SharedGuideManualView(GuideUltimeManualView):
     def _preparation_row(self, need: _PreparationNeed) -> QWidget:
         frame = QFrame()
         frame.setObjectName("GuidePreparationRow")
+        frame.setMinimumHeight(int(SIZES["CONTROL_HEIGHT"].removesuffix("px")))
         layout = QVBoxLayout(frame)
         layout.setContentsMargins(8, 4, 8, 4)
         layout.setSpacing(3)
