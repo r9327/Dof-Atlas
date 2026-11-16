@@ -7,14 +7,16 @@ from __future__ import annotations
 
 from collections.abc import Callable
 
-from PySide6.QtCore import QSize, Qt
+from PySide6.QtCore import QSize, Qt, QTimer
 from PySide6.QtGui import QIcon, QPixmap
 from PySide6.QtWidgets import QWidget
 
 from app.ui.unity_skin import sprite_icon_path
 
 from app.modules.encyclopedia.views.guide_library_sources import GanymedeListing
-from app.modules.encyclopedia.views.shared_manual_guide_view import SharedGuideManualView
+from app.modules.encyclopedia.views.shared_manual_guide_view import (
+    SharedGuideManualCard, SharedGuideManualView,
+)
 
 
 class _MetadataOnlyGuide:
@@ -51,6 +53,9 @@ class GanymedeGuideShell(SharedGuideManualView):
     ) -> None:
         self._listing: GanymedeListing | None = None
         self._inspection_active = False
+        self._review_end_index = 0
+        self._review_history: list[int] = []
+        self._review_viewport_size: tuple[int, int] = (0, 0)
 
         # Initialize the real Qt inheritance chain. The preview overrides
         # refresh and participant loading, so this only constructs the shared
@@ -61,6 +66,9 @@ class GanymedeGuideShell(SharedGuideManualView):
             participant_service=object(),
         )
 
+        self._review_resize_timer = QTimer(self)
+        self._review_resize_timer.setSingleShot(True)
+        self._review_resize_timer.timeout.connect(self._refit_review_cards)
         self.backToGuidesRequested.connect(on_back)
         self.guide_button.setToolTip("Retour au catalogue des Guides")
         self.guide_button.setAccessibleName("Retour aux Guides")
@@ -138,6 +146,8 @@ class GanymedeGuideShell(SharedGuideManualView):
         self.guide_title_label.setToolTip(self.service.guide_title)
         self.view_index = 0
         self.active_index = 0
+        self._review_end_index = 0
+        self._review_history.clear()
         # The metadata shell uses a special dash for its 0/0 selector;
         # clear that sentinel before the real 1-based draft navigation.
         self.page_jump.setSpecialValueText("")
@@ -150,6 +160,101 @@ class GanymedeGuideShell(SharedGuideManualView):
         self._render_window()
         return True
 
+
+    def _show_index(self, index: int) -> None:
+        if self._inspection_active:
+            # A direct jump selects a source step, not a fabricated page ID.
+            self._review_history.clear()
+        super()._show_index(index)
+
+    def navigate_relative(self, delta: int) -> None:
+        if not self._inspection_active:
+            super().navigate_relative(delta)
+            return
+        if delta > 0 and self._review_end_index < len(self.service.cards):
+            self._review_history.append(self.view_index)
+            super()._show_index(self._review_end_index)
+        elif delta < 0 and self.view_index > 0:
+            previous = (
+                self._review_history.pop()
+                if self._review_history else self.view_index - 1
+            )
+            super()._show_index(previous)
+
+    def _render_window(self, *, reset_scroll: bool = False) -> None:
+        if not self._inspection_active:
+            super()._render_window(reset_scroll=reset_scroll)
+            return
+        self._catalog_prefetch_timer.stop()
+        self._catalog_prefetch_index = None
+        self._clear_cards()
+        cards = self.service.cards
+        if not cards:
+            return
+
+        start = max(0, min(int(self.view_index), len(cards) - 1))
+        viewport = self.scroll.viewport()
+        margins = self.cards_layout.contentsMargins()
+        width = max(180, viewport.width() - margins.left() - margins.right() - 16)
+        budget = max(120, viewport.height() - margins.top() - margins.bottom())
+        spacing = self.cards_layout.spacing()
+        used = 0
+        end = start
+
+        # Qt's height-for-width accounts for wrapped text at this viewport.
+        # Never cut a source step; an overlong step stays whole and scrolls.
+        for index in range(start, min(len(cards), start + 12)):
+            widget = SharedGuideManualCard(
+                self.service, self.character_key, cards[index], index,
+                show_header_title=True,
+            )
+            widget.page_check.setEnabled(False)
+            widget.page_check.hide()
+            layout = widget.layout()
+            estimated = (
+                layout.heightForWidth(width)
+                if layout is not None and layout.hasHeightForWidth()
+                else widget.sizeHint().height()
+            )
+            if estimated <= 0:
+                estimated = widget.sizeHint().height()
+            required = max(1, estimated) + (spacing if end > start else 0)
+            if end > start and used + required > budget:
+                widget.deleteLater()
+                break
+            self.cards_layout.addWidget(widget)
+            used += required
+            end += 1
+
+        self.cards_layout.addStretch(1)
+        self.rendered_card_count = end - start
+        self._review_end_index = end
+        self._review_viewport_size = (viewport.width(), viewport.height())
+        self.prev_button.setEnabled(start > 0)
+        self.next_button.setEnabled(end < len(cards))
+        self.guide_button.setToolTip("Retour au catalogue des Guides")
+        if end > start + 1:
+            self.sheet_title_label.setText(f"Étapes {start + 1} à {end}")
+        if reset_scroll:
+            self._reset_scroll_to_top()
+
+    def resizeEvent(self, event) -> None:  # noqa: N802 - Qt override
+        super().resizeEvent(event)
+        if self._inspection_active and hasattr(self, "_review_resize_timer"):
+            self._review_resize_timer.start(0)
+
+    def _refit_review_cards(self) -> None:
+        if not self._inspection_active:
+            return
+        viewport = self.scroll.viewport()
+        size = (viewport.width(), viewport.height())
+        if size != self._review_viewport_size:
+            # A resized viewport invalidates page-history boundaries, never
+            # the identities or ordering of the 64 original source steps.
+            self._review_history.clear()
+            self._refresh_header()
+            self._render_window(reset_scroll=True)
+
     def set_listing(self, listing: GanymedeListing, *, artwork: QPixmap | None = None) -> None:
         """Switch metadata and evict draft sheets from the reused renderer."""
         if not isinstance(listing, GanymedeListing):
@@ -158,6 +263,10 @@ class GanymedeGuideShell(SharedGuideManualView):
             raise ValueError("Playable Guides must use the authorized runtime")
         if self._inspection_active:
             self._inspection_active = False
+            self._review_resize_timer.stop()
+            self._review_history.clear()
+            self._review_end_index = 0
+            self._review_viewport_size = (0, 0)
             self.service.cards = ()
             self._clear_cards()
             # The validation host owns the temporary read-only check button,

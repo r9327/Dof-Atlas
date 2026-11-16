@@ -390,7 +390,7 @@ class SharedGuideManualCard(GuideUltimeManualCard):
         root.setContentsMargins(18, 16, 18, 18)
         root.setSpacing(9)
 
-        if index == 0:
+        if index == 0 and card.get("manual_review_only") is not True:
             self._add_legend(root)
 
         title_text = self._visible_stage_title()
