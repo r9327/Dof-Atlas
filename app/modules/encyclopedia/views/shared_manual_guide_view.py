@@ -795,17 +795,35 @@ class SharedGuideManualCard(GuideUltimeManualCard):
                 target_layout.addWidget(label)
             elif kind == "checklist":
                 for item in block["items"]:
-                    check = QCheckBox(str(item["text"]))
+                    typed_runs = item.get("runs")
+                    check = QCheckBox(
+                        "" if typed_runs else str(item["text"])
+                    )
                     check.setObjectName("GuideManualSourceChecklist")
                     check.setChecked(bool(item["checked"]))
-                    # A source checkbox is not proof of a Dofus Quest objective.
-                    # No invented persistence outside GuideProgressService.
+                    # Source checkbox status is display-only, not a Dofus
+                    # achievement/quest completion confirmation.
                     check.setEnabled(False)
                     check.setToolTip(
                         "Case du guide source, lecture seule jusqu'à une "
                         "progression par action vérifiée"
                     )
-                    target_layout.addWidget(check)
+                    if isinstance(typed_runs, list):
+                        row = QWidget()
+                        links = QHBoxLayout(row)
+                        links.setContentsMargins(0, 0, 0, 0)
+                        links.setSpacing(GUIDE_READING_METRICS["row_spacing"])
+                        links.addWidget(check, 0, Qt.AlignTop)
+                        label = QLabel(row)
+                        label.setObjectName("GuideManualSourceChecklistText")
+                        self._set_clickable_text(
+                            label, self._source_rich_markup(typed_runs),
+                        )
+                        label.setWordWrap(True)
+                        links.addWidget(label, 1)
+                        target_layout.addWidget(row)
+                    else:
+                        target_layout.addWidget(check)
             elif kind == "image":
                 label = QLabel()
                 label.setObjectName("GuideManualSourceImage")
