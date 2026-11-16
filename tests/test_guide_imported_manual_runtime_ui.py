@@ -388,13 +388,16 @@ class ImportedSourceRouterQtTests(unittest.TestCase):
         ]
         self.assertIn("À PRÉPARER", headings)
         self.assertIn("À FAIRE MAINTENANT", headings)
-        texts = [label.text() for label in widget.findChildren(QLabel, "GuideManualLine")]
-        self.assertTrue(any("Préparer exactement deux objets fictifs" in text
-                            for text in texts))
-        # Dialogue text can be split by source-aware inline styling; it must
-        # still remain present in a regular QLabel in the same source card.
-        self.assertTrue(any("Parler" in label.text()
-                            for label in widget.findChildren(QLabel)))
+        # Qt labels contain inline Unity markup: compare the user-visible
+        # text after removing tags, not the raw rich-text fragments.
+        import re
+        from html import unescape
+        visible = unescape(re.sub(
+            r"<[^>]+>", "",
+            " ".join(label.text() for label in widget.findChildren(QLabel)),
+        ))
+        self.assertIn("Préparer exactement deux objets fictifs", visible)
+        self.assertIn("Parler au PNJ fictif sans résumer", visible)
 
     def test_switching_source_guides_releases_old_qt_reader_without_progress_write(self):
         next_service = ImportedSourceManualRuntimeService(
