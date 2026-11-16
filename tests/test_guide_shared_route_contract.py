@@ -560,7 +560,7 @@ class TestSharedRouteContract(unittest.TestCase):
         self.assertNotEqual(aa["id"], bb["id"])
         self.assertNotEqual(aa["steps"][0]["manual_stage_id"], bb["steps"][0]["manual_stage_id"])
 
-    def test_fail_closed_unknown_action_and_reordering(self):
+    def test_fail_closed_unknown_action_and_keep_source_order(self):
         bad = sample()
         bad["steps"][0]["actions"][0]["kind"] = "teleport_unknown"
         with self.assertRaisesRegex(GuideRouteContractError, "unsupported"):
@@ -571,8 +571,10 @@ class TestSharedRouteContract(unittest.TestCase):
         bad["steps"][0]["actions"].append(
             {"action_id": "late", "kind": "talk", "text": "Après", "section": "now"}
         )
-        with self.assertRaisesRegex(GuideRouteContractError, "reorder"):
-            project_authorized_guide(bad)
+        route = project_authorized_guide(bad)
+        expected = [action["action_id"] for action in bad["steps"][0]["actions"]]
+        self.assertEqual(route["steps"][0]["manual_source_action_order"], expected)
+        assert_source_fidelity(bad, route)
 
     def test_duplicate_source_step_and_action_ids_rejected(self):
         bad = sample()
@@ -668,17 +670,26 @@ class TestSharedRouteContract(unittest.TestCase):
         with self.assertRaisesRegex(GuideRouteContractError, "structured items"):
             project_authorized_guide(bad)
 
-    def test_late_preparation_is_not_silently_reordered(self):
-        bad = sample()
-        bad["steps"][0]["actions"].append({
+    def test_late_preparation_keeps_source_order_without_rewriting(self):
+        source = sample()
+        source["steps"][0]["actions"].append({
             "action_id": "late-prepare", "kind": "prepare",
             "text": "Préparer ensuite un objet",
             "items": [{"name": "Ressource vérifiée", "quantity": 2}],
         })
-        # With valid resource data, this must be blocked for ordering, not
-        # incidentally rejected earlier as a malformed item action.
-        with self.assertRaisesRegex(GuideRouteContractError, "preparation would reorder"):
-            project_authorized_guide(bad)
+        card = project_authorized_guide(source)["steps"][0]
+        self.assertEqual(
+            card["manual_source_action_order"],
+            [action["action_id"] for action in source["steps"][0]["actions"]],
+        )
+        self.assertEqual(
+            card["manual_sections"]["prepare"][0]["source_action_id"], "late-prepare",
+        )
+        self.assertEqual(card["a_preparer"][0]["quantity"], 2)
+        assert_source_fidelity(
+            source, {"steps": [card, project_authorized_guide(source)["steps"][1]],
+                     "source_guide_metadata": {k: v for k, v in source.items() if k != "steps"}},
+        )
 
     def test_preparation_cannot_hide_other_action_types_or_escape_inventory(self):
         for kind in ("travel", "talk", "combat", "item"):
