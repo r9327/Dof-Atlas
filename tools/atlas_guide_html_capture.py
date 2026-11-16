@@ -45,6 +45,10 @@ _SIG = {
     "image/webp": lambda b: b.startswith(b"RIFF") and b[8:12] == b"WEBP",
 }
 _ALLOWED_ROLES = {"quest", "npc", "item", "equipment", "monster", "boss", "position"}
+# Inline entity glyphs are not screenshots. Ganymède uses dungeon icons too.
+_DECORATIVE_TAG_IMAGE_ALTS = frozenset(
+    {"item", "quest", "monster", "GuideStep", "boss", "dungeon"}
+)
 
 
 class SourceCaptureError(ValueError):
@@ -143,7 +147,7 @@ def _runs(node: _Node) -> list[dict[str, str]]:
                 href = link
         if current.tag == "img":
             if not icon and current.attrs.get("alt") not in {
-                "item", "quest", "monster", "GuideStep", "boss",
+                *_DECORATIVE_TAG_IMAGE_ALTS,
             }:
                 raise SourceCaptureError("inline image needs a separate captured media block")
             return
@@ -230,7 +234,7 @@ def _blocks(container: _Node, assets: dict[str, Path]) -> list[dict[str, Any]]:
             raise SourceCaptureError(f"unsupported guide element <{tag}>")
         if tag in {"p", "h1", "h2", "h3", "h4"}:
             images = [x for x in _desc(node) if x.tag == "img"
-                      and x.attrs.get("alt") not in {"item", "quest", "monster", "GuideStep", "boss"}]
+                      and x.attrs.get("alt") not in _DECORATIVE_TAG_IMAGE_ALTS]
             if images:
                 if len(images) != 1 or _plain(node).strip():
                     raise SourceCaptureError("mixed inline media/text cannot be imported faithfully")
