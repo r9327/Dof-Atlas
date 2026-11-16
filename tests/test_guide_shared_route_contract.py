@@ -677,7 +677,8 @@ class TestSharedRouteContract(unittest.TestCase):
             "text": "Préparer ensuite un objet",
             "items": [{"name": "Ressource vérifiée", "quantity": 2}],
         })
-        card = project_authorized_guide(source)["steps"][0]
+        route = project_authorized_guide(source)
+        card = route["steps"][0]
         self.assertEqual(
             card["manual_source_action_order"],
             [action["action_id"] for action in source["steps"][0]["actions"]],
@@ -686,10 +687,7 @@ class TestSharedRouteContract(unittest.TestCase):
             card["manual_sections"]["prepare"][0]["source_action_id"], "late-prepare",
         )
         self.assertEqual(card["a_preparer"][0]["quantity"], 2)
-        assert_source_fidelity(
-            source, {"steps": [card, project_authorized_guide(source)["steps"][1]],
-                     "source_guide_metadata": {k: v for k, v in source.items() if k != "steps"}},
-        )
+        assert_source_fidelity(source, route)
 
     def test_preparation_cannot_hide_other_action_types_or_escape_inventory(self):
         for kind in ("travel", "talk", "combat", "item"):
