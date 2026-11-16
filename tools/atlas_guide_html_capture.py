@@ -159,8 +159,8 @@ def _runs(node: _Node) -> list[dict[str, str]]:
     for original in result:
         entry = dict(original)
         entry["text"] = re.sub(
-            r"[ \\t\\r\\n]+", " ", entry["text"]
-        ).replace("\u2028", "\n")
+            r"\s+", " ", entry["text"].replace("\u2028", "\x00")
+        ).replace("\x00", "\n")
         if not normalized:
             entry["text"] = entry["text"].lstrip(" ")
         elif normalized[-1]["text"].endswith(" "):
