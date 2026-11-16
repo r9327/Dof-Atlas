@@ -159,6 +159,12 @@ class GanymedeGuideShell(SharedGuideManualView):
         # Populate the complete route index once; only a bounded window
         # of cards is ever created in the scrollable main reader.
         self.summary_button.setEnabled(True)
+        # Review-only metadata contains typed prerequisites/materials. Allow
+        # inspecting their own tabs without granting gameplay/progress writes.
+        self._preparation_loaded = False
+        self._preparation_needs = ()
+        self._preparation_preview = ()
+        self.preparation_button.setEnabled(True)
         self._populate_summary()
         self._refresh_header()
         self._render_window()
@@ -288,6 +294,12 @@ class GanymedeGuideShell(SharedGuideManualView):
             self.summary_button.setChecked(False)
             self.summary_button.setEnabled(False)
             self.summary_panel.hide()
+            self.preparation_button.setChecked(False)
+            self.preparation_button.setEnabled(False)
+            self.preparation_panel.hide()
+            self._preparation_loaded = False
+            self._preparation_preview = ()
+            self._preparation_needs = ()
             self.summary_list.clear()
             self.service.cards = ()
             self._clear_cards()
