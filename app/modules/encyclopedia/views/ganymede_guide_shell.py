@@ -156,8 +156,8 @@ class GanymedeGuideShell(SharedGuideManualView):
         # the review has no completion authority, so show only navigation.
         self.validation_host.hide()
         self.sheet_meta_label.show()
-        # Populate the complete route index once, without reading ahead
-        # into another step in the main reader.
+        # Populate the complete route index once; only a bounded window
+        # of cards is ever created in the scrollable main reader.
         self.summary_button.setEnabled(True)
         self._populate_summary()
         self._refresh_header()
@@ -172,18 +172,9 @@ class GanymedeGuideShell(SharedGuideManualView):
         super()._show_index(index)
 
     def navigate_relative(self, delta: int) -> None:
-        if not self._inspection_active:
-            super().navigate_relative(delta)
-            return
-        if delta > 0 and self._review_end_index < len(self.service.cards):
-            self._review_history.append(self.view_index)
-            super()._show_index(self._review_end_index)
-        elif delta < 0 and self.view_index > 0:
-            previous = (
-                self._review_history.pop()
-                if self._review_history else self.view_index - 1
-            )
-            super()._show_index(previous)
+        # Précédent/Suivant always moves one active step, even when more
+        # steps are visible below in the same scrollable reading viewport.
+        super().navigate_relative(delta)
 
     @staticmethod
     def _compact_review_card(card: dict) -> bool:
@@ -208,42 +199,45 @@ class GanymedeGuideShell(SharedGuideManualView):
             self._review_end_index = 0
             return
 
-        # The shared Guide contract is one source step per page, regardless
-        # of the window size or how short that step happens to be. All other
-        # steps belong to Sommaire, not the main reading area.
+        # Exactly the same bounded reading window as every shared Guide.
+        # The first source step is active; the following ones only fill the
+        # scrolling area without becoming validation targets.
         index = max(0, min(int(self.view_index), len(cards) - 1))
-        widget = SharedGuideManualCard(
-            self.service, self.character_key, cards[index], index,
-            show_header_title=True,
-        )
-        widget.page_check.setEnabled(False)
-        widget.page_check.hide()
-        widget.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Minimum)
-        widget.layout().setAlignment(Qt.AlignTop)
-
-        # Keep a long source step whole and scrollable, including wrapped
-        # lines; never append the next step just to fill unused space.
         viewport = self.scroll.viewport()
         margins = self.cards_layout.contentsMargins()
         label_width = max(
             120, viewport.width() - margins.left() - margins.right() - 88
         )
-        estimated = max(1, widget.sizeHint().height())
-        for label in widget.findChildren(QLabel):
-            if label.wordWrap() and label.hasHeightForWidth():
-                wrapped = label.heightForWidth(label_width)
-                if wrapped > label.sizeHint().height():
-                    estimated += wrapped - label.sizeHint().height()
-        if not self._compact_review_card(cards[index]):
-            widget.setMinimumHeight(max(1, estimated))
-        else:
-            widget.setMinimumHeight(widget.minimumSizeHint().height())
+        end = index
+        for number in self._reading_step_range(index):
+            widget = SharedGuideManualCard(
+                self.service, self.character_key, cards[number], number,
+                show_header_title=True,
+            )
+            widget.page_check.setEnabled(False)
+            widget.page_check.hide()
+            widget.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Minimum)
+            widget.layout().setAlignment(Qt.AlignTop)
 
-        self.cards_layout.addWidget(widget)
-        widget.show()
+            # Preserve a full source step even when text wraps well beyond
+            # the viewport. Qt's scroll area owns the overflow.
+            estimated = max(1, widget.sizeHint().height())
+            for label in widget.findChildren(QLabel):
+                if label.wordWrap() and label.hasHeightForWidth():
+                    wrapped = label.heightForWidth(label_width)
+                    if wrapped > label.sizeHint().height():
+                        estimated += wrapped - label.sizeHint().height()
+            if not self._compact_review_card(cards[number]):
+                widget.setMinimumHeight(max(1, estimated))
+            else:
+                widget.setMinimumHeight(widget.minimumSizeHint().height())
+            self.cards_layout.addWidget(widget)
+            widget.show()
+            self.rendered_card_count += 1
+            end = number + 1
+
         self.cards_layout.addStretch(1)
-        self.rendered_card_count = 1
-        self._review_end_index = index + 1
+        self._review_end_index = end
         self._review_viewport_size = (viewport.width(), viewport.height())
         self.prev_button.setEnabled(index > 0)
         self.next_button.setEnabled(index + 1 < len(cards))
