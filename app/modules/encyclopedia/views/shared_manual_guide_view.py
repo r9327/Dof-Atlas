@@ -954,7 +954,10 @@ class SharedGuideManualCard(GuideUltimeManualCard):
                 rendered_text = self._inline_source_item_images(
                     rendered_text, source_action,
                 )
-            source_rich = row.get("source_rich_blocks")
+            source_rich = (
+                source_action.get("rich_blocks")
+                if isinstance(source_action, dict) else None
+            )
             if isinstance(source_rich, list) and source_rich:
                 # The first paragraph is validated against action.text.
                 # Its author-defined inline roles win over heuristic coloring.
