@@ -385,8 +385,12 @@ class ImportedSourceRouterQtTests(unittest.TestCase):
         texts = [label.text() for label in widget.findChildren(QLabel, "GuideManualLine")]
         self.assertTrue(any("Préparer exactement deux objets fictifs" in text
                             for text in texts))
-        self.assertTrue(any("Parler au PNJ fictif sans résumer" in text
+        self.assertTrue(any("Préparer exactement deux objets fictifs" in text
                             for text in texts))
+        # Dialogue text can be split by source-aware inline styling; it must
+        # still remain present in a regular QLabel in the same source card.
+        self.assertTrue(any("Parler" in label.text()
+                            for label in widget.findChildren(QLabel)))
 
     def test_switching_source_guides_releases_old_qt_reader_without_progress_write(self):
         next_service = ImportedSourceManualRuntimeService(
