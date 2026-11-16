@@ -122,14 +122,12 @@ def _native_visual_probe(route: dict, cover_png: bytes) -> None:
     out = Path("artifacts/visual-cawotte")
     out.mkdir(parents=True, exist_ok=True)
     reports = []
-    filenames = {
-        0: "real-cawotte-step-01.png",
-        1: "real-cawotte-step-02-long.png",
-        2: "real-cawotte-step-03.png",
-        5: "real-cawotte-step-06-image.png",
-    }
+    # Exhaustive visual review: one top-of-page screenshot for every genuine
+    # authored fiche, plus a bottom screenshot when its text scrolls.
+    # Data is transient, never committed or installed into a playable guide.
+    pages_report = []
     try:
-        for index in (0, 1, 2, 5, 39, 63):
+        for index in range(len(cards)):
             shell._show_index(index)
             app.processEvents()
             frame = shell.cards_layout.itemAt(0).widget()
@@ -188,20 +186,48 @@ def _native_visual_probe(route: dict, cover_png: bytes) -> None:
                 raise AssertionError(
                     f"step {index + 1}: missing image widgets ({images}/{expected})"
                 )
-            if index in filenames:
-                screenshot = out / filenames[index]
-                if not backdrop.grab().save(str(screenshot), "PNG"):
-                    raise AssertionError("Native Qt screenshot failed")
-            reports.append((index + 1, frame.height(),
-                            shell.scroll.verticalScrollBar().maximum(), images))
-        shell._show_index(5)
-        app.processEvents()
-        shell.scroll.verticalScrollBar().setValue(
-            shell.scroll.verticalScrollBar().maximum()
-        )
-        app.processEvents()
-        if not backdrop.grab().save(str(out / "real-cawotte-step-06-bottom.png"), "PNG"):
-            raise AssertionError("Bottom-of-page screenshot failed")
+            page_no = index + 1
+            scrollbar = shell.scroll.verticalScrollBar()
+            top_screenshot = out / f"fiche-{page_no:02d}-haut.png"
+            if not backdrop.grab().save(str(top_screenshot), "PNG"):
+                raise AssertionError(f"Fiche {page_no}: top screenshot failed")
+            max_scroll = scrollbar.maximum()
+            if max_scroll > 0:
+                scrollbar.setValue(max_scroll)
+                app.processEvents()
+                bottom_screenshot = out / f"fiche-{page_no:02d}-bas.png"
+                if not backdrop.grab().save(str(bottom_screenshot), "PNG"):
+                    raise AssertionError(f"Fiche {page_no}: bottom screenshot failed")
+            raw_blocks = cards[index]["manual_runtime_metadata"]["source_step"][
+                "actions"
+            ][0]["rich_blocks"]
+            pages_report.append({
+                "fiche": page_no,
+                "source_block_count": len(raw_blocks),
+                "source_character_count": sum(
+                    sum(len(run["text"]) for run in block.get("runs", ()))
+                    if block["type"] in {"paragraph", "heading"} else
+                    sum(len(item["text"]) for item in block.get("items", ()))
+                    if block["type"] == "checklist" else 0
+                    for block in raw_blocks
+                ),
+                "source_images": images,
+                "prerequisite_blocks_moved": len(
+                    cards[index].get("manual_prerequisite_block_indexes") or ()
+                ),
+                "source_checklists": sum(
+                    len(block["items"]) for block in raw_blocks
+                    if block["type"] == "checklist"
+                ),
+                "sheet_height": frame.height(),
+                "viewport_height": shell.scroll.viewport().height(),
+                "scroll_max": max_scroll,
+                "screenshot_top": top_screenshot.name,
+                "screenshot_bottom": (
+                    f"fiche-{page_no:02d}-bas.png" if max_scroll > 0 else None
+                ),
+            })
+            reports.append((page_no, frame.height(), max_scroll, images))
         shell._show_index(0)
         shell.preparation_button.click()
         app.processEvents()
@@ -215,9 +241,48 @@ def _native_visual_probe(route: dict, cover_png: bytes) -> None:
             raise AssertionError("Authored prerequisite links became plain copy-only text")
         if not backdrop.grab().save(str(out / "real-cawotte-prerequisites.png"), "PNG"):
             raise AssertionError("Prerequisites screenshot failed")
+        shell.preparation_button.setChecked(True)
+        for button in shell.preparation_tab_group.buttons():
+            if button.property("tabKey") == "À préparer":
+                button.click()
+                break
+        app.processEvents()
+        if shell._preparation_tab != "À préparer":
+            raise AssertionError("Materials tab cannot be selected")
+        if not backdrop.grab().save(str(out / "onglet-objets-a-preparer.png"), "PNG"):
+            raise AssertionError("Materials tab screenshot failed")
+        shell.preparation_button.setChecked(False)
+        shell.summary_button.setChecked(True)
+        app.processEvents()
+        if not backdrop.grab().save(str(out / "onglet-route-sommaire.png"), "PNG"):
+            raise AssertionError("Route summary screenshot failed")
+
+        (out / "controle-visuel-index.json").write_text(
+            json.dumps(
+                {
+                    "commit_expected": os.environ.get("GITHUB_SHA"),
+                    "capture_scope": "READ_ONLY_64_FICHES_NOT_CERTIFIED",
+                    "guide_language": "fr",
+                    "total_fiches": len(pages_report),
+                    "pages": pages_report,
+                },
+                indent=2, ensure_ascii=False,
+            ),
+            encoding="utf-8",
+        )
+        if len(pages_report) != 64:
+            raise AssertionError("Exhaustive QA missing one or more source fiches")
         print("CAWOTTE_VISUAL_QT: 1280x720 native Windows,"
               f" checked={reports}, prerequisite_rows={len(first_preview)}",
               flush=True)
+        print(
+            "CAWOTTE_VISUAL_ALL: fiches=64,"
+            f" fiches_with_scroll={sum(int(p['scroll_max'] > 0) for p in pages_report)},"
+            f" fiches_with_images={sum(int(p['source_images'] > 0) for p in pages_report)},"
+            f" original_source_checkboxes={sum(p['source_checklists'] for p in pages_report)},"
+            f" prerequisite_blocks_moved={sum(p['prerequisite_blocks_moved'] for p in pages_report)}",
+            flush=True,
+        )
         # Report the gap without changing the authored source or inventing gates.
         if len([1 for category, *_ in first_preview if category == "Prérequis"]) < 3:
             raise AssertionError("Step 1: authored prerequisites absent from dedicated tab")
