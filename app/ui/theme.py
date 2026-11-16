@@ -2763,6 +2763,14 @@ QPushButton#GuidePreparationFilter:checked {
     color: @GREEN_BORDER;
 }
 
+/* Source section captions and Quest titles are not resources to acquire. */
+QLabel#GuidePreparationSourceContext {
+    color: @TEXT_MUTED;
+    font-size: @FONT_GUIDE_READING;
+    background: transparent;
+    border: none;
+    padding: @SPACE_XS @SPACE_MD;
+}
 QFrame#GuidePreparationSummary,
 QFrame#GuidePreparationRow {
     background: @PANEL_2;

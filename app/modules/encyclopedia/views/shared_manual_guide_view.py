@@ -2640,65 +2640,80 @@ class SharedGuideManualView(GuideUltimeManualView):
         self.preparation_rows_layout.addWidget(button)
 
     def _render_imported_source_blocks(self, *, prerequisites: bool) -> bool:
-        """Render source-typed requirements once, without fabricated progress.
+        """Render only actual typed items as material rows, context as headings.
 
-        The author wording, original quest/item links and semantic Unity roles
-        are retained exactly. Immutable source rich_blocks never change.
+        All source text and quest links remain; no item quantities, owned
+        statuses or prerequisites are inferred from an arbitrary paragraph.
         """
         if not self._is_imported_source_guide():
             return False
-        key = (
-            "manual_prerequisite_block_indexes" if prerequisites
-            else "manual_preparation_block_indexes"
-        )
-        rows: list[list[dict[str, Any]]] = []
-        for card in self.service.cards:
-            source = card.get("manual_runtime_metadata") or {}
-            step = source.get("source_step") if isinstance(source, dict) else None
-            actions = step.get("actions") if isinstance(step, dict) else None
-            indexes = card.get(key) or ()
-            leads = (
-                card.get("manual_prerequisite_inline_leads") or ()
-                if prerequisites else ()
+        rows: list[dict[str, Any]] = []
+        if not prerequisites:
+            from app.modules.encyclopedia.services.guide_source_preparation_rows import (
+                authored_material_rows,
             )
-            if not indexes and not leads:
-                continue
-            if not isinstance(actions, list) or len(actions) != 1:
-                raise ValueError("Source section needs one original authored action")
-            blocks = actions[0].get("rich_blocks")
-            if not isinstance(blocks, list):
-                raise ValueError("Source section has no immutable rich content")
-            for index in indexes:
-                if type(index) is not int or not 0 <= index < len(blocks):
-                    raise ValueError("Invalid source section block index")
-                block = blocks[index]
-                if block["type"] in {"paragraph", "heading"}:
-                    rows.append(block["runs"])
-                elif block["type"] == "checklist":
-                    for item in block["items"]:
-                        rows.append(item.get("runs") or [
-                            {"text": item["text"], "role": "plain"}
-                        ])
-                else:
-                    raise ValueError("Unsupported source section rich block")
-            for lead in leads:
-                # Only the original source prefix is displayed here, while
-                # the remaining literal sentence stays on the Route sheet.
-                rows.append([{
-                    "text": lead["prefix"].rstrip(" ,:"),
-                    "role": "plain",
-                }])
+            rows = list(authored_material_rows(self.service.cards))
+        else:
+            for card in self.service.cards:
+                source = card.get("manual_runtime_metadata") or {}
+                step = source.get("source_step") if isinstance(source, dict) else None
+                actions = step.get("actions") if isinstance(step, dict) else None
+                indexes = card.get("manual_prerequisite_block_indexes") or ()
+                leads = card.get("manual_prerequisite_inline_leads") or ()
+                if not indexes and not leads:
+                    continue
+                if not isinstance(actions, list) or len(actions) != 1:
+                    raise ValueError("Source requirements need one authored action")
+                blocks = actions[0].get("rich_blocks")
+                if not isinstance(blocks, list):
+                    raise ValueError("Source requirements need immutable blocks")
+                for index in indexes:
+                    if type(index) is not int or not 0 <= index < len(blocks):
+                        raise ValueError("Invalid prerequisite block index")
+                    block = blocks[index]
+                    if block["type"] in {"paragraph", "heading"}:
+                        rows.append({"kind": "prerequisite", "runs": block["runs"]})
+                    elif block["type"] == "checklist":
+                        for item in block["items"]:
+                            rows.append({
+                                "kind": "prerequisite",
+                                "runs": item.get("runs") or [
+                                    {"text": item["text"], "role": "plain"},
+                                ],
+                            })
+                    else:
+                        raise ValueError("Unsupported prerequisite source block")
+                for lead in leads:
+                    rows.append({"kind": "prerequisite", "runs": [{
+                        "text": lead["prefix"].rstrip(" ,:"),
+                        "role": "plain",
+                    }]})
         if not rows:
             return False
+
         note = QLabel(
             "Prérequis déclarés · état non vérifié dans le jeu."
             if prerequisites
-            else "Ressources et équipements de la source · à vérifier en jeu."
+            else "Objets et équipements indiqués par la source · quantités à vérifier."
         )
         note.setObjectName("GuidePreparationEmpty")
         note.setWordWrap(True)
         self.preparation_rows_layout.addWidget(note)
-        for runs in rows[:self._preparation_visible_limit]:
+        for item in rows[:self._preparation_visible_limit]:
+            runs = item["runs"]
+            kind = item["kind"]
+            if kind == "context":
+                # Section descriptions and linked Quest names stay visible
+                # without masquerading as required equipment.
+                heading = QLabel()
+                heading.setObjectName("GuidePreparationSourceContext")
+                heading.setTextFormat(Qt.RichText)
+                heading.setTextInteractionFlags(Qt.TextBrowserInteraction)
+                heading.setOpenExternalLinks(True)
+                heading.setWordWrap(True)
+                heading.setText(SharedGuideManualCard._source_rich_markup(runs))
+                self.preparation_rows_layout.addWidget(heading)
+                continue
             frame = QFrame()
             frame.setObjectName("GuidePreparationRow")
             layout = QVBoxLayout(frame)
