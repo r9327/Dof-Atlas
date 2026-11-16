@@ -84,8 +84,8 @@ class ContinuousGuideRoutePanelTests(unittest.TestCase):
         self.assertIsInstance(self.panel.global_progress_bar, QProgressBar)
         self.assertIsInstance(self.panel._metric_grid, QGridLayout)
         grid = self.panel._metric_grid
-        self.assertIs(grid.itemAtPosition(1, 0).layout().itemAt(1).widget(),
-                      self.panel.summary_toggle)
+        self.assertTrue(self.panel.route_progress.isHidden())
+        self.assertIs(self.panel.summary_toggle.parentWidget(), header)
         self.assertIs(grid.itemAtPosition(1, 1).layout().itemAt(1).widget(),
                       self.panel.preparation_toggle)
         self.assertIs(grid.itemAtPosition(1, 2).widget(),
@@ -94,8 +94,8 @@ class ContinuousGuideRoutePanelTests(unittest.TestCase):
                          self.panel.summary_toggle.size())
         self.assertEqual(self.panel.preparation_toggle.size(),
                          self.panel.summary_toggle.size())
-        self.assertIs(grid.itemAtPosition(2, 0).widget(), self.panel.summary)
-        self.assertIs(grid.itemAtPosition(2, 1).widget(),
+        self.assertIs(grid.itemAtPosition(2, 1).widget(), self.panel.summary)
+        self.assertIs(grid.itemAtPosition(3, 1).widget(),
                       self.panel.preparation_scroll)
         # Uncertified item references cannot be counted as ready or completed.
         self.assertEqual(self.panel.preparation_bar.value(), 0)
