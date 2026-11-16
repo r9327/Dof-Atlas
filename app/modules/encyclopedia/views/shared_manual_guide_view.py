@@ -442,56 +442,62 @@ class SharedGuideManualCard(GuideUltimeManualCard):
                         else card.get("manual_lines", []) or []
                     )
                 sections = {"now": manual_lines}
-        sections = self._without_prepare_duplicates(sections)
+        # Imported authored actions are never deduplicated by presentation
+        # heuristics. Two visually identical rows may be distinct objectives.
+        if not source_card:
+            sections = self._without_prepare_duplicates(sections)
         self._combat_targets = self._quest_combat_targets(sections)
 
-        # Imported source guides must retain their own authored preparation
-        # instructions in the original source step, in addition to Atlas'
-        # global inventory overlay. Legacy optimized guides keep their
-        # existing compact preparation-only behavior.
-        if source_card:
-            self._add_line_section(
-                root,
-                "À PRÉPARER",
-                sections.get("prepare"),
-                "GuideManualResourceSection",
-                "prepare",
-            )
-        self._add_line_section(
-            root,
-            "À FAIRE MAINTENANT",
-            sections.get("now"),
-            "GuideManualActionSection",
-            "now",
-        )
-        self._add_line_section(
-            root,
-            "À PROFITER ICI",
-            sections.get("opportunity"),
-            "GuideManualActionSection",
-            "opportunity",
-        )
-        self._add_line_section(
-            root,
-            "À CONSERVER POUR PLUS TARD",
-            sections.get("keep"),
-            "GuideManualResourceSection",
-            "keep",
-        )
-        self._add_line_section(
-            root,
-            "BOSS / CAPTURES",
-            sections.get("boss"),
-            "GuideManualCombatSection",
-            "boss",
-        )
-        self._add_line_section(
-            root,
-            "AVANT DE PARTIR",
-            sections.get("before_leave"),
-            "GuideManualWarningSection",
-            "before_leave",
-        )
+        section_specs = {
+            "prepare": ("À PRÉPARER", "GuideManualResourceSection"),
+            "now": ("À FAIRE MAINTENANT", "GuideManualActionSection"),
+            "opportunity": ("À PROFITER ICI", "GuideManualActionSection"),
+            "keep": ("À CONSERVER POUR PLUS TARD", "GuideManualResourceSection"),
+            "boss": ("BOSS / CAPTURES", "GuideManualCombatSection"),
+            "before_leave": ("AVANT DE PARTIR", "GuideManualWarningSection"),
+        }
+        source_order = card.get("manual_source_action_order")
+        if source_card and isinstance(source_order, list):
+            # A presentation section cannot sort or swallow source content.
+            by_id = {
+                str(row["source_action_id"]): row
+                for entries in sections.values() if isinstance(entries, list)
+                for row in entries if isinstance(row, dict)
+                and "source_action_id" in row
+            }
+            if len(by_id) != len(source_order) or any(
+                key not in by_id for key in source_order
+            ):
+                raise ValueError("Imported guide source-action order is incomplete")
+            current_section = None
+            batch: list[dict[str, Any]] = []
+            def flush_source_batch() -> None:
+                if not batch:
+                    return
+                section_title, section_object = section_specs[current_section]
+                self._add_line_section(
+                    root, section_title, batch, section_object, current_section,
+                )
+                batch.clear()
+
+            for source_action_id in source_order:
+                row = by_id[source_action_id]
+                section = str(row.get("source_section") or "now")
+                if section not in section_specs:
+                    raise ValueError("Unknown imported source section")
+                if current_section is not None and section != current_section:
+                    flush_source_batch()
+                current_section = section
+                batch.append(row)
+            flush_source_batch()
+        else:
+            # Existing optimized guides retain their old section layout.
+            for section in ("now", "opportunity", "keep", "boss", "before_leave"):
+                section_title, section_object = section_specs[section]
+                self._add_line_section(
+                    root, section_title, sections.get(section),
+                    section_object, section,
+                )
 
         automatic = service.card_auto_complete(character_key, card)
         manual = service.page_checked(character_key, card, index)
