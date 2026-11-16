@@ -355,15 +355,19 @@ class GanymedeGuideShellTests(unittest.TestCase):
 
         # Extra-long real-text wrapping keeps all three source steps intact
         # in the scroll area, even when only the first fits initially.
-        extended = copy.deepcopy(shell.service.cards[0])
+        # Step 1 consists only of prerequisites (no in-route action).
+        # Stress a real walkthrough row on step 2 instead.
+        extended = copy.deepcopy(shell.service.cards[1])
         extended["manual_sections"]["now"][0]["text"] = (
             "Instruction Cawotte très détaillée. " * 700
         )
-        shell.service.cards = (extended,) + shell.service.cards[1:]
-        shell._show_index(0)
+        shell.service.cards = (
+            shell.service.cards[:1] + (extended,) + shell.service.cards[2:]
+        )
+        shell._show_index(1)
         self.app.processEvents()
         self.assertEqual(shell.rendered_card_count, 3)
-        self.assertEqual(shell._review_end_index, 3)
+        self.assertEqual(shell._review_end_index, 4)
         self.assertGreater(shell.scroll.verticalScrollBar().maximum(), 0)
         self.assertGreater(
             shell.cards_layout.itemAt(0).widget().minimumHeight(),
@@ -371,8 +375,8 @@ class GanymedeGuideShellTests(unittest.TestCase):
         )
         self.assertTrue(shell.next_button.isEnabled())
         shell.next_button.click()
-        self.assertEqual(shell.view_index, 1)
-        self.assertEqual(shell.page_jump.value(), 2)
+        self.assertEqual(shell.view_index, 2)
+        self.assertEqual(shell.page_jump.value(), 3)
         self.assertEqual(shell.validation_layout.count(), 0)
 
     def test_catalogue_reuses_one_preview_and_does_not_dispatch_guide(self) -> None:
