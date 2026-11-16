@@ -136,6 +136,28 @@ jobs:
           print(f"Native DPI screenshot: {shot.width()} x {shot.height()}, DPR={shot.devicePixelRatio()}")
           assert shot.save(str(target), "PNG")
           print(f"Real Qt screenshot written: {target} ({target.stat().st_size} bytes)")
+          # Capture both genuine Unity tabs on the same real catalogue path.
+          # The pilot is deliberately read-only: the tabs cannot save progress.
+          assert shell.preparation_button.isEnabled()
+          shell.preparation_button.click()
+          app.processEvents()
+          assert shell._preparation_tab == "Prérequis"
+          assert len(shell._preparation_preview) == 10
+          assert shell.preparation_panel.isVisibleTo(shell)
+          prereqs = Path("artifacts/screenshots/ganymede-cawotte-prerequisites-qt.png")
+          assert backdrop.grab().save(str(prereqs), "PNG")
+          material_tab = next(
+              button for button in shell.preparation_tab_group.buttons()
+              if button.text() == "À préparer"
+          )
+          material_tab.click()
+          app.processEvents()
+          assert shell._preparation_tab == "À préparer"
+          materials = Path("artifacts/screenshots/ganymede-cawotte-materials-qt.png")
+          assert backdrop.grab().save(str(materials), "PNG")
+          shell.preparation_button.click()
+          app.processEvents()
+          assert shell.preparation_panel.isHidden()
           # A taller viewport keeps the same three-step reading window.
           backdrop.resize(1280, 1050)
           app.processEvents()
