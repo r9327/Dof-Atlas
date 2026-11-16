@@ -1100,29 +1100,25 @@ class TestGuideConformity(unittest.TestCase):
                     for issue in result["issues"]
                 ))
 
-    def test_matching_out_of_order_sections_cannot_pass(self) -> None:
+    def test_matching_interleaved_sections_preserves_source_order(self) -> None:
         original = reference()
         atlas = imported(original)
         for data in (original, atlas):
             actions = data["guides"][0]["steps"][0]["actions"]
             actions[0]["section"] = "boss"
             actions[1]["section"] = "now"
-        result = compare(original, atlas)
-        self.assertEqual(result["status"], "PARITY_CHECK_BLOCKED")
-        self.assertIn("UNVERIFIABLE", result["issue_codes"])
+        self.assertEqual(compare(original, atlas)["status"], "PARITY_CHECK_PASS")
 
-    def test_matching_late_preparation_cannot_pass(self) -> None:
+    def test_matching_late_preparation_is_source_fidelity(self) -> None:
         original = reference()
         atlas = imported(original)
         for data in (original, atlas):
-            data["guides"][0]["steps"][0]["actions"][1]["section"] = "prepare"
-        result = compare(original, atlas)
-        self.assertEqual(result["status"], "PARITY_CHECK_BLOCKED")
-        self.assertTrue(any(
-            issue["field_path"].endswith(".section") and
-            issue["issue_code"] == "UNVERIFIABLE"
-            for issue in result["issues"]
-        ))
+            data["guides"][0]["steps"][0]["actions"].append({
+                "action_id": "prepare-last", "kind": "prepare",
+                "section": "prepare", "text": "Préparer enfin deux objets",
+                "items": [{"name": "Objet", "quantity": 2}],
+            })
+        self.assertEqual(compare(original, atlas)["status"], "PARITY_CHECK_PASS")
 
     def test_matching_invalid_quest_collections_cannot_pass(self) -> None:
         for field in ("quest_ids", "quest_names", "prerequisites"):
