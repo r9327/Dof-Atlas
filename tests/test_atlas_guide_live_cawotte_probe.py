@@ -116,6 +116,7 @@ def _native_visual_probe(route: dict, cover_png: bytes) -> None:
     shell._preparation_needs = ()
     shell._preparation_preview = ()
     shell._populate_summary()
+    shell._refresh_header()
     backdrop.show()
     app.processEvents()
     out = Path("artifacts/visual-cawotte")
@@ -154,6 +155,10 @@ def _native_visual_probe(route: dict, cover_png: bytes) -> None:
                         )
             if frame.findChildren(QCheckBox, "GuideManualSourceChecklist"):
                 raise AssertionError("Source checklist still draws selection squares")
+            if shell._metric_caption_labels["Préparation"].text() != "Prérequis":
+                raise AssertionError("Source route has wrong top-level Prérequis menu")
+            if shell._metric_caption_labels["Route"].text() != "Route":
+                raise AssertionError("Source route label was overwritten")
             if shell.sheet_title_label.text() != expected_title:
                 raise AssertionError(f"step {index + 1}: wrong source title")
             if shell.page_jump.value() != index + 1:

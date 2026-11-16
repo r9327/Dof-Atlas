@@ -1942,6 +1942,14 @@ class SharedGuideManualView(GuideUltimeManualView):
         title = str(getattr(self.service, "guide_title", "") or "").strip()
         return title or "Guide Succès"
 
+    def _is_imported_source_guide(self) -> bool:
+        """All imported authored guides share the same Prérequis presentation."""
+        cards = getattr(self.service, "cards", ())
+        return bool(cards) and all(
+            card.get("manual_source") is True and "source_step_id" in card
+            for card in cards
+        )
+
     def _sync_compact_action_labels(self) -> None:
         """Preserve clickable actions and screen-reader names when space is scarce."""
         if not hasattr(self, "participants_button"):
@@ -1952,8 +1960,21 @@ class SharedGuideManualView(GuideUltimeManualView):
         # Icon-only participant selector: the count remains accessible through
         # its tooltip and accessibility label without stretching the header.
         self.participants_button.setText("")
+        source_guide = self._is_imported_source_guide()
         for name, label in getattr(self, "_metric_caption_labels", {}).items():
-            label.setText("Prép." if narrow and name == "Préparation" else name)
+            if name == "Préparation" and source_guide:
+                label.setText("Prérequis")
+            else:
+                label.setText("Prép." if narrow and name == "Préparation" else name)
+        if hasattr(self, "preparation_button"):
+            self.preparation_button.setToolTip(
+                "Ouvrir Prérequis et objets" if source_guide
+                else "Ouvrir Préparation"
+            )
+            self.preparation_button.setAccessibleName(
+                "Afficher Prérequis et objets" if source_guide
+                else "Afficher Préparation"
+            )
         self.participants_button.setAccessibleName(full_label)
         self.participants_button.setToolTip(
             "Choisir les identités stables utilisées par la progression et les déplacements."
@@ -2979,6 +3000,20 @@ class SharedGuideManualView(GuideUltimeManualView):
             self.donut_count_label.setText("Fiches à valider")
 
         self._update_preparation_progress()
+        self._sync_compact_action_labels()
+        if self._is_imported_source_guide():
+            # A prerequisite is not automatically completed by importing a
+            # document. Show the number of source-declared gates, never a
+            # fabricated percent based on unrelated material readiness.
+            gate_count = sum(
+                len(card.get("hard_runtime_gates", ()) or ())
+                for card in self.service.cards
+            )
+            self.preparation_bar.setRange(0, 1)
+            self.preparation_bar.setValue(0)
+            self.preparation_progress_label.setText(
+                f"{gate_count} à vérifier" if gate_count else "—"
+            )
 
         total_cards = len(self.service.cards)
         index = max(0, min(self.view_index, max(0, total_cards - 1)))

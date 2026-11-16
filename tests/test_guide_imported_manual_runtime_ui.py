@@ -408,7 +408,8 @@ class ImportedSourceRouterQtTests(unittest.TestCase):
         self.assertIsNone(widget.findChild(QCheckBox, "GuideManualSourceChecklist"))
         source_lines = widget.findChildren(QLabel, "GuideManualSourceChecklistText")
         self.assertEqual(len(source_lines), 1)
-        self.assertIn("Objectif de l'auteur", source_lines[0].text())
+        from html import unescape
+        self.assertIn("Objectif de l'auteur", unescape(source_lines[0].text()))
         picture = widget.findChild(QLabel, "GuideManualSourceImage")
         self.assertIsNotNone(picture)
         self.assertIsNotNone(picture.pixmap())
