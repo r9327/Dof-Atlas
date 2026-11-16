@@ -24,6 +24,35 @@ runtime boundary for the eventual one-by-one certified import.
   preparation, copy/travel, NPC, combat and navigation components as the two
   optimized guides; no second reader is allowed.
 
+## Source-first fidelity: one contract for every guide
+
+**The authored guide is immutable input, never material for an Atlas rewrite.**
+Keep each original step and every action in the original order and retain
+its complete source metadata in `manual_runtime_metadata.source_step`;
+guide-level metadata is retained once in `source_guide_metadata`.
+Atlas' UI sections, clicks, typography, progress and preparation aggregate
+are a **derived, separate presentation layer**, not a replacement for the
+authored source. In particular, source preparation instructions remain
+visible on the original step, even when Atlas also exposes them in its
+global preparation panel.
+
+`project_authorized_guide` invokes `assert_source_fidelity` on **every**
+guide. It fails on a lost/added/reordered action, changed instruction,
+step ID/title or modified source snapshot. A shared importer test runs this
+contract across 95 fictional guides and 7,705 steps, with no guide-specific
+exceptions. No approximation or content insertion is an accepted fallback.
+
+**Limit of this guarantee:** it establishes JSON source-to-projection
+integrity, **not** that an external author's entire formatted page was
+captured in the source JSON. Image blocks, rich text, interactive checkboxes,
+dialogue branches and other structures that the shared renderer cannot
+faithfully represent must remain blocked, not flattened into prose or
+silently dropped. Capture of the original structured guide with permission,
+field-by-field visual support, independent reference comparison and actual
+Windows/DOFUS parity are separate release gates. The existing 64-step
+Cawotte candidate with 191 summarized actions is *not* that original
+structured source and cannot be marked equivalent or certified.
+
 ## Source progress and validation
 
 - One Guide identity: `source_guide:<guide_id>`.
