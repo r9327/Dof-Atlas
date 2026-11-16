@@ -454,8 +454,19 @@ class ImportedSourceRouterQtTests(unittest.TestCase):
         headings = [
             label.text() for label in widget.findChildren(QLabel, "GuideManualSectionTitle")
         ]
-        self.assertIn("À PRÉPARER", headings)
-        self.assertIn("À FAIRE MAINTENANT", headings)
+        # Source content stays in one authored sheet, with newline-separated
+        # actions and no fabricated UI subsections/headings.
+        self.assertEqual(headings, [])
+        from PySide6.QtWidgets import QFrame
+        rows = widget.findChildren(QFrame, "GuideManualLineRow")
+        self.assertEqual(
+            [str(row.property("sourceActionId")) for row in rows],
+            ["prepare-first", "talk-next"],
+        )
+        self.assertEqual(
+            len(widget.findChildren(QFrame, "GuideManualSourceReadingSection")), 2,
+        )
+        self.assertTrue(widget.property("continuousGuideReading"))
         # Qt labels contain inline Unity markup: compare the user-visible
         # text after removing tags, not the raw rich-text fragments.
         import re
