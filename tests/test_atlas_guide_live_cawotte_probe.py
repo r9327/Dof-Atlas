@@ -305,8 +305,9 @@ def _native_visual_probe(route: dict, cover_png: bytes) -> None:
         )
         if len(source_materials) < 3:
             raise AssertionError("Source materials drawer missing typed item rows")
-        materials_text = " ".join(label.text() for label in source_materials)
-        contexts_text = " ".join(label.text() for label in source_context)
+        from html import unescape
+        materials_text = unescape(" ".join(label.text() for label in source_materials))
+        contexts_text = unescape(" ".join(label.text() for label in source_context))
         if "Cawotte" not in materials_text or "Couronne" not in materials_text:
             raise AssertionError("Cawotte item and equipment links are absent")
         if "Art gastronomique" in materials_text or "L'œuf ou la cawotte" in materials_text:
