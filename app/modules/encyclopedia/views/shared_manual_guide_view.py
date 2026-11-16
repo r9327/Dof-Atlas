@@ -2012,6 +2012,14 @@ class SharedGuideManualView(GuideUltimeManualView):
                 ), "")
                 if first:
                     return first
+            if card.get("manual_review_only") is True:
+                # A prerequisite-only candidate step has no walkthrough
+                # action. Its original typed label remains navigable.
+                gates = card.get("hard_runtime_gates") or ()
+                if gates and isinstance(gates[0], dict):
+                    label = str(gates[0].get("name") or "").strip()
+                    if label:
+                        return label
             return "Sans titre"
         # If a source already numbered its title, the list supplies the
         # number itself. Only strip an unmistakable matching step prefix.
