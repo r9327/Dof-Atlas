@@ -428,15 +428,15 @@ class GuideCatalogView(QWidget):
             return
         source_id = item.data(0, Qt.UserRole + 2)
         if type(source_id) is int:
-            self.open_ganymede_container(source_id)
+            self.open_ganymede_container(source_id, review_steps=item is self._cawotte_pilot_item)
             return
         category = item.data(0, Qt.UserRole)
         if category:
             self.library_category = str(category)
 
-    def open_ganymede_container(self, source_id: int) -> bool:
-        """Show one of the 95 UI-only shells, never a playable source Guide."""
-        if type(source_id) is not int:
+    def open_ganymede_container(self, source_id: int, *, review_steps: bool = False) -> bool:
+        """Open metadata or the explicit read-only Cawotte draft; no live route."""
+        if type(source_id) is not int or (review_steps and source_id != 2205):
             return False
         listing = self._ganymede_by_id.get(source_id)
         if listing is None or listing.playable:
@@ -459,6 +459,13 @@ class GuideCatalogView(QWidget):
             if local_guide is not None else None
         )
         self._ganymede_shell.set_listing(listing, artwork=artwork)
+        if review_steps:
+            try:
+                if not self._ganymede_shell.show_cawotte_review():
+                    return False
+            except (OSError, ValueError, KeyError, TypeError) as exc:
+                self.status_callback(f"Étapes Cawotte indisponibles pour revue : {exc}")
+                return False
         self.current_guide_id = None
         self.pages.setCurrentWidget(self._ganymede_shell)
         return True
@@ -472,7 +479,7 @@ class GuideCatalogView(QWidget):
             # Clicking the same selected item after Back must reopen it;
             # currentItemChanged does not fire on repeated selection.
             if self.pages.currentWidget() is self.home_scroll:
-                self.open_ganymede_container(source_id)
+                self.open_ganymede_container(source_id, review_steps=item is self._cawotte_pilot_item)
             return
         if item.data(0, Qt.UserRole) and item.childCount():
             item.setExpanded(not item.isExpanded())
@@ -483,7 +490,7 @@ class GuideCatalogView(QWidget):
         source_id = item.data(0, Qt.UserRole + 2)
         if type(source_id) is int:
             if self.pages.currentWidget() is self.home_scroll:
-                self.open_ganymede_container(source_id)
+                self.open_ganymede_container(source_id, review_steps=item is self._cawotte_pilot_item)
             return
         if item.data(0, Qt.UserRole):
             self._toggle_library_category(item, column)

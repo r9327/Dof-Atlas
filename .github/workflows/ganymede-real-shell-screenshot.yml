@@ -8,11 +8,13 @@ on:
     paths:
       - .github/workflows/ganymede-real-shell-screenshot.yml
       - app/modules/encyclopedia/views/ganymede_guide_shell.py
+      - app/modules/encyclopedia/services/guide_cawotte_pilot_preview.py
       - app/modules/encyclopedia/views/guide_catalog_view.py
       - app/ui/components.py
       - app/ui/theme.py
       - app/ui/unity_skin.py
       - tests/test_ganymede_guide_shell.py
+      - tests/test_cawotte_pilot_preview.py
 
 permissions:
   contents: read
@@ -36,8 +38,8 @@ jobs:
           python-version: '3.13'
       - name: Install pinned Qt runtime
         run: python -m pip install --require-hashes --no-deps -r requirements-pyside.txt
-      - name: Verify 95 metadata containers and indexed shared UI
-        run: python -X faulthandler -m unittest -v tests.test_ganymede_guide_shell
+      - name: Verify 95 metadata containers and Cawotte candidate route
+        run: python -X faulthandler -m unittest -v tests.test_cawotte_pilot_preview tests.test_ganymede_guide_shell
       - name: Capture real indexed container at 1280 x 720
         if: always()
         shell: bash
@@ -98,7 +100,11 @@ jobs:
           assert shell.guide_title_label.text() == cawotte.title
           assert len(shell.findChildren(QProgressBar)) == 3
           assert all(not bar.isEnabled() for bar in shell.findChildren(QProgressBar))
-          assert shell.sheet_title_label.text() == "Aucune fiche chargée"
+          assert shell.sheet_title_label.text() == "Étape 1"
+          assert len(shell.service.cards) == 64
+          assert shell.rendered_card_count == 1
+          assert shell.page_jump.maximum() == 64
+          assert not shell.validation_layout.itemAt(0).widget().isEnabled()
           target = Path("artifacts/screenshots/ganymede-cawotte-shell-qt.png")
           target.parent.mkdir(parents=True, exist_ok=True)
           shot = backdrop.grab()
@@ -106,6 +112,17 @@ jobs:
           print(f"Native DPI screenshot: {shot.width()} x {shot.height()}, DPR={shot.devicePixelRatio()}")
           assert shot.save(str(target), "PNG")
           print(f"Real Qt screenshot written: {target} ({target.stat().st_size} bytes)")
+          shell.next_button.click()
+          app.processEvents()
+          assert shell.sheet_title_label.text() == "Étape 2"
+          shell.page_jump.setValue(64)
+          app.processEvents()
+          assert shell.sheet_title_label.text() == "Étape 64"
+          assert not shell.validation_layout.itemAt(0).widget().isEnabled()
+          final = Path("artifacts/screenshots/ganymede-cawotte-step-64-qt.png")
+          assert backdrop.grab().save(str(final), "PNG")
+          shell.guide_button.click()
+          assert catalog.pages.currentWidget() is catalog.home_scroll
           backdrop.close()
           PY
       - name: Upload screenshot, including failed test artifacts

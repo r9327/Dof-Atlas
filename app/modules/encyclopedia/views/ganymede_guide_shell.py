@@ -22,7 +22,23 @@ class _MetadataOnlyGuide:
 
     def __init__(self) -> None:
         self.guide_title = ""
-        self.cards: tuple[()] = ()
+        self.cards: tuple[dict, ...] = ()
+
+    @staticmethod
+    def can_write_progress() -> bool:
+        return False
+
+    @staticmethod
+    def card_auto_complete(_character_key: str, _card: dict) -> bool:
+        return False
+
+    @staticmethod
+    def page_checked(_character_key: str, _card: dict, _index: int) -> bool:
+        return False
+
+    @staticmethod
+    def card_key(card: dict, _index: int) -> str:
+        return str(card.get("source_step_id") or "")
 
 
 class GanymedeGuideShell(SharedGuideManualView):
@@ -34,6 +50,7 @@ class GanymedeGuideShell(SharedGuideManualView):
         parent: QWidget | None = None,
     ) -> None:
         self._listing: GanymedeListing | None = None
+        self._inspection_active = False
 
         # Initialize the real Qt inheritance chain. The preview overrides
         # refresh and participant loading, so this only constructs the shared
@@ -97,12 +114,48 @@ class GanymedeGuideShell(SharedGuideManualView):
     def refresh(self, *, reset_to_active: bool = False) -> None:
         """No progress or guide-runtime refresh is permitted in preview."""
 
+    def _guide_button_clicked(self) -> None:
+        if self._inspection_active:
+            self.backToGuidesRequested.emit()
+            return
+        super()._guide_button_clicked()
+
+    def show_cawotte_review(self) -> bool:
+        """Review 64 local unverified steps; NEVER write player progress."""
+        if self._listing is None or self._listing.source_id != 2205:
+            return False
+        from app.modules.encyclopedia.services.guide_cawotte_pilot_preview import (
+            cawotte_review_cards,
+        )
+        self.service.cards = cawotte_review_cards()
+        self._inspection_active = True
+        self.view_index = 0
+        self.active_index = 0
+        self.page_jump.setEnabled(True)
+        self.sheet_meta_label.show()
+        self._refresh_header()
+        self._render_window()
+        return True
+
     def set_listing(self, listing: GanymedeListing, *, artwork: QPixmap | None = None) -> None:
-        """Update only verified title metadata; never turn it into a route."""
+        """Switch metadata and evict draft sheets from the reused renderer."""
         if not isinstance(listing, GanymedeListing):
             raise TypeError("GanymedeListing required")
         if listing.playable:
             raise ValueError("Playable Guides must use the authorized runtime")
+        if self._inspection_active:
+            self._inspection_active = False
+            self.service.cards = ()
+            self._clear_cards()
+            self.sheet_meta_label.clear()
+            self.sheet_meta_label.hide()
+            self.page_jump.blockSignals(True)
+            self.page_jump.setRange(0, 0)
+            self.page_jump.setSuffix("")
+            self.page_jump.blockSignals(False)
+            self.page_jump.setEnabled(False)
+            self.prev_button.setEnabled(False)
+            self.next_button.setEnabled(False)
         self._listing = listing
         self.service.guide_title = listing.title
         self.guide_title_label.setText(listing.title)
