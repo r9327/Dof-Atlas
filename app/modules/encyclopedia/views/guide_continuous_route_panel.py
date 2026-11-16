@@ -10,7 +10,7 @@ from collections.abc import Iterable, Mapping
 from PySide6.QtCore import Qt, QStringListModel, Signal, QSize
 from PySide6.QtGui import QIcon, QPainter, QPen
 from PySide6.QtWidgets import (
-    QFrame, QGridLayout, QHBoxLayout, QLabel, QListView, QMenu, QProgressBar, QScrollArea, QToolButton, QVBoxLayout, QWidget,
+    QFrame, QGridLayout, QHBoxLayout, QLabel, QListView, QMenu, QProgressBar, QScrollArea, QSpinBox, QToolButton, QVBoxLayout, QWidget,
 )
 
 from app.constants import DATA_DIR
@@ -109,6 +109,18 @@ class ContinuousGuideRoutePanel(QWidget):
         self.position_label = QLabel()
         self.position_label.setObjectName("GuideContinuousPosition")
         head.addWidget(self.position_label, 1)
+        # The direct X/X selector replaces the step list, as in the shared
+        # manual reader. It uses stable route IDs and never writes progress.
+        self.page_jump = QSpinBox()
+        self.page_jump.setObjectName("GuideCompactPageJump")
+        self.page_jump.setRange(1, max(1, len(self.navigation.step_ids)))
+        self.page_jump.setSuffix(f" / {len(self.navigation.step_ids)}")
+        self.page_jump.setMaximumWidth(110)
+        self.page_jump.setToolTip("Ouvrir directement la fiche sélectionnée")
+        self.page_jump.valueChanged.connect(
+            lambda page: self.show_step(self.navigation.step_ids[page - 1])
+        )
+        head.addWidget(self.page_jump, 0, Qt.AlignVCenter)
         self.participants_button = QToolButton()
         self.participants_button.setObjectName("GuideContinuousCharactersButton")
         self.participants_button.setPopupMode(QToolButton.InstantPopup)
@@ -292,6 +304,7 @@ class ContinuousGuideRoutePanel(QWidget):
         self.summary_toggle.setFixedSize(28, 24)
         self.summary_toggle.setToolTip("Afficher le sommaire des fiches")
         head.addWidget(self.summary_toggle, 0, Qt.AlignVCenter)
+        self.summary_toggle.hide()
         self.preparation_toggle.setObjectName("GuideMetricDropdown")
         self.preparation_toggle.setAccessibleName("Afficher Préparation")
         self.preparation_toggle.setToolButtonStyle(Qt.ToolButtonIconOnly)
@@ -583,6 +596,9 @@ class ContinuousGuideRoutePanel(QWidget):
             else "Aucun personnage sélectionné"
         )
         if index >= 0:
+            self.page_jump.blockSignals(True)
+            self.page_jump.setValue(index + 1)
+            self.page_jump.blockSignals(False)
             self.summary.selectionModel().clearSelection()
             self.summary.setCurrentIndex(self.summary_model.index(index))
         self.summary.setVisible(self._summary_open)
