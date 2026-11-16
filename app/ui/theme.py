@@ -2757,7 +2757,8 @@ QLabel#AlmanaxUnavailable { color: @TEXT_MUTED; font-size: @FONT_BODY; }
                 background: transparent;
                 border: 1px solid transparent;
                 border-radius: @RADIUS_XS;
-                color: #aeb7c6;
+                /* Item is the global entity-link category GREEN, not a local gray. */
+                color: @GREEN;
                 font-size: @FONT_SMALL;
                 font-weight: 700;
                 min-height: 22px;
@@ -2769,7 +2770,7 @@ QLabel#AlmanaxUnavailable { color: @TEXT_MUTED; font-size: @FONT_BODY; }
             QPushButton#GuideItemNameButton:hover {
                 background: #1a202b;
                 border-color: #5e3d93;
-                color: #f1f4fb;
+                color: @GREEN_HOVER;
             }
 
             QPushButton#GuideItemNameButton {
