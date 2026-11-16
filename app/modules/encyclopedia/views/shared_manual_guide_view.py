@@ -1714,7 +1714,10 @@ class SharedGuideManualView(GuideUltimeManualView):
         panel_layout.setSpacing(7)
         # Two actual tabs, sharing the indexed Unity selection style.
         # Prerequisites must not be mixed into the materials list.
-        self._preparation_tab = "Prérequis"
+        # Keep the established materials workflow as the default for
+        # playable Guide Ultime/Sylvestre. The read-only pilot selects its
+        # explicit prerequisites tab when it opens.
+        self._preparation_tab = "À préparer"
         self.preparation_tab_group = QButtonGroup(self)
         self.preparation_tab_group.setExclusive(True)
         tab_row = QHBoxLayout()
@@ -1752,7 +1755,7 @@ class SharedGuideManualView(GuideUltimeManualView):
             )
             filters.addWidget(button)
         filters.addStretch(1)
-        self.preparation_filter_host.hide()
+        self.preparation_filter_host.show()
         panel_layout.addWidget(self.preparation_filter_host)
 
         self.preparation_scroll = QScrollArea()
