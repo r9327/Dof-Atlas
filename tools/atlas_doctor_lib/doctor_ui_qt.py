@@ -228,6 +228,22 @@ def bottom_guide_observations(root, view, expected_card) -> dict:
             "mounted_stage_ids": actual_ids,
             "expected_stage_ids": expected_ids,
         }
+    source_order_mismatches = []
+    for displayed_sheet in sheets:
+        authored_ids = displayed_sheet.card.get("manual_source_action_order")
+        if authored_ids is None:
+            continue
+        source_rows = displayed_sheet.findChildren(QFrame, "GuideManualLineRow")
+        qt_ids = [
+            str(row.property("sourceActionId") or "")
+            for row in source_rows
+        ]
+        if qt_ids != authored_ids:
+            source_order_mismatches.append({
+                "stage_id": displayed_sheet.card.get("manual_stage_id"),
+                "authored_action_ids": authored_ids,
+                "rendered_action_ids": qt_ids,
+            })
     sheet = sheets[-1]
     stage_id = actual_ids[-1]
     rows = sheet.findChildren(QFrame, "GuideManualLineRow")
@@ -277,6 +293,8 @@ def bottom_guide_observations(root, view, expected_card) -> dict:
         issues.append("BOTTOM_NOT_REACHED")
     if hidden_horizontal:
         issues.append("HIDDEN_HORIZONTAL_OVERFLOW")
+    if source_order_mismatches:
+        issues.append("SOURCE_ACTION_ORDER_CHANGED")
     if extent > 0 and not rows:
         issues.append("BOTTOM_LINES_MISSING")
     elif rows and not visible_rows and extent > 0:
@@ -292,6 +310,7 @@ def bottom_guide_observations(root, view, expected_card) -> dict:
         "stage_id": stage_id, "expected_stage_id": expected_id,
         "mounted_stage_ids": actual_ids, "expected_stage_ids": expected_ids,
         "bottom_stage_id": stage_id,
+        "source_order_mismatches": source_order_mismatches[:3],
         "scroll_position": position, "scroll_max": extent,
         "scroll_needed": bool(extent), "horizontal_overflow": hidden_horizontal,
         "line_rows_total": len(rows), "visible_line_rows": len(visible_rows),
