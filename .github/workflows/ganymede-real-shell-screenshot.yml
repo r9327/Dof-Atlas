@@ -109,8 +109,8 @@ jobs:
           assert all(not bar.isEnabled() for bar in shell.findChildren(QProgressBar))
           assert shell.sheet_title_label.text() == "Étape 1"
           assert len(shell.service.cards) == 64
-          assert shell.rendered_card_count == 3
-          assert shell._review_end_index == 3
+          assert shell.rendered_card_count == 1
+          assert shell._review_end_index == 1
           first_card = shell.cards_layout.itemAt(0).widget()
           assert first_card.isVisible() and first_card.height() > 0
           assert shell.page_jump.maximum() == 64
@@ -120,15 +120,30 @@ jobs:
           assert shell.summary_list.item(0).text().startswith("1. Contrôler le parcours")
           assert "Étape 1" not in shell.summary_list.item(0).text()
           pos = shell.findChildren(QLabel, "GuideManualPositionCopy")
-          assert len(pos) == 3
+          assert len(pos) == 1
           assert "travel-copy:25,-4" in pos[0].text()
-          assert not shell.findChildren(QToolButton, "GuideManualZaapShortcut")
-          assert not shell.findChildren(QFrame, "GuideManualActionGroup")
-          assert len(shell.findChildren(QLabel, "GuideManualLine")) >= 3
-          assert all(not row.text().lstrip().startswith(("•", "—"))
-                     for row in shell.findChildren(QLabel, "GuideManualLine"))
+          assert not shell.findChildren(QFrame, "GuideManualLineRow")
           assert shell.validation_host.isHidden()
           assert shell.validation_layout.count() == 0
+          step_one = Path("artifacts/screenshots/ganymede-cawotte-prerequisites-only-step1-qt.png")
+          assert backdrop.grab().save(str(step_one), "PNG")
+          # Step 3 contains three real candidate actions. The main screenshot
+          # must show ONLY step 3, rather than duplicating 1/2/3 in one page.
+          shell._show_index(2)
+          app.processEvents()
+          assert shell.sheet_title_label.text() == "Étape 3"
+          assert shell.page_jump.value() == 3
+          assert shell.rendered_card_count == 1
+          assert shell._review_end_index == 3
+          assert len(shell.findChildren(QFrame, "GuideManualSheet")) == 1
+          assert len(shell.findChildren(QFrame, "GuideManualLineRow")) == 3
+          assert len(shell.findChildren(QLabel, "GuideManualPositionCopy")) == 1
+          assert not shell.findChildren(QToolButton, "GuideManualZaapShortcut")
+          assert not shell.findChildren(QFrame, "GuideManualActionGroup")
+          assert not shell.findChildren(QLabel, "GuideManualSectionTitle")
+          assert not shell.findChildren(QLabel, "GuideManualStageTitle")
+          assert all(not row.text().lstrip().startswith(("•", "—"))
+                     for row in shell.findChildren(QLabel))
           target = Path("artifacts/screenshots/ganymede-cawotte-shell-qt.png")
           target.parent.mkdir(parents=True, exist_ok=True)
           shot = backdrop.grab()
@@ -158,13 +173,13 @@ jobs:
           shell.preparation_button.click()
           app.processEvents()
           assert shell.preparation_panel.isHidden()
-          # A taller viewport keeps the same three-step reading window.
+          # A taller viewport still shows only ONE authored source step.
           backdrop.resize(1280, 1050)
           app.processEvents()
           shell._refit_review_cards()
           app.processEvents()
-          assert shell.rendered_card_count == 3
-          tall = Path("artifacts/screenshots/ganymede-cawotte-three-steps-large-qt.png")
+          assert shell.rendered_card_count == 1
+          tall = Path("artifacts/screenshots/ganymede-cawotte-single-step-large-qt.png")
           assert backdrop.grab().save(str(tall), "PNG")
           backdrop.resize(1280, 720)
           app.processEvents()
@@ -174,13 +189,13 @@ jobs:
           shell.next_button.click()
           app.processEvents()
           assert first_end == 3
-          assert shell.view_index == 1
+          assert shell.view_index == 3
           shell.summary_button.click()
           app.processEvents()
           assert shell.summary_panel.isVisibleTo(shell)
           shell._summary_item_clicked(shell.summary_list.item(39))
           app.processEvents()
-          assert shell.view_index == 39 and shell.rendered_card_count == 3
+          assert shell.view_index == 39 and shell.rendered_card_count == 1
           assert shell.summary_panel.isVisibleTo(shell)
           summary = Path("artifacts/screenshots/ganymede-cawotte-summary-step-40-qt.png")
           assert backdrop.grab().save(str(summary), "PNG")
