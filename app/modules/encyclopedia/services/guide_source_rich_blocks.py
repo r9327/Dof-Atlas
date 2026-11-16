@@ -142,7 +142,11 @@ def validate_source_rich_blocks(raw: Any, action_text: str, label: str) -> None:
                 raise GuideRichContentError(f"{field}: source checkbox items required")
             for j, item in enumerate(items):
                 item_label = f"{field}.items[{j}]"
-                if not isinstance(item, dict) or set(item) != {"id", "text", "checked"}:
+                if (not isinstance(item, dict)
+                        or set(item) not in (
+                            {"id", "text", "checked"},
+                            {"id", "text", "checked", "runs"},
+                        )):
                     raise GuideRichContentError(f"{item_label}: exact checkbox schema required")
                 item_id = item["id"]
                 if (not isinstance(item_id, str) or not _ID.fullmatch(item_id)
@@ -150,6 +154,12 @@ def validate_source_rich_blocks(raw: Any, action_text: str, label: str) -> None:
                     raise GuideRichContentError(f"{item_label}: duplicate/invalid checkbox id")
                 seen_checks.add(item_id)
                 _nonempty(item["text"], f"{item_label}.text")
+                if "runs" in item and _runs(
+                    item["runs"], f"{item_label}.runs"
+                ) != item["text"]:
+                    raise GuideRichContentError(
+                        f"{item_label}: linked checkbox text differs from original"
+                    )
                 if type(item["checked"]) is not bool:
                     raise GuideRichContentError(f"{item_label}: boolean checked required")
         elif kind == "image":
