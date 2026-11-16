@@ -112,6 +112,32 @@ class SharedGuideSingleRendererContractTests(unittest.TestCase):
         assert "GuideMetricDropdown" in continuous
         assert "background" not in (VIEWS / "guide_continuous_route_panel.py").name
 
+    def test_all_guide_readers_keep_one_active_step_and_complete_summary(self) -> None:
+        """No guide-specific viewport packing: every route has one active step.
+
+        The full step list belongs to Sommaire, independent of viewport size,
+        route length or the guide selected in the catalogue.
+        """
+        shared = SHARED.read_text(encoding="utf-8")
+        preview = (VIEWS / "ganymede_guide_shell.py").read_text(encoding="utf-8")
+        continuous = (VIEWS / "guide_continuous_route_panel.py").read_text(
+            encoding="utf-8"
+        )
+        generated = (VIEWS / "guide_ultime_universal_view.py").read_text(
+            encoding="utf-8"
+        )
+
+        assert "self.rendered_card_count = 1" in shared
+        assert "for index, card in enumerate(self.service.cards):" in shared
+        assert "self.summary_list.addItem(item)" in shared
+        assert "self.rendered_card_count = 1" in preview
+        assert "self._review_end_index = index + 1" in preview
+        assert "self._populate_summary()" in preview
+        assert "pair_fills_gap" not in preview
+        assert "for i, row in enumerate(self.rows, 1)" in continuous
+        assert "self.title_label.setText(str(row.get(" in continuous
+        assert "self.rendered_card_count = 1" in generated
+
     def test_sylvestre_has_no_dedicated_qss_or_style_selector(self) -> None:
         for path in UI_STYLES.rglob("*.py") if UI_STYLES.exists() else ():
             source = path.read_text(encoding="utf-8").casefold()
