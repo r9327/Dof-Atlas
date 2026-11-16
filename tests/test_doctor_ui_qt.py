@@ -329,7 +329,8 @@ class DoctorUiQtFaultTests(unittest.TestCase):
         from PySide6.QtWidgets import QHBoxLayout, QLabel
         from PySide6.QtCore import QRect
 
-        sheet = self.view.findChild(QFrame, "GuideManualSheet")
+        # The scroll bottom is the final read-ahead sheet, not the active one.
+        sheet = self.view.findChildren(QFrame, "GuideManualSheet")[-1]
         for index in range(45):
             line = QFrame()
             line.setObjectName("GuideManualLineRow")
@@ -345,6 +346,13 @@ class DoctorUiQtFaultTests(unittest.TestCase):
         self.assertEqual(healthy["status"], "PASS", healthy)
         self.assertGreater(healthy["scroll_max"], 0)
         self.assertEqual(healthy["scroll_position"], healthy["scroll_max"])
+        self.assertEqual(
+            healthy["mounted_stage_ids"],
+            [card["manual_stage_id"] for card in self.service.cards],
+        )
+        self.assertEqual(
+            healthy["bottom_stage_id"], self.service.cards[-1]["manual_stage_id"],
+        )
         self.assertGreater(healthy["visible_line_rows"], 0)
         self.assertGreater(healthy["visible_line_text_labels"], 0)
         self.assertIn("GuideBottomAction",
