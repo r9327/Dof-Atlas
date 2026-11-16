@@ -2064,10 +2064,9 @@ class SharedGuideManualView(GuideUltimeManualView):
             )
         )
         top.addWidget(self.page_jump, 0, Qt.AlignTop)
-        # X/X and Previous/Next replace the redundant Sommaire in every
-        # guide. Keep the legacy control detached for existing callers.
-        self._route_metric_caption.removeWidget(self.summary_button)
-        self.summary_button.setParent(header)
+        # X/X and Previous/Next replace Sommaire. Leave the legacy
+        # disclosure parented in its existing layout, but hidden, so Qt
+        # retains its original ownership during screen teardown.
         self.summary_button.hide()
 
         self.participants_button = AtlasGuideCharacterButton()
