@@ -47,6 +47,22 @@ SPACING = {
     "SPACE_3XL": "24px",
 }
 
+# Indexed Qt layout metrics for the single Guide reading surface.
+# All sizes derive from the same Dev UI spacing tokens, not per-guide CSS.
+_GUIDE_SPACE_PX = {
+    key: int(value.removesuffix("px")) for key, value in SPACING.items()
+}
+GUIDE_READING_METRICS = {
+    "sheet_horizontal": _GUIDE_SPACE_PX["SPACE_LG"],
+    "sheet_vertical": _GUIDE_SPACE_PX["SPACE_MD"],
+    "sheet_spacing": _GUIDE_SPACE_PX["SPACE_SM"],
+    "section_horizontal": _GUIDE_SPACE_PX["SPACE_MD"],
+    "section_vertical": _GUIDE_SPACE_PX["SPACE_SM"],
+    "section_spacing": _GUIDE_SPACE_PX["SPACE_XS"],
+    "row_spacing": _GUIDE_SPACE_PX["SPACE_XS"],
+    "reading_gap": _GUIDE_SPACE_PX["SPACE_SM"],
+}
+
 SIZES = {
     "RADIUS_XS": "4px",
     "RADIUS_SM": "6px",
