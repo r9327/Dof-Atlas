@@ -18,6 +18,17 @@ ENTITY_LINK_COLOR_ROLES = {
     "position": "TEXT_SOFT",
     "quest": "TEXT_SOFT",
 }
+# Ganymède's source HTML also highlights free-form prose by color, without
+# identifying an entity. Preserve that visual distinction using ONLY indexed
+# Unity tokens; never embed source RGB values into Qt styles.
+GUIDE_SOURCE_HIGHLIGHT_COLOR_ROLES = {
+    "source-blue": "BORDER_STRONG",
+    "source-yellow": "YELLOW",
+    "source-white": "TEXT",
+    "source-green": "GREEN",
+    "source-red": "RED_HOVER",
+}
+
 # Keep existing Guide consumers/source indexes compatible with the global map.
 GUIDE_ENTITY_LINK_ROLES = ENTITY_LINK_COLOR_ROLES
 
