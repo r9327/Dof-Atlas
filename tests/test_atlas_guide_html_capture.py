@@ -396,5 +396,84 @@ class AtlasGuideHtmlCaptureTests(unittest.TestCase):
         )
 
 
+    def test_explicit_authored_material_section_moves_to_prepare_only(self):
+        """The material declaration and item links move, travel stays."""
+        html = """<article id="step-1"><h2>Step 1 [25,-4]</h2>
+        <div class="guide-content">
+        <p>Prévoyez les ressources suivantes :</p>
+        <p>Art gastronomique:</p>
+        <p>1 <a href="https://example.org/item/1">
+          <span data-type="custom-tag" type="item" dofusdbid="1">
+          <img alt="item" src="https://example.org/i.png">Cawotte</span></a>
+          (droppable plus tard)</p>
+        <p>Si vous voulez obtenir le sort, prévoyez 100 Cawotte plus tard.</p>
+        <p>Ensuite allez en [24,-3] [zaap:25,-4]</p>
+        <p>Parlez au PNJ du village.</p>
+        </div></article>"""
+        step = extract_saved_html(html)[0]["step"]
+        self.assertEqual(step["preparation_block_indexes"], [0, 1, 2, 3])
+        self.assertNotIn("prerequisite_block_indexes", step)
+        from app.modules.encyclopedia.services.guide_shared_route_contract import (
+            project_authorized_guide, assert_source_fidelity,
+        )
+        guide = {"guide_id": "fictional", "title": "Fixture", "steps": [step]}
+        projected = project_authorized_guide(guide)
+        assert_source_fidelity(guide, projected)
+        self.assertEqual(projected["steps"][0]["manual_preparation_block_indexes"],
+                         [0, 1, 2, 3])
+        original = projected["steps"][0]["manual_runtime_metadata"]["source_step"]
+        self.assertEqual(original["actions"][0]["rich_blocks"][4]["runs"][0]["text"],
+                         "Ensuite allez en [24,-3] [zaap:25,-4]")
+
+    def test_equipment_before_ensuite_keeps_dialogue_in_route(self):
+        html = """<article id="step-1"><h2>Step 1 [23,-4]</h2>
+        <div class="guide-content">
+          <p>Parlez au PNJ puis revenez.</p>
+          <p>Vérifiez que vous avez les équipements ci-dessous :</p>
+          <p>1 <span data-type="custom-tag" type="equipment" dofusdbid="19">
+             Couronne du Wa Wabbit</span></p>
+          <p>1 <span data-type="custom-tag" type="equipment" dofusdbid="18">
+             Bâton du Wa Wabbit</span></p>
+          <p>Astuce : prévoyez une cape pour chaque personnage.</p>
+          <p>Ensuite allez en [28,-12].</p>
+        </div></article>"""
+        step = extract_saved_html(html)[0]["step"]
+        self.assertEqual(step["preparation_block_indexes"], [1, 2, 3, 4])
+        self.assertEqual(len(step["actions"][0]["rich_blocks"]), 6)
+
+    def test_party_gate_keeps_remainder_as_route_action(self):
+        html = """<article id="step-1"><h2>Step 1 [22,-10]</h2>
+        <div class="guide-content">
+        <p>Prévoyez l'aide de <span style="color: rgb(255, 255, 0);">
+        3</span> personnages, placez les comme ci-dessous :</p>
+        <p>Une fois la grille ouverte, traversez-la.</p>
+        </div></article>"""
+        step = extract_saved_html(html)[0]["step"]
+        lead = step["prerequisite_inline_leads"][0]
+        self.assertEqual(lead["block_index"], 0)
+        self.assertTrue(lead["prefix"].endswith(", "))
+        self.assertEqual(step["prerequisites"][0]["party_size"], 3)
+        original = "".join(
+            run["text"] for run in step["actions"][0]["rich_blocks"][0]["runs"]
+        )
+        self.assertTrue(original.startswith(lead["prefix"]))
+        self.assertIn("placez les comme ci-dessous", original[len(lead["prefix"]):])
+        from app.modules.encyclopedia.services.guide_shared_route_contract import (
+            project_authorized_guide, assert_source_fidelity,
+        )
+        guide = {"guide_id": "party-fixture", "title": "Party",
+                 "steps": [step]}
+        assert_source_fidelity(guide, project_authorized_guide(guide))
+
+    def test_source_materials_without_typed_link_stay_in_route(self):
+        html = """<article id="step-1"><h2>Step 1 [1,1]</h2>
+        <div class="guide-content">
+         <p>Prévoyez les ressources suivantes :</p>
+         <p>Inspectez les ressources au village sans les acheter.</p>
+        </div></article>"""
+        step = extract_saved_html(html)[0]["step"]
+        self.assertNotIn("preparation_block_indexes", step)
+
+
 if __name__ == "__main__":
     unittest.main()

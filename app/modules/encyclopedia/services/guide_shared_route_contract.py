@@ -59,7 +59,8 @@ _SUPPORTED_ACTION_FIELDS = frozenset({
 _SUPPORTED_STEP_FIELDS = frozenset({
     "source_step_id", "title", "coordinates", "actions",
     "quest_ids", "quest_names", "prerequisites",
-    "prerequisite_block_indexes",
+    "prerequisite_block_indexes", "preparation_block_indexes",
+    "prerequisite_inline_leads",
 }) | _EVIDENCE_ONLY_FIELDS | _UNRENDERED_STEP_FIELDS
 
 
@@ -235,6 +236,12 @@ def assert_source_fidelity(
             "prerequisite_block_indexes", []
         ):
             raise GuideRouteContractError(f"{prefix}: source prerequisite placement changed")
+        if card.get("manual_preparation_block_indexes") != original.get(
+            "preparation_block_indexes", []
+        ) or card.get("manual_prerequisite_inline_leads") != original.get(
+            "prerequisite_inline_leads", []
+        ):
+            raise GuideRouteContractError(f"{prefix}: source section placement changed")
 
 
 
@@ -281,6 +288,26 @@ def project_authorized_guide(guide: dict[str, Any]) -> dict[str, Any]:
             raise GuideRouteContractError(
                 f"{prefix}.prerequisite_block_indexes: ordered distinct indexes required"
             )
+        prep_indexes = step.get("preparation_block_indexes", [])
+        if not isinstance(prep_indexes, list) or any(
+            type(i) is not int or i < 0 for i in prep_indexes
+        ) or prep_indexes != sorted(set(prep_indexes)) or set(prep_indexes) & set(prereq_indexes):
+            raise GuideRouteContractError(
+                f"{prefix}.preparation_block_indexes: distinct non-overlapping indexes required"
+            )
+        inline_leads = step.get("prerequisite_inline_leads", [])
+        if not isinstance(inline_leads, list) or any(
+            not isinstance(lead, dict)
+            or set(lead) != {"block_index", "prefix"}
+            or type(lead["block_index"]) is not int
+            or lead["block_index"] < 0
+            or not isinstance(lead["prefix"], str)
+            or not lead["prefix"]
+            for lead in inline_leads
+        ):
+            raise GuideRouteContractError(
+                f"{prefix}.prerequisite_inline_leads: typed original source prefixes required"
+            )
         actions = step.get("actions")
         if not isinstance(actions, list) or not actions:
             raise GuideRouteContractError(f"{prefix}.actions: nonempty list required")
@@ -289,6 +316,36 @@ def project_authorized_guide(guide: dict[str, Any]) -> dict[str, Any]:
         resource_names: list[str] = []
         seen_actions: set[str] = set()
         source_action_order: list[str] = []
+        if prep_indexes or inline_leads:
+            if len(actions) != 1 or not isinstance(actions[0], dict):
+                raise GuideRouteContractError(
+                    f"{prefix}: source visual indexes require one authored action"
+                )
+            rich = actions[0].get("rich_blocks")
+            if not isinstance(rich, list) or any(
+                i >= len(rich) or rich[i].get("type") not in {
+                    "paragraph", "heading", "checklist"
+                } for i in prep_indexes
+            ):
+                raise GuideRouteContractError(
+                    f"{prefix}.preparation_block_indexes: invalid source blocks"
+                )
+            inline_indexes: set[int] = set()
+            for lead in inline_leads:
+                i = lead["block_index"]
+                if (i in inline_indexes or i in prep_indexes or i in prereq_indexes
+                        or i >= len(rich) or rich[i].get("type") != "paragraph"):
+                    raise GuideRouteContractError(
+                        f"{prefix}.prerequisite_inline_leads: ambiguous source paragraph"
+                    )
+                inline_indexes.add(i)
+                content = "".join(run["text"] for run in rich[i]["runs"])
+                if (not content.startswith(lead["prefix"])
+                        or not content[len(lead["prefix"]):].strip()
+                        or not step.get("prerequisites")):
+                    raise GuideRouteContractError(
+                        f"{prefix}.prerequisite_inline_leads: not a proven text prefix"
+                    )
         if prereq_indexes:
             # Saved HTML source has one authored action per original page.
             # Prerequisite indexes refer to those immutable rich blocks only.
@@ -524,6 +581,8 @@ def project_authorized_guide(guide: dict[str, Any]) -> dict[str, Any]:
             "profession_gates": profession_gates,
             "hard_runtime_gates": copy.deepcopy(step.get("prerequisites", [])),
             "manual_prerequisite_block_indexes": list(prereq_indexes),
+            "manual_preparation_block_indexes": list(prep_indexes),
+            "manual_prerequisite_inline_leads": copy.deepcopy(inline_leads),
             "manual_runtime_metadata": {
                 "source_guide_id": guide_id,
                 "source_step_id": source_id,

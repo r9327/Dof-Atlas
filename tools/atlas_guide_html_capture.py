@@ -433,6 +433,105 @@ def _prerequisite_block_indexes(
                 result.append(index + 1)
     return sorted(set(result))
 
+
+# Explicit source-language section cues, never arbitrary item/quest mentions.
+# Reused by all guides: no source ID or Cawotte-specific path is consulted.
+_SOURCE_MATERIALS_START = re.compile(
+    r"(?:pr[eé]voyez les ressources suivantes|v[eé]rifiez que vous avez "
+    r"les [eé]quipements ci[- ]dessous|pr[eé]parez (?:les )?"
+    r"(?:ressources|objets|[eé]quipements) suivant(?:s|es)|"
+    r"prepare the following (?:resources|items|equipment)|"
+    r"make sure you have the following equipment)", re.I,
+)
+_SOURCE_MATERIALS_END = re.compile(
+    r"^\s*(?:ensuite\b|puis allez\b|continuez\b|rendez[- ]vous\b|"
+    r"ensuite allez\b|then go\b|afterwards go\b)", re.I,
+)
+_SOURCE_GROUP_GATE = re.compile(
+    r"^\s*(pr[eé]voyez l['’]aide de\s+([1-9]\d*)\s+personnages)"
+    r"(\s*,\s*|\s*:\s*|\s*\.\s*)", re.I,
+)
+
+
+def _source_explicit_material_indexes(
+    blocks: list[dict[str, Any]], prerequisite_indexes: list[int],
+) -> list[int]:
+    """Index only an authored preparation section with confirmed item links.
+
+    Keep all narrative, quantities, optional/future notes and original blocks
+    untouched. Unrelated NPC/item references inside Route must not move.
+    """
+    excluded = set(prerequisite_indexes)
+    picked: list[int] = []
+    index = 0
+    while index < len(blocks):
+        block = blocks[index]
+        if (index in excluded or block["type"] not in {"paragraph", "heading"}
+                or not _SOURCE_MATERIALS_START.search(
+                    "".join(run["text"] for run in block["runs"])
+                )):
+            index += 1
+            continue
+        end = index + 1
+        while end < len(blocks):
+            following = blocks[end]
+            if end in excluded or following["type"] not in {
+                "paragraph", "heading", "checklist"
+            }:
+                break
+            prose = (
+                "".join(run["text"] for run in following["runs"])
+                if following["type"] in {"paragraph", "heading"} else
+                " ".join(item["text"] for item in following["items"])
+            )
+            if _SOURCE_MATERIALS_END.match(prose):
+                break
+            end += 1
+        # The author must actually reference an item/equipment. Otherwise a
+        # similar phrase can introduce a gameplay action, not a material list.
+        def has_item_link(entry: dict[str, Any]) -> bool:
+            runs = (
+                entry["runs"] if entry["type"] in {"paragraph", "heading"}
+                else [run for item in entry["items"] for run in item.get("runs", ())]
+            )
+            return any(run.get("role") in {"item", "equipment"} for run in runs)
+        if any(has_item_link(blocks[i]) for i in range(index + 1, end)):
+            picked.extend(range(index, end))
+            index = end
+        else:
+            index += 1
+    return sorted(set(picked))
+
+
+def _source_inline_group_requirements(
+    blocks: list[dict[str, Any]], excluded: list[int],
+) -> tuple[list[dict[str, Any]], list[dict[str, Any]]]:
+    """Split a dual-purpose opening paragraph at its exact authored comma.
+
+    'Prévoyez l'aide de 3 personnages, placez les...' yields a prerequisite
+    prefix and the remaining gameplay instruction. Concatenating both visible
+    parts reconstructs the unmodified source text and styled rich runs.
+    """
+    gates: list[dict[str, Any]] = []
+    leads: list[dict[str, Any]] = []
+    for index, block in enumerate(blocks):
+        if index in excluded or block["type"] != "paragraph":
+            continue
+        prose = "".join(run["text"] for run in block["runs"])
+        match = _SOURCE_GROUP_GATE.match(prose)
+        if not match or not prose[match.end():].strip():
+            continue
+        size = int(match.group(2))
+        if not 1 <= size <= 8:
+            continue  # Unknown group requirement, keep original in Route.
+        gates.append({
+            "name": match.group(1),
+            "source_kind": "party_size_requirement",
+            "party_size": size,
+        })
+        leads.append({"block_index": index, "prefix": match.group(0)})
+    return gates, leads
+
 def extract_saved_html(html: str, *, assets: dict[str, Path] | None = None
                        ) -> list[dict[str, Any]]:
     """Capture exactly the visible article boundaries from one saved HTML page."""
@@ -494,11 +593,19 @@ def extract_saved_html(html: str, *, assets: dict[str, Path] | None = None
         # Exact source words + typed links supply the auxiliary Prérequis tab.
         # The original ordered rich blocks are retained verbatim on the sheet.
         gates = _source_explicit_prerequisites(contents[0])
+        indexes = _prerequisite_block_indexes(blocks, gates)
+        inline_gates, inline_leads = _source_inline_group_requirements(blocks, indexes)
+        if inline_gates:
+            gates.extend(inline_gates)
         if gates:
             stage["prerequisites"] = gates
-            indexes = _prerequisite_block_indexes(blocks, gates)
-            if indexes:
-                stage["prerequisite_block_indexes"] = indexes
+        if indexes:
+            stage["prerequisite_block_indexes"] = indexes
+        if inline_leads:
+            stage["prerequisite_inline_leads"] = inline_leads
+        materials = _source_explicit_material_indexes(blocks, indexes)
+        if materials:
+            stage["preparation_block_indexes"] = materials
         result.append({"number": number, "step": stage})
     return result
 
