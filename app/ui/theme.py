@@ -4,7 +4,7 @@ from collections.abc import Mapping
 from functools import lru_cache
 
 from app.ui.unity_palette import (
-    UNITY_COLOR_ALIAS_ROLES, UNITY_GLASS_INTENSITY, UNITY_RADII, UNITY_SIZES_PX,
+    GUIDE_ENTITY_LINK_ROLES, UNITY_COLOR_ALIAS_ROLES, UNITY_GLASS_INTENSITY, UNITY_RADII, UNITY_SIZES_PX,
     UNITY_SPACING_PX, UNITY_TYPOGRAPHY,
     resolve_unity_colors, unity_glass_gradient,
 )
@@ -15,6 +15,9 @@ from app.ui.unity_skin import UNITY_PALETTE, unity_skin_stylesheet
 # Palette, typography and spacing are all indexed in the Qt-free Unity
 # contract. QSS, dialog previews and Launcher reuse these exact same tokens.
 PALETTE = resolve_unity_colors()
+GUIDE_ENTITY_LINK_COLORS = {
+    category: PALETTE[role] for category, role in GUIDE_ENTITY_LINK_ROLES.items()
+}
 TYPOGRAPHY = dict(UNITY_TYPOGRAPHY)
 SPACING = {
     f"SPACE_{name.upper()}": f"{px}px"
