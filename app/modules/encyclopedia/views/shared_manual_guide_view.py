@@ -875,6 +875,12 @@ class SharedGuideManualCard(GuideUltimeManualCard):
 
             row_widget = QFrame()
             row_widget.setObjectName("GuideManualLineRow")
+            if self.card.get("manual_source") is True and "source_step_id" in self.card:
+                # Stable, source-authored ordering evidence for Doctor.
+                # No extra visual widget or per-guide renderer is introduced.
+                row_widget.setProperty(
+                    "sourceActionId", str(row.get("source_action_id") or ""),
+                )
             if section_key == "prepare":
                 row_widget.setStyleSheet(
                     "QFrame#GuideManualLineRow { background: transparent; border: none; }"
