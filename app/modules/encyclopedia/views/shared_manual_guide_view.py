@@ -628,6 +628,43 @@ class SharedGuideManualCard(GuideUltimeManualCard):
             rendered = rendered.replace(anchor, icon + anchor, 1)
         return rendered
 
+    @staticmethod
+    def _source_monster_entity_links(
+        source_action: Any,
+    ) -> tuple[tuple[str, str, int], ...]:
+        """Only source-confirmed game IDs can point to the Bestiary.
+
+        The Bestiary will resolve the family from the monster ID itself.
+        Never guess identity from an action title or a combat checkbox.
+        """
+        if not isinstance(source_action, dict):
+            return ()
+        monsters = source_action.get("monsters")
+        if not isinstance(monsters, list):
+            return ()
+        links: list[tuple[str, str, int]] = []
+        for monster in monsters:
+            if not isinstance(monster, dict):
+                continue
+            name = monster.get("name")
+            monster_id = monster.get("monster_id")
+            boss_id = monster.get("boss_id")
+            if not isinstance(name, str) or not name.strip():
+                continue
+            if type(boss_id) is int and boss_id > 0 and monster_id is None:
+                links.append((name.strip(), "boss", boss_id))
+            elif type(monster_id) is int and monster_id > 0 and boss_id is None:
+                links.append((name.strip(), "monster", monster_id))
+        return tuple(links)
+
+    def _copy_link_target(self, href: str) -> None:
+        # Keep item names and /travel copy behavior independent of Bestiary.
+        match = re.fullmatch(r"atlas-entity:(monster|boss):([1-9]\d*)", str(href or ""))
+        if match:
+            self.entityRequested.emit(match.group(1), int(match.group(2)))
+            return
+        super()._copy_link_target(href)
+
     def _add_line_section(
         self,
         root: QVBoxLayout,
@@ -792,6 +829,7 @@ class SharedGuideManualCard(GuideUltimeManualCard):
                 "— " if is_coordinate else prefix,
                 "" if is_coordinate else position,
                 text, npc_names, self._resource_names,
+                entity_links=self._source_monster_entity_links(source_action),
             )
             if isinstance(source_action, dict):
                 rendered_text = self._inline_source_item_images(
@@ -2843,6 +2881,7 @@ class SharedGuideManualView(GuideUltimeManualView):
         )
         self._sync_validation_control(widget.page_check, card, index)
         widget.questRequested.connect(self._open_quest_from_card)
+        widget.entityRequested.connect(self._open_entity_from_card)
         self._set_validation_widget(widget.page_check)
         self.cards_layout.addWidget(widget)
         self.cards_layout.addStretch(1)
@@ -2871,6 +2910,16 @@ class SharedGuideManualView(GuideUltimeManualView):
             return
         if not prefetch(index, max_reads=1):
             self._catalog_prefetch_timer.stop()
+
+    def _open_entity_from_card(self, entity_type: str, entity_id: int) -> None:
+        """Route through the shared navigator; never fabricate a Bestiary page."""
+        navigator = self.navigate_entity
+        if callable(navigator) and navigator(
+            entity_type, entity_id, source="guide",
+        ):
+            return
+        QToolTip.showText(QCursor.pos(), "Fiche Bestiaire indisponible", self)
+        QTimer.singleShot(800, QToolTip.hideText)
 
     def _open_quest_from_card(self, quest_id: int, stage_id: str, index: int) -> None:
         navigator = self.navigate_entity
