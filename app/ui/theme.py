@@ -9,15 +9,15 @@ from app.ui.unity_palette import (
     resolve_unity_colors, unity_glass_gradient,
 )
 from app.ui.organizer_style import ORGANIZER_STYLE_TEMPLATE
+from app.ui.entity_link_roles import entity_link_colors
 from app.ui.unity_skin import UNITY_PALETTE, unity_skin_stylesheet
 
 
 # Palette, typography and spacing are all indexed in the Qt-free Unity
 # contract. QSS, dialog previews and Launcher reuse these exact same tokens.
 PALETTE = resolve_unity_colors()
-GUIDE_ENTITY_LINK_COLORS = {
-    category: PALETTE[role] for category, role in GUIDE_ENTITY_LINK_ROLES.items()
-}
+GUIDE_ENTITY_LINK_COLORS = entity_link_colors(PALETTE)
+ENTITY_LINK_COLORS = GUIDE_ENTITY_LINK_COLORS
 TYPOGRAPHY = dict(UNITY_TYPOGRAPHY)
 SPACING = {
     f"SPACE_{name.upper()}": f"{px}px"
