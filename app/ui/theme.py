@@ -2729,6 +2729,7 @@ QToolButton#GuidePreparationToggle:checked {
     border-color: @GREEN_BORDER;
 }
 
+QPushButton#GuidePreparationModeTab,
 QPushButton#GuidePreparationFilter {
     background: @PANEL_2;
     color: @BORDER;
@@ -2738,6 +2739,8 @@ QPushButton#GuidePreparationFilter {
     font-weight: 700;
 }
 
+QPushButton#GuidePreparationModeTab:hover,
+QPushButton#GuidePreparationModeTab:checked,
 QPushButton#GuidePreparationFilter:hover,
 QPushButton#GuidePreparationFilter:checked {
     background: @PANEL_ACTIVE;
@@ -2926,7 +2929,15 @@ QToolButton#GuideParticipantPortrait:checked {
 
 /* Guide action rows are layout surfaces, never native black Qt panels. */
 QFrame#GuideManualActionGroup,
-QFrame#GuideManualLineRow {
+QFrame#GuideManualLineRow,
+QFrame#GuideManualReviewSection {
+    background: transparent;
+    border: none;
+}
+/* Source review keeps one indexed rectangular sheet, no nested card border. */
+QLabel#GuideManualReviewInfo {
+    color: @TEXT_MUTED;
+    font-size: @FONT_SMALL;
     background: transparent;
     border: none;
 }
