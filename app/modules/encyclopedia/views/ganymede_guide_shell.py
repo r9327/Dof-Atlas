@@ -224,21 +224,29 @@ class GanymedeGuideShell(SharedGuideManualView):
             )
             widget.page_check.setEnabled(False)
             widget.page_check.hide()
-            widget.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Minimum)
+            # A sheet is content-sized, never stretched just to fill the
+            # viewport. The trailing layout spacer owns spare vertical space.
+            widget.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Maximum)
             widget.layout().setAlignment(Qt.AlignTop)
 
-            # Preserve a full source step even when text wraps well beyond
-            # the viewport. Qt's scroll area owns the overflow.
-            estimated = max(1, widget.sizeHint().height())
-            for label in widget.findChildren(QLabel):
-                if label.wordWrap() and label.hasHeightForWidth():
-                    wrapped = label.heightForWidth(label_width)
-                    if wrapped > label.sizeHint().height():
-                        estimated += wrapped - label.sizeHint().height()
-            if not self._compact_review_card(cards[number]):
-                widget.setMinimumHeight(max(1, estimated))
+            # Only genuinely long text needs an explicit wrapped lower bound.
+            # Prerequisite-only/short steps must not inherit a 100px+ card.
+            entries = cards[number].get("manual_sections", {}).get("now", ())
+            has_long_text = any(
+                isinstance(row, dict)
+                and len(str(row.get("text") or "")) > 160
+                for row in entries
+            )
+            if has_long_text:
+                estimated = max(1, widget.sizeHint().height())
+                for label in widget.findChildren(QLabel):
+                    if label.wordWrap() and label.hasHeightForWidth():
+                        wrapped = label.heightForWidth(label_width)
+                        if wrapped > label.sizeHint().height():
+                            estimated += wrapped - label.sizeHint().height()
+                widget.setMinimumHeight(estimated)
             else:
-                widget.setMinimumHeight(widget.minimumSizeHint().height())
+                widget.setMinimumHeight(0)
             self.cards_layout.addWidget(widget)
             widget.show()
             self.rendered_card_count += 1
