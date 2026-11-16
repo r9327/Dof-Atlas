@@ -205,6 +205,8 @@ def _native_visual_probe(route: dict, cover_png: bytes) -> None:
         shell._show_index(0)
         shell.preparation_button.click()
         app.processEvents()
+        if shell._preparation_tab != "Prérequis":
+            raise AssertionError("Imported guide opens the wrong prerequisite tab")
         first_preview = tuple(shell._preparation_preview)
         if not backdrop.grab().save(str(out / "real-cawotte-prerequisites.png"), "PNG"):
             raise AssertionError("Prerequisites screenshot failed")

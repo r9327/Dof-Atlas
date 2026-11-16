@@ -34,6 +34,7 @@ TYPOGRAPHY = {
     "FONT_BODY": "12px",
     "FONT_SMALL": "11px",
     "FONT_TITLE": "18px",
+    "FONT_GUIDE_READING": "14px",
 }
 
 SPACING = {
@@ -2974,7 +2975,7 @@ QLabel#GuideManualPositionCopy {
 #GuideManualLine,
 #GuideManualSourceChecklistText {
     color: @TEXT_SOFT;
-    font-size: 14px;
+    font-size: @FONT_GUIDE_READING;
     padding: 3px 0;
     background: transparent;
     border: none;

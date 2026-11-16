@@ -1785,6 +1785,7 @@ class SharedGuideManualView(GuideUltimeManualView):
         # Keep materials as the default for existing playable guides.
         # A metadata-only preview may explicitly select prerequisites.
         self._preparation_tab = "À préparer"
+        self._source_prerequisites_defaulted = False
         self.preparation_tab_group = QButtonGroup(self)
         self.preparation_tab_group.setExclusive(True)
         tab_row = QHBoxLayout()
@@ -2171,6 +2172,16 @@ class SharedGuideManualView(GuideUltimeManualView):
             )
 
     def _preparation_toggled(self, opened: bool) -> None:
+        if opened and self._is_imported_source_guide() and not self._source_prerequisites_defaulted:
+            # Imported Ganymède always opens the source prerequisites first.
+            # A user-selected À préparer tab is preserved on later opens.
+            self._source_prerequisites_defaulted = True
+            self._preparation_tab = "Prérequis"
+            self.preparation_filter_host.hide()
+            for button in self.preparation_tab_group.buttons():
+                if button.property("tabKey") == "Prérequis":
+                    button.setChecked(True)
+                    break
         self.preparation_panel.setVisible(bool(opened))
         if not opened:
             return
