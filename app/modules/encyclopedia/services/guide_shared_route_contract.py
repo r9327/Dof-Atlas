@@ -160,7 +160,7 @@ def assert_source_fidelity(
     source_metadata = {key: value for key, value in source.items() if key != "steps"}
     if projected.get("source_guide_metadata") != source_metadata:
         raise GuideRouteContractError("source fidelity: guide metadata changed")
-    section_order = ("prepare", "now", "opportunity", "keep", "boss", "before_leave")
+    section_names = ("prepare", "now", "opportunity", "keep", "boss", "before_leave")
     for index, (original, card) in enumerate(zip(original_steps, cards)):
         prefix = f"source fidelity: steps[{index}]"
         if not isinstance(original, dict) or not isinstance(card, dict):
@@ -177,35 +177,47 @@ def assert_source_fidelity(
             )
         ):
             raise GuideRouteContractError(f"{prefix}: identity/title changed")
+        actions = original.get("actions")
+        if not isinstance(actions, list):
+            raise GuideRouteContractError(f"{prefix}: source actions missing")
+        action_order = [str(action.get("action_id")) for action in actions]
+        if card.get("manual_source_action_order") != action_order:
+            raise GuideRouteContractError(f"{prefix}: original action order changed")
         sections = card.get("manual_sections")
         if not isinstance(sections, dict):
             raise GuideRouteContractError(f"{prefix}: source sections missing")
         rows = []
-        for section in section_order:
+        for section in section_names:
             entries = sections.get(section, [])
             if not isinstance(entries, list):
                 raise GuideRouteContractError(f"{prefix}: malformed {section} section")
-            rows.extend(entries)
-        actions = original.get("actions")
-        if not isinstance(actions, list) or len(rows) != len(actions):
+            for row in entries:
+                if not isinstance(row, dict) or row.get("source_section") != section:
+                    raise GuideRouteContractError(f"{prefix}: wrong source section")
+                rows.append(row)
+        if len(rows) != len(actions):
             raise GuideRouteContractError(f"{prefix}: action count changed")
-        for action_index, (action, row) in enumerate(zip(actions, rows)):
+        by_id = {row["source_action_id"]: row for row in rows}
+        if len(by_id) != len(actions):
+            raise GuideRouteContractError(f"{prefix}: duplicate action projection")
+        for action_index, action in enumerate(actions):
             label = f"{prefix}.actions[{action_index}]"
-            if not isinstance(action, dict) or not isinstance(row, dict):
-                raise GuideRouteContractError(f"{label}: action missing")
+            row = by_id.get(str(action.get("action_id")))
             if (
-                row.get("source_action") != action
+                not isinstance(row, dict)
+                or row.get("source_action") != action
                 or row.get("source_action_id") != str(action.get("action_id"))
                 or row.get("text") != action.get("text")
-                or (row.get("source_rich_blocks") != action.get("rich_blocks"))
+                or row.get("source_rich_blocks") != action.get("rich_blocks")
             ):
                 raise GuideRouteContractError(f"{label}: source action changed")
         visible = [
-            row for section in section_order if section != "prepare"
-            for row in sections[section]
+            row for section in section_names if section != "prepare"
+            for row in sections.get(section, [])
         ]
         if card.get("manual_lines") != visible:
             raise GuideRouteContractError(f"{prefix}: UI lines diverge from source")
+
 
 
 def project_authorized_guide(guide: dict[str, Any]) -> dict[str, Any]:
@@ -251,7 +263,7 @@ def project_authorized_guide(guide: dict[str, Any]) -> dict[str, Any]:
         preparation: list[dict[str, Any]] = []
         resource_names: list[str] = []
         seen_actions: set[str] = set()
-        last_rank = -1
+        source_action_order: list[str] = []
         for action_index, action in enumerate(actions):
             label = f"{prefix}.actions[{action_index}]"
             if not isinstance(action, dict):
@@ -260,6 +272,7 @@ def project_authorized_guide(guide: dict[str, Any]) -> dict[str, Any]:
             if action_id in seen_actions:
                 raise GuideRouteContractError(f"{label}: duplicate action_id {action_id}")
             seen_actions.add(action_id)
+            source_action_order.append(action_id)
             kind = _text(action.get("kind"), f"{label}.kind")
             if kind not in _KINDS:
                 raise GuideRouteContractError(f"{label}: unsupported action kind {kind!r}")
@@ -343,18 +356,9 @@ def project_authorized_guide(guide: dict[str, Any]) -> dict[str, Any]:
                         raise GuideRouteContractError(
                             f"{label}.{field}: not renderable in preparation panel"
                         )
-            if section == "prepare" and last_rank >= 0:
-                raise GuideRouteContractError(
-                    f"{label}: preparation would reorder source actions"
-                )
-            # Existing SharedGuideManualCard renders sections in a fixed order.
-            # Reject source order incompatible with that UI instead of silently
-            # rearranging an action. Preparation is a separate shared panel.
-            if section != "prepare":
-                rank = _SECTIONS.index(section)
-                if rank < last_rank:
-                    raise GuideRouteContractError(f"{label}: section would reorder source actions")
-                last_rank = rank
+            # Source actions may alternate between preparation, travel,
+            # conversations and warnings. Display follows the authored
+            # sequence; Atlas sections are only metadata for presentation.
             row = {
                 "kind": "combat" if kind in {"fight", "combat"} else
                         "warning" if kind == "warning" else "action",
@@ -364,6 +368,7 @@ def project_authorized_guide(guide: dict[str, Any]) -> dict[str, Any]:
                 "position": f"[{position}]" if position else "",
                 "source_action_id": action_id,
                 "source_action_kind": kind,
+                "source_section": section,
                 "source_action": copy.deepcopy(action),
             }
             if "rich_blocks" in action:
@@ -469,6 +474,7 @@ def project_authorized_guide(guide: dict[str, Any]) -> dict[str, Any]:
             "manual_route_position": step_position,
             "manual_sections": sections,
             "manual_lines": [row for name in _SECTIONS for row in sections[name]],
+            "manual_source_action_order": source_action_order,
             "manual_resource_names": resource_names,
             "manual_quest_ids": copy.deepcopy(step.get("quest_ids", [])),
             "manual_quest_names": copy.deepcopy(step.get("quest_names", [])),
