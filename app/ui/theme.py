@@ -21,6 +21,22 @@ PALETTE = {
     "BADGE_TEXT": "#C9D44C",
 }
 
+# One semantic color contract for inline Guide text, sourced only from the
+# approved Unity palette. The Dev UI can expose these same roles without
+# introducing a separate stylesheet or hard-coded colors per Guide.
+GUIDE_ENTITY_LINK_ROLES = {
+    "monster": "DANGER_TEXT",
+    "boss": "RED_HOVER",
+    "item": "GREEN",
+    "equipment": "BORDER_STRONG",
+    "npc": "YELLOW",
+    "position": "TEXT_SOFT",
+    "quest": "TEXT_SOFT",
+}
+GUIDE_ENTITY_LINK_COLORS = {
+    category: PALETTE[role] for category, role in GUIDE_ENTITY_LINK_ROLES.items()
+}
+
 TYPOGRAPHY = {
     # The app registers approved personal fonts at startup when installed.
     # System fonts remain the fallback; packaging does not include game TTFs.
