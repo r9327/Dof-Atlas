@@ -813,7 +813,11 @@ UNITY_UI_FAMILY_INDEX = {
     },
     "palette": {
         "title": "Palette Unity · source de vérité",
-        "components": ("UNITY_PALETTE", "UNITY_MAIN_ROLES", "UNITY_UI_USAGE", "UNITY_COLOR_ALIAS_ROLES"),
+        "components": (
+            "UNITY_PALETTE", "UNITY_MAIN_ROLES", "UNITY_UI_USAGE",
+            "UNITY_COLOR_ALIAS_ROLES", "ENTITY_LINK_COLOR_ROLES",
+            "entity_link_markup",
+        ),
         "style_owner": "app/ui/unity_palette.py + app/ui/theme.py",
         "scope": "shared",
     },
