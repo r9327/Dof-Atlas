@@ -851,9 +851,9 @@ class SharedGuideManualCard(GuideUltimeManualCard):
             if related_names:
                 line.setToolTip("Quête : " + " · ".join(related_names))
             row_layout.addWidget(line, 1)
-            # An imported guide may own a shortcut in any visible source
-            # section. Keep every explicit action-level link on its own row;
-            # legacy cards retain their original "now"/once-per-page policy.
+            # An imported guide may reference a Quest from any source section.
+            # The first explicit action gets its shortcut; later mentions
+            # keep their hover tooltip without repeating the clickable icon.
             explicit_source_link = (
                 isinstance(source_action, dict)
                 and self._source_quest_links_explicit
