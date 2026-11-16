@@ -1011,7 +1011,14 @@ class DevUiPageTests(unittest.TestCase):
                     self.assertEqual(GUIDE_ENTITY_LINK_COLORS[category], color)
                     sample = page.preview_guide_link_labels[category]
                     self.assertIn(f"color:{color}", sample.text())
+                    self.assertIn(f'href="dev-preview:{category}"', sample.text())
+                    self.assertFalse(sample.openExternalLinks())
                     self.assertIn(category, sample.toolTip())
+                    sample.linkActivated.emit(f"dev-preview:{category}")
+                    self.assertIn(
+                        f"Aperçu lien sémantique : {category}",
+                        page.feedback.text(),
+                    )
             self.assertEqual(
                 len({GUIDE_ENTITY_LINK_COLORS[key] for key in (
                     "monster", "boss", "item", "equipment", "npc", "position"
