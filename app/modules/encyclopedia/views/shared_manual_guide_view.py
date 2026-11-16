@@ -10,8 +10,8 @@ from functools import lru_cache
 from pathlib import Path
 from typing import Any
 
-from PySide6.QtCore import QPointF, QRectF, QSize, Qt, QTimer
-from PySide6.QtGui import QColor, QCursor, QIcon, QPainter, QPen, QPixmap
+from PySide6.QtCore import QPointF, QRectF, QSize, Qt, QTimer, QUrl
+from PySide6.QtGui import QColor, QCursor, QDesktopServices, QIcon, QPainter, QPen, QPixmap
 from PySide6.QtWidgets import (
     QApplication,
     QButtonGroup,
@@ -51,6 +51,8 @@ from app.ui.unity_skin import apply_unity_panel_shadow, sprite_icon_path
 from app.constants import DATA_DIR
 from app.modules.encyclopedia.services.image_service import ENCYCLOPEDIA_IMAGE_SERVICE
 from app.ui.theme import PALETTE
+from app.ui.entity_link_roles import ENTITY_LINK_COLOR_ROLES, entity_text_markup
+from app.modules.encyclopedia.services.guide_source_rich_blocks import image_bytes
 
 LOGGER = logging.getLogger(__name__)
 
@@ -692,7 +694,90 @@ class SharedGuideManualCard(GuideUltimeManualCard):
         if match:
             self.entityRequested.emit(match.group(1), int(match.group(2)))
             return
+        if str(href or "").startswith("https://"):
+            # No automatic remote request. The explicit authored link is
+            # opened only on the user's own click.
+            QDesktopServices.openUrl(QUrl(str(href)))
+            return
         super()._copy_link_target(href)
+
+    @staticmethod
+    def _source_rich_markup(runs: list[dict[str, Any]]) -> str:
+        """Source-authored spans, styled only through indexed Unity roles."""
+        result: list[str] = []
+        for run in runs:
+            text = str(run["text"])
+            role = str(run.get("role", "plain"))
+            if role == "plain":
+                mark = html.escape(text)
+            elif role == "warning":
+                mark = (
+                    f'<span style="color:{PALETTE["DANGER_TEXT"]};">'
+                    f'{html.escape(text)}</span>'
+                )
+            else:
+                mark = entity_text_markup(text, role, PALETTE)
+            href = run.get("href")
+            if isinstance(href, str):
+                # All source URLs are prevalidated as explicit HTTPS links.
+                color = PALETTE[
+                    ENTITY_LINK_COLOR_ROLES.get(role, "TEXT_SOFT")
+                ]
+                mark = (
+                    f'<a href="{html.escape(href, quote=True)}" '
+                    f'style="color:{color};text-decoration:underline;">'
+                    f'{html.escape(text)}</a>'
+                )
+            result.append(mark)
+        return "".join(result)
+
+    def _add_source_rich_followups(
+        self, target_layout: QVBoxLayout, blocks: list[dict[str, Any]],
+    ) -> None:
+        """Display authored blocks in their exact order, never a generated recap."""
+        for block in blocks:
+            kind = block["type"]
+            if kind in {"paragraph", "heading"}:
+                label = QLabel()
+                label.setObjectName(
+                    "GuideManualSectionTitle" if kind == "heading"
+                    else "GuideManualLine"
+                )
+                self._set_clickable_text(
+                    label, self._source_rich_markup(block["runs"]),
+                )
+                label.setWordWrap(True)
+                target_layout.addWidget(label)
+            elif kind == "checklist":
+                for item in block["items"]:
+                    check = QCheckBox(str(item["text"]))
+                    check.setObjectName("GuideManualSourceChecklist")
+                    check.setChecked(bool(item["checked"]))
+                    # A source checkbox is not proof of a Dofus Quest objective.
+                    # No invented persistence outside GuideProgressService.
+                    check.setEnabled(False)
+                    check.setToolTip(
+                        "Case du guide source, lecture seule jusqu'à une "
+                        "progression par action vérifiée"
+                    )
+                    target_layout.addWidget(check)
+            elif kind == "image":
+                label = QLabel()
+                label.setObjectName("GuideManualSourceImage")
+                label.setToolTip(str(block["alt"]))
+                pix = QPixmap()
+                if pix.loadFromData(image_bytes(block)):
+                    # Preserve original bytes in metadata, bound only the
+                    # presentation size to the shared Guide reading column.
+                    label.setPixmap(pix.scaled(
+                        600, 650, Qt.KeepAspectRatio, Qt.SmoothTransformation,
+                    ))
+                else:
+                    label.setText(
+                        "Image source non affichable : "
+                        + str(block["alt"])
+                    )
+                target_layout.addWidget(label)
 
     def _add_line_section(
         self,
@@ -863,6 +948,14 @@ class SharedGuideManualCard(GuideUltimeManualCard):
                 rendered_text = self._inline_source_item_images(
                     rendered_text, source_action,
                 )
+            source_rich = row.get("source_rich_blocks")
+            if isinstance(source_rich, list) and source_rich:
+                # The first paragraph is validated against action.text.
+                # Its author-defined inline roles win over heuristic coloring.
+                rendered_text = (
+                    html.escape("— " if is_coordinate else prefix)
+                    + self._source_rich_markup(source_rich[0]["runs"])
+                )
             self._set_clickable_text(line, rendered_text)
             if section_key == "prepare":
                 line.setObjectName("GuideManualLine")
@@ -953,6 +1046,8 @@ class SharedGuideManualCard(GuideUltimeManualCard):
                 group_position = ""
                 layout.addWidget(row_widget)
             target_layout = group_layout if adjacent else layout
+            if isinstance(source_rich, list) and len(source_rich) > 1:
+                self._add_source_rich_followups(target_layout, source_rich[1:])
 
             # Typed data from the authorized source must remain visible even
             # when the author omitted a quantity, NPC or dialogue choice in
