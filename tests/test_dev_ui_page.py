@@ -995,6 +995,58 @@ class DevUiPageTests(unittest.TestCase):
             page.close()
             page.deleteLater()
 
+    def test_achievement_entity_rows_keep_central_colors_and_click_owner(self) -> None:
+        from app.modules.encyclopedia.models.entity_ref import EntityRef
+        from app.modules.encyclopedia.widgets.achievement_entity_section import (
+            AchievementEntityRow,
+        )
+        from app.ui.entity_link_roles import ENTITY_LINK_COLOR_ROLES
+        from app.ui.theme import PALETTE
+
+        for kind in ("monster", "boss", "item", "equipment", "quest", "npc"):
+            with self.subTest(kind=kind):
+                row = AchievementEntityRow(EntityRef(kind, 42, "Exemple <test>"))
+                try:
+                    label = row.findChild(QLabel, "AchievementEntityRowText")
+                    self.assertIsNotNone(label)
+                    self.assertIn(
+                        f'color:{PALETTE[ENTITY_LINK_COLOR_ROLES[kind]]}',
+                        label.text(),
+                    )
+                    self.assertIn("Exemple &lt;test&gt;", label.text())
+                    self.assertTrue(
+                        label.testAttribute(Qt.WA_TransparentForMouseEvents)
+                    )
+                    self.assertEqual(row.entity.entity_type, kind)
+                    self.assertEqual(row.entity.entity_id, 42)
+                finally:
+                    row.close()
+                    row.deleteLater()
+
+        # Unsupported/before-business-module categories stay plain text.
+        row = AchievementEntityRow(EntityRef("dungeon", 5, "Donjon test"))
+        try:
+            self.assertEqual(
+                row.findChild(QLabel, "AchievementEntityRowText").text(),
+                "Donjon test",
+            )
+        finally:
+            row.close()
+            row.deleteLater()
+
+    def test_shared_item_copy_buttons_use_indexed_item_color(self) -> None:
+        from app.ui.theme import atlas_stylesheet, PALETTE
+        from app.ui.entity_link_roles import ENTITY_LINK_COLOR_ROLES
+
+        css = atlas_stylesheet()
+        self.assertIn(
+            "QPushButton#GuideItemNameButton {", css
+        )
+        self.assertIn(
+            f"color: {PALETTE[ENTITY_LINK_COLOR_ROLES['item']]};", css,
+        )
+        self.assertIn(f"color: {PALETTE['GREEN_HOVER']};", css)
+
     def test_guide_entity_colors_use_one_unity_index_and_are_visible(self) -> None:
         from app.pages.dev_ui_page import DevUiPage
         from app.ui.theme import PALETTE, GUIDE_ENTITY_LINK_COLORS
