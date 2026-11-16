@@ -61,6 +61,9 @@ GUIDE_READING_METRICS = {
     "section_spacing": _GUIDE_SPACE_PX["SPACE_XS"],
     "row_spacing": _GUIDE_SPACE_PX["SPACE_XS"],
     "reading_gap": _GUIDE_SPACE_PX["SPACE_SM"],
+    # Shared thumbnail dimensions for original embedded guide media.
+    "source_image_max_width": 360,
+    "source_image_max_height": 280,
 }
 
 SIZES = {
@@ -2646,9 +2649,9 @@ QToolButton#GuideMetricDropdown:disabled {
     border: 1px solid transparent;
 }
 QToolButton#GuideParticipantsButton {
-    /* Keep the original Unity pictogram on transparent Guide glass. */
+    /* Same indexed subtle outline as the other Guide header controls. */
     background: transparent;
-    border: 1px solid transparent;
+    border: 1px solid @BORDER_SOFT;
     border-radius: @RADIUS_XS;
     padding: 0;
 }
@@ -2659,7 +2662,7 @@ QToolButton#GuideParticipantsButton:checked {
 }
 QToolButton#GuideParticipantsButton:disabled {
     background: transparent;
-    border-color: transparent;
+    border-color: @BORDER_SOFT;
 }
 
 QPushButton#GuideManualGuideButton {
@@ -2968,10 +2971,25 @@ QLabel#GuideManualPositionCopy {
     font-weight: 800;
 }
 
-#GuideManualLine {
+#GuideManualLine,
+#GuideManualSourceChecklistText {
     color: @TEXT_SOFT;
     font-size: 14px;
     padding: 3px 0;
+    background: transparent;
+    border: none;
+}
+
+/* Original source checklist keeps the Unity sheet surface, never Qt black. */
+QWidget#GuideManualSourceChecklistRow,
+QCheckBox#GuideManualSourceChecklist,
+QLabel#GuideManualSourceChecklistText {
+    background: transparent;
+    border: none;
+}
+QCheckBox#GuideManualSourceChecklist:disabled {
+    background: transparent;
+    border: none;
 }
 
 #GuideManualWarning {

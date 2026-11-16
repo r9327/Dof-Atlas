@@ -818,13 +818,14 @@ class SharedGuideManualCard(GuideUltimeManualCard):
                     )
                     if isinstance(typed_runs, list):
                         row = QWidget()
+                        row.setObjectName("GuideManualSourceChecklistRow")
                         links = QHBoxLayout(row)
                         links.setContentsMargins(0, 0, 0, 0)
                         links.setSpacing(GUIDE_READING_METRICS["row_spacing"])
                         links.addWidget(check, 0, Qt.AlignTop)
                         label = QLabel(row)
                         # Reuse indexed Dev UI line typography and colors.
-                        label.setObjectName("GuideManualLine")
+                        label.setObjectName("GuideManualSourceChecklistText")
                         self._set_clickable_text(
                             label, self._source_rich_markup(typed_runs),
                         )
@@ -842,8 +843,13 @@ class SharedGuideManualCard(GuideUltimeManualCard):
                     # Preserve original bytes in metadata, bound only the
                     # presentation size to the shared Guide reading column.
                     label.setPixmap(pix.scaled(
-                        600, 650, Qt.KeepAspectRatio, Qt.SmoothTransformation,
+                        QSize(
+                            GUIDE_READING_METRICS["source_image_max_width"],
+                            GUIDE_READING_METRICS["source_image_max_height"],
+                        ),
+                        Qt.KeepAspectRatio, Qt.SmoothTransformation,
                     ))
+                    label.setAlignment(Qt.AlignLeft | Qt.AlignTop)
                 else:
                     label.setText(
                         "Image source non affichable : "
