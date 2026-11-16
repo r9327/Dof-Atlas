@@ -192,14 +192,44 @@ def bottom_guide_observations(root, view, expected_card) -> dict:
     position = bar.value()
     origin = viewport.mapTo(root, QPoint(0, 0))
     viewport_rect = QRect(origin, viewport.size())
-    sheet = view.findChild(QFrame, "GuideManualSheet")
-    if sheet is None or not sheet.isVisible():
+    # Several consecutive source steps may occupy the same scroll area.
+    # The bottom viewport belongs to the *last* visible read-ahead card,
+    # while validation/navigation still belong to the selected first card.
+    sheets = [
+        sheet for sheet in view.findChildren(QFrame, "GuideManualSheet")
+        if sheet.isVisible()
+    ]
+    if not sheets:
         return {"status": "BLOCKED", "reason": "MISSING_REAL_GUIDE_SHEET"}
-    stage_id = str(sheet.card.get("manual_stage_id") or "")
     expected_id = str(expected_card.get("manual_stage_id") or "")
-    if not stage_id or stage_id != expected_id:
-        return {"status": "FAIL", "reason": "BOTTOM_STAGE_CHANGED",
-                "stage_id": stage_id, "expected_id": expected_id}
+    start = int(view.view_index)
+    reading_range = getattr(view, "_reading_step_range", None)
+    if callable(reading_range):
+        indices = reading_range(start)
+    else:
+        indices = range(start, min(start + 1, len(view.service.cards)))
+    expected_ids = [
+        str(view.service.cards[i].get("manual_stage_id") or "")
+        for i in indices
+    ]
+    actual_ids = [
+        str(sheet.card.get("manual_stage_id") or "")
+        for sheet in sheets
+    ]
+    if (
+        not expected_id or not expected_ids or expected_ids[0] != expected_id
+        or actual_ids != expected_ids
+        or len(set(actual_ids)) != len(actual_ids)
+        or any(sheet.parentWidget() is not view.content for sheet in sheets)
+    ):
+        return {
+            "status": "FAIL", "reason": "BOTTOM_STAGE_CHANGED",
+            "active_stage_id": expected_id,
+            "mounted_stage_ids": actual_ids,
+            "expected_stage_ids": expected_ids,
+        }
+    sheet = sheets[-1]
+    stage_id = actual_ids[-1]
     rows = sheet.findChildren(QFrame, "GuideManualLineRow")
     visible_rows = []
     text_labels = 0
@@ -247,7 +277,9 @@ def bottom_guide_observations(root, view, expected_card) -> dict:
         issues.append("BOTTOM_NOT_REACHED")
     if hidden_horizontal:
         issues.append("HIDDEN_HORIZONTAL_OVERFLOW")
-    if rows and not visible_rows and extent > 0:
+    if extent > 0 and not rows:
+        issues.append("BOTTOM_LINES_MISSING")
+    elif rows and not visible_rows and extent > 0:
         issues.append("BOTTOM_LINES_CLIPPED")
     if visible_rows and text_labels == 0:
         issues.append("BOTTOM_LINE_TEXT_NOT_VISIBLE")
@@ -258,6 +290,8 @@ def bottom_guide_observations(root, view, expected_card) -> dict:
         "status": status, "reason": issues[0] if issues else
         "BOTTOM_CONTENT_EXPOSED" if extent > 0 else "PAGE_FITS_WITHOUT_SCROLL",
         "stage_id": stage_id, "expected_stage_id": expected_id,
+        "mounted_stage_ids": actual_ids, "expected_stage_ids": expected_ids,
+        "bottom_stage_id": stage_id,
         "scroll_position": position, "scroll_max": extent,
         "scroll_needed": bool(extent), "horizontal_overflow": hidden_horizontal,
         "line_rows_total": len(rows), "visible_line_rows": len(visible_rows),
