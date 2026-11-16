@@ -23,12 +23,14 @@ working_set:
   - tools/atlas_guide_candidate_store.py
   - tools/atlas_guide_conformity.py
   - tools/atlas_guide_importer.py
+  - tools/atlas_guide_html_capture.py
   - tools/atlas_guide_package_publisher.py
   - tools/atlas_guide_pipeline.py
   - tools/atlas_guide_sequence_gate.py
   - tests/test_atlas_guide_candidate_store.py
   - tests/test_atlas_guide_conformity.py
   - tests/test_atlas_guide_importer_preview.py
+  - tests/test_atlas_guide_html_capture.py
   - tests/test_atlas_guide_package_publisher.py
   - tests/test_atlas_guide_pipeline.py
   - tests/test_atlas_guide_sequence_gate.py
