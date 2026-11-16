@@ -78,6 +78,15 @@ class NetworkHomeStatusTests(unittest.TestCase):
         self.assertFalse(hasattr(page, "network_calibration_hint"))
         self.assertFalse(hasattr(page, "network_calibrate_button"))
         self.assertEqual(page.network_status.text(), "Préparation…")
+        from app.ui.unity_palette import UNITY_MODULE_GEOMETRY_PX
+        geometry = UNITY_MODULE_GEOMETRY_PX["home"]
+        self.assertEqual(page.left_column.layout().spacing(), geometry["left_column_spacing"])
+        self.assertEqual(right_layout.spacing(), geometry["right_column_spacing"])
+        for tracking in page.tracking_rows.values():
+            self.assertEqual(tracking.layout().spacing(), geometry["tracking_spacing"])
+            self.assertEqual(tracking.bar.minimumWidth(), geometry["tracking_bar_min_width"])
+            self.assertEqual(tracking.value.minimumWidth(), geometry["tracking_value_min_width"])
+        self.assertEqual(page.character_card.layout().spacing(), geometry["card_gutter"])
 
         page.deleteLater()
         self.app.processEvents()

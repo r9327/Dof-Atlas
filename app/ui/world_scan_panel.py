@@ -200,7 +200,7 @@ class WorldScanPanel(QWidget):
     def make_button(self, text: str, object_name: str) -> QPushButton:
         button = AtlasButton(text)
         button.setObjectName(object_name)
-        button.setFixedHeight(30)
+        button.setFixedHeight(WORLD_SCAN_GEOMETRY["toolbar_button_height"])
         button.setMinimumWidth(WORLD_SCAN_GEOMETRY["menu_button_min_width"])
         button.setCursor(Qt.PointingHandCursor)
         return button
@@ -869,7 +869,7 @@ class WorldScanPanel(QWidget):
         for world in names:
             item = AtlasButton(world)
             item.setObjectName("WorldMenuItem")
-            item.setFixedHeight(28)
+            item.setFixedHeight(WORLD_SCAN_GEOMETRY["world_menu_item_height"])
             item.setCursor(Qt.PointingHandCursor)
             item.clicked.connect(lambda _checked=False, name=world: self.on_world_selected(name))
             self.world_menu_list.addWidget(item)

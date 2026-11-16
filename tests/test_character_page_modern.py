@@ -98,6 +98,21 @@ class ModernCharacterPageTests(unittest.TestCase):
             self.assertIs(columns.itemAt(0).widget(), page.equipment_panel)
             self.assertIs(columns.itemAt(1).widget(), page.stats_panel)
             self.assertTrue(page.identity_panel.isHidden())
+            from app.ui.unity_palette import UNITY_MODULE_GEOMETRY_PX, UNITY_SPACING_PX
+            geometry = UNITY_MODULE_GEOMETRY_PX["character"]
+            self.assertEqual(page.layout().spacing(), UNITY_SPACING_PX["sm"])
+            self.assertEqual(columns.spacing(), UNITY_SPACING_PX["md"])
+            self.assertEqual(page.equipment_panel.layout().spacing(), UNITY_SPACING_PX["xs"])
+            self.assertEqual(page.stats_panel.layout().spacing(), UNITY_SPACING_PX["sm"])
+            for panel, key in (
+                (page.equipment_panel, "equipment_panel_margins"),
+                (page.stats_panel, "stats_panel_margins"),
+            ):
+                margin = panel.layout().contentsMargins()
+                self.assertEqual(
+                    (margin.left(), margin.top(), margin.right(), margin.bottom()),
+                    geometry[key],
+                )
 
             self.assertTrue(page.equipment_panel.isAncestorOf(page.achievement_points))
             self.assertTrue(page.equipment_panel.isAncestorOf(page.character_selector))

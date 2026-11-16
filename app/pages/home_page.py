@@ -164,12 +164,12 @@ class HomeTrackingRow(QWidget):
         self.setObjectName("HomeTrackingRow")
         layout = QHBoxLayout(self)
         layout.setContentsMargins(0, 0, 0, 0)
-        layout.setSpacing(7)
+        layout.setSpacing(HOME_GEOMETRY["tracking_spacing"])
 
         icon_label = QLabel(icon)
         icon_label.setObjectName("HomeTrackingIcon")
         icon_label.setAlignment(Qt.AlignCenter)
-        icon_label.setFixedWidth(20)
+        icon_label.setFixedWidth(HOME_GEOMETRY["tracking_icon_width"])
         # Reuse the same local-only Unity pictograms as the application shell.
         # An absent or damaged user asset keeps the readable legacy glyph.
         icon_asset = (
@@ -182,7 +182,7 @@ class HomeTrackingRow(QWidget):
 
         name = QLabel(label)
         name.setObjectName("HomeTrackingLabel")
-        name.setMinimumWidth(92)
+        name.setMinimumWidth(HOME_GEOMETRY["tracking_name_min_width"])
         layout.addWidget(name)
 
         self.bar = QProgressBar()
@@ -190,13 +190,13 @@ class HomeTrackingRow(QWidget):
         self.bar.setRange(0, 100)
         self.bar.setValue(0)
         self.bar.setTextVisible(False)
-        self.bar.setMinimumWidth(62)
+        self.bar.setMinimumWidth(HOME_GEOMETRY["tracking_bar_min_width"])
         layout.addWidget(self.bar, 1)
 
         self.value = QLabel("0 %")
         self.value.setObjectName("HomeTrackingValue")
         self.value.setAlignment(Qt.AlignRight | Qt.AlignVCenter)
-        self.value.setMinimumWidth(46)
+        self.value.setMinimumWidth(HOME_GEOMETRY["tracking_value_min_width"])
         layout.addWidget(self.value)
 
     def set_progress(self, completed: int, total: int, *, show_count: bool = False) -> None:
@@ -280,7 +280,7 @@ class HomePage(QWidget):
         self.left_column.setMaximumWidth(HOME_GEOMETRY["left_column_max_width"])
         left_layout = QVBoxLayout(self.left_column)
         left_layout.setContentsMargins(0, 0, 0, 0)
-        left_layout.setSpacing(16)
+        left_layout.setSpacing(HOME_GEOMETRY["left_column_spacing"])
 
         self.character_card = self._card("HomeCharacterCard")
         char_layout = self.character_card.layout()
@@ -433,7 +433,7 @@ class HomePage(QWidget):
         self.right_column.setMaximumWidth(HOME_GEOMETRY["right_column_max_width"])
         right_layout = QVBoxLayout(self.right_column)
         right_layout.setContentsMargins(0, 0, 0, 0)
-        right_layout.setSpacing(12)
+        right_layout.setSpacing(HOME_GEOMETRY["right_column_spacing"])
 
         self.network_card = QFrame()
         self.network_card.setObjectName("HomeNetworkMiniCard")
@@ -481,7 +481,7 @@ class HomePage(QWidget):
         layout = QVBoxLayout(card)
         inset = HOME_GEOMETRY["card_padding"]
         layout.setContentsMargins(inset, inset, inset, inset)
-        layout.setSpacing(10)
+        layout.setSpacing(HOME_GEOMETRY["card_gutter"])
         return card
 
     @staticmethod

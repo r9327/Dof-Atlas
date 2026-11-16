@@ -24,7 +24,7 @@ from app.pages._character_page_impl import (
     CharacterPage as _CharacterPage,
 )
 from app.ui.components import AtlasComboBox
-from app.ui.unity_palette import UNITY_CONTENT_TYPOGRAPHY_PX, UNITY_MODULE_GEOMETRY_PX
+from app.ui.unity_palette import UNITY_CONTENT_TYPOGRAPHY_PX, UNITY_MODULE_GEOMETRY_PX, UNITY_SPACING_PX
 
 CHARACTER_GEOMETRY = UNITY_MODULE_GEOMETRY_PX["character"]
 
@@ -50,7 +50,7 @@ class CharacterPage(_CharacterPage):
                 if widget is not None:
                     widget.hide()
             root.setContentsMargins(*CHARACTER_GEOMETRY["page_margins"])
-            root.setSpacing(6)
+            root.setSpacing(UNITY_SPACING_PX["sm"])
 
         if columns is not None:
             # The old identity card must not consume a column anymore. Its
@@ -63,19 +63,19 @@ class CharacterPage(_CharacterPage):
             columns.removeWidget(self.equipment_panel)
             columns.insertWidget(0, self.equipment_panel, 70)
             columns.insertWidget(1, self.stats_panel, 30)
-            columns.setSpacing(8)
+            columns.setSpacing(UNITY_SPACING_PX["md"])
             columns.setStretch(0, 70)
             columns.setStretch(1, 30)
 
         equipment_layout = self.equipment_panel.layout()
         if equipment_layout is not None:
-            equipment_layout.setContentsMargins(8, 6, 8, 8)
-            equipment_layout.setSpacing(4)
+            equipment_layout.setContentsMargins(*CHARACTER_GEOMETRY["equipment_panel_margins"])
+            equipment_layout.setSpacing(UNITY_SPACING_PX["xs"])
 
         stats_layout = self.stats_panel.layout()
         if stats_layout is not None:
-            stats_layout.setContentsMargins(10, 8, 10, 10)
-            stats_layout.setSpacing(6)
+            stats_layout.setContentsMargins(*CHARACTER_GEOMETRY["stats_panel_margins"])
+            stats_layout.setSpacing(UNITY_SPACING_PX["sm"])
 
         # A 900px shell must fit both cards plus its 20px horizontal
         # margins and the 8px gutter. The equipment grid already needs

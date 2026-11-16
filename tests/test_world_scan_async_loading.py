@@ -94,7 +94,9 @@ class WorldScanAsyncLoadingTests(unittest.TestCase):
                 toolbar_button = panel.make_button("Actualiser", "WorldRefreshButton")
                 self.assertIsInstance(toolbar_button, AtlasButton)
                 self.assertEqual(toolbar_button.objectName(), "WorldRefreshButton")
-                self.assertEqual(toolbar_button.height(), 30)
+                from app.ui.unity_palette import UNITY_MODULE_GEOMETRY_PX
+                geometry = UNITY_MODULE_GEOMETRY_PX["world_scan"]
+                self.assertEqual(toolbar_button.height(), geometry["toolbar_button_height"])
                 title = panel.findChild(AtlasPageTitle, "PageTitle")
                 self.assertIsNotNone(title)
                 self.assertEqual(title.text(), "Scan Monde")
@@ -103,6 +105,10 @@ class WorldScanAsyncLoadingTests(unittest.TestCase):
                 self.assertIsInstance(panel.world_buttons["Amakna"], AtlasButton)
                 self.assertEqual(
                     panel.world_buttons["Amakna"].objectName(), "WorldMenuItem"
+                )
+                self.assertEqual(
+                    panel.world_buttons["Amakna"].height(),
+                    geometry["world_menu_item_height"],
                 )
             finally:
                 toolbar_button.deleteLater()

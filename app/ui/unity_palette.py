@@ -398,6 +398,10 @@ UNITY_MODULE_GEOMETRY_PX = {
         "banner_min_height": 145, "banner_max_height": 205,
         "network_card_min_height": 64, "network_card_max_height": 72,
         "card_padding": 20, "card_gutter": 10,
+        "left_column_spacing": 16, "right_column_spacing": 12,
+        "tracking_spacing": 7, "tracking_icon_width": 20,
+        "tracking_name_min_width": 92, "tracking_bar_min_width": 62,
+        "tracking_value_min_width": 46,
     },
     "character": {
         "page_margins": (10, 8, 10, 10),
@@ -405,6 +409,8 @@ UNITY_MODULE_GEOMETRY_PX = {
         "stats_max_width": 340, "selector_min_width": 260,
         "selector_max_width": 360, "selector_icon": 38,
         "equipment_slot_box": 64, "equipment_icon": 54,
+        "equipment_panel_margins": (8, 6, 8, 8),
+        "stats_panel_margins": (10, 8, 10, 10),
         "portrait_min_size": (230, 300), "portrait_max_size": (300, 360),
     },
     # Existing compatibility character view, distinct from the active page.
@@ -452,6 +458,7 @@ UNITY_MODULE_GEOMETRY_PX = {
         "page_margins": (12, 10, 12, 10), "page_gutter": 8,
         "world_icon_box": 60, "world_icon_artwork": 34,
         "summary_height": 74, "menu_button_min_width": 108,
+        "toolbar_button_height": 30, "world_menu_item_height": 28,
     },
     "world_map": {"canvas_min_size": (420, 320)},
     # Existing Quêtes hierarchy and search dimensions, not forced across modules.

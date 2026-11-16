@@ -165,6 +165,23 @@ class UnityPaletteTests(unittest.TestCase):
             set(UNITY_MODULE_GEOMETRY_PX),
         )
 
+    def test_home_character_world_scan_measurements_are_indexed_without_resizing(self) -> None:
+        from app.ui.unity_palette import UNITY_MODULE_GEOMETRY_PX
+
+        home = UNITY_MODULE_GEOMETRY_PX["home"]
+        self.assertEqual(home["tracking_icon_width"], 20)
+        self.assertEqual(home["tracking_name_min_width"], 92)
+        self.assertEqual(home["tracking_bar_min_width"], 62)
+        self.assertEqual(home["tracking_value_min_width"], 46)
+        self.assertEqual(home["left_column_spacing"], 16)
+        self.assertEqual(home["right_column_spacing"], 12)
+        character = UNITY_MODULE_GEOMETRY_PX["character"]
+        self.assertEqual(character["equipment_panel_margins"], (8, 6, 8, 8))
+        self.assertEqual(character["stats_panel_margins"], (10, 8, 10, 10))
+        world = UNITY_MODULE_GEOMETRY_PX["world_scan"]
+        self.assertEqual(world["toolbar_button_height"], 30)
+        self.assertEqual(world["world_menu_item_height"], 28)
+
     def test_window_and_layout_reference_sizes_are_qt_free(self) -> None:
         from app.constants import (
             DEFAULT_WINDOW_WIDTH, DEFAULT_WINDOW_HEIGHT,
