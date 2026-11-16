@@ -2050,7 +2050,7 @@ class SharedGuideManualView(GuideUltimeManualView):
         self.page_jump.valueChanged.connect(
             lambda value: (
                 self._show_reading_page(value - 1)
-                if self._is_imported_source_guide()
+                if self._is_continuous_source_reading()
                 else self._show_index(value - 1)
             )
         )
@@ -2132,6 +2132,24 @@ class SharedGuideManualView(GuideUltimeManualView):
             and "manual_preparation_block_indexes" in card
             for card in cards
         )
+
+    def _is_continuous_source_reading(self) -> bool:
+        """Only the actual original HTML rich blocks use reflow pagination.
+
+        Other authorized source routes may contain multiple typed actions per
+        source step. Preserve their stable validation, step navigation and
+        existing shared card reader. Never infer this mode from the guide ID.
+        """
+        if not self._is_imported_source_guide():
+            return False
+        for card in self.service.cards:
+            step = (card.get("manual_runtime_metadata") or {}).get("source_step")
+            actions = step.get("actions") if isinstance(step, dict) else None
+            if (not isinstance(actions, list) or len(actions) != 1
+                    or not isinstance(actions[0], dict)
+                    or not isinstance(actions[0].get("rich_blocks"), list)):
+                return False
+        return True
 
     def _sync_compact_action_labels(self) -> None:
         """Preserve clickable actions and screen-reader names when space is scarce."""
@@ -2308,7 +2326,7 @@ class SharedGuideManualView(GuideUltimeManualView):
 
     def _populate_summary(self) -> None:
         self.summary_list.clear()
-        if self._is_imported_source_guide():
+        if self._is_continuous_source_reading():
             # Only visual pages, not 64 repetitive 'Step N [x,y]' entries.
             for number, _page in enumerate(self._source_reading_pages()):
                 label = f"Page {number + 1}"
@@ -2345,7 +2363,7 @@ class SharedGuideManualView(GuideUltimeManualView):
             index = int(item.data(Qt.UserRole))
         except (TypeError, ValueError):
             return
-        if self._is_imported_source_guide():
+        if self._is_continuous_source_reading():
             self._show_reading_page(index)
         else:
             self._show_index(index)
@@ -3366,7 +3384,7 @@ class SharedGuideManualView(GuideUltimeManualView):
         # remains intact in the source snapshot and fidelity contract.
         if card.get("manual_source") is True and "source_step_id" in card:
             title = re.sub(r"^Step (?=\d+\b)", "Étape ", title)
-        if self._is_imported_source_guide():
+        if self._is_continuous_source_reading():
             # Continuous authored reading: no generated 'Étape', no repeated
             # Quest titles. Progress remains bound to original source IDs.
             pages = self._source_reading_pages()
@@ -3646,7 +3664,7 @@ class SharedGuideManualView(GuideUltimeManualView):
         return source_page_for_index(pages, self.view_index)
 
     def _show_reading_page(self, page_number: int) -> None:
-        if not self._is_imported_source_guide():
+        if not self._is_continuous_source_reading():
             self._show_index(page_number)
             return
         pages = self._source_reading_pages()
@@ -3661,18 +3679,18 @@ class SharedGuideManualView(GuideUltimeManualView):
     def _show_index(self, index: int) -> None:
         # Keep source-identity lookup for Route progress, Quest links and
         # native callers. Only explicit reading pagination sets page override.
-        if self._is_imported_source_guide():
+        if self._is_continuous_source_reading():
             self._source_page_override = None
         super()._show_index(index)
 
     def navigate_relative(self, delta: int) -> None:
-        if self._is_imported_source_guide():
+        if self._is_continuous_source_reading():
             self._show_reading_page(self._source_current_page_number() + int(delta))
         else:
             super().navigate_relative(delta)
 
     def _source_resize_reflow(self) -> None:
-        if not self._is_imported_source_guide() or not self.service.cards:
+        if not self._is_continuous_source_reading() or not self.service.cards:
             return
         width = self.scroll.viewport().width()
         bucket = max(1, width // 80)
@@ -3693,7 +3711,11 @@ class SharedGuideManualView(GuideUltimeManualView):
 
     def resizeEvent(self, event) -> None:  # noqa: N802 - Qt override
         super().resizeEvent(event)
-        if self._is_imported_source_guide() and hasattr(self, "scroll"):
+        # Preserve the existing compact width contract (90px selector at
+        # <520px) when reflowing imported source pages.
+        if hasattr(self, "participants_button"):
+            self._sync_compact_action_labels()
+        if self._is_continuous_source_reading() and hasattr(self, "scroll"):
             QTimer.singleShot(0, self._source_resize_reflow)
 
     # One selected step owns navigation and validation. Nearby steps are
@@ -3766,7 +3788,7 @@ class SharedGuideManualView(GuideUltimeManualView):
             self.scroll.style().unpolish(self.scroll)
             self.scroll.style().polish(self.scroll)
         index = max(0, min(self.view_index, len(self.service.cards) - 1))
-        if self._is_imported_source_guide():
+        if self._is_continuous_source_reading():
             pages = self._source_reading_pages()
             page_idx = self._source_current_page_number(pages)
             entries = pages[page_idx] if pages else ()
