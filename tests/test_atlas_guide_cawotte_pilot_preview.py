@@ -24,7 +24,8 @@ class CawottePilotPreviewTests(unittest.TestCase):
                          "Contrôler le parcours d'accès aux Dofus")
         self.assertEqual(cards[1]["manual_sections"]["now"][0]["text"],
                          "Cawotte pour la quête gastronomique")
-        self.assertTrue(all(c["manual_source"] and not c["manual_quest_ids"] for c in cards))
+        self.assertTrue(all(c["manual_source"] and c["manual_review_only"]
+                            and not c["manual_quest_ids"] for c in cards))
         self.assertTrue(all("source_action" not in row
                             for c in cards for row in c["manual_sections"]["now"]))
 

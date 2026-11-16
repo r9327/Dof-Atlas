@@ -46,7 +46,7 @@ jobs:
         run: |
           python - <<'PY'
           from pathlib import Path
-          from PySide6.QtWidgets import QApplication, QVBoxLayout, QProgressBar
+          from PySide6.QtWidgets import QApplication, QVBoxLayout, QProgressBar, QLabel, QToolButton, QFrame
           from PySide6.QtCore import Qt
           from PySide6.QtTest import QTest
           from PySide6.QtGui import QFontDatabase
@@ -105,6 +105,13 @@ jobs:
           assert shell.rendered_card_count == 1
           assert shell.page_jump.maximum() == 64
           assert shell.page_jump.text() == "1 / 64"
+          pos = shell.findChildren(QLabel, "GuideManualPositionCopy")
+          assert len(pos) == 1 and "travel-copy:25,-4" in pos[0].text()
+          assert not shell.findChildren(QToolButton, "GuideManualZaapShortcut")
+          assert not shell.findChildren(QFrame, "GuideManualActionGroup")
+          assert len(shell.findChildren(QLabel, "GuideManualLine")) >= 3
+          assert all(not row.text().lstrip().startswith(("•", "—"))
+                     for row in shell.findChildren(QLabel, "GuideManualLine"))
           assert shell.validation_host.isHidden()
           assert not shell.validation_layout.itemAt(0).widget().isEnabled()
           target = Path("artifacts/screenshots/ganymede-cawotte-shell-qt.png")

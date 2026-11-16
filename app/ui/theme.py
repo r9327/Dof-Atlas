@@ -2902,6 +2902,21 @@ QToolButton#GuideParticipantPortrait:checked {
     border-radius: @RADIUS_XS;
 }
 
+/* Guide action rows are layout surfaces, never native black Qt panels. */
+QFrame#GuideManualActionGroup,
+QFrame#GuideManualLineRow {
+    background: transparent;
+    border: none;
+}
+
+QLabel#GuideManualPositionCopy {
+    color: @TEXT_SOFT;
+    background: transparent;
+    border: none;
+    font-size: @FONT_BODY;
+    padding: 2px 0;
+}
+
 #GuideManualStageTitle {
     color: @TEXT;
     font-size: 17px;

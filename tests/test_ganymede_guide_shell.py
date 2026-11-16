@@ -14,7 +14,7 @@ os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
 
 from PySide6.QtCore import Qt
 from PySide6.QtTest import QTest
-from PySide6.QtWidgets import QApplication, QFrame, QProgressBar, QSpinBox
+from PySide6.QtWidgets import QApplication, QFrame, QLabel, QProgressBar, QSpinBox, QToolButton
 
 from app.modules.encyclopedia.views.guide_catalog_view import GuideCatalogView
 from app.modules.encyclopedia.views.ganymede_guide_shell import GanymedeGuideShell
@@ -157,6 +157,17 @@ class GanymedeGuideShellTests(unittest.TestCase):
         self.assertEqual(shell.guide_title_label.text(), "Dofus Cawotte")
         self.assertEqual(shell.sheet_title_label.text(), "Étape 1")
         self.assertTrue(shell.page_jump.isEnabled())
+        position_labels = shell.findChildren(QLabel, "GuideManualPositionCopy")
+        self.assertEqual(len(position_labels), 1)
+        self.assertIn("travel-copy:25,-4", position_labels[0].text())
+        self.assertEqual(shell.findChildren(QToolButton, "GuideManualZaapShortcut"), [])
+        self.assertEqual(shell.findChildren(QFrame, "GuideManualActionGroup"), [])
+        action_labels = shell.findChildren(QLabel, "GuideManualLine")
+        self.assertGreaterEqual(len(action_labels), 3)
+        self.assertTrue(all(
+            not label.text().lstrip().startswith(("•", "—"))
+            for label in action_labels
+        ))
         self.assertTrue(shell.validation_host.isHidden())
         self.assertFalse(shell.validation_layout.itemAt(0).widget().isEnabled())
         self.assertEqual(requests, [])

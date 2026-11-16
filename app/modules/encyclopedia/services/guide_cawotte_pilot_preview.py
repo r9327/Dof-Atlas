@@ -67,7 +67,8 @@ def cawotte_review_cards(path: Path = CAWOTTE_CANDIDATES) -> tuple[dict[str, Any
                 "source_action_kind": kind,
             })
         cards.append({
-            "manual_source": True, "source_step_id": step_id, "manual_stage_id": step_id,
+            "manual_source": True, "manual_review_only": True,
+            "source_step_id": step_id, "manual_stage_id": step_id,
             "manual_title": f"Étape {number}",
             "manual_chapter_label": "Cawotte · revue",
             "manual_sections": {"now": rows},

@@ -664,10 +664,33 @@ class SharedGuideManualCard(GuideUltimeManualCard):
         heading.setObjectName("GuideManualSectionTitle")
         layout.addWidget(heading)
 
+        review_only = self.card.get("manual_review_only") is True
+        if review_only and section_key == "now":
+            # One source map per review sheet: the position belongs ABOVE the
+            # actions at the same left edge, never beside a fictional Zaap.
+            source_position = str(visible[0].get("position") or "").strip()
+            source_key = self._position_key(source_position)
+            if re.fullmatch(r"-?\d+,-?\d+", source_key):
+                position_label = QLabel(frame)
+                self._set_clickable_text(
+                    position_label,
+                    (
+                        f'<a href="travel-copy:{source_key}" '
+                        f'style="color:{PALETTE["TEXT_SOFT"]};text-decoration:none;">'
+                        f'Position : <b>{html.escape(source_position)}</b></a>'
+                    ),
+                )
+                position_label.setObjectName("GuideManualPositionCopy")
+                position_label.setCursor(Qt.PointingHandCursor)
+                position_label.setToolTip(f"Copier /travel {source_key}")
+                layout.addWidget(position_label)
+
         # Share only presentation containers for contiguous, proven map
         # coordinates. Preserve each authored action, its click targets and
         # exact ordering; never fuse objectives or infer that a zone is a map.
         def group_key(row: dict[str, Any]) -> str:
+            if review_only:
+                return ""
             if section_key != "now" or str(row.get("kind") or "") != "action":
                 return ""
             if self._is_combat_row("action", str(row.get("text") or "")):
@@ -687,9 +710,12 @@ class SharedGuideManualCard(GuideUltimeManualCard):
             quest_names = dict(self._quest_rows)
         for row_index, row in enumerate(visible):
             text = str(row.get("text") or "").strip()
-            position = self._display_position(str(row.get("position") or ""))
+            position = (
+                "" if review_only else
+                self._display_position(str(row.get("position") or ""))
+            )
             kind = str(row.get("kind") or "")
-            prefix = "⚠ " if kind == "warning" else "• "
+            prefix = "" if review_only else ("⚠ " if kind == "warning" else "• ")
             combat_line = self._is_combat_row(kind, text)
 
             row_widget = QFrame()
