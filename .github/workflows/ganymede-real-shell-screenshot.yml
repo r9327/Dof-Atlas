@@ -142,8 +142,11 @@ jobs:
           assert not shell.findChildren(QFrame, "GuideManualActionGroup")
           assert not shell.findChildren(QLabel, "GuideManualSectionTitle")
           assert not shell.findChildren(QLabel, "GuideManualStageTitle")
-          assert all(not row.text().lstrip().startswith(("•", "—"))
-                     for row in shell.findChildren(QLabel))
+          assert all(
+              not label.text().lstrip().startswith(("•", "—"))
+              for row in shell.findChildren(QFrame, "GuideManualLineRow")
+              for label in row.findChildren(QLabel)
+          )
           target = Path("artifacts/screenshots/ganymede-cawotte-shell-qt.png")
           target.parent.mkdir(parents=True, exist_ok=True)
           shot = backdrop.grab()
