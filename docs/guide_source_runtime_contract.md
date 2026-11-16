@@ -26,7 +26,20 @@ runtime boundary for the eventual one-by-one certified import.
 
 ## Source-first fidelity: one contract for every guide
 
-**The authored guide is immutable input, never material for an Atlas rewrite.**
+****Universal rendering invariant: 1 original Ganymède sheet = 1 Atlas sheet.**
+`SharedGuideManualView._reading_step_range` mounts only the selected
+`source_step_id` for every authorized source guide, while preserving the
+legacy three-sheet read-ahead for existing optimized guides. All source
+actions, rich paragraphs and linked entities stay inside that single sheet,
+in source order, separated by ordinary layout line breaks. No inner Atlas
+cards, invented action headings, combat sub-steps or duplicate page titles
+are allowed. The same indexed `SharedGuideManualCard` and generic sizing
+policy serve Cawotte's read-only candidate and future authorized imports;
+`GanymedeGuideShell` delegates Qt composition rather than implementing a
+second renderer. Source prerequisites and preparation remain inspectable in
+their dedicated shared panel without pretending preview progress.
+
+The authored guide is immutable input, never material for an Atlas rewrite.**
 Keep each original step and every action in the original order and retain
 its complete source metadata in `manual_runtime_metadata.source_step`;
 guide-level metadata is retained once in `source_guide_metadata`.
@@ -71,9 +84,10 @@ source JSON after the producer has established rights and provenance.
   Explicit external source links must use HTTPS; no remote image download,
   arbitrary HTML, CSS, JavaScript, path traversal or unknown widget is accepted.
 - Every original action keeps its `action_id`, text, coordinates, exact JSON
-  snapshot and order in `manual_source_action_order`. Presentation groups
-  only contiguous actions of a single source section; it never sorts them
-  into fixed category buckets. Atlas' global preparation panel is additional;
+  snapshot and order in `manual_source_action_order`. Presentation keeps
+  consecutive source actions as unboxed lines; it never sorts them into
+  fixed category buckets or fabricates Atlas sub-steps. The global
+  preparation panel is additional;
   original preparation instructions remain on their exact source step.
 - Per-action source checklist boxes are currently **read-only** in the preview;
   they are not falsely wired to Quest completion. A future certified action
