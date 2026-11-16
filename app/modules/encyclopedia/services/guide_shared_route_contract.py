@@ -215,25 +215,6 @@ def assert_source_fidelity(
         by_id = {row["source_action_id"]: row for row in rows}
         if len(by_id) != len(actions):
             raise GuideRouteContractError(f"{prefix}: duplicate action projection")
-        if prereq_indexes:
-            # Saved HTML source has one authored action per original page.
-            # Prerequisite indexes refer to those immutable rich blocks only.
-            if len(actions) != 1 or not isinstance(actions[0], dict):
-                raise GuideRouteContractError(
-                    f"{prefix}.prerequisite_block_indexes: single authored source action required"
-                )
-            blocks = actions[0].get("rich_blocks")
-            if not isinstance(blocks, list) or any(
-                i >= len(blocks) or blocks[i].get("type") not in {"paragraph", "checklist"}
-                for i in prereq_indexes
-            ):
-                raise GuideRouteContractError(
-                    f"{prefix}.prerequisite_block_indexes: invalid source block reference"
-                )
-            if not step.get("prerequisites"):
-                raise GuideRouteContractError(
-                    f"{prefix}.prerequisite_block_indexes: typed prerequisites required"
-                )
         for action_index, action in enumerate(actions):
             label = f"{prefix}.actions[{action_index}]"
             row = by_id.get(str(action.get("action_id")))
@@ -308,6 +289,25 @@ def project_authorized_guide(guide: dict[str, Any]) -> dict[str, Any]:
         resource_names: list[str] = []
         seen_actions: set[str] = set()
         source_action_order: list[str] = []
+        if prereq_indexes:
+            # Saved HTML source has one authored action per original page.
+            # Prerequisite indexes refer to those immutable rich blocks only.
+            if len(actions) != 1 or not isinstance(actions[0], dict):
+                raise GuideRouteContractError(
+                    f"{prefix}.prerequisite_block_indexes: single authored source action required"
+                )
+            blocks = actions[0].get("rich_blocks")
+            if not isinstance(blocks, list) or any(
+                i >= len(blocks) or blocks[i].get("type") not in {"paragraph", "checklist"}
+                for i in prereq_indexes
+            ):
+                raise GuideRouteContractError(
+                    f"{prefix}.prerequisite_block_indexes: invalid source block reference"
+                )
+            if not step.get("prerequisites"):
+                raise GuideRouteContractError(
+                    f"{prefix}.prerequisite_block_indexes: typed prerequisites required"
+                )
         for action_index, action in enumerate(actions):
             label = f"{prefix}.actions[{action_index}]"
             if not isinstance(action, dict):
