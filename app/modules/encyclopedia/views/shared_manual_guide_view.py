@@ -2064,12 +2064,11 @@ class SharedGuideManualView(GuideUltimeManualView):
             )
         )
         top.addWidget(self.page_jump, 0, Qt.AlignTop)
-        # Reuse the existing indexed disclosure, now beside X/X rather than
-        # attached to a redundant Route progress bar.
+        # X/X and Previous/Next replace the redundant Sommaire in every
+        # guide. Keep the legacy control detached for existing callers.
         self._route_metric_caption.removeWidget(self.summary_button)
-        self.summary_button.setToolTip("Afficher le sommaire des fiches")
-        self.summary_button.setAccessibleName("Afficher le sommaire des fiches")
-        top.addWidget(self.summary_button, 0, Qt.AlignVCenter)
+        self.summary_button.setParent(header)
+        self.summary_button.hide()
 
         self.participants_button = AtlasGuideCharacterButton()
         self.participants_button.setObjectName("GuideParticipantsButton")
