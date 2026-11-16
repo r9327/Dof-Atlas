@@ -112,12 +112,8 @@ class SharedGuideSingleRendererContractTests(unittest.TestCase):
         assert "GuideMetricDropdown" in continuous
         assert "background" not in (VIEWS / "guide_continuous_route_panel.py").name
 
-    def test_all_guide_readers_keep_one_active_step_and_complete_summary(self) -> None:
-        """No guide-specific viewport packing: every route has one active step.
-
-        The full step list belongs to Sommaire, independent of viewport size,
-        route length or the guide selected in the catalogue.
-        """
+    def test_shared_reader_shows_bounded_read_ahead_and_complete_summary(self) -> None:
+        """One active step for validation, plus two scrollable read-ahead steps."""
         shared = SHARED.read_text(encoding="utf-8")
         preview = (VIEWS / "ganymede_guide_shell.py").read_text(encoding="utf-8")
         continuous = (VIEWS / "guide_continuous_route_panel.py").read_text(
@@ -127,12 +123,15 @@ class SharedGuideSingleRendererContractTests(unittest.TestCase):
             encoding="utf-8"
         )
 
-        assert "self.rendered_card_count = 1" in shared
+        assert "READING_WINDOW_SIZE = 3" in shared
+        assert "for number in self._reading_step_range(index):" in shared
+        assert "self._sync_validation_control(widget.page_check" in shared
+        assert "widget.page_check.hide()" in shared
         assert "for index, card in enumerate(self.service.cards):" in shared
         assert "self.summary_list.addItem(item)" in shared
-        assert "self.rendered_card_count = 1" in preview
-        assert "self._review_end_index = index + 1" in preview
-        assert "self._populate_summary()" in preview
+        assert 'label = f"{index + 1}. {title}"' in shared
+        assert "for number in self._reading_step_range(index):" in preview
+        assert "self._review_end_index = end" in preview
         assert "pair_fills_gap" not in preview
         assert "for i, row in enumerate(self.rows, 1)" in continuous
         assert "self.title_label.setText(str(row.get(" in continuous
