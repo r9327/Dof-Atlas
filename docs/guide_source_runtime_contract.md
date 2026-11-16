@@ -53,6 +53,47 @@ Windows/DOFUS parity are separate release gates. The existing 64-step
 Cawotte candidate with 191 summarized actions is *not* that original
 structured source and cannot be marked equivalent or certified.
 
+## Full-fidelity authorized source blocks (one schema for 95 guides)
+
+An **authorized, structured source export** may add `rich_blocks` to an
+existing source action. This is not a scraper: the importer accepts a local
+source JSON after the producer has established rights and provenance.
+
+- First block: `{"type":"paragraph","runs":[{"text":"...","role":"plain"}]}`;
+  the concatenated run text **must exactly equal** the original `action.text`.
+  It is never rewritten or summarized by Atlas.
+- Other ordered blocks: `paragraph`, `heading` (level 1–3),
+  `checklist` (stable item IDs/text/boolean source status), `image`
+  (source `alt`, PNG/JPEG/WebP MIME, embedded Base64 bytes and their exact
+  lowercase SHA-256). The image format and hash are checked before projection.
+- Inline colored runs use the one `app.ui.entity_link_roles` Dev UI palette
+  (plain, npc, quest, position, item, equipment, monster, boss, warning).
+  Explicit external source links must use HTTPS; no remote image download,
+  arbitrary HTML, CSS, JavaScript, path traversal or unknown widget is accepted.
+- Every original action keeps its `action_id`, text, coordinates, exact JSON
+  snapshot and order in `manual_source_action_order`. Presentation groups
+  only contiguous actions of a single source section; it never sorts them
+  into fixed category buckets. Atlas' global preparation panel is additional;
+  original preparation instructions remain on their exact source step.
+- Per-action source checklist boxes are currently **read-only** in the preview;
+  they are not falsely wired to Quest completion. A future certified action
+  progress contract must own user-specific checkbox persistence. If a guide
+  needs unsupported behavior, importing it stays blocked rather than
+  pretending fidelity.
+
+Run `python -m tools.atlas_guide_importer --source authorized_guides.json
+--partial --output artifacts/authorized-preview.json` for an explicitly
+unapproved subset. The full source inventory may be run without
+`--partial` only when it genuinely contains **95 guides / 7,705 steps**;
+both modes stay preview-only. Evidence and a legitimate content license
+remain mandatory before real import and distribution.
+
+**Not accomplished by this schema alone:** collecting or licensing the 95
+Ganymède originals, extracting their rich source blocks and comparing the
+original website/app visually against Qt. The current 64-step Cawotte
+candidate has reduced action summaries, and is explicitly not accepted as
+a full original source export.
+
 ## Source progress and validation
 
 - One Guide identity: `source_guide:<guide_id>`.
