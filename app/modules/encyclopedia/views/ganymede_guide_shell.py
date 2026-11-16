@@ -156,6 +156,10 @@ class GanymedeGuideShell(SharedGuideManualView):
         # the review has no completion authority, so show only navigation.
         self.validation_host.hide()
         self.sheet_meta_label.show()
+        # Populate the complete route index once, without reading ahead
+        # into another step in the main reader.
+        self.summary_button.setEnabled(True)
+        self._populate_summary()
         self._refresh_header()
         self._render_window()
         return True
@@ -183,7 +187,7 @@ class GanymedeGuideShell(SharedGuideManualView):
 
     @staticmethod
     def _compact_review_card(card: dict) -> bool:
-        """Conservative short-step guard for a two-sheet scrollable page."""
+        """Limit expensive height estimates to genuine long-text steps."""
         rows = card.get("manual_sections", {}).get("now", ())
         return (
             isinstance(rows, list)
@@ -201,76 +205,49 @@ class GanymedeGuideShell(SharedGuideManualView):
         self._clear_cards()
         cards = self.service.cards
         if not cards:
+            self._review_end_index = 0
             return
 
-        start = max(0, min(int(self.view_index), len(cards) - 1))
+        # The shared Guide contract is one source step per page, regardless
+        # of the window size or how short that step happens to be. All other
+        # steps belong to Sommaire, not the main reading area.
+        index = max(0, min(int(self.view_index), len(cards) - 1))
+        widget = SharedGuideManualCard(
+            self.service, self.character_key, cards[index], index,
+            show_header_title=True,
+        )
+        widget.page_check.setEnabled(False)
+        widget.page_check.hide()
+        widget.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Minimum)
+        widget.layout().setAlignment(Qt.AlignTop)
+
+        # Keep a long source step whole and scrollable, including wrapped
+        # lines; never append the next step just to fill unused space.
         viewport = self.scroll.viewport()
         margins = self.cards_layout.contentsMargins()
-        width = max(180, viewport.width() - margins.left() - margins.right() - 16)
-        budget = max(120, viewport.height() - margins.top() - margins.bottom())
-        spacing = self.cards_layout.spacing()
-        used = 0
-        end = start
+        label_width = max(
+            120, viewport.width() - margins.left() - margins.right() - 88
+        )
+        estimated = max(1, widget.sizeHint().height())
+        for label in widget.findChildren(QLabel):
+            if label.wordWrap() and label.hasHeightForWidth():
+                wrapped = label.heightForWidth(label_width)
+                if wrapped > label.sizeHint().height():
+                    estimated += wrapped - label.sizeHint().height()
+        if not self._compact_review_card(cards[index]):
+            widget.setMinimumHeight(max(1, estimated))
+        else:
+            widget.setMinimumHeight(widget.minimumSizeHint().height())
 
-        # Qt's height-for-width accounts for wrapped text at this viewport.
-        # Never cut a source step; an overlong step stays whole and scrolls.
-        for index in range(start, min(len(cards), start + 12)):
-            widget = SharedGuideManualCard(
-                self.service, self.character_key, cards[index], index,
-                show_header_title=True,
-            )
-            widget.page_check.setEnabled(False)
-            widget.page_check.hide()
-            # QWidget layout.heightForWidth() alone overestimates short
-            # multi-line Qt rich-text rows, leaving giant empty sheets.
-            # Start with the compact natural size, then add ONLY the extra
-            # wrapped-line height at the actual available label width.
-            estimated = max(1, widget.sizeHint().height())
-            label_width = max(120, width - 72)  # shared sheet + section margins
-            for label in widget.findChildren(QLabel):
-                if label.wordWrap() and label.hasHeightForWidth():
-                    wrapped = label.heightForWidth(label_width)
-                    if wrapped > label.sizeHint().height():
-                        estimated += wrapped - label.sizeHint().height()
-            required = max(1, estimated) + (spacing if end > start else 0)
-            if end > start and used + required > budget:
-                # A short first sheet should not strand the bottom half of
-                # the screen. Include the next short sheet, with vertical
-                # scrolling rather than truncating either source step.
-                pair_fills_gap = (
-                    end == start + 1
-                    and self._compact_review_card(cards[start])
-                    and self._compact_review_card(cards[index])
-                )
-                if not pair_fills_gap:
-                    widget.deleteLater()
-                    break
-            widget.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Minimum)
-            widget.layout().setAlignment(Qt.AlignTop)
-            # Qt's layout.heightForWidth may massively overestimate short
-            # rich-text labels, which made normal sheets 400px tall. Enforce
-            # the full wrap height only for genuinely long source text.
-            if not self._compact_review_card(cards[index]):
-                widget.setMinimumHeight(max(1, estimated))
-            else:
-                widget.setMinimumHeight(widget.minimumSizeHint().height())
-            self.cards_layout.addWidget(widget)
-            # Newly created orphan QFrames inserted into an already shown
-            # QScrollArea do not always auto-show on Windows Qt. A hidden
-            # sheet is also ignored by the parent layout/scroll height.
-            widget.show()
-            used += required
-            end += 1
-
+        self.cards_layout.addWidget(widget)
+        widget.show()
         self.cards_layout.addStretch(1)
-        self.rendered_card_count = end - start
-        self._review_end_index = end
+        self.rendered_card_count = 1
+        self._review_end_index = index + 1
         self._review_viewport_size = (viewport.width(), viewport.height())
-        self.prev_button.setEnabled(start > 0)
-        self.next_button.setEnabled(end < len(cards))
+        self.prev_button.setEnabled(index > 0)
+        self.next_button.setEnabled(index + 1 < len(cards))
         self.guide_button.setToolTip("Retour au catalogue des Guides")
-        if end > start + 1:
-            self.sheet_title_label.setText(f"Étapes {start + 1} à {end}")
         if reset_scroll:
             self._reset_scroll_to_top()
 
@@ -312,6 +289,10 @@ class GanymedeGuideShell(SharedGuideManualView):
             self._review_history.clear()
             self._review_end_index = 0
             self._review_viewport_size = (0, 0)
+            self.summary_button.setChecked(False)
+            self.summary_button.setEnabled(False)
+            self.summary_panel.hide()
+            self.summary_list.clear()
             self.service.cards = ()
             self._clear_cards()
             # The validation host owns the temporary read-only check button,
