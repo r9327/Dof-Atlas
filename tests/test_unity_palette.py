@@ -108,6 +108,18 @@ class UnityPaletteTests(unittest.TestCase):
             "app/pages/_character_page_impl.py",
         )
 
+    def test_guide_catalogue_card_metrics_are_indexed_without_new_dimensions(self) -> None:
+        from app.ui.unity_palette import UNITY_MODULE_GEOMETRY_PX
+
+        geometry = UNITY_MODULE_GEOMETRY_PX["guide_cards"]
+        self.assertEqual(geometry["featured_compact_margins"], (9, 6, 9, 6))
+        self.assertEqual(geometry["featured_compact_artwork_box"], 28)
+        self.assertEqual(geometry["featured_pair_horizontal_min_width"], 580)
+        self.assertEqual(geometry["library_columns_horizontal_min_width"], 730)
+        self.assertEqual(geometry["library_columns_spacing"], 14)
+        self.assertEqual(geometry["library_left_max_width"], 295)
+        self.assertEqual(geometry["library_left_stacked_max_height"], 220)
+
     def test_guides_and_quests_reuse_existing_unity_spacing_roles(self) -> None:
         from app.ui.unity_palette import UNITY_MODULE_GEOMETRY_PX, UNITY_SPACING_PX
 

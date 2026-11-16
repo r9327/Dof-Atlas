@@ -11,7 +11,10 @@ from PySide6.QtWidgets import (
 )
 
 from app.modules.encyclopedia.services.image_service import ENCYCLOPEDIA_IMAGE_SERVICE
+from app.ui.unity_palette import UNITY_MODULE_GEOMETRY_PX
 from app.ui.unity_skin import apply_unity_panel_shadow, sprite_icon_path
+
+GUIDE_CARD_GEOMETRY = UNITY_MODULE_GEOMETRY_PX["guide_cards"]
 
 
 FEATURED = (
@@ -33,15 +36,16 @@ class FeaturedGuideCard(QFrame):
         # All card/child colors and states come from the shared Unity QSS.
         apply_unity_panel_shadow(self)
         layout = QVBoxLayout(self)
-        layout.setContentsMargins(9, 6, 9, 6)
-        layout.setSpacing(3)
-        self.setMinimumHeight(64)
-        self.setMaximumHeight(85)
+        layout.setContentsMargins(*GUIDE_CARD_GEOMETRY["featured_compact_margins"])
+        layout.setSpacing(GUIDE_CARD_GEOMETRY["featured_compact_spacing"])
+        self.setMinimumHeight(GUIDE_CARD_GEOMETRY["featured_compact_min_height"])
+        self.setMaximumHeight(GUIDE_CARD_GEOMETRY["featured_compact_max_height"])
         self.title = QLabel(title)
         self.title.setObjectName("GuideFeaturedTitle")
         title_row = QHBoxLayout()
         self.artwork = QLabel()
-        self.artwork.setFixedSize(28, 28)
+        artwork_box = GUIDE_CARD_GEOMETRY["featured_compact_artwork_box"]
+        self.artwork.setFixedSize(artwork_box, artwork_box)
         self.artwork.setAlignment(Qt.AlignCenter)
         title_row.addWidget(self.artwork)
         title_row.addWidget(self.title, 1)
@@ -52,7 +56,7 @@ class FeaturedGuideCard(QFrame):
         layout.addWidget(self.subtitle)
         self.progress = QProgressBar()
         self.progress.setObjectName("GuideFeaturedProgress")
-        self.progress.setMaximumHeight(5)
+        self.progress.setMaximumHeight(GUIDE_CARD_GEOMETRY["featured_compact_progress_max_height"])
         self.progress.setTextVisible(False)
         layout.addWidget(self.progress)
         self.open_button = QPushButton("Ouvrir →")
@@ -122,7 +126,10 @@ class FeaturedGuideCard(QFrame):
             image_path = getattr(guide, "image_path", None)
             if image_path and Path(image_path).is_file():
                 from PySide6.QtCore import QSize
-                pixmap = ENCYCLOPEDIA_IMAGE_SERVICE.load_scaled(Path(image_path), QSize(28, 28))
+                art_box = GUIDE_CARD_GEOMETRY["featured_compact_artwork_box"]
+                pixmap = ENCYCLOPEDIA_IMAGE_SERVICE.load_scaled(
+                    Path(image_path), QSize(art_box, art_box)
+                )
                 if pixmap is not None and not pixmap.isNull():
                     self.artwork.setPixmap(pixmap)
 
@@ -134,14 +141,18 @@ class FeaturedPair(QWidget):
         super().__init__(parent)
         layout = QBoxLayout(QBoxLayout.LeftToRight, self)
         # Reserve a few pixels so the real card shadows aren't cropped.
-        layout.setContentsMargins(3, 3, 5, 7)
-        layout.setSpacing(7)
+        layout.setContentsMargins(*GUIDE_CARD_GEOMETRY["featured_pair_margins"])
+        layout.setSpacing(GUIDE_CARD_GEOMETRY["featured_pair_spacing"])
         for card in cards:
             layout.addWidget(card, 1)
         self.pair_layout = layout
 
     def resizeEvent(self, event) -> None:
         super().resizeEvent(event)
-        wanted = QBoxLayout.LeftToRight if event.size().width() >= 580 else QBoxLayout.TopToBottom
+        wanted = (
+            QBoxLayout.LeftToRight
+            if event.size().width() >= GUIDE_CARD_GEOMETRY["featured_pair_horizontal_min_width"]
+            else QBoxLayout.TopToBottom
+        )
         if self.pair_layout.direction() != wanted:
             self.pair_layout.setDirection(wanted)

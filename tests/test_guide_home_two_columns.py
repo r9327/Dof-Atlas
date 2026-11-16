@@ -217,6 +217,29 @@ class GuideHomeTwoColumnsTests(unittest.TestCase):
                 self.assertLessEqual(cell_width, viewport_width)
                 self.assertLessEqual(cell_width, 320)
 
+    def test_catalogue_columns_resize_from_indexed_guide_values(self) -> None:
+        from app.modules.encyclopedia.widgets.guide_card import GuideHomeColumns
+        from app.ui.unity_palette import UNITY_MODULE_GEOMETRY_PX
+
+        geometry = UNITY_MODULE_GEOMETRY_PX["guide_cards"]
+        columns = GuideHomeColumns(QListView(), QListView())
+        try:
+            self.assertEqual(columns.layout().spacing(), geometry["library_columns_spacing"])
+            threshold = geometry["library_columns_horizontal_min_width"]
+            columns.set_available_width(threshold - 1)
+            self.assertEqual(columns.layout().direction(), QBoxLayout.TopToBottom)
+            self.assertEqual(
+                columns._left.maximumHeight(), geometry["library_left_stacked_max_height"]
+            )
+            columns.set_available_width(threshold)
+            self.assertEqual(columns.layout().direction(), QBoxLayout.LeftToRight)
+            self.assertEqual(
+                columns._left.maximumWidth(), geometry["library_left_max_width"]
+            )
+        finally:
+            columns.close()
+            columns.deleteLater()
+
     def test_lazy_home_search_navigation_and_responsive_grid(self) -> None:
         provider = _CatalogProvider()
         with tempfile.TemporaryDirectory() as directory:

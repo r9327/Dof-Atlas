@@ -145,6 +145,39 @@ class GuideLibraryHomeTests(unittest.TestCase):
         self.assertIn(page, switched)
         self.assertEqual(requested, ["catalog"])
 
+    def test_featured_card_and_pair_geometry_follow_dev_ui_index(self):
+        from app.modules.encyclopedia.views.guide_featured_home import (
+            FeaturedGuideCard, FeaturedPair,
+        )
+        from app.ui.unity_palette import UNITY_MODULE_GEOMETRY_PX
+
+        geometry = UNITY_MODULE_GEOMETRY_PX["guide_cards"]
+        cards = (
+            FeaturedGuideCard("guide_complet", "Guide optimisé", lambda _id: None),
+            FeaturedGuideCard("dofus_sylvestre", "Sylvestre", lambda _id: None),
+        )
+        pair = FeaturedPair(cards)
+        try:
+            card = cards[0]
+            self.assertEqual(card.layout().getContentsMargins(), geometry["featured_compact_margins"])
+            self.assertEqual(card.layout().spacing(), geometry["featured_compact_spacing"])
+            self.assertEqual(card.minimumHeight(), geometry["featured_compact_min_height"])
+            self.assertEqual(card.maximumHeight(), geometry["featured_compact_max_height"])
+            self.assertEqual(card.artwork.width(), geometry["featured_compact_artwork_box"])
+            self.assertEqual(card.progress.maximumHeight(), geometry["featured_compact_progress_max_height"])
+            self.assertEqual(pair.layout().getContentsMargins(), geometry["featured_pair_margins"])
+            self.assertEqual(pair.layout().spacing(), geometry["featured_pair_spacing"])
+            pair.resize(geometry["featured_pair_horizontal_min_width"], 200)
+            pair.show()
+            self.app.processEvents()
+            self.assertEqual(pair.pair_layout.direction(), QBoxLayout.LeftToRight)
+            pair.resize(geometry["featured_pair_horizontal_min_width"] - 1, 200)
+            self.app.processEvents()
+            self.assertEqual(pair.pair_layout.direction(), QBoxLayout.TopToBottom)
+        finally:
+            pair.close()
+            pair.deleteLater()
+
     def test_two_featured_cards_and_stable_alignment_tree(self):
         provider = _Provider()
         with tempfile.TemporaryDirectory() as directory:
