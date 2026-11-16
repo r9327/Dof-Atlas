@@ -36,3 +36,40 @@ jobs:
           python -m playwright install --with-deps chromium
       - name: Read-only live source-to-canonical diagnostic (no artifacts)
         run: python -X utf8 -m unittest discover -v -s tests -p 'test_atlas_guide_live_cawotte_probe.py'
+
+  cawotte-visual-windows:
+    name: Cawotte / real imported source in Atlas Qt (Windows)
+    runs-on: windows-latest
+    timeout-minutes: 16
+    env:
+      PYTHONUTF8: "1"
+      QT_QPA_PLATFORM: windows
+      ATLAS_LIVE_CAWOTTE: "1"
+      ATLAS_CAWOTTE_VISUAL: "1"
+    steps:
+      - name: Checkout exact PR commit without LFS
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+          lfs: false
+      - name: Python 3.13
+        uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
+        with:
+          python-version: '3.13'
+      - name: Install pinned Qt and ephemeral browser
+        shell: bash
+        run: |
+          python -m pip install --require-hashes --no-deps -r requirements-pyside.txt
+          python -m pip install --disable-pip-version-check playwright==1.56.0
+          python -m playwright install chromium
+      - name: Render actual authored Cawotte rich blocks in Atlas shared Qt viewer
+        shell: bash
+        run: python -X utf8 -m unittest discover -v -s tests -p 'test_atlas_guide_live_cawotte_probe.py'
+      - name: Upload limited real Qt visual QA screenshots
+        if: always()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: real-cawotte-visual-qt-${{ github.sha }}
+          path: artifacts/visual-cawotte/*.png
+          if-no-files-found: warn
+          retention-days: 1

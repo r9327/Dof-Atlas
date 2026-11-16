@@ -72,6 +72,122 @@ def _render_source_pages() -> list[str]:
     return pages
 
 
+def _native_visual_probe(route: dict) -> None:
+    """Render real source cards in Atlas' existing shared Qt reader, read-only.
+
+    Screenshots are limited QA excerpts, never installed/published guide data.
+    """
+    from PySide6.QtCore import QPoint, Qt
+    from PySide6.QtWidgets import QApplication, QFrame, QLabel, QVBoxLayout
+    from app.ui.theme import atlas_stylesheet
+    from app.ui.unity_skin import UnityBackdrop
+    from app.modules.encyclopedia.views.ganymede_guide_shell import GanymedeGuideShell
+    from app.modules.encyclopedia.views.guide_library_sources import GanymedeListing
+
+    app = QApplication.instance() or QApplication([])
+    app.setStyleSheet(atlas_stylesheet())
+    backdrop = UnityBackdrop()
+    backdrop.resize(1280, 720)
+    container = QVBoxLayout(backdrop)
+    shell = GanymedeGuideShell(lambda: None)
+    container.addWidget(shell)
+    listing = GanymedeListing(2205, "Dofus Cawotte · QA source réelle",
+                              "dofus", 60, 64, BASE)
+    shell.set_listing(listing)
+    if not shell.show_cawotte_review():
+        raise AssertionError("Cawotte shared shell inaccessible")
+    # The source route is injected only into an ephemeral read-only shell.
+    # Preserve all original rich_blocks, IDs, ordering and image bytes.
+    import copy
+    cards = [copy.deepcopy(card) for card in route["steps"]]
+    for card in cards:
+        card["manual_review_only"] = True
+    shell.service.cards = tuple(cards)
+    shell.service.guide_title = "Dofus Cawotte · QA NON CERTIFIÉ"
+    shell.guide_title_label.setText(shell.service.guide_title)
+    shell.guide_title_label.setToolTip(shell.service.guide_title)
+    shell._preparation_loaded = False
+    shell._preparation_needs = ()
+    shell._preparation_preview = ()
+    shell._populate_summary()
+    backdrop.show()
+    app.processEvents()
+    out = Path("artifacts/visual-cawotte")
+    out.mkdir(parents=True, exist_ok=True)
+    reports = []
+    filenames = {
+        0: "real-cawotte-step-01.png",
+        1: "real-cawotte-step-02-long.png",
+        2: "real-cawotte-step-03.png",
+        5: "real-cawotte-step-06-image.png",
+    }
+    try:
+        for index in (0, 1, 2, 5, 39, 63):
+            shell._show_index(index)
+            app.processEvents()
+            frame = shell.cards_layout.itemAt(0).widget()
+            if shell.rendered_card_count != 1 or frame is None:
+                raise AssertionError(f"step {index + 1}: not exactly one Atlas sheet")
+            sheets = shell.findChildren(QFrame, "GuideManualSheet")
+            if sum(int(w.isVisibleTo(shell)) for w in sheets) != 1:
+                raise AssertionError(f"step {index + 1}: duplicate visible Qt sheet")
+            if shell.sheet_title_label.text() != cards[index]["manual_title"]:
+                raise AssertionError(f"step {index + 1}: wrong source title")
+            if shell.page_jump.value() != index + 1:
+                raise AssertionError(f"step {index + 1}: broken page selector")
+            if frame.width() > shell.scroll.viewport().width() + 2:
+                raise AssertionError(f"step {index + 1}: horizontal sheet clipping")
+            for image_label in frame.findChildren(QLabel, "GuideManualSourceImage"):
+                if image_label.pixmap() is None or image_label.pixmap().isNull():
+                    raise AssertionError(f"step {index + 1}: image not rendered")
+            for line in frame.findChildren(QLabel):
+                if not line.isVisibleTo(frame):
+                    continue
+                left = line.mapTo(frame, QPoint(0, 0)).x()
+                if left < -4 or left + line.width() > frame.width() + 5:
+                    raise AssertionError(f"step {index + 1}: text/image horizontal overflow")
+            images = len(frame.findChildren(QLabel, "GuideManualSourceImage"))
+            expected = sum(
+                block["type"] == "image"
+                for block in cards[index]["manual_runtime_metadata"]["source_step"]
+                    ["actions"][0]["rich_blocks"]
+            )
+            if images != expected:
+                raise AssertionError(
+                    f"step {index + 1}: missing image widgets ({images}/{expected})"
+                )
+            if index in filenames:
+                screenshot = out / filenames[index]
+                if not backdrop.grab().save(str(screenshot), "PNG"):
+                    raise AssertionError("Native Qt screenshot failed")
+            reports.append((index + 1, frame.height(),
+                            shell.scroll.verticalScrollBar().maximum(), images))
+        shell._show_index(5)
+        app.processEvents()
+        shell.scroll.verticalScrollBar().setValue(
+            shell.scroll.verticalScrollBar().maximum()
+        )
+        app.processEvents()
+        if not backdrop.grab().save(str(out / "real-cawotte-step-06-bottom.png"), "PNG"):
+            raise AssertionError("Bottom-of-page screenshot failed")
+        shell._show_index(0)
+        shell.preparation_button.click()
+        app.processEvents()
+        first_preview = tuple(shell._preparation_preview)
+        if not backdrop.grab().save(str(out / "real-cawotte-prerequisites.png"), "PNG"):
+            raise AssertionError("Prerequisites screenshot failed")
+        print("CAWOTTE_VISUAL_QT: 1280x720 native Windows,"
+              f" checked={reports}, prerequisite_rows={len(first_preview)}",
+              flush=True)
+        # Report the gap without changing the authored source or inventing gates.
+        if not any(category == "Prérequis" for category, *_ in first_preview):
+            print("CAWOTTE_VISUAL_GAP: source prerequisite prose/checklist"
+                  " not mapped to the dedicated Prérequis panel", flush=True)
+    finally:
+        backdrop.close()
+        app.processEvents()
+
+
 def _guide_image_urls(html: str) -> set[str]:
     dom = _DOM(html)
     found: set[str] = set()
@@ -144,6 +260,8 @@ class CawotteLiveSourceDiagnostic(unittest.TestCase):
                 "steps": steps,
             })
             self.assertEqual(len(projected["steps"]), 64)
+            if os.environ.get("ATLAS_CAWOTTE_VISUAL") == "1":
+                _native_visual_probe(projected)
             print(
                 "READ_ONLY_NOT_CERTIFIED: "
                 f"source_articles={len(steps)} "
