@@ -3287,22 +3287,6 @@ QToolButton#GuidePreparationToggle:checked {
     border-color: @GREEN_BORDER;
 }
 
-QPushButton#GuidePreparationFilter {
-    background: @GLASS_BUTTON;
-    color: @GUIDE_TOGGLE_BORDER;
-    border: 1px solid @GUIDE_TOGGLE_BORDER;
-    border-radius: @RADIUS_XS;
-    padding: 4px 9px;
-    font-weight: 700;
-}
-
-QPushButton#GuidePreparationFilter:hover,
-QPushButton#GuidePreparationFilter:checked {
-    background: @PANEL_ACTIVE;
-    border-color: @GREEN_BORDER;
-    color: @GREEN_BORDER;
-}
-
 QFrame#GuidePreparationSummary,
 QFrame#GuidePreparationRow {
     background: @GUIDE_PREPARATION_ROW;

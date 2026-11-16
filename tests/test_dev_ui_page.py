@@ -370,9 +370,9 @@ class DevUiPageTests(unittest.TestCase):
                 QWidget, "GuideManualGuideButton"
             )
             self.assertFalse(sheet_back.icon().isNull())
-            filters = page.preview_header_filter_group.buttons()
-            filters[1].click()
-            self.assertEqual(sum(button.isChecked() for button in filters), 1)
+            self.assertEqual(page.preview_header_filter.count(), 7)
+            page.preview_header_filter.setCurrentText("Objets")
+            self.assertEqual(page.preview_header_filter.currentText(), "Objets")
 
             self.assertTrue(all(not icon.pixmap().isNull()
                                 for icon in page.preview_header_metric_icons.values()))

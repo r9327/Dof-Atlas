@@ -11,7 +11,6 @@ from PySide6.QtCore import QPointF, QRectF, QSize, Qt, QTimer
 from PySide6.QtGui import QColor, QIcon, QPainter, QPen, QPixmap
 from PySide6.QtWidgets import (
     QApplication,
-    QButtonGroup,
     QCheckBox,
     QFrame,
     QGridLayout,
@@ -39,7 +38,7 @@ from app.modules.encyclopedia.views.guide_ultime_manual_view import (
     GuideUltimeManualView,
 )
 from app.core.text import normalize_key as normalize_text
-from app.ui.components import AtlasButton, AtlasGuideDisclosure, AtlasGuideCover, AtlasGuideParticipantButton, atlas_guide_arrow_icon, atlas_guide_character_icon
+from app.ui.components import AtlasButton, AtlasComboBox, AtlasGuideDisclosure, AtlasGuideCover, AtlasGuideParticipantButton, atlas_guide_arrow_icon, atlas_guide_character_icon
 from app.ui.unity_palette import UNITY_CONTROL_SIZES_PX, UNITY_SIZES_PX
 from app.ui.unity_skin import apply_unity_panel_shadow, sprite_icon_path
 from app.constants import DATA_DIR
@@ -1186,23 +1185,17 @@ class SharedGuideManualView(GuideUltimeManualView):
         panel_layout = QVBoxLayout(self.preparation_panel)
         panel_layout.setContentsMargins(10, 8, 10, 9)
         panel_layout.setSpacing(7)
-        filters = QHBoxLayout()
-        filters.setSpacing(5)
-        self.preparation_filter_group = QButtonGroup(self)
-        self.preparation_filter_group.setExclusive(True)
-        for label in ("Tout", "Prérequis", "Métiers", "Potions", "Pierres d'âme", "Clefs", "Objets"):
-            button = AtlasButton(label)
-            button.setObjectName("GuidePreparationFilter")
-            button.setCheckable(True)
-            button.setProperty("filterKey", label)
-            button.setChecked(label == "Tout")
-            self.preparation_filter_group.addButton(button)
-            button.clicked.connect(
-                lambda _checked=False, value=label: self._render_preparation(value)
-            )
-            filters.addWidget(button)
-        filters.addStretch(1)
-        panel_layout.addLayout(filters)
+        # Reuse the shared Unity combo instead of seven buttons competing
+        # with the two-column progress header on compact windows.
+        self.preparation_filter = AtlasComboBox()
+        self.preparation_filter.setObjectName("GuidePreparationCategoryFilter")
+        self.preparation_filter.addItems((
+            "Tout", "Prérequis", "Métiers", "Potions", "Pierres d'âme", "Clefs", "Objets",
+        ))
+        self.preparation_filter.setToolTip("Filtrer les besoins de préparation")
+        self.preparation_filter.setAccessibleName("Catégorie de préparation")
+        self.preparation_filter.currentTextChanged.connect(self._render_preparation)
+        panel_layout.addWidget(self.preparation_filter, 0, Qt.AlignLeft)
 
         self.preparation_scroll = QScrollArea()
         self.preparation_scroll.setObjectName("GuidePreparationScroll")
@@ -1490,10 +1483,7 @@ class SharedGuideManualView(GuideUltimeManualView):
             return
         if not self._preparation_loaded:
             self._load_preparation_needs()
-        checked = self.preparation_filter_group.checkedButton()
-        self._render_preparation(
-            str(checked.property("filterKey") if checked is not None else "Tout")
-        )
+        self._render_preparation(self.preparation_filter.currentText())
 
     def _progress_participant_keys(self) -> tuple[str, ...]:
         # A global character is a browsing context, never implicit consent to
@@ -1702,11 +1692,7 @@ class SharedGuideManualView(GuideUltimeManualView):
                 "Sauvegarde atomique multi-personnages indisponible."
             )
             return
-        checked_button = self.preparation_filter_group.checkedButton()
-        current_filter = str(
-            checked_button.property("filterKey") if checked_button is not None else "Tout"
-        )
-        self._render_preparation(current_filter)
+        self._render_preparation(self.preparation_filter.currentText())
         self._update_preparation_progress()
 
     def _clear_preparation_rows(self) -> None:
@@ -1720,11 +1706,7 @@ class SharedGuideManualView(GuideUltimeManualView):
 
     def _show_more_preparation(self) -> None:
         self._preparation_visible_limit += 80
-        checked = self.preparation_filter_group.checkedButton()
-        current_filter = str(
-            checked.property("filterKey") if checked is not None else "Tout"
-        )
-        self._render_preparation(current_filter)
+        self._render_preparation(self.preparation_filter.currentText())
 
     def _append_preparation_more(self, remaining: int) -> None:
         if remaining <= 0:
@@ -1987,10 +1969,7 @@ class SharedGuideManualView(GuideUltimeManualView):
         self._preparation_needs = ()
         if self.preparation_button.isChecked():
             self._load_preparation_needs()
-            checked_button = self.preparation_filter_group.checkedButton()
-            self._render_preparation(
-                str(checked_button.property("filterKey") if checked_button else "Tout")
-            )
+            self._render_preparation(self.preparation_filter.currentText())
         self._refresh_header()
         # Selection changes must immediately replace the live Valider control.
         self._render_window()

@@ -704,11 +704,7 @@ class GuideUltimeManualUiNavigationTests(unittest.TestCase):
                 ("Pierres d'âme", "Pierre d'âme moyenne"),
                 ("Clefs", "Clef de test"),
             ):
-                button = next(
-                    button for button in view.preparation_filter_group.buttons()
-                    if button.property("filterKey") == filter_key
-                )
-                button.click()
+                view.preparation_filter.setCurrentText(filter_key)
                 QApplication.processEvents()
                 selected_rows = [
                     view.preparation_rows_layout.itemAt(i).widget()
@@ -739,12 +735,8 @@ class GuideUltimeManualUiNavigationTests(unittest.TestCase):
         )
         try:
             view.preparation_button.click()
-            potions = next(
-                button
-                for button in view.preparation_filter_group.buttons()
-                if button.property("filterKey") == "Potions"
-            )
-            potions.click()
+            view.preparation_filter.setCurrentText("Potions")
+            self.assertEqual(view.preparation_filter.currentText(), "Potions")
             ready = view.findChild(QCheckBox, "GuidePreparationReady")
             # Exact visual/functional row order, shared by Guide and Ganymède.
             line = ready.parentWidget().layout().itemAt(0).layout()

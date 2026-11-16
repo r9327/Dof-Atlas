@@ -16,7 +16,6 @@ from PySide6.QtWidgets import (
     QApplication,
     QCheckBox,
     QCalendarWidget,
-    QButtonGroup,
     QDateEdit,
     QDoubleSpinBox,
     QFrame,
@@ -706,23 +705,16 @@ class DevUiPage(QWidget):
                 heading = QLabel("Préparer avant de partir · exemple fictif")
                 heading.setObjectName("GuidePreparationSummary")
                 panel_layout.addWidget(heading)
-                filters = QHBoxLayout()
-                self.preview_header_filter_group = QButtonGroup(self)
-                self.preview_header_filter_group.setExclusive(True)
-                for name in ("Tout", "Objets", "Potions", "Clefs"):
-                    button = AtlasButton(name, variant="secondary")
-                    button.setObjectName("GuidePreparationFilter")
-                    button.setCheckable(True)
-                    button.setChecked(name == "Tout")
-                    self.preview_header_filter_group.addButton(button)
-                    button.clicked.connect(
-                        lambda _checked=False, value=name: self._report(
-                            f"Préparation · filtre {value} (aperçu)"
-                        )
-                    )
-                    filters.addWidget(button)
-                filters.addStretch(1)
-                panel_layout.addLayout(filters)
+                self.preview_header_filter = AtlasComboBox()
+                self.preview_header_filter.setObjectName("GuidePreparationCategoryFilter")
+                self.preview_header_filter.addItems((
+                    "Tout", "Prérequis", "Métiers", "Potions", "Pierres d'âme", "Clefs", "Objets",
+                ))
+                self.preview_header_filter.setAccessibleName("Catégorie de préparation")
+                self.preview_header_filter.currentTextChanged.connect(
+                    lambda value: self._report(f"Préparation · filtre {value} (aperçu)")
+                )
+                panel_layout.addWidget(self.preview_header_filter, 0, Qt.AlignLeft)
                 self.preview_header_preparation_rows: list[tuple[QSpinBox, QCheckBox]] = []
                 self.preview_header_preparation_names: list[AtlasButton] = []
                 for name, quantity, done in (
