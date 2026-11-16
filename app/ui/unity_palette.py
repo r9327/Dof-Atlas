@@ -7,6 +7,8 @@ from __future__ import annotations
 
 from collections.abc import Mapping
 
+from app.ui.entity_link_roles import ENTITY_LINK_COLOR_ROLES as GUIDE_ENTITY_LINK_ROLES
+
 
 UNITY_PALETTE = {
     "BG": "#151821",
@@ -69,18 +71,6 @@ UNITY_PALETTE = {
     "BADGE_TEXT": "#C9D44C",
 }
 
-
-# Shared Guide semantic text roles. Only existing Unity colors are used;
-# all views and the Dev UI gallery resolve them from this single index.
-GUIDE_ENTITY_LINK_ROLES = {
-    "monster": "DANGER_TEXT",
-    "boss": "RED_HOVER",
-    "item": "GREEN",
-    "equipment": "BORDER_STRONG",
-    "npc": "YELLOW",
-    "position": "TEXT_SOFT",
-    "quest": "TEXT_SOFT",
-}
 
 # Shared geometrical tokens for Qt theme and Unity skin. Keep the exact
 # existing values: a style override must reach both layers without drift.
