@@ -503,7 +503,7 @@ class LanyelSharedManualUiTests(unittest.TestCase):
             # X/X is now the only direct sheet selector.
             self.assertEqual(
                 set(compact.findChildren(QToolButton, "GuideMetricDropdown")),
-                {shared.preparation_button},
+                {shared.summary_button, shared.preparation_button},
             )
             self.assertTrue(shared.summary_button.isHidden())
             self.assertTrue(shared.route_bar.isHidden())
