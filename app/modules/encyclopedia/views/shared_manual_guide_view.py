@@ -1770,7 +1770,10 @@ class SharedGuideManualView(GuideUltimeManualView):
         panel_layout.addWidget(self.preparation_scroll)
         self.preparation_panel.setVisible(False)
         apply_unity_panel_shadow(self.preparation_panel, blur=16, vertical=4)
-        self._metric_columns["Préparation"].addWidget(self.preparation_panel)
+        # Full-width indexed drawer below both metric bars. Putting it in
+        # the right grid cell left a huge dead zone under Route and forced
+        # prerequisites into a narrow column.
+        self._header_content_layout.addWidget(self.preparation_panel)
 
     def _build_sheet_header(self, root: QVBoxLayout) -> None:
         header = QFrame()
