@@ -1885,10 +1885,9 @@ class SharedGuideManualView(GuideUltimeManualView):
         panel_layout.addWidget(self.preparation_scroll)
         self.preparation_panel.setVisible(False)
         apply_unity_panel_shadow(self.preparation_panel, blur=16, vertical=4)
-        # Full-width indexed drawer below both metric bars. Putting it in
-        # the right grid cell left a huge dead zone under Route and forced
-        # prerequisites into a narrow column.
-        self._header_content_layout.addWidget(self.preparation_panel)
+        # Both panels are independent: each stays exactly under its own
+        # progress bar, at that column's width, including when BOTH are open.
+        self._metric_columns["Préparation"].addWidget(self.preparation_panel)
 
     def _build_sheet_header(self, root: QVBoxLayout) -> None:
         header = QFrame()
@@ -1974,9 +1973,8 @@ class SharedGuideManualView(GuideUltimeManualView):
         self.summary_list.itemClicked.connect(self._summary_item_clicked)
         summary_layout.addWidget(self.summary_list)
         self.summary_panel.setVisible(False)
-        # Both Guide dropdowns share the full indexed reading-header width.
-        # Keeping Summary in a half-width grid column wasted the right half.
-        self._header_content_layout.addWidget(self.summary_panel)
+        # Match the Route progress column, not the combined header width.
+        self._metric_columns["Route"].addWidget(self.summary_panel)
         apply_unity_panel_shadow(header, blur=15, vertical=3)
         root.addWidget(header)
         self._refresh_participants_panel()
@@ -2224,12 +2222,14 @@ class SharedGuideManualView(GuideUltimeManualView):
     def _preparation_toggled(self, opened: bool) -> None:
         if opened:
             source = self._is_imported_source_guide()
+            # The two half-width drawers must not swallow the reading
+            # viewport on a small display; both scroll independently.
             self.preparation_scroll.setMaximumHeight(
                 GUIDE_READING_METRICS["source_drawer_max_height"]
                 if source else GUIDE_READING_METRICS["normal_drawer_max_height"]
             )
             self.preparation_scroll.setMinimumHeight(
-                GUIDE_READING_METRICS["source_drawer_min_height"]
+                GUIDE_READING_METRICS["source_drawer_compact_min_height"]
                 if source else GUIDE_READING_METRICS["normal_drawer_min_height"]
             )
             self.preparation_filter_host.setVisible(

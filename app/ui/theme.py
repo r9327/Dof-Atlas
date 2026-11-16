@@ -69,6 +69,7 @@ GUIDE_READING_METRICS = {
     # while retaining a scrollbar for unusually long preparation lists.
     "source_drawer_max_height": 340,
     "source_drawer_min_height": 280,
+    "source_drawer_compact_min_height": 156,
     "normal_drawer_max_height": 210,
     "normal_drawer_min_height": 126,
 }
@@ -2663,9 +2664,9 @@ QToolButton#GuideMetricDropdown:disabled {
     border: 1px solid transparent;
 }
 QToolButton#GuideParticipantsButton {
-    /* Same indexed subtle outline as the other Guide header controls. */
-    background: transparent;
-    border: 1px solid @BORDER_SOFT;
+    /* A visible Unity button ring in every state, including disabled. */
+    background: @PANEL_2;
+    border: 1px solid @BORDER_STRONG;
     border-radius: @RADIUS_XS;
     padding: 0;
 }
@@ -2675,8 +2676,8 @@ QToolButton#GuideParticipantsButton:checked {
     border-color: @GREEN_BORDER;
 }
 QToolButton#GuideParticipantsButton:disabled {
-    background: transparent;
-    border-color: @BORDER_SOFT;
+    background: @PANEL_2;
+    border: 1px solid @BORDER_STRONG;
 }
 
 QPushButton#GuideManualGuideButton {
