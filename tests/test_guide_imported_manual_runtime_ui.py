@@ -464,7 +464,10 @@ class ImportedSourceRouterQtTests(unittest.TestCase):
             ["prepare-first", "talk-next"],
         )
         self.assertEqual(
-            len(widget.findChildren(QFrame, "GuideManualSourceReadingSection")), 2,
+            widget.findChildren(QFrame, "GuideManualSourceReadingSection"), [],
+        )
+        self.assertEqual(
+            widget.findChildren(QFrame, "GuideManualActionSection"), [],
         )
         self.assertTrue(widget.property("continuousGuideReading"))
         # Qt labels contain inline Unity markup: compare the user-visible
