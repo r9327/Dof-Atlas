@@ -73,18 +73,25 @@ def _render_source_pages() -> list[str]:
 
 
 def _native_visual_probe(route: dict, cover_png: bytes) -> None:
-    """Render real source cards in Atlas' existing shared Qt reader, read-only.
+    """Real Qt: one continuous container/page, 64 immutable source fiches.
 
-    Screenshots are limited QA excerpts, never installed/published guide data.
+    Browser-rendered French author blocks are temporary QA fixtures only.
+    Pages are responsive projections, not a different Quest order.
     """
-    from PySide6.QtCore import QPoint, Qt
+    import copy
+    from html import unescape
+    from PySide6.QtCore import QPoint, Qt, QTimer
     from PySide6.QtGui import QPixmap
-    from PySide6.QtWidgets import QApplication, QCheckBox, QFrame, QLabel, QVBoxLayout
-    from app.ui.theme import GUIDE_READING_METRICS
-    from app.ui.theme import atlas_stylesheet
+    from PySide6.QtWidgets import (
+        QApplication, QCheckBox, QDialog, QFrame, QLabel, QSlider, QVBoxLayout,
+    )
+    from app.ui.theme import GUIDE_READING_METRICS, atlas_stylesheet
     from app.ui.unity_skin import UnityBackdrop
     from app.modules.encyclopedia.views.ganymede_guide_shell import GanymedeGuideShell
     from app.modules.encyclopedia.views.guide_library_sources import GanymedeListing
+    from app.modules.encyclopedia.services.guide_source_reading_pages import (
+        authored_reading_blocks,
+    )
 
     app = QApplication.instance() or QApplication([])
     app.setStyleSheet(atlas_stylesheet())
@@ -93,269 +100,224 @@ def _native_visual_probe(route: dict, cover_png: bytes) -> None:
     container = QVBoxLayout(backdrop)
     shell = GanymedeGuideShell(lambda: None)
     container.addWidget(shell)
-    # The existing read-only preview entrypoint is guarded by pilot ID 2205.
-    # It does not publish or play the source. Switch the transient QA identity
-    # to the actual French source /24 after opening that isolated preview.
+    # Preview entrypoint remains pilot-guarded; only its ephemeral Qt cards
+    # are replaced by exact source /24, without installation/progress writes.
     listing = GanymedeListing(
         2205, "Dofus Cawotte", "dofus", 60, 64,
         "https://ganymede-app.com/guides/2205",
     )
     cover = QPixmap()
     if not cover.loadFromData(cover_png):
-        raise AssertionError("Source-linked Cawotte cover art failed to decode")
+        raise AssertionError("Real Cawotte source cover did not decode")
     shell.set_listing(listing, artwork=cover)
     if not shell.show_cawotte_review():
-        raise AssertionError("Cawotte shared shell inaccessible")
-    # The pilot guard remains untouched. Every visible QA card below comes
-    # from French source /24, whose identity is recorded on this transient
-    # instance only (never in the source catalog or an installed route).
+        raise AssertionError("Read-only Cawotte preview not available")
     shell._listing = GanymedeListing(24, "Dofus Cawotte", "dofus", 60, 64, BASE)
-    # The source route is injected only into an ephemeral read-only shell.
-    # Preserve all original rich_blocks, IDs, ordering and image bytes.
-    import copy
     cards = [copy.deepcopy(card) for card in route["steps"]]
     for card in cards:
         card["manual_review_only"] = True
     shell.service.cards = tuple(cards)
     shell.service.guide_title = "Dofus Cawotte"
-    shell.guide_title_label.setText(shell.service.guide_title)
-    shell.guide_title_label.setToolTip(shell.service.guide_title)
+    shell.guide_title_label.setText("Dofus Cawotte")
     shell._preparation_loaded = False
     shell._preparation_needs = ()
     shell._preparation_preview = ()
-    shell._populate_summary()
-    shell._refresh_header()
     backdrop.show()
     app.processEvents()
+    shell._populate_summary()
+    shell._refresh_header()
+
+    original_blocks = authored_reading_blocks(cards)
+    pages = shell._source_reading_pages()
+    assert len(cards) == 64
+    if not 4 <= len(pages) < len(cards):
+        raise AssertionError(f"Invalid responsive page count {len(pages)}")
+    if tuple(entry for page in pages for entry in page) != original_blocks:
+        raise AssertionError("A source paragraph/link/image was lost or reordered")
+    if shell.summary_list.count() != len(pages):
+        raise AssertionError("Route summary must list pages, not fake 64 steps")
+
     out = Path("artifacts/visual-cawotte")
     out.mkdir(parents=True, exist_ok=True)
     reports = []
-    # Exhaustive visual review: one top-of-page screenshot for every genuine
-    # authored fiche, plus a bottom screenshot when its text scrolls.
-    # Data is transient, never committed or installed into a playable guide.
-    pages_report = []
-    try:
-        for index in range(len(cards)):
-            shell._show_index(index)
-            app.processEvents()
-            frame = shell.cards_layout.itemAt(0).widget()
-            if shell.rendered_card_count != 1 or frame is None:
-                raise AssertionError(f"step {index + 1}: not exactly one Atlas sheet")
-            if shell.scroll.objectName() != "GuideManualSourceScroll":
-                raise AssertionError("Source sheet still uses full-height bordered glass")
-            sheets = shell.findChildren(QFrame, "GuideManualSheet")
-            if sum(int(w.isVisibleTo(shell)) for w in sheets) != 1:
-                raise AssertionError(f"step {index + 1}: duplicate visible Qt sheet")
-            expected_title = cards[index]["manual_title"]
-            if expected_title.startswith("Step "):
-                expected_title = expected_title.replace("Step ", "Étape ", 1)
-            if index == 1:
-                source_labels = frame.findChildren(QLabel)
-                if not any(
-                    'href="travel-copy:25,-4"' in label.text()
-                    for label in source_labels
-                ):
-                    raise AssertionError(
-                        "Fiche 2: [zaap:25,-4] not rendered as Atlas travel-copy link"
-                    )
-            if index in (1, 49):
-                # The source declares a resource/equipment section before
-                # the later 'Ensuite' travel instruction: no duplication in Route.
-                visible = " ".join(label.text() for label in frame.findChildren(QLabel))
-                forbidden = (
-                    "Prévoyez les ressources suivantes"
-                    if index == 1 else
-                    "Vérifiez que vous avez les équipements ci-dessous"
-                )
-                if forbidden in visible:
-                    raise AssertionError(
-                        f"Fiche {index + 1}: material section still in Route"
-                    )
-                if not cards[index].get("manual_preparation_block_indexes"):
-                    raise AssertionError(
-                        f"Fiche {index + 1}: source materials were not recognized"
-                    )
-            if index == 44:
-                # A dual-purpose sentence is split, not duplicated or lost.
-                route_text = " ".join(
-                    label.text() for label in frame.findChildren(QLabel)
-                )
-                if ("Prévoyez l'aide de" in route_text
-                        or "placez les comme ci-dessous" not in route_text):
-                    raise AssertionError("Fiche 45: party gate not isolated")
-                if not cards[index].get("manual_prerequisite_inline_leads"):
-                    raise AssertionError("Fiche 45: source party requirement missing")
-            if index == 0:
-                # Text prerequisite rows stay in Prérequis ONLY.
-                texts = [label.text() for label in frame.findChildren(QLabel)]
-                for forbidden in (
-                    "nécessaire d'être niveau 60",
-                    "Vous devriez avoir fait le guide",
-                    "Intrusion chez les wabbits",
-                ):
-                    if any(forbidden in label for label in texts):
-                        raise AssertionError(
-                            f"Prerequisite duplicated in Route: {forbidden}"
-                        )
-            if frame.findChildren(QCheckBox, "GuideManualSourceChecklist"):
-                raise AssertionError("Source checklist still draws selection squares")
-            if shell._metric_caption_labels["Préparation"].text() != "Prérequis":
-                raise AssertionError("Source route has wrong top-level Prérequis menu")
-            if shell._metric_caption_labels["Route"].text() != "Route":
-                raise AssertionError("Source route label was overwritten")
-            if shell.sheet_title_label.text() != expected_title:
-                raise AssertionError(f"step {index + 1}: wrong source title")
-            if shell.page_jump.value() != index + 1:
-                raise AssertionError(f"step {index + 1}: broken page selector")
-            if frame.width() > shell.scroll.viewport().width() + 2:
-                raise AssertionError(f"step {index + 1}: horizontal sheet clipping")
-            for image_label in frame.findChildren(QLabel, "GuideManualSourceImage"):
-                pixmap = image_label.pixmap()
-                if pixmap is None or pixmap.isNull():
-                    raise AssertionError(f"step {index + 1}: image not rendered")
-                if (pixmap.width() > GUIDE_READING_METRICS["source_image_max_width"]
-                        or pixmap.height() > GUIDE_READING_METRICS["source_image_max_height"]):
-                    raise AssertionError(f"step {index + 1}: source image too large")
-            for line in frame.findChildren(QLabel):
-                if not line.isVisibleTo(frame):
-                    continue
-                left = line.mapTo(frame, QPoint(0, 0)).x()
-                if left < -4 or left + line.width() > frame.width() + 5:
-                    raise AssertionError(f"step {index + 1}: text/image horizontal overflow")
-            images = len(frame.findChildren(QLabel, "GuideManualSourceImage"))
-            expected = sum(
-                block["type"] == "image"
-                for block in cards[index]["manual_runtime_metadata"]["source_step"]
-                    ["actions"][0]["rich_blocks"]
+    zoom_checked = False
+    for page_index in range(len(pages)):
+        shell._show_reading_page(page_index)
+        app.processEvents()
+        frame = shell.cards_layout.itemAt(0).widget()
+        if frame is None or shell.rendered_card_count != 1:
+            raise AssertionError(f"Page {page_index + 1}: missing single reader")
+        if frame.objectName() != "GuideManualSheet":
+            raise AssertionError("Original authored blocks inside wrong container")
+        if frame.property("sourceContinuousReading") is not True:
+            raise AssertionError("Still using nested artificial Atlas step cards")
+        if shell.sheet_title_label.text() != "Parcours":
+            raise AssertionError("Duplicated Step/Quest heading in reading header")
+        if shell.page_jump.value() != page_index + 1:
+            raise AssertionError(f"Broken page navigation at {page_index + 1}")
+        if shell.page_jump.maximum() != len(pages):
+            raise AssertionError("Page selector counts source fiches, not reader pages")
+        if shell.scroll.objectName() != "GuideManualSourceScroll":
+            raise AssertionError("Source reader still paints full empty scroll glass")
+        if frame.width() > shell.scroll.viewport().width() + 2:
+            raise AssertionError(f"Page {page_index + 1}: horizontal clipping")
+        if frame.findChildren(QCheckBox, "GuideManualSourceChecklist"):
+            raise AssertionError("Copied source checkboxes must not be interactive")
+        for label in frame.findChildren(QLabel):
+            if not label.isVisibleTo(frame):
+                continue
+            left = label.mapTo(frame, QPoint(0, 0)).x()
+            if left < -4 or left + label.width() > frame.width() + 5:
+                raise AssertionError(f"Page {page_index + 1}: clipped rich text")
+        image_labels = frame.findChildren(QLabel, "GuideManualSourceImage")
+        expected_images = sum(
+            entry["block"]["type"] == "image" for entry in pages[page_index]
+        )
+        if len(image_labels) != expected_images:
+            raise AssertionError(
+                f"Page {page_index + 1}: image loss "
+                f"{len(image_labels)}/{expected_images}"
             )
-            if images != expected:
-                raise AssertionError(
-                    f"step {index + 1}: missing image widgets ({images}/{expected})"
-                )
-            page_no = index + 1
-            scrollbar = shell.scroll.verticalScrollBar()
-            top_screenshot = out / f"fiche-{page_no:02d}-haut.png"
-            if not backdrop.grab().save(str(top_screenshot), "PNG"):
-                raise AssertionError(f"Fiche {page_no}: top screenshot failed")
-            max_scroll = scrollbar.maximum()
-            if max_scroll > 0:
-                scrollbar.setValue(max_scroll)
-                app.processEvents()
-                bottom_screenshot = out / f"fiche-{page_no:02d}-bas.png"
-                if not backdrop.grab().save(str(bottom_screenshot), "PNG"):
-                    raise AssertionError(f"Fiche {page_no}: bottom screenshot failed")
-            raw_blocks = cards[index]["manual_runtime_metadata"]["source_step"][
-                "actions"
-            ][0]["rich_blocks"]
-            pages_report.append({
-                "fiche": page_no,
-                "source_block_count": len(raw_blocks),
-                "source_character_count": sum(
-                    sum(len(run["text"]) for run in block.get("runs", ()))
-                    if block["type"] in {"paragraph", "heading"} else
-                    sum(len(item["text"]) for item in block.get("items", ()))
-                    if block["type"] == "checklist" else 0
-                    for block in raw_blocks
-                ),
-                "source_images": images,
-                "prerequisite_blocks_moved": len(
-                    cards[index].get("manual_prerequisite_block_indexes") or ()
-                ),
-                "source_checklists": sum(
-                    len(block["items"]) for block in raw_blocks
-                    if block["type"] == "checklist"
-                ),
-                "sheet_height": frame.height(),
-                "viewport_height": shell.scroll.viewport().height(),
-                "scroll_max": max_scroll,
-                "screenshot_top": top_screenshot.name,
-                "screenshot_bottom": (
-                    f"fiche-{page_no:02d}-bas.png" if max_scroll > 0 else None
-                ),
-            })
-            reports.append((page_no, frame.height(), max_scroll, images))
-        shell._show_index(0)
-        shell.preparation_button.click()
-        app.processEvents()
-        if shell._preparation_tab != "Prérequis":
-            raise AssertionError("Imported guide opens the wrong prerequisite tab")
-        first_preview = tuple(shell._preparation_preview)
-        if shell.preparation_scroll.minimumHeight() < 250:
-            raise AssertionError("Source prerequisite drawer is clipped by old minimum")
-        if shell.preparation_progress_label.text() != "5 à vérifier":
-            raise AssertionError("Prerequisite count vanished after opening its drawer")
-        source_labels = shell.preparation_panel.findChildren(QLabel, "GuideManualLine")
-        if len(source_labels) < 4:
-            raise AssertionError("Prérequis should retain four source-authored lines")
-        if not any('href="' in label.text() for label in source_labels):
-            raise AssertionError("Authored prerequisite links became plain copy-only text")
-        if not backdrop.grab().save(str(out / "real-cawotte-prerequisites.png"), "PNG"):
-            raise AssertionError("Prerequisites screenshot failed")
-        shell.preparation_button.setChecked(True)
-        for button in shell.preparation_tab_group.buttons():
-            if button.property("tabKey") == "À préparer":
-                button.click()
-                break
-        app.processEvents()
-        if shell._preparation_tab != "À préparer":
-            raise AssertionError("Materials tab cannot be selected")
-        source_materials = shell.preparation_panel.findChildren(QLabel, "GuideManualLine")
-        source_context = shell.preparation_panel.findChildren(
-            QLabel, "GuidePreparationSourceContext"
-        )
-        if len(source_materials) < 3:
-            raise AssertionError("Source materials drawer missing typed item rows")
-        from html import unescape
-        materials_text = unescape(" ".join(label.text() for label in source_materials))
-        contexts_text = unescape(" ".join(label.text() for label in source_context))
-        if "Cawotte" not in materials_text or "Couronne" not in materials_text:
-            raise AssertionError("Cawotte item and equipment links are absent")
-        if "Art gastronomique" in materials_text or "L'œuf ou la cawotte" in materials_text:
-            raise AssertionError("Source Quest/section titles masquerade as items")
-        if "Art gastronomique" not in contexts_text or "L'œuf ou la cawotte" not in contexts_text:
-            raise AssertionError("Original authored headings were lost")
-        if not backdrop.grab().save(str(out / "onglet-objets-a-preparer.png"), "PNG"):
-            raise AssertionError("Materials tab screenshot failed")
-        shell.preparation_button.setChecked(False)
-        shell.summary_button.setChecked(True)
-        app.processEvents()
-        if not backdrop.grab().save(str(out / "onglet-route-sommaire.png"), "PNG"):
-            raise AssertionError("Route summary screenshot failed")
+        for label in image_labels:
+            pix = label.pixmap()
+            if pix is None or pix.isNull():
+                raise AssertionError("Source illustration cannot render")
+            if (pix.width() > GUIDE_READING_METRICS["source_image_max_width"]
+                    or pix.height() > GUIDE_READING_METRICS["source_image_max_height"]):
+                raise AssertionError("Source illustration exceeds indexed thumbnail")
+            if not zoom_checked:
+                def exercise_zoom() -> None:
+                    modal = app.activeModalWidget()
+                    if not isinstance(modal, QDialog):
+                        raise AssertionError("Image click did not open its zoom popup")
+                    slider = modal.findChild(QSlider, "GuideSourceImageZoomSlider")
+                    image = modal.findChild(QLabel, "GuideSourceImageZoomed")
+                    if slider is None or image is None or image.pixmap() is None:
+                        raise AssertionError("Missing zoom slider/original image")
+                    first = image.pixmap().width()
+                    slider.setValue(200)
+                    if image.pixmap().width() <= first:
+                        raise AssertionError("Zoom does not enlarge original image")
+                    modal.accept()
+                QTimer.singleShot(0, exercise_zoom)
+                label.open_zoom()
+                zoom_checked = True
+        if page_index == 0:
+            # Source prerequisites stay in their own drawer.
+            text = " ".join(label.text() for label in frame.findChildren(QLabel))
+            for forbidden in ("nécessaire d'être niveau 60",
+                              "Vous devriez avoir fait le guide"):
+                if forbidden in text:
+                    raise AssertionError("Prerequisites duplicated inside Route")
+        scrollbar = shell.scroll.verticalScrollBar()
+        top = out / f"page-{page_index + 1:02d}-haut.png"
+        if not backdrop.grab().save(str(top), "PNG"):
+            raise AssertionError("Cannot save real Qt page")
+        scroll_max = scrollbar.maximum()
+        bottom_name = None
+        if scroll_max > 0:
+            scrollbar.setValue(scroll_max)
+            app.processEvents()
+            bottom = out / f"page-{page_index + 1:02d}-bas.png"
+            if not backdrop.grab().save(str(bottom), "PNG"):
+                raise AssertionError("Cannot save page bottom")
+            bottom_name = bottom.name
+        reports.append({
+            "page": page_index + 1,
+            "original_source_fiches": sorted(set(
+                entry["source_index"] + 1 for entry in pages[page_index]
+            )),
+            "complete_rich_blocks": len(pages[page_index]),
+            "images": expected_images,
+            "scroll_max": scroll_max,
+            "screenshot_top": top.name,
+            "screenshot_bottom": bottom_name,
+        })
+    if not zoom_checked:
+        raise AssertionError("Source image zoom not tested")
 
-        (out / "controle-visuel-index.json").write_text(
-            json.dumps(
-                {
-                    "commit_expected": os.environ.get("GITHUB_SHA"),
-                    "capture_scope": "READ_ONLY_64_FICHES_NOT_CERTIFIED",
-                    "guide_language": "fr",
-                    "total_fiches": len(pages_report),
-                    "pages": pages_report,
-                },
-                indent=2, ensure_ascii=False,
-            ),
-            encoding="utf-8",
-        )
-        if len(pages_report) != 64:
-            raise AssertionError("Exhaustive QA missing one or more source fiches")
-        print("CAWOTTE_SOURCE: rendered_source_id=24"
-              " pilot_entrypoint_id=2205 (QA only)", flush=True)
-        print("CAWOTTE_VISUAL_QT: 1280x720 native Windows,"
-              f" checked={reports}, prerequisite_rows={len(first_preview)}",
-              flush=True)
-        print(
-            "CAWOTTE_VISUAL_ALL: fiches=64,"
-            f" fiches_with_scroll={sum(int(p['scroll_max'] > 0) for p in pages_report)},"
-            f" fiches_with_images={sum(int(p['source_images'] > 0) for p in pages_report)},"
-            f" original_source_checkboxes={sum(p['source_checklists'] for p in pages_report)},"
-            f" prerequisite_blocks_moved={sum(p['prerequisite_blocks_moved'] for p in pages_report)}",
-            flush=True,
-        )
-        # Report the gap without changing the authored source or inventing gates.
-        if len([1 for category, *_ in first_preview if category == "Prérequis"]) < 3:
-            raise AssertionError("Step 1: authored prerequisites absent from dedicated tab")
-    finally:
-        backdrop.close()
-        app.processEvents()
+    # Route and Prérequis are INDEPENDENT half-width drawers.
+    shell._show_reading_page(0)
+    shell.summary_button.setChecked(True)
+    shell.preparation_button.setChecked(True)
+    app.processEvents()
+    if not shell.summary_panel.isVisibleTo(shell):
+        raise AssertionError("Route drawer fails to open")
+    if not shell.preparation_panel.isVisibleTo(shell):
+        raise AssertionError("Prérequis drawer cannot remain open with Route")
+    if (shell.summary_panel.width() > shell.route_bar.width() + 45
+            or shell.preparation_panel.width() > shell.preparation_bar.width() + 45):
+        raise AssertionError("Guide drawer wider than its progress-bar column")
+    if not backdrop.grab().save(str(out / "route-et-prerequis-ouverts.png"), "PNG"):
+        raise AssertionError("Cannot capture both open drawers")
+    if shell._preparation_tab != "Prérequis":
+        raise AssertionError("Wrong default Prérequis subtab")
+    if shell.preparation_progress_label.text() != "5 à vérifier":
+        raise AssertionError("Source prerequisite counter lost")
+    prerequisite_lines = shell.preparation_panel.findChildren(QLabel, "GuideManualLine")
+    if len(prerequisite_lines) < 4 or not any(
+        'href="' in line.text() for line in prerequisite_lines
+    ):
+        raise AssertionError("Source prerequisites lost original linked text")
+    if not backdrop.grab().save(str(out / "onglet-prerequis.png"), "PNG"):
+        raise AssertionError("Cannot capture prerequisites")
+    for tab in shell.preparation_tab_group.buttons():
+        if tab.property("tabKey") == "À préparer":
+            tab.click()
+            break
+    app.processEvents()
+    if shell._preparation_tab != "À préparer":
+        raise AssertionError("Cannot open material subtab")
+    material_lines = shell.preparation_panel.findChildren(QLabel, "GuideManualLine")
+    captions = shell.preparation_panel.findChildren(
+        QLabel, "GuidePreparationSourceContext"
+    )
+    objects = unescape(" ".join(line.text() for line in material_lines))
+    context = unescape(" ".join(label.text() for label in captions))
+    if "Cawotte" not in objects or "Couronne" not in objects:
+        raise AssertionError("Typed source item or equipment disappeared")
+    if "Art gastronomique" in objects or "L'œuf ou la cawotte" in objects:
+        raise AssertionError("Context masquerades as repeated item row")
+    if "Art gastronomique" not in context or "L'œuf ou la cawotte" not in context:
+        raise AssertionError("Author section headings were lost")
+    if not backdrop.grab().save(str(out / "onglet-a-preparer.png"), "PNG"):
+        raise AssertionError("Cannot capture original material/context groups")
+    if not shell.summary_panel.isVisibleTo(shell):
+        raise AssertionError("Opening À préparer closed Route unexpectedly")
+
+    # Responsive QA at half-width: paragraphs stay whole, page model adapts.
+    old_page_count = len(pages)
+    backdrop.resize(820, 720)
+    app.processEvents()
+    shell._source_resize_reflow()
+    app.processEvents()
+    narrow = shell._source_reading_pages()
+    if tuple(entry for pg in narrow for entry in pg) != original_blocks:
+        raise AssertionError("Resize lost or duplicated an authored source block")
+    if not backdrop.grab().save(str(out / "lecture-resize-etroit.png"), "PNG"):
+        raise AssertionError("Cannot capture resized reader")
+    (out / "controle-visuel-index.json").write_text(json.dumps({
+        "commit_expected": os.environ.get("GITHUB_SHA"),
+        "capture_scope": "READ_ONLY_SOURCE_NOT_CERTIFIED",
+        "original_source_fiches": len(cards),
+        "source_image_blocks": sum(
+            entry["block"]["type"] == "image" for entry in original_blocks
+        ),
+        "pages_at_desktop_width": old_page_count,
+        "pages_at_narrow_width": len(narrow),
+        "zoom_popup_checked": zoom_checked,
+        "both_drawers_checked": True,
+        "pages": reports,
+    }, indent=2, ensure_ascii=False), encoding="utf-8")
+    print(
+        "CAWOTTE_RESPONSIVE_QT: source_fiches=64,"
+        f" pages={old_page_count}, narrow_pages={len(narrow)},"
+        f" zoom={zoom_checked}, both_drawers=True",
+        flush=True,
+    )
+    backdrop.close()
+    app.processEvents()
+
 
 
 def _cover_image_from_original_html(html: str) -> bytes:
