@@ -17,8 +17,9 @@ from typing import Any
 from urllib.parse import urlsplit
 
 from app.modules.encyclopedia.services.guide_shared_route_contract import (
-    GuideRouteContractError, project_authorized_guide,
+    project_authorized_guide,
 )
+from tools.atlas_guide_importer import _load_strict_json
 
 TOOL_SPEC = {
     "schema_version": 1,
@@ -178,7 +179,9 @@ def _runs(node: _Node) -> list[dict[str, str]]:
 
 def _media(node: _Node, assets: dict[str, Path]) -> dict[str, Any]:
     src = node.attrs.get("src", "")
-    alt = node.attrs.get("alt", "") or "Image du guide source"
+    alt = node.attrs.get("alt", "")
+    if not alt.strip():
+        raise SourceCaptureError("source image has no authored alt text")
     if src.startswith("data:"):
         match = re.fullmatch(r"data:(image/(?:png|jpeg|webp));base64,([A-Za-z0-9+/=]+)", src)
         if not match:
@@ -197,6 +200,8 @@ def _media(node: _Node, assets: dict[str, Path]) -> dict[str, Any]:
         data = path.read_bytes()
         suffix = path.suffix.lower()
         mime = next((name for name, ext in _MIME.items() if suffix == ext), None)
+        if suffix == ".jpeg":
+            mime = "image/jpeg"
         if mime is None:
             raise SourceCaptureError(f"unsupported source image format for {src}")
     if not data or len(data) > 2 * 1024 * 1024 or not _SIG[mime](data):
@@ -242,6 +247,8 @@ def _blocks(container: _Node, assets: dict[str, Path]) -> list[dict[str, Any]]:
             if node.attrs.get("data-type") == "taskList":
                 items: list[dict[str, Any]] = []
                 for li in entries:
+                    if li.attrs.get("data-checked") not in {"true", "false"}:
+                        raise SourceCaptureError("source checklist state missing")
                     runs = _runs(li)
                     value = "".join(run["text"] for run in runs)
                     if not value.strip():
@@ -391,9 +398,7 @@ def main(argv: list[str] | None = None) -> int:
                      help="New explicit .json under artifacts/, never installed data")
     args = cli.parse_args(argv)
     try:
-        manifest = json.loads(args.manifest.read_text(encoding="utf-8"))
-        if not isinstance(manifest, dict):
-            raise SourceCaptureError("manifest root must be an object")
+        manifest = _load_strict_json(args.manifest)
         output = args.output.resolve()
         if (args.output.exists() or args.output.suffix != ".json"
                 or "artifacts" not in args.output.parts
