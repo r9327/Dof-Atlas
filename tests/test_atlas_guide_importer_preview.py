@@ -8,7 +8,9 @@ import unittest
 from pathlib import Path
 from unittest.mock import patch
 
-from app.modules.encyclopedia.services.guide_shared_route_contract import GuideRouteContractError
+from app.modules.encyclopedia.services.guide_shared_route_contract import (
+    GuideRouteContractError, assert_source_fidelity,
+)
 from tools.atlas_guide_importer import main, prepare_preview
 from tools.atlas_guide_conformity import compare
 
@@ -95,6 +97,10 @@ class GuideImporterPreviewTests(unittest.TestCase):
         self.assertEqual(result["guide_count"], 95)
         self.assertEqual(result["step_count"], 7705)
         self.assertEqual(result["action_count"], 7705)
+        # Universal, exact source-by-source parity: not just 95 empty
+        # containers or the first Cawotte step.
+        for source_guide, route in zip(source["guides"], result["routes"]):
+            assert_source_fidelity(source_guide, route)
         self.assertEqual(len(result["routes"]), 95)
         self.assertFalse(result["is_partial"])
         self.assertFalse(result["certified"])
