@@ -121,6 +121,7 @@ class GuideUltimeManualCard(QFrame):
     """
 
     questRequested = Signal(int, str, int)
+    entityRequested = Signal(str, int)
 
     def __new__(cls, *args, **kwargs):
         if cls is GuideUltimeManualCard:
@@ -619,6 +620,8 @@ class GuideUltimeManualCard(QFrame):
         text: str,
         npc_names: list[str],
         resource_names: list[str],
+        *,
+        entity_links: tuple[tuple[str, str, int], ...] = (),
     ) -> str:
         prefix_text = str(prefix or "")
         plain = prefix_text + (f"{position} — " if position else "") + str(text or "")
@@ -633,6 +636,16 @@ class GuideUltimeManualCard(QFrame):
 
         for match in _COORD_RE.finditer(plain):
             add_span(match.start(), match.end(), "position", f"{int(match.group(1))},{int(match.group(2))}")
+        # Only verified, explicitly typed monster/boss IDs become links.
+        # A plain monster name in guide prose is not authoritative identity.
+        for name, entity_kind, entity_id in entity_links:
+            if (not isinstance(name, str) or not name.strip()
+                    or entity_kind not in {"monster", "boss"}
+                    or type(entity_id) is not int or entity_id <= 0):
+                continue
+            pattern = re.compile(rf"(?<!\\w){re.escape(name)}(?!\\w)", re.IGNORECASE)
+            for match in pattern.finditer(plain):
+                add_span(match.start(), match.end(), "entity", f"{entity_kind}:{entity_id}")
         for name in sorted({value for value in npc_names if value}, key=len, reverse=True):
             pattern = re.compile(rf"(?<!\w){re.escape(name)}(?!\w)", re.IGNORECASE)
             for match in pattern.finditer(plain):
@@ -654,6 +667,9 @@ class GuideUltimeManualCard(QFrame):
             value = html.escape(plain[start:end])
             if kind == "npc":
                 rendered.append(f'<span style="color:{NPC_COLOR};"><b>{value}</b></span>')
+            elif kind == "entity":
+                href = html.escape(f"atlas-entity:{payload}", quote=True)
+                rendered.append(f'<a href="{href}" style="color:{RESOURCE_COLOR};text-decoration:none;"><b>{value}</b></a>')
             elif kind == "resource":
                 href = html.escape(f"item-copy:{quote(payload, safe='')}", quote=True)
                 rendered.append(f'<a href="{href}" style="color:{RESOURCE_COLOR};text-decoration:none;"><b>{value}</b></a>')
