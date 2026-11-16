@@ -121,6 +121,16 @@ class AtlasGuideHtmlCaptureTests(unittest.TestCase):
         with self.assertRaisesRegex(SourceCaptureError, "incomplete paginated capture: 1/2"):
             convert_manifest(self.manifest, root=self.root)
 
+    def test_full_inventory_requires_95_guides_and_7705_real_pages(self):
+        self.manifest["complete_inventory"] = True
+        with self.assertRaisesRegex(SourceCaptureError, "full inventory incomplete"):
+            convert_manifest(self.manifest, root=self.root)
+
+    def test_duplicate_guide_source_ids_are_blocking(self):
+        self.manifest["guides"].append(copy.deepcopy(self.manifest["guides"][0]))
+        with self.assertRaisesRegex(SourceCaptureError, "duplicate guide ID"):
+            convert_manifest(self.manifest, root=self.root)
+
     def test_gapped_or_duplicate_steps_are_blocking(self):
         self.manifest["guides"][0]["pages"] = ["two.html", "one.html"]
         with self.assertRaisesRegex(SourceCaptureError, "missing/duplicate/reordered"):
