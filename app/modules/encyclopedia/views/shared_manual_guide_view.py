@@ -1714,9 +1714,8 @@ class SharedGuideManualView(GuideUltimeManualView):
         panel_layout.setSpacing(7)
         # Two actual tabs, sharing the indexed Unity selection style.
         # Prerequisites must not be mixed into the materials list.
-        # Keep the established materials workflow as the default for
-        # playable Guide Ultime/Sylvestre. The read-only pilot selects its
-        # explicit prerequisites tab when it opens.
+        # Keep materials as the default for existing playable guides.
+        # A metadata-only preview may explicitly select prerequisites.
         self._preparation_tab = "À préparer"
         self.preparation_tab_group = QButtonGroup(self)
         self.preparation_tab_group.setExclusive(True)
