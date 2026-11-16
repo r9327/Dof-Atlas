@@ -708,6 +708,13 @@ class ModularDomainRoutingTests(unittest.TestCase):
         self.assertEqual(plan["unknown_paths"], [])
         self.assertEqual(owners_for("app/modules/encyclopedia/views/unknown.py"), frozenset())
 
+    def test_source_entity_role_palette_test_is_owned_without_widening_unknown(self):
+        self.assertEqual(
+            owners_for("tests/test_entity_link_roles.py"),
+            frozenset({"guides", "ui"}),
+        )
+        self.assertFalse(owners_for("tests/test_entity_link_roles_unknown.py"))
+
     def test_pr363_guide_shell_panel_and_glyphs_have_exact_owners(self):
         guide_paths = (
             "app/modules/encyclopedia/views/ganymede_guide_shell.py",
