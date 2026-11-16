@@ -12,7 +12,7 @@ from pathlib import Path
 
 os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
 
-from PySide6.QtCore import QPoint, Qt
+from PySide6.QtCore import Qt
 from PySide6.QtTest import QTest
 from PySide6.QtWidgets import QApplication, QFrame, QLabel, QProgressBar, QSpinBox, QToolButton
 
@@ -150,7 +150,7 @@ class GanymedeGuideShellTests(unittest.TestCase):
         self.assertIsInstance(shell, GanymedeGuideShell)
         self.assertIs(catalog.pages.currentWidget(), shell)
         self.assertEqual(shell._listing.source_id, 2205)
-        self.assertGreaterEqual(shell.rendered_card_count, 2)
+        self.assertEqual(shell.rendered_card_count, 1)
         self.assertEqual(shell._review_end_index, shell.rendered_card_count)
         self.assertEqual(len(shell.service.cards), 64)
         first_visible = shell.cards_layout.itemAt(0).widget()
@@ -159,14 +159,13 @@ class GanymedeGuideShellTests(unittest.TestCase):
         self.assertEqual(shell.page_jump.maximum(), 64)
         self.assertEqual(shell.page_jump.text(), "1 / 64")
         self.assertEqual(shell.guide_title_label.text(), "Dofus Cawotte")
-        self.assertEqual(
-            shell.sheet_title_label.text(),
-            "Étape 1" if shell.rendered_card_count == 1 else
-            f"Étapes 1 à {shell.rendered_card_count}",
-        )
+        self.assertEqual(shell.sheet_title_label.text(), "Étape 1")
+        # Every source step is indexed, even though only one is rendered.
+        self.assertTrue(shell.summary_button.isEnabled())
+        self.assertEqual(shell.summary_list.count(), 64)
         self.assertTrue(shell.page_jump.isEnabled())
         position_labels = shell.findChildren(QLabel, "GuideManualPositionCopy")
-        self.assertEqual(len(position_labels), shell.rendered_card_count)
+        self.assertEqual(len(position_labels), 1)
         self.assertIn("travel-copy:25,-4", position_labels[0].text())
         self.assertEqual(shell.findChildren(QToolButton, "GuideManualZaapShortcut"), [])
         self.assertEqual(shell.findChildren(QFrame, "GuideManualActionGroup"), [])
@@ -191,13 +190,24 @@ class GanymedeGuideShellTests(unittest.TestCase):
         self.app.processEvents()
         self.assertIs(catalog.pages.currentWidget(), shell)
         self.assertEqual(requests, [])
-        # Every original step is visited exactly once, despite visual batches.
+        # Sommaire jumps to any step without rendering its neighbors.
+        shell.summary_button.click()
+        self.assertTrue(shell.summary_panel.isVisibleTo(shell))
+        shell._summary_item_clicked(shell.summary_list.item(39))
+        self.assertEqual(shell.view_index, 39)
+        self.assertEqual(shell.rendered_card_count, 1)
+        self.assertEqual(shell.cards_layout.itemAt(0).widget().card["source_step_id"],
+                         "ganymede_2205_step_0040")
+        self.assertTrue(shell.summary_panel.isVisibleTo(shell))
+        shell._show_index(0)
+        # Every original step is visited exactly once, one per page.
         visited = []
         pages = []
         while True:
             start = shell.view_index
             end = shell._review_end_index
-            self.assertLess(start, end)
+            self.assertEqual(end, start + 1)
+            self.assertEqual(shell.rendered_card_count, 1)
             visible = [
                 shell.cards_layout.itemAt(i).widget()
                 for i in range(shell.rendered_card_count)
@@ -218,6 +228,7 @@ class GanymedeGuideShellTests(unittest.TestCase):
             if len(pages) % 8 == 0:
                 self.app.processEvents()
         self.assertEqual(visited, list(range(1, 65)))
+        self.assertEqual(len(pages), 64)
         self.assertFalse(shell.next_button.isEnabled())
         self.assertEqual(shell.sheet_title_label.text(), "Étape 64")
         shell.prev_button.click()
@@ -231,6 +242,9 @@ class GanymedeGuideShellTests(unittest.TestCase):
         self.assertTrue(catalog.open_ganymede_container(other.source_id))
         self.assertEqual(shell.service.cards, ())
         self.assertEqual(shell.rendered_card_count, 0)
+        self.assertEqual(shell.summary_list.count(), 0)
+        self.assertFalse(shell.summary_button.isEnabled())
+        self.assertTrue(shell.summary_panel.isHidden())
         self.assertEqual(shell.validation_layout.count(), 0)
         self.assertFalse(shell.page_jump.isEnabled())
         self.assertEqual(shell.page_jump.text(), "—")
@@ -238,7 +252,7 @@ class GanymedeGuideShellTests(unittest.TestCase):
         self.assertEqual(requests, ["dofus_cawotte"])
 
 
-    def test_cawotte_pages_refit_viewport_and_keep_overlong_step_scrollable(self) -> None:
+    def test_one_step_per_page_survives_resize_and_long_text(self) -> None:
         import copy
 
         shell = GanymedeGuideShell(lambda: None)
@@ -254,23 +268,17 @@ class GanymedeGuideShellTests(unittest.TestCase):
         self.assertTrue(shell.show_cawotte_review())
         self.app.processEvents()
         large_count = shell.rendered_card_count
-        self.assertGreaterEqual(large_count, 2)
-        self.assertEqual(shell._review_end_index, large_count)
-        # Multiple cards fit without clipping below the viewport.
-        last = shell.cards_layout.itemAt(large_count - 1).widget()
-        bottom = last.mapTo(shell.scroll.viewport(), QPoint(0, last.height())).y()
-        if bottom > shell.scroll.viewport().height() + 2:
-            # Short second sheet is allowed to continue into scroll rather
-            # than leave a large empty area and require another click.
-            self.assertGreater(shell.scroll.verticalScrollBar().maximum(), 0)
+        self.assertEqual(large_count, 1)
+        self.assertEqual(shell._review_end_index, 1)
+        self.assertEqual(shell.summary_list.count(), len(shell.service.cards))
 
         shell.resize(760, 560)
         self.app.processEvents()
-        self.assertLessEqual(shell.rendered_card_count, large_count)
-        self.assertEqual(shell._review_end_index, shell.rendered_card_count)
+        self.assertEqual(shell.rendered_card_count, 1)
+        self.assertEqual(shell._review_end_index, 1)
 
-        # Extra-long real-text wrapping must not get split into a second
-        # sheet or push any following sheet below the fold.
+        # Extra-long real-text wrapping stays on the same scrollable sheet;
+        # it never pulls in the following source step.
         extended = copy.deepcopy(shell.service.cards[0])
         extended["manual_sections"]["now"][0]["text"] = (
             "Instruction Cawotte très détaillée. " * 700
