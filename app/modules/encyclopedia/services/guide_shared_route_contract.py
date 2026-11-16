@@ -197,6 +197,20 @@ def assert_source_fidelity(
                 rows.append(row)
         if len(rows) != len(actions):
             raise GuideRouteContractError(f"{prefix}: action count changed")
+        for section in section_names:
+            source_ids = [
+                str(action["action_id"]) for action in actions
+                if action.get("section", _SECTION_BY_KIND.get(
+                    action.get("kind"), "now",
+                )) == section
+            ]
+            actual_ids = [
+                row["source_action_id"] for row in sections.get(section, [])
+            ]
+            if source_ids != actual_ids:
+                raise GuideRouteContractError(
+                    f"{prefix}: action order changed in {section}"
+                )
         by_id = {row["source_action_id"]: row for row in rows}
         if len(by_id) != len(actions):
             raise GuideRouteContractError(f"{prefix}: duplicate action projection")
