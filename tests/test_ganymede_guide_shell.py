@@ -59,6 +59,7 @@ class GanymedeGuideShellTests(unittest.TestCase):
         self.assertFalse(shell.summary_button.icon().isNull())
         self.assertFalse(shell.preparation_button.icon().isNull())
         self.assertEqual(shell.summary_button.width(), 18)
+        self.assertTrue(shell.summary_button.isHidden())
         self.assertFalse(shell.prev_button.icon().isNull())
         self.assertFalse(shell.next_button.icon().isNull())
         self.assertFalse(shell.summary_button.isEnabled())
