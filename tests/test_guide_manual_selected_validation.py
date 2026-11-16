@@ -785,10 +785,19 @@ class ImportedSourceSharedManualUiTests(unittest.TestCase):
                 self.assertIn("item-copy:Ressource%20fictive", rich)
                 # Source preparation must remain on its original sheet.
                 self.assertIn("Préparer 2 Ressource fictive", visible)
-                # The fixture has an authored before-leaving warning and a
-                # keep-resource row: both sections must remain visible.
-                self.assertIsNotNone(sheet.findChild(QFrame, "GuideManualWarningSection"))
-                self.assertIsNotNone(sheet.findChild(QFrame, "GuideManualResourceSection"))
+                # The fixture has a warning and keep-resource action.
+                # Both must remain readable in source order, but must NOT
+                # create subordinate Atlas cards inside this one source sheet.
+                self.assertIsNone(sheet.findChild(QFrame, "GuideManualWarningSection"))
+                self.assertIsNone(sheet.findChild(QFrame, "GuideManualResourceSection"))
+                self.assertFalse(sheet.findChildren(QLabel, "GuideManualSectionTitle"))
+                self.assertEqual(
+                    [row.property("sourceActionId") for row in sheet.findChildren(
+                        QFrame, "GuideManualLineRow",
+                    )],
+                    [action["action_id"] for action in
+                     self._source()["steps"][0]["actions"]],
+                )
                 self.assertTrue(sheet.findChildren(QLabel, "GuideManualSourceActionDetail"))
                 # Check source evidence is retained alongside visible values.
                 self.assertEqual(
