@@ -2982,7 +2982,7 @@ class SharedGuideManualView(GuideUltimeManualView):
         # Localize only the visible reader heading; the original step title
         # remains intact in the source snapshot and fidelity contract.
         if card.get("manual_source") is True and "source_step_id" in card:
-            title = re.sub(r"^Step (?=\\d+\\b)", "Étape ", title)
+            title = re.sub(r"^Step (?=\d+\b)", "Étape ", title)
         self.sheet_meta_label.setText(f"ÉTAPE · {chapter.upper()}")
         self.sheet_title_label.setText(title)
         self.nav_page_label.setText(f"Page {index + 1} / {total_cards}")
