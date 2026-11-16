@@ -4,6 +4,7 @@ from collections.abc import Mapping
 from functools import lru_cache
 
 from app.ui.unity_skin import UNITY_PALETTE, unity_skin_stylesheet
+from app.ui.entity_link_roles import ENTITY_LINK_COLOR_ROLES, entity_link_colors
 
 
 # One Unity visual language, shared by every Qt page. The remaining keys are
@@ -21,21 +22,10 @@ PALETTE = {
     "BADGE_TEXT": "#C9D44C",
 }
 
-# One semantic color contract for inline Guide text, sourced only from the
-# approved Unity palette. The Dev UI can expose these same roles without
-# introducing a separate stylesheet or hard-coded colors per Guide.
-GUIDE_ENTITY_LINK_ROLES = {
-    "monster": "DANGER_TEXT",
-    "boss": "RED_HOVER",
-    "item": "GREEN",
-    "equipment": "BORDER_STRONG",
-    "npc": "YELLOW",
-    "position": "TEXT_SOFT",
-    "quest": "TEXT_SOFT",
-}
-GUIDE_ENTITY_LINK_COLORS = {
-    category: PALETTE[role] for category, role in GUIDE_ENTITY_LINK_ROLES.items()
-}
+# All modules resolve colors from the same typed, Qt-free Unity role index.
+GUIDE_ENTITY_LINK_ROLES = ENTITY_LINK_COLOR_ROLES
+GUIDE_ENTITY_LINK_COLORS = entity_link_colors(PALETTE)
+ENTITY_LINK_COLORS = GUIDE_ENTITY_LINK_COLORS
 
 TYPOGRAPHY = {
     # The app registers approved personal fonts at startup when installed.
