@@ -137,6 +137,72 @@ def _items(raw: Any, label: str) -> tuple[str, ...]:
     return tuple(names)
 
 
+def assert_source_fidelity(
+    source: dict[str, Any], projected: dict[str, Any],
+) -> None:
+    """Verify a 1:1 source-to-card projection, independently of Atlas styling.
+
+    Each original step and action must survive in order, with its complete
+    source snapshot intact. Preparation stays on its original step as well
+    as contributing to the Atlas-wide preparation overlay. This only proves
+    data integrity; it never certifies Qt visual parity or source rights.
+    """
+    original_steps = source.get("steps")
+    cards = projected.get("steps")
+    if not isinstance(original_steps, list) or not isinstance(cards, list):
+        raise GuideRouteContractError("source fidelity: missing step list")
+    if len(original_steps) != len(cards):
+        raise GuideRouteContractError("source fidelity: step count changed")
+    source_metadata = {key: value for key, value in source.items() if key != "steps"}
+    if projected.get("source_guide_metadata") != source_metadata:
+        raise GuideRouteContractError("source fidelity: guide metadata changed")
+    section_order = ("prepare", "now", "opportunity", "keep", "boss", "before_leave")
+    for index, (original, card) in enumerate(zip(original_steps, cards)):
+        prefix = f"source fidelity: steps[{index}]"
+        if not isinstance(original, dict) or not isinstance(card, dict):
+            raise GuideRouteContractError(f"{prefix}: missing source step")
+        metadata = card.get("manual_runtime_metadata")
+        captured = metadata.get("source_step") if isinstance(metadata, dict) else None
+        if captured != original:
+            raise GuideRouteContractError(f"{prefix}: source snapshot changed")
+        if (
+            card.get("source_step_id") != str(original.get("source_step_id"))
+            or card.get("manual_title") != original.get("title")
+            or card.get("manual_stage_id") != (
+                f"source:{source['guide_id']}:{original['source_step_id']}"
+            )
+        ):
+            raise GuideRouteContractError(f"{prefix}: identity/title changed")
+        sections = card.get("manual_sections")
+        if not isinstance(sections, dict):
+            raise GuideRouteContractError(f"{prefix}: source sections missing")
+        rows = []
+        for section in section_order:
+            entries = sections.get(section)
+            if not isinstance(entries, list):
+                raise GuideRouteContractError(f"{prefix}: malformed {section} section")
+            rows.extend(entries)
+        actions = original.get("actions")
+        if not isinstance(actions, list) or len(rows) != len(actions):
+            raise GuideRouteContractError(f"{prefix}: action count changed")
+        for action_index, (action, row) in enumerate(zip(actions, rows)):
+            label = f"{prefix}.actions[{action_index}]"
+            if not isinstance(action, dict) or not isinstance(row, dict):
+                raise GuideRouteContractError(f"{label}: action missing")
+            if (
+                row.get("source_action") != action
+                or row.get("source_action_id") != str(action.get("action_id"))
+                or row.get("text") != action.get("text")
+            ):
+                raise GuideRouteContractError(f"{label}: source action changed")
+        visible = [
+            row for section in section_order if section != "prepare"
+            for row in sections[section]
+        ]
+        if card.get("manual_lines") != visible:
+            raise GuideRouteContractError(f"{prefix}: UI lines diverge from source")
+
+
 def project_authorized_guide(guide: dict[str, Any]) -> dict[str, Any]:
     """Project checked source actions to the shared UI card schema.
 
@@ -402,7 +468,7 @@ def project_authorized_guide(guide: dict[str, Any]) -> dict[str, Any]:
             },
         }
         cards.append(card)
-    return {
+    projected = {
         "schema_version": 5,
         "id": f"source_guide:{guide_id}",
         "source": "authorized_import",
@@ -416,6 +482,10 @@ def project_authorized_guide(guide: dict[str, Any]) -> dict[str, Any]:
         "steps": cards,
         "source_compliance": "NOT_CERTIFIED",
     }
+    assert_source_fidelity(guide, projected)
+    return projected
 
 
-__all__ = ["GuideRouteContractError", "project_authorized_guide"]
+__all__ = [
+    "GuideRouteContractError", "assert_source_fidelity", "project_authorized_guide",
+]
