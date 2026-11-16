@@ -100,7 +100,7 @@ jobs:
           assert shell.guide_title_label.text() == "Dofus Cawotte"
           assert len(shell.findChildren(QProgressBar)) == 3
           assert all(not bar.isEnabled() for bar in shell.findChildren(QProgressBar))
-          assert shell.sheet_title_label.text() == "Étape 1"
+          assert shell.sheet_title_label.text() == f"Étapes 1 à {shell._review_end_index}"
           assert len(shell.service.cards) == 64
           assert 2 <= shell.rendered_card_count <= 12
           assert shell._review_end_index == shell.rendered_card_count
@@ -109,7 +109,8 @@ jobs:
           assert shell.page_jump.maximum() == 64
           assert shell.page_jump.text() == "1 / 64"
           pos = shell.findChildren(QLabel, "GuideManualPositionCopy")
-          assert len(pos) == 1 and "travel-copy:25,-4" in pos[0].text()
+          assert len(pos) == shell.rendered_card_count
+          assert "travel-copy:25,-4" in pos[0].text()
           assert not shell.findChildren(QToolButton, "GuideManualZaapShortcut")
           assert not shell.findChildren(QFrame, "GuideManualActionGroup")
           assert len(shell.findChildren(QLabel, "GuideManualLine")) >= 3
