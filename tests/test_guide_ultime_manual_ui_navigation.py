@@ -656,6 +656,40 @@ class GuideUltimeManualUiNavigationTests(unittest.TestCase):
             card.page_check.deleteLater()
             card.close()
 
+    def test_inline_entity_colors_are_distinct_and_share_unity_theme(self) -> None:
+        from app.ui.theme import GUIDE_ENTITY_LINK_COLORS, GUIDE_ENTITY_LINK_ROLES, PALETTE
+
+        for category, role in GUIDE_ENTITY_LINK_ROLES.items():
+            self.assertEqual(GUIDE_ENTITY_LINK_COLORS[category], PALETTE[role])
+        categories = ("monster", "boss", "item", "equipment", "npc", "position")
+        self.assertEqual(len({GUIDE_ENTITY_LINK_COLORS[k] for k in categories}), len(categories))
+
+        markup = GuideUltimeManualCard._format_line_html(
+            "", "",
+            "Affronter Bouftou et Boss test avec Bottes et Ortie, puis parler à PNJ Exemple en [1,2].",
+            ["PNJ Exemple"], ["Bottes", "Ortie"],
+            entity_links=(("Bouftou", "monster", 123), ("Boss test", "boss", 456)),
+            item_kinds=(("Bottes", "equipment"), ("Ortie", "item")),
+        )
+        expected = {
+            "monster": 'href="atlas-entity:monster:123"',
+            "boss": 'href="atlas-entity:boss:456"',
+            "equipment": 'href="item-copy:Bottes"',
+            "item": 'href="item-copy:Ortie"',
+            "position": 'href="travel-copy:1,2"',
+        }
+        for category, href in expected.items():
+            with self.subTest(category=category):
+                self.assertIn(href, markup)
+                self.assertIn(f'color:{GUIDE_ENTITY_LINK_COLORS[category]}', markup)
+        self.assertIn(f'color:{GUIDE_ENTITY_LINK_COLORS["npc"]}', markup)
+        # An item without explicit equipment metadata must stay an ordinary item.
+        fallback = GuideUltimeManualCard._format_line_html(
+            "", "", "Équiper Bottes.", [], ["Bottes"],
+        )
+        self.assertIn(f'color:{GUIDE_ENTITY_LINK_COLORS["item"]}', fallback)
+        self.assertNotIn(f'color:{GUIDE_ENTITY_LINK_COLORS["equipment"]}', fallback)
+
     def test_contiguous_actions_at_exact_same_map_share_visual_group_only(self) -> None:
         service = _FakeManualUiService()
         card_data = dict(service.cards[0])
