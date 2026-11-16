@@ -783,7 +783,8 @@ class ImportedSourceSharedManualUiTests(unittest.TestCase):
                     self.assertIn(expected, visible)
                 self.assertIn("travel-copy:-5,2", rich)
                 self.assertIn("item-copy:Ressource%20fictive", rich)
-                self.assertNotIn("Préparer 2 Ressource fictive", visible)
+                # Source preparation must remain on its original sheet.
+                self.assertIn("Préparer 2 Ressource fictive", visible)
                 # The fixture has an authored before-leaving warning and a
                 # keep-resource row: both sections must remain visible.
                 self.assertIsNotNone(sheet.findChild(QFrame, "GuideManualWarningSection"))
@@ -857,8 +858,8 @@ class ImportedSourceSharedManualUiTests(unittest.TestCase):
         source = self._source()
         step = source["steps"][0]
         step["quest_ids"] = [654]
-        # Repeated links are meaningful: each points at a distinct authored
-        # action, including the keep and before-leaving sections.
+        # All three authored actions remain visible, but the universal UI
+        # provides one Quest shortcut per Quest per sheet (no icon pollution).
         for action_index in (2, 5, 6):
             step["actions"][action_index]["quest_ids"] = [654]
         with tempfile.TemporaryDirectory() as temp:
@@ -872,32 +873,27 @@ class ImportedSourceSharedManualUiTests(unittest.TestCase):
                 buttons = sheet.findChildren(
                     QToolButton, "GuideManualQuestInlineButton"
                 )
-                self.assertEqual(len(buttons), 3)
-                seen_sections = set()
-                for button in buttons:
-                    self.assertEqual(button.toolTip(), "Quête #654")
-                    parent_text = unescape(re.sub(
-                        r"<[^>]+>", "",
-                        " ".join(
-                            label.text() for label in
-                            button.parentWidget().findChildren(QLabel)
-                        ),
-                    ))
-                    for expected in (
-                        "Parler au PNJ fictif",
-                        "Conserver Ressource fictive",
-                        "Avant de partir",
-                    ):
-                        if expected in parent_text:
-                            seen_sections.add(expected)
-                    spy = QSignalSpy(sheet.questRequested)
-                    button.click()
-                    self.assertEqual(spy.count(), 1)
-                    self.assertEqual(int(spy.at(0)[0]), 654)
-                self.assertEqual(
-                    seen_sections,
-                    {"Parler au PNJ fictif", "Conserver Ressource fictive", "Avant de partir"},
-                )
+                self.assertEqual(len(buttons), 1)
+                self.assertEqual(buttons[0].toolTip(), "Quête #654")
+                self.assertEqual(sheet._shown_quest_ids, {654})
+                rendered = unescape(re.sub(
+                    r"<[^>]+>", "",
+                    " ".join(label.text() for label in sheet.findChildren(QLabel)),
+                ))
+                for expected in (
+                    "Parler au PNJ fictif",
+                    "Conserver Ressource fictive",
+                    "Avant de partir",
+                ):
+                    self.assertIn(expected, rendered)
+                # The original three action-level Quest IDs are still kept.
+                actions = sheet.card["manual_runtime_metadata"]["source_step"]["actions"]
+                self.assertEqual(sum(654 in action.get("quest_ids", ())
+                                     for action in actions), 3)
+                spy = QSignalSpy(sheet.questRequested)
+                buttons[0].click()
+                self.assertEqual(spy.count(), 1)
+                self.assertEqual(int(spy.at(0)[0]), 654)
             finally:
                 sheet.close()
                 sheet.deleteLater()
@@ -1089,7 +1085,8 @@ class ImportedSourceSharedManualUiTests(unittest.TestCase):
         self.assertIn("Objet historique fictif", names)
 
     def test_source_npc_uses_explicit_name_color_in_action_and_details(self) -> None:
-        from app.modules.encyclopedia.views.guide_ultime_manual_view import NPC_COLOR
+        from app.ui.theme import PALETTE
+        NPC_COLOR = PALETTE["YELLOW"]
         from app.modules.encyclopedia.views.shared_manual_guide_view import SharedGuideManualCard
 
         source = self._source()
