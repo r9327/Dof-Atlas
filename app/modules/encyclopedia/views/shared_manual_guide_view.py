@@ -1798,6 +1798,7 @@ class SharedGuideManualView(GuideUltimeManualView):
         self.global_progress_label = QLabel("—")
         self.global_progress_label.setObjectName("GuideCompactMetricValue")
         self._metric_columns: dict[str, QVBoxLayout] = {}
+        self._route_metric_widgets: tuple[QWidget, ...] = ()
 
         # Row 1: active guide, instant sheet selector and compact commands.
         title_row = QHBoxLayout()
@@ -1860,8 +1861,12 @@ class SharedGuideManualView(GuideUltimeManualView):
         right.addLayout(overall_caption)
         right.addWidget(self.global_progress_bar)
 
-        # Two original bars, each with its own dropdown.
+        # One shared metric grid. Imported source guides collapse the redundant
+        # Route column while retaining the canonical progress state and page jump.
         metrics = QGridLayout()
+        self._compact_metric_grid = metrics
+        self._compact_header_stack = right
+        self._compact_header_outer = outer
         metrics.setHorizontalSpacing(12)
         metrics.setVerticalSpacing(2)
         self._metric_caption_labels: dict[str, QLabel] = {}
@@ -1900,6 +1905,7 @@ class SharedGuideManualView(GuideUltimeManualView):
             metrics.addWidget(bar, 1, column, Qt.AlignVCenter)
             if name == "Route":
                 self.summary_button = arrow
+                self._route_metric_widgets = (icon, caption_label, arrow, value, bar)
             else:
                 self.preparation_button = arrow
             self._metric_dropdown_buttons[name] = arrow
@@ -1921,7 +1927,7 @@ class SharedGuideManualView(GuideUltimeManualView):
         self.preparation_progress_label = QLabel("—")
         add_metric("Préparation", "cube", "GREEN", self.preparation_bar, self.preparation_progress_label)
 
-        # Exactly two metric columns: global and secondary edges align.
+        # The imported-source layout hides Route and gives À préparer full width.
         right.addLayout(metrics)
         self._header_content_layout = right
 
@@ -2162,16 +2168,26 @@ class SharedGuideManualView(GuideUltimeManualView):
         # its tooltip and accessibility label without stretching the header.
         self.participants_button.setText("")
         source_guide = self._is_imported_source_guide()
-        # The page jump and prev/next already navigate every imported source
-        # page. Keep Route progress but remove its redundant dropdown.
-        if hasattr(self, "summary_button"):
-            self.summary_button.setVisible(not source_guide)
-            if source_guide:
-                self.summary_button.setChecked(False)
-                self.summary_panel.hide()
+        # A source guide already has direct X/X sheet navigation and arrows.
+        # Its Route metric and drawer are redundant, but progress is still
+        # computed for the global bar and for existing guide consumers.
+        compact_source = source_guide or getattr(self, "_hide_route_progress_ui", False)
+        for widget in getattr(self, "_route_metric_widgets", ()):
+            widget.setVisible(not compact_source)
+        if compact_source:
+            self.summary_button.setChecked(False)
+            self.summary_panel.hide()
+        self._compact_metric_grid.setColumnStretch(0, 0 if compact_source else 1)
+        self._compact_metric_grid.setColumnStretch(1, 1)
+        self._compact_metric_grid.setHorizontalSpacing(0 if compact_source else 12)
+        self._compact_header_stack.setSpacing(3 if compact_source else 6)
+        self._compact_header_outer.setContentsMargins(
+            10, 4 if compact_source else 6, 10, 5 if compact_source else 7,
+        )
+        self._compact_metric_grid.invalidate()
         for name, label in getattr(self, "_metric_caption_labels", {}).items():
             if name == "Préparation" and source_guide:
-                label.setText("Prérequis")
+                label.setText("À préparer")
             else:
                 label.setText("Prép." if narrow and name == "Préparation" else name)
         if hasattr(self, "preparation_button"):
