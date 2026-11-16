@@ -42,7 +42,7 @@ class EntityLinkRolesTests(unittest.TestCase):
                 ))
 
     def test_html_escaped_without_changing_link_action(self) -> None:
-        result = entity_link_markup('L'Ortie <test> & "Bottes"', "equipment",
+        result = entity_link_markup("L'Ortie <test> & \"Bottes\"", "equipment",
                                     'item-copy:a&b"c', self.palette)
         self.assertIn("L&#x27;Ortie &lt;test&gt; &amp; &quot;Bottes&quot;", result)
         self.assertIn('href="item-copy:a&amp;b&quot;c"', result)
