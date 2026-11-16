@@ -67,6 +67,7 @@ from app.ui.components import (
     apply_unity_calendar_weekdays,
 )
 from app.ui.theme import PALETTE, GUIDE_ENTITY_LINK_COLORS, SIZES, SPACING, TYPOGRAPHY
+from app.ui.entity_link_roles import entity_link_markup
 from app.ui.unity_palette import (
     UNITY_CHIP_TONES, UNITY_ICON_NAMES, UNITY_ICON_PENDING,
     UNITY_PANEL_SHADOW,
@@ -2094,11 +2095,19 @@ class DevUiPage(QWidget):
             ("npc", "PNJ"), ("position", "Position"),
             ("quest", "Quête"),
         )):
-            color = GUIDE_ENTITY_LINK_COLORS[category]
-            label = QLabel(
-                f'<span style="color:{color};font-weight:600;">{name}</span>'
-            )
+            # Real rich-text anchors use the same formatter as the Guides.
+            # Preview destinations never leave Dev UI or impersonate gameplay.
+            label = QLabel(entity_link_markup(
+                name, category, f"dev-preview:{category}", PALETTE,
+            ))
             label.setTextFormat(Qt.RichText)
+            label.setTextInteractionFlags(Qt.TextSelectableByMouse | Qt.LinksAccessibleByMouse)
+            label.setOpenExternalLinks(False)
+            label.linkActivated.connect(
+                lambda _href, kind=category: self._report(
+                    f"Aperçu lien sémantique : {kind}"
+                )
+            )
             label.setAccessibleName(f"Couleur de lien Guide : {name}")
             label.setToolTip(f"{name} · rôle Unity : {category}")
             link_grid.addWidget(label, index // 4, index % 4)
