@@ -595,12 +595,14 @@ class DevUiPage(QWidget):
         self.preview_header_global_progress.setFixedHeight(
             UNITY_CONTROL_SIZES_PX["progress_primary"]
         )
+        self.preview_header_global_progress.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
         right.addWidget(self.preview_header_global_progress)
 
         self.preview_header_metrics: dict[str, QProgressBar] = {}
         self.preview_header_metric_icons: dict[str, QLabel] = {}
         self.preview_header_controls: dict[str, QToolButton] = {}
         metrics = QGridLayout()
+        metrics.setContentsMargins(0, 0, 0, 0)
         metrics.setHorizontalSpacing(12)
         metrics.setVerticalSpacing(2)
         self.preview_header_metric_columns: dict[str, QVBoxLayout] = {}
@@ -638,6 +640,7 @@ class DevUiPage(QWidget):
             bar.setValue(amount)
             bar.setTextVisible(False)
             bar.setFixedHeight(UNITY_CONTROL_SIZES_PX["progress_secondary"])
+            bar.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
             if name == "Route":
                 bar.setCursor(Qt.PointingHandCursor)
                 bar.navigationRequested.connect(
@@ -655,7 +658,7 @@ class DevUiPage(QWidget):
             arrow.setToolTip(f"Ouvrir {target}")
             arrow.setAccessibleName(f"Afficher {target}")
             caption.insertWidget(2, arrow, 0, Qt.AlignVCenter)
-            metrics.addWidget(bar, 1, column, Qt.AlignVCenter)
+            metrics.addWidget(bar, 1, column)
             drawer_column = QVBoxLayout()
             drawer_column.setContentsMargins(0, 0, 0, 0)
             metrics.addLayout(drawer_column, 2, column, Qt.AlignTop)

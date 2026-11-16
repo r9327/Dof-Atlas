@@ -11,7 +11,6 @@ from PySide6.QtWidgets import (
     QApplication,
     QCheckBox,
     QFrame,
-    QGridLayout,
     QLabel,
     QPushButton,
     QSizePolicy,
@@ -228,17 +227,76 @@ class GuideUltimeManualUiNavigationTests(unittest.TestCase):
             self.assertEqual(view.page_jump.suffix(), " / 2")
             self.assertEqual(view.summary_button.objectName(), "GuideMetricDropdown")
             self.assertEqual(view.preparation_button.objectName(), "GuideMetricDropdown")
-            self.assertEqual(view.participants_button.size(), view.summary_button.size())
-            controls_grid = view._participants_control_column.parent()
-            self.assertIsInstance(controls_grid, QGridLayout)
-            self.assertIs(controls_grid.itemAtPosition(1, 2).layout(),
-                          view._participants_control_column)
+            from app.ui.unity_palette import UNITY_CONTROL_SIZES_PX
+
+            self.assertEqual(
+                view.participants_button.width(),
+                UNITY_CONTROL_SIZES_PX["guide_character_button"],
+            )
+            self.assertEqual(
+                view.summary_button.width(),
+                UNITY_CONTROL_SIZES_PX["progress_toggle_width"],
+            )
+            self.assertIs(
+                view._compact_title_row.itemAt(
+                    view._compact_title_row.count() - 2
+                ).widget(), view.participants_button,
+            )
+            self.assertIs(
+                view._header_content_layout.itemAt(1).widget(), view.participants_panel,
+            )
+            self.assertIs(
+                view._metric_columns["Route"].itemAt(0).widget(), view.summary_panel,
+            )
+            self.assertIs(
+                view._metric_columns["Préparation"].itemAt(0).widget(),
+                view.preparation_panel,
+            )
             self.assertTrue(view.route_bar.isEnabled())
             self.assertTrue(view.preparation_bar.isEnabled())
 
             self.assertIs(view.page_jump.parentWidget(), view.sheet_meta_label.parentWidget())
             self.assertEqual(view.prev_button.text(), "Précédent")
             self.assertEqual(view.next_button.text(), "Suivant")
+        finally:
+            view.close()
+
+    def test_progress_edges_match_at_four_window_sizes_with_drawers_open_and_closed(self) -> None:
+        from app.ui.components import AtlasComboBox
+        from app.ui.unity_palette import UNITY_WINDOW_PRESETS_PX
+
+        _service, view = self._view()
+        try:
+            self.assertIsInstance(view.preparation_filter, AtlasComboBox)
+            self.assertEqual(view.preparation_filter.count(), 7)
+            for preset, (width, height) in UNITY_WINDOW_PRESETS_PX.items():
+                with self.subTest(preset=preset):
+                    view.resize(width, height)
+                    for opened in (False, True):
+                        view.summary_button.setChecked(opened)
+                        view.preparation_button.setChecked(opened)
+                        view.participants_button.setChecked(opened)
+                        QApplication.processEvents()
+
+                        def span(widget) -> tuple[int, int]:
+                            left = widget.mapTo(view, widget.rect().topLeft()).x()
+                            return left, left + widget.width()
+
+                        full = span(view.global_progress_bar)
+                        route = span(view.route_bar)
+                        preparation = span(view.preparation_bar)
+                        self.assertEqual(full, (route[0], preparation[1]))
+                        self.assertLess(route[1], preparation[0])
+                        if opened:
+                            self.assertTrue(view.summary_panel.isVisible())
+                            self.assertTrue(view.preparation_panel.isVisible())
+                            self.assertEqual(span(view.summary_panel), route)
+                            self.assertEqual(span(view.preparation_panel), preparation)
+                            self.assertLessEqual(
+                                view.preparation_filter.width(),
+                                view.preparation_panel.width(),
+                            )
+            self.assertEqual(view.preparation_filter.currentText(), "Tout")
         finally:
             view.close()
 

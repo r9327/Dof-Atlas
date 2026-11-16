@@ -1240,6 +1240,29 @@ class DevUiPageTests(unittest.TestCase):
                             expected["module_padding"],
                         )
                     self.assertEqual(tuple(page.gallery_family_widgets), original_order)
+                    # All progress bars share the same outer edges at each width.
+                    page.gallery_scroll.ensureWidgetVisible(page.preview_compact_header)
+                    for opened in (False, True):
+                        for name in ("Sommaire", "Préparation", "Personnages"):
+                            page.preview_header_controls[name].setChecked(opened)
+                        self.app.processEvents()
+
+                        def span(widget) -> tuple[int, int]:
+                            left = widget.mapTo(page, widget.rect().topLeft()).x()
+                            return left, left + widget.width()
+
+                        full = span(page.preview_header_global_progress)
+                        route = span(page.preview_header_metrics["Route"])
+                        preparation = span(page.preview_header_metrics["Préparation"])
+                        self.assertEqual(full, (route[0], preparation[1]))
+                        self.assertLess(route[1], preparation[0])
+                        if opened:
+                            self.assertEqual(
+                                span(page.preview_header_panels["Sommaire"]), route,
+                            )
+                            self.assertEqual(
+                                span(page.preview_header_panels["Préparation"]), preparation,
+                            )
             self.assertEqual(
                 page.preview_header_global_progress.height(),
                 UNITY_CONTROL_SIZES_PX["progress_primary"],

@@ -1017,6 +1017,7 @@ class SharedGuideManualView(GuideUltimeManualView):
         self.global_progress_bar.setFixedHeight(
             UNITY_CONTROL_SIZES_PX["progress_primary"]
         )
+        self.global_progress_bar.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
         self.global_progress_label = QLabel("—")
         self.global_progress_label.setObjectName("GuideCompactMetricValue")
         self._metric_columns: dict[str, QVBoxLayout] = {}
@@ -1086,6 +1087,7 @@ class SharedGuideManualView(GuideUltimeManualView):
 
         # Two original progress bars, retaining their navigation and values.
         metrics = QGridLayout()
+        metrics.setContentsMargins(0, 0, 0, 0)
         metrics.setHorizontalSpacing(12)
         metrics.setVerticalSpacing(2)
         self._metric_caption_labels: dict[str, QLabel] = {}
@@ -1116,6 +1118,7 @@ class SharedGuideManualView(GuideUltimeManualView):
             metrics.addLayout(caption, 0, column)
             bar.setTextVisible(False)
             bar.setFixedHeight(UNITY_CONTROL_SIZES_PX["progress_secondary"])
+            bar.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
             # The bar keeps its original progress/navigation behaviour.
             # Its neighboring arrow alone controls the corresponding dropdown.
             arrow = AtlasGuideDisclosure()
@@ -1128,7 +1131,7 @@ class SharedGuideManualView(GuideUltimeManualView):
             arrow.setToolTip(f"Ouvrir {target}")
             arrow.setAccessibleName(f"Afficher {target}")
             caption.insertWidget(2, arrow, 0, Qt.AlignVCenter)
-            metrics.addWidget(bar, 1, column, Qt.AlignVCenter)
+            metrics.addWidget(bar, 1, column)
             if name == "Route":
                 self.summary_button = arrow
             else:
