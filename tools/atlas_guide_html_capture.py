@@ -318,6 +318,92 @@ def _blocks(container: _Node, assets: dict[str, Path]) -> list[dict[str, Any]]:
     return result
 
 
+
+# Source-side semantic extraction is derived ONLY from explicit authored words
+# and linked Ganymède entity IDs; never treat an arbitrary Quest checklist as
+# a prerequisite. All prose/checklists remain on the original sheet unchanged.
+_PRIOR_GUIDE = re.compile(
+    r"(?:vous\s+devriez\s+avoir\s+fait|vous\s+devez\s+avoir\s+(?:fait|termin[eé])"
+    r"|should\s+have\s+completed|must\s+have\s+completed)", re.I
+)
+_PRIOR_QUESTS = re.compile(
+    r"(?:qu[eê]tes\s+suivantes|following\s+quests)", re.I
+)
+_REQUIRED_LEVEL = re.compile(
+    r"(?:il\s+est\s+n[eé]cessaire\s+d['’][eê]tre\s+niveau"
+    r"|it\s+is\s+necessary\s+to\s+be\s+level)", re.I
+)
+
+
+def _source_explicit_prerequisites(container: _Node) -> list[dict[str, Any]]:
+    """Index source-authored prerequisites, never invent or move source text."""
+    items = [child for child in container.children if isinstance(child, _Node)]
+    gates: list[dict[str, Any]] = []
+    known: set[tuple[str, int | str]] = set()
+
+    def append(gate: dict[str, Any], identity: tuple[str, int | str]) -> None:
+        if identity not in known:
+            known.add(identity)
+            gates.append(gate)
+
+    for i, node in enumerate(items):
+        if node.tag != "p":
+            continue
+        sentence = " ".join(_plain(node).split()).strip()
+        if not sentence:
+            continue
+        if _REQUIRED_LEVEL.search(sentence):
+            append({"name": sentence, "source_kind": "explicit_level_requirement"},
+                   ("level", sentence))
+        if not _PRIOR_GUIDE.search(sentence):
+            continue
+        # A guide prerequisite is explicit only with a typed guide-step link.
+        for tag in _desc(node):
+            if tag.attrs.get("data-type") != "guide-step":
+                continue
+            guide_id = tag.attrs.get("guideid", "")
+            title = " ".join(_plain(tag).split()).strip()
+            if guide_id.isdigit() and title:
+                append(
+                    {"name": f"Guide à terminer : {title}",
+                     "guide_id": int(guide_id), "source_kind": "guide_dependency"},
+                    ("guide", int(guide_id)),
+                )
+        if not _PRIOR_QUESTS.search(sentence):
+            continue
+        # Empty <p> elements are visual spacing. Find the immediately
+        # following *authored* checklist, not a later unrelated objective.
+        for later in items[i + 1:]:
+            if later.tag == "p":
+                if _plain(later).strip():
+                    break
+                continue
+            if later.tag != "ul" or later.attrs.get("data-type") != "taskList":
+                break
+            for li in later.children:
+                if not isinstance(li, _Node) or li.tag != "li":
+                    continue
+                quest_tags = [
+                    tag for tag in _desc(li)
+                    if tag.attrs.get("data-type") == "custom-tag"
+                    and tag.attrs.get("type") == "quest"
+                ]
+                if len(quest_tags) != 1:
+                    continue  # Ambiguous source link: not a typed prerequisite.
+                quest = quest_tags[0]
+                quest_id = quest.attrs.get("dofusdbid", "")
+                name = " ".join(_plain(quest).split()).strip()
+                if quest_id.isdigit() and name:
+                    append(
+                        {"name": f"Quête à terminer : {name}",
+                         "quest_id": int(quest_id),
+                         "source_kind": "quest_prerequisite"},
+                        ("quest", int(quest_id)),
+                    )
+            break
+    return gates
+
+
 def extract_saved_html(html: str, *, assets: dict[str, Path] | None = None
                        ) -> list[dict[str, Any]]:
     """Capture exactly the visible article boundaries from one saved HTML page."""
@@ -376,6 +462,11 @@ def extract_saved_html(html: str, *, assets: dict[str, Path] | None = None
         }
         if positions:
             stage["coordinates"] = [int(positions[0][0]), int(positions[0][1])]
+        # Exact source words + typed links supply the auxiliary Prérequis tab.
+        # The original ordered rich blocks are retained verbatim on the sheet.
+        gates = _source_explicit_prerequisites(contents[0])
+        if gates:
+            stage["prerequisites"] = gates
         result.append({"number": number, "step": stage})
     return result
 

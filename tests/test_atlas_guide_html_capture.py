@@ -314,5 +314,53 @@ class AtlasGuideHtmlCaptureTests(unittest.TestCase):
             inspect_saved_capture(self.manifest, root=self.root)
 
 
+    def test_explicit_ganymede_prerequisites_appear_as_typed_gates(self):
+        # Fictional text with the actual typed Ganymède source DOM grammar.
+        page = """<article id="step-1"><h2>Step 1 [25,-4]</h2>
+        <div class="guide-content">
+         <p>Il est nécessaire d'être niveau 60 pour terminer ce parcours.</p>
+         <p>Vous devriez avoir fait le guide
+          <a href="https://ganymede-app.com/guides/3">
+           <span data-type="guide-step" guideid="3" stepnumber="1"
+           >[GP4] Guide de départ</span></a>
+          et particulièrement les quêtes suivantes :</p><p></p>
+         <ul data-type="taskList">
+           <li data-checked="false"><div><p><a href="https://dofusdb.fr/fr/database/quest/827">
+             <span data-type="custom-tag" type="quest" dofusdbid="827"
+             ><img alt="quest" src="https://example.org/quest.png">Première quête</span>
+           </a></p></div></li>
+           <li data-checked="false"><div><p><a href="https://dofusdb.fr/fr/database/quest/2193">
+             <span data-type="custom-tag" type="quest" dofusdbid="2193"
+             ><img alt="quest" src="https://example.org/quest.png">Deuxième quête</span>
+           </a></p></div></li>
+         </ul>
+         <p>Instructions suivantes.</p>
+        </div></article>"""
+        stage = extract_saved_html(page)[0]["step"]
+        gates = stage["prerequisites"]
+        self.assertEqual(len(gates), 4)
+        self.assertEqual([gate.get("quest_id") for gate in gates], [None, None, 827, 2193])
+        self.assertEqual(gates[1]["guide_id"], 3)
+        from app.modules.encyclopedia.services.guide_shared_route_contract import (
+            project_authorized_guide,
+        )
+        route = project_authorized_guide({
+            "guide_id": "fictional", "title": "Fictional",
+            "steps": [stage],
+        })
+        self.assertEqual(route["steps"][0]["hard_runtime_gates"], gates)
+        self.assertEqual(stage["actions"][0]["rich_blocks"][-1]["runs"][0]["text"],
+                         "Instructions suivantes.")
+
+    def test_unrelated_checklist_is_not_mislabeled_prerequisite(self):
+        page = """<article id="step-1"><h2>Step 1 [1,1]</h2>
+        <div class="guide-content"><p>Parlez au PNJ.</p>
+        <ul data-type="taskList"><li data-checked="false"><div><p>
+          <span data-type="custom-tag" type="quest" dofusdbid="827">
+            <img alt="quest" src="https://example.org/i.png">Quête ordinaire
+          </span></p></div></li></ul></div></article>"""
+        self.assertNotIn("prerequisites", extract_saved_html(page)[0]["step"])
+
+
 if __name__ == "__main__":
     unittest.main()
