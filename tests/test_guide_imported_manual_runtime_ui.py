@@ -10,7 +10,7 @@ from pathlib import Path
 
 os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
 
-from PySide6.QtWidgets import QApplication, QCheckBox, QGridLayout, QToolButton
+from PySide6.QtWidgets import QApplication, QCheckBox, QGridLayout, QLabel, QToolButton
 
 from app.modules.encyclopedia.providers import (
     AchievementProvider, GuideProvider, QuestProvider,
@@ -33,7 +33,10 @@ from app.modules.encyclopedia.views.manual_route_guides_view import (
     ManualRouteGuidesView,
 )
 from app.modules.encyclopedia.views.shared_manual_guide_view import (
-    SharedGuideManualView, _PreparationNeed,
+    SharedGuideManualCard, SharedGuideManualView, _PreparationNeed,
+)
+from app.modules.encyclopedia.services.guide_shared_route_contract import (
+    project_authorized_guide,
 )
 from tests.test_guide_imported_manual_runtime_service import _source_route
 from tests.test_guide_trusted_source_package import TEST_HEAD, TEST_SOURCE
@@ -348,6 +351,42 @@ class ImportedSourceRouterQtTests(unittest.TestCase):
         self.assertFalse(self.progress_path.exists())
         self.assertTrue(self.view.select_guide(self.service.guide_id))
         self.assertIs(self.view.stack.currentWidget(), reader)
+
+    def test_source_preparation_stays_in_original_sheet_beside_atlas_overlay(self):
+        """The source's own instruction must not vanish into global inventory."""
+        route = project_authorized_guide({
+            "guide_id": "fictional-preparation",
+            "title": "Fictional source",
+            "steps": [{
+                "source_step_id": "one",
+                "title": "Original sheet",
+                "actions": [
+                    {
+                        "action_id": "prepare-first", "kind": "prepare",
+                        "text": "Préparer exactement deux objets fictifs",
+                        "items": [{"name": "Objet fictif", "quantity": 2}],
+                    },
+                    {
+                        "action_id": "talk-next", "kind": "talk",
+                        "text": "Parler au PNJ fictif sans résumer",
+                    },
+                ],
+            }],
+        })
+        card = route["steps"][0]
+        widget = SharedGuideManualCard(self.service, "character:1", card, 0)
+        self.addCleanup(widget.deleteLater)
+        self.assertEqual(card["a_preparer"][0]["quantity"], 2)
+        headings = [
+            label.text() for label in widget.findChildren(QLabel, "GuideManualSectionTitle")
+        ]
+        self.assertIn("À PRÉPARER", headings)
+        self.assertIn("À FAIRE MAINTENANT", headings)
+        texts = [label.text() for label in widget.findChildren(QLabel, "GuideManualLine")]
+        self.assertTrue(any("Préparer exactement deux objets fictifs" in text
+                            for text in texts))
+        self.assertTrue(any("Parler au PNJ fictif sans résumer" in text
+                            for text in texts))
 
     def test_switching_source_guides_releases_old_qt_reader_without_progress_write(self):
         next_service = ImportedSourceManualRuntimeService(
