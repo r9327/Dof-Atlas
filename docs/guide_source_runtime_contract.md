@@ -73,16 +73,16 @@ the original pages. **Never use its 191 candidate action labels as fidelity
 evidence.** The real website serves paginated HTML: collecting only the first
 visible articles (often three) does not reproduce a 64-step guide.
 
-The offline \`tools.atlas_guide_html_capture\` converter now accepts **locally
+The offline `tools.atlas_guide_html_capture` converter now accepts **locally
 saved, authorized** Ganymède HTML pages, not remote requests. It detects
-\`article#step-N\` boundaries, retains ordered paragraphs, colored/linked text,
+`article#step-N` boundaries, retains ordered paragraphs, colored/linked text,
 source checkboxes and locally supplied images, and produces one source action
 with ordered rich blocks **inside each original step**. This avoids inventing
 substeps for every paragraph while preserving the original content.
 
 Example local manifest, with fictional IDs and *user-supplied* capture files:
 
-\`\`\`json
+```json
 {
   "rights_verified": true,
   "reference_verified": true,
@@ -96,9 +96,9 @@ Example local manifest, with fictional IDs and *user-supplied* capture files:
     }
   }]
 }
-\`\`\`
+```
 
-\`\`\`bash
+```bash
 python -m tools.atlas_guide_html_capture \
   --manifest local/authorized-guide-manifest.json \
   --output artifacts/authorized-full-source.json
@@ -106,13 +106,13 @@ python -m tools.atlas_guide_html_capture \
 python -m tools.atlas_guide_importer \
   --source artifacts/authorized-full-source.json \
   --partial --output artifacts/authorized-preview.json
-\`\`\`
+```
 
 The converter checks every sequential step number and exact
-\`expected_steps\`. Missing pages, duplicates, external images without local
+`expected_steps`. Missing pages, duplicates, external images without local
 authorized bytes, unsupported rich widgets and changed source semantics
 **block** export. It never fabricates prose or activates a Guide. The
-\`rights_verified\` and \`reference_verified\` declarations are inputs,
+`rights_verified` and `reference_verified` declarations are inputs,
 **not independent evidence** of permission or a trustworthy comparison.
 Original rights, license, source parity, visual comparison, and in-game checks
 remain separately mandatory before release.
