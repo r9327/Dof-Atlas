@@ -251,6 +251,11 @@ UNITY_CONTROL_SIZES_PX = {
     "progress_toggle_height": 18,
     "guide_character_button": 24,
     "guide_character_icon": 20,
+    # Guide portrait rings and sheet selector are shared with Dev UI previews.
+    "guide_portrait_button": 42,
+    "guide_portrait_icon": 32,
+    "guide_page_jump_compact_max_width": 90,
+    "guide_page_jump_normal_max_width": 110,
     "dialog_min_width": 400,
     "dialog_header_icon_box": 52,
     "dialog_header_icon_artwork": 44,
@@ -313,6 +318,8 @@ def unity_layout_metrics(window_width: int) -> dict[str, int]:
 UNITY_LAYOUT_BREAKPOINTS_PX = {
     "two_columns_min": 560,
     "three_columns_min": 1000,
+    # Only abbreviates Guide captions/selector; never reorders modules.
+    "guide_header_compact_below": 520,
 }
 
 

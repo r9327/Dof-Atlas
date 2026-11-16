@@ -39,7 +39,7 @@ from app.modules.encyclopedia.views.guide_ultime_manual_view import (
 )
 from app.core.text import normalize_key as normalize_text
 from app.ui.components import AtlasButton, AtlasComboBox, AtlasGuideDisclosure, AtlasGuideCover, AtlasGuideParticipantButton, atlas_guide_arrow_icon, atlas_guide_character_icon
-from app.ui.unity_palette import UNITY_CONTROL_SIZES_PX, UNITY_SIZES_PX
+from app.ui.unity_palette import UNITY_CONTROL_SIZES_PX, UNITY_LAYOUT_BREAKPOINTS_PX, UNITY_SIZES_PX
 from app.ui.unity_skin import apply_unity_panel_shadow, sprite_icon_path
 from app.constants import DATA_DIR
 from app.modules.encyclopedia.services.image_service import ENCYCLOPEDIA_IMAGE_SERVICE
@@ -259,8 +259,14 @@ class _ParticipantPortraitButton(QToolButton):
         self.progress = None if progress is None else max(0, min(100, int(progress)))
         self.setObjectName("GuideParticipantPortrait")
         self.setCheckable(True)
-        self.setFixedSize(42, 42)
-        self.setIconSize(QSize(32, 32))
+        self.setFixedSize(
+            UNITY_CONTROL_SIZES_PX["guide_portrait_button"],
+            UNITY_CONTROL_SIZES_PX["guide_portrait_button"],
+        )
+        self.setIconSize(QSize(
+            UNITY_CONTROL_SIZES_PX["guide_portrait_icon"],
+            UNITY_CONTROL_SIZES_PX["guide_portrait_icon"],
+        ))
         self.setCursor(Qt.PointingHandCursor)
 
     def paintEvent(self, event) -> None:  # noqa: N802 - Qt API
@@ -1241,7 +1247,9 @@ class SharedGuideManualView(GuideUltimeManualView):
         self.page_jump.setObjectName("GuideCompactPageJump")
         self.page_jump.setRange(1, max(1, len(self.service.cards)))
         self.page_jump.setSuffix(f" / {len(self.service.cards)}")
-        self.page_jump.setMaximumWidth(110)
+        self.page_jump.setMaximumWidth(
+            UNITY_CONTROL_SIZES_PX["guide_page_jump_normal_max_width"]
+        )
         self.page_jump.setToolTip("Ouvrir directement la fiche sélectionnée")
         self.page_jump.setAccessibleName("Sélectionner la fiche du guide")
         self.page_jump.valueChanged.connect(
@@ -1321,7 +1329,7 @@ class SharedGuideManualView(GuideUltimeManualView):
             return
         count = len(self.selected_participant_keys())
         full_label = f"Mes personnages · {count}"
-        narrow = self.width() < 520
+        narrow = self.width() < UNITY_LAYOUT_BREAKPOINTS_PX["guide_header_compact_below"]
         # Icon-only participant selector: the count remains accessible through
         # its tooltip and accessibility label without stretching the header.
         self.participants_button.setText("")
@@ -1332,7 +1340,10 @@ class SharedGuideManualView(GuideUltimeManualView):
             "Choisir les identités stables utilisées par la progression et les déplacements."
         )
         if hasattr(self, "page_jump"):
-            self.page_jump.setMaximumWidth(90 if narrow else 110)
+            self.page_jump.setMaximumWidth(UNITY_CONTROL_SIZES_PX[
+                "guide_page_jump_compact_max_width" if narrow
+                else "guide_page_jump_normal_max_width"
+            ])
 
     def resizeEvent(self, event) -> None:  # noqa: N802 - Qt API
         super().resizeEvent(event)

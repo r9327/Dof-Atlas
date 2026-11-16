@@ -302,6 +302,10 @@ class DevUiPageTests(unittest.TestCase):
             self.assertEqual(page.preview_header_global_progress.value(), 35)
             self.assertIsNone(page.preview_compact_header.findChild(QWidget, "GuideCompactDonut"))
             self.assertEqual(page.preview_header_page_jump.suffix(), " / 20")
+            self.assertEqual(
+                page.preview_header_page_jump.maximumWidth(),
+                UNITY_CONTROL_SIZES_PX["guide_page_jump_normal_max_width"],
+            )
             self.assertIs(
                 page.preview_header_page_jump.parentWidget(),
                 page.preview_sheet_header,
@@ -383,6 +387,11 @@ class DevUiPageTests(unittest.TestCase):
             ))
             page.preview_header_controls["Personnages"].setChecked(False)
             self.assertEqual(len(page.preview_header_portraits), 3)
+            self.assertTrue(all(
+                portrait.width() == UNITY_CONTROL_SIZES_PX["guide_portrait_button"]
+                and portrait.iconSize().width() == UNITY_CONTROL_SIZES_PX["guide_portrait_icon"]
+                for portrait in page.preview_header_portraits
+            ))
             self.assertTrue(all(isinstance(p, _ParticipantPortraitButton)
                                 for p in page.preview_header_portraits))
             self.assertTrue(page.preview_header_portraits[0].isChecked())

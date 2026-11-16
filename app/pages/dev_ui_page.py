@@ -899,7 +899,9 @@ class DevUiPage(QWidget):
         self.preview_header_page_jump.setRange(1, 20)
         self.preview_header_page_jump.setSuffix(" / 20")
         self.preview_header_page_jump.setValue(4)
-        self.preview_header_page_jump.setMaximumWidth(110)
+        self.preview_header_page_jump.setMaximumWidth(
+            UNITY_CONTROL_SIZES_PX["guide_page_jump_normal_max_width"]
+        )
         self.preview_header_page_jump.setToolTip("Ouvrir directement la fiche sélectionnée")
         self.preview_header_page_jump.setAccessibleName("Sélectionner la fiche du guide")
         self.preview_header_page_jump.valueChanged.connect(

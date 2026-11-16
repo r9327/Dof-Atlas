@@ -225,6 +225,11 @@ class GuideUltimeManualUiNavigationTests(unittest.TestCase):
             self.assertEqual(view.next_button.objectName(), "GuideManualNextButton")
             self.assertEqual(view.page_jump.objectName(), "GuideCompactPageJump")
             self.assertEqual(view.page_jump.suffix(), " / 2")
+            from app.ui.unity_palette import UNITY_CONTROL_SIZES_PX
+            self.assertEqual(
+                view.page_jump.maximumWidth(),
+                UNITY_CONTROL_SIZES_PX["guide_page_jump_normal_max_width"],
+            )
             self.assertEqual(view.summary_button.objectName(), "GuideMetricDropdown")
             self.assertEqual(view.preparation_button.objectName(), "GuideMetricDropdown")
             from app.ui.unity_palette import UNITY_CONTROL_SIZES_PX
@@ -260,6 +265,20 @@ class GuideUltimeManualUiNavigationTests(unittest.TestCase):
             self.assertEqual(view.next_button.text(), "Suivant")
         finally:
             view.close()
+
+    def test_participant_portrait_sizes_are_shared_with_dev_ui(self) -> None:
+        from app.ui.unity_palette import UNITY_CONTROL_SIZES_PX
+        from app.modules.encyclopedia.views.shared_manual_guide_view import _ParticipantPortraitButton
+
+        portrait = _ParticipantPortraitButton("character:demo", progress=25)
+        try:
+            box = UNITY_CONTROL_SIZES_PX["guide_portrait_button"]
+            icon = UNITY_CONTROL_SIZES_PX["guide_portrait_icon"]
+            self.assertEqual((portrait.width(), portrait.height()), (box, box))
+            self.assertEqual((portrait.iconSize().width(), portrait.iconSize().height()), (icon, icon))
+            self.assertLess(icon, box)
+        finally:
+            portrait.close()
 
     def test_progress_edges_match_at_four_window_sizes_with_drawers_open_and_closed(self) -> None:
         from app.ui.components import AtlasComboBox
@@ -305,12 +324,17 @@ class GuideUltimeManualUiNavigationTests(unittest.TestCase):
         try:
             view.resize(490, 320)
             QApplication.processEvents()
-            self.assertLess(view.width(), 520)
+            from app.ui.unity_palette import UNITY_LAYOUT_BREAKPOINTS_PX
+            self.assertLess(view.width(), UNITY_LAYOUT_BREAKPOINTS_PX["guide_header_compact_below"])
             self.assertEqual(view.participants_button.text(), "")
             self.assertFalse(view.participants_button.icon().isNull())
             self.assertEqual(view.participants_button.accessibleName(), "Mes personnages · 1")
             self.assertIn("Choisir les identités", view.participants_button.toolTip())
-            self.assertEqual(view.page_jump.maximumWidth(), 90)
+            from app.ui.unity_palette import UNITY_CONTROL_SIZES_PX
+            self.assertEqual(
+                view.page_jump.maximumWidth(),
+                UNITY_CONTROL_SIZES_PX["guide_page_jump_compact_max_width"],
+            )
             self.assertEqual(view.page_jump.suffix(), " / 2")
             self.assertEqual(view._metric_caption_labels["Préparation"].text(), "Prép.")
             self.assertEqual(view._metric_caption_labels["Préparation"].toolTip(), "Préparation")
@@ -319,7 +343,10 @@ class GuideUltimeManualUiNavigationTests(unittest.TestCase):
             QApplication.processEvents()
             self.assertEqual(view.participants_button.text(), "")
             self.assertEqual(view.participants_button.accessibleName(), "Mes personnages · 1")
-            self.assertEqual(view.page_jump.maximumWidth(), 110)
+            self.assertEqual(
+                view.page_jump.maximumWidth(),
+                UNITY_CONTROL_SIZES_PX["guide_page_jump_normal_max_width"],
+            )
             self.assertEqual(view._metric_caption_labels["Préparation"].text(), "Préparation")
         finally:
             view.close()
