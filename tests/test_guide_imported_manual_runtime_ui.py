@@ -352,6 +352,74 @@ class ImportedSourceRouterQtTests(unittest.TestCase):
         self.assertTrue(self.view.select_guide(self.service.guide_id))
         self.assertIs(self.view.stack.currentWidget(), reader)
 
+    def test_shared_qt_reader_displays_exact_rich_source_blocks(self):
+        """No second renderer or source-text summary for original rich actions."""
+        import base64
+        import hashlib
+        import struct
+        import zlib
+        from PySide6.QtWidgets import QCheckBox
+
+        def chunk(tag, data):
+            return (
+                struct.pack(">I", len(data)) + tag + data
+                + struct.pack(">I", zlib.crc32(tag + data))
+            )
+        png = (
+            b"\x89PNG\r\n\x1a\n"
+            + chunk(b"IHDR", struct.pack(">IIBBBBB", 1, 1, 8, 6, 0, 0, 0))
+            + chunk(b"IDAT", zlib.compress(bytes((0, 255, 0, 0, 255))))
+            + chunk(b"IEND", b"")
+        )
+        action = {
+            "action_id": "source-rich", "kind": "talk",
+            "text": "Parler au PNJ fictif",
+            "rich_blocks": [
+                {"type": "paragraph", "runs": [
+                    {"text": "Parler au "},
+                    {"text": "PNJ fictif", "role": "npc"},
+                ]},
+                {"type": "checklist", "items": [{
+                    "id": "source-check", "text": "Objectif de l'auteur",
+                    "checked": False,
+                }]},
+                {"type": "image", "alt": "Image source",
+                 "mime": "image/png", "sha256": hashlib.sha256(png).hexdigest(),
+                 "data_base64": base64.b64encode(png).decode("ascii")},
+            ],
+        }
+        route = project_authorized_guide({
+            "guide_id": "fictional-rich", "title": "Authorized fixture",
+            "steps": [{
+                "source_step_id": "step-1", "title": "Étape originale",
+                "actions": [action],
+            }],
+        })
+        service = ImportedSourceManualRuntimeService(
+            self.quest_progress, self.achievement_progress, self.progress,
+            route=route,
+        )
+        widget = SharedGuideManualCard(
+            service, "character:1", service.cards[0], 0,
+        )
+        self.addCleanup(widget.deleteLater)
+        check = widget.findChild(QCheckBox, "GuideManualSourceChecklist")
+        self.assertIsNotNone(check)
+        self.assertEqual(check.text(), "Objectif de l'auteur")
+        self.assertFalse(check.isEnabled())
+        picture = widget.findChild(QLabel, "GuideManualSourceImage")
+        self.assertIsNotNone(picture)
+        self.assertIsNotNone(picture.pixmap())
+        self.assertFalse(picture.pixmap().isNull())
+        self.assertTrue(any(
+            "PNJ fictif" in label.text() and "<span" in label.text()
+            for label in widget.findChildren(QLabel, "GuideManualLine")
+        ))
+        self.assertEqual(
+            widget.card["manual_runtime_metadata"]["source_step"]["actions"][0],
+            action,
+        )
+
     def test_source_preparation_stays_in_original_sheet_beside_atlas_overlay(self):
         """The source's own instruction must not vanish into global inventory."""
         route = project_authorized_guide({
