@@ -11,7 +11,7 @@ from types import SimpleNamespace
 os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
 
 from PySide6.QtWidgets import QApplication, QFrame, QGridLayout, QProgressBar
-from app.ui.components import AtlasGuideDisclosure
+from app.ui.components import AtlasGuideDisclosure, AtlasGuideParticipantButton
 
 from app.modules.encyclopedia.services.guide_progress_service import (
     GuideProgressService,
@@ -65,19 +65,54 @@ class ContinuousGuideRoutePanelTests(unittest.TestCase):
                 for widget in (
                     self.panel.summary_toggle,
                     self.panel.preparation_toggle,
-                    self.panel.participants_button,
                 ):
                     self.assertEqual(widget.minimumWidth(),
                                      controls["progress_toggle_width"])
                     self.assertEqual(widget.maximumHeight(),
                                      controls["progress_toggle_height"])
+                self.assertEqual(
+                    self.panel.participants_button.width(),
+                    controls["guide_character_button"],
+                )
                 grid = self.panel._metric_grid
-                self.assertIs(grid.itemAtPosition(1, 0).layout().itemAt(1).widget(),
+                self.assertIs(grid.itemAtPosition(0, 0).layout().itemAt(2).widget(),
                               self.panel.summary_toggle)
-                self.assertIs(grid.itemAtPosition(1, 1).layout().itemAt(1).widget(),
+                self.assertIs(grid.itemAtPosition(0, 1).layout().itemAt(3).widget(),
                               self.panel.preparation_toggle)
-                self.assertIs(grid.itemAtPosition(1, 2).widget(),
-                              self.panel.participants_button)
+                self.assertIs(grid.itemAtPosition(1, 0).widget(),
+                              self.panel.route_progress)
+                self.assertIs(grid.itemAtPosition(1, 1).widget(),
+                              self.panel.preparation_bar)
+                self.assertIsNone(grid.itemAtPosition(1, 2))
+
+    def test_global_progress_tracks_both_lower_bars_across_all_four_presets(self):
+        from app.ui.unity_palette import UNITY_WINDOW_PRESETS_PX
+
+        self.panel.show()
+        try:
+            for preset, dimensions in UNITY_WINDOW_PRESETS_PX.items():
+                with self.subTest(preset=preset):
+                    self.panel.resize(*dimensions)
+                    self.app.processEvents()
+
+                    def edges(widget):
+                        left = widget.mapTo(self.panel, widget.rect().topLeft()).x()
+                        return left, left + widget.width()
+
+                    global_span = edges(self.panel.global_progress_bar)
+                    route_span = edges(self.panel.route_progress)
+                    prep_span = edges(self.panel.preparation_bar)
+                    self.assertEqual(global_span, (route_span[0], prep_span[1]))
+                    self.assertLess(route_span[1], prep_span[0])
+                    self.panel.summary_toggle.click()
+                    self.app.processEvents()
+                    self.assertEqual(
+                        edges(self.panel.global_progress_bar),
+                        (edges(self.panel.route_progress)[0], edges(self.panel.preparation_bar)[1]),
+                    )
+                    self.panel.summary_toggle.click()
+        finally:
+            self.panel.hide()
 
     def test_disclosure_controls_keep_shared_unity_direction_and_panel_state(self):
         summary = self.panel.summary_toggle
@@ -145,15 +180,15 @@ class ContinuousGuideRoutePanelTests(unittest.TestCase):
                          "GuideCompactPreparationProgress")
         self.assertIsInstance(self.panel.global_progress_bar, QProgressBar)
         self.assertIsInstance(self.panel._metric_grid, QGridLayout)
+        self.assertIsInstance(self.panel.participants_button, AtlasGuideParticipantButton)
         grid = self.panel._metric_grid
-        self.assertIs(grid.itemAtPosition(1, 0).layout().itemAt(1).widget(),
+        self.assertIs(grid.itemAtPosition(0, 0).layout().itemAt(2).widget(),
                       self.panel.summary_toggle)
-        self.assertIs(grid.itemAtPosition(1, 1).layout().itemAt(1).widget(),
+        self.assertIs(grid.itemAtPosition(0, 1).layout().itemAt(3).widget(),
                       self.panel.preparation_toggle)
-        self.assertIs(grid.itemAtPosition(1, 2).widget(),
-                      self.panel.participants_button)
-        self.assertEqual(self.panel.participants_button.size(),
-                         self.panel.summary_toggle.size())
+        self.assertIs(grid.itemAtPosition(1, 0).widget(), self.panel.route_progress)
+        self.assertIs(grid.itemAtPosition(1, 1).widget(), self.panel.preparation_bar)
+        self.assertIsNone(grid.itemAtPosition(1, 2))
         self.assertEqual(self.panel.preparation_toggle.size(),
                          self.panel.summary_toggle.size())
         self.assertIs(grid.itemAtPosition(2, 0).widget(), self.panel.summary)
@@ -176,9 +211,9 @@ class ContinuousGuideRoutePanelTests(unittest.TestCase):
                         self.panel.summary_toggle.geometry()
                     )
                 )
-                self.assertEqual(
-                    grid.itemAtPosition(1, 2).widget(),
-                    self.panel.participants_button,
+                self.assertIs(
+                    self.panel.participants_button.parentWidget(),
+                    self.panel.compact_header,
                 )
                 self.panel.summary_toggle.click()
 

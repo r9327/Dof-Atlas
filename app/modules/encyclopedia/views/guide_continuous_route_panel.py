@@ -10,7 +10,7 @@ from collections.abc import Iterable, Mapping
 from PySide6.QtCore import Qt, QStringListModel, Signal, QSize
 from PySide6.QtGui import QIcon, QPainter, QPen
 from PySide6.QtWidgets import (
-    QFrame, QGridLayout, QHBoxLayout, QLabel, QListView, QMenu, QProgressBar, QScrollArea, QToolButton, QVBoxLayout, QWidget,
+    QFrame, QGridLayout, QHBoxLayout, QLabel, QListView, QMenu, QProgressBar, QScrollArea, QSizePolicy, QToolButton, QVBoxLayout, QWidget,
 )
 
 from app.constants import DATA_DIR
@@ -26,8 +26,12 @@ from app.modules.encyclopedia.services.guide_continuous_preparation import (
 )
 from app.modules.encyclopedia.services.guide_progress_service import GuideProgressService
 from app.modules.encyclopedia.views.shared_manual_guide_view import _guide_symbol_icon
-from app.ui.components import AtlasGuideDisclosure
-from app.ui.unity_palette import UNITY_CONTROL_SIZES_PX, UNITY_MODULE_GEOMETRY_PX
+from app.ui.components import (
+    AtlasGuideDisclosure, AtlasGuideParticipantButton, atlas_guide_character_icon,
+)
+from app.ui.unity_palette import (
+    UNITY_CONTROL_SIZES_PX, UNITY_LAYOUT_SIZES_PX, UNITY_MODULE_GEOMETRY_PX,
+)
 
 
 ROUTE_GEOMETRY = UNITY_MODULE_GEOMETRY_PX["guide_route"]
@@ -114,8 +118,7 @@ class ContinuousGuideRoutePanel(QWidget):
         self.position_label = QLabel()
         self.position_label.setObjectName("GuideContinuousPosition")
         head.addWidget(self.position_label, 1)
-        self.participants_button = QToolButton()
-        self.participants_button.setObjectName("GuideContinuousCharactersButton")
+        self.participants_button = AtlasGuideParticipantButton()
         self.participants_button.setPopupMode(QToolButton.InstantPopup)
         self.participants_button.setCursor(Qt.PointingHandCursor)
         self._characters_menu = QMenu(self.participants_button)
@@ -274,6 +277,7 @@ class ContinuousGuideRoutePanel(QWidget):
         self.global_progress_bar.setRange(0, 100)
         self.global_progress_bar.setTextVisible(False)
         self.global_progress_bar.setFixedHeight(UNITY_CONTROL_SIZES_PX["progress_primary"])
+        self.global_progress_bar.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
         header.addWidget(self.global_progress_bar)
         self.preparation_bar = QProgressBar()
         self.preparation_bar.setObjectName("GuideCompactPreparationProgress")
@@ -281,6 +285,7 @@ class ContinuousGuideRoutePanel(QWidget):
         self.preparation_bar.setValue(0)
         self.preparation_bar.setTextVisible(False)
         self.preparation_bar.setFixedHeight(UNITY_CONTROL_SIZES_PX["progress_secondary"])
+        self.preparation_bar.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
         self.preparation_bar.setToolTip(
             "Préparation non certifiée : uniquement des références indicatives"
         )
@@ -298,40 +303,41 @@ class ContinuousGuideRoutePanel(QWidget):
             UNITY_CONTROL_SIZES_PX["progress_toggle_width"],
             UNITY_CONTROL_SIZES_PX["progress_toggle_height"],
         )
-        self.participants_button.setObjectName("GuideParticipantsButton")
-        self.participants_button.setFixedSize(
-            UNITY_CONTROL_SIZES_PX["progress_toggle_width"],
-            UNITY_CONTROL_SIZES_PX["progress_toggle_height"],
-        )
+        character_size = UNITY_CONTROL_SIZES_PX["guide_character_button"]
+        icon_size = UNITY_CONTROL_SIZES_PX["guide_character_icon"]
+        self.participants_button.setFixedSize(character_size, character_size)
+        self.participants_button.setIconSize(QSize(icon_size, icon_size))
+        self.participants_button.setSizePolicy(QSizePolicy.Fixed, QSizePolicy.Fixed)
         self.participants_button.setToolButtonStyle(Qt.ToolButtonIconOnly)
-        self.participants_button.setIcon(
-            _guide_symbol_icon(self.participants_button, "people")
-        )
+        character_icon = atlas_guide_character_icon(icon_size)
+        if character_icon.isNull():
+            character_icon = _guide_symbol_icon(self.participants_button, "people")
+        self.participants_button.setIcon(character_icon)
         self.participants_button.setToolTip("Sélectionner les personnages")
         self.participants_button.setAccessibleName("Personnages")
+        head.addWidget(self.participants_button, 0, Qt.AlignVCenter)
         grid = QGridLayout()
-        grid.setHorizontalSpacing(12)
-        grid.setVerticalSpacing(2)
+        grid.setContentsMargins(0, 0, 0, 0)
+        grid.setHorizontalSpacing(UNITY_LAYOUT_SIZES_PX["guide_metric_column_spacing"])
+        grid.setVerticalSpacing(UNITY_LAYOUT_SIZES_PX["guide_metric_row_spacing"])
         self._metric_grid = grid
         for column, (title, meter, value, arrow) in enumerate((
             ("Route", self.route_progress, None, self.summary_toggle),
             ("Préparation", self.preparation_bar, prep_label, self.preparation_toggle),
         )):
             caption = QHBoxLayout()
+            caption.setSpacing(UNITY_LAYOUT_SIZES_PX["guide_metric_caption_spacing"])
             caption_label = QLabel(title.upper())
             caption_label.setObjectName("GuideCompactMetricTitle")
             caption.addWidget(caption_label)
             caption.addStretch(1)
             if value is not None:
                 caption.addWidget(value)
+            caption.addWidget(arrow)
             grid.addLayout(caption, 0, column)
-            line = QHBoxLayout()
-            line.setSpacing(5)
-            line.addWidget(meter, 1, Qt.AlignVCenter)
-            line.addWidget(arrow)
-            grid.addLayout(line, 1, column)
+            meter.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
+            grid.addWidget(meter, 1, column)
             grid.setColumnStretch(column, 1)
-        grid.addWidget(self.participants_button, 1, 2, Qt.AlignVCenter)
         grid.addWidget(self.summary, 2, 0, Qt.AlignTop)
         grid.addWidget(self.preparation_scroll, 2, 1, Qt.AlignTop)
         header.addLayout(grid)
