@@ -93,9 +93,10 @@ def _native_visual_probe(route: dict, cover_png: bytes) -> None:
     container = QVBoxLayout(backdrop)
     shell = GanymedeGuideShell(lambda: None)
     container.addWidget(shell)
-    listing = GanymedeListing(2205, "Dofus Cawotte",
-                              "dofus", 60, 64,
-                              "https://ganymede-app.com/guides/2205")
+    # Review identity is the French source /24, not EN /2205. The historical
+    # candidate file remains a coordinate-only cross-edition sanity check.
+    listing = GanymedeListing(24, "Dofus Cawotte",
+                              "dofus", 60, 64, BASE)
     cover = QPixmap()
     if not cover.loadFromData(cover_png):
         raise AssertionError("Source-linked Cawotte cover art failed to decode")
@@ -139,6 +140,33 @@ def _native_visual_probe(route: dict, cover_png: bytes) -> None:
             expected_title = cards[index]["manual_title"]
             if expected_title.startswith("Step "):
                 expected_title = expected_title.replace("Step ", "Étape ", 1)
+            if index in (1, 49):
+                # The source declares a resource/equipment section before
+                # the later 'Ensuite' travel instruction: no duplication in Route.
+                visible = " ".join(label.text() for label in frame.findChildren(QLabel))
+                forbidden = (
+                    "Prévoyez les ressources suivantes"
+                    if index == 1 else
+                    "Vérifiez que vous avez les équipements ci-dessous"
+                )
+                if forbidden in visible:
+                    raise AssertionError(
+                        f"Fiche {index + 1}: material section still in Route"
+                    )
+                if not cards[index].get("manual_preparation_block_indexes"):
+                    raise AssertionError(
+                        f"Fiche {index + 1}: source materials were not recognized"
+                    )
+            if index == 44:
+                # A dual-purpose sentence is split, not duplicated or lost.
+                route_text = " ".join(
+                    label.text() for label in frame.findChildren(QLabel)
+                )
+                if ("Prévoyez l'aide de" in route_text
+                        or "placez les comme ci-dessous" not in route_text):
+                    raise AssertionError("Fiche 45: party gate not isolated")
+                if not cards[index].get("manual_prerequisite_inline_leads"):
+                    raise AssertionError("Fiche 45: source party requirement missing")
             if index == 0:
                 # Text prerequisite rows stay in Prérequis ONLY.
                 texts = [label.text() for label in frame.findChildren(QLabel)]
@@ -249,6 +277,12 @@ def _native_visual_probe(route: dict, cover_png: bytes) -> None:
         app.processEvents()
         if shell._preparation_tab != "À préparer":
             raise AssertionError("Materials tab cannot be selected")
+        source_materials = shell.preparation_panel.findChildren(QLabel, "GuideManualLine")
+        if len(source_materials) < 6:
+            raise AssertionError("Source materials drawer missing items/quantities")
+        materials_text = " ".join(label.text() for label in source_materials)
+        if "Cawotte" not in materials_text or "Couronne" not in materials_text:
+            raise AssertionError("Cawotte item and equipment links are absent")
         if not backdrop.grab().save(str(out / "onglet-objets-a-preparer.png"), "PNG"):
             raise AssertionError("Materials tab screenshot failed")
         shell.preparation_button.setChecked(False)
@@ -378,7 +412,7 @@ class CawotteLiveSourceDiagnostic(unittest.TestCase):
                 self.assertGreater(len(blocks), 0)
             # Can it pass the exact canonical converter? No staging/activation.
             projected = project_authorized_guide({
-                "guide_id": "cawotte_probe_unverified",
+                "guide_id": "cawotte_fr_24_probe_unverified",
                 "title": "Dofus Cawotte",
                 "steps": steps,
             })

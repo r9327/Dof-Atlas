@@ -65,6 +65,10 @@ GUIDE_READING_METRICS = {
     # Shared thumbnail dimensions for original embedded guide media.
     "source_image_max_width": 240,
     "source_image_max_height": 160,
+    # Indexed full-width source drawer: enough room to browse requirements,
+    # while retaining a scrollbar for unusually long preparation lists.
+    "source_drawer_max_height": 340,
+    "normal_drawer_max_height": 210,
 }
 
 SIZES = {

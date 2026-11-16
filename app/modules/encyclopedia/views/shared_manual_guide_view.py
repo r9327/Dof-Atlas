@@ -757,7 +757,23 @@ class SharedGuideManualCard(GuideUltimeManualCard):
             text = str(run["text"])
             role = str(run.get("role", "plain"))
             if role == "plain":
-                mark = html.escape(text)
+                # Authored [zaap:x,y] is a copyable position, not raw markup.
+                pieces: list[str] = []
+                cursor = 0
+                for match in re.finditer(
+                    r"\\[zaap:(-?\\d{1,5}),(-?\\d{1,5})\\]", text, re.I
+                ):
+                    pieces.append(html.escape(text[cursor:match.start()]))
+                    x, y = int(match.group(1)), int(match.group(2))
+                    target = f"{x},{y}"
+                    pieces.append(
+                        f'<a href="travel-copy:{target}" '
+                        f'style="color:{PALETTE["TEXT_SOFT"]};'
+                        f'text-decoration:underline;">Zaap [{target}]</a>'
+                    )
+                    cursor = match.end()
+                pieces.append(html.escape(text[cursor:]))
+                mark = "".join(pieces)
             elif role == "warning":
                 mark = (
                     f'<span style="color:{PALETTE["DANGER_TEXT"]};">'
@@ -923,10 +939,34 @@ class SharedGuideManualCard(GuideUltimeManualCard):
             source_rich = rich_original
             if isinstance(rich_original, list):
                 skipped = set(self.card.get("manual_prerequisite_block_indexes", ()))
-                source_rich = [
-                    block for block_index, block in enumerate(rich_original)
-                    if block_index not in skipped
-                ]
+                skipped.update(self.card.get("manual_preparation_block_indexes", ()))
+                inline = {
+                    part["block_index"]: part["prefix"]
+                    for part in self.card.get("manual_prerequisite_inline_leads", ())
+                }
+                source_rich = []
+                for block_index, block in enumerate(rich_original):
+                    if block_index in skipped:
+                        continue
+                    if block_index in inline:
+                        # Only the requirement prefix leaves Route: preserve
+                        # the remaining exact styled runs as gameplay prose.
+                        prefix_length = len(inline[block_index])
+                        remaining_runs = []
+                        for run in block["runs"]:
+                            copied = dict(run)
+                            value = copied["text"]
+                            if prefix_length >= len(value):
+                                prefix_length -= len(value)
+                                continue
+                            copied["text"] = value[prefix_length:]
+                            prefix_length = 0
+                            remaining_runs.append(copied)
+                        if prefix_length or not remaining_runs:
+                            raise ValueError("Invalid source prerequisite inline split")
+                        source_rich.append({**block, "runs": remaining_runs})
+                    else:
+                        source_rich.append(block)
                 if not source_rich:
                     # The sheet can consist exclusively of prerequisites.
                     # Keep them in Prérequis, not as an empty selectable row.
@@ -1934,7 +1974,9 @@ class SharedGuideManualView(GuideUltimeManualView):
         self.summary_list.itemClicked.connect(self._summary_item_clicked)
         summary_layout.addWidget(self.summary_list)
         self.summary_panel.setVisible(False)
-        self._metric_columns["Route"].addWidget(self.summary_panel)
+        # Both Guide dropdowns share the full indexed reading-header width.
+        # Keeping Summary in a half-width grid column wasted the right half.
+        self._header_content_layout.addWidget(self.summary_panel)
         apply_unity_panel_shadow(header, blur=15, vertical=3)
         root.addWidget(header)
         self._refresh_participants_panel()
@@ -2161,7 +2203,9 @@ class SharedGuideManualView(GuideUltimeManualView):
         if tab not in {"Prérequis", "À préparer"}:
             return
         self._preparation_tab = tab
-        self.preparation_filter_host.setVisible(tab == "À préparer")
+        self.preparation_filter_host.setVisible(
+            tab == "À préparer" and not self._is_imported_source_guide()
+        )
         self._preparation_visible_limit = 80
         if self.preparation_panel.isVisible():
             if not self._preparation_loaded:
@@ -2172,6 +2216,15 @@ class SharedGuideManualView(GuideUltimeManualView):
             )
 
     def _preparation_toggled(self, opened: bool) -> None:
+        if opened:
+            source = self._is_imported_source_guide()
+            self.preparation_scroll.setMaximumHeight(
+                GUIDE_READING_METRICS["source_drawer_max_height"]
+                if source else GUIDE_READING_METRICS["normal_drawer_max_height"]
+            )
+            self.preparation_filter_host.setVisible(
+                self._preparation_tab == "À préparer" and not source
+            )
         if opened and self._is_imported_source_guide() and not self._source_prerequisites_defaulted:
             # Imported Ganymède always opens the source prerequisites first.
             # A user-selected À préparer tab is preserved on later opens.
@@ -2576,31 +2629,38 @@ class SharedGuideManualView(GuideUltimeManualView):
         button.clicked.connect(lambda _checked=False: self._show_more_preparation())
         self.preparation_rows_layout.addWidget(button)
 
-    def _render_imported_source_prerequisites(self) -> bool:
-        """Show source-authored prerequisite lines and original clickable links.
+    def _render_imported_source_blocks(self, *, prerequisites: bool) -> bool:
+        """Render source-typed requirements once, without fabricated progress.
 
-        The contract indexes these blocks without moving or editing the source
-        snapshot. Route excludes the indexed blocks; this dedicated tab keeps
-        the precise wording, colors and HTTPS links. No completion checkbox.
+        The author wording, original quest/item links and semantic Unity roles
+        are retained exactly. Immutable source rich_blocks never change.
         """
         if not self._is_imported_source_guide():
             return False
+        key = (
+            "manual_prerequisite_block_indexes" if prerequisites
+            else "manual_preparation_block_indexes"
+        )
         rows: list[list[dict[str, Any]]] = []
         for card in self.service.cards:
-            indexes = card.get("manual_prerequisite_block_indexes") or ()
-            if not indexes:
-                continue
             source = card.get("manual_runtime_metadata") or {}
             step = source.get("source_step") if isinstance(source, dict) else None
             actions = step.get("actions") if isinstance(step, dict) else None
+            indexes = card.get(key) or ()
+            leads = (
+                card.get("manual_prerequisite_inline_leads") or ()
+                if prerequisites else ()
+            )
+            if not indexes and not leads:
+                continue
             if not isinstance(actions, list) or len(actions) != 1:
-                raise ValueError("Source prerequisite references require one authored step")
+                raise ValueError("Source section needs one original authored action")
             blocks = actions[0].get("rich_blocks")
             if not isinstance(blocks, list):
-                raise ValueError("Missing immutable source rich content")
+                raise ValueError("Source section has no immutable rich content")
             for index in indexes:
                 if type(index) is not int or not 0 <= index < len(blocks):
-                    raise ValueError("Invalid source prerequisite block index")
+                    raise ValueError("Invalid source section block index")
                 block = blocks[index]
                 if block["type"] in {"paragraph", "heading"}:
                     rows.append(block["runs"])
@@ -2610,11 +2670,21 @@ class SharedGuideManualView(GuideUltimeManualView):
                             {"text": item["text"], "role": "plain"}
                         ])
                 else:
-                    raise ValueError("Unsupported prerequisite block kind")
+                    raise ValueError("Unsupported source section rich block")
+            for lead in leads:
+                # Only the original source prefix is displayed here, while
+                # the remaining literal sentence stays on the Route sheet.
+                rows.append([{
+                    "text": lead["prefix"].rstrip(" ,:"),
+                    "role": "plain",
+                }])
         if not rows:
             return False
-
-        note = QLabel("Prérequis du guide source · état non vérifié dans le jeu.")
+        note = QLabel(
+            "Prérequis déclarés · état non vérifié dans le jeu."
+            if prerequisites
+            else "Ressources et équipements de la source · à vérifier en jeu."
+        )
         note.setObjectName("GuidePreparationEmpty")
         note.setWordWrap(True)
         self.preparation_rows_layout.addWidget(note)
@@ -2641,10 +2711,16 @@ class SharedGuideManualView(GuideUltimeManualView):
         self.preparation_rows_layout.addStretch(1)
         return True
 
+    def _render_imported_source_prerequisites(self) -> bool:
+        """Compatibility entrypoint for all existing shared Guide callers."""
+        return self._render_imported_source_blocks(prerequisites=True)
+
     def _render_preparation(self, selected_filter: str) -> None:
         self._clear_preparation_rows()
         prerequisites_tab = self._preparation_tab == "Prérequis"
-        if prerequisites_tab and self._render_imported_source_prerequisites():
+        if self._is_imported_source_guide() and self._render_imported_source_blocks(
+            prerequisites=prerequisites_tab
+        ):
             return
         if not self.selected_participant_keys():
             label = QLabel(
