@@ -37,6 +37,27 @@ def sample() -> dict:
 
 
 class TestSharedRouteContract(unittest.TestCase):
+    def test_explicit_bestiary_ids_are_validated_and_preserved(self):
+        for field in ("monster_id", "boss_id"):
+            with self.subTest(field=field):
+                source = sample()
+                source["steps"][0]["actions"][3]["monsters"][0][field] = 123
+                row = project_authorized_guide(source)["steps"][0]["manual_sections"]["now"][3]
+                self.assertEqual(row["source_action"]["monsters"][0][field], 123)
+
+                for invalid_id in (0, -3, True, "123", 1.5):
+                    broken = copy.deepcopy(source)
+                    broken["steps"][0]["actions"][3]["monsters"][0][field] = invalid_id
+                    with self.assertRaisesRegex(GuideRouteContractError, "positive integer ID required"):
+                        project_authorized_guide(broken)
+
+        conflict = sample()
+        monster = conflict["steps"][0]["actions"][3]["monsters"][0]
+        monster["monster_id"] = 21
+        monster["boss_id"] = 22
+        with self.assertRaisesRegex(GuideRouteContractError, "one typed Bestiary ID required"):
+            project_authorized_guide(conflict)
+
     def test_unrecognized_source_fields_must_get_explicit_ui_mapping(self):
         for scope, field, value in (
             ("action", "make_unexpected_decision", "Choose another route"),
