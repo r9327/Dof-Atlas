@@ -9,13 +9,13 @@ from collections.abc import Callable
 
 from PySide6.QtCore import QSize, Qt, QTimer
 from PySide6.QtGui import QIcon, QPixmap
-from PySide6.QtWidgets import QLabel, QSizePolicy, QWidget
+from PySide6.QtWidgets import QWidget
 
 from app.ui.unity_skin import sprite_icon_path
 
 from app.modules.encyclopedia.views.guide_library_sources import GanymedeListing
 from app.modules.encyclopedia.views.shared_manual_guide_view import (
-    SharedGuideManualCard, SharedGuideManualView,
+    SharedGuideManualView,
 )
 
 
@@ -187,84 +187,16 @@ class GanymedeGuideShell(SharedGuideManualView):
         # steps are visible below in the same scrollable reading viewport.
         super().navigate_relative(delta)
 
-    @staticmethod
-    def _compact_review_card(card: dict) -> bool:
-        """Limit expensive height estimates to genuine long-text steps."""
-        rows = card.get("manual_sections", {}).get("now", ())
-        return (
-            isinstance(rows, list)
-            and 0 < len(rows) <= 8
-            and all(isinstance(row.get("text"), str)
-                    and len(row["text"]) <= 160 for row in rows)
-        )
-
     def _render_window(self, *, reset_scroll: bool = False) -> None:
-        if not self._inspection_active:
-            super()._render_window(reset_scroll=reset_scroll)
-            return
-        self._catalog_prefetch_timer.stop()
-        self._catalog_prefetch_index = None
-        self._clear_cards()
-        cards = self.service.cards
-        if not cards:
-            self._review_end_index = 0
-            return
-
-        # Exactly the same bounded reading window as every shared Guide.
-        # The first source step is active; the following ones only fill the
-        # scrolling area without becoming validation targets.
-        index = max(0, min(int(self.view_index), len(cards) - 1))
-        viewport = self.scroll.viewport()
-        margins = self.cards_layout.contentsMargins()
-        label_width = max(
-            120, viewport.width() - margins.left() - margins.right() - 88
-        )
-        end = index
-        for number in self._reading_step_range(index):
-            widget = SharedGuideManualCard(
-                self.service, self.character_key, cards[number], number,
-                # One active step indicator in GuideSheetHeader; following
-                # source actions continue after a simple layout line break.
-                show_header_title=False,
-            )
-            widget.page_check.setEnabled(False)
-            widget.page_check.hide()
-            # A sheet is content-sized, never stretched just to fill the
-            # viewport. The trailing layout spacer owns spare vertical space.
-            widget.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Maximum)
-            widget.layout().setAlignment(Qt.AlignTop)
-
-            # Only genuinely long text needs an explicit wrapped lower bound.
-            # Prerequisite-only/short steps must not inherit a 100px+ card.
-            entries = cards[number].get("manual_sections", {}).get("now", ())
-            has_long_text = any(
-                isinstance(row, dict)
-                and len(str(row.get("text") or "")) > 160
-                for row in entries
-            )
-            if has_long_text:
-                estimated = max(1, widget.sizeHint().height())
-                for label in widget.findChildren(QLabel):
-                    if label.wordWrap() and label.hasHeightForWidth():
-                        wrapped = label.heightForWidth(label_width)
-                        if wrapped > label.sizeHint().height():
-                            estimated += wrapped - label.sizeHint().height()
-                widget.setMinimumHeight(estimated)
-            else:
-                widget.setMinimumHeight(0)
-            self.cards_layout.addWidget(widget)
-            widget.show()
-            self.rendered_card_count += 1
-            end = number + 1
-
-        self.cards_layout.addStretch(1)
-        self._review_end_index = end
-        self._review_viewport_size = (viewport.width(), viewport.height())
-        self.prev_button.setEnabled(index > 0)
-        self.next_button.setEnabled(index + 1 < len(cards))
-        self.guide_button.setToolTip("Retour au catalogue des Guides")
-        if reset_scroll:
-            self._reset_scroll_to_top()
+        # All 95 source containers and authorized imports use the same shared
+        # card construction, source layout and 1:1 reading/navigation policy.
+        # The metadata-only pilot adds only read-only state, never its own UI.
+        super()._render_window(reset_scroll=reset_scroll)
+        if self._inspection_active:
+            self._review_end_index = self.view_index + self.rendered_card_count
+            viewport = self.scroll.viewport()
+            self._review_viewport_size = (viewport.width(), viewport.height())
+            self.guide_button.setToolTip("Retour au catalogue des Guides")
 
     def resizeEvent(self, event) -> None:  # noqa: N802 - Qt override
         super().resizeEvent(event)
