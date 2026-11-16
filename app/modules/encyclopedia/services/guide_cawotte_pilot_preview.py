@@ -53,27 +53,60 @@ def cawotte_review_cards(path: Path = CAWOTTE_CANDIDATES) -> tuple[dict[str, Any
                 or any(type(value) is not int or abs(value) > 2**16 for value in coords)
                 or not isinstance(actions, list) or not actions):
             raise CawottePilotDataError(f"Incomplete step {number}")
-        rows = []
-        for action in actions:
+        rows: list[dict[str, Any]] = []
+        prerequisites: list[dict[str, Any]] = []
+        preparations: list[dict[str, Any]] = []
+        for action_index, action in enumerate(actions):
             if not isinstance(action, dict):
                 raise CawottePilotDataError(f"Invalid action at step {number}")
             kind, label = action.get("kind"), action.get("label")
             if (not isinstance(kind, str) or not kind.strip()
                     or not isinstance(label, str) or not label.strip() or len(label) > 512):
                 raise CawottePilotDataError(f"Missing candidate action at step {number}")
-            rows.append({
-                "kind": "action", "text": label,
-                "position": f"[{coords[0]}, {coords[1]}]",
-                "source_action_kind": kind,
-            })
+            # Use explicit candidate types, never heuristics on guide prose.
+            # This is a non-playable review, not Ganymede source evidence.
+            if kind in {"guide_dependency", "quest_prerequisite"}:
+                typed_key = "quest_id" if kind == "quest_prerequisite" else "guide_id"
+                typed_id = action.get(typed_key)
+                if type(typed_id) is not int or typed_id <= 0:
+                    raise CawottePilotDataError(
+                        f"Invalid {kind} at step {number}"
+                    )
+                prerequisites.append({"name": label, typed_key: typed_id})
+            elif kind in {"prepare_object", "optional_preparation"}:
+                item_id, quantity = action.get("object_id"), action.get("quantity")
+                if (type(item_id) is not int or item_id <= 0
+                        or type(quantity) is not int or quantity <= 0):
+                    raise CawottePilotDataError(
+                        f"Invalid preparation at step {number}"
+                    )
+                preparations.append({
+                    "name": label, "item_id": item_id, "quantity": quantity,
+                    "category": "Objets",
+                    "occurrence_id": f"{step_id}:action_{action_index + 1}",
+                })
+            else:
+                rows.append({
+                    "kind": "action", "text": label,
+                    "position": f"[{coords[0]}, {coords[1]}]",
+                    "source_action_kind": kind,
+                })
         cards.append({
             "manual_source": True, "manual_review_only": True,
             "source_step_id": step_id, "manual_stage_id": step_id,
             "manual_title": f"Étape {number}",
             "manual_chapter_label": "Cawotte · revue",
+            "manual_review_position": f"[{coords[0]}, {coords[1]}]",
             "manual_sections": {"now": rows},
+            "hard_runtime_gates": prerequisites,
+            "a_preparer": preparations,
             "manual_quest_ids": [],
-            "manual_runtime_metadata": {"source_step": {"actions": []}},
+            # Keep all 191 candidate records intact for independent review.
+            # Not source_step.actions: those are reserved for authorized data.
+            "manual_runtime_metadata": {
+                "source_step": {"actions": []},
+                "candidate_actions": actions,
+            },
         })
     return tuple(cards)
 
