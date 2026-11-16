@@ -478,6 +478,40 @@ class ImportedSourceRouterQtTests(unittest.TestCase):
         self.assertIn("Préparer exactement deux objets fictifs", visible)
         self.assertIn("Parler au PNJ fictif sans résumer", visible)
 
+    def test_authorized_source_one_ganymede_sheet_is_one_atlas_page(self):
+        """Do not mount the next source page inside the current Atlas page."""
+        from PySide6.QtWidgets import QFrame
+
+        self.approved = True
+        self.assertTrue(self.view.select_guide(self.service.guide_id))
+        reader = self.view.stack.currentWidget()
+        self.assertIsInstance(reader, SharedGuideManualView)
+        self.assertEqual(len(reader.service.cards), 2)
+        self.assertEqual(reader.rendered_card_count, 1)
+        self.assertEqual(list(reader._reading_step_range(0)), [0])
+        first = reader.cards_layout.itemAt(0).widget()
+        self.assertEqual(first.card["source_step_id"], "first")
+        self.assertTrue(first.property("continuousGuideReading"))
+        self.assertFalse(first.findChildren(QLabel, "GuideManualSectionTitle"))
+        self.assertEqual(
+            [row.property("sourceActionId") for row in first.findChildren(
+                QFrame, "GuideManualLineRow",
+            )], ["talk"],
+        )
+        reader.next_button.click()
+        QApplication.processEvents()
+        self.assertEqual(reader.view_index, 1)
+        self.assertEqual(reader.rendered_card_count, 1)
+        second = reader.cards_layout.itemAt(0).widget()
+        self.assertEqual(second.card["source_step_id"], "second")
+        self.assertEqual(
+            [row.property("sourceActionId") for row in second.findChildren(
+                QFrame, "GuideManualLineRow",
+            )], ["travel"],
+        )
+        self.assertFalse(second.findChildren(QLabel, "GuideManualStageTitle"))
+        self.assertFalse(self.progress_path.exists())
+
     def test_switching_source_guides_releases_old_qt_reader_without_progress_write(self):
         next_service = ImportedSourceManualRuntimeService(
             self.quest_progress,
