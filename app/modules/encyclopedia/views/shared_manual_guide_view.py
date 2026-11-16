@@ -452,6 +452,34 @@ class SharedGuideManualCard(GuideUltimeManualCard):
             sections = self._without_prepare_duplicates(sections)
         self._combat_targets = self._quest_combat_targets(sections)
 
+        if card.get("manual_review_only") is True:
+            # Show the source map once per review step, including a step
+            # containing only prerequisites. Never fabricate an action row.
+            source_position = str(card.get("manual_review_position") or "").strip()
+            source_key = self._position_key(source_position)
+            if re.fullmatch(r"-?\d+,-?\d+", source_key):
+                position_label = QLabel(self)
+                self._set_clickable_text(
+                    position_label,
+                    (
+                        f'<a href="travel-copy:{source_key}" '
+                        f'style="color:{PALETTE["TEXT_SOFT"]};text-decoration:none;">'
+                        f'Position : <b>{html.escape(source_position)}</b></a>'
+                    ),
+                )
+                position_label.setObjectName("GuideManualPositionCopy")
+                position_label.setCursor(Qt.PointingHandCursor)
+                position_label.setToolTip(f"Copier /travel {source_key}")
+                root.addWidget(position_label)
+            if not sections.get("now") and card.get("hard_runtime_gates"):
+                info = QLabel(
+                    f'{len(card["hard_runtime_gates"])} prérequis à consulter '
+                    "dans l’onglet Prérequis"
+                )
+                info.setObjectName("GuideManualReviewInfo")
+                info.setWordWrap(True)
+                root.addWidget(info)
+
         section_specs = {
             "prepare": ("À PRÉPARER", "GuideManualResourceSection"),
             "now": ("À FAIRE MAINTENANT", "GuideManualActionSection"),
@@ -806,7 +834,11 @@ class SharedGuideManualCard(GuideUltimeManualCard):
             return
 
         frame = QFrame()
-        frame.setObjectName(object_name)
+        review_only = self.card.get("manual_review_only") is True
+        frame.setObjectName(
+            "GuideManualReviewSection"
+            if review_only and section_key == "now" else object_name
+        )
         if section_key == "boss":
             frame.setStyleSheet(
                 "QFrame#GuideManualCombatSection {"
@@ -823,7 +855,6 @@ class SharedGuideManualCard(GuideUltimeManualCard):
         )
         layout.setSpacing(spacing["section_spacing"])
 
-        review_only = self.card.get("manual_review_only") is True
         # In a metadata-only review every single source step has one "now"
         # block: repeating the same "À faire maintenant" heading 64 times
         # adds no information. Authorized multi-section guides retain titles.
@@ -831,26 +862,6 @@ class SharedGuideManualCard(GuideUltimeManualCard):
             heading = QLabel(title)
             heading.setObjectName("GuideManualSectionTitle")
             layout.addWidget(heading)
-        if review_only and section_key == "now":
-            # One source map per review sheet: the position belongs ABOVE the
-            # actions at the same left edge, never beside a fictional Zaap.
-            source_position = str(visible[0].get("position") or "").strip()
-            source_key = self._position_key(source_position)
-            if re.fullmatch(r"-?\d+,-?\d+", source_key):
-                position_label = QLabel(frame)
-                self._set_clickable_text(
-                    position_label,
-                    (
-                        f'<a href="travel-copy:{source_key}" '
-                        f'style="color:{PALETTE["TEXT_SOFT"]};text-decoration:none;">'
-                        f'Position : <b>{html.escape(source_position)}</b></a>'
-                    ),
-                )
-                position_label.setObjectName("GuideManualPositionCopy")
-                position_label.setCursor(Qt.PointingHandCursor)
-                position_label.setToolTip(f"Copier /travel {source_key}")
-                layout.addWidget(position_label)
-
         # Share only presentation containers for contiguous, proven map
         # coordinates. Preserve each authored action, its click targets and
         # exact ordering; never fuse objectives or infer that a zone is a map.
