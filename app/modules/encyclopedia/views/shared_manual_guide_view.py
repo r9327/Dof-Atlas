@@ -3170,7 +3170,16 @@ class SharedGuideManualView(GuideUltimeManualView):
     def _reading_step_range(self, start: int) -> range:
         total = len(self.service.cards)
         begin = max(0, min(int(start), max(0, total - 1)))
-        return range(begin, min(total, begin + self.READING_WINDOW_SIZE))
+        # 1 authored Ganymede step == 1 Atlas sheet, including its actions.
+        # Never mount the following source step in the current sheet.
+        # Historical optimized guides retain their existing read-ahead.
+        selected = self.service.cards[begin] if total else {}
+        source_sheet = (
+            selected.get("manual_source") is True
+            and "source_step_id" in selected
+        )
+        count = 1 if source_sheet else self.READING_WINDOW_SIZE
+        return range(begin, min(total, begin + count))
 
     def _render_window(self, *, reset_scroll: bool = False) -> None:
         self._catalog_prefetch_timer.stop()
