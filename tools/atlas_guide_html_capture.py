@@ -332,6 +332,7 @@ def convert_manifest(manifest: dict[str, Any], *, root: Path) -> dict[str, Any]:
     if not isinstance(guides, list) or not guides:
         raise SourceCaptureError("nonempty guides manifest required")
     source_guides: list[dict[str, Any]] = []
+    seen_guides: set[str] = set()
     for guide in guides:
         if not isinstance(guide, dict):
             raise SourceCaptureError("invalid guide manifest entry")
@@ -342,6 +343,9 @@ def convert_manifest(manifest: dict[str, Any], *, root: Path) -> dict[str, Any]:
                 or type(count) is not int or count < 1
                 or not isinstance(pages, list) or not pages):
             raise SourceCaptureError("guide requires ID, title, expected steps and saved pages")
+        if guide_id in seen_guides:
+            raise SourceCaptureError(f"duplicate guide ID: {guide_id}")
+        seen_guides.add(guide_id)
         assets: dict[str, Path] = {}
         for url, filename in (guide.get("media_files") or {}).items():
             if not url.startswith("https://"):
@@ -370,11 +374,18 @@ def convert_manifest(manifest: dict[str, Any], *, root: Path) -> dict[str, Any]:
         # Reuse the exact 95-guide projector; unrenderable source material blocks.
         project_authorized_guide(candidate)
         source_guides.append(candidate)
+    is_complete = manifest.get("complete_inventory") is True
+    step_count = sum(len(guide["steps"]) for guide in source_guides)
+    if is_complete and (len(source_guides) != 95 or step_count != 7705):
+        raise SourceCaptureError(
+            f"full inventory incomplete: {len(source_guides)}/95 guides, "
+            f"{step_count}/7705 steps"
+        )
     return {
         "schema_version": 1,
         "rights_verified": True,
         "reference_verified": True,
-        "complete": bool(manifest.get("complete_inventory") is True),
+        "complete": is_complete,
         "guides": source_guides,
     }
 
