@@ -556,6 +556,54 @@ class GuideUltimeManualUiNavigationTests(unittest.TestCase):
             card.page_check.deleteLater()
             card.close()
 
+    def test_source_quest_link_is_unique_even_when_multiple_actions_reference_it(self) -> None:
+        service = _FakeManualUiService()
+        service.quest_provider = _FakeQuestProvider()
+        card_data = dict(service.cards[0])
+        card_data.update({
+            "manual_source": True,
+            "source_step_id": "SOURCE-STEP-1",
+            "manual_stage_id": "SOURCE-DEDUPE",
+            "manual_quest_ids": [42],
+            "manual_runtime_metadata": {
+                "source_step": {
+                    "actions": [
+                        {"quest_ids": [42]},
+                        {"quest_ids": [42]},
+                    ],
+                },
+            },
+            "manual_sections": {
+                "now": [
+                    {
+                        "kind": "action", "position": "[1,2]",
+                        "text": "Première action.",
+                        "source_action": {"quest_ids": [42]},
+                    },
+                    {
+                        "kind": "action", "position": "[2,2]",
+                        "text": "Deuxième action.",
+                        "source_action": {"quest_ids": [42]},
+                    },
+                ],
+            },
+        })
+        card = SharedGuideManualCard(service, "character:1", card_data, 0)
+        try:
+            buttons = card.findChildren(QToolButton, "GuideManualQuestInlineButton")
+            self.assertEqual(len(buttons), 1)
+            self.assertEqual(buttons[0].toolTip(), "Combat test")
+            # Both source actions retain their informative hover tooltip;
+            # neither adds a duplicate navigation target.
+            quest_tooltips = [
+                label for label in card.findChildren(QLabel)
+                if label.toolTip() == "Quête : Combat test"
+            ]
+            self.assertEqual(len(quest_tooltips), 2)
+        finally:
+            card.page_check.deleteLater()
+            card.close()
+
     def test_contiguous_actions_at_exact_same_map_share_visual_group_only(self) -> None:
         service = _FakeManualUiService()
         card_data = dict(service.cards[0])
