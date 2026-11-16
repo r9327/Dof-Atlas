@@ -1833,12 +1833,32 @@ class SharedGuideManualView(GuideUltimeManualView):
         if opened and self.summary_list.count() == 0:
             self._populate_summary()
 
+    @staticmethod
+    def _summary_step_title(card: dict[str, Any]) -> str:
+        """One source-derived title, without repeating the indexed step number."""
+        title = str(card.get("manual_title") or card.get("destination") or "").strip()
+        generic = re.fullmatch(r"(?:étape|etape|step)\\s*\\d+", title, re.IGNORECASE)
+        if generic:
+            sections = card.get("manual_sections") or {}
+            rows = sections.get("now") if isinstance(sections, dict) else ()
+            if isinstance(rows, (list, tuple)):
+                first = next((
+                    str(row.get("text", "")).strip()
+                    for row in rows if isinstance(row, dict)
+                    and str(row.get("text", "")).strip()
+                ), "")
+                if first:
+                    return first
+            return "Sans titre"
+        # If a source already numbered its title, the list supplies the
+        # number itself. Only strip an unmistakable matching step prefix.
+        return title or "Sans titre"
+
     def _populate_summary(self) -> None:
         self.summary_list.clear()
         for index, card in enumerate(self.service.cards):
-            chapter = str(card.get("manual_chapter_label") or "").strip()
-            title = str(card.get("manual_title") or card.get("destination") or "").strip()
-            label = f"{index + 1}. {chapter} — {title}" if chapter else f"{index + 1}. {title}"
+            title = self._summary_step_title(card)
+            label = f"{index + 1}. {title}"
             item = QListWidgetItem(label)
             item.setData(Qt.UserRole, index)
             # Normalization is expensive across a 1,000+ card route. Persist
@@ -2877,6 +2897,15 @@ class SharedGuideManualView(GuideUltimeManualView):
         # False/0 rejection is not evidence of successful dispatch.
         return acknowledged is None or acknowledged is True
 
+    # One selected step owns navigation and validation. Nearby steps are
+    # visible below for reading, never independently validated by scrolling.
+    READING_WINDOW_SIZE = 3
+
+    def _reading_step_range(self, start: int) -> range:
+        total = len(self.service.cards)
+        begin = max(0, min(int(start), max(0, total - 1)))
+        return range(begin, min(total, begin + self.READING_WINDOW_SIZE))
+
     def _render_window(self, *, reset_scroll: bool = False) -> None:
         self._catalog_prefetch_timer.stop()
         self._catalog_prefetch_index = None
@@ -2884,33 +2913,46 @@ class SharedGuideManualView(GuideUltimeManualView):
         if not self.service.cards:
             return
         index = max(0, min(self.view_index, len(self.service.cards) - 1))
-        card = self.service.cards[index]
-        self._add_manual_order_choice(card)
-        widget = SharedGuideManualCard(
-            self.service,
-            self.character_key,
-            card,
-            index,
-            travel_command_callback=(
-                self._launch_travel_command
-                if callable(self.travel_callback)
-                else None
-            ),
-            zaap_travel_callback=self._launch_zaap_travel_plan,
-            show_header_title=False,
-            page_validation_callback=lambda checked, sheet=card, sheet_index=index: (
-                self._page_toggled_for_participants(sheet, sheet_index, bool(checked))
-            ),
-        )
-        self._sync_validation_control(widget.page_check, card, index)
-        widget.questRequested.connect(self._open_quest_from_card)
-        widget.entityRequested.connect(self._open_entity_from_card)
-        self._set_validation_widget(widget.page_check)
-        self.cards_layout.addWidget(widget)
+        for number in self._reading_step_range(index):
+            card = self.service.cards[number]
+            active = number == index
+            if active:
+                self._add_manual_order_choice(card)
+            widget = SharedGuideManualCard(
+                self.service,
+                self.character_key,
+                card,
+                number,
+                travel_command_callback=(
+                    self._launch_travel_command
+                    if callable(self.travel_callback)
+                    else None
+                ),
+                zaap_travel_callback=self._launch_zaap_travel_plan,
+                show_header_title=not active,
+                page_validation_callback=(
+                    (lambda checked, sheet=card, sheet_index=number: (
+                        self._page_toggled_for_participants(
+                            sheet, sheet_index, bool(checked)
+                        )
+                    )) if active else None
+                ),
+            )
+            widget.questRequested.connect(self._open_quest_from_card)
+            widget.entityRequested.connect(self._open_entity_from_card)
+            if active:
+                self._sync_validation_control(widget.page_check, card, number)
+                self._set_validation_widget(widget.page_check)
+            else:
+                # Read-ahead cards are informational only; progress and
+                # selected identity always belong to the active source step.
+                widget.page_check.setEnabled(False)
+                widget.page_check.hide()
+            self.cards_layout.addWidget(widget)
+            widget.show()
+            self.rendered_card_count += 1
         self.cards_layout.addStretch(1)
-        self.rendered_card_count = 1
-        # Schedule neighbor disk reads after the visible Qt sheet is ready.
-        # Never read nine SQLite bodies synchronously during _render_window.
+        # Schedule neighbor disk reads after the visible Qt sheets are ready.
         if callable(getattr(self.service, "prefetch_route_near", None)):
             self._catalog_prefetch_index = index
             self._catalog_prefetch_timer.start()
