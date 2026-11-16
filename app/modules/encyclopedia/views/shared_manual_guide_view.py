@@ -815,7 +815,8 @@ class SharedGuideManualCard(GuideUltimeManualCard):
                         links.setSpacing(GUIDE_READING_METRICS["row_spacing"])
                         links.addWidget(check, 0, Qt.AlignTop)
                         label = QLabel(row)
-                        label.setObjectName("GuideManualSourceChecklistText")
+                        # Reuse indexed Dev UI line typography and colors.
+                        label.setObjectName("GuideManualLine")
                         self._set_clickable_text(
                             label, self._source_rich_markup(typed_runs),
                         )
