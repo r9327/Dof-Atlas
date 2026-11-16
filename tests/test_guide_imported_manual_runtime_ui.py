@@ -374,7 +374,13 @@ class ImportedSourceRouterQtTests(unittest.TestCase):
             }],
         })
         card = route["steps"][0]
-        widget = SharedGuideManualCard(self.service, "character:1", card, 0)
+        # The shared runtime checks the active route's stable identities.
+        # Never test a foreign source card with another guide's service.
+        source_service = ImportedSourceManualRuntimeService(
+            self.quest_progress, self.achievement_progress, self.progress,
+            route=route,
+        )
+        widget = SharedGuideManualCard(source_service, "character:1", card, 0)
         self.addCleanup(widget.deleteLater)
         self.assertEqual(card["a_preparer"][0]["quantity"], 2)
         headings = [
