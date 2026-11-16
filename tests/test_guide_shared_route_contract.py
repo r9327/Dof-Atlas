@@ -614,8 +614,12 @@ class TestSharedRouteContract(unittest.TestCase):
             route["steps"][0]["manual_source_action_order"],
             [a["action_id"] for a in source["steps"][0]["actions"]],
         )
-        for invalid in ("modified_text", "missing_image", "digest", "unsafe_link",
-                        "renumber_checkbox", "missing_run"):
+        for invalid in (
+            "modified_text", "missing_image", "digest", "unsafe_link",
+            "renumber_checkbox", "missing_run", "unhashable_block_type",
+            "unhashable_span_role", "unhashable_image_mime",
+            "malformed_https_host",
+        ):
             with self.subTest(invalid=invalid):
                 bad = copy.deepcopy(source)
                 blocks = bad["steps"][0]["actions"][1]["rich_blocks"]
@@ -629,6 +633,14 @@ class TestSharedRouteContract(unittest.TestCase):
                     blocks[4]["runs"][0]["href"] = "javascript:alert(1)"
                 elif invalid == "renumber_checkbox":
                     blocks[2]["items"].append(copy.deepcopy(blocks[2]["items"][0]))
+                elif invalid == "unhashable_block_type":
+                    blocks[1]["type"] = ["heading"]
+                elif invalid == "unhashable_span_role":
+                    blocks[0]["runs"][0]["role"] = ["npc"]
+                elif invalid == "unhashable_image_mime":
+                    blocks[3]["mime"] = ["image/png"]
+                elif invalid == "malformed_https_host":
+                    blocks[4]["runs"][0]["href"] = "https://[invalid-host]/route"
                 else:
                     blocks[0]["runs"].pop()
                 with self.assertRaises(GuideRouteContractError):
