@@ -17,6 +17,10 @@ from pathlib import Path
 _MAX_DOCUMENT_BYTES = 64 * 1024 * 1024
 from typing import Any
 
+from app.modules.encyclopedia.services.guide_source_rich_blocks import (
+    GuideRichContentError, validate_source_rich_blocks,
+)
+
 # Static contract for Atlas Doctor's derived AI tool catalog; no import side effects.
 TOOL_SPEC = {
     "schema_version": 1,
@@ -93,7 +97,7 @@ _EVIDENCE_ONLY_FIELDS = frozenset({
 })
 _SUPPORTED_ACTION_FIELDS = frozenset({
     "action_id", "kind", "text", "coordinates", "items", "monsters",
-    "npc", "dialogue_choice", "section", "quest_ids",
+    "npc", "dialogue_choice", "section", "quest_ids", "rich_blocks",
 }) | _EVIDENCE_ONLY_FIELDS | _UNRENDERED_ACTION_FIELDS
 _SUPPORTED_STEP_FIELDS = frozenset({
     "source_step_id", "title", "coordinates", "actions",
@@ -524,6 +528,17 @@ def compare(reference: dict[str, Any], atlas: dict[str, Any]) -> dict[str, Any]:
                             report("UNVERIFIABLE", f"{action_path}.{field}",
                                    "authored action must be displayed by shared reader",
                                    action[field])
+                    if "rich_blocks" in action:
+                        try:
+                            validate_source_rich_blocks(
+                                action["rich_blocks"],
+                                action.get("text"), f"{action_path}.rich_blocks",
+                            )
+                        except GuideRichContentError as exc:
+                            report(
+                                "UNVERIFIABLE", f"{action_path}.rich_blocks",
+                                "fully validated source-rich content", str(exc),
+                            )
                     section = action.get("section", _DEFAULT_SECTION.get(kind, "now"))
                     if not isinstance(section, str) or section not in _VALID_SECTIONS:
                         report("UNVERIFIABLE", f"{action_path}.section",
