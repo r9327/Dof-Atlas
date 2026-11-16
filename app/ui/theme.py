@@ -2932,10 +2932,20 @@ QToolButton#GuideParticipantPortrait:checked {
     border-radius: @RADIUS_XS;
 }
 
-/* Guide action rows are layout surfaces, never native black Qt panels. */
+/* Authored source steps share the ONE reading viewport frame. Qt keeps
+   each source step as a separate identity for navigation/Doctor, but it
+   does not paint another card or step heading inside the current page. */
+QFrame#GuideManualSheet[continuousGuideReading="true"] {
+    background: transparent;
+    border: none;
+    border-radius: 0px;
+}
+
+/* Action rows/sections are layout surfaces, never extra nested cards. */
 QFrame#GuideManualActionGroup,
 QFrame#GuideManualLineRow,
-QFrame#GuideManualReviewSection {
+QFrame#GuideManualReviewSection,
+QFrame#GuideManualSourceReadingSection {
     background: transparent;
     border: none;
 }
