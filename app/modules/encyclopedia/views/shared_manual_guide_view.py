@@ -1989,7 +1989,13 @@ class SharedGuideManualView(GuideUltimeManualView):
         """All imported authored guides share the same Prérequis presentation."""
         cards = getattr(self.service, "cards", ())
         return bool(cards) and all(
-            card.get("manual_source") is True and "source_step_id" in card
+            card.get("manual_source") is True
+            and "source_step_id" in card
+            # The metadata-only Cawotte pilot also has manual_source=True;
+            # only actual canonical rich imports carry section indexes.
+            # Its typed candidate material filters must remain usable.
+            and "manual_prerequisite_block_indexes" in card
+            and "manual_preparation_block_indexes" in card
             for card in cards
         )
 
