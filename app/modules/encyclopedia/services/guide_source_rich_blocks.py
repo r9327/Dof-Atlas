@@ -21,8 +21,8 @@ _MAX_IMAGE_BYTES = 2 * 1024 * 1024
 _MAX_CHECK_ITEMS = 128
 _ROLES = frozenset((*ENTITY_LINK_COLOR_ROLES, "plain", "warning"))
 _MIMES = frozenset(("image/png", "image/jpeg", "image/webp"))
-_SHA256 = re.compile(r"[0-9a-f]{64}\\Z")
-_ID = re.compile(r"[A-Za-z0-9][A-Za-z0-9._-]{0,119}\\Z")
+_SHA256 = re.compile(r"[0-9a-f]{64}\Z")
+_ID = re.compile(r"[A-Za-z0-9][A-Za-z0-9._-]{0,119}\Z")
 
 
 class GuideRichContentError(ValueError):
@@ -51,7 +51,10 @@ def _runs(raw: Any, label: str) -> str:
         field = f"{label}[{i}]"
         if not isinstance(run, dict) or set(run) - {"text", "role", "href"}:
             raise GuideRichContentError(f"{field}: unknown inline source fields")
-        text = _nonempty(run.get("text"), f"{field}.text")
+        text = run.get("text")
+        # Separately styled spaces are significant in an exact source export.
+        if not isinstance(text, str) or not text or len(text) > _MAX_TEXT_CHARS:
+            raise GuideRichContentError(f"{field}.text: nonempty source span required")
         role = run.get("role", "plain")
         if role not in _ROLES:
             raise GuideRichContentError(f"{field}.role: unmapped Dev UI role")
@@ -80,8 +83,8 @@ def image_bytes(block: dict[str, Any], label: str = "image") -> bytes:
     if not data or len(data) > _MAX_IMAGE_BYTES:
         raise GuideRichContentError(f"{label}: invalid media size")
     valid_signature = (
-        (mime == "image/png" and data.startswith(b"\\x89PNG\\r\\n\\x1a\\n"))
-        or (mime == "image/jpeg" and data.startswith(b"\\xff\\xd8\\xff"))
+        (mime == "image/png" and data.startswith(b"\x89PNG\r\n\x1a\n"))
+        or (mime == "image/jpeg" and data.startswith(b"\xff\xd8\xff"))
         or (mime == "image/webp" and data.startswith(b"RIFF")
             and data[8:12] == b"WEBP")
     )
