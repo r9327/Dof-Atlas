@@ -386,7 +386,13 @@ class SharedGuideManualCard(GuideUltimeManualCard):
         self._rendered_combat_keys: set[tuple[int, int]] = set()
         self._combat_evidence_cache: dict[tuple[int, int], tuple[str, str]] = {}
         self._last_route_position_key = ""
+        # Source steps form one continuous reading surface. Their identities
+        # stay on each Qt sheet for Doctor, navigation and persistence.
+        self._continuous_source = (
+            card.get("manual_source") is True and "source_step_id" in card
+        )
         self.setObjectName("GuideManualSheet")
+        self.setProperty("continuousGuideReading", self._continuous_source)
 
         root = QVBoxLayout(self)
         spacing = GUIDE_READING_METRICS
@@ -836,8 +842,9 @@ class SharedGuideManualCard(GuideUltimeManualCard):
         frame = QFrame()
         review_only = self.card.get("manual_review_only") is True
         frame.setObjectName(
-            "GuideManualReviewSection"
-            if review_only and section_key == "now" else object_name
+            "GuideManualReviewSection" if review_only and section_key == "now"
+            else "GuideManualSourceReadingSection"
+            if self._continuous_source else object_name
         )
         if section_key == "boss":
             frame.setStyleSheet(
@@ -849,16 +856,20 @@ class SharedGuideManualCard(GuideUltimeManualCard):
             )
         layout = QVBoxLayout(frame)
         spacing = GUIDE_READING_METRICS
-        layout.setContentsMargins(
-            spacing["section_horizontal"], spacing["section_vertical"],
-            spacing["section_horizontal"], spacing["section_vertical"],
-        )
-        layout.setSpacing(spacing["section_spacing"])
+        if self._continuous_source:
+            # Newlines, not section cards or sub-step labels, separate actions.
+            layout.setContentsMargins(0, 0, 0, 0)
+            layout.setSpacing(spacing["section_spacing"])
+        else:
+            layout.setContentsMargins(
+                spacing["section_horizontal"], spacing["section_vertical"],
+                spacing["section_horizontal"], spacing["section_vertical"],
+            )
+            layout.setSpacing(spacing["section_spacing"])
 
-        # In a metadata-only review every single source step has one "now"
-        # block: repeating the same "À faire maintenant" heading 64 times
-        # adds no information. Authorized multi-section guides retain titles.
-        if not (review_only and section_key == "now"):
+        # A source guide's authored paragraphs and positions are enough.
+        # Do not repeat artificial Atlas section headings inside a step.
+        if not self._continuous_source:
             heading = QLabel(title)
             heading.setObjectName("GuideManualSectionTitle")
             layout.addWidget(heading)
@@ -892,7 +903,10 @@ class SharedGuideManualCard(GuideUltimeManualCard):
                 self._display_position(str(row.get("position") or ""))
             )
             kind = str(row.get("kind") or "")
-            prefix = "" if review_only else ("⚠ " if kind == "warning" else "• ")
+            prefix = (
+                "" if self._continuous_source
+                else ("⚠ " if kind == "warning" else "• ")
+            )
             combat_line = self._is_combat_row(kind, text)
 
             row_widget = QFrame()
@@ -972,7 +986,7 @@ class SharedGuideManualCard(GuideUltimeManualCard):
                 row_layout.addWidget(zaap_button, 0, Qt.AlignTop)
             line = QLabel()
             rendered_text = self._format_line_html(
-                "— " if is_coordinate else prefix,
+                "" if self._continuous_source else "— " if is_coordinate else prefix,
                 "" if is_coordinate else position,
                 text, npc_names, self._resource_names,
                 entity_links=self._source_monster_entity_links(source_action),
@@ -990,7 +1004,10 @@ class SharedGuideManualCard(GuideUltimeManualCard):
                 # The first paragraph is validated against action.text.
                 # Its author-defined inline roles win over heuristic coloring.
                 rendered_text = (
-                    html.escape("— " if is_coordinate else prefix)
+                    html.escape(
+                        "" if self._continuous_source
+                        else "— " if is_coordinate else prefix
+                    )
                     + self._source_rich_markup(source_rich[0]["runs"])
                 )
             self._set_clickable_text(line, rendered_text)
@@ -3178,7 +3195,9 @@ class SharedGuideManualView(GuideUltimeManualView):
                     else None
                 ),
                 zaap_travel_callback=self._launch_zaap_travel_plan,
-                show_header_title=not active,
+                show_header_title=not active and not (
+                    card.get("manual_source") is True and "source_step_id" in card
+                ),
                 page_validation_callback=(
                     (lambda checked, sheet=card, sheet_index=number: (
                         self._page_toggled_for_participants(
