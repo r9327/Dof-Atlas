@@ -238,6 +238,21 @@ class GanymedeGuideShellTests(unittest.TestCase):
             "Contrôler l'accès aux Wabbits" not in label
             for label in visible_preparation_labels()
         ))
+        # Qt must scroll seven real preparation rows, not squash their
+        # labels/icons to a few pixels when the drawer is height-limited.
+        from app.ui.theme import SIZES
+        min_height = int(SIZES["CONTROL_HEIGHT"].removesuffix("px"))
+        visible_rows = [
+            shell.preparation_rows_layout.itemAt(i).widget()
+            for i in range(shell.preparation_rows_layout.count())
+        ]
+        visible_rows = [
+            widget for widget in visible_rows
+            if isinstance(widget, QFrame)
+            and widget.objectName() == "GuidePreparationRow"
+        ]
+        self.assertTrue(all(widget.height() >= min_height for widget in visible_rows))
+        self.assertGreater(shell.preparation_scroll.verticalScrollBar().maximum(), 0)
         self.assertFalse(shell.preparation_bar.isEnabled())
         self.assertEqual(shell.selected_participant_keys(), ())
         shell.preparation_button.click()
