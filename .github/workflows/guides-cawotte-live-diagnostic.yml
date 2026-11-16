@@ -31,4 +31,4 @@ jobs:
         with:
           python-version: '3.13'
       - name: Read-only live source-to-canonical diagnostic (no artifacts)
-        run: python -X utf8 -m unittest -v tests.test_atlas_guide_live_cawotte_probe
+        run: python -X utf8 -m unittest discover -v -s tests -p 'test_atlas_guide_live_cawotte_probe.py'
