@@ -81,6 +81,9 @@ class GanymedeGuideShellTests(unittest.TestCase):
         metrics = shell._metric_columns["Route"].parent()
         self.assertIsInstance(metrics, QGridLayout)
         self.assertEqual(metrics.columnCount(), 2)
+        self.assertTrue(shell.route_bar.isHidden())
+        self.assertIs(shell.summary_button.parentWidget(),
+                      shell.findChild(QFrame, "GuideSheetHeader"))
         self.assertEqual(shell.rendered_card_count, 0)
         self.assertEqual(shell.cards_layout.count(), 0)
         before = len(shell.findChildren(QProgressBar))
@@ -209,12 +212,17 @@ class GanymedeGuideShellTests(unittest.TestCase):
         shell.preparation_button.click()
         self.app.processEvents()
         self.assertTrue(shell.preparation_panel.isVisibleTo(shell))
-        # The two arrow buttons are independent and both share bar widths.
+        # The compact sommaire beside X/X and the preparation drawer
+        # remain independent and can be opened together.
         shell.summary_button.click()
         self.app.processEvents()
         self.assertTrue(shell.summary_panel.isVisibleTo(shell))
         self.assertTrue(shell.preparation_panel.isVisibleTo(shell))
-        self.assertIs(shell.summary_panel.parentWidget(), shell.preparation_panel.parentWidget())
+        self.assertIs(shell.summary_panel.parentWidget(),
+                      shell.findChild(QFrame, "GuideSheetHeader"))
+        self.assertIs(shell.preparation_panel.parentWidget(),
+                      shell.findChild(QFrame, "GuideCompactHeader"))
+        self.assertTrue(shell.route_bar.isHidden())
         shell.summary_button.click()
         self.assertTrue(shell.preparation_panel.isVisibleTo(shell))
         self.assertEqual(shell._preparation_tab, "Prérequis")
