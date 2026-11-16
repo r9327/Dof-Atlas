@@ -100,16 +100,18 @@ jobs:
           assert shell.guide_title_label.text() == "Dofus Cawotte"
           assert len(shell.findChildren(QProgressBar)) == 3
           assert all(not bar.isEnabled() for bar in shell.findChildren(QProgressBar))
-          assert shell.sheet_title_label.text() == f"Étapes 1 à {shell._review_end_index}"
+          assert shell.sheet_title_label.text() == "Étape 1"
           assert len(shell.service.cards) == 64
-          assert 2 <= shell.rendered_card_count <= 12
-          assert shell._review_end_index == shell.rendered_card_count
+          assert shell.rendered_card_count == 1
+          assert shell._review_end_index == 1
           first_card = shell.cards_layout.itemAt(0).widget()
           assert first_card.isVisible() and first_card.height() > 0
           assert shell.page_jump.maximum() == 64
           assert shell.page_jump.text() == "1 / 64"
+          assert shell.summary_button.isEnabled()
+          assert shell.summary_list.count() == 64
           pos = shell.findChildren(QLabel, "GuideManualPositionCopy")
-          assert len(pos) == shell.rendered_card_count
+          assert len(pos) == 1
           assert "travel-copy:25,-4" in pos[0].text()
           assert not shell.findChildren(QToolButton, "GuideManualZaapShortcut")
           assert not shell.findChildren(QFrame, "GuideManualActionGroup")
@@ -125,15 +127,14 @@ jobs:
           print(f"Native DPI screenshot: {shot.width()} x {shot.height()}, DPR={shot.devicePixelRatio()}")
           assert shot.save(str(target), "PNG")
           print(f"Real Qt screenshot written: {target} ({target.stat().st_size} bytes)")
-          # Also demonstrate a taller window genuinely containing several
-          # short source steps with no fabricated action text.
+          # A taller viewport must still display exactly one source step.
           backdrop.resize(1280, 1050)
           app.processEvents()
           shell._refit_review_cards()
           app.processEvents()
-          assert shell.rendered_card_count >= 2
-          grouped = Path("artifacts/screenshots/ganymede-cawotte-grouped-large-qt.png")
-          assert backdrop.grab().save(str(grouped), "PNG")
+          assert shell.rendered_card_count == 1
+          tall = Path("artifacts/screenshots/ganymede-cawotte-single-step-large-qt.png")
+          assert backdrop.grab().save(str(tall), "PNG")
           backdrop.resize(1280, 720)
           app.processEvents()
           shell._refit_review_cards()
@@ -141,7 +142,16 @@ jobs:
           first_end = shell._review_end_index
           shell.next_button.click()
           app.processEvents()
-          assert shell.view_index == first_end
+          assert shell.view_index == first_end == 1
+          shell.summary_button.click()
+          app.processEvents()
+          assert shell.summary_panel.isVisibleTo(shell)
+          shell._summary_item_clicked(shell.summary_list.item(39))
+          app.processEvents()
+          assert shell.view_index == 39 and shell.rendered_card_count == 1
+          assert shell.summary_panel.isVisibleTo(shell)
+          summary = Path("artifacts/screenshots/ganymede-cawotte-summary-step-40-qt.png")
+          assert backdrop.grab().save(str(summary), "PNG")
           shell.page_jump.setValue(64)
           app.processEvents()
           assert shell.sheet_title_label.text() == "Étape 64"
