@@ -251,6 +251,10 @@ class ContinuousGuideRoutePanel(QWidget):
         # source-only manual validation or trusted travel permissions.
         self.compact_header = QFrame()
         self.compact_header.setObjectName("GuideCompactHeader")
+        # Keep the historical progress object for consumers, without
+        # presenting a second Route bar beside global progress.
+        self.route_progress.setParent(self.compact_header)
+        self.route_progress.hide()
         header = QVBoxLayout(self.compact_header)
         header.setContentsMargins(10, 8, 10, 8)
         header.setSpacing(6)
@@ -286,6 +290,8 @@ class ContinuousGuideRoutePanel(QWidget):
         self.summary_toggle.setToolButtonStyle(Qt.ToolButtonIconOnly)
         self.summary_toggle.setArrowType(Qt.RightArrow)
         self.summary_toggle.setFixedSize(28, 24)
+        self.summary_toggle.setToolTip("Afficher le sommaire des fiches")
+        head.addWidget(self.summary_toggle, 0, Qt.AlignVCenter)
         self.preparation_toggle.setObjectName("GuideMetricDropdown")
         self.preparation_toggle.setAccessibleName("Afficher Préparation")
         self.preparation_toggle.setToolButtonStyle(Qt.ToolButtonIconOnly)
@@ -307,6 +313,8 @@ class ContinuousGuideRoutePanel(QWidget):
             ("Route", self.route_progress, None, self.summary_toggle),
             ("Préparation", self.preparation_bar, prep_label, self.preparation_toggle),
         )):
+            if title == "Route":
+                continue  # Same compact header policy as all manual guides.
             caption = QHBoxLayout()
             caption_label = QLabel(title.upper())
             caption_label.setObjectName("GuideCompactMetricTitle")
@@ -321,9 +329,12 @@ class ContinuousGuideRoutePanel(QWidget):
             line.addWidget(arrow)
             grid.addLayout(line, 1, column)
             grid.setColumnStretch(column, 1)
+        grid.setColumnStretch(0, 0)
         grid.addWidget(self.participants_button, 1, 2, Qt.AlignVCenter)
-        grid.addWidget(self.summary, 2, 0, Qt.AlignTop)
-        grid.addWidget(self.preparation_scroll, 2, 1, Qt.AlignTop)
+        # Both drawers remain independently openable, with the full width
+        # of the preparation area now that Route is hidden.
+        grid.addWidget(self.summary, 2, 1, 1, 2, Qt.AlignTop)
+        grid.addWidget(self.preparation_scroll, 3, 1, 1, 2, Qt.AlignTop)
         header.addLayout(grid)
         layout.insertWidget(0, self.compact_header)
         layout.addLayout(work, 1)
