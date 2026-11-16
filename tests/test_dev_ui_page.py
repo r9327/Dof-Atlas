@@ -358,6 +358,9 @@ class DevUiPageTests(unittest.TestCase):
             disclosure = page.preview_header_controls["Sommaire"]
             self.assertFalse(disclosure.icon().isNull())
             self.assertEqual(disclosure.arrowType(), Qt.NoArrow)
+            self.assertEqual(
+                disclosure.iconSize().width(), UNITY_CONTROL_SIZES_PX["progress_toggle_icon"],
+            )
             disclosure.click()
             self.assertTrue(disclosure.isChecked())
             disclosure.click()

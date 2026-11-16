@@ -276,7 +276,8 @@ def atlas_guide_arrow_icon(direction: Literal["up", "down", "left", "right"]) ->
     path = unity_guide_chevron_path("down" if direction in ("left", "right") else direction)
     if path is None:
         return QIcon()
-    pixmap = QIcon(str(path)).pixmap(QSize(14, 14))
+    icon_size = UNITY_CONTROL_SIZES_PX["progress_toggle_icon"]
+    pixmap = QIcon(str(path)).pixmap(QSize(icon_size, icon_size))
     if direction in ("left", "right"):
         pixmap = pixmap.transformed(QTransform().rotate(
             90 if direction == "left" else -90), Qt.SmoothTransformation)
@@ -323,7 +324,8 @@ class AtlasGuideDisclosure(QToolButton):
         self.setCheckable(True)
         self.setCursor(Qt.PointingHandCursor)
         self.setFocusPolicy(Qt.StrongFocus)
-        self.setIconSize(QSize(14, 14))
+        icon_size = UNITY_CONTROL_SIZES_PX["progress_toggle_icon"]
+        self.setIconSize(QSize(icon_size, icon_size))
         self.toggled.connect(self._sync_direction)
         self._sync_direction(False)
 
@@ -348,22 +350,6 @@ class AtlasGuideDisclosure(QToolButton):
             (self.width() - pixmap.width()) // 2,
             (self.height() - pixmap.height()) // 2,
             pixmap,
-        )
-
-    def paintEvent(self, event) -> None:  # noqa: N802 - Qt override
-        super().paintEvent(event)
-        if self.isEnabled() or self.icon().isNull():
-            return
-        # Some Windows Qt styles suppress QToolButton icons when disabled.
-        # Paint the exact indexed SVG, without re-enabling empty Guide actions.
-        glyph = self.icon().pixmap(self.iconSize(), QIcon.Disabled)
-        if glyph.isNull():
-            return
-        painter = QPainter(self)
-        painter.drawPixmap(
-            (self.width() - glyph.width()) // 2,
-            (self.height() - glyph.height()) // 2,
-            glyph,
         )
         painter.end()
 

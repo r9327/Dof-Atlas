@@ -258,6 +258,7 @@ UNITY_CONTROL_SIZES_PX = {
     "progress_secondary": 7,
     "progress_toggle_width": 18,
     "progress_toggle_height": 18,
+    "progress_toggle_icon": 14,
     "guide_character_button": 24,
     "guide_character_icon": 20,
     # Guide portrait rings and sheet selector are shared with Dev UI previews.

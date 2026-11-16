@@ -289,6 +289,28 @@ class UnityPaletteTests(unittest.TestCase):
         self.assertGreater(UNITY_LAYOUT_SIZES_PX["dialog_header_gap"], 0)
 
 
+    def test_guide_disclosure_has_single_painter_and_indexed_chevron_size(self) -> None:
+        from app.ui.unity_palette import UNITY_CONTROL_SIZES_PX
+
+        source = (Path(__file__).resolve().parents[1] / "app/ui/components.py").read_text(
+            encoding="utf-8"
+        )
+        parsed = ast.parse(source)
+        disclosure = next(
+            node for node in parsed.body
+            if isinstance(node, ast.ClassDef) and node.name == "AtlasGuideDisclosure"
+        )
+        painters = [
+            child for child in disclosure.body
+            if isinstance(child, ast.FunctionDef) and child.name == "paintEvent"
+        ]
+        self.assertEqual(len(painters), 1)
+        paint_code = ast.get_source_segment(source, painters[0])
+        self.assertIn("QIcon.Normal", paint_code)
+        self.assertNotIn("QIcon.Disabled", paint_code)
+        self.assertIn('UNITY_CONTROL_SIZES_PX["progress_toggle_icon"]', source)
+        self.assertEqual(UNITY_CONTROL_SIZES_PX["progress_toggle_icon"], 14)
+
     def test_real_guide_header_and_dev_ui_share_all_progress_dimensions(self) -> None:
         """The real Guide renderer must consume the very same metrics as Dev UI."""
         from pathlib import Path
