@@ -34,6 +34,15 @@ class QuestDetailViewColumnTests(unittest.TestCase):
                              geom["right_max_width"])
             self.assertEqual(sheet.header.layout().getContentsMargins(),
                              geom["header_margins"])
+            prerequisite = sheet._prerequisite_row("Quête précédente", False, 42)
+            try:
+                layout = prerequisite.layout()
+                self.assertEqual(layout.spacing(), geom["prerequisite_row_spacing"])
+                self.assertEqual(
+                    layout.itemAt(0).widget().width(), geom["prerequisite_marker_width"]
+                )
+            finally:
+                prerequisite.deleteLater()
         finally:
             sheet.deleteLater()
 

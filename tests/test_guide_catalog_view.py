@@ -84,6 +84,19 @@ class GuideCatalogInteractionTests(unittest.TestCase):
         self.app.processEvents()
         return item
 
+    def test_catalogue_uses_indexed_guide_layout_spacing(self):
+        from app.ui.unity_palette import UNITY_SPACING_PX
+
+        view = self.make_view()
+        self.assertEqual(view.home_scroll.widget().layout().spacing(), UNITY_SPACING_PX["md"])
+        self.assertEqual(view.library_left.layout().spacing(), UNITY_SPACING_PX["sm"])
+        self.assertEqual(view.library_right.layout().spacing(), UNITY_SPACING_PX["sm"])
+        margins = view.home_scroll.widget().layout().contentsMargins()
+        self.assertEqual(
+            (margins.left(), margins.top(), margins.right(), margins.bottom()),
+            (UNITY_SPACING_PX["md"],) * 4,
+        )
+
     def test_no_reference_or_preference_ui_even_after_category_changes(self):
         view = self.make_view()
         self.assertFalse(view.findChildren(QListWidget, "GuideLibraryUnavailableList"))

@@ -108,6 +108,22 @@ class UnityPaletteTests(unittest.TestCase):
             "app/pages/_character_page_impl.py",
         )
 
+    def test_guides_and_quests_reuse_existing_unity_spacing_roles(self) -> None:
+        from app.ui.unity_palette import UNITY_MODULE_GEOMETRY_PX, UNITY_SPACING_PX
+
+        self.assertEqual(UNITY_SPACING_PX["sm"], 6)
+        self.assertEqual(UNITY_SPACING_PX["md"], 8)
+        self.assertEqual(UNITY_SPACING_PX["xxs"], 2)
+        detail = UNITY_MODULE_GEOMETRY_PX["quest_detail"]
+        self.assertEqual(detail["prerequisite_row_spacing"], 7)
+        self.assertEqual(detail["prerequisite_marker_width"], 18)
+        root = Path(__file__).resolve().parents[1]
+        for name in (
+            "app/modules/encyclopedia/views/guide_catalog_view.py",
+            "app/pages/_quests_page_impl.py",
+        ):
+            self.assertIn("UNITY_SPACING_PX", (root / name).read_text(encoding="utf-8"))
+
     def test_quest_detail_keeps_existing_splitter_sizes(self) -> None:
         from app.ui.unity_palette import UNITY_MODULE_GEOMETRY_PX
 

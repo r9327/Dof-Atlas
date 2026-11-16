@@ -54,7 +54,7 @@ from app.quest_catalog import (
 from app.storage import IconCache, read_json, write_json
 from app.ui.components import AtlasBreadcrumb, AtlasButton, AtlasComboBox
 from app.ui.theme import PALETTE, render_theme_template
-from app.ui.unity_palette import UNITY_MODULE_GEOMETRY_PX
+from app.ui.unity_palette import UNITY_MODULE_GEOMETRY_PX, UNITY_SPACING_PX
 
 
 QUEST_GEOMETRY = UNITY_MODULE_GEOMETRY_PX["quests"]
@@ -240,7 +240,7 @@ class QuestsPage(QWidget):
 
         root = QVBoxLayout(self)
         root.setContentsMargins(0, 0, 0, 0)
-        root.setSpacing(6)
+        root.setSpacing(UNITY_SPACING_PX["sm"])
 
         self._init_hidden_controls()
         self._build_search_ui(root)
@@ -384,12 +384,12 @@ class QuestsPage(QWidget):
         self.hierarchy_content.setObjectName("GuideLeftPanelContent")
         hierarchy_content_layout = QVBoxLayout(self.hierarchy_content)
         hierarchy_content_layout.setContentsMargins(0, 0, 0, 0)
-        hierarchy_content_layout.setSpacing(6)
+        hierarchy_content_layout.setSpacing(UNITY_SPACING_PX["sm"])
         hierarchy_header = QFrame()
         hierarchy_header.setObjectName("GuideStepsHeader")
         hierarchy_header_layout = QHBoxLayout(hierarchy_header)
-        hierarchy_header_layout.setContentsMargins(0, 0, 0, 2)
-        hierarchy_header_layout.setSpacing(6)
+        hierarchy_header_layout.setContentsMargins(0, 0, 0, UNITY_SPACING_PX["xxs"])
+        hierarchy_header_layout.setSpacing(UNITY_SPACING_PX["sm"])
         hierarchy_title = QLabel("CATÉGORIES ET SUITES")
         hierarchy_title.setObjectName("GuideSectionTitle")
         hierarchy_header_layout.addWidget(hierarchy_title, 1)

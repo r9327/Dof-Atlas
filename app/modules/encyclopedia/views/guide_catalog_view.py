@@ -3,7 +3,7 @@ from __future__ import annotations
 from PySide6.QtCore import QSize, Qt, QTimer, Signal
 from PySide6.QtGui import QIcon, QKeySequence, QShortcut
 from app.ui.unity_skin import apply_unity_panel_shadow, sprite_icon_path
-from app.ui.unity_palette import UNITY_MODULE_GEOMETRY_PX
+from app.ui.unity_palette import UNITY_MODULE_GEOMETRY_PX, UNITY_SPACING_PX
 
 GUIDE_CATALOG_GEOMETRY = UNITY_MODULE_GEOMETRY_PX["guide_catalog"]
 from PySide6.QtWidgets import (
@@ -88,8 +88,9 @@ class GuideCatalogView(QWidget):
         content = QWidget(self.home_scroll)
         content.setObjectName("GuidesHomeContent")
         root = QVBoxLayout(content)
-        root.setContentsMargins(8, 8, 8, 8)
-        root.setSpacing(8)
+        inset = UNITY_SPACING_PX["md"]
+        root.setContentsMargins(inset, inset, inset, inset)
+        root.setSpacing(inset)
         self.home_scroll.setWidget(content)
         shell.addWidget(self.home_scroll, 1)
 
@@ -110,7 +111,7 @@ class GuideCatalogView(QWidget):
         self.library_left.setObjectName("GuideLibraryLeft")
         left_layout = QVBoxLayout(self.library_left)
         left_layout.setContentsMargins(0, 0, 0, 0)
-        left_layout.setSpacing(6)
+        left_layout.setSpacing(UNITY_SPACING_PX["sm"])
         left_layout.addWidget(heading("GUIDES OPTIMISÉS"))
         self.optimized_pair = FeaturedPair(
             (self.featured_cards["guide_complet"],
@@ -193,7 +194,7 @@ class GuideCatalogView(QWidget):
         self.library_right.setObjectName("GuideLibraryResults")
         result_layout = QVBoxLayout(self.library_right)
         result_layout.setContentsMargins(0, 0, 0, 0)
-        result_layout.setSpacing(6)
+        result_layout.setSpacing(UNITY_SPACING_PX["sm"])
         self.library_results_title = heading("DOFUS")
         result_layout.addWidget(self.library_results_title)
 
