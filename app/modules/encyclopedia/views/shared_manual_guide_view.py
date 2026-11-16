@@ -2182,11 +2182,31 @@ class SharedGuideManualView(GuideUltimeManualView):
         # state remains readable without manufacturing an inventory/progress ID.
         participant_keys = self._progress_participant_keys()
         if not participant_keys:
-            summary = aggregate_remaining((card, False) for card in self.service.cards)
-            self._preparation_preview = tuple(
-                (need.category, need.name, need.quantity or 0, need.item_id)
-                for need in summary
-            )
+            cards = self.service.cards
+            if cards and all(card.get("manual_review_only") is True for card in cards):
+                # Review-only candidates have no certified item consumption
+                # model. Preserve every declared prerequisite and preparation,
+                # including repeated optional quantities of the same item.
+                preview: list[tuple[str, str, int, int | None]] = []
+                for card in cards:
+                    for gate in card.get("hard_runtime_gates", ()) or ():
+                        if isinstance(gate, dict) and gate.get("name"):
+                            preview.append(("Prérequis", str(gate["name"]), 0, None))
+                    for item in card.get("a_preparer", ()) or ():
+                        if isinstance(item, dict) and item.get("name"):
+                            preview.append((
+                                str(item.get("category") or "Objets"),
+                                str(item["name"]),
+                                int(item.get("quantity") or 0),
+                                item.get("item_id"),
+                            ))
+                self._preparation_preview = tuple(preview)
+            else:
+                summary = aggregate_remaining((card, False) for card in cards)
+                self._preparation_preview = tuple(
+                    (need.category, need.name, need.quantity or 0, need.item_id)
+                    for need in summary
+                )
             self._preparation_needs = ()
             self._preparation_loaded = True
             self._update_preparation_progress()
