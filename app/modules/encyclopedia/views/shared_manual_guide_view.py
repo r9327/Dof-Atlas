@@ -16,6 +16,7 @@ from PySide6.QtWidgets import (
     QApplication,
     QButtonGroup,
     QCheckBox,
+    QDialog,
     QFrame,
     QGridLayout,
     QHBoxLayout,
@@ -27,6 +28,7 @@ from PySide6.QtWidgets import (
     QProgressBar,
     QPushButton,
     QScrollArea,
+    QSlider,
     QSizePolicy,
     QSpinBox,
     QStyle,
@@ -332,6 +334,150 @@ class _ParticipantPortraitButton(QToolButton):
                 90 * 16,
                 -round(360 * 16 * self.progress / 100),
             )
+
+
+
+class _GuideZoomableSourceImage(QLabel):
+    """Thumbnail preserving original pixels for a click-to-zoom Qt popup."""
+
+    def __init__(self, parent: QWidget | None = None) -> None:
+        super().__init__(parent)
+        self.setObjectName("GuideManualSourceImage")
+        self.setCursor(Qt.PointingHandCursor)
+        self.setAlignment(Qt.AlignLeft | Qt.AlignTop)
+        self._full_source_pixmap = QPixmap()
+
+    def set_source_pixmap(self, pixmap: QPixmap, alt: str) -> None:
+        if pixmap.isNull():
+            self.setText("Illustration source non affichable : " + alt)
+            return
+        self._full_source_pixmap = pixmap
+        self.setPixmap(pixmap.scaled(
+            QSize(
+                GUIDE_READING_METRICS["source_image_max_width"],
+                GUIDE_READING_METRICS["source_image_max_height"],
+            ),
+            Qt.KeepAspectRatio, Qt.SmoothTransformation,
+        ))
+        self.setToolTip("Cliquer pour agrandir · " + alt)
+        self.setAccessibleName("Agrandir l'illustration : " + alt)
+
+    def mouseReleaseEvent(self, event) -> None:  # noqa: N802
+        if event.button() == Qt.LeftButton and not self._full_source_pixmap.isNull():
+            self.open_zoom()
+            event.accept()
+            return
+        super().mouseReleaseEvent(event)
+
+    def open_zoom(self) -> None:
+        if self._full_source_pixmap.isNull():
+            return
+        dialog = QDialog(self.window())
+        dialog.setObjectName("GuideSourceImageZoomDialog")
+        dialog.setWindowTitle("Illustration du guide · zoom")
+        dialog.resize(
+            GUIDE_READING_METRICS["zoom_dialog_width"],
+            GUIDE_READING_METRICS["zoom_dialog_height"],
+        )
+        layout = QVBoxLayout(dialog)
+        layout.setContentsMargins(
+            GUIDE_READING_METRICS["section_horizontal"],
+            GUIDE_READING_METRICS["section_vertical"],
+            GUIDE_READING_METRICS["section_horizontal"],
+            GUIDE_READING_METRICS["section_vertical"],
+        )
+        scroll = QScrollArea(dialog)
+        scroll.setObjectName("GuideSourceImageZoomViewport")
+        scroll.setWidgetResizable(False)
+        scroll.setHorizontalScrollBarPolicy(Qt.ScrollBarAsNeeded)
+        scroll.setVerticalScrollBarPolicy(Qt.ScrollBarAsNeeded)
+        image = QLabel()
+        image.setObjectName("GuideSourceImageZoomed")
+        image.setAlignment(Qt.AlignCenter)
+        scroll.setWidget(image)
+        layout.addWidget(scroll, 1)
+        zoom = QSlider(Qt.Horizontal, dialog)
+        zoom.setObjectName("GuideSourceImageZoomSlider")
+        zoom.setRange(25, 300)
+        zoom.setSingleStep(10)
+        zoom.setPageStep(25)
+        zoom.setValue(100)
+        zoom.setToolTip("Zoom de 25 % à 300 %")
+        zoom.setAccessibleName("Zoom de l'illustration")
+        def draw(percent: int) -> None:
+            size = self._full_source_pixmap.size() * (percent / 100.0)
+            pix = self._full_source_pixmap.scaled(
+                QSize(max(1, int(size.width())), max(1, int(size.height()))),
+                Qt.KeepAspectRatio, Qt.SmoothTransformation,
+            )
+            image.setPixmap(pix)
+            image.resize(pix.size())
+        zoom.valueChanged.connect(draw)
+        draw(100)
+        layout.addWidget(zoom)
+        dialog.exec()
+
+
+class _GuideContinuousSourcePage(QFrame):
+    """ONE indexed reader containing whole authored blocks, never step cards."""
+
+    def __init__(
+        self, entries: tuple[dict[str, Any], ...],
+        *, parent: QWidget | None = None,
+    ) -> None:
+        super().__init__(parent)
+        self.setObjectName("GuideManualSheet")
+        self.setProperty("sourceContinuousReading", True)
+        self.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Maximum)
+        layout = QVBoxLayout(self)
+        spacing = GUIDE_READING_METRICS
+        layout.setContentsMargins(
+            spacing["sheet_horizontal"], spacing["sheet_vertical"],
+            spacing["sheet_horizontal"], spacing["sheet_vertical"],
+        )
+        layout.setSpacing(spacing["reading_gap"])
+        layout.setAlignment(Qt.AlignTop)
+        for entry in entries:
+            block = entry["block"]
+            kind = block["type"]
+            if kind in {"paragraph", "heading", "checklist_item"}:
+                runs = (
+                    block["item"].get("runs") or [{
+                        "text": block["item"]["text"], "role": "plain",
+                    }]
+                    if kind == "checklist_item" else block["runs"]
+                )
+                label = QLabel(self)
+                label.setObjectName(
+                    "GuideManualSectionTitle" if kind == "heading"
+                    else "GuideManualSourceChecklistText" if kind == "checklist_item"
+                    else "GuideManualLine"
+                )
+                label.setTextFormat(Qt.RichText)
+                label.setTextInteractionFlags(Qt.TextBrowserInteraction)
+                label.setOpenExternalLinks(False)
+                label.linkActivated.connect(self._open_source_link)
+                label.setText(SharedGuideManualCard._source_rich_markup(runs))
+                label.setWordWrap(True)
+                layout.addWidget(label)
+            elif kind == "image":
+                image = _GuideZoomableSourceImage(self)
+                pix = QPixmap()
+                if pix.loadFromData(image_bytes(block)):
+                    image.set_source_pixmap(pix, str(block["alt"]))
+                else:
+                    image.setText("Image source non affichable : " + str(block["alt"]))
+                layout.addWidget(image)
+            else:
+                raise ValueError("Unsupported original source block: " + kind)
+
+    @staticmethod
+    def _open_source_link(href: str) -> None:
+        match = re.fullmatch(r"travel-copy:(-?\d{1,5},-?\d{1,5})", href)
+        if match:
+            QApplication.clipboard().setText("/travel " + match.group(1))
+        elif href.startswith("https://"):
+            QDesktopServices.openUrl(QUrl(href))
 
 
 class SharedGuideManualCard(GuideUltimeManualCard):
@@ -833,26 +979,12 @@ class SharedGuideManualCard(GuideUltimeManualCard):
                     label.setWordWrap(True)
                     target_layout.addWidget(label)
             elif kind == "image":
-                label = QLabel()
-                label.setObjectName("GuideManualSourceImage")
-                label.setToolTip(str(block["alt"]))
+                label = _GuideZoomableSourceImage()
                 pix = QPixmap()
                 if pix.loadFromData(image_bytes(block)):
-                    # Preserve original bytes in metadata, bound only the
-                    # presentation size to the shared Guide reading column.
-                    label.setPixmap(pix.scaled(
-                        QSize(
-                            GUIDE_READING_METRICS["source_image_max_width"],
-                            GUIDE_READING_METRICS["source_image_max_height"],
-                        ),
-                        Qt.KeepAspectRatio, Qt.SmoothTransformation,
-                    ))
-                    label.setAlignment(Qt.AlignLeft | Qt.AlignTop)
+                    label.set_source_pixmap(pix, str(block["alt"]))
                 else:
-                    label.setText(
-                        "Image source non affichable : "
-                        + str(block["alt"])
-                    )
+                    label.setText("Image source non affichable : " + str(block["alt"]))
                 target_layout.addWidget(label)
 
     def _add_line_section(

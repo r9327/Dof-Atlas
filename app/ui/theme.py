@@ -72,6 +72,8 @@ GUIDE_READING_METRICS = {
     "source_drawer_compact_min_height": 156,
     "normal_drawer_max_height": 210,
     "normal_drawer_min_height": 126,
+    "zoom_dialog_width": 760,
+    "zoom_dialog_height": 540,
 }
 
 SIZES = {
@@ -2497,6 +2499,26 @@ QScrollArea#GuideManualSourceScroll > QWidget#qt_scrollarea_viewport {
 }
 QWidget#GuideManualContent {
     background: transparent;
+}
+QLabel#GuideManualSourceImage {
+    background: transparent;
+    border: 1px solid @BORDER_SOFT;
+    border-radius: @RADIUS_XS;
+    padding: @SPACE_XXS;
+}
+QLabel#GuideManualSourceImage:hover {
+    border-color: @GREEN_BORDER;
+}
+QDialog#GuideSourceImageZoomDialog,
+QScrollArea#GuideSourceImageZoomViewport {
+    background: @PANEL_GRADIENT;
+    color: @TEXT_SOFT;
+    border: 1px solid @BORDER_SOFT;
+    border-radius: @RADIUS_MD;
+}
+QLabel#GuideSourceImageZoomed {
+    background: transparent;
+    border: none;
 }
 
 #GuideManualProgress {
