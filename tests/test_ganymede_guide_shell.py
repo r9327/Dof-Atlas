@@ -150,7 +150,7 @@ class GanymedeGuideShellTests(unittest.TestCase):
         self.assertIsInstance(shell, GanymedeGuideShell)
         self.assertIs(catalog.pages.currentWidget(), shell)
         self.assertEqual(shell._listing.source_id, 2205)
-        self.assertEqual(shell.rendered_card_count, 1)
+        self.assertEqual(shell.rendered_card_count, 3)
         self.assertEqual(shell._review_end_index, shell.rendered_card_count)
         self.assertEqual(len(shell.service.cards), 64)
         first_visible = shell.cards_layout.itemAt(0).widget()
@@ -160,12 +160,16 @@ class GanymedeGuideShellTests(unittest.TestCase):
         self.assertEqual(shell.page_jump.text(), "1 / 64")
         self.assertEqual(shell.guide_title_label.text(), "Dofus Cawotte")
         self.assertEqual(shell.sheet_title_label.text(), "Étape 1")
-        # Every source step is indexed, even though only one is rendered.
+        # Every source step is indexed once; nearby steps fill the scroll.
         self.assertTrue(shell.summary_button.isEnabled())
         self.assertEqual(shell.summary_list.count(), 64)
+        self.assertTrue(shell.summary_list.item(0).text().startswith(
+            "1. Contrôler le parcours d'accès aux Dofus"
+        ))
+        self.assertNotIn("Étape 1", shell.summary_list.item(0).text())
         self.assertTrue(shell.page_jump.isEnabled())
         position_labels = shell.findChildren(QLabel, "GuideManualPositionCopy")
-        self.assertEqual(len(position_labels), 1)
+        self.assertEqual(len(position_labels), 3)
         self.assertIn("travel-copy:25,-4", position_labels[0].text())
         self.assertEqual(shell.findChildren(QToolButton, "GuideManualZaapShortcut"), [])
         self.assertEqual(shell.findChildren(QFrame, "GuideManualActionGroup"), [])
@@ -190,24 +194,23 @@ class GanymedeGuideShellTests(unittest.TestCase):
         self.app.processEvents()
         self.assertIs(catalog.pages.currentWidget(), shell)
         self.assertEqual(requests, [])
-        # Sommaire jumps to any step without rendering its neighbors.
+        # Sommaire jumps to any step while keeping bounded read-ahead.
         shell.summary_button.click()
         self.assertTrue(shell.summary_panel.isVisibleTo(shell))
         shell._summary_item_clicked(shell.summary_list.item(39))
         self.assertEqual(shell.view_index, 39)
-        self.assertEqual(shell.rendered_card_count, 1)
+        self.assertEqual(shell.rendered_card_count, 3)
         self.assertEqual(shell.cards_layout.itemAt(0).widget().card["source_step_id"],
                          "ganymede_2205_step_0040")
         self.assertTrue(shell.summary_panel.isVisibleTo(shell))
         shell._show_index(0)
-        # Every original step is visited exactly once, one per page.
+        # Every step can be active; read-ahead never skips navigation.
         visited = []
-        pages = []
         while True:
             start = shell.view_index
             end = shell._review_end_index
-            self.assertEqual(end, start + 1)
-            self.assertEqual(shell.rendered_card_count, 1)
+            self.assertEqual(end, min(64, start + 3))
+            self.assertEqual(shell.rendered_card_count, end - start)
             visible = [
                 shell.cards_layout.itemAt(i).widget()
                 for i in range(shell.rendered_card_count)
@@ -218,21 +221,19 @@ class GanymedeGuideShellTests(unittest.TestCase):
             )
             self.assertEqual(shell.page_jump.value(), start + 1)
             self.assertEqual(shell.validation_layout.count(), 0)
-            visited.extend(range(start + 1, end + 1))
-            pages.append((start, end))
-            if end == 64:
+            visited.append(start + 1)
+            if start == 63:
                 break
             self.assertTrue(shell.next_button.isEnabled())
             shell.next_button.click()
-            self.assertEqual(shell.view_index, end)
-            if len(pages) % 8 == 0:
+            self.assertEqual(shell.view_index, start + 1)
+            if len(visited) % 8 == 0:
                 self.app.processEvents()
         self.assertEqual(visited, list(range(1, 65)))
-        self.assertEqual(len(pages), 64)
         self.assertFalse(shell.next_button.isEnabled())
         self.assertEqual(shell.sheet_title_label.text(), "Étape 64")
         shell.prev_button.click()
-        self.assertEqual(shell.view_index, pages[-2][0] if len(pages) > 1 else 0)
+        self.assertEqual(shell.view_index, 62)
         shell.page_jump.setValue(64)
         self.assertEqual(shell.view_index, 63)
         self.assertEqual(shell._review_end_index, 64)
@@ -252,7 +253,7 @@ class GanymedeGuideShellTests(unittest.TestCase):
         self.assertEqual(requests, ["dofus_cawotte"])
 
 
-    def test_one_step_per_page_survives_resize_and_long_text(self) -> None:
+    def test_read_ahead_survives_resize_and_long_text(self) -> None:
         import copy
 
         shell = GanymedeGuideShell(lambda: None)
@@ -268,17 +269,17 @@ class GanymedeGuideShellTests(unittest.TestCase):
         self.assertTrue(shell.show_cawotte_review())
         self.app.processEvents()
         large_count = shell.rendered_card_count
-        self.assertEqual(large_count, 1)
-        self.assertEqual(shell._review_end_index, 1)
+        self.assertEqual(large_count, 3)
+        self.assertEqual(shell._review_end_index, 3)
         self.assertEqual(shell.summary_list.count(), len(shell.service.cards))
 
         shell.resize(760, 560)
         self.app.processEvents()
-        self.assertEqual(shell.rendered_card_count, 1)
-        self.assertEqual(shell._review_end_index, 1)
+        self.assertEqual(shell.rendered_card_count, 3)
+        self.assertEqual(shell._review_end_index, 3)
 
-        # Extra-long real-text wrapping stays on the same scrollable sheet;
-        # it never pulls in the following source step.
+        # Extra-long real-text wrapping keeps all three source steps intact
+        # in the scroll area, even when only the first fits initially.
         extended = copy.deepcopy(shell.service.cards[0])
         extended["manual_sections"]["now"][0]["text"] = (
             "Instruction Cawotte très détaillée. " * 700
@@ -286,8 +287,8 @@ class GanymedeGuideShellTests(unittest.TestCase):
         shell.service.cards = (extended,) + shell.service.cards[1:]
         shell._show_index(0)
         self.app.processEvents()
-        self.assertEqual(shell.rendered_card_count, 1)
-        self.assertEqual(shell._review_end_index, 1)
+        self.assertEqual(shell.rendered_card_count, 3)
+        self.assertEqual(shell._review_end_index, 3)
         self.assertGreater(shell.scroll.verticalScrollBar().maximum(), 0)
         self.assertGreater(
             shell.cards_layout.itemAt(0).widget().minimumHeight(),
