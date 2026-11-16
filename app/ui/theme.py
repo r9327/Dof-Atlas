@@ -2729,6 +2729,11 @@ QToolButton#GuidePreparationToggle:checked {
     border-color: @GREEN_BORDER;
 }
 
+QFrame#GuidePreparationFilterHost {
+    background: transparent;
+    border: none;
+}
+
 QPushButton#GuidePreparationModeTab,
 QPushButton#GuidePreparationFilter {
     background: @PANEL_2;
