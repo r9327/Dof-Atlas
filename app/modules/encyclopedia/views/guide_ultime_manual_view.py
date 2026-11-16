@@ -299,7 +299,7 @@ class GuideUltimeManualCard(QFrame):
 
     def _add_inline_quest_links(
         self, row_layout: QHBoxLayout, row: dict[str, Any],
-        *, quest_ids: list[int] | None = None, allow_repeat: bool = False,
+        *, quest_ids: list[int] | None = None,
     ) -> None:
         if not self._quest_rows:
             return
@@ -310,10 +310,9 @@ class GuideUltimeManualCard(QFrame):
         if quest_ids is None:
             quest_ids = self._quest_ids_for_row(row)
         for quest_id in quest_ids:
-            # Historical guides keep one shortcut per Quest and sheet.
-            # Explicit source-action attribution can repeat the same Quest
-            # where the authored route links it to several distinct actions.
-            if not allow_repeat and int(quest_id) in self._shown_quest_ids:
+            # Even if several source actions refer to the same Quest,
+            # keep a single shortcut per Quest on the current sheet.
+            if int(quest_id) in self._shown_quest_ids:
                 continue
             name = names.get(int(quest_id))
             if not name:
