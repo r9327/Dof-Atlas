@@ -2128,6 +2128,9 @@ class SharedGuideManualView(GuideUltimeManualView):
         layout.addWidget(self.summary_panel)
         apply_unity_panel_shadow(header, blur=15, vertical=3)
         root.addWidget(header)
+        # Ganymede metadata shells override participant refresh; apply the
+        # universal compact geometry even before any guide is loaded.
+        self._sync_compact_action_labels()
         self._refresh_participants_panel()
 
     def _guide_title(self) -> str:
