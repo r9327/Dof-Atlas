@@ -1905,7 +1905,10 @@ class SharedGuideManualView(GuideUltimeManualView):
             metrics.addWidget(bar, 1, column, Qt.AlignVCenter)
             if name == "Route":
                 self.summary_button = arrow
-                self._route_metric_widgets = (icon, caption_label, arrow, value, bar)
+                self._route_metric_caption = caption
+                # Retain the internal route progress object for consumers,
+                # but hide its redundant visual controls in every guide.
+                self._route_metric_widgets = (icon, caption_label, value, bar)
             else:
                 self.preparation_button = arrow
             self._metric_dropdown_buttons[name] = arrow
@@ -2061,6 +2064,12 @@ class SharedGuideManualView(GuideUltimeManualView):
             )
         )
         top.addWidget(self.page_jump, 0, Qt.AlignTop)
+        # Reuse the existing indexed disclosure, now beside X/X rather than
+        # attached to a redundant Route progress bar.
+        self._route_metric_caption.removeWidget(self.summary_button)
+        self.summary_button.setToolTip("Afficher le sommaire des fiches")
+        self.summary_button.setAccessibleName("Afficher le sommaire des fiches")
+        top.addWidget(self.summary_button, 0, Qt.AlignVCenter)
 
         self.participants_button = AtlasGuideCharacterButton()
         self.participants_button.setObjectName("GuideParticipantsButton")
@@ -2115,8 +2124,9 @@ class SharedGuideManualView(GuideUltimeManualView):
         self.summary_list.itemClicked.connect(self._summary_item_clicked)
         summary_layout.addWidget(self.summary_list)
         self.summary_panel.setVisible(False)
-        # Match the Route progress column, not the combined header width.
-        self._metric_columns["Route"].addWidget(self.summary_panel)
+        # A single shared sommaire, under the sheet selector: independent of
+        # the À préparer / Prérequis drawer and available in every guide.
+        layout.addWidget(self.summary_panel)
         apply_unity_panel_shadow(header, blur=15, vertical=3)
         root.addWidget(header)
         self._refresh_participants_panel()
@@ -2168,37 +2178,19 @@ class SharedGuideManualView(GuideUltimeManualView):
         # its tooltip and accessibility label without stretching the header.
         self.participants_button.setText("")
         source_guide = self._is_imported_source_guide()
-        # A source guide already has direct X/X sheet navigation and arrows.
-        # Its Route metric and drawer are redundant, but progress is still
-        # computed for the global bar and for existing guide consumers.
-        compact_source = source_guide or getattr(self, "_hide_route_progress_ui", False)
-        for widget in getattr(self, "_route_metric_widgets", ()):
-            widget.setVisible(not compact_source)
-        if compact_source:
-            self.summary_button.setChecked(False)
-            self.summary_panel.hide()
-        self._compact_metric_grid.setColumnStretch(0, 0 if compact_source else 1)
+        # Route duplicates global progress in every manual guide. Its data
+        # and progress identities remain intact; only the UI is collapsed.
+        for widget in self._route_metric_widgets:
+            widget.hide()
+        self._compact_metric_grid.setColumnStretch(0, 0)
         self._compact_metric_grid.setColumnStretch(1, 1)
-        self._compact_metric_grid.setHorizontalSpacing(0 if compact_source else 12)
-        self._compact_header_stack.setSpacing(3 if compact_source else 6)
-        self._compact_header_outer.setContentsMargins(
-            10, 4 if compact_source else 6, 10, 5 if compact_source else 7,
-        )
+        self._compact_metric_grid.setHorizontalSpacing(0)
+        self._compact_header_stack.setSpacing(3)
+        self._compact_header_outer.setContentsMargins(10, 4, 10, 5)
         self._compact_metric_grid.invalidate()
-        for name, label in getattr(self, "_metric_caption_labels", {}).items():
-            if name == "Préparation" and source_guide:
-                label.setText("À préparer")
-            else:
-                label.setText("Prép." if narrow and name == "Préparation" else name)
-        if hasattr(self, "preparation_button"):
-            self.preparation_button.setToolTip(
-                "Ouvrir Prérequis et objets" if source_guide
-                else "Ouvrir Préparation"
-            )
-            self.preparation_button.setAccessibleName(
-                "Afficher Prérequis et objets" if source_guide
-                else "Afficher Préparation"
-            )
+        self._metric_caption_labels["Préparation"].setText("À préparer")
+        self.preparation_button.setToolTip("Ouvrir Prérequis et À préparer")
+        self.preparation_button.setAccessibleName("Afficher Prérequis et À préparer")
         self.participants_button.setAccessibleName(full_label)
         self.participants_button.setToolTip(
             "Choisir les identités stables utilisées par la progression et les déplacements."
