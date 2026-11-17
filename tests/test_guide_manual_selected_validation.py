@@ -8,7 +8,7 @@ from types import SimpleNamespace
 
 os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
 
-from PySide6.QtWidgets import QApplication
+from PySide6.QtWidgets import QApplication, QFrame
 
 from app.modules.encyclopedia.services.guide_progress_service import GuideProgressService
 from app.modules.encyclopedia.views.shared_manual_guide_view import SharedGuideManualView
@@ -103,6 +103,15 @@ class GuideManualSelectedValidationTests(unittest.TestCase):
     def _show_sheet(self, index: int = 0) -> None:
         self.view._show_index(index)
         QApplication.processEvents()
+
+    def test_legend_exists_only_on_first_rendered_guide_sheet(self) -> None:
+        self._show_sheet(0)
+        first = self.view.cards_layout.itemAt(0).widget()
+        self.assertIsNotNone(first.findChild(QFrame, "GuideManualLegendCard"))
+        self._show_sheet(1)
+        second = self.view.cards_layout.itemAt(0).widget()
+        self.assertIsNone(second.findChild(QFrame, "GuideManualLegendCard"))
+        self.assertEqual(self.view.rendered_card_count, 1)
 
     def test_empty_selection_never_writes_global_character(self) -> None:
         self.participants.save_selected_keys(())
