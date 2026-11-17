@@ -905,8 +905,6 @@ class SharedGuideManualCard(GuideUltimeManualCard):
 class SharedGuideManualView(GuideUltimeManualView):
     """Guide-agnostic canonical manual road-book renderer."""
 
-    ROUTE_LOCK_PROGRESS_KEY = "__ui:shared_route_locked__"
-
     def _clear_cards(self) -> None:
         """Detach prior sheets immediately; Qt may defer their destruction.
 
@@ -997,10 +995,9 @@ class SharedGuideManualView(GuideUltimeManualView):
         self.progress_details.setVisible(False)
         self.position_label = QLabel()
         self.position_label.setVisible(False)
-        self._restore_route_lock_state()
 
     def _build_compact_header(self, root: QVBoxLayout) -> None:
-        """Compact shared guide header with route and preparation expandable beside each bar."""
+        """One indexed global-progress disclosure with nested À préparer."""
         header = QFrame()
         header.setObjectName("GuideCompactHeader")
         outer = QHBoxLayout(header)
@@ -2054,18 +2051,12 @@ class SharedGuideManualView(GuideUltimeManualView):
             else:
                 completed = min(done for done, _total in progress_rows)
             percent = min(100, round(completed * 100 / total)) if total > 0 else None
-            self.route_bar.setRange(0, max(1, total))
-            self.route_bar.setValue(completed)
-            self.route_progress_label.setText(f"{percent} %")
             self.progress_donut.set_percent(percent)
             self.global_progress_bar.setRange(0, max(1, total))
             self.global_progress_bar.setValue(completed)
             self.global_progress_label.setText(f"{percent} %")
             self.donut_count_label.setText(f"{completed} fiches validées")
         else:
-            self.route_bar.setRange(0, 1)
-            self.route_bar.setValue(0)
-            self.route_progress_label.setText("—")
             self.progress_donut.set_percent(None)
             self.global_progress_bar.setRange(0, 1)
             self.global_progress_bar.setValue(0)
@@ -2073,6 +2064,8 @@ class SharedGuideManualView(GuideUltimeManualView):
             self.donut_count_label.setText("Fiches à valider")
 
         self._update_preparation_progress()
+        if self.global_details_panel.isVisible():
+            self._refresh_global_details()
 
         total_cards = len(self.service.cards)
         index = max(0, min(self.view_index, max(0, total_cards - 1)))
@@ -2089,60 +2082,11 @@ class SharedGuideManualView(GuideUltimeManualView):
         self.page_jump.setValue(index + 1)
         self.page_jump.blockSignals(False)
 
-    def _restore_route_lock_state(self) -> None:
-        locked = False
-        manual_checked = getattr(self.service, "manual_checked", None)
-        if self.character_key and callable(manual_checked):
-            locked = bool(
-                manual_checked(
-                    self.character_key,
-                    self.ROUTE_LOCK_PROGRESS_KEY,
-                )
-            )
-        self.route_lock_check.blockSignals(True)
-        self.route_lock_check.setChecked(locked)
-        self.route_lock_check.blockSignals(False)
-        self._apply_route_lock_visual(locked)
-
-    def _apply_route_lock_visual(self, locked: bool) -> None:
-        label = "Verrouillé" if locked else "Déverrouillé"
-        self.route_lock_check.setText(label)
-        self.route_lock_check.setIcon(
-            _guide_symbol_icon(self.route_lock_check, "lock" if locked else "unlock")
-        )
-        self.route_lock_check.setIconSize(QSize(14, 14))
-        self.route_lock_check.setAccessibleName(label)
-        self.route_lock_check.setProperty("state", "locked" if locked else "unlocked")
-        self.route_lock_check.style().unpolish(self.route_lock_check)
-        self.route_lock_check.style().polish(self.route_lock_check)
-        self.route_bar.setCursor(Qt.ArrowCursor if locked else Qt.PointingHandCursor)
-        self.route_bar.setToolTip(
-            "Barre verrouillée : déverrouillez-la pour naviguer par clic."
-            if locked
-            else "Cliquer dans la barre pour naviguer directement dans le Guide."
-        )
-        self.route_lock_check.setToolTip(
-            "Déverrouiller la navigation dans la barre de progression."
-            if locked
-            else "Verrouiller la navigation dans la barre de progression."
-        )
-
-    def _route_lock_toggled(self, locked: bool) -> None:
-        self._apply_route_lock_visual(bool(locked))
-        set_manual_checked = getattr(self.service, "set_manual_checked", None)
-        if self.character_key and callable(set_manual_checked):
-            set_manual_checked(
-                self.character_key,
-                self.ROUTE_LOCK_PROGRESS_KEY,
-                bool(locked),
-            )
-
     def set_character_key(self, character_key: str) -> None:
         super().set_character_key(character_key)
         self._preparation_loaded = False
         self._preparation_needs = ()
         self._refresh_participants_panel()
-        self._restore_route_lock_state()
 
     def _validation_status(self, card: dict[str, Any], index: int):
         keys = self._progress_participant_keys()
