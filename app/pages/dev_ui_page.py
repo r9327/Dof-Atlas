@@ -53,6 +53,7 @@ from PySide6.QtWidgets import (
 from app.ui.components import (
     AtlasBreadcrumb,
     AtlasButton,
+    BUTTON_OBJECT_NAMES,
     AtlasComboBox,
     AtlasPageNavigator,
     AtlasDialog,
@@ -2502,6 +2503,34 @@ class DevUiPage(QWidget):
         icons_row.addStretch(1)
         section.addLayout(icons_row)
 
+        craft_note = QLabel(
+            "Fenêtres Craft réelles (sans mutation des données) : "
+            "elles utilisent déjà le thème global, mais leurs conteneurs "
+            "QDialog restent à raccorder au dialogue commun."
+        )
+        craft_note.setObjectName("MutedLabel")
+        craft_note.setWordWrap(True)
+        section.addWidget(craft_note)
+        craft_row = QHBoxLayout()
+        self.preview_craft_dialog_choice = AtlasComboBox()
+        self.preview_craft_dialog_choice.setObjectName("DevUiCraftDialogChoice")
+        self.preview_craft_dialog_choice.addItems(
+            ("Ressources Craft", "Panoplie", "Leveling métier", "Route métier")
+        )
+        self.preview_craft_dialog_choice.setAccessibleName(
+            "Choisir une fenêtre Craft réelle à prévisualiser"
+        )
+        craft_row.addWidget(self.preview_craft_dialog_choice)
+        self.preview_craft_dialog_open = AtlasButton(
+            "Voir la fenêtre Craft", variant="secondary"
+        )
+        self.preview_craft_dialog_open.clicked.connect(
+            self._open_craft_dialog_preview
+        )
+        craft_row.addWidget(self.preview_craft_dialog_open)
+        craft_row.addStretch(1)
+        section.addLayout(craft_row)
+
         colors = self._section(parent, "palette")
         intro = QLabel(
             "Couleurs principales et emplacement dans l'UI darkStone : "
@@ -2612,6 +2641,56 @@ class DevUiPage(QWidget):
         )
         self._report("Palette technique affichée" if visible
                      else "Palette technique masquée")
+
+    def _open_craft_dialog_preview(self) -> None:
+        """Open an existing Craft dialog with harmless, local demonstration data."""
+        # Lazy import: the developer gallery must not preload Craft or game
+        # data merely because Settings/Dev UI was opened.
+        from app.pages.craft_page import (
+            CraftResourceDialog, ItemSetDialog, LevelingDialog, RouteDialog,
+        )
+
+        choice = self.preview_craft_dialog_choice.currentIndex()
+        if choice == 0:
+            dialog = CraftResourceDialog(
+                {"Fer": {"quantity": 8}, "Ortie": {"quantity": 12}},
+                ["Ressource de démonstration sans recette"],
+                self,
+            )
+        elif choice == 1:
+            dialog = ItemSetDialog(
+                {"name_fr": "Panoplie de démonstration",
+                 "items": [{"name": "Coiffe", "level": 40},
+                           {"name": "Cape", "level": 42}]},
+                lambda *_args: None, self,
+            )
+        elif choice == 2:
+            dialog = LevelingDialog(
+                "Alchimiste",
+                {"source": "atlas-local", "kind": "harvest",
+                 "entries": [{"level_range": "1-20",
+                              "craft": {"name": "Ortie"}}]},
+                lambda _name: None, lambda _craft: None, self,
+            )
+        elif choice == 3:
+            dialog = RouteDialog(
+                "Métier de démonstration",
+                {"name": "Ressource sans capture"}, self,
+            )
+        else:
+            raise ValueError(f"Unknown Craft dialog preview index: {choice}")
+
+        current = getattr(self, "_preview_dialog", None)
+        if current is not None and current.isVisible():
+            current.close()
+        self._preview_dialog = dialog
+        dialog.finished.connect(
+            lambda _result: self._report("Fenêtre Craft refermée")
+        )
+        dialog.open()
+        self._report(
+            f"Fenêtre Craft réelle : {self.preview_craft_dialog_choice.currentText()}"
+        )
 
     def _open_preview_dialog(self) -> None:
         self._open_preview_dialog_variant("info")
