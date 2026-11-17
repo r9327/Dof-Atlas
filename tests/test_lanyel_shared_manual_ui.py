@@ -326,6 +326,25 @@ class LanyelSharedManualUiTests(unittest.TestCase):
             2,
         )
 
+    def test_both_optimized_guides_have_one_validation_control_per_sheet(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            view = self._view(Path(directory))
+            try:
+                for guide_id in ("dofus_sylvestre", "guide_complet"):
+                    self.assertTrue(view.select_guide(guide_id))
+                    manual = view.stack.currentWidget()
+                    self.assertIsInstance(manual, SharedGuideManualView)
+                    for index in (0, 1):
+                        manual._show_index(index)
+                        self.app.processEvents()
+                        controls = manual.findChildren(QPushButton, "GuideManualPageCheck")
+                        self.assertEqual(len(controls), 1, f"{guide_id} page {index + 1}")
+                        self.assertTrue(controls[0].text().strip())
+                        self.assertIsNotNone(controls[0].parentWidget())
+            finally:
+                view.deleteLater()
+                self.app.processEvents()
+
     def test_preparation_item_artwork_resolves_flat_and_grouped_layouts(self) -> None:
         from unittest.mock import patch
         from app.modules.encyclopedia.views import shared_manual_guide_view as shared

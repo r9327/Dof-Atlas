@@ -3281,6 +3281,15 @@ QSpinBox#GuidePreparationQuantity {
     padding: 3px 4px;
     min-height: 22px;
 }
+/* QSpinBox contains a native line editor; its global QLineEdit palette
+   must not paint a separate near-black inset over the indexed surface. */
+QSpinBox#GuideCompactPageJump QLineEdit,
+QSpinBox#GuidePreparationQuantity QLineEdit {
+    background: transparent;
+    color: @TEXT;
+    border: none;
+    padding: 0;
+}
 QSpinBox#GuideCompactPageJump:focus,
 QSpinBox#GuidePreparationQuantity:focus {
     border-color: @GREEN_BORDER;
@@ -3303,7 +3312,7 @@ QSpinBox#GuidePreparationQuantity {
 
 QSpinBox#GuidePreparationQuantity::up-button,
 QSpinBox#GuidePreparationQuantity::down-button {
-    background: @NAV_SURFACE;
+    background: @PANEL_HOVER;
     border-left: 1px solid @BORDER_SOFT;
     width: 16px;
 }
