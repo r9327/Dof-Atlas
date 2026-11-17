@@ -164,7 +164,7 @@ class GuideUltimeCard(QFrame):
         body = self._section(root, "PROGRESSE AUSSI")
         for qid in quest_ids:
             done = self.service.quest_progress.is_quest_completed(self.character_key, qid)
-            label = QLabel(f"{'✓' if done else '•'} Quête #{qid}")
+            label = QLabel(f"{'✓ ' if done else ''}Quête #{qid}")
             label.setProperty("state", "done" if done else "todo")
             label.setObjectName("GuideUltimeInfoLine")
             body.addWidget(label)
@@ -175,7 +175,7 @@ class GuideUltimeCard(QFrame):
         for row in ocre:
             text = str(row.get("action") or "Capture Ocre")
             boss = str(row.get("boss") or "").strip()
-            label = QLabel(f"• Ocre : {text}{' — ' + boss if boss else ''}")
+            label = QLabel(f"Ocre : {text}{' — ' + boss if boss else ''}")
             label.setObjectName("GuideUltimeInfoLine")
             label.setWordWrap(True)
             body.addWidget(label)
@@ -184,7 +184,7 @@ class GuideUltimeCard(QFrame):
         aid = self._safe_int(row.get("achievement_id"))
         done = bool(aid is not None and self.service.achievement_progress.is_achievement_completed(self.character_key, aid))
         name = str(row.get("name") or f"Succès #{aid}")
-        label = QLabel(f"{'✓' if done else '•'} Succès {kind} — {name}")
+        label = QLabel(f"{'✓ ' if done else ''}Succès {kind} — {name}")
         label.setObjectName("GuideUltimeInfoLine")
         label.setProperty("state", "done" if done else "todo")
         label.setWordWrap(True)

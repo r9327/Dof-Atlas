@@ -174,7 +174,7 @@ class GuideUltimeRouteCard(GuideUltimeWalkthroughCard):
             text += f" — {location}"
         text += "."
 
-        label = QLabel(("✓ " if done else "• ") + text)
+        label = QLabel(("✓ " if done else "") + text)
         label.setObjectName("GuideRouteAction")
         label.setProperty("state", "done" if done else "todo")
         label.setWordWrap(True)
@@ -190,7 +190,7 @@ class GuideUltimeRouteCard(GuideUltimeWalkthroughCard):
         if position:
             instruction = f"{instruction} — {position}"
 
-        label = QLabel(("✓ " if checked else "• ") + instruction)
+        label = QLabel(("✓ " if checked else "") + instruction)
         label.setObjectName("GuideRouteAction")
         label.setProperty("state", "done" if checked else "todo")
         label.setWordWrap(True)
@@ -218,7 +218,7 @@ class GuideUltimeRouteCard(GuideUltimeWalkthroughCard):
                 and self.service.achievement_progress.is_achievement_completed(self.character_key, aid)
             )
             name = str(row.get("name") or "").strip()
-            label = QLabel(f"{'✓' if done else '•'} Fais aussi : {name}.")
+            label = QLabel(f"{'✓ ' if done else ''}Fais aussi : {name}.")
             label.setObjectName("GuideRouteAction")
             label.setProperty("state", "done" if done else "todo")
             label.setWordWrap(True)
@@ -339,7 +339,7 @@ class GuideUltimeRouteCard(GuideUltimeWalkthroughCard):
 
     @staticmethod
     def _add_plain_line(body: QVBoxLayout, text: str, *, important: bool = False) -> None:
-        label = QLabel("• " + str(text).strip().rstrip(".") + ".")
+        label = QLabel(str(text).strip().rstrip(".") + ".")
         label.setObjectName("GuideRouteImportant" if important else "GuideRouteAction")
         label.setWordWrap(True)
         body.addWidget(label)
