@@ -182,7 +182,15 @@ class GanymedeGuideShellTests(unittest.TestCase):
         checks[0].click()
         self.assertTrue(checks[0].isChecked())
         self.assertFalse(hasattr(shell.service, "guide_progress"))
-        self.assertEqual(len(shell.findChildren(QToolButton, "GuideMetricDropdown")), 1)
+        self.assertEqual(len(shell.findChildren(QToolButton, "GuideMetricDropdown")), 2)
+        shell.global_details_button.click()
+        self.app.processEvents()
+        self.assertTrue(shell.global_details_panel.isVisibleTo(shell))
+        self.assertTrue(shell.preparation_panel.isVisibleTo(shell))
+        self.assertIn(
+            "aperçu non certifié",
+            shell.global_details_panel.findChild(QLabel, "GuidePreparationEmpty").text(),
+        )
 
         # X/X moves between adaptive pages while keeping original card IDs.
         shell.page_jump.setValue(2)

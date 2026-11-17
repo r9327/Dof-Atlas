@@ -225,6 +225,7 @@ class GuideUltimeManualUiNavigationTests(unittest.TestCase):
             self.assertIn("Choisir les identités", view.participants_button.toolTip())
             self.assertEqual(view.page_jump.maximumWidth(), 90)
             self.assertEqual(view.preparation_button.objectName(), "GuideMetricDropdown")
+            self.assertEqual(view.global_details_button.objectName(), "GuideMetricDropdown")
             self.assertGreaterEqual(view.participants_button.width(), view.preparation_button.width())
             self.assertIs(
                 view._compact_title_row.itemAt(

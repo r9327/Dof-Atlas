@@ -87,6 +87,7 @@ class GanymedeGuideShell(SharedGuideManualView):
             self.global_progress_bar,
             self.preparation_bar,
             self.preparation_button,
+            self.global_details_button,
             self.overlay_button,
             self.page_jump,
             self.participants_button,
@@ -158,6 +159,7 @@ class GanymedeGuideShell(SharedGuideManualView):
         self._preparation_needs = ()
         self._preparation_preview = ()
         self.preparation_button.setEnabled(True)
+        self.global_details_button.setEnabled(True)
         for tab in self.preparation_tab_group.buttons():
             if tab.property("tabKey") == "Prérequis":
                 tab.setChecked(True)
@@ -238,6 +240,8 @@ class GanymedeGuideShell(SharedGuideManualView):
             self._review_viewport_size = (0, 0)
             self.preparation_button.setChecked(False)
             self.preparation_button.setEnabled(False)
+            self.global_details_button.setChecked(False)
+            self.global_details_button.setEnabled(False)
             self.preparation_panel.hide()
             self._preparation_loaded = False
             self._preparation_preview = ()

@@ -499,10 +499,10 @@ class LanyelSharedManualUiTests(unittest.TestCase):
             self.assertIsNone(compact.findChild(QToolButton, "GuideManualProgressLock"))
             self.assertIs(compact.findChild(QToolButton, "GuideParticipantsButton"),
                           shared.participants_button)
-            # The only indexed drawer is Préparation, and X/X owns navigation.
+            # Both metrics share indexed disclosures and can remain open.
             self.assertEqual(
                 set(compact.findChildren(QToolButton, "GuideMetricDropdown")),
-                {shared.preparation_button},
+                {shared.preparation_button, shared.global_details_button},
             )
             self.assertFalse(hasattr(shared, "summary_button"))
             self.assertFalse(hasattr(shared, "route_bar"))
@@ -514,11 +514,14 @@ class LanyelSharedManualUiTests(unittest.TestCase):
             ).widget(), shared.participants_button)
             self.assertIsNone(sheet_header.findChild(QToolButton, "GuideParticipantsButton"))
             shared.preparation_button.setChecked(True)
+            shared.global_details_button.setChecked(True)
             shared.participants_button.setChecked(True)
             self.app.processEvents()
             self.assertIsNone(shared.findChild(QFrame, "GuideSummaryPanel"))
             self.assertTrue(shared.preparation_panel.isVisibleTo(compact))
+            self.assertTrue(shared.global_details_panel.isVisibleTo(compact))
             self.assertTrue(shared.participants_panel.isVisibleTo(compact))
+            shared.global_details_button.setChecked(False)
             shared.preparation_button.setChecked(False)
             shared.participants_button.setChecked(False)
             self.assertFalse(hasattr(shared, "page_jump_button"))

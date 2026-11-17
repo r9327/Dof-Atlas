@@ -1810,6 +1810,12 @@ class SharedGuideManualView(GuideUltimeManualView):
         overall_title = QLabel("Progression globale")
         overall_title.setObjectName("GuideGlobalProgressTitle")
         overall_caption.addWidget(overall_title)
+        self.global_details_button = AtlasGuideDisclosure()
+        self.global_details_button.setFixedSize(18, 18)
+        self.global_details_button.setCursor(Qt.PointingHandCursor)
+        self.global_details_button.setToolTip("Voir la progression par personnage")
+        self.global_details_button.setAccessibleName("Déplier la progression globale")
+        overall_caption.addWidget(self.global_details_button, 0, Qt.AlignVCenter)
         overall_caption.addStretch(1)
         overall_caption.addWidget(self.global_progress_label)
         # The two surviving metrics share the same line, formerly occupied
@@ -1822,6 +1828,14 @@ class SharedGuideManualView(GuideUltimeManualView):
         global_metric.addLayout(overall_caption)
         global_metric.addWidget(self.global_progress_bar)
         metrics.addLayout(global_metric, 0, 0, 2, 1)
+        self.global_details_panel = QFrame()
+        self.global_details_panel.setObjectName("GuideGlobalDetailsPanel")
+        self.global_details_layout = QVBoxLayout(self.global_details_panel)
+        self.global_details_layout.setContentsMargins(10, 8, 10, 9)
+        self.global_details_layout.setSpacing(GUIDE_READING_METRICS["row_spacing"])
+        self.global_details_panel.setVisible(False)
+        self.global_details_button.toggled.connect(self._global_details_toggled)
+        metrics.addWidget(self.global_details_panel, 2, 0, Qt.AlignTop)
         metrics.setColumnStretch(0, 1)
         self._metric_caption_labels: dict[str, QLabel] = {}
         def add_metric(
@@ -1874,6 +1888,47 @@ class SharedGuideManualView(GuideUltimeManualView):
 
         apply_unity_panel_shadow(header, blur=18, vertical=4)
         root.addWidget(header)
+
+    def _global_details_toggled(self, opened: bool) -> None:
+        self.global_details_panel.setVisible(bool(opened))
+        if opened:
+            self._refresh_global_details()
+
+    def _refresh_global_details(self) -> None:
+        """Read-only per-character progress using the existing verified IDs."""
+        while self.global_details_layout.count():
+            item = self.global_details_layout.takeAt(0)
+            widget = item.widget()
+            if widget is not None:
+                widget.hide()
+                widget.setParent(None)
+                widget.deleteLater()
+        keys = self._progress_participant_keys()
+        if not keys:
+            message = (
+                "Progression indisponible : aperçu non certifié."
+                if getattr(self, "_inspection_active", False)
+                else "Sélectionne un personnage pour afficher sa progression."
+            )
+            empty = QLabel(message)
+            empty.setObjectName("GuidePreparationEmpty")
+            empty.setWordWrap(True)
+            self.global_details_layout.addWidget(empty)
+            return
+        profiles = {
+            row.key: row.label
+            for row in self.participant_service.available_characters()
+        }
+        for key in keys:
+            percent = self._participant_progress(key)
+            label = QLabel(
+                f"{profiles.get(key, key)} · {percent} %"
+                if percent is not None
+                else f"{profiles.get(key, key)} · progression inconnue"
+            )
+            label.setObjectName("GuidePreparationParticipantNeed")
+            label.setWordWrap(True)
+            self.global_details_layout.addWidget(label)
 
     def _build_preparation_panel(self, root: QVBoxLayout) -> None:
         self.preparation_button.toggled.connect(self._preparation_toggled)
@@ -3407,6 +3462,8 @@ class SharedGuideManualView(GuideUltimeManualView):
 
         self._update_preparation_progress()
         self._sync_compact_action_labels()
+        if self.global_details_panel.isVisible():
+            self._refresh_global_details()
         if self._is_imported_source_guide():
             # A prerequisite is not automatically completed by importing a
             # document. Show the number of source-declared gates, never a

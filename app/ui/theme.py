@@ -2560,6 +2560,7 @@ QToolButton#GuideManualProgressLock[state="locked"] {
 
 QFrame#GuideCompactHeader,
 QFrame#GuidePreparationPanel,
+QFrame#GuideGlobalDetailsPanel,
 QFrame#GuideSheetHeader {
     background: @PANEL;
     border: 1px solid @BORDER;
@@ -2568,7 +2569,8 @@ QFrame#GuideSheetHeader {
 
 /* Expanded preparation must retain the blue Unity surface,
    not Qt's native gray scroll/panel background. */
-QFrame#GuidePreparationPanel {
+QFrame#GuidePreparationPanel,
+QFrame#GuideGlobalDetailsPanel {
     background: @PANEL;
     border: 1px solid @BORDER_SOFT;
     border-radius: @RADIUS_MD;
