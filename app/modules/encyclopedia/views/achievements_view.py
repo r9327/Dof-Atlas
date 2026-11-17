@@ -605,9 +605,9 @@ class AchievementsView(QWidget):
 
         combo = AtlasComboBox()
         combo.setObjectName("AchievementAlignmentOrderCombo")
-        combo.setSizePolicy(QSizePolicy.Ignored, QSizePolicy.Fixed)
-        combo.setMinimumContentsLength(16)
-        combo.setSizeAdjustPolicy(AtlasComboBox.AdjustToMinimumContentsLengthWithIcon)
+        # Keep the same content-driven width as the Dev UI reference.
+        # The popup can show full order names even if the panel is narrow.
+        combo.setSizePolicy(QSizePolicy.Maximum, QSizePolicy.Fixed)
         combo.addItem("Choisir un Ordre...", None)
         order_quest_ids = _order_quest_ids()
         for side, orders in order_quest_ids.items():
