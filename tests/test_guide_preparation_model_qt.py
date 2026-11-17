@@ -104,8 +104,8 @@ class GuidePreparationQtFocusedTests(unittest.TestCase):
         for role in ("GuideCompactPageJump", "GuidePreparationQuantity"):
             self.assertIn(f"QSpinBox#{role}", style)
         match = re.search(
-            r"QSpinBox#GuideCompactPageJump QLineEdit,\\s*"
-            r"QSpinBox#GuidePreparationQuantity QLineEdit\\s*\\{([^}]+)\\}",
+            r"QSpinBox#GuideCompactPageJump QLineEdit,\s*"
+            r"QSpinBox#GuidePreparationQuantity QLineEdit\s*\{([^}]+)\}",
             style,
         )
         self.assertIsNotNone(match)
