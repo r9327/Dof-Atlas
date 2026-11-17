@@ -54,41 +54,33 @@ class GanymedeGuideShellTests(unittest.TestCase):
         stylesheet = atlas_stylesheet()
         self.assertIn("QSpinBox#GuideCompactPageJump::up-arrow", stylesheet)
         self.assertIn("QSpinBox#GuideCompactPageJump::down-arrow", stylesheet)
-        self.assertEqual(shell.summary_button.arrowType(), Qt.NoArrow)
         self.assertEqual(shell.preparation_button.arrowType(), Qt.NoArrow)
-        self.assertFalse(shell.summary_button.icon().isNull())
         self.assertFalse(shell.preparation_button.icon().isNull())
-        self.assertEqual(shell.summary_button.width(), 18)
-        self.assertTrue(shell.summary_button.isHidden())
         self.assertFalse(shell.prev_button.icon().isNull())
         self.assertFalse(shell.next_button.icon().isNull())
-        self.assertFalse(shell.summary_button.isEnabled())
         self.assertFalse(shell.preparation_button.isEnabled())
         self.assertFalse(shell.participants_button.isEnabled())
         self.assertIsInstance(shell.participants_button, AtlasGuideCharacterButton)
         self.assertFalse(shell.participants_button.icon().isNull())
         self.assertEqual(shell.participants_button.width(), 24)
-        # Personnages is beside Settings and expands ABOVE global progress.
+        # Personnages is on the compact title row, above global progress.
         from PySide6.QtWidgets import QGridLayout
         self.assertIs(
             shell._compact_title_row.itemAt(
-                shell._compact_title_row.count() - 2
+                shell._compact_title_row.count() - 1
             ).widget(), shell.participants_button,
         )
         self.assertIs(
             shell._header_content_layout.itemAt(1).widget(),
             shell.participants_panel,
         )
-        metrics = shell._metric_columns["Route"].parent()
+        metrics = shell._metric_columns["Préparation"].parent()
         self.assertIsInstance(metrics, QGridLayout)
-        self.assertEqual(metrics.columnCount(), 2)
-        self.assertTrue(shell.route_bar.isHidden())
-        self.assertIs(shell.summary_button.parentWidget(),
-                      shell.findChild(QFrame, "GuideCompactHeader"))
+        self.assertEqual(metrics.columnCount(), 1)
         self.assertEqual(shell.rendered_card_count, 0)
         self.assertEqual(shell.cards_layout.count(), 0)
         before = len(shell.findChildren(QProgressBar))
-        self.assertEqual(before, 3)
+        self.assertEqual(before, 2)
         for entry in listings:
             shell.set_listing(entry)
             self.assertEqual(shell.guide_title_label.text(), entry.title)
@@ -188,13 +180,8 @@ class GanymedeGuideShellTests(unittest.TestCase):
             ),
         )
         # Each source step is indexed once and no next step leaks into this sheet.
-        self.assertTrue(shell.summary_button.isEnabled())
-        self.assertEqual(shell.summary_list.count(), 64)
-        self.assertTrue(shell.summary_list.item(0).text().startswith(
-            "1. Contrôler le parcours d'accès aux Dofus"
-        ))
-        self.assertNotIn("Étape 1", shell.summary_list.item(0).text())
         self.assertTrue(shell.page_jump.isEnabled())
+        self.assertEqual(shell.page_jump.maximum(), 64)
         position_labels = shell.findChildren(QLabel, "GuideManualPositionCopy")
         self.assertEqual(len(position_labels), 1)
         self.assertIn("travel-copy:25,-4", position_labels[0].text())
@@ -213,19 +200,11 @@ class GanymedeGuideShellTests(unittest.TestCase):
         shell.preparation_button.click()
         self.app.processEvents()
         self.assertTrue(shell.preparation_panel.isVisibleTo(shell))
-        # The compact sommaire beside X/X and the preparation drawer
-        # remain independent and can be opened together.
-        shell.summary_button.click()
-        self.app.processEvents()
-        self.assertTrue(shell.summary_panel.isVisibleTo(shell))
+        # X/X navigation preserves the open preparation drawer.
+        shell.page_jump.setValue(2)
+        self.assertEqual(shell.view_index, 1)
         self.assertTrue(shell.preparation_panel.isVisibleTo(shell))
-        self.assertIs(shell.summary_panel.parentWidget(),
-                      shell.findChild(QFrame, "GuideSheetHeader"))
-        self.assertIs(shell.preparation_panel.parentWidget(),
-                      shell.findChild(QFrame, "GuideCompactHeader"))
-        self.assertTrue(shell.route_bar.isHidden())
-        shell.summary_button.click()
-        self.assertTrue(shell.preparation_panel.isVisibleTo(shell))
+        shell.page_jump.setValue(1)
         self.assertEqual(shell._preparation_tab, "Prérequis")
         self.assertEqual(len(shell._preparation_preview), 10)
         self.assertFalse(shell.preparation_filter_host.isVisibleTo(shell))
@@ -296,15 +275,12 @@ class GanymedeGuideShellTests(unittest.TestCase):
         self.app.processEvents()
         self.assertIs(catalog.pages.currentWidget(), shell)
         self.assertEqual(requests, [])
-        # Sommaire jumps to any original source sheet, never a 3-step window.
-        shell.summary_button.click()
-        self.assertTrue(shell.summary_panel.isVisibleTo(shell))
-        shell._summary_item_clicked(shell.summary_list.item(39))
+        # X/X jumps to any original source sheet, never a 3-step window.
+        shell.page_jump.setValue(40)
         self.assertEqual(shell.view_index, 39)
         self.assertEqual(shell.rendered_card_count, 1)
         self.assertEqual(shell.cards_layout.itemAt(0).widget().card["source_step_id"],
                          "ganymede_2205_step_0040")
-        self.assertTrue(shell.summary_panel.isVisibleTo(shell))
         shell._show_index(0)
         # Every original source step is independently navigable and mounted once.
         visited = []
@@ -345,9 +321,6 @@ class GanymedeGuideShellTests(unittest.TestCase):
         self.assertTrue(catalog.open_ganymede_container(other.source_id))
         self.assertEqual(shell.service.cards, ())
         self.assertEqual(shell.rendered_card_count, 0)
-        self.assertEqual(shell.summary_list.count(), 0)
-        self.assertFalse(shell.summary_button.isEnabled())
-        self.assertTrue(shell.summary_panel.isHidden())
         self.assertFalse(shell.preparation_button.isEnabled())
         self.assertTrue(shell.preparation_panel.isHidden())
         self.assertEqual(shell.validation_layout.count(), 0)
@@ -375,7 +348,7 @@ class GanymedeGuideShellTests(unittest.TestCase):
         large_count = shell.rendered_card_count
         self.assertEqual(large_count, 1)
         self.assertEqual(shell._review_end_index, 1)
-        self.assertEqual(shell.summary_list.count(), len(shell.service.cards))
+        self.assertEqual(shell.page_jump.maximum(), len(shell.service.cards))
         self.assertEqual(
             shell.cards_layout.itemAt(0).widget().findChildren(
                 QLabel, "GuideManualStageTitle",
