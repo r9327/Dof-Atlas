@@ -748,12 +748,9 @@ def exercise_guide(session, page, owner, guide_id, repeats, smoke=False):
         settle()
         session.snapshot(page)
         for filter_name in ("Potions", "Objets"):
-            filter_button = next(
-                button
-                for button in view.preparation_filter_group.buttons()
-                if button.property("filterKey") == filter_name
-            )
-            filter_button.click()
+            if view.preparation_filter.findText(filter_name) < 0:
+                raise RuntimeError(f"Missing indexed preparation category: {filter_name}")
+            view.preparation_filter.setCurrentText(filter_name)
             settle()
             session.snapshot(page)
         view.preparation_button.setChecked(False)
@@ -790,6 +787,60 @@ def exercise_guide(session, page, owner, guide_id, repeats, smoke=False):
             view.scroll.verticalScrollBar().setValue(0)
             settle()
     view._show_index(0)
+    settle()
+    # Exercise the real Preparation drawer in the verification campaign.
+    # Historically only the Dev UI fiction was captured in CI, while the
+    # production Guide drawer remained closed in every real route image.
+    view.preparation_button.setChecked(True)
+    settle()
+    preparation_open = (
+        view.preparation_panel.isVisible()
+        and view.preparation_scroll.isVisible()
+        and view.preparation_filter.isVisible()
+    )
+    session.check(
+        "preparation-open",
+        "Open the actual indexed Guide preparation drawer on Windows Qt",
+        "Production panel, scroll area and category selector are visibly mounted",
+        {
+            "open": preparation_open,
+            "visible_categories": [
+                view.preparation_filter.itemText(i)
+                for i in range(view.preparation_filter.count())
+            ],
+            "drawer_height": view.preparation_scroll.height(),
+            "drawer_max_height": view.preparation_scroll.maximumHeight(),
+            "loaded_needs": len(view._preparation_needs),
+        },
+        preparation_open
+        and 0 < view.preparation_scroll.height() <= view.preparation_scroll.maximumHeight(),
+        page,
+    )
+    for filter_name in ("Potions", "Objets"):
+        index = view.preparation_filter.findText(filter_name)
+        if index < 0:
+            session.check(
+                "preparation-filter-" + filter_name.lower(),
+                "Find production preparation category", "A real indexed filter exists",
+                {"filter": filter_name, "available": False},
+                False, page, status="BLOCKED",
+            )
+            continue
+        view.preparation_filter.setCurrentIndex(index)
+        settle()
+        session.check(
+            "preparation-filter-" + filter_name.lower(),
+            "Switch production preparation category via the real combo",
+            "Selected category stays visible and drawer retains valid geometry",
+            {"selected": view.preparation_filter.currentText(),
+             "panel_visible": view.preparation_panel.isVisible(),
+             "drawer_height": view.preparation_scroll.height()},
+            view.preparation_filter.currentText() == filter_name
+            and view.preparation_panel.isVisible()
+            and 0 < view.preparation_scroll.height() <= view.preparation_scroll.maximumHeight(),
+            page,
+        )
+    view.preparation_button.setChecked(False)
     settle()
     for turn in range(1 if smoke else repeats):
         previous_sheet = view.findChild(QFrame, "GuideManualSheet")
