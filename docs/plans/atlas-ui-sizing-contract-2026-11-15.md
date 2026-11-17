@@ -255,8 +255,8 @@ Paramètres, Dev UI, Almanax, Craft, Équipement/Stuffs, Carte du monde,
 Personnage, Quêtes, Guides, Succès et Bestiaire. Il conserve aussi les
 consommateurs Réseau, Launcher Tk et l'agrégat Outils.
 
-La section « Couverture » de Dev UI présente également **12 familles de
-popups/dialogues**, issues des vrais widgets de la fixture
+La section « Couverture » de Dev UI présente également **12 scénarios de
+popups/dialogues**, issus des vrais widgets de la fixture
 `tests/capture_app_popups_ui.py`, et **4 surfaces d'overlay/démarrage**
 (Organizer radial et sélection, splash Unity, préchargement). Chaque ligne
 renvoie au **fichier source existant** ; ce sont des inventaires,
@@ -264,7 +264,7 @@ renvoie au **fichier source existant** ; ce sont des inventaires,
 Le Launcher reste Tk, l'Organizer garde ses interactions métier.
 
 Le contrat Qt vérifie la correspondance entre les scénarios du shell et
-les 18 entrées, les 12 noms de familles de popups de capture, et refuse
+les 18 entrées, les 12 scénarios de popups de capture, et refuse
 toute nouvelle feuille QSS locale sur les fichiers Qt indexés.
 `main.py` n'a que quatre appels `setStyleSheet` explicitement
 autorisés : les applications du **thème global** et le fond transparent
