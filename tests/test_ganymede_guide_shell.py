@@ -184,6 +184,11 @@ class GanymedeGuideShellTests(unittest.TestCase):
         self.assertTrue(checks[0].isChecked())
         self.assertFalse(hasattr(shell.service, "guide_progress"))
         self.assertEqual(len(shell.findChildren(QToolButton, "GuideMetricDropdown")), 2)
+        # The second click collapses global details; a third click restores
+        # the same nested preparation panel without losing its state.
+        shell.global_details_button.click()
+        self.app.processEvents()
+        self.assertFalse(shell.global_details_panel.isVisibleTo(shell))
         shell.global_details_button.click()
         self.app.processEvents()
         self.assertTrue(shell.global_details_panel.isVisibleTo(shell))
