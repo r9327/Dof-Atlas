@@ -125,8 +125,9 @@ class AchievementProvider:
             return None
         if not self._detail_sources_ready:
             raise RuntimeError(
-                "Sources de détail Succès non préparées ; load_all() doit être exécuté "
-                "hors du thread UI avant l'ouverture d'un détail."
+                "Sources de détail Succès non préparées ; "
+                "prepare_detail_sources() doit être exécuté hors du thread Qt "
+                "avant l'ouverture du détail."
             )
         if self._detail_cache_id == achievement_id and self._detail_cache is not None:
             return self._detail_cache
