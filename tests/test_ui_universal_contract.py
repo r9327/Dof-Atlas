@@ -131,9 +131,11 @@ class UiUniversalContractTests(unittest.TestCase):
     def test_zaap_favorite_button_reuses_atlas_style_and_click_owner(self):
         source = (REPO_ROOT / "app/storage.py").read_text(encoding="utf-8")
         self.assertIn(
-            "button = AtlasButton(short_label(name, 24), chip)", source
+            "short_label(name, 24), chip, variant=\"zaap_favorite\"", source
         )
-        self.assertIn('button.setObjectName("favoriteChipName")', source)
+        from app.ui.components import BUTTON_OBJECT_NAMES
+        self.assertEqual(BUTTON_OBJECT_NAMES["zaap_favorite"], "favoriteChipName")
+        self.assertNotIn('button.setObjectName("favoriteChipName")', source)
         self.assertIn("button.clicked.connect", source)
         self.assertNotIn("button = QPushButton(short_label(name, 24), chip)", source)
         self.assertIn("#favoriteChipName", atlas_stylesheet())
