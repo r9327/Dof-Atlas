@@ -390,7 +390,7 @@ class DoctorUiQtFaultTests(unittest.TestCase):
         overlay.deleteLater()
         settle()
 
-    def test_collision_overlay_hidden_scroll_and_wrong_lock_are_detectable(self):
+    def test_collision_overlay_hidden_scroll_and_disconnected_global_drawer_are_detectable(self):
         overlay = QPushButton("Occluding overlay", self.view)
         overlay.setGeometry(self.view.next_button.geometry())
         # Map from the nested nav parent into the top-level view.
@@ -405,12 +405,18 @@ class DoctorUiQtFaultTests(unittest.TestCase):
         self.view.content.setMinimumWidth(2000)
         settle()
         self.assertTrue(geometry_observations(self.view, self.view)["horizontal_overflow"])
-        click_target(self.view, self.view.settings_button)
+        # This Guide no longer has Route/lock controls. A disconnected
+        # global disclosure must not be mistaken for an opened content panel.
+        self.view.content.setMinimumWidth(0)
         settle()
-        self.view.route_lock_check.toggled.disconnect()
-        click_target(self.view, self.view.route_lock_check)
-        self.assertTrue(self.view.route_lock_check.isChecked())
-        self.assertFalse(self.service.manual_checked("character:1", self.view.ROUTE_LOCK_PROGRESS_KEY))
+        disclosure = self.view.global_details_button
+        self.assertFalse(disclosure.isChecked())
+        self.assertFalse(self.view.global_details_panel.isVisible())
+        disclosure.toggled.disconnect()
+        disclosure.click()
+        settle()
+        self.assertTrue(disclosure.isChecked())
+        self.assertFalse(self.view.global_details_panel.isVisible())
 
     def test_real_quest_signal_without_final_effect_fails_and_localizes_each_transition(self):
         sheet = self.view.findChild(QFrame, "GuideManualSheet")
