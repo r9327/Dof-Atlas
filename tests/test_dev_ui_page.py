@@ -1108,11 +1108,13 @@ class DevUiPageTests(unittest.TestCase):
         try:
             page.resize(1440, 900)
             page.show()
+            page.preview_header_controls["Progression globale"].setChecked(True)
             page.preview_header_controls["Préparation"].setChecked(True)
             QApplication.processEvents()
             button = page.preview_header_preparation_names[0]
             # The gallery may keep this section collapsed; QWidget.grab()
             # paints the real, styled button even when an ancestor is hidden.
+            self.assertTrue(button.isVisible())
             self.assertTrue(button.isEnabled())
             self.assertFalse(button.isFlat())
             button.ensurePolished()
