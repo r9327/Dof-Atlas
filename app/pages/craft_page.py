@@ -135,7 +135,7 @@ def quantity_spinbox(value: int, maximum: int = 999) -> QSpinBox:
 
 class CraftResourceDialog(AtlasDialog):
     def __init__(self, resources: dict[str, dict[str, Any]], missing: list[str], parent: QWidget | None = None):
-        super().__init__(parent)
+        super().__init__(parent, density="compact")
         self.resources = resources
         self.icon_cache = IconCache(26)
         self.resource_checks: list[QCheckBox] = []
@@ -251,7 +251,7 @@ class CraftResourceDialog(AtlasDialog):
 
 class ItemSetDialog(AtlasDialog):
     def __init__(self, item_set: dict[str, Any] | None, add_callback, parent: QWidget | None = None):
-        super().__init__(parent)
+        super().__init__(parent, density="compact")
         self.item_set = item_set or {}
         self.add_callback = add_callback
         self.icon_cache = IconCache(28)
@@ -314,7 +314,7 @@ class ItemSetDialog(AtlasDialog):
 
 class LevelingDialog(AtlasDialog):
     def __init__(self, job_name: str, guide: dict[str, Any], find_item_callback, add_craft_callback, parent: QWidget | None = None):
-        super().__init__(parent)
+        super().__init__(parent, density="compact")
         self.find_item_callback = find_item_callback
         self.add_craft_callback = add_craft_callback
         self.icon_cache = IconCache(28)
@@ -417,7 +417,7 @@ class RouteImageLabel(QLabel):
 
 class RouteDialog(AtlasDialog):
     def __init__(self, job_name: str, item: dict[str, Any], parent: QWidget | None = None):
-        super().__init__(parent)
+        super().__init__(parent, density="compact")
         self.job_name = job_name
         self.item = item
         self.step = 1
