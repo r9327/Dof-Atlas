@@ -520,6 +520,16 @@ class DevUiPageTests(unittest.TestCase):
                 "border: 1px solid " + UNITY_PALETTE["GUIDE_TOGGLE_BORDER"],
                 participant_style,
             )
+            self.assertIn(
+                "QToolButton#GuideParticipantsButton:focus,", compiled_qss
+            )
+            disabled_participant_style = compiled_qss.split(
+                "QToolButton#GuideParticipantsButton:disabled {", 1
+            )[1].split("}", 1)[0]
+            self.assertIn(
+                "border-color: " + UNITY_PALETTE["BORDER_SOFT"],
+                disabled_participant_style,
+            )
             page_text_style = compiled_qss.split(
                 "QSpinBox#GuideCompactPageJump QLineEdit {", 1
             )[1].split("}", 1)[0]
