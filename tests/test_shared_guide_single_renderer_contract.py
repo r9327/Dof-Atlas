@@ -112,7 +112,7 @@ class SharedGuideSingleRendererContractTests(unittest.TestCase):
         assert "GuideMetricDropdown" in continuous
         assert "background" not in (VIEWS / "guide_continuous_route_panel.py").name
 
-    def test_shared_reader_shows_bounded_read_ahead_and_complete_summary(self) -> None:
+    def test_shared_reader_shows_bounded_read_ahead_and_direct_navigation(self) -> None:
         """One active step for validation, plus two scrollable read-ahead steps."""
         shared = SHARED.read_text(encoding="utf-8")
         preview = (VIEWS / "ganymede_guide_shell.py").read_text(encoding="utf-8")
@@ -127,9 +127,10 @@ class SharedGuideSingleRendererContractTests(unittest.TestCase):
         assert "for number in self._reading_step_range(index):" in shared
         assert "self._sync_validation_control(widget.page_check" in shared
         assert "widget.page_check.hide()" in shared
-        assert "for index, card in enumerate(self.service.cards):" in shared
-        assert "self.summary_list.addItem(item)" in shared
-        assert 'label = f"{index + 1}. {title}"' in shared
+        assert "self.page_jump = QSpinBox()" in shared
+        assert "self.page_jump.valueChanged.connect(" in shared
+        assert "self.summary_list" not in shared
+        assert "self.route_bar" not in shared
         # The metadata pilot MUST NOT have its own Qt sheet loop; it must
         # inherit the very same source layout as every authorized import.
         assert "super()._render_window(reset_scroll=reset_scroll)" in preview
