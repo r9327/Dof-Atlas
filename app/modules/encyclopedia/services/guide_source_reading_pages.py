@@ -139,26 +139,51 @@ def paginate_authored_blocks(
     chars_per_line: int,
     target_lines: int = SOURCE_PAGE_TARGET_LINES,
 ) -> tuple[tuple[dict[str, Any], ...], ...]:
-    """Bound page contents without splitting a sentence, link or image."""
+    """Balance whole authored blocks near 18 lines; never leave a 1-line tail.
+
+    Up to two extra visual lines per page let an otherwise orphaned final
+    block fit earlier. One long authored paragraph may exceed this budget:
+    it scrolls intact rather than being cut between pages.
+    """
     if not isinstance(chars_per_line, int) or chars_per_line < 24:
         raise ValueError("Viewport must provide an estimated reading width")
     if not 8 <= target_lines <= 32:
         raise ValueError("Invalid reading line budget")
+    if not blocks:
+        return ()
+    max_lines = target_lines + 2
+    # A large paragraph owns one scrollable page; it must not create a
+    # fictitious backlog of empty pages when estimating page count.
+    costs = [
+        min(max_lines, _visual_line_cost(entry["block"], chars_per_line))
+        for entry in blocks
+    ]
+    remaining_cost = sum(costs)
+    remaining_pages = min(len(blocks), max(1, math.ceil(remaining_cost / max_lines)))
     pages: list[tuple[dict[str, Any], ...]] = []
     current: list[dict[str, Any]] = []
-    count = 0
-    for entry in blocks:
-        cost = _visual_line_cost(entry["block"], chars_per_line)
-        if current and count + cost > target_lines:
-            pages.append(tuple(current))
-            current = []
-            count = 0
+    current_cost = 0
+    for index, (entry, cost) in enumerate(zip(blocks, costs)):
+        # Recalculate the ideal average after EVERY finished page. A fixed
+        # per-page budget would leave one lonely action on the final page.
+        if current and remaining_pages > 1:
+            ideal = remaining_cost / remaining_pages
+            entries_after = len(blocks) - index
+            may_close = entries_after >= remaining_pages - 1
+            if may_close and (
+                current_cost >= ideal
+                or abs(current_cost - ideal) <= abs(current_cost + cost - ideal)
+            ):
+                pages.append(tuple(current))
+                remaining_cost -= current_cost
+                remaining_pages -= 1
+                current = []
+                current_cost = 0
         current.append(entry)
-        count += cost
+        current_cost += cost
     if current:
         pages.append(tuple(current))
     return tuple(pages)
-
 
 def source_page_for_index(
     pages: tuple[tuple[dict[str, Any], ...], ...], source_index: int

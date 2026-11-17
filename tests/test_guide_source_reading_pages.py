@@ -111,6 +111,17 @@ class OriginalReadingPagesTests(unittest.TestCase):
             for row in blocks
         ))
 
+    def test_last_page_is_balanced_instead_of_one_line(self):
+        blocks = tuple({
+            "source_index": i,
+            "block": _p(f"Consigne originale {i}."),
+        } for i in range(181))
+        pages = paginate_authored_blocks(blocks, chars_per_line=80)
+        self.assertEqual(len(pages), 10)
+        self.assertTrue(all(16 <= len(page) <= 20 for page in pages))
+        self.assertEqual([entry for page in pages for entry in page], list(blocks))
+        self.assertGreater(len(pages[-1]), 1)
+
     def test_prerequisite_only_source_card_maps_to_next_readable_page(self):
         blocks = authored_reading_blocks([
             _card([_p("Prérequis")], prereq=[0]),
