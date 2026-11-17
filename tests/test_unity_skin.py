@@ -133,6 +133,16 @@ class UnitySkinTests(unittest.TestCase):
         self.assertNotIn(
             "QPushButton#HomeContinueButton { border: 8px", css,
         )
+        # Guide validation is an indexed stateful AtlasButton: never a green
+        # nine-slice sprite, even when optional Unity PNGs are installed.
+        for selector in (
+            "QPushButton#GuideManualPageCheck { border: 8px",
+            "QPushButton#GuideManualPageCheck:hover { border: 8px",
+            "QPushButton#GuideManualPageCheck:pressed { border: 8px",
+            "QPushButton#GuideManualPageCheck:disabled { border: 8px",
+        ):
+            self.assertNotIn(selector, css)
+        self.assertIn("QPushButton#FeaturedGuideOpen { border: 8px", css)
 
     def test_panel_toggle_common_state_and_accessibility(self) -> None:
         from app.ui.components import AtlasPanelToggle
