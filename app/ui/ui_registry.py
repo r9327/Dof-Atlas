@@ -23,6 +23,7 @@ UI_FAMILY_QSS_SELECTORS: dict[str, tuple[str, ...]] = {
         "#PrimaryActionButton", "#SecondaryButton", "#ActiveButton", "#DangerButton",
         "#InlineActionButton", "#PopupLinkButton", "#TopNavButton", "#TopNavButtonActive",
         "#GuideInlineQuestButton", "#GuideInlineAchievementButton",
+        "#favoriteChipName",
     ),
     "navigation": (
         "QTabBar::tab", "QTabWidget::pane", "QMenu {",
