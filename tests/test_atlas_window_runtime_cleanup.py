@@ -146,8 +146,11 @@ class AtlasWindowRuntimeCleanupTests(unittest.TestCase):
         observed = []
         bridge.statusChanged.connect(observed.append)
         try:
-            with patch.object(bridge.coordinator, "stop", return_value=False):
+            with patch.object(bridge.coordinator, "stop", return_value=False) as stop:
                 self.assertFalse(bridge.stop())
+                # A second shutdown (aboutToQuit) must not hide a failed stop.
+                self.assertFalse(bridge.stop())
+                stop.assert_called_once_with()
             self.assertFalse(bridge.last_status.running)
             self.assertEqual(bridge.last_status.reason, "stop_failed")
             self.assertEqual(len(observed), 1)
