@@ -58,6 +58,12 @@ class NetworkHomeStatusTests(unittest.TestCase):
                 )
 
     def test_waiting_and_error_states_remain_short_but_distinct(self) -> None:
+        for reason in ("waiting_context", "stopped"):
+            with self.subTest(reason=reason):
+                self.assertEqual(
+                    HomePage._network_summary(self._status(reason=reason)),
+                    ("Hors ligne", "idle"),
+                )
         for reason in ("no_window_handles", "build_fingerprint_unavailable"):
             with self.subTest(reason=reason):
                 self.assertEqual(
@@ -70,6 +76,10 @@ class NetworkHomeStatusTests(unittest.TestCase):
             ),
             ("Attention requise", "error"),
         )
+        self.assertEqual(
+            HomePage._network_summary(self._status(reason="stop_failed")),
+            ("Attention requise", "error"),
+        )
 
     def test_home_keeps_only_mini_status_above_almanax(self) -> None:
         page = HomePage()
@@ -79,7 +89,7 @@ class NetworkHomeStatusTests(unittest.TestCase):
         self.assertIs(right_layout.itemAt(1).widget(), page.almanax_card)
         self.assertFalse(hasattr(page, "network_calibration_hint"))
         self.assertFalse(hasattr(page, "network_calibrate_button"))
-        self.assertEqual(page.network_status.text(), "Préparation…")
+        self.assertEqual(page.network_status.text(), "Hors ligne")
         from app.ui.unity_palette import UNITY_MODULE_GEOMETRY_PX
         geometry = UNITY_MODULE_GEOMETRY_PX["home"]
         self.assertEqual(page.left_column.layout().spacing(), geometry["left_column_spacing"])
