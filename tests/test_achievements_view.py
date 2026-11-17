@@ -103,6 +103,35 @@ class AchievementsThirdColumnTests(unittest.TestCase):
         self.assertEqual(view.search.text(), "")
         self.assertFalse(view._search_debounce_timer.isActive())
 
+    def test_direct_link_in_current_category_refreshes_stale_search(self):
+        view, provider = self.make_view()
+        category = QTreeWidgetItem(["Quêtes"])
+        category.setData(0, Qt.UserRole, 19)
+        view.category_tree.addTopLevelItem(category)
+        view._tree_items[19] = category
+        view.category_tree.setCurrentItem(category)
+        view.selected_category_id = 19
+
+        view._runtime_ready = True
+        view.progress_service.state_for.return_value = SimpleNamespace(
+            completed_achievements=set()
+        )
+        provider.catalogue_ids.return_value = [42]
+        provider.get_by_id.side_effect = lambda achievement_id: SimpleNamespace(
+            id=int(achievement_id), name="Cible", category_id=19,
+            subcategory_id=None,
+        )
+        view.filtered = [SimpleNamespace(id=99)]
+        view.search.setText("ancien filtre")
+        view.list_widget.clear()
+        view.show_achievement = Mock()
+
+        self.assertTrue(view.select_achievement(42))
+        self.assertEqual(view.search.text(), "")
+        self.assertEqual([row.id for row in view.filtered], [42])
+        self.assertFalse(view._search_debounce_timer.isActive())
+        view.show_achievement.assert_called_once_with(42)
+
     def test_tall_viewport_continues_loading_until_it_can_scroll(self):
         view, provider = self.make_view()
         view.resize(1600, 1200)
