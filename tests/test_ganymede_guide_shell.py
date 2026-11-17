@@ -54,6 +54,8 @@ class GanymedeGuideShellTests(unittest.TestCase):
         stylesheet = atlas_stylesheet()
         self.assertIn("QSpinBox#GuideCompactPageJump::up-arrow", stylesheet)
         self.assertIn("QSpinBox#GuideCompactPageJump::down-arrow", stylesheet)
+        self.assertEqual(shell.global_details_rows.objectName(), "GuideGlobalCharacterProgress")
+        self.assertIn("QWidget#GuideGlobalCharacterProgress", stylesheet)
         self.assertEqual(shell.preparation_button.arrowType(), Qt.NoArrow)
         self.assertFalse(shell.preparation_button.icon().isNull())
         self.assertFalse(shell.prev_button.icon().isNull())

@@ -2813,6 +2813,7 @@ QFrame#GuidePreparationRow {
 
 /* The preparation viewport must not paint native gray over the Unity panel. */
 QScrollArea#GuidePreparationScroll,
+QWidget#GuideGlobalCharacterProgress,
 QWidget#GuidePreparationContent,
 QScrollArea#GuidePreparationScroll > QWidget#qt_scrollarea_viewport {
     background: transparent;

@@ -45,7 +45,7 @@ def required_assertions(scenarios, repeats=2) -> list[str]:
                                  f"bottom-{page}-{width}"))
             for turn in range(1 if smoke else repeats):
                 keys.extend(f"{action}-{turn}" for action in ("next", "destroy", "previous", "refresh"))
-            keys.extend(("lock", "unlock", "no-game-proof",
+            keys.extend(("global-progress-disclosure", "preparation-disclosure", "no-game-proof",
                          "manual-persist", "manual-reopen", "character-isolation",
                          "manual-restore"))
             if not smoke:

@@ -849,6 +849,9 @@ def exercise_guide(session, page, owner, guide_id, repeats, smoke=False):
         page.resize(1200, 800)
         view.scroll.verticalScrollBar().setValue(0)
         settle()
+        view.global_details_button.setChecked(True)
+        settle()
+        session.snapshot(page)
         view.preparation_button.setChecked(True)
         settle()
         session.snapshot(page)
@@ -862,11 +865,12 @@ def exercise_guide(session, page, owner, guide_id, repeats, smoke=False):
             settle()
             session.snapshot(page)
         view.preparation_button.setChecked(False)
+        view.global_details_button.setChecked(False)
         view.participants_button.setChecked(True)
         settle()
         session.snapshot(page)
         view.participants_button.setChecked(False)
-        view.summary_button.setChecked(True)
+        view.global_details_button.setChecked(True)
         settle()
         session.snapshot(page)
         return
@@ -910,37 +914,89 @@ def exercise_guide(session, page, owner, guide_id, repeats, smoke=False):
         view.refresh_external_progress()
         settle()
         check_sheet(session, page, view, f"refresh-{turn}")
-    # Persisted lock and actual navigation blocking are distinct assertions.
-    lock = view.route_lock_check
-    if not view.settings_panel.isVisible():
-        click_target(page, view.settings_button)
-        settle()
+    # The old Route scrubber, summary and lock controls were removed. Verify
+    # the actual indexed Global > Preparation hierarchy via physical Qt clicks.
+    # Manual progress disk writes and character isolation are still checked
+    # separately below; replacing the absent UI must never waive those proofs.
+    global_toggle = view.global_details_button
+    preparation_toggle = view.preparation_button
+    global_toggle.setChecked(False)
+    preparation_toggle.setChecked(False)
+    settle()
+    initial_index = view.view_index
+    first_card = view.service.cards[0]
+    initial_progress = view.service.page_checked(view.character_key, first_card, 0)
     trace_path = session.folder / "runtime-trace.json"
     if not trace_path.exists():
         from tools.atlas_doctor_lib.runtime_observation import RuntimeObserver
 
-        # Reuse Doctor's bounded observer on one small real interaction. Tracing
-        # provider hydration would turn a targeted UI check into a costly scan.
         observer = RuntimeObserver(Path(__file__).resolve().parents[2], max_events=200)
         with observer:
-            click = click_target(page, lock)
+            global_click = click_target(page, global_toggle)
         write_json(trace_path, observer.report())
         session.evidence.append(trace_path.name)
     else:
-        click = click_target(page, lock)
-    view.service.reload_progress()
-    saved = view.service.manual_checked(view.character_key, view.ROUTE_LOCK_PROGRESS_KEY)
-    view._jump_from_progress(1.0)
-    session.check("lock", "QTest lock then attempt progress navigation", "Lock persisted, accessible label and index unchanged",
-                  {"click": click, "saved": saved, "index": view.view_index, "label": lock.accessibleName()},
-                  click["accessible"] and saved and view.view_index == 0 and lock.accessibleName() == "Verrouillé", page)
-    click_target(page, lock)
-    view.service.reload_progress()
-    session.check("unlock", "QTest unlock then reload", "Unlocked in service and accessibility label",
-                  {"saved": view.service.manual_checked(view.character_key, view.ROUTE_LOCK_PROGRESS_KEY),
-                   "label": lock.accessibleName()},
-                  not view.service.manual_checked(view.character_key, view.ROUTE_LOCK_PROGRESS_KEY)
-                  and lock.accessibleName() == "Déverrouillé", page)
+        global_click = click_target(page, global_toggle)
+    global_open = (
+        global_click["accessible"]
+        and global_toggle.isChecked()
+        and view.global_details_panel.isVisibleTo(view)
+        and view.global_details_panel.findChild(QFrame, "GuidePreparationPanel") is not None
+        and view.view_index == initial_index
+        and view.service.page_checked(view.character_key, first_card, 0) == initial_progress
+    )
+    session.check(
+        "global-progress-disclosure",
+        "QTest click Global progression disclosure",
+        "Nested preparation mounted; no page jump or persistent progress write",
+        {
+            "click": global_click, "opened": global_toggle.isChecked(),
+            "panel_visible": view.global_details_panel.isVisibleTo(view),
+            "page": view.view_index,
+            "disk_progress_unchanged": view.service.page_checked(
+                view.character_key, first_card, 0
+            ) == initial_progress,
+        },
+        global_open, page,
+    )
+    preparation_click = click_target(page, preparation_toggle)
+    preparation_open = (
+        preparation_click["accessible"]
+        and preparation_toggle.isChecked()
+        and view.preparation_panel.isVisibleTo(view)
+    )
+    close_click = click_target(page, global_toggle)
+    folded = (
+        close_click["accessible"]
+        and not view.global_details_panel.isVisibleTo(view)
+        and preparation_toggle.isChecked()
+    )
+    reopen_click = click_target(page, global_toggle)
+    restored = (
+        reopen_click["accessible"]
+        and view.global_details_panel.isVisibleTo(view)
+        and view.preparation_panel.isVisibleTo(view)
+        and preparation_toggle.isChecked()
+    )
+    session.check(
+        "preparation-disclosure",
+        "QTest nested Preparation, collapse Global and reopen",
+        "Preparation stays open within Global; both disclosure hit-targets reachable",
+        {
+            "preparation_click": preparation_click,
+            "global_close_click": close_click,
+            "global_reopen_click": reopen_click,
+            "preparation_open": preparation_open,
+            "global_folded": folded,
+            "restored": restored,
+        },
+        preparation_open and folded and restored and view.view_index == initial_index
+        and view.service.page_checked(view.character_key, first_card, 0)
+        == initial_progress, page,
+    )
+    preparation_toggle.setChecked(False)
+    global_toggle.setChecked(False)
+    settle()
     # Blank temporary profile is never evidence for automatic in-game completion.
     card = view.service.cards[0]
     automatic = view.service.card_auto_complete(view.character_key, card)

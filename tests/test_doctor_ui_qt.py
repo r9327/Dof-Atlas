@@ -413,6 +413,26 @@ class DoctorUiQtFaultTests(unittest.TestCase):
         self.assertEqual(broken["reason"], "SOURCE_ACTION_ORDER_CHANGED")
         self.assertEqual(len(broken["source_order_mismatches"]), 1)
 
+    def test_indexed_global_and_preparation_disclosures_keep_nested_state(self):
+        # No replaced Route/Sommaire/lock controls can accidentally satisfy
+        # the Doctor's current Guide UI acceptance contract.
+        self.assertFalse(hasattr(self.view, "route_lock_check"))
+        self.assertFalse(hasattr(self.view, "summary_button"))
+        global_toggle = self.view.global_details_button
+        preparation = self.view.preparation_button
+        self.assertFalse(self.view.global_details_panel.isVisibleTo(self.view))
+        first = click_target(self.view, global_toggle)
+        self.assertTrue(first["accessible"], first)
+        self.assertTrue(self.view.global_details_panel.isVisibleTo(self.view))
+        nested = click_target(self.view, preparation)
+        self.assertTrue(nested["accessible"], nested)
+        self.assertTrue(self.view.preparation_panel.isVisibleTo(self.view))
+        self.assertTrue(click_target(self.view, global_toggle)["accessible"])
+        self.assertFalse(self.view.global_details_panel.isVisibleTo(self.view))
+        self.assertTrue(preparation.isChecked())
+        self.assertTrue(click_target(self.view, global_toggle)["accessible"])
+        self.assertTrue(self.view.preparation_panel.isVisibleTo(self.view))
+
     def test_collision_overlay_and_hidden_scroll_are_detectable_without_route_lock(self):
         overlay = QPushButton("Occluding overlay", self.view)
         overlay.setGeometry(self.view.next_button.geometry())
