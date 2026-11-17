@@ -6,11 +6,12 @@ from pathlib import Path
 from PySide6.QtCore import Qt
 from PySide6.QtGui import QIcon
 from PySide6.QtWidgets import (
-    QBoxLayout, QFrame, QHBoxLayout, QLabel, QProgressBar, QPushButton,
+    QBoxLayout, QFrame, QHBoxLayout, QLabel, QProgressBar,
     QVBoxLayout, QWidget,
 )
 
 from app.modules.encyclopedia.services.image_service import ENCYCLOPEDIA_IMAGE_SERVICE
+from app.ui.components import AtlasButton
 from app.ui.unity_palette import UNITY_MODULE_GEOMETRY_PX
 from app.ui.unity_skin import apply_unity_panel_shadow, sprite_icon_path
 
@@ -59,7 +60,7 @@ class FeaturedGuideCard(QFrame):
         self.progress.setMaximumHeight(GUIDE_CARD_GEOMETRY["featured_compact_progress_max_height"])
         self.progress.setTextVisible(False)
         layout.addWidget(self.progress)
-        self.open_button = QPushButton("Ouvrir →")
+        self.open_button = AtlasButton("Ouvrir →")
         self.open_button.setObjectName("FeaturedGuideOpen")
         self.open_button.clicked.connect(lambda: on_open(self.guide_id))
         # A card already opens on click, Enter and Space; a second visible
