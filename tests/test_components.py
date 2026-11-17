@@ -105,6 +105,32 @@ class SharedUiComponentsTests(unittest.TestCase):
             root.close()
             root.deleteLater()
 
+    def test_guide_character_button_compatibility_with_importer(self) -> None:
+        from app.ui.components import (
+            AtlasGuideParticipantButton, AtlasGuideCharacterButton,
+            GUIDE_CHARACTER_BUTTON_PX, GUIDE_CHARACTER_ICON_PX,
+        )
+        from app.ui.unity_palette import UNITY_CONTROL_SIZES_PX
+
+        self.assertIs(AtlasGuideCharacterButton, AtlasGuideParticipantButton)
+        self.assertEqual(
+            GUIDE_CHARACTER_BUTTON_PX,
+            UNITY_CONTROL_SIZES_PX["guide_character_button"],
+        )
+        self.assertEqual(
+            GUIDE_CHARACTER_ICON_PX,
+            UNITY_CONTROL_SIZES_PX["guide_character_icon"],
+        )
+        button = AtlasGuideCharacterButton()
+        try:
+            self.assertEqual(button.objectName(), "GuideParticipantsButton")
+            self.assertEqual(button.styleSheet(), "")
+        finally:
+            button.deleteLater()
+        qss = atlas_stylesheet()
+        self.assertIn("QFrame#GuideGlobalDetailsPanel", qss)
+        self.assertIn("QPushButton#GuidePreparationModeTab", qss)
+
     def test_status_badge_is_passive_and_uses_shared_state(self) -> None:
         root = QWidget()
         root.setStyleSheet(atlas_stylesheet())

@@ -31,6 +31,11 @@ from app.ui.splash_image import clear_connected_dark_background
 from app.ui.unity_skin import sprite_icon_path, unity_guide_chevron_path
 
 
+# Compatibility names from #363 keep using one indexed widget and one
+# character-icon geometry owner when the two UI branches are integrated.
+GUIDE_CHARACTER_BUTTON_PX = UNITY_CONTROL_SIZES_PX["guide_character_button"]
+GUIDE_CHARACTER_ICON_PX = UNITY_CONTROL_SIZES_PX["guide_character_icon"]
+
 BUTTON_OBJECT_NAMES = {
     "primary": "PrimaryActionButton",
     "secondary": "SecondaryButton",
@@ -388,11 +393,17 @@ class AtlasGuideParticipantButton(QToolButton):
             return
         painter = QPainter(self)
         painter.setRenderHint(QPainter.SmoothPixmapTransform)
+        pixel_ratio = max(1.0, pixmap.devicePixelRatio())
         painter.drawPixmap(
-            (self.width() - pixmap.width()) // 2,
-            (self.height() - pixmap.height()) // 2,
+            int((self.width() - pixmap.width() / pixel_ratio) / 2),
+            int((self.height() - pixmap.height() / pixel_ratio) / 2),
             pixmap,
         )
+        painter.end()
+
+
+# #363's public name is an alias, never a second owner/implementation.
+AtlasGuideCharacterButton = AtlasGuideParticipantButton
 
 
 class AtlasGuideDisclosure(QToolButton):
