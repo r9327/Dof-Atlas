@@ -1516,19 +1516,20 @@ class MemoryBoundAchievementProvider(BaseAchievementProvider):
             return ()
         return tuple(rows)
 
-    def load_runtime(self) -> None:
-        """Warm the catalogue and prepare details for in-process runtimes."""
-
-        self._ensure_loaded()
-        # The installed Windows EXE runs Success detail lookups in-process.
-        # Unlike the development subprocess path, that requires the detail
-        # source indexes to have been prepared before a Qt click invokes
-        # get_detail_by_id(). Do it in the existing background stage, not
-        # synchronously inside AchievementsView.show_achievement().
+    def detail_source_index_required(self) -> bool:
+        """Whether a cold rich detail uses the in-process source index."""
         default_data_dir = Path(RAW_QUEST_DATA_DIR).resolve(strict=False)
         current_data_dir = Path(self.data_dir).resolve(strict=False)
-        if bool(getattr(sys, "frozen", False)) or current_data_dir != default_data_dir:
-            self.prepare_detail_sources()
+        return bool(getattr(sys, "frozen", False)) or current_data_dir != default_data_dir
+
+    def load_runtime(self) -> None:
+        """Warm Success summaries only; defer optional rewards until opened.
+
+        The first rich detail runs on the dedicated UI detail worker, including
+        in the installed in-process runtime. This avoids delaying the first
+        catalogue paint to index reward documents the user may never open.
+        """
+        self._ensure_loaded()
 
     def _compat_achievement(self, summary: Achievement) -> Achievement:
         achievement_id = int(summary.id)
@@ -1815,6 +1816,11 @@ class MemoryBoundAchievementProvider(BaseAchievementProvider):
         self._last_detail_subprocess_ms = 0.0
         self._last_detail_decode_ms = 0.0
         started = perf_counter()
+        # Other non-UI consumers may call get_detail_by_id directly. Retain
+        # their correctness without bringing index creation back to load_runtime.
+        # AchievementsView explicitly schedules cold calls on its worker.
+        if not self._detail_sources_ready:
+            self.prepare_detail_sources()
         detail = self._get_detail_in_process(achievement_id)
         self._last_detail_ms = round((perf_counter() - started) * 1000.0, 3)
         self._last_detail_thread_name = current_thread().name
