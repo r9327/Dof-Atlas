@@ -94,9 +94,16 @@ def fit_unity_number_spinbox(spinbox: QSpinBox) -> int:
         spinbox.specialValueText(),
     )
     content_width = max(spinbox.fontMetrics().horizontalAdvance(label) for label in labels)
+    # Guide sheet page numbers have an extra shared inner left inset in QSS.
+    # Reserve that exact Unity spacing token without widening ordinary
+    # preparation quantities or other number selectors.
+    page_inset = (
+        UNITY_SPACING_PX["sm"]
+        if spinbox.objectName() == "GuideCompactPageJump" else 0
+    )
     width = max(
         UNITY_CONTROL_SIZES_PX["guide_quantity_width"],
-        content_width + UNITY_CONTROL_SIZES_PX["guide_quantity_chrome_width"],
+        content_width + UNITY_CONTROL_SIZES_PX["guide_quantity_chrome_width"] + page_inset,
     )
     spinbox.setFixedWidth(width)
     return width
