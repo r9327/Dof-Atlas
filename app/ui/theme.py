@@ -3237,20 +3237,22 @@ QToolButton#GuideMetricDropdown:disabled {
     border: 1px solid transparent;
 }
 QToolButton#GuideParticipantsButton {
-    /* No second black slab: the clean Unity sprite sits on the title row. */
+    /* Keep the transparent Unity sprite, but restore the shared visible
+       outline on the title-row character selector in every idle state. */
     background: transparent;
-    border: 1px solid transparent;
+    border: 1px solid @GUIDE_TOGGLE_BORDER;
     border-radius: @RADIUS_XS;
     padding: 0;
 }
 QToolButton#GuideParticipantsButton:hover,
+QToolButton#GuideParticipantsButton:focus,
 QToolButton#GuideParticipantsButton:checked {
     background: @GLASS_HOVER;
     border-color: @GREEN_BORDER;
 }
 QToolButton#GuideParticipantsButton:disabled {
     background: transparent;
-    border-color: transparent;
+    border-color: @BORDER_SOFT;
 }
 
 /* Shared Guide navigation never falls back to a black native button. */
@@ -3289,6 +3291,11 @@ QSpinBox#GuidePreparationQuantity QLineEdit {
     color: @TEXT;
     border: none;
     padding: 0;
+}
+/* Keep the x/x text away from its left border. The shared width fitting
+   helper reserves this same @SPACE_SM value for the page selector. */
+QSpinBox#GuideCompactPageJump QLineEdit {
+    padding-left: @SPACE_SM;
 }
 QSpinBox#GuideCompactPageJump:focus,
 QSpinBox#GuidePreparationQuantity:focus {
