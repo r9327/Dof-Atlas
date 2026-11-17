@@ -745,6 +745,7 @@ def exercise_guide(session, page, owner, guide_id, repeats, smoke=False):
         page.resize(1200, 800)
         view.scroll.verticalScrollBar().setValue(0)
         settle()
+        view.global_details_button.setChecked(True)
         view.preparation_button.setChecked(True)
         settle()
         session.snapshot(page)
@@ -755,11 +756,12 @@ def exercise_guide(session, page, owner, guide_id, repeats, smoke=False):
             settle()
             session.snapshot(page)
         view.preparation_button.setChecked(False)
+        view.global_details_button.setChecked(False)
         view.participants_button.setChecked(True)
         settle()
         session.snapshot(page)
         view.participants_button.setChecked(False)
-        view.summary_button.setChecked(True)
+        view.global_details_button.setChecked(True)
         settle()
         session.snapshot(page)
         return
@@ -792,9 +794,11 @@ def exercise_guide(session, page, owner, guide_id, repeats, smoke=False):
     # Exercise the real Preparation drawer in the verification campaign.
     # Historically only the Dev UI fiction was captured in CI, while the
     # production Guide drawer remained closed in every real route image.
+    view.global_details_button.setChecked(True)
     view.preparation_button.setChecked(True)
     settle()
     preparation_open = (
+        view.global_details_panel.isVisible()
         view.preparation_panel.isVisible()
         and view.preparation_scroll.isVisible()
         and view.preparation_filter.isVisible()
@@ -842,6 +846,7 @@ def exercise_guide(session, page, owner, guide_id, repeats, smoke=False):
             page,
         )
     view.preparation_button.setChecked(False)
+    view.global_details_button.setChecked(False)
     settle()
     for turn in range(1 if smoke else repeats):
         previous_sheet = view.findChild(QFrame, "GuideManualSheet")
