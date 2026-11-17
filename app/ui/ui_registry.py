@@ -362,7 +362,10 @@ def inspect_ui_mutualization_sources(
     raw_qt_calls: dict[str, list[tuple[str, int]]] = {
         "QPushButton": [],
         "QComboBox": [],
+        "QDialog": [],
     }
+    local_style_calls: list[tuple[str, int]] = []
+    literal_width_calls: list[tuple[str, int, int]] = []
     for path, source in source_cache.items():
         if source is None:
             continue
@@ -382,6 +385,17 @@ def inspect_ui_mutualization_sources(
             )
             if name in raw_qt_calls:
                 raw_qt_calls[name].append((path, node.lineno))
+            if name == "setStyleSheet" and path != "main.py":
+                local_style_calls.append((path, node.lineno))
+            if (
+                name == "setFixedWidth" and node.args
+                and isinstance(node.args[0], ast.Constant)
+                and type(node.args[0].value) is int
+                and node.args[0].value > 0
+            ):
+                literal_width_calls.append(
+                    (path, node.lineno, node.args[0].value)
+                )
 
     craft_source = source_cache.get("app/pages/craft_page.py")
     craft_dialog_classes = (
@@ -433,6 +447,18 @@ def inspect_ui_mutualization_sources(
                 tuple(raw_qt_calls["QPushButton"]) if label == "Boutons"
                 else tuple(raw_qt_calls["QComboBox"])
                 if label == "Menus de sélection" else None
+            ),
+            "local_style_calls": (
+                tuple(sorted(local_style_calls)) if label == "Bordures et arrondis"
+                else None
+            ),
+            "literal_width_calls": (
+                tuple(sorted(literal_width_calls))
+                if label == "Scrollbars et resize" else None
+            ),
+            "native_dialog_calls": (
+                tuple(sorted(raw_qt_calls["QDialog"]))
+                if family == "dialogs" else None
             ),
             "craft_shared_dialogs": craft_shared_count if family == "dialogs" else None,
             "craft_local_qdialogs": craft_local_qdialog_count if family == "dialogs" else None,
