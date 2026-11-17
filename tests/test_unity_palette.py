@@ -401,7 +401,7 @@ class UnityPaletteTests(unittest.TestCase):
         )
 
         self.assertGreaterEqual(len(UNITY_UI_FAMILY_INDEX), 23)
-        self.assertEqual(len(UNITY_UI_CONSUMERS), 12)
+        self.assertEqual(len(UNITY_UI_CONSUMERS), 18)
         self.assertEqual(len({
             item["title"] for item in UNITY_UI_FAMILY_INDEX.values()
         }), len(UNITY_UI_FAMILY_INDEX))
