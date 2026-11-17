@@ -77,6 +77,38 @@ class QuestDetailViewColumnTests(unittest.TestCase):
             "Zone de quête",
         )
 
+    def test_all_displayed_travel_coordinates_share_bold_link_markup(self) -> None:
+        from app.modules.encyclopedia.services.guide_quest_view_model import (
+            DisplaySolutionBlock,
+        )
+        from app.modules.encyclopedia.views.guides_view import (
+            linkify_travel_text,
+            solution_text_document,
+            text_label,
+        )
+
+        coordinates = "Rejoindre [-2,13], puis vérifier [5,-6]."
+        html = linkify_travel_text(coordinates)
+        self.assertEqual(html.count("<b>"), 2)
+        self.assertIn("atlas-travel:-2,13", html)
+        self.assertIn("atlas-travel:5,-6", html)
+        self.assertNotIn("font-size:", html)
+
+        for label in (
+            text_label(coordinates, "QuestLaunchPosition"),
+            solution_text_document(
+                (DisplaySolutionBlock("text", coordinates),)
+            ),
+        ):
+            try:
+                self.assertEqual(label.textFormat(), __import__(
+                    "PySide6.QtCore", fromlist=["Qt"]
+                ).Qt.RichText)
+                self.assertIn("<b>", label.text())
+                self.assertEqual(label.styleSheet(), "")
+            finally:
+                label.deleteLater()
+
     def test_right_column_round_trip_preserves_quest_and_scroll(self) -> None:
         # clear() is sufficient for layout tests; no game catalogue is fetched.
         sheet = QuestDetailView(object(), object(), object())
