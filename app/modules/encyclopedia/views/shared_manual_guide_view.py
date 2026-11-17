@@ -1097,10 +1097,8 @@ class SharedGuideManualCard(GuideUltimeManualCard):
                 self._display_position(str(row.get("position") or ""))
             )
             kind = str(row.get("kind") or "")
-            prefix = (
-                "" if self._continuous_source
-                else ("⚠ " if kind == "warning" else "• ")
-            )
+            # The source owns line breaks, Qt must not inject list bullets.
+            prefix = "⚠ " if kind == "warning" else ""
             combat_line = self._is_combat_row(kind, text)
 
             row_widget = QFrame()

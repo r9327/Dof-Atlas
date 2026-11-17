@@ -2727,6 +2727,15 @@ QSpinBox#GuidePreparationQuantity {
     min-height: 22px;
     padding: 3px 4px;
 }
+/* Qt embeds a QLineEdit into QSpinBox. Its generic field background must
+   not create a black rectangle over the indexed Unity blue control. */
+QSpinBox#GuideCompactPageJump QLineEdit,
+QSpinBox#GuidePreparationQuantity QLineEdit {
+    background: transparent;
+    border: none;
+    color: @TEXT;
+    padding: 0;
+}
 QSpinBox#GuideCompactPageJump:focus,
 QSpinBox#GuidePreparationQuantity:focus {
     border-color: @GREEN_BORDER;

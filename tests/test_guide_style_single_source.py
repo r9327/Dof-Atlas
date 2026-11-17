@@ -16,6 +16,23 @@ from app.ui.styles.guide import (
 
 
 class GuideStyleSingleSourceTests(unittest.TestCase):
+    def test_number_editors_keep_the_shared_unity_blue_surface(self) -> None:
+        from app.ui.theme import atlas_stylesheet
+        style = atlas_stylesheet({"PANEL_2": "#31486B"})
+        selector = "QSpinBox#GuideCompactPageJump,"
+        self.assertIn(selector, style)
+        block = style.split(selector, 1)[1].split("}", 1)[0]
+        self.assertIn("background: #31486B;", block)
+        self.assertIn("QSpinBox#GuideCompactPageJump QLineEdit,", style)
+        self.assertIn("QSpinBox#GuidePreparationQuantity QLineEdit {", style)
+
+    def test_optimized_and_imported_guide_actions_do_not_inject_bullets(self) -> None:
+        source = Path(
+            "app/modules/encyclopedia/views/shared_manual_guide_view.py"
+        ).read_text(encoding="utf-8")
+        self.assertIn('prefix = "⚠ " if kind == "warning" else ""', source)
+        self.assertNotIn('else "• "', source)
+
     def test_public_and_legacy_imports_share_one_canonical_implementation(self) -> None:
         self.assertIs(guide_manual_stylesheet, canonical_manual_stylesheet)
         self.assertIs(guide_universal_stylesheet, canonical_universal_stylesheet)
