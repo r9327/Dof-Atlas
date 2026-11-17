@@ -424,6 +424,7 @@ class LanyelSharedManualUiTests(unittest.TestCase):
             self.assertIsInstance(shared, SharedGuideManualView)
             shared.participant_service.save_selected_keys([])
             shared._load_preparation_needs()
+            shared.global_details_button.setChecked(True)
             shared.preparation_button.setChecked(True)
             self.app.processEvents()
             self.assertEqual(shared._preparation_needs, ())
