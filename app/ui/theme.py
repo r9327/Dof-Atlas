@@ -3283,6 +3283,12 @@ QSpinBox#GuidePreparationQuantity {
     padding: 3px 4px;
     min-height: 22px;
 }
+/* This selector gets 6px more left inset than the shared 4px field default.
+   Qt positions the native line editor using its parent spinbox padding.
+   The shared width-fitting helper reserves the same extra 6px. */
+QSpinBox#GuideCompactPageJump {
+    padding-left: @SPACE_LG;
+}
 /* QSpinBox contains a native line editor; its global QLineEdit palette
    must not paint a separate near-black inset over the indexed surface. */
 QSpinBox#GuideCompactPageJump QLineEdit,
@@ -3291,11 +3297,6 @@ QSpinBox#GuidePreparationQuantity QLineEdit {
     color: @TEXT;
     border: none;
     padding: 0;
-}
-/* Keep the x/x text away from its left border. The shared width fitting
-   helper reserves this same @SPACE_SM value for the page selector. */
-QSpinBox#GuideCompactPageJump QLineEdit {
-    padding-left: @SPACE_SM;
 }
 QSpinBox#GuideCompactPageJump:focus,
 QSpinBox#GuidePreparationQuantity:focus {
