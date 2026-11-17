@@ -85,6 +85,79 @@ class AchievementCompactSubprocessTests(unittest.TestCase):
 
 
 class AchievementCompactRowIdentityTests(unittest.TestCase):
+
+    def test_compact_visible_batch_opens_jsonl_only_once(self) -> None:
+        from app.modules.encyclopedia.providers import memory_bound_achievement_provider as mod
+
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / "success.jsonl"
+            rows = (
+                {"kind": "achievement", "value": {
+                    "id": 10, "name": "Premier", "level": 20, "points": 5}},
+                {"kind": "achievement", "value": {
+                    "id": 11, "name": "Second", "level": 40, "points": 10}},
+            )
+            content = b""
+            offsets = {}
+            for row in rows:
+                payload = (json.dumps(row) + "\n").encode("utf-8")
+                offsets[row["value"]["id"]] = (len(content), len(payload))
+                content += payload
+            path.write_bytes(content)
+            provider = MemoryBoundAchievementProvider()
+            provider._compact_retained_set = frozenset({10, 11})
+            provider._compact_external_index = offsets
+            open_real = Path.open
+            opens = []
+
+            def counted_open(target, *args, **kwargs):
+                if target == path:
+                    opens.append(True)
+                return open_real(target, *args, **kwargs)
+
+            with (
+                patch.object(mod, "ACHIEVEMENT_COMPACT_CACHE", path),
+                patch.object(provider, "_ensure_loaded"),
+                patch.object(provider, "_summary_by_id",
+                             side_effect=AssertionError("no rich object for valid compact rows")),
+                patch.object(Path, "open", counted_open),
+            ):
+                self.assertEqual(provider.catalogue_rows_by_ids([10, 11]), [
+                    (10, "Premier", 20, 5),
+                    (11, "Second", 40, 10),
+                ])
+                self.assertEqual(len(opens), 1)
+
+    def test_compact_visible_batch_falls_back_for_invalid_offset(self) -> None:
+        from types import SimpleNamespace
+        from app.modules.encyclopedia.providers import memory_bound_achievement_provider as mod
+
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / "success.jsonl"
+            payload = (json.dumps({"kind": "achievement", "value": {
+                "id": 10, "name": "Valide", "level": 1, "points": 3,
+            }}) + "\n").encode("utf-8")
+            path.write_bytes(payload)
+            provider = MemoryBoundAchievementProvider()
+            provider._compact_retained_set = frozenset({10, 11})
+            provider._compact_external_index = {
+                10: (0, len(payload)),
+                11: (10 ** 12, 2 ** 31),  # Never an unbounded read.
+            }
+            fallback = SimpleNamespace(name="Récupéré", level=10, points=7)
+            with (
+                patch.object(mod, "ACHIEVEMENT_COMPACT_CACHE", path),
+                patch.object(provider, "_ensure_loaded"),
+                patch.object(provider, "_summary_by_id",
+                             side_effect=lambda ident: fallback if ident == 11 else None),
+                patch.object(provider, "is_retained", return_value=True),
+            ):
+                self.assertEqual(provider.catalogue_rows_by_ids([10, 11, 99]), [
+                    (10, "Valide", 1, 3),
+                    (11, "Récupéré", 10, 7),
+                    None,
+                ])
+
     def test_locked_builder_repairs_positive_count_but_missing_offset_sidecar(self):
         from app.modules.encyclopedia.providers import memory_bound_achievement_provider as mod
 

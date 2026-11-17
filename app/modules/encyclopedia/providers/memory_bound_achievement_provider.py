@@ -1212,6 +1212,42 @@ class MemoryBoundAchievementProvider(BaseAchievementProvider):
             if self.is_retained(int(achievement.id))
         )
 
+    @staticmethod
+    def _compact_catalogue_row(
+        stream: Any,
+        achievement_id: int,
+        span: tuple[int, int] | None,
+        total: int,
+    ) -> tuple[int, str, int | None, int] | None:
+        """Decode one validated primitive row from an already-open JSONL."""
+
+        if span is None:
+            return None
+        start, length = span
+        # Corrupt offsets must never cause a negative or unbounded read.
+        if start < 0 or length <= 0 or start > total or length > total - start:
+            return None
+        try:
+            stream.seek(start)
+            payload = json.loads(stream.read(length))
+            value = payload.get("value") if isinstance(payload, dict) else None
+            if (
+                isinstance(payload, dict)
+                and payload.get("kind") == "achievement"
+                and isinstance(value, dict)
+                and type(value.get("id")) is int
+                and value["id"] == achievement_id
+            ):
+                return (
+                    achievement_id,
+                    str(value.get("name") or ""),
+                    safe_int(value.get("level")),
+                    int(value.get("points") or 0),
+                )
+        except (OSError, UnicodeError, ValueError, TypeError):
+            pass
+        return None
+
     def catalogue_row_by_id(
         self,
         achievement_id: int,
@@ -1225,36 +1261,20 @@ class MemoryBoundAchievementProvider(BaseAchievementProvider):
             and achievement_id in self._compact_retained_set
             and self._compact_external_index is not None
         ):
-            span = self._compact_external_index.get(achievement_id)
-            if span is not None:
-                start, length = span
-                if start >= 0 and length > 0:
-                    try:
-                        with ACHIEVEMENT_COMPACT_CACHE.open("rb") as stream:
-                            # A broken offset must never cause read(-1) or a
-                            # multi-megabyte read from the compact catalogue.
-                            stream.seek(0, 2)
-                            total = stream.tell()
-                            if start <= total and length <= total - start:
-                                stream.seek(start)
-                                payload = json.loads(stream.read(length))
-                                value = payload.get("value") if isinstance(payload, dict) else None
-                                if (isinstance(payload, dict)
-                                        and payload.get("kind") == "achievement"
-                                        and isinstance(value, dict)
-                                        and type(value.get("id")) is int
-                                        and value["id"] == achievement_id):
-                                    return (
-                                        achievement_id,
-                                        str(value.get("name") or ""),
-                                        safe_int(value.get("level")),
-                                        int(value.get("points") or 0),
-                                    )
-                    except (OSError, ValueError, TypeError, json.JSONDecodeError):
-                        pass
-                # A broken primitive offset is not an absent Success:
-                # delegate to the existing summary fallback below.
-
+            try:
+                with ACHIEVEMENT_COMPACT_CACHE.open("rb") as stream:
+                    stream.seek(0, 2)
+                    row = self._compact_catalogue_row(
+                        stream,
+                        achievement_id,
+                        self._compact_external_index.get(achievement_id),
+                        stream.tell(),
+                    )
+                    if row is not None:
+                        return row
+            except OSError:
+                pass
+            # Invalid offsets keep the existing summary fallback.
         summary = self._summary_by_id(achievement_id)
         if summary is None or not self.is_retained(achievement_id):
             return None
@@ -1264,6 +1284,37 @@ class MemoryBoundAchievementProvider(BaseAchievementProvider):
             summary.level,
             int(summary.points or 0),
         )
+
+    def catalogue_rows_by_ids(
+        self,
+        achievement_ids: list[int],
+    ) -> list[tuple[int, str, int | None, int] | None]:
+        """Load only one visible batch while opening the compact file once."""
+
+        self._ensure_loaded()
+        identifiers = [int(value) for value in achievement_ids]
+        if not identifiers:
+            return []
+        if not self._compact_retained_set or self._compact_external_index is None:
+            return [self.catalogue_row_by_id(ident) for ident in identifiers]
+        try:
+            with ACHIEVEMENT_COMPACT_CACHE.open("rb") as stream:
+                stream.seek(0, 2)
+                total = stream.tell()
+                rows = [
+                    self._compact_catalogue_row(
+                        stream, ident, self._compact_external_index.get(ident), total
+                    ) if ident in self._compact_retained_set else None
+                    for ident in identifiers
+                ]
+        except OSError:
+            return [self.catalogue_row_by_id(ident) for ident in identifiers]
+        # Only the exceptional invalid-offset path may reopen the file.
+        # Preserve the existing source-recovery semantics for those rows.
+        return [
+            row if row is not None else self.catalogue_row_by_id(ident)
+            for ident, row in zip(identifiers, rows)
+        ]
 
     def load_retained(self) -> list[Achievement]:
         self._ensure_loaded()

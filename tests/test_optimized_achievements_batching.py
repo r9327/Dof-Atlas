@@ -45,6 +45,16 @@ class _FakeProvider:
         return (int(row.id), str(row.name), row.level, int(row.points))
 
 
+class _BatchFakeProvider(_FakeProvider):
+    def __init__(self, achievements) -> None:
+        super().__init__(achievements)
+        self.batch_calls: list[tuple[int, ...]] = []
+
+    def catalogue_rows_by_ids(self, achievement_ids: list[int]):
+        self.batch_calls.append(tuple(achievement_ids))
+        return [self.catalogue_row_by_id(ident) for ident in achievement_ids]
+
+
 class _FakeProgressService:
     def __init__(self, completed=()) -> None:
         self.completed = frozenset(int(value) for value in completed)
@@ -125,6 +135,34 @@ class OptimizedAchievementsBatchingTests(unittest.TestCase):
             self.assertTrue(view._achievement_rows_dirty)
             self.assertEqual(view.current_achievement_id, 1)
         finally:
+            view.deleteLater()
+            self.app.processEvents()
+
+    def test_batch_provider_is_called_once_for_visible_rows(self) -> None:
+        view = self._view(50)
+        view.provider = _BatchFakeProvider(view.achievements)
+        try:
+            view.refresh()
+            view.show()
+            self.app.processEvents()
+            view._achievement_batch_timer.stop()
+            view.hide()
+            view.list_widget.clear()
+            view._achievement_pending_rows = [int(row.id) for row in view.filtered]
+            view._achievement_rows_dirty = True
+            view.show()
+            view._achievement_batch_timer.stop()
+            view.provider.batch_calls.clear()
+
+            view._render_next_achievement_batch()
+            view._achievement_batch_timer.stop()
+
+            self.assertEqual(view.provider.batch_calls, [tuple(range(1, 9))])
+            self.assertEqual(view.list_widget.count(), _RESULT_BATCH_SIZE)
+            self.assertEqual(len(view._achievement_pending_rows), 50 - _RESULT_BATCH_SIZE)
+            self.assertTrue(bool(view.list_widget.item(1).data(COMPLETED_ROLE)))
+        finally:
+            view.close()
             view.deleteLater()
             self.app.processEvents()
 

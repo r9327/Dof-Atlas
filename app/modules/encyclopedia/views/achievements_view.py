@@ -1064,11 +1064,20 @@ class AchievementsView(QWidget):
 
             self.list_widget.blockSignals(True)
             try:
-                row_loader = getattr(self.provider, "catalogue_row_by_id", None)
-                for achievement_id in batch:
+                # Only real batch-capable providers use the optimized path.
+                # Existing test doubles keep the original single-row contract.
+                batch_loader = getattr(type(self.provider), "catalogue_rows_by_ids", None)
+                if callable(batch_loader):
+                    primitive_rows = batch_loader(self.provider, batch)
+                else:
+                    row_loader = getattr(self.provider, "catalogue_row_by_id", None)
+                    primitive_rows = [
+                        row_loader(ident) if callable(row_loader) else None
+                        for ident in batch
+                    ]
+                for achievement_id, payload in zip(batch, primitive_rows):
                     if generation != self._achievement_render_generation:
                         return
-                    payload = row_loader(achievement_id) if callable(row_loader) else None
                     if payload is None:
                         achievement = self.provider.get_by_id(int(achievement_id))
                         if achievement is None:
