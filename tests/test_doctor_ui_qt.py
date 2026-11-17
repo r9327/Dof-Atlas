@@ -845,9 +845,9 @@ class DoctorUiQtFaultTests(unittest.TestCase):
         # runaway sessions must still fail closed.
         session = UiSession(self.folder, "verify")
         session.scenario = "budget-boundary"
-        session.step = 127
+        session.step = 143
         evidence = session.snapshot(self.view)
-        self.assertEqual(session.step, 128)
+        self.assertEqual(session.step, 144)
         self.assertTrue(all(name.endswith("-tree.json") for name in evidence))
         with self.assertRaisesRegex(RuntimeError, "action budget exceeded"):
             session.snapshot(self.view)
