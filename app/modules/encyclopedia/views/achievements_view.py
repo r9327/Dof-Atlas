@@ -1072,7 +1072,16 @@ class AchievementsView(QWidget):
                 # The old timer chain eventually instantiated every success in
                 # the selected category. Keep only an initial viewport resident;
                 # the next batch is requested by scrolling or direct navigation.
-                if self.list_widget.count() < _INITIAL_RESULT_ROWS:
+                # The viewport may fit the initial rows on a tall window.
+                # With no scrollbar there is no valueChanged signal to load
+                # the remaining results, so keep filling until scrolling
+                # becomes possible (without eagerly materializing the catalog).
+                bar = self.list_widget.verticalScrollBar()
+                needs_more_visible_rows = (
+                    bar.maximum() == 0
+                    and self.list_widget.viewport().height() > 0
+                )
+                if self.list_widget.count() < _INITIAL_RESULT_ROWS or needs_more_visible_rows:
                     timer = self._achievement_batch_timer
                     if timer is not None:
                         timer.start()
