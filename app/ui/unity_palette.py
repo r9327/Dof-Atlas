@@ -861,7 +861,13 @@ UNITY_UI_FAMILY_INDEX = {
 }
 
 # Target modules for adoption/visual checks. Coverage is NOT certification.
-UNITY_UI_CONSUMERS = ("Accueil", "Personnage", "Quêtes", "Succès", "Guides", "Bestiaire", "Outils", "Stuffs", "Organizer", "Almanax", "Réseau", "Launcher")
+UNITY_UI_CONSUMERS = (
+    "Accueil", "Personnage", "Quêtes", "Succès", "Guides", "Bestiaire",
+    "Outils", "Stuffs", "Organizer", "Almanax", "Réseau", "Launcher",
+    # These are real Atlas surfaces, not additional theme implementations.
+    "Craft", "Carte du monde", "Paramètres", "Dev UI",
+    "Popups et dialogues", "Overlays et démarrage",
+)
 
 # Guide-compatible names still exist for old selectors and explicit
 # per-role previews, but their normal colors now follow shared Unity
