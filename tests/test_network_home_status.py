@@ -58,10 +58,12 @@ class NetworkHomeStatusTests(unittest.TestCase):
                 )
 
     def test_waiting_and_error_states_remain_short_but_distinct(self) -> None:
-        self.assertEqual(
-            HomePage._network_summary(self._status(reason="no_window_handles")),
-            ("En attente de Dofus", "idle"),
-        )
+        for reason in ("no_window_handles", "build_fingerprint_unavailable"):
+            with self.subTest(reason=reason):
+                self.assertEqual(
+                    HomePage._network_summary(self._status(reason=reason)),
+                    ("En attente de Dofus", "idle"),
+                )
         self.assertEqual(
             HomePage._network_summary(
                 self._status(reason="capture_elevation_cancelled")
