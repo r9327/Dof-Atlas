@@ -260,6 +260,46 @@ class DevUiPageTests(unittest.TestCase):
             page.close()
             page.deleteLater()
 
+    def test_four_actual_craft_dialogs_are_previewable_without_new_ui_classes(self) -> None:
+        from app.pages.dev_ui_page import DevUiPage
+        from app.pages.craft_page import (
+            CraftResourceDialog, ItemSetDialog, LevelingDialog, RouteDialog,
+        )
+        from app.ui.components import AtlasComboBox, AtlasButton, BUTTON_OBJECT_NAMES
+
+        page = DevUiPage(on_back=lambda: None)
+        try:
+            self.assertIsInstance(page.preview_craft_dialog_choice, AtlasComboBox)
+            self.assertIsInstance(page.preview_craft_dialog_open, AtlasButton)
+            self.assertEqual(page.preview_craft_dialog_choice.count(), 4)
+            for index, cls in enumerate((
+                CraftResourceDialog, ItemSetDialog, LevelingDialog, RouteDialog,
+            )):
+                with self.subTest(dialog=cls.__name__):
+                    page.preview_craft_dialog_choice.setCurrentIndex(index)
+                    page.preview_craft_dialog_open.click()
+                    self.app.processEvents()
+                    dialog = page._preview_dialog
+                    self.assertIsInstance(dialog, cls)
+                    self.assertEqual(dialog.styleSheet(), "")
+                    self.assertIn("Fenêtre Craft réelle", page.feedback.text())
+                    dialog.reject()
+                    self.app.processEvents()
+            counts = page.preview_shared_ui_counts.text()
+            self.assertIn(
+                f"1 AtlasButton / {len(BUTTON_OBJECT_NAMES)} rôles visuels",
+                counts,
+            )
+            self.assertIn(
+                f"1 AtlasDialog / {len(page.preview_dialog_variants)} variantes",
+                counts,
+            )
+            self.assertIn("Craft : 4 vrais QDialog à raccorder", counts)
+            self.assertIn("15 usages existants distincts", counts)
+        finally:
+            page.close()
+            page.deleteLater()
+
     def test_success_three_column_shell_shares_dev_ui_materials(self) -> None:
         from app.pages.dev_ui_page import DevUiPage
         from PySide6.QtWidgets import QStackedWidget
