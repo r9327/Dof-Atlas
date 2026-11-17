@@ -52,7 +52,7 @@ from app.quest_catalog import (
     normalize_text,
 )
 from app.storage import IconCache, read_json, write_json
-from app.ui.components import AtlasBreadcrumb, AtlasButton, AtlasComboBox
+from app.ui.components import AtlasBreadcrumb, AtlasButton, AtlasComboBox, fit_unity_number_spinbox
 from app.ui.theme import PALETTE, render_theme_template
 from app.ui.unity_palette import UNITY_MODULE_GEOMETRY_PX, UNITY_SPACING_PX
 
@@ -1071,7 +1071,7 @@ class QuestsPage(QWidget):
         quantity.setObjectName("QuestItemQuantity")
         quantity.setRange(0, required)
         quantity.setValue(owned)
-        quantity.setFixedWidth(QUEST_GEOMETRY["item_quantity_width"])
+        fit_unity_number_spinbox(quantity)
         quantity.setAlignment(Qt.AlignCenter)
         quantity.valueChanged.connect(lambda value, data=dict(item), maximum=required: self.set_owned_item_quantity(data, value, maximum))
         layout.addWidget(quantity)
