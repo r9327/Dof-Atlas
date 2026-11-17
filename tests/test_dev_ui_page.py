@@ -1444,6 +1444,8 @@ class DevUiPageTests(unittest.TestCase):
                 for i in range(page.preview_metrics.rowCount())
             }
             self.assertIn("LIMIT_DROPDOWN_VISIBLE_ROWS", row_names)
+            self.assertIn("GUIDE_READING_ROW_SPACING", row_names)
+            self.assertIn("GUIDE_READING_SOURCE_DRAWER_MAX_HEIGHT", row_names)
         finally:
             backdrop.close()
             page.deleteLater()

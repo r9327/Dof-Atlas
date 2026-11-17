@@ -6,6 +6,7 @@ from functools import lru_cache
 from app.ui.unity_palette import (
     GUIDE_ENTITY_LINK_ROLES, UNITY_COLOR_ALIAS_ROLES, UNITY_GLASS_INTENSITY, UNITY_RADII, UNITY_SIZES_PX,
     UNITY_SPACING_PX, UNITY_TYPOGRAPHY,
+    UNITY_GUIDE_READING_METRICS_PX,
     resolve_unity_colors, unity_glass_gradient,
 )
 from app.ui.organizer_style import ORGANIZER_STYLE_TEMPLATE
@@ -23,6 +24,10 @@ SPACING = {
     f"SPACE_{name.upper()}": f"{px}px"
     for name, px in UNITY_SPACING_PX.items()
 }
+
+# Public compatibility API used by the #363 canonical reading surface.
+# Every number is owned by the Qt-free Dev UI index, not a local Guide sheet.
+GUIDE_READING_METRICS = UNITY_GUIDE_READING_METRICS_PX
 
 SIZES = {
     **UNITY_RADII,

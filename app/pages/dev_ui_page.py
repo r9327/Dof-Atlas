@@ -79,6 +79,7 @@ from app.ui.unity_palette import (
     UNITY_LAYOUT_SIZES_PX, UNITY_LAYOUT_BREAKPOINTS_PX,
     UNITY_WINDOW_PRESETS_PX, UNITY_LAYOUT_PROFILE_PX, unity_layout_metrics,
     UNITY_MODULE_GEOMETRY_PX, UNITY_MODULE_GEOMETRY_OWNERS,
+    UNITY_GUIDE_READING_METRICS_PX,
     UNITY_UI_CONSUMERS, UNITY_UI_FAMILY_INDEX, UNITY_UI_UNIFICATION_CONTRACT,
 )
 from app.ui.unity_skin import (
@@ -1671,6 +1672,8 @@ class DevUiPage(QWidget):
               for key, value in UNITY_LAYOUT_BREAKPOINTS_PX.items()),
             *((f"ORGANIZER_{key.upper()}", f"{value}px")
               for key, value in UNITY_ORGANIZER_METRICS_PX.items()),
+            *((f"GUIDE_READING_{key.upper()}", f"{value}px")
+              for key, value in UNITY_GUIDE_READING_METRICS_PX.items()),
         )
         self.preview_metrics = QTableWidget(len(metric_rows), 2)
         self.preview_metrics.setHorizontalHeaderLabels(("Token commun", "Valeur"))

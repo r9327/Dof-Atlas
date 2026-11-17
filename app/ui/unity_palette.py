@@ -291,6 +291,30 @@ UNITY_CONTROL_LIMITS = {
     "dropdown_visible_rows": 8,
 }
 
+# Shared Guide-reading metrics from the canonical #363 reader.
+# The Qt-free index keeps source images, copied quantities and nested drawers
+# adjustable in Dev UI without introducing another Guide theme.
+UNITY_GUIDE_READING_METRICS_PX = {
+    "sheet_horizontal": UNITY_SPACING_PX["lg"],
+    "sheet_vertical": UNITY_SPACING_PX["md"],
+    "sheet_spacing": UNITY_SPACING_PX["sm"],
+    "section_horizontal": UNITY_SPACING_PX["md"],
+    "section_vertical": UNITY_SPACING_PX["sm"],
+    "section_spacing": UNITY_SPACING_PX["xs"],
+    "row_spacing": UNITY_SPACING_PX["xs"],
+    "reading_gap": UNITY_SPACING_PX["sm"],
+    "source_image_max_width": 240,
+    "source_image_max_height": 160,
+    "source_quantity_width": 90,
+    "source_drawer_max_height": 340,
+    "source_drawer_min_height": 280,
+    "source_drawer_compact_min_height": 156,
+    "normal_drawer_max_height": 210,
+    "normal_drawer_min_height": 126,
+    "zoom_dialog_width": 760,
+    "zoom_dialog_height": 540,
+}
+
 # The four reference sizes are calibration points, NOT forced window sizes.
 # Layout geometry interpolates smoothly between them. Do not resize text,
 # icons, checkboxes, buttons or menu rows proportionally with the window.
@@ -760,7 +784,8 @@ UNITY_UI_FAMILY_INDEX = {
             "UNITY_MODULE_GEOMETRY_PX", "UNITY_MODULE_GEOMETRY_OWNERS",
             "UNITY_LAYOUT_BREAKPOINTS_PX",
             "unity_responsive_columns", "UNITY_ORGANIZER_METRICS_PX",
-            "UNITY_CONTENT_TYPOGRAPHY_PX", "UNITY_SPACING_PX", "UNITY_TYPOGRAPHY",
+            "UNITY_CONTENT_TYPOGRAPHY_PX", "UNITY_GUIDE_READING_METRICS_PX",
+            "UNITY_SPACING_PX", "UNITY_TYPOGRAPHY",
             "SIZES", "SPACING", "TYPOGRAPHY", "UNITY_RADII",
         ),
         "style_owner": "app/ui/unity_palette.py + app/ui/theme.py",

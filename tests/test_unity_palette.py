@@ -85,6 +85,20 @@ class UnityPaletteTests(unittest.TestCase):
 
 
 
+    def test_ganymede_reader_geometry_is_indexed_for_future_integration(self) -> None:
+        from app.ui.unity_palette import UNITY_GUIDE_READING_METRICS_PX
+        values = UNITY_GUIDE_READING_METRICS_PX
+        self.assertEqual(values["row_spacing"], UNITY_SPACING_PX["xs"])
+        self.assertEqual(values["sheet_horizontal"], UNITY_SPACING_PX["lg"])
+        self.assertEqual(values["source_image_max_width"], 240)
+        self.assertEqual(values["normal_drawer_max_height"], 210)
+        self.assertEqual(values["zoom_dialog_height"], 540)
+        theme = (Path(__file__).resolve().parents[1] / "app/ui/theme.py")
+        self.assertIn(
+            "GUIDE_READING_METRICS = UNITY_GUIDE_READING_METRICS_PX",
+            theme.read_text(encoding="utf-8"),
+        )
+
     def test_organizer_visual_geometry_has_a_single_existing_index(self) -> None:
         from app.ui.unity_palette import UNITY_ORGANIZER_METRICS_PX
 
