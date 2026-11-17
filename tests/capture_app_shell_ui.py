@@ -9,6 +9,7 @@ import json
 import os
 import tempfile
 from pathlib import Path
+from threading import enumerate as active_threads
 from unittest.mock import patch
 
 os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
@@ -443,6 +444,18 @@ def capture(output: Path) -> dict[str, object]:
                 window.quit_requested = True
                 window.close()
                 app.processEvents()
+                # The offscreen Scan Monde page starts a bounded background
+                # SQLite read. Closing Qt widgets does not join its Python
+                # thread; on Windows TemporaryDirectory otherwise races the
+                # still-open database handle and fails with WinError 32.
+                for worker in active_threads():
+                    if worker.name != "DofusAtlasCartographyLoad":
+                        continue
+                    worker.join(timeout=10)
+                    if worker.is_alive():
+                        raise RuntimeError(
+                            "Cartography capture worker did not stop before DB cleanup"
+                        )
     (output / "manifest.json").write_text(
         json.dumps(result, ensure_ascii=False, indent=2), encoding="utf-8"
     )
