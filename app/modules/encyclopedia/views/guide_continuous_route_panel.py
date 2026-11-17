@@ -559,7 +559,7 @@ class ContinuousGuideRoutePanel(QWidget):
             ) for key in position.selected_character_keys
         )
         self.validate_button.setChecked(all_validated)
-        self.validate_button.setText("✓ Valider" if all_validated else "Valider")
+        self.validate_button.setText("Valider")
         self.validate_button.setToolTip(
             "Annuler la validation manuelle de cette fiche pour les personnages sélectionnés"
             if all_validated else
