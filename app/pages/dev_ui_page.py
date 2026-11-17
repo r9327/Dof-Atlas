@@ -2223,8 +2223,14 @@ class DevUiPage(QWidget):
             "Guides": "Menus, fil d’Ariane et liens",
             "Outils": "Catégories et actions Crafts",
             "Organizer": "Variantes dans la feuille Qt globale",
-            "Almanax": "Bouton et badge sur l’Accueil",
-            "Launcher": "Couleurs et typographie Unity",
+            "Almanax": "Calendrier et badge depuis le shell",
+            "Launcher": "Couleurs et typographie Unity via Tk",
+            "Craft": "Recettes, quantités et fenêtres Métiers",
+            "Carte du monde": "Outils et panneaux cartographiques",
+            "Paramètres": "Shell, sections et préférences",
+            "Dev UI": "Galerie et démonstrations partagées",
+            "Popups et dialogues": "12 familles Qt réellement capturables",
+            "Overlays et démarrage": "Radial, splash et préchargement",
         }
         self.preview_scope = QTableWidget(len(modules), 3)
         self.preview_scope.setHorizontalHeaderLabels(
@@ -2256,6 +2262,43 @@ class DevUiPage(QWidget):
         )
         self.preview_scope_toggle = self._add_catalog_table(
             section, self.preview_scope, "les modules consommateurs"
+        )
+
+        # Actual secondary surfaces from the same consumer registry. Keeping
+        # their owners visible prevents a gallery preview from masquerading
+        # as proof that a popup/overlay was migrated or captured.
+        secondary = [
+            (module, label, path)
+            for module in ("Popups et dialogues", "Overlays et démarrage")
+            for label, path in UI_CONSUMER_INDEX[module]["surfaces"]
+        ]
+        secondary_title = QLabel("Fenêtres, popups et overlays à vérifier")
+        secondary_title.setObjectName("PanelTitle")
+        section.addWidget(secondary_title)
+        self.preview_secondary_surfaces = QTableWidget(len(secondary), 3)
+        self.preview_secondary_surfaces.setHorizontalHeaderLabels(
+            ("Zone", "UI existante", "Fichier propriétaire")
+        )
+        self.preview_secondary_surfaces.setAlternatingRowColors(False)
+        self.preview_secondary_surfaces.setShowGrid(False)
+        self.preview_secondary_surfaces.verticalHeader().hide()
+        self.preview_secondary_surfaces.horizontalHeader().setStretchLastSection(True)
+        self.preview_secondary_surfaces.horizontalHeader().setSectionResizeMode(
+            0, QHeaderView.ResizeToContents
+        )
+        self.preview_secondary_surfaces.horizontalHeader().setSectionResizeMode(
+            1, QHeaderView.ResizeToContents
+        )
+        for index, (module, label, path) in enumerate(secondary):
+            for column, value in enumerate((module, label, path)):
+                self.preview_secondary_surfaces.setItem(
+                    index, column, QTableWidgetItem(value)
+                )
+        self.preview_secondary_surfaces.setToolTip(
+            "Références au code réel ; la galerie ne certifie pas les interactions Windows"
+        )
+        self.preview_secondary_toggle = self._add_catalog_table(
+            section, self.preview_secondary_surfaces, "les fenêtres secondaires"
         )
 
         contract_label = QLabel(
