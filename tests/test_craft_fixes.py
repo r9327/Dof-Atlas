@@ -45,6 +45,34 @@ class CraftFixesTests(unittest.TestCase):
             small.deleteLater()
             large.deleteLater()
 
+    def test_craft_dialogs_use_single_shared_ui_shell(self):
+        from app.pages.craft_page import ItemSetDialog, LevelingDialog, RouteDialog
+        from app.ui.components import AtlasDialog, AtlasDialogHeader
+
+        dialogs = (
+            CraftResourceDialog({}, []),
+            ItemSetDialog(None, lambda *_args: None),
+            LevelingDialog(
+                "Alchimiste",
+                {"source": "atlas-local", "kind": "harvest", "entries": []},
+                lambda _name: None, lambda _craft: None,
+            ),
+            RouteDialog("Alchimiste", {"name": "Ressource sans route"}),
+        )
+        try:
+            for dialog in dialogs:
+                with self.subTest(dialog=type(dialog).__name__):
+                    self.assertIsInstance(dialog, AtlasDialog)
+                    self.assertEqual(dialog.objectName(), "AtlasDialog")
+                    self.assertIs(dialog.layout(), dialog.content_layout)
+                    self.assertEqual(dialog.styleSheet(), "")
+                    self.assertEqual(len(dialog.findChildren(AtlasDialogHeader)), 1)
+                    self.assertGreaterEqual(dialog.minimumWidth(), 400)
+        finally:
+            for dialog in dialogs:
+                dialog.close()
+                dialog.deleteLater()
+
     def test_craft_title_is_the_indexed_unity_component(self):
         from app.ui.components import AtlasPageTitle
 
