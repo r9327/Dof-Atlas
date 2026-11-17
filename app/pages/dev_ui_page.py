@@ -2229,7 +2229,7 @@ class DevUiPage(QWidget):
             "Carte du monde": "Outils et panneaux cartographiques",
             "Paramètres": "Shell, sections et préférences",
             "Dev UI": "Galerie et démonstrations partagées",
-            "Popups et dialogues": "12 familles Qt réellement capturables",
+            "Popups et dialogues": "12 cas de capture, pas 12 composants",
             "Overlays et démarrage": "Radial, splash et préchargement",
         }
         self.preview_scope = QTableWidget(len(modules), 3)
