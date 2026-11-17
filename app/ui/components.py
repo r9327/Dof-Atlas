@@ -511,23 +511,29 @@ class AtlasPageTitle(QLabel):
 
 
 class AtlasDialog(QDialog):
-    """Common themed dialog surface with consistent spacing."""
+    """Single themed dialog with indexed standard or compact spacing."""
 
-    def __init__(self, parent: QWidget | None = None) -> None:
+    def __init__(
+        self,
+        parent: QWidget | None = None,
+        *,
+        density: Literal["normal", "compact"] = "normal",
+    ) -> None:
+        if density not in ("normal", "compact"):
+            raise ValueError(f"Unknown AtlasDialog density: {density}")
         super().__init__(parent)
         self.setObjectName("AtlasDialog")
+        self.layout_density = density
         self.setModal(True)
         # Shared dialogs must leave enough room for a title and action footer
         # instead of compressing both into the native 290 px minimum.
         self.setMinimumWidth(UNITY_CONTROL_SIZES_PX["dialog_min_width"])
+        prefix = "dialog_compact_" if density == "compact" else "dialog_"
+        x = UNITY_LAYOUT_SIZES_PX[f"{prefix}padding_x"]
+        y = UNITY_LAYOUT_SIZES_PX[f"{prefix}padding_y"]
         self.content_layout = QVBoxLayout(self)
-        self.content_layout.setContentsMargins(
-            UNITY_LAYOUT_SIZES_PX["dialog_padding_x"],
-            UNITY_LAYOUT_SIZES_PX["dialog_padding_y"],
-            UNITY_LAYOUT_SIZES_PX["dialog_padding_x"],
-            UNITY_LAYOUT_SIZES_PX["dialog_padding_y"],
-        )
-        self.content_layout.setSpacing(UNITY_LAYOUT_SIZES_PX["dialog_gap"])
+        self.content_layout.setContentsMargins(x, y, x, y)
+        self.content_layout.setSpacing(UNITY_LAYOUT_SIZES_PX[f"{prefix}gap"])
 
 
 class AtlasDialogHeader(QWidget):
