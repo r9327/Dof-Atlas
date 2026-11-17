@@ -236,9 +236,9 @@ class GuideUltimeManualUiNavigationTests(unittest.TestCase):
                 view._header_content_layout.itemAt(1).widget(),
                 view.participants_panel,
             )
-            controls_grid = view._metric_columns["Préparation"].parent()
-            self.assertIsInstance(controls_grid, QGridLayout)
-            self.assertEqual(controls_grid.columnCount(), 2)
+            self.assertIsNotNone(view.global_details_panel.findChild(
+                QProgressBar, "GuideCompactPreparationProgress"
+            ))
             self.assertEqual(view.page_jump.suffix(), " / 2")
             self.assertEqual(view._metric_caption_labels["Préparation"].text(), "À préparer")
             self.assertEqual(view._metric_caption_labels["Préparation"].toolTip(), "Préparation")
@@ -452,6 +452,7 @@ class GuideUltimeManualUiNavigationTests(unittest.TestCase):
     def test_preparation_drawer_stays_open_during_page_selection(self) -> None:
         _service, view = self._view()
         try:
+            view.global_details_button.click()
             view.preparation_button.click()
             QApplication.processEvents()
             self.assertTrue(view.preparation_panel.isVisible())
