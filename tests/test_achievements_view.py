@@ -3,12 +3,12 @@ from __future__ import annotations
 import os
 import unittest
 from types import SimpleNamespace
-from unittest.mock import Mock
+from unittest.mock import Mock, patch
 
 os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
 
 from PySide6.QtCore import Qt
-from PySide6.QtWidgets import QApplication, QLabel, QListWidgetItem
+from PySide6.QtWidgets import QApplication, QLabel, QListWidgetItem, QTreeWidgetItem
 
 from app.modules.encyclopedia.views.achievements_view import AchievementsView
 
@@ -87,6 +87,21 @@ class AchievementsThirdColumnTests(unittest.TestCase):
         self.assertEqual(view.current_achievement_id, 42)
         self.assertTrue(view._detail_open)
         self.assertEqual(provider.get_detail_by_id.call_count, 1)
+
+    def test_category_change_cancels_debounced_search_and_refreshes_immediately(self):
+        view, _provider = self.make_view()
+        view.search.setText("ancienne recherche")
+        self.assertTrue(view._search_debounce_timer.isActive())
+
+        target = QTreeWidgetItem(["Nouvelle catégorie"])
+        target.setData(0, Qt.UserRole, 19)
+        with patch.object(view, "refresh") as refresh:
+            view.on_category_changed(target, None)
+            refresh.assert_called_once_with()
+
+        self.assertEqual(view.selected_category_id, 19)
+        self.assertEqual(view.search.text(), "")
+        self.assertFalse(view._search_debounce_timer.isActive())
 
     def test_keyboard_item_activation_opens_details_without_extra_load(self):
         view, provider = self.make_view()
