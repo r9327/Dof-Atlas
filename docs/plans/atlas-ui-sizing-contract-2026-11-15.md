@@ -245,3 +245,38 @@ rapport #365 sont des déclarations d'implémentation, pas un certificat
 d'exhaustivité ; toute lacune trouvée doit être corrigée ou explicitement
 requalifiée avant Ready. Aucun effet ni animation optionnels ajoutés pour
 remplacer cette vérification.
+
+## Extension de la couverture Dev UI — 17/11/2026
+
+Le registre de référence existant `UNITY_UI_CONSUMERS` et sa projection
+`UI_CONSUMER_INDEX` comptent désormais **18 zones**, dont les 13 vues
+du véritable shell (`tests/capture_app_shell_ui.py`) : Accueil, Organizer,
+Paramètres, Dev UI, Almanax, Craft, Équipement/Stuffs, Carte du monde,
+Personnage, Quêtes, Guides, Succès et Bestiaire. Il conserve aussi les
+consommateurs Réseau, Launcher Tk et l'agrégat Outils.
+
+La section « Couverture » de Dev UI présente également **12 familles de
+popups/dialogues**, issues des vrais widgets de la fixture
+`tests/capture_app_popups_ui.py`, et **4 surfaces d'overlay/démarrage**
+(Organizer radial et sélection, splash Unity, préchargement). Chaque ligne
+renvoie au **fichier source existant** ; ce sont des inventaires,
+**pas des copies de widgets ni des maquettes de nouveaux comportements**.
+Le Launcher reste Tk, l'Organizer garde ses interactions métier.
+
+Le contrat Qt vérifie la correspondance entre les scénarios du shell et
+les 18 entrées, les 12 noms de familles de popups de capture, et refuse
+toute nouvelle feuille QSS locale sur les fichiers Qt indexés.
+`main.py` n'a que quatre appels `setStyleSheet` explicitement
+autorisés : les applications du **thème global** et le fond transparent
+du splash natif. Tout autre appel depuis le shell doit faire échouer
+ce garde-fou.
+
+**Ce qui reste à faire :** le catalogue couvre davantage de véritables
+surfaces, mais l'existence d'une ligne ne prouve ni la présence d'une
+démonstration Qt de **chaque** variante métier, ni l'absence de tous les
+widgets hors registre. Recenser les derniers composants dynamiques,
+comparer leur UI réelle aux 23 familles Dev UI, raccorder les styles
+communs manquants et contrôler la propagation / resize par captures
+Windows exact-SHA. Les notifications flottantes et animations restent
+des prototypes sans usage production certifié ; ne pas inventer de
+nouveau service ou effet pour cocher artificiellement une case.
