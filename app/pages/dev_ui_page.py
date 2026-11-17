@@ -2435,7 +2435,7 @@ class DevUiPage(QWidget):
                 gap = (
                     f"Craft : {record['craft_shared_dialogs']}/4 unifiés, "
                     f"{record['craft_local_qdialogs']} locaux, "
-                    f"{len(record['native_dialog_calls'] or ())} Qt.Popup à qualifier"
+                    f"{len(record['native_dialog_calls'] or ())} QDialog natif(s) à qualifier"
                 )
             else:
                 gap = "Non audité"
