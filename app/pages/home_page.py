@@ -605,6 +605,10 @@ class HomePage(QWidget):
         if status.running:
             return "Actif", "active"
         reason = str(status.reason or "")
+        if reason in {"waiting_context", "stopped"}:
+            # No verified capture is active. Never describe a disconnected
+            # network bridge as merely "preparing" indefinitely.
+            return "Hors ligne", "idle"
         if status.calibrating or reason in {
             "calibrating",
             "awaiting_character_identity",
