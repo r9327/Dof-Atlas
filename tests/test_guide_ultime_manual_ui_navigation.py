@@ -13,6 +13,7 @@ from PySide6.QtWidgets import (
     QFrame,
     QGridLayout,
     QLabel,
+    QProgressBar,
     QPushButton,
     QSizePolicy,
     QToolButton,
