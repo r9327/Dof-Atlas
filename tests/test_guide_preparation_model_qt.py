@@ -233,11 +233,12 @@ class GuidePreparationQtFocusedTests(unittest.TestCase):
         gates = [x for x in view._preparation_needs if x.category == "Prérequis"]
         self.assertEqual(len(gates), 1)
         self.assertIsNone(gates[0].required_total)
-        prereq_filter = next(
-            b for b in view.preparation_filter_group.buttons()
-            if b.property("filterKey") == "Prérequis"
-        )
-        prereq_filter.click()
+        self.assertIn("Prérequis", [
+            view.preparation_filter.itemText(index)
+            for index in range(view.preparation_filter.count())
+        ])
+        view.preparation_filter.setCurrentText("Prérequis")
+        self.assertEqual(view.preparation_filter.currentText(), "Prérequis")
         QApplication.processEvents()
         # Prerequisites are copyable buttons, not QLabel text. Inspect the
         # actual visible control without changing its no-quantity contract.
