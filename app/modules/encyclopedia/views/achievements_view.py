@@ -1111,12 +1111,22 @@ class AchievementsView(QWidget):
     def showEvent(self, event) -> None:
         super().showEvent(event)
         timer = self._achievement_batch_timer
+        bar = self.list_widget.verticalScrollBar()
+        needs_more_visible_rows = (
+            bar.maximum() == 0
+            and self.list_widget.viewport().height() > 0
+        )
         if (
             self._achievement_rows_dirty
-            and self.list_widget.count() < _INITIAL_RESULT_ROWS
+            and (
+                self.list_widget.count() < _INITIAL_RESULT_ROWS
+                or needs_more_visible_rows
+            )
             and timer is not None
             and not timer.isActive()
         ):
+            # Resume the viewport-sized batch after returning to this tab.
+            # A hidden widget must not require a scroll it cannot perform.
             timer.start()
 
     def refresh_completion_styles(self) -> None:
