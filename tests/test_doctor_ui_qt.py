@@ -197,6 +197,23 @@ class DoctorUiQtFaultTests(unittest.TestCase):
         worker.join(0.5)
         self.assertFalse(worker.is_alive())
 
+    def test_doctor_captures_real_guide_preparation_in_verify_mode(self):
+        source = Path("tools/atlas_doctor_lib/doctor_ui_qt.py").read_text(
+            encoding="utf-8"
+        )
+        self.assertNotIn("preparation_filter_group", source)
+        self.assertIn("view.preparation_filter.setCurrentIndex(index)", source)
+        self.assertIn('"preparation-open"', source)
+        self.assertIn('"preparation-filter-" + filter_name.lower()', source)
+        verify_block = source[
+            source.index('    view._show_index(0)\\n    settle()\\n    # Exercise the real Preparation drawer')
+            if '    view._show_index(0)\\n    settle()\\n    # Exercise the real Preparation drawer' in source
+            else source.index("    # Exercise the real Preparation drawer")
+        :source.index("    for turn in range(1 if smoke else repeats):")
+        ]
+        self.assertIn("session.check(", verify_block)
+        self.assertIn("view.preparation_button.setChecked(True)", verify_block)
+
     def test_real_scene_prepares_disk_only_quest_indexes_before_interaction(self):
         source = Path(
             "tools/atlas_doctor_lib/doctor_ui_qt.py"
