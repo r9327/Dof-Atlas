@@ -123,7 +123,16 @@ class NetworkUiBridge(QObject):
         self._timer.stop()
         self._progress_timer.stop()
         self._pending_progress_characters.clear()
-        return bool(self.coordinator.stop())
+        stopped = bool(self.coordinator.stop())
+        # The poll timer is stopped too: publish one final truthful state or
+        # a previously active Home badge could remain green indefinitely.
+        from app.network.application_coordinator import NetworkApplicationStatus
+
+        self._last_status = NetworkApplicationStatus(
+            False, False, "stopped" if stopped else "stop_failed",
+        )
+        self.statusChanged.emit(self._last_status)
+        return stopped
 
     def _poll(self) -> None:
         if self._stopped:
