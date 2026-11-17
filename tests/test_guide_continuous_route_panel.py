@@ -81,13 +81,14 @@ class ContinuousGuideRoutePanelTests(unittest.TestCase):
         self.assertIsInstance(self.panel.global_progress_bar, QProgressBar)
         self.assertIsInstance(self.panel._metric_grid, QGridLayout)
         grid = self.panel._metric_grid
-        self.assertIs(grid.itemAtPosition(1, 0).layout().itemAt(1).widget(),
+        self.assertEqual(grid.columnCount(), 2)
+        self.assertIs(grid.itemAtPosition(0, 0).layout().itemAt(1).widget(),
+                      self.panel.global_progress_bar)
+        self.assertIs(grid.itemAtPosition(1, 1).layout().itemAt(1).widget(),
                       self.panel.preparation_toggle)
-        self.assertIs(grid.itemAtPosition(1, 1).widget(),
-                      self.panel.participants_button)
         self.assertEqual(self.panel.participants_button.size(),
                          self.panel.preparation_toggle.size())
-        self.assertIs(grid.itemAtPosition(2, 0).widget(),
+        self.assertIs(grid.itemAtPosition(2, 1).widget(),
                       self.panel.preparation_scroll)
         # Uncertified item references cannot be counted as ready or completed.
         self.assertEqual(self.panel.preparation_bar.value(), 0)
@@ -106,8 +107,8 @@ class ContinuousGuideRoutePanelTests(unittest.TestCase):
                     )
                 )
                 self.assertIs(
-                    grid.itemAtPosition(1, 1).widget(),
-                    self.panel.participants_button,
+                    self.panel.participants_button.parentWidget(),
+                    header,
                 )
 
     def test_validation_is_real_and_per_character_only(self):
