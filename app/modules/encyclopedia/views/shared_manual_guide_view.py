@@ -1813,77 +1813,81 @@ class SharedGuideManualView(GuideUltimeManualView):
         self.global_details_button = AtlasGuideDisclosure()
         self.global_details_button.setFixedSize(18, 18)
         self.global_details_button.setCursor(Qt.PointingHandCursor)
-        self.global_details_button.setToolTip("Voir la progression par personnage")
+        self.global_details_button.setToolTip("Afficher la progression et les préparatifs")
         self.global_details_button.setAccessibleName("Déplier la progression globale")
         overall_caption.addWidget(self.global_details_button, 0, Qt.AlignVCenter)
         overall_caption.addStretch(1)
         overall_caption.addWidget(self.global_progress_label)
-        # The two surviving metrics share the same line, formerly occupied
-        # by Route and Préparation. Keep one indexed layout, no extra UI.
-        metrics = QGridLayout()
-        metrics.setHorizontalSpacing(12)
-        metrics.setVerticalSpacing(2)
+
+        # One main progress metric. Preparation belongs INSIDE its disclosure,
+        # not in a second column outside the global panel.
         global_metric = QVBoxLayout()
         global_metric.setSpacing(2)
         global_metric.addLayout(overall_caption)
         global_metric.addWidget(self.global_progress_bar)
-        metrics.addLayout(global_metric, 0, 0, 2, 1)
+        right.addLayout(global_metric)
+
         self.global_details_panel = QFrame()
         self.global_details_panel.setObjectName("GuideGlobalDetailsPanel")
-        self.global_details_layout = QVBoxLayout(self.global_details_panel)
-        self.global_details_layout.setContentsMargins(10, 8, 10, 9)
+        global_details_content = QVBoxLayout(self.global_details_panel)
+        global_details_content.setContentsMargins(10, 8, 10, 9)
+        global_details_content.setSpacing(GUIDE_READING_METRICS["row_spacing"])
+
+        # Per-character rows are refreshed independently: never clear the
+        # preparation progress and its own expandable drawer on refresh.
+        self.global_details_rows = QWidget()
+        self.global_details_rows.setObjectName("GuideGlobalCharacterProgress")
+        self.global_details_layout = QVBoxLayout(self.global_details_rows)
+        self.global_details_layout.setContentsMargins(0, 0, 0, 0)
         self.global_details_layout.setSpacing(GUIDE_READING_METRICS["row_spacing"])
-        self.global_details_panel.setVisible(False)
-        self.global_details_button.toggled.connect(self._global_details_toggled)
-        metrics.addWidget(self.global_details_panel, 2, 0, Qt.AlignTop)
-        metrics.setColumnStretch(0, 1)
+        global_details_content.addWidget(self.global_details_rows)
+
         self._metric_caption_labels: dict[str, QLabel] = {}
-        def add_metric(
-            name: str, symbol: str, color_key: str, bar: QProgressBar, value: QLabel
-        ) -> None:
-            column = len(self._metric_columns) + 1
-            caption = QHBoxLayout()
-            caption.setSpacing(4)
-            icon = QLabel()
-            icon.setObjectName(f"GuideCompactMetricIcon{symbol.title()}")
-            icon.setPixmap(
-                _guide_symbol_icon(icon, symbol, size=16, color=PALETTE[color_key]).pixmap(16, 16)
-            )
-            icon.setFixedSize(16, 16)
-            caption.addWidget(icon)
-            caption_label = QLabel("À préparer")
-            caption_label.setToolTip(name)
-            caption_label.setMinimumWidth(0)
-            self._metric_caption_labels[name] = caption_label
-            caption.addWidget(caption_label)
-            caption.addStretch(1)
-            value.setObjectName("GuideCompactMetricValue")
-            caption.addWidget(value)
-            metrics.addLayout(caption, 0, column)
-            bar.setTextVisible(False)
-            bar.setFixedHeight(7)
-            arrow = AtlasGuideDisclosure()
-            arrow.setFixedSize(18, 18)
-            arrow.setCursor(Qt.PointingHandCursor)
-            target = "Préparation"
-            arrow.setToolTip(f"Ouvrir {target}")
-            arrow.setAccessibleName(f"Afficher {target}")
-            caption.insertWidget(2, arrow, 0, Qt.AlignVCenter)
-            metrics.addWidget(bar, 1, column, Qt.AlignVCenter)
-            self.preparation_button = arrow
-            drawer_column = QVBoxLayout()
-            drawer_column.setContentsMargins(0, 0, 0, 0)
-            self._metric_columns[name] = drawer_column
-            metrics.addLayout(drawer_column, 2, column, Qt.AlignTop)
-            metrics.setColumnStretch(column, 1)
+        preparation_metric = QVBoxLayout()
+        preparation_metric.setSpacing(2)
+
+        caption = QHBoxLayout()
+        caption.setSpacing(4)
+        icon = QLabel()
+        icon.setObjectName("GuideCompactMetricIconCube")
+        icon.setPixmap(
+            _guide_symbol_icon(icon, "cube", size=16, color=PALETTE["GREEN"]).pixmap(16, 16)
+        )
+        icon.setFixedSize(16, 16)
+        caption.addWidget(icon)
+        caption_label = QLabel("À préparer")
+        caption_label.setToolTip("Préparation")
+        caption_label.setMinimumWidth(0)
+        self._metric_caption_labels["Préparation"] = caption_label
+        caption.addWidget(caption_label)
+        caption.addStretch(1)
+        self.preparation_progress_label = QLabel("—")
+        self.preparation_progress_label.setObjectName("GuideCompactMetricValue")
+        caption.addWidget(self.preparation_progress_label)
+
+        self.preparation_button = AtlasGuideDisclosure()
+        self.preparation_button.setFixedSize(18, 18)
+        self.preparation_button.setCursor(Qt.PointingHandCursor)
+        self.preparation_button.setToolTip("Ouvrir Préparation")
+        self.preparation_button.setAccessibleName("Afficher Préparation")
+        caption.insertWidget(2, self.preparation_button, 0, Qt.AlignVCenter)
+        preparation_metric.addLayout(caption)
 
         self.preparation_bar = QProgressBar()
         self.preparation_bar.setObjectName("GuideCompactPreparationProgress")
-        self.preparation_progress_label = QLabel("—")
-        add_metric("Préparation", "cube", "GREEN", self.preparation_bar, self.preparation_progress_label)
+        self.preparation_bar.setTextVisible(False)
+        self.preparation_bar.setFixedHeight(7)
+        preparation_metric.addWidget(self.preparation_bar)
 
-        # Global (left) and Préparation (right), independently stretched.
-        right.addLayout(metrics)
+        drawer_column = QVBoxLayout()
+        drawer_column.setContentsMargins(0, 0, 0, 0)
+        self._metric_columns = {"Préparation": drawer_column}
+        preparation_metric.addLayout(drawer_column)
+        global_details_content.addLayout(preparation_metric)
+
+        self.global_details_panel.setVisible(False)
+        self.global_details_button.toggled.connect(self._global_details_toggled)
+        right.addWidget(self.global_details_panel)
         self._header_content_layout = right
 
         apply_unity_panel_shadow(header, blur=18, vertical=4)
