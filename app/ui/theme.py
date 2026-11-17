@@ -896,6 +896,16 @@ QComboBox QAbstractItemView {
     selection-color: @TEXT;
 }
 
+/* Same counter across Dev UI and real guide pagers; the content owns width. */
+QLabel#AtlasPageCounter {
+    background: @FIELD_SURFACE;
+    color: @TEXT;
+    border: 1px solid @BORDER_SOFT;
+    border-radius: @RADIUS_XS;
+    padding: 2px @SPACE_SM;
+    font-weight: 700;
+}
+
 QSpinBox#QuantitySpinBox {
     padding-left: @SPACE_MD;
     padding-right: 30px;
