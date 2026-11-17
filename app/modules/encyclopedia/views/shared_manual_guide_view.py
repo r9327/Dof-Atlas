@@ -22,9 +22,6 @@ from PySide6.QtWidgets import (
     QHBoxLayout,
     QLabel,
     QLayout,
-    QLineEdit,
-    QListWidget,
-    QListWidgetItem,
     QProgressBar,
     QPushButton,
     QScrollArea,
@@ -40,7 +37,6 @@ from PySide6.QtWidgets import (
 
 from app.modules.encyclopedia.services.guide_quest_view_model import quest_solution_steps
 from app.modules.encyclopedia.views.guide_ultime_manual_view import (
-    GuideManualProgressBar,
     GuideUltimeManualCard,
     GuideUltimeManualView,
 )
@@ -1683,7 +1679,6 @@ class SharedGuideManualCard(GuideUltimeManualCard):
 class SharedGuideManualView(GuideUltimeManualView):
     """Guide-agnostic canonical manual road-book renderer."""
 
-    ROUTE_LOCK_PROGRESS_KEY = "__ui:shared_route_locked__"
 
     def _clear_cards(self) -> None:
         """Detach prior sheets immediately; Qt may defer their destruction.
@@ -1773,10 +1768,9 @@ class SharedGuideManualView(GuideUltimeManualView):
         self.progress_details.setVisible(False)
         self.position_label = QLabel()
         self.position_label.setVisible(False)
-        self._restore_route_lock_state()
 
     def _build_compact_header(self, root: QVBoxLayout) -> None:
-        """Keep both progress bars and pair each with a compact dropdown arrow."""
+        """One global progress bar and one indexed À préparer panel."""
         header = QFrame()
         header.setObjectName("GuideCompactHeader")
         outer = QHBoxLayout(header)
@@ -1798,7 +1792,6 @@ class SharedGuideManualView(GuideUltimeManualView):
         self.global_progress_label = QLabel("—")
         self.global_progress_label.setObjectName("GuideCompactMetricValue")
         self._metric_columns: dict[str, QVBoxLayout] = {}
-        self._route_metric_widgets: tuple[QWidget, ...] = ()
 
         # Row 1: active guide, instant sheet selector and compact commands.
         title_row = QHBoxLayout()
@@ -1841,14 +1834,6 @@ class SharedGuideManualView(GuideUltimeManualView):
         self.overlay_button.setAccessibleName("Overlay")
         self.overlay_button.setEnabled(False)
         title_row.addWidget(self.overlay_button)
-        self.settings_button = QToolButton()
-        self.settings_button.setObjectName("GuideCompactSettingsButton")
-        self.settings_button.setIcon(_guide_symbol_icon(self.settings_button, "settings"))
-        self.settings_button.setIconSize(QSize(16, 16))
-        self.settings_button.setToolTip("Paramètres du Guide")
-        self.settings_button.setAccessibleName("Paramètres du Guide")
-        self.settings_button.setCheckable(True)
-        title_row.addWidget(self.settings_button)
         right.addLayout(title_row)
         self._compact_title_row = title_row
 
@@ -1861,13 +1846,12 @@ class SharedGuideManualView(GuideUltimeManualView):
         right.addLayout(overall_caption)
         right.addWidget(self.global_progress_bar)
 
-        # One shared metric grid. Imported source guides collapse the redundant
-        # Route column while retaining the canonical progress state and page jump.
+        # Single indexed preparation metric, with global progress above it.
         metrics = QGridLayout()
         self._compact_metric_grid = metrics
         self._compact_header_stack = right
         self._compact_header_outer = outer
-        metrics.setHorizontalSpacing(12)
+        metrics.setHorizontalSpacing(0)
         metrics.setVerticalSpacing(2)
         self._metric_caption_labels: dict[str, QLabel] = {}
         self._metric_dropdown_buttons: dict[str, QToolButton] = {}
@@ -1884,7 +1868,7 @@ class SharedGuideManualView(GuideUltimeManualView):
             )
             icon.setFixedSize(16, 16)
             caption.addWidget(icon)
-            caption_label = QLabel(name)
+            caption_label = QLabel("À préparer")
             caption_label.setToolTip(name)
             caption_label.setMinimumWidth(0)
             self._metric_caption_labels[name] = caption_label
@@ -1898,19 +1882,12 @@ class SharedGuideManualView(GuideUltimeManualView):
             arrow = AtlasGuideDisclosure()
             arrow.setFixedSize(18, 18)
             arrow.setCursor(Qt.PointingHandCursor)
-            target = "Sommaire" if name == "Route" else "Préparation"
+            target = "Préparation"
             arrow.setToolTip(f"Ouvrir {target}")
             arrow.setAccessibleName(f"Afficher {target}")
             caption.insertWidget(2, arrow, 0, Qt.AlignVCenter)
             metrics.addWidget(bar, 1, column, Qt.AlignVCenter)
-            if name == "Route":
-                self.summary_button = arrow
-                self._route_metric_caption = caption
-                # Retain the internal route progress object for consumers,
-                # but hide its redundant visual controls in every guide.
-                self._route_metric_widgets = (icon, caption_label, value, bar)
-            else:
-                self.preparation_button = arrow
+            self.preparation_button = arrow
             self._metric_dropdown_buttons[name] = arrow
             drawer_column = QVBoxLayout()
             drawer_column.setContentsMargins(0, 0, 0, 0)
@@ -1918,38 +1895,15 @@ class SharedGuideManualView(GuideUltimeManualView):
             metrics.addLayout(drawer_column, 2, column, Qt.AlignTop)
             metrics.setColumnStretch(column, 1)
 
-        self.route_bar = GuideManualProgressBar()
-        self.route_bar.setObjectName("GuideManualProgress")
-        self.route_bar.setCursor(Qt.PointingHandCursor)
-        self.route_bar.navigationRequested.connect(self._jump_from_progress)
-        self.route_progress_label = QLabel("—")
-        add_metric("Route", "target", "RED", self.route_bar, self.route_progress_label)
-
         self.preparation_bar = QProgressBar()
         self.preparation_bar.setObjectName("GuideCompactPreparationProgress")
         self.preparation_progress_label = QLabel("—")
         add_metric("Préparation", "cube", "GREEN", self.preparation_bar, self.preparation_progress_label)
 
-        # The imported-source layout hides Route and gives À préparer full width.
+        # Preparation spans the same full width as global progress.
         right.addLayout(metrics)
         self._header_content_layout = right
 
-        # Only the arrows next to the bars open Route/Preparation panels.
-
-        self.settings_panel = QFrame()
-        self.settings_panel.setObjectName("GuideCompactSettingsPanel")
-        settings_layout = QHBoxLayout(self.settings_panel)
-        settings_layout.setContentsMargins(8, 5, 8, 5)
-        self.route_lock_check = QToolButton()
-        self.route_lock_check.setObjectName("GuideManualProgressLock")
-        self.route_lock_check.setCheckable(True)
-        self.route_lock_check.setCursor(Qt.PointingHandCursor)
-        self.route_lock_check.toggled.connect(self._route_lock_toggled)
-        settings_layout.addWidget(self.route_lock_check)
-        settings_layout.addStretch(1)
-        self.settings_panel.setVisible(False)
-        self.settings_button.toggled.connect(self.settings_panel.setVisible)
-        right.addWidget(self.settings_panel)
         apply_unity_panel_shadow(header, blur=18, vertical=4)
         root.addWidget(header)
 
@@ -2026,8 +1980,7 @@ class SharedGuideManualView(GuideUltimeManualView):
         panel_layout.addWidget(self.preparation_scroll)
         self.preparation_panel.setVisible(False)
         apply_unity_panel_shadow(self.preparation_panel, blur=16, vertical=4)
-        # Both panels are independent: each stays exactly under its own
-        # progress bar, at that column's width, including when BOTH are open.
+        # The sole drawer remains aligned with its preparation bar.
         self._metric_columns["Préparation"].addWidget(self.preparation_panel)
 
     def _build_sheet_header(self, root: QVBoxLayout) -> None:
@@ -2064,11 +2017,6 @@ class SharedGuideManualView(GuideUltimeManualView):
             )
         )
         top.addWidget(self.page_jump, 0, Qt.AlignTop)
-        # X/X and Previous/Next replace Sommaire. Leave the legacy
-        # disclosure parented in its existing layout, but hidden, so Qt
-        # retains its original ownership during screen teardown.
-        self.summary_button.hide()
-
         self.participants_button = AtlasGuideCharacterButton()
         self.participants_button.setObjectName("GuideParticipantsButton")
         self.participants_button.setText("")
@@ -2086,12 +2034,8 @@ class SharedGuideManualView(GuideUltimeManualView):
         ))
         self.participants_button.setCheckable(True)
         self.participants_button.setCursor(Qt.PointingHandCursor)
-        self.summary_button.toggled.connect(self._summary_toggled)
-        # Character selector belongs to the header actions, just before Settings.
-        self._compact_title_row.insertWidget(
-            self._compact_title_row.count() - 1,
-            self.participants_button, 0, Qt.AlignVCenter,
-        )
+        # The shared character selector stays on the compact title row.
+        self._compact_title_row.addWidget(self.participants_button, 0, Qt.AlignVCenter)
         layout.addLayout(top)
 
         self.participants_panel = QFrame()
@@ -2101,30 +2045,9 @@ class SharedGuideManualView(GuideUltimeManualView):
         self.participants_layout.setSpacing(5)
         self.participants_panel.setVisible(False)
         self.participants_button.toggled.connect(self.participants_panel.setVisible)
-        # Show participants immediately below the title/actions row, above
-        # the global progress caption/bar and both route metrics.
+        # Characters expand below the guide title, above global progress.
         self._header_content_layout.insertWidget(1, self.participants_panel)
 
-        self.summary_panel = QFrame()
-        self.summary_panel.setObjectName("GuideSummaryPanel")
-        summary_layout = QVBoxLayout(self.summary_panel)
-        summary_layout.setContentsMargins(7, 5, 7, 5)
-        summary_layout.setSpacing(5)
-        self.summary_search = QLineEdit()
-        self.summary_search.setObjectName("GuideSummarySearch")
-        self.summary_search.setPlaceholderText("Rechercher une fiche…")
-        self.summary_search.textChanged.connect(self._filter_summary)
-        summary_layout.addWidget(self.summary_search)
-        self.summary_list = QListWidget()
-        self.summary_list.setObjectName("GuideSummaryList")
-        self.summary_list.setUniformItemSizes(True)
-        self.summary_list.setMaximumHeight(190)
-        self.summary_list.itemClicked.connect(self._summary_item_clicked)
-        summary_layout.addWidget(self.summary_list)
-        self.summary_panel.setVisible(False)
-        # A single shared sommaire, under the sheet selector: independent of
-        # the À préparer / Prérequis drawer and available in every guide.
-        layout.addWidget(self.summary_panel)
         apply_unity_panel_shadow(header, blur=15, vertical=3)
         root.addWidget(header)
         # Ganymede metadata shells override participant refresh; apply the
@@ -2179,16 +2102,6 @@ class SharedGuideManualView(GuideUltimeManualView):
         # its tooltip and accessibility label without stretching the header.
         self.participants_button.setText("")
         source_guide = self._is_imported_source_guide()
-        # Route duplicates global progress in every manual guide. Its data
-        # and progress identities remain intact; only the UI is collapsed.
-        for widget in self._route_metric_widgets:
-            widget.hide()
-        self._compact_metric_grid.setColumnStretch(0, 0)
-        self._compact_metric_grid.setColumnStretch(1, 1)
-        self._compact_metric_grid.setHorizontalSpacing(0)
-        self._compact_header_stack.setSpacing(3)
-        self._compact_header_outer.setContentsMargins(10, 4, 10, 5)
-        self._compact_metric_grid.invalidate()
         self._metric_caption_labels["Préparation"].setText("À préparer")
         self.preparation_button.setToolTip("Ouvrir Prérequis et À préparer")
         self.preparation_button.setAccessibleName("Afficher Prérequis et À préparer")
@@ -2305,86 +2218,6 @@ class SharedGuideManualView(GuideUltimeManualView):
         except (AttributeError, KeyError, TypeError, ValueError):
             return None
         return min(100, round(completed * 100 / total)) if total > 0 else None
-
-    def _summary_toggled(self, opened: bool) -> None:
-        self.summary_panel.setVisible(bool(opened))
-        if opened and self.summary_list.count() == 0:
-            self._populate_summary()
-
-    @staticmethod
-    def _summary_step_title(card: dict[str, Any]) -> str:
-        """One source-derived title, without repeating the indexed step number."""
-        title = str(card.get("manual_title") or card.get("destination") or "").strip()
-        generic = re.fullmatch(r"(?:étape|etape|step)\s*\d+", title, re.IGNORECASE)
-        if generic:
-            sections = card.get("manual_sections") or {}
-            rows = sections.get("now") if isinstance(sections, dict) else ()
-            if isinstance(rows, (list, tuple)):
-                first = next((
-                    str(row.get("text", "")).strip()
-                    for row in rows if isinstance(row, dict)
-                    and str(row.get("text", "")).strip()
-                ), "")
-                if first:
-                    return first
-            if card.get("manual_review_only") is True:
-                # A prerequisite-only candidate step has no walkthrough
-                # action. Its original typed label remains navigable.
-                gates = card.get("hard_runtime_gates") or ()
-                if gates and isinstance(gates[0], dict):
-                    label = str(gates[0].get("name") or "").strip()
-                    if label:
-                        return label
-            return "Sans titre"
-        # If a source already numbered its title, the list supplies the
-        # number itself. Only strip an unmistakable matching step prefix.
-        return title or "Sans titre"
-
-    def _populate_summary(self) -> None:
-        self.summary_list.clear()
-        if self._is_continuous_source_reading():
-            # Only visual pages, not 64 repetitive 'Step N [x,y]' entries.
-            for number, _page in enumerate(self._source_reading_pages()):
-                label = f"Page {number + 1}"
-                item = QListWidgetItem(label)
-                item.setData(Qt.UserRole, number)
-                item.setData(Qt.UserRole + 1, normalize_text(label))
-                self.summary_list.addItem(item)
-            self._filter_summary(self.summary_search.text())
-            return
-        for index, card in enumerate(self.service.cards):
-            title = self._summary_step_title(card)
-            label = f"{index + 1}. {title}"
-            item = QListWidgetItem(label)
-            item.setData(Qt.UserRole, index)
-            # Normalization is expensive across a 1,000+ card route. Persist
-            # only a tiny search key on the item, not a second route model.
-            item.setData(Qt.UserRole + 1, normalize_text(label))
-            self.summary_list.addItem(item)
-        # Rebuilding the model must not silently discard the active search.
-        self._filter_summary(self.summary_search.text())
-
-    def _filter_summary(self, value: str) -> None:
-        needle = normalize_text(value)
-        for index in range(self.summary_list.count()):
-            item = self.summary_list.item(index)
-            normalized = item.data(Qt.UserRole + 1)
-            # Old/external QListWidgetItems still obey the original semantics.
-            if not isinstance(normalized, str):
-                normalized = normalize_text(item.text())
-            item.setHidden(bool(needle and needle not in normalized))
-
-    def _summary_item_clicked(self, item: QListWidgetItem) -> None:
-        try:
-            index = int(item.data(Qt.UserRole))
-        except (TypeError, ValueError):
-            return
-        if self._is_continuous_source_reading():
-            self._show_reading_page(index)
-        else:
-            self._show_index(index)
-        # The summary is deliberately sticky. Only an explicit click on the
-        # Sommaire button may close it.
 
     def _preparation_tab_changed(self, tab: str) -> None:
         if tab not in {"Prérequis", "À préparer"}:
@@ -3510,18 +3343,12 @@ class SharedGuideManualView(GuideUltimeManualView):
             else:
                 completed = min(done for done, _total in progress_rows)
             percent = min(100, round(completed * 100 / total)) if total > 0 else None
-            self.route_bar.setRange(0, max(1, total))
-            self.route_bar.setValue(completed)
-            self.route_progress_label.setText(f"{percent} %")
             self.progress_donut.set_percent(percent)
             self.global_progress_bar.setRange(0, max(1, total))
             self.global_progress_bar.setValue(completed)
             self.global_progress_label.setText(f"{percent} %")
             self.donut_count_label.setText(f"{completed} fiches validées")
         else:
-            self.route_bar.setRange(0, 1)
-            self.route_bar.setValue(0)
-            self.route_progress_label.setText("—")
             self.progress_donut.set_percent(None)
             self.global_progress_bar.setRange(0, 1)
             self.global_progress_bar.setValue(0)
@@ -3578,60 +3405,11 @@ class SharedGuideManualView(GuideUltimeManualView):
             self.page_jump.setValue(index + 1)
             self.page_jump.blockSignals(False)
 
-    def _restore_route_lock_state(self) -> None:
-        locked = False
-        manual_checked = getattr(self.service, "manual_checked", None)
-        if self.character_key and callable(manual_checked):
-            locked = bool(
-                manual_checked(
-                    self.character_key,
-                    self.ROUTE_LOCK_PROGRESS_KEY,
-                )
-            )
-        self.route_lock_check.blockSignals(True)
-        self.route_lock_check.setChecked(locked)
-        self.route_lock_check.blockSignals(False)
-        self._apply_route_lock_visual(locked)
-
-    def _apply_route_lock_visual(self, locked: bool) -> None:
-        label = "Verrouillé" if locked else "Déverrouillé"
-        self.route_lock_check.setText(label)
-        self.route_lock_check.setIcon(
-            _guide_symbol_icon(self.route_lock_check, "lock" if locked else "unlock")
-        )
-        self.route_lock_check.setIconSize(QSize(14, 14))
-        self.route_lock_check.setAccessibleName(label)
-        self.route_lock_check.setProperty("state", "locked" if locked else "unlocked")
-        self.route_lock_check.style().unpolish(self.route_lock_check)
-        self.route_lock_check.style().polish(self.route_lock_check)
-        self.route_bar.setCursor(Qt.ArrowCursor if locked else Qt.PointingHandCursor)
-        self.route_bar.setToolTip(
-            "Barre verrouillée : déverrouillez-la pour naviguer par clic."
-            if locked
-            else "Cliquer dans la barre pour naviguer directement dans le Guide."
-        )
-        self.route_lock_check.setToolTip(
-            "Déverrouiller la navigation dans la barre de progression."
-            if locked
-            else "Verrouiller la navigation dans la barre de progression."
-        )
-
-    def _route_lock_toggled(self, locked: bool) -> None:
-        self._apply_route_lock_visual(bool(locked))
-        set_manual_checked = getattr(self.service, "set_manual_checked", None)
-        if self.character_key and callable(set_manual_checked):
-            set_manual_checked(
-                self.character_key,
-                self.ROUTE_LOCK_PROGRESS_KEY,
-                bool(locked),
-            )
-
     def set_character_key(self, character_key: str) -> None:
         super().set_character_key(character_key)
         self._preparation_loaded = False
         self._preparation_needs = ()
         self._refresh_participants_panel()
-        self._restore_route_lock_state()
 
     def _validation_status(self, card: dict[str, Any], index: int):
         keys = self._progress_participant_keys()
@@ -3875,7 +3653,6 @@ class SharedGuideManualView(GuideUltimeManualView):
             self._source_current_page_number(pages),
             max(0, len(pages) - 1),
         )
-        self._populate_summary()
         self._refresh_header()
         self._render_window(reset_scroll=True)
 
