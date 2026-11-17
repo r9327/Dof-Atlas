@@ -74,9 +74,9 @@ class GanymedeGuideShellTests(unittest.TestCase):
             shell._header_content_layout.itemAt(1).widget(),
             shell.participants_panel,
         )
-        metrics = shell._metric_columns["Préparation"].parent()
-        self.assertIsInstance(metrics, QGridLayout)
-        self.assertEqual(metrics.columnCount(), 2)
+        self.assertIsNotNone(shell.global_details_panel.findChild(
+            QProgressBar, "GuideCompactPreparationProgress"
+        ))
         self.assertEqual(shell.rendered_card_count, 0)
         self.assertEqual(shell.cards_layout.count(), 0)
         before = len(shell.findChildren(QProgressBar))
@@ -162,6 +162,7 @@ class GanymedeGuideShellTests(unittest.TestCase):
         self.assertEqual(shell.validation_layout.count(), 0)
 
         # Tabs and a temporary checklist work without saving uncertified data.
+        shell.global_details_button.click()
         shell.preparation_button.click()
         self.app.processEvents()
         self.assertTrue(shell.preparation_panel.isVisibleTo(shell))
