@@ -84,7 +84,7 @@ def _native_visual_probe(route: dict, cover_png: bytes) -> None:
     from PySide6.QtGui import QPixmap
     from PySide6.QtTest import QTest
     from PySide6.QtWidgets import (
-        QApplication, QCheckBox, QDialog, QFrame, QLabel, QPushButton,
+        QApplication, QCheckBox, QDialog, QFrame, QLabel, QProgressBar, QPushButton,
         QSpinBox, QSlider, QVBoxLayout,
     )
     from app.ui.theme import GUIDE_READING_METRICS, atlas_stylesheet
@@ -244,7 +244,7 @@ def _native_visual_probe(route: dict, cover_png: bytes) -> None:
     app.processEvents()
     if hasattr(shell, "summary_button") or shell.findChild(QFrame, "GuideSummaryPanel"):
         raise AssertionError("Sommaire must not be instantiated")
-    if shell.findChild(QFrame, "GuideManualProgress"):
+    if shell.findChild(QProgressBar, "GuideManualProgress"):
         raise AssertionError("Redundant Route panel remains")
     if not shell.preparation_panel.isVisibleTo(shell):
         raise AssertionError("Prérequis drawer cannot open")
