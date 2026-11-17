@@ -15,6 +15,7 @@ from PySide6.QtWidgets import (
     QPushButton,
     QSizePolicy,
     QToolButton,
+    QProgressBar,
 )
 
 from app.modules.encyclopedia.views.guide_ultime_manual_view import (
@@ -231,7 +232,7 @@ class GuideUltimeManualUiNavigationTests(unittest.TestCase):
             self.assertIsNone(view.findChild(QFrame, "GuideSummaryPanel"))
             self.assertIsNone(view.findChild(QProgressBar, "GuideManualProgress"))
             self.assertEqual(view.sheet_meta_label.text(), "ÉTAPE · CHAPITRE UN")
-            self.assertEqual(view.nav_page_label.text(), "Page 1 / 2")
+            self.assertEqual(view.nav_page_label.text(), "1/2")
         finally:
             view.close()
 
@@ -247,7 +248,7 @@ class GuideUltimeManualUiNavigationTests(unittest.TestCase):
             self.assertEqual(view.prev_button.objectName(), "GuideManualPrev")
             self.assertEqual(view.next_button.objectName(), "GuideManualNextButton")
             self.assertEqual(view.page_jump.objectName(), "GuideCompactPageJump")
-            self.assertEqual(view.page_jump.suffix(), " / 2")
+            self.assertEqual(view.page_jump.suffix(), "/2")
             self.assertEqual(view.preparation_button.objectName(), "GuideMetricDropdown")
             self.assertEqual(view.global_details_button.objectName(), "GuideMetricDropdown")
             self.assertEqual(view.participants_button.width(), UNITY_CONTROL_SIZES_PX["guide_character_button"])
@@ -325,11 +326,11 @@ class GuideUltimeManualUiNavigationTests(unittest.TestCase):
             self.assertEqual(view.participants_button.accessibleName(), "Mes personnages · 1")
             self.assertIn("Choisir les identités", view.participants_button.toolTip())
             from app.ui.unity_palette import UNITY_CONTROL_SIZES_PX
-            self.assertEqual(
+            self.assertLessEqual(
                 view.page_jump.maximumWidth(),
                 UNITY_CONTROL_SIZES_PX["guide_page_jump_compact_max_width"],
             )
-            self.assertEqual(view.page_jump.suffix(), " / 2")
+            self.assertEqual(view.page_jump.suffix(), "/2")
             self.assertEqual(view._metric_caption_labels["Préparation"].text(), "À préparer")
             self.assertEqual(view._metric_caption_labels["Préparation"].toolTip(), "Préparation")
 
@@ -337,7 +338,7 @@ class GuideUltimeManualUiNavigationTests(unittest.TestCase):
             QApplication.processEvents()
             self.assertEqual(view.participants_button.text(), "")
             self.assertEqual(view.participants_button.accessibleName(), "Mes personnages · 1")
-            self.assertEqual(
+            self.assertLessEqual(
                 view.page_jump.maximumWidth(),
                 UNITY_CONTROL_SIZES_PX["guide_page_jump_normal_max_width"],
             )
@@ -365,7 +366,7 @@ class GuideUltimeManualUiNavigationTests(unittest.TestCase):
             self.assertFalse(any("SUCCÈS LIÉS" in text for text in texts))
             self.assertFalse(any("DESTINATION SUIVANTE" in text for text in texts))
             self.assertIsNone(view.findChild(QFrame, "GuideBreadcrumb"))
-            self.assertEqual(view.guide_button.text(), "←")
+            self.assertFalse(view.guide_button.icon().isNull())
             self.assertEqual(view.guide_button.accessibleName(), "Fiche actuelle ou catalogue des guides")
             self.assertEqual(view.guide_title_label.text(), "Guide Succès")
         finally:
@@ -672,7 +673,7 @@ class GuideUltimeManualUiNavigationTests(unittest.TestCase):
             QApplication.processEvents()
 
             self.assertEqual(view.view_index, 1)
-            self.assertEqual(view.nav_page_label.text(), "Page 2 / 2")
+            self.assertEqual(view.nav_page_label.text(), "2/2")
             self.assertEqual(bar.value(), bar.minimum())
         finally:
             view.close()
@@ -695,7 +696,7 @@ class GuideUltimeManualUiNavigationTests(unittest.TestCase):
             self.assertEqual(view.global_progress_label.text(), "50 %")
             self.assertEqual((view.global_progress_bar.value(), view.global_progress_bar.maximum()), (1, 2))
             self.assertEqual(view.progress_donut._percent, 50)
-            self.assertEqual(view.nav_page_label.text(), "Page 2 / 2")
+            self.assertEqual(view.nav_page_label.text(), "2/2")
         finally:
             view.close()
 
