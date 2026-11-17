@@ -89,7 +89,7 @@ from app.ui.unity_skin import (
 )
 from app.ui.ui_registry import (
     UI_CONSUMER_INDEX, UI_FAMILY_QSS_SELECTORS,
-    UI_FAMILY_PAINTED_ROLES, validate_ui_index,
+    UI_FAMILY_PAINTED_ROLES, inspect_ui_mutualization_sources, validate_ui_index,
 )
 
 
@@ -2335,14 +2335,96 @@ class DevUiPage(QWidget):
             "pour les compteurs QSpinBox. "
             f"Dialogues standard : 1 AtlasDialog / "
             f"{len(_DIALOG_PREVIEW_VARIANTS)} variantes de démonstration. "
-            f"Craft : {craft_dialog_count} vrais QDialog à raccorder "
-            "à la présentation commune. "
+            f"Craft : {craft_dialog_count} usages sur AtlasDialog commun. "
             f"Popups et overlays : {len(secondary)} usages existants distincts "
             "(pas autant de composants)."
         )
         self.preview_shared_ui_counts.setObjectName("MutedLabel")
         self.preview_shared_ui_counts.setWordWrap(True)
         section.addWidget(self.preview_shared_ui_counts)
+
+        # Auditable 18-needs projection of the existing 23 gallery families.
+        # Source references are sampled once, only while Dev UI is opened.
+        # The numbers are static mentions, not runtime adoption proof.
+        audit = inspect_ui_mutualization_sources()
+        audit_note = QLabel(
+            "18 besoins mutualisés : les modules sont comptés uniquement si "
+            "leur source indexée contient un appel compatible. Ce repérage "
+            "statique n'est pas une certification de migration et ne donne "
+            "pas un nombre de doublons non vérifiés."
+        )
+        audit_note.setObjectName("MutedLabel")
+        audit_note.setWordWrap(True)
+        section.addWidget(audit_note)
+        self.preview_mutualization_matrix = QTableWidget(len(audit), 5)
+        self.preview_mutualization_matrix.setHorizontalHeaderLabels((
+            "Élément UI", "Base commune", "Règles / variantes",
+            "Modules repérés", "Écart vérifié",
+        ))
+        self.preview_mutualization_matrix.setAlternatingRowColors(False)
+        self.preview_mutualization_matrix.setShowGrid(False)
+        self.preview_mutualization_matrix.verticalHeader().hide()
+        self.preview_mutualization_matrix.horizontalHeader().setStretchLastSection(True)
+        self.preview_mutualization_matrix.horizontalHeader().setSectionResizeMode(
+            0, QHeaderView.Stretch
+        )
+        self.preview_mutualization_matrix.horizontalHeader().setSectionResizeMode(
+            1, QHeaderView.ResizeToContents
+        )
+        self.preview_mutualization_matrix.horizontalHeader().setSectionResizeMode(
+            2, QHeaderView.ResizeToContents
+        )
+        self.preview_mutualization_matrix.horizontalHeader().setSectionResizeMode(
+            3, QHeaderView.ResizeToContents
+        )
+        for index, record in enumerate(audit):
+            family = record["family"]
+            qss = record["qss_rules"]
+            if family == "buttons":
+                variants = f"{len(BUTTON_OBJECT_NAMES)} rôles"
+            elif family == "dialogs":
+                variants = f"{len(_DIALOG_PREVIEW_VARIANTS)} démos"
+            else:
+                variants = f"{qss} QSS" if qss else "Tokens"
+            consumers = record["source_consumers"]
+            unreadable = record["unreadable_consumers"]
+            source_count = f"{len(consumers)} repérés"
+            if unreadable:
+                source_count += " (partiel)"
+            if family == "dialogs" and record["craft_shared_dialogs"] is not None:
+                gap = (
+                    f"Craft : {record['craft_shared_dialogs']}/4 unifiés, "
+                    f"{record['craft_local_qdialogs']} locaux"
+                )
+            else:
+                gap = "Non audité"
+            for column, value in enumerate((
+                record["label"], record["component"],
+                variants, source_count, gap,
+            )):
+                item = QTableWidgetItem(str(value))
+                if column == 1:
+                    item.setToolTip(str(record["style_owner"]))
+                elif column == 3:
+                    item.setToolTip(
+                        "Références statiques repérées : "
+                        + (", ".join(consumers) or "aucune")
+                        + ("\nSources inaccessibles : " + ", ".join(unreadable)
+                           if unreadable else "")
+                    )
+                elif column == 4:
+                    item.setToolTip(
+                        "Aucun zéro n'est supposé pour les doublons non audités"
+                    )
+                self.preview_mutualization_matrix.setItem(index, column, item)
+        self.preview_mutualization_matrix.setToolTip(
+            "Audit de sources Qt enregistrées, pas décompte des widgets "
+            "instanciés à l'exécution. Cliquer une famille dans l'index pour "
+            "consulter ses vrais exemples."
+        )
+        self.preview_mutualization_toggle = self._add_catalog_table(
+            section, self.preview_mutualization_matrix, "les 18 besoins mutualisés"
+        )
 
         contract_label = QLabel(
             "Tous les éléments prévus en uniformisation (cliquer une ligne "
@@ -2531,8 +2613,8 @@ class DevUiPage(QWidget):
 
         craft_note = QLabel(
             "Fenêtres Craft réelles (sans mutation des données) : "
-            "elles utilisent déjà le thème global, mais leurs conteneurs "
-            "QDialog restent à raccorder au dialogue commun."
+            "quatre contenus métier sur le conteneur AtlasDialog commun "
+            "et l'en-tête AtlasDialogHeader partagé."
         )
         craft_note.setObjectName("MutedLabel")
         craft_note.setWordWrap(True)
