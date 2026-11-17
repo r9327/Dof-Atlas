@@ -476,9 +476,9 @@ class AchievementsView(QWidget):
         self._detail_requested = None
         self.current_achievement_id = achievement_id
 
-        # Only MemoryBoundAchievementProvider's cold path starts a disposable
-        # subprocess / parses rich source on demand. Preserve the lightweight
-        # normal provider path and cache-hit semantics.
+        # A cold rich detail may need a subprocess (development) or to build
+        # reward-source indexes (installed runtime). Keep both on the bounded
+        # worker; warmed and cached details retain the synchronous fast path.
         recent = getattr(self.provider, "_recent_rich_details", None)
         active_id = getattr(self.provider, "_detail_cache_id", None)
         active = getattr(self.provider, "_detail_cache", None)
