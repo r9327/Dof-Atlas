@@ -407,7 +407,7 @@ def unity_skin_stylesheet(palette: Mapping[str, str] | None = None) -> str:
         # Small bevels and stronger contrast for the real guide surfaces.
         # QSS has no native box-shadow; personal 9-slice sprites can supply
         # the game-native depth when installed.
-        "QFrame#GuidePreparationSummary, QFrame#GuideManualWarningSection { "
+        "QFrame#GuidePreparationSummary { "
         "background: qlineargradient(x1:0,y1:0,x2:0,y2:1, "
         "stop:0 %s, stop:1 %s); "
         "border: 1px solid %s; border-radius: 5px; color: %s; }" % (
