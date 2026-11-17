@@ -595,6 +595,7 @@ class DevUiPageTests(unittest.TestCase):
             for table, toggle in (
                 (page.preview_contract, page.preview_contract_toggle),
                 (page.preview_scope, page.preview_scope_toggle),
+                (page.preview_secondary_surfaces, page.preview_secondary_toggle),
                 (page.preview_metrics, page.preview_metrics_toggle),
             ):
                 self.assertTrue(table.isHidden())
