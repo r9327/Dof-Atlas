@@ -113,6 +113,30 @@ class GuideManualSelectedValidationTests(unittest.TestCase):
         self.assertIsNone(second.findChild(QFrame, "GuideManualLegendCard"))
         self.assertEqual(self.view.rendered_card_count, 1)
 
+    def test_validation_stays_plain_text_with_indexed_checked_outline(self) -> None:
+        from app.ui.theme import PALETTE, atlas_stylesheet
+
+        style = atlas_stylesheet()
+        checked_selector = "#GuideManualPageCheck:checked {"
+        checked_disabled_selector = "#GuideManualPageCheck:checked:disabled {"
+        self.assertIn(checked_selector, style)
+        self.assertIn(checked_disabled_selector, style)
+        for selector in (checked_selector, checked_disabled_selector):
+            rules = style.split(selector, 1)[1].split("}", 1)[0]
+            self.assertIn(f"color: {PALETTE['GREEN']}", rules)
+            self.assertIn(f"border-color: {PALETTE['GREEN_BORDER']}", rules)
+            self.assertNotIn("background:", rules)
+        self.participants.save_selected_keys(("character:1",))
+        self._show_sheet()
+        button = self.view.validation_layout.itemAt(0).widget()
+        self.assertEqual(button.text(), "Valider")
+        self.assertFalse(button.isChecked())
+        button.click()
+        self._show_sheet(0)
+        validated = self.view.validation_layout.itemAt(0).widget()
+        self.assertEqual(validated.text(), "Valider")
+        self.assertTrue(validated.isChecked())
+
     def test_empty_selection_never_writes_global_character(self) -> None:
         self.participants.save_selected_keys(())
         self._show_sheet()
@@ -152,7 +176,7 @@ class GuideManualSelectedValidationTests(unittest.TestCase):
         QApplication.processEvents()
         self._show_sheet(0)
         control = self.view.validation_layout.itemAt(0).widget()
-        self.assertEqual(control.text(), "Annuler validation")
+        self.assertEqual(control.text(), "Valider")
         control.click()
         self.assertTrue(self._check("character:1"))
         self.assertFalse(self._check("character:2"))
@@ -173,7 +197,7 @@ class GuideManualSelectedValidationTests(unittest.TestCase):
 
         self.service.automatic.add(("character:2", 0))
         self._show_sheet()
-        self.assertEqual(self.view.validation_layout.itemAt(0).widget().text(), "Annuler validation")
+        self.assertEqual(self.view.validation_layout.itemAt(0).widget().text(), "Valider")
         self.view.validation_layout.itemAt(0).widget().click()
         self.assertFalse(self._check("character:2"))
         self.assertTrue(self.service.card_auto_complete("character:2", self.service.cards[0]))
@@ -278,7 +302,7 @@ class GuideManualSelectedValidationTests(unittest.TestCase):
         self.assertEqual(self.view.global_progress_bar.value(), 2)
         self.assertEqual(self.view.page_jump.suffix(), "/2")
         self.assertEqual(
-            self.view.validation_layout.itemAt(0).widget().text(), "Annuler validation"
+            self.view.validation_layout.itemAt(0).widget().text(), "Valider"
         )
 
     def test_completed_team_has_no_phantom_current_sheet(self) -> None:
