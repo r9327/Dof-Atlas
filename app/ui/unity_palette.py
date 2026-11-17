@@ -649,7 +649,7 @@ UNITY_UI_FAMILY_INDEX = {
             "AtlasPageNavigator", "AtlasPageCounter",
             "WorldMenu", "WorldMenuItem", "WorldMenuItemActive",
         ),
-        "style_owner": "app/ui/theme.py + app/ui/unity_skin.py",
+        "style_owner": "app/ui/components.py + app/ui/theme.py + app/ui/unity_skin.py",
         "scope": "shared",
     },
     "breadcrumbs": {
