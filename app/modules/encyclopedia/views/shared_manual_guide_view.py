@@ -2112,13 +2112,15 @@ class SharedGuideManualView(GuideUltimeManualView):
         source step. Preserve their stable validation, step navigation and
         existing shared card reader. Never infer this mode from the guide ID.
         """
-        if not self._is_imported_source_guide() or not self.service.cards:
+        if not self.service.cards:
             return False
         if all(card.get("manual_review_only") is True
                and "source_step_id" in card for card in self.service.cards):
-            # Candidate previews share the SAME 18-line adaptive page renderer
-            # but cannot write or validate any original source action.
+            # Candidate previews are intentionally not certified imports.
+            # They still share adaptive reading without gaining write rights.
             return True
+        if not self._is_imported_source_guide():
+            return False
         for card in self.service.cards:
             step = (card.get("manual_runtime_metadata") or {}).get("source_step")
             actions = step.get("actions") if isinstance(step, dict) else None
@@ -3811,7 +3813,7 @@ class SharedGuideManualView(GuideUltimeManualView):
         # One actual source fiche is often short. Do not paint a huge empty
         # bordered scroll panel below it: the original authored sheet keeps
         # its indexed glass and real content height instead.
-        source_scroll = self._is_imported_source_guide()
+        source_scroll = self._is_imported_source_guide() or self._is_continuous_source_reading()
         scroll_name = (
             "GuideManualSourceScroll" if source_scroll
             else "GuideManualScroll"
