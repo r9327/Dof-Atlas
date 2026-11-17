@@ -2471,6 +2471,9 @@ class DevUiPage(QWidget):
         self.dialog_button = AtlasButton("Ouvrir une fenêtre", variant="primary")
         self.dialog_button.clicked.connect(self._open_preview_dialog)
         row.addWidget(self.dialog_button)
+        row.addStretch(1)
+        section.addLayout(row)
+        variants_row = QHBoxLayout()
         self.preview_dialog_variants: dict[str, AtlasButton] = {}
         for state, caption in (
             ("info", "Information"),
@@ -2487,14 +2490,17 @@ class DevUiPage(QWidget):
                     self._open_preview_dialog_variant(mode)
             )
             self.preview_dialog_variants[state] = variant_button
-            row.addWidget(variant_button)
+            variants_row.addWidget(variant_button)
+        variants_row.addStretch(1)
+        section.addLayout(variants_row)
+        icons_row = QHBoxLayout()
         for name in ("guide", "quest", "success", "character"):
             icon_label = QLabel()
             icon_label.setPixmap(unity_original_preview_icon(name).pixmap(24, 24))
             icon_label.setToolTip(name)
-            row.addWidget(icon_label)
-        row.addStretch(1)
-        section.addLayout(row)
+            icons_row.addWidget(icon_label)
+        icons_row.addStretch(1)
+        section.addLayout(icons_row)
 
         colors = self._section(parent, "palette")
         intro = QLabel(
