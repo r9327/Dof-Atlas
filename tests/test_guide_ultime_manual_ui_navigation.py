@@ -29,6 +29,21 @@ from app.modules.encyclopedia.views.shared_manual_guide_view import (
 )
 
 
+class GuideUltimeManualProgressIdentityTests(unittest.TestCase):
+    def test_manual_runtime_has_the_existing_canonical_preparation_key(self):
+        from app.modules.encyclopedia.services.guide_ultime_generated_service import (
+            GUIDE_ULTIME_PROGRESS_ID,
+        )
+        from app.modules.encyclopedia.services.guide_ultime_manual_runtime_service import (
+            GuideUltimeManualRuntimeService,
+        )
+
+        self.assertEqual(
+            GuideUltimeManualRuntimeService.progress_id,
+            GUIDE_ULTIME_PROGRESS_ID,
+        )
+
+
 class _FakeManualUiService:
     def __init__(self) -> None:
         long_lines = [
