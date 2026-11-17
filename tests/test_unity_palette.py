@@ -417,7 +417,7 @@ class UnityPaletteTests(unittest.TestCase):
         self.assertEqual(UNITY_UI_FAMILY_INDEX["guides"]["scope"], "module")
         self.assertEqual(UNITY_UI_FAMILY_INDEX["palette"]["scope"], "shared")
         from app.ui.unity_palette import UNITY_UI_UNIFICATION_CONTRACT
-        self.assertGreaterEqual(len(UNITY_UI_UNIFICATION_CONTRACT), 46)
+        self.assertGreaterEqual(len(UNITY_UI_UNIFICATION_CONTRACT), 52)
         topics = {label for label, _family in UNITY_UI_UNIFICATION_CONTRACT}
         self.assertTrue({
             "Sélecteurs compacts : valeurs négatives, préfixes et x/x",
