@@ -757,6 +757,7 @@ class GuideUltimeManualUiNavigationTests(unittest.TestCase):
         )
         try:
             self.assertFalse(view.preparation_panel.isVisible())
+            view.global_details_button.click()
             view.preparation_button.click()
             potion = next(need for need in view._preparation_needs if need.name == "Potion de test")
             self.assertEqual(
@@ -816,6 +817,7 @@ class GuideUltimeManualUiNavigationTests(unittest.TestCase):
             participant_service=participants,
         )
         try:
+            view.global_details_button.click()
             view.preparation_button.click()
             view.preparation_filter.setCurrentText("Potions")
             self.assertEqual(view.preparation_filter.currentText(), "Potions")
