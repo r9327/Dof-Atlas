@@ -417,7 +417,7 @@ class SharedGuideManualCard(GuideUltimeManualCard):
         if blocking:
             label = "Choisir l’ordre" if trigger_ready else "Rang 20 requis"
         elif automatic:
-            label = "Validé ✓"
+            label = "Valider"
         else:
             label = "Valider"
         self.page_check = AtlasButton(label)
@@ -2229,9 +2229,9 @@ class SharedGuideManualView(GuideUltimeManualView):
         elif blocked:
             label, hint = "Choisir l’ordre", "Une fiche de la sélection est bloquée : terminez le choix d’ordre avant de valider."
         elif all_done and reversible:
-            label, hint = "Annuler validation", "Retirer uniquement les coches manuelles ; les preuves automatiques sont conservées."
+            label, hint = "Valider", "Retirer uniquement les coches manuelles ; les preuves automatiques sont conservées."
         elif all_done:
-            label, hint = "Validé ✓", "Fiche déjà validée automatiquement pour tous les personnages sélectionnés."
+            label, hint = "Valider", "Fiche déjà validée automatiquement pour tous les personnages sélectionnés."
         else:
             label, hint = "Valider", "Valider la fiche pour les personnages sélectionnés qui en ont besoin."
         if statuses and (not callable(batcher) or not callable(page_key)):
