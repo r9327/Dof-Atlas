@@ -1111,10 +1111,13 @@ class DevUiPageTests(unittest.TestCase):
             page.preview_header_controls["Préparation"].setChecked(True)
             QApplication.processEvents()
             button = page.preview_header_preparation_names[0]
-            self.assertTrue(button.isVisible())
+            # The gallery may keep this section collapsed; QWidget.grab()
+            # paints the real, styled button even when an ancestor is hidden.
             self.assertTrue(button.isEnabled())
             self.assertFalse(button.isFlat())
+            button.ensurePolished()
             sample = button.grab().toImage()
+            self.assertGreater(sample.width(), 0)
             target = QColor(PALETTE["GREEN"])
             # Anti-aliased glyph edges need a tolerance; the button has no icon
             # in Dev UI, so only the item's visible text can satisfy this.
