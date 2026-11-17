@@ -22,6 +22,7 @@ UI_FAMILY_QSS_SELECTORS: dict[str, tuple[str, ...]] = {
     ),
     "navigation": (
         "QTabBar::tab", "QTabWidget::pane", "QMenu {",
+        "QLabel#AtlasPageCounter",
         "#WorldMenu", "#WorldMenuItem", "#WorldMenuItemActive",
     ),
     "breadcrumbs": ("QFrame#GuideBreadcrumb", "QPushButton#GuideBreadcrumbButton", "QLabel#GuideBreadcrumbCurrent",
