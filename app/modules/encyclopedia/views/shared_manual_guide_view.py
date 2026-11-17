@@ -38,7 +38,7 @@ from app.modules.encyclopedia.views.guide_ultime_manual_view import (
     GuideUltimeManualView,
 )
 from app.core.text import normalize_key as normalize_text
-from app.ui.components import AtlasButton, AtlasComboBox, AtlasGuideDisclosure, AtlasGuideCover, AtlasGuideParticipantButton, atlas_guide_arrow_icon, atlas_guide_character_icon, size_guide_quantity_spinbox
+from app.ui.components import AtlasButton, AtlasComboBox, AtlasGuideDisclosure, AtlasGuideCover, AtlasGuideParticipantButton, atlas_guide_arrow_icon, atlas_guide_character_icon, fit_unity_number_spinbox
 from app.ui.unity_palette import UNITY_CONTROL_SIZES_PX, UNITY_LAYOUT_BREAKPOINTS_PX, UNITY_LAYOUT_SIZES_PX, UNITY_GUIDE_READING_METRICS_PX, UNITY_SIZES_PX, UNITY_SPACING_PX
 from app.ui.unity_skin import apply_unity_panel_shadow, sprite_icon_path
 from app.constants import DATA_DIR
@@ -1257,6 +1257,7 @@ class SharedGuideManualView(GuideUltimeManualView):
         self.page_jump.setObjectName("GuideCompactPageJump")
         self.page_jump.setRange(1, max(1, len(self.service.cards)))
         self.page_jump.setSuffix(f"/{len(self.service.cards)}")
+        fit_unity_number_spinbox(self.page_jump)
         self.page_jump.setSizePolicy(QSizePolicy.Maximum, QSizePolicy.Fixed)
         self.page_jump.setToolTip("Ouvrir directement la fiche sélectionnée")
         self.page_jump.setAccessibleName("Sélectionner la fiche du guide")
@@ -1894,7 +1895,7 @@ class SharedGuideManualView(GuideUltimeManualView):
             counter.setObjectName("GuidePreparationQuantity")
             counter.setRange(0, max(1, int(quantity)))
             counter.setSuffix(f" / {quantity}")
-            size_guide_quantity_spinbox(counter)
+            fit_unity_number_spinbox(counter)
             counter.setToolTip("Quantité déjà possédée (brouillon de cette session)")
             draft = self._preparation_quantity_drafts.get(
                 need.item_key, int(quantity) if ready else 0
@@ -2133,7 +2134,7 @@ class SharedGuideManualView(GuideUltimeManualView):
         self.page_jump.blockSignals(True)
         self.page_jump.setRange(1, max(1, total_cards))
         self.page_jump.setSuffix(f"/{total_cards}")
-        self.page_jump.updateGeometry()
+        fit_unity_number_spinbox(self.page_jump)
         self.page_jump.setValue(index + 1)
         self.page_jump.blockSignals(False)
 
