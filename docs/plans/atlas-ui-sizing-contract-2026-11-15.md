@@ -402,3 +402,63 @@ liés aux rôles et variantes existants, absence d'écriture dans les exemples.
 **Exécution Qt/Doctor/Windows exacte-SHA à effectuer : NOT_RUN** dans
 cette session. Les preuves visuelles et l'inventaire exhaustif des widgets
 dynamiques restent des critères obligatoires de #365.
+
+
+## Mutualisation appliquée — 18 besoins Dev UI et quatre dialogues Craft
+
+**État du code (remplace le restant Craft annoncé dans les lots précédents) :**
+
+- \`CraftResourceDialog\`, \`ItemSetDialog\`, \`LevelingDialog\` et
+  \`RouteDialog\` héritent désormais **tous d'\`AtlasDialog\`** dans
+  \`app/pages/craft_page.py\`. Ils réutilisent chacun le même
+  \`content_layout\` et \`AtlasDialogHeader\`, sans classe de thème
+  supplémentaire ni QSS local. Les fenêtres conservent leurs callbacks,
+  choix, images, scroll et navigation métier ; leurs dimensions de
+  démarrage restent les métriques Craft indexées dans
+  \`UNITY_MODULE_GEOMETRY_PX\`. La fenêtre Panoplie vide reste prise
+  en charge (y compris \`item_set=None\`).
+- La fenêtre **Ressources Craft reste non modale** côté \`CraftPage\` :
+  \`show_resources()\` applique \`dialog.setModal(False)\` avant
+  \`show()\`. Les autres dialogues restent modaux dans leurs flux
+  \`exec()\`. La confirmation à Échap propre aux ressources est
+  conservée. Tests ajoutés dans \`tests/test_craft_fixes.py\` et
+  \`tests/test_dev_ui_page.py\` : héritage commun, conteneur unique,
+  en-têtes réels, panoplie vide et fenêtre ressources non modale.
+- Le **panneau Couverture** de Dev UI recense **18 besoins** (boutons,
+  sélections, quantités, fenêtres, cases, saisie, progression, panneaux,
+  titres, bordures, glass, images, navigation, onglets, listes, tooltips,
+  badges, scroll/resize). Ce sont des **entrées d'audit** rattachées aux
+  23 familles UI existantes, pas 18 nouvelles classes.
+  Chaque ligne affiche la base commune, le nombre de sélecteurs QSS
+  indexés ou de variantes explicitement connues, le nombre de modules
+  dont les **fichiers sources enregistrés contiennent un appel
+  correspondant**, et l'écart réellement vérifié. Les modules
+  agrégateurs et la galerie Dev UI sont exclus du décompte afin
+  d'éviter un faux double comptage. Les propriétaires affichés viennent
+  directement de \`UNITY_UI_FAMILY_INDEX\`.
+- Les chiffres sont **des indices statiques, pas un relevé des widgets
+  instanciés ni une preuve de migration**. Les doublons non analysés
+  affichent « Non audité » plutôt qu'un faux zéro. La famille Dialogues
+  relève automatiquement la transition **Craft 4/4 sur AtlasDialog,
+  0 classe Craft encore héritée directement de QDialog**.
+  \`UI_MUTUALIZATION_TARGETS\` et
+  \`inspect_ui_mutualization_sources()\` vivent dans l'index
+  \`app/ui/ui_registry.py\`, sans créer une seconde palette ou un
+  moteur de composants.
+
+### Suite de l'audit, avant Ready
+
+Vérifier le rendu interactif réel des quatre fenêtres aux quatre
+tailles et sur Windows, en particulier la largeur de Panoplie :
+\`item_set_dialog_size=(390,460)\` et
+\`dialog_min_width=400\` impliquent désormais une largeur minimale
+effective de 400 px. Examiner les modules non encore certifiés de
+la matrice et les chemins de création dynamique ; distinguer les
+widgets métier légitimes d'une duplication visuelle avant toute
+conversion. Le préchargement frameless, les suggestions Zaap,
+le zoom Guide, la carte et le radial Organizer conservent
+leurs mécanismes dédiés.
+
+**Exécution de Qt/Doctor/Graphify/captures Windows au HEAD de ce lot :
+NOT_RUN dans cette session.** Le travail de code est présent en PR,
+pas déclaré certifié ou fusionnable sans validation exacte-SHA.
