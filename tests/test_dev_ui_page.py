@@ -851,8 +851,21 @@ class DevUiPageTests(unittest.TestCase):
             self.assertFalse(page.preview_splitter.childrenCollapsible())
             self.assertEqual(page.preview_slider.objectName(), "DevUiProgressSlider")
             self.assertEqual(page.preview_scroll_list.count(), 8)
-            self.assertEqual(page.preview_scope.rowCount(), 12)
+            self.assertEqual(page.preview_scope.rowCount(), 18)
             self.assertEqual(page.preview_scope.item(11, 0).text(), "Launcher")
+            self.assertEqual(page.preview_scope.item(14, 0).text(), "Paramètres")
+            self.assertIn("main.py", page.preview_scope.item(14, 1).toolTip())
+            self.assertEqual(page.preview_secondary_surfaces.rowCount(), 16)
+            actual = {
+                page.preview_secondary_surfaces.item(index, 1).text()
+                for index in range(page.preview_secondary_surfaces.rowCount())
+            }
+            for name in ("PreloadProgressPopup", "CloseActionDialog",
+                         "CraftResourceDialog", "LevelingDialog",
+                         "ZaapSuggestionPopup", "GuideImagePopup",
+                         "Organizer radial", "Splash Unity"):
+                self.assertIn(name, actual)
+            self.assertEqual(page.preview_secondary_surfaces.styleSheet(), "")
             self.assertIn("Tk", page.preview_scope.item(11, 1).text())
             self.assertIn(
                 "app/distribution/launcher_ui.py",
