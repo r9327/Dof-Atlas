@@ -13,7 +13,8 @@ from pathlib import Path
 from app.ui.theme import atlas_stylesheet
 from app.ui.ui_registry import (
     UI_CONSUMER_INDEX, UI_FAMILY_QSS_SELECTORS,
-    UI_INTERACTION_QSS_SELECTORS, validate_ui_index,
+    UI_INTERACTION_QSS_SELECTORS, UI_MUTUALIZATION_TARGETS,
+    inspect_ui_mutualization_sources, validate_ui_index,
 )
 from app.ui.unity_palette import (
     UNITY_UI_FAMILY_INDEX, UNITY_UI_CONSUMERS,
@@ -171,6 +172,29 @@ class UiUniversalContractTests(unittest.TestCase):
             {name for name, data in UI_CONSUMER_INDEX.items()
              if data["adapter"] == "qt"},
         )
+
+    def test_eighteen_needs_reuse_existing_family_index_and_measured_sources(self):
+        self.assertEqual(len(UI_MUTUALIZATION_TARGETS), 18)
+        audit = inspect_ui_mutualization_sources(REPO_ROOT)
+        self.assertEqual(len(audit), 18)
+        self.assertEqual(
+            {entry["label"] for entry in audit},
+            {entry[0] for entry in UI_MUTUALIZATION_TARGETS},
+        )
+        for entry in audit:
+            with self.subTest(item=entry["label"]):
+                self.assertIn(entry["family"], UNITY_UI_FAMILY_INDEX)
+                self.assertEqual(
+                    entry["style_owner"],
+                    UNITY_UI_FAMILY_INDEX[entry["family"]]["style_owner"],
+                )
+                self.assertNotIn("Dev UI", entry["source_consumers"])
+                self.assertNotIn("Popups et dialogues", entry["source_consumers"])
+                self.assertEqual(entry["unreadable_consumers"], ())
+        craft = next(entry for entry in audit if entry["family"] == "dialogs")
+        self.assertIn("Craft", craft["source_consumers"])
+        self.assertEqual(craft["craft_shared_dialogs"], 4)
+        self.assertEqual(craft["craft_local_qdialogs"], 0)
 
     def test_dev_ui_indexes_actual_nav_and_quest_hierarchy_styles(self):
         # These real controls were already in the gallery but missing from
