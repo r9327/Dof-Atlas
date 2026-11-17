@@ -88,6 +88,33 @@ class AchievementsThirdColumnTests(unittest.TestCase):
         self.assertTrue(view._detail_open)
         self.assertEqual(provider.get_detail_by_id.call_count, 1)
 
+    def test_first_cold_detail_prepares_rewards_only_on_worker(self):
+        view, provider = self.make_view()
+        provider.detail_sources_ready = False
+        provider.prepare_detail_sources.side_effect = (
+            lambda: setattr(provider, "detail_sources_ready", True)
+        )
+        view._display_achievement = Mock()
+        with patch("app.modules.encyclopedia.views.achievements_view.Thread") as thread:
+            view.show_achievement(42)
+            # The Qt click may schedule work but must not index reward sources.
+            provider.prepare_detail_sources.assert_not_called()
+            provider.get_detail_by_id.assert_not_called()
+            thread.assert_called_once()
+            thread.return_value.start.assert_called_once()
+            self.assertEqual(view._detail_requested[1], 42)
+
+            # Execute the captured task deterministically without spinning a
+            # background thread; the real threaded path uses this same target.
+            task = thread.call_args.kwargs["target"]
+            task()
+            self.app.processEvents()
+
+        provider.prepare_detail_sources.assert_called_once_with()
+        provider.get_detail_by_id.assert_called_once_with(42)
+        self.assertTrue(provider.detail_sources_ready)
+        self.assertEqual(view._detail_worker_running, False)
+
     def test_category_change_cancels_debounced_search_and_refreshes_immediately(self):
         view, _provider = self.make_view()
         view.search.setText("ancienne recherche")
