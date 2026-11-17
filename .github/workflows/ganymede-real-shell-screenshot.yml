@@ -158,6 +158,10 @@ jobs:
           # Capture both genuine Unity tabs on the same real catalogue path.
           # The pilot is deliberately read-only: the tabs cannot save progress.
           assert shell.preparation_button.isEnabled()
+          # Preparation is nested in Global progress: open the parent first.
+          shell.global_details_button.click()
+          app.processEvents()
+          assert shell.global_details_panel.isVisibleTo(shell)
           shell.preparation_button.click()
           app.processEvents()
           assert shell._preparation_tab == "Prérequis"
