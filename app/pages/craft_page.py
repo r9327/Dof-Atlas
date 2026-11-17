@@ -261,12 +261,13 @@ class ItemSetDialog(AtlasDialog):
 
         root = self.content_layout
         name = (
-            item_set.get("name_fr") or item_set.get("name_en")
-            or f"Panoplie {item_set.get('ankama_id', '')}".strip()
+            self.item_set.get("name_fr") or self.item_set.get("name_en")
+            or f"Panoplie {self.item_set.get('ankama_id', '')}".strip()
         )
         root.addWidget(AtlasDialogHeader(
             str(name),
-            f"{len(item_set.get('items', []))} objet(s) connu(s)" if item_set else "",
+            f"{len(self.item_set.get('items', []))} objet(s) connu(s)"
+            if self.item_set else "",
             parent=self,
         ))
         if not item_set:
@@ -278,7 +279,6 @@ class ItemSetDialog(AtlasDialog):
             close.clicked.connect(self.accept)
             root.addWidget(close)
             return
-
 
         area = QScrollArea()
         area.setWidgetResizable(True)
