@@ -1097,6 +1097,40 @@ class DevUiPageTests(unittest.TestCase):
             row.close()
             row.deleteLater()
 
+    def test_guide_preparation_copy_color_is_visible_in_real_qt(self) -> None:
+        """Inspect painted glyphs, not just the compiled QSS declarations."""
+        from PySide6.QtGui import QColor
+        from PySide6.QtWidgets import QApplication
+        from app.pages.dev_ui_page import DevUiPage
+        from app.ui.theme import PALETTE
+
+        page = DevUiPage(on_back=lambda: None)
+        try:
+            page.resize(1440, 900)
+            page.show()
+            page.preview_header_controls["Préparation"].setChecked(True)
+            QApplication.processEvents()
+            button = page.preview_header_preparation_names[0]
+            self.assertTrue(button.isVisible())
+            self.assertTrue(button.isEnabled())
+            self.assertFalse(button.isFlat())
+            sample = button.grab().toImage()
+            target = QColor(PALETTE["GREEN"])
+            # Anti-aliased glyph edges need a tolerance; the button has no icon
+            # in Dev UI, so only the item's visible text can satisfy this.
+            matches = sum(
+                abs(sample.pixelColor(x, y).red() - target.red()) < 45
+                and abs(sample.pixelColor(x, y).green() - target.green()) < 45
+                and abs(sample.pixelColor(x, y).blue() - target.blue()) < 45
+                for y in range(sample.height())
+                for x in range(min(sample.width(), 250))
+            )
+            self.assertGreater(matches, 4, "Guide item text lost its Unity item color")
+        finally:
+            page.close()
+            page.deleteLater()
+            QApplication.processEvents()
+
     def test_shared_item_copy_buttons_use_indexed_item_color(self) -> None:
         from app.ui.theme import atlas_stylesheet, PALETTE
         from app.ui.entity_link_roles import ENTITY_LINK_COLOR_ROLES
