@@ -347,6 +347,30 @@ def inspect_ui_mutualization_sources(
             except OSError:
                 source_cache[path] = None
 
+    craft_source = source_cache.get("app/pages/craft_page.py")
+    craft_dialog_classes = (
+        "CraftResourceDialog", "ItemSetDialog", "LevelingDialog", "RouteDialog",
+    )
+    craft_shared_count = (
+        sum(
+            bool(re.search(
+                rf"class\s+{name}\s*\(\s*AtlasDialog\s*\)",
+                craft_source,
+            ))
+            for name in craft_dialog_classes
+        )
+        if craft_source is not None else None
+    )
+    craft_local_qdialog_count = (
+        sum(
+            bool(re.search(
+                rf"class\s+{name}\s*\(\s*QDialog\s*\)",
+                craft_source,
+            ))
+            for name in craft_dialog_classes
+        )
+        if craft_source is not None else None
+    )
     results: list[dict[str, object]] = []
     for label, family, component, signature in UI_MUTUALIZATION_TARGETS:
         matcher = re.compile(signature)
@@ -369,6 +393,8 @@ def inspect_ui_mutualization_sources(
             "source_consumers": tuple(detected),
             "unreadable_consumers": tuple(incomplete),
             "style_owner": UNITY_UI_FAMILY_INDEX[family]["style_owner"],
+            "craft_shared_dialogs": craft_shared_count if family == "dialogs" else None,
+            "craft_local_qdialogs": craft_local_qdialog_count if family == "dialogs" else None,
         })
     return tuple(results)
 
