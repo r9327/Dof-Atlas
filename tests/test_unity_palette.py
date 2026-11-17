@@ -351,13 +351,23 @@ class UnityPaletteTests(unittest.TestCase):
         for key in (
             "progress_primary", "progress_secondary",
             "progress_toggle_width", "progress_toggle_height",
-            "guide_quantity_width", "guide_validation_width",
+            "guide_validation_width",
         ):
             with self.subTest(token=key):
                 usage = f'UNITY_CONTROL_SIZES_PX["{key}"]'
                 self.assertIn(usage, source)
                 self.assertIn(usage, gallery)
                 self.assertGreater(UNITY_CONTROL_SIZES_PX[key], 0)
+        # Quantity width is now calculated by one shared component,
+        # so neither page is allowed to implement its own fixed value.
+        component = (
+            root / "app/ui/components.py"
+        ).read_text(encoding="utf-8")
+        self.assertIn('UNITY_CONTROL_SIZES_PX["guide_quantity_width"]', component)
+        self.assertIn('UNITY_CONTROL_SIZES_PX["guide_quantity_chrome_width"]', component)
+        self.assertIn("fit_unity_number_spinbox(counter)", source)
+        self.assertIn("fit_unity_number_spinbox(amount)", gallery)
+        self.assertGreater(UNITY_CONTROL_SIZES_PX["guide_quantity_width"], 0)
 
     def test_indexed_module_dimensions_match_existing_constraints(self) -> None:
         from pathlib import Path
