@@ -11,7 +11,6 @@ from app.modules.encyclopedia.services.guide_auto_validation_contract import (
     route_progress_counts,
 )
 from app.modules.encyclopedia.views.guide_ultime_manual_view import (
-    GuideManualProgressBar,
     GuideUltimeManualCard,
 )
 from app.modules.encyclopedia.views.shared_manual_guide_view import SharedGuideManualView
@@ -193,15 +192,16 @@ class GuideUltimeAutoValidationContractTests(unittest.TestCase):
         self.assertEqual(counts["dungeons_total"], 2)
         self.assertEqual(contract["summary"]["reserved_target_count"], 2)
 
-    def test_manual_view_uses_clickable_progress_scrubber_and_only_bottom_arrows(self):
+    def test_manual_view_uses_global_progress_and_direct_xx_navigation(self):
         build = inspect.getsource(SharedGuideManualView._build_ui)
         header = inspect.getsource(SharedGuideManualView._build_compact_header)
-        self.assertIn("GuideManualProgressBar", header)
-        self.assertIn("navigationRequested.connect", header)
-        self.assertIn("current_button", header)
+        sheet = inspect.getsource(SharedGuideManualView._build_sheet_header)
+        self.assertIn("GuideGlobalProgress", header)
+        self.assertIn("GuideCompactPageJump", sheet)
+        self.assertNotIn("GuideManualProgressBar", header)
+        self.assertNotIn("navigationRequested.connect", header)
         self.assertIn("Précédent", build)
         self.assertIn("Suivant", build)
-        self.assertTrue(hasattr(GuideManualProgressBar, "navigationRequested"))
 
     def test_resource_and_npc_emphasis_are_both_bold_but_distinct_colors(self):
         rich = GuideUltimeManualCard._format_line_html(
