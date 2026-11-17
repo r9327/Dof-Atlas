@@ -63,6 +63,7 @@ from app.modules.encyclopedia.widgets.guide_card import (
 )
 from app.core.text import normalize_key as normalize_text
 from app.ui.components import AtlasBreadcrumb, AtlasButton, AtlasPanelToggle
+from app.ui.entity_link_roles import entity_link_markup
 from app.ui.theme import PALETTE, render_theme_template
 from app.ui.unity_palette import UNITY_MODULE_GEOMETRY_PX
 
@@ -4107,7 +4108,9 @@ def linkify_travel_text(text: str) -> str:
     def replace(match: re.Match[str]) -> str:
         x = int(match.group(1))
         y = int(match.group(2))
-        return f'<a href="atlas-travel:{x},{y}">[{x},{y}]</a>'
+        return entity_link_markup(
+            f"[{x},{y}]", "position", f"atlas-travel:{x},{y}", PALETTE,
+        )
 
     return TRAVEL_COORD_RE.sub(replace, escaped)
 
