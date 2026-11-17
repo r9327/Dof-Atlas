@@ -222,77 +222,52 @@ class GuideUltimeManualUiNavigationTests(unittest.TestCase):
     def test_progress_header_is_compact_and_page_is_in_bottom_navigation(self) -> None:
         _service, view = self._view()
         try:
-            self.assertEqual(view.route_progress_label.text(), "0 %")
-            self.assertEqual((view.route_bar.value(), view.route_bar.maximum()), (0, 2))
-            self.assertEqual(view.progress_donut._percent, 0)
+            self.assertEqual(view.global_progress_label.text(), "0 %")
+            self.assertEqual((view.global_progress_bar.value(), view.global_progress_bar.maximum()), (0, 2))
             self.assertTrue(view.progress_donut.isHidden())
-            self.assertEqual(view.global_progress_bar.value(), 0)
             self.assertEqual(view.donut_count_label.text(), "0 fiches validées")
-            self.assertFalse(hasattr(view, "success_bar"))
-            self.assertFalse(hasattr(view, "current_button"))
+            self.assertFalse(hasattr(view, "summary_button"))
+            self.assertFalse(hasattr(view, "route_bar"))
+            self.assertIsNone(view.findChild(QFrame, "GuideSummaryPanel"))
+            self.assertIsNone(view.findChild(QProgressBar, "GuideManualProgress"))
             self.assertEqual(view.sheet_meta_label.text(), "ÉTAPE · CHAPITRE UN")
             self.assertEqual(view.nav_page_label.text(), "Page 1 / 2")
-            self.assertNotIn("Quêtes", view.route_progress_label.text())
-            self.assertNotIn("Donjons", view.route_progress_label.text())
-            self.assertEqual(view.route_lock_check.text(), "Déverrouillé")
-            self.assertEqual(view.route_lock_check.accessibleName(), "Déverrouillé")
         finally:
             view.close()
 
 
     def test_shared_guide_navigation_uses_universal_atlas_buttons(self) -> None:
         from app.ui.components import AtlasButton
+        from app.ui.unity_palette import UNITY_CONTROL_SIZES_PX
 
         _service, view = self._view()
         try:
-            for control in (
-                view.prev_button, view.next_button, view.guide_button,
-            ):
+            for control in (view.prev_button, view.next_button, view.guide_button):
                 self.assertIsInstance(control, AtlasButton)
             self.assertEqual(view.prev_button.objectName(), "GuideManualPrev")
             self.assertEqual(view.next_button.objectName(), "GuideManualNextButton")
             self.assertEqual(view.page_jump.objectName(), "GuideCompactPageJump")
             self.assertEqual(view.page_jump.suffix(), " / 2")
-            from app.ui.unity_palette import UNITY_CONTROL_SIZES_PX
-            self.assertEqual(
-                view.page_jump.maximumWidth(),
-                UNITY_CONTROL_SIZES_PX["guide_page_jump_normal_max_width"],
-            )
-            self.assertEqual(view.summary_button.objectName(), "GuideMetricDropdown")
             self.assertEqual(view.preparation_button.objectName(), "GuideMetricDropdown")
-            from app.ui.unity_palette import UNITY_CONTROL_SIZES_PX
-
-            self.assertEqual(
-                view.participants_button.width(),
-                UNITY_CONTROL_SIZES_PX["guide_character_button"],
-            )
-            self.assertEqual(
-                view.summary_button.width(),
-                UNITY_CONTROL_SIZES_PX["progress_toggle_width"],
-            )
-            self.assertIs(
-                view._compact_title_row.itemAt(
-                    view._compact_title_row.count() - 2
-                ).widget(), view.participants_button,
-            )
+            self.assertEqual(view.global_details_button.objectName(), "GuideMetricDropdown")
+            self.assertEqual(view.participants_button.width(), UNITY_CONTROL_SIZES_PX["guide_character_button"])
+            self.assertEqual(view.global_details_button.width(), UNITY_CONTROL_SIZES_PX["progress_toggle_width"])
             self.assertIs(
                 view._header_content_layout.itemAt(1).widget(), view.participants_panel,
-            )
-            self.assertIs(
-                view._metric_columns["Route"].itemAt(0).widget(), view.summary_panel,
             )
             self.assertIs(
                 view._metric_columns["Préparation"].itemAt(0).widget(),
                 view.preparation_panel,
             )
-            self.assertTrue(view.route_bar.isEnabled())
+            self.assertIs(view.preparation_bar.parentWidget(), view.global_details_panel)
+            self.assertFalse(hasattr(view, "summary_panel"))
+            self.assertFalse(hasattr(view, "route_bar"))
             self.assertTrue(view.preparation_bar.isEnabled())
-
-            self.assertIs(view.page_jump.parentWidget(), view.sheet_meta_label.parentWidget())
             self.assertEqual(view.prev_button.text(), "Précédent")
             self.assertEqual(view.next_button.text(), "Suivant")
         finally:
             view.close()
+
 
     def test_participant_portrait_sizes_are_shared_with_dev_ui(self) -> None:
         from app.ui.unity_palette import UNITY_CONTROL_SIZES_PX
@@ -319,26 +294,16 @@ class GuideUltimeManualUiNavigationTests(unittest.TestCase):
             for preset, (width, height) in UNITY_WINDOW_PRESETS_PX.items():
                 with self.subTest(preset=preset):
                     view.resize(width, height)
+                    view.show()
                     for opened in (False, True):
-                        view.summary_button.setChecked(opened)
+                        view.global_details_button.setChecked(opened)
                         view.preparation_button.setChecked(opened)
-                        view.participants_button.setChecked(opened)
                         QApplication.processEvents()
-
-                        def span(widget) -> tuple[int, int]:
-                            left = widget.mapTo(view, widget.rect().topLeft()).x()
-                            return left, left + widget.width()
-
-                        full = span(view.global_progress_bar)
-                        route = span(view.route_bar)
-                        preparation = span(view.preparation_bar)
-                        self.assertEqual(full, (route[0], preparation[1]))
-                        self.assertLess(route[1], preparation[0])
+                        self.assertEqual(view.global_progress_bar.width(),
+                                         view.global_details_panel.width() if opened else view.global_progress_bar.width())
                         if opened:
-                            self.assertTrue(view.summary_panel.isVisible())
+                            self.assertTrue(view.global_details_panel.isVisible())
                             self.assertTrue(view.preparation_panel.isVisible())
-                            self.assertEqual(span(view.summary_panel), route)
-                            self.assertEqual(span(view.preparation_panel), preparation)
                             self.assertLessEqual(
                                 view.preparation_filter.width(),
                                 view.preparation_panel.width(),
@@ -346,6 +311,7 @@ class GuideUltimeManualUiNavigationTests(unittest.TestCase):
             self.assertEqual(view.preparation_filter.currentText(), "Tout")
         finally:
             view.close()
+
 
     def test_narrow_layout_preserves_named_actions(self) -> None:
         _service, view = self._view()
@@ -364,7 +330,7 @@ class GuideUltimeManualUiNavigationTests(unittest.TestCase):
                 UNITY_CONTROL_SIZES_PX["guide_page_jump_compact_max_width"],
             )
             self.assertEqual(view.page_jump.suffix(), " / 2")
-            self.assertEqual(view._metric_caption_labels["Préparation"].text(), "Prép.")
+            self.assertEqual(view._metric_caption_labels["Préparation"].text(), "À préparer")
             self.assertEqual(view._metric_caption_labels["Préparation"].toolTip(), "Préparation")
 
             view.resize(960, 640)
@@ -379,26 +345,18 @@ class GuideUltimeManualUiNavigationTests(unittest.TestCase):
         finally:
             view.close()
 
-    def test_progress_lock_blocks_only_direct_bar_jumps(self) -> None:
-        service, view = self._view()
+    def test_obsolete_route_lock_is_removed_but_page_navigation_still_works(self) -> None:
+        _service, view = self._view()
         try:
-            view.route_lock_check.setChecked(True)
-            self.assertEqual(view.route_lock_check.text(), "Verrouillé")
-            self.assertEqual(view.route_lock_check.accessibleName(), "Verrouillé")
-            self.assertTrue(
-                service.manual_checked("character:1", SharedGuideManualView.ROUTE_LOCK_PROGRESS_KEY)
-            )
-            view._jump_from_progress(1.0)
-            self.assertEqual(view.view_index, 0)
-
+            self.assertIsNone(view.findChild(QToolButton, "GuideManualProgressLock"))
+            self.assertIsNone(view.findChild(QProgressBar, "GuideManualProgress"))
             view.navigate_relative(1)
             self.assertEqual(view.view_index, 1)
-
-            view.route_lock_check.setChecked(False)
-            view._jump_from_progress(0.0)
+            view.navigate_relative(-1)
             self.assertEqual(view.view_index, 0)
         finally:
             view.close()
+
 
     def test_manual_ui_omits_obsolete_success_destination_and_breadcrumb_blocks(self) -> None:
         _service, view = self._view()
@@ -497,34 +455,25 @@ class GuideUltimeManualUiNavigationTests(unittest.TestCase):
         finally:
             view.close()
 
-    def test_summary_remains_open_and_filter_survives_repopulation(self) -> None:
+    def test_global_and_preparation_drawers_remain_open_during_page_navigation(self) -> None:
         _service, view = self._view()
         try:
-            view.summary_button.click()
+            view.show()
+            view.global_details_button.click()
+            view.preparation_button.click()
             QApplication.processEvents()
-            self.assertTrue(view.summary_button.isChecked())
-            self.assertFalse(view.summary_panel.isHidden())
-            self.assertEqual(view.summary_list.count(), 2)
-
-            view.summary_search.setText("Deuxième")
-            self.assertTrue(view.summary_list.item(0).isHidden())
-            self.assertFalse(view.summary_list.item(1).isHidden())
-
-            view.summary_list.itemClicked.emit(view.summary_list.item(1))
+            self.assertTrue(view.global_details_panel.isVisible())
+            self.assertTrue(view.preparation_panel.isVisible())
+            view.navigate_relative(1)
             self.assertEqual(view.view_index, 1)
-            self.assertTrue(view.summary_button.isChecked())
-            self.assertFalse(view.summary_panel.isHidden())
+            self.assertTrue(view.global_details_button.isChecked())
+            self.assertTrue(view.preparation_button.isChecked())
             view.navigate_relative(-1)
             self.assertEqual(view.view_index, 0)
-            self.assertFalse(view.summary_panel.isHidden())
-
-            view.summary_list.clear()
-            view._populate_summary()
-            self.assertEqual(view.summary_search.text(), "Deuxième")
-            self.assertTrue(view.summary_list.item(0).isHidden())
-            self.assertFalse(view.summary_list.item(1).isHidden())
+            self.assertTrue(view.preparation_panel.isVisible())
         finally:
             view.close()
+
 
     def test_previous_next_and_validation_share_the_bottom_navigation_row(self) -> None:
         _service, view = self._view()
@@ -743,8 +692,8 @@ class GuideUltimeManualUiNavigationTests(unittest.TestCase):
             self.assertEqual(view.active_index, 1)
             self.assertEqual(view.view_index, 1)
             self.assertEqual(bar.value(), bar.minimum())
-            self.assertEqual(view.route_progress_label.text(), "50 %")
-            self.assertEqual((view.route_bar.value(), view.route_bar.maximum()), (1, 2))
+            self.assertEqual(view.global_progress_label.text(), "50 %")
+            self.assertEqual((view.global_progress_bar.value(), view.global_progress_bar.maximum()), (1, 2))
             self.assertEqual(view.progress_donut._percent, 50)
             self.assertEqual(view.nav_page_label.text(), "Page 2 / 2")
         finally:
@@ -771,23 +720,16 @@ class GuideUltimeManualUiNavigationTests(unittest.TestCase):
         finally:
             view.close()
 
-    def test_summary_stays_open_until_its_button_is_explicitly_toggled(self) -> None:
+    def test_sommaire_has_no_visual_widgets_in_shared_reader(self) -> None:
         _service, view = self._view()
         try:
-            self.assertFalse(view.summary_panel.isVisible())
-            view.summary_button.click()
-            QApplication.processEvents()
-            self.assertTrue(view.summary_panel.isVisible())
-            view.summary_list.item(1).setSelected(True)
-            view._summary_item_clicked(view.summary_list.item(1))
-            view.go_active()
-            view.navigate_relative(1)
-            QApplication.processEvents()
-            self.assertTrue(view.summary_panel.isVisible())
-            view.summary_button.click()
-            self.assertFalse(view.summary_panel.isVisible())
+            self.assertIsNone(view.findChild(QFrame, "GuideSummaryPanel"))
+            self.assertFalse(hasattr(view, "summary_list"))
+            self.assertFalse(hasattr(view, "summary_button"))
+            self.assertFalse(hasattr(view, "route_bar"))
         finally:
             view.close()
+
 
     def test_preparation_aggregates_exact_participant_needs_and_keeps_stones_in_typed_filters(self) -> None:
         service = _FakeManualUiService()
