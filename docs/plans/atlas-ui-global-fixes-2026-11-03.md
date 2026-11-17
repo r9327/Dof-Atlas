@@ -881,3 +881,64 @@ La capture Windows `Personnage` (profil temporaire vide) a révélé que `Charac
   liste `LIST_SURFACE`, même sélecteur dans le registre, aucun guide fictif.
 - Les tests de contrat et de galerie couvrent ces trois identités ainsi que
   l'absence de stylesheet local. **CI non déclenchée manuellement**.
+
+
+## Lot P0 du 17/11 — accès Succès différé et vérité du réseau
+
+**ATSC-002 (travail de code ciblé, pas encore certifié).** Le premier
+chargement du catalogue de Succès passe désormais par un chemin
+**résumés uniquement** : `AchievementProvider.load_catalogue_only()` pour
+les fournisseurs classiques et `MemoryBoundAchievementProvider.load_runtime()`
+pour le fournisseur réellement utilisé par l'application. La création
+des index documentaires de récompenses n'est plus lancée
+automatiquement avant le premier affichage ; elle est déplacée au
+premier détail demandé, sur le worker `DofusAtlasAchievementDetail`.
+Le chemin `sys.frozen` Windows / sources personnalisées prépare les
+index en mémoire seulement quand ils sont nécessaires ; le chemin
+développement par sous-processus ne les construit pas inutilement.
+Une navigation directe vers un Succès continue à précharger le détail
+sur le worker existant, avant l'ouverture de la fiche. La préparation
+explicite dans les fournisseurs qui demandent `load_all()` n'a pas
+été supprimée.
+
+**Tests et preuves :** `tests/test_achievements_view.py` couvre les
+deux modes, la préparation déclenchée hors clic Qt et la compatibilité
+`load_all()`; `tests/test_ui_universal_contract.py` préserve le
+contrat source et les chemins de chargement. Les tests sont **écrits,
+pas exécutés ici**. La fermeture d'ATSC-002 exige encore une mesure
+Doctor sur **la même machine et le même SHA** : temps jusqu'au
+premier affichage Succès, coût de la première ouverture de détail,
+p50/p95/p99, mémoire et absence de blocage Qt. Ne pas déduire une
+accélération chiffrée de la seule inspection des sources.
+
+**ATNW-001 (sous-correctif d'état, encore PENDING).** Dans l'accueil,
+le bridge non configuré ou arrêté affiche **« Hors ligne »** ; un
+échec d'arrêt est signalé comme une erreur plutôt que comme un état
+actif. `NetworkUiBridge.stop()` transmet un dernier
+`NetworkApplicationStatus` après avoir arrêté les timers, pour
+éviter un ancien badge « Actif » persistant. Vérification visée par
+`tests/test_network_home_status.py` et
+`tests/test_atlas_window_runtime_cleanup.py`. Reste à certifier
+permissions, capture, reprise, fermeture workers et hors-ligne sur
+Windows avec/sans Dofus.
+
+**ATQT-002 (toujours PENDING).** Le composant partagé colore et
+met déjà en gras les coordonnées `[x,y]` cliquables, en copiant
+`/travel`. Une régression Quêtes + Guides est ajoutée dans
+`tests/test_quest_detail_view.py`. Les **positions de lancement
+manquantes ou insuffisamment sourcées ne sont pas inventées** à
+partir d'une position d'objectif ; la complétude du catalogue
+requiert les fichiers sources exacts et un contrôle du contenu.
+
+**ATNW-002 (toujours PENDING).** Le statut réseau vérifié expose
+les états de capture/progression, mais pas une cartographie certifiée
+des Zaaps accessibles ni la position vérifiée du personnage. Les
+Zaaps locaux restent utilisables hors ligne. Ne jamais transformer
+une liste locale ou une absence de paquet en disponibilité réseau
+affirmée ; il faut établir et tester la provenance de cette donnée
+avant de brancher une commande de voyage en temps réel.
+
+**Suite nécessaire :** tests ciblés exact-SHA, Doctor, captures
+Qt/Windows aux quatre tailles, puis audit des 43 exigences et
+vérifications CI. Aucun PASS/FULL/Ready/fusion revendiqué pour ces
+changements de code.
