@@ -38,8 +38,8 @@ from app.modules.encyclopedia.views.guide_ultime_manual_view import (
     GuideUltimeManualView,
 )
 from app.core.text import normalize_key as normalize_text
-from app.ui.components import AtlasButton, AtlasComboBox, AtlasGuideDisclosure, AtlasGuideCover, AtlasGuideParticipantButton, atlas_guide_arrow_icon, atlas_guide_character_icon
-from app.ui.unity_palette import UNITY_CONTROL_SIZES_PX, UNITY_LAYOUT_BREAKPOINTS_PX, UNITY_LAYOUT_SIZES_PX, UNITY_SIZES_PX
+from app.ui.components import AtlasButton, AtlasComboBox, AtlasGuideDisclosure, AtlasGuideCover, AtlasGuideParticipantButton, atlas_guide_arrow_icon, atlas_guide_character_icon, size_guide_quantity_spinbox
+from app.ui.unity_palette import UNITY_CONTROL_SIZES_PX, UNITY_LAYOUT_BREAKPOINTS_PX, UNITY_LAYOUT_SIZES_PX, UNITY_GUIDE_READING_METRICS_PX, UNITY_SIZES_PX, UNITY_SPACING_PX
 from app.ui.unity_skin import apply_unity_panel_shadow, sprite_icon_path
 from app.constants import DATA_DIR
 from app.modules.encyclopedia.services.image_service import ENCYCLOPEDIA_IMAGE_SERVICE
@@ -562,15 +562,19 @@ class SharedGuideManualCard(GuideUltimeManualCard):
             row_layout.setSpacing(7)
 
             line = QLabel()
+            # Rich-text base color comes from Dev UI, not native Qt defaults.
+            text_role = (
+                "DANGER_TEXT" if kind == "warning" or section_key == "before_leave"
+                else "TEXT" if combat_line else "TEXT_SOFT"
+            )
             self._set_clickable_text(
                 line,
-                self._format_line_html(
-                    prefix,
-                    position,
-                    text,
-                    self._npc_names(text),
+                f'<span style="color:{PALETTE[text_role]};">'
+                + self._format_line_html(
+                    prefix, position, text, self._npc_names(text),
                     self._resource_names,
-                ),
+                )
+                + "</span>",
             )
             if section_key == "prepare":
                 line.setObjectName("GuideManualLine")
@@ -1197,8 +1201,8 @@ class SharedGuideManualView(GuideUltimeManualView):
         self.preparation_panel = QFrame()
         self.preparation_panel.setObjectName("GuidePreparationPanel")
         panel_layout = QVBoxLayout(self.preparation_panel)
-        panel_layout.setContentsMargins(10, 8, 10, 9)
-        panel_layout.setSpacing(7)
+        panel_layout.setContentsMargins(6, 4, 6, 4)
+        panel_layout.setSpacing(4)
         # Reuse the shared Unity combo instead of seven buttons competing
         # with the two-column progress header on compact windows.
         self.preparation_filter = AtlasComboBox()
@@ -1206,6 +1210,7 @@ class SharedGuideManualView(GuideUltimeManualView):
         self.preparation_filter.addItems((
             "Tout", "Prérequis", "Métiers", "Potions", "Pierres d'âme", "Clefs", "Objets",
         ))
+        self.preparation_filter.setFixedHeight(UNITY_SIZES_PX["control_compact"])
         self.preparation_filter.setToolTip("Filtrer les besoins de préparation")
         self.preparation_filter.setAccessibleName("Catégorie de préparation")
         self.preparation_filter.currentTextChanged.connect(self._render_preparation)
@@ -1216,13 +1221,13 @@ class SharedGuideManualView(GuideUltimeManualView):
         self.preparation_scroll.setWidgetResizable(True)
         self.preparation_scroll.setFrameShape(QFrame.NoFrame)
         self.preparation_scroll.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
-        self.preparation_scroll.setMinimumHeight(126)
-        self.preparation_scroll.setMaximumHeight(210)
+        self.preparation_scroll.setMinimumHeight(UNITY_CONTROL_SIZES_PX["guide_preparation_min_height"])
+        self.preparation_scroll.setMaximumHeight(UNITY_GUIDE_READING_METRICS_PX["normal_drawer_max_height"])
         self.preparation_content = QWidget()
         self.preparation_content.setObjectName("GuidePreparationContent")
         self.preparation_rows_layout = QVBoxLayout(self.preparation_content)
         self.preparation_rows_layout.setContentsMargins(0, 0, 0, 0)
-        self.preparation_rows_layout.setSpacing(4)
+        self.preparation_rows_layout.setSpacing(2)
         self.preparation_scroll.setWidget(self.preparation_content)
         panel_layout.addWidget(self.preparation_scroll)
         self.preparation_panel.setVisible(False)
@@ -1723,10 +1728,20 @@ class SharedGuideManualView(GuideUltimeManualView):
     def _append_preparation_more(self, remaining: int) -> None:
         if remaining <= 0:
             return
-        button = AtlasButton(f"Afficher la suite ({remaining} besoins restants)")
+        button = AtlasButton(f"Afficher la suite ({remaining} besoins restants)", size="compact")
         button.setObjectName("GuidePreparationShowMore")
+        button.setSizePolicy(QSizePolicy.Maximum, QSizePolicy.Fixed)
         button.clicked.connect(lambda _checked=False: self._show_more_preparation())
-        self.preparation_rows_layout.addWidget(button)
+        self.preparation_rows_layout.addWidget(button, 0, Qt.AlignLeft)
+
+    def _fit_preparation_scroll_height(self) -> None:
+        """Fit short preparation lists without losing scrolling for long ones."""
+        self.preparation_rows_layout.activate()
+        natural = self.preparation_rows_layout.sizeHint().height() + 4
+        self.preparation_scroll.setFixedHeight(min(
+            UNITY_GUIDE_READING_METRICS_PX["normal_drawer_max_height"],
+            max(UNITY_CONTROL_SIZES_PX["guide_preparation_min_height"], natural),
+        ))
 
     def _render_preparation(self, selected_filter: str) -> None:
         self._clear_preparation_rows()
@@ -1748,7 +1763,7 @@ class SharedGuideManualView(GuideUltimeManualView):
                     row = QFrame()
                     row.setObjectName("GuidePreparationRow")
                     row_layout = QHBoxLayout(row)
-                    row_layout.setContentsMargins(8, 3, 8, 3)
+                    row_layout.setContentsMargins(4, 2, 4, 2)
                     row_layout.addWidget(self._copyable_preparation_item(
                         name, f"{quantity if quantity else '?'} × {name} ({category})",
                         item_id,
@@ -1758,6 +1773,7 @@ class SharedGuideManualView(GuideUltimeManualView):
                     len(preview) - self._preparation_visible_limit
                 )
             self.preparation_rows_layout.addStretch(1)
+            self._fit_preparation_scroll_height()
             return
 
         if selected_filter == "Tout":
@@ -1783,11 +1799,15 @@ class SharedGuideManualView(GuideUltimeManualView):
                 summary = QFrame()
                 summary.setObjectName("GuidePreparationSummary")
                 row = QHBoxLayout(summary)
-                row.setContentsMargins(8, 5, 8, 5)
-                row.addWidget(QLabel(category))
+                row.setContentsMargins(6, 2, 6, 2)
+                category_label = QLabel(category)
+                category_label.setObjectName("GuidePreparationSummaryTitle")
+                row.addWidget(category_label)
                 row.addStretch(1)
                 ready_count = sum(1 for need in matching if self._need_ready(need))
-                row.addWidget(QLabel(f"{ready_count} / {len(matching)} prêts"))
+                count_label = QLabel(f"{ready_count} / {len(matching)} prêts")
+                count_label.setObjectName("GuidePreparationSummaryCount")
+                row.addWidget(count_label)
                 self.preparation_rows_layout.addWidget(summary)
                 available = max(0, self._preparation_visible_limit - rendered_count)
                 for need in matching[:available]:
@@ -1797,6 +1817,7 @@ class SharedGuideManualView(GuideUltimeManualView):
                 len(self._preparation_needs) - rendered_count
             )
             self.preparation_rows_layout.addStretch(1)
+            self._fit_preparation_scroll_height()
             return
 
         matching = [
@@ -1806,15 +1827,17 @@ class SharedGuideManualView(GuideUltimeManualView):
             label = QLabel(f"Aucun besoin détaillé dans {selected_filter}.")
             label.setObjectName("GuidePreparationEmpty")
             self.preparation_rows_layout.addWidget(label)
+            self._fit_preparation_scroll_height()
             return
         for need in matching[:self._preparation_visible_limit]:
             self.preparation_rows_layout.addWidget(self._preparation_row(need))
         self._append_preparation_more(len(matching) - self._preparation_visible_limit)
         self.preparation_rows_layout.addStretch(1)
+        self._fit_preparation_scroll_height()
 
     def _copyable_preparation_item(self, name: str, display: str,
                                    item_id: int | None) -> QPushButton:
-        button = AtlasButton(display)
+        button = AtlasButton(display, size="compact")
         button.setObjectName("GuidePreparationItemCopy")
         button.setFlat(True)
         button.setCursor(Qt.PointingHandCursor)
@@ -1824,14 +1847,14 @@ class SharedGuideManualView(GuideUltimeManualView):
         if item_id is not None:
             path = _preparation_icon_path(item_id)
             if path is not None:
-                pixmap = ENCYCLOPEDIA_IMAGE_SERVICE.load_scaled(path, QSize(24, 24))
+                pixmap = ENCYCLOPEDIA_IMAGE_SERVICE.load_scaled(path, QSize(UNITY_CONTROL_SIZES_PX["guide_preparation_icon"], UNITY_CONTROL_SIZES_PX["guide_preparation_icon"]))
                 if not pixmap.isNull():
                     button.setIcon(QIcon(pixmap))
         if button.icon().isNull():
             fallback = sprite_icon_path("inventory")
             if fallback:
                 button.setIcon(QIcon(str(fallback)))
-        button.setIconSize(QSize(24, 24))
+        button.setIconSize(QSize(UNITY_CONTROL_SIZES_PX["guide_preparation_icon"], UNITY_CONTROL_SIZES_PX["guide_preparation_icon"]))
         button.clicked.connect(lambda _checked=False, value=name:
                                QApplication.clipboard().setText(value))
         return button
@@ -1840,10 +1863,10 @@ class SharedGuideManualView(GuideUltimeManualView):
         frame = QFrame()
         frame.setObjectName("GuidePreparationRow")
         layout = QVBoxLayout(frame)
-        layout.setContentsMargins(8, 4, 8, 4)
-        layout.setSpacing(3)
+        layout.setContentsMargins(4, 2, 4, 2)
+        layout.setSpacing(2)
         top = QHBoxLayout()
-        top.setSpacing(6)
+        top.setSpacing(4)
         ready = self._need_ready(need)
         confirmed = sum(
             1 for character_key, _quantity in need.required_by_character
@@ -1864,15 +1887,14 @@ class SharedGuideManualView(GuideUltimeManualView):
                                (" ; ".join(need.sources[:8]) or "Provenance à confirmer"))
         status_label = QLabel(status)
         status_label.setObjectName("GuidePreparationRowStatus")
+        status_label.setProperty("ready", "true" if ready else "false")
         counter = None
         if quantity is not None and quantity > 0 and need.category not in {"Prérequis", "Métiers"}:
             counter = QSpinBox()
             counter.setObjectName("GuidePreparationQuantity")
             counter.setRange(0, max(1, int(quantity)))
             counter.setSuffix(f" / {quantity}")
-            counter.setFixedWidth(
-                UNITY_CONTROL_SIZES_PX["guide_quantity_width"]
-            )
+            size_guide_quantity_spinbox(counter)
             counter.setToolTip("Quantité déjà possédée (brouillon de cette session)")
             draft = self._preparation_quantity_drafts.get(
                 need.item_key, int(quantity) if ready else 0
