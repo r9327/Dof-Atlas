@@ -195,22 +195,19 @@ class GuideUltimeManualUiNavigationTests(unittest.TestCase):
     def test_progress_header_is_compact_and_page_is_in_bottom_navigation(self) -> None:
         _service, view = self._view()
         try:
-            self.assertEqual(view.route_progress_label.text(), "0 %")
-            self.assertEqual((view.route_bar.value(), view.route_bar.maximum()), (0, 2))
-            self.assertTrue(view.route_bar.isHidden())
-            self.assertTrue(view.summary_button.isHidden())
-            self.assertIs(view.summary_button.parentWidget(),
-                          view.findChild(QFrame, "GuideCompactHeader"))
+            self.assertEqual(view.global_progress_label.text(), "0 %")
+            self.assertEqual((view.global_progress_bar.value(),
+                              view.global_progress_bar.maximum()), (0, 2))
+            self.assertIsNone(view.findChild(QProgressBar, "GuideManualProgress"))
+            self.assertIsNone(view.findChild(QFrame, "GuideSummaryPanel"))
             self.assertEqual(view.progress_donut._percent, 0)
             self.assertEqual(view.donut_count_label.text(), "0 fiches validées")
             self.assertFalse(hasattr(view, "success_bar"))
             self.assertFalse(hasattr(view, "current_button"))
             self.assertEqual(view.sheet_meta_label.text(), "ÉTAPE · CHAPITRE UN")
             self.assertEqual(view.nav_page_label.text(), "Page 1 / 2")
-            self.assertNotIn("Quêtes", view.route_progress_label.text())
-            self.assertNotIn("Donjons", view.route_progress_label.text())
-            self.assertEqual(view.route_lock_check.text(), "Déverrouillé")
-            self.assertEqual(view.route_lock_check.accessibleName(), "Déverrouillé")
+            self.assertFalse(hasattr(view, "route_lock_check"))
+            self.assertFalse(hasattr(view, "summary_button"))
         finally:
             view.close()
 
@@ -225,22 +222,20 @@ class GuideUltimeManualUiNavigationTests(unittest.TestCase):
             self.assertEqual(view.participants_button.accessibleName(), "Mes personnages · 1")
             self.assertIn("Choisir les identités", view.participants_button.toolTip())
             self.assertEqual(view.page_jump.maximumWidth(), 90)
-            self.assertEqual(view.summary_button.objectName(), "GuideMetricDropdown")
             self.assertEqual(view.preparation_button.objectName(), "GuideMetricDropdown")
-            self.assertEqual(view.summary_button.width(), 18)
-            self.assertGreaterEqual(view.participants_button.width(), view.summary_button.width())
+            self.assertGreaterEqual(view.participants_button.width(), view.preparation_button.width())
             self.assertIs(
                 view._compact_title_row.itemAt(
-                    view._compact_title_row.count() - 2
+                    view._compact_title_row.count() - 1
                 ).widget(), view.participants_button,
             )
             self.assertIs(
                 view._header_content_layout.itemAt(1).widget(),
                 view.participants_panel,
             )
-            controls_grid = view._metric_columns["Route"].parent()
+            controls_grid = view._metric_columns["Préparation"].parent()
             self.assertIsInstance(controls_grid, QGridLayout)
-            self.assertEqual(controls_grid.columnCount(), 2)
+            self.assertEqual(controls_grid.columnCount(), 1)
             self.assertEqual(view.page_jump.suffix(), " / 2")
             self.assertEqual(view._metric_caption_labels["Préparation"].text(), "À préparer")
             self.assertEqual(view._metric_caption_labels["Préparation"].toolTip(), "Préparation")
@@ -254,24 +249,16 @@ class GuideUltimeManualUiNavigationTests(unittest.TestCase):
         finally:
             view.close()
 
-    def test_progress_lock_blocks_only_direct_bar_jumps(self) -> None:
-        service, view = self._view()
+    def test_direct_sheet_selector_replaces_route_scrubber(self) -> None:
+        _service, view = self._view()
         try:
-            view.route_lock_check.setChecked(True)
-            self.assertEqual(view.route_lock_check.text(), "Verrouillé")
-            self.assertEqual(view.route_lock_check.accessibleName(), "Verrouillé")
-            self.assertTrue(
-                service.manual_checked("character:1", SharedGuideManualView.ROUTE_LOCK_PROGRESS_KEY)
-            )
-            view._jump_from_progress(1.0)
-            self.assertEqual(view.view_index, 0)
-
-            view.navigate_relative(1)
+            self.assertFalse(hasattr(view, "route_lock_check"))
+            self.assertFalse(hasattr(view, "_jump_from_progress"))
+            view.page_jump.setValue(2)
             self.assertEqual(view.view_index, 1)
-
-            view.route_lock_check.setChecked(False)
-            view._jump_from_progress(0.0)
+            view.navigate_relative(-1)
             self.assertEqual(view.view_index, 0)
+            self.assertEqual(view.page_jump.value(), 1)
         finally:
             view.close()
 
@@ -459,32 +446,18 @@ class GuideUltimeManualUiNavigationTests(unittest.TestCase):
         finally:
             view.close()
 
-    def test_summary_remains_open_and_filter_survives_repopulation(self) -> None:
+    def test_preparation_drawer_stays_open_during_page_selection(self) -> None:
         _service, view = self._view()
         try:
-            view.summary_button.click()
+            view.preparation_button.click()
             QApplication.processEvents()
-            self.assertTrue(view.summary_button.isChecked())
-            self.assertFalse(view.summary_panel.isHidden())
-            self.assertEqual(view.summary_list.count(), 2)
-
-            view.summary_search.setText("Deuxième")
-            self.assertTrue(view.summary_list.item(0).isHidden())
-            self.assertFalse(view.summary_list.item(1).isHidden())
-
-            view.summary_list.itemClicked.emit(view.summary_list.item(1))
+            self.assertTrue(view.preparation_panel.isVisible())
+            view.page_jump.setValue(2)
             self.assertEqual(view.view_index, 1)
-            self.assertTrue(view.summary_button.isChecked())
-            self.assertFalse(view.summary_panel.isHidden())
-            view.navigate_relative(-1)
+            self.assertTrue(view.preparation_panel.isVisible())
+            view.page_jump.setValue(1)
             self.assertEqual(view.view_index, 0)
-            self.assertFalse(view.summary_panel.isHidden())
-
-            view.summary_list.clear()
-            view._populate_summary()
-            self.assertEqual(view.summary_search.text(), "Deuxième")
-            self.assertTrue(view.summary_list.item(0).isHidden())
-            self.assertFalse(view.summary_list.item(1).isHidden())
+            self.assertTrue(view.preparation_panel.isVisible())
         finally:
             view.close()
 
@@ -862,8 +835,8 @@ class GuideUltimeManualUiNavigationTests(unittest.TestCase):
             self.assertEqual(view.active_index, 1)
             self.assertEqual(view.view_index, 1)
             self.assertEqual(bar.value(), bar.minimum())
-            self.assertEqual(view.route_progress_label.text(), "50 %")
-            self.assertEqual((view.route_bar.value(), view.route_bar.maximum()), (1, 2))
+            self.assertEqual(view.global_progress_label.text(), "50 %")
+            self.assertEqual((view.global_progress_bar.value(), view.global_progress_bar.maximum()), (1, 2))
             self.assertEqual(view.progress_donut._percent, 50)
             self.assertEqual(view.nav_page_label.text(), "Page 2 / 2")
         finally:
@@ -890,21 +863,13 @@ class GuideUltimeManualUiNavigationTests(unittest.TestCase):
         finally:
             view.close()
 
-    def test_summary_stays_open_until_its_button_is_explicitly_toggled(self) -> None:
+    def test_no_sommaire_widgets_remain_in_shared_reader(self) -> None:
         _service, view = self._view()
         try:
-            self.assertFalse(view.summary_panel.isVisible())
-            view.summary_button.click()
-            QApplication.processEvents()
-            self.assertTrue(view.summary_panel.isVisible())
-            view.summary_list.item(1).setSelected(True)
-            view._summary_item_clicked(view.summary_list.item(1))
-            view.go_active()
-            view.navigate_relative(1)
-            QApplication.processEvents()
-            self.assertTrue(view.summary_panel.isVisible())
-            view.summary_button.click()
-            self.assertFalse(view.summary_panel.isVisible())
+            self.assertIsNone(view.findChild(QFrame, "GuideSummaryPanel"))
+            self.assertIsNone(view.findChild(QProgressBar, "GuideManualProgress"))
+            self.assertFalse(hasattr(view, "summary_list"))
+            self.assertFalse(hasattr(view, "summary_button"))
         finally:
             view.close()
 
