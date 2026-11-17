@@ -510,7 +510,8 @@ class DevUiPageTests(unittest.TestCase):
             compiled_qss = atlas_stylesheet()
             # The live Guide and this preview use these same role selectors:
             # no invisible idle/disabled character border and no tight x/x.
-            from app.ui.unity_palette import UNITY_PALETTE, UNITY_SPACING_PX
+            from app.ui.unity_palette import resolve_unity_colors, UNITY_SPACING_PX
+            colors = resolve_unity_colors()
             self.assertIn(
                 "QToolButton#GuideParticipantsButton {", compiled_qss
             )
@@ -518,7 +519,7 @@ class DevUiPageTests(unittest.TestCase):
                 "QToolButton#GuideParticipantsButton {", 1
             )[1].split("}", 1)[0]
             self.assertIn(
-                "border: 1px solid " + UNITY_PALETTE["GUIDE_TOGGLE_BORDER"],
+                "border: 1px solid " + colors["GUIDE_TOGGLE_BORDER"],
                 participant_style,
             )
             self.assertIn(
@@ -528,7 +529,7 @@ class DevUiPageTests(unittest.TestCase):
                 "QToolButton#GuideParticipantsButton:disabled {", 1
             )[1].split("}", 1)[0]
             self.assertIn(
-                "border-color: " + UNITY_PALETTE["BORDER_SOFT"],
+                "border-color: " + colors["BORDER_SOFT"],
                 disabled_participant_style,
             )
             page_selector_style = compiled_qss.split(
