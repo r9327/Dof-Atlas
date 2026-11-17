@@ -226,6 +226,10 @@ class UiUniversalContractTests(unittest.TestCase):
         for label, constructor in checks.items():
             row = next(entry for entry in audit if entry["label"] == label)
             self.assertIsInstance(row["raw_qt_constructors"], tuple)
+            self.assertEqual(
+                row["raw_qt_constructors"], (),
+                f"{label}: native constructors still used in registered Qt modules",
+            )
             for path, line in row["raw_qt_constructors"]:
                 with self.subTest(label=label, path=path, line=line):
                     self.assertGreater(line, 0)
