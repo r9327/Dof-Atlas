@@ -513,15 +513,11 @@ def unity_skin_stylesheet(palette: Mapping[str, str] | None = None) -> str:
     # by app.ui.theme. Preserve optional artwork on dedicated controls only.
     # HomeContinueButton is an AtlasButton: keep the approved blue/green
     # semantic states from app.ui.theme, not a neon 9-slice border image.
-    # The hidden Guide-specific Open action retains its optional game sprite.
+    # Only the featured Guide's Open action retains an optional game sprite.
+    # The real GuideManualPageCheck is a shared checkable AtlasButton: its
+    # checked state must change text and outline via the indexed theme only.
+    # Applying btn_green here paints a neon-yellow button on Windows.
     sprites_for_states("QPushButton#FeaturedGuideOpen", "btn_green", 8)
-    sprites_for_states(
-        "QPushButton#GuideManualPageCheck",
-        "btn_green", 8,
-    )
-    # The tiny green button sprite turns the whole Guide header neon yellow
-    # at Windows DPI. Keep the dark-stone beveled QSS above for secondary
-    # toggles; reserve green action sprites for the actual Valider command.
     # No darkStone 9-slice on Guide drawers: its grey texture overrides
     # the blue palette surface and the subtle glass-style border.
     sprites_for_states(
