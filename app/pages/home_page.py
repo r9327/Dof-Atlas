@@ -615,7 +615,9 @@ class HomePage(QWidget):
             "mapping_already_ready",
         }:
             return "Connexion…", "pending"
-        if reason == "no_window_handles":
+        if reason in {"no_window_handles", "build_fingerprint_unavailable"}:
+            # Both conditions mean the client cannot yet be identified.
+            # The coordinator retries fingerprinting when it appears.
             return "En attente de Dofus", "idle"
         if (
             reason == "capture_elevation_cancelled"
