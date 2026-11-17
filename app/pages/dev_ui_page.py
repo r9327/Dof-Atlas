@@ -53,6 +53,7 @@ from app.ui.components import (
     AtlasBreadcrumb,
     AtlasButton,
     AtlasComboBox,
+    AtlasPageNavigator,
     AtlasDialog,
     AtlasDialogHeader,
     AtlasPageTitle,
@@ -164,14 +165,8 @@ class DevUiPage(QWidget):
         self.gallery_navigation.setAccessibleName("Accès direct aux familles UI")
         navigation_label.setBuddy(self.gallery_navigation)
         self.gallery_navigation.view().setAlternatingRowColors(False)
-        # This is a navigation chooser, not a full-width form field.
-        # The common combo itself caps popup rows for keyboard/scroll access.
-        self.gallery_navigation.setMinimumWidth(
-            UNITY_CONTROL_SIZES_PX["gallery_selector_min_width"]
-        )
-        self.gallery_navigation.setMaximumWidth(
-            UNITY_CONTROL_SIZES_PX["gallery_selector_max_width"]
-        )
+        # The shared combo sizes to the longest family label, but can shrink
+        # when the page uses a compact layout.
         navigator.addWidget(self.gallery_navigation)
         self.gallery_count = QLabel()
         self.gallery_count.setObjectName("MutedLabel")
@@ -464,16 +459,14 @@ class DevUiPage(QWidget):
 
         pagination = QHBoxLayout()
         self.preview_page_index = 1
-        self.preview_page_prev = AtlasButton("‹ Précédent", variant="secondary")
-        self.preview_page_prev.setEnabled(False)
-        self.preview_page_next = AtlasButton("Suivant ›", variant="secondary")
-        self.preview_page_label = QLabel("Page 1 / 3")
-        self.preview_page_label.setObjectName("MutedLabel")
-        self.preview_page_prev.clicked.connect(lambda: self._change_preview_page(-1))
-        self.preview_page_next.clicked.connect(lambda: self._change_preview_page(1))
-        pagination.addWidget(self.preview_page_prev)
-        pagination.addWidget(self.preview_page_label)
-        pagination.addWidget(self.preview_page_next)
+        self.preview_pagination = AtlasPageNavigator(total=3)
+        self.preview_page_prev = self.preview_pagination.previous_button
+        self.preview_page_next = self.preview_pagination.next_button
+        self.preview_page_label = self.preview_pagination.page_label
+        self.preview_pagination.pageRequested.connect(
+            lambda page: self._change_preview_page(page - self.preview_page_index)
+        )
+        pagination.addWidget(self.preview_pagination)
         back = AtlasButton("Retour", variant="secondary")
         back.clicked.connect(lambda: self._report("Navigation : retour"))
         pagination.addWidget(back)
@@ -482,9 +475,7 @@ class DevUiPage(QWidget):
 
     def _change_preview_page(self, step: int) -> None:
         self.preview_page_index = max(1, min(3, self.preview_page_index + step))
-        self.preview_page_label.setText(f"Page {self.preview_page_index} / 3")
-        self.preview_page_prev.setEnabled(self.preview_page_index > 1)
-        self.preview_page_next.setEnabled(self.preview_page_index < 3)
+        self.preview_pagination.set_page(self.preview_page_index, 3)
         self._report(f"Navigation : page {self.preview_page_index}")
 
     def _build_headers(self, parent: QVBoxLayout) -> None:
@@ -903,10 +894,10 @@ class DevUiPage(QWidget):
         self.preview_header_page_jump = QSpinBox()
         self.preview_header_page_jump.setObjectName("GuideCompactPageJump")
         self.preview_header_page_jump.setRange(1, 20)
-        self.preview_header_page_jump.setSuffix(" / 20")
+        self.preview_header_page_jump.setSuffix("/20")
         self.preview_header_page_jump.setValue(4)
-        self.preview_header_page_jump.setMaximumWidth(
-            UNITY_CONTROL_SIZES_PX["guide_page_jump_normal_max_width"]
+        self.preview_header_page_jump.setSizePolicy(
+            QSizePolicy.Maximum, QSizePolicy.Fixed
         )
         self.preview_header_page_jump.setToolTip("Ouvrir directement la fiche sélectionnée")
         self.preview_header_page_jump.setAccessibleName("Sélectionner la fiche du guide")
@@ -1194,7 +1185,7 @@ class DevUiPage(QWidget):
         self.preview_combo.currentTextChanged.connect(
             lambda value: self._report(f"Menu déroulant : {value}")
         )
-        row.addWidget(self.preview_combo, 1)
+        row.addWidget(self.preview_combo, 0, Qt.AlignVCenter)
         self.preview_spin = QSpinBox()
         self.preview_spin.setRange(1, 8)
         self.preview_spin.setValue(4)
@@ -2126,7 +2117,7 @@ class DevUiPage(QWidget):
         self.guide_ultime_combo.currentTextChanged.connect(
             lambda value: self._report(f"Guide Ultime : {value}")
         )
-        guide_layout.addWidget(self.guide_ultime_combo, 1)
+        guide_layout.addWidget(self.guide_ultime_combo, 0, Qt.AlignVCenter)
         section.addWidget(self.guide_ultime_sample)
 
     def _build_ui_assets(self, parent: QVBoxLayout) -> None:
