@@ -536,6 +536,23 @@ class UnityPaletteTests(unittest.TestCase):
                 self.assertNotIn("color:#eee7fb", content)
                 self.assertNotIn("color:#e7bf63", content)
 
+    def test_map_canvas_uses_canonical_colors_without_visual_drift(self) -> None:
+        expected = {
+            "MAP_GRID": "#182536",
+            "MAP_OUTLINE": "#223044",
+            "MAP_SELECTION": "#F8C84E",
+            "MAP_LINK": "#A98222",
+            "MAP_LINK_BORDER": "#FFE082",
+            "MAP_LABEL": "#F2F6FF",
+        }
+        for key, color in expected.items():
+            self.assertEqual(UNITY_PALETTE[key], color)
+        source = (Path(__file__).resolve().parents[1] /
+                  "app/ui/map_canvas_widget.py").read_text(encoding="utf-8")
+        for key in expected:
+            self.assertIn(f'UNITY_PALETTE["{key}"]', source)
+        self.assertNotIn('QColor("#', source)
+
     def test_color_module_does_not_import_qt_or_game_runtime(self) -> None:
         source = (Path(__file__).resolve().parents[1] / "app/ui/unity_palette.py").read_text(encoding="utf-8")
         tree = ast.parse(source)
