@@ -121,13 +121,13 @@ jobs:
           assert first_card.isVisible() and first_card.height() > 0
           assert shell.page_jump.maximum() == page_count
           assert shell.page_jump.text() == f"1 / {page_count}"
-          pos = shell.findChildren(QLabel, "GuideManualPositionCopy")
-          assert len(pos) == 1
-          assert "travel-copy:25,-4" in pos[0].text()
+          authored_lines = shell.findChildren(QLabel, "GuideManualLine")
+          assert len(authored_lines) > 1
+          assert any("travel-copy:" in line.text() for line in authored_lines)
           assert not shell.findChildren(QFrame, "GuideManualLineRow")
           assert shell.validation_host.isHidden()
           assert shell.validation_layout.count() == 0
-          step_one = Path("artifacts/screenshots/ganymede-cawotte-prerequisites-only-step1-qt.png")
+          step_one = Path("artifacts/screenshots/ganymede-cawotte-reading-page1-qt.png")
           assert backdrop.grab().save(str(step_one), "PNG")
           # One continuous reading page contains complete authored action
           # rows from multiple stable source steps, never redundant headings.
@@ -138,7 +138,7 @@ jobs:
           assert shell.rendered_card_count == 1
           assert len(shell.findChildren(QFrame, "GuideManualSheet")) == 1
           assert len(shell.findChildren(QLabel, "GuideManualLine")) > 1
-          assert len(shell.findChildren(QLabel, "GuideManualPositionCopy")) == 1
+          assert not shell.findChildren(QLabel, "GuideManualPositionCopy")
           assert not shell.findChildren(QToolButton, "GuideManualZaapShortcut")
           assert not shell.findChildren(QFrame, "GuideManualActionGroup")
           assert not shell.findChildren(QLabel, "GuideManualSectionTitle")
@@ -194,7 +194,7 @@ jobs:
           app.processEvents()
           assert shell.page_jump.value() == 3
           assert shell._review_end_index > first_end
-          # X/X now replaces the deleted Sommaire for direct source-ID jumps.
+          # X/X now replaces the deleted Sommaire for adaptive reading pages.
           chosen = min(10, page_count)
           shell.page_jump.setValue(chosen)
           app.processEvents()
@@ -207,7 +207,7 @@ jobs:
           app.processEvents()
           assert shell.sheet_title_label.text() == "Parcours"
           assert shell.validation_layout.count() == 0
-          final = Path("artifacts/screenshots/ganymede-cawotte-step-64-qt.png")
+          final = Path("artifacts/screenshots/ganymede-cawotte-last-reading-page-qt.png")
           assert backdrop.grab().save(str(final), "PNG")
           # At a narrower size all controls must stay reachable and page IDs stable.
           backdrop.resize(900, 600)
