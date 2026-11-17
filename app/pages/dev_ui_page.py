@@ -2450,8 +2450,18 @@ class DevUiPage(QWidget):
         muted = QLabel("Texte secondaire · même typographie sur chaque écran")
         muted.setObjectName("MutedLabel")
         section.addWidget(muted)
+        family_note = QLabel(
+            "Un seul conteneur AtlasDialog pour les fenêtres classiques : "
+            "en-tête, contenu et actions changent selon l'utilisation. "
+            "Les menus, suggestions, images zoomées et overlays gardent "
+            "leurs widgets Qt ou métier, avec les styles Unity communs. "
+            "La largeur du dialogue suit son contenu et les limites partagées."
+        )
+        family_note.setObjectName("MutedLabel")
+        family_note.setWordWrap(True)
+        section.addWidget(family_note)
         row = QHBoxLayout()
-        self.dialog_button = AtlasButton("Ouvrir une popup", variant="primary")
+        self.dialog_button = AtlasButton("Ouvrir une fenêtre", variant="primary")
         self.dialog_button.clicked.connect(self._open_preview_dialog)
         row.addWidget(self.dialog_button)
         self.preview_dialog_variants: dict[str, AtlasButton] = {}
@@ -2459,6 +2469,8 @@ class DevUiPage(QWidget):
             ("info", "Information"),
             ("warning", "Attention"),
             ("danger", "Erreur"),
+            ("confirmation", "Confirmation"),
+            ("form", "Contenu personnalisé"),
         ):
             variant_button = AtlasButton(
                 caption, variant="danger" if state == "danger" else "secondary"
@@ -2592,12 +2604,13 @@ class DevUiPage(QWidget):
         self._open_preview_dialog_variant("info")
 
     def _open_preview_dialog_variant(self, mode: str) -> None:
-        if mode not in {"info", "warning", "danger"}:
+        if mode not in {"info", "warning", "danger", "confirmation", "form"}:
             raise ValueError(mode)
         dialog = AtlasDialog(self)
         dialog.setWindowTitle("Prévisualisation du dialogue Unity")
         titles = {
             "info": "Information", "warning": "Attention", "danger": "Erreur",
+            "confirmation": "Confirmation", "form": "Contenu personnalisé",
         }
         dialog.content_layout.addWidget(
             AtlasDialogHeader(
@@ -2606,17 +2619,42 @@ class DevUiPage(QWidget):
                 icon=atlas_application_icon(),
             )
         )
-        dialog.content_layout.addWidget(
-            AtlasStatusBadge(titles[mode], state=mode)
+        if mode in {"info", "warning", "danger"}:
+            dialog.content_layout.addWidget(
+                AtlasStatusBadge(titles[mode], state=mode)
+            )
+        message = QLabel(
+            "Ce dialogue n'enregistre aucune modification."
+            if mode != "confirmation" else
+            "Confirmer cette action de démonstration ?"
         )
-        message = QLabel("Ce dialogue n'enregistre aucune modification.")
         message.setWordWrap(True)
         dialog.content_layout.addWidget(message)
-        close_button = AtlasButton("Fermer", variant="primary")
-        close_button.clicked.connect(dialog.accept)
+        if mode == "form":
+            fields = QHBoxLayout()
+            option = QCheckBox("Option de préparation")
+            option.setObjectName("DevUiDialogOption")
+            fields.addWidget(option, 1)
+            count = QSpinBox()
+            count.setObjectName("DevUiDialogQuantity")
+            count.setRange(0, 9999)
+            count.setValue(3)
+            fit_unity_number_spinbox(count)
+            fields.addWidget(count)
+            dialog.content_layout.addLayout(fields)
         footer = QHBoxLayout()
         footer.addStretch(1)
-        footer.addWidget(close_button)
+        if mode in {"confirmation", "form"}:
+            cancel = AtlasButton("Annuler", variant="secondary")
+            cancel.clicked.connect(dialog.reject)
+            footer.addWidget(cancel)
+            confirm = AtlasButton("Valider", variant="primary")
+            confirm.clicked.connect(dialog.accept)
+            footer.addWidget(confirm)
+        else:
+            close_button = AtlasButton("Fermer", variant="primary")
+            close_button.clicked.connect(dialog.accept)
+            footer.addWidget(close_button)
         dialog.content_layout.addLayout(footer)
         dialog.finished.connect(
             lambda _result: self._report("Dialogue refermé")
