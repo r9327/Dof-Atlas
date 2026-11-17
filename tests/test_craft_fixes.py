@@ -13,7 +13,7 @@ from PySide6.QtCore import Qt
 from PySide6.QtTest import QTest
 from PySide6.QtWidgets import QApplication, QMessageBox
 
-from app.pages.craft_page import CraftPage, CraftResourceDialog, craft_image_item
+from app.pages.craft_page import CraftPage, CraftResourceDialog, craft_image_item, quantity_spinbox
 from local_dofus_data.normalizer import craft_category_for_item
 
 
@@ -26,6 +26,24 @@ class CraftFixesTests(unittest.TestCase):
         page = CraftPage(Mock(), defer_runtime=True)
         self.addCleanup(page.deleteLater)
         return page
+
+    def test_craft_quantity_width_reuses_shared_unity_rule(self):
+        from app.ui.unity_palette import UNITY_CONTROL_SIZES_PX
+
+        small = quantity_spinbox(1, maximum=9)
+        large = quantity_spinbox(1, maximum=999999)
+        try:
+            self.assertLess(small.width(), large.width())
+            self.assertGreaterEqual(
+                large.width(),
+                large.fontMetrics().horizontalAdvance("999999")
+                + UNITY_CONTROL_SIZES_PX["guide_quantity_chrome_width"],
+            )
+            self.assertEqual(small.styleSheet(), "")
+            self.assertEqual(large.styleSheet(), "")
+        finally:
+            small.deleteLater()
+            large.deleteLater()
 
     def test_craft_title_is_the_indexed_unity_component(self):
         from app.ui.components import AtlasPageTitle
