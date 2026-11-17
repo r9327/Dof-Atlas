@@ -458,6 +458,10 @@ class LanyelSharedManualUiTests(unittest.TestCase):
             toggle.click()
             self.assertTrue(toggle.isChecked())
             self.assertFalse(details.isHidden())
+            shared._show_index(1)
+            self.app.processEvents()
+            self.assertIsNone(shared.findChild(QFrame, "GuideManualLegendCard"))
+            self.assertIsNotNone(shared.findChild(QPushButton, "GuideManualPageCheck"))
             view.deleteLater()
             self.app.processEvents()
 
@@ -473,6 +477,8 @@ class LanyelSharedManualUiTests(unittest.TestCase):
             button.click()
             self.assertEqual(QApplication.clipboard().text(), "Potion de rappel")
             self.assertEqual(button.objectName(), "GuidePreparationItemCopy")
+            # Unknown ID must never borrow a generic inventory/backpack logo.
+            self.assertTrue(button.icon().isNull())
             button.deleteLater()
             view.deleteLater()
             self.app.processEvents()

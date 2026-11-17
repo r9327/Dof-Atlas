@@ -40,7 +40,7 @@ from app.modules.encyclopedia.views.guide_ultime_manual_view import (
 from app.core.text import normalize_key as normalize_text
 from app.ui.components import AtlasButton, AtlasComboBox, AtlasGuideDisclosure, AtlasGuideCover, AtlasGuideParticipantButton, atlas_guide_arrow_icon, atlas_guide_character_icon, fit_unity_number_spinbox
 from app.ui.unity_palette import UNITY_CONTROL_SIZES_PX, UNITY_LAYOUT_BREAKPOINTS_PX, UNITY_LAYOUT_SIZES_PX, UNITY_GUIDE_READING_METRICS_PX, UNITY_SIZES_PX, UNITY_SPACING_PX
-from app.ui.unity_skin import apply_unity_panel_shadow, sprite_icon_path
+from app.ui.unity_skin import apply_unity_panel_shadow
 from app.constants import DATA_DIR
 from app.modules.encyclopedia.services.image_service import ENCYCLOPEDIA_IMAGE_SERVICE
 from app.ui.theme import PALETTE
@@ -550,7 +550,7 @@ class SharedGuideManualCard(GuideUltimeManualCard):
             text = str(row.get("text") or "").strip()
             position = self._display_position(str(row.get("position") or ""))
             kind = str(row.get("kind") or "")
-            prefix = "⚠ " if kind == "warning" else "• "
+            prefix = "⚠ " if kind == "warning" else ""
             combat_line = self._is_combat_row(kind, text)
 
             row_widget = QFrame()
@@ -1860,10 +1860,8 @@ class SharedGuideManualView(GuideUltimeManualView):
                 pixmap = ENCYCLOPEDIA_IMAGE_SERVICE.load_scaled(path, QSize(UNITY_CONTROL_SIZES_PX["guide_preparation_icon"], UNITY_CONTROL_SIZES_PX["guide_preparation_icon"]))
                 if not pixmap.isNull():
                     button.setIcon(QIcon(pixmap))
-        if button.icon().isNull():
-            fallback = sprite_icon_path("inventory")
-            if fallback:
-                button.setIcon(QIcon(str(fallback)))
+        # Missing IDs or missing shipped artwork are NOT the same inventory
+        # object. Show no icon rather than a misleading generic backpack.
         button.setIconSize(QSize(UNITY_CONTROL_SIZES_PX["guide_preparation_icon"], UNITY_CONTROL_SIZES_PX["guide_preparation_icon"]))
         button.clicked.connect(lambda _checked=False, value=name:
                                QApplication.clipboard().setText(value))

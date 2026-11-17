@@ -174,7 +174,7 @@ class GuideUltimeManualCard(QFrame):
             "Validation : automatique quand Atlas dispose de la preuve, manuelle seulement en secours.",
         )
         for text in rows:
-            label = QLabel(f"• {text}")
+            label = QLabel(text)
             label.setObjectName("GuideManualLegendText")
             label.setWordWrap(True)
             details_layout.addWidget(label)

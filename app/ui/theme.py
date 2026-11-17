@@ -3274,7 +3274,7 @@ QPushButton#GuideManualGuideButton:pressed {
 /* Guide menus, selection surfaces and counters share the Unity roles. */
 QSpinBox#GuideCompactPageJump,
 QSpinBox#GuidePreparationQuantity {
-    background: @FIELD_SURFACE;
+    background: @PANEL_2;
     color: @TEXT;
     border: 1px solid @GUIDE_TOGGLE_BORDER;
     border-radius: @RADIUS_XS;
