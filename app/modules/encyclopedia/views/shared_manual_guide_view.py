@@ -1729,7 +1729,7 @@ class SharedGuideManualView(GuideUltimeManualView):
         if remaining <= 0:
             return
         button = AtlasButton(f"Afficher la suite ({remaining} besoins restants)", size="compact")
-        button.setObjectName("GuidePreparationShowMore")
+        button.set_style_name("GuidePreparationShowMore")
         button.setSizePolicy(QSizePolicy.Maximum, QSizePolicy.Fixed)
         button.clicked.connect(lambda _checked=False: self._show_more_preparation())
         self.preparation_rows_layout.addWidget(button, 0, Qt.AlignLeft)
@@ -1846,7 +1846,7 @@ class SharedGuideManualView(GuideUltimeManualView):
     def _copyable_preparation_item(self, name: str, display: str,
                                    item_id: int | None) -> QPushButton:
         button = AtlasButton(display, size="compact")
-        button.setObjectName("GuidePreparationItemCopy")
+        button.set_style_name("GuidePreparationItemCopy")
         button.setFlat(True)
         button.setCursor(Qt.PointingHandCursor)
         button.setToolTip(f"Cliquer pour copier : {name}")
