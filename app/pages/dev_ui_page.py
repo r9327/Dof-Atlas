@@ -2419,10 +2419,23 @@ class DevUiPage(QWidget):
                     "Inventaire partiel"
                     if unreadable else f"{len(raw_qt)} constructeur(s) Qt brut(s)"
                 )
+            elif record["local_style_calls"] is not None:
+                gap = (
+                    "Inventaire partiel"
+                    if unreadable else
+                    f"{len(record['local_style_calls'])} QSS local(aux)"
+                )
+            elif record["literal_width_calls"] is not None:
+                gap = (
+                    "Inventaire partiel"
+                    if unreadable else
+                    f"{len(record['literal_width_calls'])} largeur(s) littérale(s) à revoir"
+                )
             elif family == "dialogs" and record["craft_shared_dialogs"] is not None:
                 gap = (
                     f"Craft : {record['craft_shared_dialogs']}/4 unifiés, "
-                    f"{record['craft_local_qdialogs']} locaux"
+                    f"{record['craft_local_qdialogs']} locaux, "
+                    f"{len(record['native_dialog_calls'] or ())} Qt.Popup à qualifier"
                 )
             else:
                 gap = "Non audité"
@@ -2441,12 +2454,32 @@ class DevUiPage(QWidget):
                            if unreadable else "")
                     )
                 elif column == 4:
+                    if raw_qt is not None:
+                        detail = tuple(
+                            f"{path}:{line}" for path, line in raw_qt
+                        )
+                    elif record["local_style_calls"] is not None:
+                        detail = tuple(
+                            f"{path}:{line}"
+                            for path, line in record["local_style_calls"]
+                        )
+                    elif record["literal_width_calls"] is not None:
+                        detail = tuple(
+                            f"{path}:{line} ({width}px)"
+                            for path, line, width in record["literal_width_calls"]
+                        )
+                    elif record["native_dialog_calls"] is not None:
+                        detail = tuple(
+                            f"{path}:{line}"
+                            for path, line in record["native_dialog_calls"]
+                        )
+                    else:
+                        detail = ()
                     item.setToolTip(
-                        "Instanciations directes repérées dans les sources : "
-                        + (", ".join(f"{path}:{line}" for path, line in raw_qt)
-                           if raw_qt is not None else
-                           "Seul l'écart explicite est vérifié ; les autres "
-                           "doublons ne sont pas encore audités")
+                        "Références statiques du registre (pas un verdict de doublon) : "
+                        + (", ".join(detail) or
+                           "Aucun appel direct trouvé pour ce contrôle, "
+                           "ou famille pas encore auditée")
                     )
                 self.preview_mutualization_matrix.setItem(index, column, item)
         self.preview_mutualization_matrix.setToolTip(
