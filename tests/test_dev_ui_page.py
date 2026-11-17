@@ -507,6 +507,25 @@ class DevUiPageTests(unittest.TestCase):
             )
             from app.ui.theme import atlas_stylesheet
             compiled_qss = atlas_stylesheet()
+            # The live Guide and this preview use these same role selectors:
+            # no invisible idle/disabled character border and no tight x/x.
+            from app.ui.unity_palette import UNITY_PALETTE, UNITY_SPACING_PX
+            self.assertIn(
+                "QToolButton#GuideParticipantsButton {", compiled_qss
+            )
+            participant_style = compiled_qss.split(
+                "QToolButton#GuideParticipantsButton {", 1
+            )[1].split("}", 1)[0]
+            self.assertIn(
+                "border: 1px solid " + UNITY_PALETTE["GUIDE_TOGGLE_BORDER"],
+                participant_style,
+            )
+            self.assertIn(
+                "QSpinBox#GuideCompactPageJump QLineEdit {"
+                + "\\n    padding-left: "
+                + str(UNITY_SPACING_PX["sm"]) + "px;",
+                compiled_qss,
+            )
             self.assertIn("QWidget#GuideGlobalCharacterProgress", compiled_qss)
             self.assertIn("QWidget#GuidePreparationContent", compiled_qss)
             self.assertIsNone(page.preview_compact_header.findChild(
