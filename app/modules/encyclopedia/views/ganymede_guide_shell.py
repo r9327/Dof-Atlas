@@ -139,6 +139,7 @@ class GanymedeGuideShell(SharedGuideManualView):
         self.active_index = 0
         self._review_end_index = 0
         self._review_history.clear()
+        self._preview_preparation_checked.clear()
         # The metadata shell uses a special dash for its 0/0 selector;
         # clear that sentinel before the real 1-based draft navigation.
         self.page_jump.setSpecialValueText("")

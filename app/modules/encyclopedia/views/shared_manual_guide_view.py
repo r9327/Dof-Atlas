@@ -1702,6 +1702,8 @@ class SharedGuideManualView(GuideUltimeManualView):
         self._preparation_needs: tuple[_PreparationNeed, ...] = ()
         self._preparation_preview: tuple[tuple[str, str, int, int | None], ...] = ()
         self._preparation_loaded = False
+        # Review-only checklist state is temporary UI, never game progression.
+        self._preview_preparation_checked: dict[tuple[str, str, int | None], bool] = {}
         self._preparation_visible_limit = 80
         self._participant_buttons: dict[str, _ParticipantPortraitButton] = {}
         # One bounded SQLite detail per tick. A navigation change stops the
@@ -1940,23 +1942,16 @@ class SharedGuideManualView(GuideUltimeManualView):
 
         self.preparation_filter_host = QFrame()
         self.preparation_filter_host.setObjectName("GuidePreparationFilterHost")
-        filters = QHBoxLayout(self.preparation_filter_host)
+        # Indexed Dev UI buttons wrap inside the half-width progress column.
+        filters = QGridLayout(self.preparation_filter_host)
         filters.setContentsMargins(0, 0, 0, 0)
-        filters.setSpacing(5)
+        filters.setHorizontalSpacing(5)
+        filters.setVerticalSpacing(5)
+        self._preparation_filters_layout = filters
         self.preparation_filter_group = QButtonGroup(self)
         self.preparation_filter_group.setExclusive(True)
         for label in ("Tout", "Métiers", "Potions", "Pierres d'âme", "Clefs", "Objets"):
-            button = QPushButton(label)
-            button.setObjectName("GuidePreparationFilter")
-            button.setCheckable(True)
-            button.setProperty("filterKey", label)
-            button.setChecked(label == "Tout")
-            self.preparation_filter_group.addButton(button)
-            button.clicked.connect(
-                lambda _checked=False, value=label: self._render_preparation(value)
-            )
-            filters.addWidget(button)
-        filters.addStretch(1)
+            self._add_preparation_filter(label)
         self.preparation_filter_host.show()
         panel_layout.addWidget(self.preparation_filter_host)
 
@@ -1981,6 +1976,44 @@ class SharedGuideManualView(GuideUltimeManualView):
         apply_unity_panel_shadow(self.preparation_panel, blur=16, vertical=4)
         # The sole drawer remains aligned with its preparation bar.
         self._metric_columns["Préparation"].addWidget(self.preparation_panel)
+
+    def _add_preparation_filter(self, label: str) -> None:
+        button = QPushButton(label)
+        button.setObjectName("GuidePreparationFilter")
+        button.setCheckable(True)
+        button.setProperty("filterKey", label)
+        button.setChecked(label == "Tout")
+        self.preparation_filter_group.addButton(button)
+        button.clicked.connect(
+            lambda _checked=False, value=label: self._render_preparation(value)
+        )
+        index = len(self.preparation_filter_group.buttons()) - 1
+        self._preparation_filters_layout.addWidget(button, index // 3, index % 3)
+
+    def _ensure_preparation_filters(self) -> None:
+        from app.modules.encyclopedia.services.guide_preparation_model import category_for
+        categories = {
+            need.category for need in self._preparation_needs
+            if need.category != "Prérequis"
+        }
+        categories.update(
+            category for category, _name, _qty, _id in self._preparation_preview
+            if category != "Prérequis"
+        )
+        if self._is_imported_source_guide():
+            from app.modules.encyclopedia.services.guide_source_preparation_rows import (
+                global_source_material_rows,
+            )
+            categories.update(
+                category_for(str(row["name"]), str(row.get("kind") or ""))
+                for row in global_source_material_rows(self.service.cards)
+            )
+        existing = {
+            str(button.property("filterKey"))
+            for button in self.preparation_filter_group.buttons()
+        }
+        for category in sorted(categories - existing):
+            self._add_preparation_filter(category)
 
     def _build_sheet_header(self, root: QVBoxLayout) -> None:
         header = QFrame()
@@ -2222,7 +2255,7 @@ class SharedGuideManualView(GuideUltimeManualView):
             return
         self._preparation_tab = tab
         self.preparation_filter_host.setVisible(
-            tab == "À préparer" and not self._is_imported_source_guide()
+            tab == "À préparer"
         )
         self._preparation_visible_limit = 80
         if self.preparation_panel.isVisible():
@@ -2247,7 +2280,7 @@ class SharedGuideManualView(GuideUltimeManualView):
                 if source else GUIDE_READING_METRICS["normal_drawer_min_height"]
             )
             self.preparation_filter_host.setVisible(
-                self._preparation_tab == "À préparer" and not source
+                self._preparation_tab == "À préparer"
             )
         if opened and self._is_imported_source_guide() and not self._source_prerequisites_defaulted:
             # Imported Ganymède always opens the source prerequisites first.
@@ -2361,7 +2394,7 @@ class SharedGuideManualView(GuideUltimeManualView):
 
     def _load_preparation_needs(self) -> None:
         from app.modules.encyclopedia.services.guide_preparation_model import (
-            aggregate_remaining,
+            aggregate_remaining, category_for,
         )
 
         # A browsing character is never consent for Prêt. The no-selection
@@ -2381,7 +2414,9 @@ class SharedGuideManualView(GuideUltimeManualView):
                     for item in card.get("a_preparer", ()) or ():
                         if isinstance(item, dict) and item.get("name"):
                             preview.append((
-                                str(item.get("category") or "Objets"),
+                                category_for(
+                                    str(item["name"]), str(item.get("category") or "")
+                                ),
                                 str(item["name"]),
                                 int(item.get("quantity") or 0),
                                 item.get("item_id"),
@@ -2667,7 +2702,7 @@ class SharedGuideManualView(GuideUltimeManualView):
         acquired = 0
         for key in sorted(self.selected_participant_keys()):
             acquired += min(required, getter(key, guide, item_key))
-        return min(required, acquired)
+        return min(required * max(1, len(self.selected_participant_keys())), acquired)
 
     def _set_source_global_material_total(
         self, row: dict[str, Any], target: int,
@@ -2699,7 +2734,9 @@ class SharedGuideManualView(GuideUltimeManualView):
         guide = str(getattr(self.service, "progress_id", "") or "")
         item_key = f"item:{item_id}"
         expected = {key: getter(key, guide, item_key) for key in keys}
-        target = max(0, min(int(target), required))
+        # A source amount belongs to one player; the total scales with the
+        # explicitly selected group, while every saved value stays per player.
+        target = max(0, min(int(target), required * len(keys)))
         amounts = {}
         remaining = target
         # Preserve already-entered amounts first, then fill remaining slots.
@@ -2741,7 +2778,17 @@ class SharedGuideManualView(GuideUltimeManualView):
             and callable(getattr(progress, "preparation_quantity", None))
             and callable(getattr(progress, "set_preparation_quantities_for_characters", None))
         )
-        for item in rows[:self._preparation_visible_limit]:
+        from app.modules.encyclopedia.services.guide_preparation_model import category_for
+        selected = tuple(self.selected_participant_keys())
+        team_size = max(1, len(selected))
+        selected_filter = getattr(self, "_active_preparation_filter", "Tout")
+        matching = [
+            item for item in rows
+            if selected_filter in ("Tout", category_for(
+                str(item["name"]), str(item.get("kind") or ""
+            ))
+        ]
+        for item in matching[:self._preparation_visible_limit]:
             item_id, quantity = item.get("item_id"), item.get("quantity")
             verified = (
                 type(item_id) is int and type(quantity) is int and quantity > 0
@@ -2759,17 +2806,32 @@ class SharedGuideManualView(GuideUltimeManualView):
             )
             layout.setSpacing(GUIDE_READING_METRICS["row_spacing"])
             acquired = self._source_global_material_total(item) if verified else 0
+            required_total = quantity * team_size if verified else None
+            preview_key = (
+                category_for(str(item["name"]), str(item.get("kind") or "")),
+                str(item["name"]), item_id if type(item_id) is int else None,
+            )
             valid = QCheckBox()
             valid.setObjectName("GuidePreparationReady")
             valid.setAccessibleName(f"Valider {item['name']}")
             valid.setToolTip("Valider l'objet pour le groupe sélectionné")
-            valid.setChecked(verified and acquired == quantity)
+            valid.setChecked(
+                (verified and bool(selected) and acquired == required_total)
+                if can_edit else self._preview_preparation_checked.get(preview_key, False)
+            )
             valid.setFixedWidth(22)
-            valid.setEnabled(can_edit and verified)
+            valid.setEnabled((can_edit and verified) or not authorized)
             if can_edit and verified:
                 valid.toggled.connect(
-                    lambda checked, row=item: self._set_source_global_material_total(
-                        row, row["quantity"] if checked else 0
+                    lambda checked, row=item, amount=required_total: self._set_source_global_material_total(
+                        row, amount if checked else 0
+                    )
+                )
+            elif not authorized:
+                valid.setToolTip("Aperçu : coche temporaire, non enregistrée")
+                valid.toggled.connect(
+                    lambda checked, key=preview_key: self._preview_preparation_checked.__setitem__(
+                        key, checked
                     )
                 )
             layout.addWidget(valid, 0, Qt.AlignVCenter)
@@ -2777,9 +2839,9 @@ class SharedGuideManualView(GuideUltimeManualView):
                 editor = QSpinBox(frame)
                 editor.setObjectName("GuidePreparationQuantity")
                 editor.setFixedWidth(GUIDE_READING_METRICS["source_quantity_width"])
-                editor.setRange(0, quantity)
+                editor.setRange(0, required_total)
                 editor.setValue(acquired)
-                editor.setSuffix(f" / {quantity}")
+                editor.setSuffix(f" / {required_total}")
                 editor.setEnabled(can_edit)
                 editor.setToolTip(
                     "Quantité préparée pour le groupe sélectionné"
@@ -2806,7 +2868,7 @@ class SharedGuideManualView(GuideUltimeManualView):
             # Use the indexed icon lookup, never a downloaded or invented image.
             layout.addWidget(button, 1, Qt.AlignVCenter)
             self.preparation_rows_layout.addWidget(frame)
-        self._append_preparation_more(len(rows) - self._preparation_visible_limit)
+        self._append_preparation_more(len(matching) - self._preparation_visible_limit)
         self.preparation_rows_layout.addStretch(1)
         return True
 
@@ -2909,6 +2971,8 @@ class SharedGuideManualView(GuideUltimeManualView):
         return self._render_imported_source_blocks(prerequisites=True)
 
     def _render_preparation(self, selected_filter: str) -> None:
+        self._active_preparation_filter = selected_filter
+        self._ensure_preparation_filters()
         self._clear_preparation_rows()
         prerequisites_tab = self._preparation_tab == "Prérequis"
         if self._is_imported_source_guide() and self._render_imported_source_blocks(
@@ -2942,11 +3006,26 @@ class SharedGuideManualView(GuideUltimeManualView):
                     row.setMinimumHeight(int(SIZES["CONTROL_HEIGHT"].removesuffix("px")))
                     row_layout = QHBoxLayout(row)
                     row_layout.setContentsMargins(8, 3, 8, 3)
+                    if not prerequisites_tab:
+                        preview_key = (category, name, item_id)
+                        checkbox = QCheckBox()
+                        checkbox.setObjectName("GuidePreparationReady")
+                        checkbox.setToolTip("Aperçu : coche temporaire non enregistrée")
+                        checkbox.setChecked(
+                            self._preview_preparation_checked.get(preview_key, False)
+                        )
+                        checkbox.toggled.connect(
+                            lambda checked, key=preview_key: self._preview_preparation_checked.__setitem__(
+                                key, checked
+                            )
+                        )
+                        row_layout.addWidget(checkbox)
+                        players = max(1, len(self.selected_participant_keys()))
+                        counter = QLabel(f"{quantity * players if quantity else '?'} ×")
+                        counter.setObjectName("GuidePreparationQuantityPlaceholder")
+                        row_layout.addWidget(counter)
                     row_layout.addWidget(self._copyable_preparation_item(
-                        name,
-                        name if prerequisites_tab else
-                        f"{quantity if quantity else '?'} × {name} ({category})",
-                        item_id,
+                        name, name, item_id,
                     ))
                     self.preparation_rows_layout.addWidget(row)
                 self._append_preparation_more(
@@ -2973,14 +3052,15 @@ class SharedGuideManualView(GuideUltimeManualView):
             return
 
         if selected_filter == "Tout":
-            groups = (
-                ("Métiers", lambda need: need.category == "Métiers"),
-                ("Potions", lambda need: need.category == "Potions"),
-                ("Pierres d'âme", lambda need: need.category == "Pierres d'âme"
-                 or self._is_soul_stone(need.name)),
-                ("Clefs", lambda need: need.category == "Clefs"),
-                ("Objets", lambda need: need.category == "Objets"
-                 and not self._is_soul_stone(need.name)),
+            # No fixed category ceiling: render the exact categories provided
+            # by optimized source data and the shared preparation model.
+            categories = tuple(dict.fromkeys(
+                need.category for need in self._preparation_needs
+                if need.category != "Prérequis"
+            ))
+            groups = tuple(
+                (category, lambda need, key=category: need.category == key)
+                for category in categories
             )
             if not self._preparation_needs:
                 empty = QLabel("Aucun besoin confirmé sur le parcours restant.")
