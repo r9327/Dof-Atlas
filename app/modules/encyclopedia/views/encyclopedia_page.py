@@ -1220,9 +1220,13 @@ class EncyclopediaPage(QWidget):
                                 prepare = getattr(
                                     achievement_provider, "prepare_detail_sources", None
                                 )
+                                needs_index = getattr(
+                                    achievement_provider, "detail_source_index_required", None
+                                )
                                 if (
                                     getattr(achievement_provider, "detail_sources_ready", True)
                                     is False and callable(prepare)
+                                    and (not callable(needs_index) or needs_index())
                                 ):
                                     prepare()
                                 achievement_provider.get_detail_by_id(pending_detail_id)
