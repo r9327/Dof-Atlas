@@ -28,7 +28,6 @@ from PySide6.QtWidgets import (
     QMainWindow,
     QMenu,
     QMessageBox,
-    QPushButton,
     QScrollArea,
     QSizePolicy,
     QSplashScreen,
@@ -1000,7 +999,7 @@ class ZaapWidget(QWidget):
         self.zaaps = load_zaap_index()
         self.filtered_zaaps: list[dict[str, Any]] = []
         self.favorite_names = read_zaap_favorites(self.zaaps) if self.show_favorites else []
-        self.favorite_buttons: list[QPushButton] = []
+        self.favorite_buttons: list[AtlasButton] = []
         self.favorite_star_buttons: list[QToolButton] = []
         self.calibration_active = False
         self.launching_zaap = False
@@ -1283,7 +1282,7 @@ class ZaapWidget(QWidget):
             star_button.setFixedSize(16, 26)
             star_button.setCursor(Qt.PointingHandCursor)
             star_button.setToolTip(f"Retirer {name} des favoris")
-            button = QPushButton(short_label(name, 24), chip)
+            button = AtlasButton(short_label(name, 24), chip)
             button.setObjectName("favoriteChipName")
             button.setFixedHeight(26)
             button.setMaximumWidth(
