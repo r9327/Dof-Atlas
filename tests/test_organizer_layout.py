@@ -1051,6 +1051,16 @@ class OrganizerLayoutTests(unittest.TestCase):
                         page.zaap.refresh_favorite_chips()
                         self.app.processEvents()
                         self.assertEqual(len(page.zaap.favorite_buttons), 8)
+                        from app.ui.components import (
+                            AtlasButton, BUTTON_OBJECT_NAMES,
+                        )
+                        for button in page.zaap.favorite_buttons:
+                            self.assertIsInstance(button, AtlasButton)
+                            self.assertEqual(
+                                button.objectName(),
+                                BUTTON_OBJECT_NAMES["zaap_favorite"],
+                            )
+                            self.assertEqual(button.styleSheet(), "")
                         self.assertEqual(page.zaap._favorite_columns, 2)
                         chips = [button.parentWidget()
                                  for button in page.zaap.favorite_buttons]
