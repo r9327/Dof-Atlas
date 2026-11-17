@@ -13,7 +13,6 @@ from PySide6.QtWidgets import (
     QAbstractItemView,
     QApplication,
     QCheckBox,
-    QDialog,
     QFrame,
     QGridLayout,
     QHBoxLayout,
@@ -55,7 +54,10 @@ from app.storage import (
     short_label,
     write_json,
 )
-from app.ui.components import AtlasButton, AtlasPageTitle, fit_unity_number_spinbox
+from app.ui.components import (
+    AtlasButton, AtlasDialog, AtlasDialogHeader, AtlasPageTitle,
+    fit_unity_number_spinbox,
+)
 from app.ui.unity_palette import UNITY_MODULE_GEOMETRY_PX, UNITY_SPACING_PX
 
 CRAFT_GEOMETRY = UNITY_MODULE_GEOMETRY_PX["craft"]
@@ -131,30 +133,23 @@ def quantity_spinbox(value: int, maximum: int = 999) -> QSpinBox:
     return spinbox
 
 
-class CraftResourceDialog(QDialog):
+class CraftResourceDialog(AtlasDialog):
     def __init__(self, resources: dict[str, dict[str, Any]], missing: list[str], parent: QWidget | None = None):
         super().__init__(parent)
         self.resources = resources
         self.icon_cache = IconCache(26)
         self.resource_checks: list[QCheckBox] = []
-        self.setObjectName("CraftResourceDialog")
+        self.setAccessibleName("CraftResourceDialog")
         self.setWindowTitle("Ressources craft")
         self.resize(*CRAFT_GEOMETRY["resource_dialog_size"])
         self.setWindowFlag(Qt.WindowStaysOnTopHint, True)
-        root = QVBoxLayout(self)
-        root.setContentsMargins(14, 12, 14, 12)
-        root.setSpacing(8)
+        root = self.content_layout
 
-        header = QHBoxLayout()
-        header.setContentsMargins(0, 0, 0, 0)
-        title = QLabel("Ressources craft")
-        title.setObjectName("DialogTitle")
-        header.addWidget(title, 1)
-        count = QLabel(f"{len(resources)} ressource(s)")
-        count.setObjectName("DialogSubtitle")
-        count.setAlignment(Qt.AlignRight | Qt.AlignVCenter)
-        header.addWidget(count)
-        root.addLayout(header)
+        root.addWidget(AtlasDialogHeader(
+            "Ressources craft",
+            f"{len(resources)} ressource(s)",
+            parent=self,
+        ))
 
         toolbar = QHBoxLayout()
         toolbar.setContentsMargins(0, 0, 0, 0)
@@ -254,7 +249,7 @@ class CraftResourceDialog(QDialog):
         super().keyPressEvent(event)
 
 
-class ItemSetDialog(QDialog):
+class ItemSetDialog(AtlasDialog):
     def __init__(self, item_set: dict[str, Any] | None, add_callback, parent: QWidget | None = None):
         super().__init__(parent)
         self.item_set = item_set or {}
@@ -264,7 +259,16 @@ class ItemSetDialog(QDialog):
         self.resize(*CRAFT_GEOMETRY["item_set_dialog_size"])
         self.setWindowFlag(Qt.WindowStaysOnTopHint, True)
 
-        root = QVBoxLayout(self)
+        root = self.content_layout
+        name = (
+            item_set.get("name_fr") or item_set.get("name_en")
+            or f"Panoplie {item_set.get('ankama_id', '')}".strip()
+        )
+        root.addWidget(AtlasDialogHeader(
+            str(name),
+            f"{len(item_set.get('items', []))} objet(s) connu(s)" if item_set else "",
+            parent=self,
+        ))
         if not item_set:
             empty = QLabel("Aucune panoplie connue pour cet équipement.")
             empty.setAlignment(Qt.AlignCenter)
@@ -275,10 +279,6 @@ class ItemSetDialog(QDialog):
             root.addWidget(close)
             return
 
-        name = item_set.get("name_fr") or item_set.get("name_en") or f"Panoplie {item_set.get('ankama_id', '')}"
-        title = AtlasPageTitle(str(name))
-        root.addWidget(title)
-        root.addWidget(QLabel(f"{len(item_set.get('items', []))} objet(s) connus"))
 
         area = QScrollArea()
         area.setWidgetResizable(True)
@@ -312,25 +312,24 @@ class ItemSetDialog(QDialog):
         self.accept()
 
 
-class LevelingDialog(QDialog):
+class LevelingDialog(AtlasDialog):
     def __init__(self, job_name: str, guide: dict[str, Any], find_item_callback, add_craft_callback, parent: QWidget | None = None):
         super().__init__(parent)
         self.find_item_callback = find_item_callback
         self.add_craft_callback = add_craft_callback
         self.icon_cache = IconCache(28)
-        self.setObjectName("LevelingDialog")
+        self.setAccessibleName("LevelingDialog")
         local = guide.get("source") == "atlas-local"
         harvest = local and guide.get("kind") == "harvest"
         self.setWindowTitle(f"{job_name} — Repères locaux" if local else f"{job_name} 0-200")
         self.resize(*CRAFT_GEOMETRY["leveling_dialog_size"])
         self.setWindowFlag(Qt.WindowStaysOnTopHint, True)
 
-        root = QVBoxLayout(self)
-        root.setContentsMargins(14, 12, 14, 12)
-        root.setSpacing(8)
-        title = QLabel(f"{job_name} — Repères locaux" if local else f"{job_name} 0-200")
-        title.setObjectName("DialogTitle")
-        root.addWidget(title)
+        root = self.content_layout
+        root.addWidget(AtlasDialogHeader(
+            f"{job_name} — Repères locaux" if local else f"{job_name} 0-200",
+            parent=self,
+        ))
         if local:
             note = QLabel(
                 "Ressources classées par progression, sans palier XP ni quantité garantie."
@@ -416,7 +415,7 @@ class RouteImageLabel(QLabel):
         event.accept()
 
 
-class RouteDialog(QDialog):
+class RouteDialog(AtlasDialog):
     def __init__(self, job_name: str, item: dict[str, Any], parent: QWidget | None = None):
         super().__init__(parent)
         self.job_name = job_name
@@ -427,9 +426,11 @@ class RouteDialog(QDialog):
         self.resize(*CRAFT_GEOMETRY["route_dialog_size"])
         self.setWindowFlag(Qt.WindowStaysOnTopHint, True)
 
-        root = QVBoxLayout(self)
-        title = AtlasPageTitle(f"{job_name} - {item.get('name', 'Ressource')}")
-        root.addWidget(title)
+        root = self.content_layout
+        root.addWidget(AtlasDialogHeader(
+            f"{job_name} - {item.get('name', 'Ressource')}",
+            parent=self,
+        ))
         controls = QHBoxLayout()
         self.step_label = QLabel("Etape 1")
         controls.addWidget(self.step_label)
@@ -527,7 +528,7 @@ class CraftPage(QWidget):
         self.layout_timer.timeout.connect(self.apply_craft_body_layout)
         self.resource_dialog: CraftResourceDialog | None = None
 
-        root = QVBoxLayout(self)
+        root = self.content_layout
         compact_gap = UNITY_SPACING_PX["sm"]
         panel_padding = UNITY_SPACING_PX["md"]
         root.setContentsMargins(compact_gap, compact_gap, compact_gap, compact_gap)
