@@ -8,6 +8,7 @@ so an audit can detect missing adoption instead of merely listing names.
 
 from __future__ import annotations
 
+import ast
 import re
 from pathlib import Path
 
@@ -321,6 +322,7 @@ UI_MUTUALIZATION_TARGETS = (
 
 _AUDIT_AGGREGATE_ZONES = frozenset({
     "Outils", "Dev UI", "Popups et dialogues", "Overlays et démarrage",
+    "Launcher",  # Tk uses a Qt-free adapter; no Qt constructors to count.
 })
 
 
@@ -348,6 +350,33 @@ def inspect_ui_mutualization_sources(
                 source_cache[path] = (root / path).read_text(encoding="utf-8")
             except OSError:
                 source_cache[path] = None
+
+    # Only two families currently have a meaningful direct-Qt constructor
+    # duplication check. Other roles may legitimately use native Qt widgets.
+    # AST ignores imports, class declarations, comments and string literals.
+    raw_qt_calls: dict[str, list[tuple[str, int]]] = {
+        "QPushButton": [],
+        "QComboBox": [],
+    }
+    for path, source in source_cache.items():
+        if source is None:
+            continue
+        try:
+            tree = ast.parse(source, filename=path)
+        except SyntaxError:
+            source_cache[path] = None
+            continue
+        for node in ast.walk(tree):
+            if not isinstance(node, ast.Call):
+                continue
+            func = node.func
+            name = (
+                func.id if isinstance(func, ast.Name)
+                else func.attr if isinstance(func, ast.Attribute)
+                else ""
+            )
+            if name in raw_qt_calls:
+                raw_qt_calls[name].append((path, node.lineno))
 
     craft_source = source_cache.get("app/pages/craft_page.py")
     craft_dialog_classes = (
@@ -395,6 +424,11 @@ def inspect_ui_mutualization_sources(
             "source_consumers": tuple(detected),
             "unreadable_consumers": tuple(incomplete),
             "style_owner": UNITY_UI_FAMILY_INDEX[family]["style_owner"],
+            "raw_qt_constructors": (
+                tuple(raw_qt_calls["QPushButton"]) if label == "Boutons"
+                else tuple(raw_qt_calls["QComboBox"])
+                if label == "Menus de sélection" else None
+            ),
             "craft_shared_dialogs": craft_shared_count if family == "dialogs" else None,
             "craft_local_qdialogs": craft_local_qdialog_count if family == "dialogs" else None,
         })
