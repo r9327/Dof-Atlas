@@ -10,7 +10,7 @@ from pathlib import Path
 
 os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
 
-from PySide6.QtWidgets import QApplication, QCheckBox, QGridLayout, QLabel, QToolButton
+from PySide6.QtWidgets import QApplication, QCheckBox, QGridLayout, QLabel, QProgressBar, QToolButton
 
 from app.modules.encyclopedia.providers import (
     AchievementProvider, GuideProvider, QuestProvider,
