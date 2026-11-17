@@ -80,6 +80,7 @@ class GuidePreparationQtFocusedTests(unittest.TestCase):
         self.assertIsNotNone(ready)
         self.assertEqual(view.preparation_filter.height(), UNITY_SIZES_PX["control_compact"])
         self.assertEqual(name.height(), UNITY_SIZES_PX["control_compact"])
+        self.assertEqual(quantity.suffix(), "/2")
         self.assertLess(quantity.width(), 100)
         self.assertEqual(quantity.width(), fit_unity_number_spinbox(quantity))
         self.assertGreaterEqual(
@@ -93,7 +94,7 @@ class GuidePreparationQtFocusedTests(unittest.TestCase):
         # Six digits must fit rather than being cut off by a fixed width.
         compact_width = quantity.width()
         quantity.setRange(0, 123456)
-        quantity.setSuffix(" / 123456")
+        quantity.setSuffix("/123456")
         fit_unity_number_spinbox(quantity)
         self.assertGreater(quantity.width(), compact_width)
 
