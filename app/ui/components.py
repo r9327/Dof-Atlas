@@ -4,7 +4,7 @@ from functools import lru_cache
 from pathlib import Path
 from typing import Literal
 
-from PySide6.QtCore import QRect, QSize, Qt
+from PySide6.QtCore import QRect, QSize, Qt, Signal
 from PySide6.QtGui import QColor, QIcon, QImage, QPainter, QPixmap, QTransform
 from PySide6.QtWidgets import (
     QCalendarWidget,
@@ -15,6 +15,7 @@ from PySide6.QtWidgets import (
     QLabel,
     QPushButton,
     QStyledItemDelegate,
+    QSizePolicy,
     QToolButton,
     QVBoxLayout,
     QWidget,
@@ -145,15 +146,94 @@ def apply_unity_calendar_weekdays(calendar: QCalendarWidget) -> None:
 
 
 class AtlasComboBox(QComboBox):
-    """Native combo box with the shared Unity row separators."""
+    """Unity dropdown sized to its entries, constrained by its parent/screen."""
 
     def __init__(self, parent: QWidget | None = None) -> None:
         super().__init__(parent)
+        # Recalculate the natural width when entries change. The Maximum policy
+        # accepts narrower layouts without forcing every selector to fill a row.
+        self.setSizeAdjustPolicy(QComboBox.AdjustToContents)
+        self.setSizePolicy(QSizePolicy.Maximum, QSizePolicy.Fixed)
         # A single row-limit contract for every Unity dropdown, including
         # selectors created by future modules. Keep native keyboard/scroll.
         self.setMaxVisibleItems(UNITY_CONTROL_LIMITS["dropdown_visible_rows"])
         popup = self.view()
         popup.setItemDelegate(UnityPopupSeparatorDelegate(popup))
+
+    def showPopup(self) -> None:
+        """Expand the popup for long entries without escaping the screen."""
+        super().showPopup()
+        view = self.view()
+        popup = view.window()
+        screen = self.screen()
+        if screen is None or popup is self:
+            return
+        available = screen.availableGeometry()
+        content_width = view.sizeHintForColumn(0)
+        if content_width <= 0 or available.width() <= 0:
+            return
+        scrollbar_width = (
+            view.verticalScrollBar().sizeHint().width()
+            if self.count() > self.maxVisibleItems() else 0
+        )
+        desired = max(
+            self.width(),
+            content_width + 2 * view.frameWidth()
+            + scrollbar_width + 2 * UNITY_SPACING_PX["lg"],
+        )
+        width = min(desired, available.width())
+        geometry = popup.geometry()
+        geometry.setWidth(width)
+        geometry.moveLeft(max(
+            available.left(),
+            min(geometry.left(), available.right() - width + 1),
+        ))
+        popup.setGeometry(geometry)
+
+
+class AtlasPageNavigator(QWidget):
+    """Reusable compact ‹ current/total › control; the caller owns the page."""
+
+    pageRequested = Signal(int)
+
+    def __init__(self, parent: QWidget | None = None, *, total: int = 1) -> None:
+        super().__init__(parent)
+        self.setSizePolicy(QSizePolicy.Maximum, QSizePolicy.Fixed)
+        row = QHBoxLayout(self)
+        row.setContentsMargins(0, 0, 0, 0)
+        row.setSpacing(UNITY_SPACING_PX["xs"])
+
+        self.previous_button = AtlasButton("‹", variant="secondary", size="compact")
+        self.previous_button.setAccessibleName("Page précédente")
+        self.previous_button.setToolTip("Page précédente")
+        self.previous_button.setSizePolicy(QSizePolicy.Maximum, QSizePolicy.Fixed)
+        self.page_label = QLabel()
+        self.page_label.setObjectName("AtlasPageCounter")
+        self.page_label.setAlignment(Qt.AlignCenter)
+        self.page_label.setSizePolicy(QSizePolicy.Maximum, QSizePolicy.Fixed)
+        self.next_button = AtlasButton("›", variant="secondary", size="compact")
+        self.next_button.setAccessibleName("Page suivante")
+        self.next_button.setToolTip("Page suivante")
+        self.next_button.setSizePolicy(QSizePolicy.Maximum, QSizePolicy.Fixed)
+        row.addWidget(self.previous_button)
+        row.addWidget(self.page_label)
+        row.addWidget(self.next_button)
+        self.previous_button.clicked.connect(
+            lambda: self.pageRequested.emit(self._page - 1)
+        )
+        self.next_button.clicked.connect(
+            lambda: self.pageRequested.emit(self._page + 1)
+        )
+        self.set_page(1, total)
+
+    def set_page(self, page: int, total: int) -> None:
+        self._total = max(0, int(total))
+        self._page = max(1, min(int(page), self._total)) if self._total else 0
+        self.page_label.setText(f"{self._page}/{self._total}")
+        self.page_label.updateGeometry()
+        self.previous_button.setEnabled(self._page > 1)
+        self.next_button.setEnabled(self._page < self._total)
+        self.updateGeometry()
 
 
 class AtlasBreadcrumb(QFrame):
