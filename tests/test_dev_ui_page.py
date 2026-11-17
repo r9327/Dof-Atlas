@@ -260,6 +260,32 @@ class DevUiPageTests(unittest.TestCase):
             page.close()
             page.deleteLater()
 
+    def test_featured_guide_uses_shared_hidden_button_without_changing_open_signal(self) -> None:
+        from types import SimpleNamespace
+        from app.modules.encyclopedia.views.guide_featured_home import FeaturedGuideCard
+        from app.ui.components import AtlasButton
+
+        opened = []
+        card = FeaturedGuideCard(
+            "guide_complet", "Guide Succès Opti", opened.append,
+        )
+        try:
+            self.assertIsInstance(card.open_button, AtlasButton)
+            self.assertEqual(card.open_button.objectName(), "FeaturedGuideOpen")
+            self.assertTrue(card.open_button.isHidden())
+            self.assertFalse(card.open_button.isEnabled())
+            card.set_guide(
+                SimpleNamespace(description="Guide de démonstration", image_path=None),
+                (0, 4, ""),
+            )
+            self.assertTrue(card.open_button.isEnabled())
+            card.open_button.click()
+            self.assertEqual(opened, ["guide_complet"])
+            self.assertEqual(card.open_button.styleSheet(), "")
+        finally:
+            card.close()
+            card.deleteLater()
+
     def test_four_actual_craft_dialogs_are_previewable_without_new_ui_classes(self) -> None:
         from app.pages.dev_ui_page import DevUiPage
         from app.pages.craft_page import (
