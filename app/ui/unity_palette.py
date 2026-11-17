@@ -243,6 +243,10 @@ UNITY_LAYOUT_SIZES_PX = {
     "dialog_padding_x": 24,
     "dialog_padding_y": 22,
     "dialog_gap": 16,
+    # Shared compact density keeps existing Craft windows readable.
+    "dialog_compact_padding_x": 14,
+    "dialog_compact_padding_y": 12,
+    "dialog_compact_gap": 8,
     "dialog_header_gap": 14,
     "dialog_header_text_gap": 5,
     "breadcrumb_item_gap": 5,
