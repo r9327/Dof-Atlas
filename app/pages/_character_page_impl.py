@@ -202,7 +202,7 @@ class CharacterPage(QWidget):
         self.character_selector.setObjectName("CharacterPageCharacterCombo")
         icon_size = CHARACTER_COMPAT_GEOMETRY["selector_icon"]
         self.character_selector.setIconSize(QSize(icon_size, icon_size))
-        self.character_selector.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
+        self.character_selector.setSizePolicy(QSizePolicy.Maximum, QSizePolicy.Fixed)
         self.character_selector.setToolTip("Changer de personnage")
         self.character_selector.currentIndexChanged.connect(
             self._on_character_selector_changed
