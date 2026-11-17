@@ -128,6 +128,29 @@ class UiUniversalContractTests(unittest.TestCase):
             quests,
         )
 
+    def test_success_runtime_defers_only_optional_reward_indexes(self):
+        base = (
+            REPO_ROOT / "app/modules/encyclopedia/providers/achievement_provider.py"
+        ).read_text(encoding="utf-8")
+        memory_bound = (
+            REPO_ROOT
+            / "app/modules/encyclopedia/providers/memory_bound_achievement_provider.py"
+        ).read_text(encoding="utf-8")
+        stage = (
+            REPO_ROOT / "app/modules/encyclopedia/views/encyclopedia_page.py"
+        ).read_text(encoding="utf-8")
+        detail_view = (
+            REPO_ROOT / "app/modules/encyclopedia/views/achievements_view.py"
+        ).read_text(encoding="utf-8")
+        self.assertIn("def load_catalogue_only(self)", base)
+        self.assertIn("def detail_source_index_required(self)", memory_bound)
+        self.assertIn("def load_runtime(self)", memory_bound)
+        self.assertIn('"load_catalogue_only"', stage)
+        self.assertIn('"prepare_detail_sources"', stage)
+        self.assertIn('"detail_source_index_required"', detail_view)
+        self.assertIn('"prepare_detail_sources"', detail_view)
+        self.assertIn("detail = self._get_detail_in_process(achievement_id)", memory_bound)
+
     def test_zaap_favorite_button_reuses_atlas_style_and_click_owner(self):
         source = (REPO_ROOT / "app/storage.py").read_text(encoding="utf-8")
         self.assertIn(
