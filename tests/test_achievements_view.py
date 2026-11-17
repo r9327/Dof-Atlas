@@ -103,6 +103,32 @@ class AchievementsThirdColumnTests(unittest.TestCase):
         self.assertEqual(view.search.text(), "")
         self.assertFalse(view._search_debounce_timer.isActive())
 
+    def test_tall_viewport_continues_loading_until_it_can_scroll(self):
+        view, provider = self.make_view()
+        view.resize(1600, 1200)
+        view.show()
+        self.app.processEvents()
+
+        provider.catalogue_row_by_id.side_effect = (
+            lambda achievement_id: (achievement_id, f"Succès {achievement_id}", None, 0)
+        )
+        view._achievement_completed_ids = frozenset()
+        view._achievement_pending_rows = list(range(1, 41))
+        view._achievement_rows_dirty = True
+
+        # First batch is followed by the usual initial batch.
+        view._render_next_achievement_batch()
+        view._achievement_batch_timer.stop()
+        view._render_next_achievement_batch()
+
+        self.assertEqual(view.list_widget.count(), 16)
+        self.assertEqual(view.list_widget.verticalScrollBar().maximum(), 0)
+        self.assertGreater(view.list_widget.viewport().height(), 0)
+        self.assertTrue(
+            view._achievement_batch_timer.isActive(),
+            "Pending achievements must remain reachable on a tall window with no scrollbar",
+        )
+
     def test_keyboard_item_activation_opens_details_without_extra_load(self):
         view, provider = self.make_view()
         rendered = []
