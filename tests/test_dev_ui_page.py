@@ -702,6 +702,13 @@ class DevUiPageTests(unittest.TestCase):
                 page.preview_buttons["selected"].objectName(), "ActiveButton",
             )
             self.assertFalse(page.preview_buttons["disabled"].isEnabled())
+            self.assertIsInstance(page.preview_zaap_favorite_button, AtlasButton)
+            self.assertEqual(
+                page.preview_zaap_favorite_button.objectName(), "favoriteChipName"
+            )
+            self.assertEqual(page.preview_zaap_favorite_button.styleSheet(), "")
+            page.preview_zaap_favorite_button.click()
+            self.assertIn("Bouton favori Zaap partagé", page.feedback.text())
             self.assertEqual(page.startup_title.objectName(), "PreloadPopupTitle")
             self.assertEqual(page.startup_status.objectName(), "PreloadPopupCurrent")
             self.assertEqual(page.startup_progress.objectName(), "PreloadPopupProgress")
