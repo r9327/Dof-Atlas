@@ -40,6 +40,7 @@ class NetworkUiBridge(QObject):
         self._compact_context_ready = False
         self._last_status = self.coordinator.latest_status()
         self._stopped = False
+        self._stop_result: bool | None = None
         self._pending_progress_characters: set[str] = set()
         self._progress_timer = QTimer(self)
         self._progress_timer.setSingleShot(True)
@@ -118,12 +119,15 @@ class NetworkUiBridge(QObject):
 
     def stop(self) -> bool:
         if self._stopped:
-            return True
+            # A failed cleanup must never become a reported success on the
+            # second call (for example via aboutToQuit after window closing).
+            return self._stop_result is True
         self._stopped = True
         self._timer.stop()
         self._progress_timer.stop()
         self._pending_progress_characters.clear()
         stopped = bool(self.coordinator.stop())
+        self._stop_result = stopped
         # The poll timer is stopped too: publish one final truthful state or
         # a previously active Home badge could remain green indefinitely.
         from app.network.application_coordinator import NetworkApplicationStatus
