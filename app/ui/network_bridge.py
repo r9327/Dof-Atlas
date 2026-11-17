@@ -258,7 +258,12 @@ _BRIDGE: NetworkUiBridge | None = None
 def network_ui_bridge() -> NetworkUiBridge:
     global _BRIDGE
     app = QApplication.instance()
-    if _BRIDGE is None or bool(getattr(_BRIDGE, "_stopped", False)):
+    if _BRIDGE is None or (
+        bool(getattr(_BRIDGE, "_stopped", False))
+        and getattr(_BRIDGE, "_stop_result", None) is True
+    ):
+        # A failed stop may leave a capture helper or worker alive: fail closed
+        # rather than starting a second coordinator against the same client.
         _BRIDGE = NetworkUiBridge(app)
         if app is not None:
             app.aboutToQuit.connect(_BRIDGE.stop)
