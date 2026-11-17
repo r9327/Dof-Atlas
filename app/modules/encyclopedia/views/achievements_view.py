@@ -484,13 +484,18 @@ class AchievementsView(QWidget):
         active = getattr(self.provider, "_detail_cache", None)
         hot = active_id == achievement_id and active is not None
         warm = isinstance(recent, dict) and achievement_id in recent
+        cold_sources = getattr(self.provider, "detail_sources_ready", True) is False
         if hot and self._detail_worker_running:
             # A running worker may currently mutate the provider's LRU.
             # Render the already-read immutable detail without touching
             # provider caches or starting another subprocess.
             self._display_achievement(active)
             return
-        if not self._detail_worker_running and (not isinstance(recent, dict) or hot or warm):
+        if (
+            not self._detail_worker_running
+            and not cold_sources
+            and (not isinstance(recent, dict) or hot or warm)
+        ):
             achievement = self.provider.get_detail_by_id(achievement_id)
             if achievement is None:
                 self.show_empty()
@@ -521,6 +526,13 @@ class AchievementsView(QWidget):
 
         def load_detail() -> None:
             try:
+                # Catalogue loading no longer prepares heavyweight optional
+                # reward indexes. The first actual detail prepares them here,
+                # on this bounded worker, not on the Qt click path.
+                if getattr(provider, "detail_sources_ready", True) is False:
+                    prepare = getattr(provider, "prepare_detail_sources", None)
+                    if callable(prepare):
+                        prepare()
                 detail = provider.get_detail_by_id(achievement_id)
             except Exception:
                 _LOGGER.exception("Chargement du succès %s impossible", achievement_id)
