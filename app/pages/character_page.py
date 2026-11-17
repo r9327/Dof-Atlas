@@ -108,9 +108,10 @@ class CharacterPage(_CharacterPage):
         self.character_selector.setObjectName("CharacterPageCharacterCombo")
         selector_icon = CHARACTER_GEOMETRY["selector_icon"]
         self.character_selector.setIconSize(QSize(selector_icon, selector_icon))
-        self.character_selector.setMinimumWidth(CHARACTER_GEOMETRY["selector_min_width"])
+        # Let the shared Unity combo fit the longest character label, while
+        # retaining this panel's design cap on narrow equipment layouts.
         self.character_selector.setMaximumWidth(CHARACTER_GEOMETRY["selector_max_width"])
-        self.character_selector.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
+        self.character_selector.setSizePolicy(QSizePolicy.Maximum, QSizePolicy.Fixed)
         self.character_selector.setToolTip("Sélectionner un personnage")
         self.character_selector.currentIndexChanged.connect(
             self._on_character_selector_changed
