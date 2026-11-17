@@ -1282,8 +1282,9 @@ class ZaapWidget(QWidget):
             star_button.setFixedSize(16, 26)
             star_button.setCursor(Qt.PointingHandCursor)
             star_button.setToolTip(f"Retirer {name} des favoris")
-            button = AtlasButton(short_label(name, 24), chip)
-            button.setObjectName("favoriteChipName")
+            button = AtlasButton(
+                short_label(name, 24), chip, variant="zaap_favorite"
+            )
             button.setFixedHeight(26)
             button.setMaximumWidth(
                 min(152, max(1, chip_width - 38)) if self.compact_favorites else 152
