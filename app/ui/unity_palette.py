@@ -282,7 +282,10 @@ UNITY_CONTROL_SIZES_PX = {
     "gallery_selector_max_width": 420,
     "gallery_sidebar_min_width": 192,
     "gallery_sidebar_max_width": 240,
-    "guide_quantity_width": 100,
+    "guide_quantity_width": 58,  # Minimum; real x / x counters fit their content.
+    "guide_quantity_chrome_width": 32,  # Spin arrows, field padding and borders.
+    "guide_preparation_icon": 16,
+    "guide_preparation_min_height": 48,
     "guide_validation_width": 22,
 }
 
