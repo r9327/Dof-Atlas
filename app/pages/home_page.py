@@ -602,9 +602,22 @@ class HomePage(QWidget):
 
     @staticmethod
     def _network_summary(status: NetworkApplicationStatus) -> tuple[str, str]:
+        reason = str(status.reason or "")
+        # A worker can still be running when stopping or capture fails.
+        # Never paint a green "Actif" badge over an explicit error.
+        if (
+            reason == "capture_elevation_cancelled"
+            or reason == "build_changed"
+            or reason.startswith("capture_helper")
+            or "admin" in reason
+            or "permission" in reason
+            or "failed" in reason
+            or "error" in reason
+            or "ambiguous" in reason
+        ):
+            return "Attention requise", "error"
         if status.running:
             return "Actif", "active"
-        reason = str(status.reason or "")
         if reason in {"waiting_context", "stopped"}:
             # No verified capture is active. Never describe a disconnected
             # network bridge as merely "preparing" indefinitely.
@@ -623,17 +636,6 @@ class HomePage(QWidget):
             # Both conditions mean the client cannot yet be identified.
             # The coordinator retries fingerprinting when it appears.
             return "En attente de Dofus", "idle"
-        if (
-            reason == "capture_elevation_cancelled"
-            or reason == "build_changed"
-            or reason.startswith("capture_helper")
-            or "admin" in reason
-            or "permission" in reason
-            or "failed" in reason
-            or "error" in reason
-            or "ambiguous" in reason
-        ):
-            return "Attention requise", "error"
         return "Préparation…", "pending"
 
     def _rebuild_guide_ultime_service(self) -> None:
