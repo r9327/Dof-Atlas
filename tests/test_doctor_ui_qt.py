@@ -211,6 +211,9 @@ class DoctorUiQtFaultTests(unittest.TestCase):
         ]
         self.assertIn("session.check(", verify_block)
         self.assertIn("view.preparation_button.setChecked(True)", verify_block)
+        self.assertIn("view.global_details_button.setChecked(True)", verify_block)
+        self.assertIn("view.global_details_panel.isVisible()", verify_block)
+        self.assertNotIn("view.summary_button", source)
 
     def test_real_scene_prepares_disk_only_quest_indexes_before_interaction(self):
         source = Path(
