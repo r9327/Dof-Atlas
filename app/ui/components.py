@@ -53,6 +53,8 @@ BUTTON_OBJECT_NAMES = {
     "popup_link": "PopupLinkButton",
     # Unlike read-only badges, status chips are interactive and checkable.
     "status_chip": "StatusChip",
+    # Existing Zaap favorite QSS role, now selected through AtlasButton.
+    "zaap_favorite": "favoriteChipName",
 }
 
 _APPLICATION_ICON: QIcon | None = None
