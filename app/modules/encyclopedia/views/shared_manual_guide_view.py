@@ -1905,7 +1905,7 @@ class SharedGuideManualView(GuideUltimeManualView):
             counter.setObjectName("GuidePreparationQuantity")
             counter.setFixedHeight(UNITY_SIZES_PX["control_compact"])
             counter.setRange(0, max(1, int(quantity)))
-            counter.setSuffix(f" / {quantity}")
+            counter.setSuffix(f"/{quantity}")
             fit_unity_number_spinbox(counter)
             counter.setToolTip("Quantité déjà possédée (brouillon de cette session)")
             draft = self._preparation_quantity_drafts.get(
