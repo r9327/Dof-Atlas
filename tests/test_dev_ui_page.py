@@ -77,7 +77,7 @@ class DevUiPageTests(unittest.TestCase):
             self.assertTrue(any(a.menu() is not None for a in menu.actions()))
             self.assertTrue(any(a.isCheckable() for a in menu.actions()))
             self.assertEqual(set(page.preview_dialog_variants),
-                             {"info", "warning", "danger"})
+                             {"info", "warning", "danger", "confirmation", "form"})
             page.preview_dialog_variants["danger"].click()
             self.assertIsNotNone(page._preview_dialog)
             self.assertTrue(any(
@@ -209,6 +209,53 @@ class DevUiPageTests(unittest.TestCase):
             self.assertIsNotNone(preview)
             self.assertEqual(preview.content_layout.count(), 4)
             preview.reject()
+        finally:
+            page.close()
+            page.deleteLater()
+
+    def test_dialog_variants_share_one_surface_with_custom_content(self) -> None:
+        from PySide6.QtWidgets import QCheckBox, QSpinBox
+        from app.pages.dev_ui_page import DevUiPage
+        from app.ui.components import (
+            AtlasButton, AtlasDialog, AtlasDialogHeader, fit_unity_number_spinbox,
+        )
+
+        page = DevUiPage(on_back=lambda: None)
+        try:
+            page.preview_dialog_variants["confirmation"].click()
+            confirmation = page._preview_dialog
+            self.assertIsInstance(confirmation, AtlasDialog)
+            self.assertTrue(confirmation.isModal())
+            self.assertEqual(confirmation.styleSheet(), "")
+            self.assertEqual(len(confirmation.findChildren(AtlasDialogHeader)), 1)
+            actions = {
+                button.text(): button
+                for button in confirmation.findChildren(AtlasButton)
+            }
+            self.assertEqual(set(actions), {"Annuler", "Valider"})
+            actions["Annuler"].click()
+            self.assertFalse(confirmation.isVisible())
+
+            page.preview_dialog_variants["form"].click()
+            form = page._preview_dialog
+            self.assertIsInstance(form, AtlasDialog)
+            self.assertEqual(form.objectName(), "AtlasDialog")
+            self.assertEqual(len(form.findChildren(AtlasDialogHeader)), 1)
+            options = form.findChildren(QCheckBox, "DevUiDialogOption")
+            counters = form.findChildren(QSpinBox, "DevUiDialogQuantity")
+            self.assertEqual(len(options), 1)
+            self.assertEqual(len(counters), 1)
+            self.assertEqual(counters[0].maximum(), 9999)
+            self.assertEqual(counters[0].styleSheet(), "")
+            self.assertEqual(counters[0].width(), fit_unity_number_spinbox(counters[0]))
+            actions = {
+                button.text(): button for button in form.findChildren(AtlasButton)
+            }
+            self.assertEqual(set(actions), {"Annuler", "Valider"})
+            actions["Valider"].click()
+            self.assertFalse(form.isVisible())
+            self.assertEqual(form.result(), form.Accepted)
+            self.assertEqual(form.styleSheet(), "")
         finally:
             page.close()
             page.deleteLater()
@@ -855,7 +902,19 @@ class DevUiPageTests(unittest.TestCase):
             self.assertEqual(page.preview_scope.item(11, 0).text(), "Launcher")
             self.assertEqual(page.preview_scope.item(14, 0).text(), "Paramètres")
             self.assertIn("main.py", page.preview_scope.item(14, 1).toolTip())
-            self.assertEqual(page.preview_secondary_surfaces.rowCount(), 16)
+            self.assertEqual(page.preview_secondary_surfaces.rowCount(), 15)
+            unique_cases = {
+                (
+                    page.preview_secondary_surfaces.item(index, 1).text(),
+                    page.preview_secondary_surfaces.item(index, 2).toolTip(),
+                )
+                for index in range(page.preview_secondary_surfaces.rowCount())
+            }
+            self.assertEqual(len(unique_cases), 15)
+            self.assertEqual(
+                sum(label == "PreloadProgressPopup" for label, _ in unique_cases),
+                1,
+            )
             actual = {
                 page.preview_secondary_surfaces.item(index, 1).text()
                 for index in range(page.preview_secondary_surfaces.rowCount())
