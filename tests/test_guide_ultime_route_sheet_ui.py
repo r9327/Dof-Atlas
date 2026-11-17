@@ -18,6 +18,15 @@ class GuideUltimeRouteSheetUITests(unittest.TestCase):
         self.assertIn("self.rendered_card_count = 1", source)
         self.assertNotIn("_visible_indices", source)
 
+    def test_navigation_reuses_shared_x_x_counter(self):
+        build = inspect.getsource(GuideUltimeUniversalView._build_ui)
+        render = inspect.getsource(GuideUltimeUniversalView._render_window)
+        self.assertIn("self.page_navigator = AtlasPageNavigator()", build)
+        self.assertIn("self.page_navigator.pageRequested.connect(", build)
+        self.assertIn("self.page_navigator.set_page(index + 1,", render)
+        self.assertNotIn('AtlasButton("← Précédent")', build)
+        self.assertNotIn('AtlasButton("Suivant →")', build)
+
     def test_no_step_number_or_card_counter_in_route_sheet(self):
         source = inspect.getsource(GuideUltimeUniversalView._render_window)
         card_source = inspect.getsource(GuideUltimeRouteCard.__init__)
