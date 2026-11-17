@@ -8,7 +8,7 @@ os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
 
 from PySide6.QtCore import Qt
 from PySide6.QtTest import QTest
-from PySide6.QtWidgets import QApplication, QWidget
+from PySide6.QtWidgets import QApplication, QSpinBox, QWidget
 
 from app.ui.components import (
     AtlasButton,
@@ -18,6 +18,7 @@ from app.ui.components import (
     AtlasPanelToggle,
     AtlasStatusBadge,
     BUTTON_OBJECT_NAMES,
+    fit_unity_number_spinbox,
 )
 from app.ui.theme import atlas_stylesheet
 
@@ -26,6 +27,36 @@ class SharedUiComponentsTests(unittest.TestCase):
     @classmethod
     def setUpClass(cls) -> None:
         cls.app = QApplication.instance() or QApplication([])
+
+    def test_shared_numeric_selector_fits_minimum_prefix_and_special_text(self) -> None:
+        from app.ui.unity_palette import UNITY_CONTROL_SIZES_PX
+
+        selector = QSpinBox()
+        try:
+            selector.setRange(-123456, 99)
+            selector.setPrefix("Niveau ")
+            selector.setSuffix(" / 99")
+            selector.setValue(99)
+            width = fit_unity_number_spinbox(selector)
+            metrics = selector.fontMetrics()
+            expected_min = (
+                metrics.horizontalAdvance("Niveau -123456 / 99")
+                + UNITY_CONTROL_SIZES_PX["guide_quantity_chrome_width"]
+            )
+            self.assertGreaterEqual(width, expected_min)
+            self.assertEqual(selector.width(), width)
+            self.assertEqual(selector.styleSheet(), "")
+
+            selector.setSpecialValueText("Aucune sélection disponible")
+            width_with_special = fit_unity_number_spinbox(selector)
+            expected_special = (
+                metrics.horizontalAdvance("Aucune sélection disponible")
+                + UNITY_CONTROL_SIZES_PX["guide_quantity_chrome_width"]
+            )
+            self.assertGreaterEqual(width_with_special, expected_special)
+            self.assertGreaterEqual(width_with_special, width)
+        finally:
+            selector.deleteLater()
 
     def test_breadcrumb_insets_use_the_shared_size_index(self) -> None:
         from app.ui.unity_palette import UNITY_LAYOUT_SIZES_PX, UNITY_SPACING_PX
