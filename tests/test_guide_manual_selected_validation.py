@@ -276,7 +276,7 @@ class GuideManualSelectedValidationTests(unittest.TestCase):
         self.assertFalse(hasattr(self.view, "current_button"))
         self.assertEqual(self.view.global_progress_label.text(), "100 %")
         self.assertEqual(self.view.global_progress_bar.value(), 2)
-        self.assertEqual(self.view.page_jump.suffix(), " / 2")
+        self.assertEqual(self.view.page_jump.suffix(), "/2")
         self.assertEqual(
             self.view.validation_layout.itemAt(0).widget().text(), "Annuler validation"
         )
