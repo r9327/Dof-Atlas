@@ -1847,7 +1847,9 @@ class SharedGuideManualView(GuideUltimeManualView):
                                    item_id: int | None) -> QPushButton:
         button = AtlasButton(display, size="compact")
         button.set_style_name("GuidePreparationItemCopy")
-        button.setFlat(True)
+        # The indexed transparent-button QSS already removes its chrome;
+        # Qt flat mode can suppress stylesheet text rendering on Windows.
+        button.setFlat(False)
         button.setCursor(Qt.PointingHandCursor)
         button.setToolTip(f"Cliquer pour copier : {name}")
         button.setAccessibleName(f"Copier {name}")
@@ -1872,8 +1874,8 @@ class SharedGuideManualView(GuideUltimeManualView):
         frame.setObjectName("GuidePreparationRow")
         layout = QVBoxLayout(frame)
         layout.setContentsMargins(
-            UNITY_SPACING_PX["xs"], UNITY_SPACING_PX["xxs"],
-            UNITY_SPACING_PX["xs"], UNITY_SPACING_PX["xxs"],
+            UNITY_SPACING_PX["xs"], 0,
+            UNITY_SPACING_PX["xs"], 0,
         )
         layout.setSpacing(UNITY_SPACING_PX["xxs"])
         top = QHBoxLayout()
@@ -1903,6 +1905,7 @@ class SharedGuideManualView(GuideUltimeManualView):
         if quantity is not None and quantity > 0 and need.category not in {"Prérequis", "Métiers"}:
             counter = QSpinBox()
             counter.setObjectName("GuidePreparationQuantity")
+            counter.setFixedHeight(UNITY_SIZES_PX["control_compact"])
             counter.setRange(0, max(1, int(quantity)))
             counter.setSuffix(f" / {quantity}")
             fit_unity_number_spinbox(counter)
