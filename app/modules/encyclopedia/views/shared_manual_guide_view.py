@@ -562,19 +562,15 @@ class SharedGuideManualCard(GuideUltimeManualCard):
             row_layout.setSpacing(7)
 
             line = QLabel()
-            # Rich-text base color comes from Dev UI, not native Qt defaults.
-            text_role = (
-                "DANGER_TEXT" if kind == "warning" or section_key == "before_leave"
-                else "TEXT" if combat_line else "TEXT_SOFT"
-            )
+            # Keep the source text unchanged for navigation/Doctor oracles.
+            # Qt's shared QSS owns base text colors; only known entities
+            # receive the inline semantic markup from _format_line_html.
             self._set_clickable_text(
                 line,
-                f'<span style="color:{PALETTE[text_role]};">'
-                + self._format_line_html(
+                self._format_line_html(
                     prefix, position, text, self._npc_names(text),
                     self._resource_names,
-                )
-                + "</span>",
+                ),
             )
             if section_key == "prepare":
                 line.setObjectName("GuideManualLine")
