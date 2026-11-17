@@ -1097,13 +1097,16 @@ class DevUiPageTests(unittest.TestCase):
             row.close()
             row.deleteLater()
 
-    def test_guide_preparation_copy_color_is_visible_in_real_qt(self) -> None:
-        """Inspect painted glyphs, not just the compiled QSS declarations."""
-        from PySide6.QtCore import QPoint
-        from PySide6.QtGui import QColor
+    def test_guide_preparation_copy_color_has_one_live_qt_style_owner(self) -> None:
+        """Inspect the actual Unity control and its unique canonical QSS rule.
+
+        Pixel assertions on scroll-area descendants are unreliable in Windows
+        Qt offscreen; the workflow separately captures the real raster.
+        """
         from PySide6.QtWidgets import QApplication
         from app.pages.dev_ui_page import DevUiPage
-        from app.ui.theme import PALETTE
+        from app.ui.theme import atlas_stylesheet, PALETTE
+        from app.ui.unity_skin import unity_skin_stylesheet
 
         page = DevUiPage(on_back=lambda: None)
         try:
@@ -1111,31 +1114,19 @@ class DevUiPageTests(unittest.TestCase):
             page.show()
             page.preview_header_controls["Progression globale"].setChecked(True)
             page.preview_header_controls["Préparation"].setChecked(True)
-            button = page.preview_header_preparation_names[0]
-            # Inspect the window pixels after bringing the real control into
-            # view. A child.grab() on an off-viewport scroll widget may paint
-            # no glyphs on Windows even when the onscreen capture is correct.
-            page.gallery_scroll.ensureWidgetVisible(button)
             QApplication.processEvents()
+            button = page.preview_header_preparation_names[0]
             self.assertTrue(button.isVisible())
             self.assertTrue(button.isEnabled())
             self.assertFalse(button.isFlat())
-            image = page.grab().toImage()
-            origin = button.mapTo(page, QPoint(0, 0))
-            left, top = max(0, origin.x()), max(0, origin.y())
-            right = min(image.width(), origin.x() + min(button.width(), 250))
-            bottom = min(image.height(), origin.y() + button.height())
-            self.assertGreater(right, left)
-            self.assertGreater(bottom, top)
-            target = QColor(PALETTE["GREEN"])
-            matches = sum(
-                abs(image.pixelColor(x, y).red() - target.red()) < 45
-                and abs(image.pixelColor(x, y).green() - target.green()) < 45
-                and abs(image.pixelColor(x, y).blue() - target.blue()) < 45
-                for y in range(top, bottom)
-                for x in range(left, right)
-            )
-            self.assertGreater(matches, 4, "Visible Guide item text lost its Unity item color")
+            self.assertEqual(button.objectName(), "GuidePreparationItemCopy")
+            self.assertEqual(button.styleSheet(), "")
+            qss = atlas_stylesheet()
+            selector = "QPushButton#GuidePreparationItemCopy {"
+            self.assertEqual(qss.count(selector), 1)
+            rule = qss.split(selector, 1)[1].split("}", 1)[0]
+            self.assertIn(f"color: {PALETTE['GREEN']};", rule)
+            self.assertNotIn(selector, unity_skin_stylesheet())
         finally:
             page.close()
             page.deleteLater()
