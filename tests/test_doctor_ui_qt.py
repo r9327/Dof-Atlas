@@ -206,10 +206,8 @@ class DoctorUiQtFaultTests(unittest.TestCase):
         self.assertIn('"preparation-open"', source)
         self.assertIn('"preparation-filter-" + filter_name.lower()', source)
         verify_block = source[
-            source.index('    view._show_index(0)\\n    settle()\\n    # Exercise the real Preparation drawer')
-            if '    view._show_index(0)\\n    settle()\\n    # Exercise the real Preparation drawer' in source
-            else source.index("    # Exercise the real Preparation drawer")
-        :source.index("    for turn in range(1 if smoke else repeats):")
+            source.index("    # Exercise the real Preparation drawer")
+            :source.index("    for turn in range(1 if smoke else repeats):")
         ]
         self.assertIn("session.check(", verify_block)
         self.assertIn("view.preparation_button.setChecked(True)", verify_block)
