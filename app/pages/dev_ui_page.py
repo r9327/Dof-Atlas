@@ -723,7 +723,7 @@ class DevUiPage(QWidget):
             row = QHBoxLayout(item)
             row.setContentsMargins(4, 2, 4, 2)
             copy_button = AtlasButton(name, variant="secondary", size="compact")
-            copy_button.setObjectName("GuidePreparationItemCopy")
+            copy_button.set_style_name("GuidePreparationItemCopy")
             copy_button.setFlat(True)
             copy_button.setCursor(Qt.PointingHandCursor)
             copy_button.setToolTip(f"Cliquer pour copier : {name}")
