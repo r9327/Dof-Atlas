@@ -389,9 +389,10 @@ def owners_for(path: str) -> frozenset[str]:
         # Reviewed semantic entity links: Success/Quest detail and Guides all
         # reuse the shared Qt-free color roles. Keep both paths explicit.
         return frozenset({"quests", "guides", "ui"})
-    if path == "tests/test_network_home_status.py":
-        # Home mini-network status is visible startup/UI/character feedback.
-        # This does not certify the native network/capture runtime.
+    if path in {"tests/test_network_home_status.py", "tests/test_home_page.py"}:
+        # Only the two reviewed Home network tests own startup/UI/identity:
+        # state reduction and actual mini-indicator transition. This does
+        # not certify the native network/capture runtime.
         return frozenset({"startup", "ui", "identity"})
     if path == "app/modules/encyclopedia/widgets/filter_panel.py":
         # Exact-SHA Graphify confirms the Success filter uses the shared Qt
