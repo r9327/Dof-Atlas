@@ -65,7 +65,7 @@ from app.core.text import normalize_key as normalize_text
 from app.ui.components import AtlasBreadcrumb, AtlasButton, AtlasPanelToggle
 from app.ui.entity_link_roles import entity_link_markup
 from app.ui.theme import PALETTE, render_theme_template
-from app.ui.unity_palette import UNITY_MODULE_GEOMETRY_PX
+from app.ui.unity_palette import UNITY_CONTROL_SIZES_PX, UNITY_MODULE_GEOMETRY_PX
 
 GUIDE_CARD_GEOMETRY = UNITY_MODULE_GEOMETRY_PX["guide_cards"]
 
@@ -1059,7 +1059,7 @@ class CollapsibleInfoSection(QFrame):
         marker = QLabel("✓" if state == "done" else "●" if state == "partial" else "○")
         marker.setObjectName("GuideTreeState")
         marker.setProperty("state", state)
-        marker.setFixedWidth(18)
+        marker.setFixedWidth(UNITY_CONTROL_SIZES_PX["guide_tree_state_width"])
         marker.setAlignment(Qt.AlignCenter)
         header_layout.addWidget(marker)
         title_label = QLabel(title)
@@ -3294,7 +3294,7 @@ class GuidesView(QWidget):
         marker = QLabel("")
         marker.setObjectName("GuideTreeState")
         marker.setProperty("state", "neutral")
-        marker.setFixedWidth(18)
+        marker.setFixedWidth(UNITY_CONTROL_SIZES_PX["guide_tree_state_width"])
         marker.setAlignment(Qt.AlignCenter)
         layout.addWidget(marker, 0, Qt.AlignTop)
         button = AtlasButton(
@@ -4033,7 +4033,7 @@ def prerequisite_row(text: str, done: bool | None) -> QWidget:
     marker = QLabel("✓" if done is True else "○" if done is False else "")
     marker.setObjectName("GuideTreeState")
     marker.setProperty("state", "done" if done is True else "todo" if done is False else "neutral")
-    marker.setFixedWidth(18)
+    marker.setFixedWidth(UNITY_CONTROL_SIZES_PX["guide_tree_state_width"])
     marker.setAlignment(Qt.AlignCenter)
     layout.addWidget(marker, 0, Qt.AlignTop)
     layout.addWidget(text_label(text, "GuideInfoLine"), 1)
