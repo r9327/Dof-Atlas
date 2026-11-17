@@ -1395,6 +1395,13 @@ class SharedGuideManualView(GuideUltimeManualView):
 
     def _global_details_toggled(self, opened: bool) -> None:
         self.global_details_panel.setVisible(bool(opened))
+        self.global_details_button.setAccessibleName(
+            "Replier la progression globale" if opened else "Déplier la progression globale"
+        )
+        self.global_details_button.setToolTip(
+            "Masquer la progression et les préparatifs"
+            if opened else "Afficher la progression et les préparatifs"
+        )
         if opened:
             self._refresh_global_details()
 
