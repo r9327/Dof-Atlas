@@ -76,7 +76,7 @@ class GanymedeGuideShellTests(unittest.TestCase):
         )
         metrics = shell._metric_columns["Préparation"].parent()
         self.assertIsInstance(metrics, QGridLayout)
-        self.assertEqual(metrics.columnCount(), 1)
+        self.assertEqual(metrics.columnCount(), 2)
         self.assertEqual(shell.rendered_card_count, 0)
         self.assertEqual(shell.cards_layout.count(), 0)
         before = len(shell.findChildren(QProgressBar))

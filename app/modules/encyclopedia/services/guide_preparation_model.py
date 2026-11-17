@@ -81,8 +81,36 @@ def category_for(name: str, kind: str = "") -> str:
     label = normalized_name(name)
     if category in {"prerequis", "prerequisite", "gate", "condition"}:
         return "Prérequis"
-    if category in {"metier", "metiers", "profession"}:
+    if category in {"metier", "metiers", "profession", "professions", "jobs"}:
         return "Métiers"
+    # Optimized Guides may author categories beyond the old five buttons.
+    # Preserve their declared semantics instead of folding all into Objets.
+    aliases = {
+        "equipement": "Équipements", "equipements": "Équipements",
+        "equipment": "Équipements", "gear": "Équipements",
+        "ressource": "Ressources", "ressources": "Ressources",
+        "resources": "Ressources", "resource plan": "Ressources",
+        "materiau": "Matériaux", "materiaux": "Matériaux",
+        "consommable": "Consommables", "consommables": "Consommables",
+        "parchemin": "Parchemins", "parchemins": "Parchemins",
+        "bank items": "Banque", "keep in bank": "Banque",
+        "banque": "Banque", "coffre": "Banque",
+        "potion": "Potions", "potions": "Potions",
+        "cle": "Clefs", "cles": "Clefs", "clef": "Clefs", "clefs": "Clefs",
+        "pierres d ame": "Pierres d'âme", "pierre d ame": "Pierres d'âme",
+        "objets": "Objets", "objet": "Objets",
+    }
+    if category in aliases:
+        return aliases[category]
+    if category not in {
+        "", "item", "items", "prepare object", "optional preparation",
+        "a preparer", "preparation", "manual preparation",
+        "required items", "items to prepare", "chapter preparation",
+    } and isinstance(kind, str) and 1 <= len(kind.strip()) <= 35:
+        authored = kind.strip()
+        if all(char.isalpha() or char.isspace() or char in "'’-"
+               for char in authored):
+            return authored[0].upper() + authored[1:]
     if "pierre d ame" in label or "soul stone" in label:
         return "Pierres d'âme"
     if "potion" in label:
@@ -266,7 +294,7 @@ def card_claims(
             continue
         exact_rows.add(signature)
         claims.append(PreparationClaim(
-            identity, item_id, name, category_for(name, str(raw.get("category") or "")),
+            identity, item_id, name, category_for(name, str(raw.get("category") or raw.get("_source_field") or "")),
             quantity, _consumption(raw), source, stage, occurrence or f"structured:{index}",
             scope,
         ))

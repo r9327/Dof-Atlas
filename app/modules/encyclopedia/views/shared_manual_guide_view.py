@@ -1843,18 +1843,22 @@ class SharedGuideManualView(GuideUltimeManualView):
         overall_caption.addWidget(overall_title)
         overall_caption.addStretch(1)
         overall_caption.addWidget(self.global_progress_label)
-        right.addLayout(overall_caption)
-        right.addWidget(self.global_progress_bar)
-
-        # Single indexed preparation metric, with global progress above it.
+        # The two surviving metrics share the same line, formerly occupied
+        # by Route and Préparation. Keep one indexed layout, no extra UI.
         metrics = QGridLayout()
-        metrics.setHorizontalSpacing(0)
+        metrics.setHorizontalSpacing(12)
         metrics.setVerticalSpacing(2)
+        global_metric = QVBoxLayout()
+        global_metric.setSpacing(2)
+        global_metric.addLayout(overall_caption)
+        global_metric.addWidget(self.global_progress_bar)
+        metrics.addLayout(global_metric, 0, 0, 2, 1)
+        metrics.setColumnStretch(0, 1)
         self._metric_caption_labels: dict[str, QLabel] = {}
         def add_metric(
             name: str, symbol: str, color_key: str, bar: QProgressBar, value: QLabel
         ) -> None:
-            column = len(self._metric_columns)
+            column = len(self._metric_columns) + 1
             caption = QHBoxLayout()
             caption.setSpacing(4)
             icon = QLabel()
@@ -1895,7 +1899,7 @@ class SharedGuideManualView(GuideUltimeManualView):
         self.preparation_progress_label = QLabel("—")
         add_metric("Préparation", "cube", "GREEN", self.preparation_bar, self.preparation_progress_label)
 
-        # Preparation spans the same full width as global progress.
+        # Global (left) and Préparation (right), independently stretched.
         right.addLayout(metrics)
         self._header_content_layout = right
 
@@ -3036,10 +3040,8 @@ class SharedGuideManualView(GuideUltimeManualView):
                 pixmap = ENCYCLOPEDIA_IMAGE_SERVICE.load_scaled(path, QSize(24, 24))
                 if not pixmap.isNull():
                     button.setIcon(QIcon(pixmap))
-        if button.icon().isNull():
-            fallback = sprite_icon_path("inventory")
-            if fallback:
-                button.setIcon(QIcon(str(fallback)))
+        # Never substitute the same backpack for unrelated objects: real
+        # indexed artwork is optional; the checkbox is the preparation icon.
         button.setIconSize(QSize(24, 24))
         button.clicked.connect(lambda _checked=False, value=name:
                                QApplication.clipboard().setText(value))
@@ -3368,7 +3370,9 @@ class SharedGuideManualView(GuideUltimeManualView):
         total_cards = len(self.service.cards)
         index = max(0, min(self.view_index, max(0, total_cards - 1)))
         card = self.service.cards[index] if total_cards else {}
-        chapter = str(card.get("manual_chapter_label") or "Guide").strip()
+        # Chapter IDs remain internal for navigation and preparation only.
+        self.sheet_meta_label.clear()
+        self.sheet_meta_label.hide()
         title = str(card.get("manual_title") or card.get("destination") or "Fiche").strip()
         # Ganymède uses English "Step" in the DOM even for the French guide.
         # Localize only the visible reader heading; the original step title
@@ -3381,7 +3385,6 @@ class SharedGuideManualView(GuideUltimeManualView):
             pages = self._source_reading_pages()
             page_number = self._source_current_page_number(pages)
             count = max(1, len(pages))
-            self.sheet_meta_label.setText("LECTURE")
             self.sheet_title_label.setText("Parcours")
             self.nav_page_label.setText(f"Page {page_number + 1} / {count}")
             self.page_jump.blockSignals(True)
@@ -3390,7 +3393,6 @@ class SharedGuideManualView(GuideUltimeManualView):
             self.page_jump.setValue(page_number + 1)
             self.page_jump.blockSignals(False)
         else:
-            self.sheet_meta_label.setText(f"ÉTAPE · {chapter.upper()}")
             self.sheet_title_label.setText(title)
             self.nav_page_label.setText(f"Page {index + 1} / {total_cards}")
             self.page_jump.blockSignals(True)
