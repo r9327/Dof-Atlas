@@ -55,13 +55,6 @@ UNITY_PALETTE = {
     "GUIDE_PREPARATION_ROW_BORDER": "#7295C4",
     "GUIDE_COPY_HOVER": "#668BC4",
     "GUIDE_MANUAL_NAV_SURFACE": "#131F3B",
-    # Existing map-canvas paint colors, centralized without changing artwork.
-    "MAP_GRID": "#182536",
-    "MAP_OUTLINE": "#223044",
-    "MAP_SELECTION": "#F8C84E",
-    "MAP_LINK": "#A98222",
-    "MAP_LINK_BORDER": "#FFE082",
-    "MAP_LABEL": "#F2F6FF",
     "SHELL_GRADIENT": "qlineargradient(x1:0, y1:0, x2:1, y2:0, stop:0 #192657, stop:1 #151821)",
     "PANEL_GRADIENT": "qlineargradient(x1:0, y1:0, x2:1, y2:1, stop:0 #24395F, stop:1 #192657)",
     "ACTIVE_GRADIENT": "qlineargradient(x1:0, y1:0, x2:0, y2:1, stop:0 #6E9B41, stop:1 #497332)",
