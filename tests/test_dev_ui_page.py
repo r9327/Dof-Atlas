@@ -352,10 +352,19 @@ class DevUiPageTests(unittest.TestCase):
             )
             self.assertEqual(page.preview_header_global_progress.value(), 35)
             self.assertEqual(page.preview_header_page_jump.suffix(), " / 20")
-            self.assertEqual(
-                page.preview_header_page_jump.maximumWidth(),
+            # The x/x selector is content-sized, not artificially fixed
+            # to the old 110px cap. Short counts must remain compact.
+            from app.ui.components import fit_unity_number_spinbox
+            page_jump = page.preview_header_page_jump
+            self.assertEqual(page_jump.width(), fit_unity_number_spinbox(page_jump))
+            self.assertLessEqual(
+                page_jump.width(),
                 UNITY_CONTROL_SIZES_PX["guide_page_jump_normal_max_width"],
             )
+            previous_width = page_jump.width()
+            page_jump.setRange(1, 123456)
+            page_jump.setSuffix(" / 123456")
+            self.assertGreater(fit_unity_number_spinbox(page_jump), previous_width)
             self.assertIs(page.preview_header_page_jump.parentWidget(),
                           page.preview_sheet_header)
             self.assertEqual(
