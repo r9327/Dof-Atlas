@@ -520,11 +520,12 @@ class DevUiPageTests(unittest.TestCase):
                 "border: 1px solid " + UNITY_PALETTE["GUIDE_TOGGLE_BORDER"],
                 participant_style,
             )
+            page_text_style = compiled_qss.split(
+                "QSpinBox#GuideCompactPageJump QLineEdit {", 1
+            )[1].split("}", 1)[0]
             self.assertIn(
-                "QSpinBox#GuideCompactPageJump QLineEdit {"
-                + "\\n    padding-left: "
-                + str(UNITY_SPACING_PX["sm"]) + "px;",
-                compiled_qss,
+                f'padding-left: {UNITY_SPACING_PX["sm"]}px;',
+                page_text_style,
             )
             self.assertIn("QWidget#GuideGlobalCharacterProgress", compiled_qss)
             self.assertIn("QWidget#GuidePreparationContent", compiled_qss)
