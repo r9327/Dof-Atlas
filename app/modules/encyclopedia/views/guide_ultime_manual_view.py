@@ -13,7 +13,6 @@ from PySide6.QtWidgets import (
     QFrame,
     QHBoxLayout,
     QLabel,
-    QProgressBar,
     QPushButton,
     QToolButton,
     QToolTip,
@@ -93,20 +92,6 @@ class _QuestShortcutButton(QToolButton):
                 self,
                 self.rect(),
             )
-
-
-class GuideManualProgressBar(QProgressBar):
-    """Completion bar that also acts as a route scrubber without mutating progress."""
-
-    navigationRequested = Signal(float)
-
-    def mousePressEvent(self, event) -> None:  # noqa: N802 - Qt API
-        if event.button() == Qt.LeftButton and self.width() > 0:
-            ratio = max(0.0, min(1.0, float(event.position().x()) / float(self.width())))
-            self.navigationRequested.emit(ratio)
-            event.accept()
-            return
-        super().mousePressEvent(event)
 
 
 class GuideUltimeManualCard(QFrame):
