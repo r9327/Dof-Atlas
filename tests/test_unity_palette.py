@@ -417,7 +417,15 @@ class UnityPaletteTests(unittest.TestCase):
         self.assertEqual(UNITY_UI_FAMILY_INDEX["guides"]["scope"], "module")
         self.assertEqual(UNITY_UI_FAMILY_INDEX["palette"]["scope"], "shared")
         from app.ui.unity_palette import UNITY_UI_UNIFICATION_CONTRACT
-        self.assertGreaterEqual(len(UNITY_UI_UNIFICATION_CONTRACT), 39)
+        self.assertGreaterEqual(len(UNITY_UI_UNIFICATION_CONTRACT), 46)
+        topics = {label for label, _family in UNITY_UI_UNIFICATION_CONTRACT}
+        self.assertTrue({
+            "Sélecteurs compacts : valeurs négatives, préfixes et x/x",
+            "Lecteur universel, préparation et validation des fiches Guides",
+            "Popups réels, sous-vues et overlays : propriétaires et exceptions",
+            "Zoom d’image et suggestions Zaap",
+            "Overlays radial et sélection Organizer",
+        } <= topics)
         self.assertEqual({family for _label, family in
                           UNITY_UI_UNIFICATION_CONTRACT},
                          set(UNITY_UI_FAMILY_INDEX))
