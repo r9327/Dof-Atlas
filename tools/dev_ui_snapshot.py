@@ -175,24 +175,27 @@ def capture(output: Path, *, width: int = 1100, height: int = 800) -> dict[str, 
             ):
                 raise RuntimeError(f"Unable to save {part}")
             results["screenshots"][f"part_{number + 1}"] = str(part)
-        # Actual Qt screenshots: six independent combinations requested by user.
+        # Six real Qt captures of the *current* canonical Guide hierarchy.
+        # Never reopen the deleted Route/Sommaire controls.
         backdrop.resize(width, height)
         app.processEvents()
         combinations = (
-            ("classique", False, False, False),
-            ("personnages", False, False, True),
-            ("preparation", True, False, False),
-            ("preparation-personnages", True, False, True),
-            ("sommaire", False, True, False),
-            ("sommaire-personnages", False, True, True),
+            ("classique", False, False, False, "À préparer"),
+            ("progression-globale", True, False, False, "À préparer"),
+            ("personnages", False, False, True, "À préparer"),
+            ("preparation", True, True, False, "À préparer"),
+            ("prerequis", True, True, False, "Prérequis"),
+            ("preparation-personnages", True, True, True, "À préparer"),
         )
-        for label, preparation, summary, people in combinations:
-            page.preview_header_controls["Préparation"].setChecked(preparation)
-            page.preview_header_controls["Sommaire"].setChecked(summary)
+        for label, global_open, prep_open, people, selected_tab in combinations:
+            page.preview_header_controls["Progression globale"].setChecked(global_open)
+            page.preview_header_controls["Préparation"].setChecked(prep_open)
             page.preview_header_controls["Personnages"].setChecked(people)
+            tab = page.preview_header_preparation_tabs[selected_tab]
+            tab.click()
             app.processEvents()
-            # Place the actual Guide header near the top so the sheet selector
-            # and expanded menus stay visible in the same 900px screenshot.
+            # Place the real Guide header near the top, preserving the
+            # active nested menus in the capture.
             header_y = page.preview_compact_header.mapTo(
                 page.gallery_scroll.widget(), QPoint(0, 0)
             ).y()
@@ -201,12 +204,10 @@ def capture(output: Path, *, width: int = 1100, height: int = 800) -> dict[str, 
             file = output / f"dev-ui-entete-{label}.png"
             if not backdrop.grab().save(str(file), "PNG"):
                 raise RuntimeError(f"Unable to capture {file}")
-            results["screenshots"][f"header_{label}"] = str(file)
+            results["screenshots"][f"header_{label.replace('-', '_')}"] = str(file)
             if label == "preparation":
                 results["screenshots"]["header_preparation"] = str(file)
-            elif label == "sommaire":
-                results["screenshots"]["header_summary"] = str(file)
-        for key in ("Préparation", "Sommaire", "Personnages"):
+        for key in ("Préparation", "Progression globale", "Personnages"):
             page.preview_header_controls[key].setChecked(False)
         app.processEvents()
         # Restore the user-sized viewport before opening native popups.
