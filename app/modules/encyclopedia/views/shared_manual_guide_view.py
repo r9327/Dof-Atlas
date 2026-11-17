@@ -1251,10 +1251,8 @@ class SharedGuideManualView(GuideUltimeManualView):
         self.page_jump = QSpinBox()
         self.page_jump.setObjectName("GuideCompactPageJump")
         self.page_jump.setRange(1, max(1, len(self.service.cards)))
-        self.page_jump.setSuffix(f" / {len(self.service.cards)}")
-        self.page_jump.setMaximumWidth(
-            UNITY_CONTROL_SIZES_PX["guide_page_jump_normal_max_width"]
-        )
+        self.page_jump.setSuffix(f"/{len(self.service.cards)}")
+        self.page_jump.setSizePolicy(QSizePolicy.Maximum, QSizePolicy.Fixed)
         self.page_jump.setToolTip("Ouvrir directement la fiche sélectionnée")
         self.page_jump.setAccessibleName("Sélectionner la fiche du guide")
         self.page_jump.valueChanged.connect(
@@ -1344,11 +1342,6 @@ class SharedGuideManualView(GuideUltimeManualView):
         self.participants_button.setToolTip(
             "Choisir les identités stables utilisées par la progression et les déplacements."
         )
-        if hasattr(self, "page_jump"):
-            self.page_jump.setMaximumWidth(UNITY_CONTROL_SIZES_PX[
-                "guide_page_jump_compact_max_width" if narrow
-                else "guide_page_jump_normal_max_width"
-            ])
 
     def resizeEvent(self, event) -> None:  # noqa: N802 - Qt API
         super().resizeEvent(event)
@@ -2114,10 +2107,11 @@ class SharedGuideManualView(GuideUltimeManualView):
         title = str(card.get("manual_title") or card.get("destination") or "Fiche").strip()
         self.sheet_meta_label.setText(f"ÉTAPE · {chapter.upper()}")
         self.sheet_title_label.setText(title)
-        self.nav_page_label.setText(f"Page {index + 1} / {total_cards}")
+        self.nav_page_label.setText(f"{index + 1}/{total_cards}")
         self.page_jump.blockSignals(True)
         self.page_jump.setRange(1, max(1, total_cards))
-        self.page_jump.setSuffix(f" / {total_cards}")
+        self.page_jump.setSuffix(f"/{total_cards}")
+        self.page_jump.updateGeometry()
         self.page_jump.setValue(index + 1)
         self.page_jump.blockSignals(False)
 
