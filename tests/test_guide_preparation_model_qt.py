@@ -7,10 +7,12 @@ from pathlib import Path
 
 os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
 
-from PySide6.QtWidgets import QCheckBox, QApplication, QLabel, QPushButton, QToolButton
+from PySide6.QtWidgets import QCheckBox, QApplication, QLabel, QPushButton, QSpinBox, QToolButton
 
 from app.modules.encyclopedia.services.guide_progress_service import GuideProgressService
 from app.modules.encyclopedia.views.shared_manual_guide_view import SharedGuideManualView
+from app.ui.components import fit_unity_number_spinbox
+from app.ui.unity_palette import UNITY_CONTROL_SIZES_PX, UNITY_SIZES_PX
 from tests.test_guide_manual_selected_validation import _SavedGuideService, _ThreeParticipants
 
 
@@ -62,6 +64,34 @@ class GuidePreparationQtFocusedTests(unittest.TestCase):
         self.view.preparation_button.setChecked(True)
         QApplication.processEvents()
         return self.view
+
+    def test_compact_preparation_is_content_sized_from_dev_ui_tokens(self):
+        self.participants.save_selected_keys(("character:1",))
+        view = self._view()
+        quantity = view.preparation_panel.findChild(QSpinBox, "GuidePreparationQuantity")
+        name = view.preparation_panel.findChild(QPushButton, "GuidePreparationItemCopy")
+        ready = view.preparation_panel.findChild(QCheckBox, "GuidePreparationReady")
+        self.assertIsNotNone(quantity)
+        self.assertIsNotNone(name)
+        self.assertIsNotNone(ready)
+        self.assertEqual(view.preparation_filter.height(), UNITY_SIZES_PX["control_compact"])
+        self.assertEqual(name.height(), UNITY_SIZES_PX["control_compact"])
+        self.assertLess(quantity.width(), 100)
+        self.assertEqual(quantity.width(), fit_unity_number_spinbox(quantity))
+        self.assertGreaterEqual(
+            view.preparation_scroll.height(),
+            UNITY_CONTROL_SIZES_PX["guide_preparation_min_height"],
+        )
+        self.assertLessEqual(
+            view.preparation_scroll.height(), view.preparation_scroll.maximumHeight()
+        )
+
+        # Six digits must fit rather than being cut off by a fixed width.
+        compact_width = quantity.width()
+        quantity.setRange(0, 123456)
+        quantity.setSuffix(" / 123456")
+        fit_unity_number_spinbox(quantity)
+        self.assertGreater(quantity.width(), compact_width)
 
     def test_six_verified_participants_can_be_ready_without_anonymous_writes(self):
         from types import SimpleNamespace
