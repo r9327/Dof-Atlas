@@ -151,7 +151,7 @@ class ContinuousGuideRoutePanelTests(unittest.TestCase):
         ):
             self.panel.refresh()
         self.assertIn("Potion de rappel", self.panel.preparation_label.text())
-        self.assertNotIn("\\n• ", self.panel.preparation_label.text())
+        self.assertNotIn("\n• ", self.panel.preparation_label.text())
 
     def test_actual_summary_and_navigation_keep_popup_open(self):
         self.assertEqual(
