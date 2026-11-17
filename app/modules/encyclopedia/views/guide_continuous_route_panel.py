@@ -1,16 +1,16 @@
 """Compact, source-only manual progress panel for continuous Ganymède routes.
 
 No invented quest completion, preparation quantities, Zaap claims or automatic
-progression. Sommaire stays open until the user explicitly closes it.
+progression. Navigation uses the indexed X/X selector.
 """
 from __future__ import annotations
 
 from collections.abc import Iterable, Mapping
 
-from PySide6.QtCore import Qt, QStringListModel, Signal, QSize
+from PySide6.QtCore import Qt, Signal, QSize
 from PySide6.QtGui import QIcon, QPainter, QPen
 from PySide6.QtWidgets import (
-    QFrame, QGridLayout, QHBoxLayout, QLabel, QListView, QMenu, QProgressBar, QScrollArea, QSpinBox, QToolButton, QVBoxLayout, QWidget,
+    QFrame, QGridLayout, QHBoxLayout, QLabel, QMenu, QProgressBar, QScrollArea, QSpinBox, QToolButton, QVBoxLayout, QWidget,
 )
 
 from app.constants import DATA_DIR
@@ -99,7 +99,6 @@ class ContinuousGuideRoutePanel(QWidget):
         )
         self._character_actions = {}
         self.character_icon_buttons = {}
-        self._summary_open = False
         self._preparation_open = False
 
         layout = QVBoxLayout(self)
@@ -142,10 +141,6 @@ class ContinuousGuideRoutePanel(QWidget):
         if not self._character_actions:
             empty = self._characters_menu.addAction("Aucun personnage identifié")
             empty.setEnabled(False)
-        self.summary_toggle = QToolButton()
-        self.summary_toggle.setObjectName("GuideContinuousSommaireButton")
-        self.summary_toggle.setText("Sommaire")
-        self.summary_toggle.clicked.connect(self.toggle_summary)
         portraits = QHBoxLayout()
         portraits.setSpacing(4)
         for character in self.available_characters:
@@ -175,23 +170,8 @@ class ContinuousGuideRoutePanel(QWidget):
         if self.character_icon_buttons:
             portraits.addStretch(1)
             layout.addLayout(portraits)
-        self.route_progress = QProgressBar()
-        self.route_progress.setObjectName("GuideContinuousRouteProgress")
-        self.route_progress.setRange(0, 100)
-        self.route_progress.setTextVisible(True)
         work = QHBoxLayout()
         work.setSpacing(9)
-        self.summary = QListView()
-        self.summary.setObjectName("GuideContinuousSommaire")
-        self.summary.setMinimumWidth(170)
-        self.summary_model = QStringListModel([
-            f"Fiche {i} — {str(row.get('title') or f'Étape {i}')}"
-            for i, row in enumerate(self.rows, 1)
-        ], self)
-        self.summary.setModel(self.summary_model)
-        self.summary.clicked.connect(
-            lambda index: self.show_step(self.navigation.step_ids[index.row()])
-        )
         content = QFrame()
         content.setObjectName("GuideContinuousCard")
         detail = QVBoxLayout(content)
@@ -263,10 +243,6 @@ class ContinuousGuideRoutePanel(QWidget):
         # source-only manual validation or trusted travel permissions.
         self.compact_header = QFrame()
         self.compact_header.setObjectName("GuideCompactHeader")
-        # Keep the historical progress object for consumers, without
-        # presenting a second Route bar beside global progress.
-        self.route_progress.setParent(self.compact_header)
-        self.route_progress.hide()
         header = QVBoxLayout(self.compact_header)
         header.setContentsMargins(10, 8, 10, 8)
         header.setSpacing(6)
@@ -297,14 +273,6 @@ class ContinuousGuideRoutePanel(QWidget):
         )
         prep_label = QLabel("—")
         prep_label.setObjectName("GuideCompactMetricValue")
-        self.summary_toggle.setObjectName("GuideMetricDropdown")
-        self.summary_toggle.setAccessibleName("Afficher Sommaire")
-        self.summary_toggle.setToolButtonStyle(Qt.ToolButtonIconOnly)
-        self.summary_toggle.setArrowType(Qt.RightArrow)
-        self.summary_toggle.setFixedSize(28, 24)
-        self.summary_toggle.setToolTip("Afficher le sommaire des fiches")
-        head.addWidget(self.summary_toggle, 0, Qt.AlignVCenter)
-        self.summary_toggle.hide()
         self.preparation_toggle.setObjectName("GuideMetricDropdown")
         self.preparation_toggle.setAccessibleName("Afficher Préparation")
         self.preparation_toggle.setToolButtonStyle(Qt.ToolButtonIconOnly)
@@ -322,32 +290,21 @@ class ContinuousGuideRoutePanel(QWidget):
         grid.setHorizontalSpacing(12)
         grid.setVerticalSpacing(2)
         self._metric_grid = grid
-        for column, (title, meter, value, arrow) in enumerate((
-            ("Route", self.route_progress, None, self.summary_toggle),
-            ("Préparation", self.preparation_bar, prep_label, self.preparation_toggle),
-        )):
-            if title == "Route":
-                continue  # Same compact header policy as all manual guides.
-            caption = QHBoxLayout()
-            caption_label = QLabel(title.upper())
-            caption_label.setObjectName("GuideCompactMetricTitle")
-            caption.addWidget(caption_label)
-            caption.addStretch(1)
-            if value is not None:
-                caption.addWidget(value)
-            grid.addLayout(caption, 0, column)
-            line = QHBoxLayout()
-            line.setSpacing(5)
-            line.addWidget(meter, 1, Qt.AlignVCenter)
-            line.addWidget(arrow)
-            grid.addLayout(line, 1, column)
-            grid.setColumnStretch(column, 1)
-        grid.setColumnStretch(0, 0)
-        grid.addWidget(self.participants_button, 1, 2, Qt.AlignVCenter)
-        # Both drawers remain independently openable, with the full width
-        # of the preparation area now that Route is hidden.
-        grid.addWidget(self.summary, 2, 1, 1, 2, Qt.AlignTop)
-        grid.addWidget(self.preparation_scroll, 3, 1, 1, 2, Qt.AlignTop)
+        caption = QHBoxLayout()
+        caption_label = QLabel("À PRÉPARER")
+        caption_label.setObjectName("GuideCompactMetricTitle")
+        caption.addWidget(caption_label)
+        caption.addStretch(1)
+        caption.addWidget(prep_label)
+        grid.addLayout(caption, 0, 0)
+        line = QHBoxLayout()
+        line.setSpacing(5)
+        line.addWidget(self.preparation_bar, 1, Qt.AlignVCenter)
+        line.addWidget(self.preparation_toggle)
+        grid.addLayout(line, 1, 0)
+        grid.setColumnStretch(0, 1)
+        grid.addWidget(self.participants_button, 1, 1, Qt.AlignVCenter)
+        grid.addWidget(self.preparation_scroll, 2, 0, 1, 2, Qt.AlignTop)
         header.addLayout(grid)
         layout.insertWidget(0, self.compact_header)
         layout.addLayout(work, 1)
@@ -361,10 +318,6 @@ class ContinuousGuideRoutePanel(QWidget):
         button.setText(text)
         button.setCursor(Qt.PointingHandCursor)
         return button
-
-    def toggle_summary(self) -> None:
-        self._summary_open = not self._summary_open
-        self.summary.setVisible(self._summary_open)
 
     def toggle_preparation(self) -> None:
         self._preparation_open = not self._preparation_open
@@ -514,14 +467,9 @@ class ContinuousGuideRoutePanel(QWidget):
         total_checks = position.total_steps * len(position.selected_character_keys)
         completed_checks = sum(position.completed_by_character.values())
         percent = round(100 * completed_checks / total_checks) if total_checks else 0
-        self.route_progress.setValue(percent)
         self.global_progress_bar.setValue(percent)
         self.global_progress_value.setText(
             f"{percent} %" if total_checks else "—"
-        )
-        self.route_progress.setFormat(
-            f"Route · {completed_checks}/{total_checks} étapes validées"
-            if total_checks else "Route · aucun personnage sélectionné"
         )
         selected = set(position.selected_character_keys)
         self.participants_button.setText(f"Mes personnages ({len(selected)})")
@@ -599,9 +547,6 @@ class ContinuousGuideRoutePanel(QWidget):
             self.page_jump.blockSignals(True)
             self.page_jump.setValue(index + 1)
             self.page_jump.blockSignals(False)
-            self.summary.selectionModel().clearSelection()
-            self.summary.setCurrentIndex(self.summary_model.index(index))
-        self.summary.setVisible(self._summary_open)
 
 
 __all__ = ["ContinuousGuideRoutePanel"]
