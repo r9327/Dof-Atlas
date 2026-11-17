@@ -478,3 +478,28 @@ pas déclaré certifié ou fusionnable sans validation exacte-SHA.
 **Bilan de code vérifié sur GitHub :** 1 classe `AtlasButton` et **13 rôles visuels** (le style Zaap existait déjà avant son référencement comme variante), 1 `AtlasComboBox`, 1 helper numérique partagé et 4 fenêtres Craft sur `AtlasDialog`. Cette mesure ne prouve pas l'unification exhaustive des widgets dynamiques de tout le dépôt.
 
 **Restant avant Ready :** lancer les tests Qt réels, contrôler les comportements Zaap/favoris et les filtres Succès, puis les captures Windows exact-SHA et le resize aux quatre tailles. Aucun résultat d'exécution Qt/Windows nouveau n'est revendiqué pour ce lot.
+
+## Vérification des widgets enfants — Quêtes, Guides et Succès
+
+L'audit des propriétaires UI a identifié quatre **chemins de code réels** qui
+n'étaient pas inclus dans les sources suivies par `UI_CONSUMER_INDEX` :
+
+- `app/modules/encyclopedia/widgets/quest_detail_view.py` est utilisé à la
+  fois par Quêtes et par Guides ; il est suivi dans les deux consommateurs.
+- `app/modules/encyclopedia/widgets/guide_card.py` est utilisé par les
+  vues Guides et le catalogue ; il est suivi sous Guides.
+- `app/modules/encyclopedia/widgets/achievement_entity_section.py`
+  fournit les lignes d'entités des Succès ; il est suivi sous Succès.
+
+La mise à jour ne crée aucune classe UI et ne déplace aucun comportement.
+Le nombre d'entrées du catalogue Dev UI reste **18 besoins** / **23 familles** :
+seuls les **chemins contrôlés** deviennent plus complets. Les tests
+`tests/test_ui_universal_contract.py` vérifient explicitement ces
+propriétaires. Les chemins partagés Quêtes/Guides sont comptés comme
+consommateurs de deux modules, mais le fichier est lu une seule fois dans
+l'audit statique, sans prétendre à deux implémentations distinctes.
+
+**Statut de preuve :** inventaire vérifié dans les sources GitHub au HEAD
+courant ; aucun test Qt/Windows exact-SHA ni capture nouvelle n'a été
+exécuté dans cette session. Les autres composants dynamiques hors sources
+indexées demeurent un périmètre à auditer avant certification.
