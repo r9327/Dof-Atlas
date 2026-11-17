@@ -644,6 +644,11 @@ class DevUiPageTests(unittest.TestCase):
             self.assertIn("Saisie : essai", page.feedback.text())
             page.preview_spin.setValue(6)
             self.assertIn("Compteur : 6", page.feedback.text())
+            from app.ui.components import fit_unity_number_spinbox
+            self.assertEqual(
+                page.preview_spin.width(),
+                fit_unity_number_spinbox(page.preview_spin),
+            )
             page.preview_text.setPlainText("interaction")
             self.assertIn("Saisie multiligne", page.feedback.text())
 
