@@ -88,6 +88,21 @@ class AchievementsThirdColumnTests(unittest.TestCase):
         self.assertTrue(view._detail_open)
         self.assertEqual(provider.get_detail_by_id.call_count, 1)
 
+    def test_catalogue_only_preload_skips_reward_source_index(self):
+        from app.modules.encyclopedia.providers.achievement_provider import AchievementProvider
+
+        provider = AchievementProvider()
+        with (
+            patch.object(provider, "_ensure_loaded") as catalogue,
+            patch.object(provider, "prepare_detail_sources") as rewards,
+        ):
+            self.assertIsNone(provider.load_catalogue_only())
+            catalogue.assert_called_once_with()
+            rewards.assert_not_called()
+            self.assertEqual(provider.load_all(), [])
+            self.assertEqual(catalogue.call_count, 2)
+            rewards.assert_called_once_with()
+
     def test_first_cold_detail_prepares_rewards_only_on_worker(self):
         view, provider = self.make_view()
         provider.detail_sources_ready = False
