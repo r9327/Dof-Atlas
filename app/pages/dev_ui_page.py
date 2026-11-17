@@ -2290,10 +2290,13 @@ class DevUiPage(QWidget):
             1, QHeaderView.ResizeToContents
         )
         for index, (module, label, path) in enumerate(secondary):
-            for column, value in enumerate((module, label, path)):
-                self.preview_secondary_surfaces.setItem(
-                    index, column, QTableWidgetItem(value)
-                )
+            for column, value in enumerate(
+                (module, label, path.rsplit("/", 1)[-1])
+            ):
+                item = QTableWidgetItem(value)
+                if column == 2:
+                    item.setToolTip(path)
+                self.preview_secondary_surfaces.setItem(index, column, item)
         self.preview_secondary_surfaces.setToolTip(
             "Références au code réel ; la galerie ne certifie pas les interactions Windows"
         )
