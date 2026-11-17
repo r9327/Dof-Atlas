@@ -2419,8 +2419,14 @@ class DevUiPage(QWidget):
                 self.preview_mutualization_matrix.setItem(index, column, item)
         self.preview_mutualization_matrix.setToolTip(
             "Audit de sources Qt enregistrées, pas décompte des widgets "
-            "instanciés à l'exécution. Cliquer une famille dans l'index pour "
-            "consulter ses vrais exemples."
+            "instanciés à l'exécution. Cliquer une ligne ouvre l'exemple "
+            "réel de la famille dans la galerie."
+        )
+        family_keys = tuple(UNITY_UI_FAMILY_INDEX)
+        self.preview_mutualization_matrix.cellClicked.connect(
+            lambda row, _col: self._jump_to_section(
+                family_keys.index(audit[row]["family"])
+            )
         )
         self.preview_mutualization_toggle = self._add_catalog_table(
             section, self.preview_mutualization_matrix, "les 18 besoins mutualisés"
