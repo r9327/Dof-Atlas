@@ -267,6 +267,7 @@ UNITY_LAYOUT_SIZES_PX = {
 UNITY_CONTROL_SIZES_PX = {
     "dropdown_row": 24,
     "checkbox_indicator": 18,
+    "guide_tree_state_width": 18,  # One marker column for every Guide state.
     "progress_primary": 11,
     "progress_secondary": 7,
     "progress_toggle_width": 18,
