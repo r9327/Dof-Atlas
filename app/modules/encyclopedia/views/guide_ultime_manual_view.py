@@ -734,16 +734,17 @@ class GuideUltimeManualView(GuideUltimeUniversalView):
     def _refresh_header(self) -> None:
         completed, total = self.service.route_sheet_progress(self.character_key)
         if total <= 0:
-            self.route_bar.setRange(0, 0)
-            self.route_progress_label.setText("")
+            self.global_progress_bar.setRange(0, 1)
+            self.global_progress_bar.setValue(0)
+            self.global_progress_label.setText("—")
             self.nav_page_label.setText("")
             return
-        self.route_bar.setRange(0, total)
-        self.route_bar.setValue(min(completed, total))
+        self.global_progress_bar.setRange(0, total)
+        self.global_progress_bar.setValue(min(completed, total))
         percent = min(100, round(completed * 100 / total))
         page = max(1, min(total, int(self.view_index) + 1))
         self.nav_page_label.setText(f"Page {page} / {total}")
-        self.route_progress_label.setText(f"{percent} %")
+        self.global_progress_label.setText(f"{percent} %")
 
     def _show_index(self, index: int) -> None:
         if not self.service.cards:
@@ -751,15 +752,6 @@ class GuideUltimeManualView(GuideUltimeUniversalView):
         self.view_index = max(0, min(len(self.service.cards) - 1, int(index)))
         self._refresh_header()
         self._render_window(reset_scroll=True)
-
-    def _jump_from_progress(self, ratio: float) -> None:
-        if self.route_lock_check.isChecked():
-            return
-        total = len(self.service.cards)
-        if total <= 0:
-            return
-        index = int(round(max(0.0, min(1.0, float(ratio))) * max(0, total - 1)))
-        self._show_index(index)
 
     def navigate_relative(self, delta: int) -> None:
         if not self.service.cards:
