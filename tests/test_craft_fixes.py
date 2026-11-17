@@ -260,8 +260,11 @@ class CraftFixesTests(unittest.TestCase):
         ):
             page.show_resources()
             previous = page.resource_dialog
+            # This window must remain non-modal despite the shared dialog shell.
+            self.assertFalse(previous.isModal())
             page.show_resources()
             current = page.resource_dialog
+            self.assertFalse(current.isModal())
             self.assertIsNot(previous, current)
             previous.finished.emit(0)
             self.assertIs(page.resource_dialog, current)
