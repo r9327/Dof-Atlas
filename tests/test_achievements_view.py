@@ -103,6 +103,46 @@ class AchievementsThirdColumnTests(unittest.TestCase):
             self.assertEqual(catalogue.call_count, 2)
             rewards.assert_called_once_with()
 
+    def test_installed_provider_defers_reward_index_until_detail(self):
+        from app.modules.encyclopedia.providers.memory_bound_achievement_provider import (
+            MemoryBoundAchievementProvider,
+        )
+
+        provider = MemoryBoundAchievementProvider()
+        with (
+            patch(
+                "app.modules.encyclopedia.providers.memory_bound_achievement_provider.sys.frozen",
+                True, create=True,
+            ),
+            patch.object(provider, "_ensure_loaded") as catalogue,
+            patch.object(provider, "prepare_detail_sources") as rewards,
+        ):
+            self.assertTrue(provider.detail_source_index_required())
+            provider.load_runtime()
+            catalogue.assert_called_once_with()
+            rewards.assert_not_called()
+        # A development subprocess never needs an in-process index.
+        with patch(
+            "app.modules.encyclopedia.providers.memory_bound_achievement_provider.sys.frozen",
+            False, create=True,
+        ):
+            self.assertFalse(provider.detail_source_index_required())
+
+    def test_subprocess_detail_skips_unneeded_reward_index(self):
+        view, provider = self.make_view()
+        provider._recent_rich_details = {}
+        provider.detail_sources_ready = False
+        provider.detail_source_index_required.return_value = False
+        view._display_achievement = Mock()
+        with patch("app.modules.encyclopedia.views.achievements_view.Thread") as thread:
+            view.show_achievement(93)
+            provider.get_detail_by_id.assert_not_called()
+            thread.assert_called_once()
+            thread.call_args.kwargs["target"]()
+            self.app.processEvents()
+        provider.prepare_detail_sources.assert_not_called()
+        provider.get_detail_by_id.assert_called_once_with(93)
+
     def test_first_cold_detail_prepares_rewards_only_on_worker(self):
         view, provider = self.make_view()
         provider.detail_sources_ready = False
