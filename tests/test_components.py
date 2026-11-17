@@ -28,6 +28,34 @@ class SharedUiComponentsTests(unittest.TestCase):
     def setUpClass(cls) -> None:
         cls.app = QApplication.instance() or QApplication([])
 
+    def test_dialog_standard_and_compact_sizes_use_shared_tokens(self) -> None:
+        from app.ui.unity_palette import UNITY_LAYOUT_SIZES_PX
+
+        normal = AtlasDialog()
+        compact = AtlasDialog(density="compact")
+        try:
+            for dialog, prefix in ((normal, "dialog_"), (compact, "dialog_compact_")):
+                with self.subTest(density=dialog.layout_density):
+                    x = UNITY_LAYOUT_SIZES_PX[f"{prefix}padding_x"]
+                    y = UNITY_LAYOUT_SIZES_PX[f"{prefix}padding_y"]
+                    self.assertEqual(
+                        dialog.content_layout.getContentsMargins(), (x, y, x, y)
+                    )
+                    self.assertEqual(
+                        dialog.content_layout.spacing(),
+                        UNITY_LAYOUT_SIZES_PX[f"{prefix}gap"],
+                    )
+                    self.assertEqual(dialog.objectName(), "AtlasDialog")
+                    self.assertEqual(dialog.styleSheet(), "")
+            self.assertLess(
+                compact.content_layout.spacing(), normal.content_layout.spacing()
+            )
+            with self.assertRaises(ValueError):
+                AtlasDialog(density="unknown")
+        finally:
+            normal.deleteLater()
+            compact.deleteLater()
+
     def test_shared_numeric_selector_fits_minimum_prefix_and_special_text(self) -> None:
         from app.ui.unity_palette import UNITY_CONTROL_SIZES_PX
 
