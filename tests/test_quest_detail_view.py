@@ -72,6 +72,17 @@ class QuestDetailViewColumnTests(unittest.TestCase):
             QuestDetailView._start_position_heading(quest, "[3,4]"),
             "Position de lancement (source locale)",
         )
+        # The source declares [3,4]; [11,12] is a different objective, not
+        # automatically an independently verified start position.
+        self.assertEqual(
+            QuestDetailView._start_position_heading(quest, "[11,12]"),
+            "Position d'objectif (départ non confirmé)",
+        )
+        quest.source_info = {"source_meta": {"startCoords": "[3, 4]"}}
+        self.assertEqual(
+            QuestDetailView._start_position_heading(quest, "[3,4]"),
+            "Position de lancement (source locale)",
+        )
         self.assertEqual(
             QuestDetailView._start_position_heading(quest, ""),
             "Zone de quête",
