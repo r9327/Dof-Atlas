@@ -86,6 +86,34 @@ class SharedUiComponentsTests(unittest.TestCase):
         finally:
             selector.deleteLater()
 
+    def test_guide_page_number_reserves_left_text_inset_without_widening_quantities(self) -> None:
+        from app.ui.unity_palette import (
+            UNITY_CONTROL_SIZES_PX, UNITY_SPACING_PX,
+        )
+
+        page = QSpinBox()
+        quantity = QSpinBox()
+        try:
+            for widget in (page, quantity):
+                widget.setRange(1, 123456)
+                widget.setSuffix("/123456")
+            page.setObjectName("GuideCompactPageJump")
+            quantity.setObjectName("GuidePreparationQuantity")
+            page_width = fit_unity_number_spinbox(page)
+            quantity_width = fit_unity_number_spinbox(quantity)
+            self.assertEqual(page_width - quantity_width, UNITY_SPACING_PX["sm"])
+            self.assertGreaterEqual(
+                page_width,
+                page.fontMetrics().horizontalAdvance("123456/123456")
+                + UNITY_CONTROL_SIZES_PX["guide_quantity_chrome_width"]
+                + UNITY_SPACING_PX["sm"],
+            )
+            self.assertEqual(page.styleSheet(), "")
+            self.assertEqual(quantity.styleSheet(), "")
+        finally:
+            page.deleteLater()
+            quantity.deleteLater()
+
     def test_breadcrumb_insets_use_the_shared_size_index(self) -> None:
         from app.ui.unity_palette import UNITY_LAYOUT_SIZES_PX, UNITY_SPACING_PX
 
