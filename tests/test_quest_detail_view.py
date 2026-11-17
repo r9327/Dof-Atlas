@@ -78,6 +78,7 @@ class QuestDetailViewColumnTests(unittest.TestCase):
         )
 
     def test_all_displayed_travel_coordinates_share_bold_link_markup(self) -> None:
+        from PySide6.QtCore import Qt
         from app.modules.encyclopedia.services.guide_quest_view_model import (
             DisplaySolutionBlock,
         )
@@ -101,9 +102,7 @@ class QuestDetailViewColumnTests(unittest.TestCase):
             ),
         ):
             try:
-                self.assertEqual(label.textFormat(), __import__(
-                    "PySide6.QtCore", fromlist=["Qt"]
-                ).Qt.RichText)
+                self.assertEqual(label.textFormat(), Qt.RichText)
                 self.assertIn("<b>", label.text())
                 self.assertEqual(label.styleSheet(), "")
             finally:
