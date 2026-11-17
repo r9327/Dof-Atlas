@@ -136,6 +136,23 @@ class ContinuousGuideRoutePanelTests(unittest.TestCase):
         self.assertFalse(self.panel._preparation_open)
         self.assertEqual(preparation.accessibleName(), "Afficher Préparation")
 
+    def test_preparation_references_are_plain_lines_without_added_bullets(self):
+        from unittest.mock import patch
+
+        reference = SimpleNamespace(
+            label="Potion de rappel",
+            optional_or_conditional=False,
+            obtainable_on_route=False,
+            needed_at_step=1,
+        )
+        with patch(
+            "app.modules.encyclopedia.views.guide_continuous_route_panel.visible_object_references",
+            return_value=(reference,),
+        ):
+            self.panel.refresh()
+        self.assertIn("Potion de rappel", self.panel.preparation_label.text())
+        self.assertNotIn("\\n• ", self.panel.preparation_label.text())
+
     def test_actual_summary_and_navigation_keep_popup_open(self):
         self.assertEqual(
             self.panel.navigation.position().viewed_step_id,
