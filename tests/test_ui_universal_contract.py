@@ -128,6 +128,27 @@ class UiUniversalContractTests(unittest.TestCase):
             quests,
         )
 
+    def test_zaap_favorite_button_reuses_atlas_style_and_click_owner(self):
+        source = (REPO_ROOT / "app/storage.py").read_text(encoding="utf-8")
+        self.assertIn(
+            "button = AtlasButton(short_label(name, 24), chip)", source
+        )
+        self.assertIn('button.setObjectName("favoriteChipName")', source)
+        self.assertIn("button.clicked.connect", source)
+        self.assertNotIn("button = QPushButton(short_label(name, 24), chip)", source)
+        self.assertIn("#favoriteChipName", atlas_stylesheet())
+
+    def test_success_level_filters_reuse_indexed_numeric_width(self):
+        source = (
+            REPO_ROOT / "app/modules/encyclopedia/widgets/filter_panel.py"
+        ).read_text(encoding="utf-8")
+        self.assertIn(
+            "from app.ui.components import AtlasComboBox, fit_unity_number_spinbox",
+            source,
+        )
+        self.assertIn("fit_unity_number_spinbox(self.min_level)", source)
+        self.assertIn("fit_unity_number_spinbox(self.max_level)", source)
+
     def test_every_gallery_family_and_consumer_is_registered(self):
         validate_ui_index()
         self.assertGreaterEqual(len(UI_FAMILY_QSS_SELECTORS), 23)
