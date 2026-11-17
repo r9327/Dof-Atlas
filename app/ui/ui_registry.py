@@ -168,6 +168,7 @@ UI_CONSUMER_INDEX = {
         "paths": (
             "app/modules/encyclopedia/views/achievements_view.py",
             "app/modules/encyclopedia/views/deferred_achievement_guides_view.py",
+            "app/modules/encyclopedia/widgets/filter_panel.py",
         ),
         "adapter": "qt",
     },
@@ -211,6 +212,7 @@ UI_CONSUMER_INDEX = {
             "app/pages/organizer/radial_overlay.py",
             "app/pages/organizer/radial_selection.py",
             "app/ui/organizer_style.py",
+            "app/storage.py",  # ZaapWidget favorites and suggestions in Organizer.
         ), "adapter": "qt_scoped",
     },
     "Almanax": {
