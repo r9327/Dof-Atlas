@@ -2792,7 +2792,7 @@ class SharedGuideManualView(GuideUltimeManualView):
         matching = [
             item for item in rows
             if selected_filter in ("Tout", category_for(
-                str(item["name"]), str(item.get("kind") or ""
+                str(item["name"]), str(item.get("kind") or "")
             ))
         ]
         for item in matching[:self._preparation_visible_limit]:
