@@ -552,3 +552,32 @@ certification visuelle : Qt, Doctor, Graphify, captures et recette
 Windows/DPI restent à exécuter au HEAD final. Une mention « 0 QSS
 locaux » signifie seulement **zéro appel détecté dans les sources Qt
 enregistrées**, jamais zéro bug UI ou zéro doublon dans tout le dépôt.
+
+
+## Correctifs visuels Dev UI — bouton personnages et numéro de fiche
+
+Sur la vue des fiches Guides, les deux défauts constatés à l'écran
+ont été corrigés **dans les composants déjà mutualisés**, et non dans
+une feuille de style par page :
+
+- Le bouton `AtlasGuideParticipantButton` (`GuideParticipantsButton`)
+  a de nouveau une **bordure Unity visible au repos** via
+  `@GUIDE_TOGGLE_BORDER`. Le survol, le focus et la sélection conservent
+  `@GREEN_BORDER` ; l'état désactivé conserve `@BORDER_SOFT`. Le fond
+  du bouton reste transparent : aucune dalle noire ajoutée autour de
+  l'icône existante. Ce même composant est utilisé par l'aperçu Dev UI
+  et le Guide réel.
+- Le sélecteur `QSpinBox#GuideCompactPageJump` réserve
+  `@SPACE_SM` (**6 px**) entre son texte `x/x` et le bord gauche,
+  sur l'éditeur natif interne, sans créer un style local.
+  `fit_unity_number_spinbox()` prend ces mêmes 6 px en compte dans
+  son calcul de largeur **uniquement pour ce rôle**. Les sélecteurs
+  de quantités gardent leur géométrie précédente.
+- Tests de garde-fou dans `tests/test_dev_ui_page.py` pour la bordure
+  et les états focus/désactivé, et dans `tests/test_components.py`
+  pour l'écart de largeur exact et la réutilisation du token commun.
+
+**Preuve disponible :** code revu au HEAD de la PR et tests ajoutés.
+Pas de capture Windows ni d'exécution Qt **au nouveau SHA** pour ce
+correctif : ne pas réutiliser la capture du HEAD précédent comme
+preuve de l'apparence corrigée.
