@@ -126,7 +126,15 @@ class NetworkUiBridge(QObject):
         self._timer.stop()
         self._progress_timer.stop()
         self._pending_progress_characters.clear()
-        stopped = bool(self.coordinator.stop())
+        try:
+            stopped = bool(self.coordinator.stop())
+        except Exception:
+            # An unexpected coordinator cleanup error must leave the UI in a
+            # truthful failed state, not abort close before statusChanged.
+            from app.core.logger import get_runtime_logger
+
+            get_runtime_logger().exception("Network coordinator shutdown failed.")
+            stopped = False
         self._stop_result = stopped
         # The poll timer is stopped too: publish one final truthful state or
         # a previously active Home badge could remain green indefinitely.
