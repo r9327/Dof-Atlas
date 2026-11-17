@@ -782,10 +782,20 @@ class DevUiPageTests(unittest.TestCase):
                 label for label in page.findChildren(QLabel)
                 if label.accessibleName().startswith("Couleur ")
             ]
+            names = {label.accessibleName() for label in swatches}
+            # The source-backed clickable Guide entity colors are real
+            # previews, not extra palette tokens. Audit both families.
+            from app.ui.entity_link_roles import ENTITY_LINK_COLOR_ROLES
             self.assertEqual(
-                {label.accessibleName() for label in swatches},
-                {f"Couleur {role}" for role in PALETTE},
+                names,
+                {f"Couleur {role}" for role in PALETTE}
+                | {
+                    f"Couleur de lien Guide : {name}"
+                    for name in ("Monstre", "Boss", "Objet", "Équipement",
+                                 "PNJ", "Position", "Quête")
+                },
             )
+            self.assertEqual(len(ENTITY_LINK_COLOR_ROLES), 7)
 
             self.assertEqual(set(page.preview_badges), {
                 "done", "active", "blocked", "danger", "warning", "info",
