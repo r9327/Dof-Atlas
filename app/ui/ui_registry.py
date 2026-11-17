@@ -241,7 +241,7 @@ UI_CONSUMER_INDEX = {
             "app/pages/dev_ui_page.py",
         ),
         "adapter": "qt",
-        # Inventory of the *actual* popup fixture families; not fake demos.
+        # Existing popup capture scenarios, not distinct component implementations.
         "surfaces": (
             ("PreloadProgressPopup", "app/ui/preload_popup.py"),
             ("CloseActionDialog", "main.py"),
