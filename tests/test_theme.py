@@ -285,10 +285,13 @@ class SharedThemeTests(unittest.TestCase):
             "QFrame#GuideFeaturedCard QProgressBar#GuideFeaturedProgress {", 1
         )[1].split("}", 1)[0]
         self.assertIn("border-radius: 14px;", progress)
-        copy_hover = style.split(
-            "QPushButton#GuidePreparationItemCopy:hover {", 1
+        # Only theme.py owns the indexed copy action; the later Unity
+        # skin layer must not override its semantic green text or radius.
+        copy_button = style.split(
+            "QPushButton#GuidePreparationItemCopy {", 1
         )[1].split("}", 1)[0]
-        self.assertIn("border-radius: 14px;", copy_hover)
+        self.assertIn("border-radius: 14px;", copy_button)
+        self.assertEqual(style.count("QPushButton#GuidePreparationItemCopy {"), 1)
         self.assertEqual(theme.SIZES["RADIUS_SM"], "6px")
         self.assertEqual(theme.SIZES["RADIUS_MD"], "8px")
 
