@@ -239,6 +239,24 @@ class UiUniversalContractTests(unittest.TestCase):
         self.assertIn("Craft", craft["source_consumers"])
         self.assertEqual(craft["craft_shared_dialogs"], 4)
         self.assertEqual(craft["craft_local_qdialogs"], 0)
+        # Extend the AST inventory beyond button/combobox clones, without
+        # treating every geometry override as a duplicate by default.
+        by_label = {entry["label"]: entry for entry in audit}
+        qss = by_label["Bordures et arrondis"]
+        self.assertEqual(qss["local_style_calls"], ())
+        widths = by_label["Scrollbars et resize"]
+        self.assertIsInstance(widths["literal_width_calls"], tuple)
+        self.assertTrue(all(
+            width > 0 and (REPO_ROOT / path).is_file() and line > 0
+            for path, line, width in widths["literal_width_calls"]
+        ))
+        dialogs = by_label["Fenêtres et popups classiques"]
+        self.assertIsInstance(dialogs["native_dialog_calls"], tuple)
+        self.assertEqual(
+            {path for path, _line in dialogs["native_dialog_calls"]},
+            {"app/modules/encyclopedia/views/guides_view.py"},
+        )
+        self.assertEqual(len(dialogs["native_dialog_calls"]), 1)
         checks = {
             "Boutons": "QPushButton",
             "Menus de sélection": "QComboBox",
