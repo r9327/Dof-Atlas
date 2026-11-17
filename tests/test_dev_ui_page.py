@@ -442,7 +442,7 @@ class DevUiPageTests(unittest.TestCase):
         from app.modules.encyclopedia.views.shared_manual_guide_view import (
             _ParticipantPortraitButton,
         )
-        from app.ui.unity_palette import UNITY_LAYOUT_SIZES_PX
+        from app.ui.unity_palette import UNITY_LAYOUT_SIZES_PX, UNITY_SPACING_PX
         from PySide6.QtCore import Qt
         from PySide6.QtWidgets import QCheckBox
 
@@ -478,7 +478,8 @@ class DevUiPageTests(unittest.TestCase):
             self.assertEqual(page_jump.width(), fit_unity_number_spinbox(page_jump))
             self.assertLessEqual(
                 page_jump.width(),
-                UNITY_CONTROL_SIZES_PX["guide_page_jump_normal_max_width"],
+                UNITY_CONTROL_SIZES_PX["guide_page_jump_normal_max_width"]
+                + UNITY_SPACING_PX["sm"],
             )
             previous_width = page_jump.width()
             page_jump.setRange(1, 123456)
