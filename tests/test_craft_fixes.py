@@ -75,6 +75,16 @@ class CraftFixesTests(unittest.TestCase):
                     self.assertEqual(dialog.styleSheet(), "")
                     self.assertEqual(len(dialog.findChildren(AtlasDialogHeader)), 1)
                     self.assertGreaterEqual(dialog.minimumWidth(), 400)
+                    if isinstance(dialog, (CraftResourceDialog, LevelingDialog)):
+                        from app.ui.components import AtlasButton
+                        close = [
+                            button for button in dialog.findChildren(AtlasButton)
+                            if button.text() == "Fermer"
+                        ]
+                        self.assertEqual(len(close), 1)
+                        # Footer width follows the label/theme, not a Craft
+                        # hardcoded 110/120 pixel fixed size.
+                        self.assertGreater(close[0].maximumWidth(), 120)
         finally:
             for dialog in dialogs:
                 dialog.close()
