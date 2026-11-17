@@ -1197,8 +1197,11 @@ class SharedGuideManualView(GuideUltimeManualView):
         self.preparation_panel = QFrame()
         self.preparation_panel.setObjectName("GuidePreparationPanel")
         panel_layout = QVBoxLayout(self.preparation_panel)
-        panel_layout.setContentsMargins(6, 4, 6, 4)
-        panel_layout.setSpacing(4)
+        panel_layout.setContentsMargins(
+            UNITY_SPACING_PX["sm"], UNITY_SPACING_PX["xs"],
+            UNITY_SPACING_PX["sm"], UNITY_SPACING_PX["xs"],
+        )
+        panel_layout.setSpacing(UNITY_SPACING_PX["xs"])
         # Reuse the shared Unity combo instead of seven buttons competing
         # with the two-column progress header on compact windows.
         self.preparation_filter = AtlasComboBox()
@@ -1223,7 +1226,7 @@ class SharedGuideManualView(GuideUltimeManualView):
         self.preparation_content.setObjectName("GuidePreparationContent")
         self.preparation_rows_layout = QVBoxLayout(self.preparation_content)
         self.preparation_rows_layout.setContentsMargins(0, 0, 0, 0)
-        self.preparation_rows_layout.setSpacing(2)
+        self.preparation_rows_layout.setSpacing(UNITY_SPACING_PX["xxs"])
         self.preparation_scroll.setWidget(self.preparation_content)
         panel_layout.addWidget(self.preparation_scroll)
         self.preparation_panel.setVisible(False)
@@ -1734,7 +1737,9 @@ class SharedGuideManualView(GuideUltimeManualView):
     def _fit_preparation_scroll_height(self) -> None:
         """Fit short preparation lists without losing scrolling for long ones."""
         self.preparation_rows_layout.activate()
-        natural = self.preparation_rows_layout.sizeHint().height() + 4
+        natural = (
+            self.preparation_rows_layout.sizeHint().height() + UNITY_SPACING_PX["xs"]
+        )
         self.preparation_scroll.setFixedHeight(min(
             UNITY_GUIDE_READING_METRICS_PX["normal_drawer_max_height"],
             max(UNITY_CONTROL_SIZES_PX["guide_preparation_min_height"], natural),
@@ -1760,7 +1765,10 @@ class SharedGuideManualView(GuideUltimeManualView):
                     row = QFrame()
                     row.setObjectName("GuidePreparationRow")
                     row_layout = QHBoxLayout(row)
-                    row_layout.setContentsMargins(4, 2, 4, 2)
+                    row_layout.setContentsMargins(
+                        UNITY_SPACING_PX["xs"], UNITY_SPACING_PX["xxs"],
+                        UNITY_SPACING_PX["xs"], UNITY_SPACING_PX["xxs"],
+                    )
                     row_layout.addWidget(self._copyable_preparation_item(
                         name, f"{quantity if quantity else '?'} × {name} ({category})",
                         item_id,
@@ -1796,7 +1804,10 @@ class SharedGuideManualView(GuideUltimeManualView):
                 summary = QFrame()
                 summary.setObjectName("GuidePreparationSummary")
                 row = QHBoxLayout(summary)
-                row.setContentsMargins(6, 2, 6, 2)
+                row.setContentsMargins(
+                    UNITY_SPACING_PX["sm"], UNITY_SPACING_PX["xxs"],
+                    UNITY_SPACING_PX["sm"], UNITY_SPACING_PX["xxs"],
+                )
                 category_label = QLabel(category)
                 category_label.setObjectName("GuidePreparationSummaryTitle")
                 row.addWidget(category_label)
@@ -1860,10 +1871,13 @@ class SharedGuideManualView(GuideUltimeManualView):
         frame = QFrame()
         frame.setObjectName("GuidePreparationRow")
         layout = QVBoxLayout(frame)
-        layout.setContentsMargins(4, 2, 4, 2)
-        layout.setSpacing(2)
+        layout.setContentsMargins(
+            UNITY_SPACING_PX["xs"], UNITY_SPACING_PX["xxs"],
+            UNITY_SPACING_PX["xs"], UNITY_SPACING_PX["xxs"],
+        )
+        layout.setSpacing(UNITY_SPACING_PX["xxs"])
         top = QHBoxLayout()
-        top.setSpacing(4)
+        top.setSpacing(UNITY_SPACING_PX["xs"])
         ready = self._need_ready(need)
         confirmed = sum(
             1 for character_key, _quantity in need.required_by_character
