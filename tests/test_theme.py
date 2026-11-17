@@ -305,7 +305,7 @@ class SharedThemeTests(unittest.TestCase):
             "BORDER_CARD": "#445566",
         })
         header = style.split("QFrame#GuideHeader, QFrame#GuidesHomeCategory,", 1)[1].split("}", 1)[0]
-        summary = style.split("QFrame#GuidePreparationSummary, QFrame#GuideManualWarningSection {", 1)[1].split("}", 1)[0]
+        summary = style.split("QFrame#GuidePreparationSummary {", 1)[1].split("}", 1)[0]
         row = style.split("QFrame#GuidePreparationRow, QFrame#GuidePreparationDetails {", 1)[1].split("}", 1)[0]
         self.assertIn("rgba(17, 34, 51, 0.88)", header)
         self.assertIn("rgba(34, 51, 68, 0.82)", header)
