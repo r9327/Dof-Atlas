@@ -82,12 +82,19 @@ def atlas_application_icon() -> QIcon:
 
 def fit_unity_number_spinbox(spinbox: QSpinBox) -> int:
     """Fit an indexed Unity x/x selector to its actual displayed range."""
-    maximum = spinbox.maximum()
-    displayed = f"{maximum}{spinbox.suffix()}"
+    # Either endpoint may be wider (e.g. -1000 vs 99). The prefix,
+    # suffix and special-value label are real Qt text, not a second width
+    # policy owned by individual Guide or module screens.
+    labels = (
+        *(f"{spinbox.prefix()}{spinbox.textFromValue(value)}{spinbox.suffix()}"
+          for value in (spinbox.minimum(), spinbox.maximum())),
+        spinbox.text(),
+        spinbox.specialValueText(),
+    )
+    content_width = max(spinbox.fontMetrics().horizontalAdvance(label) for label in labels)
     width = max(
         UNITY_CONTROL_SIZES_PX["guide_quantity_width"],
-        spinbox.fontMetrics().horizontalAdvance(displayed)
-        + UNITY_CONTROL_SIZES_PX["guide_quantity_chrome_width"],
+        content_width + UNITY_CONTROL_SIZES_PX["guide_quantity_chrome_width"],
     )
     spinbox.setFixedWidth(width)
     return width
