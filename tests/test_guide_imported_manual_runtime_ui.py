@@ -332,11 +332,13 @@ class ImportedSourceRouterQtTests(unittest.TestCase):
         )
         self.assertIs(reader._header_content_layout.itemAt(1).widget(),
                       reader.participants_panel)
-        grid = reader._metric_columns["Préparation"].parent()
-        self.assertIsInstance(grid, QGridLayout)
-        self.assertEqual(grid.columnCount(), 2)
-        self.assertIs(grid.itemAtPosition(0, 1).layout().itemAt(2).widget(),
-                      reader.preparation_button)
+        # Preparation is nested under the global progress disclosure.
+        self.assertIsNotNone(reader.global_details_panel.findChild(
+            QProgressBar, "GuideCompactPreparationProgress"
+        ))
+        self.assertIsNotNone(reader.global_details_panel.findChild(
+            QToolButton, "GuideMetricDropdown"
+        ))
         self.assertFalse(hasattr(reader, "header_actions_row"))
         self.assertEqual(self.view.current_guide_id, self.service.guide_id)
         self.assertEqual(self.view.state, self.view.GUIDE_OVERVIEW)
