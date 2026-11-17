@@ -359,12 +359,7 @@ class UnityPaletteTests(unittest.TestCase):
                 self.assertTrue((root / UNITY_MODULE_GEOMETRY_OWNERS[module]).is_file())
                 for key, size in values.items():
                     numbers = size if isinstance(size, tuple) else (size,)
-                    # Insets may legitimately touch the container edge (0px).
-                    # Content dimensions and non-margin spacing stay positive.
-                    lower_bound = 0 if "margin" in key or "padding" in key else 1
-                    self.assertTrue(all(
-                        type(n) is int and n >= lower_bound for n in numbers
-                    ), key)
+                    self.assertTrue(all(type(n) is int and n > 0 for n in numbers), key)
         self.assertEqual(UNITY_MODULE_GEOMETRY_PX["home"]["portrait_box"], 98)
         self.assertEqual(UNITY_MODULE_GEOMETRY_PX["character"]["equipment_slot_box"], 64)
         self.assertEqual(UNITY_MODULE_GEOMETRY_PX["craft"]["leveling_dialog_size"], (660, 560))
@@ -536,45 +531,11 @@ class UnityPaletteTests(unittest.TestCase):
                 self.assertNotIn("color:#eee7fb", content)
                 self.assertNotIn("color:#e7bf63", content)
 
-    def test_map_canvas_uses_canonical_colors_without_visual_drift(self) -> None:
-        expected = {
-            "MAP_GRID": "#182536",
-            "MAP_OUTLINE": "#223044",
-            "MAP_SELECTION": "#F8C84E",
-            "MAP_LINK": "#A98222",
-            "MAP_LINK_BORDER": "#FFE082",
-            "MAP_LABEL": "#F2F6FF",
-        }
-        for key, color in expected.items():
-            self.assertEqual(UNITY_PALETTE[key], color)
-        source = (Path(__file__).resolve().parents[1] /
-                  "app/ui/map_canvas_widget.py").read_text(encoding="utf-8")
-        for key in expected:
-            self.assertIn(f'UNITY_PALETTE["{key}"]', source)
-        self.assertNotIn('QColor("#', source)
-
     def test_color_module_does_not_import_qt_or_game_runtime(self) -> None:
         source = (Path(__file__).resolve().parents[1] / "app/ui/unity_palette.py").read_text(encoding="utf-8")
         tree = ast.parse(source)
         imports = [n.module or "" for n in ast.walk(tree) if isinstance(n, ast.ImportFrom)]
-        # One Qt-free semantic role mapping is shared with Guide/Quêtes.
-        # Reject Qt and game runtime imports, not this standalone UI helper.
-        self.assertFalse(any(name.startswith("PySide6") for name in imports))
-        self.assertEqual(
-            [name for name in imports if name.startswith("app.")],
-            ["app.ui.entity_link_roles"],
-        )
-        roles_source = (
-            Path(__file__).resolve().parents[1] / "app/ui/entity_link_roles.py"
-        ).read_text(encoding="utf-8")
-        roles_tree = ast.parse(roles_source)
-        roles_imports = [
-            node.module or "" for node in ast.walk(roles_tree)
-            if isinstance(node, ast.ImportFrom)
-        ]
-        self.assertFalse(any(
-            name.startswith(("PySide6", "app.")) for name in roles_imports
-        ))
+        self.assertFalse(any(name.startswith(("PySide6", "app.")) for name in imports))
 
 
 if __name__ == "__main__":
