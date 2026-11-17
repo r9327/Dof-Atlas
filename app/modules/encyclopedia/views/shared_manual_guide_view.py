@@ -1281,12 +1281,11 @@ class SharedGuideManualView(GuideUltimeManualView):
             return
         count = len(self.selected_participant_keys())
         full_label = f"Mes personnages · {count}"
-        narrow = self.width() < UNITY_LAYOUT_BREAKPOINTS_PX["guide_header_compact_below"]
         # Icon-only participant selector: the count remains accessible through
         # its tooltip and accessibility label without stretching the header.
         self.participants_button.setText("")
         for name, label in getattr(self, "_metric_caption_labels", {}).items():
-            label.setText("Prép." if narrow and name == "Préparation" else name)
+            label.setText("À préparer" if name == "Préparation" else name)
         self.participants_button.setAccessibleName(full_label)
         self.participants_button.setToolTip(
             "Choisir les identités stables utilisées par la progression et les déplacements."
