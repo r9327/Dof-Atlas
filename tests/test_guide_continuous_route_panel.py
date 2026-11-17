@@ -234,6 +234,17 @@ class ContinuousGuideRoutePanelTests(unittest.TestCase):
                 )
                 self.panel.summary_toggle.click()
 
+    def test_validation_checked_style_uses_only_unity_green_text_and_outline(self):
+        from app.ui.theme import PALETTE, atlas_stylesheet
+
+        style = atlas_stylesheet()
+        checked_selector = "QToolButton#GuideContinuousValidate:checked {"
+        self.assertIn(checked_selector, style)
+        checked_rules = style.split(checked_selector, 1)[1].split("}", 1)[0]
+        self.assertIn(f"color: {PALETTE['GREEN']}", checked_rules)
+        self.assertIn(f"border-color: {PALETTE['GREEN_BORDER']}", checked_rules)
+        self.assertNotIn("background:", checked_rules)
+
     def test_validation_is_real_and_per_character_only(self):
         self.assertEqual(self.panel.validate_button.text(), "Valider")
         self.assertTrue(self.panel.validate_button.isCheckable())
