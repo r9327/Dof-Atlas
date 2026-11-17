@@ -11,12 +11,11 @@ from PySide6.QtWidgets import (
     QProgressBar,
     QScrollArea,
     QSizePolicy,
-    QToolButton,
     QVBoxLayout,
     QWidget,
 )
 
-from app.ui.components import AtlasButton, AtlasComboBox
+from app.ui.components import AtlasButton, AtlasComboBox, AtlasPageNavigator
 from app.modules.encyclopedia.services.guide_ultime_generated_service import (
     GuideUltimeGeneratedService,
 )
@@ -349,7 +348,6 @@ class GuideUltimeGeneratedView(QWidget):
         branch_row.addWidget(self.order_label)
         self.order_combo = AtlasComboBox()
         self.order_combo.setObjectName("GuideUltimeOrderCombo")
-        self.order_combo.setMinimumWidth(190)
         self.order_combo.currentIndexChanged.connect(self._order_changed)
         branch_row.addWidget(self.order_combo)
         branch_row.addStretch(1)
@@ -361,24 +359,19 @@ class GuideUltimeGeneratedView(QWidget):
         nav_layout = QHBoxLayout(nav)
         nav_layout.setContentsMargins(8, 6, 8, 6)
         nav_layout.setSpacing(6)
-        self.prev_button = QToolButton()
-        self.prev_button.setText("←")
-        self.prev_button.setToolTip("Carte précédente")
-        self.prev_button.clicked.connect(lambda: self.navigate_relative(-1))
-        nav_layout.addWidget(self.prev_button)
+        self.page_navigator = AtlasPageNavigator()
+        self.prev_button = self.page_navigator.previous_button
+        self.next_button = self.page_navigator.next_button
+        self.position_label = self.page_navigator.page_label
+        self.page_navigator.pageRequested.connect(
+            lambda page: self.navigate_relative(page - self.view_index - 1)
+        )
+        nav_layout.addWidget(self.page_navigator)
         self.current_button = AtlasButton("Premier objectif non terminé")
         self.current_button.setObjectName("GuideUltimeCurrentButton")
         self.current_button.clicked.connect(self.go_active)
         nav_layout.addWidget(self.current_button)
-        self.next_button = QToolButton()
-        self.next_button.setText("→")
-        self.next_button.setToolTip("Carte suivante")
-        self.next_button.clicked.connect(lambda: self.navigate_relative(1))
-        nav_layout.addWidget(self.next_button)
         nav_layout.addStretch(1)
-        self.position_label = QLabel()
-        self.position_label.setObjectName("GuideUltimePosition")
-        nav_layout.addWidget(self.position_label)
         self.filter_combo = AtlasComboBox()
         self.filter_combo.addItems(["Tout", "À faire", "Terminé"])
         self.filter_combo.setCurrentText(self.filter_mode)
@@ -558,11 +551,10 @@ class GuideUltimeGeneratedView(QWidget):
             self.cards_layout.addWidget(widget)
         self.cards_layout.addStretch(1)
         self.rendered_card_count = len(indices)
-        self.position_label.setText(
-            f"Carte {self.view_index + 1} / {len(self.service.cards)}  •  active {self.active_index + 1}"
+        self.page_navigator.set_page(self.view_index + 1, len(self.service.cards))
+        self.page_navigator.setToolTip(
+            f"Objectif actif : {self.active_index + 1}"
         )
-        self.prev_button.setEnabled(self.view_index > 0)
-        self.next_button.setEnabled(self.view_index < len(self.service.cards) - 1)
 
     def _set_quest(self, quest_id: int, completed: bool) -> None:
         self.service.quest_progress.set_quest_completed(self.character_key, int(quest_id), bool(completed))
