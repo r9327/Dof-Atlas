@@ -43,6 +43,26 @@ class NetworkHomeStatusTests(unittest.TestCase):
         self.assertEqual(live_only, ("Actif", "active"))
         self.assertEqual(full, ("Actif", "active"))
 
+    def test_running_worker_with_explicit_failure_never_looks_active(self) -> None:
+        for reason in (
+            "runtime_stop_failed_before_calibration",
+            "coordinator_error",
+            "capture_helper_start_failed",
+            "build_changed",
+            "capture_elevation_cancelled",
+        ):
+            with self.subTest(reason=reason):
+                self.assertEqual(
+                    HomePage._network_summary(
+                        self._status(running=True, reason=reason)
+                    ),
+                    ("Attention requise", "error"),
+                )
+        self.assertEqual(
+            HomePage._network_summary(self._status(running=True, reason="running")),
+            ("Actif", "active"),
+        )
+
     def test_calibration_details_are_reduced_to_connection_state(self) -> None:
         for reason in (
             "awaiting_character_identity",
