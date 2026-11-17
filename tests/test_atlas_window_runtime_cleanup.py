@@ -139,6 +139,22 @@ class AtlasWindowRuntimeCleanupTests(unittest.TestCase):
             shell.stack.deleteLater()
             app.processEvents()
 
+    def test_failed_network_stop_cannot_leave_active_badge(self) -> None:
+        from app.ui.network_bridge import NetworkUiBridge
+
+        bridge = NetworkUiBridge()
+        observed = []
+        bridge.statusChanged.connect(observed.append)
+        try:
+            with patch.object(bridge.coordinator, "stop", return_value=False):
+                self.assertFalse(bridge.stop())
+            self.assertFalse(bridge.last_status.running)
+            self.assertEqual(bridge.last_status.reason, "stop_failed")
+            self.assertEqual(len(observed), 1)
+            self.assertEqual(observed[0].reason, "stop_failed")
+        finally:
+            bridge.deleteLater()
+
     def test_stopped_network_bridge_is_recreated(self) -> None:
         QApplication.instance() or QApplication([])
         first = network_bridge_module.network_ui_bridge()
