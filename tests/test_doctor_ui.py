@@ -148,7 +148,8 @@ class DoctorUiCoordinatorTests(unittest.TestCase):
         self.assertEqual(len(required), len(set(required)))
         self.assertIn("guides-lanyel/combat", required)
         for guide in ("guides-success", "guides-lanyel"):
-            for check in ("manual-persist", "manual-reopen",
+            for check in ("global-open", "global-close",
+                          "manual-persist", "manual-reopen",
                           "character-isolation", "manual-restore",
                           "combat", "combat-character", "combat-restore",
                           "preparation-open", "preparation-filter-potions",
