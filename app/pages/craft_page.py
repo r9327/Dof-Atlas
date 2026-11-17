@@ -55,7 +55,7 @@ from app.storage import (
     short_label,
     write_json,
 )
-from app.ui.components import AtlasButton, AtlasPageTitle
+from app.ui.components import AtlasButton, AtlasPageTitle, fit_unity_number_spinbox
 from app.ui.unity_palette import UNITY_MODULE_GEOMETRY_PX, UNITY_SPACING_PX
 
 CRAFT_GEOMETRY = UNITY_MODULE_GEOMETRY_PX["craft"]
@@ -125,8 +125,7 @@ def quantity_spinbox(value: int, maximum: int = 999) -> QSpinBox:
     spinbox.setObjectName("QuantitySpinBox")
     spinbox.setRange(1, maximum)
     spinbox.setValue(max(1, min(maximum, int(value or 1))))
-    spinbox.setMinimumWidth(CRAFT_GEOMETRY["quantity_width"])
-    spinbox.setMaximumWidth(CRAFT_GEOMETRY["quantity_width"])
+    fit_unity_number_spinbox(spinbox)
     spinbox.setAlignment(Qt.AlignCenter)
     spinbox.setToolTip("Quantité")
     return spinbox
