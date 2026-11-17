@@ -620,7 +620,7 @@ UNITY_CHIP_TONES = ("success", "danger", "warning", "info", "neutral")
 
 # The global UI-unification checklist, linked to live Dev UI families.
 # Every planned visual concern has a reachable preview; this list makes no
-# claim that all 12 consumer screens have been migrated or certified.
+# claim that all indexed screens have been migrated or certified.
 UNITY_UI_UNIFICATION_CONTRACT = (
     ("Boutons et variantes", "buttons"),
     ("Textes cliquables et actions popup", "buttons"),
@@ -640,6 +640,7 @@ UNITY_UI_UNIFICATION_CONTRACT = (
     ("Menus déroulants et sélections", "fields"),
     ("Cases, radios et commutateurs", "fields"),
     ("Formats numériques, date et heure", "advanced_fields"),
+    ("Sélecteurs compacts : valeurs négatives, préfixes et x/x", "fields"),
     ("États normal, survol, actif et désactivé", "statuses"),
     ("États pressé, focus, chargement et sélection", "statuses"),
     ("Badges passifs et actions de statut", "statuses"),
@@ -651,16 +652,22 @@ UNITY_UI_UNIFICATION_CONTRACT = (
     ("Tailles, marges et espacements", "metrics"),
     ("Typographies, rayons et dimensions", "metrics"),
     ("Panneaux ouverts et repliés", "panels"),
+    ("Overlays radial et sélection Organizer", "panels"),
     ("Effets glass et transparence", "panels"),
     ("Fond Unity, sprite et dégradé", "backdrop"),
     ("Préchargement et transitions de lancement", "startup"),
+    ("Splash transparent et progression du préchargement", "startup"),
     ("Guides et panneaux spécialisés", "guides"),
+    ("Lecteur universel, préparation et validation des fiches Guides", "guides"),
     ("Icônes Unity d'origine et transparence", "assets"),
     ("Raccourcis clavier et infobulles", "assets"),
     ("Animations et transitions candidates", "motion"),
     ("Écrans et adaptateurs consommateurs", "coverage"),
+    ("Popups réels, sous-vues et overlays : propriétaires et exceptions", "coverage"),
     ("Dialogues et fenêtres popup", "dialogs"),
     ("Dialogues information, attention, erreur", "dialogs"),
+    ("Fermeture, Craft, Leveling, équipement et route", "dialogs"),
+    ("Zoom d’image et suggestions Zaap", "dialogs"),
     ("Palette et dégradés sémantiques", "palette"),
 )
 
