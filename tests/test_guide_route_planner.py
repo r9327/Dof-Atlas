@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from dataclasses import replace
+from itertools import repeat
 import unittest
 
 from app.modules.encyclopedia.services.adventure_route_engine import (
@@ -14,6 +16,7 @@ from app.modules.encyclopedia.services.guide_route_planner import (
     GuideCaptureRequirement,
     GuideParticipantState,
     GuideRoutePlanner,
+    VerifiedZaapTravelPlanner,
     TravelMode,
     VerifiedZaapRoute,
     GuideTravelPlan,
@@ -120,6 +123,7 @@ class GuideRoutePlannerTests(unittest.TestCase):
                         destination=destination, zaap=zaap,
                         world="Monde des Douze",
                         eligible_character_keys=frozenset({"character:1"}),
+                        beneficial=True,
                         evidence="test:verified",
                     )
 
@@ -177,6 +181,7 @@ class GuideRoutePlannerTests(unittest.TestCase):
             zaap=RouteLocation(map_id=2, x=0, y=0, zone="Amakna"),
             world="Monde des Douze",
             eligible_character_keys=frozenset({"character:1"}),
+            beneficial=True,
             evidence="verified:test",
         )
         plan = GuideRoutePlanner(_engine()).plan(
@@ -192,6 +197,7 @@ class GuideRoutePlannerTests(unittest.TestCase):
             zaap=RouteLocation(map_id=2, x=0, y=0, zone="Amakna"),
             world="Monde des Douze",
             eligible_character_keys=frozenset({"character:1", "character:2"}),
+            beneficial=True,
             evidence="verified:test",
         )
         plan = GuideRoutePlanner(_engine()).plan(
@@ -211,6 +217,7 @@ class GuideRoutePlannerTests(unittest.TestCase):
             zaap=RouteLocation(map_id=2, x=0, y=0, zone="Amakna"),
             world="Monde des Douze",
             eligible_character_keys=frozenset({"character:1", "character:2"}),
+            beneficial=True,
             evidence="verified:test",
         )
         plan = GuideRoutePlanner(_engine()).plan(
@@ -237,6 +244,7 @@ class GuideRoutePlannerTests(unittest.TestCase):
             zaap=RouteLocation(map_id=2, x=0, y=0, zone="Amakna"),
             world="Monde des Douze",
             eligible_character_keys=frozenset({"character:1"}),
+            beneficial=True,
             evidence="verified:test",
         )
         plan = GuideRoutePlanner(_engine()).plan(
@@ -245,6 +253,99 @@ class GuideRoutePlannerTests(unittest.TestCase):
         )
         start = next(row for row in plan.activities if row.action.action_id == "quest:start")
         self.assertEqual(start.travel_plan.mode, TravelMode.DIRECT)
+
+    def test_on_demand_zaap_adapter_uses_only_verified_snapshots(self) -> None:
+        calls = []
+        route = VerifiedZaapRoute(
+            destination=DESTINATION,
+            zaap=RouteLocation(map_id=2, x=0, y=0, zone="Amakna"),
+            world="Monde des Douze",
+            eligible_character_keys=frozenset({"character:1", "character:2"}),
+            beneficial=True,
+            evidence="verified:test:on-click",
+        )
+
+        def participants(keys):
+            calls.append(("participants", keys))
+            return tuple(
+                GuideParticipantState(key, world="Monde des Douze")
+                for key in keys
+            )
+
+        def routes(destination, keys):
+            calls.append(("routes", destination, keys))
+            return (route,)
+
+        planner = VerifiedZaapTravelPlanner(participants, routes)
+        self.assertEqual(calls, [])
+        plan = planner((5, -2), ("character:1", "character:2"))
+        self.assertIsNotNone(plan)
+        self.assertEqual(plan.mode, TravelMode.ZAAP_THEN_TRAVEL)
+        self.assertEqual(plan.destination, DESTINATION)
+        self.assertEqual(
+            calls,
+            [
+                ("participants", ("character:1", "character:2")),
+                ("routes", (5, -2), ("character:1", "character:2")),
+            ] * 2,
+        )
+
+    def test_on_demand_zaap_adapter_fails_closed_on_stale_or_invalid_state(self) -> None:
+        route = VerifiedZaapRoute(
+            destination=DESTINATION,
+            zaap=RouteLocation(map_id=2, x=0, y=0, zone="Amakna"),
+            world="Monde des Douze",
+            eligible_character_keys=frozenset({"character:1"}),
+            beneficial=True,
+            evidence="verified:test:on-click",
+        )
+        participant_calls = 0
+
+        def changed_participants(keys):
+            nonlocal participant_calls
+            participant_calls += 1
+            world = "Monde des Douze" if participant_calls == 1 else ""
+            return (GuideParticipantState(keys[0], world=world),)
+
+        cases = (
+            VerifiedZaapTravelPlanner(
+                changed_participants, lambda *_: (route,),
+            ),
+            VerifiedZaapTravelPlanner(
+                lambda keys: (GuideParticipantState(keys[0], world=""),),
+                lambda *_: (route,),
+            ),
+            VerifiedZaapTravelPlanner(
+                lambda keys: (GuideParticipantState(
+                    keys[0], world="Monde des Douze", start_location=DESTINATION,
+                ),),
+                lambda *_: (route,),
+            ),
+            VerifiedZaapTravelPlanner(
+                lambda keys: (GuideParticipantState(
+                    keys[0], world="Monde des Douze",
+                ),),
+                lambda *_: (_ for _ in ()).throw(OSError("registry unavailable")),
+            ),
+            VerifiedZaapTravelPlanner(
+                lambda keys: (GuideParticipantState(
+                    keys[0], world="Monde des Douze",
+                ),),
+                lambda *_: (replace(route, beneficial=False),),
+            ),
+        )
+        for planner in cases:
+            with self.subTest(planner=planner):
+                self.assertIsNone(planner((5, -2), ("character:1",)))
+        self.assertIsNone(cases[0]((5, -2), ("character:1", "character:1")))
+        self.assertIsNone(cases[0]((True, -2), ("character:1",)))
+        unbounded = VerifiedZaapTravelPlanner(
+            lambda keys: (GuideParticipantState(
+                keys[0], world="Monde des Douze",
+            ),),
+            lambda *_: repeat(route),
+        )
+        self.assertIsNone(unbounded((5, -2), ("character:1",)))
 
     def test_capture_kind_is_explicit_and_never_inferred_from_title(self) -> None:
         planner = GuideRoutePlanner(_engine())

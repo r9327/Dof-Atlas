@@ -192,14 +192,60 @@ def bottom_guide_observations(root, view, expected_card) -> dict:
     position = bar.value()
     origin = viewport.mapTo(root, QPoint(0, 0))
     viewport_rect = QRect(origin, viewport.size())
-    sheet = view.findChild(QFrame, "GuideManualSheet")
-    if sheet is None or not sheet.isVisible():
+    # Several consecutive source steps may occupy the same scroll area.
+    # The bottom viewport belongs to the *last* visible read-ahead card,
+    # while validation/navigation still belong to the selected first card.
+    sheets = [
+        sheet for sheet in view.findChildren(QFrame, "GuideManualSheet")
+        if sheet.isVisible()
+    ]
+    if not sheets:
         return {"status": "BLOCKED", "reason": "MISSING_REAL_GUIDE_SHEET"}
-    stage_id = str(sheet.card.get("manual_stage_id") or "")
     expected_id = str(expected_card.get("manual_stage_id") or "")
-    if not stage_id or stage_id != expected_id:
-        return {"status": "FAIL", "reason": "BOTTOM_STAGE_CHANGED",
-                "stage_id": stage_id, "expected_id": expected_id}
+    start = int(view.view_index)
+    reading_range = getattr(view, "_reading_step_range", None)
+    if callable(reading_range):
+        indices = reading_range(start)
+    else:
+        indices = range(start, min(start + 1, len(view.service.cards)))
+    expected_ids = [
+        str(view.service.cards[i].get("manual_stage_id") or "")
+        for i in indices
+    ]
+    actual_ids = [
+        str(sheet.card.get("manual_stage_id") or "")
+        for sheet in sheets
+    ]
+    if (
+        not expected_id or not expected_ids or expected_ids[0] != expected_id
+        or actual_ids != expected_ids
+        or len(set(actual_ids)) != len(actual_ids)
+        or any(sheet.parentWidget() is not view.content for sheet in sheets)
+    ):
+        return {
+            "status": "FAIL", "reason": "BOTTOM_STAGE_CHANGED",
+            "active_stage_id": expected_id,
+            "mounted_stage_ids": actual_ids,
+            "expected_stage_ids": expected_ids,
+        }
+    source_order_mismatches = []
+    for displayed_sheet in sheets:
+        authored_ids = displayed_sheet.card.get("manual_source_action_order")
+        if authored_ids is None:
+            continue
+        source_rows = displayed_sheet.findChildren(QFrame, "GuideManualLineRow")
+        qt_ids = [
+            str(row.property("sourceActionId") or "")
+            for row in source_rows
+        ]
+        if qt_ids != authored_ids:
+            source_order_mismatches.append({
+                "stage_id": displayed_sheet.card.get("manual_stage_id"),
+                "authored_action_ids": authored_ids,
+                "rendered_action_ids": qt_ids,
+            })
+    sheet = sheets[-1]
+    stage_id = actual_ids[-1]
     rows = sheet.findChildren(QFrame, "GuideManualLineRow")
     visible_rows = []
     text_labels = 0
@@ -247,7 +293,11 @@ def bottom_guide_observations(root, view, expected_card) -> dict:
         issues.append("BOTTOM_NOT_REACHED")
     if hidden_horizontal:
         issues.append("HIDDEN_HORIZONTAL_OVERFLOW")
-    if rows and not visible_rows and extent > 0:
+    if source_order_mismatches:
+        issues.append("SOURCE_ACTION_ORDER_CHANGED")
+    if extent > 0 and not rows:
+        issues.append("BOTTOM_LINES_MISSING")
+    elif rows and not visible_rows and extent > 0:
         issues.append("BOTTOM_LINES_CLIPPED")
     if visible_rows and text_labels == 0:
         issues.append("BOTTOM_LINE_TEXT_NOT_VISIBLE")
@@ -258,6 +308,9 @@ def bottom_guide_observations(root, view, expected_card) -> dict:
         "status": status, "reason": issues[0] if issues else
         "BOTTOM_CONTENT_EXPOSED" if extent > 0 else "PAGE_FITS_WITHOUT_SCROLL",
         "stage_id": stage_id, "expected_stage_id": expected_id,
+        "mounted_stage_ids": actual_ids, "expected_stage_ids": expected_ids,
+        "bottom_stage_id": stage_id,
+        "source_order_mismatches": source_order_mismatches[:3],
         "scroll_position": position, "scroll_max": extent,
         "scroll_needed": bool(extent), "horizontal_overflow": hidden_horizontal,
         "line_rows_total": len(rows), "visible_line_rows": len(visible_rows),
@@ -574,25 +627,61 @@ def mounted_action_line_html(sheet) -> list[str]:
 
 
 def sheet_observations(view, expected_card) -> dict:
-    from PySide6.QtWidgets import QFrame, QLabel
+    """Check the selected sheet, plus bounded read-ahead as separate evidence.
+
+    Only the selected source step may own active validation. Read-ahead cards
+    are permitted if they match the exact next canonical service cards.
+    Duplicates and stale extra widgets remain failures, never false PASS.
+    """
+    from PySide6.QtWidgets import QFrame
 
     sheets = [s for s in view.findChildren(QFrame, "GuideManualSheet") if s.isVisible()]
-    result = {"sheet_count": len(sheets), "expected_stage_id": expected_card.get("manual_stage_id"),
-              "stage_ids": [s.card.get("manual_stage_id") for s in sheets],
-              "mounted": all(s.parentWidget() is view.content for s in sheets)}
-    # Provenance-aware line oracle: reconstruct expected HTML from the canonical
-    # service rows using the production formatter, then compare a multiset.
+    expected_id = expected_card.get("manual_stage_id")
+    selected_index = int(view.view_index)
+    active = [
+        sheet for sheet in sheets
+        if getattr(sheet, "index", None) == selected_index
+        or getattr(sheet, "card", {}).get("manual_stage_id") == expected_id
+    ]
+    actual_ids = [getattr(s, "card", {}).get("manual_stage_id") for s in sheets]
+    expected_ids = [
+        card.get("manual_stage_id")
+        for card in view.service.cards[
+            selected_index:selected_index + int(
+                getattr(view, "READING_WINDOW_SIZE", 1)
+            )
+        ]
+    ]
+    if not expected_ids:
+        expected_ids = [expected_id]
+    read_ahead_ok = (
+        actual_ids == expected_ids
+        and len(set(actual_ids)) == len(actual_ids)
+        and len(active) == 1
+        and active[0].card.get("manual_stage_id") == expected_id
+    )
+    result = {
+        "sheet_count": len(active),
+        "total_sheet_count": len(sheets),
+        "expected_stage_id": expected_id,
+        "stage_ids": [
+            s.card.get("manual_stage_id") for s in active
+        ],
+        "read_ahead_stage_ids": actual_ids,
+        "read_ahead_expected_stage_ids": expected_ids,
+        "read_ahead_ok": read_ahead_ok,
+        "mounted": all(s.parentWidget() is view.content for s in sheets),
+    }
+    # Provenance-aware line oracle: inspect only the active sheet.
+    # Following steps must not be treated as missing/stale active actions.
     expected = []
-    if len(sheets) == 1:
-        sheet = sheets[0]
-        # Formatting coalesces repeated coordinates; replay that sequence from
-        # its initial state and restore it so inspection cannot mutate the view.
+    if len(active) == 1:
+        sheet = active[0]
         last_position = sheet._last_route_position_key
         sheet._last_route_position_key = ""
         sections = sheet._without_prepare_duplicates(
-            view.service.manual_sections_for_card(view.character_key, expected_card))
-        # Preparation is intentionally global in the compact Guide UI. The
-        # active sheet must not repeat those rows.
+            view.service.manual_sections_for_card(view.character_key, expected_card)
+        )
         for section_key in ("now", "opportunity", "keep", "boss", "before_leave"):
             rows = sections.get(section_key, [])
             for row in rows:
@@ -600,16 +689,26 @@ def sheet_observations(view, expected_card) -> dict:
                 if not text:
                     continue
                 position = sheet._display_position(str(row.get("position") or ""))
-                prefix = "⚠ " if row.get("kind") == "warning" else "• "
-                expected.append(sheet._format_line_html(prefix, position, text,
-                                sheet._npc_names(text), sheet._resource_names))
+                prefix = "⚠ " if row.get("kind") == "warning" else ""
+                expected.append(sheet._format_line_html(
+                    prefix, position, text, sheet._npc_names(text),
+                    sheet._resource_names,
+                ))
         sheet._last_route_position_key = last_position
         actual = mounted_action_line_html(sheet)
-        result.update(missing_lines=list((Counter(expected) - Counter(actual)).elements())[:5],
-                      stale_or_duplicate_lines=list((Counter(actual) - Counter(expected)).elements())[:5],
-                      expected_line_count=len(expected), actual_line_count=len(actual))
+        result.update(
+            missing_lines=list((Counter(expected) - Counter(actual)).elements())[:5],
+            stale_or_duplicate_lines=list(
+                (Counter(actual) - Counter(expected)).elements()
+            )[:5],
+            expected_line_count=len(expected),
+            actual_line_count=len(actual),
+        )
     else:
-        result.update(missing_lines=["No unique mounted sheet"], stale_or_duplicate_lines=[])
+        result.update(
+            missing_lines=["No unique active sheet"],
+            stale_or_duplicate_lines=[],
+        )
     return result
 
 
@@ -617,11 +716,20 @@ def check_sheet(session, page, view, key):
     card = view.service.cards[view.view_index]
     session.card_id = str(card.get("manual_stage_id") or "")
     observed = sheet_observations(view, card)
-    ok = (observed["sheet_count"] == 1 and observed["mounted"]
-          and observed["stage_ids"] == [card.get("manual_stage_id")]
-          and not observed["missing_lines"] and not observed["stale_or_duplicate_lines"])
-    session.check(key, "Inspect mounted sheet after Qt DeferredDelete", "One current canonical sheet and exact current lines",
-                  observed, ok, page)
+    ok = (
+        observed["sheet_count"] == 1
+        and observed["mounted"]
+        and observed["stage_ids"] == [card.get("manual_stage_id")]
+        and observed["read_ahead_ok"]
+        and not observed["missing_lines"]
+        and not observed["stale_or_duplicate_lines"]
+    )
+    session.check(
+        key, "Inspect mounted sheet after Qt DeferredDelete",
+        "One active canonical step, bounded read-ahead and exact lines",
+        observed, ok, page,
+    )
+
 
 
 def guide_runtime_identity(service) -> str | None:
@@ -741,6 +849,9 @@ def exercise_guide(session, page, owner, guide_id, repeats, smoke=False):
         page.resize(1200, 800)
         view.scroll.verticalScrollBar().setValue(0)
         settle()
+        view.global_details_button.setChecked(True)
+        settle()
+        session.snapshot(page)
         view.preparation_button.setChecked(True)
         settle()
         session.snapshot(page)
@@ -754,11 +865,12 @@ def exercise_guide(session, page, owner, guide_id, repeats, smoke=False):
             settle()
             session.snapshot(page)
         view.preparation_button.setChecked(False)
+        view.global_details_button.setChecked(False)
         view.participants_button.setChecked(True)
         settle()
         session.snapshot(page)
         view.participants_button.setChecked(False)
-        view.summary_button.setChecked(True)
+        view.global_details_button.setChecked(True)
         settle()
         session.snapshot(page)
         return
@@ -802,37 +914,89 @@ def exercise_guide(session, page, owner, guide_id, repeats, smoke=False):
         view.refresh_external_progress()
         settle()
         check_sheet(session, page, view, f"refresh-{turn}")
-    # Persisted lock and actual navigation blocking are distinct assertions.
-    lock = view.route_lock_check
-    if not view.settings_panel.isVisible():
-        click_target(page, view.settings_button)
-        settle()
+    # The old Route scrubber, summary and lock controls were removed. Verify
+    # the actual indexed Global > Preparation hierarchy via physical Qt clicks.
+    # Manual progress disk writes and character isolation are still checked
+    # separately below; replacing the absent UI must never waive those proofs.
+    global_toggle = view.global_details_button
+    preparation_toggle = view.preparation_button
+    global_toggle.setChecked(False)
+    preparation_toggle.setChecked(False)
+    settle()
+    initial_index = view.view_index
+    first_card = view.service.cards[0]
+    initial_progress = view.service.page_checked(view.character_key, first_card, 0)
     trace_path = session.folder / "runtime-trace.json"
     if not trace_path.exists():
         from tools.atlas_doctor_lib.runtime_observation import RuntimeObserver
 
-        # Reuse Doctor's bounded observer on one small real interaction. Tracing
-        # provider hydration would turn a targeted UI check into a costly scan.
         observer = RuntimeObserver(Path(__file__).resolve().parents[2], max_events=200)
         with observer:
-            click = click_target(page, lock)
+            global_click = click_target(page, global_toggle)
         write_json(trace_path, observer.report())
         session.evidence.append(trace_path.name)
     else:
-        click = click_target(page, lock)
-    view.service.reload_progress()
-    saved = view.service.manual_checked(view.character_key, view.ROUTE_LOCK_PROGRESS_KEY)
-    view._jump_from_progress(1.0)
-    session.check("lock", "QTest lock then attempt progress navigation", "Lock persisted, accessible label and index unchanged",
-                  {"click": click, "saved": saved, "index": view.view_index, "label": lock.accessibleName()},
-                  click["accessible"] and saved and view.view_index == 0 and lock.accessibleName() == "Verrouillé", page)
-    click_target(page, lock)
-    view.service.reload_progress()
-    session.check("unlock", "QTest unlock then reload", "Unlocked in service and accessibility label",
-                  {"saved": view.service.manual_checked(view.character_key, view.ROUTE_LOCK_PROGRESS_KEY),
-                   "label": lock.accessibleName()},
-                  not view.service.manual_checked(view.character_key, view.ROUTE_LOCK_PROGRESS_KEY)
-                  and lock.accessibleName() == "Déverrouillé", page)
+        global_click = click_target(page, global_toggle)
+    global_open = (
+        global_click["accessible"]
+        and global_toggle.isChecked()
+        and view.global_details_panel.isVisibleTo(view)
+        and view.global_details_panel.findChild(QFrame, "GuidePreparationPanel") is not None
+        and view.view_index == initial_index
+        and view.service.page_checked(view.character_key, first_card, 0) == initial_progress
+    )
+    session.check(
+        "global-progress-disclosure",
+        "QTest click Global progression disclosure",
+        "Nested preparation mounted; no page jump or persistent progress write",
+        {
+            "click": global_click, "opened": global_toggle.isChecked(),
+            "panel_visible": view.global_details_panel.isVisibleTo(view),
+            "page": view.view_index,
+            "disk_progress_unchanged": view.service.page_checked(
+                view.character_key, first_card, 0
+            ) == initial_progress,
+        },
+        global_open, page,
+    )
+    preparation_click = click_target(page, preparation_toggle)
+    preparation_open = (
+        preparation_click["accessible"]
+        and preparation_toggle.isChecked()
+        and view.preparation_panel.isVisibleTo(view)
+    )
+    close_click = click_target(page, global_toggle)
+    folded = (
+        close_click["accessible"]
+        and not view.global_details_panel.isVisibleTo(view)
+        and preparation_toggle.isChecked()
+    )
+    reopen_click = click_target(page, global_toggle)
+    restored = (
+        reopen_click["accessible"]
+        and view.global_details_panel.isVisibleTo(view)
+        and view.preparation_panel.isVisibleTo(view)
+        and preparation_toggle.isChecked()
+    )
+    session.check(
+        "preparation-disclosure",
+        "QTest nested Preparation, collapse Global and reopen",
+        "Preparation stays open within Global; both disclosure hit-targets reachable",
+        {
+            "preparation_click": preparation_click,
+            "global_close_click": close_click,
+            "global_reopen_click": reopen_click,
+            "preparation_open": preparation_open,
+            "global_folded": folded,
+            "restored": restored,
+        },
+        preparation_open and folded and restored and view.view_index == initial_index
+        and view.service.page_checked(view.character_key, first_card, 0)
+        == initial_progress, page,
+    )
+    preparation_toggle.setChecked(False)
+    global_toggle.setChecked(False)
+    settle()
     # Blank temporary profile is never evidence for automatic in-game completion.
     card = view.service.cards[0]
     automatic = view.service.card_auto_complete(view.character_key, card)

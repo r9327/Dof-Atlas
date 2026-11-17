@@ -13,7 +13,6 @@ from PySide6.QtWidgets import (
     QFrame,
     QHBoxLayout,
     QLabel,
-    QProgressBar,
     QPushButton,
     QToolButton,
     QToolTip,
@@ -28,11 +27,9 @@ from app.modules.encyclopedia.services.guide_quest_view_model import (
 from app.modules.encyclopedia.views.guide_ultime_universal_view import GuideUltimeUniversalView
 from app.core.text import normalize_key as normalize_text
 from app.ui.theme import PALETTE
+from app.ui.entity_link_roles import entity_link_markup, entity_text_markup
 
 
-NPC_COLOR = PALETTE["YELLOW"]
-RESOURCE_COLOR = PALETTE["GREEN"]
-POSITION_COLOR = PALETTE["TEXT_SOFT"]
 _COORD_RE = re.compile(r"\[(-?\d+)\s*,\s*(-?\d+)\]")
 _COMBAT_QUANTITY_RE = re.compile(r"\bx\s*(\d+)\b", re.IGNORECASE)
 _NAME_WORD = r"[A-ZÀ-ÖØ-Þ][A-Za-zÀ-ÖØ-öø-ÿ'’.-]*"
@@ -97,20 +94,6 @@ class _QuestShortcutButton(QToolButton):
             )
 
 
-class GuideManualProgressBar(QProgressBar):
-    """Completion bar that also acts as a route scrubber without mutating progress."""
-
-    navigationRequested = Signal(float)
-
-    def mousePressEvent(self, event) -> None:  # noqa: N802 - Qt API
-        if event.button() == Qt.LeftButton and self.width() > 0:
-            ratio = max(0.0, min(1.0, float(event.position().x()) / float(self.width())))
-            self.navigationRequested.emit(ratio)
-            event.accept()
-            return
-        super().mousePressEvent(event)
-
-
 class GuideUltimeManualCard(QFrame):
     """Logic/helper base for the single shared Guide manual card renderer.
 
@@ -121,6 +104,7 @@ class GuideUltimeManualCard(QFrame):
     """
 
     questRequested = Signal(int, str, int)
+    entityRequested = Signal(str, int)
 
     def __new__(cls, *args, **kwargs):
         if cls is GuideUltimeManualCard:
@@ -164,19 +148,14 @@ class GuideUltimeManualCard(QFrame):
         )
         layout.addWidget(details)
 
-        travel_action = (
-            "déplace les participants sélectionnés"
-            if callable(getattr(self, "travel_command_callback", None))
-            else "copie la commande /travel x,y"
-        )
         rows = (
-            f"Coordonnée en gras : cliquer {travel_action}.",
+            "Coordonnée en gras : cliquer copie /travel x,y. Icône Zaap : trajet optimisé facultatif.",
             "Objet en vert : cliquer copie son nom. PNJ en jaune : interlocuteur à trouver.",
             "Case de combat : objectif partagé avec l’onglet Quêtes, avec monstre et quantité.",
             "Validation : automatique quand Atlas dispose de la preuve, manuelle seulement en secours.",
         )
         for text in rows:
-            label = QLabel(f"• {text}")
+            label = QLabel(text)
             label.setObjectName("GuideManualLegendText")
             label.setWordWrap(True)
             details_layout.addWidget(label)
@@ -315,6 +294,8 @@ class GuideUltimeManualCard(QFrame):
         if quest_ids is None:
             quest_ids = self._quest_ids_for_row(row)
         for quest_id in quest_ids:
+            # Even if several source actions refer to the same Quest,
+            # keep a single shortcut per Quest on the current sheet.
             if int(quest_id) in self._shown_quest_ids:
                 continue
             name = names.get(int(quest_id))
@@ -482,7 +463,11 @@ class GuideUltimeManualCard(QFrame):
         ]
         provider = getattr(service, "quest_provider", None)
         evidence = getattr(provider, "guide_evidence", None)
-        if callable(evidence):
+        # Imported source resources are exhaustive; do not hydrate unrelated
+        # legacy Quest evidence or add items absent from the source route.
+        if callable(evidence) and not (
+            card.get("manual_source") is True and "source_step_id" in card
+        ):
             for raw in card.get("manual_quest_ids", []) or []:
                 try:
                     payload = evidence(int(raw))
@@ -529,16 +514,8 @@ class GuideUltimeManualCard(QFrame):
         value = self._copy_text_for_link(href)
         if not value:
             return
-        travel_callback = getattr(self, "travel_command_callback", None)
-        if value.startswith("/travel ") and callable(travel_callback):
-            launched = bool(travel_callback(value))
-            QToolTip.showText(
-                QCursor.pos(),
-                "Déplacement demandé" if launched else "Commande copiée",
-                self,
-            )
-            QTimer.singleShot(800, QToolTip.hideText)
-            return
+        # A classic coordinate is ALWAYS a clipboard shortcut. Macro dispatch
+        # belongs to the separate explicit Zaap button, never to this link.
         QApplication.clipboard().setText(value)
         QToolTip.showText(QCursor.pos(), "Copié", self)
         QTimer.singleShot(800, QToolTip.hideText)
@@ -626,10 +603,20 @@ class GuideUltimeManualCard(QFrame):
         text: str,
         npc_names: list[str],
         resource_names: list[str],
+        *,
+        entity_links: tuple[tuple[str, str, int], ...] = (),
+        item_kinds: tuple[tuple[str, str], ...] = (),
     ) -> str:
         prefix_text = str(prefix or "")
         plain = prefix_text + (f"{position} — " if position else "") + str(text or "")
         spans: list[tuple[int, int, str, str]] = []
+        # Only the authored item type, never a guess from its name, can
+        # change the resource color to the equipment color.
+        item_kind_by_name = {
+            normalize_text(name): kind
+            for name, kind in item_kinds
+            if isinstance(name, str) and kind in {"item", "equipment"}
+        }
 
         def add_span(start: int, end: int, kind: str, payload: str = "") -> None:
             if start >= end:
@@ -640,6 +627,16 @@ class GuideUltimeManualCard(QFrame):
 
         for match in _COORD_RE.finditer(plain):
             add_span(match.start(), match.end(), "position", f"{int(match.group(1))},{int(match.group(2))}")
+        # Only verified, explicitly typed monster/boss IDs become links.
+        # A plain monster name in guide prose is not authoritative identity.
+        for name, entity_kind, entity_id in entity_links:
+            if (not isinstance(name, str) or not name.strip()
+                    or entity_kind not in {"monster", "boss"}
+                    or type(entity_id) is not int or entity_id <= 0):
+                continue
+            pattern = re.compile(rf"(?<!\w){re.escape(name)}(?!\w)", re.IGNORECASE)
+            for match in pattern.finditer(plain):
+                add_span(match.start(), match.end(), "entity", f"{entity_kind}:{entity_id}")
         for name in sorted({value for value in npc_names if value}, key=len, reverse=True):
             pattern = re.compile(rf"(?<!\w){re.escape(name)}(?!\w)", re.IGNORECASE)
             for match in pattern.finditer(plain):
@@ -658,15 +655,23 @@ class GuideUltimeManualCard(QFrame):
             if start < cursor:
                 continue
             rendered.append(html.escape(plain[cursor:start]))
-            value = html.escape(plain[start:end])
+            value = plain[start:end]
             if kind == "npc":
-                rendered.append(f'<span style="color:{NPC_COLOR};"><b>{value}</b></span>')
+                rendered.append(entity_text_markup(value, "npc", PALETTE))
+            elif kind == "entity":
+                entity_type = payload.split(":", 1)[0]
+                rendered.append(entity_link_markup(
+                    value, entity_type, f"atlas-entity:{payload}", PALETTE,
+                ))
             elif kind == "resource":
-                href = html.escape(f"item-copy:{quote(payload, safe='')}", quote=True)
-                rendered.append(f'<a href="{href}" style="color:{RESOURCE_COLOR};text-decoration:none;"><b>{value}</b></a>')
+                category = item_kind_by_name.get(normalize_text(payload), "item")
+                rendered.append(entity_link_markup(
+                    value, category, f"item-copy:{quote(payload, safe='')}", PALETTE,
+                ))
             else:
-                href = html.escape(f"travel-copy:{payload}", quote=True)
-                rendered.append(f'<a href="{href}" style="color:{POSITION_COLOR};text-decoration:none;"><b>{value}</b></a>')
+                rendered.append(entity_link_markup(
+                    value, "position", f"travel-copy:{payload}", PALETTE,
+                ))
             cursor = end
         rendered.append(html.escape(plain[cursor:]))
         return "".join(rendered)
@@ -714,16 +719,17 @@ class GuideUltimeManualView(GuideUltimeUniversalView):
     def _refresh_header(self) -> None:
         completed, total = self.service.route_sheet_progress(self.character_key)
         if total <= 0:
-            self.route_bar.setRange(0, 0)
-            self.route_progress_label.setText("")
+            self.global_progress_bar.setRange(0, 1)
+            self.global_progress_bar.setValue(0)
+            self.global_progress_label.setText("—")
             self.nav_page_label.setText("")
             return
-        self.route_bar.setRange(0, total)
-        self.route_bar.setValue(min(completed, total))
+        self.global_progress_bar.setRange(0, total)
+        self.global_progress_bar.setValue(min(completed, total))
         percent = min(100, round(completed * 100 / total))
         page = max(1, min(total, int(self.view_index) + 1))
         self.nav_page_label.setText(f"Page {page} / {total}")
-        self.route_progress_label.setText(f"{percent} %")
+        self.global_progress_label.setText(f"{percent} %")
 
     def _show_index(self, index: int) -> None:
         if not self.service.cards:
@@ -731,15 +737,6 @@ class GuideUltimeManualView(GuideUltimeUniversalView):
         self.view_index = max(0, min(len(self.service.cards) - 1, int(index)))
         self._refresh_header()
         self._render_window(reset_scroll=True)
-
-    def _jump_from_progress(self, ratio: float) -> None:
-        if self.route_lock_check.isChecked():
-            return
-        total = len(self.service.cards)
-        if total <= 0:
-            return
-        index = int(round(max(0.0, min(1.0, float(ratio))) * max(0, total - 1)))
-        self._show_index(index)
 
     def navigate_relative(self, delta: int) -> None:
         if not self.service.cards:

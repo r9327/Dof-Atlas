@@ -56,6 +56,27 @@ class AgentScopeTestMappingTests(unittest.TestCase):
         )
         self.assertEqual(payload["recommended_tests"][: len(payload["scope_tests"])], payload["scope_tests"])
 
+    def test_guide_import_pipeline_has_one_exact_scope_owner(self) -> None:
+        paths = [
+            "app/modules/encyclopedia/services/guide_trusted_source_package.py",
+            "app/modules/encyclopedia/views/shared_manual_guide_view.py",
+            "tools/atlas_guide_package_publisher.py",
+            "tests/test_atlas_guide_package_publisher.py",
+            "docs/guides/ATLAS_GUIDE_CONFORMITY.md",
+        ]
+
+        payload = agent.impact_payload(ROOT, paths)
+
+        self.assertEqual(payload["unowned_paths"], [])
+        self.assertEqual(payload["ambiguous_paths"], [])
+        for path in paths:
+            with self.subTest(path=path):
+                self.assertEqual(payload["ownership"][path]["status"], "OWNED")
+                self.assertEqual(
+                    payload["ownership"][path]["primary_scope"],
+                    "encyclopedia_guide",
+                )
+
     def test_mapping_validation_rejects_missing_and_invalid_test_modules(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)

@@ -4,6 +4,7 @@ from collections.abc import Mapping
 from functools import lru_cache
 
 from app.ui.unity_skin import UNITY_PALETTE, unity_skin_stylesheet
+from app.ui.entity_link_roles import ENTITY_LINK_COLOR_ROLES, entity_link_colors
 
 
 # One Unity visual language, shared by every Qt page. The remaining keys are
@@ -21,6 +22,11 @@ PALETTE = {
     "BADGE_TEXT": "#C9D44C",
 }
 
+# All modules resolve colors from the same typed, Qt-free Unity role index.
+GUIDE_ENTITY_LINK_ROLES = ENTITY_LINK_COLOR_ROLES
+GUIDE_ENTITY_LINK_COLORS = entity_link_colors(PALETTE)
+ENTITY_LINK_COLORS = GUIDE_ENTITY_LINK_COLORS
+
 TYPOGRAPHY = {
     # The app registers approved personal fonts at startup when installed.
     # System fonts remain the fallback; packaging does not include game TTFs.
@@ -28,6 +34,7 @@ TYPOGRAPHY = {
     "FONT_BODY": "12px",
     "FONT_SMALL": "11px",
     "FONT_TITLE": "18px",
+    "FONT_GUIDE_READING": "14px",
 }
 
 SPACING = {
@@ -39,6 +46,35 @@ SPACING = {
     "SPACE_XL": "14px",
     "SPACE_2XL": "20px",
     "SPACE_3XL": "24px",
+}
+
+# Indexed Qt layout metrics for the single Guide reading surface.
+# All sizes derive from the same Dev UI spacing tokens, not per-guide CSS.
+_GUIDE_SPACE_PX = {
+    key: int(value.removesuffix("px")) for key, value in SPACING.items()
+}
+GUIDE_READING_METRICS = {
+    "sheet_horizontal": _GUIDE_SPACE_PX["SPACE_LG"],
+    "sheet_vertical": _GUIDE_SPACE_PX["SPACE_MD"],
+    "sheet_spacing": _GUIDE_SPACE_PX["SPACE_SM"],
+    "section_horizontal": _GUIDE_SPACE_PX["SPACE_MD"],
+    "section_vertical": _GUIDE_SPACE_PX["SPACE_SM"],
+    "section_spacing": _GUIDE_SPACE_PX["SPACE_XS"],
+    "row_spacing": _GUIDE_SPACE_PX["SPACE_XS"],
+    "reading_gap": _GUIDE_SPACE_PX["SPACE_SM"],
+    # Shared thumbnail dimensions for original embedded guide media.
+    "source_image_max_width": 240,
+    "source_image_max_height": 160,
+    "source_quantity_width": 90,
+    # Indexed full-width source drawer: enough room to browse requirements,
+    # while retaining a scrollbar for unusually long preparation lists.
+    "source_drawer_max_height": 340,
+    "source_drawer_min_height": 280,
+    "source_drawer_compact_min_height": 156,
+    "normal_drawer_max_height": 210,
+    "normal_drawer_min_height": 126,
+    "zoom_dialog_width": 760,
+    "zoom_dialog_height": 540,
 }
 
 SIZES = {
@@ -2449,6 +2485,43 @@ QLabel#GuideBreadcrumbCurrent {
     border: none;
 }
 
+/* Shared guide content glass keeps the outer border visible at all edges. */
+QScrollArea#GuideManualScroll {
+    background: @PANEL_GRADIENT;
+    border: 1px solid @BORDER_STRONG;
+    border-radius: @RADIUS_MD;
+}
+/* On source-only 1:1 sheets, the glass belongs to the authored card;
+   don't surround 100px of content with an otherwise empty 430px border. */
+QScrollArea#GuideManualSourceScroll,
+QScrollArea#GuideManualSourceScroll > QWidget#qt_scrollarea_viewport {
+    background: transparent;
+    border: none;
+}
+QWidget#GuideManualContent {
+    background: transparent;
+}
+QLabel#GuideManualSourceImage {
+    background: transparent;
+    border: 1px solid @BORDER_SOFT;
+    border-radius: @RADIUS_XS;
+    padding: @SPACE_XXS;
+}
+QLabel#GuideManualSourceImage:hover {
+    border-color: @GREEN_BORDER;
+}
+QDialog#GuideSourceImageZoomDialog,
+QScrollArea#GuideSourceImageZoomViewport {
+    background: @PANEL_GRADIENT;
+    color: @TEXT_SOFT;
+    border: 1px solid @BORDER_SOFT;
+    border-radius: @RADIUS_MD;
+}
+QLabel#GuideSourceImageZoomed {
+    background: transparent;
+    border: none;
+}
+
 #GuideManualProgress {
     background: @PANEL_2;
     border: 1px solid @BORDER_SOFT;
@@ -2487,10 +2560,20 @@ QToolButton#GuideManualProgressLock[state="locked"] {
 
 QFrame#GuideCompactHeader,
 QFrame#GuidePreparationPanel,
+QFrame#GuideGlobalDetailsPanel,
 QFrame#GuideSheetHeader {
     background: @PANEL;
     border: 1px solid @BORDER;
     border-radius: @RADIUS_SM;
+}
+
+/* Expanded preparation must retain the blue Unity surface,
+   not Qt's native gray scroll/panel background. */
+QFrame#GuidePreparationPanel,
+QFrame#GuideGlobalDetailsPanel {
+    background: @PANEL;
+    border: 1px solid @BORDER_SOFT;
+    border-radius: @RADIUS_MD;
 }
 
 QLabel#GuideCompactTitle {
@@ -2567,6 +2650,121 @@ QFrame#GuidePreparationDetails {
     border-radius: @RADIUS_XS;
 }
 
+QProgressBar#GuideGlobalProgress {
+    background: @PANEL_2;
+    border: 1px solid @BORDER_SOFT;
+    border-radius: 4px;
+}
+QProgressBar#GuideGlobalProgress::chunk {
+    background: @GREEN;
+    border-radius: 3px;
+}
+QLabel#GuideGlobalProgressTitle {
+    color: @TEXT_SOFT;
+    font-size: @FONT_SMALL;
+    font-weight: 600;
+    background: transparent;
+    border-left: 2px solid @GREEN_BORDER;
+    padding-left: 7px;
+}
+/* In-label, 18px Guide disclosure: no detached square at the bar edge. */
+QToolButton#GuideMetricDropdown {
+    background: transparent;
+    border: 1px solid transparent;
+    border-radius: @RADIUS_XS;
+    padding: 0;
+    /* The 1px borders on each side are included in the 18px control. */
+    min-width: 16px;
+    max-width: 16px;
+    min-height: 16px;
+    max-height: 16px;
+}
+QToolButton#GuideMetricDropdown:hover,
+QToolButton#GuideMetricDropdown:checked {
+    background: @PANEL_HOVER;
+    border-color: @BORDER_STRONG;
+}
+QToolButton#GuideMetricDropdown:disabled {
+    background: transparent;
+    border: 1px solid transparent;
+}
+QToolButton#GuideParticipantsButton {
+    /* A visible Unity button ring in every state, including disabled. */
+    background: @PANEL_2;
+    border: 1px solid @BORDER_STRONG;
+    border-radius: @RADIUS_XS;
+    padding: 0;
+}
+QToolButton#GuideParticipantsButton:hover,
+QToolButton#GuideParticipantsButton:checked {
+    background: @PANEL_HOVER;
+    border-color: @GREEN_BORDER;
+}
+QToolButton#GuideParticipantsButton:disabled {
+    background: @PANEL_2;
+    border: 1px solid @BORDER_STRONG;
+}
+
+QPushButton#GuideManualGuideButton {
+    background: @PANEL_2;
+    color: @TEXT;
+    border: 1px solid @BORDER;
+    border-radius: @RADIUS_XS;
+    padding: 3px 8px;
+    font-weight: 700;
+}
+QPushButton#GuideManualGuideButton:hover {
+    background: @PANEL_HOVER;
+    border-color: @GREEN_BORDER;
+}
+
+QSpinBox#GuideCompactPageJump,
+QSpinBox#GuidePreparationQuantity {
+    background: @PANEL_2;
+    color: @TEXT;
+    border: 1px solid @BORDER_SOFT;
+    border-radius: @RADIUS_XS;
+    min-height: 22px;
+    padding: 3px 4px;
+}
+/* Qt embeds a QLineEdit into QSpinBox. Its generic field background must
+   not create a black rectangle over the indexed Unity blue control. */
+QSpinBox#GuideCompactPageJump QLineEdit,
+QSpinBox#GuidePreparationQuantity QLineEdit {
+    background: transparent;
+    border: none;
+    color: @TEXT;
+    padding: 0;
+}
+QSpinBox#GuideCompactPageJump:focus,
+QSpinBox#GuidePreparationQuantity:focus {
+    border-color: @GREEN_BORDER;
+}
+QSpinBox#GuideCompactPageJump::up-button,
+QSpinBox#GuideCompactPageJump::down-button {
+    background: @PANEL_GRADIENT;
+    border-left: 1px solid @BORDER_STRONG;
+    width: 17px;
+}
+QSpinBox#GuideCompactPageJump::up-button:hover,
+QSpinBox#GuideCompactPageJump::down-button:hover {
+    background: @PANEL_HOVER;
+    border-left-color: @GREEN_BORDER;
+}
+QListWidget#GuideSummaryList::item {
+    background: transparent;
+    color: @TEXT_SOFT;
+    padding: 5px 8px;
+}
+QListWidget#GuideSummaryList::item:hover {
+    background: @PANEL_HOVER;
+}
+QListWidget#GuideSummaryList::item:selected {
+    background: @PANEL_ACTIVE;
+    border-left: 2px solid @GREEN_BORDER;
+    color: @TEXT;
+}
+
 QToolButton#GuidePreparationToggle {
     background: @PANEL;
     color: @TEXT;
@@ -2583,22 +2781,38 @@ QToolButton#GuidePreparationToggle:checked {
     border-color: @GREEN_BORDER;
 }
 
-QPushButton#GuidePreparationFilter {
+QFrame#GuidePreparationFilterHost {
     background: transparent;
-    color: @TEXT_MUTED;
-    border: 1px solid @BORDER_SOFT;
+    border: none;
+}
+
+QPushButton#GuidePreparationModeTab,
+QPushButton#GuidePreparationFilter {
+    background: @PANEL_2;
+    color: @BORDER;
+    border: 1px solid @BORDER;
     border-radius: @RADIUS_XS;
     padding: 4px 9px;
     font-weight: 700;
 }
 
+QPushButton#GuidePreparationModeTab:hover,
+QPushButton#GuidePreparationModeTab:checked,
 QPushButton#GuidePreparationFilter:hover,
 QPushButton#GuidePreparationFilter:checked {
     background: @PANEL_ACTIVE;
     border-color: @GREEN_BORDER;
-    color: @TEXT;
+    color: @GREEN_BORDER;
 }
 
+/* Source section captions and Quest titles are not resources to acquire. */
+QLabel#GuidePreparationSourceContext {
+    color: @TEXT_MUTED;
+    font-size: @FONT_GUIDE_READING;
+    background: transparent;
+    border: none;
+    padding: @SPACE_XS @SPACE_MD;
+}
 QFrame#GuidePreparationSummary,
 QFrame#GuidePreparationRow {
     background: @PANEL_2;
@@ -2606,27 +2820,58 @@ QFrame#GuidePreparationRow {
     border-radius: @RADIUS_XS;
 }
 
+/* The preparation viewport must not paint native gray over the Unity panel. */
+QScrollArea#GuidePreparationScroll,
+QWidget#GuideGlobalCharacterProgress,
+QWidget#GuidePreparationContent,
+QScrollArea#GuidePreparationScroll > QWidget#qt_scrollarea_viewport {
+    background: transparent;
+    border: none;
+}
+QLabel#GuidePreparationQuantityPlaceholder {
+    background: transparent;
+    color: @TEXT_MUTED;
+    font-size: @FONT_SMALL;
+}
+QPushButton#GuidePreparationItemCopy {
+    background: transparent;
+    color: @BORDER;
+    border: 1px solid transparent;
+    border-radius: @RADIUS_XS;
+    padding: 3px 5px;
+    text-align: left;
+}
+QPushButton#GuidePreparationItemCopy:hover,
+QPushButton#GuidePreparationItemCopy:focus {
+    background: @PANEL_HOVER;
+    border-color: @GREEN_BORDER;
+    color: @GREEN_BORDER;
+}
+
 QLabel#GuidePreparationRowLabel {
     color: @TEXT_SOFT;
     font-size: @FONT_BODY;
 }
 
-QToolButton#GuidePreparationReady {
+QCheckBox#GuidePreparationReady {
     background: transparent;
-    color: @TEXT_MUTED;
-    border: 1px solid @BORDER_SOFT;
-    border-radius: 10px;
-    min-width: 20px;
-    max-width: 20px;
-    min-height: 20px;
-    max-height: 20px;
-    padding: 0;
+    color: @GREEN_BORDER;
+    spacing: 0;
 }
-
-QToolButton#GuidePreparationReady:checked {
+QCheckBox#GuidePreparationReady::indicator {
+    width: 17px;
+    height: 17px;
+    border: 1px solid @BORDER;
+    border-radius: @RADIUS_XS;
+    background: transparent;
+}
+QCheckBox#GuidePreparationReady::indicator:hover {
+    border-color: @GREEN_BORDER;
+    background: @PANEL_HOVER;
+}
+QCheckBox#GuidePreparationReady::indicator:checked {
     background: @GREEN;
     border-color: @GREEN;
-    color: @BG;
 }
 
 QLabel#GuideSheetTitle {
@@ -2637,7 +2882,7 @@ QLabel#GuideSheetTitle {
 
 QLineEdit#GuideSummarySearch,
 QListWidget#GuideSummaryList {
-    background: @PANEL;
+    background: @PANEL_2;
     color: @TEXT;
     border: 1px solid @BORDER_SOFT;
     border-radius: @RADIUS_XS;
@@ -2702,6 +2947,32 @@ QToolButton#GuideParticipantPortrait:checked {
     border-color: @GREEN_BORDER;
 }
 
+/* One Dev UI semantic palette for sections and inline combat reading.
+   The reader must never override these surfaces with per-widget RGB. */
+QFrame#GuideManualCombatSection,
+QFrame#GuideManualCombatInlineRow,
+QFrame#GuideManualLineRow[guideRole="combat"] {
+    background: @PANEL_2;
+    border: 1px solid @BORDER_SOFT;
+    border-radius: @RADIUS_XS;
+}
+
+QLabel#GuideManualCombatInlineText {
+    color: @TEXT_SOFT;
+    font-size: @FONT_GUIDE_READING;
+    background: transparent;
+    border: none;
+    padding: 5px 7px;
+}
+
+QLabel#GuideManualLine[guideRole="preparation"] {
+    padding: 2px 0;
+}
+
+QLabel#GuidePreparationRowStatus[state="complete"] {
+    color: @GREEN;
+}
+
 #GuideManualDungeonSection {
     border-color: @RED_DARK;
 }
@@ -2748,6 +3019,30 @@ QToolButton#GuideParticipantPortrait:checked {
     border-radius: @RADIUS_XS;
 }
 
+/* Every authored source step owns exactly one standard Atlas sheet.
+   Its action sections are borderless reading lines, not nested cards. */
+/* Action rows/sections are layout surfaces, never extra nested cards. */
+QFrame#GuideManualActionGroup,
+QFrame#GuideManualLineRow {
+    background: transparent;
+    border: none;
+}
+/* Source review keeps one indexed rectangular sheet, no nested card border. */
+QLabel#GuideManualReviewInfo {
+    color: @TEXT_MUTED;
+    font-size: @FONT_SMALL;
+    background: transparent;
+    border: none;
+}
+
+QLabel#GuideManualPositionCopy {
+    color: @TEXT_SOFT;
+    background: transparent;
+    border: none;
+    font-size: @FONT_BODY;
+    padding: 2px 0;
+}
+
 #GuideManualStageTitle {
     color: @TEXT;
     font-size: 17px;
@@ -2760,10 +3055,25 @@ QToolButton#GuideParticipantPortrait:checked {
     font-weight: 800;
 }
 
-#GuideManualLine {
+#GuideManualLine,
+#GuideManualSourceChecklistText {
     color: @TEXT_SOFT;
-    font-size: 14px;
+    font-size: @FONT_GUIDE_READING;
     padding: 3px 0;
+    background: transparent;
+    border: none;
+}
+
+/* Original source checklist keeps the Unity sheet surface, never Qt black. */
+QWidget#GuideManualSourceChecklistRow,
+QCheckBox#GuideManualSourceChecklist,
+QLabel#GuideManualSourceChecklistText {
+    background: transparent;
+    border: none;
+}
+QCheckBox#GuideManualSourceChecklist:disabled {
+    background: transparent;
+    border: none;
 }
 
 #GuideManualWarning {
@@ -2834,7 +3144,7 @@ QToolButton#GuideParticipantPortrait:checked {
 
 #GuideManualPrev,
 #GuideManualNextButton {
-    background: @PANEL_HOVER;
+    background: @PANEL_GRADIENT;
     color: @TEXT_SOFT;
     border: 1px solid @BORDER;
     border-radius: @RADIUS_XS;

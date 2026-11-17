@@ -1,10 +1,11 @@
 from __future__ import annotations
 
+
 from PySide6.QtCore import QSize, Qt, QTimer, Signal
 from PySide6.QtGui import QIcon
 from app.ui.unity_skin import apply_unity_panel_shadow, sprite_icon_path
 from PySide6.QtWidgets import (
-    QFrame, QLabel, QListView, QScrollArea, QTreeWidget, QTreeWidgetItem,
+    QFrame, QHBoxLayout, QLabel, QListView, QScrollArea, QStackedWidget, QTreeWidget, QTreeWidgetItem,
     QVBoxLayout, QWidget,
 )
 from app.ui.theme import PALETTE
@@ -12,7 +13,7 @@ from app.modules.encyclopedia.views.guide_featured_home import (
     FEATURED, FeaturedGuideCard, FeaturedPair,
 )
 from app.modules.encyclopedia.views.guide_library_sources import (
-    CATEGORIES, displayable_listings, load_ganymede_listings,
+    ATLAS_EQUIVALENTS, CATEGORIES, displayable_listings, load_ganymede_listings,
 )
 
 from app.modules.encyclopedia.services.guide_catalog_hints import (
@@ -29,6 +30,7 @@ from app.modules.encyclopedia.widgets.guide_card import (
 GUIDE_SUCCESS_CATALOG_ID = "guide_complet"
 GUIDE_ULTIME_TITLE = "Guide Ultime"
 CATALOG_MANUAL_GUIDE_IDS = frozenset({"dofus_sylvestre"})
+
 
 
 class GuideCatalogView(QWidget):
@@ -73,6 +75,10 @@ class GuideCatalogView(QWidget):
         self.guides = []
         self.visible_guides = []
         self.ganymede_listings = ()
+        self._ganymede_by_id = {}
+        self._ganymede_shell = None
+        # One labeled UI pilot, never a playable replacement for Atlas Cawotte.
+        self._cawotte_pilot_item: QTreeWidgetItem | None = None
         self.library_category = "dofus"
         self._initial_progress_by_guide = dict(initial_progress_by_guide or {})
         self._initial_progress_character_key = str(initial_progress_character_key or "")
@@ -92,7 +98,11 @@ class GuideCatalogView(QWidget):
         root.setContentsMargins(8, 8, 8, 8)
         root.setSpacing(8)
         self.home_scroll.setWidget(content)
-        shell.addWidget(self.home_scroll, 1)
+        # One lazy metadata-only container for all 95 indexed source IDs.
+        # It cannot dispatch a playable guide or allocate 95 Qt pages at Home.
+        self.pages = QStackedWidget(self)
+        self.pages.addWidget(self.home_scroll)
+        shell.addWidget(self.pages, 1)
 
         def heading(text: str) -> QLabel:
             label = QLabel(text)
@@ -241,8 +251,10 @@ class GuideCatalogView(QWidget):
         # Metadata are deliberately not playable Atlas guides.
         try:
             self.ganymede_listings = load_ganymede_listings()
+            self._ganymede_by_id = {row.source_id: row for row in self.ganymede_listings}
         except (OSError, ValueError, KeyError, TypeError) as exc:
             self.ganymede_listings = ()
+            self._ganymede_by_id = {}
             self.status_callback(f"Inventaire Ganymède indisponible : {exc}")
         if initial_progress_by_guide is not None:
             self._initial_progress_by_guide = dict(initial_progress_by_guide)
@@ -266,6 +278,7 @@ class GuideCatalogView(QWidget):
         if not any(str(getattr(guide, "id", "")) == guide_id for guide in self.guides):
             return False
         self.current_guide_id = guide_id
+        self.pages.setCurrentWidget(self.home_scroll)
         self.guideRequested.emit(guide_id)
         return True
 
@@ -363,11 +376,27 @@ class GuideCatalogView(QWidget):
             )
 
     def _populate_library_tree(self) -> None:
-        """Group available guides and disabled references inside expandable menus.
+        """Group real guides and preview-only Ganymède references.
 
-        The read-only source index is kept intact; metadata-only routes can
-        never dispatch a guideRequested signal.
+        Source-index rows open only the empty UI container; they cannot
+        dispatch guideRequested or acquire a route/runtime service.
         """
+        # Cawotte is suppressed from ordinary metadata lists because Atlas
+        # already has its own Guide card. Offer a distinct first UI pilot,
+        # without replacing the real guide or enabling uncertified steps.
+        cawotte = self._ganymede_by_id.get(2205)
+        if cawotte is not None and not cawotte.playable:
+            if self._cawotte_pilot_item is None:
+                pilot = QTreeWidgetItem(("Cawotte · Test UI",))
+                pilot.setData(0, Qt.UserRole + 2, 2205)
+                pilot.setToolTip(0, "Aperçu du conteneur Cawotte, sans fiches chargées")
+                self.library_categories.insertTopLevelItem(0, pilot)
+                self._cawotte_pilot_item = pilot
+        elif self._cawotte_pilot_item is not None:
+            index = self.library_categories.indexOfTopLevelItem(self._cawotte_pilot_item)
+            if index >= 0:
+                self.library_categories.takeTopLevelItem(index)
+            self._cawotte_pilot_item = None
         catalog_ids = {str(guide.id) for guide in self.guides}
         featured = {guide_id for guide_id, _title in FEATURED}
         for category, parent in self._category_nodes.items():
@@ -383,9 +412,8 @@ class GuideCatalogView(QWidget):
 
             for entry in displayable_listings(self.ganymede_listings, catalog_ids, category):
                 child = QTreeWidgetItem((entry.title,))
-                child.setFlags(child.flags() & ~Qt.ItemIsEnabled & ~Qt.ItemIsSelectable)
                 child.setData(0, Qt.UserRole + 2, entry.source_id)
-                child.setToolTip(0, "Guide référencé, mais parcours non disponible dans Atlas.")
+                child.setToolTip(0, "Voir le conteneur UI — parcours indisponible dans Atlas.")
                 parent.addChild(child)
             # A dense category menu starts folded instead of occupying
             # half of the Guide home before the user chooses a section.
@@ -398,17 +426,72 @@ class GuideCatalogView(QWidget):
         if guide_id:
             self.select_guide(str(guide_id))
             return
+        source_id = item.data(0, Qt.UserRole + 2)
+        if type(source_id) is int:
+            self.open_ganymede_container(source_id, review_steps=item is self._cawotte_pilot_item)
+            return
         category = item.data(0, Qt.UserRole)
         if category:
             self.library_category = str(category)
 
+    def open_ganymede_container(self, source_id: int, *, review_steps: bool = False) -> bool:
+        """Open metadata or the explicit read-only Cawotte draft; no live route."""
+        if type(source_id) is not int or (review_steps and source_id != 2205):
+            return False
+        listing = self._ganymede_by_id.get(source_id)
+        if listing is None or listing.playable:
+            return False
+        if self._ganymede_shell is None:
+            # Import the canonical Guide reader only when a preview is opened.
+            from app.modules.encyclopedia.views.ganymede_guide_shell import (
+                GanymedeGuideShell,
+            )
+
+            self._ganymede_shell = GanymedeGuideShell(self._show_ganymede_catalog, self)
+            self.pages.addWidget(self._ganymede_shell)
+        # Pass the very same cached local artwork as the Home Guide card.
+        atlas_id = ATLAS_EQUIVALENTS.get(source_id)
+        local_guide = next(
+            (guide for guide in self.guides if guide.id == atlas_id), None
+        ) if atlas_id else None
+        artwork = (
+            self.home_dofus_model.artwork_for_guide(local_guide)
+            if local_guide is not None else None
+        )
+        self._ganymede_shell.set_listing(listing, artwork=artwork)
+        if review_steps:
+            try:
+                if not self._ganymede_shell.show_cawotte_review():
+                    return False
+            except (OSError, ValueError, KeyError, TypeError) as exc:
+                self.status_callback(f"Étapes Cawotte indisponibles pour revue : {exc}")
+                return False
+        self.current_guide_id = None
+        self.pages.setCurrentWidget(self._ganymede_shell)
+        return True
+
+    def _show_ganymede_catalog(self) -> None:
+        self.pages.setCurrentWidget(self.home_scroll)
+
     def _toggle_library_category(self, item: QTreeWidgetItem, _column: int) -> None:
+        source_id = item.data(0, Qt.UserRole + 2)
+        if type(source_id) is int:
+            # Clicking the same selected item after Back must reopen it;
+            # currentItemChanged does not fire on repeated selection.
+            if self.pages.currentWidget() is self.home_scroll:
+                self.open_ganymede_container(source_id, review_steps=item is self._cawotte_pilot_item)
+            return
         if item.data(0, Qt.UserRole) and item.childCount():
             item.setExpanded(not item.isExpanded())
 
     def _activate_library_item(self, item: QTreeWidgetItem, column: int) -> None:
-        # A child was already selected via currentItemChanged; activation must
-        # never dispatch guideRequested a second time (Enter/double-click).
+        # Enter also reopens an already selected source-only UI shell.
+        # Existing playable routes still dispatch guideRequested unchanged.
+        source_id = item.data(0, Qt.UserRole + 2)
+        if type(source_id) is int:
+            if self.pages.currentWidget() is self.home_scroll:
+                self.open_ganymede_container(source_id, review_steps=item is self._cawotte_pilot_item)
+            return
         if item.data(0, Qt.UserRole):
             self._toggle_library_category(item, column)
 

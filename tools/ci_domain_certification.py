@@ -46,11 +46,13 @@ REVIEWED_CI_INSTRUCTION_PATHS = frozenset({
     # Additional reviewed AI guidance and skills; exact paths only.
     ".ai/context-map.yaml",
     ".ai/scopes/quality_ci.yaml",
+    ".ai/scopes/encyclopedia_guide.yaml",
     # Reviewed Organizer Mirror scope manifests, not a broad scope wildcard.
     ".ai/scopes/organizer.yaml",
     ".ai/scopes/macro_runtime.yaml",
     ".ai/scopes/persistence_identity.yaml",
     "tests/test_ai_workflow_skills.py",
+    "tests/test_agent_scope_tests.py",
     ".agents/skills/codebase-navigation/SKILL.md",
     ".agents/skills/dofus-data-provenance/SKILL.md",
     ".agents/skills/evidence-driven-validation/SKILL.md",
@@ -145,8 +147,7 @@ ORGANIZER_RUNTIME_PATHS = frozenset({
     "app/input/mouse_hooks.py",
 })
 ORGANIZER_TEST_PATHS = frozenset({
-    # Exact, Windows-offscreen screenshot producers for the Organizer UI;
-    # neither path is a game-input backend or a general tests/* wildcard.
+    # Reviewed Organizer offscreen capture scripts, never a generic wildcard.
     "tests/capture_organizer_ui.py",
     "tests/capture_organizer_shell.py",
     "tests/test_organizer_character_order.py",
@@ -361,6 +362,19 @@ def owners_for(path: str) -> frozenset[str]:
         return frozenset({"ci", "organizer"})
     if path in CRAFT_PATHS or path.startswith("app/pages/craft_"):
         return frozenset({"craft"})
+    # The independent offline source/Atlas comparator is a Guide tool, not
+    # general CI infrastructure. Exact ownership only: unrelated tools stay
+    # closed-world UNKNOWN until independently reviewed.
+    if path in {
+        "tools/atlas_guide_conformity.py",
+        "tools/atlas_guide_importer.py",
+        "tools/atlas_guide_html_capture.py",
+        "tools/atlas_guide_candidate_store.py",
+        "tools/atlas_guide_sequence_gate.py",
+        "tools/atlas_guide_pipeline.py",
+        "tools/atlas_guide_package_publisher.py",
+    }:
+        return frozenset({"guides"})
     if path.startswith("app/modules/encyclopedia/services/guide_"):
         return frozenset({"guides"})
     if path == "app/modules/encyclopedia/views/memory_bound_encyclopedia_page.py":
@@ -372,12 +386,15 @@ def owners_for(path: str) -> frozenset[str]:
         # interact with Quest and Guide providers; fail closed for siblings.
         return frozenset({"quests", "guides", "ui"})
     if path in {
+        "app/modules/encyclopedia/views/ganymede_guide_shell.py",
+        "app/modules/encyclopedia/views/guide_continuous_route_panel.py",
         "app/modules/encyclopedia/views/shared_manual_guide_view.py",
+        "app/modules/encyclopedia/views/manual_route_guides_view.py",
         "app/modules/encyclopedia/views/guides_view.py",
         "app/modules/encyclopedia/views/guide_ultime_manual_view.py",
         "app/modules/encyclopedia/views/guide_ultime_universal_view.py",
     }:
-        # All four concrete guide readers have both Guide logic and Qt clients.
+        # The five reviewed Guide/router views have Guide and Qt consumers.
         # Unknown view modules remain BLOCKED; no wildcard or coverage reduction.
         return frozenset({"guides", "ui"})
     if path in {
@@ -389,6 +406,13 @@ def owners_for(path: str) -> frozenset[str]:
     }:
         # Catalog widgets and the Encyclopedia shell have Guide and UI consumers.
         return frozenset({"guides", "ui"})
+    if path in {
+        "app/assets/themes/dofus_unity/sprites/atlas-control-down.svg",
+        "app/assets/themes/dofus_unity/sprites/atlas-control-up.svg",
+    }:
+        # Exact reviewed passive Guide control glyphs. Keep unrelated SVG
+        # siblings unowned instead of widening the existing asset suffix rule.
+        return frozenset({"ui", "data"})
     if path.startswith("app/assets/themes/dofus_unity/"):
         # Owned *only* as UI/data inputs, not approved for redistribution.
         if Path(path).suffix.lower() in {".png", ".ttf", ".md"}:
@@ -459,6 +483,10 @@ def owners_for(path: str) -> frozenset[str]:
         return frozenset({"guides", "ui"})
     if path == "tests/test_unity_wallpaper_cleaner.py":
         return frozenset({"ui", "data"})
+    if path == "tests/test_entity_link_roles.py":
+        # Explicit Guide/UI owner for the app-wide indexed entity colors.
+        # Preserve both real consumers rather than bypassing unknown tests.
+        return frozenset({"guides", "ui"})
     if path in {"tests/test_unity_skin.py", "tests/test_theme_runtime_cache.py"}:
         # Canonical Unity palette / Qt stylesheet cache regression contracts.
         return frozenset({"ui"})

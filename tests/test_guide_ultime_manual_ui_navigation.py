@@ -11,7 +11,9 @@ from PySide6.QtWidgets import (
     QApplication,
     QCheckBox,
     QFrame,
+    QGridLayout,
     QLabel,
+    QProgressBar,
     QPushButton,
     QSizePolicy,
     QToolButton,
@@ -25,6 +27,21 @@ from app.modules.encyclopedia.views.shared_manual_guide_view import (
     SharedGuideManualCard,
     SharedGuideManualView,
 )
+
+
+class GuideUltimeManualProgressIdentityTests(unittest.TestCase):
+    def test_manual_runtime_has_the_existing_canonical_preparation_key(self):
+        from app.modules.encyclopedia.services.guide_ultime_generated_service import (
+            GUIDE_ULTIME_PROGRESS_ID,
+        )
+        from app.modules.encyclopedia.services.guide_ultime_manual_runtime_service import (
+            GuideUltimeManualRuntimeService,
+        )
+
+        self.assertEqual(
+            GuideUltimeManualRuntimeService.progress_id,
+            GUIDE_ULTIME_PROGRESS_ID,
+        )
 
 
 class _FakeManualUiService:
@@ -194,14 +211,20 @@ class GuideUltimeManualUiNavigationTests(unittest.TestCase):
     def test_progress_header_is_compact_and_page_is_in_bottom_navigation(self) -> None:
         _service, view = self._view()
         try:
-            self.assertEqual(view.route_progress_label.text(), "0 %")
-            self.assertEqual((view.route_bar.value(), view.route_bar.maximum()), (0, 2))
+            self.assertEqual(view.global_progress_label.text(), "0 %")
+            self.assertEqual((view.global_progress_bar.value(),
+                              view.global_progress_bar.maximum()), (0, 2))
+            self.assertIsNone(view.findChild(QProgressBar, "GuideManualProgress"))
+            self.assertIsNone(view.findChild(QFrame, "GuideSummaryPanel"))
             self.assertEqual(view.progress_donut._percent, 0)
+            self.assertEqual(view.donut_count_label.text(), "0 fiches validées")
+            self.assertFalse(hasattr(view, "success_bar"))
+            self.assertFalse(hasattr(view, "current_button"))
+            self.assertEqual(view.sheet_meta_label.text(), "")
+            self.assertTrue(view.sheet_meta_label.isHidden())
             self.assertEqual(view.nav_page_label.text(), "Page 1 / 2")
-            self.assertNotIn("Quêtes", view.route_progress_label.text())
-            self.assertNotIn("Donjons", view.route_progress_label.text())
-            self.assertEqual(view.route_lock_check.text(), "Déverrouillé")
-            self.assertEqual(view.route_lock_check.accessibleName(), "Déverrouillé")
+            self.assertFalse(hasattr(view, "route_lock_check"))
+            self.assertFalse(hasattr(view, "summary_button"))
         finally:
             view.close()
 
@@ -215,41 +238,45 @@ class GuideUltimeManualUiNavigationTests(unittest.TestCase):
             self.assertFalse(view.participants_button.icon().isNull())
             self.assertEqual(view.participants_button.accessibleName(), "Mes personnages · 1")
             self.assertIn("Choisir les identités", view.participants_button.toolTip())
-            self.assertEqual(view.current_button.text(), "")
-            self.assertEqual(view.current_button.accessibleName(), "Actuelle")
-            self.assertTrue(view.current_button.icon().isNull() is False)
-            self.assertEqual(view.page_jump.maximumWidth(), 93)
-            self.assertEqual(view._metric_caption_labels["Préparation"].text(), "Prép.")
+            self.assertEqual(view.page_jump.maximumWidth(), 90)
+            self.assertEqual(view.preparation_button.objectName(), "GuideMetricDropdown")
+            self.assertEqual(view.global_details_button.objectName(), "GuideMetricDropdown")
+            self.assertGreaterEqual(view.participants_button.width(), view.preparation_button.width())
+            self.assertIs(
+                view._compact_title_row.itemAt(
+                    view._compact_title_row.count() - 1
+                ).widget(), view.participants_button,
+            )
+            self.assertIs(
+                view._header_content_layout.itemAt(1).widget(),
+                view.participants_panel,
+            )
+            self.assertIsNotNone(view.global_details_panel.findChild(
+                QProgressBar, "GuideCompactPreparationProgress"
+            ))
+            self.assertEqual(view.page_jump.suffix(), " / 2")
+            self.assertEqual(view._metric_caption_labels["Préparation"].text(), "À préparer")
             self.assertEqual(view._metric_caption_labels["Préparation"].toolTip(), "Préparation")
 
             view.resize(960, 640)
             QApplication.processEvents()
             self.assertEqual(view.participants_button.text(), "")
             self.assertEqual(view.participants_button.accessibleName(), "Mes personnages · 1")
-            self.assertEqual(view.current_button.text(), "Actuelle")
-            self.assertEqual(view.page_jump.maximumWidth(), 115)
-            self.assertEqual(view._metric_caption_labels["Préparation"].text(), "Préparation")
+            self.assertEqual(view.page_jump.maximumWidth(), 110)
+            self.assertEqual(view._metric_caption_labels["Préparation"].text(), "À préparer")
         finally:
             view.close()
 
-    def test_progress_lock_blocks_only_direct_bar_jumps(self) -> None:
-        service, view = self._view()
+    def test_direct_sheet_selector_replaces_route_scrubber(self) -> None:
+        _service, view = self._view()
         try:
-            view.route_lock_check.setChecked(True)
-            self.assertEqual(view.route_lock_check.text(), "Verrouillé")
-            self.assertEqual(view.route_lock_check.accessibleName(), "Verrouillé")
-            self.assertTrue(
-                service.manual_checked("character:1", SharedGuideManualView.ROUTE_LOCK_PROGRESS_KEY)
-            )
-            view._jump_from_progress(1.0)
-            self.assertEqual(view.view_index, 0)
-
-            view.navigate_relative(1)
+            self.assertFalse(hasattr(view, "route_lock_check"))
+            self.assertFalse(hasattr(view, "_jump_from_progress"))
+            view.page_jump.setValue(2)
             self.assertEqual(view.view_index, 1)
-
-            view.route_lock_check.setChecked(False)
-            view._jump_from_progress(0.0)
+            view.navigate_relative(-1)
             self.assertEqual(view.view_index, 0)
+            self.assertEqual(view.page_jump.value(), 1)
         finally:
             view.close()
 
@@ -260,7 +287,8 @@ class GuideUltimeManualUiNavigationTests(unittest.TestCase):
             self.assertFalse(any("SUCCÈS LIÉS" in text for text in texts))
             self.assertFalse(any("DESTINATION SUIVANTE" in text for text in texts))
             self.assertIsNone(view.findChild(QFrame, "GuideBreadcrumb"))
-            self.assertEqual(view.guide_button.text(), "←")
+            self.assertEqual(view.guide_button.text(), "")
+            self.assertFalse(view.guide_button.icon().isNull())
             self.assertEqual(view.guide_button.accessibleName(), "Fiche actuelle ou catalogue des guides")
             self.assertEqual(view.guide_title_label.text(), "Guide Succès")
         finally:
@@ -284,7 +312,7 @@ class GuideUltimeManualUiNavigationTests(unittest.TestCase):
         finally:
             view.close()
 
-    def test_participants_are_persistent_and_coordinate_launches_once(self) -> None:
+    def test_participants_are_persistent_and_coordinate_only_copies(self) -> None:
         service = _FakeManualUiService()
         participants = _FakeParticipantService()
         calls: list[tuple[str, tuple[str, ...]]] = []
@@ -313,14 +341,24 @@ class GuideUltimeManualUiNavigationTests(unittest.TestCase):
             )
 
             current_sheet = view.cards_layout.itemAt(0).widget()
+            QApplication.clipboard().setText("before")
             current_sheet._copy_link_target("travel-copy:1,-1")
-            self.assertEqual(
-                calls,
-                [("/travel 1,-1", ("character:1",))],
-            )
+            # Beta is selected but offline. A partial dispatch to Alpha is
+            # forbidden: copy the requested destination without sending it.
+            self.assertEqual(calls, [])
+            self.assertEqual(QApplication.clipboard().text(), "/travel 1,-1")
+            portraits[1].click()
+            self.assertEqual(participants.selected_keys(), ("character:1",))
+            current_sheet = view.cards_layout.itemAt(0).widget()
+            QApplication.clipboard().setText("before")
+            current_sheet._copy_link_target("travel-copy:1,-1")
+            # Coordinates never dispatch, even when the selected team is
+            # fully online; only the separate explicit control may send.
+            self.assertEqual(calls, [])
+            self.assertEqual(QApplication.clipboard().text(), "/travel 1,-1")
             legend = current_sheet.findChild(QFrame, "GuideManualLegendCard")
             texts = [label.text() for label in legend.findChildren(QLabel)]
-            self.assertTrue(any("participants sélectionnés" in text for text in texts))
+            self.assertTrue(any("cliquer copie /travel x,y" in text for text in texts))
         finally:
             view.close()
 
@@ -340,7 +378,14 @@ class GuideUltimeManualUiNavigationTests(unittest.TestCase):
             self.assertEqual(sends, [])
             self.assertEqual(QApplication.clipboard().text(), "/travel 4,-8")
 
+            # A mixed online/offline selection must not silently send only
+            # to character:1: this is an all-or-nothing user command.
             participants.selected = ["character:1", "character:2", "character:999"]
+            self.assertFalse(view._launch_travel_command("/travel 4,-8"))
+            self.assertEqual(sends, [])
+            self.assertEqual(QApplication.clipboard().text(), "/travel 4,-8")
+
+            participants.selected = ["character:1"]
             self.assertTrue(view._launch_travel_command("/travel 4,-8"))
             self.assertEqual(sends, [("/travel 4,-8", ("character:1",))])
 
@@ -350,32 +395,88 @@ class GuideUltimeManualUiNavigationTests(unittest.TestCase):
         finally:
             view.close()
 
-    def test_summary_remains_open_and_filter_survives_repopulation(self) -> None:
+    def test_direct_travel_checks_team_again_before_dispatch(self) -> None:
+        service = _FakeManualUiService()
+        participants = _FakeParticipantService()
+        sends: list[tuple[str, tuple[str, ...]]] = []
+        view = SharedGuideManualView(
+            service, character_key="character:1",
+            participant_service=participants,
+            travel_callback=lambda command, keys: sends.append((command, keys)),
+        )
+        try:
+            calls = []
+            def disconnect_on_second_inventory():
+                calls.append(True)
+                return (SimpleNamespace(
+                    key="character:1", connected=len(calls) == 1,
+                ),)
+            participants.available_characters = disconnect_on_second_inventory
+            QApplication.clipboard().setText("before")
+            self.assertFalse(view._launch_travel_command("/travel -5,2"))
+            self.assertEqual(sends, [])
+            self.assertEqual(QApplication.clipboard().text(), "/travel -5,2")
+            self.assertEqual(len(calls), 2)
+
+            participants.available_characters = lambda: (
+                SimpleNamespace(key="character:1", connected=True),
+            )
+            selected_calls = []
+            def changing_selection():
+                selected_calls.append(True)
+                return ("character:1",) if len(selected_calls) == 1 else (
+                    "character:1", "character:2",
+                )
+            participants.selected_keys = changing_selection
+            self.assertFalse(view._launch_travel_command("/travel -5,2"))
+            self.assertEqual(sends, [])
+            participants.selected_keys = lambda: ("character:1",)
+
+            def broken_inventory():
+                raise RuntimeError("synthetic identity scanner failure")
+            participants.available_characters = broken_inventory
+            self.assertFalse(view._launch_travel_command("/travel -5,2"))
+            self.assertEqual(sends, [])
+        finally:
+            view.close()
+
+    def test_direct_travel_callback_failure_does_not_claim_success(self) -> None:
+        service = _FakeManualUiService()
+        participants = _FakeParticipantService()
+        view = SharedGuideManualView(
+            service, character_key="character:1",
+            participant_service=participants,
+            travel_callback=lambda command, keys: False,
+        )
+        try:
+            for refused in (False, 0, "not-started"):
+                view.travel_callback = lambda _cmd, _keys, value=refused: value
+                QApplication.clipboard().setText("before")
+                self.assertFalse(view._launch_travel_command("/travel 4,-8"))
+                self.assertEqual(QApplication.clipboard().text(), "/travel 4,-8")
+            def failed_callback(_cmd, _keys):
+                raise RuntimeError("synthetic macro error")
+            view.travel_callback = failed_callback
+            self.assertFalse(view._launch_travel_command("/travel 4,-8"))
+            self.assertEqual(QApplication.clipboard().text(), "/travel 4,-8")
+            view.travel_callback = lambda _cmd, _keys: None
+            self.assertTrue(view._launch_travel_command("/travel 4,-8"))
+        finally:
+            view.close()
+
+    def test_preparation_drawer_stays_open_during_page_selection(self) -> None:
         _service, view = self._view()
         try:
-            view.summary_button.click()
+            view.global_details_button.click()
+            view.preparation_button.click()
             QApplication.processEvents()
-            self.assertTrue(view.summary_button.isChecked())
-            self.assertFalse(view.summary_panel.isHidden())
-            self.assertEqual(view.summary_list.count(), 2)
-
-            view.summary_search.setText("Deuxième")
-            self.assertTrue(view.summary_list.item(0).isHidden())
-            self.assertFalse(view.summary_list.item(1).isHidden())
-
-            view.summary_list.itemClicked.emit(view.summary_list.item(1))
+            self.assertTrue(view.preparation_panel.isVisible())
+            view.page_jump.setValue(2)
             self.assertEqual(view.view_index, 1)
-            self.assertTrue(view.summary_button.isChecked())
-            self.assertFalse(view.summary_panel.isHidden())
-            view.navigate_relative(-1)
+            self.assertTrue(view.preparation_panel.isVisible())
+            view.page_jump.setValue(1)
             self.assertEqual(view.view_index, 0)
-            self.assertFalse(view.summary_panel.isHidden())
-
-            view.summary_list.clear()
-            view._populate_summary()
-            self.assertEqual(view.summary_search.text(), "Deuxième")
-            self.assertTrue(view.summary_list.item(0).isHidden())
-            self.assertFalse(view.summary_list.item(1).isHidden())
+            self.assertTrue(view.preparation_panel.isVisible())
         finally:
             view.close()
 
@@ -451,6 +552,186 @@ class GuideUltimeManualUiNavigationTests(unittest.TestCase):
             card.page_check.deleteLater()
             card.close()
 
+    def test_source_quest_link_is_unique_even_when_multiple_actions_reference_it(self) -> None:
+        service = _FakeManualUiService()
+        service.quest_provider = _FakeQuestProvider()
+        card_data = dict(service.cards[0])
+        card_data.update({
+            "manual_source": True,
+            "source_step_id": "SOURCE-STEP-1",
+            "manual_stage_id": "SOURCE-DEDUPE",
+            "manual_quest_ids": [42],
+            "manual_runtime_metadata": {
+                "source_step": {
+                    "actions": [
+                        {"quest_ids": [42]},
+                        {"quest_ids": [42]},
+                    ],
+                },
+            },
+            "manual_sections": {
+                "now": [
+                    {
+                        "kind": "action", "position": "[1,2]",
+                        "text": "Première action.",
+                        "source_action": {"quest_ids": [42]},
+                    },
+                    {
+                        "kind": "action", "position": "[2,2]",
+                        "text": "Deuxième action.",
+                        "source_action": {"quest_ids": [42]},
+                    },
+                ],
+            },
+        })
+        card = SharedGuideManualCard(service, "character:1", card_data, 0)
+        try:
+            buttons = card.findChildren(QToolButton, "GuideManualQuestInlineButton")
+            self.assertEqual(len(buttons), 1)
+            self.assertEqual(buttons[0].toolTip(), "Combat test")
+            # Both source actions retain their informative hover tooltip;
+            # neither adds a duplicate navigation target.
+            quest_tooltips = [
+                label for label in card.findChildren(QLabel)
+                if label.toolTip() == "Quête : Combat test"
+            ]
+            self.assertEqual(len(quest_tooltips), 2)
+        finally:
+            card.page_check.deleteLater()
+            card.close()
+
+    def test_typed_bestiary_links_use_names_without_extra_buttons(self) -> None:
+        service = _FakeManualUiService()
+        card_data = dict(service.cards[0])
+        card_data.update({
+            "manual_source": True,
+            "source_step_id": "SOURCE-BESTIARY",
+            "manual_stage_id": "SOURCE-BESTIARY",
+            "manual_quest_ids": [],
+            "manual_sections": {
+                "now": [
+                    {
+                        "kind": "combat",
+                        "position": "",
+                        "text": "Affronter Bouftou et Boss test.",
+                        "source_action": {
+                            "monsters": [
+                                {"name": "Bouftou", "quantity": 2, "monster_id": 123},
+                                {"name": "Boss test", "quantity": 1, "boss_id": 456},
+                            ],
+                        },
+                    },
+                    {
+                        "kind": "combat",
+                        "position": "",
+                        "text": "Affronter Monstre inconnu.",
+                        "source_action": {
+                            "monsters": [{"name": "Monstre inconnu", "quantity": 1}],
+                        },
+                    },
+                ],
+            },
+        })
+        card = SharedGuideManualCard(service, "character:1", card_data, 0)
+        try:
+            labels = card.findChildren(QLabel, "GuideManualCombatInlineText")
+            linked = [label for label in labels if "atlas-entity:" in label.text()]
+            self.assertEqual(len(linked), 1)
+            self.assertIn('href="atlas-entity:monster:123"', linked[0].text())
+            self.assertIn('href="atlas-entity:boss:456"', linked[0].text())
+            self.assertNotIn("atlas-entity:", labels[1].text())
+            self.assertFalse(card.findChildren(QToolButton, "GuideManualQuestInlineButton"))
+            requested: list[tuple[str, int]] = []
+            card.entityRequested.connect(lambda kind, game_id: requested.append((kind, game_id)))
+            linked[0].linkActivated.emit("atlas-entity:monster:123")
+            linked[0].linkActivated.emit("atlas-entity:boss:456")
+            self.assertEqual(requested, [("monster", 123), ("boss", 456)])
+            linked[0].linkActivated.emit("atlas-entity:monster:0")
+            self.assertEqual(len(requested), 2)
+        finally:
+            card.page_check.deleteLater()
+            card.close()
+
+    def test_source_equipment_color_preserves_item_copy_action(self) -> None:
+        from app.ui.theme import GUIDE_ENTITY_LINK_COLORS
+
+        service = _FakeManualUiService()
+        card_data = dict(service.cards[0])
+        card_data.update({
+            "manual_source": True,
+            "source_step_id": "SOURCE-EQUIPMENT",
+            "manual_stage_id": "SOURCE-EQUIPMENT",
+            "manual_resource_names": ["Bottes", "Ortie"],
+            "manual_sections": {
+                "now": [{
+                    "kind": "action", "position": "",
+                    "text": "Prendre Bottes et Ortie.",
+                    "source_action": {
+                        "items": [
+                            {"name": "Bottes", "quantity": 1,
+                             "item_id": 234, "item_type": "equipment"},
+                            {"name": "Ortie", "quantity": 1,
+                             "item_id": 235, "item_type": "resource"},
+                        ],
+                    },
+                }],
+            },
+        })
+        card = SharedGuideManualCard(service, "character:1", card_data, 0)
+        try:
+            labels = [
+                label for label in card.findChildren(QLabel)
+                if 'href="item-copy:Bottes"' in label.text()
+                and label.objectName() != "GuideManualSourceActionDetail"
+            ]
+            self.assertEqual(len(labels), 1)
+            markup = labels[0].text()
+            details = card.findChildren(QLabel, "GuideManualSourceActionDetail")
+            self.assertEqual(len(details), 1)
+            self.assertIn(f'color:{GUIDE_ENTITY_LINK_COLORS["equipment"]}', details[0].text())
+            self.assertIn(f'color:{GUIDE_ENTITY_LINK_COLORS["equipment"]}', markup)
+            self.assertIn(f'color:{GUIDE_ENTITY_LINK_COLORS["item"]}', markup)
+            QApplication.clipboard().setText("before")
+            labels[0].linkActivated.emit("item-copy:Bottes")
+            self.assertEqual(QApplication.clipboard().text(), "Bottes")
+        finally:
+            card.page_check.deleteLater()
+            card.close()
+
+    def test_inline_entity_colors_are_distinct_and_share_unity_theme(self) -> None:
+        from app.ui.theme import GUIDE_ENTITY_LINK_COLORS, GUIDE_ENTITY_LINK_ROLES, PALETTE
+
+        for category, role in GUIDE_ENTITY_LINK_ROLES.items():
+            self.assertEqual(GUIDE_ENTITY_LINK_COLORS[category], PALETTE[role])
+        categories = ("monster", "boss", "item", "equipment", "npc", "position")
+        self.assertEqual(len({GUIDE_ENTITY_LINK_COLORS[k] for k in categories}), len(categories))
+
+        markup = GuideUltimeManualCard._format_line_html(
+            "", "",
+            "Affronter Bouftou et Boss test avec Bottes et Ortie, puis parler à PNJ Exemple en [1,2].",
+            ["PNJ Exemple"], ["Bottes", "Ortie"],
+            entity_links=(("Bouftou", "monster", 123), ("Boss test", "boss", 456)),
+            item_kinds=(("Bottes", "equipment"), ("Ortie", "item")),
+        )
+        expected = {
+            "monster": 'href="atlas-entity:monster:123"',
+            "boss": 'href="atlas-entity:boss:456"',
+            "equipment": 'href="item-copy:Bottes"',
+            "item": 'href="item-copy:Ortie"',
+            "position": 'href="travel-copy:1,2"',
+        }
+        for category, href in expected.items():
+            with self.subTest(category=category):
+                self.assertIn(href, markup)
+                self.assertIn(f'color:{GUIDE_ENTITY_LINK_COLORS[category]}', markup)
+        self.assertIn(f'color:{GUIDE_ENTITY_LINK_COLORS["npc"]}', markup)
+        # An item without explicit equipment metadata must stay an ordinary item.
+        fallback = GuideUltimeManualCard._format_line_html(
+            "", "", "Équiper Bottes.", [], ["Bottes"],
+        )
+        self.assertIn(f'color:{GUIDE_ENTITY_LINK_COLORS["item"]}', fallback)
+        self.assertNotIn(f'color:{GUIDE_ENTITY_LINK_COLORS["equipment"]}', fallback)
+
     def test_contiguous_actions_at_exact_same_map_share_visual_group_only(self) -> None:
         service = _FakeManualUiService()
         card_data = dict(service.cards[0])
@@ -466,8 +747,11 @@ class GuideUltimeManualUiNavigationTests(unittest.TestCase):
             self.assertEqual(len(groups), 1)
             grouped_rows = groups[0].findChildren(QFrame, "GuideManualLineRow")
             self.assertEqual(len(grouped_rows), 2)
+            # A row contains a separate clickable coordinate label and
+            # its action label; never infer text from the first child only.
             row_texts = [
-                unescape(row.findChild(QLabel).text()) for row in grouped_rows
+                " ".join(unescape(label.text()) for label in row.findChildren(QLabel))
+                for row in grouped_rows
             ]
             self.assertIn("Parler au PNJ", row_texts[0])
             self.assertIn("Prendre l'objet", row_texts[1])
@@ -570,8 +854,8 @@ class GuideUltimeManualUiNavigationTests(unittest.TestCase):
             self.assertEqual(view.active_index, 1)
             self.assertEqual(view.view_index, 1)
             self.assertEqual(bar.value(), bar.minimum())
-            self.assertEqual(view.route_progress_label.text(), "50 %")
-            self.assertEqual((view.route_bar.value(), view.route_bar.maximum()), (1, 2))
+            self.assertEqual(view.global_progress_label.text(), "50 %")
+            self.assertEqual((view.global_progress_bar.value(), view.global_progress_bar.maximum()), (1, 2))
             self.assertEqual(view.progress_donut._percent, 50)
             self.assertEqual(view.nav_page_label.text(), "Page 2 / 2")
         finally:
@@ -598,21 +882,13 @@ class GuideUltimeManualUiNavigationTests(unittest.TestCase):
         finally:
             view.close()
 
-    def test_summary_stays_open_until_its_button_is_explicitly_toggled(self) -> None:
+    def test_no_sommaire_widgets_remain_in_shared_reader(self) -> None:
         _service, view = self._view()
         try:
-            self.assertFalse(view.summary_panel.isVisible())
-            view.summary_button.click()
-            QApplication.processEvents()
-            self.assertTrue(view.summary_panel.isVisible())
-            view.summary_list.item(1).setSelected(True)
-            view._summary_item_clicked(view.summary_list.item(1))
-            view.go_active()
-            view.navigate_relative(1)
-            QApplication.processEvents()
-            self.assertTrue(view.summary_panel.isVisible())
-            view.summary_button.click()
-            self.assertFalse(view.summary_panel.isVisible())
+            self.assertIsNone(view.findChild(QFrame, "GuideSummaryPanel"))
+            self.assertIsNone(view.findChild(QProgressBar, "GuideManualProgress"))
+            self.assertFalse(hasattr(view, "summary_list"))
+            self.assertFalse(hasattr(view, "summary_button"))
         finally:
             view.close()
 
@@ -711,14 +987,26 @@ class GuideUltimeManualUiNavigationTests(unittest.TestCase):
                 if button.property("filterKey") == "Potions"
             )
             potions.click()
-            ready = view.findChild(QToolButton, "GuidePreparationReady")
+            ready = view.findChild(QCheckBox, "GuidePreparationReady")
+            # Exact visual/functional row order, shared by Guide and Ganymède.
+            line = ready.parentWidget().layout().itemAt(0).layout()
+            self.assertIs(line.itemAt(0).widget(), ready)
+            self.assertIn(
+                line.itemAt(1).widget().objectName(),
+                {"GuidePreparationQuantity", "GuidePreparationQuantityPlaceholder"},
+            )
+            copy_button = line.itemAt(2).widget()
+            self.assertEqual(copy_button.objectName(), "GuidePreparationItemCopy")
+            QApplication.clipboard().clear()
+            copy_button.click()
+            self.assertIn("Potion de test", QApplication.clipboard().text())
             ready.click()
             self.assertTrue(ready.isChecked())
             view.participants_button.click()
             portraits = view.findChildren(QToolButton, "GuideParticipantPortrait")
             portraits[1].click()
             QApplication.processEvents()
-            self.assertFalse(view.findChild(QToolButton, "GuidePreparationReady").isChecked())
+            self.assertFalse(view.findChild(QCheckBox, "GuidePreparationReady").isChecked())
         finally:
             view.close()
 

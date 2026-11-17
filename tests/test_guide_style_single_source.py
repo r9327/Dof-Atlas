@@ -16,6 +16,23 @@ from app.ui.styles.guide import (
 
 
 class GuideStyleSingleSourceTests(unittest.TestCase):
+    def test_number_editors_keep_the_shared_unity_blue_surface(self) -> None:
+        from app.ui.theme import atlas_stylesheet
+        style = atlas_stylesheet({"PANEL_2": "#31486B"})
+        selector = "QSpinBox#GuideCompactPageJump,"
+        self.assertIn(selector, style)
+        block = style.split(selector, 1)[1].split("}", 1)[0]
+        self.assertIn("background: #31486B;", block)
+        self.assertIn("QSpinBox#GuideCompactPageJump QLineEdit,", style)
+        self.assertIn("QSpinBox#GuidePreparationQuantity QLineEdit {", style)
+
+    def test_optimized_and_imported_guide_actions_do_not_inject_bullets(self) -> None:
+        source = Path(
+            "app/modules/encyclopedia/views/shared_manual_guide_view.py"
+        ).read_text(encoding="utf-8")
+        self.assertIn('prefix = "⚠ " if kind == "warning" else ""', source)
+        self.assertNotIn('else "• "', source)
+
     def test_public_and_legacy_imports_share_one_canonical_implementation(self) -> None:
         self.assertIs(guide_manual_stylesheet, canonical_manual_stylesheet)
         self.assertIs(guide_universal_stylesheet, canonical_universal_stylesheet)
@@ -54,6 +71,32 @@ class GuideStyleSingleSourceTests(unittest.TestCase):
                 self.assertNotIn("apply_local_style", source)
 
         self.assertFalse(Path("app/ui/styles/quests.py").exists())
+
+    def test_shared_guide_content_uses_global_type_and_surface_roles(self) -> None:
+        from app.ui.entity_link_roles import (
+            ENTITY_LINK_COLOR_ROLES, GUIDE_SOURCE_HIGHLIGHT_COLOR_ROLES,
+        )
+        from app.ui.theme import PALETTE, atlas_stylesheet
+
+        source = Path(
+            "app/modules/encyclopedia/views/shared_manual_guide_view.py"
+        ).read_text(encoding="utf-8")
+        self.assertNotIn("rgba(174, 183, 177", source)
+        self.assertNotIn("QFrame#GuideManualLineRow {", source)
+        self.assertNotIn('status_label.setStyleSheet(', source)
+        for role in (*ENTITY_LINK_COLOR_ROLES.values(),
+                     *GUIDE_SOURCE_HIGHLIGHT_COLOR_ROLES.values()):
+            self.assertIn(role, PALETTE)
+        theme = atlas_stylesheet()
+        for selector in (
+            'QFrame#GuideManualCombatSection',
+            'QFrame#GuideManualCombatInlineRow',
+            'QFrame#GuideManualLineRow[guideRole="combat"]',
+            'QLabel#GuideManualCombatInlineText',
+            'QLabel#GuideManualLine[guideRole="preparation"]',
+            'QLabel#GuidePreparationRowStatus[state="complete"]',
+        ):
+            self.assertIn(selector, theme)
 
     def test_global_theme_owns_phase2_view_selectors(self) -> None:
         source = Path("app/ui/theme.py").read_text(encoding="utf-8")

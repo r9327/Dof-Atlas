@@ -147,6 +147,12 @@ class DoctorUiCoordinatorTests(unittest.TestCase):
         required = required_assertions(["guides-success", "guides-lanyel", "guide-quests"])
         self.assertEqual(len(required), len(set(required)))
         self.assertIn("guides-lanyel/combat", required)
+        for name in ("guides-success", "guides-lanyel", "validator-smoke"):
+            mandatory = required_assertions([name])
+            self.assertIn(f"{name}/global-progress-disclosure", mandatory)
+            self.assertIn(f"{name}/preparation-disclosure", mandatory)
+            self.assertNotIn(f"{name}/lock", mandatory)
+            self.assertNotIn(f"{name}/unlock", mandatory)
         for guide in ("guides-success", "guides-lanyel"):
             for check in ("manual-persist", "manual-reopen",
                           "character-isolation", "manual-restore",

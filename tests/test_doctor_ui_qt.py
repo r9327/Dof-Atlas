@@ -329,7 +329,8 @@ class DoctorUiQtFaultTests(unittest.TestCase):
         from PySide6.QtWidgets import QHBoxLayout, QLabel
         from PySide6.QtCore import QRect
 
-        sheet = self.view.findChild(QFrame, "GuideManualSheet")
+        # The scroll bottom is the final read-ahead sheet, not the active one.
+        sheet = self.view.findChildren(QFrame, "GuideManualSheet")[-1]
         for index in range(45):
             line = QFrame()
             line.setObjectName("GuideManualLineRow")
@@ -345,6 +346,13 @@ class DoctorUiQtFaultTests(unittest.TestCase):
         self.assertEqual(healthy["status"], "PASS", healthy)
         self.assertGreater(healthy["scroll_max"], 0)
         self.assertEqual(healthy["scroll_position"], healthy["scroll_max"])
+        self.assertEqual(
+            healthy["mounted_stage_ids"],
+            [card["manual_stage_id"] for card in self.service.cards],
+        )
+        self.assertEqual(
+            healthy["bottom_stage_id"], self.service.cards[-1]["manual_stage_id"],
+        )
         self.assertGreater(healthy["visible_line_rows"], 0)
         self.assertGreater(healthy["visible_line_text_labels"], 0)
         self.assertIn("GuideBottomAction",
@@ -363,7 +371,69 @@ class DoctorUiQtFaultTests(unittest.TestCase):
         overlay.deleteLater()
         settle()
 
-    def test_collision_overlay_hidden_scroll_and_wrong_lock_are_detectable(self):
+    def test_bottom_scroll_rejects_missing_or_duplicate_read_ahead(self):
+        from PySide6.QtWidgets import QVBoxLayout
+
+        current = self.service.cards[0]
+        last = self.view.findChildren(QFrame, "GuideManualSheet")[-1]
+        last.hide()
+        settle()
+        missing = bottom_guide_observations(self.view, self.view, current)
+        self.assertEqual(missing["status"], "FAIL", missing)
+        self.assertEqual(missing["reason"], "BOTTOM_STAGE_CHANGED")
+        last.show()
+        duplicate = QFrame(self.view.content)
+        duplicate.setObjectName("GuideManualSheet")
+        duplicate.card = current
+        duplicate.setLayout(QVBoxLayout())
+        self.view.cards_layout.addWidget(duplicate)
+        duplicate.show()
+        settle()
+        observed = bottom_guide_observations(self.view, self.view, current)
+        self.assertEqual(observed["status"], "FAIL", observed)
+        self.assertEqual(observed["reason"], "BOTTOM_STAGE_CHANGED")
+        duplicate.deleteLater()
+        settle()
+
+    def test_bottom_oracle_detects_changed_source_action_order(self):
+        last = self.view.findChildren(QFrame, "GuideManualSheet")[-1]
+        last.card["manual_source_action_order"] = ["authored-one"]
+        rows = last.findChildren(QFrame, "GuideManualLineRow")
+        self.assertEqual(len(rows), 1)
+        rows[0].setProperty("sourceActionId", "authored-one")
+        healthy = bottom_guide_observations(
+            self.view, self.view, self.service.cards[0],
+        )
+        self.assertEqual(healthy["status"], "PASS", healthy)
+        rows[0].setProperty("sourceActionId", "substituted")
+        broken = bottom_guide_observations(
+            self.view, self.view, self.service.cards[0],
+        )
+        self.assertEqual(broken["status"], "FAIL", broken)
+        self.assertEqual(broken["reason"], "SOURCE_ACTION_ORDER_CHANGED")
+        self.assertEqual(len(broken["source_order_mismatches"]), 1)
+
+    def test_indexed_global_and_preparation_disclosures_keep_nested_state(self):
+        # No replaced Route/Sommaire/lock controls can accidentally satisfy
+        # the Doctor's current Guide UI acceptance contract.
+        self.assertFalse(hasattr(self.view, "route_lock_check"))
+        self.assertFalse(hasattr(self.view, "summary_button"))
+        global_toggle = self.view.global_details_button
+        preparation = self.view.preparation_button
+        self.assertFalse(self.view.global_details_panel.isVisibleTo(self.view))
+        first = click_target(self.view, global_toggle)
+        self.assertTrue(first["accessible"], first)
+        self.assertTrue(self.view.global_details_panel.isVisibleTo(self.view))
+        nested = click_target(self.view, preparation)
+        self.assertTrue(nested["accessible"], nested)
+        self.assertTrue(self.view.preparation_panel.isVisibleTo(self.view))
+        self.assertTrue(click_target(self.view, global_toggle)["accessible"])
+        self.assertFalse(self.view.global_details_panel.isVisibleTo(self.view))
+        self.assertTrue(preparation.isChecked())
+        self.assertTrue(click_target(self.view, global_toggle)["accessible"])
+        self.assertTrue(self.view.preparation_panel.isVisibleTo(self.view))
+
+    def test_collision_overlay_and_hidden_scroll_are_detectable_without_route_lock(self):
         overlay = QPushButton("Occluding overlay", self.view)
         overlay.setGeometry(self.view.next_button.geometry())
         # Map from the nested nav parent into the top-level view.
@@ -378,12 +448,10 @@ class DoctorUiQtFaultTests(unittest.TestCase):
         self.view.content.setMinimumWidth(2000)
         settle()
         self.assertTrue(geometry_observations(self.view, self.view)["horizontal_overflow"])
-        click_target(self.view, self.view.settings_button)
-        settle()
-        self.view.route_lock_check.toggled.disconnect()
-        click_target(self.view, self.view.route_lock_check)
-        self.assertTrue(self.view.route_lock_check.isChecked())
-        self.assertFalse(self.service.manual_checked("character:1", self.view.ROUTE_LOCK_PROGRESS_KEY))
+        # Route's clickable scrubber/lock were deliberately deleted, not hidden.
+        # The validator must not probe UI that no longer exists in any Guide.
+        self.assertFalse(hasattr(self.view, "settings_button"))
+        self.assertFalse(hasattr(self.view, "route_lock_check"))
 
     def test_real_quest_signal_without_final_effect_fails_and_localizes_each_transition(self):
         sheet = self.view.findChild(QFrame, "GuideManualSheet")

@@ -381,26 +381,50 @@ class GuideUltimeUniversalView(GuideUltimeGeneratedView):
         # Zaaps require independently verified routing; never infer one here.
         normalized = str(command or "").strip()
         available = getattr(self.participant_service, "available_characters", None)
-        # No verified connection inventory means no eligible recipients.
-        # Fail closed without propagating an AttributeError from a Qt event.
-        characters = available() if callable(available) else ()
-        eligible = {
-            row.key
-            for row in (characters or ())
-            if bool(getattr(row, "connected", False))
-        }
-        recipients = tuple(
-            key for key in self.selected_participant_keys() if key in eligible
-        )
         callback = self.travel_callback
         if (
             not callable(callback)
             or not re.fullmatch(r"/travel -?\d+,-?\d+", normalized)
-            or not recipients
+            or not callable(available)
         ):
             QApplication.clipboard().setText(normalized)
             return False
-        callback(normalized, recipients)
+
+        # A selected group must be dispatched as a whole, never quietly
+        # trimmed to its online subset. Refresh twice to reject a disconnect
+        # or a changed selection during the synchronous click handler.
+        def fully_online(keys: tuple[str, ...]) -> bool:
+            connected = {
+                str(getattr(row, "key", "") or "")
+                for row in (available() or ())
+                if bool(getattr(row, "connected", False))
+            }
+            return bool(keys) and len(keys) == len(set(keys)) and all(
+                key in connected for key in keys
+            )
+
+        try:
+            recipients = self.selected_participant_keys()
+            safe = fully_online(recipients)
+            safe = (
+                safe and self.selected_participant_keys() == recipients
+                and fully_online(recipients)
+            )
+        except Exception:
+            safe = False
+        if not safe:
+            QApplication.clipboard().setText(normalized)
+            return False
+        try:
+            accepted = callback(normalized, recipients)
+        except Exception:
+            QApplication.clipboard().setText(normalized)
+            return False
+        # The established launcher is fire-and-forget (returns None).
+        # A literal False, 0 or another ambiguous result is not success.
+        if accepted is not None and accepted is not True:
+            QApplication.clipboard().setText(normalized)
+            return False
         return True
 
     def _build_ui(self) -> None:

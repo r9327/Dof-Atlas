@@ -111,6 +111,31 @@ install, import, execute, license, or qualify the detected candidates.
 - AI context/navigation: use `tools.ai_context` and the scope manifests under `.ai/scopes/` rather than inventing a parallel context index.
 - Integrity, Guide, agent/planner or other specialist work: query the catalog for the capability first, then use the selected canonical entry point and its `TOOL_SPEC`.
 
+## Staged Guide previews (Phase 0, explicit and non-active)
+
+The canonical `atlas-guide-pipeline` entry point exposes the exact-SHA
+read-only CLI, while `atlas-guide-candidate-store` remains a mutation-capable
+**library only** (no standalone CLI or automatic agent execution). Query the
+pipeline's current `TOOL_SPEC` from `tools.tool_catalog` before use.
+On-demand inspection uses the immutable candidate store: no scan at
+application startup and no automatic route import.
+
+```powershell
+py -3.13 -m tools.tool_catalog --tool tools/atlas_guide_pipeline.py --json
+py -3.13 -m tools.atlas_guide_pipeline --preview-root artifacts/guide-candidates --expected-selected <64-character-sha256> --list
+py -3.13 -m tools.atlas_guide_pipeline --preview-root artifacts/guide-candidates --expected-selected <64-character-sha256> --route-id source_guide:fictional-example
+py -3.13 -m tools.atlas_guide_pipeline --preview-root artifacts/guide-candidates --expected-selected <64-character-sha256> --route-id source_guide:fictional-example --stage-id source:fictional-example:step-1
+```
+
+An explicit pinned selection is mandatory. Unknown IDs, stale pointers,
+tampering and absent stores block the read; a candidate is always
+`NOT_CERTIFIED` and `runtime_activation=false`. This is tooling for
+synthetic previews and independent verification, **not** an authorization to
+publish, activate, mutate progress, or register one of the 95 real guides.
+Continue to enforce the independent witness/sequence gates before any real
+guide is staged and the full Phase 0/Graphify/Doctor/Windows rules before
+runtime integration.
+
 ## Specialist skills
 
 Use a matching project skill from `.agents/skills/` for task-specific guidance (navigation, root-cause debugging, Graphify cleanup, Qt UI, persistence, Dofus data, validation and performance). These are focused playbooks, not alternative registries or weaker gates: the catalog, Doctor, Graphify and the permanent guardrails remain authoritative.

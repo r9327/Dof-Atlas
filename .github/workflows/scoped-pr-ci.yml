@@ -147,6 +147,21 @@ jobs:
           python -X faulthandler -m unittest discover -v -s tests -p 'test_craft_adapter_release.py'
           python -X faulthandler -m unittest discover -v -s tests -p 'test_craft_lightweight_import_boundary.py'
 
+      - name: Guide Phase 0 isolated contracts (changed Guide modules only)
+        shell: bash
+        run: |
+          # Cheap exact-SHA Draft test signal; no Qt installation or Windows FULL.
+          set -euo pipefail
+          changed="$(git diff --name-only "$BASE_SHA" "$CANDIDATE_SHA")"
+          if ! printf '%s\n' "$changed" | grep -Eq '^(tools/atlas_guide_[^/]*\.py|tests/test_atlas_guide_[^/]*\.py|app/modules/encyclopedia/services/guide_shared_route_contract\.py|tests/test_guide_shared_route_contract\.py|app/modules/encyclopedia/services/guide_imported_manual_runtime_service\.py|tests/test_guide_imported_manual_runtime_service\.py)$'; then
+            echo "Guide Phase 0 unchanged; isolated contracts not required."
+            exit 0
+          fi
+          # Discover directly from tests/ to avoid the Qt-bearing tests package.
+          python -X faulthandler -m unittest discover -v -s tests -p 'test_atlas_guide_*.py'
+          python -X faulthandler -m unittest discover -v -s tests -p 'test_guide_shared_route_contract.py'
+          python -X faulthandler -m unittest discover -v -s tests -p 'test_guide_imported_manual_runtime_service.py'
+
       - name: Classify scope fail closed without installing PySide6
         id: scope
         shell: bash

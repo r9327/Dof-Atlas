@@ -6,7 +6,7 @@ import weakref
 from pathlib import Path
 from queue import Empty, Queue
 from threading import Thread, current_thread
-from typing import TYPE_CHECKING, Callable
+from typing import TYPE_CHECKING, Callable, Mapping, Sequence
 
 from PySide6.QtCore import QTimer, Qt, Signal
 from PySide6.QtWidgets import QComboBox, QHBoxLayout, QLabel, QTabWidget, QVBoxLayout, QWidget
@@ -46,6 +46,10 @@ if TYPE_CHECKING:
     )
     from app.pages.lazy_quests_page import LazyQuestsPage
     from app.pages.quests_page import QuestsPage
+    from app.modules.encyclopedia.services.guide_imported_manual_runtime_service import (
+        ImportedSourceManualRuntimeService,
+    )
+    from app.modules.encyclopedia.models.guide import Guide
 
 
 LOGGER = logging.getLogger(__name__)
@@ -180,9 +184,22 @@ class EncyclopediaPage(QWidget):
         guide_progress_by_guide: dict[str, tuple[int, int, str]] | None = None,
         guide_progress_character_key: str = "",
         launch_travel_callback: Callable[[str, tuple[str, ...]], None] | None = None,
+        imported_source_services: Mapping[str, ImportedSourceManualRuntimeService] | None = None,
+        imported_source_factories: Mapping[str, Callable[[], ImportedSourceManualRuntimeService]] | None = None,
+        imported_source_authorizer: Callable[[str, dict], bool] | None = None,
+        imported_source_catalog_provider: Callable[[], Sequence[Guide]] | None = None,
         related_data_ready_callback: Callable[[AchievementProvider, GuideProvider], None] | None = None,
         initial_tab: str = DEFAULT_TAB,
     ) -> None:
+        # Reject an unapproved imported Guide before any provider/graph I/O.
+        # Constructing the ordinary Encyclopedia must remain safe and lazy.
+        if (imported_source_services or imported_source_factories) and not callable(imported_source_authorizer):
+            raise ValueError("Imported Guides require an independent authorizer")
+        if imported_source_catalog_provider is not None and (
+            not callable(imported_source_catalog_provider)
+            or not (imported_source_services or imported_source_factories)
+        ):
+            raise ValueError("Trusted source catalogue requires registered authorized Guides")
         super().__init__(parent)
         self.setObjectName("EncyclopediaPage")
         self.status_callback = status_callback
@@ -223,6 +240,13 @@ class EncyclopediaPage(QWidget):
         self._guide_progress_by_guide = guide_progress_by_guide or {}
         self._guide_progress_character_key = guide_progress_character_key or ""
         self._launch_travel_callback = launch_travel_callback
+        # No automatic source discovery, network access or Guide preload.
+        # A future certified installer must explicitly inject its services
+        # together with a separate authorization witness.
+        self._imported_source_services = dict(imported_source_services or {})
+        self._imported_source_factories = dict(imported_source_factories or {})
+        self._imported_source_authorizer = imported_source_authorizer
+        self._imported_source_catalog_provider = imported_source_catalog_provider
         self._related_data_ready_callback = related_data_ready_callback
         self._lazy_slots: dict[str, QWidget] = {}
         self._related_ready = all(
@@ -1358,6 +1382,10 @@ class EncyclopediaPage(QWidget):
             quest_progress_path=self.quest_progress_path,
             navigate_callback=self.navigate_to_entity,
             launch_travel_callback=self._launch_travel_callback,
+            imported_source_services=self._imported_source_services,
+            imported_source_factories=self._imported_source_factories,
+            imported_source_authorizer=self._imported_source_authorizer,
+            imported_source_catalog_provider=self._imported_source_catalog_provider,
             character_key=self.current_character_key,
             graph=self._quest_graph,
             initial_progress_by_guide=self._guide_progress_by_guide,

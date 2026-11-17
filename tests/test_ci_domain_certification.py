@@ -13,6 +13,21 @@ H = "b" * 40
 
 
 class ModularDomainRoutingTests(unittest.TestCase):
+    def test_html_source_capture_has_exact_guide_owner_only(self):
+        tool = "tools/atlas_guide_html_capture.py"
+        test = "tests/test_atlas_guide_html_capture.py"
+        self.assertEqual(owners_for(tool), frozenset({"guides"}))
+        self.assertEqual(owners_for(test), frozenset({"guides"}))
+        plan = self.route([tool, test])
+        self.assertEqual(plan["status"], "READY_TO_EXECUTE")
+        self.assertEqual(plan["unknown_paths"], [])
+        self.assertFalse(plan["phase_certified"])
+        # Future network collectors remain UNKNOWN until independently
+        # reviewed; no tools/atlas_guide_* ownership wildcard.
+        unknown = "tools/atlas_guide_unreviewed_scraper.py"
+        self.assertEqual(owners_for(unknown), frozenset())
+        self.assertEqual(self.route([unknown])["status"], "BLOCKED")
+
     def test_runtime_regression_contracts_keep_all_reviewed_consumers(self):
         domains = {"organizer", "guides", "identity", "data", "ui", "startup"}
         path = "tests/test_runtime_regression_contracts.py"
@@ -242,6 +257,36 @@ class ModularDomainRoutingTests(unittest.TestCase):
         self.assertFalse(owners_for("tools/doctor_unreviewed_entry.py"))
         self.assertEqual(self.route(["tools/doctor_unreviewed_entry.py"])["status"], "BLOCKED")
 
+    def test_guide_conformity_tool_has_exact_guide_owner_without_wildcard(self):
+        # A new executable under tools/ must never inherit Guide ownership
+        # just because its name resembles the approved source comparator.
+        source = "tools/atlas_guide_conformity.py"
+        creator = "tools/atlas_guide_importer.py"
+        publisher = "tools/atlas_guide_candidate_store.py"
+        sequence_gate = "tools/atlas_guide_sequence_gate.py"
+        pipeline = "tools/atlas_guide_pipeline.py"
+        package = "tools/atlas_guide_package_publisher.py"
+        self.assertEqual(owners_for(source), frozenset({"guides"}))
+        self.assertEqual(owners_for(creator), frozenset({"guides"}))
+        self.assertEqual(owners_for(publisher), frozenset({"guides"}))
+        self.assertEqual(owners_for(sequence_gate), frozenset({"guides"}))
+        self.assertEqual(owners_for(pipeline), frozenset({"guides"}))
+        self.assertEqual(owners_for(package), frozenset({"guides"}))
+        plan = self.route([
+            source, creator, publisher, sequence_gate, pipeline, package,
+            "tests/test_atlas_guide_conformity.py",
+            "tests/test_atlas_guide_importer_preview.py",
+            "tests/test_atlas_guide_candidate_store.py",
+            "tests/test_atlas_guide_sequence_gate.py",
+            "tests/test_atlas_guide_pipeline.py",
+            "tests/test_atlas_guide_package_publisher.py",
+        ])
+        self.assertEqual(plan["status"], "READY_TO_EXECUTE")
+        self.assertEqual(plan["unknown_paths"], [])
+        self.assertIn("guides", plan["domains"])
+        self.assertFalse(plan["phase_certified"])
+        self.assertFalse(owners_for("tools/atlas_guide_conformity_unreviewed.py"))
+
     def test_delivery_contract_and_guard_are_ci_owned(self):
         for path in ("tools/ci_delivery_guard.py",
                      ".github/pull_request_template.md", "AGENTS.md",
@@ -431,11 +476,13 @@ class ModularDomainRoutingTests(unittest.TestCase):
     def test_reviewed_ai_skills_are_ci_owned_without_opening_unknown_paths(self):
         from tools.ci_domain_certification import REVIEWED_CI_INSTRUCTION_PATHS
 
-        # All 11 new paths reuse the existing, canonical reviewed-path set.
+        # These exact paths reuse the existing, canonical reviewed-path set.
         new_paths = (
             ".ai/context-map.yaml",
             ".ai/scopes/quality_ci.yaml",
+            ".ai/scopes/encyclopedia_guide.yaml",
             "tests/test_ai_workflow_skills.py",
+            "tests/test_agent_scope_tests.py",
             ".agents/skills/codebase-navigation/SKILL.md",
             ".agents/skills/dofus-data-provenance/SKILL.md",
             ".agents/skills/evidence-driven-validation/SKILL.md",
@@ -445,6 +492,7 @@ class ModularDomainRoutingTests(unittest.TestCase):
             ".agents/skills/root-cause-debugging/SKILL.md",
             ".agents/skills/safe-architecture-cleanup/SKILL.md",
         )
+        self.assertEqual(len(new_paths), 13)
         self.assertEqual(len(set(new_paths)), len(new_paths))
         self.assertTrue(set(new_paths).issubset(REVIEWED_CI_INSTRUCTION_PATHS))
         for path in new_paths:
@@ -460,6 +508,8 @@ class ModularDomainRoutingTests(unittest.TestCase):
             ".agents/skills/unreviewed/SKILL.md",
             ".agents/skills/unreviewed/execute.py",
             ".ai/scopes/unreviewed.yaml",
+            ".ai/scopes/encyclopedia_unreviewed.yaml",
+            "tests/test_agent_scope_unreviewed.py",
             "tests/test_unknown_ai_workflow.py",
         ):
             self.assertFalse(owners_for(path), path)
@@ -673,12 +723,47 @@ class ModularDomainRoutingTests(unittest.TestCase):
         self.assertEqual(plan["unknown_paths"], [])
         self.assertEqual(owners_for("app/modules/encyclopedia/views/unknown.py"), frozenset())
 
+    def test_source_entity_role_palette_test_is_owned_without_widening_unknown(self):
+        self.assertEqual(
+            owners_for("tests/test_entity_link_roles.py"),
+            frozenset({"guides", "ui"}),
+        )
+        self.assertFalse(owners_for("tests/test_entity_link_roles_unknown.py"))
+
+    def test_pr363_guide_shell_panel_and_glyphs_have_exact_owners(self):
+        guide_paths = (
+            "app/modules/encyclopedia/views/ganymede_guide_shell.py",
+            "app/modules/encyclopedia/views/guide_continuous_route_panel.py",
+        )
+        glyph_paths = (
+            "app/assets/themes/dofus_unity/sprites/atlas-control-down.svg",
+            "app/assets/themes/dofus_unity/sprites/atlas-control-up.svg",
+        )
+        for path in guide_paths:
+            self.assertEqual(owners_for(path), frozenset({"guides", "ui"}))
+        for path in glyph_paths:
+            self.assertEqual(owners_for(path), frozenset({"ui", "data"}))
+
+        plan = self.route([*guide_paths, *glyph_paths])
+        self.assertEqual(plan["status"], "READY_TO_EXECUTE")
+        self.assertEqual(plan["unknown_paths"], [])
+        self.assertEqual(set(plan["domains"]), {"guides", "ui", "data"})
+        self.assertFalse(plan["phase_certified"])
+
+        for path in (
+            "app/modules/encyclopedia/views/ganymede_guide_overlay.py",
+            "app/assets/themes/dofus_unity/sprites/atlas-control-external.svg",
+        ):
+            self.assertEqual(owners_for(path), frozenset())
+            self.assertEqual(self.route([path])["status"], "BLOCKED")
+
     def test_classic_and_manual_guide_readers_require_both_domains(self):
         paths = [
             "app/modules/encyclopedia/views/guides_view.py",
             "app/modules/encyclopedia/views/guide_ultime_manual_view.py",
             "app/modules/encyclopedia/views/guide_ultime_universal_view.py",
             "app/modules/encyclopedia/views/shared_manual_guide_view.py",
+            "app/modules/encyclopedia/views/manual_route_guides_view.py",
         ]
         for path in paths:
             self.assertEqual(owners_for(path), frozenset({"guides", "ui"}))

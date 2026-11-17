@@ -1,18 +1,27 @@
 from __future__ import annotations
 
-from PySide6.QtCore import QSize, Qt
-from PySide6.QtGui import QIcon, QImage, QPixmap
+from functools import lru_cache
+from PySide6.QtCore import QRect, QSize, Qt
+from PySide6.QtGui import QIcon, QImage, QPixmap, QTransform, QPainter
 from PySide6.QtWidgets import (
     QDialog,
     QHBoxLayout,
     QLabel,
     QPushButton,
+    QToolButton,
     QVBoxLayout,
     QWidget,
 )
 
 from app.constants import APP_ICON_PATH
 from app.ui.splash_image import clear_connected_dark_background
+from app.ui.unity_skin import sprite_icon_path, unity_guide_chevron_path
+
+
+# Mirrored from Dev UI's indexed guide_character_button / guide_character_icon
+# until PR #365 is merged into this metadata-only Guide branch.
+GUIDE_CHARACTER_BUTTON_PX = 24
+GUIDE_CHARACTER_ICON_PX = 20
 
 
 BUTTON_OBJECT_NAMES = {
@@ -68,6 +77,126 @@ class AtlasButton(QPushButton):
         except KeyError as exc:
             raise ValueError(f"Unknown AtlasButton variant: {variant}") from exc
         self.setObjectName(object_name)
+
+
+@lru_cache(maxsize=8)
+def atlas_guide_character_icon(size: int) -> QIcon:
+    """Render the original Unity Character sprite without transparent padding.
+
+    The original icon occupies only a fraction of its PNG; cropping transparent
+    pixels gives the existing artwork a legible size without recoloring it.
+    """
+    path = sprite_icon_path("character")
+    if path is None:
+        return QIcon()
+    source = QPixmap(str(path))
+    if source.isNull():
+        return QIcon()
+    # Reuse the existing Atlas algorithm to make edge-connected near-black
+    # Unity PNG backgrounds transparent, then trim only transparent margins.
+    image = clear_connected_dark_background(source.toImage())
+    source = QPixmap.fromImage(image)
+    if image.hasAlphaChannel():
+        left, top = image.width(), image.height()
+        right, bottom = -1, -1
+        for y in range(image.height()):
+            for x in range(image.width()):
+                if image.pixelColor(x, y).alpha() > 32:
+                    left, top = min(left, x), min(top, y)
+                    right, bottom = max(right, x), max(bottom, y)
+        if right >= left and bottom >= top:
+            source = source.copy(QRect(
+                left, top, right - left + 1, bottom - top + 1
+            ))
+    pixmap = source.scaled(
+        QSize(size, size), Qt.KeepAspectRatio, Qt.SmoothTransformation
+    )
+    icon = QIcon()
+    icon.addPixmap(pixmap, QIcon.Normal)
+    icon.addPixmap(pixmap, QIcon.Disabled)
+    return icon
+
+
+def atlas_guide_arrow_icon(direction: str) -> QIcon:
+    """Reuse the indexed Unity chevron for Guide drawers and navigation."""
+    if direction not in {"up", "down", "left", "right"}:
+        raise ValueError("Unknown Guide arrow direction")
+    path = unity_guide_chevron_path("down" if direction in {"left", "right"} else direction)
+    if path is None:
+        return QIcon()
+    pixmap = QIcon(str(path)).pixmap(QSize(14, 14))
+    if direction in {"left", "right"}:
+        pixmap = pixmap.transformed(
+            QTransform().rotate(90 if direction == "left" else -90),
+            Qt.SmoothTransformation,
+        )
+    icon = QIcon()
+    icon.addPixmap(pixmap, QIcon.Normal)
+    icon.addPixmap(pixmap, QIcon.Disabled)
+    return icon
+
+
+class AtlasGuideCharacterButton(QToolButton):
+    """Use indexed Unity portrait even when an empty Guide disables selection."""
+
+    def __init__(self, parent: QWidget | None = None) -> None:
+        super().__init__(parent)
+        self.setObjectName("GuideParticipantsButton")
+
+    def paintEvent(self, event) -> None:  # noqa: N802 - Qt
+        super().paintEvent(event)
+        if self.isEnabled() or self.icon().isNull():
+            return
+        # Render the *original* image on top of Qt's disabled icon
+        # transformation. The button remains non-interactive.
+        glyph = self.icon().pixmap(self.iconSize(), QIcon.Normal)
+        if glyph.isNull():
+            return
+        ratio = glyph.devicePixelRatio()
+        painter = QPainter(self)
+        painter.drawPixmap(
+            int((self.width() - glyph.width() / ratio) / 2),
+            int((self.height() - glyph.height() / ratio) / 2),
+            glyph,
+        )
+        painter.end()
+
+
+class AtlasGuideDisclosure(QToolButton):
+    """Shared Guide dropdown: down opens, up closes, with indexed Unity QSS."""
+
+    def __init__(self, parent: QWidget | None = None) -> None:
+        super().__init__(parent)
+        self.setObjectName("GuideMetricDropdown")
+        self.setCheckable(True)
+        self.setCursor(Qt.PointingHandCursor)
+        self.setFocusPolicy(Qt.StrongFocus)
+        self.setIconSize(QSize(14, 14))
+        self.toggled.connect(self._sync_direction)
+        self._sync_direction(False)
+
+    def _sync_direction(self, opened: bool) -> None:
+        icon = atlas_guide_arrow_icon("up" if opened else "down")
+        self.setArrowType(Qt.NoArrow if not icon.isNull() else
+                          Qt.UpArrow if opened else Qt.DownArrow)
+        self.setIcon(icon)
+
+    def paintEvent(self, event) -> None:  # noqa: N802 - Qt override
+        super().paintEvent(event)
+        if self.isEnabled() or self.icon().isNull():
+            return
+        # Windows may omit disabled QToolButton icons even though the vector
+        # QIcon has a Disabled pixmap. Keep the UI-only Guide arrows visible.
+        glyph = self.icon().pixmap(self.iconSize(), QIcon.Disabled)
+        if glyph.isNull():
+            return
+        painter = QPainter(self)
+        painter.drawPixmap(
+            (self.width() - glyph.width()) // 2,
+            (self.height() - glyph.height()) // 2,
+            glyph,
+        )
+        painter.end()
 
 
 class AtlasPageTitle(QLabel):

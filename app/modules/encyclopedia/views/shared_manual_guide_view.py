@@ -1,49 +1,61 @@
 from __future__ import annotations
 
 import hashlib
+import logging
+import html
 import re
+from urllib.parse import quote
 from dataclasses import dataclass
 from functools import lru_cache
 from pathlib import Path
 from typing import Any
 
-from PySide6.QtCore import QPointF, QRectF, QSize, Qt, QTimer
-from PySide6.QtGui import QColor, QIcon, QPainter, QPen, QPixmap
+from PySide6.QtCore import QPointF, QRectF, QSize, Qt, QTimer, QUrl
+from PySide6.QtGui import QColor, QCursor, QDesktopServices, QIcon, QPainter, QPen, QPixmap
 from PySide6.QtWidgets import (
     QApplication,
     QButtonGroup,
     QCheckBox,
+    QDialog,
     QFrame,
     QGridLayout,
     QHBoxLayout,
     QLabel,
     QLayout,
-    QLineEdit,
-    QListWidget,
-    QListWidgetItem,
     QProgressBar,
     QPushButton,
     QScrollArea,
+    QSlider,
     QSizePolicy,
     QSpinBox,
     QStyle,
     QToolButton,
+    QToolTip,
     QVBoxLayout,
     QWidget,
 )
 
 from app.modules.encyclopedia.services.guide_quest_view_model import quest_solution_steps
 from app.modules.encyclopedia.views.guide_ultime_manual_view import (
-    GuideManualProgressBar,
     GuideUltimeManualCard,
     GuideUltimeManualView,
 )
 from app.core.text import normalize_key as normalize_text
-from app.ui.components import AtlasButton
+from app.ui.components import (
+    AtlasButton, AtlasGuideDisclosure, AtlasGuideCharacterButton, atlas_guide_arrow_icon,
+    atlas_guide_character_icon, GUIDE_CHARACTER_BUTTON_PX, GUIDE_CHARACTER_ICON_PX,
+)
 from app.ui.unity_skin import apply_unity_panel_shadow, sprite_icon_path
 from app.constants import DATA_DIR
 from app.modules.encyclopedia.services.image_service import ENCYCLOPEDIA_IMAGE_SERVICE
-from app.ui.theme import PALETTE
+from app.ui.theme import PALETTE, GUIDE_READING_METRICS, SIZES
+from app.ui.entity_link_roles import (
+    ENTITY_LINK_COLOR_ROLES, GUIDE_SOURCE_HIGHLIGHT_COLOR_ROLES,
+    entity_text_markup,
+)
+from app.modules.encyclopedia.services.guide_source_rich_blocks import image_bytes
+
+LOGGER = logging.getLogger(__name__)
 
 
 @lru_cache(maxsize=1)
@@ -57,15 +69,37 @@ def _preparation_icon_roots() -> tuple[Path, ...]:
                             for directory in root.iterdir() if directory.is_dir())
 
 
+@lru_cache(maxsize=512)
+def _guide_entity_icon_path(kind: str, game_id: int) -> Path | None:
+    """Resolve only packaged, typed game IDs; never fetch a remote image."""
+    from app.core.entity_identity import canonical_entity_key
+
+    try:
+        identity = canonical_entity_key(kind, game_id)
+    except ValueError:
+        return None
+    entity_kind, canonical_id = identity.split(":", 1)
+    if entity_kind == "item":
+        folders = _preparation_icon_roots()
+    elif entity_kind == "profession":
+        folders = (DATA_DIR / "images" / "misc" / "jobs",)
+    elif entity_kind in {"monster", "boss", "dungeon", "npc", "quest", "achievement"}:
+        # Optional shipped directories are treated as absent, never fabricated.
+        folders = (DATA_DIR / "images" / f"{entity_kind}s",)
+    else:
+        return None
+    for folder in folders:
+        path = folder / f"{canonical_id}.png"
+        if path.is_file():
+            return path
+    return None
+
+
 @lru_cache(maxsize=1024)
 def _preparation_icon_path(item_id: int) -> Path | None:
     # The canonical images are grouped by type, not in one flat directory.
     # No eager image decode or full filesystem index at app startup.
-    for folder in _preparation_icon_roots():
-        candidate = folder / f"{item_id}.png"
-        if candidate.is_file():
-            return candidate
-    return None
+    return _guide_entity_icon_path("item", item_id)
 
 
 _COMBAT_STOP_WORDS = {
@@ -159,6 +193,14 @@ def _cached_guide_symbol_icon(symbol: str, size: int, color: str) -> QIcon:
         painter.drawEllipse(QPointF(9, 6.5), 1.2, 1.2)
         painter.drawLine(QPointF(6.2, 9.7), QPointF(9, 16))
         painter.drawLine(QPointF(11.8, 9.7), QPointF(9, 16))
+    elif symbol == "zaap":
+        # Small cached portal/stone pictogram, drawn locally with the shared
+        # theme palette. No remote image, file scan or per-row paint job.
+        painter.drawEllipse(QRectF(3, 2, 12, 13))
+        painter.drawArc(QRectF(5.5, 4.5, 7, 8), 45 * 16, 270 * 16)
+        painter.drawLine(QPointF(5, 16), QPointF(13, 16))
+        painter.drawLine(QPointF(7, 12.5), QPointF(9, 7))
+        painter.drawLine(QPointF(9, 7), QPointF(11, 12.5))
     elif symbol == "clipboard":
         painter.drawRoundedRect(QRectF(3, 3, 12, 13), 1.5, 1.5)
         painter.drawRoundedRect(QRectF(6, 1.5, 6, 4), 1.2, 1.2)
@@ -183,6 +225,10 @@ def _cached_guide_symbol_icon(symbol: str, size: int, color: str) -> QIcon:
     elif symbol == "unlock":
         painter.drawRoundedRect(QRectF(4, 8, 10, 8), 1.5, 1.5)
         painter.drawArc(QRectF(8, 2, 6, 9), 0, 180 * 16)
+    elif symbol == "back":
+        painter.drawLine(QPointF(13, 9), QPointF(3, 9))
+        painter.drawLine(QPointF(8, 4), QPointF(3, 9))
+        painter.drawLine(QPointF(3, 9), QPointF(8, 14))
     elif symbol == "check":
         painter.drawLine(QPointF(3, 9), QPointF(7, 13))
         painter.drawLine(QPointF(7, 13), QPointF(15, 4))
@@ -199,11 +245,19 @@ class _PreparationNeed:
     required_by_character: tuple[tuple[str, int | None], ...]
     confidence_by_character: tuple[tuple[str, str], ...] = ()
     sources: tuple[str, ...] = ()
+    scope: str = "per_character"
+    profession_id: int | None = None
+    required_level: int | None = None
 
     @property
     def required_total(self) -> int | None:
         values = [quantity for _key, quantity in self.required_by_character]
-        return sum(values) if all(value is not None for value in values) else None
+        if not values or any(value is None for value in values):
+            return None
+        if self.scope == "party_shared":
+            # Shared materials are acquired once, even for six participants.
+            return values[0] if len(set(values)) == 1 else None
+        return sum(values) if self.scope == "per_character" else None
 
 
 class _GuideProgressDonut(QWidget):
@@ -263,10 +317,9 @@ class _ParticipantPortraitButton(QToolButton):
         super().paintEvent(event)
         painter = QPainter(self)
         painter.setRenderHint(QPainter.Antialiasing)
-        color = (
-            self.palette().highlight().color()
-            if self.isChecked()
-            else self.palette().mid().color()
+        # Keep the ring in Unity accents; gray looks like a disabled portrait.
+        color = QColor(
+            PALETTE["GREEN"] if self.isChecked() else PALETTE["BORDER_STRONG"]
         )
         pen = QPen(color, 3)
         pen.setCapStyle(Qt.RoundCap)
@@ -277,6 +330,150 @@ class _ParticipantPortraitButton(QToolButton):
                 90 * 16,
                 -round(360 * 16 * self.progress / 100),
             )
+
+
+
+class _GuideZoomableSourceImage(QLabel):
+    """Thumbnail preserving original pixels for a click-to-zoom Qt popup."""
+
+    def __init__(self, parent: QWidget | None = None) -> None:
+        super().__init__(parent)
+        self.setObjectName("GuideManualSourceImage")
+        self.setCursor(Qt.PointingHandCursor)
+        self.setAlignment(Qt.AlignLeft | Qt.AlignTop)
+        self._full_source_pixmap = QPixmap()
+
+    def set_source_pixmap(self, pixmap: QPixmap, alt: str) -> None:
+        if pixmap.isNull():
+            self.setText("Illustration source non affichable : " + alt)
+            return
+        self._full_source_pixmap = pixmap
+        self.setPixmap(pixmap.scaled(
+            QSize(
+                GUIDE_READING_METRICS["source_image_max_width"],
+                GUIDE_READING_METRICS["source_image_max_height"],
+            ),
+            Qt.KeepAspectRatio, Qt.SmoothTransformation,
+        ))
+        self.setToolTip("Cliquer pour agrandir · " + alt)
+        self.setAccessibleName("Agrandir l'illustration : " + alt)
+
+    def mouseReleaseEvent(self, event) -> None:  # noqa: N802
+        if event.button() == Qt.LeftButton and not self._full_source_pixmap.isNull():
+            self.open_zoom()
+            event.accept()
+            return
+        super().mouseReleaseEvent(event)
+
+    def open_zoom(self) -> None:
+        if self._full_source_pixmap.isNull():
+            return
+        dialog = QDialog(self.window())
+        dialog.setObjectName("GuideSourceImageZoomDialog")
+        dialog.setWindowTitle("Illustration du guide · zoom")
+        dialog.resize(
+            GUIDE_READING_METRICS["zoom_dialog_width"],
+            GUIDE_READING_METRICS["zoom_dialog_height"],
+        )
+        layout = QVBoxLayout(dialog)
+        layout.setContentsMargins(
+            GUIDE_READING_METRICS["section_horizontal"],
+            GUIDE_READING_METRICS["section_vertical"],
+            GUIDE_READING_METRICS["section_horizontal"],
+            GUIDE_READING_METRICS["section_vertical"],
+        )
+        scroll = QScrollArea(dialog)
+        scroll.setObjectName("GuideSourceImageZoomViewport")
+        scroll.setWidgetResizable(False)
+        scroll.setHorizontalScrollBarPolicy(Qt.ScrollBarAsNeeded)
+        scroll.setVerticalScrollBarPolicy(Qt.ScrollBarAsNeeded)
+        image = QLabel()
+        image.setObjectName("GuideSourceImageZoomed")
+        image.setAlignment(Qt.AlignCenter)
+        scroll.setWidget(image)
+        layout.addWidget(scroll, 1)
+        zoom = QSlider(Qt.Horizontal, dialog)
+        zoom.setObjectName("GuideSourceImageZoomSlider")
+        zoom.setRange(25, 300)
+        zoom.setSingleStep(10)
+        zoom.setPageStep(25)
+        zoom.setValue(100)
+        zoom.setToolTip("Zoom de 25 % à 300 %")
+        zoom.setAccessibleName("Zoom de l'illustration")
+        def draw(percent: int) -> None:
+            size = self._full_source_pixmap.size() * (percent / 100.0)
+            pix = self._full_source_pixmap.scaled(
+                QSize(max(1, int(size.width())), max(1, int(size.height()))),
+                Qt.KeepAspectRatio, Qt.SmoothTransformation,
+            )
+            image.setPixmap(pix)
+            image.resize(pix.size())
+        zoom.valueChanged.connect(draw)
+        draw(100)
+        layout.addWidget(zoom)
+        dialog.exec()
+
+
+class _GuideContinuousSourcePage(QFrame):
+    """ONE indexed reader containing whole authored blocks, never step cards."""
+
+    def __init__(
+        self, entries: tuple[dict[str, Any], ...],
+        *, parent: QWidget | None = None,
+    ) -> None:
+        super().__init__(parent)
+        self.setObjectName("GuideManualSheet")
+        self.setProperty("sourceContinuousReading", True)
+        self.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Maximum)
+        layout = QVBoxLayout(self)
+        spacing = GUIDE_READING_METRICS
+        layout.setContentsMargins(
+            spacing["sheet_horizontal"], spacing["sheet_vertical"],
+            spacing["sheet_horizontal"], spacing["sheet_vertical"],
+        )
+        layout.setSpacing(spacing["reading_gap"])
+        layout.setAlignment(Qt.AlignTop)
+        for entry in entries:
+            block = entry["block"]
+            kind = block["type"]
+            if kind in {"paragraph", "heading", "checklist_item"}:
+                runs = (
+                    block["item"].get("runs") or [{
+                        "text": block["item"]["text"], "role": "plain",
+                    }]
+                    if kind == "checklist_item" else block["runs"]
+                )
+                label = QLabel(self)
+                label.setObjectName(
+                    "GuideManualSectionTitle" if kind == "heading"
+                    else "GuideManualSourceChecklistText" if kind == "checklist_item"
+                    else "GuideManualLine"
+                )
+                label.setTextFormat(Qt.RichText)
+                label.setTextInteractionFlags(Qt.TextBrowserInteraction)
+                label.setOpenExternalLinks(False)
+                label.linkActivated.connect(self._open_source_link)
+                label.setText(SharedGuideManualCard._source_rich_markup(runs))
+                label.setWordWrap(True)
+                layout.addWidget(label)
+            elif kind == "image":
+                image = _GuideZoomableSourceImage(self)
+                pix = QPixmap()
+                if pix.loadFromData(image_bytes(block)):
+                    image.set_source_pixmap(pix, str(block["alt"]))
+                else:
+                    image.setText("Image source non affichable : " + str(block["alt"]))
+                layout.addWidget(image)
+            else:
+                raise ValueError("Unsupported original source block: " + kind)
+
+    @staticmethod
+    def _open_source_link(href: str) -> None:
+        match = re.fullmatch(r"travel-copy:(-?\d{1,5},-?\d{1,5})", href)
+        if match:
+            QApplication.clipboard().setText("/travel " + match.group(1))
+        elif href.startswith("https://"):
+            QDesktopServices.openUrl(QUrl(href))
 
 
 class SharedGuideManualCard(GuideUltimeManualCard):
@@ -291,6 +488,7 @@ class SharedGuideManualCard(GuideUltimeManualCard):
         parent=None,
         *,
         travel_command_callback=None,
+        zaap_travel_callback=None,
         show_header_title: bool = True,
         page_validation_callback=None,
     ) -> None:
@@ -300,8 +498,27 @@ class SharedGuideManualCard(GuideUltimeManualCard):
         self.card = card
         self.index = index
         self.travel_command_callback = travel_command_callback
+        self.zaap_travel_callback = zaap_travel_callback
         self._quest_rows = self._canonical_quest_rows()
         self._quest_row_names_by_id = dict(self._quest_rows)
+        # On an imported step, explicit per-action Quest attribution owns
+        # ALL shortcuts. Earlier untagged rows must not steal one through
+        # a name match or the legacy single-Quest heuristic.
+        source_metadata = card.get("manual_runtime_metadata")
+        source_step = (
+            source_metadata.get("source_step")
+            if isinstance(source_metadata, dict)
+            else None
+        )
+        self._source_quest_links_explicit = (
+            card.get("manual_source") is True
+            and "source_step_id" in card
+            and isinstance(source_step, dict)
+            and any(
+                isinstance(action, dict) and "quest_ids" in action
+                for action in source_step.get("actions", ())
+            )
+        )
         self._quest_normalized_rows = tuple(
             (quest_id, self._quest_name_key(name))
             for quest_id, name in self._quest_rows if name
@@ -314,13 +531,24 @@ class SharedGuideManualCard(GuideUltimeManualCard):
         self._rendered_combat_keys: set[tuple[int, int]] = set()
         self._combat_evidence_cache: dict[tuple[int, int], tuple[str, str]] = {}
         self._last_route_position_key = ""
+        # Source steps form one continuous reading surface. Their identities
+        # stay on each Qt sheet for Doctor, navigation and persistence.
+        self._continuous_source = (
+            card.get("manual_source") is True and "source_step_id" in card
+        )
         self.setObjectName("GuideManualSheet")
+        self.setProperty("continuousGuideReading", self._continuous_source)
 
         root = QVBoxLayout(self)
-        root.setContentsMargins(18, 16, 18, 18)
-        root.setSpacing(9)
+        spacing = GUIDE_READING_METRICS
+        root.setContentsMargins(
+            spacing["sheet_horizontal"], spacing["sheet_vertical"],
+            spacing["sheet_horizontal"], spacing["sheet_vertical"],
+        )
+        root.setSpacing(spacing["sheet_spacing"])
 
-        if index == 0:
+        if (index == 0 and not self._continuous_source
+                and card.get("manual_review_only") is not True):
             self._add_legend(root)
 
         title_text = self._visible_stage_title()
@@ -330,70 +558,130 @@ class SharedGuideManualCard(GuideUltimeManualCard):
             title.setWordWrap(True)
             root.addWidget(title)
 
-        section_provider = getattr(service, "manual_sections_for_card", None)
-        if callable(section_provider):
-            sections = section_provider(character_key, card)
-            # The section provider already owns line materialization. Do not call
-            # manual_lines_for_card first and build the same visible sheet twice.
+        # Imported source cards already carry the canonical ordered sections
+        # from the validated Qt-free route adapter. Re-classifying their
+        # flattened lines through a legacy service loses section semantics,
+        # and can quietly hide before-leaving or optional source actions.
+        # Existing Guide Succès/catalogue cards keep their provider path.
+        # Both existing optimized routes also declare manual_source=True.
+        # Only the authorized importer adds source_step_id: do not bypass the
+        # shared section provider for every authorized Guide runtime.
+        source_card = card.get("manual_source") is True and "source_step_id" in card
+        if source_card:
+            sections = card.get("manual_sections")
             manual_lines = []
+            # Fail closed on missing source sections: a legacy line provider
+            # must not fabricate a replacement for an imported source route.
+            if not isinstance(sections, dict):
+                sections = {}
         else:
-            line_provider = getattr(service, "manual_lines_for_card", None)
-            manual_lines = (
-                line_provider(character_key, card)
-                if callable(line_provider)
-                else card.get("manual_lines", []) or []
-            )
-            sections = {"now": manual_lines}
-        if not isinstance(sections, dict) or not any(sections.values()):
-            if not manual_lines:
+            section_provider = getattr(service, "manual_sections_for_card", None)
+            if callable(section_provider):
+                sections = section_provider(character_key, card)
+                # The section provider owns line materialization. Avoid
+                # calling manual_lines_for_card twice for the same sheet.
+                manual_lines = []
+            else:
                 line_provider = getattr(service, "manual_lines_for_card", None)
                 manual_lines = (
                     line_provider(character_key, card)
                     if callable(line_provider)
                     else card.get("manual_lines", []) or []
                 )
-            sections = {"now": manual_lines}
-        sections = self._without_prepare_duplicates(sections)
+                sections = {"now": manual_lines}
+            if not isinstance(sections, dict) or not any(sections.values()):
+                if not manual_lines:
+                    line_provider = getattr(service, "manual_lines_for_card", None)
+                    manual_lines = (
+                        line_provider(character_key, card)
+                        if callable(line_provider)
+                        else card.get("manual_lines", []) or []
+                    )
+                sections = {"now": manual_lines}
+        # Imported authored actions are never deduplicated by presentation
+        # heuristics. Two visually identical rows may be distinct objectives.
+        if not source_card:
+            sections = self._without_prepare_duplicates(sections)
         self._combat_targets = self._quest_combat_targets(sections)
 
-        # Preparation belongs to the single global, participant-aware panel.
-        # Repeating every requirement on each sheet made the route unreadable
-        # and could contradict the saved ``Prêt`` state.
-        self._add_line_section(
-            root,
-            "À FAIRE MAINTENANT",
-            sections.get("now"),
-            "GuideManualActionSection",
-            "now",
-        )
-        self._add_line_section(
-            root,
-            "À PROFITER ICI",
-            sections.get("opportunity"),
-            "GuideManualActionSection",
-            "opportunity",
-        )
-        self._add_line_section(
-            root,
-            "À CONSERVER POUR PLUS TARD",
-            sections.get("keep"),
-            "GuideManualResourceSection",
-            "keep",
-        )
-        self._add_line_section(
-            root,
-            "BOSS / CAPTURES",
-            sections.get("boss"),
-            "GuideManualCombatSection",
-            "boss",
-        )
-        self._add_line_section(
-            root,
-            "AVANT DE PARTIR",
-            sections.get("before_leave"),
-            "GuideManualWarningSection",
-            "before_leave",
-        )
+        if card.get("manual_review_only") is True:
+            # Show the source map once per review step, including a step
+            # containing only prerequisites. Never fabricate an action row.
+            source_position = str(card.get("manual_review_position") or "").strip()
+            source_key = self._position_key(source_position)
+            if re.fullmatch(r"-?\d+,-?\d+", source_key):
+                position_label = QLabel(self)
+                self._set_clickable_text(
+                    position_label,
+                    (
+                        f'<a href="travel-copy:{source_key}" '
+                        f'style="color:{PALETTE["TEXT_SOFT"]};text-decoration:none;">'
+                        f'Position : <b>{html.escape(source_position)}</b></a>'
+                    ),
+                )
+                position_label.setObjectName("GuideManualPositionCopy")
+                position_label.setCursor(Qt.PointingHandCursor)
+                position_label.setToolTip(f"Copier /travel {source_key}")
+                root.addWidget(position_label)
+            if not sections.get("now") and card.get("hard_runtime_gates"):
+                info = QLabel(
+                    f'{len(card["hard_runtime_gates"])} prérequis à consulter '
+                    "dans l’onglet Prérequis"
+                )
+                info.setObjectName("GuideManualReviewInfo")
+                info.setWordWrap(True)
+                root.addWidget(info)
+
+        section_specs = {
+            "prepare": ("À PRÉPARER", "GuideManualResourceSection"),
+            "now": ("À FAIRE MAINTENANT", "GuideManualActionSection"),
+            "opportunity": ("À PROFITER ICI", "GuideManualActionSection"),
+            "keep": ("À CONSERVER POUR PLUS TARD", "GuideManualResourceSection"),
+            "boss": ("BOSS / CAPTURES", "GuideManualCombatSection"),
+            "before_leave": ("AVANT DE PARTIR", "GuideManualWarningSection"),
+        }
+        source_order = card.get("manual_source_action_order")
+        if source_card and isinstance(source_order, list):
+            # A presentation section cannot sort or swallow source content.
+            by_id = {
+                str(row["source_action_id"]): row
+                for entries in sections.values() if isinstance(entries, list)
+                for row in entries if isinstance(row, dict)
+                and "source_action_id" in row
+            }
+            if len(by_id) != len(source_order) or any(
+                key not in by_id for key in source_order
+            ):
+                raise ValueError("Imported guide source-action order is incomplete")
+            current_section = None
+            batch: list[dict[str, Any]] = []
+            def flush_source_batch() -> None:
+                if not batch:
+                    return
+                section_title, section_object = section_specs[current_section]
+                self._add_line_section(
+                    root, section_title, batch, section_object, current_section,
+                )
+                batch.clear()
+
+            for source_action_id in source_order:
+                row = by_id[source_action_id]
+                section = str(row.get("source_section") or "now")
+                if section not in section_specs:
+                    raise ValueError("Unknown imported source section")
+                if current_section is not None and section != current_section:
+                    flush_source_batch()
+                current_section = section
+                batch.append(row)
+            flush_source_batch()
+        else:
+            # Existing optimized guides retain their old section layout.
+            for section in ("now", "opportunity", "keep", "boss", "before_leave"):
+                section_title, section_object = section_specs[section]
+                self._add_line_section(
+                    root, section_title, sections.get(section),
+                    section_object, section,
+                )
 
         automatic = service.card_auto_complete(character_key, card)
         manual = service.page_checked(character_key, card, index)
@@ -476,6 +764,30 @@ class SharedGuideManualCard(GuideUltimeManualCard):
                 return True
         return False
 
+    def _zaap_shortcut_clicked(self, destination: str) -> None:
+        """An explicit Zaap click may launch only an independently planned route.
+
+        A missing or rejected verified planner never invents a Zaap. Instead,
+        retain the classic destination on the clipboard without touching
+        another application or character.
+        """
+        callback = getattr(self, "zaap_travel_callback", None)
+        requested = False
+        if callable(callback):
+            try:
+                # Only a verified explicit acknowledgment authorizes the route.
+                requested = callback(destination) is True
+            except Exception:
+                LOGGER.exception("Guide: planificateur Zaap indisponible au clic.")
+        if requested:
+            QToolTip.showText(QCursor.pos(), "Trajet Zaap demandé", self)
+        else:
+            QApplication.clipboard().setText(f"/travel {destination}")
+            QToolTip.showText(
+                QCursor.pos(), "Zaap indisponible : /travel copié", self
+            )
+        QTimer.singleShot(800, QToolTip.hideText)
+
     def _display_position(self, raw_position: str) -> str:
         """Show one coordinate per contiguous map group for every shared guide."""
         value = str(raw_position or "").strip()
@@ -486,6 +798,190 @@ class SharedGuideManualCard(GuideUltimeManualCard):
             return ""
         self._last_route_position_key = key
         return value
+
+    @staticmethod
+    def _inline_source_item_images(rendered: str, source_action: Any) -> str:
+        """Decorate verified source item links with existing local item images.
+
+        Only an explicit numeric item ID and a matching already-clickable name
+        qualify. Missing artwork keeps the exact text/link unchanged; never
+        infer an ID from prose or place image URLs from imported source data.
+        """
+        if not isinstance(source_action, dict):
+            return rendered
+        items = source_action.get("items")
+        if not isinstance(items, list):
+            return rendered
+        for item in items[:6]:
+            if not isinstance(item, dict):
+                continue
+            item_id, name = item.get("item_id"), item.get("name")
+            if type(item_id) is not int or item_id <= 0 or not isinstance(name, str):
+                continue
+            href = html.escape(f"item-copy:{quote(name, safe='')}", quote=True)
+            anchor = f'<a href="{href}"'
+            if anchor not in rendered:
+                continue
+            path = _guide_entity_icon_path("item", item_id)
+            if path is None:
+                continue
+            icon = f'<img src="{html.escape(path.as_uri(), quote=True)}" width="16" height="16" alt="" /> '
+            rendered = rendered.replace(anchor, icon + anchor, 1)
+        return rendered
+
+    @staticmethod
+    def _source_item_kinds(source_action: Any) -> tuple[tuple[str, str], ...]:
+        """Use explicit source categories; unknown items remain regular items."""
+        if not isinstance(source_action, dict):
+            return ()
+        items = source_action.get("items")
+        if not isinstance(items, list):
+            return ()
+        result: list[tuple[str, str]] = []
+        for item in items:
+            if not isinstance(item, dict):
+                continue
+            name = item.get("name")
+            kind = item.get("item_type")
+            if isinstance(name, str) and name.strip() and isinstance(kind, str) and kind in {
+                "item", "resource", "equipment"
+            }:
+                result.append((name.strip(), "equipment" if kind == "equipment" else "item"))
+        return tuple(result)
+
+    @staticmethod
+    def _source_monster_entity_links(
+        source_action: Any,
+    ) -> tuple[tuple[str, str, int], ...]:
+        """Only source-confirmed game IDs can point to the Bestiary.
+
+        The Bestiary will resolve the family from the monster ID itself.
+        Never guess identity from an action title or a combat checkbox.
+        """
+        if not isinstance(source_action, dict):
+            return ()
+        monsters = source_action.get("monsters")
+        if not isinstance(monsters, list):
+            return ()
+        links: list[tuple[str, str, int]] = []
+        for monster in monsters:
+            if not isinstance(monster, dict):
+                continue
+            name = monster.get("name")
+            monster_id = monster.get("monster_id")
+            boss_id = monster.get("boss_id")
+            if not isinstance(name, str) or not name.strip():
+                continue
+            if type(boss_id) is int and boss_id > 0 and monster_id is None:
+                links.append((name.strip(), "boss", boss_id))
+            elif type(monster_id) is int and monster_id > 0 and boss_id is None:
+                links.append((name.strip(), "monster", monster_id))
+        return tuple(links)
+
+    def _copy_link_target(self, href: str) -> None:
+        # Keep item names and /travel copy behavior independent of Bestiary.
+        match = re.fullmatch(r"atlas-entity:(monster|boss):([1-9]\d*)", str(href or ""))
+        if match:
+            self.entityRequested.emit(match.group(1), int(match.group(2)))
+            return
+        if str(href or "").startswith("https://"):
+            # No automatic remote request. The explicit authored link is
+            # opened only on the user's own click.
+            QDesktopServices.openUrl(QUrl(str(href)))
+            return
+        super()._copy_link_target(href)
+
+    @staticmethod
+    def _source_rich_markup(runs: list[dict[str, Any]]) -> str:
+        """Source-authored spans, styled only through indexed Unity roles."""
+        result: list[str] = []
+        for run in runs:
+            text = str(run["text"])
+            role = str(run.get("role", "plain"))
+            if role == "plain":
+                # Authored [zaap:x,y] is a copyable position, not raw markup.
+                pieces: list[str] = []
+                cursor = 0
+                for match in re.finditer(
+                    r"\[zaap:(-?\d{1,5}),(-?\d{1,5})\]", text, re.I
+                ):
+                    pieces.append(html.escape(text[cursor:match.start()]))
+                    x, y = int(match.group(1)), int(match.group(2))
+                    target = f"{x},{y}"
+                    pieces.append(
+                        f'<a href="travel-copy:{target}" '
+                        f'style="color:{PALETTE["TEXT_SOFT"]};'
+                        f'text-decoration:underline;">Zaap [{target}]</a>'
+                    )
+                    cursor = match.end()
+                pieces.append(html.escape(text[cursor:]))
+                mark = "".join(pieces)
+            elif role == "warning":
+                mark = (
+                    f'<span style="color:{PALETTE["DANGER_TEXT"]};">'
+                    f'{html.escape(text)}</span>'
+                )
+            elif role in GUIDE_SOURCE_HIGHLIGHT_COLOR_ROLES:
+                color = PALETTE[GUIDE_SOURCE_HIGHLIGHT_COLOR_ROLES[role]]
+                mark = f'<span style="color:{color};">{html.escape(text)}</span>'
+            else:
+                mark = entity_text_markup(text, role, PALETTE)
+            href = run.get("href")
+            if isinstance(href, str):
+                # All source URLs are prevalidated as explicit HTTPS links.
+                color = PALETTE[
+                    GUIDE_SOURCE_HIGHLIGHT_COLOR_ROLES.get(
+                        role, ENTITY_LINK_COLOR_ROLES.get(role, "TEXT_SOFT")
+                    )
+                ]
+                mark = (
+                    f'<a href="{html.escape(href, quote=True)}" '
+                    f'style="color:{color};text-decoration:underline;">'
+                    f'{html.escape(text)}</a>'
+                )
+            result.append(mark)
+        return "".join(result)
+
+    def _add_source_rich_followups(
+        self, target_layout: QVBoxLayout, blocks: list[dict[str, Any]],
+    ) -> None:
+        """Display authored blocks in their exact order, never a generated recap."""
+        for block in blocks:
+            kind = block["type"]
+            if kind in {"paragraph", "heading"}:
+                label = QLabel()
+                label.setObjectName(
+                    "GuideManualSectionTitle" if kind == "heading"
+                    else "GuideManualLine"
+                )
+                self._set_clickable_text(
+                    label, self._source_rich_markup(block["runs"]),
+                )
+                label.setWordWrap(True)
+                target_layout.addWidget(label)
+            elif kind == "checklist":
+                # Source checkboxes are editorial bullets, NOT Atlas validation.
+                # Preserve text and links in their original order, without
+                # drawing a second selectable control on the Guide sheet.
+                for item in block["items"]:
+                    label = QLabel()
+                    label.setObjectName("GuideManualSourceChecklistText")
+                    runs = item.get("runs")
+                    self._set_clickable_text(
+                        label,
+                        self._source_rich_markup(runs)
+                        if isinstance(runs, list) else html.escape(str(item["text"])),
+                    )
+                    label.setWordWrap(True)
+                    target_layout.addWidget(label)
+            elif kind == "image":
+                label = _GuideZoomableSourceImage()
+                pix = QPixmap()
+                if pix.loadFromData(image_bytes(block)):
+                    label.set_source_pixmap(pix, str(block["alt"]))
+                else:
+                    label.setText("Image source non affichable : " + str(block["alt"]))
+                target_layout.addWidget(label)
 
     def _add_line_section(
         self,
@@ -503,30 +999,40 @@ class SharedGuideManualCard(GuideUltimeManualCard):
         if not visible:
             return
 
-        frame = QFrame()
-        frame.setObjectName(
-            "GuideManualWarningSection" if section_key == "prepare" else object_name
-        )
-        if section_key == "boss":
-            frame.setStyleSheet(
-                "QFrame#GuideManualCombatSection {"
-                "background: rgba(174, 183, 177, 0.035);"
-                "border: 1px solid rgba(174, 183, 177, 0.16);"
-                "border-radius: 6px;"
-                "}"
+        review_only = self.card.get("manual_review_only") is True
+        if self._continuous_source:
+            # An authored step already owns the outer Atlas sheet. Its
+            # actions are lines inside that sheet, not another boxed fiche.
+            frame = None
+            layout = QVBoxLayout()
+        else:
+            frame = QFrame()
+            frame.setObjectName(object_name)
+            layout = QVBoxLayout(frame)
+        spacing = GUIDE_READING_METRICS
+        if self._continuous_source:
+            # Newlines, not section cards or sub-step labels, separate actions.
+            layout.setContentsMargins(0, 0, 0, 0)
+            layout.setSpacing(spacing["section_spacing"])
+        else:
+            layout.setContentsMargins(
+                spacing["section_horizontal"], spacing["section_vertical"],
+                spacing["section_horizontal"], spacing["section_vertical"],
             )
-        layout = QVBoxLayout(frame)
-        layout.setContentsMargins(10, 8, 10, 8)
-        layout.setSpacing(6)
+            layout.setSpacing(spacing["section_spacing"])
 
-        heading = QLabel(title)
-        heading.setObjectName("GuideManualSectionTitle")
-        layout.addWidget(heading)
-
+        # A source guide's authored paragraphs and positions are enough.
+        # Do not repeat artificial Atlas section headings inside a step.
+        if not self._continuous_source:
+            heading = QLabel(title)
+            heading.setObjectName("GuideManualSectionTitle")
+            layout.addWidget(heading)
         # Share only presentation containers for contiguous, proven map
         # coordinates. Preserve each authored action, its click targets and
         # exact ordering; never fuse objectives or infer that a zone is a map.
         def group_key(row: dict[str, Any]) -> str:
+            if self._continuous_source:
+                return ""
             if section_key != "now" or str(row.get("kind") or "") != "action":
                 return ""
             if self._is_combat_row("action", str(row.get("text") or "")):
@@ -545,57 +1051,194 @@ class SharedGuideManualCard(GuideUltimeManualCard):
         if quest_names is None:
             quest_names = dict(self._quest_rows)
         for row_index, row in enumerate(visible):
+            source_action_data = row.get("source_action") if self._continuous_source else None
+            rich_original = (
+                source_action_data.get("rich_blocks")
+                if isinstance(source_action_data, dict) else None
+            )
+            source_rich = rich_original
+            if isinstance(rich_original, list):
+                skipped = set(self.card.get("manual_prerequisite_block_indexes", ()))
+                skipped.update(self.card.get("manual_preparation_block_indexes", ()))
+                inline = {
+                    part["block_index"]: part["prefix"]
+                    for part in self.card.get("manual_prerequisite_inline_leads", ())
+                }
+                source_rich = []
+                for block_index, block in enumerate(rich_original):
+                    if block_index in skipped:
+                        continue
+                    if block_index in inline:
+                        # Only the requirement prefix leaves Route: preserve
+                        # the remaining exact styled runs as gameplay prose.
+                        prefix_length = len(inline[block_index])
+                        remaining_runs = []
+                        for run in block["runs"]:
+                            copied = dict(run)
+                            value = copied["text"]
+                            if prefix_length >= len(value):
+                                prefix_length -= len(value)
+                                continue
+                            copied["text"] = value[prefix_length:]
+                            prefix_length = 0
+                            remaining_runs.append(copied)
+                        if prefix_length or not remaining_runs:
+                            raise ValueError("Invalid source prerequisite inline split")
+                        source_rich.append({**block, "runs": remaining_runs})
+                    else:
+                        source_rich.append(block)
+                if not source_rich:
+                    # The sheet can consist exclusively of prerequisites.
+                    # Keep them in Prérequis, not as an empty selectable row.
+                    continue
             text = str(row.get("text") or "").strip()
-            position = self._display_position(str(row.get("position") or ""))
+            position = (
+                "" if review_only else
+                self._display_position(str(row.get("position") or ""))
+            )
             kind = str(row.get("kind") or "")
-            prefix = "⚠ " if kind == "warning" else "• "
+            # The source owns line breaks, Qt must not inject list bullets.
+            prefix = "⚠ " if kind == "warning" else ""
             combat_line = self._is_combat_row(kind, text)
 
             row_widget = QFrame()
             row_widget.setObjectName("GuideManualLineRow")
-            if section_key == "prepare":
-                row_widget.setStyleSheet(
-                    "QFrame#GuideManualLineRow { background: transparent; border: none; }"
+            if self.card.get("manual_source") is True and "source_step_id" in self.card:
+                # Stable, source-authored ordering evidence for Doctor.
+                # No extra visual widget or per-guide renderer is introduced.
+                row_widget.setProperty(
+                    "sourceActionId", str(row.get("source_action_id") or ""),
                 )
-            elif combat_line:
-                row_widget.setStyleSheet(
-                    "QFrame#GuideManualLineRow {"
-                    "background: rgba(174, 183, 177, 0.045);"
-                    "border: 1px solid rgba(174, 183, 177, 0.14);"
-                    "border-radius: 4px;"
-                    "}"
-                )
+            # Qt's shared QSS owns every color, including combat accents.
+            # A semantic state replaces per-row local RGBA overrides.
+            if combat_line and not self._continuous_source:
+                row_widget.setProperty("guideRole", "combat")
             row_layout = QHBoxLayout(row_widget)
             row_layout.setContentsMargins(0, 0, 0, 0)
-            row_layout.setSpacing(7)
+            row_layout.setSpacing(GUIDE_READING_METRICS["row_spacing"])
 
-            line = QLabel()
-            self._set_clickable_text(
-                line,
-                self._format_line_html(
-                    prefix,
-                    position,
-                    text,
-                    self._npc_names(text),
-                    self._resource_names,
-                ),
+            # Use the exact typed NPC on imported source actions. The
+            # heuristic for legacy prose cannot recognize every capitalization
+            # or dialogue phrasing; source identity must win for these cards.
+            source_action = (
+                row.get("source_action")
+                if self.card.get("manual_source") is True and "source_step_id" in self.card else None
             )
+            source_npc = (
+                source_action.get("npc")
+                if isinstance(source_action, dict) else None
+            )
+            npc_names = self._npc_names(text)
+            if isinstance(source_npc, str) and source_npc.strip():
+                npc_names.append(source_npc.strip())
+
+            # Keep the standard /travel anchor independent from the opt-in
+            # Zaap shortcut. The two controls are adjacent before the action
+            # text, and only this visible position gets an icon.
+            position_key = self._position_key(position)
+            is_coordinate = bool(position) and bool(
+                re.fullmatch(r"-?\d+,-?\d+", position_key)
+            )
+            if is_coordinate:
+                coordinate_label = QLabel(row_widget)
+                self._set_clickable_text(
+                    coordinate_label,
+                    (
+                        f'{html.escape(prefix)}<a href="travel-copy:{position_key}" '
+                        f'style="color:{PALETTE["TEXT_SOFT"]};text-decoration:none;">'
+                        f'<b>{html.escape(position)}</b></a>'
+                    ),
+                )
+                coordinate_label.setObjectName("GuideManualPositionCopy")
+                coordinate_label.setCursor(Qt.PointingHandCursor)
+                coordinate_label.setToolTip(f"Copier /travel {position_key}")
+                row_layout.addWidget(coordinate_label, 0, Qt.AlignTop)
+                zaap_button = QToolButton(row_widget)
+                zaap_button.setObjectName("GuideManualZaapShortcut")
+                zaap_button.setIcon(_guide_symbol_icon(zaap_button, "zaap"))
+                zaap_button.setIconSize(QSize(18, 18))
+                zaap_button.setFixedSize(22, 22)
+                zaap_button.setCursor(Qt.PointingHandCursor)
+                zaap_button.setToolTip("Trajet optimisé via Zaap")
+                zaap_button.setAccessibleName(
+                    f"Trajet optimisé via Zaap vers {position}"
+                )
+                zaap_button.clicked.connect(
+                    lambda _checked=False, target=position_key:
+                        self._zaap_shortcut_clicked(target)
+                )
+                row_layout.addWidget(zaap_button, 0, Qt.AlignTop)
+            line = QLabel()
+            rendered_text = self._format_line_html(
+                "" if self._continuous_source else "— " if is_coordinate else prefix,
+                "" if is_coordinate else position,
+                text, npc_names, self._resource_names,
+                entity_links=self._source_monster_entity_links(source_action),
+                item_kinds=self._source_item_kinds(source_action),
+            )
+            if isinstance(source_action, dict):
+                rendered_text = self._inline_source_item_images(
+                    rendered_text, source_action,
+                )
+            if not self._continuous_source:
+                source_rich = (
+                    source_action.get("rich_blocks")
+                    if isinstance(source_action, dict) else None
+                )
+            if isinstance(source_rich, list) and source_rich:
+                # The first VISIBLE block may differ from the first source
+                # block when a prerequisite was moved to its dedicated tab.
+                if source_rich[0]["type"] in {"paragraph", "heading"}:
+                    rendered_text = (
+                        html.escape(
+                            "" if self._continuous_source
+                            else "— " if is_coordinate else prefix
+                        )
+                        + self._source_rich_markup(source_rich[0]["runs"])
+                    )
+                else:
+                    rendered_text = ""
+            self._set_clickable_text(line, rendered_text)
+            if not rendered_text:
+                line.hide()
             if section_key == "prepare":
                 line.setObjectName("GuideManualLine")
-                line.setStyleSheet(
-                    "QLabel#GuideManualLine { background: transparent; border: none; padding: 2px 0; }"
-                )
+                line.setProperty("guideRole", "preparation")
             elif combat_line:
                 line.setObjectName("GuideManualCombatInlineText")
-                line.setStyleSheet(
-                    "QLabel#GuideManualCombatInlineText {"
-                    "background: transparent; border: none; padding: 5px 7px;"
-                    "}"
-                )
             else:
-                line.setObjectName(self._line_object_name(kind, text))
+                source_kind = (
+                    row.get("source_action_kind")
+                    if self.card.get("manual_source") is True
+                    and "source_step_id" in self.card else None
+                )
+                # Imported source semantics take precedence over prose
+                # heuristics, using the existing global Guide styles.
+                if source_kind == "choice":
+                    line.setObjectName("GuideManualSpecial")
+                elif source_kind == "dungeon":
+                    line.setObjectName("GuideManualCombat")
+                else:
+                    line.setObjectName(self._line_object_name(kind, text))
             line.setWordWrap(True)
-            related_quest_ids = self._quest_ids_for_row(row)
+            # Imported actions may identify their own Quest precisely.
+            # An explicit empty list means no shortcut on this action; never
+            # guess from the step's other quests or from matching text.
+            source_action = (
+                row.get("source_action")
+                if self.card.get("manual_source") is True
+                and "source_step_id" in self.card
+                else None
+            )
+            if isinstance(source_action, dict) and "quest_ids" in source_action:
+                related_quest_ids = [
+                    quest_id for quest_id in source_action["quest_ids"]
+                    if quest_id in quest_names
+                ]
+            elif self._source_quest_links_explicit:
+                related_quest_ids = []
+            else:
+                related_quest_ids = self._quest_ids_for_row(row)
             related_names = [
                 quest_names[quest_id]
                 for quest_id in related_quest_ids
@@ -604,9 +1247,17 @@ class SharedGuideManualCard(GuideUltimeManualCard):
             if related_names:
                 line.setToolTip("Quête : " + " · ".join(related_names))
             row_layout.addWidget(line, 1)
-            if section_key == "now":
+            # An imported guide may reference a Quest from any source section.
+            # The first explicit action gets its shortcut; later mentions
+            # keep their hover tooltip without repeating the clickable icon.
+            explicit_source_link = (
+                isinstance(source_action, dict)
+                and self._source_quest_links_explicit
+                and "quest_ids" in source_action
+            )
+            if section_key == "now" or (explicit_source_link and related_quest_ids):
                 self._add_inline_quest_links(
-                    row_layout, row, quest_ids=related_quest_ids
+                    row_layout, row, quest_ids=related_quest_ids,
                 )
 
             current_key = group_keys[row_index]
@@ -632,8 +1283,77 @@ class SharedGuideManualCard(GuideUltimeManualCard):
                 group_position = ""
                 layout.addWidget(row_widget)
             target_layout = group_layout if adjacent else layout
+            if isinstance(source_rich, list) and source_rich:
+                first_visible_is_text = source_rich[0]["type"] in {"paragraph", "heading"}
+                followups = source_rich[1:] if first_visible_is_text else source_rich
+                if followups:
+                    self._add_source_rich_followups(target_layout, followups)
 
-            combat_targets = self._combat_targets_for_row(row, section_key)
+            # Typed data from the authorized source must remain visible even
+            # when the author omitted a quantity, NPC or dialogue choice in
+            # the free-text instruction. These labels are informational only:
+            # no invented quest completion/monster objective is written.
+            # Legacy Guide Succès and catalogue rows are untouched.
+            if self.card.get("manual_source") is True and "source_step_id" in self.card:
+                source_action = row.get("source_action")
+                if isinstance(source_action, dict):
+                    details: list[str] = []
+                    npc = source_action.get("npc")
+                    if isinstance(npc, str) and npc.strip() and (
+                        normalize_text(npc) not in normalize_text(text)
+                    ):
+                        details.append(f"PNJ : {npc.strip()}")
+                    choice = source_action.get("dialogue_choice")
+                    if isinstance(choice, str) and choice.strip() and (
+                        normalize_text(choice) not in normalize_text(text)
+                    ):
+                        details.append(f"Réponse : {choice.strip()}")
+                    for field, caption in (("items", "Objets"), ("monsters", "Combats")):
+                        entries = source_action.get(field)
+                        if not isinstance(entries, list) or not entries:
+                            continue
+                        missing = [
+                            f"×{entry['quantity']} {entry['name']}"
+                            for entry in entries
+                            if isinstance(entry, dict)
+                            and isinstance(entry.get("name"), str)
+                            and type(entry.get("quantity")) is int
+                            and entry["quantity"] > 0
+                            and (
+                                normalize_text(entry["name"]) not in normalize_text(text)
+                                or not re.search(
+                                    rf"(?<!\d){entry['quantity']}(?!\d)", text
+                                )
+                            )
+                        ]
+                        if missing:
+                            details.append(f"{caption} : " + " · ".join(missing))
+                    if details:
+                        detail_label = QLabel()
+                        detail_label.setObjectName("GuideManualSourceActionDetail")
+                        self._set_clickable_text(
+                            detail_label,
+                            self._format_line_html(
+                                "", "", " — ".join(details),
+                                self._npc_names(" ".join(details)) + (
+                                    [source_npc.strip()]
+                                    if isinstance(source_npc, str) and source_npc.strip()
+                                    else []
+                                ),
+                                self._resource_names,
+                                entity_links=self._source_monster_entity_links(source_action),
+                                item_kinds=self._source_item_kinds(source_action),
+                            ),
+                        )
+                        detail_label.setWordWrap(True)
+                        target_layout.addWidget(detail_label)
+
+            # Never insert generated combat substeps into verbatim source
+            # reading. Source monsters stay in their authored action/link.
+            combat_targets = (
+                [] if self._continuous_source
+                else self._combat_targets_for_row(row, section_key)
+            )
             if combat_targets and not combat_heading_added:
                 combat_heading = QLabel("Faire les combats :")
                 combat_heading.setObjectName("GuideManualCombatTargetsTitle")
@@ -642,7 +1362,10 @@ class SharedGuideManualCard(GuideUltimeManualCard):
             for target in combat_targets:
                 self._add_combat_target(target_layout, target)
 
-        root.addWidget(frame)
+        if self._continuous_source:
+            root.addLayout(layout)
+        else:
+            root.addWidget(frame)
 
     @staticmethod
     def _combat_key(target: dict[str, Any]) -> tuple[int, int]:
@@ -871,13 +1594,6 @@ class SharedGuideManualCard(GuideUltimeManualCard):
 
         row = QFrame()
         row.setObjectName("GuideManualCombatInlineRow")
-        row.setStyleSheet(
-            "QFrame#GuideManualCombatInlineRow {"
-            "background: rgba(174, 183, 177, 0.055);"
-            "border: 1px solid rgba(174, 183, 177, 0.18);"
-            "border-radius: 4px;"
-            "}"
-        )
         row_layout = QHBoxLayout(row)
         row_layout.setContentsMargins(16, 3, 6, 3)
         row_layout.setSpacing(6)
@@ -895,9 +1611,6 @@ class SharedGuideManualCard(GuideUltimeManualCard):
         # tooltip while the row follows the viewport width.
         checkbox.setMinimumWidth(0)
         checkbox.setSizePolicy(QSizePolicy.Ignored, QSizePolicy.Preferred)
-        checkbox.setStyleSheet(
-            "QCheckBox#GuideManualCombatCheck { background: transparent; border: none; }"
-        )
         progress = getattr(self.service, "quest_progress", None)
         checked = bool(
             progress is not None
@@ -931,7 +1644,6 @@ class SharedGuideManualCard(GuideUltimeManualCard):
 class SharedGuideManualView(GuideUltimeManualView):
     """Guide-agnostic canonical manual road-book renderer."""
 
-    ROUTE_LOCK_PROGRESS_KEY = "__ui:shared_route_locked__"
 
     def _clear_cards(self) -> None:
         """Detach prior sheets immediately; Qt may defer their destruction.
@@ -955,6 +1667,8 @@ class SharedGuideManualView(GuideUltimeManualView):
         self._preparation_needs: tuple[_PreparationNeed, ...] = ()
         self._preparation_preview: tuple[tuple[str, str, int, int | None], ...] = ()
         self._preparation_loaded = False
+        # Review-only checklist state is temporary UI, never game progression.
+        self._preview_preparation_checked: dict[tuple[str, str, int | None], bool] = {}
         self._preparation_visible_limit = 80
         self._participant_buttons: dict[str, _ParticipantPortraitButton] = {}
         # One bounded SQLite detail per tick. A navigation change stops the
@@ -982,9 +1696,10 @@ class SharedGuideManualView(GuideUltimeManualView):
         self.scroll.setFrameShape(QFrame.NoFrame)
         self.scroll.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
         self.content = QWidget()
+        self.content.setObjectName("GuideManualContent")
         self.cards_layout = QVBoxLayout(self.content)
         self.cards_layout.setContentsMargins(8, 2, 8, 8)
-        self.cards_layout.setSpacing(8)
+        self.cards_layout.setSpacing(GUIDE_READING_METRICS["reading_gap"])
         self.scroll.setWidget(self.content)
         root.addWidget(self.scroll, 1)
 
@@ -995,9 +1710,8 @@ class SharedGuideManualView(GuideUltimeManualView):
         nav_layout.setSpacing(8)
         self.prev_button = QPushButton("Précédent")
         self.prev_button.setObjectName("GuideManualPrev")
-        self.prev_button.setIcon(
-            self.prev_button.style().standardIcon(QStyle.SP_ArrowBack)
-        )
+        self.prev_button.setIcon(atlas_guide_arrow_icon("left"))
+        self.prev_button.setIconSize(QSize(14, 14))
         self.prev_button.clicked.connect(lambda: self.navigate_relative(-1))
         nav_layout.addWidget(self.prev_button)
         nav_layout.addStretch(1)
@@ -1010,9 +1724,8 @@ class SharedGuideManualView(GuideUltimeManualView):
         nav_layout.addStretch(1)
         self.next_button = QPushButton("Suivant")
         self.next_button.setObjectName("GuideManualNextButton")
-        self.next_button.setIcon(
-            self.next_button.style().standardIcon(QStyle.SP_ArrowForward)
-        )
+        self.next_button.setIcon(atlas_guide_arrow_icon("right"))
+        self.next_button.setIconSize(QSize(14, 14))
         self.next_button.clicked.connect(lambda: self.navigate_relative(1))
         nav_layout.addWidget(self.next_button)
         apply_unity_panel_shadow(nav, blur=14, vertical=3)
@@ -1022,27 +1735,37 @@ class SharedGuideManualView(GuideUltimeManualView):
         self.progress_details.setVisible(False)
         self.position_label = QLabel()
         self.position_label.setVisible(False)
-        self._restore_route_lock_state()
 
     def _build_compact_header(self, root: QVBoxLayout) -> None:
-        """One left donut, three horizontally expanding metrics, three real panel controls."""
+        """One global progress bar and one indexed À préparer panel."""
         header = QFrame()
         header.setObjectName("GuideCompactHeader")
         outer = QHBoxLayout(header)
         outer.setContentsMargins(10, 6, 10, 7)
         outer.setSpacing(10)
 
-        self.progress_donut = _GuideProgressDonut()
-        outer.addWidget(self.progress_donut, 0, Qt.AlignVCenter)
-
         right = QVBoxLayout()
         right.setSpacing(6)
         outer.addLayout(right, 1)
+        self.progress_donut = _GuideProgressDonut()
+        self.progress_donut.hide()
+        self.donut_count_label = QLabel()
+        self.donut_count_label.hide()
+        self.global_progress_bar = QProgressBar()
+        self.global_progress_bar.setObjectName("GuideGlobalProgress")
+        self.global_progress_bar.setRange(0, 100)
+        self.global_progress_bar.setTextVisible(False)
+        self.global_progress_bar.setFixedHeight(11)
+        self.global_progress_label = QLabel("—")
+        self.global_progress_label.setObjectName("GuideCompactMetricValue")
+        self._metric_columns: dict[str, QVBoxLayout] = {}
 
         # Row 1: active guide, instant sheet selector and compact commands.
         title_row = QHBoxLayout()
         title_row.setSpacing(6)
-        self.guide_button = AtlasButton("←")
+        self.guide_button = AtlasButton("")
+        self.guide_button.setIcon(atlas_guide_arrow_icon("left"))
+        self.guide_button.setIconSize(QSize(14, 14))
         self.guide_button.setObjectName("GuideManualGuideButton")
         self.guide_button.setToolTip("Revenir à la fiche actuelle, puis au catalogue des guides")
         self.guide_button.setAccessibleName("Fiche actuelle ou catalogue des guides")
@@ -1056,7 +1779,8 @@ class SharedGuideManualView(GuideUltimeManualView):
         guide_icon.setObjectName("GuideCompactTitleIcon")
         guide_symbol = "trophy" if "succès" in self._guide_title().casefold() else "guide"
         guide_icon.setPixmap(_guide_symbol_icon(guide_icon, guide_symbol, size=16).pixmap(16, 16))
-        guide_icon.setFixedSize(16, 16)
+        guide_icon.setFixedSize(32, 32)
+        self.guide_icon_label = guide_icon
         title_row.addWidget(guide_icon)
         self.guide_title_label = QLabel(self._guide_title())
         self.guide_title_label.setObjectName("GuideCompactTitle")
@@ -1065,22 +1789,7 @@ class SharedGuideManualView(GuideUltimeManualView):
         self.guide_title_label.setToolTip(self._guide_title())
         title_row.addWidget(self.guide_title_label, 1)
 
-        self.page_jump = QSpinBox()
-        self.page_jump.setObjectName("GuideCompactPageJump")
-        self.page_jump.setPrefix("Fiche ")
-        self.page_jump.setRange(1, max(1, len(self.service.cards)))
-        self.page_jump.setMaximumWidth(115)
-        self.page_jump.setToolTip("Ouvrir directement la fiche sélectionnée")
-        self.page_jump.valueChanged.connect(
-            lambda value: self._show_index(value - 1)
-        )
-        title_row.addWidget(self.page_jump)
-        self.current_button = QPushButton("Actuelle")
-        self.current_button.setObjectName("GuideCompactCurrentButton")
-        self.current_button.setIcon(_guide_symbol_icon(self.current_button, "current"))
-        self.current_button.clicked.connect(self.go_active)
-        title_row.addWidget(self.current_button)
-        # Compatibility-only sheet position; sheet title appears once below.
+        # The sheet selector lives beside its stage title, not here.
         self.nav_page_label = QLabel(self)
         self.nav_page_label.setObjectName("GuideManualNavPage")
         self.nav_page_label.setVisible(False)
@@ -1092,128 +1801,183 @@ class SharedGuideManualView(GuideUltimeManualView):
         self.overlay_button.setAccessibleName("Overlay")
         self.overlay_button.setEnabled(False)
         title_row.addWidget(self.overlay_button)
-        self.settings_button = QToolButton()
-        self.settings_button.setObjectName("GuideCompactSettingsButton")
-        self.settings_button.setIcon(_guide_symbol_icon(self.settings_button, "settings"))
-        self.settings_button.setIconSize(QSize(16, 16))
-        self.settings_button.setToolTip("Paramètres du Guide")
-        self.settings_button.setAccessibleName("Paramètres du Guide")
-        self.settings_button.setCheckable(True)
-        title_row.addWidget(self.settings_button)
         right.addLayout(title_row)
+        self._compact_title_row = title_row
 
-        # Row 2: THREE horizontal, equal-width blocks (never vertical stack).
-        metrics = QHBoxLayout()
-        metrics.setSpacing(12)
+        overall_caption = QHBoxLayout()
+        overall_title = QLabel("Progression globale")
+        overall_title.setObjectName("GuideGlobalProgressTitle")
+        overall_caption.addWidget(overall_title)
+        self.global_details_button = AtlasGuideDisclosure()
+        self.global_details_button.setFixedSize(18, 18)
+        self.global_details_button.setCursor(Qt.PointingHandCursor)
+        self.global_details_button.setToolTip("Afficher la progression et les préparatifs")
+        self.global_details_button.setAccessibleName("Déplier la progression globale")
+        overall_caption.addWidget(self.global_details_button, 0, Qt.AlignVCenter)
+        overall_caption.addStretch(1)
+        overall_caption.addWidget(self.global_progress_label)
+
+        # One main progress metric. Preparation belongs INSIDE its disclosure,
+        # not in a second column outside the global panel.
+        global_metric = QVBoxLayout()
+        global_metric.setSpacing(2)
+        global_metric.addLayout(overall_caption)
+        global_metric.addWidget(self.global_progress_bar)
+        right.addLayout(global_metric)
+
+        self.global_details_panel = QFrame()
+        self.global_details_panel.setObjectName("GuideGlobalDetailsPanel")
+        global_details_content = QVBoxLayout(self.global_details_panel)
+        global_details_content.setContentsMargins(10, 8, 10, 9)
+        global_details_content.setSpacing(GUIDE_READING_METRICS["row_spacing"])
+
+        # Per-character rows are refreshed independently: never clear the
+        # preparation progress and its own expandable drawer on refresh.
+        self.global_details_rows = QWidget()
+        self.global_details_rows.setObjectName("GuideGlobalCharacterProgress")
+        self.global_details_layout = QVBoxLayout(self.global_details_rows)
+        self.global_details_layout.setContentsMargins(0, 0, 0, 0)
+        self.global_details_layout.setSpacing(GUIDE_READING_METRICS["row_spacing"])
+        global_details_content.addWidget(self.global_details_rows)
+
         self._metric_caption_labels: dict[str, QLabel] = {}
-        def add_metric(
-            name: str, symbol: str, color_key: str, bar: QProgressBar, value: QLabel
-        ) -> None:
-            block = QVBoxLayout()
-            block.setSpacing(2)
-            caption = QHBoxLayout()
-            caption.setSpacing(4)
-            icon = QLabel()
-            icon.setObjectName(f"GuideCompactMetricIcon{symbol.title()}")
-            icon.setPixmap(
-                _guide_symbol_icon(icon, symbol, size=16, color=PALETTE[color_key]).pixmap(16, 16)
-            )
-            icon.setFixedSize(16, 16)
-            caption.addWidget(icon)
-            caption_label = QLabel(name)
-            caption_label.setToolTip(name)
-            caption_label.setMinimumWidth(0)
-            self._metric_caption_labels[name] = caption_label
-            caption.addWidget(caption_label)
-            caption.addStretch(1)
-            value.setObjectName("GuideCompactMetricValue")
-            caption.addWidget(value)
-            block.addLayout(caption)
-            bar.setTextVisible(False)
-            bar.setFixedHeight(7)
-            block.addWidget(bar)
-            metrics.addLayout(block, 1)
+        preparation_metric = QVBoxLayout()
+        preparation_metric.setSpacing(2)
 
-        self.route_bar = GuideManualProgressBar()
-        self.route_bar.setObjectName("GuideManualProgress")
-        self.route_bar.setCursor(Qt.PointingHandCursor)
-        self.route_bar.navigationRequested.connect(self._jump_from_progress)
-        self.route_progress_label = QLabel("—")
-        add_metric("Route", "target", "RED", self.route_bar, self.route_progress_label)
+        caption = QHBoxLayout()
+        caption.setSpacing(4)
+        icon = QLabel()
+        icon.setObjectName("GuideCompactMetricIconCube")
+        icon.setPixmap(
+            _guide_symbol_icon(icon, "cube", size=16, color=PALETTE["GREEN"]).pixmap(16, 16)
+        )
+        icon.setFixedSize(16, 16)
+        caption.addWidget(icon)
+        caption_label = QLabel("À préparer")
+        caption_label.setToolTip("Préparation")
+        caption_label.setMinimumWidth(0)
+        self._metric_caption_labels["Préparation"] = caption_label
+        caption.addWidget(caption_label)
+        caption.addStretch(1)
+        self.preparation_progress_label = QLabel("—")
+        self.preparation_progress_label.setObjectName("GuideCompactMetricValue")
+        caption.addWidget(self.preparation_progress_label)
+
+        self.preparation_button = AtlasGuideDisclosure()
+        self.preparation_button.setFixedSize(18, 18)
+        self.preparation_button.setCursor(Qt.PointingHandCursor)
+        self.preparation_button.setToolTip("Ouvrir Préparation")
+        self.preparation_button.setAccessibleName("Afficher Préparation")
+        caption.insertWidget(2, self.preparation_button, 0, Qt.AlignVCenter)
+        preparation_metric.addLayout(caption)
 
         self.preparation_bar = QProgressBar()
         self.preparation_bar.setObjectName("GuideCompactPreparationProgress")
-        self.preparation_progress_label = QLabel("—")
-        add_metric("Préparation", "cube", "GREEN", self.preparation_bar, self.preparation_progress_label)
+        self.preparation_bar.setTextVisible(False)
+        self.preparation_bar.setFixedHeight(7)
+        preparation_metric.addWidget(self.preparation_bar)
 
-        self.success_bar = QProgressBar()
-        self.success_bar.setObjectName("GuideCompactSuccessProgress")
-        self.success_progress_label = QLabel("—")
-        add_metric("Succès", "trophy", "YELLOW", self.success_bar, self.success_progress_label)
-        right.addLayout(metrics)
+        drawer_column = QVBoxLayout()
+        drawer_column.setContentsMargins(0, 0, 0, 0)
+        self._metric_columns = {"Préparation": drawer_column}
+        preparation_metric.addLayout(drawer_column)
+        global_details_content.addLayout(preparation_metric)
 
-        # Row 3: populated by the existing preparation, summary and participant
-        # builders. Their original panels/signals remain owned by those builders.
-        self.header_actions_row = QHBoxLayout()
-        self.header_actions_row.setSpacing(7)
-        right.addLayout(self.header_actions_row)
+        self.global_details_panel.setVisible(False)
+        self.global_details_button.toggled.connect(self._global_details_toggled)
+        right.addWidget(self.global_details_panel)
+        self._header_content_layout = right
 
-        self.settings_panel = QFrame()
-        self.settings_panel.setObjectName("GuideCompactSettingsPanel")
-        settings_layout = QHBoxLayout(self.settings_panel)
-        settings_layout.setContentsMargins(8, 5, 8, 5)
-        self.route_lock_check = QToolButton()
-        self.route_lock_check.setObjectName("GuideManualProgressLock")
-        self.route_lock_check.setCheckable(True)
-        self.route_lock_check.setCursor(Qt.PointingHandCursor)
-        self.route_lock_check.toggled.connect(self._route_lock_toggled)
-        settings_layout.addWidget(self.route_lock_check)
-        settings_layout.addStretch(1)
-        self.settings_panel.setVisible(False)
-        self.settings_button.toggled.connect(self.settings_panel.setVisible)
-        right.addWidget(self.settings_panel)
         apply_unity_panel_shadow(header, blur=18, vertical=4)
         root.addWidget(header)
 
+    def _global_details_toggled(self, opened: bool) -> None:
+        self.global_details_panel.setVisible(bool(opened))
+        if opened:
+            self._refresh_global_details()
+
+    def _refresh_global_details(self) -> None:
+        """Read-only per-character progress using the existing verified IDs."""
+        while self.global_details_layout.count():
+            item = self.global_details_layout.takeAt(0)
+            widget = item.widget()
+            if widget is not None:
+                widget.hide()
+                widget.setParent(None)
+                widget.deleteLater()
+        keys = self._progress_participant_keys()
+        if not keys:
+            message = (
+                "Progression indisponible : aperçu non certifié."
+                if getattr(self, "_inspection_active", False)
+                else "Sélectionne un personnage pour afficher sa progression."
+            )
+            empty = QLabel(message)
+            empty.setObjectName("GuidePreparationEmpty")
+            empty.setWordWrap(True)
+            self.global_details_layout.addWidget(empty)
+            return
+        profiles = {
+            row.key: row.label
+            for row in self.participant_service.available_characters()
+        }
+        for key in keys:
+            percent = self._participant_progress(key)
+            label = QLabel(
+                f"{profiles.get(key, key)} · {percent} %"
+                if percent is not None
+                else f"{profiles.get(key, key)} · progression inconnue"
+            )
+            label.setObjectName("GuidePreparationParticipantNeed")
+            label.setWordWrap(True)
+            self.global_details_layout.addWidget(label)
+
     def _build_preparation_panel(self, root: QVBoxLayout) -> None:
-        self.preparation_button = QToolButton()
-        self.preparation_button.setObjectName("GuidePreparationToggle")
-        self.preparation_button.setText("Préparation")
-        self.preparation_button.setIcon(
-            _guide_symbol_icon(self.preparation_button, "clipboard")
-        )
-        self.preparation_button.setToolButtonStyle(Qt.ToolButtonTextBesideIcon)
-        self.preparation_button.setSizePolicy(QSizePolicy.Fixed, QSizePolicy.Fixed)
-        self.preparation_button.setFixedHeight(28)
-        self.preparation_button.setMaximumWidth(148)
-        self.preparation_button.setArrowType(Qt.RightArrow)
-        self.preparation_button.setCheckable(True)
-        self.preparation_button.setCursor(Qt.PointingHandCursor)
         self.preparation_button.toggled.connect(self._preparation_toggled)
-        self.header_actions_row.addWidget(self.preparation_button, 0)
 
         self.preparation_panel = QFrame()
         self.preparation_panel.setObjectName("GuidePreparationPanel")
         panel_layout = QVBoxLayout(self.preparation_panel)
         panel_layout.setContentsMargins(10, 8, 10, 9)
         panel_layout.setSpacing(7)
-        filters = QHBoxLayout()
-        filters.setSpacing(5)
+        # Two actual tabs, sharing the indexed Unity selection style.
+        # Prerequisites must not be mixed into the materials list.
+        # Keep materials as the default for existing playable guides.
+        # A metadata-only preview may explicitly select prerequisites.
+        self._preparation_tab = "À préparer"
+        self._source_prerequisites_defaulted = False
+        self.preparation_tab_group = QButtonGroup(self)
+        self.preparation_tab_group.setExclusive(True)
+        tab_row = QHBoxLayout()
+        tab_row.setSpacing(5)
+        for tab in ("Prérequis", "À préparer"):
+            button = QPushButton(tab)
+            button.setObjectName("GuidePreparationModeTab")
+            button.setCheckable(True)
+            button.setChecked(tab == self._preparation_tab)
+            button.setProperty("tabKey", tab)
+            self.preparation_tab_group.addButton(button)
+            button.clicked.connect(
+                lambda _checked=False, value=tab: self._preparation_tab_changed(value)
+            )
+            tab_row.addWidget(button)
+        tab_row.addStretch(1)
+        panel_layout.addLayout(tab_row)
+
+        self.preparation_filter_host = QFrame()
+        self.preparation_filter_host.setObjectName("GuidePreparationFilterHost")
+        # Indexed Dev UI buttons wrap inside the half-width progress column.
+        filters = QGridLayout(self.preparation_filter_host)
+        filters.setContentsMargins(0, 0, 0, 0)
+        filters.setHorizontalSpacing(5)
+        filters.setVerticalSpacing(5)
+        self._preparation_filters_layout = filters
         self.preparation_filter_group = QButtonGroup(self)
         self.preparation_filter_group.setExclusive(True)
-        for label in ("Tout", "Prérequis", "Métiers", "Potions", "Pierres d'âme", "Clefs", "Objets"):
-            button = QPushButton(label)
-            button.setObjectName("GuidePreparationFilter")
-            button.setCheckable(True)
-            button.setProperty("filterKey", label)
-            button.setChecked(label == "Tout")
-            self.preparation_filter_group.addButton(button)
-            button.clicked.connect(
-                lambda _checked=False, value=label: self._render_preparation(value)
-            )
-            filters.addWidget(button)
-        filters.addStretch(1)
-        panel_layout.addLayout(filters)
+        for label in ("Tout", "Métiers", "Potions", "Pierres d'âme", "Clefs", "Objets"):
+            self._add_preparation_filter(label)
+        self.preparation_filter_host.show()
+        panel_layout.addWidget(self.preparation_filter_host)
 
         self.preparation_scroll = QScrollArea()
         self.preparation_scroll.setObjectName("GuidePreparationScroll")
@@ -1223,14 +1987,57 @@ class SharedGuideManualView(GuideUltimeManualView):
         self.preparation_scroll.setMinimumHeight(126)
         self.preparation_scroll.setMaximumHeight(210)
         self.preparation_content = QWidget()
+        self.preparation_content.setObjectName("GuidePreparationContent")
         self.preparation_rows_layout = QVBoxLayout(self.preparation_content)
+        # Keep each real row's minimum size even when more items fit than
+        # the visible drawer. The Qt scroll area, not the rows, must scroll.
+        self.preparation_rows_layout.setSizeConstraint(QLayout.SetMinimumSize)
         self.preparation_rows_layout.setContentsMargins(0, 0, 0, 0)
-        self.preparation_rows_layout.setSpacing(4)
+        self.preparation_rows_layout.setSpacing(GUIDE_READING_METRICS["row_spacing"])
         self.preparation_scroll.setWidget(self.preparation_content)
         panel_layout.addWidget(self.preparation_scroll)
         self.preparation_panel.setVisible(False)
         apply_unity_panel_shadow(self.preparation_panel, blur=16, vertical=4)
-        root.addWidget(self.preparation_panel)
+        # The sole drawer remains aligned with its preparation bar.
+        self._metric_columns["Préparation"].addWidget(self.preparation_panel)
+
+    def _add_preparation_filter(self, label: str) -> None:
+        button = QPushButton(label)
+        button.setObjectName("GuidePreparationFilter")
+        button.setCheckable(True)
+        button.setProperty("filterKey", label)
+        button.setChecked(label == "Tout")
+        self.preparation_filter_group.addButton(button)
+        button.clicked.connect(
+            lambda _checked=False, value=label: self._render_preparation(value)
+        )
+        index = len(self.preparation_filter_group.buttons()) - 1
+        self._preparation_filters_layout.addWidget(button, index // 3, index % 3)
+
+    def _ensure_preparation_filters(self) -> None:
+        from app.modules.encyclopedia.services.guide_preparation_model import category_for
+        categories = {
+            need.category for need in self._preparation_needs
+            if need.category != "Prérequis"
+        }
+        categories.update(
+            category for category, _name, _qty, _id in self._preparation_preview
+            if category != "Prérequis"
+        )
+        if self._is_imported_source_guide():
+            from app.modules.encyclopedia.services.guide_source_preparation_rows import (
+                global_source_material_rows,
+            )
+            categories.update(
+                category_for(str(row["name"]), str(row.get("kind") or ""))
+                for row in global_source_material_rows(self.service.cards)
+            )
+        existing = {
+            str(button.property("filterKey"))
+            for button in self.preparation_filter_group.buttons()
+        }
+        for category in sorted(categories - existing):
+            self._add_preparation_filter(category)
 
     def _build_sheet_header(self, root: QVBoxLayout) -> None:
         header = QFrame()
@@ -1251,35 +2058,40 @@ class SharedGuideManualView(GuideUltimeManualView):
         self.sheet_title_label.setWordWrap(True)
         labels.addWidget(self.sheet_title_label)
         top.addLayout(labels, 1)
-
-        self.participants_button = QToolButton()
+        self.page_jump = QSpinBox()
+        self.page_jump.setObjectName("GuideCompactPageJump")
+        self.page_jump.setRange(1, max(1, len(self.service.cards)))
+        self.page_jump.setSuffix(f" / {len(self.service.cards)}")
+        self.page_jump.setMaximumWidth(110)
+        self.page_jump.setToolTip("Ouvrir directement la fiche sélectionnée")
+        self.page_jump.setAccessibleName("Sélectionner la fiche du guide")
+        self.page_jump.valueChanged.connect(
+            lambda value: (
+                self._show_reading_page(value - 1)
+                if self._is_continuous_source_reading()
+                else self._show_index(value - 1)
+            )
+        )
+        top.addWidget(self.page_jump, 0, Qt.AlignTop)
+        self.participants_button = AtlasGuideCharacterButton()
         self.participants_button.setObjectName("GuideParticipantsButton")
         self.participants_button.setText("")
-        portrait_icon = sprite_icon_path("character")
-        self.participants_button.setIcon(
-            QIcon(str(portrait_icon)) if portrait_icon else
-            _guide_symbol_icon(self.participants_button, "people")
-        )
+        character_icon = atlas_guide_character_icon(GUIDE_CHARACTER_ICON_PX)
+        if character_icon.isNull():
+            character_icon = _guide_symbol_icon(self.participants_button, "people")
+        self.participants_button.setIcon(character_icon)
         self.participants_button.setToolButtonStyle(Qt.ToolButtonIconOnly)
         self.participants_button.setSizePolicy(QSizePolicy.Fixed, QSizePolicy.Fixed)
-        self.participants_button.setFixedSize(32, 28)
-        self.participants_button.setIconSize(QSize(19, 19))
+        self.participants_button.setFixedSize(
+            GUIDE_CHARACTER_BUTTON_PX, GUIDE_CHARACTER_BUTTON_PX
+        )
+        self.participants_button.setIconSize(QSize(
+            GUIDE_CHARACTER_ICON_PX, GUIDE_CHARACTER_ICON_PX
+        ))
         self.participants_button.setCheckable(True)
         self.participants_button.setCursor(Qt.PointingHandCursor)
-        self.summary_button = QToolButton()
-        self.summary_button.setObjectName("GuideSummaryButton")
-        self.summary_button.setText("Sommaire")
-        self.summary_button.setIcon(_guide_symbol_icon(self.summary_button, "summary"))
-        self.summary_button.setToolButtonStyle(Qt.ToolButtonTextBesideIcon)
-        self.summary_button.setSizePolicy(QSizePolicy.Fixed, QSizePolicy.Fixed)
-        self.summary_button.setFixedHeight(28)
-        self.summary_button.setMaximumWidth(122)
-        self.summary_button.setArrowType(Qt.RightArrow)
-        self.summary_button.setCheckable(True)
-        self.summary_button.setCursor(Qt.PointingHandCursor)
-        self.header_actions_row.addWidget(self.summary_button, 0)
-        self.header_actions_row.addWidget(self.participants_button, 0)
-        self.header_actions_row.addStretch(1)
+        # The shared character selector stays on the compact title row.
+        self._compact_title_row.addWidget(self.participants_button, 0, Qt.AlignVCenter)
         layout.addLayout(top)
 
         self.participants_panel = QFrame()
@@ -1289,34 +2101,58 @@ class SharedGuideManualView(GuideUltimeManualView):
         self.participants_layout.setSpacing(5)
         self.participants_panel.setVisible(False)
         self.participants_button.toggled.connect(self.participants_panel.setVisible)
-        layout.addWidget(self.participants_panel)
+        # Characters expand below the guide title, above global progress.
+        self._header_content_layout.insertWidget(1, self.participants_panel)
 
-        self.summary_panel = QFrame()
-        self.summary_panel.setObjectName("GuideSummaryPanel")
-        summary_layout = QVBoxLayout(self.summary_panel)
-        summary_layout.setContentsMargins(7, 5, 7, 5)
-        summary_layout.setSpacing(5)
-        self.summary_search = QLineEdit()
-        self.summary_search.setObjectName("GuideSummarySearch")
-        self.summary_search.setPlaceholderText("Rechercher une fiche…")
-        self.summary_search.textChanged.connect(self._filter_summary)
-        summary_layout.addWidget(self.summary_search)
-        self.summary_list = QListWidget()
-        self.summary_list.setObjectName("GuideSummaryList")
-        self.summary_list.setUniformItemSizes(True)
-        self.summary_list.setMaximumHeight(190)
-        self.summary_list.itemClicked.connect(self._summary_item_clicked)
-        summary_layout.addWidget(self.summary_list)
-        self.summary_panel.setVisible(False)
-        self.summary_button.toggled.connect(self._summary_toggled)
-        layout.addWidget(self.summary_panel)
         apply_unity_panel_shadow(header, blur=15, vertical=3)
         root.addWidget(header)
+        # Ganymede metadata shells override participant refresh; apply the
+        # universal compact geometry even before any guide is loaded.
+        self._sync_compact_action_labels()
         self._refresh_participants_panel()
 
     def _guide_title(self) -> str:
         title = str(getattr(self.service, "guide_title", "") or "").strip()
         return title or "Guide Succès"
+
+    def _is_imported_source_guide(self) -> bool:
+        """All imported authored guides share the same Prérequis presentation."""
+        cards = getattr(self.service, "cards", ())
+        return bool(cards) and all(
+            card.get("manual_source") is True
+            and "source_step_id" in card
+            # The metadata-only Cawotte pilot also has manual_source=True;
+            # only actual canonical rich imports carry section indexes.
+            # Its typed candidate material filters must remain usable.
+            and "manual_prerequisite_block_indexes" in card
+            and "manual_preparation_block_indexes" in card
+            for card in cards
+        )
+
+    def _is_continuous_source_reading(self) -> bool:
+        """Only the actual original HTML rich blocks use reflow pagination.
+
+        Other authorized source routes may contain multiple typed actions per
+        source step. Preserve their stable validation, step navigation and
+        existing shared card reader. Never infer this mode from the guide ID.
+        """
+        if not self.service.cards:
+            return False
+        if all(card.get("manual_review_only") is True
+               and "source_step_id" in card for card in self.service.cards):
+            # Candidate previews are intentionally not certified imports.
+            # They still share adaptive reading without gaining write rights.
+            return True
+        if not self._is_imported_source_guide():
+            return False
+        for card in self.service.cards:
+            step = (card.get("manual_runtime_metadata") or {}).get("source_step")
+            actions = step.get("actions") if isinstance(step, dict) else None
+            if (not isinstance(actions, list) or len(actions) != 1
+                    or not isinstance(actions[0], dict)
+                    or not isinstance(actions[0].get("rich_blocks"), list)):
+                return False
+        return True
 
     def _sync_compact_action_labels(self) -> None:
         """Preserve clickable actions and screen-reader names when space is scarce."""
@@ -1328,21 +2164,15 @@ class SharedGuideManualView(GuideUltimeManualView):
         # Icon-only participant selector: the count remains accessible through
         # its tooltip and accessibility label without stretching the header.
         self.participants_button.setText("")
-        for name, label in getattr(self, "_metric_caption_labels", {}).items():
-            label.setText("Prép." if narrow and name == "Préparation" else name)
+        self._metric_caption_labels["Préparation"].setText("À préparer")
+        self.preparation_button.setToolTip("Ouvrir Prérequis et À préparer")
+        self.preparation_button.setAccessibleName("Afficher Prérequis et À préparer")
         self.participants_button.setAccessibleName(full_label)
         self.participants_button.setToolTip(
             "Choisir les identités stables utilisées par la progression et les déplacements."
         )
-        if hasattr(self, "current_button"):
-            current_label = str(self.current_button.property("guideFullText") or "Actuelle")
-            self.current_button.setText("" if narrow else current_label)
-            self.current_button.setAccessibleName(current_label)
-            self.current_button.setToolTip(
-                "Revenir à la fiche actuelle" if current_label == "Actuelle"
-                else "Toutes les fiches sont terminées."
-            ) if narrow else None
-            self.page_jump.setMaximumWidth(93 if narrow else 115)
+        if hasattr(self, "page_jump"):
+            self.page_jump.setMaximumWidth(90 if narrow else 110)
 
     def resizeEvent(self, event) -> None:  # noqa: N802 - Qt API
         super().resizeEvent(event)
@@ -1388,7 +2218,7 @@ class SharedGuideManualView(GuideUltimeManualView):
                 button.setIcon(QIcon(icon_path))
             else:
                 button.setIcon(
-                    button.style().standardIcon(QStyle.SP_DirHomeIcon)
+                    _guide_symbol_icon(button, "people", color=PALETTE["TEXT_SOFT"])
                 )
             button.setProperty("guideClassLabel", class_label)
             button.setToolTip(self._participant_tooltip(character, class_label, progress))
@@ -1451,52 +2281,48 @@ class SharedGuideManualView(GuideUltimeManualView):
             return None
         return min(100, round(completed * 100 / total)) if total > 0 else None
 
-    def _summary_toggled(self, opened: bool) -> None:
-        self.summary_panel.setVisible(bool(opened))
-        self.summary_button.setArrowType(
-            Qt.DownArrow if opened else Qt.RightArrow
-        )
-        if opened and self.summary_list.count() == 0:
-            self._populate_summary()
-
-    def _populate_summary(self) -> None:
-        self.summary_list.clear()
-        for index, card in enumerate(self.service.cards):
-            chapter = str(card.get("manual_chapter_label") or "").strip()
-            title = str(card.get("manual_title") or card.get("destination") or "").strip()
-            label = f"{index + 1}. {chapter} — {title}" if chapter else f"{index + 1}. {title}"
-            item = QListWidgetItem(label)
-            item.setData(Qt.UserRole, index)
-            # Normalization is expensive across a 1,000+ card route. Persist
-            # only a tiny search key on the item, not a second route model.
-            item.setData(Qt.UserRole + 1, normalize_text(label))
-            self.summary_list.addItem(item)
-        # Rebuilding the model must not silently discard the active search.
-        self._filter_summary(self.summary_search.text())
-
-    def _filter_summary(self, value: str) -> None:
-        needle = normalize_text(value)
-        for index in range(self.summary_list.count()):
-            item = self.summary_list.item(index)
-            normalized = item.data(Qt.UserRole + 1)
-            # Old/external QListWidgetItems still obey the original semantics.
-            if not isinstance(normalized, str):
-                normalized = normalize_text(item.text())
-            item.setHidden(bool(needle and needle not in normalized))
-
-    def _summary_item_clicked(self, item: QListWidgetItem) -> None:
-        try:
-            index = int(item.data(Qt.UserRole))
-        except (TypeError, ValueError):
+    def _preparation_tab_changed(self, tab: str) -> None:
+        if tab not in {"Prérequis", "À préparer"}:
             return
-        self._show_index(index)
-        # The summary is deliberately sticky. Only an explicit click on the
-        # Sommaire button may close it.
+        self._preparation_tab = tab
+        self.preparation_filter_host.setVisible(
+            tab == "À préparer"
+        )
+        self._preparation_visible_limit = 80
+        if self.preparation_panel.isVisible():
+            if not self._preparation_loaded:
+                self._load_preparation_needs()
+            checked = self.preparation_filter_group.checkedButton()
+            self._render_preparation(
+                str(checked.property("filterKey") if checked else "Tout")
+            )
 
     def _preparation_toggled(self, opened: bool) -> None:
-        self.preparation_button.setArrowType(
-            Qt.DownArrow if opened else Qt.RightArrow
-        )
+        if opened:
+            source = self._is_imported_source_guide()
+            # The two half-width drawers must not swallow the reading
+            # viewport on a small display; both scroll independently.
+            self.preparation_scroll.setMaximumHeight(
+                GUIDE_READING_METRICS["source_drawer_max_height"]
+                if source else GUIDE_READING_METRICS["normal_drawer_max_height"]
+            )
+            self.preparation_scroll.setMinimumHeight(
+                GUIDE_READING_METRICS["source_drawer_compact_min_height"]
+                if source else GUIDE_READING_METRICS["normal_drawer_min_height"]
+            )
+            self.preparation_filter_host.setVisible(
+                self._preparation_tab == "À préparer"
+            )
+        if opened and self._is_imported_source_guide() and not self._source_prerequisites_defaulted:
+            # Imported Ganymède always opens the source prerequisites first.
+            # A user-selected À préparer tab is preserved on later opens.
+            self._source_prerequisites_defaulted = True
+            self._preparation_tab = "Prérequis"
+            self.preparation_filter_host.hide()
+            for button in self.preparation_tab_group.buttons():
+                if button.property("tabKey") == "Prérequis":
+                    button.setChecked(True)
+                    break
         self.preparation_panel.setVisible(bool(opened))
         if not opened:
             return
@@ -1574,7 +2400,10 @@ class SharedGuideManualView(GuideUltimeManualView):
                 item_id = None
             if name:
                 rows.append((item_id, name, quantity, cls._preparation_category(name)))
-        if not rows:
+        # Source cards are complete projections: an absent preparation section
+        # means no preparations, not permission to ask a legacy provider to
+        # reconstruct/invent entries (or eagerly hydrate a catalogue).
+        if not rows and not (card.get("manual_source") is True and "source_step_id" in card):
             sections_for_card = getattr(service, "manual_sections_for_card", None)
             sections = sections_for_card(character_key, card) if callable(sections_for_card) else {}
             for raw in sections.get("prepare", ()) if isinstance(sections, dict) else ():
@@ -1596,18 +2425,40 @@ class SharedGuideManualView(GuideUltimeManualView):
 
     def _load_preparation_needs(self) -> None:
         from app.modules.encyclopedia.services.guide_preparation_model import (
-            aggregate_remaining,
+            aggregate_remaining, category_for,
         )
 
         # A browsing character is never consent for Prêt. The no-selection
         # state remains readable without manufacturing an inventory/progress ID.
         participant_keys = self._progress_participant_keys()
         if not participant_keys:
-            summary = aggregate_remaining((card, False) for card in self.service.cards)
-            self._preparation_preview = tuple(
-                (need.category, need.name, need.quantity or 0, need.item_id)
-                for need in summary
-            )
+            cards = self.service.cards
+            if cards and all(card.get("manual_review_only") is True for card in cards):
+                # Review-only candidates have no certified item consumption
+                # model. Preserve every declared prerequisite and preparation,
+                # including repeated optional quantities of the same item.
+                preview: list[tuple[str, str, int, int | None]] = []
+                for card in cards:
+                    for gate in card.get("hard_runtime_gates", ()) or ():
+                        if isinstance(gate, dict) and gate.get("name"):
+                            preview.append(("Prérequis", str(gate["name"]), 0, None))
+                    for item in card.get("a_preparer", ()) or ():
+                        if isinstance(item, dict) and item.get("name"):
+                            preview.append((
+                                category_for(
+                                    str(item["name"]), str(item.get("category") or "")
+                                ),
+                                str(item["name"]),
+                                int(item.get("quantity") or 0),
+                                item.get("item_id"),
+                            ))
+                self._preparation_preview = tuple(preview)
+            else:
+                summary = aggregate_remaining((card, False) for card in cards)
+                self._preparation_preview = tuple(
+                    (need.category, need.name, need.quantity or 0, need.item_id)
+                    for need in summary
+                )
             self._preparation_needs = ()
             self._preparation_loaded = True
             self._update_preparation_progress()
@@ -1629,24 +2480,42 @@ class SharedGuideManualView(GuideUltimeManualView):
                     lambda card, key=character_key: (
                         None if "_manual_stage_payload" in card else
                         card.get("manual_sections", {})
-                        if card.get("_catalog_route_detail_lazy") else
+                        if (card.get("_catalog_route_detail_lazy")
+                            or (card.get("manual_source") is True
+                                and "source_step_id" in card)) else
                         sections_getter(key, card) if callable(sections_getter)
                         else card.get("manual_sections", {})
                     )
                 ),
             ):
-                item_key = self._preparation_item_key(need.item_id, need.name)
+                item_key = (
+                    need.identity
+                    if need.category == "Métiers" or (
+                        need.category == "Prérequis"
+                        and need.identity.startswith(("quest:", "achievement:"))
+                    )
+                    else self._preparation_item_key(need.item_id, need.name)
+                )
                 row = aggregated.setdefault(
-                    (item_key, need.category),
+                    (item_key, need.category, need.scope),
                     {
                         "item_id": need.item_id, "name": need.name,
                         "category": need.category, "required": {},
                         "confidence": {}, "sources": set(),
+                        "profession_id": need.profession_id,
+                        "required_level": need.required_level,
                     },
                 )
                 row["required"][character_key] = need.quantity
                 row["confidence"][character_key] = need.confidence
                 row["sources"].update(need.sources)
+                # Different characters may be at different stages: show the
+                # highest verified job level needed across selected players.
+                levels = (row["required_level"], need.required_level)
+                row["required_level"] = (
+                    max(level for level in levels if level is not None)
+                    if all(level is not None for level in levels) else None
+                )
 
         self._preparation_needs = tuple(
             _PreparationNeed(
@@ -1657,8 +2526,11 @@ class SharedGuideManualView(GuideUltimeManualView):
                 required_by_character=tuple(sorted(row["required"].items())),
                 confidence_by_character=tuple(sorted(row["confidence"].items())),
                 sources=tuple(sorted(row["sources"])),
+                scope=scope,
+                profession_id=row["profession_id"],
+                required_level=row["required_level"],
             )
-            for (item_key, _category), row in sorted(
+            for (item_key, _category, scope), row in sorted(
                 aggregated.items(),
                 key=lambda item: (item[1]["category"], normalize_text(item[1]["name"])),
             )
@@ -1668,11 +2540,39 @@ class SharedGuideManualView(GuideUltimeManualView):
 
     def _ready_progress_key(self, need: _PreparationNeed) -> str:
         guide_id = str(getattr(self.service, "guide_id", "guide_complet") or "guide_complet")
-        return f"__ui:preparation_ready:{guide_id}:{need.item_key}"
+        key = f"__ui:preparation_ready:{guide_id}:{need.item_key}"
+        return key if need.scope == "per_character" else f"{key}:{need.scope}"
 
     def _need_ready(self, need: _PreparationNeed) -> bool:
+        if not need.required_by_character:
+            return False
+        # A fully counted material preparation is ready even without the
+        # historical binary checkbox. Keep old manual Ready marks readable.
+        if (need.scope in {"per_character", "party_shared"}
+                and need.required_total is not None
+                and need.item_key == self._preparation_item_key(
+                    need.item_id, need.name
+                )):
+            progress = getattr(self.service, "guide_progress", None)
+            quantity_getter = getattr(progress, "preparation_quantity", None)
+            if callable(quantity_getter):
+                guide = str(getattr(self.service, "progress_id", "") or "")
+                amounts = [
+                    min(quantity_getter(key, guide, need.item_key), required)
+                    for key, required in need.required_by_character
+                ]
+                if need.scope == "party_shared":
+                    if sum(amounts) >= need.required_total:
+                        return True
+                elif all(
+                    amount >= required
+                    for amount, (_key, required) in zip(
+                        amounts, need.required_by_character
+                    )
+                ):
+                    return True
         getter = getattr(self.service, "manual_checked", None)
-        if not callable(getter) or not need.required_by_character:
+        if not callable(getter):
             return False
         key = self._ready_progress_key(need)
         return all(getter(character_key, key) for character_key, _qty in need.required_by_character)
@@ -1690,6 +2590,18 @@ class SharedGuideManualView(GuideUltimeManualView):
             return
         expected = {character_key: bool(getter(character_key, key)) for character_key in keys}
         if all(value == bool(checked) for value in expected.values()):
+            return
+        source_authorized = getattr(self.service, "can_write_progress", None)
+        if callable(source_authorized) and not source_authorized():
+            # Source routes may be revoked after a preparation row was painted.
+            # Never bypass the independent authorization through the raw
+            # multi-character GuideProgressService batch API.
+            checked_button = self.preparation_filter_group.checkedButton()
+            selected_filter = str(
+                checked_button.property("filterKey") if checked_button is not None else "Tout"
+            )
+            self._render_preparation(selected_filter)
+            self._update_preparation_progress()
             return
         if callable(batcher):
             from app.modules.encyclopedia.services.guide_ultime_generated_service import (
@@ -1721,6 +2633,67 @@ class SharedGuideManualView(GuideUltimeManualView):
         self._render_preparation(current_filter)
         self._update_preparation_progress()
 
+    def _set_preparation_total(
+        self, need: _PreparationNeed, target: int,
+    ) -> None:
+        """Allocate a team total deterministically without losing individual stock."""
+        if (need.scope not in {"per_character", "party_shared"}
+                or need.required_total is None
+                or need.item_key != self._preparation_item_key(
+                    need.item_id, need.name
+                )):
+            return
+        authorized = getattr(self.service, "can_write_progress", None)
+        if callable(authorized) and not authorized():
+            self._render_preparation("Tout")
+            return
+        progress = getattr(self.service, "guide_progress", None)
+        getter = getattr(progress, "preparation_quantity", None)
+        batcher = getattr(progress, "set_preparation_quantities_for_characters", None)
+        if not callable(getter) or not callable(batcher):
+            return
+        guide = str(getattr(self.service, "progress_id", "") or "")
+        expected = {
+            key: getter(key, guide, need.item_key)
+            for key, _required in need.required_by_character
+        }
+        quantities = {
+            key: min(expected[key], required)
+            for key, required in need.required_by_character
+        }
+        current = sum(quantities.values())
+        difference = max(0, min(int(target), need.required_total)) - current
+        if difference > 0:
+            for key, required in need.required_by_character:
+                increase = min(difference, required - quantities[key])
+                quantities[key] += increase
+                difference -= increase
+                if not difference:
+                    break
+        elif difference < 0:
+            for key, _required in reversed(need.required_by_character):
+                decrease = min(-difference, quantities[key])
+                quantities[key] -= decrease
+                difference += decrease
+                if not difference:
+                    break
+        try:
+            batcher(
+                guide, need.item_key, quantities,
+                dict(need.required_by_character), expected_quantities=expected,
+            )
+        except (RuntimeError, ValueError):
+            self.service.reload_progress()
+            self.validation_host.setToolTip(
+                "Préparation modifiée ailleurs ; quantités actualisées."
+            )
+        filter_button = self.preparation_filter_group.checkedButton()
+        selected_filter = str(
+            filter_button.property("filterKey") if filter_button else "Tout"
+        )
+        self._render_preparation(selected_filter)
+        self._update_preparation_progress()
+
     def _clear_preparation_rows(self) -> None:
         while self.preparation_rows_layout.count():
             item = self.preparation_rows_layout.takeAt(0)
@@ -1746,15 +2719,311 @@ class SharedGuideManualView(GuideUltimeManualView):
         button.clicked.connect(lambda _checked=False: self._show_more_preparation())
         self.preparation_rows_layout.addWidget(button)
 
+    def _source_global_material_total(self, row: dict[str, Any]) -> int:
+        """Explicit manual counter for selected participants, never live stock."""
+        item_id, required = row.get("item_id"), row.get("quantity")
+        if type(item_id) is not int or type(required) is not int:
+            return 0
+        progress = getattr(self.service, "guide_progress", None)
+        getter = getattr(progress, "preparation_quantity", None)
+        if not callable(getter):
+            return 0
+        guide = str(getattr(self.service, "progress_id", "") or "")
+        item_key = f"item:{item_id}"
+        acquired = 0
+        for key in sorted(self.selected_participant_keys()):
+            acquired += min(required, getter(key, guide, item_key))
+        return min(required * max(1, len(self.selected_participant_keys())), acquired)
+
+    def _set_source_global_material_total(
+        self, row: dict[str, Any], target: int,
+    ) -> None:
+        """CAS-save one global ID, never invent a character or bypass revocation."""
+        from app.modules.encyclopedia.services.guide_source_preparation_rows import (
+            global_source_material_rows,
+        )
+        item_id, required = row.get("item_id"), row.get("quantity")
+        if type(item_id) is not int or type(required) is not int or required <= 0:
+            return
+        current = next((
+            item for item in global_source_material_rows(self.service.cards)
+            if item["item_id"] == item_id
+        ), None)
+        if current is None or current["quantity"] != required:
+            return  # A changed source cannot inherit the previous item's state.
+        authorized = getattr(self.service, "can_write_progress", None)
+        if not callable(authorized) or authorized() is not True:
+            return
+        keys = tuple(sorted(self.selected_participant_keys()))
+        if not keys:
+            return
+        progress = getattr(self.service, "guide_progress", None)
+        getter = getattr(progress, "preparation_quantity", None)
+        writer = getattr(progress, "set_preparation_quantities_for_characters", None)
+        if not callable(getter) or not callable(writer):
+            return
+        guide = str(getattr(self.service, "progress_id", "") or "")
+        item_key = f"item:{item_id}"
+        expected = {key: getter(key, guide, item_key) for key in keys}
+        # A source amount belongs to one player; the total scales with the
+        # explicitly selected group, while every saved value stays per player.
+        target = max(0, min(int(target), required * len(keys)))
+        amounts = {}
+        remaining = target
+        # Preserve already-entered amounts first, then fill remaining slots.
+        for key in keys:
+            amounts[key] = min(expected[key], required, remaining)
+            remaining -= amounts[key]
+        for key in keys:
+            if not remaining:
+                break
+            addition = min(remaining, required - amounts[key])
+            amounts[key] += addition
+            remaining -= addition
+        try:
+            writer(
+                guide, item_key, amounts,
+                {key: required for key in keys},
+                expected_quantities=expected,
+            )
+        except (ValueError, RuntimeError):
+            self.service.reload_progress()
+        self._render_preparation("Tout")
+        self._update_preparation_progress()
+
+    def _render_source_global_materials(self) -> bool:
+        """One row per typed item ID: validate | X/X | icon + copyable name."""
+        if not self._is_imported_source_guide():
+            return False
+        from app.modules.encyclopedia.services.guide_source_preparation_rows import (
+            global_source_material_rows,
+        )
+        rows = global_source_material_rows(self.service.cards)
+        if not rows:
+            return False
+        source_guard = getattr(self.service, "can_write_progress", None)
+        authorized = callable(source_guard) and source_guard() is True
+        progress = getattr(self.service, "guide_progress", None)
+        can_edit = (
+            authorized and bool(self.selected_participant_keys())
+            and callable(getattr(progress, "preparation_quantity", None))
+            and callable(getattr(progress, "set_preparation_quantities_for_characters", None))
+        )
+        from app.modules.encyclopedia.services.guide_preparation_model import category_for
+        selected = tuple(self.selected_participant_keys())
+        team_size = max(1, len(selected))
+        selected_filter = getattr(self, "_active_preparation_filter", "Tout")
+        matching = [
+            item for item in rows
+            if selected_filter in ("Tout", category_for(
+                str(item["name"]), str(item.get("kind") or "")
+            ))
+        ]
+        for item in matching[:self._preparation_visible_limit]:
+            item_id, quantity = item.get("item_id"), item.get("quantity")
+            verified = (
+                type(item_id) is int and type(quantity) is int and quantity > 0
+                and not item.get("optional")
+            )
+            frame = QFrame()
+            frame.setObjectName("GuidePreparationRow")
+            frame.setMinimumHeight(int(SIZES["CONTROL_HEIGHT"].removesuffix("px")))
+            layout = QHBoxLayout(frame)
+            layout.setContentsMargins(
+                GUIDE_READING_METRICS["section_horizontal"],
+                GUIDE_READING_METRICS["section_vertical"],
+                GUIDE_READING_METRICS["section_horizontal"],
+                GUIDE_READING_METRICS["section_vertical"],
+            )
+            layout.setSpacing(GUIDE_READING_METRICS["row_spacing"])
+            acquired = self._source_global_material_total(item) if verified else 0
+            required_total = quantity * team_size if verified else None
+            preview_key = (
+                category_for(str(item["name"]), str(item.get("kind") or "")),
+                str(item["name"]), item_id if type(item_id) is int else None,
+            )
+            valid = QCheckBox()
+            valid.setObjectName("GuidePreparationReady")
+            valid.setAccessibleName(f"Valider {item['name']}")
+            valid.setToolTip("Valider l'objet pour le groupe sélectionné")
+            valid.setChecked(
+                (verified and bool(selected) and acquired == required_total)
+                if can_edit else self._preview_preparation_checked.get(preview_key, False)
+            )
+            valid.setFixedWidth(22)
+            valid.setEnabled((can_edit and verified) or not authorized)
+            if can_edit and verified:
+                valid.toggled.connect(
+                    lambda checked, row=item, amount=required_total: self._set_source_global_material_total(
+                        row, amount if checked else 0
+                    )
+                )
+            elif not authorized:
+                valid.setToolTip("Aperçu : coche temporaire, non enregistrée")
+                valid.toggled.connect(
+                    lambda checked, key=preview_key: self._preview_preparation_checked.__setitem__(
+                        key, checked
+                    )
+                )
+            layout.addWidget(valid, 0, Qt.AlignVCenter)
+            if verified:
+                editor = QSpinBox(frame)
+                editor.setObjectName("GuidePreparationQuantity")
+                editor.setFixedWidth(GUIDE_READING_METRICS["source_quantity_width"])
+                editor.setRange(0, required_total)
+                editor.setValue(acquired)
+                editor.setSuffix(f" / {required_total}")
+                editor.setEnabled(can_edit)
+                editor.setToolTip(
+                    "Quantité préparée pour le groupe sélectionné"
+                    if can_edit else "Compteur en lecture seule : source non autorisée ou aucun personnage"
+                )
+                if can_edit:
+                    editor.editingFinished.connect(
+                        lambda row=item, spin=editor: self._set_source_global_material_total(
+                            row, spin.value()
+                        )
+                    )
+                layout.addWidget(editor, 0, Qt.AlignVCenter)
+            else:
+                missing = QLabel("? / ?")
+                missing.setObjectName("GuidePreparationQuantityPlaceholder")
+                missing.setFixedWidth(GUIDE_READING_METRICS["source_quantity_width"])
+                missing.setToolTip("Quantité ou identifiant non vérifié dans la source")
+                missing.setAlignment(Qt.AlignCenter)
+                layout.addWidget(missing, 0, Qt.AlignVCenter)
+            button = self._copyable_preparation_item(
+                item["name"], item["name"], item_id
+                if type(item_id) is int else None,
+            )
+            # Use the indexed icon lookup, never a downloaded or invented image.
+            layout.addWidget(button, 1, Qt.AlignVCenter)
+            self.preparation_rows_layout.addWidget(frame)
+        self._append_preparation_more(len(matching) - self._preparation_visible_limit)
+        self.preparation_rows_layout.addStretch(1)
+        return True
+
+    def _render_imported_source_blocks(self, *, prerequisites: bool) -> bool:
+        """Render only actual typed items as material rows, context as headings.
+
+        All source text and quest links remain; no item quantities, owned
+        statuses or prerequisites are inferred from an arbitrary paragraph.
+        """
+        if not self._is_imported_source_guide():
+            return False
+        rows: list[dict[str, Any]] = []
+        if not prerequisites:
+            return self._render_source_global_materials()
+        else:
+            for card in self.service.cards:
+                source = card.get("manual_runtime_metadata") or {}
+                step = source.get("source_step") if isinstance(source, dict) else None
+                actions = step.get("actions") if isinstance(step, dict) else None
+                indexes = card.get("manual_prerequisite_block_indexes") or ()
+                leads = card.get("manual_prerequisite_inline_leads") or ()
+                if not indexes and not leads:
+                    continue
+                if not isinstance(actions, list) or len(actions) != 1:
+                    raise ValueError("Source requirements need one authored action")
+                blocks = actions[0].get("rich_blocks")
+                if not isinstance(blocks, list):
+                    raise ValueError("Source requirements need immutable blocks")
+                for index in indexes:
+                    if type(index) is not int or not 0 <= index < len(blocks):
+                        raise ValueError("Invalid prerequisite block index")
+                    block = blocks[index]
+                    if block["type"] in {"paragraph", "heading"}:
+                        rows.append({"kind": "prerequisite", "runs": block["runs"]})
+                    elif block["type"] == "checklist":
+                        for item in block["items"]:
+                            rows.append({
+                                "kind": "prerequisite",
+                                "runs": item.get("runs") or [
+                                    {"text": item["text"], "role": "plain"},
+                                ],
+                            })
+                    else:
+                        raise ValueError("Unsupported prerequisite source block")
+                for lead in leads:
+                    rows.append({"kind": "prerequisite", "runs": [{
+                        "text": lead["prefix"].rstrip(" ,:"),
+                        "role": "plain",
+                    }]})
+        if not rows:
+            return False
+
+        note = QLabel(
+            "Prérequis déclarés · état non vérifié dans le jeu."
+            if prerequisites
+            else "Objets et équipements indiqués par la source · quantités à vérifier."
+        )
+        note.setObjectName("GuidePreparationEmpty")
+        note.setWordWrap(True)
+        self.preparation_rows_layout.addWidget(note)
+        for item in rows[:self._preparation_visible_limit]:
+            runs = item["runs"]
+            kind = item["kind"]
+            if kind == "context":
+                # Section descriptions and linked Quest names stay visible
+                # without masquerading as required equipment.
+                heading = QLabel()
+                heading.setObjectName("GuidePreparationSourceContext")
+                heading.setTextFormat(Qt.RichText)
+                heading.setTextInteractionFlags(Qt.TextBrowserInteraction)
+                heading.setOpenExternalLinks(True)
+                heading.setWordWrap(True)
+                heading.setText(SharedGuideManualCard._source_rich_markup(runs))
+                self.preparation_rows_layout.addWidget(heading)
+                continue
+            frame = QFrame()
+            frame.setObjectName("GuidePreparationRow")
+            layout = QVBoxLayout(frame)
+            layout.setContentsMargins(
+                GUIDE_READING_METRICS["section_horizontal"],
+                GUIDE_READING_METRICS["section_vertical"],
+                GUIDE_READING_METRICS["section_horizontal"],
+                GUIDE_READING_METRICS["section_vertical"],
+            )
+            label = QLabel()
+            label.setObjectName("GuideManualLine")
+            label.setTextFormat(Qt.RichText)
+            label.setTextInteractionFlags(Qt.TextBrowserInteraction)
+            label.setOpenExternalLinks(True)
+            label.setWordWrap(True)
+            label.setText(SharedGuideManualCard._source_rich_markup(runs))
+            layout.addWidget(label)
+            self.preparation_rows_layout.addWidget(frame)
+        self._append_preparation_more(len(rows) - self._preparation_visible_limit)
+        self.preparation_rows_layout.addStretch(1)
+        return True
+
+    def _render_imported_source_prerequisites(self) -> bool:
+        """Compatibility entrypoint for all existing shared Guide callers."""
+        return self._render_imported_source_blocks(prerequisites=True)
+
     def _render_preparation(self, selected_filter: str) -> None:
+        self._active_preparation_filter = selected_filter
+        self._ensure_preparation_filters()
         self._clear_preparation_rows()
+        prerequisites_tab = self._preparation_tab == "Prérequis"
+        if self._is_imported_source_guide() and self._render_imported_source_blocks(
+            prerequisites=prerequisites_tab
+        ):
+            return
         if not self.selected_participant_keys():
-            label = QLabel("Aperçu des préparatifs · sélectionne un personnage pour activer Prêt.")
+            label = QLabel(
+                "Prérequis déclarés · vérification en jeu non effectuée."
+                if prerequisites_tab else
+                "Aperçu des préparatifs · sélectionne un personnage pour activer Prêt."
+            )
             label.setObjectName("GuidePreparationEmpty")
             label.setWordWrap(True)
             self.preparation_rows_layout.addWidget(label)
-            preview = self._preparation_preview
-            if selected_filter != "Tout":
+            preview = tuple(
+                row for row in self._preparation_preview
+                if (row[0] == "Prérequis") == prerequisites_tab
+            )
+            if not prerequisites_tab and selected_filter != "Tout":
                 preview = tuple(row for row in preview if row[0] == selected_filter)
             if not preview:
                 self.preparation_rows_layout.addWidget(QLabel("Aucun besoin structuré fiable."))
@@ -1765,11 +3034,29 @@ class SharedGuideManualView(GuideUltimeManualView):
                 for category, name, quantity, item_id in visible:
                     row = QFrame()
                     row.setObjectName("GuidePreparationRow")
+                    row.setMinimumHeight(int(SIZES["CONTROL_HEIGHT"].removesuffix("px")))
                     row_layout = QHBoxLayout(row)
                     row_layout.setContentsMargins(8, 3, 8, 3)
+                    if not prerequisites_tab:
+                        preview_key = (category, name, item_id)
+                        checkbox = QCheckBox()
+                        checkbox.setObjectName("GuidePreparationReady")
+                        checkbox.setToolTip("Aperçu : coche temporaire non enregistrée")
+                        checkbox.setChecked(
+                            self._preview_preparation_checked.get(preview_key, False)
+                        )
+                        checkbox.toggled.connect(
+                            lambda checked, key=preview_key: self._preview_preparation_checked.__setitem__(
+                                key, checked
+                            )
+                        )
+                        row_layout.addWidget(checkbox)
+                        players = max(1, len(self.selected_participant_keys()))
+                        counter = QLabel(f"{quantity * players if quantity else '?'} ×")
+                        counter.setObjectName("GuidePreparationQuantityPlaceholder")
+                        row_layout.addWidget(counter)
                     row_layout.addWidget(self._copyable_preparation_item(
-                        name, f"{quantity if quantity else '?'} × {name} ({category})",
-                        item_id,
+                        name, name, item_id,
                     ))
                     self.preparation_rows_layout.addWidget(row)
                 self._append_preparation_more(
@@ -1778,16 +3065,33 @@ class SharedGuideManualView(GuideUltimeManualView):
             self.preparation_rows_layout.addStretch(1)
             return
 
+        if prerequisites_tab:
+            matching = [
+                need for need in self._preparation_needs
+                if need.category == "Prérequis"
+            ]
+            if not matching:
+                empty = QLabel("Aucun prérequis structuré fiable.")
+                empty.setObjectName("GuidePreparationEmpty")
+                self.preparation_rows_layout.addWidget(empty)
+            for need in matching[:self._preparation_visible_limit]:
+                self.preparation_rows_layout.addWidget(self._preparation_row(need))
+            self._append_preparation_more(
+                len(matching) - self._preparation_visible_limit
+            )
+            self.preparation_rows_layout.addStretch(1)
+            return
+
         if selected_filter == "Tout":
-            groups = (
-                ("Prérequis", lambda need: need.category == "Prérequis"),
-                ("Métiers", lambda need: need.category == "Métiers"),
-                ("Potions", lambda need: need.category == "Potions"),
-                ("Pierres d'âme", lambda need: need.category == "Pierres d'âme"
-                 or self._is_soul_stone(need.name)),
-                ("Clefs", lambda need: need.category == "Clefs"),
-                ("Objets", lambda need: need.category == "Objets"
-                 and not self._is_soul_stone(need.name)),
+            # No fixed category ceiling: render the exact categories provided
+            # by optimized source data and the shared preparation model.
+            categories = tuple(dict.fromkeys(
+                need.category for need in self._preparation_needs
+                if need.category != "Prérequis"
+            ))
+            groups = tuple(
+                (category, lambda need, key=category: need.category == key)
+                for category in categories
             )
             if not self._preparation_needs:
                 empty = QLabel("Aucun besoin confirmé sur le parcours restant.")
@@ -1812,7 +3116,8 @@ class SharedGuideManualView(GuideUltimeManualView):
                     self.preparation_rows_layout.addWidget(self._preparation_row(need))
                 rendered_count += min(len(matching), available)
             self._append_preparation_more(
-                len(self._preparation_needs) - rendered_count
+                sum(1 for need in self._preparation_needs
+                    if need.category != "Prérequis") - rendered_count
             )
             self.preparation_rows_layout.addStretch(1)
             return
@@ -1831,7 +3136,8 @@ class SharedGuideManualView(GuideUltimeManualView):
         self.preparation_rows_layout.addStretch(1)
 
     def _copyable_preparation_item(self, name: str, display: str,
-                                   item_id: int | None) -> QPushButton:
+                                   item_id: int | None,
+                                   *, image_kind: str = "item") -> QPushButton:
         button = QPushButton(display)
         button.setObjectName("GuidePreparationItemCopy")
         button.setFlat(True)
@@ -1840,15 +3146,13 @@ class SharedGuideManualView(GuideUltimeManualView):
         button.setAccessibleName(f"Copier {name}")
         button.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
         if item_id is not None:
-            path = _preparation_icon_path(item_id)
+            path = _guide_entity_icon_path(image_kind, item_id)
             if path is not None:
                 pixmap = ENCYCLOPEDIA_IMAGE_SERVICE.load_scaled(path, QSize(24, 24))
                 if not pixmap.isNull():
                     button.setIcon(QIcon(pixmap))
-        if button.icon().isNull():
-            fallback = sprite_icon_path("inventory")
-            if fallback:
-                button.setIcon(QIcon(str(fallback)))
+        # Never substitute the same backpack for unrelated objects: real
+        # indexed artwork is optional; the checkbox is the preparation icon.
         button.setIconSize(QSize(24, 24))
         button.clicked.connect(lambda _checked=False, value=name:
                                QApplication.clipboard().setText(value))
@@ -1857,6 +3161,7 @@ class SharedGuideManualView(GuideUltimeManualView):
     def _preparation_row(self, need: _PreparationNeed) -> QWidget:
         frame = QFrame()
         frame.setObjectName("GuidePreparationRow")
+        frame.setMinimumHeight(int(SIZES["CONTROL_HEIGHT"].removesuffix("px")))
         layout = QVBoxLayout(frame)
         layout.setContentsMargins(8, 4, 8, 4)
         layout.setSpacing(3)
@@ -1875,22 +3180,71 @@ class SharedGuideManualView(GuideUltimeManualView):
             else f"{quantity} × " if quantity is not None else "? × "
         )
         status = "Prêt" if ready else f"{confirmed}/{total} prêts"
+        label = (
+            f"{need.name} · métier niveau {need.required_level} requis"
+            if need.category == "Métiers" and need.required_level is not None
+            else need.name
+        )
+        image_kind = "profession" if need.category == "Métiers" else "item"
+        image_id = need.profession_id if need.category == "Métiers" else need.item_id
+        if need.category == "Prérequis":
+            kind, _, raw_id = need.item_key.partition(":")
+            if kind in {"quest", "achievement"} and raw_id.isascii() and raw_id.isdigit():
+                image_kind, image_id = kind, int(raw_id)
         item_button = self._copyable_preparation_item(
-            need.name, f"{amount}{need.name}", need.item_id,
+            need.name, label, image_id, image_kind=image_kind,
         )
         item_button.setToolTip("Cliquer pour copier le nom · " +
                                (" ; ".join(need.sources[:8]) or "Provenance à confirmer"))
-        top.addWidget(item_button, 1)
         status_label = QLabel(status)
         status_label.setObjectName("GuidePreparationRowStatus")
-        top.addWidget(status_label)
-        ready_button = QToolButton()
+        progress = getattr(self.service, "guide_progress", None)
+        getter = getattr(progress, "preparation_quantity", None)
+        batcher = getattr(progress, "set_preparation_quantities_for_characters", None)
+        editor = None
+        if (need.scope in {"per_character", "party_shared"} and quantity is not None
+                and need.item_key == self._preparation_item_key(
+                    need.item_id, need.name
+                ) and callable(getter) and callable(batcher)):
+            guide = str(getattr(self.service, "progress_id", "") or "")
+            acquired = min(quantity, sum(
+                min(getter(key, guide, need.item_key), required)
+                for key, required in need.required_by_character
+            ))
+            editor = QSpinBox(frame)
+            editor.setObjectName("GuidePreparationQuantity")
+            editor.setFixedWidth(100)
+            editor.setRange(0, quantity)
+            editor.setValue(acquired)
+            editor.setSuffix(f" / {quantity}")
+            editor.setToolTip(
+                "Total commun préparé par les personnages sélectionnés"
+                if need.scope == "party_shared"
+                else "Quantité préparée pour les personnages sélectionnés"
+            )
+            authorized = getattr(self.service, "can_write_progress", None)
+            if callable(authorized) and not authorized():
+                editor.setEnabled(False)
+                editor.setToolTip("Parcours non autorisé : quantités en lecture seule.")
+            else:
+                editor.editingFinished.connect(
+                    lambda row=need, spin=editor: self._set_preparation_total(
+                        row, spin.value()
+                    )
+                )
+            if acquired == quantity:
+                status_label.setText("Complet")
+                status_label.setProperty("state", "complete")
+        ready_button = QCheckBox()
         ready_button.setObjectName("GuidePreparationReady")
-        ready_button.setIcon(_guide_symbol_icon(ready_button, "check", size=14))
-        ready_button.setIconSize(QSize(14, 14))
-        ready_button.setCheckable(True)
         ready_button.setChecked(ready)
-        ready_button.setToolTip("Déclarer Prêt pour les participants sélectionnés concernés")
+        ready_button.setToolTip("Confirmer Prêt pour les participants sélectionnés concernés")
+        ready_button.setAccessibleName(f"Valider {need.name}")
+        ready_button.setCursor(Qt.PointingHandCursor)
+        source_authorized = getattr(self.service, "can_write_progress", None)
+        if callable(source_authorized) and not source_authorized():
+            ready_button.setEnabled(False)
+            ready_button.setToolTip("Parcours source non autorisé : préparation désactivée.")
         if len(need.required_by_character) > 1 and not callable(
             getattr(getattr(self.service, "guide_progress", None),
                     "set_manual_steps_for_characters", None)
@@ -1900,7 +3254,19 @@ class SharedGuideManualView(GuideUltimeManualView):
         ready_button.toggled.connect(
             lambda checked, row=need: self._set_need_ready(row, checked)
         )
-        top.addWidget(ready_button)
+        # Same indexed row in every guide: ready | quantity | copyable name.
+        ready_button.setFixedWidth(22)
+        top.addWidget(ready_button, 0, Qt.AlignVCenter)
+        if editor is not None:
+            top.addWidget(editor, 0, Qt.AlignVCenter)
+        else:
+            missing_quantity = QLabel("—")
+            missing_quantity.setObjectName("GuidePreparationQuantityPlaceholder")
+            missing_quantity.setFixedWidth(100)
+            missing_quantity.setAlignment(Qt.AlignCenter)
+            top.addWidget(missing_quantity, 0, Qt.AlignVCenter)
+        top.addWidget(item_button, 1, Qt.AlignVCenter)
+        top.addWidget(status_label, 0, Qt.AlignVCenter)
         details_button = QToolButton()
         details_button.setObjectName("GuidePreparationDetailsButton")
         details_button.setArrowType(Qt.RightArrow)
@@ -1943,8 +3309,27 @@ class SharedGuideManualView(GuideUltimeManualView):
         return frame
 
     def _update_preparation_progress(self) -> None:
-        total = len(self._preparation_needs)
-        ready = sum(1 for need in self._preparation_needs if self._need_ready(need))
+        if self._is_imported_source_guide():
+            # A source declaration is not game evidence. Preserve this
+            # count when expanding/reloading the drawer; no fake percentage.
+            declared = sum(
+                len(card.get("hard_runtime_gates", ()) or ())
+                for card in self.service.cards
+            )
+            self.preparation_bar.setRange(0, 1)
+            self.preparation_bar.setValue(0)
+            self.preparation_progress_label.setText(
+                f"{declared} à vérifier" if declared else "—"
+            )
+            return
+        # The preparation percentage measures equipment/materials, not quest
+        # or guide prerequisites now shown in their dedicated tab.
+        materials = tuple(
+            need for need in self._preparation_needs
+            if need.category != "Prérequis"
+        )
+        total = len(materials)
+        ready = sum(1 for need in materials if self._need_ready(need))
         self.preparation_bar.setRange(0, max(1, total))
         self.preparation_bar.setValue(ready)
         self.preparation_progress_label.setText(
@@ -2013,8 +3398,6 @@ class SharedGuideManualView(GuideUltimeManualView):
     def go_active(self) -> None:
         index = self._actual_index_for_participants()
         if index is None:
-            self.current_button.setEnabled(False)
-            self.current_button.setToolTip("Étape actuelle indisponible : progression non déterminable.")
             return
         self.active_index = index
         self._show_index(index)
@@ -2067,125 +3450,75 @@ class SharedGuideManualView(GuideUltimeManualView):
             else:
                 completed = min(done for done, _total in progress_rows)
             percent = min(100, round(completed * 100 / total)) if total > 0 else None
-            self.route_bar.setRange(0, max(1, total))
-            self.route_bar.setValue(completed)
-            self.route_progress_label.setText(f"{percent} %")
             self.progress_donut.set_percent(percent)
+            self.global_progress_bar.setRange(0, max(1, total))
+            self.global_progress_bar.setValue(completed)
+            self.global_progress_label.setText(f"{percent} %")
+            self.donut_count_label.setText(f"{completed} fiches validées")
         else:
-            self.route_bar.setRange(0, 1)
-            self.route_bar.setValue(0)
-            self.route_progress_label.setText("—")
             self.progress_donut.set_percent(None)
+            self.global_progress_bar.setRange(0, 1)
+            self.global_progress_bar.setValue(0)
+            self.global_progress_label.setText("—")
+            self.donut_count_label.setText("Fiches à valider")
 
-        success_rows: list[tuple[int, int]] = []
-        progress_getter = getattr(self.service, "progress", None)
-        if callable(progress_getter):
-            for character_key in keys:
-                try:
-                    progress = progress_getter(character_key)
-                    success_rows.append(
-                        (
-                            int(getattr(progress, "full_success_completed", 0) or 0),
-                            int(getattr(progress, "full_success_total", 0) or 0),
-                        )
-                    )
-                except (AttributeError, KeyError, TypeError, ValueError):
-                    success_rows = []
-                    break
-        success_total = max((total for _done, total in success_rows), default=0)
-        success_done = min((done for done, _total in success_rows), default=0)
-        self.success_bar.setRange(0, max(1, success_total))
-        self.success_bar.setValue(success_done)
-        self.success_progress_label.setText(
-            f"{max(0, min(100, round(success_done * 100 / success_total)))} %"
-            if success_total else "—"
-        )
         self._update_preparation_progress()
+        self._sync_compact_action_labels()
+        if self.global_details_panel.isVisible():
+            self._refresh_global_details()
+        if self._is_imported_source_guide():
+            # A prerequisite is not automatically completed by importing a
+            # document. Show the number of source-declared gates, never a
+            # fabricated percent based on unrelated material readiness.
+            gate_count = sum(
+                len(card.get("hard_runtime_gates", ()) or ())
+                for card in self.service.cards
+            )
+            self.preparation_bar.setRange(0, 1)
+            self.preparation_bar.setValue(0)
+            self.preparation_progress_label.setText(
+                f"{gate_count} à vérifier" if gate_count else "—"
+            )
 
         total_cards = len(self.service.cards)
         index = max(0, min(self.view_index, max(0, total_cards - 1)))
         card = self.service.cards[index] if total_cards else {}
-        chapter = str(card.get("manual_chapter_label") or "Guide").strip()
+        # Chapter IDs remain internal for navigation and preparation only.
+        self.sheet_meta_label.clear()
+        self.sheet_meta_label.hide()
         title = str(card.get("manual_title") or card.get("destination") or "Fiche").strip()
-        self.sheet_meta_label.setText(f"FICHE {index + 1} · {chapter.upper()}")
-        self.sheet_title_label.setText(title)
-        self.nav_page_label.setText(f"Page {index + 1} / {total_cards}")
-        self.page_jump.blockSignals(True)
-        self.page_jump.setRange(1, max(1, total_cards))
-        self.page_jump.setValue(index + 1)
-        self.page_jump.blockSignals(False)
-        actual_index = self._actual_index_for_participants()
-        route_finished = bool(keys) and bool(progress_rows) and all(
-            total > 0 and completed >= total for completed, total in progress_rows
-        )
-        self.current_button.setProperty(
-            "guideFullText", "Terminé" if route_finished else "Actuelle"
-        )
-        self._sync_compact_action_labels()
-        self.current_button.setEnabled(actual_index is not None)
-        self.current_button.setToolTip(
-            "Toutes les fiches sont terminées pour les personnages sélectionnés."
-            if route_finished else (
-                "Revenir à la première fiche encore nécessaire pour au moins un participant."
-                if actual_index is not None
-                else "Sélectionnez des personnages pour retrouver leur fiche actuelle."
-            )
-        )
-
-    def _restore_route_lock_state(self) -> None:
-        locked = False
-        manual_checked = getattr(self.service, "manual_checked", None)
-        if self.character_key and callable(manual_checked):
-            locked = bool(
-                manual_checked(
-                    self.character_key,
-                    self.ROUTE_LOCK_PROGRESS_KEY,
-                )
-            )
-        self.route_lock_check.blockSignals(True)
-        self.route_lock_check.setChecked(locked)
-        self.route_lock_check.blockSignals(False)
-        self._apply_route_lock_visual(locked)
-
-    def _apply_route_lock_visual(self, locked: bool) -> None:
-        label = "Verrouillé" if locked else "Déverrouillé"
-        self.route_lock_check.setText(label)
-        self.route_lock_check.setIcon(
-            _guide_symbol_icon(self.route_lock_check, "lock" if locked else "unlock")
-        )
-        self.route_lock_check.setIconSize(QSize(14, 14))
-        self.route_lock_check.setAccessibleName(label)
-        self.route_lock_check.setProperty("state", "locked" if locked else "unlocked")
-        self.route_lock_check.style().unpolish(self.route_lock_check)
-        self.route_lock_check.style().polish(self.route_lock_check)
-        self.route_bar.setCursor(Qt.ArrowCursor if locked else Qt.PointingHandCursor)
-        self.route_bar.setToolTip(
-            "Barre verrouillée : déverrouillez-la pour naviguer par clic."
-            if locked
-            else "Cliquer dans la barre pour naviguer directement dans le Guide."
-        )
-        self.route_lock_check.setToolTip(
-            "Déverrouiller la navigation dans la barre de progression."
-            if locked
-            else "Verrouiller la navigation dans la barre de progression."
-        )
-
-    def _route_lock_toggled(self, locked: bool) -> None:
-        self._apply_route_lock_visual(bool(locked))
-        set_manual_checked = getattr(self.service, "set_manual_checked", None)
-        if self.character_key and callable(set_manual_checked):
-            set_manual_checked(
-                self.character_key,
-                self.ROUTE_LOCK_PROGRESS_KEY,
-                bool(locked),
-            )
+        # Ganymède uses English "Step" in the DOM even for the French guide.
+        # Localize only the visible reader heading; the original step title
+        # remains intact in the source snapshot and fidelity contract.
+        if card.get("manual_source") is True and "source_step_id" in card:
+            title = re.sub(r"^Step (?=\d+\b)", "Étape ", title)
+        if self._is_continuous_source_reading():
+            # Continuous authored reading: no generated 'Étape', no repeated
+            # Quest titles. Progress remains bound to original source IDs.
+            pages = self._source_reading_pages()
+            page_number = self._source_current_page_number(pages)
+            count = max(1, len(pages))
+            self.sheet_title_label.setText("Parcours")
+            self.nav_page_label.setText(f"Page {page_number + 1} / {count}")
+            self.page_jump.blockSignals(True)
+            self.page_jump.setRange(1, count)
+            self.page_jump.setSuffix(f" / {count}")
+            self.page_jump.setValue(page_number + 1)
+            self.page_jump.blockSignals(False)
+        else:
+            self.sheet_title_label.setText(title)
+            self.nav_page_label.setText(f"Page {index + 1} / {total_cards}")
+            self.page_jump.blockSignals(True)
+            self.page_jump.setRange(1, max(1, total_cards))
+            self.page_jump.setSuffix(f" / {total_cards}")
+            self.page_jump.setValue(index + 1)
+            self.page_jump.blockSignals(False)
 
     def set_character_key(self, character_key: str) -> None:
         super().set_character_key(character_key)
         self._preparation_loaded = False
         self._preparation_needs = ()
         self._refresh_participants_panel()
-        self._restore_route_lock_state()
 
     def _validation_status(self, card: dict[str, Any], index: int):
         keys = self._progress_participant_keys()
@@ -2210,7 +3543,11 @@ class SharedGuideManualView(GuideUltimeManualView):
         if not statuses:
             label, hint = "Valider", "Choisissez d'abord un personnage avec le bouton portrait ; ce clic ouvre le sélecteur."
         elif blocked:
-            label, hint = "Choisir l’ordre", "Une fiche de la sélection est bloquée : terminez le choix d’ordre avant de valider."
+            source_reason = getattr(self.service, "manual_validation_block_reason", None)
+            if callable(source_reason):
+                label, hint = "Prérequis à vérifier", str(source_reason())
+            else:
+                label, hint = "Choisir l’ordre", "Une fiche de la sélection est bloquée : terminez le choix d’ordre avant de valider."
         elif all_done and reversible:
             label, hint = "Annuler validation", "Retirer uniquement les coches manuelles ; les preuves automatiques sont conservées."
         elif all_done:
@@ -2219,6 +3556,13 @@ class SharedGuideManualView(GuideUltimeManualView):
             label, hint = "Valider", "Valider la fiche pour les personnages sélectionnés qui en ont besoin."
         if statuses and (not callable(batcher) or not callable(page_key)):
             hint = "Sauvegarde multi-personnages indisponible : aucune écriture autorisée."
+        source_authorized = getattr(self.service, "can_write_progress", None)
+        if callable(source_authorized) and not source_authorized():
+            # The shared renderer also serves staged source previews. A route
+            # that was never certified or was revoked must not write through
+            # the direct GuideProgressService multi-character batch method.
+            enabled = False
+            hint = "Parcours source non autorisé : validation désactivée."
         button.blockSignals(True)
         try:
             button.setChecked(all_done)
@@ -2231,6 +3575,10 @@ class SharedGuideManualView(GuideUltimeManualView):
     def _page_toggled_for_participants(self, card: dict[str, Any], index: int, checked: bool) -> None:
         # Ignore deferred signals from an old card after navigation.
         if index != self.view_index or index >= len(self.service.cards) or self.service.cards[index] is not card:
+            return
+        source_authorized = getattr(self.service, "can_write_progress", None)
+        if callable(source_authorized) and not source_authorized():
+            self._render_window()
             return
         self.service.reload_progress()
         statuses = self._validation_status(card, index)
@@ -2270,38 +3618,305 @@ class SharedGuideManualView(GuideUltimeManualView):
         finally:
             self._follow_active_after_progress_change()
 
+    def _launch_zaap_travel_plan(self, destination: str) -> bool:
+        """Dispatch only an existing, explicitly verified Zaap plan on click.
+
+        The runtime service may supply a GuideTravelPlan from the canonical
+        GuideRoutePlanner. A coordinate alone cannot prove a Zaap is known,
+        accessible, efficient, or valid for every selected character.
+        """
+        match = re.fullmatch(r"(-?\d+),(-?\d+)", str(destination))
+        provider = getattr(self.service, "plan_verified_zaap_travel", None)
+        callback = getattr(self, "travel_callback", None)
+        available = getattr(self.participant_service, "available_characters", None)
+        if not (match and callable(provider) and callable(callback)
+                and callable(available)):
+            return False
+        def connected_keys() -> set[str]:
+            return {
+                str(getattr(row, "key", "") or "")
+                for row in (available() or ())
+                if bool(getattr(row, "connected", False))
+                and str(getattr(row, "key", "") or "")
+            }
+
+        try:
+            selected = self.selected_participant_keys()
+            connected = connected_keys()
+        except Exception:
+            LOGGER.exception("Guide: impossible de vérifier les participants Zaap.")
+            return False
+        # The command acts on a whole group: never quietly drop offline
+        # participants or choose another character in their place.
+        if not selected or any(key not in connected for key in selected):
+            return False
+        from app.modules.encyclopedia.services.guide_route_planner import (
+            GuideTravelPlan, TravelMode,
+        )
+        x, y = int(match.group(1)), int(match.group(2))
+        try:
+            plan = provider((x, y), selected)
+        except Exception:
+            LOGGER.exception("Guide: erreur du planificateur Zaap vérifié.")
+            return False
+        if (
+            not isinstance(plan, GuideTravelPlan)
+            or plan.mode is not TravelMode.ZAAP_THEN_TRAVEL
+            or (plan.destination.x, plan.destination.y) != (x, y)
+            or tuple(plan.participant_keys) != tuple(selected)
+        ):
+            return False
+        # Planning may involve callbacks or I/O: the selected roster and
+        # connection inventory can change before dispatch. Never reuse the
+        # earlier eligibility snapshot for a possibly different live team.
+        try:
+            if (self.selected_participant_keys() != selected
+                    or any(key not in connected_keys() for key in selected)):
+                return False
+        except Exception:
+            LOGGER.exception("Guide: participants Zaap indisponibles avant l'envoi.")
+            return False
+        try:
+            acknowledged = callback(plan.to_chat_command(), plan.participant_keys)
+        except Exception:
+            LOGGER.exception("Guide: échec du callback de trajet Zaap.")
+            return False
+        # Existing Guide launchers are fire-and-forget (return None). A strict
+        # False/0 rejection is not evidence of successful dispatch.
+        return acknowledged is None or acknowledged is True
+
+    def _source_reading_pages(self) -> tuple[tuple[dict[str, Any], ...], ...]:
+        """Only 1 content container is hydrated, for one source reading page.
+
+        Width changes reflow complete original paragraphs; the canonical
+        source cards remain untouched and can still be validated separately.
+        """
+        from app.modules.encyclopedia.services.guide_source_reading_pages import (
+            authored_reading_blocks, paginate_authored_blocks,
+            review_candidate_reading_blocks,
+        )
+        cards = self.service.cards
+        viewport = self.scroll.viewport()
+        width = max(240, viewport.width() - 60)
+        font_width = max(5, self.fontMetrics().averageCharWidth())
+        chars = max(24, width // font_width)
+        bucket = max(24, int(chars // 8) * 8)
+        key = (id(cards), len(cards), bucket)
+        if getattr(self, "_source_pages_cache_key", None) != key:
+            self._source_pages_cache_key = key
+            blocks = (
+                review_candidate_reading_blocks(cards)
+                if all(card.get("manual_review_only") is True for card in cards)
+                else authored_reading_blocks(cards)
+            )
+            self._source_pages_cache = paginate_authored_blocks(
+                blocks, chars_per_line=bucket,
+            )
+        return self._source_pages_cache
+
+    def _source_current_page_number(self, pages=None) -> int:
+        if pages is None:
+            pages = self._source_reading_pages()
+        explicit = getattr(self, "_source_page_override", None)
+        if isinstance(explicit, int):
+            return max(0, min(explicit, max(0, len(pages) - 1)))
+        from app.modules.encyclopedia.services.guide_source_reading_pages import (
+            source_page_for_index,
+        )
+        return source_page_for_index(pages, self.view_index)
+
+    def _show_reading_page(self, page_number: int) -> None:
+        if not self._is_continuous_source_reading():
+            self._show_index(page_number)
+            return
+        pages = self._source_reading_pages()
+        if not pages:
+            return
+        page = max(0, min(int(page_number), len(pages) - 1))
+        self._source_page_override = page
+        self.view_index = pages[page][0]["source_index"]
+        self._refresh_header()
+        self._render_window(reset_scroll=True)
+
+    def _show_index(self, index: int) -> None:
+        # Keep source-identity lookup for Route progress, Quest links and
+        # native callers. Only explicit reading pagination sets page override.
+        if self._is_continuous_source_reading():
+            self._source_page_override = None
+        super()._show_index(index)
+
+    def navigate_relative(self, delta: int) -> None:
+        if self._is_continuous_source_reading():
+            self._show_reading_page(self._source_current_page_number() + int(delta))
+        else:
+            super().navigate_relative(delta)
+
+    def _source_resize_reflow(self) -> None:
+        if not self._is_continuous_source_reading() or not self.service.cards:
+            return
+        width = self.scroll.viewport().width()
+        bucket = max(1, width // 80)
+        if bucket == getattr(self, "_source_resize_bucket", None):
+            return
+        self._source_resize_bucket = bucket
+        # Preserve the currently visible reading page index as far as
+        # possible after the viewport's natural wrapping changes.
+        self._source_pages_cache_key = None
+        pages = self._source_reading_pages()
+        self._source_page_override = min(
+            self._source_current_page_number(pages),
+            max(0, len(pages) - 1),
+        )
+        self._refresh_header()
+        self._render_window(reset_scroll=True)
+
+    def resizeEvent(self, event) -> None:  # noqa: N802 - Qt override
+        super().resizeEvent(event)
+        # Preserve the existing compact width contract (90px selector at
+        # <520px) when reflowing imported source pages.
+        if hasattr(self, "participants_button"):
+            self._sync_compact_action_labels()
+        if self._is_continuous_source_reading() and hasattr(self, "scroll"):
+            QTimer.singleShot(0, self._source_resize_reflow)
+
+    # One selected step owns navigation and validation. Nearby steps are
+    # visible below for reading, never independently validated by scrolling.
+    READING_WINDOW_SIZE = 3
+
+    def _reading_step_range(self, start: int) -> range:
+        total = len(self.service.cards)
+        begin = max(0, min(int(start), max(0, total - 1)))
+        # 1 authored Ganymede step == 1 Atlas sheet, including its actions.
+        # Never mount the following source step in the current sheet.
+        # Historical optimized guides retain their existing read-ahead.
+        selected = self.service.cards[begin] if total else {}
+        source_sheet = (
+            selected.get("manual_source") is True
+            and "source_step_id" in selected
+        )
+        count = 1 if source_sheet else self.READING_WINDOW_SIZE
+        return range(begin, min(total, begin + count))
+
+    def _configure_imported_sheet_layout(
+        self, widget: SharedGuideManualCard, card: dict,
+    ) -> None:
+        """One content-sized Atlas sheet for any authored source page.
+
+        Both certified imports and read-only metadata reviews use this single
+        policy. Long paragraphs keep their full scrollable height; short
+        source pages do not expand into empty nested cards.
+        """
+        widget.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Maximum)
+        widget.layout().setAlignment(Qt.AlignTop)
+        entries = card.get("manual_sections", {})
+        if not isinstance(entries, dict):
+            entries = {}
+        authored = [
+            row for rows in entries.values() if isinstance(rows, list)
+            for row in rows if isinstance(row, dict)
+        ]
+        if any(len(str(row.get("text") or "")) > 160 for row in authored):
+            viewport = self.scroll.viewport()
+            margins = self.cards_layout.contentsMargins()
+            label_width = max(
+                120, viewport.width() - margins.left() - margins.right() - 88
+            )
+            estimated = max(1, widget.sizeHint().height())
+            for label in widget.findChildren(QLabel):
+                if label.wordWrap() and label.hasHeightForWidth():
+                    wrapped = label.heightForWidth(label_width)
+                    estimated += max(0, wrapped - label.sizeHint().height())
+            widget.setMinimumHeight(estimated)
+        else:
+            widget.setMinimumHeight(0)
+
     def _render_window(self, *, reset_scroll: bool = False) -> None:
         self._catalog_prefetch_timer.stop()
         self._catalog_prefetch_index = None
         self._clear_cards()
         if not self.service.cards:
             return
-        index = max(0, min(self.view_index, len(self.service.cards) - 1))
-        card = self.service.cards[index]
-        self._add_manual_order_choice(card)
-        widget = SharedGuideManualCard(
-            self.service,
-            self.character_key,
-            card,
-            index,
-            travel_command_callback=(
-                self._launch_travel_command
-                if callable(self.travel_callback)
-                else None
-            ),
-            show_header_title=False,
-            page_validation_callback=lambda checked, sheet=card, sheet_index=index: (
-                self._page_toggled_for_participants(sheet, sheet_index, bool(checked))
-            ),
+        # One actual source fiche is often short. Do not paint a huge empty
+        # bordered scroll panel below it: the original authored sheet keeps
+        # its indexed glass and real content height instead.
+        source_scroll = self._is_imported_source_guide() or self._is_continuous_source_reading()
+        scroll_name = (
+            "GuideManualSourceScroll" if source_scroll
+            else "GuideManualScroll"
         )
-        self._sync_validation_control(widget.page_check, card, index)
-        widget.questRequested.connect(self._open_quest_from_card)
-        self._set_validation_widget(widget.page_check)
-        self.cards_layout.addWidget(widget)
+        if self.scroll.objectName() != scroll_name:
+            self.scroll.setObjectName(scroll_name)
+            self.scroll.style().unpolish(self.scroll)
+            self.scroll.style().polish(self.scroll)
+        index = max(0, min(self.view_index, len(self.service.cards) - 1))
+        if self._is_continuous_source_reading():
+            pages = self._source_reading_pages()
+            page_idx = self._source_current_page_number(pages)
+            entries = pages[page_idx] if pages else ()
+            widget = _GuideContinuousSourcePage(entries, parent=self.content)
+            self.cards_layout.addWidget(widget)
+            widget.show()
+            self.rendered_card_count = 1
+            # One page is purely presentation. Never silently mark multiple
+            # original source fiches as validated by one checkbox.
+            self.validation_host.hide()
+            self.prev_button.setEnabled(page_idx > 0)
+            self.next_button.setEnabled(page_idx + 1 < len(pages))
+            self.guide_button.setToolTip(
+                "Revenir au Guide actif." if index != self.active_index
+                else "Retour au catalogue des guides."
+            )
+            self.cards_layout.addStretch(1)
+            if reset_scroll:
+                self._reset_scroll_to_top()
+            return
+        for number in self._reading_step_range(index):
+            card = self.service.cards[number]
+            active = number == index
+            review_only = card.get("manual_review_only") is True
+            if active and not review_only:
+                self._add_manual_order_choice(card)
+            widget = SharedGuideManualCard(
+                self.service,
+                self.character_key,
+                card,
+                number,
+                travel_command_callback=(
+                    self._launch_travel_command
+                    if callable(self.travel_callback)
+                    else None
+                ),
+                zaap_travel_callback=self._launch_zaap_travel_plan,
+                show_header_title=not active and not (
+                    card.get("manual_source") is True and "source_step_id" in card
+                ),
+                page_validation_callback=(
+                    (lambda checked, sheet=card, sheet_index=number: (
+                        self._page_toggled_for_participants(
+                            sheet, sheet_index, bool(checked)
+                        )
+                    )) if active and not review_only else None
+                ),
+            )
+            if card.get("manual_source") is True and "source_step_id" in card:
+                self._configure_imported_sheet_layout(widget, card)
+            widget.questRequested.connect(self._open_quest_from_card)
+            widget.entityRequested.connect(self._open_entity_from_card)
+            if active and not review_only:
+                self._sync_validation_control(widget.page_check, card, number)
+                self._set_validation_widget(widget.page_check)
+            else:
+                # Read-only source review and inactive read-ahead cards have
+                # no validation control or progress-write callback.
+                # Read-ahead cards are informational only; progress and
+                # selected identity always belong to the active source step.
+                widget.page_check.setEnabled(False)
+                widget.page_check.hide()
+            self.cards_layout.addWidget(widget)
+            widget.show()
+            self.rendered_card_count += 1
         self.cards_layout.addStretch(1)
-        self.rendered_card_count = 1
-        # Schedule neighbor disk reads after the visible Qt sheet is ready.
-        # Never read nine SQLite bodies synchronously during _render_window.
+        # Schedule neighbor disk reads after the visible Qt sheets are ready.
         if callable(getattr(self.service, "prefetch_route_near", None)):
             self._catalog_prefetch_index = index
             self._catalog_prefetch_timer.start()
@@ -2324,6 +3939,16 @@ class SharedGuideManualView(GuideUltimeManualView):
             return
         if not prefetch(index, max_reads=1):
             self._catalog_prefetch_timer.stop()
+
+    def _open_entity_from_card(self, entity_type: str, entity_id: int) -> None:
+        """Route through the shared navigator; never fabricate a Bestiary page."""
+        navigator = self.navigate_entity
+        if callable(navigator) and navigator(
+            entity_type, entity_id, source="guide",
+        ):
+            return
+        QToolTip.showText(QCursor.pos(), "Fiche Bestiaire indisponible", self)
+        QTimer.singleShot(800, QToolTip.hideText)
 
     def _open_quest_from_card(self, quest_id: int, stage_id: str, index: int) -> None:
         navigator = self.navigate_entity

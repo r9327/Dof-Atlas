@@ -1,0 +1,21 @@
+name: Guides Phase 0 - exact SHA Graphify evidence
+
+# Narrow, exact-SHA architecture proof for PR #363, using the existing
+# Graphify/Doctor workflow. Refresh alongside machine-readable Phase 0
+# CI evidence; ordinary Guide pushes never trigger an AST rebuild.
+# This bridge can also be run manually for the current exact branch HEAD.
+on:
+  workflow_dispatch:
+  push:
+    branches: [feat/atlas-guide-importer-pr337-20261102]
+    paths:
+      - .github/workflows/guide-phase0-graphify.yml
+
+permissions:
+  contents: read
+
+jobs:
+  existing-graphify-doctor:
+    name: Existing Graphify and Doctor architecture evidence
+    if: github.ref == 'refs/heads/feat/atlas-guide-importer-pr337-20261102'
+    uses: ./.github/workflows/graphify-map.yml

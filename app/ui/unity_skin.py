@@ -77,6 +77,13 @@ def wallpaper_path() -> Path | None:
     return _asset_file(Path("background_selection_clean.png"))
 
 
+def unity_guide_chevron_path(direction: str) -> Path | None:
+    """Original indexed Unity up/down glyphs shared by all Guide controls."""
+    if direction not in {"up", "down"}:
+        raise ValueError("Unsupported Unity chevron direction")
+    return _asset_file(Path("sprites") / f"atlas-control-{direction}.svg")
+
+
 def _sprite_url(filename: str) -> str | None:
     """Render from personal files first, without changing release packaging."""
     candidate = _asset_file(Path("sprites") / filename)
@@ -178,9 +185,12 @@ def unity_skin_stylesheet() -> str:
         "QFrame#GuideFeaturedCard { "
         "background: rgba(27, 39, 70, 0.88); border: 1px solid #617CA6; "
         "border-radius: 9px; }",
-        "QFrame#GuideCompactHeader, QFrame#GuideSheetHeader, "
-        "QFrame#GuidePreparationPanel { "
+        "QFrame#GuideCompactHeader, QFrame#GuideSheetHeader { "
         "background: rgba(24, 37, 70, 0.93); border: 1px solid #475F89; }",
+        "QFrame#GuidePreparationPanel { "
+        "background: %s; border: 1px solid %s; }" % (
+            UNITY_PALETTE["PANEL_2"], UNITY_PALETTE["BORDER_SOFT"],
+        ),
         # Small bevels and stronger contrast for the real guide surfaces.
         # QSS has no native box-shadow; personal 9-slice sprites can supply
         # the game-native depth when installed.
@@ -195,15 +205,17 @@ def unity_skin_stylesheet() -> str:
         "border: 1px solid rgba(114, 149, 196, 0.65); border-radius: 5px; }",
         "QPushButton#GuidePreparationItemCopy { "
         "text-align: left; background: transparent; border: none; "
-        "color: %s; padding: 3px; }" % UNITY_PALETTE["GUIDE_ITEM_TEXT"],
+        "color: %s; padding: 3px; }" % UNITY_PALETTE["GUIDE_TOGGLE_BORDER"],
         "QPushButton#GuidePreparationItemCopy:hover { "
-        "background: rgba(102, 139, 196, 0.30); border-radius: 4px; }",
+        "background: rgba(102, 139, 196, 0.30); border-radius: 4px; "
+        "border: 1px solid %s; color: %s; }" % (
+            UNITY_PALETTE["GREEN_BORDER"], UNITY_PALETTE["GREEN_BORDER"],
+        ),
         "QLabel#GuidePreparationRowStatus, QLabel#GuidePreparationParticipantNeed { "
         "color: %s; font-weight: 600; }" % UNITY_PALETTE["GUIDE_STATUS_TEXT"],
         "QFrame#GuideManualNav { "
         "background: rgba(19, 31, 59, 0.94); border-top: 1px solid %s; }" % UNITY_PALETTE["GUIDE_NAV_BORDER"],
-        "QToolButton#GuidePreparationToggle, QToolButton#GuideSummaryButton, "
-        "QToolButton#GuideParticipantsButton { "
+        "QToolButton#GuidePreparationToggle, QToolButton#GuideSummaryButton { "
         "background: qlineargradient(x1:0,y1:0,x2:0,y2:1, "
         "stop:0 %s, stop:1 %s); "
         "color: %s; border: 1px solid %s; "
@@ -211,13 +223,11 @@ def unity_skin_stylesheet() -> str:
             UNITY_PALETTE["GUIDE_TOGGLE_TOP"], UNITY_PALETTE["GUIDE_TOGGLE_BOTTOM"],
             UNITY_PALETTE["GUIDE_PREPARATION_TEXT"], UNITY_PALETTE["GUIDE_TOGGLE_BORDER"],
         ),
-        "QToolButton#GuidePreparationToggle:checked, QToolButton#GuideSummaryButton:checked, "
-        "QToolButton#GuideParticipantsButton:checked { "
+        "QToolButton#GuidePreparationToggle:checked, QToolButton#GuideSummaryButton:checked { "
         "background: %s; border: 1px solid %s; }" % (
             UNITY_PALETTE["GUIDE_TOGGLE_ACTIVE"], UNITY_PALETTE["GUIDE_TOGGLE_ACTIVE_BORDER"],
         ),
-        "QToolButton#GuidePreparationToggle:hover, QToolButton#GuideSummaryButton:hover, "
-        "QToolButton#GuideParticipantsButton:hover { "
+        "QToolButton#GuidePreparationToggle:hover, QToolButton#GuideSummaryButton:hover { "
         "background: %s; }" % UNITY_PALETTE["GUIDE_TOGGLE_HOVER"],
         "QDialog#AtlasDialog, QMenu { "
         "background: rgba(25, 38, 75, 0.98); color: #F1F6FB; "
@@ -267,10 +277,8 @@ def unity_skin_stylesheet() -> str:
     # The tiny green button sprite turns the whole Guide header neon yellow
     # at Windows DPI. Keep the dark-stone beveled QSS above for secondary
     # toggles; reserve green action sprites for the actual Valider command.
-    add_border(
-        "QFrame#GuidePreparationPanel, QFrame#GuideSummaryPanel, QFrame#GuideParticipantsPanel",
-        "Assets_UI_Themes_darkStone_common_bg_small_border_light-png.png", 6,
-    )
+    # No darkStone 9-slice on Guide drawers: its grey texture overrides
+    # the blue palette surface and the subtle glass-style border.
     sprites_for_states(
         "QPushButton#GuideManualNavButton",
         "btn_arrow_pagination", 5,
@@ -309,6 +317,15 @@ def unity_skin_stylesheet() -> str:
         ", ".join(f"QPushButton#{name}:focus" for name in focus_button_names)
         + " { border: 2px solid #D9EAF2; border-image: none; }"
     )
+    # Same indexed vector chevrons already used by Dev UI/Unity widgets.
+    # A styled spin-button needs explicit artwork or Qt drops native glyphs.
+    for direction in ("up", "down"):
+        artwork = _sprite_url(f"atlas-control-{direction}.svg")
+        if artwork:
+            rules.append(
+                f'QSpinBox#GuideCompactPageJump::{direction}-arrow {{ '
+                f'image: url("{artwork}"); width: 9px; height: 9px; }}'
+            )
     return "\n".join(rules)
 
 
