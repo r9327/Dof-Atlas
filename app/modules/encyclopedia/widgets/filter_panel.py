@@ -14,7 +14,7 @@ from PySide6.QtWidgets import (
 )
 
 from app.modules.encyclopedia.models.achievement import AchievementCategory
-from app.ui.components import AtlasComboBox
+from app.ui.components import AtlasComboBox, fit_unity_number_spinbox
 from app.ui.unity_palette import UNITY_MODULE_GEOMETRY_PX
 
 
@@ -45,6 +45,9 @@ class AchievementFilterPanel(QWidget):
         self.min_level.setRange(0, 999)
         self.max_level.setRange(0, 999)
         self.max_level.setValue(999)
+        # Same compact numerical width contract as Guides, Quêtes and Craft.
+        fit_unity_number_spinbox(self.min_level)
+        fit_unity_number_spinbox(self.max_level)
         self.state_combo.addItems(["Tous", "Terminés", "Non terminés"])
 
         for label, widget in (
