@@ -235,6 +235,7 @@ class ContinuousGuideRoutePanelTests(unittest.TestCase):
                 self.panel.summary_toggle.click()
 
     def test_validation_is_real_and_per_character_only(self):
+        self.assertEqual(self.panel.validate_button.text(), "Valider")
         self.panel.validate_button.click()
         step = "ganymede_2205_step_0001"
         self.assertTrue(self.store.is_manual_step_completed("character:1", "dofus_cawotte", step))
@@ -246,7 +247,9 @@ class ContinuousGuideRoutePanelTests(unittest.TestCase):
                          "ganymede_2205_step_0002")
         self.panel.set_characters(["character:1"])
         self.panel.show_step(step)
+        self.assertEqual(self.panel.validate_button.text(), "Annuler")
         self.panel.validate_button.click()
+        self.assertEqual(self.panel.validate_button.text(), "Valider")
         self.assertFalse(self.store.is_manual_step_completed("character:1", "dofus_cawotte", step))
         self.assertTrue(self.store.is_manual_step_completed("character:2", "dofus_cawotte", step))
         self.assertEqual(self.panel.navigation.position().actual_step_id, step)
