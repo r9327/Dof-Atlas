@@ -181,3 +181,67 @@ appliquées indistinctement à tous les modules.
 consommée. Cette distinction reste explicite dans Dev UI. La migration des
 consommateurs est le lot suivant et doit conserver les dimensions réelles
 sans changer leur placement.
+
+## Couverture réelle de toute l'application — lot d'adoption #365 (17/11/2026)
+
+Objectif existant ATUI-009..016 du contrat #364 : **une seule implémentation par
+composant visuel réellement commun, aucun style local concurrent**. L'index
+`UNITY_UI_FAMILY_INDEX` (23 familles) et les 12 entrées
+`UNITY_UI_CONSUMERS` recensent des propriétaires et exemples, **pas** une
+preuve d'adoption intégrale. Ne pas ajouter de deuxième palette, framework,
+registre de style ou couche de thème.
+
+### Matrice de vérification obligatoire avant Ready
+
+Partir des **13 scénarios réels** de `tests/capture_app_shell_ui.py` :
+Accueil, Organizer, Paramètres, Dev UI, Almanax, Craft, Équipement,
+Carte du monde, Personnage, Quêtes, Guides, Succès et Bestiaire. Compléter
+avec les sous-vues et le module Réseau, puis avec le Launcher Tk indépendant,
+les overlays Organizer/radial/splash et toutes les familles de dialogues
+de `tests/capture_app_popups_ui.py` (dont menus/contextuels, calendrier,
+préchargement, ressources Craft, Leveling, Route, images zoomées, Zaap,
+confirmation/erreur, popup de sélection).
+
+Pour **chaque écran et fenêtre**, comparer les mêmes composants aux
+familles Dev UI existantes : boutons/états, champs/sélecteurs numériques
+et listes, menus, onglets, navigation/fil d'Ariane, tableaux, panneaux,
+couleurs/polices/liens, icônes transparentes, badges/progression,
+focus/clavier, tooltips, scroll et tailles/espacements. Examiner les
+widgets créés dynamiquement, y compris leur état après retour Home.
+Les 12 propriétaires indexés ne remplacent pas cet inventaire :
+Paramètres et Dev UI doivent être explicitement contrôlés, et l'Almanax
+est construit dans `main.py`, pas seulement `home_page.py`.
+
+Pour chaque divergence, consigner **fichier + widget + consommateur
+réel + propriétaire canonique + décision** :
+- dupliqué : raccorder au composant/token existant et tester la propagation ;
+- spécifique métier : garder la géométrie/le dessin nécessaire, mais utiliser
+  les couleurs, états et typographies communs, avec motif documenté ;
+- prototype sans consommateur (animations, notifications flottantes) :
+  ne pas construire un service nouveau sans usage démontré.
+
+Les 4 repères 900×600, 1180×720, 1440×900, 1920×1080 doivent conserver
+rangées/colonnes/ordre. Vérifier aussi DPI Windows 125/150 %, contenu long,
+nombres négatifs/préfixes/suffixes, popup ancrée, clavier, absence de coupe
+et de scroll horizontal involontaire. Les contrôles Qt offscreen ne valent
+pas recette Windows/Dofus en conditions réelles.
+
+### Partage des responsabilités et critères de sortie
+
+**#365** détient l'UI commune et son adoption globale.
+**#363** détient l'import/les données/la certification du pilote Cawotte :
+`SharedGuideManualView` et `SharedGuideManualCard` restent le
+lecteur/conteneur commun de **tous** les guides, sans en-tête Cawotte
+parallèle. Le suivi #433 ne reporte **pas** la création de styles communs
+dans #363 ; il suit uniquement la conformité des données et le branchement
+réel des guides autorisés. Le Launcher conserve son adaptateur Tk ; Organizer
+conserve ses dessins/gestes métier, mais pas une palette concurrente.
+
+Sortie demandée pour ATUI-010/011/013/015/016 : matrice couvrant chaque
+écran/overlay/popup, absence de duplication prouvée ou exception justifiée,
+tests de propagation des tokens sur les consommateurs vérifiés, captures
+comparées et tests ciblés **sur HEAD exact**. Les statuts DONE actuels du
+rapport #365 sont des déclarations d'implémentation, pas un certificat
+d'exhaustivité ; toute lacune trouvée doit être corrigée ou explicitement
+requalifiée avant Ready. Aucun effet ni animation optionnels ajoutés pour
+remplacer cette vérification.
