@@ -2935,6 +2935,32 @@ QToolButton#GuideParticipantPortrait:checked {
     border-color: @GREEN_BORDER;
 }
 
+/* One Dev UI semantic palette for sections and inline combat reading.
+   The reader must never override these surfaces with per-widget RGB. */
+QFrame#GuideManualCombatSection,
+QFrame#GuideManualCombatInlineRow,
+QFrame#GuideManualLineRow[guideRole="combat"] {
+    background: @PANEL_2;
+    border: 1px solid @BORDER_SOFT;
+    border-radius: @RADIUS_XS;
+}
+
+QLabel#GuideManualCombatInlineText {
+    color: @TEXT_SOFT;
+    font-size: @FONT_GUIDE_READING;
+    background: transparent;
+    border: none;
+    padding: 5px 7px;
+}
+
+QLabel#GuideManualLine[guideRole="preparation"] {
+    padding: 2px 0;
+}
+
+QLabel#GuidePreparationRowStatus[state="complete"] {
+    color: @GREEN;
+}
+
 #GuideManualDungeonSection {
     border-color: @RED_DARK;
 }

@@ -1008,14 +1008,6 @@ class SharedGuideManualCard(GuideUltimeManualCard):
         else:
             frame = QFrame()
             frame.setObjectName(object_name)
-            if section_key == "boss":
-                frame.setStyleSheet(
-                    "QFrame#GuideManualCombatSection {"
-                    "background: rgba(174, 183, 177, 0.035);"
-                    "border: 1px solid rgba(174, 183, 177, 0.16);"
-                    "border-radius: 6px;"
-                    "}"
-                )
             layout = QVBoxLayout(frame)
         spacing = GUIDE_READING_METRICS
         if self._continuous_source:
@@ -1119,18 +1111,10 @@ class SharedGuideManualCard(GuideUltimeManualCard):
                 row_widget.setProperty(
                     "sourceActionId", str(row.get("source_action_id") or ""),
                 )
-            if section_key == "prepare":
-                row_widget.setStyleSheet(
-                    "QFrame#GuideManualLineRow { background: transparent; border: none; }"
-                )
-            elif combat_line and not self._continuous_source:
-                row_widget.setStyleSheet(
-                    "QFrame#GuideManualLineRow {"
-                    "background: rgba(174, 183, 177, 0.045);"
-                    "border: 1px solid rgba(174, 183, 177, 0.14);"
-                    "border-radius: 4px;"
-                    "}"
-                )
+            # Qt's shared QSS owns every color, including combat accents.
+            # A semantic state replaces per-row local RGBA overrides.
+            if combat_line and not self._continuous_source:
+                row_widget.setProperty("guideRole", "combat")
             row_layout = QHBoxLayout(row_widget)
             row_layout.setContentsMargins(0, 0, 0, 0)
             row_layout.setSpacing(GUIDE_READING_METRICS["row_spacing"])
@@ -1221,16 +1205,9 @@ class SharedGuideManualCard(GuideUltimeManualCard):
                 line.hide()
             if section_key == "prepare":
                 line.setObjectName("GuideManualLine")
-                line.setStyleSheet(
-                    "QLabel#GuideManualLine { background: transparent; border: none; padding: 2px 0; }"
-                )
+                line.setProperty("guideRole", "preparation")
             elif combat_line:
                 line.setObjectName("GuideManualCombatInlineText")
-                line.setStyleSheet(
-                    "QLabel#GuideManualCombatInlineText {"
-                    "background: transparent; border: none; padding: 5px 7px;"
-                    "}"
-                )
             else:
                 source_kind = (
                     row.get("source_action_kind")
@@ -1619,13 +1596,6 @@ class SharedGuideManualCard(GuideUltimeManualCard):
 
         row = QFrame()
         row.setObjectName("GuideManualCombatInlineRow")
-        row.setStyleSheet(
-            "QFrame#GuideManualCombatInlineRow {"
-            "background: rgba(174, 183, 177, 0.055);"
-            "border: 1px solid rgba(174, 183, 177, 0.18);"
-            "border-radius: 4px;"
-            "}"
-        )
         row_layout = QHBoxLayout(row)
         row_layout.setContentsMargins(16, 3, 6, 3)
         row_layout.setSpacing(6)
@@ -1643,9 +1613,6 @@ class SharedGuideManualCard(GuideUltimeManualCard):
         # tooltip while the row follows the viewport width.
         checkbox.setMinimumWidth(0)
         checkbox.setSizePolicy(QSizePolicy.Ignored, QSizePolicy.Preferred)
-        checkbox.setStyleSheet(
-            "QCheckBox#GuideManualCombatCheck { background: transparent; border: none; }"
-        )
         progress = getattr(self.service, "quest_progress", None)
         checked = bool(
             progress is not None
@@ -3210,7 +3177,7 @@ class SharedGuideManualView(GuideUltimeManualView):
                 )
             if acquired == quantity:
                 status_label.setText("Complet")
-                status_label.setStyleSheet(f"color: {PALETTE['GREEN']};")
+                status_label.setProperty("state", "complete")
         ready_button = QCheckBox()
         ready_button.setObjectName("GuidePreparationReady")
         ready_button.setChecked(ready)

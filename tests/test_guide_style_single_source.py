@@ -55,6 +55,32 @@ class GuideStyleSingleSourceTests(unittest.TestCase):
 
         self.assertFalse(Path("app/ui/styles/quests.py").exists())
 
+    def test_shared_guide_content_uses_global_type_and_surface_roles(self) -> None:
+        from app.ui.entity_link_roles import (
+            ENTITY_LINK_COLOR_ROLES, GUIDE_SOURCE_HIGHLIGHT_COLOR_ROLES,
+        )
+        from app.ui.theme import PALETTE, atlas_stylesheet
+
+        source = Path(
+            "app/modules/encyclopedia/views/shared_manual_guide_view.py"
+        ).read_text(encoding="utf-8")
+        self.assertNotIn("rgba(174, 183, 177", source)
+        self.assertNotIn("QFrame#GuideManualLineRow {", source)
+        self.assertNotIn('status_label.setStyleSheet(', source)
+        for role in (*ENTITY_LINK_COLOR_ROLES.values(),
+                     *GUIDE_SOURCE_HIGHLIGHT_COLOR_ROLES.values()):
+            self.assertIn(role, PALETTE)
+        theme = atlas_stylesheet()
+        for selector in (
+            'QFrame#GuideManualCombatSection',
+            'QFrame#GuideManualCombatInlineRow',
+            'QFrame#GuideManualLineRow[guideRole="combat"]',
+            'QLabel#GuideManualCombatInlineText',
+            'QLabel#GuideManualLine[guideRole="preparation"]',
+            'QLabel#GuidePreparationRowStatus[state="complete"]',
+        ):
+            self.assertIn(selector, theme)
+
     def test_global_theme_owns_phase2_view_selectors(self) -> None:
         source = Path("app/ui/theme.py").read_text(encoding="utf-8")
         for selector in (
