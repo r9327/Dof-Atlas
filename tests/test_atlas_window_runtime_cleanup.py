@@ -142,7 +142,13 @@ class AtlasWindowRuntimeCleanupTests(unittest.TestCase):
     def test_stopped_network_bridge_is_recreated(self) -> None:
         QApplication.instance() or QApplication([])
         first = network_bridge_module.network_ui_bridge()
+        observed = []
+        first.statusChanged.connect(observed.append)
         self.assertTrue(first.stop())
+        self.assertEqual(first.last_status.reason, "stopped")
+        self.assertFalse(first.last_status.running)
+        self.assertEqual(len(observed), 1)
+        self.assertEqual(observed[0].reason, "stopped")
         second = network_bridge_module.network_ui_bridge()
         self.assertIsNot(first, second)
         self.assertFalse(second._stopped)
