@@ -799,7 +799,7 @@ def exercise_guide(session, page, owner, guide_id, repeats, smoke=False):
     settle()
     preparation_open = (
         view.global_details_panel.isVisible()
-        view.preparation_panel.isVisible()
+        and view.preparation_panel.isVisible()
         and view.preparation_scroll.isVisible()
         and view.preparation_filter.isVisible()
     )
