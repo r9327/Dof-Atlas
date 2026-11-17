@@ -866,6 +866,14 @@ class DevUiPageTests(unittest.TestCase):
                          "Organizer radial", "Splash Unity"):
                 self.assertIn(name, actual)
             self.assertEqual(page.preview_secondary_surfaces.styleSheet(), "")
+            self.assertTrue(all(
+                page.preview_secondary_surfaces.item(index, 2).toolTip().endswith(".py")
+                for index in range(page.preview_secondary_surfaces.rowCount())
+            ))
+            self.assertEqual(
+                page.preview_secondary_surfaces.horizontalScrollBarPolicy(),
+                Qt.ScrollBarAsNeeded,
+            )
             self.assertIn("Tk", page.preview_scope.item(11, 1).text())
             self.assertIn(
                 "app/distribution/launcher_ui.py",
