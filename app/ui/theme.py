@@ -3678,9 +3678,10 @@ QToolButton#GuideContinuousValidate:checked {
 }
 
 #GuideManualPageCheck {
-    color: @TEXT_MUTED;
+    color: @TEXT_SOFT;
     background: transparent;
-    border: none;
+    border: 1px solid @BORDER_SOFT;
+    border-radius: @RADIUS_XS;
     padding: 2px;
     spacing: 9px;
     font-size: @FONT_BODY;
@@ -3688,7 +3689,17 @@ QToolButton#GuideContinuousValidate:checked {
 }
 
 #GuideManualPageCheck:disabled {
+    color: @TEXT_MUTED;
+}
+
+#GuideManualPageCheck:checked {
     color: @GREEN;
+    border-color: @GREEN_BORDER;
+}
+
+#GuideManualPageCheck:checked:disabled {
+    color: @GREEN;
+    border-color: @GREEN_BORDER;
 }
 
 #GuideManualPageCheck::indicator {
