@@ -1075,118 +1075,86 @@ class SharedGuideManualView(GuideUltimeManualView):
         self.overlay_button.setAccessibleName("Overlay")
         self.overlay_button.setEnabled(False)
         title_row.addWidget(self.overlay_button)
-        self.settings_button = QToolButton()
-        self.settings_button.setObjectName("GuideCompactSettingsButton")
-        self.settings_button.setIcon(_guide_symbol_icon(self.settings_button, "settings"))
-        self.settings_button.setIconSize(QSize(16, 16))
-        self.settings_button.setToolTip("Paramètres du Guide")
-        self.settings_button.setAccessibleName("Paramètres du Guide")
-        self.settings_button.setCheckable(True)
-        title_row.addWidget(self.settings_button)
         right.addLayout(title_row)
         self._compact_title_row = title_row
 
+        # Shared #363 layout: progress is global; preparation is inside details.
         overall_caption = QHBoxLayout()
-        overall_title = QLabel("Progression globale")
-        overall_title.setObjectName("GuideGlobalProgressTitle")
-        overall_caption.addWidget(overall_title)
+        title = QLabel("Progression globale")
+        title.setObjectName("GuideGlobalProgressTitle")
+        overall_caption.addWidget(title)
+        self.global_details_button = AtlasGuideDisclosure()
+        self.global_details_button.setFixedSize(
+            UNITY_CONTROL_SIZES_PX["progress_toggle_width"],
+            UNITY_CONTROL_SIZES_PX["progress_toggle_height"],
+        )
+        self.global_details_button.setToolTip("Afficher la progression et les préparatifs")
+        self.global_details_button.setAccessibleName("Déplier la progression globale")
+        overall_caption.addWidget(self.global_details_button, 0, Qt.AlignVCenter)
         overall_caption.addStretch(1)
         overall_caption.addWidget(self.global_progress_label)
         right.addLayout(overall_caption)
-
         right.addWidget(self.global_progress_bar)
 
-        # Two original progress bars, retaining their navigation and values.
-        metrics = QGridLayout()
-        metrics.setContentsMargins(0, 0, 0, 0)
-        metrics.setHorizontalSpacing(UNITY_LAYOUT_SIZES_PX["guide_metric_column_spacing"])
-        metrics.setVerticalSpacing(UNITY_LAYOUT_SIZES_PX["guide_metric_row_spacing"])
-        self._metric_caption_labels: dict[str, QLabel] = {}
-        self._metric_dropdown_buttons: dict[str, QToolButton] = {}
-        def add_metric(
-            name: str, symbol: str, color_key: str, bar: QProgressBar, value: QLabel
-        ) -> None:
-            column = len(self._metric_columns)
-            caption = QHBoxLayout()
-            caption.setSpacing(UNITY_LAYOUT_SIZES_PX["guide_metric_caption_spacing"])
-            icon = QLabel()
-            icon.setObjectName(f"GuideCompactMetricIcon{symbol.title()}")
-            icon.setPixmap(
-                _guide_symbol_icon(icon, symbol, size=16, color=PALETTE[color_key]).pixmap(16, 16)
-            )
-            icon.setFixedSize(
-                UNITY_SIZES_PX["icon_small"], UNITY_SIZES_PX["icon_small"]
-            )
-            caption.addWidget(icon)
-            caption_label = QLabel(name)
-            caption_label.setToolTip(name)
-            caption_label.setMinimumWidth(0)
-            self._metric_caption_labels[name] = caption_label
-            caption.addWidget(caption_label)
-            caption.addStretch(1)
-            value.setObjectName("GuideCompactMetricValue")
-            caption.addWidget(value)
-            metrics.addLayout(caption, 0, column)
-            bar.setTextVisible(False)
-            bar.setFixedHeight(UNITY_CONTROL_SIZES_PX["progress_secondary"])
-            bar.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
-            # The bar keeps its original progress/navigation behaviour.
-            # Its neighboring arrow alone controls the corresponding dropdown.
-            arrow = AtlasGuideDisclosure()
-            arrow.setFixedSize(
-                UNITY_CONTROL_SIZES_PX["progress_toggle_width"],
-                UNITY_CONTROL_SIZES_PX["progress_toggle_height"],
-            )
-            arrow.setCursor(Qt.PointingHandCursor)
-            target = "Sommaire" if name == "Route" else "Préparation"
-            arrow.setToolTip(f"Ouvrir {target}")
-            arrow.setAccessibleName(f"Afficher {target}")
-            caption.insertWidget(2, arrow, 0, Qt.AlignVCenter)
-            metrics.addWidget(bar, 1, column)
-            if name == "Route":
-                self.summary_button = arrow
-            else:
-                self.preparation_button = arrow
-            self._metric_dropdown_buttons[name] = arrow
-            drawer_column = QVBoxLayout()
-            drawer_column.setContentsMargins(0, 0, 0, 0)
-            self._metric_columns[name] = drawer_column
-            metrics.addLayout(drawer_column, 2, column, Qt.AlignTop)
-            metrics.setColumnStretch(column, 1)
+        self.global_details_panel = QFrame()
+        self.global_details_panel.setObjectName("GuideGlobalDetailsPanel")
+        details = QVBoxLayout(self.global_details_panel)
+        details.setContentsMargins(
+            UNITY_SPACING_PX["sm"], UNITY_SPACING_PX["xs"],
+            UNITY_SPACING_PX["sm"], UNITY_SPACING_PX["sm"],
+        )
+        details.setSpacing(UNITY_LAYOUT_SIZES_PX["guide_metric_row_spacing"])
+        self.global_details_rows = QWidget()
+        self.global_details_rows.setObjectName("GuideGlobalCharacterProgress")
+        self.global_details_layout = QVBoxLayout(self.global_details_rows)
+        self.global_details_layout.setContentsMargins(0, 0, 0, 0)
+        self.global_details_layout.setSpacing(UNITY_LAYOUT_SIZES_PX["guide_metric_row_spacing"])
+        details.addWidget(self.global_details_rows)
 
-        self.route_bar = GuideManualProgressBar()
-        self.route_bar.setObjectName("GuideManualProgress")
-        self.route_bar.setCursor(Qt.PointingHandCursor)
-        self.route_bar.navigationRequested.connect(self._jump_from_progress)
-        self.route_progress_label = QLabel("—")
-        add_metric("Route", "target", "RED", self.route_bar, self.route_progress_label)
-
+        preparation_metric = QVBoxLayout()
+        preparation_metric.setSpacing(UNITY_LAYOUT_SIZES_PX["guide_metric_row_spacing"])
+        caption = QHBoxLayout()
+        caption.setSpacing(UNITY_LAYOUT_SIZES_PX["guide_metric_caption_spacing"])
+        icon = QLabel()
+        icon.setObjectName("GuideCompactMetricIconCube")
+        icon.setPixmap(
+            _guide_symbol_icon(icon, "cube", size=16, color=PALETTE["GREEN"]).pixmap(16, 16)
+        )
+        icon.setFixedSize(UNITY_SIZES_PX["icon_small"], UNITY_SIZES_PX["icon_small"])
+        caption.addWidget(icon)
+        caption_label = QLabel("À préparer")
+        caption_label.setToolTip("Préparation")
+        caption.addWidget(caption_label)
+        self._metric_caption_labels = {"Préparation": caption_label}
+        caption.addStretch(1)
+        self.preparation_progress_label = QLabel("—")
+        self.preparation_progress_label.setObjectName("GuideCompactMetricValue")
+        caption.addWidget(self.preparation_progress_label)
+        self.preparation_button = AtlasGuideDisclosure()
+        self.preparation_button.setFixedSize(
+            UNITY_CONTROL_SIZES_PX["progress_toggle_width"],
+            UNITY_CONTROL_SIZES_PX["progress_toggle_height"],
+        )
+        self.preparation_button.setToolTip("Ouvrir Préparation")
+        self.preparation_button.setAccessibleName("Afficher Préparation")
+        caption.insertWidget(2, self.preparation_button, 0, Qt.AlignVCenter)
+        preparation_metric.addLayout(caption)
         self.preparation_bar = QProgressBar()
         self.preparation_bar.setObjectName("GuideCompactPreparationProgress")
-        self.preparation_progress_label = QLabel("—")
-        add_metric("Préparation", "cube", "GREEN", self.preparation_bar, self.preparation_progress_label)
-
-        # Two columns only: their outside edges align with the global bar.
-        right.addLayout(metrics)
+        self.preparation_bar.setTextVisible(False)
+        self.preparation_bar.setFixedHeight(UNITY_CONTROL_SIZES_PX["progress_secondary"])
+        self.preparation_bar.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
+        preparation_metric.addWidget(self.preparation_bar)
+        drawer = QVBoxLayout()
+        drawer.setContentsMargins(0, 0, 0, 0)
+        self._metric_columns = {"Préparation": drawer}
+        preparation_metric.addLayout(drawer)
+        details.addLayout(preparation_metric)
+        self.global_details_panel.setVisible(False)
+        self.global_details_button.toggled.connect(self._global_details_toggled)
+        right.addWidget(self.global_details_panel)
         self._header_content_layout = right
 
-        # No duplicate Sommaire/Préparation buttons on a third row.
-        # Participants remains next to the header settings icon.
-
-        self.settings_panel = QFrame()
-        self.settings_panel.setObjectName("GuideCompactSettingsPanel")
-        settings_layout = QHBoxLayout(self.settings_panel)
-        settings_layout.setContentsMargins(8, 5, 8, 5)
-        self.route_lock_check = QToolButton()
-        self.route_lock_check.setObjectName("GuideManualProgressLock")
-        self.route_lock_check.setCheckable(True)
-        self.route_lock_check.setCursor(Qt.PointingHandCursor)
-        self.route_lock_check.toggled.connect(self._route_lock_toggled)
-        settings_layout.addWidget(self.route_lock_check)
-        settings_layout.addStretch(1)
-        self.settings_panel.setVisible(False)
-        self.settings_button.toggled.connect(self.settings_panel.setVisible)
-        right.addWidget(self.settings_panel)
         apply_unity_panel_shadow(header)
         root.addWidget(header)
 
@@ -1284,8 +1252,6 @@ class SharedGuideManualView(GuideUltimeManualView):
         ))
         self.participants_button.setCheckable(True)
         self.participants_button.setCursor(Qt.PointingHandCursor)
-        # Arrow is owned by the Route progress metric.
-        self.summary_button.toggled.connect(self._summary_toggled)
         # One row with Guide title / Overlay / Personnages / Paramètres.
         self._compact_title_row.insertWidget(
             self._compact_title_row.count() - 1,
@@ -1304,25 +1270,6 @@ class SharedGuideManualView(GuideUltimeManualView):
         # above the global-progress caption and bar.
         self._header_content_layout.insertWidget(1, self.participants_panel)
 
-        self.summary_panel = QFrame()
-        self.summary_panel.setObjectName("GuideSummaryPanel")
-        summary_layout = QVBoxLayout(self.summary_panel)
-        summary_layout.setContentsMargins(7, 5, 7, 5)
-        summary_layout.setSpacing(5)
-        self.summary_search = QLineEdit()
-        self.summary_search.setObjectName("GuideSummarySearch")
-        self.summary_search.setPlaceholderText("Rechercher une fiche…")
-        self.summary_search.textChanged.connect(self._filter_summary)
-        summary_layout.addWidget(self.summary_search)
-        self.summary_list = QListWidget()
-        self.summary_list.setObjectName("GuideSummaryList")
-        self.summary_list.setUniformItemSizes(True)
-        self.summary_list.setMaximumHeight(190)
-        self.summary_list.itemClicked.connect(self._summary_item_clicked)
-        summary_layout.addWidget(self.summary_list)
-        self.summary_panel.setVisible(False)
-        # Display the Route dropdown directly below the compact header, not inside the sheet title.
-        self._metric_columns["Route"].addWidget(self.summary_panel)
         apply_unity_panel_shadow(header)
         root.addWidget(header)
         self._refresh_participants_panel()
@@ -1455,44 +1402,37 @@ class SharedGuideManualView(GuideUltimeManualView):
             return None
         return min(100, round(completed * 100 / total)) if total > 0 else None
 
-    def _summary_toggled(self, opened: bool) -> None:
-        self.summary_panel.setVisible(bool(opened))
-        if opened and self.summary_list.count() == 0:
-            self._populate_summary()
+    def _global_details_toggled(self, opened: bool) -> None:
+        self.global_details_panel.setVisible(bool(opened))
+        if opened:
+            self._refresh_global_details()
 
-    def _populate_summary(self) -> None:
-        self.summary_list.clear()
-        for index, card in enumerate(self.service.cards):
-            chapter = str(card.get("manual_chapter_label") or "").strip()
-            title = str(card.get("manual_title") or card.get("destination") or "").strip()
-            label = f"{index + 1}. {chapter} — {title}" if chapter else f"{index + 1}. {title}"
-            item = QListWidgetItem(label)
-            item.setData(Qt.UserRole, index)
-            # Normalization is expensive across a 1,000+ card route. Persist
-            # only a tiny search key on the item, not a second route model.
-            item.setData(Qt.UserRole + 1, normalize_text(label))
-            self.summary_list.addItem(item)
-        # Rebuilding the model must not silently discard the active search.
-        self._filter_summary(self.summary_search.text())
-
-    def _filter_summary(self, value: str) -> None:
-        needle = normalize_text(value)
-        for index in range(self.summary_list.count()):
-            item = self.summary_list.item(index)
-            normalized = item.data(Qt.UserRole + 1)
-            # Old/external QListWidgetItems still obey the original semantics.
-            if not isinstance(normalized, str):
-                normalized = normalize_text(item.text())
-            item.setHidden(bool(needle and needle not in normalized))
-
-    def _summary_item_clicked(self, item: QListWidgetItem) -> None:
-        try:
-            index = int(item.data(Qt.UserRole))
-        except (TypeError, ValueError):
+    def _refresh_global_details(self) -> None:
+        while self.global_details_layout.count():
+            item = self.global_details_layout.takeAt(0)
+            widget = item.widget()
+            if widget is not None:
+                widget.hide()
+                widget.setParent(None)
+                widget.deleteLater()
+        keys = self._progress_participant_keys()
+        if not keys:
+            label = QLabel("Sélectionne un personnage pour afficher sa progression.")
+            label.setObjectName("GuidePreparationEmpty")
+            label.setWordWrap(True)
+            self.global_details_layout.addWidget(label)
             return
-        self._show_index(index)
-        # The summary is deliberately sticky. Only an explicit click on the
-        # Sommaire button may close it.
+        names = {row.key: row.label for row in self.participant_service.available_characters()}
+        for key in keys:
+            percent = self._participant_progress(key)
+            label = QLabel(
+                f"{names.get(key, key)} · {percent} %"
+                if percent is not None else
+                f"{names.get(key, key)} · progression inconnue"
+            )
+            label.setObjectName("GuidePreparationParticipantNeed")
+            label.setWordWrap(True)
+            self.global_details_layout.addWidget(label)
 
     def _preparation_toggled(self, opened: bool) -> None:
         self.preparation_panel.setVisible(bool(opened))
