@@ -260,7 +260,7 @@ class ContinuousGuideRoutePanelTests(unittest.TestCase):
                          "ganymede_2205_step_0002")
         self.panel.set_characters(["character:1"])
         self.panel.show_step(step)
-        self.assertEqual(self.panel.validate_button.text(), "✓ Valider")
+        self.assertEqual(self.panel.validate_button.text(), "Valider")
         self.assertTrue(self.panel.validate_button.isChecked())
         self.panel.validate_button.click()
         self.assertEqual(self.panel.validate_button.text(), "Valider")
