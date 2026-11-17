@@ -80,8 +80,8 @@ def atlas_application_icon() -> QIcon:
     return QIcon(_APPLICATION_ICON)
 
 
-def size_guide_quantity_spinbox(spinbox: QSpinBox) -> int:
-    """Fit the real maximum / maximum text without a 100px fixed counter."""
+def fit_unity_number_spinbox(spinbox: QSpinBox) -> int:
+    """Fit an indexed Unity x/x selector to its actual displayed range."""
     maximum = spinbox.maximum()
     displayed = f"{maximum}{spinbox.suffix()}"
     width = max(
