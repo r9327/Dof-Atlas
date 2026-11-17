@@ -334,8 +334,8 @@ class ImportedSourceRouterQtTests(unittest.TestCase):
                       reader.participants_panel)
         grid = reader._metric_columns["Préparation"].parent()
         self.assertIsInstance(grid, QGridLayout)
-        self.assertEqual(grid.columnCount(), 1)
-        self.assertIs(grid.itemAtPosition(0, 0).layout().itemAt(2).widget(),
+        self.assertEqual(grid.columnCount(), 2)
+        self.assertIs(grid.itemAtPosition(0, 1).layout().itemAt(2).widget(),
                       reader.preparation_button)
         self.assertFalse(hasattr(reader, "header_actions_row"))
         self.assertEqual(self.view.current_guide_id, self.service.guide_id)
@@ -1025,7 +1025,8 @@ class ImportedSourceRouterQtTests(unittest.TestCase):
         self.assertEqual(len(editors), 1)
         self.assertTrue(editors[0].isEnabled())
         self.assertEqual(editors[0].value(), 0)
-        self.assertEqual(editors[0].suffix(), " / 8")
+        # Verified requirement 8 per character, 2 selected: group target 16.
+        self.assertEqual(editors[0].suffix(), " / 16")
         # A render rebuild deletes the old Qt widgets via deleteLater.
         # Do not keep Python wrappers to those retired C++ children alive.
         del button, buttons, editors
@@ -1038,8 +1039,14 @@ class ImportedSourceRouterQtTests(unittest.TestCase):
         self.assertFalse(self.progress.preparation_quantity(
             "character:1", "guide_ultime_v5", "item:44"
         ))
-        reader._set_source_global_material_total(rows[0], 8)
-        self.assertEqual(reader._source_global_material_total(rows[0]), 8)
+        reader._set_source_global_material_total(rows[0], 16)
+        self.assertEqual(reader._source_global_material_total(rows[0]), 16)
+        self.assertEqual(self.progress.preparation_quantity(
+            "character:1", self.service.progress_id, "item:44",
+        ), 8)
+        self.assertEqual(self.progress.preparation_quantity(
+            "character:2", self.service.progress_id, "item:44",
+        ), 8)
         reader._set_source_global_material_total(rows[0], 0)
         self.assertEqual(reader._source_global_material_total(rows[0]), 0)
 

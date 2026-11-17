@@ -180,9 +180,15 @@ class GuidePreparationQtFocusedTests(unittest.TestCase):
         self.assertEqual(view.selected_participant_keys(), ())
         self.assertEqual(view._preparation_needs, ())
         self.assertTrue(view._preparation_preview)
-        self.assertFalse(view.preparation_panel.findChildren(
+        checks = view.preparation_panel.findChildren(
             QCheckBox, "GuidePreparationReady",
-        ))
+        )
+        self.assertTrue(checks)
+        self.assertFalse(checks[0].isChecked())
+        checks[0].click()
+        self.assertTrue(checks[0].isChecked())
+        # Preview planning is not authorized gameplay progression.
+        self.assertFalse(self.path.exists())
         label = view.preparation_panel.findChild(QLabel, "GuidePreparationEmpty")
         self.assertIsNotNone(label)
         self.assertIn("Aperçu des préparatifs", label.text())

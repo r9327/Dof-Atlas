@@ -450,6 +450,15 @@ class GuidePreparationModelTests(unittest.TestCase):
         self.assertEqual(category_for("Pierre d’âme parfaite"), "Pierres d'âme")
 
 
+    def test_extended_authored_categories_preserve_special_resource_types(self):
+        self.assertEqual(category_for("Cape du test", "equipment"), "Équipements")
+        self.assertEqual(category_for("Minerai brut", "resources"), "Ressources")
+        self.assertEqual(category_for("Pierre d’âme parfaite", "resources"), "Pierres d'âme")
+        self.assertEqual(category_for("Potion de test", "resources"), "Potions")
+        self.assertEqual(category_for("Clef du test", "resources"), "Clefs")
+        self.assertEqual(category_for("Objet en banque", "keep_in_bank"), "Banque")
+        self.assertEqual(category_for("Parchemin du test", "parchemins"), "Parchemins")
+
     def test_quantity_scope_keeps_shared_and_individual_requirements_distinct(self):
         shared = {"manual_stage_id": "a", "a_preparer": [
             {"item_id": 123, "name": "Clef commune", "quantity": 2,

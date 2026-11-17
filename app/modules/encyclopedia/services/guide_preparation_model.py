@@ -100,6 +100,19 @@ def category_for(name: str, kind: str = "") -> str:
         "pierres d ame": "Pierres d'âme", "pierre d ame": "Pierres d'âme",
         "objets": "Objets", "objet": "Objets",
     }
+    # A generic resource inventory must not absorb typed potions, soul
+    # stones or dungeon keys. These special roles are more precise than a
+    # generic optimized-guide source field such as resource_plan.
+    if category in {
+        "ressource", "ressources", "resources", "resource plan",
+        "materiau", "materiaux", "objets", "objet",
+    }:
+        if "pierre d ame" in label or "soul stone" in label:
+            return "Pierres d'âme"
+        if "potion" in label:
+            return "Potions"
+        if label.startswith(("clef ", "cle ", "clefs ", "cles ")):
+            return "Clefs"
     if category in aliases:
         return aliases[category]
     if category not in {
