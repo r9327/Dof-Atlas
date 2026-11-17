@@ -420,14 +420,8 @@ def unity_skin_stylesheet(palette: Mapping[str, str] | None = None) -> str:
             translucent("GUIDE_PREPARATION_ROW", 0.92),
             translucent("GUIDE_PREPARATION_ROW_BORDER", 0.65),
         ),
-        "QPushButton#GuidePreparationItemCopy { "
-        "text-align: left; background: transparent; border: none; "
-        "color: %s; padding: 3px; }" % colors["GUIDE_TOGGLE_BORDER"],
-        "QPushButton#GuidePreparationItemCopy:hover { "
-        "background: %s; border: 1px solid %s; color: %s; border-radius: %s; }" % (
-            translucent("GUIDE_COPY_HOVER", 0.30),
-            colors["GREEN_BORDER"], colors["GREEN_BORDER"], radii["RADIUS_XS"],
-        ),
+        # Guide item copy is owned by theme.py's single indexed selector.
+        # Do not append a later Unity skin rule that overrides its green text.
         "QLabel#GuidePreparationRowStatus, QLabel#GuidePreparationParticipantNeed { "
         "color: %s; font-weight: 600; }" % colors["GUIDE_STATUS_TEXT"],
         "QFrame#GuideManualNav { "
