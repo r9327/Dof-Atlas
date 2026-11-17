@@ -1200,7 +1200,13 @@ class EncyclopediaPage(QWidget):
                     if callable(load_runtime):
                         load_runtime()
                     else:
-                        achievement_provider.load_all()
+                        catalogue_only = getattr(
+                            achievement_provider, "load_catalogue_only", None,
+                        )
+                        if callable(catalogue_only):
+                            catalogue_only()
+                        else:
+                            achievement_provider.load_all()
                     if pending_detail_id is not None:
                         try:
                             # Refuse an unrelated/non-retained link before an
@@ -1208,7 +1214,17 @@ class EncyclopediaPage(QWidget):
                             # already loaded in this same canonical stage.
                             retained = getattr(achievement_provider, "is_retained", None)
                             if not callable(retained) or retained(pending_detail_id):
-                                # Reuse the same provider and its bounded cache.
+                                # A direct deep link explicitly needs the rich
+                                # reward sources. Prepare them on this existing
+                                # background stage, never on the Qt thread.
+                                prepare = getattr(
+                                    achievement_provider, "prepare_detail_sources", None
+                                )
+                                if (
+                                    getattr(achievement_provider, "detail_sources_ready", True)
+                                    is False and callable(prepare)
+                                ):
+                                    prepare()
                                 achievement_provider.get_detail_by_id(pending_detail_id)
                         except Exception:
                             # A missing/corrupt individual detail must not
