@@ -504,3 +504,51 @@ l'audit statique, sans prétendre à deux implémentations distinctes.
 courant ; aucun test Qt/Windows exact-SHA ni capture nouvelle n'a été
 exécuté dans cette session. Les autres composants dynamiques hors sources
 indexées demeurent un périmètre à auditer avant certification.
+
+
+## Audit des 40 sources UI indexées — styles, tailles et fenêtres
+
+### Relevé ciblé, sans fusion de classes métier inutile
+
+- **Périmètre** : 40 fichiers `main.py`/`app/**/*.py` référencés
+  comme propriétaires ou surfaces dans l'index (dont Dev UI, les
+  overlays et le launcher Tk) ; environ 38 sources Qt distinctes.
+  Le scan statique de Dev UI ne compte pas la galerie elle-même, les
+  zones agrégées ni l'adaptateur Tk comme de nouveaux consommateurs.
+  Il ne prouve pas la couverture de tous les fichiers du dépôt.
+- **Feuilles de style locales** : aucun `setStyleSheet()` relevé dans
+  les écrans Qt examinés hors `main.py`. Les quatre appels dans
+  `main.py` correspondent au style du shell, au thème applicatif et
+  à la transparence du splash : ils sont volontairement exclus du
+  décompte « QSS locaux ». La vérification automatisée, via AST,
+  remonte les autres utilisations avec leur fichier/ligne et refuse
+  de déclarer une source illisible comme propre.
+- **Fenêtres Qt natives** : une instanciation `QDialog(self, Qt.Popup)`
+  dans `app/modules/encyclopedia/views/guides_view.py`, employée
+  pour le zoom d'image Guide. C'est une **exception de comportement
+  à préserver**, pas un nouveau dialogue modal à forcer dans
+  `AtlasDialog`. Le préchargement `PreloadProgressPopup` reste
+  aussi une exception connue, hors composants du shell standard.
+- **Dimensions forcées** : les appels `setFixedWidth(<entier positif>)`
+  sont désormais recensés par AST dans la ligne « Scrollbars et resize »
+  de la matrice Dev UI (emplacement + largeur). Ce sont **des
+  candidats à la revue**, pas des doublons automatiquement : les
+  dimensions de slot Organizer, de marqueur ou de carte peuvent
+  exprimer des exigences métier réelles.
+- **Corrections vérifiables dans les sources** : les boutons « Fermer »
+  de `CraftResourceDialog` et `LevelingDialog` n'imposent plus
+  `120` et `110` px ; leur `AtlasButton` utilise la taille
+  naturelle liée au libellé et au thème. Les **trois** marqueurs
+  `GuideTreeState` de `guides_view.py` partagent désormais
+  `UNITY_CONTROL_SIZES_PX["guide_tree_state_width"] = 18`,
+  sans changer leur géométrie de référence.
+
+### Limites et critères de sortie
+
+Ce lot ne supprime **aucun** menu Zaap, overlay Organizer, liste,
+barre de progression, carte ou contrôle fonctionnel. Les contrôles
+AST supplémentaires distinguent les **implémentations repérées** de la
+certification visuelle : Qt, Doctor, Graphify, captures et recette
+Windows/DPI restent à exécuter au HEAD final. Une mention « 0 QSS
+locaux » signifie seulement **zéro appel détecté dans les sources Qt
+enregistrées**, jamais zéro bug UI ou zéro doublon dans tout le dépôt.
