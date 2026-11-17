@@ -646,6 +646,7 @@ UNITY_UI_FAMILY_INDEX = {
         "title": "Onglets · menus et navigation",
         "components": (
             "QTabWidget", "QTabBar", "QMenu", "AtlasButton",
+            "AtlasPageNavigator", "AtlasPageCounter",
             "WorldMenu", "WorldMenuItem", "WorldMenuItemActive",
         ),
         "style_owner": "app/ui/theme.py + app/ui/unity_skin.py",
