@@ -16,6 +16,7 @@ from PySide6.QtWidgets import (
     QPushButton,
     QStyledItemDelegate,
     QSizePolicy,
+    QSpinBox,
     QToolButton,
     QVBoxLayout,
     QWidget,
@@ -77,6 +78,19 @@ def atlas_application_icon() -> QIcon:
     # QIcon is implicitly shared; copying preserves caller value semantics while
     # avoiding repeated file-backed icon construction during shell/dialog setup.
     return QIcon(_APPLICATION_ICON)
+
+
+def size_guide_quantity_spinbox(spinbox: QSpinBox) -> int:
+    """Fit the real maximum / maximum text without a 100px fixed counter."""
+    maximum = spinbox.maximum()
+    displayed = f"{maximum}{spinbox.suffix()}"
+    width = max(
+        UNITY_CONTROL_SIZES_PX["guide_quantity_width"],
+        spinbox.fontMetrics().horizontalAdvance(displayed)
+        + UNITY_CONTROL_SIZES_PX["guide_quantity_chrome_width"],
+    )
+    spinbox.setFixedWidth(width)
+    return width
 
 
 class AtlasButton(QPushButton):
