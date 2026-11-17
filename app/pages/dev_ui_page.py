@@ -417,6 +417,28 @@ class DevUiPage(QWidget):
         action_row.addStretch(1)
         section.addLayout(action_row)
 
+        # Same existing favoriteChipName / favoriteChip QSS as ZaapWidget.
+        # This is a shared style sample, not another Zaap interaction model.
+        favorite_row = QHBoxLayout()
+        favorite_chip = QFrame()
+        favorite_chip.setObjectName("favoriteChip")
+        favorite_layout = QHBoxLayout(favorite_chip)
+        favorite_layout.setContentsMargins(8, 0, 10, 0)
+        favorite_layout.setSpacing(4)
+        self.preview_zaap_favorite_button = AtlasButton(
+            "Favori Zaap", variant="zaap_favorite"
+        )
+        self.preview_zaap_favorite_button.setToolTip(
+            "Bouton de favori Zaap partagé, sans commande de déplacement"
+        )
+        self.preview_zaap_favorite_button.clicked.connect(
+            lambda: self._report("Bouton favori Zaap partagé cliqué")
+        )
+        favorite_layout.addWidget(self.preview_zaap_favorite_button)
+        favorite_row.addWidget(favorite_chip)
+        favorite_row.addStretch(1)
+        section.addLayout(favorite_row)
+
     def _select_nav(self, active: int) -> None:
         for index, button in enumerate(self.preview_nav):
             button.set_variant(
