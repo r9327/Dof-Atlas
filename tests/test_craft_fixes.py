@@ -48,6 +48,7 @@ class CraftFixesTests(unittest.TestCase):
     def test_craft_dialogs_use_single_shared_ui_shell(self):
         from app.pages.craft_page import ItemSetDialog, LevelingDialog, RouteDialog
         from app.ui.components import AtlasDialog, AtlasDialogHeader
+        from app.ui.unity_palette import UNITY_LAYOUT_SIZES_PX
 
         dialogs = (
             CraftResourceDialog({}, []),
@@ -65,6 +66,12 @@ class CraftFixesTests(unittest.TestCase):
                     self.assertIsInstance(dialog, AtlasDialog)
                     self.assertEqual(dialog.objectName(), "AtlasDialog")
                     self.assertIs(dialog.layout(), dialog.content_layout)
+                    self.assertEqual(dialog.layout_density, "compact")
+                    x = UNITY_LAYOUT_SIZES_PX["dialog_compact_padding_x"]
+                    y = UNITY_LAYOUT_SIZES_PX["dialog_compact_padding_y"]
+                    self.assertEqual(
+                        dialog.content_layout.getContentsMargins(), (x, y, x, y)
+                    )
                     self.assertEqual(dialog.styleSheet(), "")
                     self.assertEqual(len(dialog.findChildren(AtlasDialogHeader)), 1)
                     self.assertGreaterEqual(dialog.minimumWidth(), 400)
