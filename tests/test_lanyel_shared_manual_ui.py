@@ -527,45 +527,38 @@ class LanyelSharedManualUiTests(unittest.TestCase):
                 ],
             )
             self.assertIsNotNone(compact.findChild(QProgressBar, "GuideGlobalProgress"))
-            self.assertIsNotNone(compact.findChild(QProgressBar, "GuideManualProgress"))
+            self.assertIsNone(compact.findChild(QProgressBar, "GuideManualProgress"))
             self.assertIsNotNone(compact.findChild(QProgressBar, "GuideCompactPreparationProgress"))
+            self.assertIsNotNone(compact.findChild(QFrame, "GuideGlobalDetailsPanel"))
             self.assertIsNone(compact.findChild(QLabel, "GuideCompactDonutHeading"))
-            self.assertIsNone(compact.findChild(QLabel, "GuideCompactMetricIconTrophy"))
-            for symbol in ("Target", "Cube"):
-                metric_icon = compact.findChild(QLabel, f"GuideCompactMetricIcon{symbol}")
-                self.assertIsNotNone(metric_icon)
-                self.assertFalse(metric_icon.pixmap().isNull())
+            self.assertIsNone(compact.findChild(QLabel, "GuideCompactMetricIconTarget"))
+            icon = compact.findChild(QLabel, "GuideCompactMetricIconCube")
+            self.assertIsNotNone(icon)
+            self.assertFalse(icon.pixmap().isNull())
             self.assertIsNotNone(compact.findChild(QLabel, "GuideCompactTitleIcon"))
-            self.assertIsNotNone(compact.findChild(QToolButton, "GuideManualProgressLock"))
+            self.assertIsNone(compact.findChild(QToolButton, "GuideManualProgressLock"))
             self.assertIs(compact.findChild(QToolButton, "GuideParticipantsButton"),
                           shared.participants_button)
             self.assertEqual(
                 set(compact.findChildren(QToolButton, "GuideMetricDropdown")),
-                {shared.summary_button, shared.preparation_button},
+                {shared.global_details_button, shared.preparation_button},
             )
-            self.assertEqual(shared.participants_button.size(), shared.summary_button.size())
-            self.assertEqual(shared.preparation_button.size(), shared.summary_button.size())
-            grid = shared._participants_control_column.parent()
-            self.assertIsInstance(grid, QGridLayout)
-            self.assertIs(grid.itemAtPosition(1, 2).layout(),
-                          shared._participants_control_column)
-            self.assertIs(grid.itemAtPosition(1, 0).layout().itemAt(1).widget(),
-                          shared.summary_button)
-            self.assertIs(grid.itemAtPosition(1, 1).layout().itemAt(1).widget(),
-                          shared.preparation_button)
-            self.assertFalse(hasattr(shared, "header_actions_row"))
+            self.assertFalse(hasattr(shared, "summary_button"))
+            self.assertFalse(hasattr(shared, "route_bar"))
+            self.assertEqual(shared._metric_caption_labels["Préparation"].text(), "À préparer")
+            self.assertIs(
+                shared._metric_columns["Préparation"].itemAt(0).widget(),
+                shared.preparation_panel,
+            )
             self.assertIsNone(sheet_header.findChild(QToolButton, "GuideParticipantsButton"))
-            # Expanded menus must never move the shared Personnages control.
-            shared.summary_button.setChecked(True)
+            shared.global_details_button.setChecked(True)
             shared.preparation_button.setChecked(True)
             shared.participants_button.setChecked(True)
             self.app.processEvents()
-            self.assertIs(grid.itemAtPosition(1, 2).layout(),
-                          shared._participants_control_column)
-            self.assertTrue(shared.summary_panel.isVisibleTo(compact))
+            self.assertTrue(shared.global_details_panel.isVisibleTo(compact))
             self.assertTrue(shared.preparation_panel.isVisibleTo(compact))
             self.assertTrue(shared.participants_panel.isVisibleTo(compact))
-            shared.summary_button.setChecked(False)
+            shared.global_details_button.setChecked(False)
             shared.preparation_button.setChecked(False)
             shared.participants_button.setChecked(False)
             self.assertFalse(hasattr(shared, "page_jump_button"))
@@ -593,7 +586,7 @@ class LanyelSharedManualUiTests(unittest.TestCase):
             shared.participant_service = _VerifiedSoloParticipant()
             shared._refresh_participants_panel()
             shared._refresh_header()
-            self.assertTrue(shared.route_progress_label.text().endswith(" %"))
+            self.assertTrue(shared.global_progress_label.text().endswith(" %"))
             self.assertTrue(shared.progress_donut.isHidden())
             self.assertGreaterEqual(shared.global_progress_bar.maximum(), 1)
             self.assertTrue(shared.global_progress_label.text().endswith(" %"))
@@ -604,42 +597,15 @@ class LanyelSharedManualUiTests(unittest.TestCase):
             view.deleteLater()
             self.app.processEvents()
 
-    def test_lock_toggle_has_visible_state_label_is_persistent_and_defaults_unlocked(self) -> None:
+    def test_route_lock_no_longer_clutters_global_header(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
             view = self._view(Path(directory))
             self.assertTrue(view.select_guide("dofus_sylvestre"))
             shared = view.stack.currentWidget()
             self.assertIsInstance(shared, SharedGuideManualView)
-            service = view._catalog_manual_services["dofus_sylvestre"]
-            self.app.processEvents()
-
-            toggle = shared.findChild(QToolButton, "GuideManualProgressLock")
-            self.assertIsNotNone(toggle)
-            self.assertFalse(toggle.isChecked())
-            self.assertEqual(toggle.text(), "Déverrouillé")
-            self.assertTrue(toggle.icon().isNull() is False)
-            toggle.click()
-            self.app.processEvents()
-            self.assertTrue(toggle.isChecked())
-            self.assertEqual(toggle.text(), "Verrouillé")
-            self.assertTrue(
-                service.manual_checked(
-                    "character:1",
-                    SharedGuideManualView.ROUTE_LOCK_PROGRESS_KEY,
-                )
-            )
-
-            restored = SharedGuideManualView(
-                service,
-                character_key="character:1",
-                quest_provider=self.quest_provider,
-            )
-            self.app.processEvents()
-            restored_toggle = restored.findChild(QToolButton, "GuideManualProgressLock")
-            self.assertTrue(restored_toggle.isChecked())
-            self.assertEqual(restored_toggle.text(), "Verrouillé")
-
-            restored.deleteLater()
+            self.assertIsNone(shared.findChild(QToolButton, "GuideManualProgressLock"))
+            self.assertIsNone(shared.findChild(QFrame, "GuideSummaryPanel"))
+            self.assertIsNotNone(shared.global_details_button)
             view.deleteLater()
             self.app.processEvents()
 
@@ -655,7 +621,7 @@ class LanyelSharedManualUiTests(unittest.TestCase):
             shared._refresh_participants_panel()
             shared._refresh_header()
             shared._render_window()
-            bar = shared.findChild(QProgressBar, "GuideManualProgress")
+            bar = shared.findChild(QProgressBar, "GuideGlobalProgress")
             validation = shared.findChild(QPushButton, "GuideManualPageCheck")
             self.assertIsNotNone(bar)
             self.assertIsNotNone(validation)
