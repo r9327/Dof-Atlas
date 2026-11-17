@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import os
+import re
 import tempfile
 import unittest
 from pathlib import Path
@@ -95,6 +96,21 @@ class GuidePreparationQtFocusedTests(unittest.TestCase):
         quantity.setSuffix(" / 123456")
         fit_unity_number_spinbox(quantity)
         self.assertGreater(quantity.width(), compact_width)
+
+    def test_guide_numeric_editors_cannot_reintroduce_a_black_native_inset(self):
+        from app.ui.theme import atlas_stylesheet
+
+        style = atlas_stylesheet()
+        for role in ("GuideCompactPageJump", "GuidePreparationQuantity"):
+            self.assertIn(f"QSpinBox#{role}", style)
+        match = re.search(
+            r"QSpinBox#GuideCompactPageJump QLineEdit,\\s*"
+            r"QSpinBox#GuidePreparationQuantity QLineEdit\\s*\\{([^}]+)\\}",
+            style,
+        )
+        self.assertIsNotNone(match)
+        self.assertIn("background: transparent", match.group(1))
+        self.assertIn("border: none", match.group(1))
 
     def test_preparation_images_use_the_exact_id_without_generic_inventory_icon(self):
         view = self._view()
