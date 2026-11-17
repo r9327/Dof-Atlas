@@ -63,6 +63,7 @@ from app.ui.components import (
     atlas_guide_arrow_icon,
     atlas_guide_character_icon,
     AtlasGuideParticipantButton,
+    fit_unity_number_spinbox,
     AtlasGuideCover,
     AtlasStatusBadge,
     atlas_application_icon,
@@ -701,6 +702,7 @@ class DevUiPage(QWidget):
         materials_layout.setSpacing(UNITY_SPACING_PX["xs"])
         self.preview_header_filter = AtlasComboBox()
         self.preview_header_filter.setObjectName("GuidePreparationCategoryFilter")
+        self.preview_header_filter.setFixedHeight(UNITY_SIZES_PX["control_compact"])
         self.preview_header_filter.addItems(
             ("Tout", "Métiers", "Potions", "Pierres d'âme", "Clefs", "Objets")
         )
@@ -719,8 +721,8 @@ class DevUiPage(QWidget):
             item = QFrame()
             item.setObjectName("GuidePreparationRow")
             row = QHBoxLayout(item)
-            row.setContentsMargins(8, 3, 8, 3)
-            copy_button = AtlasButton(name, variant="secondary")
+            row.setContentsMargins(4, 2, 4, 2)
+            copy_button = AtlasButton(name, variant="secondary", size="compact")
             copy_button.setObjectName("GuidePreparationItemCopy")
             copy_button.setFlat(True)
             copy_button.setCursor(Qt.PointingHandCursor)
@@ -736,7 +738,7 @@ class DevUiPage(QWidget):
             amount.setRange(0, quantity)
             amount.setValue(quantity if done else 0)
             amount.setSuffix(f" / {quantity}")
-            amount.setFixedWidth(UNITY_CONTROL_SIZES_PX["guide_quantity_width"])
+            fit_unity_number_spinbox(amount)
             amount.setToolTip("Quantité possédée · aperçu fictif")
             checkbox = QCheckBox()
             checkbox.setObjectName("GuidePreparationReady")
@@ -887,9 +889,7 @@ class DevUiPage(QWidget):
         self.preview_header_page_jump.setRange(1, 20)
         self.preview_header_page_jump.setSuffix(" / 20")
         self.preview_header_page_jump.setValue(4)
-        self.preview_header_page_jump.setMaximumWidth(
-            UNITY_CONTROL_SIZES_PX["guide_page_jump_normal_max_width"]
-        )
+        fit_unity_number_spinbox(self.preview_header_page_jump)
         self.preview_header_page_jump.setSizePolicy(
             QSizePolicy.Maximum, QSizePolicy.Fixed
         )
