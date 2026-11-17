@@ -91,6 +91,48 @@ class DevUiPageTests(unittest.TestCase):
             page.close()
             page.deleteLater()
 
+    def test_shared_content_sizing_and_x_x_page_navigation(self) -> None:
+        from PySide6.QtWidgets import QSizePolicy
+        from app.ui.components import AtlasComboBox, AtlasPageNavigator
+
+        chooser = AtlasComboBox()
+        navigator = AtlasPageNavigator(total=120)
+        try:
+            self.assertEqual(
+                chooser.sizeAdjustPolicy(), AtlasComboBox.AdjustToContents
+            )
+            self.assertEqual(
+                chooser.sizePolicy().horizontalPolicy(), QSizePolicy.Maximum
+            )
+            chooser.addItem("Un")
+            narrow = chooser.sizeHint().width()
+            chooser.addItem("Un intitulé beaucoup plus long à sélectionner")
+            self.assertGreater(chooser.sizeHint().width(), narrow)
+            self.assertEqual(chooser.maxVisibleItems(), 8)
+            self.assertEqual(chooser.styleSheet(), "")
+
+            self.assertEqual(navigator.page_label.objectName(), "AtlasPageCounter")
+            self.assertEqual(navigator.page_label.text(), "1/120")
+            self.assertFalse(navigator.previous_button.isEnabled())
+            requested = []
+            navigator.pageRequested.connect(requested.append)
+            navigator.next_button.click()
+            self.assertEqual(requested, [2])
+            navigator.set_page(120, 120)
+            self.assertEqual(navigator.page_label.text(), "120/120")
+            self.assertFalse(navigator.next_button.isEnabled())
+            navigator.previous_button.click()
+            self.assertEqual(requested, [2, 119])
+            navigator.set_page(2, 7)
+            self.assertEqual(navigator.page_label.text(), "2/7")
+            navigator.set_page(0, 0)
+            self.assertEqual(navigator.page_label.text(), "0/0")
+            self.assertFalse(navigator.previous_button.isEnabled())
+            self.assertFalse(navigator.next_button.isEnabled())
+        finally:
+            chooser.deleteLater()
+            navigator.deleteLater()
+
     def test_black_surface_and_density_regressions_use_shared_unity_roles(self) -> None:
         from app.pages.dev_ui_page import DevUiPage
         from app.ui.theme import atlas_stylesheet
@@ -103,7 +145,15 @@ class DevUiPageTests(unittest.TestCase):
             self.assertEqual(detail_shell.widget(0).objectName(),
                              "AtlasTransparentHost")
             self.assertEqual(detail_shell.styleSheet(), "")
-            self.assertEqual(page.gallery_navigation.maximumWidth(), 420)
+            from PySide6.QtWidgets import QSizePolicy
+            self.assertEqual(
+                page.gallery_navigation.sizeAdjustPolicy(),
+                AtlasComboBox.AdjustToContents,
+            )
+            self.assertEqual(
+                page.gallery_navigation.sizePolicy().horizontalPolicy(),
+                QSizePolicy.Maximum,
+            )
             self.assertEqual(page.gallery_navigation.maxVisibleItems(), 8)
             self.assertIn("combobox-popup: 0;", atlas_stylesheet())
             self.assertEqual(page.preview_map_tree.maximumHeight(),
@@ -317,10 +367,10 @@ class DevUiPageTests(unittest.TestCase):
             )
             self.assertEqual(page.preview_header_global_progress.value(), 35)
             self.assertIsNone(page.preview_compact_header.findChild(QWidget, "GuideCompactDonut"))
-            self.assertEqual(page.preview_header_page_jump.suffix(), " / 20")
+            self.assertEqual(page.preview_header_page_jump.suffix(), "/20")
             self.assertEqual(
-                page.preview_header_page_jump.maximumWidth(),
-                UNITY_CONTROL_SIZES_PX["guide_page_jump_normal_max_width"],
+                page.preview_header_page_jump.sizePolicy().horizontalPolicy(),
+                QSizePolicy.Maximum,
             )
             self.assertIs(
                 page.preview_header_page_jump.parentWidget(),
