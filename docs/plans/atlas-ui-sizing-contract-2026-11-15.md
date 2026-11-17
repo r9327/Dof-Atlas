@@ -567,12 +567,13 @@ une feuille de style par page :
   du bouton reste transparent : aucune dalle noire ajoutée autour de
   l'icône existante. Ce même composant est utilisé par l'aperçu Dev UI
   et le Guide réel.
-- Le sélecteur `QSpinBox#GuideCompactPageJump` réserve
-  `@SPACE_SM` (**6 px**) entre son texte `x/x` et le bord gauche,
-  sur l'éditeur natif interne, sans créer un style local.
-  `fit_unity_number_spinbox()` prend ces mêmes 6 px en compte dans
-  son calcul de largeur **uniquement pour ce rôle**. Les sélecteurs
-  de quantités gardent leur géométrie précédente.
+- Le sélecteur `QSpinBox#GuideCompactPageJump` porte
+  `padding-left: @SPACE_LG` (**10 px au total, soit 6 px de plus**
+  que le padding standard de 4 px), directement sur le QSpinBox.
+  L'éditeur natif conserve son style transparent sans nouveau
+  padding local. `fit_unity_number_spinbox()` réserve ces **6 px
+  supplémentaires** dans son calcul de largeur uniquement pour ce
+  rôle ; les sélecteurs de quantités ne changent pas.
 - Tests de garde-fou dans `tests/test_dev_ui_page.py` pour la bordure
   et les états focus/désactivé, et dans `tests/test_components.py`
   pour l'écart de largeur exact et la réutilisation du token commun.
