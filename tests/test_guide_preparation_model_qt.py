@@ -59,15 +59,18 @@ class GuidePreparationQtFocusedTests(unittest.TestCase):
         self.view.resize(1100, 740)
         self.view.show()
         QApplication.processEvents()
+        self.view.global_details_button.setChecked(True)
         self.view.preparation_button.setChecked(True)
         QApplication.processEvents()
         return self.view
 
     def test_preparation_is_nested_inside_global_disclosure(self):
         view = self._view()
-        # The helper expands Preparation only. The closed parent still hides
-        # its bar, drawer and individual checked state.
+        # The helper expands both levels. Closing the global parent must
+        # hide its bar, drawer and individual checked state.
         self.assertTrue(view.preparation_button.isChecked())
+        view.global_details_button.setChecked(False)
+        QApplication.processEvents()
         self.assertFalse(view.global_details_panel.isVisible())
         self.assertFalse(view.preparation_panel.isVisible())
 
