@@ -265,7 +265,10 @@ class DevUiPageTests(unittest.TestCase):
         from app.pages.craft_page import (
             CraftResourceDialog, ItemSetDialog, LevelingDialog, RouteDialog,
         )
-        from app.ui.components import AtlasComboBox, AtlasButton, BUTTON_OBJECT_NAMES
+        from app.ui.components import (
+            AtlasComboBox, AtlasButton, AtlasDialog, AtlasDialogHeader,
+            BUTTON_OBJECT_NAMES,
+        )
 
         page = DevUiPage(on_back=lambda: None)
         try:
@@ -281,6 +284,9 @@ class DevUiPageTests(unittest.TestCase):
                     self.app.processEvents()
                     dialog = page._preview_dialog
                     self.assertIsInstance(dialog, cls)
+                    self.assertIsInstance(dialog, AtlasDialog)
+                    self.assertEqual(dialog.objectName(), "AtlasDialog")
+                    self.assertEqual(len(dialog.findChildren(AtlasDialogHeader)), 1)
                     self.assertEqual(dialog.styleSheet(), "")
                     self.assertIn("Fenêtre Craft réelle", page.feedback.text())
                     dialog.reject()
@@ -294,7 +300,7 @@ class DevUiPageTests(unittest.TestCase):
                 f"1 AtlasDialog / {len(page.preview_dialog_variants)} variantes",
                 counts,
             )
-            self.assertIn("Craft : 4 vrais QDialog à raccorder", counts)
+            self.assertIn("Craft : 4 usages sur AtlasDialog commun", counts)
             self.assertIn("15 usages existants distincts", counts)
         finally:
             page.close()
@@ -636,6 +642,7 @@ class DevUiPageTests(unittest.TestCase):
                 (page.preview_contract, page.preview_contract_toggle),
                 (page.preview_scope, page.preview_scope_toggle),
                 (page.preview_secondary_surfaces, page.preview_secondary_toggle),
+                (page.preview_mutualization_matrix, page.preview_mutualization_toggle),
                 (page.preview_metrics, page.preview_metrics_toggle),
             ):
                 self.assertTrue(table.isHidden())
@@ -943,6 +950,19 @@ class DevUiPageTests(unittest.TestCase):
             self.assertEqual(page.preview_scope.item(11, 0).text(), "Launcher")
             self.assertEqual(page.preview_scope.item(14, 0).text(), "Paramètres")
             self.assertIn("main.py", page.preview_scope.item(14, 1).toolTip())
+            self.assertEqual(page.preview_mutualization_matrix.rowCount(), 18)
+            self.assertEqual(page.preview_mutualization_matrix.columnCount(), 5)
+            dialog_rows = [
+                idx for idx in range(page.preview_mutualization_matrix.rowCount())
+                if page.preview_mutualization_matrix.item(idx, 0).text()
+                == "Fenêtres et popups classiques"
+            ]
+            self.assertEqual(len(dialog_rows), 1)
+            self.assertIn(
+                "Craft : 4/4 unifiés, 0 locaux",
+                page.preview_mutualization_matrix.item(dialog_rows[0], 4).text(),
+            )
+            self.assertEqual(page.preview_mutualization_matrix.styleSheet(), "")
             self.assertEqual(page.preview_secondary_surfaces.rowCount(), 15)
             unique_cases = {
                 (
