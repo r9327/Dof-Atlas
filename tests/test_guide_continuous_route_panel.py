@@ -39,39 +39,21 @@ class ContinuousGuideRoutePanelTests(unittest.TestCase):
         )
         self.addCleanup(self.panel.deleteLater)
 
-    def test_actual_summary_and_navigation_keep_popup_open(self):
-        self.assertEqual(
-            self.panel.navigation.position().viewed_step_id,
-            "ganymede_2205_step_0001",
-        )
-        self.assertEqual(self.panel.title_label.text(), "Fiche 1")
-        self.assertFalse(self.panel.summary.isVisible())
-        self.panel.summary_toggle.click()
-        self.assertTrue(self.panel.summary.isVisibleTo(self.panel))
+    def test_actual_navigation_without_sommaire(self):
+        self.assertEqual(self.panel.navigation.position().viewed_step_id,
+                         "ganymede_2205_step_0001")
         self.panel.next_button.click()
-        self.assertEqual(
-            self.panel.navigation.position().viewed_step_id,
-            "ganymede_2205_step_0002",
-        )
-        self.assertTrue(self.panel.summary.isVisibleTo(self.panel))
+        self.assertEqual(self.panel.page_jump.value(), 2)
         self.panel.actual_button.click()
-        self.assertEqual(
-            self.panel.navigation.position().viewed_step_id,
-            "ganymede_2205_step_0001",
-        )
-        self.assertTrue(self.panel.summary.isVisibleTo(self.panel))
-        self.panel.summary_toggle.click()
-        self.assertFalse(self.panel.summary.isVisible())
-        self.panel.next_button.click()
-        self.assertFalse(self.panel.summary.isVisible())
-        self.panel.summary_toggle.click()
-        self.assertTrue(self.panel.summary.isVisibleTo(self.panel))
+        self.assertEqual(self.panel.page_jump.value(), 1)
+        self.assertFalse(hasattr(self.panel, "summary_toggle"))
+        self.assertFalse(hasattr(self.panel, "summary"))
 
     def test_sheet_selector_replaces_visible_summary_without_losing_navigation(self):
         self.panel.show()
         self.app.processEvents()
-        self.assertTrue(self.panel.summary_toggle.isHidden())
-        self.assertFalse(self.panel.summary.isVisible())
+        self.assertFalse(hasattr(self.panel, "summary_toggle"))
+        self.assertFalse(hasattr(self.panel, "summary"))
         self.assertEqual(self.panel.page_jump.value(), 1)
         self.assertEqual(self.panel.page_jump.suffix(),
                          f" / {len(self.panel.navigation.step_ids)}")
@@ -91,7 +73,6 @@ class ContinuousGuideRoutePanelTests(unittest.TestCase):
         self.assertEqual(header.objectName(), "GuideCompactHeader")
         self.assertIs(self.panel.position_label.parentWidget(), header)
         self.assertIs(self.panel.participants_button.parentWidget(), header)
-        self.assertIs(self.panel.summary_toggle.parentWidget(), header)
         self.assertIs(self.panel.preparation_toggle.parentWidget(), header)
         self.assertEqual(self.panel.global_progress_bar.objectName(),
                          "GuideGlobalProgress")
@@ -100,18 +81,13 @@ class ContinuousGuideRoutePanelTests(unittest.TestCase):
         self.assertIsInstance(self.panel.global_progress_bar, QProgressBar)
         self.assertIsInstance(self.panel._metric_grid, QGridLayout)
         grid = self.panel._metric_grid
-        self.assertTrue(self.panel.route_progress.isHidden())
-        self.assertIs(self.panel.summary_toggle.parentWidget(), header)
-        self.assertIs(grid.itemAtPosition(1, 1).layout().itemAt(1).widget(),
+        self.assertIs(grid.itemAtPosition(1, 0).layout().itemAt(1).widget(),
                       self.panel.preparation_toggle)
-        self.assertIs(grid.itemAtPosition(1, 2).widget(),
+        self.assertIs(grid.itemAtPosition(1, 1).widget(),
                       self.panel.participants_button)
         self.assertEqual(self.panel.participants_button.size(),
-                         self.panel.summary_toggle.size())
-        self.assertEqual(self.panel.preparation_toggle.size(),
-                         self.panel.summary_toggle.size())
-        self.assertIs(grid.itemAtPosition(2, 1).widget(), self.panel.summary)
-        self.assertIs(grid.itemAtPosition(3, 1).widget(),
+                         self.panel.preparation_toggle.size())
+        self.assertIs(grid.itemAtPosition(2, 0).widget(),
                       self.panel.preparation_scroll)
         # Uncertified item references cannot be counted as ready or completed.
         self.assertEqual(self.panel.preparation_bar.value(), 0)
@@ -123,18 +99,16 @@ class ContinuousGuideRoutePanelTests(unittest.TestCase):
         for width in (900, 1200):
             with self.subTest(width=width):
                 self.panel.resize(width, 600)
-                self.panel.summary_toggle.click()
                 self.app.processEvents()
                 self.assertFalse(
                     self.panel.participants_button.geometry().intersects(
-                        self.panel.summary_toggle.geometry()
+                        self.panel.preparation_toggle.geometry()
                     )
                 )
-                self.assertEqual(
-                    grid.itemAtPosition(1, 2).widget(),
+                self.assertIs(
+                    grid.itemAtPosition(1, 1).widget(),
                     self.panel.participants_button,
                 )
-                self.panel.summary_toggle.click()
 
     def test_validation_is_real_and_per_character_only(self):
         self.panel.validate_button.click()
@@ -227,7 +201,7 @@ class ContinuousGuideRoutePanelTests(unittest.TestCase):
         self.assertEqual((one.progress_checked, one.progress_total), (1, 3))
         self.assertEqual((two.progress_checked, two.progress_total), (1, 3))
         self.assertIsNone(extra.navigation.position().actual_step_id)
-        self.assertEqual(extra.route_progress.value(), 0)
+        self.assertEqual(extra.global_progress_bar.value(), 0)
 
     def test_picker_selection_survives_reopening_through_organizer_store(self):
         from app.services.guide_participant_service import GuideParticipantService
@@ -320,18 +294,16 @@ class ContinuousGuideRoutePanelTests(unittest.TestCase):
         panel.next_step()
         self.assertEqual(panel.preparation_toggle.text(), "À préparer (1)")
 
-    def test_route_progress_reports_only_manual_selected_checks(self):
-        self.assertEqual(self.panel.route_progress.value(), 0)
-        self.assertIn("0/6", self.panel.route_progress.format())
+    def test_global_progress_reports_only_manual_selected_checks(self):
+        self.assertEqual(self.panel.global_progress_bar.value(), 0)
         self.panel.validate_button.click()
-        self.assertEqual(self.panel.route_progress.value(), 33)
-        self.assertIn("2/6", self.panel.route_progress.format())
+        self.assertEqual(self.panel.global_progress_bar.value(), 33)
+        self.assertEqual(self.panel.global_progress_value.text(), "33 %")
         self.panel.set_characters(("character:1",))
-        self.assertEqual(self.panel.route_progress.value(), 33)
-        self.assertIn("1/3", self.panel.route_progress.format())
+        self.assertEqual(self.panel.global_progress_bar.value(), 33)
         self.panel.set_characters(())
-        self.assertEqual(self.panel.route_progress.value(), 0)
-        self.assertIn("aucun personnage", self.panel.route_progress.format())
+        self.assertEqual(self.panel.global_progress_bar.value(), 0)
+        self.assertEqual(self.panel.global_progress_value.text(), "—")
 
     def test_travel_remains_disabled_for_unverified_source_coordinates(self):
         from copy import deepcopy
