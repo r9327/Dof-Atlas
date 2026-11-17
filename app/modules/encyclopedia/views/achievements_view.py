@@ -430,7 +430,14 @@ class AchievementsView(QWidget):
                 tree_item.parent().setExpanded(True)
             self.category_tree.setCurrentItem(tree_item)
         if self.search.text():
+            # setCurrentItem emits no category change when the target is
+            # already selected. Clear the stale search snapshot before
+            # looking for a directly linked achievement in this category.
             self.search.clear()
+            timer = getattr(self, "_search_debounce_timer", None)
+            if timer is not None:
+                timer.stop()
+            self.refresh()
         for row, candidate in enumerate(self.filtered):
             if candidate.id == achievement.id:
                 # Direct navigation must open the real detail immediately.
