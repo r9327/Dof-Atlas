@@ -1,7 +1,7 @@
 """Executable Qt-free index of the real Dev UI style contract.
 
 This is not another palette, stylesheet or component implementation.
-The 23 showcase families and the 12 consumers are owned by unity_palette;
+The 23 showcase families and consumer names are owned by unity_palette;
 this index attaches real QSS selectors, interactive states and source paths
 so an audit can detect missing adoption instead of merely listing names.
 """
@@ -211,7 +211,7 @@ UI_CONSUMER_INDEX = {
         ), "adapter": "qt_scoped",
     },
     "Almanax": {
-        "paths": ("app/pages/home_page.py",), "adapter": "qt",
+        "paths": ("app/pages/home_page.py", "main.py"), "adapter": "qt",
     },
     "Réseau": {
         "paths": ("app/ui/network_bridge.py",), "adapter": "qt",
@@ -220,6 +220,56 @@ UI_CONSUMER_INDEX = {
         "paths": (
             "app/distribution/launcher.py", "app/distribution/launcher_ui.py",
         ), "adapter": "tk",
+    },
+    "Craft": {
+        "paths": ("app/pages/craft_page.py",), "adapter": "qt",
+    },
+    "Carte du monde": {
+        "paths": ("app/ui/world_scan_panel.py", "app/ui/map_canvas_widget.py"),
+        "adapter": "qt",
+    },
+    "Paramètres": {
+        "paths": ("main.py",), "adapter": "qt",
+    },
+    "Dev UI": {
+        "paths": ("app/pages/dev_ui_page.py",), "adapter": "qt",
+    },
+    "Popups et dialogues": {
+        "paths": (
+            "main.py", "app/pages/craft_page.py", "app/storage.py",
+            "app/ui/preload_popup.py", "app/modules/encyclopedia/views/guides_view.py",
+            "app/pages/dev_ui_page.py",
+        ),
+        "adapter": "qt",
+        # Inventory of the *actual* popup fixture families; not fake demos.
+        "surfaces": (
+            ("PreloadProgressPopup", "app/ui/preload_popup.py"),
+            ("CloseActionDialog", "main.py"),
+            ("QMessageBox.Question", "app/pages/craft_page.py"),
+            ("QMessageBox.Warning", "app/pages/craft_page.py"),
+            ("CraftResourceDialog", "app/pages/craft_page.py"),
+            ("ItemSetDialog", "app/pages/craft_page.py"),
+            ("LevelingDialog", "app/pages/craft_page.py"),
+            ("RouteDialog", "app/pages/craft_page.py"),
+            ("ZaapSuggestionPopup", "app/storage.py"),
+            ("GuideImagePopup", "app/modules/encyclopedia/views/guides_view.py"),
+            ("QMenu", "app/pages/dev_ui_page.py"),
+            ("QComboBox popup", "app/pages/dev_ui_page.py"),
+        ),
+    },
+    "Overlays et démarrage": {
+        "paths": (
+            "app/pages/organizer/radial_overlay.py",
+            "app/pages/organizer/radial_selection.py",
+            "app/ui/splash_image.py", "app/ui/preload_popup.py",
+        ),
+        "adapter": "qt",
+        "surfaces": (
+            ("Organizer radial", "app/pages/organizer/radial_overlay.py"),
+            ("Organizer selection", "app/pages/organizer/radial_selection.py"),
+            ("Splash Unity", "app/ui/splash_image.py"),
+            ("PreloadProgressPopup", "app/ui/preload_popup.py"),
+        ),
     },
 }
 
@@ -244,3 +294,11 @@ def validate_ui_index() -> None:
     for name, info in UI_CONSUMER_INDEX.items():
         if not info["paths"] or info["adapter"] not in {"qt", "qt_scoped", "tk"}:
             raise ValueError(f"Invalid UI consumer registration: {name}")
+        surfaces = info.get("surfaces", ())
+        if any(
+            not label or path not in info["paths"]
+            for label, path in surfaces
+        ):
+            raise ValueError(f"Invalid UI surface owner: {name}")
+        if len({label for label, _path in surfaces}) != len(surfaces):
+            raise ValueError(f"Duplicate UI surface in: {name}")
