@@ -3296,6 +3296,11 @@ QSpinBox#GuideCompactPageJump::down-button:hover {
     background: @GLASS_HOVER;
     border-left-color: @GREEN_BORDER;
 }
+QSpinBox#GuidePreparationQuantity {
+    font-size: @FONT_SMALL;
+    padding: 1px 2px;
+}
+
 QSpinBox#GuidePreparationQuantity::up-button,
 QSpinBox#GuidePreparationQuantity::down-button {
     background: @NAV_SURFACE;
@@ -3340,6 +3345,22 @@ QFrame#GuidePreparationRow {
     border-radius: @RADIUS_XS;
 }
 
+/* Shared Guide preparation typographic roles, also shown in Dev UI. */
+QLabel#GuidePreparationSummaryTitle {
+    color: @GUIDE_PREPARATION_TEXT;
+    font-size: @FONT_SMALL;
+    font-weight: 800;
+}
+QLabel#GuidePreparationSummaryCount,
+QLabel#GuidePreparationRowStatus {
+    color: @TEXT_MUTED;
+    font-size: @FONT_SMALL;
+}
+QLabel#GuidePreparationRowStatus[ready="true"] {
+    color: @GREEN;
+    font-weight: 700;
+}
+
 /* The preparation viewport must not paint native gray over the Unity panel. */
 QScrollArea#GuidePreparationScroll,
 QWidget#GuideGlobalCharacterProgress,
@@ -3355,10 +3376,12 @@ QLabel#GuidePreparationQuantityPlaceholder {
 }
 QPushButton#GuidePreparationItemCopy {
     background: transparent;
-    color: @GUIDE_TOGGLE_BORDER;
+    color: @GREEN;
     border: 1px solid transparent;
     border-radius: @RADIUS_XS;
-    padding: 3px 5px;
+    padding: 0px 3px;
+    font-size: @FONT_SMALL;
+    font-weight: 700;
     text-align: left;
 }
 QPushButton#GuidePreparationItemCopy:hover,
@@ -3371,6 +3394,18 @@ QPushButton#GuidePreparationItemCopy:focus {
 QLabel#GuidePreparationRowLabel {
     color: @TEXT_SOFT;
     font-size: @FONT_BODY;
+}
+
+QToolButton#GuidePreparationDetailsButton {
+    padding: 1px 2px;
+    min-width: 16px;
+    max-width: 20px;
+}
+
+QPushButton#GuidePreparationShowMore {
+    padding: 1px @SPACE_SM;
+    font-size: @FONT_SMALL;
+    color: @TEXT_SOFT;
 }
 
 QCheckBox#GuidePreparationReady {
@@ -3508,8 +3543,18 @@ QFrame#GuideManualWarningSection QLabel#GuideManualLine {
 }
 
 #GuideManualSectionTitle {
-    color: @TEXT_SOFT;
+    color: @GUIDE_PREPARATION_TEXT;
     font-size: @FONT_BODY;
+    font-weight: 800;
+}
+
+QFrame#GuideManualResourceSection QLabel#GuideManualSectionTitle {
+    color: @GREEN;
+}
+QFrame#GuideManualCombatSection QLabel#GuideManualSectionTitle,
+QFrame#GuideManualWarningSection QLabel#GuideManualSectionTitle,
+QLabel#GuideManualCombatTargetsTitle {
+    color: @DANGER_TEXT;
     font-weight: 800;
 }
 
@@ -3593,7 +3638,7 @@ QFrame#GuideManualWarningSection QLabel#GuideManualLine {
 }
 
 #GuideManualCombatCheck {
-    color: @TEXT_SOFT;
+    color: @DANGER_TEXT;
     background: transparent;
     border: none;
     spacing: 8px;
