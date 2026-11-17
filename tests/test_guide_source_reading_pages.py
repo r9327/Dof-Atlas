@@ -4,6 +4,7 @@ import unittest
 
 from app.modules.encyclopedia.services.guide_source_reading_pages import (
     authored_reading_blocks, paginate_authored_blocks, source_page_for_index,
+    review_candidate_reading_blocks,
 )
 
 
@@ -81,6 +82,34 @@ class OriginalReadingPagesTests(unittest.TestCase):
             len(paginate_authored_blocks(blocks, chars_per_line=35)),
             len(paginate_authored_blocks(blocks, chars_per_line=120)),
         )
+
+    def test_review_pilot_groups_actions_without_losing_source_ids(self):
+        cards = [
+            {
+                "manual_review_only": True, "source_step_id": f"pilot_{i}",
+                "manual_sections": {"now": [
+                    {"text": f"Instruction originale {i}.{k}", "position": f"[{i},-{k}]"}
+                    for k in range(3)
+                ] if i else []},
+                "a_preparer": [{"name": "Clef", "quantity": 2}] if i == 0 else [],
+            }
+            for i in range(26)
+        ]
+        original = copy.deepcopy(cards)
+        blocks = review_candidate_reading_blocks(cards)
+        pages = paginate_authored_blocks(blocks, chars_per_line=65)
+        self.assertGreater(len(pages), 1)
+        self.assertLess(len(pages), len(cards))
+        self.assertEqual(len(blocks), 25 * 3)
+        self.assertEqual([row for page in pages for row in page], list(blocks))
+        self.assertEqual(cards, original)
+        self.assertEqual(source_page_for_index(pages, 0), 0)
+        self.assertEqual(blocks[0]["source_index"], 1)
+        self.assertEqual(blocks[0]["block"]["runs"][0]["href"], "travel-copy:1,0")
+        self.assertTrue(all(
+            "Étape" not in "".join(run["text"] for run in row["block"]["runs"])
+            for row in blocks
+        ))
 
     def test_prerequisite_only_source_card_maps_to_next_readable_page(self):
         blocks = authored_reading_blocks([

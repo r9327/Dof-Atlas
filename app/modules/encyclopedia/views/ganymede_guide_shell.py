@@ -140,6 +140,8 @@ class GanymedeGuideShell(SharedGuideManualView):
         self._review_end_index = 0
         self._review_history.clear()
         self._preview_preparation_checked.clear()
+        self._source_page_override = None
+        self._source_pages_cache_key = None
         # The metadata shell uses a special dash for its 0/0 selector;
         # clear that sentinel before the real 1-based draft navigation.
         self.page_jump.setSpecialValueText("")
@@ -147,8 +149,9 @@ class GanymedeGuideShell(SharedGuideManualView):
         # A disabled lime validation button still looks actionable in Unity;
         # the review has no completion authority, so show only navigation.
         self.validation_host.hide()
-        self.sheet_meta_label.show()
-        # Only the current source fiche is mounted in the bounded reader.
+        self.sheet_meta_label.hide()
+        # Render one adaptive reading page; source IDs and authority remain
+        # unchanged even if that page contains several authored action rows.
         # Review-only metadata contains typed prerequisites/materials. Allow
         # inspecting their own tabs without granting gameplay/progress writes.
         self._preparation_loaded = False
@@ -177,12 +180,20 @@ class GanymedeGuideShell(SharedGuideManualView):
         super().navigate_relative(delta)
 
     def _render_window(self, *, reset_scroll: bool = False) -> None:
-        # All 95 source containers and authorized imports use the same shared
-        # card construction, source layout and 1:1 reading/navigation policy.
-        # The metadata-only pilot adds only read-only state, never its own UI.
+        # All 95 source containers use the shared reading/page composition.
+        # The metadata-only pilot adds no independently styled renderer.
         super()._render_window(reset_scroll=reset_scroll)
         if self._inspection_active:
-            self._review_end_index = self.view_index + self.rendered_card_count
+            if self._is_continuous_source_reading():
+                pages = self._source_reading_pages()
+                page = self._source_current_page_number(pages)
+                entries = pages[page] if pages else ()
+                self._review_end_index = (
+                    max(entry["source_index"] for entry in entries) + 1
+                    if entries else self.view_index
+                )
+            else:
+                self._review_end_index = self.view_index + self.rendered_card_count
             viewport = self.scroll.viewport()
             self._review_viewport_size = (viewport.width(), viewport.height())
             self.guide_button.setToolTip("Retour au catalogue des Guides")

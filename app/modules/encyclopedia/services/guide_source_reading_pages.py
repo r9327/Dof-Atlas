@@ -8,6 +8,7 @@ from __future__ import annotations
 
 import copy
 import math
+import re
 from typing import Any
 
 SOURCE_PAGE_TARGET_LINES = 18
@@ -75,6 +76,45 @@ def authored_reading_blocks(cards: Any) -> tuple[dict[str, Any], ...]:
                     "source_block_index": block_index,
                     "block": current,
                 })
+    return tuple(result)
+
+
+def review_candidate_reading_blocks(cards: Any) -> tuple[dict[str, Any], ...]:
+    """Read-only Cawotte pilot pages using its existing source action labels.
+
+    Prerequisites/materials remain in their own tabs. No candidate action
+    gains gameplay authority; original source IDs and 64 cards remain intact.
+    """
+    result: list[dict[str, Any]] = []
+    for source_index, card in enumerate(cards):
+        if card.get("manual_review_only") is not True or not card.get("source_step_id"):
+            raise ValueError("Preview pagination requires typed review-only source IDs")
+        sections = card.get("manual_sections") or {}
+        rows = sections.get("now", ()) if isinstance(sections, dict) else ()
+        if not isinstance(rows, (tuple, list)):
+            raise ValueError("Invalid authored preview actions")
+        for row in rows:
+            if not isinstance(row, dict):
+                raise ValueError("Invalid authored preview action")
+            text = str(row.get("text") or "").strip()
+            if not text:
+                continue
+            position = str(row.get("position") or "").strip()
+            runs: list[dict[str, Any]] = []
+            match = re.fullmatch(r"\[(-?\d{1,5}),\s*(-?\d{1,5})\]", position)
+            if match:
+                target = f"{match.group(1)},{match.group(2)}"
+                runs.append({
+                    "text": position, "role": "position",
+                    "href": "travel-copy:" + target,
+                })
+                runs.append({"text": " · ", "role": "plain"})
+            runs.append({"text": text, "role": "plain"})
+            result.append({
+                "source_index": source_index,
+                "source_step_id": str(card["source_step_id"]),
+                "block": {"type": "paragraph", "runs": runs},
+            })
     return tuple(result)
 
 

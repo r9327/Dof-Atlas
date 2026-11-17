@@ -2112,8 +2112,13 @@ class SharedGuideManualView(GuideUltimeManualView):
         source step. Preserve their stable validation, step navigation and
         existing shared card reader. Never infer this mode from the guide ID.
         """
-        if not self._is_imported_source_guide():
+        if not self._is_imported_source_guide() or not self.service.cards:
             return False
+        if all(card.get("manual_review_only") is True
+               and "source_step_id" in card for card in self.service.cards):
+            # Candidate previews share the SAME 18-line adaptive page renderer
+            # but cannot write or validate any original source action.
+            return True
         for card in self.service.cards:
             step = (card.get("manual_runtime_metadata") or {}).get("source_step")
             actions = step.get("actions") if isinstance(step, dict) else None
@@ -3660,6 +3665,7 @@ class SharedGuideManualView(GuideUltimeManualView):
         """
         from app.modules.encyclopedia.services.guide_source_reading_pages import (
             authored_reading_blocks, paginate_authored_blocks,
+            review_candidate_reading_blocks,
         )
         cards = self.service.cards
         viewport = self.scroll.viewport()
@@ -3670,7 +3676,11 @@ class SharedGuideManualView(GuideUltimeManualView):
         key = (id(cards), len(cards), bucket)
         if getattr(self, "_source_pages_cache_key", None) != key:
             self._source_pages_cache_key = key
-            blocks = authored_reading_blocks(cards)
+            blocks = (
+                review_candidate_reading_blocks(cards)
+                if all(card.get("manual_review_only") is True for card in cards)
+                else authored_reading_blocks(cards)
+            )
             self._source_pages_cache = paginate_authored_blocks(
                 blocks, chars_per_line=bucket,
             )

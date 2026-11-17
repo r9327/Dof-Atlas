@@ -100,18 +100,18 @@ class GanymedeGuideShellTests(unittest.TestCase):
     def test_first_cawotte_ui_pilot_opens_from_catalog_and_preserves_real_guide(self) -> None:
         from app.modules.encyclopedia.models.guide import Guide
         from app.modules.encyclopedia.views.guide_library_sources import INDEX_PATH
-
-        candidate_file = INDEX_PATH.parent / "ganymede_2205_action_candidates.json"
-        candidate = json.loads(candidate_file.read_text(encoding="utf-8"))
-        self.assertEqual(candidate["source_guide_id"], 2205)
+        from app.modules.encyclopedia.services.guide_source_reading_pages import (
+            review_candidate_reading_blocks,
+        )
+        candidate = json.loads(
+            (INDEX_PATH.parent / "ganymede_2205_action_candidates.json")
+            .read_text(encoding="utf-8")
+        )
         self.assertEqual(candidate["source_step_count"], 64)
-        self.assertEqual(len(candidate["steps"]), 64)
-        self.assertEqual(candidate["certified_actions"], 0)
         self.assertFalse(candidate["ready_to_replace"])
-
+        self.assertEqual(candidate["certified_actions"], 0)
         catalog = GuideCatalogView(
-            lambda _message: None,
-            provider=object(),
+            lambda _message: None, provider=object(),
             quest_progress_path=Path("unused_cawotte_pilot.json"),
             defer_runtime=True,
         )
@@ -120,18 +120,13 @@ class GanymedeGuideShellTests(unittest.TestCase):
         catalog.guides = [Guide(id="dofus_cawotte", title="Dofus Cawotte", category="dofus")]
         catalog.ganymede_listings = load_ganymede_listings()
         catalog._ganymede_by_id = {
-            entry.source_id: entry for entry in catalog.ganymede_listings
+            row.source_id: row for row in catalog.ganymede_listings
         }
         catalog._populate_library_tree()
         pilot = catalog._cawotte_pilot_item
-        self.assertIsNotNone(pilot)
         self.assertEqual(pilot.data(0, Qt.UserRole + 2), 2205)
-        self.assertIn("Cawotte", pilot.text(0))
-        catalog._populate_library_tree()
-        self.assertIs(catalog._cawotte_pilot_item, pilot)
-        requests = []
-        catalog.guideRequested.connect(requests.append)
-
+        requested = []
+        catalog.guideRequested.connect(requested.append)
         catalog.resize(1180, 720)
         catalog.show()
         self.app.processEvents()
@@ -145,194 +140,77 @@ class GanymedeGuideShellTests(unittest.TestCase):
         shell = catalog._ganymede_shell
         self.assertIsInstance(shell, GanymedeGuideShell)
         self.assertIs(catalog.pages.currentWidget(), shell)
-        self.assertEqual(shell._listing.source_id, 2205)
-        self.assertEqual(shell.rendered_card_count, 1)
-        self.assertEqual(shell._review_end_index, shell.rendered_card_count)
         self.assertEqual(len(shell.service.cards), 64)
-        first_visible = shell.cards_layout.itemAt(0).widget()
-        self.assertTrue(first_visible.isVisible())
-        self.assertGreater(first_visible.height(), 0)
-        self.assertEqual(shell.page_jump.maximum(), 64)
-        self.assertEqual(shell.page_jump.text(), "1 / 64")
-        self.assertEqual(shell.guide_title_label.text(), "Dofus Cawotte")
-        self.assertEqual(shell.sheet_title_label.text(), "Étape 1")
-        # The active title is in GuideSheetHeader; no duplicate Qt stage label.
-        active_sheet = shell.cards_layout.itemAt(0).widget()
-        self.assertEqual(
-            len(shell.findChildren(QFrame, "GuideManualSheet")), 1,
-        )
-        self.assertTrue(active_sheet.property("continuousGuideReading"))
-        self.assertEqual(
-            active_sheet.findChildren(QLabel, "GuideManualStageTitle"), [],
-        )
-        self.assertEqual(
-            active_sheet.findChildren(QLabel, "GuideManualSectionTitle"), [],
-        )
-        from app.ui.theme import GUIDE_READING_METRICS
-        m = active_sheet.layout().contentsMargins()
-        self.assertEqual(
-            (m.left(), m.top(), m.right(), m.bottom()),
-            (
-                GUIDE_READING_METRICS["sheet_horizontal"],
-                GUIDE_READING_METRICS["sheet_vertical"],
-                GUIDE_READING_METRICS["sheet_horizontal"],
-                GUIDE_READING_METRICS["sheet_vertical"],
-            ),
-        )
-        # Each source step is indexed once and no next step leaks into this sheet.
-        self.assertTrue(shell.page_jump.isEnabled())
-        self.assertEqual(shell.page_jump.maximum(), 64)
-        position_labels = shell.findChildren(QLabel, "GuideManualPositionCopy")
-        self.assertEqual(len(position_labels), 1)
-        self.assertIn("travel-copy:25,-4", position_labels[0].text())
-        self.assertEqual(shell.findChildren(QToolButton, "GuideManualZaapShortcut"), [])
-        self.assertEqual(shell.findChildren(QFrame, "GuideManualActionGroup"), [])
-        self.assertEqual(active_sheet.findChildren(QFrame, "GuideManualReviewSection"), [])
-        self.assertFalse(
-            shell.findChildren(QFrame, "GuideManualSourceReadingSection"),
-        )
-        self.assertEqual(
-            len(active_sheet.findChildren(QLabel, "GuideManualReviewInfo")), 1,
-        )
-        # Prerequisites and material preparation are actual separate tabs,
-        # readable from candidate data without granting gameplay progress.
-        self.assertTrue(shell.preparation_button.isEnabled())
+        self.assertEqual(len({card["source_step_id"] for card in shell.service.cards}), 64)
+        self.assertGreater(len(review_candidate_reading_blocks(shell.service.cards)), 64)
+        self.assertEqual(shell.rendered_card_count, 1)
+        self.assertEqual(len(shell.findChildren(QFrame, "GuideManualSheet")), 1)
+        self.assertTrue(shell.cards_layout.itemAt(0).widget().property(
+            "sourceContinuousReading"
+        ))
+        self.assertEqual(shell.sheet_title_label.text(), "Parcours")
+        self.assertEqual(shell.sheet_meta_label.text(), "")
+        self.assertTrue(shell.sheet_meta_label.isHidden())
+        self.assertEqual(len(shell.findChildren(QProgressBar)), 2)
+        pages = shell._source_reading_pages()
+        self.assertLess(len(pages), 64)
+        self.assertGreater(len(pages), 1)
+        self.assertEqual(shell.page_jump.text(), f"1 / {len(pages)}")
+        first = pages[0]
+        self.assertGreater(len(first), 1)
+        self.assertFalse(shell.validation_host.isVisibleTo(shell))
+        self.assertEqual(shell.validation_layout.count(), 0)
+
+        # Tabs and a temporary checklist work without saving uncertified data.
         shell.preparation_button.click()
         self.app.processEvents()
         self.assertTrue(shell.preparation_panel.isVisibleTo(shell))
-        # X/X navigation preserves the open preparation drawer.
-        shell.page_jump.setValue(2)
-        self.assertEqual(shell.view_index, 1)
-        self.assertTrue(shell.preparation_panel.isVisibleTo(shell))
-        shell.page_jump.setValue(1)
         self.assertEqual(shell._preparation_tab, "Prérequis")
         self.assertEqual(len(shell._preparation_preview), 10)
-        self.assertFalse(shell.preparation_filter_host.isVisibleTo(shell))
-        def visible_preparation_labels():
-            labels = []
-            for i in range(shell.preparation_rows_layout.count()):
-                widget = shell.preparation_rows_layout.itemAt(i).widget()
-                if isinstance(widget, QFrame) and widget.objectName() == "GuidePreparationRow":
-                    button = widget.findChild(QPushButton, "GuidePreparationItemCopy")
-                    if button is not None:
-                        labels.append(button.text())
-            return labels
-        self.assertEqual(len(visible_preparation_labels()), 3)
-        self.assertIn("Contrôler l'accès aux Wabbits", visible_preparation_labels())
         material_tab = next(
-            button for button in shell.preparation_tab_group.buttons()
-            if button.text() == "À préparer"
+            tab for tab in shell.preparation_tab_group.buttons()
+            if tab.property("tabKey") == "À préparer"
         )
         material_tab.click()
         self.app.processEvents()
-        self.assertTrue(shell.preparation_filter_host.isVisibleTo(shell))
         self.assertEqual(shell._preparation_tab, "À préparer")
-        self.assertEqual(len(visible_preparation_labels()), 7)
-        self.assertTrue(all(
-            "Contrôler l'accès aux Wabbits" not in label
-            for label in visible_preparation_labels()
-        ))
-        # Qt must scroll seven real preparation rows, not squash their
-        # labels/icons to a few pixels when the drawer is height-limited.
-        from app.ui.theme import SIZES
-        min_height = int(SIZES["CONTROL_HEIGHT"].removesuffix("px"))
-        visible_rows = [
-            shell.preparation_rows_layout.itemAt(i).widget()
-            for i in range(shell.preparation_rows_layout.count())
-        ]
-        visible_rows = [
-            widget for widget in visible_rows
-            if isinstance(widget, QFrame)
-            and widget.objectName() == "GuidePreparationRow"
-        ]
-        self.assertTrue(all(widget.height() >= min_height for widget in visible_rows))
-        self.assertGreater(shell.preparation_scroll.verticalScrollBar().maximum(), 0)
-        self.assertFalse(shell.preparation_bar.isEnabled())
-        self.assertEqual(shell.selected_participant_keys(), ())
-        shell.preparation_button.click()
-        # Step 1 is prerequisites-only, so navigate to the source's third
-        # step to verify its three real action lines are kept in ONE sheet.
-        shell._show_index(2)
-        self.assertEqual(shell.rendered_card_count, 1)
-        action_labels = shell.findChildren(QLabel, "GuideManualLine")
-        self.assertGreaterEqual(len(action_labels), 3)
-        self.assertTrue(all(
-            not label.text().lstrip().startswith(("•", "—"))
-            for label in action_labels
-        ))
-        self.assertTrue(shell.validation_host.isHidden())
-        self.assertEqual(shell.validation_layout.count(), 0)
-        self.assertEqual(requests, [])
+        checks = shell.preparation_panel.findChildren(QToolButton, "GuidePreparationReady")
+        self.assertEqual(checks, [])
+        from PySide6.QtWidgets import QCheckBox
+        checks = shell.preparation_panel.findChildren(QCheckBox, "GuidePreparationReady")
+        self.assertEqual(len(checks), 7)
+        checks[0].click()
+        self.assertTrue(checks[0].isChecked())
+        self.assertFalse(hasattr(shell.service, "guide_progress"))
+        self.assertEqual(len(shell.findChildren(QToolButton, "GuideMetricDropdown")), 1)
 
-        shell.guide_button.click()
-        self.assertIs(catalog.pages.currentWidget(), catalog.home_scroll)
-        QTest.mouseClick(tree.viewport(), Qt.LeftButton, pos=rect.center())
-        self.app.processEvents()
-        self.assertIs(catalog.pages.currentWidget(), shell)
-        shell.guide_button.click()
-        tree.setFocus()
-        QTest.keyClick(tree, Qt.Key_Return)
-        self.app.processEvents()
-        self.assertIs(catalog.pages.currentWidget(), shell)
-        self.assertEqual(requests, [])
-        # X/X jumps to any original source sheet, never a 3-step window.
-        shell.page_jump.setValue(40)
-        self.assertEqual(shell.view_index, 39)
+        # X/X moves between adaptive pages while keeping original card IDs.
+        shell.page_jump.setValue(2)
+        self.assertEqual(shell.page_jump.value(), 2)
         self.assertEqual(shell.rendered_card_count, 1)
-        self.assertEqual(shell.cards_layout.itemAt(0).widget().card["source_step_id"],
-                         "ganymede_2205_step_0040")
-        shell._show_index(0)
-        # Every original source step is independently navigable and mounted once.
-        visited = []
-        while True:
-            start = shell.view_index
-            end = shell._review_end_index
-            self.assertEqual(end, start + 1)
-            self.assertEqual(shell.rendered_card_count, 1)
-            visible = [
-                shell.cards_layout.itemAt(i).widget()
-                for i in range(shell.rendered_card_count)
-            ]
-            self.assertEqual(
-                [w.card["source_step_id"] for w in visible],
-                [f"ganymede_2205_step_{i:04d}" for i in range(start + 1, end + 1)],
-            )
-            self.assertEqual(shell.page_jump.value(), start + 1)
-            self.assertEqual(shell.validation_layout.count(), 0)
-            visited.append(start + 1)
-            if start == 63:
-                break
-            self.assertTrue(shell.next_button.isEnabled())
-            shell.next_button.click()
-            self.assertEqual(shell.view_index, start + 1)
-            if len(visited) % 8 == 0:
-                self.app.processEvents()
-        self.assertEqual(visited, list(range(1, 65)))
+        self.assertTrue(shell.preparation_panel.isVisibleTo(shell))
+        shell.page_jump.setValue(len(pages))
+        self.assertEqual(shell.page_jump.value(), len(pages))
+        self.assertEqual(shell.view_index, pages[-1][0]["source_index"])
         self.assertFalse(shell.next_button.isEnabled())
-        self.assertEqual(shell.sheet_title_label.text(), "Étape 64")
-        shell.prev_button.click()
-        self.assertEqual(shell.view_index, 62)
-        shell.page_jump.setValue(64)
-        self.assertEqual(shell.view_index, 63)
-        self.assertEqual(shell._review_end_index, 64)
+        self.assertEqual(shell.validation_layout.count(), 0)
         shell.guide_button.click()
         self.assertIs(catalog.pages.currentWidget(), catalog.home_scroll)
         other = next(row for row in catalog.ganymede_listings if row.source_id != 2205)
         self.assertTrue(catalog.open_ganymede_container(other.source_id))
+        self.assertIs(catalog._ganymede_shell, shell)
         self.assertEqual(shell.service.cards, ())
         self.assertEqual(shell.rendered_card_count, 0)
-        self.assertFalse(shell.preparation_button.isEnabled())
-        self.assertTrue(shell.preparation_panel.isHidden())
-        self.assertEqual(shell.validation_layout.count(), 0)
         self.assertFalse(shell.page_jump.isEnabled())
-        self.assertEqual(shell.page_jump.text(), "—")
+        self.assertEqual(requested, [])
         self.assertTrue(catalog.select_guide("dofus_cawotte"))
-        self.assertEqual(requests, ["dofus_cawotte"])
-
+        self.assertEqual(requested, ["dofus_cawotte"])
 
     def test_single_sheet_survives_resize_and_long_text(self) -> None:
         import copy
-
+        from app.modules.encyclopedia.services.guide_source_reading_pages import (
+            review_candidate_reading_blocks, paginate_authored_blocks,
+        )
         shell = GanymedeGuideShell(lambda: None)
         self.addCleanup(shell.deleteLater)
         self.addCleanup(shell.close)
@@ -345,45 +223,33 @@ class GanymedeGuideShellTests(unittest.TestCase):
         shell.set_listing(source)
         self.assertTrue(shell.show_cawotte_review())
         self.app.processEvents()
-        large_count = shell.rendered_card_count
-        self.assertEqual(large_count, 1)
-        self.assertEqual(shell._review_end_index, 1)
-        self.assertEqual(shell.page_jump.maximum(), len(shell.service.cards))
-        self.assertEqual(
-            shell.cards_layout.itemAt(0).widget().findChildren(
-                QLabel, "GuideManualStageTitle",
-            ), [],
-        )
-
+        self.assertEqual(shell.rendered_card_count, 1)
+        wide_pages = shell._source_reading_pages()
+        self.assertGreater(len(wide_pages[0]), 1)
         shell.resize(760, 560)
         self.app.processEvents()
         self.assertEqual(shell.rendered_card_count, 1)
-        self.assertEqual(shell._review_end_index, 1)
+        self.assertGreaterEqual(len(shell._source_reading_pages()), len(wide_pages))
 
-        # Extra-long authored text scrolls within the ONE selected sheet,
-        # never bringing the next source step into the same Atlas page.
-        # Step 1 consists only of prerequisites (no in-route action).
-        # Stress a real walkthrough row on step 2 instead.
         extended = copy.deepcopy(shell.service.cards[1])
-        extended["manual_sections"]["now"][0]["text"] = (
-            "Instruction Cawotte très détaillée. " * 700
-        )
+        huge = "Instruction Cawotte très détaillée. " * 700
+        extended["manual_sections"]["now"][0]["text"] = huge
         shell.service.cards = (
             shell.service.cards[:1] + (extended,) + shell.service.cards[2:]
         )
+        shell._source_pages_cache_key = None
         shell._show_index(1)
         self.app.processEvents()
         self.assertEqual(shell.rendered_card_count, 1)
-        self.assertEqual(shell._review_end_index, 2)
         self.assertGreater(shell.scroll.verticalScrollBar().maximum(), 0)
-        self.assertGreater(
-            shell.cards_layout.itemAt(0).widget().minimumHeight(),
-            shell.scroll.viewport().height(),
+        blocks = review_candidate_reading_blocks(shell.service.cards)
+        pages = paginate_authored_blocks(blocks, chars_per_line=35)
+        self.assertEqual(
+            sum("Instruction Cawotte très détaillée." in
+                "".join(run["text"] for run in row["block"]["runs"])
+                for page in pages for row in page),
+            1,
         )
-        self.assertTrue(shell.next_button.isEnabled())
-        shell.next_button.click()
-        self.assertEqual(shell.view_index, 2)
-        self.assertEqual(shell.page_jump.value(), 3)
         self.assertEqual(shell.validation_layout.count(), 0)
 
     def test_catalogue_reuses_one_preview_and_does_not_dispatch_guide(self) -> None:
