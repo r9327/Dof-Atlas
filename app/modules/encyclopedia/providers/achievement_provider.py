@@ -89,11 +89,19 @@ class AchievementProvider:
     def last_detail_ms(self) -> float:
         return self._last_detail_ms
 
+    def load_catalogue_only(self) -> None:
+        """Load the Success summaries without indexing optional detail rewards.
+
+        Called by the Encyclopedia stage worker before the first paint.
+        prepare_detail_sources() remains an explicit operation for the
+        *detail* worker, never an implicit operation on the Qt thread.
+        """
+        self._ensure_loaded()
+
     def load_all(self) -> list[Achievement]:
         self._ensure_loaded()
-        # The Success runtime calls load_all() from DofusAtlasAchievementStage.
-        # Build only byte-offset indexes for documentary reward sources here so
-        # get_detail_by_id() never has to index monolithic JSON on the Qt thread.
+        # Full offline consumers still opt into ready-to-read rich details.
+        # The interactive catalogue uses load_catalogue_only() instead.
         self.prepare_detail_sources()
         return list(self._achievements)
 
