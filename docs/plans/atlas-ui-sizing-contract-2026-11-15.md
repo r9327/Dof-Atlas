@@ -359,3 +359,46 @@ le focus, la persistance et le rendu aux 4 tailles de référence.
    comparaison de captures, absence de scroll horizontal, et
    tailles réelles à 900×600, 1180×720, 1440×900, 1920×1080.
    Ne pas revendiquer `PASS` sans exécution au HEAD exact.
+
+## Catalogue réellement actionnable : quatre fenêtres Craft et comptage des primitives
+
+Dev UI affiche désormais un **sélecteur `AtlasComboBox` unique et un
+bouton `AtlasButton` unique** pour ouvrir les quatre *vrais* dialogues
+de `app/pages/craft_page.py`, avec des exemples sans données
+personnelles ni écritures :
+
+- `CraftResourceDialog` — ressources et quantités ;
+- `ItemSetDialog` — panoplie et éléments ;
+- `LevelingDialog` — métier et paliers ;
+- `RouteDialog` — navigation d'une route sans capture inventée.
+
+**Ne pas confondre ces quatre usages avec quatre nouvelles classes ajoutées
+à la bibliothèque** : les classes existaient déjà. Cette démonstration
+ne transforme pas leur héritage `QDialog` en `AtlasDialog`. Leur
+migration visuelle vers le conteneur/en-tête commun reste un travail
+séparé, soumis à l'audit Graphify des consommateurs réels.
+
+La section Couverture affiche des **compteurs d'implémentations et
+variantes**, dérivés de la source existante plutôt que maintenus dans
+un tableau concurrent :
+
+| Élément contrôlé | Propriétaires / implémentations mutualisées | Variantes / usages actuellement référencés |
+| --- | --- | --- |
+| Boutons classiques | 1 `AtlasButton` | 12 rôles dans `BUTTON_OBJECT_NAMES` ; les contrôles spécialisés restent distincts seulement si leur comportement le justifie |
+| Menus de sélection | 1 `AtlasComboBox` | Quantités d'options propres à chaque écran |
+| Compteurs numériques | `QSpinBox` Qt + 1 règle `fit_unity_number_spinbox` | Min/max, x/x et suffixes propres à chaque contexte |
+| Dialogues classiques | 1 `AtlasDialog`, 1 `AtlasDialogHeader` | 5 variantes dans la démonstration |
+| Dialogues Craft | 4 `QDialog` déjà présents à **raccorder** | 4 usages prévisualisables, aucun clone de fenêtre créé |
+| Popups et overlays | Les widgets Qt ou métier existants | 15 scénarios distincts indexés, pas 15 composants à créer |
+
+Objectif de simplification : **moins de propriétaires de style et de
+conteneur, pas moins de fonctionnalités ni de cas d'usage**. Ne pas
+créer de superclasse abstraite ou de moteur popup supplémentaire,
+ne pas convertir le préchargement/zoom/Zaap/radial en modaux.
+
+Tests ajoutés dans `tests/test_dev_ui_page.py` : ouverture des quatre
+vraies fenêtres, classe effective, absence de stylesheet local, compteurs
+liés aux rôles et variantes existants, absence d'écriture dans les exemples.
+**Exécution Qt/Doctor/Windows exacte-SHA à effectuer : NOT_RUN** dans
+cette session. Les preuves visuelles et l'inventaire exhaustif des widgets
+dynamiques restent des critères obligatoires de #365.
