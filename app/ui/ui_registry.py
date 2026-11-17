@@ -8,6 +8,9 @@ so an audit can detect missing adoption instead of merely listing names.
 
 from __future__ import annotations
 
+import re
+from pathlib import Path
+
 from app.ui.unity_palette import (
     UNITY_PAINTED_UI_ROLES, UNITY_UI_FAMILY_INDEX, UNITY_UI_CONSUMERS,
     UNITY_UI_UNIFICATION_CONTRACT,
@@ -274,6 +277,102 @@ UI_CONSUMER_INDEX = {
 }
 
 
+
+# Audit-only projection of the 18 needs agreed for Dev UI. It REUSES the
+# existing family/style index; these are not additional widget classes or QSS.
+# Signatures indicate source-level references, not certified runtime use.
+# Aggregate inventory zones and the Dev UI gallery are excluded from the
+# consumer count to avoid counting the same source screen more than once.
+UI_MUTUALIZATION_TARGETS = (
+    ("Boutons", "buttons", "AtlasButton", r"\bAtlasButton\s*\("),
+    ("Menus de sélection", "fields", "AtlasComboBox", r"\bAtlasComboBox\s*\("),
+    ("Sélecteurs numériques", "fields", "QSpinBox + fit_unity_number_spinbox",
+     r"\b(?:QSpinBox|fit_unity_number_spinbox)\s*\("),
+    ("Fenêtres et popups classiques", "dialogs", "AtlasDialog + AtlasDialogHeader",
+     r"\bAtlasDialog\s*\(|\bclass\s+\w+\s*\(\s*AtlasDialog\s*\)"),
+    ("Cases à cocher", "fields", "QCheckBox + thème Unity", r"\bQCheckBox\s*\("),
+    ("Champs de texte", "fields", "QLineEdit + thème Unity", r"\bQLineEdit\s*\("),
+    ("Barres de progression", "statuses", "QProgressBar + thème Unity",
+     r"\bQProgressBar\s*\("),
+    ("Panneaux et modules", "panels", "AtlasPanelToggle / QFrame",
+     r"\b(?:AtlasPanelToggle|QFrame|QGroupBox)\s*\("),
+    ("Titres et sous-titres", "headers", "AtlasPageTitle / AtlasDialogHeader",
+     r"\b(?:AtlasPageTitle|AtlasDialogHeader)\s*\("),
+    ("Bordures et arrondis", "surfaces", "Tokens du thème Unity",
+     r"\.setObjectName\s*\(\s*['\"](?:card|Panel|QuestPanel)['\"]\s*\)"),
+    ("Glass et ombres", "panels", "Tokens et helper Unity",
+     r"\b(?:apply_unity_panel_shadow|apply_unity_shadow)\s*\("),
+    ("Icônes et logos", "assets", "Assets Unity existants",
+     r"\b(?:unity_original_preview_icon|atlas_application_icon)\s*\("),
+    ("Navigation et fil d'Ariane", "breadcrumbs", "AtlasBreadcrumb / AtlasPageNavigator",
+     r"\b(?:AtlasBreadcrumb|AtlasPageNavigator)\s*\("),
+    ("Onglets et sous-menus", "navigation", "QTabWidget / QMenu / AtlasPanelToggle",
+     r"\b(?:QTabWidget|QMenu|AtlasPanelToggle)\s*\("),
+    ("Listes et tableaux", "data_views", "Qt listes / tableaux / arbres",
+     r"\b(?:QTreeWidget|QTableWidget|QListWidget)\s*\("),
+    ("Infobulles", "assets", "QToolTip via thème Unity", r"\.setToolTip\s*\("),
+    ("Badges et statuts", "statuses", "AtlasStatusBadge",
+     r"\bAtlasStatusBadge\s*\("),
+    ("Scrollbars et resize", "scroll_resize", "Qt scroll / splitter + règles Unity",
+     r"\b(?:QScrollArea|QScrollBar|QSplitter)\s*\("),
+)
+
+_AUDIT_AGGREGATE_ZONES = frozenset({
+    "Outils", "Dev UI", "Popups et dialogues", "Overlays et démarrage",
+})
+
+
+def inspect_ui_mutualization_sources(
+    repo_root: Path | None = None,
+) -> tuple[dict[str, object], ...]:
+    """Measure declared source references; never claim a runtime migration PASS.
+
+    Scanning is opt-in and only used when the developer opens the Dev UI
+    audit. Paths are restricted to registered consumers; duplicate file
+    reads are cached for that invocation. Nothing executes/imports a module.
+    """
+    root = repo_root or Path(__file__).resolve().parents[2]
+    source_cache: dict[str, str | None] = {}
+    consumers = {
+        module: tuple(info["paths"])
+        for module, info in UI_CONSUMER_INDEX.items()
+        if module not in _AUDIT_AGGREGATE_ZONES
+    }
+    for paths in consumers.values():
+        for path in paths:
+            if path in source_cache:
+                continue
+            try:
+                source_cache[path] = (root / path).read_text(encoding="utf-8")
+            except OSError:
+                source_cache[path] = None
+
+    results: list[dict[str, object]] = []
+    for label, family, component, signature in UI_MUTUALIZATION_TARGETS:
+        matcher = re.compile(signature)
+        detected: list[str] = []
+        incomplete: list[str] = []
+        for module, paths in consumers.items():
+            if any(source_cache[path] is None for path in paths):
+                incomplete.append(module)
+            if any(
+                source_cache[path] is not None
+                and matcher.search(source_cache[path]) is not None
+                for path in paths
+            ):
+                detected.append(module)
+        results.append({
+            "label": label,
+            "family": family,
+            "component": component,
+            "qss_rules": len(UI_FAMILY_QSS_SELECTORS[family]),
+            "source_consumers": tuple(detected),
+            "unreadable_consumers": tuple(incomplete),
+            "style_owner": UNITY_UI_FAMILY_INDEX[family]["style_owner"],
+        })
+    return tuple(results)
+
+
 def validate_ui_index() -> None:
     """Fail promptly if a Dev UI family or consumer lacks its index entry."""
     families = tuple(UNITY_UI_FAMILY_INDEX)
@@ -291,6 +390,14 @@ def validate_ui_index() -> None:
         raise ValueError("Unindexed or duplicated painted Unity role")
     if any(name not in UI_FAMILY_QSS_SELECTORS for name in UI_FAMILY_PAINTED_ROLES):
         raise ValueError("Painted Unity role belongs to an unknown Dev UI family")
+    if len(UI_MUTUALIZATION_TARGETS) != 18:
+        raise ValueError("Expected exactly 18 audited UI needs")
+    for label, family, component, signature in UI_MUTUALIZATION_TARGETS:
+        if not label or not component or family not in UI_FAMILY_QSS_SELECTORS:
+            raise ValueError(f"Invalid mutualization target: {label}")
+        re.compile(signature)
+    if len({row[0] for row in UI_MUTUALIZATION_TARGETS}) != 18:
+        raise ValueError("Duplicated UI mutualization target")
     for name, info in UI_CONSUMER_INDEX.items():
         if not info["paths"] or info["adapter"] not in {"qt", "qt_scoped", "tk"}:
             raise ValueError(f"Invalid UI consumer registration: {name}")
