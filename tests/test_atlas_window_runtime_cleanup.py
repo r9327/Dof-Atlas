@@ -158,6 +158,32 @@ class AtlasWindowRuntimeCleanupTests(unittest.TestCase):
         finally:
             bridge.deleteLater()
 
+    def test_network_stop_exception_keeps_failed_status_and_no_second_stop(self) -> None:
+        from app.ui.network_bridge import NetworkUiBridge
+
+        bridge = NetworkUiBridge()
+        observed = []
+        bridge.statusChanged.connect(observed.append)
+        try:
+            with (
+                patch.object(
+                    bridge.coordinator, "stop",
+                    side_effect=RuntimeError("coordinator cleanup failed"),
+                ) as stop,
+                patch("app.core.logger.get_runtime_logger") as get_logger,
+            ):
+                self.assertFalse(bridge.stop())
+                self.assertFalse(bridge.stop())
+                stop.assert_called_once_with()
+                get_logger.return_value.exception.assert_called_once_with(
+                    "Network coordinator shutdown failed."
+                )
+            self.assertFalse(bridge.last_status.running)
+            self.assertEqual(bridge.last_status.reason, "stop_failed")
+            self.assertEqual([status.reason for status in observed], ["stop_failed"])
+        finally:
+            bridge.deleteLater()
+
     def test_stopped_network_bridge_is_recreated(self) -> None:
         QApplication.instance() or QApplication([])
         first = network_bridge_module.network_ui_bridge()
