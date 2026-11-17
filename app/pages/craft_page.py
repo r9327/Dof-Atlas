@@ -526,7 +526,7 @@ class CraftPage(QWidget):
         self.layout_timer.timeout.connect(self.apply_craft_body_layout)
         self.resource_dialog: CraftResourceDialog | None = None
 
-        root = self.content_layout
+        root = QVBoxLayout(self)
         compact_gap = UNITY_SPACING_PX["sm"]
         panel_padding = UNITY_SPACING_PX["md"]
         root.setContentsMargins(compact_gap, compact_gap, compact_gap, compact_gap)
