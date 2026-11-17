@@ -666,8 +666,13 @@ UNITY_UI_UNIFICATION_CONTRACT = (
     ("Popups réels, sous-vues et overlays : propriétaires et exceptions", "coverage"),
     ("Dialogues et fenêtres popup", "dialogs"),
     ("Dialogues information, attention, erreur", "dialogs"),
+    ("Même AtlasDialog : information, erreur, confirmation et contenu métier", "dialogs"),
+    ("En-tête, boutons de validation et fermeture du dialogue commun", "dialogs"),
+    ("Contenu variable, dimensionnement naturel et limites partagées", "dialogs"),
     ("Fermeture, Craft, Leveling, équipement et route", "dialogs"),
     ("Zoom d’image et suggestions Zaap", "dialogs"),
+    ("Menus et suggestions légers : widgets Qt existants, sans AtlasDialog", "navigation"),
+    ("Zoom, radial, splash : UI spécialisée et styles Unity communs", "coverage"),
     ("Palette et dégradés sémantiques", "palette"),
 )
 
