@@ -63,6 +63,39 @@ class GuidePreparationQtFocusedTests(unittest.TestCase):
         QApplication.processEvents()
         return self.view
 
+    def test_preparation_is_nested_inside_global_disclosure(self):
+        view = self._view()
+        # The helper expands Preparation only. The closed parent still hides
+        # its bar, drawer and individual checked state.
+        self.assertTrue(view.preparation_button.isChecked())
+        self.assertFalse(view.global_details_panel.isVisible())
+        self.assertFalse(view.preparation_panel.isVisible())
+
+        parents = []
+        parent = view.preparation_panel.parentWidget()
+        while parent is not None:
+            parents.append(parent)
+            parent = parent.parentWidget()
+        self.assertIn(view.global_details_panel, parents)
+
+        view.global_details_button.setChecked(True)
+        QApplication.processEvents()
+        self.assertTrue(view.global_details_panel.isVisible())
+        self.assertTrue(view.preparation_panel.isVisible())
+        self.assertTrue(view.preparation_bar.isVisible())
+
+        # Closing the global disclosure hides everything beneath it without
+        # resetting the independently controlled Preparation disclosure.
+        view.global_details_button.setChecked(False)
+        QApplication.processEvents()
+        self.assertFalse(view.preparation_panel.isVisible())
+        self.assertFalse(view.preparation_bar.isVisible())
+        self.assertTrue(view.preparation_button.isChecked())
+
+        view.global_details_button.setChecked(True)
+        QApplication.processEvents()
+        self.assertTrue(view.preparation_panel.isVisible())
+
     def test_six_verified_participants_can_be_ready_without_anonymous_writes(self):
         from types import SimpleNamespace
 
