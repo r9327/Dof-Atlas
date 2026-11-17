@@ -484,7 +484,11 @@ class AchievementsView(QWidget):
         active = getattr(self.provider, "_detail_cache", None)
         hot = active_id == achievement_id and active is not None
         warm = isinstance(recent, dict) and achievement_id in recent
-        cold_sources = getattr(self.provider, "detail_sources_ready", True) is False
+        needs_index = getattr(self.provider, "detail_source_index_required", None)
+        cold_sources = (
+            getattr(self.provider, "detail_sources_ready", True) is False
+            and (not callable(needs_index) or needs_index())
+        )
         if hot and self._detail_worker_running:
             # A running worker may currently mutate the provider's LRU.
             # Render the already-read immutable detail without touching
@@ -529,7 +533,11 @@ class AchievementsView(QWidget):
                 # Catalogue loading no longer prepares heavyweight optional
                 # reward indexes. The first actual detail prepares them here,
                 # on this bounded worker, not on the Qt click path.
-                if getattr(provider, "detail_sources_ready", True) is False:
+                needs_index = getattr(provider, "detail_source_index_required", None)
+                if (
+                    getattr(provider, "detail_sources_ready", True) is False
+                    and (not callable(needs_index) or needs_index())
+                ):
                     prepare = getattr(provider, "prepare_detail_sources", None)
                     if callable(prepare):
                         prepare()
