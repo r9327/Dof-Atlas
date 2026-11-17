@@ -1058,6 +1058,12 @@ class DevUiPageTests(unittest.TestCase):
             self.assertIsInstance(
                 filters.category_combo.view().itemDelegate(), UnityPopupSeparatorDelegate
             )
+            from app.ui.components import fit_unity_number_spinbox
+            for selector in (filters.min_level, filters.max_level):
+                self.assertEqual(selector.minimum(), 0)
+                self.assertEqual(selector.maximum(), 999)
+                self.assertEqual(selector.width(), fit_unity_number_spinbox(selector))
+                self.assertEqual(selector.styleSheet(), "")
             self.assertEqual(page.gallery_navigation.count(), len(page.gallery_sections))
             self.assertEqual(page.gallery_navigation.objectName(), "DevUiFamilyCombo")
             from PySide6.QtWidgets import QStyleOptionViewItem
