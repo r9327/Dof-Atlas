@@ -65,8 +65,11 @@ class GuidePreparationQtFocusedTests(unittest.TestCase):
         self.view.resize(1100, 740)
         self.view.show()
         QApplication.processEvents()
+        self.view.global_details_button.setChecked(True)
         self.view.preparation_button.setChecked(True)
         QApplication.processEvents()
+        self.assertTrue(self.view.global_details_panel.isVisible())
+        self.assertTrue(self.view.preparation_panel.isVisible())
         return self.view
 
     def test_compact_preparation_is_content_sized_from_dev_ui_tokens(self):
