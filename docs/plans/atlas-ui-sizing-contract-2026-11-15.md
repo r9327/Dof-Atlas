@@ -481,7 +481,8 @@ pas déclaré certifié ou fusionnable sans validation exacte-SHA.
 
 ## Vérification des widgets enfants — Quêtes, Guides et Succès
 
-L'audit des propriétaires UI a identifié quatre **chemins de code réels** qui
+L'audit des propriétaires UI a identifié **trois fichiers de widgets réels**
+correspondant à **quatre nouvelles associations module → source**, qui
 n'étaient pas inclus dans les sources suivies par `UI_CONSUMER_INDEX` :
 
 - `app/modules/encyclopedia/widgets/quest_detail_view.py` est utilisé à la
