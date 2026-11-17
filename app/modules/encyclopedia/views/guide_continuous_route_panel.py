@@ -581,7 +581,7 @@ class ContinuousGuideRoutePanel(QWidget):
         self.preparation_label.setText(
             "Références à vérifier (aucun achat présumé) :\n"
             + "\n".join(
-                "• " + item.label
+                item.label
                 + (" · facultatif" if item.optional_or_conditional else "")
                 + (" · sur le trajet" if item.obtainable_on_route else "")
                 + (f" · étape {item.needed_at_step}"
