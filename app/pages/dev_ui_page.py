@@ -2267,12 +2267,19 @@ class DevUiPage(QWidget):
         # Actual secondary surfaces from the same consumer registry. Keeping
         # their owners visible prevents a gallery preview from masquerading
         # as proof that a popup/overlay was migrated or captured.
-        secondary = [
-            (module, label, path)
-            for module in ("Popups et dialogues", "Overlays et démarrage")
-            for label, path in UI_CONSUMER_INDEX[module]["surfaces"]
-        ]
-        secondary_title = QLabel("Fenêtres, popups et overlays à vérifier")
+        secondary = []
+        seen_surfaces = set()
+        for module in ("Popups et dialogues", "Overlays et démarrage"):
+            for label, path in UI_CONSUMER_INDEX[module]["surfaces"]:
+                key = (label, path)
+                if key in seen_surfaces:
+                    continue  # Preload is both a dialog and a startup surface.
+                seen_surfaces.add(key)
+                secondary.append((module, label, path))
+        secondary_title = QLabel(
+            "Usages existants (pas des composants différents) : fenêtres, "
+            "menus, zoom et overlays"
+        )
         secondary_title.setObjectName("PanelTitle")
         section.addWidget(secondary_title)
         self.preview_secondary_surfaces = QTableWidget(len(secondary), 3)
