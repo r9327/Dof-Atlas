@@ -216,6 +216,35 @@ class UiUniversalContractTests(unittest.TestCase):
         self.assertIn("Craft", craft["source_consumers"])
         self.assertEqual(craft["craft_shared_dialogs"], 4)
         self.assertEqual(craft["craft_local_qdialogs"], 0)
+        checks = {
+            "Boutons": "QPushButton",
+            "Menus de sélection": "QComboBox",
+        }
+        import ast
+        for label, constructor in checks.items():
+            row = next(entry for entry in audit if entry["label"] == label)
+            self.assertIsInstance(row["raw_qt_constructors"], tuple)
+            for path, line in row["raw_qt_constructors"]:
+                with self.subTest(label=label, path=path, line=line):
+                    self.assertGreater(line, 0)
+                    source = (REPO_ROOT / path).read_text(encoding="utf-8")
+                    tree = ast.parse(source)
+                    self.assertTrue(any(
+                        isinstance(node, ast.Call)
+                        and node.lineno == line
+                        and (
+                            (isinstance(node.func, ast.Name)
+                             and node.func.id == constructor)
+                            or (isinstance(node.func, ast.Attribute)
+                                and node.func.attr == constructor)
+                        )
+                        for node in ast.walk(tree)
+                    ))
+        self.assertNotIn(
+            "app/storage.py",
+            {path for path, _ in next(entry for entry in audit
+                if entry["label"] == "Boutons")["raw_qt_constructors"]},
+        )
 
     def test_dev_ui_indexes_actual_nav_and_quest_hierarchy_styles(self):
         # These real controls were already in the gallery but missing from
