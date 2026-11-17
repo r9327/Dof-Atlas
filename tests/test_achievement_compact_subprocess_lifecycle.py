@@ -158,6 +158,37 @@ class AchievementCompactRowIdentityTests(unittest.TestCase):
                     None,
                 ])
 
+    def test_compact_progress_reads_reject_bad_spans_and_wrong_achievement(self) -> None:
+        from app.modules.encyclopedia.providers import memory_bound_achievement_provider as mod
+
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / "success.jsonl"
+            row = {"kind": "achievement", "value": {
+                "id": 10, "category_name": "Quêtes",
+                "progress_objectives": [[100, "npc", "Parler", "", []]],
+            }}
+            payload = (json.dumps(row) + "\n").encode("utf-8")
+            path.write_bytes(payload)
+            provider = MemoryBoundAchievementProvider()
+            provider._compact_retained_ids = (10, 11, 12, 13)
+            provider._compact_retained_set = frozenset(provider._compact_retained_ids)
+            provider._compact_external_index = {
+                10: (0, len(payload)),
+                11: (0, len(payload)),  # Valid JSON but belongs to a different ID.
+                12: (0, -1),  # read(-1) used to allocate the entire remaining file.
+                13: (len(payload) + 1, len(payload)),
+            }
+            expected = (10, "Quêtes", ((100, "npc", "Parler", "", ()),))
+            with (
+                patch.object(mod, "ACHIEVEMENT_COMPACT_CACHE", path),
+                patch.object(provider, "_ensure_loaded"),
+            ):
+                self.assertEqual(provider.progress_row_by_id(10), expected)
+                for ident in (11, 12, 13):
+                    with self.subTest(ident=ident):
+                        self.assertIsNone(provider.progress_row_by_id(ident))
+                self.assertEqual(provider.progress_catalogue(), (expected,))
+
     def test_locked_builder_repairs_positive_count_but_missing_offset_sidecar(self):
         from app.modules.encyclopedia.providers import memory_bound_achievement_provider as mod
 
