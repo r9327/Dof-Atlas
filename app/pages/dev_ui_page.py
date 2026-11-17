@@ -1184,6 +1184,7 @@ class DevUiPage(QWidget):
         self.preview_spin = QSpinBox()
         self.preview_spin.setRange(1, 8)
         self.preview_spin.setValue(4)
+        fit_unity_number_spinbox(self.preview_spin)
         self.preview_spin.valueChanged.connect(
             lambda value: self._report(f"Compteur : {value}")
         )
