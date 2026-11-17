@@ -126,7 +126,6 @@ def _native_visual_probe(route: dict, cover_png: bytes) -> None:
     shell._preparation_preview = ()
     backdrop.show()
     app.processEvents()
-    shell._populate_summary()
     shell._refresh_header()
 
     original_blocks = authored_reading_blocks(cards)
@@ -136,8 +135,8 @@ def _native_visual_probe(route: dict, cover_png: bytes) -> None:
         raise AssertionError(f"Invalid responsive page count {len(pages)}")
     if tuple(entry for page in pages for entry in page) != original_blocks:
         raise AssertionError("A source paragraph/link/image was lost or reordered")
-    if shell.summary_list.count() != len(pages):
-        raise AssertionError("Route summary must list pages, not fake 64 steps")
+    if shell.page_jump.maximum() != len(pages):
+        raise AssertionError("X/X selector must index responsive source pages")
 
     out = Path("artifacts/visual-cawotte")
     out.mkdir(parents=True, exist_ok=True)
@@ -239,13 +238,14 @@ def _native_visual_probe(route: dict, cover_png: bytes) -> None:
     if not zoom_checked:
         raise AssertionError("Source image zoom not tested")
 
-    # The page selector already navigates Route; imported source removes its
-    # duplicate dropdown while keeping the Route progress bar.
+    # X/X alone navigates the source; redundant Route and Sommaire widgets are gone.
     shell._show_reading_page(0)
     shell.preparation_button.setChecked(True)
     app.processEvents()
-    if shell.summary_button.isVisibleTo(shell) or shell.summary_panel.isVisibleTo(shell):
-        raise AssertionError("Redundant imported Route dropdown remains")
+    if hasattr(shell, "summary_button") or shell.findChild(QFrame, "GuideSummaryPanel"):
+        raise AssertionError("Sommaire must not be instantiated")
+    if shell.findChild(QFrame, "GuideManualProgress"):
+        raise AssertionError("Redundant Route panel remains")
     if not shell.preparation_panel.isVisibleTo(shell):
         raise AssertionError("Prérequis drawer cannot open")
     if shell.preparation_panel.width() > shell.preparation_bar.width() + 45:
