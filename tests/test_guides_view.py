@@ -12,7 +12,11 @@ os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
 from PySide6.QtCore import Qt, Signal
 from PySide6.QtWidgets import QApplication, QWidget
 
-from app.modules.encyclopedia.views.guides_view import GuidesView
+from app.modules.encyclopedia.views.guides_view import (
+    GuidesView, linkify_travel_text, text_label,
+)
+from app.ui.entity_link_roles import ENTITY_LINK_COLOR_ROLES
+from app.ui.theme import PALETTE
 from app.ui.components import AtlasPanelToggle
 
 
@@ -30,6 +34,28 @@ class GuidesViewLayoutTests(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         cls.app = QApplication.instance() or QApplication([])
+
+    def test_shared_quest_and_guide_coordinates_are_bold_unity_links(self):
+        markup = linkify_travel_text("Parler à [ -1,2] puis [-12, 34] & <npc>")
+        self.assertIn("<b>[-12,34]</b>", markup)
+        self.assertIn('href="atlas-travel:-12,34"', markup)
+        self.assertIn(
+            f'color:{PALETTE[ENTITY_LINK_COLOR_ROLES["position"]]}',
+            markup,
+        )
+        self.assertIn("&lt;npc&gt;", markup)
+        self.assertIn("&amp;", markup)
+
+        label = text_label("Aller en [-12,34] pour la quête", "QuestLaunchPosition")
+        try:
+            self.assertEqual(label.textFormat(), Qt.RichText)
+            self.assertIn("<b>[-12,34]</b>", label.text())
+            label.linkActivated.emit("atlas-travel:-12,34")
+            self.assertEqual(
+                QApplication.clipboard().text(), "/travel -12,34"
+            )
+        finally:
+            label.deleteLater()
 
     def test_detail_breadcrumb_precedes_title_header(self):
         class QuestDetailStub(QWidget):
