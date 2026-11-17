@@ -1099,6 +1099,7 @@ class DevUiPageTests(unittest.TestCase):
 
     def test_guide_preparation_copy_color_is_visible_in_real_qt(self) -> None:
         """Inspect painted glyphs, not just the compiled QSS declarations."""
+        from PySide6.QtCore import QPoint
         from PySide6.QtGui import QColor
         from PySide6.QtWidgets import QApplication
         from app.pages.dev_ui_page import DevUiPage
@@ -1110,27 +1111,31 @@ class DevUiPageTests(unittest.TestCase):
             page.show()
             page.preview_header_controls["Progression globale"].setChecked(True)
             page.preview_header_controls["Préparation"].setChecked(True)
-            QApplication.processEvents()
             button = page.preview_header_preparation_names[0]
-            # The gallery may keep this section collapsed; QWidget.grab()
-            # paints the real, styled button even when an ancestor is hidden.
+            # Inspect the window pixels after bringing the real control into
+            # view. A child.grab() on an off-viewport scroll widget may paint
+            # no glyphs on Windows even when the onscreen capture is correct.
+            page.gallery_scroll.ensureWidgetVisible(button)
+            QApplication.processEvents()
             self.assertTrue(button.isVisible())
             self.assertTrue(button.isEnabled())
             self.assertFalse(button.isFlat())
-            button.ensurePolished()
-            sample = button.grab().toImage()
-            self.assertGreater(sample.width(), 0)
+            image = page.grab().toImage()
+            origin = button.mapTo(page, QPoint(0, 0))
+            left, top = max(0, origin.x()), max(0, origin.y())
+            right = min(image.width(), origin.x() + min(button.width(), 250))
+            bottom = min(image.height(), origin.y() + button.height())
+            self.assertGreater(right, left)
+            self.assertGreater(bottom, top)
             target = QColor(PALETTE["GREEN"])
-            # Anti-aliased glyph edges need a tolerance; the button has no icon
-            # in Dev UI, so only the item's visible text can satisfy this.
             matches = sum(
-                abs(sample.pixelColor(x, y).red() - target.red()) < 45
-                and abs(sample.pixelColor(x, y).green() - target.green()) < 45
-                and abs(sample.pixelColor(x, y).blue() - target.blue()) < 45
-                for y in range(sample.height())
-                for x in range(min(sample.width(), 250))
+                abs(image.pixelColor(x, y).red() - target.red()) < 45
+                and abs(image.pixelColor(x, y).green() - target.green()) < 45
+                and abs(image.pixelColor(x, y).blue() - target.blue()) < 45
+                for y in range(top, bottom)
+                for x in range(left, right)
             )
-            self.assertGreater(matches, 4, "Guide item text lost its Unity item color")
+            self.assertGreater(matches, 4, "Visible Guide item text lost its Unity item color")
         finally:
             page.close()
             page.deleteLater()
