@@ -3664,6 +3664,19 @@ QLabel#GuideManualCombatTargetsTitle {
     height: 16px;
 }
 
+/* No extra validation animation: checked state changes text and outline only.
+   All colors and geometry stay owned by the shared Unity Dev UI tokens. */
+QToolButton#GuideContinuousValidate {
+    background: transparent;
+    color: @TEXT_SOFT;
+    border: 1px solid @BORDER_SOFT;
+    border-radius: @RADIUS_XS;
+}
+QToolButton#GuideContinuousValidate:checked {
+    color: @GREEN;
+    border-color: @GREEN_BORDER;
+}
+
 #GuideManualPageCheck {
     color: @TEXT_MUTED;
     background: transparent;
