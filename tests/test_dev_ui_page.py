@@ -1002,6 +1002,24 @@ class DevUiPageTests(unittest.TestCase):
                 tuple(UNITY_UI_FAMILY_INDEX).index("dialogs"),
             )
             self.assertEqual(page.preview_mutualization_matrix.styleSheet(), "")
+            audits = {
+                page.preview_mutualization_matrix.item(index, 0).text():
+                    page.preview_mutualization_matrix.item(index, 4)
+                for index in range(page.preview_mutualization_matrix.rowCount())
+            }
+            self.assertIn("0 QSS local", audits["Bordures et arrondis"].text())
+            self.assertIn(
+                "largeur(s) littérale(s) à revoir",
+                audits["Scrollbars et resize"].text(),
+            )
+            self.assertIn(
+                "QDialog natif(s) à qualifier",
+                audits["Fenêtres et popups classiques"].text(),
+            )
+            self.assertIn(
+                "guides_view.py",
+                audits["Fenêtres et popups classiques"].toolTip(),
+            )
             self.assertEqual(page.preview_secondary_surfaces.rowCount(), 15)
             unique_cases = {
                 (
