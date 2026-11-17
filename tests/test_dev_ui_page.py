@@ -962,6 +962,12 @@ class DevUiPageTests(unittest.TestCase):
                 "Craft : 4/4 unifiés, 0 locaux",
                 page.preview_mutualization_matrix.item(dialog_rows[0], 4).text(),
             )
+            page.preview_mutualization_matrix.cellClicked.emit(dialog_rows[0], 0)
+            from app.ui.unity_palette import UNITY_UI_FAMILY_INDEX
+            self.assertEqual(
+                page.gallery_navigation.currentIndex(),
+                tuple(UNITY_UI_FAMILY_INDEX).index("dialogs"),
+            )
             self.assertEqual(page.preview_mutualization_matrix.styleSheet(), "")
             self.assertEqual(page.preview_secondary_surfaces.rowCount(), 15)
             unique_cases = {
