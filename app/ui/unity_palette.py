@@ -628,6 +628,7 @@ UNITY_CHIP_TONES = ("success", "danger", "warning", "info", "neutral")
 UNITY_UI_UNIFICATION_CONTRACT = (
     ("Boutons et variantes", "buttons"),
     ("Textes cliquables et actions popup", "buttons"),
+    ("Boutons favoris Zaap : rôle existant AtlasButton", "buttons"),
     ("Onglets et sélection", "navigation"),
     ("Navigation latérale, menu et sélection", "sidebar"),
     ("Menus contextuels", "navigation"),
@@ -688,7 +689,7 @@ UNITY_UI_FAMILY_INDEX = {
     "buttons": {
         "title": "Boutons · variantes et états",
         "components": ("AtlasButton", "PrimaryActionButton", "SecondaryButton", "ActiveButton", "DangerButton", "TopNavButton", "TopNavButtonActive",
-                       "InlineActionButton", "PopupLinkButton"),
+                       "InlineActionButton", "PopupLinkButton", "favoriteChipName"),
         "style_owner": "app/ui/components.py + app/ui/theme.py",
         "scope": "shared",
     },
