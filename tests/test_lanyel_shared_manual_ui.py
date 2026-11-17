@@ -487,37 +487,36 @@ class LanyelSharedManualUiTests(unittest.TestCase):
                 ],
             )
             self.assertIsNotNone(compact.findChild(QProgressBar, "GuideGlobalProgress"))
-            self.assertIsNotNone(compact.findChild(QProgressBar, "GuideManualProgress"))
+            self.assertIsNone(compact.findChild(QProgressBar, "GuideManualProgress"))
             self.assertIsNotNone(compact.findChild(QProgressBar, "GuideCompactPreparationProgress"))
             self.assertIsNone(compact.findChild(QLabel, "GuideCompactDonutHeading"))
             self.assertIsNone(compact.findChild(QLabel, "GuideCompactMetricIconTrophy"))
-            for symbol in ("Target", "Cube"):
+            for symbol in ("Cube",):
                 metric_icon = compact.findChild(QLabel, f"GuideCompactMetricIcon{symbol}")
                 self.assertIsNotNone(metric_icon)
                 self.assertFalse(metric_icon.pixmap().isNull())
             self.assertIsNotNone(compact.findChild(QLabel, "GuideCompactTitleIcon"))
-            self.assertIsNotNone(compact.findChild(QToolButton, "GuideManualProgressLock"))
+            self.assertIsNone(compact.findChild(QToolButton, "GuideManualProgressLock"))
             self.assertIs(compact.findChild(QToolButton, "GuideParticipantsButton"),
                           shared.participants_button)
-            # Sommaire and Route remain internal for compatibility, but
-            # X/X is now the only direct sheet selector.
+            # The only indexed drawer is Préparation, and X/X owns navigation.
             self.assertEqual(
                 set(compact.findChildren(QToolButton, "GuideMetricDropdown")),
-                {shared.summary_button, shared.preparation_button},
+                {shared.preparation_button},
             )
-            self.assertTrue(shared.summary_button.isHidden())
-            self.assertTrue(shared.route_bar.isHidden())
+            self.assertFalse(hasattr(shared, "summary_button"))
+            self.assertFalse(hasattr(shared, "route_bar"))
             self.assertEqual(shared._metric_caption_labels["Préparation"].text(), "À préparer")
             grid = shared._metric_columns["Préparation"].parent()
             self.assertIsInstance(grid, QGridLayout)
             self.assertIs(shared._compact_title_row.itemAt(
-                shared._compact_title_row.count() - 2
+                shared._compact_title_row.count() - 1
             ).widget(), shared.participants_button)
             self.assertIsNone(sheet_header.findChild(QToolButton, "GuideParticipantsButton"))
             shared.preparation_button.setChecked(True)
             shared.participants_button.setChecked(True)
             self.app.processEvents()
-            self.assertTrue(shared.summary_panel.isHidden())
+            self.assertIsNone(shared.findChild(QFrame, "GuideSummaryPanel"))
             self.assertTrue(shared.preparation_panel.isVisibleTo(compact))
             self.assertTrue(shared.participants_panel.isVisibleTo(compact))
             shared.preparation_button.setChecked(False)
@@ -547,7 +546,7 @@ class LanyelSharedManualUiTests(unittest.TestCase):
             shared.participant_service = _VerifiedSoloParticipant()
             shared._refresh_participants_panel()
             shared._refresh_header()
-            self.assertTrue(shared.route_progress_label.text().endswith(" %"))
+            self.assertTrue(shared.global_progress_label.text().endswith(" %"))
             self.assertTrue(shared.progress_donut.isHidden())
             self.assertGreaterEqual(shared.global_progress_bar.maximum(), 1)
             self.assertTrue(shared.global_progress_label.text().endswith(" %"))
