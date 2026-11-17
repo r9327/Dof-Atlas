@@ -214,7 +214,7 @@ class DevUiPageTests(unittest.TestCase):
             page.deleteLater()
 
     def test_dialog_variants_share_one_surface_with_custom_content(self) -> None:
-        from PySide6.QtWidgets import QCheckBox, QSpinBox
+        from PySide6.QtWidgets import QCheckBox, QDialog, QSpinBox
         from app.pages.dev_ui_page import DevUiPage
         from app.ui.components import (
             AtlasButton, AtlasDialog, AtlasDialogHeader, fit_unity_number_spinbox,
@@ -254,7 +254,7 @@ class DevUiPageTests(unittest.TestCase):
             self.assertEqual(set(actions), {"Annuler", "Valider"})
             actions["Valider"].click()
             self.assertFalse(form.isVisible())
-            self.assertEqual(form.result(), form.Accepted)
+            self.assertEqual(form.result(), QDialog.Accepted)
             self.assertEqual(form.styleSheet(), "")
         finally:
             page.close()
