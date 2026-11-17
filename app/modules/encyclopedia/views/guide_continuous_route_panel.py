@@ -243,7 +243,7 @@ class ContinuousGuideRoutePanel(QWidget):
         self.travel_button.setToolTip(
             "Déplacement indisponible sans trajet vérifié et participants identifiés"
         )
-        self.validate_button = self._button("✓", "GuideContinuousValidate")
+        self.validate_button = self._button("Valider", "GuideContinuousValidate")
         self.validate_button.setToolTip(
             "Cocher/décocher manuellement cette fiche pour les personnages sélectionnés"
         )
@@ -552,6 +552,17 @@ class ContinuousGuideRoutePanel(QWidget):
             current is not None and bool(position.selected_character_keys)
         )
         self.validate_button.setVisible(current is not None)
+        all_validated = bool(current and position.selected_character_keys) and all(
+            self.navigation.progress.is_manual_step_completed(
+                key, self.navigation.guide_id, current,
+            ) for key in position.selected_character_keys
+        )
+        self.validate_button.setText("Annuler" if all_validated else "Valider")
+        self.validate_button.setToolTip(
+            "Annuler la validation manuelle de cette fiche pour les personnages sélectionnés"
+            if all_validated else
+            "Valider manuellement cette fiche pour les personnages sélectionnés"
+        )
         travel = self._current_verified_travel()
         self.travel_button.setEnabled(travel is not None)
         if current is None:
