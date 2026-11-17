@@ -689,7 +689,7 @@ def sheet_observations(view, expected_card) -> dict:
                 if not text:
                     continue
                 position = sheet._display_position(str(row.get("position") or ""))
-                prefix = "⚠ " if row.get("kind") == "warning" else "• "
+                prefix = "⚠ " if row.get("kind") == "warning" else ""
                 expected.append(sheet._format_line_html(
                     prefix, position, text, sheet._npc_names(text),
                     sheet._resource_names,
