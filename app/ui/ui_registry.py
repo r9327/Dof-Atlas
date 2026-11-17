@@ -31,6 +31,7 @@ UI_FAMILY_QSS_SELECTORS: dict[str, tuple[str, ...]] = {
         "#PageTitle", "#PanelTitle", "QFrame#GuideHeader",
         "QLabel#GuideHeaderTitle", "QLabel#GuideHeaderMeta",
         "QFrame#GuideCompactHeader", "QFrame#GuideGlobalDetailsPanel",
+        "QWidget#GuideGlobalCharacterProgress",
         "QLabel#GuideCompactTitle",
         "QFrame#GuideSheetHeader", "QLabel#GuideSheetMeta",
         "QLabel#GuideSheetTitle", "#GuideManualProgress",

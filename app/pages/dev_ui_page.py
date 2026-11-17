@@ -684,6 +684,7 @@ class DevUiPage(QWidget):
         prep_layout.addLayout(tabs_layout)
 
         prereq_host = QWidget()
+        prereq_host.setObjectName("GuidePreparationContent")
         prereq_layout = QVBoxLayout(prereq_host)
         prereq_layout.setContentsMargins(0, 0, 0, 0)
         prereq_label = QLabel("Prérequis · aperçu fictif, aucune donnée importée")
@@ -694,6 +695,7 @@ class DevUiPage(QWidget):
         self.preview_header_prerequisites_host = prereq_host
 
         materials = QWidget()
+        materials.setObjectName("GuidePreparationContent")
         materials_layout = QVBoxLayout(materials)
         materials_layout.setContentsMargins(0, 0, 0, 0)
         materials_layout.setSpacing(UNITY_SPACING_PX["xs"])

@@ -369,6 +369,18 @@ class DevUiPageTests(unittest.TestCase):
             )
             self.assertEqual(page.preview_header_global_panel.objectName(),
                              "GuideGlobalDetailsPanel")
+            self.assertEqual(
+                page.preview_header_materials_host.objectName(),
+                "GuidePreparationContent",
+            )
+            self.assertEqual(
+                page.preview_header_prerequisites_host.objectName(),
+                "GuidePreparationContent",
+            )
+            from app.ui.theme import atlas_stylesheet
+            compiled_qss = atlas_stylesheet()
+            self.assertIn("QWidget#GuideGlobalCharacterProgress", compiled_qss)
+            self.assertIn("QWidget#GuidePreparationContent", compiled_qss)
             self.assertIsNone(page.preview_compact_header.findChild(
                 QWidget, "GuideSummaryPanel"
             ))
