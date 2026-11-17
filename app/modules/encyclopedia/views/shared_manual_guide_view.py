@@ -1848,13 +1848,9 @@ class SharedGuideManualView(GuideUltimeManualView):
 
         # Single indexed preparation metric, with global progress above it.
         metrics = QGridLayout()
-        self._compact_metric_grid = metrics
-        self._compact_header_stack = right
-        self._compact_header_outer = outer
         metrics.setHorizontalSpacing(0)
         metrics.setVerticalSpacing(2)
         self._metric_caption_labels: dict[str, QLabel] = {}
-        self._metric_dropdown_buttons: dict[str, QToolButton] = {}
         def add_metric(
             name: str, symbol: str, color_key: str, bar: QProgressBar, value: QLabel
         ) -> None:
@@ -1888,7 +1884,6 @@ class SharedGuideManualView(GuideUltimeManualView):
             caption.insertWidget(2, arrow, 0, Qt.AlignVCenter)
             metrics.addWidget(bar, 1, column, Qt.AlignVCenter)
             self.preparation_button = arrow
-            self._metric_dropdown_buttons[name] = arrow
             drawer_column = QVBoxLayout()
             drawer_column.setContentsMargins(0, 0, 0, 0)
             self._metric_columns[name] = drawer_column
@@ -2101,7 +2096,6 @@ class SharedGuideManualView(GuideUltimeManualView):
         # Icon-only participant selector: the count remains accessible through
         # its tooltip and accessibility label without stretching the header.
         self.participants_button.setText("")
-        source_guide = self._is_imported_source_guide()
         self._metric_caption_labels["Préparation"].setText("À préparer")
         self.preparation_button.setToolTip("Ouvrir Prérequis et À préparer")
         self.preparation_button.setAccessibleName("Afficher Prérequis et À préparer")
