@@ -88,6 +88,36 @@ class ModularDomainRoutingTests(unittest.TestCase):
         self.assertEqual(owners_for(unrelated), frozenset())
         self.assertEqual(self.route([unrelated])["status"], "BLOCKED")
 
+    def test_reviewed_entity_link_and_home_network_status_keep_exact_owners(self):
+        entity_owners = frozenset({"quests", "guides", "ui"})
+        for path in (
+            "app/modules/encyclopedia/widgets/achievement_entity_section.py",
+            "tests/test_entity_link_roles.py",
+        ):
+            with self.subTest(path=path):
+                self.assertEqual(owners_for(path), entity_owners)
+        network_path = "tests/test_network_home_status.py"
+        self.assertEqual(
+            owners_for(network_path), frozenset({"startup", "ui", "identity"})
+        )
+        plan = self.route([
+            "app/modules/encyclopedia/widgets/achievement_entity_section.py",
+            "tests/test_entity_link_roles.py",
+            network_path,
+        ])
+        self.assertEqual(plan["unknown_paths"], [])
+        self.assertEqual(
+            set(plan["domains"]),
+            {"quests", "guides", "ui", "startup", "identity"},
+        )
+        # An adjacent unreviewed test cannot inherit these owners.
+        for unreviewed in (
+            "tests/test_network_home_status_unreviewed.py",
+            "tests/test_entity_link_roles_unreviewed.py",
+            "app/modules/encyclopedia/widgets/achievement_entity_section_future.py",
+        ):
+            self.assertEqual(owners_for(unreviewed), frozenset())
+
     def test_shared_guide_row_source_and_direct_test_keep_both_owners(self):
         source = "app/modules/encyclopedia/views/shared_manual_guide_view.py"
         test = "tests/test_shared_manual_guide_view.py"

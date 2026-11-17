@@ -382,6 +382,17 @@ def owners_for(path: str) -> frozenset[str]:
         # The Success catalogue is a Qt view whose detail links and completion
         # interact with Quest and Guide providers; fail closed for siblings.
         return frozenset({"quests", "guides", "ui"})
+    if path in {
+        "app/modules/encyclopedia/widgets/achievement_entity_section.py",
+        "tests/test_entity_link_roles.py",
+    }:
+        # Reviewed semantic entity links: Success/Quest detail and Guides all
+        # reuse the shared Qt-free color roles. Keep both paths explicit.
+        return frozenset({"quests", "guides", "ui"})
+    if path == "tests/test_network_home_status.py":
+        # Home mini-network status is visible startup/UI/character feedback.
+        # This does not certify the native network/capture runtime.
+        return frozenset({"startup", "ui", "identity"})
     if path == "app/modules/encyclopedia/widgets/filter_panel.py":
         # Exact-SHA Graphify confirms the Success filter uses the shared Qt
         # components and is exercised by the Dev UI contract. Keep the same
