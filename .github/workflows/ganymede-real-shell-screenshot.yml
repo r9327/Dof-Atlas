@@ -105,7 +105,11 @@ jobs:
           assert catalog.pages.currentWidget() is shell
           assert shell._listing.source_id == 2205
           assert shell.guide_title_label.text() == "Dofus Cawotte"
-          assert len(shell.findChildren(QProgressBar)) == 3
+          # The shared reader owns only global + preparation progress.
+          assert len(shell.findChildren(QProgressBar)) == 2
+          assert not hasattr(shell, "route_bar")
+          assert not hasattr(shell, "summary_button")
+          assert shell.findChild(QFrame, "GuideSummaryPanel") is None
           assert all(not bar.isEnabled() for bar in shell.findChildren(QProgressBar))
           assert shell.sheet_title_label.text() == "Étape 1"
           assert len(shell.service.cards) == 64
@@ -115,10 +119,6 @@ jobs:
           assert first_card.isVisible() and first_card.height() > 0
           assert shell.page_jump.maximum() == 64
           assert shell.page_jump.text() == "1 / 64"
-          assert shell.summary_button.isEnabled()
-          assert shell.summary_list.count() == 64
-          assert shell.summary_list.item(0).text().startswith("1. Contrôler le parcours")
-          assert "Étape 1" not in shell.summary_list.item(0).text()
           pos = shell.findChildren(QLabel, "GuideManualPositionCopy")
           assert len(pos) == 1
           assert "travel-copy:25,-4" in pos[0].text()
@@ -193,23 +193,40 @@ jobs:
           app.processEvents()
           assert first_end == 3
           assert shell.view_index == 3
-          shell.summary_button.click()
-          app.processEvents()
-          assert shell.summary_panel.isVisibleTo(shell)
-          shell._summary_item_clicked(shell.summary_list.item(39))
+          # X/X now replaces the deleted Sommaire for direct source-ID jumps.
+          shell.page_jump.setValue(40)
           app.processEvents()
           assert shell.view_index == 39 and shell.rendered_card_count == 1
-          assert shell.summary_panel.isVisibleTo(shell)
-          summary = Path("artifacts/screenshots/ganymede-cawotte-summary-step-40-qt.png")
-          assert backdrop.grab().save(str(summary), "PNG")
+          assert shell.page_jump.text() == "40 / 64"
+          jump = Path("artifacts/screenshots/ganymede-cawotte-direct-step-40-qt.png")
+          assert backdrop.grab().save(str(jump), "PNG")
           shell.page_jump.setValue(64)
           app.processEvents()
           assert shell.sheet_title_label.text() == "Étape 64"
           assert shell.validation_layout.count() == 0
           final = Path("artifacts/screenshots/ganymede-cawotte-step-64-qt.png")
           assert backdrop.grab().save(str(final), "PNG")
+          # At a narrower size all controls must stay reachable and page IDs stable.
+          backdrop.resize(900, 600)
+          app.processEvents()
+          shell._refit_review_cards()
+          app.processEvents()
+          assert shell.page_jump.text() == "64 / 64"
+          compact = Path("artifacts/screenshots/ganymede-cawotte-narrow-qt.png")
+          assert backdrop.grab().save(str(compact), "PNG")
           shell.guide_button.click()
           assert catalog.pages.currentWidget() is catalog.home_scroll
+          # Every other indexed guide must reuse the SAME Qt shell without
+          # loading fictional cards or leaving Cawotte state behind.
+          other = next(entry for entry in entries if entry.source_id != 2205)
+          assert catalog.open_ganymede_container(other.source_id)
+          app.processEvents()
+          assert catalog._ganymede_shell is shell
+          assert shell.service.cards == ()
+          assert not shell.page_jump.isEnabled()
+          assert len(shell.findChildren(QProgressBar)) == 2
+          other_shot = Path("artifacts/screenshots/ganymede-shared-empty-container-qt.png")
+          assert backdrop.grab().save(str(other_shot), "PNG")
           backdrop.close()
           PY
       - name: Upload screenshot, including failed test artifacts
