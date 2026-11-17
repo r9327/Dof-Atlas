@@ -384,7 +384,7 @@ un tableau concurrent :
 
 | Élément contrôlé | Propriétaires / implémentations mutualisées | Variantes / usages actuellement référencés |
 | --- | --- | --- |
-| Boutons classiques | 1 `AtlasButton` | 12 rôles dans `BUTTON_OBJECT_NAMES` ; les contrôles spécialisés restent distincts seulement si leur comportement le justifie |
+| Boutons classiques | 1 `AtlasButton` | 13 rôles dans `BUTTON_OBJECT_NAMES` ; les contrôles spécialisés restent distincts seulement si leur comportement le justifie |
 | Menus de sélection | 1 `AtlasComboBox` | Quantités d'options propres à chaque écran |
 | Compteurs numériques | `QSpinBox` Qt + 1 règle `fit_unity_number_spinbox` | Min/max, x/x et suffixes propres à chaque contexte |
 | Dialogues classiques | 1 `AtlasDialog`, 1 `AtlasDialogHeader` | 5 variantes dans la démonstration |
@@ -465,3 +465,14 @@ leurs mécanismes dédiés.
 **Exécution de Qt/Doctor/Graphify/captures Windows au HEAD de ce lot :
 NOT_RUN dans cette session.** Le travail de code est présent en PR,
 pas déclaré certifié ou fusionnable sans validation exacte-SHA.
+
+## Audit des consommateurs — boutons Zaap et sélecteurs Succès (17/11/2026)
+
+- Le dernier bouton de nom de favori Zaap identifié dans `app/storage.py` utilise désormais `AtlasButton` avec **`variant="zaap_favorite"`**, dont le rôle existant `favoriteChipName` est déclaré dans `BUTTON_OBJECT_NAMES`. Le style global `#favoriteChipName` et le conteneur existant `#favoriteChip` restent propriétaires du rendu. Aucune nouvelle classe ni palette n'a été créée. Dev UI montre ce rôle réellement partagé dans sa famille **Boutons** ; l'index QSS et le contrat visuel le répertorient.
+- Les champs de niveau minimum et maximum du panneau `AchievementFilterPanel` consomment désormais les mêmes règles `fit_unity_number_spinbox` que Quêtes, Craft et Guides. Les bornes 0–999, les signaux et les filtres métier n'ont pas changé.
+- Le registre `UI_CONSUMER_INDEX` associe maintenant explicitement `app/storage.py` à Organizer (Zaap) et `app/modules/encyclopedia/widgets/filter_panel.py` à Succès. Ce sont des références à leurs vrais propriétaires, pas de nouveaux modules UI.
+- La matrice de Dev UI utilise un scan **AST des constructeurs Qt** dans les fichiers consommateurs enregistrés pour indiquer le nombre réel de créations directes `QPushButton` et `QComboBox` et leurs emplacements ; les modules incomplets sont signalés, jamais considérés comme sans doublons. Les autres familles restent marquées « Non audité » si aucun contrôle de doublon exhaustif n'existe.
+
+**Bilan de code vérifié sur GitHub :** 1 classe `AtlasButton` et **13 rôles visuels** (le style Zaap existait déjà avant son référencement comme variante), 1 `AtlasComboBox`, 1 helper numérique partagé et 4 fenêtres Craft sur `AtlasDialog`. Cette mesure ne prouve pas l'unification exhaustive des widgets dynamiques de tout le dépôt.
+
+**Restant avant Ready :** lancer les tests Qt réels, contrôler les comportements Zaap/favoris et les filtres Succès, puis les captures Windows exact-SHA et le resize aux quatre tailles. Aucun résultat d'exécution Qt/Windows nouveau n'est revendiqué pour ce lot.
