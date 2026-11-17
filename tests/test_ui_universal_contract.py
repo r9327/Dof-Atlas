@@ -196,6 +196,21 @@ class UiUniversalContractTests(unittest.TestCase):
              if data["adapter"] == "qt"},
         )
 
+    def test_guide_state_markers_share_one_indexed_width(self):
+        from app.ui.unity_palette import UNITY_CONTROL_SIZES_PX
+
+        source = (
+            REPO_ROOT / "app/modules/encyclopedia/views/guides_view.py"
+        ).read_text(encoding="utf-8")
+        self.assertEqual(UNITY_CONTROL_SIZES_PX["guide_tree_state_width"], 18)
+        self.assertEqual(
+            source.count(
+                'marker.setFixedWidth(UNITY_CONTROL_SIZES_PX["guide_tree_state_width"])'
+            ),
+            3,
+        )
+        self.assertNotIn("marker.setFixedWidth(18)", source)
+
     def test_nested_encyclopedia_widget_owners_are_registered(self):
         # These widgets are built behind the page owners and were previously
         # absent from the audit. Tracking paths is not a new component class.
