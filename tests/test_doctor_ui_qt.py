@@ -413,7 +413,7 @@ class DoctorUiQtFaultTests(unittest.TestCase):
         self.assertEqual(broken["reason"], "SOURCE_ACTION_ORDER_CHANGED")
         self.assertEqual(len(broken["source_order_mismatches"]), 1)
 
-    def test_collision_overlay_hidden_scroll_and_wrong_lock_are_detectable(self):
+    def test_collision_overlay_and_hidden_scroll_are_detectable_without_route_lock(self):
         overlay = QPushButton("Occluding overlay", self.view)
         overlay.setGeometry(self.view.next_button.geometry())
         # Map from the nested nav parent into the top-level view.
@@ -428,12 +428,10 @@ class DoctorUiQtFaultTests(unittest.TestCase):
         self.view.content.setMinimumWidth(2000)
         settle()
         self.assertTrue(geometry_observations(self.view, self.view)["horizontal_overflow"])
-        click_target(self.view, self.view.settings_button)
-        settle()
-        self.view.route_lock_check.toggled.disconnect()
-        click_target(self.view, self.view.route_lock_check)
-        self.assertTrue(self.view.route_lock_check.isChecked())
-        self.assertFalse(self.service.manual_checked("character:1", self.view.ROUTE_LOCK_PROGRESS_KEY))
+        # Route's clickable scrubber/lock were deliberately deleted, not hidden.
+        # The validator must not probe UI that no longer exists in any Guide.
+        self.assertFalse(hasattr(self.view, "settings_button"))
+        self.assertFalse(hasattr(self.view, "route_lock_check"))
 
     def test_real_quest_signal_without_final_effect_fails_and_localizes_each_transition(self):
         sheet = self.view.findChild(QFrame, "GuideManualSheet")
