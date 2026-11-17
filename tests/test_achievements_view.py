@@ -161,6 +161,16 @@ class AchievementsThirdColumnTests(unittest.TestCase):
             "Pending achievements must remain reachable on a tall window with no scrollbar",
         )
 
+        # If the user leaves before the next batch, showing the tab must
+        # restore the timer even when the initial 16 items already exist.
+        view._achievement_batch_timer.stop()
+        view.hide()
+        view.show()
+        self.assertTrue(
+            view._achievement_batch_timer.isActive(),
+            "Returning to a tall Success tab must resume pending rows",
+        )
+
     def test_keyboard_item_activation_opens_details_without_extra_load(self):
         view, provider = self.make_view()
         rendered = []
