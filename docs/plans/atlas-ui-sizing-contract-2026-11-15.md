@@ -408,21 +408,24 @@ dynamiques restent des critères obligatoires de #365.
 
 **État du code (remplace le restant Craft annoncé dans les lots précédents) :**
 
-- \`CraftResourceDialog\`, \`ItemSetDialog\`, \`LevelingDialog\` et
-  \`RouteDialog\` héritent désormais **tous d'\`AtlasDialog\`** dans
-  \`app/pages/craft_page.py\`. Ils réutilisent chacun le même
-  \`content_layout\` et \`AtlasDialogHeader\`, sans classe de thème
+- `CraftResourceDialog`, `ItemSetDialog`, `LevelingDialog` et
+  `RouteDialog` héritent désormais **tous d'`AtlasDialog`** dans
+  `app/pages/craft_page.py`. Ils réutilisent chacun le même
+  `content_layout` et `AtlasDialogHeader`, sans classe de thème
   supplémentaire ni QSS local. Les fenêtres conservent leurs callbacks,
   choix, images, scroll et navigation métier ; leurs dimensions de
   démarrage restent les métriques Craft indexées dans
-  \`UNITY_MODULE_GEOMETRY_PX\`. La fenêtre Panoplie vide reste prise
-  en charge (y compris \`item_set=None\`).
-- La fenêtre **Ressources Craft reste non modale** côté \`CraftPage\` :
-  \`show_resources()\` applique \`dialog.setModal(False)\` avant
-  \`show()\`. Les autres dialogues restent modaux dans leurs flux
-  \`exec()\`. La confirmation à Échap propre aux ressources est
-  conservée. Tests ajoutés dans \`tests/test_craft_fixes.py\` et
-  \`tests/test_dev_ui_page.py\` : héritage commun, conteneur unique,
+  `UNITY_MODULE_GEOMETRY_PX`. Pour garder la densité antérieure,
+  les quatre fenêtres utilisent `AtlasDialog(density="compact")`,
+  avec les marges 14×12 et l'écart 8 indexés dans
+  `UNITY_LAYOUT_SIZES_PX` (variante `normal` inchangée).
+  La fenêtre Panoplie vide reste prise en charge (`item_set=None`).
+- La fenêtre **Ressources Craft reste non modale** côté `CraftPage` :
+  `show_resources()` applique `dialog.setModal(False)` avant
+  `show()`. Les autres dialogues restent modaux dans leurs flux
+  `exec()`. La confirmation à Échap propre aux ressources est
+  conservée. Tests ajoutés dans `tests/test_craft_fixes.py` et
+  `tests/test_dev_ui_page.py` : héritage commun, conteneur unique,
   en-têtes réels, panoplie vide et fenêtre ressources non modale.
 - Le **panneau Couverture** de Dev UI recense **18 besoins** (boutons,
   sélections, quantités, fenêtres, cases, saisie, progression, panneaux,
@@ -435,23 +438,23 @@ dynamiques restent des critères obligatoires de #365.
   correspondant**, et l'écart réellement vérifié. Les modules
   agrégateurs et la galerie Dev UI sont exclus du décompte afin
   d'éviter un faux double comptage. Les propriétaires affichés viennent
-  directement de \`UNITY_UI_FAMILY_INDEX\`.
+  directement de `UNITY_UI_FAMILY_INDEX`.
 - Les chiffres sont **des indices statiques, pas un relevé des widgets
   instanciés ni une preuve de migration**. Les doublons non analysés
   affichent « Non audité » plutôt qu'un faux zéro. La famille Dialogues
   relève automatiquement la transition **Craft 4/4 sur AtlasDialog,
   0 classe Craft encore héritée directement de QDialog**.
-  \`UI_MUTUALIZATION_TARGETS\` et
-  \`inspect_ui_mutualization_sources()\` vivent dans l'index
-  \`app/ui/ui_registry.py\`, sans créer une seconde palette ou un
+  `UI_MUTUALIZATION_TARGETS` et
+  `inspect_ui_mutualization_sources()` vivent dans l'index
+  `app/ui/ui_registry.py`, sans créer une seconde palette ou un
   moteur de composants.
 
 ### Suite de l'audit, avant Ready
 
 Vérifier le rendu interactif réel des quatre fenêtres aux quatre
 tailles et sur Windows, en particulier la largeur de Panoplie :
-\`item_set_dialog_size=(390,460)\` et
-\`dialog_min_width=400\` impliquent désormais une largeur minimale
+`item_set_dialog_size=(390,460)` et
+`dialog_min_width=400` impliquent désormais une largeur minimale
 effective de 400 px. Examiner les modules non encore certifiés de
 la matrice et les chemins de création dynamique ; distinguer les
 widgets métier légitimes d'une duplication visuelle avant toute
