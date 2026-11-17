@@ -1505,14 +1505,26 @@ class MemoryBoundAchievementProvider(BaseAchievementProvider):
             if span is None:
                 return None
             start, length = span
+            if start < 0 or length <= 0:
+                return None
             try:
                 with ACHIEVEMENT_COMPACT_CACHE.open("rb") as stream:
+                    stream.seek(0, 2)
+                    total = stream.tell()
+                    if start > total or length > total - start:
+                        return None
                     stream.seek(start)
                     payload = json.loads(stream.read(length))
             except (OSError, ValueError, TypeError, json.JSONDecodeError):
                 return None
             value = payload.get("value") if isinstance(payload, dict) else None
-            if not isinstance(value, dict):
+            if (
+                not isinstance(payload, dict)
+                or payload.get("kind") != "achievement"
+                or not isinstance(value, dict)
+                or type(value.get("id")) is not int
+                or value["id"] != achievement_id
+            ):
                 return None
             return (
                 achievement_id,
@@ -1546,15 +1558,27 @@ class MemoryBoundAchievementProvider(BaseAchievementProvider):
         rows: list[tuple[int, str, tuple[tuple[object, ...], ...]]] = []
         try:
             with ACHIEVEMENT_COMPACT_CACHE.open("rb") as stream:
+                stream.seek(0, 2)
+                total = stream.tell()
                 for achievement_id in self._compact_retained_ids:
                     span = self._compact_external_index.get(int(achievement_id))
                     if span is None:
                         continue
                     start, length = span
+                    # A corrupt sidecar must never turn read(-1) into a
+                    # full-cache allocation or mix another Success's progress.
+                    if start < 0 or length <= 0 or start > total or length > total - start:
+                        continue
                     stream.seek(start)
                     payload = json.loads(stream.read(length))
                     value = payload.get("value") if isinstance(payload, dict) else None
-                    if not isinstance(value, dict):
+                    if (
+                        not isinstance(payload, dict)
+                        or payload.get("kind") != "achievement"
+                        or not isinstance(value, dict)
+                        or type(value.get("id")) is not int
+                        or value["id"] != achievement_id
+                    ):
                         continue
                     rows.append(
                         (
