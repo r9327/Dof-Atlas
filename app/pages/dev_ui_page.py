@@ -2391,7 +2391,13 @@ class DevUiPage(QWidget):
             source_count = f"{len(consumers)} repérés"
             if unreadable:
                 source_count += " (partiel)"
-            if family == "dialogs" and record["craft_shared_dialogs"] is not None:
+            raw_qt = record["raw_qt_constructors"]
+            if raw_qt is not None:
+                gap = (
+                    "Inventaire partiel"
+                    if unreadable else f"{len(raw_qt)} constructeur(s) Qt brut(s)"
+                )
+            elif family == "dialogs" and record["craft_shared_dialogs"] is not None:
                 gap = (
                     f"Craft : {record['craft_shared_dialogs']}/4 unifiés, "
                     f"{record['craft_local_qdialogs']} locaux"
@@ -2414,7 +2420,11 @@ class DevUiPage(QWidget):
                     )
                 elif column == 4:
                     item.setToolTip(
-                        "Aucun zéro n'est supposé pour les doublons non audités"
+                        "Instanciations directes repérées dans les sources : "
+                        + (", ".join(f"{path}:{line}" for path, line in raw_qt)
+                           if raw_qt is not None else
+                           "Seul l'écart explicite est vérifié ; les autres "
+                           "doublons ne sont pas encore audités")
                     )
                 self.preview_mutualization_matrix.setItem(index, column, item)
         self.preview_mutualization_matrix.setToolTip(
