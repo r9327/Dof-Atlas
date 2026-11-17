@@ -342,7 +342,7 @@ class GuideUltimeManualUiNavigationTests(unittest.TestCase):
                 view.page_jump.maximumWidth(),
                 UNITY_CONTROL_SIZES_PX["guide_page_jump_normal_max_width"],
             )
-            self.assertEqual(view._metric_caption_labels["Préparation"].text(), "Préparation")
+            self.assertEqual(view._metric_caption_labels["Préparation"].text(), "À préparer")
         finally:
             view.close()
 
