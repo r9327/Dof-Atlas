@@ -196,6 +196,27 @@ class UiUniversalContractTests(unittest.TestCase):
              if data["adapter"] == "qt"},
         )
 
+    def test_nested_encyclopedia_widget_owners_are_registered(self):
+        # These widgets are built behind the page owners and were previously
+        # absent from the audit. Tracking paths is not a new component class.
+        expected = {
+            "Quêtes": {"app/modules/encyclopedia/widgets/quest_detail_view.py"},
+            "Guides": {
+                "app/modules/encyclopedia/widgets/quest_detail_view.py",
+                "app/modules/encyclopedia/widgets/guide_card.py",
+            },
+            "Succès": {
+                "app/modules/encyclopedia/widgets/filter_panel.py",
+                "app/modules/encyclopedia/widgets/achievement_entity_section.py",
+            },
+        }
+        for module, owners in expected.items():
+            with self.subTest(module=module):
+                actual = set(UI_CONSUMER_INDEX[module]["paths"])
+                self.assertTrue(owners <= actual, owners - actual)
+                for path in owners:
+                    self.assertTrue((REPO_ROOT / path).is_file(), path)
+
     def test_eighteen_needs_reuse_existing_family_index_and_measured_sources(self):
         self.assertEqual(len(UI_MUTUALIZATION_TARGETS), 18)
         audit = inspect_ui_mutualization_sources(REPO_ROOT)
