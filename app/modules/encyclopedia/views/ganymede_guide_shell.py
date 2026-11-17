@@ -85,13 +85,9 @@ class GanymedeGuideShell(SharedGuideManualView):
         # controls or enabled behavior without an authorized source route.
         for widget in (
             self.global_progress_bar,
-            self.route_bar,
             self.preparation_bar,
-            self.summary_button,
             self.preparation_button,
             self.overlay_button,
-            self.settings_button,
-            self.route_lock_check,
             self.page_jump,
             self.participants_button,
             self.prev_button,
@@ -100,18 +96,13 @@ class GanymedeGuideShell(SharedGuideManualView):
             widget.setEnabled(False)
         for progress in (
             self.global_progress_bar,
-            self.route_bar,
             self.preparation_bar,
         ):
             progress.setRange(0, 1)
             progress.setValue(0)
             progress.setAccessibleName("Progression indisponible : aucune route certifiée")
         self.global_progress_label.setText("—")
-        self.route_progress_label.setText("—")
         self.preparation_progress_label.setText("—")
-
-    def _restore_route_lock_state(self) -> None:
-        """An untrusted metadata entry has no persistent Guide preferences."""
 
     def _refresh_participants_panel(self) -> None:
         """No account/character lookup for a metadata-only container."""
@@ -156,9 +147,7 @@ class GanymedeGuideShell(SharedGuideManualView):
         # the review has no completion authority, so show only navigation.
         self.validation_host.hide()
         self.sheet_meta_label.show()
-        # Populate the complete route index once; only a bounded window
-        # of cards is ever created in the scrollable main reader.
-        self.summary_button.setEnabled(True)
+        # Only the current source fiche is mounted in the bounded reader.
         # Review-only metadata contains typed prerequisites/materials. Allow
         # inspecting their own tabs without granting gameplay/progress writes.
         self._preparation_loaded = False
@@ -170,7 +159,6 @@ class GanymedeGuideShell(SharedGuideManualView):
                 tab.setChecked(True)
                 break
         self._preparation_tab_changed("Prérequis")
-        self._populate_summary()
         self._refresh_header()
         self._render_window()
         return True
@@ -236,9 +224,6 @@ class GanymedeGuideShell(SharedGuideManualView):
             self._review_history.clear()
             self._review_end_index = 0
             self._review_viewport_size = (0, 0)
-            self.summary_button.setChecked(False)
-            self.summary_button.setEnabled(False)
-            self.summary_panel.hide()
             self.preparation_button.setChecked(False)
             self.preparation_button.setEnabled(False)
             self.preparation_panel.hide()
@@ -250,7 +235,6 @@ class GanymedeGuideShell(SharedGuideManualView):
                     tab.setChecked(True)
                     break
             self._preparation_tab_changed("À préparer")
-            self.summary_list.clear()
             self.service.cards = ()
             self._clear_cards()
             # The validation host owns the temporary read-only check button,
