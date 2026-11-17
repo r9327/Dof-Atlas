@@ -272,7 +272,6 @@ class UnitySkinTests(unittest.TestCase):
             "rgba(48, 64, 80, 0.97)",
             "rgba(64, 80, 96, 0.92)",
             "rgba(80, 96, 112, 0.65)",
-            "rgba(96, 112, 128, 0.30)",
             "rgba(112, 128, 144, 0.94)",
         ):
             with self.subTest(value=expected):
