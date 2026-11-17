@@ -139,7 +139,8 @@ class SharedGuideSingleRendererContractTests(unittest.TestCase):
         assert "_configure_imported_sheet_layout(" in shared
         assert "self._review_end_index = self.view_index + self.rendered_card_count" in preview
         assert "pair_fills_gap" not in preview
-        assert "for i, row in enumerate(self.rows, 1)" in continuous
+        assert "self.page_jump = QSpinBox()" in continuous
+        assert "self.navigation.step_ids[page - 1]" in continuous
         assert "self.title_label.setText(str(row.get(" in continuous
         assert "self.rendered_card_count = 1" in generated
 
