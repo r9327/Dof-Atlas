@@ -93,6 +93,15 @@ from app.ui.ui_registry import (
 )
 
 
+_DIALOG_PREVIEW_VARIANTS = (
+    ("info", "Information"),
+    ("warning", "Attention"),
+    ("danger", "Erreur"),
+    ("confirmation", "Confirmation"),
+    ("form", "Contenu personnalisé"),
+)
+
+
 class DevUiPage(QWidget):
     """One interactive visual checkpoint for all currently shared UI families."""
 
@@ -2312,6 +2321,29 @@ class DevUiPage(QWidget):
             section, self.preview_secondary_surfaces, "les fenêtres secondaires"
         )
 
+        counts_title = QLabel("Compteurs de mutualisation — types ≠ variantes ≠ usages")
+        counts_title.setObjectName("PanelTitle")
+        section.addWidget(counts_title)
+        craft_dialog_count = sum(
+            path == "app/pages/craft_page.py" and label.endswith("Dialog")
+            for label, path in UI_CONSUMER_INDEX["Popups et dialogues"]["surfaces"]
+        )
+        self.preview_shared_ui_counts = QLabel(
+            f"Boutons classiques : 1 AtlasButton / {len(BUTTON_OBJECT_NAMES)} "
+            "rôles visuels. "
+            "Sélections : 1 AtlasComboBox partagé et 1 règle de largeur "
+            "pour les compteurs QSpinBox. "
+            f"Dialogues standard : 1 AtlasDialog / "
+            f"{len(_DIALOG_PREVIEW_VARIANTS)} variantes de démonstration. "
+            f"Craft : {craft_dialog_count} vrais QDialog à raccorder "
+            "à la présentation commune. "
+            f"Popups et overlays : {len(secondary)} usages existants distincts "
+            "(pas autant de composants)."
+        )
+        self.preview_shared_ui_counts.setObjectName("MutedLabel")
+        self.preview_shared_ui_counts.setWordWrap(True)
+        section.addWidget(self.preview_shared_ui_counts)
+
         contract_label = QLabel(
             "Tous les éléments prévus en uniformisation (cliquer une ligne "
             "pour ouvrir son exemple dans UI Dev)"
@@ -2476,13 +2508,7 @@ class DevUiPage(QWidget):
         section.addLayout(row)
         variants_row = QHBoxLayout()
         self.preview_dialog_variants: dict[str, AtlasButton] = {}
-        for state, caption in (
-            ("info", "Information"),
-            ("warning", "Attention"),
-            ("danger", "Erreur"),
-            ("confirmation", "Confirmation"),
-            ("form", "Contenu personnalisé"),
-        ):
+        for state, caption in _DIALOG_PREVIEW_VARIANTS:
             variant_button = AtlasButton(
                 caption, variant="danger" if state == "danger" else "secondary"
             )
@@ -2696,14 +2722,11 @@ class DevUiPage(QWidget):
         self._open_preview_dialog_variant("info")
 
     def _open_preview_dialog_variant(self, mode: str) -> None:
-        if mode not in {"info", "warning", "danger", "confirmation", "form"}:
+        titles = dict(_DIALOG_PREVIEW_VARIANTS)
+        if mode not in titles:
             raise ValueError(mode)
         dialog = AtlasDialog(self)
         dialog.setWindowTitle("Prévisualisation du dialogue Unity")
-        titles = {
-            "info": "Information", "warning": "Attention", "danger": "Erreur",
-            "confirmation": "Confirmation", "form": "Contenu personnalisé",
-        }
         dialog.content_layout.addWidget(
             AtlasDialogHeader(
                 f"Dialogue commun · {titles[mode]}",
