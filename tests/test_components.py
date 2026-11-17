@@ -125,7 +125,8 @@ class SharedUiComponentsTests(unittest.TestCase):
 
             for variant in (
                 "primary", "danger", "selected", "navigation", "navigation_active",
-                "guide_breadcrumb", "guide_quest_link", "guide_achievement_link",
+                "guide_breadcrumb", "guide_quest_link", "zaap_favorite",
+                "guide_achievement_link",
             ):
                 button.set_variant(variant)
                 self.assertEqual(button.objectName(), BUTTON_OBJECT_NAMES[variant])
