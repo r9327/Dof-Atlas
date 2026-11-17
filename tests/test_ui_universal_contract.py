@@ -219,6 +219,27 @@ class UiUniversalContractTests(unittest.TestCase):
              if data["adapter"] == "qt"},
         )
 
+    def test_live_guide_and_dev_ui_share_character_and_page_selector_roles(self):
+        # Both screens must consume the same component and style selector;
+        # a screenshot-only or module-local patch would regress the other.
+        paths = (
+            REPO_ROOT / "app/pages/dev_ui_page.py",
+            REPO_ROOT / "app/modules/encyclopedia/views/shared_manual_guide_view.py",
+        )
+        for path in paths:
+            with self.subTest(path=path.name):
+                source = path.read_text(encoding="utf-8")
+                self.assertIn("AtlasGuideParticipantButton()", source)
+                self.assertIn('setObjectName("GuideCompactPageJump")', source)
+                self.assertIn("fit_unity_number_spinbox(", source)
+        theme = (REPO_ROOT / "app/ui/theme.py").read_text(encoding="utf-8")
+        self.assertIn(
+            "QToolButton#GuideParticipantsButton:focus,", theme,
+        )
+        self.assertIn(
+            "QSpinBox#GuideCompactPageJump QLineEdit {", theme,
+        )
+
     def test_guide_state_markers_share_one_indexed_width(self):
         from app.ui.unity_palette import UNITY_CONTROL_SIZES_PX
 
