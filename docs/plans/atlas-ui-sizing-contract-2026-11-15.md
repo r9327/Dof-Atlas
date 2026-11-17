@@ -280,3 +280,82 @@ communs manquants et contrôler la propagation / resize par captures
 Windows exact-SHA. Les notifications flottantes et animations restent
 des prototypes sans usage production certifié ; ne pas inventer de
 nouveau service ou effet pour cocher artificiellement une case.
+
+## Dialogues et popups — mutualisation sans usine à widgets (17/11/2026)
+
+**Décision produit (PR #365) :** ne pas confondre *12 scénarios de
+capture* avec 12 implémentations souhaitées. Dev UI est la **référence
+de styles, composants et variantes** ; les fenêtres métier sont leurs
+consommateurs. `tests/capture_app_popups_ui.py` vérifie des
+présentations existantes, **ne définit pas** l'architecture.
+
+### Composition commune existante (aucune nouvelle classe)
+
+- `AtlasDialog` dans `app/ui/components.py` est le conteneur des
+  **dialogues classiques** ; il fournit l'objet de thème, les marges
+  et espacements partagés et la largeur minimale indexée. Son en-tête
+  est `AtlasDialogHeader`, les boutons sont `AtlasButton`.
+  Le contenu, les textes, les boutons disponibles, la modalité et
+  les actions métier appartiennent **au consommateur**. Le
+  dimensionnement doit suivre le contenu et les limites de fenêtre,
+  sans taille fixe globale appliquée à toutes les fenêtres.
+- La galerie Dev UI montre **cinq variantes interactives d'un
+  même `AtlasDialog`** : information, attention, erreur,
+  confirmation (Annuler/Valider) et formulaire (case/quantité
+  dimensionnée par `fit_unity_number_spinbox`). Ces exemples
+  sont sans sauvegarde ni action métier : une démo n'est pas
+  un deuxième moteur de dialogue.
+- Les **menus et suggestions** restent des widgets Qt légers
+  (`QMenu`, `AtlasComboBox`, liste de suggestions Zaap), mais
+  consomment la palette et les états partagés.
+- Les **surfaces spécifiques** (zoom d'image non modal,
+  radial Organizer, splash, préchargement avec handoff) conservent
+  la géométrie et les interactions nécessaires. Elles réutilisent
+  les tokens/states compatibles ; ne pas leur imposer
+  `AtlasDialog` ou le resize d'une fenêtre de confirmation.
+
+L'inventaire secondaire **déduplique** désormais le préchargement
+listé initialement dans les dialogues et les overlays. Les 12
+scénarios popup + 4 références d'overlay représentent **15 surfaces
+distinctes** dans Dev UI, **pas 15 composants à construire**.
+Les tests de capture gardent leurs scénarios sans suppression
+de fonctionnalité.
+
+### Audit ciblé du restant — code inspecté au HEAD de ce lot
+
+| Source | État observé | Traitement |
+| --- | --- | --- |
+| `main.py:CloseActionDialog` | Hérite déjà de `AtlasDialog` | Préserver, contrôler les actions fermeture/réduction |
+| `app/pages/craft_page.py:CraftResourceDialog` | `QDialog` avec header, marges, actions propres | Candidat prioritaire à raccordement, sans toucher aux quantités ni cases |
+| `app/pages/craft_page.py:ItemSetDialog` | `QDialog` et contenu/liste de panoplie propre | Raccorder seulement la présentation commune, préserver l'ajout des objets |
+| `app/pages/craft_page.py:LevelingDialog` | `QDialog`, header et footer locaux | Réutiliser la composition commune après vérification de la popup et du clic métier |
+| `app/pages/craft_page.py:RouteDialog` | `QDialog` avec zoom/navigation spécifique | Garder la logique et la zone image, uniformiser seulement le contour/header/actions compatibles |
+| `app/ui/preload_popup.py:PreloadProgressPopup` | `QDialog` sans cadre, cycle de démarrage/handoff | Exception légitime ; ne pas imposer `AtlasDialog` classique |
+| `app/modules/encyclopedia/views/guides_view.py:SolutionImageLabel` | `QDialog(Qt.Popup)` pour le zoom | Exception non modale adaptée aux images |
+| `app/storage.py:ZaapWidget` | Liste de suggestions ancrée et dimensionnée à l'écran | Exception popup légère, pas un dialogue modal |
+| `app/pages/organizer/radial_overlay.py` | Overlay `QWidget` radial spécialisé | Ne pas modifier les gestes ni le diamètre métier |
+
+**Non prouvé à ce stade :** qu'aucun autre `QDialog`, composant
+local ou panneau dynamique ne reste hors de ce sous-ensemble inspecté.
+Un inventaire de code et des consommateurs sur la totalité du dépôt,
+puis les captures Qt comparées au HEAD final et les tests Windows,
+restent nécessaires. Une conversion de conteneurs métiers constitue
+un refactor structurel : obtenir d'abord Graphify exact-SHA et les
+contrats Doctor, conserver les callbacks, l'accessibilité, Échap,
+le focus, la persistance et le rendu aux 4 tailles de référence.
+
+### Critères de sortie supplémentaires
+
+1. Chaque dialogue classique testé utilise **les mêmes tokens de
+   matériaux, typographie, boutons, marges et en-tête**, ou une
+   exception documentée justifiée par un comportement spécifique.
+2. Le contenu métier est distinct de la structure commune ; aucune
+   deuxième palette, feuille QSS complète ou copie d'`AtlasDialog`
+   ne doit être créée pour une seule utilisation.
+3. Les listes/suggestions et overlays ne sont **pas** remplacés
+   par des fenêtres lourdes ; préserver leur focus, ancrage, fermeture,
+   interactions clavier, zoom et comportement non modal.
+4. Test ciblé des cinq variantes Dev UI et des vrais cas métier ;
+   comparaison de captures, absence de scroll horizontal, et
+   tailles réelles à 900×600, 1180×720, 1440×900, 1920×1080.
+   Ne pas revendiquer `PASS` sans exécution au HEAD exact.
