@@ -112,6 +112,9 @@ class AchievementsThirdColumnTests(unittest.TestCase):
         provider.catalogue_row_by_id.side_effect = (
             lambda achievement_id: (achievement_id, f"Succès {achievement_id}", None, 0)
         )
+        # defer_runtime adds a loading placeholder; hydrated catalogues
+        # replace it before rendering their first real row.
+        view.list_widget.clear()
         view._achievement_completed_ids = frozenset()
         view._achievement_pending_rows = list(range(1, 41))
         view._achievement_rows_dirty = True
