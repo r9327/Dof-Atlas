@@ -184,6 +184,22 @@ class AtlasWindowRuntimeCleanupTests(unittest.TestCase):
         finally:
             bridge.deleteLater()
 
+    def test_failed_network_stop_cannot_spawn_second_coordinator(self) -> None:
+        QApplication.instance() or QApplication([])
+        first = network_bridge_module.network_ui_bridge()
+        try:
+            with patch.object(first.coordinator, "stop", return_value=False) as stop:
+                self.assertFalse(first.stop())
+                with patch.object(network_bridge_module, "NetworkUiBridge") as factory:
+                    # A possibly live capture worker must not be duplicated.
+                    self.assertIs(network_bridge_module.network_ui_bridge(), first)
+                    factory.assert_not_called()
+                stop.assert_called_once_with()
+            self.assertEqual(first.last_status.reason, "stop_failed")
+        finally:
+            # The fake failure does not execute real coordinator cleanup.
+            first.coordinator.stop()
+
     def test_stopped_network_bridge_is_recreated(self) -> None:
         QApplication.instance() or QApplication([])
         first = network_bridge_module.network_ui_bridge()
