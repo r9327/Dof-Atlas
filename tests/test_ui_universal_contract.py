@@ -1,6 +1,6 @@
 """Regression gate: Dev UI is the single contract for all Atlas modules.
 
-Checks actual compiled Qt QSS, all indexed families and 12 module owners.
+Checks actual compiled Qt QSS, indexed families and all screen/UI owners.
 Only validated widget states are treated as shared; prototypes are excluded.
 """
 from __future__ import annotations
@@ -130,7 +130,7 @@ class UiUniversalContractTests(unittest.TestCase):
     def test_every_gallery_family_and_consumer_is_registered(self):
         validate_ui_index()
         self.assertGreaterEqual(len(UI_FAMILY_QSS_SELECTORS), 23)
-        self.assertEqual(len(UI_CONSUMER_INDEX), 12)
+        self.assertEqual(len(UI_CONSUMER_INDEX), 18)
         self.assertEqual(tuple(UI_FAMILY_QSS_SELECTORS), tuple(UNITY_UI_FAMILY_INDEX))
         self.assertEqual(tuple(UI_CONSUMER_INDEX), UNITY_UI_CONSUMERS)
         for module, entry in UI_CONSUMER_INDEX.items():
@@ -139,6 +139,32 @@ class UiUniversalContractTests(unittest.TestCase):
                     self.assertTrue((REPO_ROOT / path).is_file(), path)
         self.assertEqual(UI_CONSUMER_INDEX["Launcher"]["adapter"], "tk")
         self.assertEqual(UI_CONSUMER_INDEX["Organizer"]["adapter"], "qt_scoped")
+        from tests.capture_app_shell_ui import SCENARIOS
+        expected = {
+            "Home": "Accueil", "Organizer": "Organizer",
+            "Settings": "Paramètres", "Dev UI": "Dev UI",
+            "Almanax": "Almanax", "Craft": "Craft",
+            "Equipement": "Stuffs", "Scan Monde": "Carte du monde",
+            "Personnage": "Personnage", "Quetes": "Quêtes",
+            "Guides": "Guides", "Succes": "Succès",
+            "Bestiaire": "Bestiaire",
+        }
+        self.assertEqual({name for name, *_rest in SCENARIOS}, set(expected))
+        self.assertTrue(set(expected.values()) <= set(UI_CONSUMER_INDEX))
+        self.assertIn("main.py", UI_CONSUMER_INDEX["Almanax"]["paths"])
+        self.assertIn("main.py", UI_CONSUMER_INDEX["Paramètres"]["paths"])
+
+        popups = UI_CONSUMER_INDEX["Popups et dialogues"]["surfaces"]
+        overlays = UI_CONSUMER_INDEX["Overlays et démarrage"]["surfaces"]
+        self.assertEqual(len(popups), 12)
+        self.assertEqual(len(overlays), 4)
+        screenshot_source = (REPO_ROOT / "tests/capture_app_popups_ui.py").read_text(
+            encoding="utf-8"
+        )
+        for label, _path in popups:
+            with self.subTest(popup=label):
+                self.assertIn(f'"{label}"', screenshot_source)
+
         self.assertEqual(
             set(UI_CONSUMER_INDEX) -
             {"Launcher", "Organizer"},
@@ -273,14 +299,34 @@ class UiUniversalContractTests(unittest.TestCase):
                 continue
             for filename in entry["paths"]:
                 with self.subTest(module=module, filename=filename):
-                    tree = ast.parse((REPO_ROOT / filename).read_text(encoding="utf-8"))
+                    source = (REPO_ROOT / filename).read_text(encoding="utf-8")
+                    tree = ast.parse(source)
                     local_styles = [
                         node for node in ast.walk(tree)
                         if isinstance(node, ast.Call)
                         and isinstance(node.func, ast.Attribute)
                         and node.func.attr == "setStyleSheet"
                     ]
-                    self.assertFalse(local_styles, f"{filename}: local QSS bypasses UI Dev")
+                    if filename == "main.py":
+                        # The shell owns the *application-wide* QSS, not a
+                        # local skin. Splash transparency is an explicit
+                        # one-off because that native window has no background.
+                        permitted = {
+                            'app.setStyleSheet(style)',
+                            'self.setStyleSheet(style)',
+                            'app.setStyleSheet(atlas_stylesheet())',
+                            'splash.setStyleSheet("background: transparent;")',
+                        }
+                        expressions = {
+                            ast.get_source_segment(source, call)
+                            for call in local_styles
+                        }
+                        self.assertTrue(expressions <= permitted, expressions)
+                        self.assertEqual(expressions, permitted)
+                    else:
+                        self.assertFalse(
+                            local_styles, f"{filename}: local QSS bypasses UI Dev"
+                        )
         self.assertNotIn("background: @GLASS_GREEN;", ORGANIZER_STYLE_TEMPLATE)
         self.assertNotIn("background: @ACTIVE_GRADIENT;", ORGANIZER_STYLE_TEMPLATE)
         self.assertNotIn("background: @RED_DARK;", ORGANIZER_STYLE_TEMPLATE)
