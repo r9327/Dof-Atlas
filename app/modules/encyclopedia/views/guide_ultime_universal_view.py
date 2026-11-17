@@ -22,7 +22,7 @@ from app.modules.encyclopedia.views.guide_ultime_walkthrough_card import (
     ObjectiveWalkthrough,
     QuestWalkthroughIndex,
 )
-from app.ui.components import AtlasBreadcrumb, AtlasButton, AtlasComboBox
+from app.ui.components import AtlasBreadcrumb, AtlasButton, AtlasComboBox, AtlasPageNavigator
 
 
 SENTINEL_COORD = -2147483648
@@ -452,24 +452,23 @@ class GuideUltimeUniversalView(GuideUltimeGeneratedView):
         nav.setObjectName("GuideRouteNav")
         nav_layout = QHBoxLayout(nav)
         nav_layout.setContentsMargins(8, 6, 8, 6)
-        self.prev_button = AtlasButton("← Précédent")
-        self.prev_button.clicked.connect(lambda: self.navigate_relative(-1))
-        nav_layout.addWidget(self.prev_button)
+        self.page_navigator = AtlasPageNavigator()
+        self.prev_button = self.page_navigator.previous_button
+        self.next_button = self.page_navigator.next_button
+        self.position_label = self.page_navigator.page_label
+        self.page_navigator.pageRequested.connect(
+            lambda page: self.navigate_relative(page - self.view_index - 1)
+        )
+        nav_layout.addWidget(self.page_navigator)
         nav_layout.addStretch(1)
         self.current_button = AtlasButton("Revenir à la fiche actuelle")
         self.current_button.setObjectName("GuideRouteCurrent")
         self.current_button.clicked.connect(self.go_active)
         nav_layout.addWidget(self.current_button)
-        nav_layout.addStretch(1)
-        self.next_button = AtlasButton("Suivant →")
-        self.next_button.clicked.connect(lambda: self.navigate_relative(1))
-        nav_layout.addWidget(self.next_button)
         root.addWidget(nav)
 
         self.progress_details = QLabel()
         self.progress_details.setVisible(False)
-        self.position_label = QLabel()
-        self.position_label.setVisible(False)
 
     def _return_to_guides_catalog(self) -> None:
         self.backToGuidesRequested.emit()
@@ -585,6 +584,7 @@ class GuideUltimeUniversalView(GuideUltimeGeneratedView):
     def _render_window(self) -> None:
         self._clear_cards()
         if not self.service.cards:
+            self.page_navigator.set_page(0, 0)
             return
         index = max(0, min(self.view_index, len(self.service.cards) - 1))
         card = self.service.cards[index]
@@ -604,8 +604,7 @@ class GuideUltimeUniversalView(GuideUltimeGeneratedView):
         self.cards_layout.addWidget(widget)
         self.cards_layout.addStretch(1)
         self.rendered_card_count = 1
-        self.prev_button.setEnabled(index > 0)
-        self.next_button.setEnabled(index < len(self.service.cards) - 1)
+        self.page_navigator.set_page(index + 1, len(self.service.cards))
         self.current_button.setVisible(index != self.active_index)
         self._make_positions_copyable(widget)
 
