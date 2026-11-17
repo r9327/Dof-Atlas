@@ -8,6 +8,8 @@ os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
 
 from PySide6.QtWidgets import QApplication, QLabel
 
+from app.quest_catalog import QuestObjective, QuestRecord, QuestStep
+
 from app.modules.encyclopedia.widgets.quest_detail_view import QuestDetailView
 from app.ui.components import AtlasPanelToggle
 from app.ui.theme import THEME_TOKENS, atlas_stylesheet
@@ -45,6 +47,35 @@ class QuestDetailViewColumnTests(unittest.TestCase):
                 prerequisite.deleteLater()
         finally:
             sheet.deleteLater()
+
+    def test_start_coordinate_is_not_falsely_certified_from_an_objective(self) -> None:
+        quest = QuestRecord(
+            id=42, name="Quête de test", category="Quêtes",
+            level_min=1, level_max=1, start_criterion="",
+            zones=["Zone locale"],
+            steps=[QuestStep(
+                id=1, name="Objectif", description="",
+                objectives=[QuestObjective(
+                    id=101, text="Rejoindre la zone", type_id=0,
+                    map_label="[11,12]",
+                )],
+            )],
+        )
+        # Quest objective coordinates are valid objective hints, but not
+        # independent evidence of where to launch the quest.
+        self.assertEqual(
+            QuestDetailView._start_position_heading(quest, "[11,12]"),
+            "Position d'objectif (départ non confirmé)",
+        )
+        quest.source_info = {"launch_position": {"position": "[3,4]"}}
+        self.assertEqual(
+            QuestDetailView._start_position_heading(quest, "[3,4]"),
+            "Position de lancement (source locale)",
+        )
+        self.assertEqual(
+            QuestDetailView._start_position_heading(quest, ""),
+            "Zone de quête",
+        )
 
     def test_right_column_round_trip_preserves_quest_and_scroll(self) -> None:
         # clear() is sufficient for layout tests; no game catalogue is fetched.
