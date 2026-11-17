@@ -290,9 +290,10 @@ class UiSession:
 
         self.step += 1
         # The consolidated 5-scenario run includes four extra real PR254
-        # catalog captures. Its previous 120-action limit cut off four final
-        # assertions after 114 successful checks. Preserve a strict 128 cap.
-        if self.step > 128:
+        # catalog captures plus nine mandatory preparation checks across three
+        # real Guide scenarios. Keep a strict 144-action ceiling, never an
+        # unbounded capture or repeated GUI traversal.
+        if self.step > 144:
             raise RuntimeError("Doctor UI action budget exceeded")
         prefix = f"{self.step:03d}-{self.scenario}"
         tree = widget_tree(root)
