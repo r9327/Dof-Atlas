@@ -320,26 +320,22 @@ class ImportedSourceRouterQtTests(unittest.TestCase):
         # Every certified Ganymède source inherits the shared header, not
         # a per-guide copy of buttons or a second stylesheet.
         self.assertEqual(reader.global_progress_bar.objectName(), "GuideGlobalProgress")
-        self.assertEqual(reader.summary_button.objectName(), "GuideMetricDropdown")
         self.assertEqual(reader.preparation_button.objectName(), "GuideMetricDropdown")
         self.assertEqual(reader.participants_button.objectName(), "GuideParticipantsButton")
-        self.assertEqual(reader.summary_button.size(), reader.preparation_button.size())
-        self.assertEqual(reader.summary_button.width(), 18)
-        self.assertGreaterEqual(reader.participants_button.width(), reader.summary_button.width())
-        # Personnages sits beside Settings and its drawer opens above progress.
+        self.assertEqual(reader.preparation_button.width(), 18)
+        self.assertGreaterEqual(reader.participants_button.width(), reader.preparation_button.width())
+        # Personnages stays on the title row; its drawer opens above progress.
         self.assertIs(
             reader._compact_title_row.itemAt(
-                reader._compact_title_row.count() - 2
+                reader._compact_title_row.count() - 1
             ).widget(), reader.participants_button,
         )
         self.assertIs(reader._header_content_layout.itemAt(1).widget(),
                       reader.participants_panel)
-        grid = reader._metric_columns["Route"].parent()
+        grid = reader._metric_columns["Préparation"].parent()
         self.assertIsInstance(grid, QGridLayout)
-        self.assertEqual(grid.columnCount(), 2)
+        self.assertEqual(grid.columnCount(), 1)
         self.assertIs(grid.itemAtPosition(0, 0).layout().itemAt(2).widget(),
-                      reader.summary_button)
-        self.assertIs(grid.itemAtPosition(0, 1).layout().itemAt(2).widget(),
                       reader.preparation_button)
         self.assertFalse(hasattr(reader, "header_actions_row"))
         self.assertEqual(self.view.current_guide_id, self.service.guide_id)
@@ -846,11 +842,11 @@ class ImportedSourceRouterQtTests(unittest.TestCase):
         reader._show_index(0)
         # The header intentionally describes the selected participant team,
         # not the character merely browsing the guide.
-        self.assertEqual(reader.route_progress_label.text(), "50 %")
+        self.assertEqual(reader.global_progress_label.text(), "50 %")
         self.view.guide_participant_service.save_selected_keys(("character:2",))
         reader.refresh(reset_to_active=True)
         reader._show_index(0)
-        self.assertEqual(reader.route_progress_label.text(), "0 %")
+        self.assertEqual(reader.global_progress_label.text(), "0 %")
         self.assertFalse(self.service.page_checked("character:2", self.service.cards[0]))
 
     def test_authorized_source_uses_atomic_shared_team_progress_and_undo(self):
@@ -1012,7 +1008,7 @@ class ImportedSourceRouterQtTests(unittest.TestCase):
         self.assertEqual(len(rows), 1)
         self.assertEqual(rows[0]["item_id"], 44)
         self.assertEqual(rows[0]["quantity"], 8)
-        self.assertFalse(reader.summary_button.isVisibleTo(reader))
+        self.assertFalse(hasattr(reader, "summary_button"))
 
         buttons = reader.preparation_panel.findChildren(
             QPushButton, "GuidePreparationItemCopy"
