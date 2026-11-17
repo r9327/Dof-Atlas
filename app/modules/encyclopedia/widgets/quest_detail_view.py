@@ -326,12 +326,16 @@ class QuestDetailView(QWidget):
         launch = info.get("launch_position")
         meta = info.get("source_meta")
         declared = (
-            (isinstance(launch, dict) and str(launch.get("position") or "").strip())
-            or (isinstance(meta, dict) and str(meta.get("startCoords") or "").strip())
+            str(launch.get("position") or "").strip() if isinstance(launch, dict) else ""
+        ) or (
+            str(meta.get("startCoords") or "").strip() if isinstance(meta, dict) else ""
         )
+        # A populated source field only proves the coordinate it actually
+        # contains, not any different objective coordinate on the same quest.
+        is_source_start = bool(declared and declared.replace(" ", "") == position.strip().replace(" ", ""))
         return (
             "Position de lancement (source locale)"
-            if declared else "Position d'objectif (départ non confirmé)"
+            if is_source_start else "Position d'objectif (départ non confirmé)"
         )
 
     def _render_solution(self, quest: QuestRecord, step: Any) -> None:
