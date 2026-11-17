@@ -317,6 +317,23 @@ class QuestDetailView(QWidget):
         self.done_button.style().unpolish(self.done_button)
         self.done_button.style().polish(self.done_button)
 
+    @staticmethod
+    def _start_position_heading(quest: QuestRecord, position: str) -> str:
+        """Do not mislabel an objective coordinate as a proven quest start."""
+        if not position:
+            return "Zone de quête"
+        info = quest.source_info if isinstance(quest.source_info, dict) else {}
+        launch = info.get("launch_position")
+        meta = info.get("source_meta")
+        declared = (
+            (isinstance(launch, dict) and str(launch.get("position") or "").strip())
+            or (isinstance(meta, dict) and str(meta.get("startCoords") or "").strip())
+        )
+        return (
+            "Position de lancement (source locale)"
+            if declared else "Position d'objectif (départ non confirmé)"
+        )
+
     def _render_solution(self, quest: QuestRecord, step: Any) -> None:
         ui = _guide_ui()
         ui.clear_layout(self.center_layout)
@@ -335,7 +352,7 @@ class QuestDetailView(QWidget):
         if launch_parts:
             self.center_layout.addWidget(
                 ui.text_label(
-                    f"Position de lancement : {' '.join(launch_parts)}",
+                    f"{self._start_position_heading(quest, start.position)} : {' '.join(launch_parts)}",
                     "QuestLaunchPosition",
                 )
             )
