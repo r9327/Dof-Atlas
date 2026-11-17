@@ -410,9 +410,14 @@ class AchievementsView(QWidget):
             return
         self.selected_category_id = int(value)
         if self.search.text():
+            # A category change is an explicit navigation, not a keystroke:
+            # refresh its catalogue now so direct success links never inspect
+            # stale search results while the debounce timer is still pending.
             self.search.clear()
-        else:
-            self.refresh()
+            timer = getattr(self, "_search_debounce_timer", None)
+            if timer is not None:
+                timer.stop()
+        self.refresh()
 
     def select_achievement(self, achievement_id: int) -> bool:
         achievement = self.provider.get_by_id(int(achievement_id))
