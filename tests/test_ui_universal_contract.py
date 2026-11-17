@@ -118,6 +118,15 @@ class UiUniversalContractTests(unittest.TestCase):
         self.assertNotIn("AdjustToMinimumContentsLengthWithIcon", achievements)
         self.assertIn("combo.setSizePolicy(QSizePolicy.Maximum, QSizePolicy.Fixed)", achievements)
 
+        quests = (
+            REPO_ROOT / "app/pages/_quests_page_impl.py"
+        ).read_text(encoding="utf-8")
+        self.assertIn("fit_unity_number_spinbox(quantity)", quests)
+        self.assertNotIn(
+            'quantity.setFixedWidth(QUEST_GEOMETRY["item_quantity_width"])',
+            quests,
+        )
+
     def test_every_gallery_family_and_consumer_is_registered(self):
         validate_ui_index()
         self.assertGreaterEqual(len(UI_FAMILY_QSS_SELECTORS), 23)
