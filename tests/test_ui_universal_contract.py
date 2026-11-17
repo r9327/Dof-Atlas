@@ -237,7 +237,10 @@ class UiUniversalContractTests(unittest.TestCase):
             "QToolButton#GuideParticipantsButton:focus,", theme,
         )
         self.assertIn(
-            "QSpinBox#GuideCompactPageJump QLineEdit {", theme,
+            "QSpinBox#GuideCompactPageJump QLineEdit,", theme,
+        )
+        self.assertIn(
+            "QSpinBox#GuideCompactPageJump {\n    padding-left: @SPACE_LG;", theme,
         )
 
     def test_guide_state_markers_share_one_indexed_width(self):
