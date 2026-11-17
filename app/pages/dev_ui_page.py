@@ -14,6 +14,7 @@ from PySide6.QtGui import QBrush, QColor, QIcon, QLinearGradient, QPainter, QPix
 from PySide6.QtWidgets import (
     QAbstractItemView,
     QApplication,
+    QButtonGroup,
     QCheckBox,
     QCalendarWidget,
     QDateEdit,
@@ -484,9 +485,6 @@ class DevUiPage(QWidget):
         from app.modules.encyclopedia.views.shared_manual_guide_view import (
             _ParticipantPortraitButton, _guide_symbol_icon,
         )
-        from app.modules.encyclopedia.views.guide_ultime_manual_view import (
-            GuideManualProgressBar,
-        )
 
         section = self._section(parent, "headers")
         note = QLabel(
@@ -563,27 +561,31 @@ class DevUiPage(QWidget):
         self.preview_header_overlay.setEnabled(False)
         heading.addWidget(self.preview_header_overlay)
 
-        self.preview_header_settings = QToolButton()
-        self.preview_header_settings.setObjectName("GuideCompactSettingsButton")
-        self.preview_header_settings.setIcon(
-            _guide_symbol_icon(self.preview_header_settings, "settings")
-        )
-        self.preview_header_settings.setToolTip("Paramètres du Guide")
-        self.preview_header_settings.setAccessibleName("Paramètres du Guide")
-        self.preview_header_settings.setCheckable(True)
-        heading.addWidget(self.preview_header_settings)
         right.addLayout(heading)
         self.preview_header_title_row = heading
         self.preview_header_content_layout = right
+
+        # Same hierarchy as the Ganymede reader in #363:
+        # Global progress > per-character progress + independent Preparation.
         overall_caption = QHBoxLayout()
-        overall_title = QLabel("Progression globale")
-        overall_title.setObjectName("GuideGlobalProgressTitle")
-        overall_caption.addWidget(overall_title)
+        title = QLabel("Progression globale")
+        title.setObjectName("GuideGlobalProgressTitle")
+        overall_caption.addWidget(title)
+        global_toggle = AtlasGuideDisclosure()
+        global_toggle.setFixedSize(
+            UNITY_CONTROL_SIZES_PX["progress_toggle_width"],
+            UNITY_CONTROL_SIZES_PX["progress_toggle_height"],
+        )
+        global_toggle.setToolTip("Afficher la progression et les préparatifs")
+        global_toggle.setAccessibleName("Déplier la progression globale")
+        overall_caption.addWidget(global_toggle, 0, Qt.AlignVCenter)
         overall_caption.addStretch(1)
-        overall_value = QLabel("35 %")
-        overall_value.setObjectName("GuideCompactMetricValue")
-        overall_caption.addWidget(overall_value)
-        right.addLayout(overall_caption)
+        value = QLabel("35 %")
+        value.setObjectName("GuideCompactMetricValue")
+        overall_caption.addWidget(value)
+        metric = QVBoxLayout()
+        metric.setSpacing(UNITY_LAYOUT_SIZES_PX["guide_metric_row_spacing"])
+        metric.addLayout(overall_caption)
         self.preview_header_global_progress = QProgressBar()
         self.preview_header_global_progress.setObjectName("GuideGlobalProgress")
         self.preview_header_global_progress.setRange(0, 100)
@@ -592,86 +594,206 @@ class DevUiPage(QWidget):
         self.preview_header_global_progress.setFixedHeight(
             UNITY_CONTROL_SIZES_PX["progress_primary"]
         )
-        self.preview_header_global_progress.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
-        right.addWidget(self.preview_header_global_progress)
+        self.preview_header_global_progress.setSizePolicy(
+            QSizePolicy.Expanding, QSizePolicy.Fixed
+        )
+        metric.addWidget(self.preview_header_global_progress)
+        right.addLayout(metric)
 
-        self.preview_header_metrics: dict[str, QProgressBar] = {}
-        self.preview_header_metric_icons: dict[str, QLabel] = {}
-        self.preview_header_controls: dict[str, QToolButton] = {}
-        metrics = QGridLayout()
-        metrics.setContentsMargins(0, 0, 0, 0)
-        metrics.setHorizontalSpacing(UNITY_LAYOUT_SIZES_PX["guide_metric_column_spacing"])
-        metrics.setVerticalSpacing(UNITY_LAYOUT_SIZES_PX["guide_metric_row_spacing"])
-        self.preview_header_metric_columns: dict[str, QVBoxLayout] = {}
-        for name, role, amount, icon_symbol, color_role in (
-            ("Route", "GuideManualProgress", 35, "target", "RED"),
-            ("Préparation", "GuideCompactPreparationProgress", 60, "cube", "GREEN"),
+        self.preview_header_controls: dict[str, QToolButton] = {
+            "Progression globale": global_toggle,
+        }
+        self.preview_header_panels: dict[str, QFrame] = {}
+        global_panel = QFrame()
+        global_panel.setObjectName("GuideGlobalDetailsPanel")
+        self.preview_header_global_panel = global_panel
+        global_layout = QVBoxLayout(global_panel)
+        global_layout.setContentsMargins(10, 8, 10, 9)
+        global_layout.setSpacing(UNITY_SPACING_PX["md"])
+        participants_progress = QWidget()
+        participants_progress.setObjectName("GuideGlobalCharacterProgress")
+        participants_layout = QVBoxLayout(participants_progress)
+        participants_layout.setContentsMargins(0, 0, 0, 0)
+        participants_layout.setSpacing(UNITY_SPACING_PX["xs"])
+        for index, percent in enumerate((35, 60, 10), start=1):
+            label = QLabel(f"Personnage fictif {index} · {percent} %")
+            label.setObjectName("GuidePreparationParticipantNeed")
+            participants_layout.addWidget(label)
+        global_layout.addWidget(participants_progress)
+
+        prep_metric = QVBoxLayout()
+        prep_metric.setSpacing(UNITY_LAYOUT_SIZES_PX["guide_metric_row_spacing"])
+        prep_caption = QHBoxLayout()
+        prep_caption.setSpacing(UNITY_LAYOUT_SIZES_PX["guide_metric_caption_spacing"])
+        prep_icon = QLabel()
+        prep_icon.setObjectName("GuideCompactMetricIconCube")
+        icon_size = UNITY_SIZES_PX["icon_small"]
+        prep_icon.setPixmap(
+            _guide_symbol_icon(
+                prep_icon, "cube", size=icon_size, color=PALETTE["GREEN"]
+            ).pixmap(icon_size, icon_size)
+        )
+        prep_icon.setFixedSize(icon_size, icon_size)
+        prep_caption.addWidget(prep_icon)
+        prep_caption.addWidget(QLabel("À préparer"))
+        prep_caption.addStretch(1)
+        prep_value = QLabel("60 %")
+        prep_value.setObjectName("GuideCompactMetricValue")
+        prep_caption.addWidget(prep_value)
+        prep_toggle = AtlasGuideDisclosure()
+        prep_toggle.setFixedSize(
+            UNITY_CONTROL_SIZES_PX["progress_toggle_width"],
+            UNITY_CONTROL_SIZES_PX["progress_toggle_height"],
+        )
+        prep_toggle.setToolTip("Ouvrir Préparation")
+        prep_toggle.setAccessibleName("Afficher Préparation")
+        prep_caption.insertWidget(2, prep_toggle, 0, Qt.AlignVCenter)
+        prep_metric.addLayout(prep_caption)
+        prep_bar = QProgressBar()
+        prep_bar.setObjectName("GuideCompactPreparationProgress")
+        prep_bar.setRange(0, 100)
+        prep_bar.setValue(60)
+        prep_bar.setTextVisible(False)
+        prep_bar.setFixedHeight(UNITY_CONTROL_SIZES_PX["progress_secondary"])
+        prep_bar.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
+        prep_metric.addWidget(prep_bar)
+        self.preview_header_metrics = {"Préparation": prep_bar}
+        self.preview_header_metric_icons = {"Préparation": prep_icon}
+
+        prep_panel = QFrame()
+        prep_panel.setObjectName("GuidePreparationPanel")
+        prep_layout = QVBoxLayout(prep_panel)
+        prep_layout.setContentsMargins(8, 5, 8, 5)
+        prep_layout.setSpacing(UNITY_SPACING_PX["xs"])
+        tabs_layout = QHBoxLayout()
+        tabs_layout.setSpacing(UNITY_SPACING_PX["xs"])
+        self.preview_header_preparation_group = QButtonGroup(self)
+        self.preview_header_preparation_group.setExclusive(True)
+        self.preview_header_preparation_tabs = {}
+        for name in ("Prérequis", "À préparer"):
+            tab = AtlasButton(name)
+            tab.setObjectName("GuidePreparationModeTab")
+            tab.setCheckable(True)
+            tab.setProperty("tabKey", name)
+            tab.setChecked(name == "À préparer")
+            self.preview_header_preparation_group.addButton(tab)
+            self.preview_header_preparation_tabs[name] = tab
+            tabs_layout.addWidget(tab)
+        tabs_layout.addStretch(1)
+        prep_layout.addLayout(tabs_layout)
+
+        prereq_host = QWidget()
+        prereq_layout = QVBoxLayout(prereq_host)
+        prereq_layout.setContentsMargins(0, 0, 0, 0)
+        prereq_label = QLabel("Prérequis · aperçu fictif, aucune donnée importée")
+        prereq_label.setObjectName("GuidePreparationEmpty")
+        prereq_layout.addWidget(prereq_label)
+        prereq_host.setVisible(False)
+        prep_layout.addWidget(prereq_host)
+        self.preview_header_prerequisites_host = prereq_host
+
+        materials = QWidget()
+        materials_layout = QVBoxLayout(materials)
+        materials_layout.setContentsMargins(0, 0, 0, 0)
+        materials_layout.setSpacing(UNITY_SPACING_PX["xs"])
+        self.preview_header_filter = AtlasComboBox()
+        self.preview_header_filter.setObjectName("GuidePreparationCategoryFilter")
+        self.preview_header_filter.addItems(
+            ("Tout", "Métiers", "Potions", "Pierres d'âme", "Clefs", "Objets")
+        )
+        self.preview_header_filter.setAccessibleName("Catégorie de préparation")
+        self.preview_header_filter.currentTextChanged.connect(
+            lambda text: self._report(f"Préparation · filtre {text} (aperçu)")
+        )
+        materials_layout.addWidget(self.preview_header_filter, 0, Qt.AlignLeft)
+        self.preview_header_preparation_rows = []
+        self.preview_header_preparation_names = []
+        for name, quantity, done in (
+            ("Potion de rappel", 2, True),
+            ("Clef du donjon", 1, False),
+            ("Ressources à récupérer", 8, False),
         ):
-            column = len(self.preview_header_metric_columns)
-            caption = QHBoxLayout()
-            caption.setSpacing(UNITY_LAYOUT_SIZES_PX["guide_metric_caption_spacing"])
-            metric_icon = QLabel()
-            metric_icon.setObjectName(
-                f"GuideCompactMetricIcon{icon_symbol.title()}"
+            item = QFrame()
+            item.setObjectName("GuidePreparationRow")
+            row = QHBoxLayout(item)
+            row.setContentsMargins(8, 3, 8, 3)
+            copy_button = AtlasButton(name, variant="secondary")
+            copy_button.setObjectName("GuidePreparationItemCopy")
+            copy_button.setFlat(True)
+            copy_button.setCursor(Qt.PointingHandCursor)
+            copy_button.setToolTip(f"Cliquer pour copier : {name}")
+            copy_button.setAccessibleName(f"Copier {name}")
+            copy_button.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
+            copy_button.clicked.connect(
+                lambda _checked=False, text=name:
+                QApplication.clipboard().setText(text)
             )
-            metric_icon.setPixmap(
-                _guide_symbol_icon(
-                    metric_icon, icon_symbol, size=16,
-                    color=PALETTE[color_role],
-                ).pixmap(16, 16)
-            )
-            metric_icon.setFixedSize(
-                UNITY_SIZES_PX["icon_small"], UNITY_SIZES_PX["icon_small"]
-            )
-            caption.addWidget(metric_icon)
-            self.preview_header_metric_icons[name] = metric_icon
-            caption.addWidget(QLabel(name))
-            caption.addStretch(1)
-            value = QLabel(f"{amount} %")
-            value.setObjectName("GuideCompactMetricValue")
-            caption.addWidget(value)
-            metrics.addLayout(caption, 0, column)
-            bar = GuideManualProgressBar() if name == "Route" else QProgressBar()
-            bar.setObjectName(role)
-            bar.setRange(0, 100)
-            bar.setValue(amount)
-            bar.setTextVisible(False)
-            bar.setFixedHeight(UNITY_CONTROL_SIZES_PX["progress_secondary"])
-            bar.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
-            if name == "Route":
-                bar.setCursor(Qt.PointingHandCursor)
-                bar.navigationRequested.connect(
-                    lambda fraction: self._report(
-                        f"Guide · navigation route {round(fraction * 100)} % (aperçu)"
-                    )
+            amount = QSpinBox()
+            amount.setObjectName("GuidePreparationQuantity")
+            amount.setRange(0, quantity)
+            amount.setValue(quantity if done else 0)
+            amount.setSuffix(f" / {quantity}")
+            amount.setFixedWidth(UNITY_CONTROL_SIZES_PX["guide_quantity_width"])
+            amount.setToolTip("Quantité possédée · aperçu fictif")
+            checkbox = QCheckBox()
+            checkbox.setObjectName("GuidePreparationReady")
+            checkbox.setChecked(done)
+            checkbox.setToolTip("Marquer comme prêt · aperçu fictif")
+            checkbox.setAccessibleName(f"Valider {name}")
+            checkbox.toggled.connect(
+                lambda checked, spin=amount: spin.setValue(
+                    spin.maximum() if checked else 0
                 )
-            arrow = AtlasGuideDisclosure()
-            arrow.setFixedSize(
-                UNITY_CONTROL_SIZES_PX["progress_toggle_width"],
-                UNITY_CONTROL_SIZES_PX["progress_toggle_height"],
             )
-            arrow.setCursor(Qt.PointingHandCursor)
-            target = "Sommaire" if name == "Route" else "Préparation"
-            arrow.setToolTip(f"Ouvrir {target}")
-            arrow.setAccessibleName(f"Afficher {target}")
-            caption.insertWidget(2, arrow, 0, Qt.AlignVCenter)
-            metrics.addWidget(bar, 1, column)
-            drawer_column = QVBoxLayout()
-            drawer_column.setContentsMargins(0, 0, 0, 0)
-            metrics.addLayout(drawer_column, 2, column, Qt.AlignTop)
-            metrics.setColumnStretch(column, 1)
-            self.preview_header_metric_columns[target] = drawer_column
-            self.preview_header_controls[target] = arrow
-            self.preview_header_metrics[name] = bar
-        right.addLayout(metrics)
+            checkbox.setFixedWidth(UNITY_CONTROL_SIZES_PX["guide_validation_width"])
+            row.addWidget(checkbox, 0, Qt.AlignVCenter)
+            row.addWidget(amount, 0, Qt.AlignVCenter)
+            row.addWidget(copy_button, 1, Qt.AlignVCenter)
+            materials_layout.addWidget(item)
+            self.preview_header_preparation_rows.append((amount, checkbox))
+            self.preview_header_preparation_names.append(copy_button)
+        prep_layout.addWidget(materials)
+        self.preview_header_materials_host = materials
 
-        # The progress arrows own both dropdowns; no duplicate text buttons.
+        def select_prep_tab(name: str) -> None:
+            materials.setVisible(name == "À préparer")
+            prereq_host.setVisible(name == "Prérequis")
+            self._report(f"Guide · {name} : sélectionné (aperçu)")
+
+        for name, button in self.preview_header_preparation_tabs.items():
+            button.clicked.connect(
+                lambda _checked=False, tab=name: select_prep_tab(tab)
+            )
+        prep_panel.setVisible(False)
+        prep_toggle.toggled.connect(prep_panel.setVisible)
+        prep_toggle.clicked.connect(
+            lambda opened: self._report(
+                f"Guide · Préparation : {'ouvert' if opened else 'fermé'} (aperçu)"
+            )
+        )
+        prep_metric.addWidget(prep_panel)
+        global_layout.addLayout(prep_metric)
+        self.preview_header_controls["Préparation"] = prep_toggle
+        self.preview_header_panels["Préparation"] = prep_panel
+
+        global_panel.setVisible(False)
+        global_toggle.toggled.connect(global_panel.setVisible)
+        global_toggle.clicked.connect(
+            lambda opened: self._report(
+                f"Guide · Progression globale : {'ouvert' if opened else 'fermé'} (aperçu)"
+            )
+        )
+        right.addWidget(global_panel)
+        self.preview_header_panels["Progression globale"] = global_panel
+
+        # Character selection remains on the title row, above both progress bars.
         character_toggle = AtlasGuideParticipantButton()
-        character_toggle.setObjectName("GuideParticipantsButton")
-        character_icon = atlas_guide_character_icon(UNITY_CONTROL_SIZES_PX["guide_character_icon"])
-        if character_icon.isNull():
-            character_icon = _guide_symbol_icon(character_toggle, "people")
-        character_toggle.setIcon(character_icon)
+        icon = atlas_guide_character_icon(
+            UNITY_CONTROL_SIZES_PX["guide_character_icon"]
+        )
+        if icon.isNull():
+            icon = _guide_symbol_icon(character_toggle, "people")
+        character_toggle.setIcon(icon)
         character_toggle.setIconSize(QSize(
             UNITY_CONTROL_SIZES_PX["guide_character_icon"],
             UNITY_CONTROL_SIZES_PX["guide_character_icon"],
@@ -684,185 +806,51 @@ class DevUiPage(QWidget):
         character_toggle.setToolTip("Personnages")
         character_toggle.setAccessibleName("Personnages")
         character_toggle.setCheckable(True)
-        self.preview_header_title_row.insertWidget(
-            self.preview_header_title_row.count() - 1,
-            character_toggle, 0, Qt.AlignVCenter,
+        self.preview_header_title_row.addWidget(
+            character_toggle, 0, Qt.AlignVCenter
         )
         self.preview_header_controls["Personnages"] = character_toggle
-
-        self.preview_header_panels: dict[str, QFrame] = {}
-        for label, role in (
-            ("Préparation", "GuidePreparationPanel"),
-            ("Sommaire", "GuideSummaryPanel"),
-            ("Personnages", "GuideParticipantsPanel"),
-        ):
-            panel = QFrame()
-            panel.setObjectName(role)
-            panel_layout = QVBoxLayout(panel)
-            panel_layout.setContentsMargins(8, 5, 8, 5)
-            panel_layout.setSpacing(4)
-            if label == "Préparation":
-                heading = QLabel("Préparer avant de partir · exemple fictif")
-                heading.setObjectName("GuidePreparationSummary")
-                panel_layout.addWidget(heading)
-                self.preview_header_filter = AtlasComboBox()
-                self.preview_header_filter.setObjectName("GuidePreparationCategoryFilter")
-                self.preview_header_filter.addItems((
-                    "Tout", "Prérequis", "Métiers", "Potions", "Pierres d'âme", "Clefs", "Objets",
-                ))
-                self.preview_header_filter.setAccessibleName("Catégorie de préparation")
-                self.preview_header_filter.currentTextChanged.connect(
-                    lambda value: self._report(f"Préparation · filtre {value} (aperçu)")
-                )
-                panel_layout.addWidget(self.preview_header_filter, 0, Qt.AlignLeft)
-                self.preview_header_preparation_rows: list[tuple[QSpinBox, QCheckBox]] = []
-                self.preview_header_preparation_names: list[AtlasButton] = []
-                for name, quantity, done in (
-                    ("Potion de rappel", 2, True),
-                    ("Clef du donjon", 1, False),
-                    ("Ressources à récupérer", 8, False),
-                ):
-                    row_frame = QFrame()
-                    row_frame.setObjectName("GuidePreparationRow")
-                    row = QHBoxLayout(row_frame)
-                    row.setContentsMargins(8, 3, 8, 3)
-                    name_button = AtlasButton(name, variant="secondary")
-                    name_button.setObjectName("GuidePreparationItemCopy")
-                    name_button.setFlat(True)
-                    name_button.setCursor(Qt.PointingHandCursor)
-                    name_button.setToolTip(f"Cliquer pour copier : {name}")
-                    name_button.setAccessibleName(f"Copier {name}")
-                    name_button.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
-                    name_button.clicked.connect(
-                        lambda _checked=False, value=name:
-                        QApplication.clipboard().setText(value)
-                    )
-                    amount = QSpinBox()
-                    amount.setObjectName("GuidePreparationQuantity")
-                    amount.setRange(0, quantity)
-                    amount.setValue(quantity if done else 0)
-                    amount.setSuffix(f" / {quantity}")
-                    amount.setFixedWidth(UNITY_CONTROL_SIZES_PX["guide_quantity_width"])
-                    amount.setToolTip("Quantité possédée · aperçu fictif")
-                    validate = QCheckBox()
-                    validate.setObjectName("GuidePreparationReady")
-                    validate.setChecked(done)
-                    validate.setToolTip("Marquer comme prêt · aperçu fictif")
-                    validate.setAccessibleName(f"Valider {name}")
-                    validate.toggled.connect(
-                        lambda checked, spin=amount: spin.setValue(
-                            spin.maximum() if checked else 0
-                        )
-                    )
-                    validate.setFixedWidth(UNITY_CONTROL_SIZES_PX["guide_validation_width"])
-                    row.addWidget(validate, 0, Qt.AlignVCenter)
-                    row.addWidget(amount, 0, Qt.AlignVCenter)
-                    row.addWidget(name_button, 1, Qt.AlignVCenter)
-                    self.preview_header_preparation_rows.append((amount, validate))
-                    self.preview_header_preparation_names.append(name_button)
-                    panel_layout.addWidget(row_frame)
-            elif label == "Sommaire":
-                self.preview_header_summary_search = QLineEdit()
-                self.preview_header_summary_search.setObjectName("GuideSummarySearch")
-                self.preview_header_summary_search.setPlaceholderText(
-                    "Rechercher une fiche…"
-                )
-                panel_layout.addWidget(self.preview_header_summary_search)
-                summary = QListWidget()
-                summary.setObjectName("GuideSummaryList")
-                summary.addItems((
-                    "1 · Introduction au village",
-                    "2 · Préparer le départ",
-                    "3 · Traverser la forêt",
-                    "4 · Parler au PNJ du village",
-                    "5 · Première quête",
-                    "6 · Prochaine étape",
-                ))
-                summary.setCurrentRow(3)
-                summary.setMaximumHeight(150)
-                self.preview_header_summary_search.textChanged.connect(
-                    lambda value, list_widget=summary: [
-                        list_widget.item(i).setHidden(
-                            value.casefold() not in
-                            list_widget.item(i).text().casefold()
-                        )
-                        for i in range(list_widget.count())
-                    ]
-                )
-                summary.itemClicked.connect(
-                    lambda item: self._report(
-                        f"Guide · sommaire : {item.text()} (aperçu)"
-                    )
-                )
-                panel_layout.addWidget(summary)
+        characters = QFrame()
+        characters.setObjectName("GuideParticipantsPanel")
+        portraits = QHBoxLayout(characters)
+        portraits.setContentsMargins(8, 5, 8, 5)
+        portraits.setSpacing(UNITY_SPACING_PX["xs"])
+        self.preview_header_portraits = []
+        portrait_icon = sprite_icon_path("character")
+        for index, percent in enumerate((35, 60, 10), start=1):
+            portrait = _ParticipantPortraitButton(
+                f"character:demo_{index}", progress=percent
+            )
+            portrait.setToolTip(
+                f"Personnage fictif {index} · progression {percent} %"
+            )
+            portrait.setAccessibleName(f"Personnage fictif {index}")
+            portrait.setChecked(index == 1)
+            if portrait_icon:
+                portrait.setIcon(QIcon(str(portrait_icon)))
             else:
-                portraits_row = QHBoxLayout()
-                portraits_row.setSpacing(5)
-                self.preview_header_portraits: list[_ParticipantPortraitButton] = []
-                # The same visible local Unity character artwork as the
-                # original Dev UI sample (no empty/gray class placeholders).
-                portrait_icon = sprite_icon_path("character")
-                for index, percent in enumerate((35, 60, 10), start=1):
-                    portrait = _ParticipantPortraitButton(
-                        f"character:demo_{index}", progress=percent,
-                    )
-                    portrait.setToolTip(
-                        f"Personnage fictif {index} · progression {percent} %"
-                    )
-                    portrait.setAccessibleName(f"Personnage fictif {index}")
-                    portrait.setChecked(index == 1)
-                    if portrait_icon:
-                        portrait.setIcon(QIcon(str(portrait_icon)))
-                    else:
-                        portrait.setIcon(
-                            _guide_symbol_icon(
-                                portrait, "people", color=PALETTE["TEXT_SOFT"]
-                            )
-                        )
-                    portrait.toggled.connect(
-                        lambda checked, number=index: self._report(
-                            f"Guide · personnage {number} {'choisi' if checked else 'retiré'} (aperçu)"
-                        )
-                    )
-                    portraits_row.addWidget(portrait)
-                    self.preview_header_portraits.append(portrait)
-                portraits_row.addStretch(1)
-                panel_layout.addLayout(portraits_row)
-            panel.setVisible(False)
-            if label == "Personnages":
-                right.insertWidget(1, panel)
-            else:
-                self.preview_header_metric_columns[label].addWidget(panel)
-            toggle = self.preview_header_controls[label]
-            toggle.toggled.connect(panel.setVisible)
-            toggle.clicked.connect(
-                lambda checked, name=label: self._report(
-                    f"Guide · {name} : {'ouvert' if checked else 'fermé'} (aperçu)"
+                portrait.setIcon(_guide_symbol_icon(
+                    portrait, "people", color=PALETTE["TEXT_SOFT"]
+                ))
+            portrait.toggled.connect(
+                lambda checked, number=index: self._report(
+                    f"Guide · personnage {number} "
+                    f"{'choisi' if checked else 'retiré'} (aperçu)"
                 )
             )
-            self.preview_header_panels[label] = panel
-        # Capture each real state independently; start with every menu closed.
-
-        self.preview_header_settings_panel = QFrame()
-        self.preview_header_settings_panel.setObjectName("GuideCompactSettingsPanel")
-        settings_row = QHBoxLayout(self.preview_header_settings_panel)
-        settings_row.setContentsMargins(8, 5, 8, 5)
-        self.preview_header_route_lock = QToolButton()
-        self.preview_header_route_lock.setObjectName("GuideManualProgressLock")
-        self.preview_header_route_lock.setCheckable(True)
-        self.preview_header_route_lock.setText("Verrouiller la progression")
-        self.preview_header_route_lock.toggled.connect(
-            lambda checked: self._report(
-                f"Guide · progression {'verrouillée' if checked else 'déverrouillée'} (aperçu)"
+            portraits.addWidget(portrait)
+            self.preview_header_portraits.append(portrait)
+        portraits.addStretch(1)
+        characters.setVisible(False)
+        character_toggle.toggled.connect(characters.setVisible)
+        character_toggle.clicked.connect(
+            lambda opened: self._report(
+                f"Guide · Personnages : {'ouvert' if opened else 'fermé'} (aperçu)"
             )
         )
-        settings_row.addWidget(self.preview_header_route_lock)
-        settings_row.addStretch(1)
-        self.preview_header_settings_panel.setVisible(False)
-        self.preview_header_settings.toggled.connect(
-            self.preview_header_settings_panel.setVisible
-        )
-        right.addWidget(self.preview_header_settings_panel)
+        right.insertWidget(1, characters)
+        self.preview_header_panels["Personnages"] = characters
+
         apply_unity_panel_shadow(self.preview_compact_header, **UNITY_PANEL_SHADOW)
         section.addWidget(self.preview_compact_header)
 
@@ -894,8 +882,11 @@ class DevUiPage(QWidget):
         self.preview_header_page_jump = QSpinBox()
         self.preview_header_page_jump.setObjectName("GuideCompactPageJump")
         self.preview_header_page_jump.setRange(1, 20)
-        self.preview_header_page_jump.setSuffix("/20")
+        self.preview_header_page_jump.setSuffix(" / 20")
         self.preview_header_page_jump.setValue(4)
+        self.preview_header_page_jump.setMaximumWidth(
+            UNITY_CONTROL_SIZES_PX["guide_page_jump_normal_max_width"]
+        )
         self.preview_header_page_jump.setSizePolicy(
             QSizePolicy.Maximum, QSizePolicy.Fixed
         )

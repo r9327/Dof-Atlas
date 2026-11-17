@@ -320,40 +320,29 @@ class DevUiPageTests(unittest.TestCase):
 
     def test_headers_gallery_shares_real_styles_and_controls(self) -> None:
         from app.pages.dev_ui_page import DevUiPage
+        from app.modules.encyclopedia.views.shared_manual_guide_view import (
+            _ParticipantPortraitButton,
+        )
+        from app.ui.unity_palette import UNITY_LAYOUT_SIZES_PX
+        from PySide6.QtCore import Qt
+        from PySide6.QtWidgets import QCheckBox
 
         page = DevUiPage(on_back=lambda: None)
         try:
             self.assertIn("headers", page.gallery_family_widgets)
-            self.assertEqual(
-                page.gallery_family_widgets["headers"].title(),
-                "En-têtes · page, module, guide et dialogue",
-            )
-            for attribute, role in (
+            for name, role in (
                 ("preview_page_header", "card"),
                 ("preview_module_header", "GuideHeader"),
                 ("preview_compact_header", "GuideCompactHeader"),
                 ("preview_sheet_header", "GuideSheetHeader"),
                 ("preview_dialog_header", "DialogHeader"),
             ):
-                widget = getattr(page, attribute)
+                widget = getattr(page, name)
                 self.assertEqual(widget.objectName(), role)
                 self.assertEqual(widget.styleSheet(), "")
+            margins = page.preview_compact_header.layout().contentsMargins()
             self.assertEqual(
-                {name: bar.objectName()
-                 for name, bar in page.preview_header_metrics.items()},
-                {
-                    "Route": "GuideManualProgress",
-                    "Préparation": "GuideCompactPreparationProgress",
-                },
-            )
-            from app.modules.encyclopedia.views.shared_manual_guide_view import (
-                _ParticipantPortraitButton,
-            )
-            from app.ui.unity_palette import UNITY_LAYOUT_SIZES_PX
-            header_margins = page.preview_compact_header.layout().contentsMargins()
-            self.assertEqual(
-                (header_margins.left(), header_margins.top(),
-                 header_margins.right(), header_margins.bottom()),
+                (margins.left(), margins.top(), margins.right(), margins.bottom()),
                 (
                     UNITY_LAYOUT_SIZES_PX["guide_header_margin_x"],
                     UNITY_LAYOUT_SIZES_PX["guide_header_margin_top"],
@@ -361,132 +350,125 @@ class DevUiPageTests(unittest.TestCase):
                     UNITY_LAYOUT_SIZES_PX["guide_header_margin_bottom"],
                 ),
             )
-            self.assertEqual(
-                page.preview_header_content_layout.spacing(),
-                UNITY_LAYOUT_SIZES_PX["guide_header_content_spacing"],
-            )
             self.assertEqual(page.preview_header_global_progress.value(), 35)
-            self.assertIsNone(page.preview_compact_header.findChild(QWidget, "GuideCompactDonut"))
-            self.assertEqual(page.preview_header_page_jump.suffix(), "/20")
+            self.assertEqual(page.preview_header_page_jump.suffix(), " / 20")
             self.assertEqual(
-                page.preview_header_page_jump.sizePolicy().horizontalPolicy(),
-                QSizePolicy.Maximum,
+                page.preview_header_page_jump.maximumWidth(),
+                UNITY_CONTROL_SIZES_PX["guide_page_jump_normal_max_width"],
             )
-            self.assertIs(
-                page.preview_header_page_jump.parentWidget(),
-                page.preview_sheet_header,
+            self.assertIs(page.preview_header_page_jump.parentWidget(),
+                          page.preview_sheet_header)
+            self.assertEqual(
+                {name: bar.objectName() for name, bar in page.preview_header_metrics.items()},
+                {"Préparation": "GuideCompactPreparationProgress"},
             )
-            self.assertFalse(page.preview_header_guide_icon.pixmap().isNull())
+            self.assertEqual(set(page.preview_header_metric_icons), {"Préparation"})
+            self.assertEqual(
+                set(page.preview_header_controls),
+                {"Progression globale", "Préparation", "Personnages"},
+            )
+            self.assertEqual(page.preview_header_global_panel.objectName(),
+                             "GuideGlobalDetailsPanel")
+            self.assertIsNone(page.preview_compact_header.findChild(
+                QWidget, "GuideSummaryPanel"
+            ))
+            self.assertIsNone(page.preview_compact_header.findChild(
+                QWidget, "GuideManualProgress"
+            ))
+            for name in ("Progression globale", "Préparation"):
+                button = page.preview_header_controls[name]
+                self.assertEqual(button.objectName(), "GuideMetricDropdown")
+                self.assertFalse(button.icon().isNull())
+                self.assertEqual(button.arrowType(), Qt.NoArrow)
+                self.assertEqual(button.width(),
+                                 UNITY_CONTROL_SIZES_PX["progress_toggle_width"])
             self.assertFalse(page.preview_header_overlay.isEnabled())
-            self.assertEqual(set(page.preview_header_metric_icons),
-                             {"Route", "Préparation"})
-            self.assertEqual(
-                page.preview_header_controls["Sommaire"].objectName(), "GuideMetricDropdown"
-            )
-            self.assertEqual(
-                page.preview_header_controls["Préparation"].objectName(), "GuideMetricDropdown"
-            ) 
-            # Personnages stays beside Paramètres. Opening its drawer
-            # inserts content right under the action row, before global progress.
-            person_button = page.preview_header_controls["Personnages"]
+            self.assertFalse(page.preview_header_guide_icon.pixmap().isNull())
+            participants_button = page.preview_header_controls["Personnages"]
             self.assertIs(
                 page.preview_header_title_row.itemAt(
-                    page.preview_header_title_row.count() - 2
-                ).widget(), person_button,
+                    page.preview_header_title_row.count() - 1
+                ).widget(),
+                participants_button,
             )
-            self.assertIs(
-                page.preview_header_content_layout.itemAt(1).widget(),
-                page.preview_header_panels["Personnages"],
-            )
-            self.assertEqual(page.preview_header_controls["Sommaire"].width(), 18)
-            self.assertEqual(
-                page.preview_header_controls["Personnages"].width(),
-                UNITY_CONTROL_SIZES_PX["guide_character_button"],
-            )
-            self.assertFalse(page.preview_header_controls["Personnages"].icon().isNull())
-            from PySide6.QtCore import Qt
-            disclosure = page.preview_header_controls["Sommaire"]
-            self.assertFalse(disclosure.icon().isNull())
-            self.assertEqual(disclosure.arrowType(), Qt.NoArrow)
-            self.assertEqual(
-                disclosure.iconSize().width(), UNITY_CONTROL_SIZES_PX["progress_toggle_icon"],
-            )
-            disclosure.click()
-            self.assertTrue(disclosure.isChecked())
-            disclosure.click()
-            self.assertFalse(disclosure.isChecked())
-            self.assertEqual(
-                page.guide_manual_scroll_sample.objectName(), "GuideManualScroll"
-            )
-            self.assertEqual(
-                page.guide_manual_scroll_sample.widget().objectName(),
-                "GuideManualContent",
-            )
-
-            self.assertEqual(len(page.preview_header_preparation_rows), 3)
-            quantity, validate = page.preview_header_preparation_rows[1]
-            self.assertEqual(quantity.suffix(), " / 1")
-            from PySide6.QtWidgets import QCheckBox
-            self.assertIsInstance(validate, QCheckBox)
-            self.assertFalse(validate.isChecked())
-            validate.click()
-            self.assertEqual((quantity.value(), validate.isChecked()), (1, True))
-            line = validate.parentWidget().layout()
-            self.assertIs(line.itemAt(0).widget(), validate)
-            self.assertIs(line.itemAt(1).widget(), quantity)
-            name_button = line.itemAt(2).widget()
-            self.assertEqual(name_button.objectName(), "GuidePreparationItemCopy")
-            QApplication.clipboard().clear()
-            name_button.click()
-            self.assertEqual(QApplication.clipboard().text(), "Clef du donjon")
-            sheet_back = page.preview_sheet_header.findChild(
-                QWidget, "GuideManualGuideButton"
-            )
-            self.assertFalse(sheet_back.icon().isNull())
-            self.assertEqual(page.preview_header_filter.count(), 7)
-            page.preview_header_filter.setCurrentText("Objets")
-            self.assertEqual(page.preview_header_filter.currentText(), "Objets")
-
-            self.assertTrue(all(not icon.pixmap().isNull()
-                                for icon in page.preview_header_metric_icons.values()))
-            self.assertFalse(page.preview_header_panels["Personnages"].isVisible())
-            page.preview_header_controls["Personnages"].setChecked(True)
+            self.assertIs(page.preview_header_content_layout.itemAt(1).widget(),
+                          page.preview_header_panels["Personnages"])
+            self.assertEqual(participants_button.width(),
+                             UNITY_CONTROL_SIZES_PX["guide_character_button"])
+            self.assertFalse(participants_button.icon().isNull())
+            self.assertEqual(len(page.preview_header_portraits), 3)
+            self.assertTrue(all(
+                isinstance(p, _ParticipantPortraitButton)
+                and p.width() == UNITY_CONTROL_SIZES_PX["guide_portrait_button"]
+                and p.iconSize().width() == UNITY_CONTROL_SIZES_PX["guide_portrait_icon"]
+                for p in page.preview_header_portraits
+            ))
+            participants_button.click()
             self.assertTrue(page.preview_header_panels["Personnages"].isVisibleTo(
                 page.preview_compact_header
             ))
-            page.preview_header_controls["Personnages"].setChecked(False)
-            self.assertEqual(len(page.preview_header_portraits), 3)
-            self.assertTrue(all(
-                portrait.width() == UNITY_CONTROL_SIZES_PX["guide_portrait_button"]
-                and portrait.iconSize().width() == UNITY_CONTROL_SIZES_PX["guide_portrait_icon"]
-                for portrait in page.preview_header_portraits
-            ))
-            self.assertTrue(all(isinstance(p, _ParticipantPortraitButton)
-                                for p in page.preview_header_portraits))
-            self.assertTrue(page.preview_header_portraits[0].isChecked())
-            page.preview_header_settings.click()
-            self.assertTrue(page.preview_header_settings_panel.isVisibleTo(
+            participants_button.click()
+
+            global_button = page.preview_header_controls["Progression globale"]
+            preparation_button = page.preview_header_controls["Préparation"]
+            self.assertFalse(page.preview_header_global_panel.isVisible())
+            global_button.click()
+            self.assertTrue(page.preview_header_global_panel.isVisibleTo(
                 page.preview_compact_header
             ))
-            page.preview_header_route_lock.click()
-            self.assertIn("verrouillée", page.feedback.text())
-
-            page.preview_header_page_jump.setValue(8)
-            self.assertIn("fiche 8", page.feedback.text())
-            page.preview_header_controls["Préparation"].click()
-            self.assertIn("Préparation : ouvert", page.feedback.text())
+            preparation_button.click()
             self.assertTrue(page.preview_header_panels["Préparation"].isVisibleTo(
                 page.preview_compact_header
             ))
-            page.preview_header_controls["Sommaire"].click()
-            self.assertIn("Sommaire : ouvert", page.feedback.text())
-            self.assertTrue(page.preview_header_panels["Sommaire"].isVisibleTo(
+            self.assertIs(
+                page.preview_header_panels["Préparation"].parentWidget(),
+                page.preview_header_global_panel,
+            )
+            global_button.click()
+            self.assertFalse(page.preview_header_global_panel.isVisible())
+            global_button.click()
+            self.assertTrue(page.preview_header_panels["Préparation"].isVisibleTo(
                 page.preview_compact_header
             ))
-            self.assertIn("Rechercher", page.preview_header_summary_search.placeholderText())
+            self.assertEqual(set(page.preview_header_preparation_tabs),
+                             {"Prérequis", "À préparer"})
+            self.assertTrue(
+                page.preview_header_preparation_tabs["À préparer"].isChecked()
+            )
+            page.preview_header_preparation_tabs["Prérequis"].click()
+            self.assertTrue(page.preview_header_prerequisites_host.isVisibleTo(
+                page.preview_compact_header
+            ))
+            self.assertFalse(page.preview_header_materials_host.isVisible())
+            page.preview_header_preparation_tabs["À préparer"].click()
+            self.assertTrue(page.preview_header_materials_host.isVisibleTo(
+                page.preview_compact_header
+            ))
+            self.assertEqual(page.preview_header_filter.count(), 6)
+            page.preview_header_filter.setCurrentText("Objets")
+            self.assertEqual(page.preview_header_filter.currentText(), "Objets")
+
+            self.assertEqual(len(page.preview_header_preparation_rows), 3)
+            quantity, checkbox = page.preview_header_preparation_rows[1]
+            self.assertIsInstance(checkbox, QCheckBox)
+            self.assertEqual(quantity.suffix(), " / 1")
+            self.assertFalse(checkbox.isChecked())
+            checkbox.click()
+            self.assertEqual((quantity.value(), checkbox.isChecked()), (1, True))
+            row = checkbox.parentWidget().layout()
+            self.assertIs(row.itemAt(0).widget(), checkbox)
+            self.assertIs(row.itemAt(1).widget(), quantity)
+            copy = row.itemAt(2).widget()
+            self.assertEqual(copy.objectName(), "GuidePreparationItemCopy")
+            QApplication.clipboard().clear()
+            copy.click()
+            self.assertEqual(QApplication.clipboard().text(), "Clef du donjon")
+            page.preview_header_page_jump.setValue(8)
+            self.assertIn("fiche 8", page.feedback.text())
+            self.assertEqual(page.guide_manual_scroll_sample.objectName(),
+                             "GuideManualScroll")
             self.assertTrue(all(
-                widget.styleSheet() == ""
-                for widget in page.findChildren(QWidget)
+                widget.styleSheet() == "" for widget in page.findChildren(QWidget)
             ))
         finally:
             page.close()
@@ -1413,10 +1395,11 @@ class DevUiPageTests(unittest.TestCase):
                             expected["module_padding"],
                         )
                     self.assertEqual(tuple(page.gallery_family_widgets), original_order)
-                    # All progress bars share the same outer edges at each width.
+                    # Nested Preparation uses the same horizontal reference
+                    # but stays inset under its own global disclosure.
                     page.gallery_scroll.ensureWidgetVisible(page.preview_compact_header)
                     for opened in (False, True):
-                        for name in ("Sommaire", "Préparation", "Personnages"):
+                        for name in ("Progression globale", "Préparation", "Personnages"):
                             page.preview_header_controls[name].setChecked(opened)
                         self.app.processEvents()
 
@@ -1425,16 +1408,20 @@ class DevUiPageTests(unittest.TestCase):
                             return left, left + widget.width()
 
                         full = span(page.preview_header_global_progress)
-                        route = span(page.preview_header_metrics["Route"])
                         preparation = span(page.preview_header_metrics["Préparation"])
-                        self.assertEqual(full, (route[0], preparation[1]))
-                        self.assertLess(route[1], preparation[0])
+                        self.assertGreaterEqual(preparation[0], full[0])
+                        self.assertLessEqual(preparation[1], full[1])
+                        self.assertGreater(preparation[1], preparation[0])
                         if opened:
-                            self.assertEqual(
-                                span(page.preview_header_panels["Sommaire"]), route,
+                            self.assertTrue(
+                                page.preview_header_panels["Progression globale"].isVisibleTo(
+                                    page.preview_compact_header
+                                )
                             )
-                            self.assertEqual(
-                                span(page.preview_header_panels["Préparation"]), preparation,
+                            self.assertTrue(
+                                page.preview_header_panels["Préparation"].isVisibleTo(
+                                    page.preview_compact_header
+                                )
                             )
             self.assertEqual(
                 page.preview_header_global_progress.height(),

@@ -1,7 +1,7 @@
 """Executable Qt-free index of the real Dev UI style contract.
 
 This is not another palette, stylesheet or component implementation.
-The 22 showcase families and the 12 consumers are owned by unity_palette;
+The 23 showcase families and the 12 consumers are owned by unity_palette;
 this index attaches real QSS selectors, interactive states and source paths
 so an audit can detect missing adoption instead of merely listing names.
 """
@@ -30,12 +30,14 @@ UI_FAMILY_QSS_SELECTORS: dict[str, tuple[str, ...]] = {
     "headers": (
         "#PageTitle", "#PanelTitle", "QFrame#GuideHeader",
         "QLabel#GuideHeaderTitle", "QLabel#GuideHeaderMeta",
-        "QFrame#GuideCompactHeader", "QLabel#GuideCompactTitle",
+        "QFrame#GuideCompactHeader", "QFrame#GuideGlobalDetailsPanel",
+        "QLabel#GuideCompactTitle",
         "QFrame#GuideSheetHeader", "QLabel#GuideSheetMeta",
         "QLabel#GuideSheetTitle", "#GuideManualProgress",
         "QToolButton#GuideMetricDropdown", "QToolButton#GuideParticipantsButton",
         "QSpinBox#GuideCompactPageJump", "QScrollArea#GuideManualScroll",
         "QProgressBar#GuideCompactPreparationProgress",
+        "QPushButton#GuidePreparationModeTab",
         "#GuideCompactDonutHeading", "#GuideCompactDonutCount",
         "#DialogHeader",
     ),

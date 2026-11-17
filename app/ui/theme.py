@@ -3059,6 +3059,7 @@ QToolButton#GuideManualProgressLock[state="locked"] {
 
 QFrame#GuideCompactHeader,
 QFrame#GuidePreparationPanel,
+QFrame#GuideGlobalDetailsPanel,
 QFrame#GuideSheetHeader {
     background: qlineargradient(x1:0,y1:0,x2:0,y2:1,
         stop:0 @GLASS_PANEL_TOP,stop:1 @GLASS_PANEL_BOTTOM);
@@ -3069,10 +3070,36 @@ QFrame#GuideSheetHeader {
 
 /* Expanded preparation must retain the blue Unity surface,
    not Qt's native gray scroll/panel background. */
-QFrame#GuidePreparationPanel {
+QFrame#GuidePreparationPanel,
+QFrame#GuideGlobalDetailsPanel {
     background: @GUIDE_COMPACT_SURFACE;
     border: 1px solid @BORDER_SOFT;
     border-radius: @RADIUS_MD;
+}
+
+/* Shared Ganymede preparation tabs: blue glass, semantic border/text. */
+QFrame#GuidePreparationFilterHost {
+    background: transparent;
+    border: none;
+}
+
+QPushButton#GuidePreparationModeTab,
+QPushButton#GuidePreparationFilter {
+    background: @PANEL_2;
+    color: @BORDER;
+    border: 1px solid @BORDER;
+    border-radius: @RADIUS_XS;
+    padding: @SPACE_XS @SPACE_MD;
+    font-weight: 700;
+}
+
+QPushButton#GuidePreparationModeTab:hover,
+QPushButton#GuidePreparationModeTab:checked,
+QPushButton#GuidePreparationFilter:hover,
+QPushButton#GuidePreparationFilter:checked {
+    background: @PANEL_ACTIVE;
+    border-color: @GREEN_BORDER;
+    color: @GREEN_BORDER;
 }
 
 QLabel#GuideCompactTitle {
