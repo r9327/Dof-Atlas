@@ -101,6 +101,23 @@ class UiUniversalContractTests(unittest.TestCase):
         self.assertNotIn("self.character_combo = QComboBox()", source)
         self.assertIn("AtlasComboBox,", source)
 
+    def test_content_sized_selectors_remain_shared_across_modules(self):
+        for path in ("app/pages/character_page.py", "app/pages/_character_page_impl.py"):
+            source = (REPO_ROOT / path).read_text(encoding="utf-8")
+            self.assertIn(
+                "self.character_selector.setSizePolicy(QSizePolicy.Maximum, QSizePolicy.Fixed)",
+                source,
+            )
+            self.assertNotIn(
+                'self.character_selector.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)',
+                source,
+            )
+        achievements = (
+            REPO_ROOT / "app/modules/encyclopedia/views/achievements_view.py"
+        ).read_text(encoding="utf-8")
+        self.assertNotIn("AdjustToMinimumContentsLengthWithIcon", achievements)
+        self.assertIn("combo.setSizePolicy(QSizePolicy.Maximum, QSizePolicy.Fixed)", achievements)
+
     def test_every_gallery_family_and_consumer_is_registered(self):
         validate_ui_index()
         self.assertGreaterEqual(len(UI_FAMILY_QSS_SELECTORS), 23)
