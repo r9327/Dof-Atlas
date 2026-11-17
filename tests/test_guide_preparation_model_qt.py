@@ -4,9 +4,12 @@ import os
 import tempfile
 import unittest
 from pathlib import Path
+from unittest.mock import patch
 
 os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
 
+from PySide6.QtCore import Qt
+from PySide6.QtGui import QPixmap
 from PySide6.QtWidgets import QCheckBox, QApplication, QLabel, QPushButton, QSpinBox, QToolButton
 
 from app.modules.encyclopedia.services.guide_progress_service import GuideProgressService
@@ -92,6 +95,32 @@ class GuidePreparationQtFocusedTests(unittest.TestCase):
         quantity.setSuffix(" / 123456")
         fit_unity_number_spinbox(quantity)
         self.assertGreater(quantity.width(), compact_width)
+
+    def test_preparation_images_use_the_exact_id_without_generic_inventory_icon(self):
+        view = self._view()
+        image = Path(self.temp.name) / "item-12003.png"
+        pixmap = QPixmap(16, 16)
+        pixmap.fill(Qt.white)
+        self.assertTrue(pixmap.save(str(image), "PNG"))
+
+        with patch(
+            "app.modules.encyclopedia.views.shared_manual_guide_view._preparation_icon_path",
+            return_value=image,
+        ) as resolver:
+            item = view._copyable_preparation_item("Potion de rappel", "Potion de rappel", 12003)
+            self.assertFalse(item.icon().isNull())
+            resolver.assert_called_once_with(12003)
+
+        missing_id = view._copyable_preparation_item("Objet inconnu", "Objet inconnu", None)
+        self.assertTrue(missing_id.icon().isNull())
+        with patch(
+            "app.modules.encyclopedia.views.shared_manual_guide_view._preparation_icon_path",
+            return_value=None,
+        ):
+            missing_artwork = view._copyable_preparation_item(
+                "Objet sans image livrée", "Objet sans image livrée", 999999999,
+            )
+        self.assertTrue(missing_artwork.icon().isNull())
 
     def test_six_verified_participants_can_be_ready_without_anonymous_writes(self):
         from types import SimpleNamespace
