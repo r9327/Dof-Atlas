@@ -862,37 +862,48 @@ def exercise_guide(session, page, owner, guide_id, repeats, smoke=False):
         view.refresh_external_progress()
         settle()
         check_sheet(session, page, view, f"refresh-{turn}")
-    # Persisted lock and actual navigation blocking are distinct assertions.
-    lock = view.route_lock_check
-    if not view.settings_panel.isVisible():
-        click_target(page, view.settings_button)
+    # The obsolete Route lock was removed by the shared global-first header.
+    # Two real Qt clicks now verify the canonical disclosure, its accessible
+    # name and that expanding content never mutates Guide progression.
+    disclosure = view.global_details_button
+    if disclosure.isChecked():
+        disclosure.setChecked(False)
         settle()
+    progress_before = view.global_progress_bar.value()
     trace_path = session.folder / "runtime-trace.json"
     if not trace_path.exists():
         from tools.atlas_doctor_lib.runtime_observation import RuntimeObserver
 
-        # Reuse Doctor's bounded observer on one small real interaction. Tracing
-        # provider hydration would turn a targeted UI check into a costly scan.
         observer = RuntimeObserver(Path(__file__).resolve().parents[2], max_events=200)
         with observer:
-            click = click_target(page, lock)
+            click = click_target(page, disclosure)
         write_json(trace_path, observer.report())
         session.evidence.append(trace_path.name)
     else:
-        click = click_target(page, lock)
-    view.service.reload_progress()
-    saved = view.service.manual_checked(view.character_key, view.ROUTE_LOCK_PROGRESS_KEY)
-    view._jump_from_progress(1.0)
-    session.check("lock", "QTest lock then attempt progress navigation", "Lock persisted, accessible label and index unchanged",
-                  {"click": click, "saved": saved, "index": view.view_index, "label": lock.accessibleName()},
-                  click["accessible"] and saved and view.view_index == 0 and lock.accessibleName() == "Verrouillé", page)
-    click_target(page, lock)
-    view.service.reload_progress()
-    session.check("unlock", "QTest unlock then reload", "Unlocked in service and accessibility label",
-                  {"saved": view.service.manual_checked(view.character_key, view.ROUTE_LOCK_PROGRESS_KEY),
-                   "label": lock.accessibleName()},
-                  not view.service.manual_checked(view.character_key, view.ROUTE_LOCK_PROGRESS_KEY)
-                  and lock.accessibleName() == "Déverrouillé", page)
+        click = click_target(page, disclosure)
+    settle()
+    expanded = disclosure.isChecked() and view.global_details_panel.isVisible()
+    session.check(
+        "global-open", "QTest déplier Progression globale",
+        "Real indexed panel visible; accessible name updated; progress unchanged",
+        {"click": click, "expanded": expanded, "label": disclosure.accessibleName(),
+         "progress_before": progress_before, "progress_after": view.global_progress_bar.value()},
+        click["accessible"] and expanded
+        and disclosure.accessibleName() == "Replier la progression globale"
+        and view.global_progress_bar.value() == progress_before, page,
+    )
+    close_click = click_target(page, disclosure)
+    settle()
+    collapsed = not disclosure.isChecked() and not view.global_details_panel.isVisible()
+    session.check(
+        "global-close", "QTest replier Progression globale",
+        "Panel hidden; control accessible name restored; progress unchanged",
+        {"click": close_click, "collapsed": collapsed, "label": disclosure.accessibleName(),
+         "progress_before": progress_before, "progress_after": view.global_progress_bar.value()},
+        close_click["accessible"] and collapsed
+        and disclosure.accessibleName() == "Déplier la progression globale"
+        and view.global_progress_bar.value() == progress_before, page,
+    )
     # Blank temporary profile is never evidence for automatic in-game completion.
     card = view.service.cards[0]
     automatic = view.service.card_auto_complete(view.character_key, card)
