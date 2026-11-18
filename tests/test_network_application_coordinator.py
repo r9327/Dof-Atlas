@@ -510,13 +510,16 @@ class NetworkApplicationCoordinatorTests(unittest.TestCase):
                 accepted=accepted, character_key=key,
             )
 
-        identified = event("character_identified")
+        # Identity routing reports changed=True in the business bridge,
+        # but that does not mean any quest progress was persisted.
+        identified = event("character_identified", changed=True)
         applied_journal = event("quest_journal_applied", changed=True)
         updated_objective = event("quest_objective_completed", changed=True)
         reconciled = event("character_identified_with_quest_journal", changed=True)
         rows = (
             event("character_unchanged"),
             event("quest_journal_no_change"),
+            event("session_closed", changed=True),
             identified,
             applied_journal,
             updated_objective,
