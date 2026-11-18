@@ -1206,9 +1206,12 @@ class AtlasWindow(QMainWindow):
             )
             for character, icon_path in character_rows
         )
+        projection_changed = combo_signature != getattr(
+            self, "_character_combo_signature", None
+        )
         previous_blocked = self.character_combo.blockSignals(True)
         try:
-            if combo_signature != getattr(self, "_character_combo_signature", None):
+            if projection_changed:
                 self.character_combo.clear()
                 for character, icon_path in character_rows:
                     icon = QIcon(icon_path) if icon_path else QIcon()
@@ -1255,7 +1258,12 @@ class AtlasWindow(QMainWindow):
             self.current_character_label,
             self.character_icon_path(self.current_character_label, class_key=getattr(known_by_key.get(self.current_character_key), "class_key", "")),
         )
-        self.sync_selected_character_to_pages()
+        # The same verified account projection is often re-announced by
+        # separate network sessions. Rebuilding live Encyclopedia/Personnage
+        # pages on an identical selection would multiply Qt work and I/O.
+        # A new/renamed/class-enriched row or changed selection still syncs.
+        if projection_changed or self.current_character_key != previous_key:
+            self.sync_selected_character_to_pages()
         self._refresh_runtime_hotkeys_for_client_mapping()
 
     @staticmethod
