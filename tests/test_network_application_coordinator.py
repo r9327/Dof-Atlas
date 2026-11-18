@@ -4,7 +4,7 @@ import unittest
 from pathlib import Path
 from unittest.mock import patch
 
-from app.network.application_coordinator import NetworkApplicationCoordinator
+from app.network.application_coordinator import NetworkApplicationCoordinator, NetworkApplicationStatus
 from app.network.calibration_controller import ProtocolCalibrationControllerStatus
 from app.network.controller import NetworkControllerStatus
 from app.ui.network_bridge import refresh_visible_encyclopedia_widgets
@@ -279,6 +279,30 @@ class NetworkApplicationCoordinatorTests(unittest.TestCase):
             publish.assert_not_called()
             evidence.assert_not_called()
             runtime.assert_not_called()
+
+    def test_stop_blocks_stale_current_and_explicit_status_publication(self) -> None:
+        coordinator = NetworkApplicationCoordinator(lambda: ())
+        initial = coordinator.latest_status()
+        coordinator._stop_event.set()
+
+        with patch("app.network.application_coordinator.record_validation") as recorded:
+            coordinator._publish_current("running")
+            coordinator._publish_status(NetworkApplicationStatus(True, False, "running"))
+            recorded.assert_not_called()
+
+        self.assertIs(coordinator.latest_status(), initial)
+        self.assertEqual(coordinator.drain_statuses(), [])
+
+    def test_stop_while_validation_is_recorded_drops_late_status_event(self) -> None:
+        coordinator = NetworkApplicationCoordinator(lambda: ())
+        with (
+            patch("app.network.application_coordinator.record_validation",
+                  side_effect=coordinator._stop_event.set),
+            patch.object(coordinator.logger, "info") as logged,
+        ):
+            coordinator._publish_status(NetworkApplicationStatus(True, False, "running"))
+            logged.assert_not_called()
+        self.assertEqual(coordinator.drain_statuses(), [])
 
     def test_stop_closes_other_components_when_calibration_stop_raises(self) -> None:
         coordinator = NetworkApplicationCoordinator(lambda: ())
