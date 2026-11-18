@@ -222,6 +222,28 @@ class QuestSemanticEnrichmentTests(unittest.TestCase):
                 (90, "INVALID_START_COORDINATES"),
             ],
         )
+        issues = report["declared_start_issues"]
+        self.assertEqual(
+            [issue["quest_id"] for issue in issues],
+            [20, 30, 70, 80, 90],
+        )
+        self.assertEqual(issues[0], {
+            "quest_id": 20,
+            "status": "CONFLICTING_DECLARED_START",
+            "launch_position": "[0,0]",
+            "source_start_coords": "[1,0]",
+            "truncated": False,
+        })
+        self.assertEqual(issues[1]["launch_position"], "position inconnue")
+        self.assertEqual(issues[2]["launch_position"], "[-2147483648, 2]")
+        self.assertEqual(issues[3]["launch_position"], "[2147483648, 2]")
+        self.assertTrue(issues[-1]["truncated"])
+        self.assertLessEqual(len(issues[-1]["launch_position"]), 80)
+        self.assertNotIn(10, [issue["quest_id"] for issue in issues])
+        # The report retains declared data as review evidence only.
+        self.assertEqual(
+            report["evidence"], "LOCAL_ENRICHMENT_ONLY_NOT_GAME_VERIFIED",
+        )
 
     def test_local_documentation_coverage_does_not_count_empty_or_image_blocks(self):
         rows = {
