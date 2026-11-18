@@ -264,6 +264,36 @@ class QuestDetailViewColumnTests(unittest.TestCase):
             "[1,2]",
         )
 
+    def test_solution_objective_uses_only_valid_copyable_coordinates(self) -> None:
+        from app.modules.encyclopedia.services.guide_quest_view_model import (
+            solution_objective,
+        )
+
+        discover = QuestObjective(
+            id=108, text="Découvrir la carte : 1234", type_id=0,
+            map_label="[ 003, -06 ]",
+        )
+        row = solution_objective(discover)
+        self.assertIsNotNone(row)
+        self.assertEqual(row.text, "Rendez-vous en [3,-6].")
+        self.assertEqual(row.position, "[3,-6]")
+
+        discover.map_label = "[2147483648,3]"
+        self.assertIsNone(solution_objective(discover))
+
+        combat = QuestObjective(
+            id=109, text="Combat contre le monstre", type_id=6,
+            image_label="Bouftou Royal", map_label="[-2147483648,3]",
+        )
+        combat_row = solution_objective(combat)
+        self.assertIsNotNone(combat_row)
+        self.assertEqual(combat_row.text, "Lancez le combat contre Bouftou Royal.")
+        self.assertEqual(combat_row.position, "")
+        combat.map_label = "[2,3]"
+        combat_row = solution_objective(combat)
+        self.assertEqual(combat_row.position, "[2,3]")
+        self.assertIn("en [2,3]", combat_row.text)
+
     def test_all_displayed_travel_coordinates_share_bold_link_markup(self) -> None:
         from PySide6.QtCore import Qt
         from app.modules.encyclopedia.services.guide_quest_view_model import (
