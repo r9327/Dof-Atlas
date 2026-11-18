@@ -178,6 +178,39 @@ class NetworkApplicationCoordinatorTests(unittest.TestCase):
             calibration.assert_not_called()
             runtime.assert_not_called()
 
+    def test_stop_closes_other_components_when_calibration_stop_raises(self) -> None:
+        coordinator = NetworkApplicationCoordinator(lambda: ())
+        with (
+            patch.object(coordinator.calibration, "stop",
+                         side_effect=OSError("calibration stopped badly")),
+            patch.object(coordinator.runtime, "stop", return_value=True) as runtime,
+            patch.object(coordinator, "_close_capture_source",
+                         return_value=True) as capture,
+            patch.object(coordinator.logger, "exception"),
+        ):
+            self.assertFalse(coordinator.stop(join_timeout=0))
+            runtime.assert_called_once_with()
+            capture.assert_called_once_with()
+        self.assertTrue(coordinator._stop_event.is_set())
+
+    def test_worker_finally_closes_capture_even_after_runtime_stop_error(self) -> None:
+        coordinator = NetworkApplicationCoordinator(lambda: ())
+        coordinator._stop_event.set()
+        with (
+            patch.object(coordinator, "_publish_current"),
+            patch.object(coordinator.calibration, "stop",
+                         return_value=True) as calibration,
+            patch.object(coordinator.runtime, "stop",
+                         side_effect=OSError("runtime stop failed")) as runtime,
+            patch.object(coordinator, "_close_capture_source",
+                         return_value=True) as capture,
+            patch.object(coordinator.logger, "exception"),
+        ):
+            coordinator._run()
+            calibration.assert_called_once_with()
+            runtime.assert_called_once_with()
+            capture.assert_called_once_with()
+
     def test_calibration_and_runtime_share_one_privileged_capture_helper(self) -> None:
         coordinator = NetworkApplicationCoordinator(lambda: ())
         self.assertIs(
