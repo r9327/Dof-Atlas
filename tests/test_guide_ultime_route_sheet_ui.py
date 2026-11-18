@@ -4,6 +4,7 @@ import inspect
 import os
 import unittest
 from types import SimpleNamespace
+from unittest.mock import patch
 
 os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
 
@@ -62,6 +63,30 @@ class GuideUltimeRouteSheetUITests(unittest.TestCase):
             GuideUltimeUniversalView._launch_travel_command(view, "/travel 3,-6")
         )
         self.assertEqual(calls, [("/travel 3,-6", ("character:1",))])
+
+    def test_travel_dispatch_error_is_logged_and_copied(self):
+        app = QApplication.instance() or QApplication([])
+
+        def failed_send(command, keys):
+            raise RuntimeError("capture lost")
+
+        view = SimpleNamespace(
+            participant_service=SimpleNamespace(
+                available_characters=lambda: (
+                    SimpleNamespace(key="character:1", connected=True),
+                ),
+            ),
+            selected_participant_keys=lambda: ("character:1",),
+            travel_callback=failed_send,
+        )
+        with patch(
+            "app.modules.encyclopedia.views.guide_ultime_universal_view._LOGGER.exception"
+        ) as logger:
+            self.assertFalse(
+                GuideUltimeUniversalView._launch_travel_command(view, "/travel 3,-6")
+            )
+            self.assertEqual(app.clipboard().text(), "/travel 3,-6")
+            logger.assert_called_once()
 
     def test_single_route_sheet_is_rendered(self):
         source = inspect.getsource(GuideUltimeUniversalView._render_window)
