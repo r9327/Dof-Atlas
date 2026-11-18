@@ -395,14 +395,27 @@ class NetworkApplicationCoordinator:
         self._start_runtime()
 
     def _poll_calibration(self) -> None:
+        if self._stop_event.is_set():
+            return
         with self._lock:
             if not self._calibration_pending:
                 return
         with self._operation_lock:
+            if self._stop_event.is_set():
+                return
             status = self.calibration.poll()
+        # stop() signals before acquiring the operation lock. A poll already
+        # in progress must not publish identities or apply Quest evidence
+        # once shutdown has begun.
+        if self._stop_event.is_set():
+            return
         self._last_calibration = status
         for result in self.calibration.drain_identity_results():
+            if self._stop_event.is_set():
+                return
             self._results.put(result)
+        if self._stop_event.is_set():
+            return
         self._apply_calibration_journal_evidence()
         terminal = status.reason not in _CALIBRATION_PENDING_REASONS
         if terminal:
@@ -561,7 +574,11 @@ class NetworkApplicationCoordinator:
                 self._results.put(result)
 
     def _drain_runtime_results(self) -> None:
+        if self._stop_event.is_set():
+            return
         for result in self.runtime.drain_results(100):
+            if self._stop_event.is_set():
+                return
             reason = str(result.reason or "")
             activates_character = bool(
                 result.accepted
@@ -573,6 +590,8 @@ class NetworkApplicationCoordinator:
             )
             if result.changed or activates_character:
                 self._results.put(result)
+        if self._stop_event.is_set():
+            return
         if self._last_runtime.running and not self.runtime.is_running:
             self._last_runtime = self.runtime.status()
             self._publish_current(self._last_runtime.reason)
