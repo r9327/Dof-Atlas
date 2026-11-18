@@ -96,6 +96,31 @@ class GuideUltimeManualClickableEntityTests(unittest.TestCase):
             clipboard.assert_not_called()
             self.assertEqual(tooltip.call_args.args[1], "Déplacement demandé")
 
+    def test_manual_position_links_accept_spaced_coordinates(self) -> None:
+        rendered = GuideUltimeManualCard._format_line_html(
+            "", "[ 003, -06 ]", "Rejoins la carte.", [], [],
+        )
+        self.assertIn('href="travel-copy:3,-6"', rendered)
+        self.assertIn("[ 003, -06 ]", rendered)
+
+    def test_missing_location_sentinel_is_never_a_manual_travel_link(self) -> None:
+        self.assertIsNone(
+            GuideUltimeManualCard._copy_text_for_link(
+                "travel-copy:-2147483648,5"
+            )
+        )
+        self.assertIsNone(
+            GuideUltimeManualCard._copy_text_for_link(
+                "travel-copy:5,-2147483648"
+            )
+        )
+        rendered = GuideUltimeManualCard._format_line_html(
+            "", "[-2147483648,5] puis [3,-6]", "Rejoins la carte.", [], [],
+        )
+        self.assertNotIn('href="travel-copy:-2147483648,5"', rendered)
+        self.assertIn('href="travel-copy:3,-6"', rendered)
+        self.assertIn("[-2147483648,5]", rendered)
+
     def test_coordinate_link_builds_travel_command(self) -> None:
         self.assertEqual(
             GuideUltimeManualCard._copy_text_for_link("travel-copy:-12,34"),
