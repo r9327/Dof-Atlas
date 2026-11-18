@@ -88,10 +88,46 @@ class QuestSemanticEnrichmentTests(unittest.TestCase):
             self.assertEqual(payload["counts"]["LOCAL_START_DECLARED"], 1)
             self.assertEqual(payload["counts"]["NO_DECLARED_START"], 1)
             self.assertEqual(payload["counts"]["WITHOUT_TEXTUAL_SOLUTION_BLOCKS"], 1)
+            self.assertEqual(payload["missing_instruction_quest_ids"], [20])
+            self.assertEqual(payload["priority_missing_both_quest_ids"], [20])
             self.assertEqual(
                 payload["needs_review"],
                 [{"quest_id": 20, "status": "NO_DECLARED_START"}],
             )
+
+    def test_local_coverage_reads_sparse_enrichment_with_existing_disk_index(self):
+        from app.quest_source_index import QuestSources
+
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            path = root / "quests_enriched.json"
+            path.write_text(json.dumps({
+                "quests": {
+                    "10": {
+                        "launch_position": {"position": "[3,4]"},
+                        "solution_blocks": [{"type": "text", "content": "Parler"}],
+                    },
+                    "20": {"solution_blocks": []},
+                    "30": {"solution_blocks": [
+                        {"type": "heading", "content": "Préparation"},
+                    ]},
+                },
+            }), encoding="utf-8")
+            sources = QuestSources(root / "offsets", disk_backed=True)
+            try:
+                enrichment = sources.mapping(path, "quests", required=False)
+                report = local_start_position_coverage(enrichment, [30, 10, 20, 99])
+                self.assertEqual(report["quests_considered"], 4)
+                self.assertEqual(report["counts"]["LOCAL_START_DECLARED"], 1)
+                self.assertEqual(
+                    report["missing_instruction_quest_ids"], [20, 30, 99],
+                )
+                self.assertEqual(report["priority_missing_both_quest_ids"], [20, 30, 99])
+                # One bounded row cache; JSON is never loaded as one dict.
+                self.assertLessEqual(len(enrichment._cache), 128)
+                self.assertIsNotNone(enrichment._disk_index)
+            finally:
+                sources.close()
 
     def test_local_start_coverage_distinguishes_source_gaps_from_real_positions(self):
         rows = {
@@ -123,6 +159,14 @@ class QuestSemanticEnrichmentTests(unittest.TestCase):
         self.assertEqual(report["counts"]["WITHOUT_DOCUMENTARY_BLOCKS"], 8)
         self.assertEqual(report["counts"]["WITH_TEXTUAL_SOLUTION_BLOCKS"], 1)
         self.assertEqual(report["counts"]["WITHOUT_TEXTUAL_SOLUTION_BLOCKS"], 8)
+        self.assertEqual(
+            report["missing_instruction_quest_ids"],
+            [20, 30, 40, 50, 60, 70, 80, 90],
+        )
+        self.assertEqual(
+            report["priority_missing_both_quest_ids"],
+            [20, 30, 40, 50, 70, 80, 90],
+        )
         self.assertEqual(
             [(row["quest_id"], row["status"]) for row in report["needs_review"]],
             [
