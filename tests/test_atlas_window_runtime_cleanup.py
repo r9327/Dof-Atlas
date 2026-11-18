@@ -188,6 +188,10 @@ class AtlasWindowRuntimeCleanupTests(unittest.TestCase):
         QApplication.instance() or QApplication([])
         shell = Mock()
         shell.current_character_key = "character:2"
+        shell._character_combo_signature = (
+            ("character:1", "Witsis", "", ""),
+            ("character:2", "Lokidor", "", ""),
+        )
         shell._known_characters.return_value = [
             QuestCharacter("character:1", "Witsis", 1),
             QuestCharacter("character:2", "Lokidor", 2),
@@ -203,8 +207,38 @@ class AtlasWindowRuntimeCleanupTests(unittest.TestCase):
         self.assertEqual(shell.current_character_key, "character:2")
         shell.character_combo.setCurrentIndex.assert_called_once_with(1)
         shell.persist_selected_character.assert_not_called()
-        # Refreshing the UI and window-to-client hotkey mapping remains
-        # permitted even when no persistent account selection changed.
+        shell.character_combo.clear.assert_not_called()
+        shell.sync_selected_character_to_pages.assert_not_called()
+        # Client-window hotkeys still need reconciling even when the
+        # account and its UI projection have not changed.
+        shell._refresh_runtime_hotkeys_for_client_mapping.assert_called_once()
+
+    def test_new_verified_class_updates_live_pages_without_rewriting_selection(self):
+        from app.quest_catalog import QuestCharacter
+
+        QApplication.instance() or QApplication([])
+        shell = Mock()
+        shell.current_character_key = "character:2"
+        shell._character_combo_signature = (
+            ("character:1", "Witsis", "", ""),
+            ("character:2", "Lokidor", "", ""),
+        )
+        shell._known_characters.return_value = [
+            QuestCharacter("character:1", "Witsis", 1),
+            QuestCharacter("character:2", "Lokidor", 2, class_key="huppermage"),
+        ]
+        shell._connected_characters.return_value = shell._known_characters.return_value
+        shell.character_icon_path.return_value = ""
+        shell.character_combo.blockSignals.return_value = False
+        with patch("main.record_validation"):
+            AtlasWindow.refresh_global_characters(
+                shell, allow_default_selection=False,
+            )
+
+        self.assertEqual(shell.current_character_key, "character:2")
+        shell.character_combo.clear.assert_called_once_with()
+        shell.sync_selected_character_to_pages.assert_called_once_with()
+        shell.persist_selected_character.assert_not_called()
         shell._refresh_runtime_hotkeys_for_client_mapping.assert_called_once()
 
     def test_network_initialization_rejects_duplicate_key_and_preserves_manual_choice(self):
