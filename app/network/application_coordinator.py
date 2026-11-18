@@ -299,6 +299,8 @@ class NetworkApplicationCoordinator:
         return True
 
     def _handle_command(self, command: str) -> None:
+        if self._stop_event.is_set():
+            return
         if command == "prepare_capture":
             self._prepare_capture()
             return
@@ -312,6 +314,8 @@ class NetworkApplicationCoordinator:
         """Launch and pause the reusable helper so UAC happens immediately."""
 
         with self._operation_lock:
+            if self._stop_event.is_set():
+                return
             if self.runtime.is_running or self.calibration.is_running:
                 return
             try:
@@ -332,6 +336,8 @@ class NetworkApplicationCoordinator:
         """Start passive exact-build calibration for safe live idz."""
 
         with self._operation_lock:
+            if self._stop_event.is_set():
+                return
             if self.runtime.is_running and not self.runtime.stop():
                 self._publish_current("runtime_stop_failed_before_calibration")
                 return
@@ -345,6 +351,8 @@ class NetworkApplicationCoordinator:
 
     def _start_runtime(self) -> None:
         with self._operation_lock:
+            if self._stop_event.is_set():
+                return
             with self._lock:
                 calibration_pending = self._calibration_pending
             if calibration_pending or self.calibration.is_running:
