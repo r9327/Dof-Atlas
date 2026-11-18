@@ -1402,13 +1402,16 @@ class AtlasWindow(QMainWindow):
             prepare()
 
     def on_organizer_active_window(self, hwnd: int) -> None:
-        """Remember the active Dofus client for no-favorite multi-account mode."""
+        """Keep the foreground handle without guessing which account owns it."""
 
         try:
             self._last_active_dofus_hwnd = max(0, int(hwnd))
         except (TypeError, ValueError, OverflowError):
             return
-        self.refresh_global_characters()
+        # A foreground HWND alone does not establish a verified character
+        # identity. Reconcile connected profiles but never pick the first
+        # account from an otherwise neutral multi-account selection.
+        self.refresh_global_characters(allow_default_selection=False)
 
     def persist_selected_character(self) -> None:
         profiles = read_json(PROFILE_FILE, default_profiles())
