@@ -1329,52 +1329,31 @@ class AtlasWindow(QMainWindow):
             self._pending_network_progress_character = target
 
     def on_network_character_activated(self, character_key: str) -> None:
-        """Refresh learned profiles and display the intended Dofus client."""
+        """Select only the character actually identified on the network."""
 
         target = str(character_key or "").strip()
         if not target:
             return
         self.refresh_global_characters()
 
-        index_payload = read_json(CLIENT_INDEX_JSON, {})
-        clients = index_payload.get("clients", []) if isinstance(index_payload, dict) else []
-        clients = [client for client in clients if isinstance(client, dict)]
-        favorite_clients = [client for client in clients if bool(client.get("primary"))]
-        selected_client = favorite_clients[0] if len(favorite_clients) == 1 else None
-        if selected_client is None and self._last_active_dofus_hwnd > 0:
-            active_clients = []
-            for client in clients:
-                try:
-                    handle = int(client.get("handle") or 0)
-                except (TypeError, ValueError, OverflowError):
-                    # A malformed legacy client entry must not break all
-                    # profile selection following a verified network identity.
-                    continue
-                if handle == self._last_active_dofus_hwnd:
-                    active_clients.append(client)
-            selected_client = active_clients[0] if len(active_clients) == 1 else None
-        if selected_client is None and len(clients) == 1:
-            selected_client = clients[0]
-
-        preferred_name = str(
-            (selected_client or {}).get("character_name")
-            or (selected_client or {}).get("name")
-            or ""
-        ).strip()
-        if not preferred_name:
-            return
-        preferred_key = normalize_key(preferred_name)
+        # NetworkProgressBridge already resolved a stable character:<id>.
+        # Favorite clients, window captions and the last focused HWND are not
+        # proof that a given network session belongs to that character.
+        # Never override the verified target with a similarly named account.
         matches = [
             index
             for index in range(self.character_combo.count())
-            if normalize_key(self.character_combo.itemText(index)) == preferred_key
+            if str(getattr(self.character_combo.itemData(index), "key", "") or "") == target
         ]
         if len(matches) != 1:
+            # An offline, missing or ambiguous character is not permission
+            # to switch to another account. refresh_global_characters() keeps
+            # the remembered selection according to the existing UI contract.
             return
         self.character_combo.setCurrentIndex(matches[0])
-        if self.current_character_key != str(
-            getattr(self.character_combo.currentData(), "key", "") or ""
-        ):
+        if self.current_character_key != target:
+            # Real Qt emits currentIndexChanged for a changed selection. This
+            # fallback also covers an unchanged index after profile refresh.
             self.on_global_character_changed()
 
     def prepare_network_capture(self) -> None:
