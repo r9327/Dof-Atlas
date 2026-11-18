@@ -269,6 +269,51 @@ class OptimizedAchievementsBatchingTests(unittest.TestCase):
             view.deleteLater()
             self.app.processEvents()
 
+    def test_one_damaged_row_does_not_hide_healthy_successes_in_batch(self) -> None:
+        class DamagedRowBatch(_BatchFakeProvider):
+            def catalogue_rows_by_ids(self, ids):
+                rows = super().catalogue_rows_by_ids(ids)
+                rows[1] = None  # Simulate a stale/corrupt compact row.
+                return rows
+
+            def get_by_id(self, achievement_id):
+                if achievement_id == 2:
+                    raise OSError("compact source unreadable")
+                return super().get_by_id(achievement_id)
+
+        from unittest.mock import patch
+
+        view = self._view(24)
+        view.provider = DamagedRowBatch(view.achievements)
+        try:
+            view.refresh()
+            view.show()
+            view._achievement_batch_timer.stop()
+            view.hide()
+            view.list_widget.clear()
+            view._achievement_pending_rows = [row.id for row in view.filtered]
+            view._achievement_visible_row_by_id.clear()
+            view._achievement_rows_dirty = True
+            view.show()
+            view._achievement_batch_timer.stop()
+            with patch(
+                "app.modules.encyclopedia.views.achievements_view._LOGGER.exception"
+            ) as logged:
+                view._render_next_achievement_batch()
+                view._achievement_batch_timer.stop()
+            self.assertGreaterEqual(logged.call_count, 1)
+            self.assertEqual(
+                [view.list_widget.item(i).data(Qt.UserRole)
+                 for i in range(view.list_widget.count())],
+                [1, 3, 4, 5, 6, 7, 8],
+            )
+            self.assertNotIn(2, view._achievement_visible_row_by_id)
+            self.assertEqual(len(view._achievement_pending_rows), 16)
+        finally:
+            view.close()
+            view.deleteLater()
+            self.app.processEvents()
+
     def test_compact_batch_never_labels_other_success_as_requested_id(self) -> None:
         class WrongBatch(_BatchFakeProvider):
             def catalogue_rows_by_ids(self, ids):
