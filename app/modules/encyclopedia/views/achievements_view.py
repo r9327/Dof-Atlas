@@ -247,7 +247,23 @@ class AchievementsView(QWidget):
             self.populate_categories()
             self.refresh()
 
+    def _discard_pending_catalogue(self) -> None:
+        """Invalidate stale list work before an async loading/error placeholder."""
+
+        timer = getattr(self, "_achievement_batch_timer", None)
+        if timer is not None:
+            timer.stop()
+        self._achievement_render_generation += 1
+        self._achievement_pending_rows.clear()
+        self._achievement_visible_row_by_id.clear()
+        self._achievement_pending_selected_id = None
+        self._achievement_rows_dirty = False
+        self._catalog_refresh_signature = None
+        self.filtered = []
+        self._tree_items.clear()
+
     def show_runtime_loading(self) -> None:
+        self._discard_pending_catalogue()
         self.category_tree.clear()
         self.list_widget.clear()
         item = QListWidgetItem("Chargement des succès…")
@@ -256,6 +272,7 @@ class AchievementsView(QWidget):
         self.show_empty()
 
     def show_runtime_error(self, message: str) -> None:
+        self._discard_pending_catalogue()
         self.category_tree.clear()
         self.list_widget.clear()
         item = QListWidgetItem(str(message or "Chargement des succès impossible."))
