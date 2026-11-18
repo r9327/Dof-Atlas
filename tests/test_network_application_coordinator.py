@@ -237,6 +237,28 @@ class NetworkApplicationCoordinatorTests(unittest.TestCase):
             runtime.assert_not_called()
         self.assertFalse(coordinator._calibration_pending)
 
+    def test_stop_between_calibration_status_read_and_flag_write(self) -> None:
+        coordinator = NetworkApplicationCoordinator(lambda: ())
+        coordinator.calibration = _AutoCalibrationFake()
+        coordinator.runtime = _RuntimeFake()
+
+        class _StopOnReason:
+            @property
+            def reason(self):
+                coordinator._stop_event.set()
+                return "awaiting_character_identity"
+
+        with patch.object(coordinator.calibration, "start",
+                          return_value=_StopOnReason()) as started:
+            coordinator._start_calibration()
+            started.assert_called_once_with()
+
+        # The first post-start guard ran before the property above caused
+        # shutdown; the second one under the state lock must still win.
+        self.assertTrue(coordinator._stop_event.is_set())
+        self.assertFalse(coordinator._calibration_pending)
+        self.assertEqual(coordinator.drain_statuses(), [])
+
     def test_stop_during_runtime_start_drops_late_status_and_calibration(self) -> None:
         coordinator = NetworkApplicationCoordinator(lambda: ())
         coordinator.runtime = _ReasonRuntimeFake("mapping_no_exact_match")
