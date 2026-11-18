@@ -2205,6 +2205,38 @@ class SharedGuideManualView(GuideUltimeManualView):
         finally:
             self._follow_active_after_progress_change()
 
+    def _add_manual_order_choice(self, card: dict[str, Any]) -> None:
+        # Order selection is per character and can be irreversible. Unlike
+        # ordinary page validation, never write an unselected browsing
+        # character's Order or apply one click to multiple profiles.
+        keys = self._progress_participant_keys()
+        required = getattr(self.service, "manual_order_choice_required", None)
+        if not callable(required) or not any(required(key, card) for key in keys):
+            return
+        if len(keys) != 1:
+            notice = QFrame()
+            notice.setObjectName("GuideManualOrderChoice")
+            layout = QVBoxLayout(notice)
+            layout.setContentsMargins(14, 11, 14, 11)
+            label = QLabel(
+                "Choisis un seul personnage dans le sélecteur pour définir son Ordre Bonta."
+            )
+            label.setObjectName("GuideManualOrderDetail")
+            label.setWordWrap(True)
+            layout.addWidget(label)
+            self.cards_layout.addWidget(notice)
+            return
+        super()._add_manual_order_choice(card, character_key=keys[0])
+
+    def _select_manual_order(
+        self, order_name: str, character_key: str | None = None,
+    ) -> None:
+        keys = self._progress_participant_keys()
+        if len(keys) != 1 or character_key != keys[0]:
+            return
+        self.service.set_bonta_order(character_key, order_name)
+        self._follow_active_after_progress_change()
+
     def _render_window(self, *, reset_scroll: bool = False) -> None:
         self._catalog_prefetch_timer.stop()
         self._catalog_prefetch_index = None
