@@ -885,6 +885,21 @@ class MemoryBoundAchievementProvider(BaseAchievementProvider):
         self._compact_external_index = offsets
         self._compact_retained_ids = retained_ids
         self._compact_retained_set = frozenset(retained_ids)
+        # Modern sidecars already contain normalized search strings in
+        # retained-ID order. Use them without opening or decoding JSONL on
+        # the first search. Older sidecars fall back to one lazy scan.
+        search_texts = index_payload.get("search_texts")
+        if (
+            isinstance(search_texts, list)
+            and len(search_texts) == len(retained_ids)
+            and all(type(value) is str and len(value) <= 8192
+                    for value in search_texts)
+        ):
+            self._compact_search_text_index = dict(zip(retained_ids, search_texts))
+            self._compact_search_generation = (*source_generation, id(offsets))
+        else:
+            self._compact_search_text_index = None
+            self._compact_search_generation = None
         self._compact_category_ids = id_tuple_map(index_payload.get("by_category"))
         relation_rows = index_payload.get("by_quest")
         relation_count = index_payload.get("by_quest_ref_count")
@@ -2228,6 +2243,10 @@ def _build_compact_cache_unlocked(path: Path) -> int:
                 "retained_count": len(retained),
                 "cache_generation": generation,
                 "retained_ids": [int(achievement.id) for achievement in retained],
+                # Optional startup search acceleration. This primitive list
+                # replaces the first full-file scan for newly built caches.
+                # It is aligned one-to-one with retained_ids above.
+                "search_texts": [str(achievement.search_text or "") for achievement in retained],
                 "by_category": {
                     str(category_id): list(dict.fromkeys(achievement_ids))
                     for category_id, achievement_ids in sorted(by_category_ids.items())
