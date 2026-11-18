@@ -585,6 +585,98 @@ class QuestDetailViewColumnTests(unittest.TestCase):
             for label in labels:
                 label.deleteLater()
 
+    def test_documentary_fallback_notice_uses_visible_not_raw_blocks(self) -> None:
+        from types import SimpleNamespace
+        from unittest.mock import Mock
+        from app.quest_catalog import QuestSolutionBlock
+
+        for raw_block, expected_notice in (
+            (QuestSolutionBlock(1, "text", "Qf>=20"), True),
+            (QuestSolutionBlock(1, "text", "Parlez au chef."), False),
+            (QuestSolutionBlock(1, "heading", "Étape 1"), True),
+        ):
+            with self.subTest(block=raw_block.content):
+                provider = Mock()
+                provider.get_catalog.return_value = SimpleNamespace(by_id={})
+                sheet = QuestDetailView(provider, Mock(), Mock())
+                sheet._prerequisite_rows = Mock(return_value=([], Mock()))
+                sheet._ordered_neighbors = Mock(return_value=(None, None))
+                quest = QuestRecord(
+                    id=923, name="Source et avertissement", category="Quêtes",
+                    level_min=1, level_max=200, start_criterion="",
+                    solution_blocks=[raw_block],
+                    source_solution_steps=[QuestStep(
+                        id=-1, name="Étape source", description="",
+                        objectives=[QuestObjective(
+                            id=-1001, text="Parler au capitaine", type_id=1,
+                        )],
+                    )],
+                )
+                try:
+                    sheet._render_solution(quest, None)
+                    notices = [
+                        label.text() for label in sheet.findChildren(QLabel)
+                        if "Documentation locale complète indisponible" in label.text()
+                    ]
+                    self.assertEqual(bool(notices), expected_notice)
+                finally:
+                    sheet.deleteLater()
+                    self.app.processEvents()
+
+    def test_missing_documentary_image_has_explicit_fallback(self) -> None:
+        from tempfile import TemporaryDirectory
+        from pathlib import Path
+        from app.modules.encyclopedia.services.guide_quest_view_model import (
+            DisplaySolutionBlock,
+        )
+        from app.modules.encyclopedia.views.guides_view import (
+            solution_block_widget,
+        )
+
+        with TemporaryDirectory() as directory:
+            missing = str(Path(directory) / "missing-illustration.png")
+            label = solution_block_widget(DisplaySolutionBlock(
+                "image", image_path=missing, caption="Carte de la quête",
+            ))
+            try:
+                self.assertIsInstance(label, QLabel)
+                self.assertEqual(label.objectName(), "MutedLabel")
+                self.assertIn("Image locale indisponible", label.text())
+                self.assertIn("Carte de la quête", label.text())
+                self.assertFalse(label.styleSheet())
+            finally:
+                label.deleteLater()
+
+    def test_precomputed_documentary_blocks_prevent_double_filtering(self) -> None:
+        from unittest.mock import patch
+        from app.quest_catalog import QuestSolutionBlock
+        from app.modules.encyclopedia.services.guide_quest_view_model import (
+            quest_solution_blocks,
+        )
+        from app.modules.encyclopedia.views.guides_view import (
+            quest_solution_document_widgets,
+        )
+
+        quest = QuestRecord(
+            id=924, name="Contenu unique", category="Quêtes",
+            level_min=1, level_max=200, start_criterion="",
+            solution_blocks=[QuestSolutionBlock(1, "text", "Rejoindre [3,-6].")],
+        )
+        blocks = quest_solution_blocks(quest)
+        with patch(
+            "app.modules.encyclopedia.views.guides_view.quest_solution_blocks",
+            side_effect=AssertionError("already filtered once"),
+        ):
+            widgets = quest_solution_document_widgets(
+                quest, source_blocks=blocks,
+            )
+        try:
+            self.assertEqual(len(widgets), 1)
+            self.assertIn("atlas-travel:3,-6", widgets[0].text())
+        finally:
+            for widget in widgets:
+                widget.deleteLater()
+
     def test_all_displayed_travel_coordinates_share_bold_link_markup(self) -> None:
         from PySide6.QtCore import Qt
         from app.modules.encyclopedia.services.guide_quest_view_model import (
