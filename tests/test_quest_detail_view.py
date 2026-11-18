@@ -223,6 +223,8 @@ class QuestDetailViewColumnTests(unittest.TestCase):
             DisplaySolutionBlock,
         )
         from app.modules.encyclopedia.views.guides_view import (
+            copy_travel_link,
+            copy_travel_position,
             linkify_travel_text,
             solution_text_document,
             text_label,
@@ -234,6 +236,27 @@ class QuestDetailViewColumnTests(unittest.TestCase):
         self.assertIn("atlas-travel:-2,13", html)
         self.assertIn("atlas-travel:5,-6", html)
         self.assertNotIn("font-size:", html)
+        self.assertIn(
+            'href="atlas-travel:3,-6"',
+            linkify_travel_text("Départ [ 003, -06 ]"),
+        )
+        for bad in (
+            "[-2147483648,3]",
+            "[2147483648,3]",
+            "[" + "9" * 5000 + ",3]",
+        ):
+            with self.subTest(bad_length=len(bad)):
+                self.assertNotIn("atlas-travel:", linkify_travel_text(bad))
+
+        clipboard = QApplication.clipboard()
+        clipboard.setText("commande précédente")
+        copy_travel_link("atlas-travel:-2147483648,3")
+        copy_travel_position("[2147483648,3]")
+        self.assertEqual(clipboard.text(), "commande précédente")
+        copy_travel_link("atlas-travel:5,-6")
+        self.assertEqual(clipboard.text(), "/travel 5,-6")
+        copy_travel_position("[ 003, -06 ]")
+        self.assertEqual(clipboard.text(), "/travel 3,-6")
 
         for label in (
             text_label(coordinates, "QuestLaunchPosition"),
