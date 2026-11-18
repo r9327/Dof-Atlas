@@ -88,6 +88,69 @@ class GuideUltimeRouteSheetUITests(unittest.TestCase):
             self.assertEqual(app.clipboard().text(), "/travel 3,-6")
             logger.assert_called_once()
 
+    def test_explicitly_refused_travel_is_copied_not_reported_sent(self):
+        app = QApplication.instance() or QApplication([])
+        calls = []
+        view = SimpleNamespace(
+            participant_service=SimpleNamespace(
+                available_characters=lambda: (
+                    SimpleNamespace(key="character:1", connected=True),
+                ),
+            ),
+            selected_participant_keys=lambda: ("character:1",),
+            travel_callback=lambda command, keys: (
+                calls.append((command, keys)) or False
+            ),
+        )
+        self.assertFalse(
+            GuideUltimeUniversalView._launch_travel_command(view, "/travel 3,-6")
+        )
+        self.assertEqual(calls, [("/travel 3,-6", ("character:1",))])
+        self.assertEqual(app.clipboard().text(), "/travel 3,-6")
+
+    def test_identity_lookup_exception_fails_closed_with_clipboard(self):
+        app = QApplication.instance() or QApplication([])
+        calls = []
+
+        def missing_registry():
+            raise OSError("verified participant registry unreadable")
+
+        view = SimpleNamespace(
+            participant_service=SimpleNamespace(
+                available_characters=missing_registry,
+            ),
+            selected_participant_keys=lambda: ("character:1",),
+            travel_callback=lambda command, keys: calls.append((command, keys)),
+        )
+        with patch(
+            "app.modules.encyclopedia.views.guide_ultime_universal_view._LOGGER.exception"
+        ) as logger:
+            self.assertFalse(
+                GuideUltimeUniversalView._launch_travel_command(view, "/travel 3,-6")
+            )
+            logger.assert_called_once()
+        self.assertEqual(calls, [])
+        self.assertEqual(app.clipboard().text(), "/travel 3,-6")
+
+    def test_unreasonably_long_coordinate_is_not_dispatched(self):
+        app = QApplication.instance() or QApplication([])
+        calls = []
+        view = SimpleNamespace(
+            participant_service=SimpleNamespace(
+                available_characters=lambda: (
+                    SimpleNamespace(key="character:1", connected=True),
+                ),
+            ),
+            selected_participant_keys=lambda: ("character:1",),
+            travel_callback=lambda command, keys: calls.append((command, keys)),
+        )
+        command = "/travel " + "9" * 5000 + ",2"
+        self.assertFalse(
+            GuideUltimeUniversalView._launch_travel_command(view, command)
+        )
+        self.assertEqual(calls, [])
+        self.assertEqual(app.clipboard().text(), command)
+
     def test_single_route_sheet_is_rendered(self):
         source = inspect.getsource(GuideUltimeUniversalView._render_window)
         self.assertIn("GuideUltimeRouteCard", source)
