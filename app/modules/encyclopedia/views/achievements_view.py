@@ -1150,7 +1150,17 @@ class AchievementsView(QWidget):
                         # Success under another ID or open the wrong detail.
                         payload = None
                     if payload is None:
-                        achievement = self.provider.get_by_id(int(achievement_id))
+                        try:
+                            achievement = self.provider.get_by_id(int(achievement_id))
+                        except (OSError, UnicodeError, ValueError, TypeError, KeyError):
+                            # A single damaged cached record cannot prevent
+                            # later, valid successes in this same viewport
+                            # batch from becoming visible.
+                            _LOGGER.exception(
+                                "Lecture de la ligne Succès %s impossible",
+                                achievement_id,
+                            )
+                            continue
                         if achievement is None:
                             continue
                         name = str(achievement.name or "")
