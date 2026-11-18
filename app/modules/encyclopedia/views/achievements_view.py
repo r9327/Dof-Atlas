@@ -471,6 +471,9 @@ class AchievementsView(QWidget):
         if summary is None or not self.provider.is_retained(achievement_id):
             self.show_empty()
             return
+        # Direct links and manual clicks both change the *current* list
+        # selection. Later lazy batches must not reselect the first result.
+        self._achievement_pending_selected_id = achievement_id
         self._detail_generation += 1
         generation = self._detail_generation
         self._detail_requested = None
