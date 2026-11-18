@@ -414,26 +414,29 @@ def local_start_position_coverage(
             first = str(launch.get("position") or "").strip()
             second = str(metadata.get("startCoords") or "").strip()
             declared = [part for part in (first, second) if part]
-            parsed = [_LOCAL_START_COORD_RE.fullmatch(part) for part in declared]
+            parsed: list[tuple[int, int] | None] = []
+            for part in declared:
+                match = _LOCAL_START_COORD_RE.fullmatch(part)
+                if match is None or any(
+                    len(value.lstrip("-")) > 10 for value in match.groups()
+                ):
+                    parsed.append(None)
+                    continue
+                coordinates = tuple(int(value) for value in match.groups())
+                # The audit must agree with the runtime's game-map contract:
+                # signed 32-bit coordinates excluding the unknown sentinel.
+                parsed.append(
+                    coordinates if all(
+                        SENTINEL_COORD < value < 2**31 for value in coordinates
+                    ) else None
+                )
             if not declared:
                 status = "NO_DECLARED_START"
-            elif any(match is None for match in parsed):
+            elif any(coords is None for coords in parsed):
                 status = "INVALID_START_COORDINATES"
-            elif any(
-                SENTINEL_COORD in tuple(map(int, match.groups()))
-                for match in parsed
-            ):
-                # A numeric-looking Doduda sentinel is still an unknown map,
-                # not a local declaration of the quest's start position.
-                status = "INVALID_START_COORDINATES"
-            elif len(parsed) == 2 and parsed[0].groups() != parsed[1].groups():
-                # Different textual zero-padding must not create a false mismatch.
-                first_xy = tuple(map(int, parsed[0].groups()))
-                second_xy = tuple(map(int, parsed[1].groups()))
-                status = (
-                    "LOCAL_START_DECLARED" if first_xy == second_xy
-                    else "CONFLICTING_DECLARED_START"
-                )
+            elif len(set(parsed)) > 1:
+                # Different zero-padding or whitespace is the same location.
+                status = "CONFLICTING_DECLARED_START"
             else:
                 status = "LOCAL_START_DECLARED"
         blocks = (
