@@ -256,6 +256,7 @@ class AchievementsView(QWidget):
         self._achievement_render_generation += 1
         self._achievement_pending_rows.clear()
         self._achievement_visible_row_by_id.clear()
+        self._achievement_batch_retry_count = 0
         self._achievement_pending_selected_id = None
         self._achievement_rows_dirty = False
         self._catalog_refresh_signature = None
@@ -909,6 +910,7 @@ class AchievementsView(QWidget):
         self._achievement_visible_row_by_id: dict[int, int] = {}
         self._achievement_pending_selected_id: int | None = None
         self._achievement_rows_dirty = False
+        self._achievement_batch_retry_count = 0
         self._achievement_completed_ids: frozenset[int] = frozenset()
         self._achievement_batch_timer: QTimer | None = None
         self._achievement_rendering_batch = False
@@ -1032,6 +1034,7 @@ class AchievementsView(QWidget):
 
         self._achievement_render_generation += 1
         self._achievement_visible_row_by_id.clear()
+        self._achievement_batch_retry_count = 0
         self._achievement_pending_selected_id = int(selected_id) if selected_id is not None else None
         self._achievement_completed_ids = frozenset(
             int(value) for value in self.progress_service.state_for(self.character_key).completed_achievements
@@ -1118,9 +1121,19 @@ class AchievementsView(QWidget):
                     # Success IDs silently after a temporary cache read error.
                     self._achievement_pending_rows[:0] = batch
                     self._achievement_rows_dirty = True
+                    self._achievement_batch_retry_count = (
+                        getattr(self, "_achievement_batch_retry_count", 0) + 1
+                    )
                     _LOGGER.exception("Chargement du catalogue Succès interrompu")
                     self.status_callback("Liste des Succès momentanément indisponible")
+                    if self._achievement_batch_retry_count == 1:
+                        # One bounded retry for transient I/O, not an infinite
+                        # 0-ms loop that would freeze the Qt event loop.
+                        timer = self._achievement_batch_timer
+                        if timer is not None:
+                            timer.start(250)
                     return
+                self._achievement_batch_retry_count = 0
                 for achievement_id, payload in zip(batch, primitive_rows):
                     if generation != self._achievement_render_generation:
                         return
