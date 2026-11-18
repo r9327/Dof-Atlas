@@ -38,7 +38,7 @@ TECHNICAL_CRITERION_RE = re.compile(
     r"\b(?:Qf|Qa|Qo|Ps|Pa|Pz|Po|EM|PL|BT|Sc|SC|ST|OA|HA|AN)\s*[=<>!]",
     re.IGNORECASE,
 )
-COORD_RE = re.compile(r"\[(-?\d+)\s*,\s*(-?\d+)\]")
+COORD_RE = re.compile(r"\[\s*(-?\d+)\s*,\s*(-?\d+)\s*\]")
 KAMAS_REWARD_RE = re.compile(r"^(\d[\d\s]*)\s*(?:k|kamas)\b", re.IGNORECASE)
 SOURCE_QUANTITY_REWARD_RE = re.compile(r"^(?:x\s*)?\d+\s*x?\s+.+", re.IGNORECASE)
 SOURCE_REWARD_SENTENCE_RE = re.compile(
@@ -684,6 +684,18 @@ def _aggregate_global_rewards(
     return tuple(merged[key] for key in order)
 
 
+def _canonical_source_coordinate(value: object) -> str:
+    """Only exact numeric coordinates enter the shared copyable start field."""
+
+    match = COORD_RE.fullmatch(clean_text(value))
+    if match is None:
+        return ""
+    try:
+        return f"[{int(match.group(1))},{int(match.group(2))}]"
+    except ValueError:
+        return ""
+
+
 def quest_start_info(
     quest: QuestRecord, *, include_map_images: bool = True,
 ) -> QuestStartInfo:
@@ -694,14 +706,12 @@ def quest_start_info(
     source_meta = source_meta if isinstance(source_meta, dict) else {}
 
     npc = clean_text(source_meta.get("startNpc"))
-    launch_coords = clean_text(launch.get("position"))
-    meta_coords = clean_text(source_meta.get("startCoords"))
-    # A non-coordinate placeholder must never suppress a usable start from the
-    # second local source (or the existing objective-only fallback).
+    # Normalize local source coordinates once: Guide copy links and /travel
+    # expect [x,y], regardless of whitespace or zero-padding in the source.
+    # A placeholder must not suppress a valid second source or objective hint.
     position = (
-        launch_coords if COORD_RE.fullmatch(launch_coords) else ""
-    ) or (
-        meta_coords if COORD_RE.fullmatch(meta_coords) else ""
+        _canonical_source_coordinate(launch.get("position"))
+        or _canonical_source_coordinate(source_meta.get("startCoords"))
     )
     source_zone = clean_text(source_meta.get("zone"))
     zone = next(
