@@ -86,6 +86,32 @@ class AchievementCompactSubprocessTests(unittest.TestCase):
 
 class AchievementCompactRowIdentityTests(unittest.TestCase):
 
+    def test_compact_category_resolves_deep_links_without_summary_reads(self) -> None:
+        from types import SimpleNamespace
+
+        provider = MemoryBoundAchievementProvider()
+        provider._compact_retained_set = frozenset({10, 11})
+        provider._compact_category_ids = {
+            1: (10, 11), 2: (10,), 3: (11,),
+        }
+        provider._categories = {
+            1: SimpleNamespace(parent_id=0),
+            2: SimpleNamespace(parent_id=1),
+            3: SimpleNamespace(parent_id=1),
+        }
+        with (
+            patch.object(provider, "_ensure_loaded"),
+            patch.object(provider, "_summary_by_id",
+                         side_effect=AssertionError("no JSONL summary on deep link")),
+        ):
+            self.assertEqual(provider.catalogue_category_for_id(10), 2)
+            self.assertEqual(provider.catalogue_category_for_id(11), 3)
+            self.assertIsNone(provider.catalogue_category_for_id(99))
+            provider._compact_category_ids = {1: (10,)}
+            self.assertEqual(provider.catalogue_category_for_id(10), 1)
+            provider._compact_category_ids = {5: (10,)}
+            self.assertIsNone(provider.catalogue_category_for_id(10))
+
     def test_compact_visible_batch_opens_jsonl_only_once(self) -> None:
         from app.modules.encyclopedia.providers import memory_bound_achievement_provider as mod
 
