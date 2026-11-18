@@ -518,6 +518,49 @@ class AchievementCompactRowIdentityTests(unittest.TestCase):
                         self.assertIsNotNone(row)
                         self.assertEqual(row["name"], "Détail conservé")
 
+    def test_one_progress_seek_error_preserves_other_compact_rows(self) -> None:
+        from app.modules.encyclopedia.providers import memory_bound_achievement_provider as mod
+
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / "success.jsonl"
+            offsets = {}
+            content = b""
+            for ident in (10, 11, 12):
+                encoded = (json.dumps({"kind": "achievement", "value": {
+                    "id": ident, "category_name": "Quêtes",
+                    "progress_objectives": [],
+                }}) + "\n").encode("utf-8")
+                offsets[ident] = (len(content), len(encoded))
+                content += encoded
+            path.write_bytes(content)
+            broken_offset = offsets[11][0]
+            real_open = Path.open
+
+            class BrokenRowStream(io.BytesIO):
+                def seek(self, offset, whence=0):
+                    if whence == 0 and offset == broken_offset:
+                        raise OSError("transient seek failure on one Success")
+                    return super().seek(offset, whence)
+
+            def fake_open(target, *args, **kwargs):
+                if target == path and args and args[0] == "rb":
+                    return BrokenRowStream(content)
+                return real_open(target, *args, **kwargs)
+
+            provider = MemoryBoundAchievementProvider()
+            provider._compact_retained_ids = (10, 11, 12)
+            provider._compact_retained_set = frozenset({10, 11, 12})
+            provider._compact_external_index = offsets
+            with (
+                patch.object(mod, "ACHIEVEMENT_COMPACT_CACHE", path),
+                patch.object(provider, "_ensure_loaded"),
+                patch.object(Path, "open", fake_open),
+            ):
+                self.assertEqual(provider.progress_catalogue(), (
+                    (10, "Quêtes", ()),
+                    (12, "Quêtes", ()),
+                ))
+
     def test_compact_progress_catalogue_keeps_valid_rows_around_corrupt_json(self) -> None:
         from app.modules.encyclopedia.providers import memory_bound_achievement_provider as mod
 
