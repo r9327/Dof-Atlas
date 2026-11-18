@@ -362,6 +362,36 @@ class AchievementsThirdColumnTests(unittest.TestCase):
         provider.get_by_id.assert_not_called()
         view.show_achievement.assert_called_once_with(42)
 
+    def test_compact_deep_link_with_missing_category_never_scans_on_qt_thread(self):
+        view, provider = self.make_view()
+
+        class _CompactWithoutCategory:
+            def __init__(self, delegate):
+                self.delegate = delegate
+
+            def __getattr__(self, name):
+                return getattr(self.delegate, name)
+
+            def catalogue_category_for_id(self, achievement_id):
+                self.delegate.is_retained.assert_called_with(achievement_id)
+                return None
+
+        view.provider = _CompactWithoutCategory(provider)
+        provider.get_by_id.side_effect = AssertionError(
+            "An incomplete compact category index must not read JSONL on Qt"
+        )
+        view.filtered = [SimpleNamespace(id=17)]
+        self.add_success(view, 17)
+        view.list_widget.setCurrentRow(0)
+        view.show_achievement = Mock()
+
+        self.assertTrue(view.select_achievement(42))
+        provider.is_retained.assert_called_with(42)
+        provider.get_by_id.assert_not_called()
+        self.assertEqual(view.list_widget.currentRow(), -1)
+        self.assertEqual(view._achievement_pending_selected_id, 42)
+        view.show_achievement.assert_called_once_with(42)
+
     def test_direct_link_selects_actual_visible_id_after_a_skipped_cache_row(self):
         view, provider = self.make_view()
         provider.get_by_id.side_effect = lambda achievement_id: SimpleNamespace(
