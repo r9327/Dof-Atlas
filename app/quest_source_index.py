@@ -595,10 +595,19 @@ class JsonSourceMapping(Mapping):
             if self._stream is None:
                 self._stream = self.path.open('rb')
                 self._close_stream = weakref.finalize(self, self._stream.close)
-            self._stream.seek(start)
-            value = json.loads(self._stream.read(end - start))
-            if self.doduda:
-                value = value['data']
+            try:
+                self._stream.seek(start)
+                value = json.loads(self._stream.read(end - start))
+                if self.doduda:
+                    value = value["data"]
+            except (ValueError, UnicodeError, TypeError, KeyError) as exc:
+                # A span can be in bounds yet decode to invalid JSON. Optional
+                # enrichment is skipped; mandatory game data fails explicitly.
+                if self.required:
+                    raise QuestSourceError(
+                        f"Invalid source JSON for {key}: {self.path}"
+                    ) from exc
+                raise KeyError(key) from exc
             self._cache[key] = value
             while len(self._cache) > 128:
                 self._cache.popitem(last=False)
