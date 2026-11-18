@@ -13,7 +13,7 @@ from time import monotonic, sleep
 from typing import TYPE_CHECKING, Any, Callable
 from weakref import WeakSet
 
-from PySide6.QtCore import QDate, QObject, QEvent, QPoint, QSize, Qt, QTimer, Signal
+from PySide6.QtCore import QDate, QDateTime, QObject, QEvent, QPoint, QSize, Qt, QTime, QTimer, Signal
 from PySide6.QtGui import QCloseEvent, QColor, QCursor, QIcon, QImage, QPixmap
 from PySide6.QtWidgets import (
     QApplication,
@@ -902,6 +902,11 @@ class AtlasWindow(QMainWindow):
         # not by rebuilding an invisible Qt tab for every completed quest.
         self._pending_network_progress_character = ""
         self._almanax_service = None  # Lazy, after Home is visible.
+        # One lightweight wake-up at the next local midnight; no polling
+        # and no Almanax HTTP request during startup/preload.
+        self._almanax_rollover_timer = QTimer(self)
+        self._almanax_rollover_timer.setSingleShot(True)
+        self._almanax_rollover_timer.timeout.connect(self._refresh_almanax_today)
 
         central = UnityBackdrop() if unity_enabled() else QWidget()
         self.setCentralWidget(central)
@@ -1940,9 +1945,18 @@ class AtlasWindow(QMainWindow):
             self._ensure_almanax_service().request_day(day_key, refresh=refresh)
 
     def _refresh_almanax_today(self) -> None:
+        if self.quit_requested:
+            return
         day_key = QDate.currentDate().toString("yyyy-MM-dd")
         self.home_page.set_almanax_loading(day_key)
         self._request_almanax_day(day_key)
+        # Re-arm after every refresh (including navigation back to Home).
+        # QDateTime uses local civil time, including the DST transition,
+        # rather than assuming that every day lasts exactly 24 hours.
+        tomorrow = QDate.currentDate().addDays(1)
+        midnight = QDateTime(tomorrow, QTime(0, 0, 1))
+        delay_ms = max(1000, QDateTime.currentDateTime().msecsTo(midnight))
+        self._almanax_rollover_timer.start(delay_ms)
 
     def _on_almanax_day_available(self, day_key: str, day: object, cached: bool) -> None:
         if self.quit_requested:

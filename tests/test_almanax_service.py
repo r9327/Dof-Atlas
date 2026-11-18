@@ -227,6 +227,25 @@ class AlmanaxUiTests(unittest.TestCase):
             page.deleteLater()
             self.app.processEvents()
 
+    def test_home_almanax_rearms_single_midnight_refresh(self):
+        from main import AtlasWindow
+
+        shell = Mock()
+        shell.quit_requested = False
+        AtlasWindow._refresh_almanax_today(shell)
+        today = QDate.currentDate().toString("yyyy-MM-dd")
+        shell.home_page.set_almanax_loading.assert_called_once_with(today)
+        shell._request_almanax_day.assert_called_once_with(today)
+        shell._almanax_rollover_timer.start.assert_called_once()
+        delay = shell._almanax_rollover_timer.start.call_args.args[0]
+        self.assertGreater(delay, 0)
+        self.assertLessEqual(delay, 26 * 60 * 60 * 1000)
+
+        shell.quit_requested = True
+        AtlasWindow._refresh_almanax_today(shell)
+        shell._request_almanax_day.assert_called_once_with(today)
+        shell._almanax_rollover_timer.start.assert_called_once()
+
     def test_calendar_selects_future_date_and_offers_manual_refresh(self):
         from main import AtlasWindow
 
