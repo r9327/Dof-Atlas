@@ -116,6 +116,43 @@ class AchievementsThirdColumnTests(unittest.TestCase):
         self.assertTrue(view._detail_open)
         self.assertEqual(provider.get_detail_by_id.call_count, 1)
 
+    def test_cold_detail_click_skips_compatibility_summary_on_qt_thread(self):
+        view, provider = self.make_view()
+        provider._recent_rich_details = {}
+        provider.detail_sources_ready = False
+        provider.detail_source_index_required.return_value = False
+        provider.get_by_id.side_effect = AssertionError(
+            "A cold click must not read the compact summary on the UI thread"
+        )
+        view._display_achievement = Mock()
+
+        with patch("app.modules.encyclopedia.views.achievements_view.Thread") as thread:
+            view.show_achievement(93)
+            provider.is_retained.assert_called_with(93)
+            provider.get_by_id.assert_not_called()
+            provider.get_detail_by_id.assert_not_called()
+            thread.assert_called_once()
+
+            # The real rich read belongs only to the existing detail worker.
+            thread.call_args.kwargs["target"]()
+            self.app.processEvents()
+
+        provider.get_detail_by_id.assert_called_once_with(93)
+
+    def test_invalid_detail_id_does_not_start_worker_or_read_summary(self):
+        view, provider = self.make_view()
+        provider.is_retained.return_value = False
+        provider.get_by_id.side_effect = AssertionError(
+            "An unknown Success should fail membership before reading detail"
+        )
+
+        with patch("app.modules.encyclopedia.views.achievements_view.Thread") as thread:
+            view.show_achievement(9999)
+            provider.get_by_id.assert_not_called()
+            provider.get_detail_by_id.assert_not_called()
+            thread.assert_not_called()
+        self.assertIsNone(view.current_achievement_id)
+
     def test_catalogue_only_preload_skips_reward_source_index(self):
         from app.modules.encyclopedia.providers.achievement_provider import AchievementProvider
 
