@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import unittest
 from pathlib import Path
+from unittest.mock import patch
 
 from app.network.application_coordinator import NetworkApplicationCoordinator
 from app.network.calibration_controller import ProtocolCalibrationControllerStatus
@@ -128,6 +129,36 @@ class _OtherWidget:
 
 
 class NetworkApplicationCoordinatorTests(unittest.TestCase):
+    def test_stop_during_queue_get_never_executes_pending_capture_command(self) -> None:
+        coordinator = NetworkApplicationCoordinator(lambda: ())
+
+        def stop_before_return(*, timeout):
+            coordinator._stop_event.set()
+            return "prepare_capture"
+
+        with (
+            patch.object(coordinator._commands, "get", side_effect=stop_before_return),
+            patch.object(coordinator, "_handle_command") as handle,
+            patch.object(coordinator, "_publish_current"),
+            patch.object(coordinator.calibration, "stop", return_value=True),
+            patch.object(coordinator.runtime, "stop", return_value=True),
+            patch.object(coordinator, "_close_capture_source", return_value=True),
+        ):
+            coordinator._run()
+            handle.assert_not_called()
+
+    def test_restarted_worker_discards_old_privileged_commands(self) -> None:
+        coordinator = NetworkApplicationCoordinator(lambda: ())
+        coordinator._commands.put("prepare_capture")
+        coordinator._commands.put("start_runtime")
+        with patch(
+            "app.network.application_coordinator.threading.Thread"
+        ) as create_thread:
+            self.assertTrue(coordinator.start_worker())
+            create_thread.return_value.start.assert_called_once_with()
+            self.assertTrue(coordinator._commands.empty())
+            self.assertFalse(coordinator._stop_event.is_set())
+
     def test_calibration_and_runtime_share_one_privileged_capture_helper(self) -> None:
         coordinator = NetworkApplicationCoordinator(lambda: ())
         self.assertIs(
