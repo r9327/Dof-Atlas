@@ -910,6 +910,38 @@ class AchievementCompactRowIdentityTests(unittest.TestCase):
                 # A genuinely external ID still uses the external section.
                 self.assertIsNone(provider._compact_value_by_id(99))
 
+    def test_exceptional_compact_lookup_skips_corrupt_rows_not_valid_success(self):
+        from app.modules.encyclopedia.providers import memory_bound_achievement_provider as mod
+
+        with tempfile.TemporaryDirectory() as directory:
+            cache = Path(directory) / "success.jsonl"
+            cache.write_text(
+                "\n".join((
+                    json.dumps({"kind": "meta"}),
+                    "{not-valid-json",
+                    json.dumps({"kind": "achievement", "value": {
+                        "id": 10, "name": "Retained",
+                    }}),
+                    json.dumps({"kind": "external_start"}),
+                    '{"kind":"achievement","value":BROKEN}',
+                    json.dumps({"kind": "achievement", "value": {
+                        "id": 999, "name": "External",
+                    }}),
+                )) + "\n", encoding="utf-8",
+            )
+            provider = MemoryBoundAchievementProvider.__new__(
+                MemoryBoundAchievementProvider
+            )
+            provider._compact_external_index = {10: (0, -1)}
+            provider._compact_retained_set = frozenset({10})
+            with patch.object(mod, "ACHIEVEMENT_COMPACT_CACHE", cache):
+                self.assertEqual(
+                    provider._compact_value_by_id(10)["name"], "Retained",
+                )
+                self.assertEqual(
+                    provider._compact_value_by_id(999)["name"], "External",
+                )
+
     def test_external_compat_lookup_rejects_boolean_achievement_id(self):
         from app.modules.encyclopedia.providers import memory_bound_achievement_provider as mod
 
