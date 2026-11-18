@@ -599,7 +599,12 @@ class JsonSourceMapping(Mapping):
                 self._stream.seek(start)
                 value = json.loads(self._stream.read(end - start))
                 if self.doduda:
-                    value = value["data"]
+                    # A corrupt but in-bounds index can point at a different
+                    # valid row. Never associate that quest with the wrong ID.
+                    row = value["data"]
+                    if not isinstance(row, dict) or str(row.get("id")) != str(key):
+                        raise ValueError("Mismatched Doduda source record ID")
+                    value = row
             except (ValueError, UnicodeError, TypeError, KeyError) as exc:
                 # A span can be in bounds yet decode to invalid JSON. Optional
                 # enrichment is skipped; mandatory game data fails explicitly.
