@@ -73,6 +73,33 @@ class AchievementsThirdColumnTests(unittest.TestCase):
         )
         provider.get_detail_by_id.assert_not_called()
 
+    def test_corrupt_list_item_id_does_not_replace_open_success(self):
+        view, provider = self.make_view()
+        view.current_achievement_id = 42
+        view._detail_open = True
+        view.show_achievement = Mock()
+        for bad in (None, "", "bad", -7, True, 1.2):
+            with self.subTest(raw=repr(bad)):
+                item = QListWidgetItem("Enregistrement corrompu")
+                item.setData(Qt.UserRole, bad)
+                view.on_achievement_clicked(item)
+        view.show_achievement.assert_not_called()
+        self.assertEqual(view.current_achievement_id, 42)
+        self.assertTrue(view._detail_open)
+        provider.get_detail_by_id.assert_not_called()
+
+    def test_malformed_show_success_id_does_not_close_current_detail(self):
+        view, provider = self.make_view()
+        view.current_achievement_id = 42
+        view._detail_open = True
+        for bad in (None, "bad", 0, -1, True, 1.5):
+            with self.subTest(raw=repr(bad)):
+                view.show_achievement(bad)
+        self.assertEqual(view.current_achievement_id, 42)
+        self.assertTrue(view._detail_open)
+        provider.is_retained.assert_not_called()
+        provider.get_detail_by_id.assert_not_called()
+
     def test_loading_and_error_drop_old_lazy_success_batches(self):
         view, _provider = self.make_view()
         for label, announce in (
