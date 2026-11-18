@@ -384,6 +384,32 @@ class QuestDetailViewColumnTests(unittest.TestCase):
             ["", "[2,3]"],
         )
 
+    def test_source_blocks_share_audit_instruction_filter(self) -> None:
+        from app.quest_catalog import QuestSolutionBlock
+        from app.modules.encyclopedia.services.guide_quest_view_model import (
+            quest_solution_blocks,
+        )
+
+        quest = QuestRecord(
+            id=902, name="Sources non vérifiées", category="Quêtes",
+            level_min=1, level_max=200, start_criterion="",
+            solution_blocks=[
+                QuestSolutionBlock(1, "text", "Qf>=20"),
+                QuestSolutionBlock(
+                    2, "text",
+                    "Mini-carte L’aperçu de la carte sera affiché ici sur le site.",
+                ),
+                QuestSolutionBlock(3, "text", "Découvrir la carte : 9999"),
+                QuestSolutionBlock(4, "image", image_path="image_locale.webp"),
+            ],
+        )
+        blocks = quest_solution_blocks(quest)
+        self.assertEqual(
+            [(block.block_type, block.content) for block in blocks],
+            [("text", "Découvrir la carte : 9999"), ("image", "")],
+        )
+        self.assertEqual(blocks[1].image_path, "image_locale.webp")
+
     def test_all_displayed_travel_coordinates_share_bold_link_markup(self) -> None:
         from PySide6.QtCore import Qt
         from app.modules.encyclopedia.services.guide_quest_view_model import (
