@@ -694,7 +694,15 @@ def quest_start_info(
     source_meta = source_meta if isinstance(source_meta, dict) else {}
 
     npc = clean_text(source_meta.get("startNpc"))
-    position = clean_text(launch.get("position")) or clean_text(source_meta.get("startCoords"))
+    launch_coords = clean_text(launch.get("position"))
+    meta_coords = clean_text(source_meta.get("startCoords"))
+    # A non-coordinate placeholder must never suppress a usable start from the
+    # second local source (or the existing objective-only fallback).
+    position = (
+        launch_coords if COORD_RE.fullmatch(launch_coords) else ""
+    ) or (
+        meta_coords if COORD_RE.fullmatch(meta_coords) else ""
+    )
     source_zone = clean_text(source_meta.get("zone"))
     zone = next(
         (value for value in quest.zones if source_zone and normalize_text(source_zone) in normalize_text(value)),
