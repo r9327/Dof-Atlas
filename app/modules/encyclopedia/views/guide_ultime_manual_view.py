@@ -530,6 +530,10 @@ class GuideUltimeManualCard(QFrame):
         travel_callback = getattr(self, "travel_command_callback", None)
         if value.startswith("/travel ") and callable(travel_callback):
             launched = bool(travel_callback(value))
+            if not launched:
+                # The network may be offline or the selection unverified.
+                # "Commande copiée" must reflect an actual clipboard write.
+                QApplication.clipboard().setText(value)
             QToolTip.showText(
                 QCursor.pos(),
                 "Déplacement demandé" if launched else "Commande copiée",
