@@ -954,6 +954,12 @@ class AchievementsView(QWidget):
             ], tokens
 
         if tokens:
+            compact_search = getattr(self.provider, "search_catalogue_ids", None)
+            if callable(compact_search):
+                return [
+                    _AchievementListRef(int(ident))
+                    for ident in compact_search(self.search.text())
+                ], tokens
             candidates = self.provider.search(self.search.text())
         elif self.selected_category_id is not None:
             candidates = self.provider.get_by_category(self.selected_category_id)
