@@ -473,7 +473,11 @@ class AchievementsView(QWidget):
             category_lookup(self.provider, achievement_id)
             if callable(category_lookup) else None
         )
-        if target_category_id is None:
+        if target_category_id is None and not callable(category_lookup):
+            # Older providers lack a resident category index and retain their
+            # existing compatibility lookup. A compact provider can report an
+            # absent/corrupt category index even for a retained Success: never
+            # scan its JSONL on the Qt navigation path just to find a tab.
             achievement = self.provider.get_by_id(achievement_id)
             if achievement is None:
                 return False
@@ -509,6 +513,15 @@ class AchievementsView(QWidget):
                 self.list_widget.setCurrentRow(-1)
             # The real detail opens immediately, regardless of whether the
             # catalogue viewport has materialized the requested row.
+            self.show_achievement(achievement_id)
+            return True
+        if callable(category_lookup) and target_category_id is None:
+            # The retained ID is authoritative even if its category sidecar
+            # is unavailable. Open the real detail on the existing worker
+            # without selecting an unrelated visible row or parsing JSONL
+            # synchronously. A refreshed sidecar can restore navigation later.
+            self._achievement_pending_selected_id = achievement_id
+            self.list_widget.setCurrentRow(-1)
             self.show_achievement(achievement_id)
             return True
         return False
