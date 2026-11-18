@@ -478,10 +478,14 @@ class AchievementsView(QWidget):
             # happens to be smaller than the visible list length.
             self._achievement_pending_selected_id = achievement_id
             visible_row = self._achievement_visible_row_by_id.get(achievement_id)
-            if visible_row is not None:
-                item = self.list_widget.item(visible_row)
-                if item is not None and item.data(Qt.UserRole) == achievement_id:
-                    self.list_widget.setCurrentRow(visible_row)
+            item = self.list_widget.item(visible_row) if visible_row is not None else None
+            if item is not None and item.data(Qt.UserRole) == achievement_id:
+                self.list_widget.setCurrentRow(visible_row)
+            else:
+                # A deferred or corrupted target has no legitimate painted
+                # item yet. Clear the *previous* row highlight rather than
+                # visually associating another Success with the opened detail.
+                self.list_widget.setCurrentRow(-1)
             # The real detail opens immediately, regardless of whether the
             # catalogue viewport has materialized the requested row.
             self.show_achievement(achievement_id)
