@@ -471,18 +471,21 @@ class AchievementsView(QWidget):
             if timer is not None:
                 timer.stop()
             self.refresh()
-        for row, candidate in enumerate(self.filtered):
-            if candidate.id == achievement_id:
-                # Direct navigation must open the real detail immediately.
-                # Rendering every preceding QListWidgetItem synchronously
-                # can stall Qt for a deep link near the end of a category.
-                # Keep selection pending; its row will be highlighted when
-                # a later scroll batch naturally reaches it.
-                self._achievement_pending_selected_id = achievement_id
-                if row < self.list_widget.count():
-                    self.list_widget.setCurrentRow(row)
-                self.show_achievement(achievement_id)
-                return True
+        if any(candidate.id == achievement_id for candidate in self.filtered):
+            # A damaged compact record can be skipped when batches render.
+            # The filtered-index position then diverges from QListWidget rows:
+            # never highlight a different Success simply because the index
+            # happens to be smaller than the visible list length.
+            self._achievement_pending_selected_id = achievement_id
+            visible_row = self._achievement_visible_row_by_id.get(achievement_id)
+            if visible_row is not None:
+                item = self.list_widget.item(visible_row)
+                if item is not None and item.data(Qt.UserRole) == achievement_id:
+                    self.list_widget.setCurrentRow(visible_row)
+            # The real detail opens immediately, regardless of whether the
+            # catalogue viewport has materialized the requested row.
+            self.show_achievement(achievement_id)
+            return True
         return False
 
     def on_achievement_clicked(self, item: QListWidgetItem) -> None:
