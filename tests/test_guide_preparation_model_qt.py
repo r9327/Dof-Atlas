@@ -345,6 +345,45 @@ class GuidePreparationQtFocusedTests(unittest.TestCase):
         self.assertEqual(current.value(), 0)
         self.assertEqual(current.suffix(), "/2")
 
+    def test_final_sheet_completion_clears_open_remaining_preparation(self):
+        self.participants.save_selected_keys(("character:1",))
+        view = self._view()
+        self.assertEqual(len(view._preparation_needs), 1)
+
+        for index, card in enumerate(self.service.cards):
+            self.service.guide_progress.set_manual_step_completed(
+                "character:1", self.service.progress_id,
+                self.service.page_key(card, index), True,
+            )
+        view._follow_active_after_progress_change()
+        QApplication.processEvents()
+
+        self.assertEqual(view._preparation_needs, ())
+        self.assertEqual(view.preparation_progress_label.text(), "—")
+        self.assertEqual(view.global_progress_label.text(), "100 %")
+        labels = view.preparation_panel.findChildren(QLabel, "GuidePreparationEmpty")
+        self.assertTrue(any(
+            "Aucun besoin confirmé" in label.text()
+            for label in labels
+        ))
+
+    def test_missing_selected_character_keeps_copyable_readonly_preview(self):
+        # Selection can outlive a removed profile, which must not hide the
+        # actual preparation or offer save controls for a deleted identity.
+        self.participants.save_selected_keys(("character:999",))
+        view = self._view()
+        self.assertEqual(view._progress_participant_keys(), ())
+        self.assertEqual(view._preparation_needs, ())
+        self.assertTrue(view._preparation_preview)
+        copy_items = view.preparation_panel.findChildren(
+            QPushButton, "GuidePreparationItemCopy",
+        )
+        self.assertTrue(copy_items)
+        self.assertIn("Potion de rappel", copy_items[0].text())
+        self.assertFalse(view.preparation_panel.findChildren(
+            QCheckBox, "GuidePreparationReady",
+        ))
+
     def test_atomic_team_ready_and_undo_survive_real_reload(self):
         self.participants.save_selected_keys(("character:1", "character:2"))
         view = self._view()
