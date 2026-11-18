@@ -47,6 +47,7 @@ class QuestSemanticEnrichmentTests(unittest.TestCase):
                 SimpleNamespace(id=20),
             ))
             with (
+                patch.object(mod, "DEFAULT_LOCAL_COVERAGE", output),
                 patch.object(mod, "QuestProvider", return_value=SimpleNamespace(
                     get_catalog=lambda: catalog,
                 )),
@@ -72,8 +73,8 @@ class QuestSemanticEnrichmentTests(unittest.TestCase):
                 self.assertEqual(mod.main([
                     "--local-coverage-only",
                     "--online", "full",
-                    "--json-output", str(output),
                 ]), 0)
+            self.assertNotEqual(output, mod.DEFAULT_JSON)
             payload = json.loads(output.read_text(encoding="utf-8"))
             self.assertEqual(payload["scope"], "LOCAL_QUEST_STARTS_AND_INSTRUCTIONS")
             self.assertEqual(payload["evidence"], "LOCAL_ENRICHMENT_ONLY_NOT_GAME_VERIFIED")
