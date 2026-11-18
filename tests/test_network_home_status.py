@@ -223,6 +223,41 @@ class NetworkHomeStatusTests(unittest.TestCase):
             bridge.deleteLater()
             self.app.processEvents()
 
+    def test_identity_and_session_close_do_not_refresh_quest_progress(self) -> None:
+        from types import SimpleNamespace
+        from unittest.mock import Mock, patch
+
+        coordinator = Mock()
+        coordinator.has_pending_ui_events.return_value = True
+        coordinator.drain_statuses.return_value = []
+        coordinator.drain_results.return_value = [
+            SimpleNamespace(
+                accepted=True, changed=True, character_key="character:1",
+                reason="character_identified",
+            ),
+            SimpleNamespace(
+                accepted=True, changed=True, character_key="character:2",
+                reason="session_closed",
+            ),
+        ]
+        coordinator.stop.return_value = True
+        bridge = self._new_network_bridge(coordinator)
+        activations = []
+        changes = []
+        bridge.characterActivated.connect(activations.append)
+        bridge.progressChanged.connect(changes.append)
+        try:
+            with patch("app.ui.network_bridge.record_validation"):
+                bridge._poll()
+                bridge._emit_pending_progress()
+            self.assertEqual(activations, ["character:1"])
+            self.assertEqual(changes, [])
+            self.assertFalse(bridge._progress_timer.isActive())
+        finally:
+            bridge.stop()
+            bridge.deleteLater()
+            self.app.processEvents()
+
     def test_network_bridge_emits_one_verified_activation_with_progress(self) -> None:
         from types import SimpleNamespace
         from unittest.mock import Mock, patch
