@@ -224,11 +224,46 @@ class OptimizedAchievementsBatchingTests(unittest.TestCase):
             self.assertEqual(view.list_widget.count(), 0)
             self.assertEqual(len(view._achievement_pending_rows), 40)
             self.assertTrue(view._achievement_rows_dirty)
+            self.assertEqual(view._achievement_batch_retry_count, 1)
+            self.assertTrue(view._achievement_batch_timer.isActive())
             view.provider.broken = False
             view._render_next_achievement_batch()
             view._achievement_batch_timer.stop()
             self.assertEqual(view.list_widget.count(), _RESULT_BATCH_SIZE)
             self.assertEqual(len(view._achievement_pending_rows), 32)
+            self.assertEqual(view._achievement_batch_retry_count, 0)
+        finally:
+            view.close()
+            view.deleteLater()
+            self.app.processEvents()
+
+    def test_repeated_compact_failure_stops_automatic_retries(self) -> None:
+        class FailingBatch(_BatchFakeProvider):
+            def catalogue_rows_by_ids(self, _ids):
+                raise OSError("permanently damaged compact cache")
+
+        from unittest.mock import patch
+
+        view = self._view(24)
+        view.provider = FailingBatch(view.achievements)
+        try:
+            view.refresh()
+            view.show()
+            view._achievement_batch_timer.stop()
+            # Reset automatic first-show attempts to a deterministic state.
+            view._achievement_batch_retry_count = 0
+            with patch(
+                "app.modules.encyclopedia.views.achievements_view._LOGGER.exception"
+            ):
+                view._render_next_achievement_batch()
+                self.assertEqual(view._achievement_batch_retry_count, 1)
+                self.assertTrue(view._achievement_batch_timer.isActive())
+                view._achievement_batch_timer.stop()
+                view._render_next_achievement_batch()
+            self.assertEqual(view._achievement_batch_retry_count, 2)
+            self.assertFalse(view._achievement_batch_timer.isActive())
+            self.assertEqual(view.list_widget.count(), 0)
+            self.assertEqual(len(view._achievement_pending_rows), 24)
         finally:
             view.close()
             view.deleteLater()
