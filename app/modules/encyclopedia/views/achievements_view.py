@@ -442,9 +442,10 @@ class AchievementsView(QWidget):
         # Deep links need only the category and retained-membership proof.
         # The compact provider already keeps both in its small sidecar;
         # hydrating an Achievement here can read JSONL on the Qt thread.
-        category_lookup = getattr(self.provider, "catalogue_category_for_id", None)
+        category_lookup = getattr(type(self.provider), "catalogue_category_for_id", None)
         target_category_id = (
-            category_lookup(achievement_id) if callable(category_lookup) else None
+            category_lookup(self.provider, achievement_id)
+            if callable(category_lookup) else None
         )
         if target_category_id is None:
             achievement = self.provider.get_by_id(achievement_id)
