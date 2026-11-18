@@ -919,8 +919,8 @@ class AtlasWindow(QMainWindow):
         self.home_page.continueRequested.connect(self.open_guide_progress)
         self.home_page.changeCharacterRequested.connect(self.open_character_selector)
         self.home_page.almanaxRequested.connect(lambda: self.show_page("Almanax"))
-        self.home_page.network_bridge.characterActivated.connect(
-            self.on_network_character_activated
+        self.home_page.network_bridge.charactersIdentified.connect(
+            self.on_network_characters_identified
         )
         self.home_page.network_bridge.progressChanged.connect(self.on_network_progress_changed)
         self.register_page("Home", self.home_page)
@@ -1327,6 +1327,26 @@ class AtlasWindow(QMainWindow):
         # currently selected character; selecting another already reloads it.
         if target == self.current_character_key:
             self._pending_network_progress_character = target
+
+    def on_network_characters_identified(self, character_keys: object) -> None:
+        """Refresh account choices once for a batch of verified identities."""
+
+        if not isinstance(character_keys, (tuple, list)):
+            return
+        identities = tuple(dict.fromkeys(
+            str(key or "").strip() for key in character_keys
+            if str(key or "").strip()
+        ))
+        if not identities:
+            return
+        if len(identities) == 1:
+            # Keep the existing single-account path and verified-ID guard.
+            self.on_network_character_activated(identities[0])
+            return
+        # Several sessions identified in one network batch do not indicate
+        # which DOFUS window is foreground. Rebuild the combo once without
+        # choosing the last packet's account as the selected character.
+        self.refresh_global_characters()
 
     def on_network_character_activated(self, character_key: str) -> None:
         """Refresh verified identities without mistaking login for window focus."""
