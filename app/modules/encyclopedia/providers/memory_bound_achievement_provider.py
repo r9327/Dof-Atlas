@@ -1251,11 +1251,16 @@ class MemoryBoundAchievementProvider(BaseAchievementProvider):
     ) -> tuple[int, str, int | None, int] | None:
         """Decode one validated primitive row from an already-open JSONL."""
 
-        if span is None:
+        if not isinstance(span, (tuple, list)) or len(span) != 2:
             return None
         start, length = span
-        # Corrupt offsets must never cause a negative or unbounded read.
-        if start < 0 or length <= 0 or start > total or length > total - start:
+        # Never allow booleans, corrupted types, negative/unbounded reads or
+        # offsets beyond the current compact-file length.
+        if (
+            type(start) is not int or type(length) is not int
+            or start < 0 or length <= 0
+            or start > total or length > total - start
+        ):
             return None
         try:
             stream.seek(start)
