@@ -840,23 +840,30 @@ class MemoryBoundAchievementProvider(BaseAchievementProvider):
                     continue
 
         def id_tuple_map(value: object) -> dict[int, tuple[int, ...]]:
+            """Read primitive category membership without inventing Success IDs."""
             output: dict[int, tuple[int, ...]] = {}
             if not isinstance(value, dict):
                 return output
+            valid_ids = frozenset(retained_ids)
             for raw_key, raw_ids in value.items():
-                if not isinstance(raw_ids, list):
-                    continue
-                try:
-                    key = int(raw_key)
-                except (TypeError, ValueError):
+                if (
+                    not isinstance(raw_key, str)
+                    or not 0 < len(raw_key) <= 20
+                    or not raw_key.isascii()
+                    or not raw_key.isdecimal()
+                    or str(int(raw_key)) != raw_key
+                    or not isinstance(raw_ids, list)
+                ):
                     continue
                 ids: list[int] = []
+                seen: set[int] = set()
                 for raw_id in raw_ids:
-                    try:
-                        ids.append(int(raw_id))
-                    except (TypeError, ValueError):
+                    if (type(raw_id) is not int or raw_id not in valid_ids
+                            or raw_id in seen):
                         continue
-                output[key] = tuple(ids)
+                    seen.add(raw_id)
+                    ids.append(raw_id)
+                output[int(raw_key)] = tuple(ids)
             return output
 
         retained_ids = tuple(
