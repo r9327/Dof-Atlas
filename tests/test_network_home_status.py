@@ -204,6 +204,10 @@ class NetworkHomeStatusTests(unittest.TestCase):
                 accepted=True, changed=False, character_key="character:2",
                 reason="quest_journal_no_change",
             ),
+            SimpleNamespace(
+                accepted=False, changed=True, character_key="character:3",
+                reason="quest_completed",
+            ),
         ]
         coordinator.stop.return_value = True
         bridge = self._new_network_bridge(coordinator)
