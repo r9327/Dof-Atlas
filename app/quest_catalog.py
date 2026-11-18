@@ -874,6 +874,17 @@ def zone_for_map(
     return subarea_name or area_name
 
 
+def _valid_game_map_coordinate(value: Any) -> int | None:
+    """Return an exact signed game coordinate, never a coerced placeholder."""
+
+    # int(True) and int(1.5) silently invent map positions. Numeric source
+    # strings remain supported for old Doduda exports.
+    if isinstance(value, bool) or (isinstance(value, float) and not value.is_integer()):
+        return None
+    coordinate = safe_int(value)
+    return coordinate if coordinate is not None and SENTINEL_COORD < coordinate < 2**31 else None
+
+
 def map_label(
     map_id: Any,
     coords: dict[str, Any] | None,
@@ -881,21 +892,18 @@ def map_label(
 ) -> str:
     x_value = coords.get("x") if isinstance(coords, dict) else SENTINEL_COORD
     y_value = coords.get("y") if isinstance(coords, dict) else SENTINEL_COORD
-    x = safe_int(x_value)
-    y = safe_int(y_value)
-    if x is not None and y is not None and x != SENTINEL_COORD and y != SENTINEL_COORD:
+    x = _valid_game_map_coordinate(x_value)
+    y = _valid_game_map_coordinate(y_value)
+    if x is not None and y is not None:
         return f"[{x},{y}]"
     ident = safe_int(map_id)
     map_row = maps.get(ident or -1)
     if map_row:
-        pos_x = safe_int(map_row.get("posX"))
-        pos_y = safe_int(map_row.get("posY"))
-        # The fallback map record is not a known location when either
-        # coordinate is absent, malformed or Doduda's unset sentinel.
-        if (
-            pos_x is not None and pos_y is not None
-            and pos_x != SENTINEL_COORD and pos_y != SENTINEL_COORD
-        ):
+        pos_x = _valid_game_map_coordinate(map_row.get("posX"))
+        pos_y = _valid_game_map_coordinate(map_row.get("posY"))
+        # Missing, fractional, overflowed or placeholder coordinates cannot
+        # become a clickable position merely by falling back to the map row.
+        if pos_x is not None and pos_y is not None:
             return f"[{pos_x},{pos_y}]"
     return ""
 
