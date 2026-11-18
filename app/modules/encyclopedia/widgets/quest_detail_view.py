@@ -23,7 +23,7 @@ from app.modules.encyclopedia.services import (
     QuestProgressService,
 )
 from app.modules.encyclopedia.services.guide_quest_view_model import (
-    COORD_RE,
+    _canonical_source_coordinate,
     clean_requirement_line,
     clean_text,
     quest_activity_labels,
@@ -330,21 +330,17 @@ class QuestDetailView(QWidget):
             str(launch.get("position") or "").strip() if isinstance(launch, dict) else "",
             str(meta.get("startCoords") or "").strip() if isinstance(meta, dict) else "",
         )
-        shown = COORD_RE.fullmatch(position.strip())
-        source_matches = [COORD_RE.fullmatch(value) if value else None for value in declared]
-        declared_xy = [
-            (int(match.group(1)), int(match.group(2)))
-            for match in source_matches if match is not None
-        ]
-        if shown is None or (
-            int(shown.group(1)), int(shown.group(2))
-        ) not in declared_xy:
+        shown = _canonical_source_coordinate(position)
+        source_positions = tuple(
+            _canonical_source_coordinate(value) for value in declared
+        )
+        if not shown or shown not in source_positions:
             return "Position d'objectif (départ non confirmé)"
         # Conflicting or malformed declarations are review evidence, not a
         # certified quest start. Formatting differences are not conflicts.
         if (
-            any(value and match is None for value, match in zip(declared, source_matches))
-            or len(set(declared_xy)) > 1
+            any(value and not source for value, source in zip(declared, source_positions))
+            or len({source for source in source_positions if source}) > 1
         ):
             return "Départ à vérifier (sources incohérentes)"
         return "Position de lancement (source locale)"
