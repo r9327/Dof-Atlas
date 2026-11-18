@@ -28,6 +28,7 @@ class NetworkUiBridge(QObject):
     progressChanged = Signal(str)
     characterActivated = Signal(str)
     charactersIdentified = Signal(object)
+    connectionsChanged = Signal(object)
 
     def __init__(self, parent: QObject | None = None) -> None:
         super().__init__(parent)
@@ -162,6 +163,7 @@ class NetworkUiBridge(QObject):
                 return
         changed_characters: set[str] = set()
         active_characters: set[str] = set()
+        disconnected_characters: set[str] = set()
         for result in self.coordinator.drain_results(100):
             reason = str(getattr(result, "reason", "") or "")
             if (
@@ -175,6 +177,13 @@ class NetworkUiBridge(QObject):
                 # Journal completions change quest progress, not the selected
                 # character. Avoid reloading all client profiles each poll.
                 active_characters.add(str(result.character_key))
+            if (
+                bool(getattr(result, "accepted", False))
+                and bool(getattr(result, "changed", False))
+                and getattr(result, "character_key", "")
+                and reason == "session_closed"
+            ):
+                disconnected_characters.add(str(result.character_key))
             if (
                 bool(getattr(result, "accepted", False))
                 and result.changed
@@ -201,6 +210,15 @@ class NetworkUiBridge(QObject):
                 self.characterActivated.emit(identities[0])
                 if self._stopped:
                     return
+        if disconnected_characters and not active_characters:
+            # A close may be just one of several transports for a character.
+            # Publish only the changed identities: the shell recomputes the
+            # actual connected state, with no automatic selection.
+            self.connectionsChanged.emit(tuple(sorted(disconnected_characters)))
+            if self._stopped:
+                return
+        # When an identification happened in this same poll, its batch
+        # refresh already sees the final runtime state; no second scan needed.
         if changed_characters:
             self._pending_progress_characters.update(changed_characters)
             if not self._progress_timer.isActive():
