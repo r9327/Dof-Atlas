@@ -438,7 +438,17 @@ class AchievementsView(QWidget):
         self.refresh()
 
     def select_achievement(self, achievement_id: int) -> bool:
-        achievement_id = int(achievement_id)
+        # Direct navigation also receives external IDs from quest/guide
+        # entity links. Reject malformed values instead of letting int()
+        # propagate a ValueError into the Qt slot.
+        if type(achievement_id) is bool:
+            return False
+        try:
+            achievement_id = int(achievement_id)
+        except (TypeError, ValueError, OverflowError):
+            return False
+        if achievement_id <= 0:
+            return False
         # A stale/deleted deep link is never permission to read a compatibility
         # Achievement JSONL on the Qt thread. Cheap membership comes first,
         # including when a compact sidecar cannot resolve its category.
