@@ -116,6 +116,16 @@ class AchievementsThirdColumnTests(unittest.TestCase):
         self.assertTrue(view._detail_open)
         self.assertEqual(provider.get_detail_by_id.call_count, 1)
 
+    def test_malformed_success_deep_link_is_rejected_without_qt_exception(self):
+        view, provider = self.make_view()
+        provider.get_by_id.side_effect = AssertionError("no summary read")
+        for malformed in (None, "", "not-an-id", "42/other", -1, 0, True, 1.5e999):
+            with self.subTest(value=repr(malformed)):
+                self.assertFalse(view.select_achievement(malformed))
+        provider.is_retained.assert_not_called()
+        provider.get_by_id.assert_not_called()
+        provider.get_detail_by_id.assert_not_called()
+
     def test_invalid_success_direct_link_skips_compatibility_jsonl_read(self):
         view, provider = self.make_view()
         provider.is_retained.return_value = False
