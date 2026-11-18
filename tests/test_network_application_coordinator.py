@@ -203,6 +203,83 @@ class NetworkApplicationCoordinatorTests(unittest.TestCase):
             calibration.assert_not_called()
             runtime.assert_not_called()
 
+    def test_stop_during_capture_preparation_drops_late_ready_status(self) -> None:
+        coordinator = NetworkApplicationCoordinator(lambda: ())
+        with (
+            patch.object(coordinator._capture_source, "start") as start,
+            patch.object(coordinator._capture_source, "stop",
+                         side_effect=coordinator._stop_event.set) as stop,
+            patch.object(coordinator, "_publish_current") as publish,
+        ):
+            coordinator._prepare_capture()
+            start.assert_called_once_with()
+            stop.assert_called_once_with()
+            publish.assert_not_called()
+
+    def test_stop_during_calibration_start_cannot_rearm_pending(self) -> None:
+        coordinator = NetworkApplicationCoordinator(lambda: ())
+        coordinator.calibration = _AutoCalibrationFake()
+        coordinator.runtime = _RuntimeFake()
+
+        def stop_as_start_returns():
+            coordinator._stop_event.set()
+            return coordinator.calibration.poll_status
+
+        with (
+            patch.object(coordinator.calibration, "start",
+                         side_effect=stop_as_start_returns) as start,
+            patch.object(coordinator, "_publish_current") as publish,
+            patch.object(coordinator, "_start_runtime") as runtime,
+        ):
+            coordinator._start_calibration()
+            start.assert_called_once_with()
+            publish.assert_not_called()
+            runtime.assert_not_called()
+        self.assertFalse(coordinator._calibration_pending)
+
+    def test_stop_during_runtime_start_drops_late_status_and_calibration(self) -> None:
+        coordinator = NetworkApplicationCoordinator(lambda: ())
+        coordinator.runtime = _ReasonRuntimeFake("mapping_no_exact_match")
+        coordinator.calibration = _AutoCalibrationFake()
+
+        def stop_as_start_returns():
+            coordinator._stop_event.set()
+            return NetworkControllerStatus(False, "mapping_no_exact_match")
+
+        with (
+            patch.object(coordinator.runtime, "start_if_ready",
+                         side_effect=stop_as_start_returns) as start,
+            patch.object(coordinator, "_publish_current") as publish,
+            patch.object(coordinator, "_start_calibration") as calibration,
+        ):
+            coordinator._start_runtime()
+            start.assert_called_once_with()
+            publish.assert_not_called()
+            calibration.assert_not_called()
+
+    def test_stop_during_journal_evidence_drops_terminal_calibration(self) -> None:
+        coordinator = NetworkApplicationCoordinator(lambda: ())
+        coordinator.calibration = _CalibrationFake(
+            ProtocolCalibrationControllerStatus(
+                running=False,
+                reason="mapping_installed_not_started",
+                build_sha256=BUILD,
+            )
+        )
+        coordinator._calibration_pending = True
+        with (
+            patch.object(coordinator, "_apply_calibration_journal_evidence",
+                         side_effect=coordinator._stop_event.set) as journal,
+            patch.object(coordinator, "_publish_current") as publish,
+            patch.object(coordinator, "_apply_calibration_evidence") as evidence,
+            patch.object(coordinator, "_start_runtime") as runtime,
+        ):
+            coordinator._poll_calibration()
+            journal.assert_called_once_with()
+            publish.assert_not_called()
+            evidence.assert_not_called()
+            runtime.assert_not_called()
+
     def test_stop_closes_other_components_when_calibration_stop_raises(self) -> None:
         coordinator = NetworkApplicationCoordinator(lambda: ())
         with (
