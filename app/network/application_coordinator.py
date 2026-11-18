@@ -467,6 +467,8 @@ class NetworkApplicationCoordinator:
         return True, session_id
 
     def _apply_calibration_journal_evidence(self) -> None:
+        if self._stop_event.is_set():
+            return
         from app.network.protocol_calibration import QuestJournalCalibrationEvidence
 
         evidences = tuple(getattr(self.calibration, "verified_journal_evidences", ()) or ())
@@ -474,10 +476,14 @@ class NetworkApplicationCoordinator:
             evidence = getattr(self.calibration, "verified_journal_evidence", None)
             evidences = (evidence,) if evidence is not None else ()
         for evidence in evidences:
+            if self._stop_event.is_set():
+                return
             if isinstance(evidence, QuestJournalCalibrationEvidence):
                 self._apply_one_calibration_journal_evidence(evidence)
 
     def _apply_one_calibration_journal_evidence(self, evidence: Any) -> None:
+        if self._stop_event.is_set():
+            return
         from app.network.current_protocol_profile import (
             DOFUS_361010_PROFILE,
             dofus_361010_profile_digest,
@@ -524,7 +530,7 @@ class NetworkApplicationCoordinator:
         if bridge is None:
             return
         identified, session_id = self._identify_calibration_character(bridge, evidence)
-        if not identified:
+        if not identified or self._stop_event.is_set():
             return
 
         journal_result = bridge.handle(
@@ -546,6 +552,8 @@ class NetworkApplicationCoordinator:
             self._applied_journal_evidence_keys.add(evidence_key)
 
     def _apply_calibration_evidence(self) -> None:
+        if self._stop_event.is_set():
+            return
         from app.network.events import QuestCompletedEvent
 
         certificate = getattr(self.calibration, "verified_certificate", None)
@@ -555,13 +563,15 @@ class NetworkApplicationCoordinator:
         if bridge is None:
             return
         identified, session_id = self._identify_calibration_character(bridge, certificate)
-        if not identified:
+        if not identified or self._stop_event.is_set():
             return
 
         # The reviewed journal was already reconciled when exact-build,
         # same-session identity evidence became available. The full certificate
         # adds only independently verified live final-step completions.
         for quest_id in certificate.verified_quest_ids:
+            if self._stop_event.is_set():
+                return
             result = bridge.handle(
                 QuestCompletedEvent(
                     session_id=session_id,
