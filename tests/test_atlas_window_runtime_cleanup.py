@@ -40,6 +40,7 @@ class AtlasWindowRuntimeCleanupTests(unittest.TestCase):
             (), None, "", {"character:1"},
             ("slot:1", "character:0", None),
             ("character:01", "character:-1"),
+            ("character:" + "9" * 5000,),
         ):
             AtlasWindow.on_network_connections_changed(shell, payload)
         shell.refresh_global_characters.assert_not_called()
@@ -50,6 +51,17 @@ class AtlasWindowRuntimeCleanupTests(unittest.TestCase):
         shell.refresh_global_characters.assert_called_once_with(
             allow_default_selection=False, network_refresh=True,
         )
+
+    def test_canonical_character_parser_rejects_unbounded_numeric_key(self):
+        from app.core.character_identity import (
+            character_id_from_key, is_character_key,
+        )
+
+        invalid = "character:" + "9" * 5000
+        self.assertIsNone(character_id_from_key(invalid))
+        self.assertFalse(is_character_key(invalid))
+        self.assertFalse(is_character_key("character:01"))
+        self.assertTrue(is_character_key("character:123456"))
 
     def test_network_identity_batch_refreshes_multiple_accounts_once(self):
         shell = Mock()
