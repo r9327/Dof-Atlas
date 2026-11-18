@@ -784,10 +784,13 @@ class GuideUltimeManualView(GuideUltimeUniversalView):
                 previous.deleteLater()
         self.validation_layout.addWidget(widget)
 
-    def _add_manual_order_choice(self, card: dict[str, Any]) -> None:
+    def _add_manual_order_choice(
+        self, card: dict[str, Any], *, character_key: str | None = None,
+    ) -> None:
+        target_key = self.character_key if character_key is None else character_key
         required = getattr(self.service, "manual_order_choice_required", None)
         options_for_card = getattr(self.service, "manual_order_options_for_card", None)
-        if not callable(required) or not required(self.character_key, card) or not callable(options_for_card):
+        if not callable(required) or not required(target_key, card) or not callable(options_for_card):
             return
         options = tuple(options_for_card(card))
         if not options:
@@ -810,14 +813,20 @@ class GuideUltimeManualView(GuideUltimeUniversalView):
         for option in options:
             button = AtlasButton(option)
             button.setObjectName("GuideManualOrderButton")
-            button.clicked.connect(lambda _checked=False, value=option: self._select_manual_order(value))
+            button.clicked.connect(
+                lambda _checked=False, value=option, target=target_key:
+                self._select_manual_order(value, target)
+            )
             buttons.addWidget(button)
         layout.addLayout(buttons)
         self.cards_layout.addWidget(frame)
 
-    def _select_manual_order(self, order_name: str) -> None:
-        self.service.set_bonta_order(self.character_key, order_name)
-        self.active_index = self.service.first_incomplete_index(self.character_key)
+    def _select_manual_order(
+        self, order_name: str, character_key: str | None = None,
+    ) -> None:
+        target_key = self.character_key if character_key is None else character_key
+        self.service.set_bonta_order(target_key, order_name)
+        self.active_index = self.service.first_incomplete_index(target_key)
         self._show_index(self.active_index)
 
     def refresh_external_progress(self) -> None:
