@@ -669,10 +669,38 @@ class HomePage(QWidget):
             return
         text, state = self._network_summary(status)
         self.network_status.setText(text)
+        self.network_status.setToolTip(self._network_explanation(status))
         if self.network_indicator.property("state") != state:
             self.network_indicator.setProperty("state", state)
             self.network_indicator.style().unpolish(self.network_indicator)
             self.network_indicator.style().polish(self.network_indicator)
+
+    @staticmethod
+    def _network_explanation(status: NetworkApplicationStatus) -> str:
+        """Make verified capture failures actionable without exposing raw codes."""
+        reason = str(status.reason or "")
+        known = {
+            "capture_elevation_cancelled": "Autorisation Windows de capture annulée.",
+            "build_changed": "La version du client DOFUS a changé : capture interrompue.",
+            "mapping_invalid": "Le profil réseau de cette version de DOFUS est invalide.",
+            "mapping_ambiguous_exact_match": "Plusieurs profils réseau correspondent au client : sélection automatique bloquée.",
+            "quest_snapshot_missed": "Journal des quêtes non reçu pendant la calibration.",
+            "stop_failed": "Arrêt de la capture non confirmé : vérifier le processus avant de réessayer.",
+            "no_window_handles": "Aucune fenêtre DOFUS suivie détectée.",
+            "build_fingerprint_unavailable": "Identification de la version de DOFUS indisponible.",
+        }
+        if reason in known:
+            return known[reason]
+        if reason.startswith("capture_helper") or "permission" in reason or "admin" in reason:
+            return "Capture Windows indisponible : vérifier les autorisations et les journaux."
+        _label, state = HomePage._network_summary(status)
+        if state == "error":
+            return "Erreur réseau : consulter les journaux Atlas pour le diagnostic."
+        if state == "idle":
+            return "Suivi automatique hors ligne."
+        if state == "active":
+            return "Capture réseau active ; aucune position Zaap n'est déduite."
+        return "Connexion et calibration du suivi automatique en cours."
 
     @staticmethod
     def _network_summary(status: NetworkApplicationStatus) -> tuple[str, str]:
