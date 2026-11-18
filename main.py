@@ -1358,10 +1358,10 @@ class AtlasWindow(QMainWindow):
             # Keep the existing single-account path and verified-ID guard.
             self.on_network_character_activated(identities[0])
             return
-        # Several sessions identified in one network batch do not indicate
-        # which DOFUS window is foreground. Rebuild the combo once without
-        # choosing the last packet's account as the selected character.
-        self.refresh_global_characters()
+        # Several sessions do not prove which window is foreground.
+        # In particular, a fresh profile must not default to the first
+        # connected account merely because its packet arrived first.
+        self.refresh_global_characters(allow_default_selection=False)
 
     def on_network_character_activated(self, character_key: str) -> None:
         """Refresh verified identities without mistaking login for window focus."""
@@ -1369,34 +1369,14 @@ class AtlasWindow(QMainWindow):
         target = str(character_key or "").strip()
         if not target:
             return
-        selected_before = str(self.current_character_key or "").strip()
-        self.refresh_global_characters()
-        if selected_before:
-            # An identified TCP session is not evidence that its DOFUS
-            # window is active. Preserve an existing/manual selection when
-            # a different account logs in or reconnects. Foreground switching
-            # belongs to Organizer and its verified active-window mapping.
-            return
-
-        # NetworkProgressBridge already resolved a stable character:<id>.
-        # Favorite clients, window captions and the last focused HWND are not
-        # proof that a given network session belongs to that character.
-        # Never override the verified target with a similarly named account.
-        matches = [
-            index
-            for index in range(self.character_combo.count())
-            if str(getattr(self.character_combo.itemData(index), "key", "") or "") == target
-        ]
-        if len(matches) != 1:
-            # An offline, missing or ambiguous character is not permission
-            # to switch to another account. refresh_global_characters() keeps
-            # the remembered selection according to the existing UI contract.
-            return
-        self.character_combo.setCurrentIndex(matches[0])
-        if self.current_character_key != target:
-            # Real Qt emits currentIndexChanged for a changed selection. This
-            # fallback also covers an unchanged index after profile refresh.
-            self.on_global_character_changed()
+        # An identified TCP session is not proof of window focus. Preserve
+        # existing manual selection. Only an initially unselected account may
+        # be initialized from its exact verified character:<id>, atomically
+        # with the one profile refresh (never two intermediary selections).
+        self.refresh_global_characters(
+            verified_initial_key=target,
+            allow_default_selection=False,
+        )
 
     def prepare_network_capture(self) -> None:
         """Request UAC as soon as the visible shell enters its event loop."""
