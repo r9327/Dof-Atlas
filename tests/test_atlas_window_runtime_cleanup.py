@@ -29,7 +29,9 @@ class AtlasWindowRuntimeCleanupTests(unittest.TestCase):
             shell, ("character:3", "character:2", "character:3")
         )
 
-        shell.refresh_global_characters.assert_called_once_with(allow_default_selection=False)
+        shell.refresh_global_characters.assert_called_once_with(
+            allow_default_selection=False, network_refresh=True,
+        )
         shell.on_network_character_activated.assert_not_called()
         shell.character_combo.setCurrentIndex.assert_not_called()
 
@@ -67,7 +69,10 @@ class AtlasWindowRuntimeCleanupTests(unittest.TestCase):
                    side_effect=AssertionError("do not guess from client index")):
             AtlasWindow.on_network_character_activated(shell, "character:1")
 
-        shell.refresh_global_characters.assert_called_once_with(verified_initial_key="character:1", allow_default_selection=False)
+        shell.refresh_global_characters.assert_called_once_with(
+            verified_initial_key="character:1", allow_default_selection=False,
+            network_refresh=True,
+        )
         shell.character_combo.setCurrentIndex.assert_not_called()
         shell.on_global_character_changed.assert_not_called()
 
@@ -84,7 +89,10 @@ class AtlasWindowRuntimeCleanupTests(unittest.TestCase):
                    side_effect=AssertionError("do not guess from client index")):
             AtlasWindow.on_network_character_activated(shell, "character:999")
 
-        shell.refresh_global_characters.assert_called_once_with(verified_initial_key="character:999", allow_default_selection=False)
+        shell.refresh_global_characters.assert_called_once_with(
+            verified_initial_key="character:999", allow_default_selection=False,
+            network_refresh=True,
+        )
         shell.character_combo.setCurrentIndex.assert_not_called()
         shell.on_global_character_changed.assert_not_called()
 
@@ -115,7 +123,10 @@ class AtlasWindowRuntimeCleanupTests(unittest.TestCase):
 
         AtlasWindow.on_network_character_activated(shell, "character:7")
 
-        shell.refresh_global_characters.assert_called_once_with(verified_initial_key="character:7", allow_default_selection=False)
+        shell.refresh_global_characters.assert_called_once_with(
+            verified_initial_key="character:7", allow_default_selection=False,
+            network_refresh=True,
+        )
         shell.character_combo.setCurrentIndex.assert_not_called()
         shell.on_global_character_changed.assert_not_called()
 
@@ -148,7 +159,7 @@ class AtlasWindowRuntimeCleanupTests(unittest.TestCase):
         with patch("main.record_validation"):
             AtlasWindow.refresh_global_characters(
                 shell, verified_initial_key="character:2",
-                allow_default_selection=False,
+                allow_default_selection=False, network_refresh=True,
             )
 
         self.assertEqual(shell.current_character_key, "character:2")
@@ -173,6 +184,7 @@ class AtlasWindowRuntimeCleanupTests(unittest.TestCase):
         with patch("main.record_validation"):
             AtlasWindow.refresh_global_characters(
                 shell, allow_default_selection=False,
+                network_refresh=True,
             )
 
         self.assertEqual(shell.current_character_key, "")
@@ -202,7 +214,7 @@ class AtlasWindowRuntimeCleanupTests(unittest.TestCase):
         with patch("main.record_validation"):
             AtlasWindow.refresh_global_characters(
                 shell, verified_initial_key="character:1",
-                allow_default_selection=False,
+                allow_default_selection=False, network_refresh=True,
             )
         self.assertEqual(shell.current_character_key, "character:2")
         shell.character_combo.setCurrentIndex.assert_called_once_with(1)
@@ -233,6 +245,7 @@ class AtlasWindowRuntimeCleanupTests(unittest.TestCase):
         with patch("main.record_validation"):
             AtlasWindow.refresh_global_characters(
                 shell, allow_default_selection=False,
+                network_refresh=True,
             )
 
         self.assertEqual(shell.current_character_key, "character:2")
@@ -257,7 +270,7 @@ class AtlasWindowRuntimeCleanupTests(unittest.TestCase):
         with patch("main.record_validation"):
             AtlasWindow.refresh_global_characters(
                 shell, verified_initial_key="character:1",
-                allow_default_selection=False,
+                allow_default_selection=False, network_refresh=True,
             )
         self.assertEqual(shell.current_character_key, "")
         shell.character_combo.setCurrentIndex.assert_called_once_with(-1)
@@ -272,10 +285,54 @@ class AtlasWindowRuntimeCleanupTests(unittest.TestCase):
         with patch("main.record_validation"):
             AtlasWindow.refresh_global_characters(
                 shell, verified_initial_key="character:1",
-                allow_default_selection=False,
+                allow_default_selection=False, network_refresh=True,
             )
         self.assertEqual(shell.current_character_key, "character:2")
         shell.character_combo.setCurrentIndex.assert_called_once_with(0)
+
+    def test_manual_refresh_persists_cleared_selection_even_when_key_precleared(self):
+        from app.quest_catalog import QuestCharacter
+
+        QApplication.instance() or QApplication([])
+        shell = Mock()
+        # The Character page clears this field before refresh after deletion.
+        shell.current_character_key = ""
+        shell._known_characters.return_value = [
+            QuestCharacter("character:1", "Un autre compte", 1),
+        ]
+        shell._connected_characters.return_value = []
+        shell.character_icon_path.return_value = ""
+        shell.character_combo.blockSignals.return_value = False
+        shell._character_combo_signature = ()
+        with patch("main.record_validation"):
+            AtlasWindow.refresh_global_characters(shell)
+
+        self.assertEqual(shell.current_character_key, "")
+        shell.persist_selected_character.assert_called_once_with()
+        shell.sync_selected_character_to_pages.assert_called_once_with()
+
+    def test_manual_offline_profile_edit_refreshes_pages_with_unchanged_combo(self):
+        from app.quest_catalog import QuestCharacter
+
+        QApplication.instance() or QApplication([])
+        shell = Mock()
+        shell.current_character_key = "character:1"
+        online = QuestCharacter("character:1", "Connecté", 1)
+        offline = QuestCharacter("character:2", "Nouveau hors ligne", 2)
+        shell._known_characters.return_value = [online, offline]
+        shell._connected_characters.return_value = [online]
+        shell._character_combo_signature = (
+            ("character:1", "Connecté", "", ""),
+        )
+        shell.character_icon_path.return_value = ""
+        shell.character_combo.blockSignals.return_value = False
+        with patch("main.record_validation"):
+            AtlasWindow.refresh_global_characters(shell)
+
+        shell.character_combo.clear.assert_not_called()
+        shell.persist_selected_character.assert_called_once_with()
+        shell.sync_selected_character_to_pages.assert_called_once_with()
+        shell._refresh_runtime_hotkeys_for_client_mapping.assert_called_once_with()
 
     def test_network_progress_hidden_encyclopedia_refreshes_only_on_return(self):
         shell = Mock()
