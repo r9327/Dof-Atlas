@@ -826,10 +826,16 @@ class MemoryBoundAchievementProvider(BaseAchievementProvider):
         offsets: dict[int, tuple[int, int]] = {}
         if isinstance(raw_offsets, dict):
             for raw_id, span in raw_offsets.items():
-                if not isinstance(span, list) or len(span) != 2:
+                if (
+                    not isinstance(span, list) or len(span) != 2
+                    or type(span[0]) is not int or type(span[1]) is not int
+                    or span[0] < 0 or span[1] <= 0
+                ):
+                    # Do not coerce booleans, floats or numeric-looking strings
+                    # into trusted offsets. The per-row fallback handles gaps.
                     continue
                 try:
-                    offsets[int(raw_id)] = (int(span[0]), int(span[1]))
+                    offsets[int(raw_id)] = (span[0], span[1])
                 except (TypeError, ValueError):
                     continue
 
@@ -856,7 +862,7 @@ class MemoryBoundAchievementProvider(BaseAchievementProvider):
         retained_ids = tuple(
             int(value)
             for value in (index_payload.get("retained_ids") or ())
-            if isinstance(value, int)
+            if type(value) is int
         )
         if not categories or not retained_ids:
             raise RuntimeError("Index compact Succès incomplet")
