@@ -488,8 +488,11 @@ def local_start_position_coverage(
     missing_instruction_quest_ids: list[int] = []
     fallback_instruction_quest_ids: list[int] = []
     priority_missing_both: list[int] = []
+    declared_start_issues: list[dict[str, object]] = []
     for quest_id in sorted(set(int(value) for value in quest_ids)):
         row = enriched.get(str(quest_id))
+        first = ""
+        second = ""
         if not isinstance(row, dict):
             status = "NO_ENRICHMENT"
         else:
@@ -562,6 +565,21 @@ def local_start_position_coverage(
             if status != "LOCAL_START_DECLARED":
                 priority_missing_both.append(quest_id)
         counts[status] += 1
+        if status in {
+            "INVALID_START_COORDINATES", "CONFLICTING_DECLARED_START",
+        }:
+            # Exact source fields (not guessed game positions), bounded so a
+            # malformed 5,000-digit JSON value cannot explode report size.
+            evidence_limit = 80
+            declared_start_issues.append({
+                "quest_id": quest_id,
+                "status": status,
+                "launch_position": first[:evidence_limit],
+                "source_start_coords": second[:evidence_limit],
+                "truncated": (
+                    len(first) > evidence_limit or len(second) > evidence_limit
+                ),
+            })
         if status != "LOCAL_START_DECLARED":
             needs_review.append({"quest_id": quest_id, "status": status})
     return {
@@ -580,6 +598,8 @@ def local_start_position_coverage(
         "missing_instruction_quest_ids": missing_instruction_quest_ids,
         "fallback_instruction_quest_ids": fallback_instruction_quest_ids,
         "priority_missing_both_quest_ids": priority_missing_both,
+        # Pointers to raw local evidence only. This never certifies map data.
+        "declared_start_issues": declared_start_issues,
     }
 
 
