@@ -116,6 +116,19 @@ class AchievementsThirdColumnTests(unittest.TestCase):
         self.assertTrue(view._detail_open)
         self.assertEqual(provider.get_detail_by_id.call_count, 1)
 
+    def test_invalid_success_direct_link_skips_compatibility_jsonl_read(self):
+        view, provider = self.make_view()
+        provider.is_retained.return_value = False
+        provider.get_by_id.side_effect = AssertionError(
+            "A missing Success ID must never hydrate on the Qt thread"
+        )
+        with patch.object(view.category_tree, "setCurrentItem") as select:
+            self.assertFalse(view.select_achievement(999999))
+            provider.is_retained.assert_called_once_with(999999)
+            provider.get_by_id.assert_not_called()
+            provider.get_detail_by_id.assert_not_called()
+            select.assert_not_called()
+
     def test_cold_detail_click_skips_compatibility_summary_on_qt_thread(self):
         view, provider = self.make_view()
         provider._recent_rich_details = {}
