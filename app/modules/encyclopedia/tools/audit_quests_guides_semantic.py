@@ -403,6 +403,12 @@ def local_start_position_coverage(
     This is only local source completeness, never independent source proof
     or permission to route a Zaap / send automatic travel commands.
     """
+    # Use the renderer's own cheap textual filter: the audit must not
+    # certify placeholder mini-maps or technical criteria as readable steps.
+    from app.modules.encyclopedia.services.guide_quest_view_model import (
+        documentary_instruction_text,
+    )
+
     counts: Counter[str] = Counter()
     needs_review: list[dict[str, object]] = []
     missing_instruction_quest_ids: list[int] = []
@@ -467,7 +473,9 @@ def local_start_position_coverage(
             isinstance(block, dict)
             and str(block.get("type") or block.get("block_type") or "").strip().lower()
             not in {"", "image", "heading", "title", "subtitle", "section_heading"}
-            and str(block.get("content") or block.get("text") or "").strip()
+            and documentary_instruction_text(
+                block.get("content") or block.get("text") or ""
+            )
             for block in blocks
         )
         if has_instructions:
