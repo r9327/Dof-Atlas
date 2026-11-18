@@ -315,6 +315,32 @@ class NetworkApplicationCoordinatorTests(unittest.TestCase):
         self.assertTrue(coordinator._commands.empty())
         self.assertTrue(coordinator._shutdown_requested)
 
+    def test_late_catalog_configuration_cannot_rearm_closed_coordinator(self) -> None:
+        from app.quest_catalog import QuestCatalog
+
+        coordinator = NetworkApplicationCoordinator(lambda: ())
+        with (
+            patch.object(coordinator.calibration, "stop", return_value=True),
+            patch.object(coordinator.runtime, "stop", return_value=True),
+            patch.object(coordinator, "_close_capture_source", return_value=True),
+        ):
+            self.assertTrue(coordinator.stop(join_timeout=0))
+
+        with (
+            patch.object(coordinator.calibration, "configure_context") as calibration,
+            patch.object(coordinator.runtime, "configure_context") as runtime,
+            patch.object(coordinator, "start_worker") as worker,
+        ):
+            coordinator.configure_context(
+                quest_catalog=QuestCatalog([]),
+                achievement_provider=object(),
+            )
+            calibration.assert_not_called()
+            runtime.assert_not_called()
+            worker.assert_not_called()
+        self.assertFalse(coordinator._context_ready)
+        self.assertTrue(coordinator._shutdown_requested)
+
     def test_worker_restarts_after_interrupted_worker_without_explicit_stop(self) -> None:
         coordinator = NetworkApplicationCoordinator(lambda: ())
         coordinator._stop_event.set()  # Worker died, not user-requested stop.
