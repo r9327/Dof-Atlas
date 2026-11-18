@@ -1464,6 +1464,71 @@ class MemoryBoundAchievementProvider(BaseAchievementProvider):
             ]
         return list(self._by_quest.get(int(quest_id), ()))
 
+    def search_catalogue_ids(self, query: str) -> tuple[int, ...]:
+        """Search retained compact rows in one file pass, without rich objects.
+
+        This mirrors search()'s normalized search_text semantics and order,
+        but the Success list only needs primitive IDs for lazy painting.
+        """
+
+        self._ensure_loaded()
+        tokens = tuple(token for token in normalize_text(query).split("_") if token)
+        if not tokens:
+            return self.catalogue_ids()
+        if not self._compact_retained_ids or self._compact_external_index is None:
+            return tuple(
+                int(item.id) for item in self.search(query)
+                if self.is_retained(int(item.id))
+            )
+
+        matching: set[int] = set()
+        damaged: list[int] = []
+        try:
+            with ACHIEVEMENT_COMPACT_CACHE.open("rb") as stream:
+                stream.seek(0, 2)
+                total = stream.tell()
+                for achievement_id in self._compact_retained_ids:
+                    span = self._compact_external_index.get(achievement_id)
+                    if span is None:
+                        damaged.append(achievement_id)
+                        continue
+                    start, length = span
+                    if start < 0 or length <= 0 or start > total or length > total - start:
+                        damaged.append(achievement_id)
+                        continue
+                    try:
+                        stream.seek(start)
+                        row = json.loads(stream.read(length))
+                    except (OSError, UnicodeError, ValueError, TypeError):
+                        damaged.append(achievement_id)
+                        continue
+                    value = row.get("value") if isinstance(row, dict) else None
+                    if (
+                        not isinstance(row, dict)
+                        or row.get("kind") != "achievement"
+                        or not isinstance(value, dict)
+                        or type(value.get("id")) is not int
+                        or value["id"] != achievement_id
+                    ):
+                        damaged.append(achievement_id)
+                        continue
+                    if all(token in str(value.get("search_text") or "") for token in tokens):
+                        matching.add(achievement_id)
+        except OSError:
+            # The exceptional I/O recovery matches the prior rich search path.
+            return tuple(int(item.id) for item in self.search(query))
+
+        # Only damaged/missing offsets need the original lazy summary path.
+        for achievement_id in damaged:
+            summary = self._summary_by_id(achievement_id)
+            if summary is not None and all(
+                token in summary.search_text for token in tokens
+            ):
+                matching.add(achievement_id)
+        return tuple(
+            ident for ident in self._compact_retained_ids if ident in matching
+        )
+
     def search(self, query: str, limit: int | None = None) -> list[Achievement]:
         self._ensure_loaded()
         if not self._compact_retained_ids:
