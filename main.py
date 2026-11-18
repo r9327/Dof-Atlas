@@ -1153,7 +1153,9 @@ class AtlasWindow(QMainWindow):
         layout.addWidget(self.settings_button)
         return nav
 
-    def refresh_global_characters(self) -> None:
+    def refresh_global_characters(
+        self, *, verified_initial_key: str = "", allow_default_selection: bool = True,
+    ) -> None:
         previous_key = str(self.current_character_key or "")
         known_characters = self._known_characters()
         connected_characters = self._connected_characters(known_characters)
@@ -1172,6 +1174,16 @@ class AtlasWindow(QMainWindow):
             ),
             -1,
         )
+        if selected_index < 0 and not previous_key and verified_initial_key:
+            matches = [
+                index
+                for index, character in enumerate(connected_characters)
+                if character.key == verified_initial_key
+            ]
+            # A network packet can initialize only an unambiguous verified ID.
+            # No heuristics based on window name or the list's first entry.
+            if len(matches) == 1:
+                selected_index = matches[0]
 
         # A Home return should not destroy/recreate every combo icon and Qt
         # item when the canonical connected-character projection is unchanged.
@@ -1218,7 +1230,7 @@ class AtlasWindow(QMainWindow):
                 self.character_combo.setCurrentIndex(-1)
                 self.current_character_key = selected.key
                 self.current_character_label = selected.label
-            elif connected_characters:
+            elif connected_characters and allow_default_selection:
                 self.character_combo.setCurrentIndex(0)
                 selected = connected_characters[0]
                 self.current_character_key = selected.key
@@ -1226,7 +1238,10 @@ class AtlasWindow(QMainWindow):
             else:
                 self.character_combo.setCurrentIndex(-1)
                 self.current_character_key = ""
-                self.current_character_label = "Aucun personnage connecté"
+                self.current_character_label = (
+                    "Aucun personnage sélectionné" if connected_characters
+                    else "Aucun personnage connecté"
+                )
         finally:
             self.character_combo.blockSignals(previous_blocked)
 
