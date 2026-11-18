@@ -101,6 +101,107 @@ class NetworkHomeStatusTests(unittest.TestCase):
             ("Attention requise", "error"),
         )
 
+    def _new_network_bridge(self, coordinator):
+        from unittest.mock import patch
+        from app.ui.network_bridge import NetworkUiBridge
+
+        coordinator.latest_status.return_value = self._status()
+        with patch(
+            "app.network.application_coordinator.NetworkApplicationCoordinator",
+            return_value=coordinator,
+        ):
+            bridge = NetworkUiBridge()
+        bridge._timer.stop()
+        return bridge
+
+    def test_network_bridge_stop_from_status_signal_drops_old_results(self) -> None:
+        from types import SimpleNamespace
+        from unittest.mock import Mock
+
+        coordinator = Mock()
+        coordinator.has_pending_ui_events.return_value = True
+        coordinator.drain_statuses.return_value = [
+            self._status(running=True, reason="running")
+        ]
+        coordinator.drain_results.return_value = [
+            SimpleNamespace(
+                accepted=True, changed=True,
+                character_key="character:1", reason="character_activated",
+            )
+        ]
+        coordinator.stop.return_value = True
+        bridge = self._new_network_bridge(coordinator)
+        activations = []
+        bridge.characterActivated.connect(activations.append)
+        bridge.statusChanged.connect(
+            lambda status: bridge.stop() if status.running else None
+        )
+        try:
+            bridge._poll()
+            self.assertEqual(bridge.last_status.reason, "stopped")
+            coordinator.drain_results.assert_not_called()
+            self.assertEqual(activations, [])
+            self.assertFalse(bridge._progress_timer.isActive())
+        finally:
+            bridge.stop()
+            bridge.deleteLater()
+            self.app.processEvents()
+
+    def test_network_bridge_stop_from_activation_signal_drops_progress(self) -> None:
+        from types import SimpleNamespace
+        from unittest.mock import Mock, patch
+
+        coordinator = Mock()
+        coordinator.has_pending_ui_events.return_value = True
+        coordinator.drain_statuses.return_value = []
+        coordinator.drain_results.return_value = [
+            SimpleNamespace(
+                accepted=True, changed=True,
+                character_key="character:1", reason="character_activated",
+            )
+        ]
+        coordinator.stop.return_value = True
+        bridge = self._new_network_bridge(coordinator)
+        activations = []
+        progression = []
+        bridge.characterActivated.connect(
+            lambda key: (activations.append(key), bridge.stop())
+        )
+        bridge.progressChanged.connect(progression.append)
+        try:
+            with patch("app.ui.network_bridge.record_validation"):
+                bridge._poll()
+            self.assertEqual(activations, ["character:1"])
+            self.assertEqual(progression, [])
+            self.assertEqual(bridge._pending_progress_characters, set())
+            self.assertFalse(bridge._progress_timer.isActive())
+        finally:
+            bridge.stop()
+            bridge.deleteLater()
+            self.app.processEvents()
+
+    def test_network_bridge_stop_from_progress_signal_drops_next_character(self) -> None:
+        from unittest.mock import Mock
+
+        coordinator = Mock()
+        coordinator.stop.return_value = True
+        bridge = self._new_network_bridge(coordinator)
+        received = []
+        bridge._pending_progress_characters.update(
+            {"character:1", "character:2"}
+        )
+        bridge.progressChanged.connect(
+            lambda key: (received.append(key), bridge.stop())
+        )
+        try:
+            bridge._emit_pending_progress()
+            self.assertEqual(received, ["character:1"])
+            self.assertEqual(bridge._pending_progress_characters, set())
+        finally:
+            bridge.stop()
+            bridge.deleteLater()
+            self.app.processEvents()
+
     def test_home_keeps_only_mini_status_above_almanax(self) -> None:
         page = HomePage()
         right_layout = page.right_column.layout()
