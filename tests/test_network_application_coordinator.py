@@ -376,6 +376,19 @@ class NetworkApplicationCoordinatorTests(unittest.TestCase):
         self.assertEqual(coordinator.drain_results(), [first])
         self.assertTrue(coordinator._stop_event.is_set())
 
+    def test_shutdown_blocks_calibration_evidence_bridge_creation(self) -> None:
+        coordinator = NetworkApplicationCoordinator(lambda: ())
+        coordinator._stop_event.set()
+        with patch.object(
+            coordinator, "_bridge_for_calibration",
+            side_effect=AssertionError("stale evidence must not touch progress"),
+        ) as bridge:
+            coordinator._apply_calibration_journal_evidence()
+            coordinator._apply_one_calibration_journal_evidence(object())
+            coordinator._apply_calibration_evidence()
+            bridge.assert_not_called()
+        self.assertEqual(coordinator.drain_results(), [])
+
     def test_terminal_calibration_is_polled_after_reader_already_stopped(self) -> None:
         terminal = ProtocolCalibrationControllerStatus(
             running=False,
