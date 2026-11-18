@@ -2915,9 +2915,23 @@ class AtlasWindow(QMainWindow):
         self.reload_runtime()
         self._ensure_runtime().launch_travel(text)
 
-    def launch_guide_travel(self, text: str, character_keys) -> None:
+    def launch_guide_travel(self, text: str, character_keys) -> bool:
+        if self.quit_requested or self._background_services_stopped:
+            return False
+        # The runtime's session refresh can invalidate a worker's captured
+        # roster. Reject concurrent Guide requests *before* reloading it.
+        runtime = self.runtime
+        if runtime is not None and (
+            runtime.macro_lock.active_label
+            or getattr(runtime.macro_lock, "emergency_latched", False) is True
+        ):
+            return False
         self.reload_runtime()
-        self._ensure_runtime().launch_guide_travel(text, tuple(character_keys or ()))
+        if self.quit_requested or self._background_services_stopped:
+            return False
+        return bool(self._ensure_runtime().launch_guide_travel(
+            text, tuple(character_keys or ()),
+        ))
 
     def launch_zaap(self, text: str, click_position=None, click_ratios=None) -> bool:
         if self.quit_requested or self._background_services_stopped:
