@@ -813,12 +813,10 @@ def quest_solution_blocks(quest: QuestRecord) -> tuple[DisplaySolutionBlock, ...
     for block in blocks:
         if not isinstance(block, QuestSolutionBlock):
             continue
-        content = clean_text(block.content)
+        content = documentary_instruction_text(block.content)
         if block.block_type == "heading" and _is_artificial_step_title(content):
             continue
         image_path = str(block.image_path or "")
-        if content and _looks_technical(content):
-            content = ""
         if not content and not image_path:
             continue
         rows.append(
@@ -855,8 +853,7 @@ def _local_trackable_objective_ids(quest: QuestRecord) -> tuple[int, ...]:
 
 
 def solution_objective(objective: QuestObjective) -> SolutionObjective | None:
-    text = clean_text(objective.text)
-    text = _clean_solution_instruction_text(text)
+    text = documentary_instruction_text(objective.text)
     if not text:
         return None
     if _looks_like_stat_table_row(text):
@@ -899,6 +896,18 @@ def _clean_solution_instruction_text(text: str) -> str:
         return text
     text = MINIMAP_PLACEHOLDER_RE.sub("", text)
     return re.sub(r"\s+", " ", text).strip()
+
+
+def documentary_instruction_text(value: object) -> str:
+    """Keep only documentary instructions that will actually appear in a Quest.
+
+    The local coverage audit and the runtime must agree: boilerplate
+    mini-map placeholders and raw technical criteria are not instructions.
+    Normal source text (including a map objective without GPS) remains intact.
+    """
+
+    text = _clean_solution_instruction_text(clean_text(value))
+    return "" if _looks_technical(text) else text
 
 
 def _looks_like_stat_table_row(text: str) -> bool:
