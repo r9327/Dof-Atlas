@@ -863,7 +863,11 @@ def solution_objective(objective: QuestObjective) -> SolutionObjective | None:
         return None
     position = _canonical_source_coordinate(objective.map_label)
     if DISCOVER_MAP_RE.match(text):
-        text = f"Rendez-vous en {position}." if position else ""
+        # Doduda can supply the documentary "Découvrir la carte : <id>"
+        # without usable coordinates. Keep the real objective text, but
+        # provide no copyable travel target until a valid map is known.
+        # Dropping the row also loses a real progression objective.
+        text = f"Rendez-vous en {position}." if position else text
     elif objective.type_id in COMBAT_OBJECTIVE_TYPES and objective.image_label:
         text = f"Lancez le combat contre {objective.image_label}"
         if position:
