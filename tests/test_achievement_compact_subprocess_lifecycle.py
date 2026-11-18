@@ -369,6 +369,20 @@ class AchievementCompactRowIdentityTests(unittest.TestCase):
                 with patch.object(provider, "_ensure_loaded"):
                     self.assertEqual(provider.search_catalogue_ids("grand"), (10,))
 
+                # The JSON sidecar must not silently coerce malformed
+                # offsets into apparently valid seek positions.
+                for bad_offset in (
+                    [True, 10], [0.5, 10], ["0", 10],
+                    [0, False], [0, -1], [0],
+                ):
+                    with self.subTest(offset=bad_offset):
+                        payload["offsets"]["10"] = bad_offset
+                        payload["retained_ids"] = [True, 10]
+                        sidecar.write_text(json.dumps(payload), encoding="utf-8")
+                        provider._load_from_compact_cache()
+                        self.assertEqual(provider._compact_retained_ids, (10,))
+                        self.assertNotIn(10, provider._compact_external_index)
+
     def test_compact_search_falls_back_only_for_broken_row_and_preserves_order(self):
         from types import SimpleNamespace
         from app.modules.encyclopedia.providers import memory_bound_achievement_provider as mod
