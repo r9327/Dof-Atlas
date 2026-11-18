@@ -133,7 +133,7 @@ class _OtherWidget:
 
 
 class NetworkEventReaderBoundaryTests(unittest.TestCase):
-    def test_reader_forwards_only_accepted_progress_and_verified_activation(self) -> None:
+    def test_reader_forwards_progress_verified_identity_and_real_disconnection(self) -> None:
         from unittest.mock import Mock
         from app.network.progress_bridge import EventApplicationResult
         from app.network.runtime import NetworkEventRuntime
@@ -170,7 +170,10 @@ class NetworkEventReaderBoundaryTests(unittest.TestCase):
 
         runtime._run()
 
-        self.assertEqual(runtime.drain_results(), [outputs["journal"], outputs["identity"]])
+        self.assertEqual(
+            runtime.drain_results(),
+            [outputs["journal"], outputs["identity"], outputs["closed"]],
+        )
         source.stop.assert_called_once_with()
         bridge.reset_sessions.assert_called_once_with()
 
@@ -717,10 +720,13 @@ class NetworkApplicationCoordinatorTests(unittest.TestCase):
         applied_journal = event("quest_journal_applied", changed=True)
         updated_objective = event("quest_objective_completed", changed=True)
         reconciled = event("character_identified_with_quest_journal", changed=True)
+        close = event("session_closed", changed=True)
         rows = (
             event("character_unchanged"),
             event("quest_journal_no_change"),
-            event("session_closed", changed=True),
+            event("session_closed", changed=False),
+            event("session_closed", changed=True, accepted=False),
+            close,
             identified,
             applied_journal,
             updated_objective,
@@ -735,7 +741,7 @@ class NetworkApplicationCoordinatorTests(unittest.TestCase):
 
         self.assertEqual(
             coordinator.drain_results(),
-            [identified, applied_journal, updated_objective, reconciled],
+            [close, identified, applied_journal, updated_objective, reconciled],
         )
 
     def test_stop_during_runtime_result_drain_drops_late_results(self) -> None:
