@@ -134,6 +134,35 @@ class QuestSourceBoundaryTests(unittest.TestCase):
             finally:
                 sources.close()
 
+    def test_in_bounds_but_non_json_offset_respects_required_boundary(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            source = root / "source.json"
+            source.write_text(
+                json.dumps({"entries": {"1": "Sain", "2": "Valide"}}),
+                encoding="utf-8",
+            )
+            required = QuestSources(root / "cache", disk_backed=True)
+            optional = QuestSources(root / "cache", disk_backed=True)
+            try:
+                rows = required.mapping(source, "entries")
+                self.assertEqual(rows["1"], "Sain")
+                # Structurally valid span, but only a single opening brace.
+                with closing(sqlite3.connect(rows._disk_index)) as conn, conn:
+                    conn.execute(
+                        "UPDATE offsets SET start=0, end=1 WHERE key='2'"
+                    )
+                with self.assertRaises(QuestSourceError):
+                    _ = rows["2"]
+                self.assertNotIn("2", rows._cache)
+                other = optional.mapping(source, "entries", required=False)
+                self.assertEqual(other["1"], "Sain")
+                self.assertIsNone(other.get("2"))
+                self.assertNotIn("2", other._cache)
+            finally:
+                required.close()
+                optional.close()
+
     def test_missing_offsets_schema_rebuilds_readable_index(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)
