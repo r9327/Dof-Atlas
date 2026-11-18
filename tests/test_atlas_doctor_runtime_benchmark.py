@@ -142,6 +142,31 @@ class AtlasDoctorRuntimeBenchmarkTests(unittest.TestCase):
         self.assertEqual(benchmark["medians"]["hot_round_trip_guide"]["avg_ms"], 11.0)
         self.assertEqual(benchmark["after"], benchmark["medians"])
 
+    def test_success_distributions_report_exact_ranks_and_sample_quality(self) -> None:
+        samples = [
+            self.sample(head="sha", startup_ms=120, rss_mb=100),
+            self.sample(head="sha", startup_ms=140, rss_mb=101),
+            self.sample(head="sha", startup_ms=160, rss_mb=102),
+        ]
+        for value, sample in zip((90.0, 120.0, 210.0), samples):
+            sample["metrics"]["first_achievement_detail_ms"] = value
+            sample["metrics"]["rss_after_first_achievement_detail_mb"] = 101.0
+
+        benchmark = aggregate_samples(samples)
+        timings = benchmark["distributions"]["first_achievement_detail_ms"]
+        self.assertEqual(timings["sample_count"], 3)
+        self.assertEqual(timings["p50"], 120.0)
+        self.assertEqual(timings["p95"], 210.0)
+        self.assertEqual(timings["p99"], 210.0)
+        self.assertEqual(timings["unit"], "ms")
+        self.assertEqual(timings["p99_quality"], "DESCRIPTIVE_ONLY")
+        self.assertEqual(benchmark["medians"]["first_achievement_detail_ms"], 120.0)
+        rss = benchmark["distributions"]["rss_after_first_achievement_detail_mb"]
+        self.assertEqual(rss["unit"], "MB")
+        self.assertEqual(rss["p95"], 101.0)
+        self.assertNotIn("achievements_open_ms", benchmark["distributions"])
+        self.assertEqual(benchmark["after"], benchmark["medians"])
+
     def test_compare_to_legacy_baseline_reports_cost_deltas(self) -> None:
         current = aggregate_samples(
             [self.sample(head="new", startup_ms=120.0, rss_mb=100.0)]
