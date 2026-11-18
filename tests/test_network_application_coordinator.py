@@ -132,6 +132,71 @@ class _OtherWidget:
         return "OtherPage"
 
 
+class NetworkEventReaderBoundaryTests(unittest.TestCase):
+    def test_reader_forwards_only_accepted_progress_and_verified_activation(self) -> None:
+        from unittest.mock import Mock
+        from app.network.progress_bridge import EventApplicationResult
+        from app.network.runtime import NetworkEventRuntime
+
+        source = Mock()
+        bridge = Mock()
+        runtime = NetworkEventRuntime(source, bridge)
+        events = iter(("rejected", "journal", "identity", "closed"))
+
+        def read_event(_timeout):
+            try:
+                return next(events)
+            except StopIteration:
+                runtime._stop_event.set()
+                return None
+
+        outputs = {
+            "rejected": EventApplicationResult(
+                False, True, "quest_completed", "character:1",
+            ),
+            "journal": EventApplicationResult(
+                True, True, "quest_journal_reconciled", "character:1",
+            ),
+            "identity": EventApplicationResult(
+                True, False, "character_identified_with_quest_journal",
+                "character:1",
+            ),
+            "closed": EventApplicationResult(
+                True, True, "session_closed", "character:1",
+            ),
+        }
+        source.read_event.side_effect = read_event
+        bridge.handle.side_effect = outputs.__getitem__
+
+        runtime._run()
+
+        self.assertEqual(runtime.drain_results(), [outputs["journal"], outputs["identity"]])
+        source.stop.assert_called_once_with()
+        bridge.reset_sessions.assert_called_once_with()
+
+    def test_reader_drops_result_when_stopped_inside_event_application(self) -> None:
+        from unittest.mock import Mock
+        from app.network.progress_bridge import EventApplicationResult
+        from app.network.runtime import NetworkEventRuntime
+
+        source = Mock()
+        bridge = Mock()
+        runtime = NetworkEventRuntime(source, bridge)
+        source.read_event.return_value = object()
+
+        def stop_during_handle(_event):
+            runtime._stop_event.set()
+            return EventApplicationResult(True, True, "quest_completed", "character:1")
+
+        bridge.handle.side_effect = stop_during_handle
+        runtime._run()
+
+        self.assertEqual(runtime.drain_results(), [])
+        source.read_event.assert_called_once()
+        source.stop.assert_called_once_with()
+        bridge.reset_sessions.assert_called_once_with()
+
+
 class NetworkDeferredJournalIdentityTests(unittest.TestCase):
     def test_deferred_journal_identity_reports_only_real_progress_mutations(self) -> None:
         from types import SimpleNamespace
