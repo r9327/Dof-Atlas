@@ -26,7 +26,7 @@ from app.ui.components import AtlasBreadcrumb, AtlasButton, AtlasComboBox, Atlas
 
 
 SENTINEL_COORD = -2147483648
-TRAVEL_COORD_RE = re.compile(r"\[(-?\d+)\s*,\s*(-?\d+)\]")
+TRAVEL_COORD_RE = re.compile(r"\[\s*(-?\d+)\s*,\s*(-?\d+)\s*\]")
 
 _GENERIC_GATE_TOKENS = (
     "condition réelle du jeu",
@@ -391,11 +391,14 @@ class GuideUltimeUniversalView(GuideUltimeGeneratedView):
             key for key in self.selected_participant_keys() if key in eligible
         )
         callback = self.travel_callback
-        if (
-            not callable(callback)
-            or not re.fullmatch(r"/travel -?\d+,-?\d+", normalized)
-            or not recipients
-        ):
+        command_match = re.fullmatch(r"/travel (-?\d+),(-?\d+)", normalized)
+        known_destination = (
+            command_match is not None
+            and SENTINEL_COORD not in (
+                int(command_match.group(1)), int(command_match.group(2))
+            )
+        )
+        if not callable(callback) or not known_destination or not recipients:
             QApplication.clipboard().setText(normalized)
             return False
         callback(normalized, recipients)
