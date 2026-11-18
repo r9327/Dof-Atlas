@@ -115,12 +115,16 @@ class _Tabs:
 
 
 class _EncyclopediaFake:
-    def __init__(self, character_key: str, child: object) -> None:
+    def __init__(self, character_key: str, child: object, *, visible: bool = True) -> None:
         self.current_character_key = character_key
         self.tabs = _Tabs(child)
+        self.visible = visible
 
     def objectName(self) -> str:
         return "EncyclopediaPage"
+
+    def isVisible(self) -> bool:
+        return self.visible
 
 
 class _OtherWidget:
@@ -458,6 +462,41 @@ class NetworkApplicationCoordinatorTests(unittest.TestCase):
             "slot:1",
         )
         self.assertEqual(refreshed, 0)
+
+    def test_hidden_encyclopedia_defers_refresh_until_visible(self) -> None:
+        hidden_child = _VisibleChild()
+        shown_child = _VisibleChild()
+        hidden = _EncyclopediaFake("character:1", hidden_child, visible=False)
+        shown = _EncyclopediaFake("character:1", shown_child, visible=True)
+
+        self.assertEqual(
+            refresh_visible_encyclopedia_widgets(
+                (hidden, shown), "character:1",
+            ),
+            1,
+        )
+        self.assertEqual(hidden_child.refresh_count, 0)
+        self.assertEqual(shown_child.refresh_count, 1)
+        hidden.visible = True
+        self.assertEqual(
+            refresh_visible_encyclopedia_widgets((hidden,), "character:1"),
+            1,
+        )
+        self.assertEqual(hidden_child.refresh_count, 1)
+
+    def test_deleted_encyclopedia_during_visibility_check_is_skipped(self) -> None:
+        class _DeletedEncyclopedia(_EncyclopediaFake):
+            def isVisible(self) -> bool:
+                raise RuntimeError("Internal C++ object already deleted")
+
+        child = _VisibleChild()
+        self.assertEqual(
+            refresh_visible_encyclopedia_widgets(
+                (_DeletedEncyclopedia("character:1", child),), "character:1",
+            ),
+            0,
+        )
+        self.assertEqual(child.refresh_count, 0)
 
 
 if __name__ == "__main__":
