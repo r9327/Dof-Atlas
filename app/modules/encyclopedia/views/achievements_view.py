@@ -438,10 +438,21 @@ class AchievementsView(QWidget):
         self.refresh()
 
     def select_achievement(self, achievement_id: int) -> bool:
-        achievement = self.provider.get_by_id(int(achievement_id))
-        if achievement is None or not self.provider.is_retained(achievement.id):
+        achievement_id = int(achievement_id)
+        # Deep links need only the category and retained-membership proof.
+        # The compact provider already keeps both in its small sidecar;
+        # hydrating an Achievement here can read JSONL on the Qt thread.
+        category_lookup = getattr(self.provider, "catalogue_category_for_id", None)
+        target_category_id = (
+            category_lookup(achievement_id) if callable(category_lookup) else None
+        )
+        if target_category_id is None:
+            achievement = self.provider.get_by_id(achievement_id)
+            if achievement is None or not self.provider.is_retained(achievement.id):
+                return False
+            target_category_id = achievement.subcategory_id or achievement.category_id
+        elif not self.provider.is_retained(achievement_id):
             return False
-        target_category_id = achievement.subcategory_id or achievement.category_id
         tree_item = self._tree_items.get(target_category_id)
         if tree_item is not None:
             if tree_item.parent() is not None:
@@ -457,16 +468,16 @@ class AchievementsView(QWidget):
                 timer.stop()
             self.refresh()
         for row, candidate in enumerate(self.filtered):
-            if candidate.id == achievement.id:
+            if candidate.id == achievement_id:
                 # Direct navigation must open the real detail immediately.
                 # Rendering every preceding QListWidgetItem synchronously
                 # can stall Qt for a deep link near the end of a category.
                 # Keep selection pending; its row will be highlighted when
                 # a later scroll batch naturally reaches it.
-                self._achievement_pending_selected_id = achievement.id
+                self._achievement_pending_selected_id = achievement_id
                 if row < self.list_widget.count():
                     self.list_widget.setCurrentRow(row)
-                self.show_achievement(achievement.id)
+                self.show_achievement(achievement_id)
                 return True
         return False
 
