@@ -126,7 +126,7 @@ class NetworkHomeStatusTests(unittest.TestCase):
         coordinator.drain_results.return_value = [
             SimpleNamespace(
                 accepted=True, changed=True,
-                character_key="character:1", reason="character_activated",
+                character_key="character:1", reason="character_identified",
             )
         ]
         coordinator.stop.return_value = True
@@ -157,7 +157,7 @@ class NetworkHomeStatusTests(unittest.TestCase):
         coordinator.drain_results.return_value = [
             SimpleNamespace(
                 accepted=True, changed=True,
-                character_key="character:1", reason="character_activated",
+                character_key="character:1", reason="character_identified",
             )
         ]
         coordinator.stop.return_value = True
@@ -175,6 +175,80 @@ class NetworkHomeStatusTests(unittest.TestCase):
             self.assertEqual(progression, [])
             self.assertEqual(bridge._pending_progress_characters, set())
             self.assertFalse(bridge._progress_timer.isActive())
+        finally:
+            bridge.stop()
+            bridge.deleteLater()
+            self.app.processEvents()
+
+    def test_network_journal_progress_does_not_reload_character_profiles(self) -> None:
+        from types import SimpleNamespace
+        from unittest.mock import Mock, patch
+
+        coordinator = Mock()
+        coordinator.has_pending_ui_events.return_value = True
+        coordinator.drain_statuses.return_value = []
+        coordinator.drain_results.return_value = [
+            SimpleNamespace(
+                accepted=True, changed=False, character_key="character:1",
+                reason="character_unchanged",
+            ),
+            SimpleNamespace(
+                accepted=True, changed=True, character_key="character:1",
+                reason="quest_journal_applied",
+            ),
+            SimpleNamespace(
+                accepted=True, changed=True, character_key="character:2",
+                reason="quest_objective_completed",
+            ),
+            SimpleNamespace(
+                accepted=True, changed=False, character_key="character:2",
+                reason="quest_journal_no_change",
+            ),
+        ]
+        coordinator.stop.return_value = True
+        bridge = self._new_network_bridge(coordinator)
+        activations = []
+        changes = []
+        bridge.characterActivated.connect(activations.append)
+        bridge.progressChanged.connect(changes.append)
+        try:
+            with patch("app.ui.network_bridge.record_validation"):
+                bridge._poll()
+                bridge._progress_timer.stop()
+                bridge._emit_pending_progress()
+            self.assertEqual(activations, [])
+            self.assertEqual(changes, ["character:1", "character:2"])
+        finally:
+            bridge.stop()
+            bridge.deleteLater()
+            self.app.processEvents()
+
+    def test_network_bridge_emits_one_verified_activation_with_progress(self) -> None:
+        from types import SimpleNamespace
+        from unittest.mock import Mock, patch
+
+        coordinator = Mock()
+        coordinator.has_pending_ui_events.return_value = True
+        coordinator.drain_statuses.return_value = []
+        coordinator.drain_results.return_value = [
+            SimpleNamespace(
+                accepted=True, changed=True, character_key="character:1",
+                reason="character_identified_with_quest_journal",
+            ),
+        ]
+        coordinator.stop.return_value = True
+        bridge = self._new_network_bridge(coordinator)
+        activations = []
+        changes = []
+        bridge.characterActivated.connect(activations.append)
+        bridge.progressChanged.connect(changes.append)
+        try:
+            with patch("app.ui.network_bridge.record_validation"):
+                bridge._poll()
+                bridge._progress_timer.stop()
+                bridge._emit_pending_progress()
+            self.assertEqual(activations, ["character:1"])
+            self.assertEqual(changes, ["character:1"])
         finally:
             bridge.stop()
             bridge.deleteLater()
