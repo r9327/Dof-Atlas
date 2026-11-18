@@ -680,9 +680,12 @@ class GuideUltimeManualCard(QFrame):
                     value, "item", f"item-copy:{quote(payload, safe='')}", PALETTE,
                 ))
             else:
-                rendered.append(entity_link_markup(
+                # Every actionable map coordinate is bold in the shared Guide,
+                # while its existing Unity link colour and copy/travel action
+                # stay unchanged. One formatter covers all roadbook sheets.
+                rendered.append("<b>" + entity_link_markup(
                     value, "position", f"travel-copy:{payload}", PALETTE,
-                ))
+                ) + "</b>")
             cursor = end
         rendered.append(html.escape(plain[cursor:]))
         return "".join(rendered)
