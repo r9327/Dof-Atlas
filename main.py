@@ -1245,7 +1245,11 @@ class AtlasWindow(QMainWindow):
         finally:
             self.character_combo.blockSignals(previous_blocked)
 
-        self.persist_selected_character()
+        # Network status/profile refreshes can happen many times without
+        # selecting a different character. Do not rewrite the profile file
+        # (or persist a transient empty choice) unless the key changed.
+        if self.current_character_key != previous_key:
+            self.persist_selected_character()
         self.home_page.set_character(
             self.current_character_key,
             self.current_character_label,
