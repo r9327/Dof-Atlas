@@ -189,6 +189,43 @@ class AchievementCompactRowIdentityTests(unittest.TestCase):
                         self.assertIsNone(provider.progress_row_by_id(ident))
                 self.assertEqual(provider.progress_catalogue(), (expected,))
 
+    def test_compact_progress_catalogue_keeps_valid_rows_around_corrupt_json(self) -> None:
+        from app.modules.encyclopedia.providers import memory_bound_achievement_provider as mod
+
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / "success.jsonl"
+            data = b""
+            offsets = {}
+            for ident, payload in (
+                (10, {"kind": "achievement", "value": {
+                    "id": 10, "category_name": "A", "progress_objectives": [],
+                }}),
+                (11, b"{not-valid-json}"),
+                (12, {"kind": "achievement", "value": {
+                    "id": 12, "category_name": "C", "progress_objectives": [],
+                }}),
+            ):
+                row = (
+                    payload if isinstance(payload, bytes)
+                    else json.dumps(payload).encode("utf-8")
+                ) + b"\\n"
+                offsets[ident] = (len(data), len(row))
+                data += row
+            path.write_bytes(data)
+            provider = MemoryBoundAchievementProvider()
+            provider._compact_retained_ids = (10, 11, 12)
+            provider._compact_retained_set = frozenset((10, 11, 12))
+            provider._compact_external_index = offsets
+            with (
+                patch.object(mod, "ACHIEVEMENT_COMPACT_CACHE", path),
+                patch.object(provider, "_ensure_loaded"),
+            ):
+                self.assertIsNone(provider.progress_row_by_id(11))
+                self.assertEqual(provider.progress_catalogue(), (
+                    (10, "A", ()),
+                    (12, "C", ()),
+                ))
+
     def test_locked_builder_repairs_positive_count_but_missing_offset_sidecar(self):
         from app.modules.encyclopedia.providers import memory_bound_achievement_provider as mod
 
