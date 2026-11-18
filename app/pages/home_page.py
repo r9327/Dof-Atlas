@@ -680,8 +680,12 @@ class HomePage(QWidget):
         # A worker can still be running when stopping or capture fails.
         # Never paint a green "Actif" badge over an explicit error.
         if (
-            reason == "capture_elevation_cancelled"
-            or reason == "build_changed"
+            reason in {
+                "capture_elevation_cancelled",
+                "build_changed",
+                "quest_snapshot_missed",
+                "mapping_invalid",
+            }
             or reason.startswith("capture_helper")
             or "admin" in reason
             or "permission" in reason
