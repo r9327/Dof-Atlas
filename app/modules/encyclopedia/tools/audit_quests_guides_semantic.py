@@ -1091,11 +1091,13 @@ def main(argv: list[str] | None = None) -> int:
     if args.local_coverage_only:
         # Local gaps can be measured without creating the expensive Guide,
         # Achievement or quest-dependency graph used by the full audit.
-        catalog = QuestProvider().get_catalog()
+        # The audit only needs IDs. Do not instantiate ~2,000 Quest
+        # summaries or deduplicate Quests sharing the same name.
+        from app.quest_catalog_details import _CACHE_ROOT, load_quest_ids
+        quest_ids = load_quest_ids()
         # quests_enriched.json is large. Use the existing SQLite offset index
         # and bounded decoded-row cache rather than json.load() of the entire
         # document, retaining a constant-size resident working set.
-        from app.quest_catalog_details import _CACHE_ROOT
         sources = QuestSources(_CACHE_ROOT / "source_offsets", disk_backed=True)
         try:
             # The audit's job is to find genuinely missing source rows.
@@ -1105,7 +1107,7 @@ def main(argv: list[str] | None = None) -> int:
                 ENRICHED_PATH, "quests", required=True,
             )
             coverage = local_start_position_coverage(
-                enriched, (int(quest.id) for quest in catalog.quests),
+                enriched, quest_ids,
             )
         finally:
             sources.close()
