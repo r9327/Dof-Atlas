@@ -78,7 +78,7 @@ class QuestSemanticEnrichmentTests(unittest.TestCase):
                 ]), 0)
             self.assertNotEqual(output, mod.DEFAULT_JSON)
             sources.mapping.assert_called_once_with(
-                mod.ENRICHED_PATH, "quests", required=False,
+                mod.ENRICHED_PATH, "quests", required=True,
             )
             sources.close.assert_called_once_with()
             payload = json.loads(output.read_text(encoding="utf-8"))
@@ -117,6 +117,34 @@ class QuestSemanticEnrichmentTests(unittest.TestCase):
             with self.assertRaisesRegex(RuntimeError, "source changed"):
                 mod.main(["--local-coverage-only"])
         sources.close.assert_called_once_with()
+
+    def test_local_coverage_rejects_missing_enrichment_without_false_report(self):
+        from contextlib import redirect_stdout
+        from io import StringIO
+        from types import SimpleNamespace
+        from unittest.mock import patch
+        from app.modules.encyclopedia.tools import audit_quests_guides_semantic as mod
+        from app.quest_source_index import QuestSourceError
+
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            missing = root / "missing_quests_enriched.json"
+            output = root / "coverage.json"
+            with (
+                patch.object(mod, "ENRICHED_PATH", missing),
+                patch.object(mod, "QuestProvider", return_value=SimpleNamespace(
+                    get_catalog=lambda: SimpleNamespace(
+                        quests=(SimpleNamespace(id=10),),
+                    ),
+                )),
+                redirect_stdout(StringIO()),
+            ):
+                with self.assertRaises(QuestSourceError):
+                    mod.main([
+                        "--local-coverage-only",
+                        "--json-output", str(output),
+                    ])
+            self.assertFalse(output.exists())
 
     def test_local_coverage_reads_sparse_enrichment_with_existing_disk_index(self):
         from app.quest_source_index import QuestSources
