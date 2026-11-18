@@ -4163,16 +4163,29 @@ def solution_block_widget(block: DisplaySolutionBlock) -> QWidget:
         layout.setSpacing(4)
         layout.addWidget(SolutionImageLabel(block.image_path, block.caption), 0, Qt.AlignHCenter)
         return container
+    if block.block_type == "image":
+        # A path referenced by the source is not proof that the actual
+        # image ships with this build. Never silently render a blank row.
+        label = "Image locale indisponible"
+        if block.caption:
+            label += f" : {block.caption}"
+        return text_label(label, "MutedLabel")
     if block.block_type == "heading":
         return text_label(block.content.rstrip(":"), "QuestSolutionStepTitle")
     object_name = "QuestSolutionCombat" if block.block_type == "combat" else "QuestSolutionDescription"
     return text_label(block.content, object_name)
 
 
-def quest_solution_document_widgets(quest, *, omit_first_image_path: str = "") -> list[QWidget]:
+def quest_solution_document_widgets(
+    quest, *, omit_first_image_path: str = "",
+    source_blocks: tuple[DisplaySolutionBlock, ...] | None = None,
+) -> list[QWidget]:
     """Render a walkthrough as a small number of selectable document blocks."""
 
-    blocks = list(quest_solution_blocks(quest))
+    # QuestDetailView already needs this snapshot to decide whether the
+    # documentary fallback disclaimer is required. Reuse it instead of
+    # applying the source filter twice during every detail repaint.
+    blocks = list(source_blocks if source_blocks is not None else quest_solution_blocks(quest))
     if not blocks:
         for step in quest_solution_steps(quest):
             if step.title:
