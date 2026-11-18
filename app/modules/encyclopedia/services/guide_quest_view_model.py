@@ -774,23 +774,18 @@ def _explicit_start_map_paths(source_meta: dict[str, object]) -> tuple[str, ...]
 def quest_solution_steps(quest: QuestRecord) -> tuple[SolutionStep, ...]:
     rows: list[SolutionStep] = []
     source_steps = getattr(quest, "source_solution_steps", None)
-    local_objective_ids = list(_local_trackable_objective_ids(quest)) if source_steps else []
-    local_objective_index = 0
+    source_to_local = _verified_source_objective_ids(quest) if source_steps else {}
     for step in source_steps or quest.steps:
+        projected_rows = [
+            (raw_objective, projected)
+            for raw_objective in step.objectives
+            if (projected := solution_objective(raw_objective)) is not None
+        ]
         objectives = tuple(
-            objective
-            for objective in (solution_objective(objective) for objective in step.objectives)
-            if objective is not None
+            replace(projected, objective_id=source_to_local.get(id(raw_objective)))
+            if source_steps else projected
+            for raw_objective, projected in projected_rows
         )
-        if source_steps and objectives:
-            aligned = []
-            for objective in objectives:
-                objective_id = None
-                if local_objective_index < len(local_objective_ids):
-                    objective_id = local_objective_ids[local_objective_index]
-                    local_objective_index += 1
-                aligned.append(replace(objective, objective_id=objective_id))
-            objectives = tuple(aligned)
         description = clean_text(step.description)
         if not description and not objectives and not step.name:
             continue
@@ -850,6 +845,65 @@ def _local_trackable_objective_ids(quest: QuestRecord) -> tuple[int, ...]:
                 seen.add(objective_id)
                 ids.append(objective_id)
     return tuple(ids)
+
+
+def _verified_source_objective_ids(quest: QuestRecord) -> dict[int, int]:
+    """Map only uniquely matching source instructions to local progress IDs.
+
+    Enriched walkthroughs are documentary, not a guaranteed one-to-one copy
+    of gameplay objectives. Positional matching can silently check the wrong
+    quest objective when the source inserts, omits or reorders an instruction.
+    Unmatched and ambiguous rows deliberately remain read-only.
+    """
+
+    trackable = frozenset(_local_trackable_objective_ids(quest))
+    if not trackable:
+        return {}
+    local = [
+        objective
+        for step in quest.steps
+        for objective in step.objectives
+        if objective.id in trackable
+    ]
+    source = [
+        objective
+        for step in quest.source_solution_steps
+        for objective in step.objectives
+        if solution_objective(objective) is not None
+    ]
+
+    def matches(left: QuestObjective, right: QuestObjective) -> bool:
+        left_text = normalize_text(documentary_instruction_text(left.text))
+        right_text = normalize_text(documentary_instruction_text(right.text))
+        if not left_text or left_text != right_text:
+            return False
+        left_combat = left.is_combat or left.type_id in COMBAT_OBJECTIVE_TYPES
+        right_combat = right.is_combat or right.type_id in COMBAT_OBJECTIVE_TYPES
+        if bool(left_combat) != bool(right_combat):
+            return False
+        left_pos = _canonical_source_coordinate(left.map_label)
+        right_pos = _canonical_source_coordinate(right.map_label)
+        # A verified mismatch is evidence against identity, not permission
+        # to attach a different local objective's completion state.
+        return not (left_pos and right_pos and left_pos != right_pos)
+
+    tentative: dict[int, int] = {}
+    for source_objective in source:
+        candidates = [
+            objective.id for objective in local
+            if matches(source_objective, objective)
+        ]
+        if len(candidates) == 1:
+            tentative[id(source_objective)] = candidates[0]
+
+    usage: dict[int, int] = {}
+    for objective_id in tentative.values():
+        usage[objective_id] = usage.get(objective_id, 0) + 1
+    return {
+        source_id: objective_id
+        for source_id, objective_id in tentative.items()
+        if usage[objective_id] == 1
+    }
 
 
 def solution_objective(objective: QuestObjective) -> SolutionObjective | None:
