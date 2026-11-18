@@ -476,6 +476,34 @@ class QuestDetailViewColumnTests(unittest.TestCase):
         quest.steps[0].objectives.append(QuestObjective(18, "Parler au garde", 1))
         self.assertIsNone(quest_solution_steps(quest)[0].objectives[0].objective_id)
 
+    def test_source_progress_matching_rejects_conflicting_item_ids(self) -> None:
+        from app.modules.encyclopedia.services.guide_quest_view_model import (
+            quest_solution_steps,
+        )
+
+        quest = QuestRecord(
+            id=913, name="Objets distincts", category="Quêtes",
+            level_min=1, level_max=200, start_criterion="",
+            steps=[QuestStep(1, "Locale", "", [
+                QuestObjective(
+                    17, "Rapporter le trophée", 2, item_id=104,
+                ),
+            ])],
+            source_solution_steps=[QuestStep(2, "Documentation", "", [
+                QuestObjective(
+                    -1, "Rapporter le trophée", 0, item_id=105,
+                ),
+            ])],
+        )
+        self.assertIsNone(
+            quest_solution_steps(quest)[0].objectives[0].objective_id
+        )
+        quest.source_solution_steps[0].objectives[0].item_id = 104
+        self.assertEqual(
+            quest_solution_steps(quest)[0].objectives[0].objective_id,
+            17,
+        )
+
     def test_all_displayed_travel_coordinates_share_bold_link_markup(self) -> None:
         from PySide6.QtCore import Qt
         from app.modules.encyclopedia.services.guide_quest_view_model import (
