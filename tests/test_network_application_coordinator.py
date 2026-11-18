@@ -500,6 +500,37 @@ class NetworkApplicationCoordinatorTests(unittest.TestCase):
         self.assertIs(coordinator._last_calibration, before)
         self.assertEqual(coordinator.drain_results(), [])
 
+    def test_runtime_routes_progress_without_reactivating_unchanged_character(self) -> None:
+        from types import SimpleNamespace
+
+        coordinator = NetworkApplicationCoordinator(lambda: ())
+        def event(reason, *, changed=False, accepted=True, key="character:1"):
+            return SimpleNamespace(
+                reason=reason, changed=changed,
+                accepted=accepted, character_key=key,
+            )
+
+        identified = event("character_identified")
+        applied_journal = event("quest_journal_applied", changed=True)
+        updated_objective = event("quest_objective_completed", changed=True)
+        reconciled = event("character_identified_with_quest_journal", changed=True)
+        rows = (
+            event("character_unchanged"),
+            event("quest_journal_no_change"),
+            identified,
+            applied_journal,
+            updated_objective,
+            reconciled,
+            event("character_identified", accepted=False),
+        )
+        with patch.object(coordinator.runtime, "drain_results", return_value=rows):
+            coordinator._drain_runtime_results()
+
+        self.assertEqual(
+            coordinator.drain_results(),
+            [identified, applied_journal, updated_objective, reconciled],
+        )
+
     def test_stop_during_runtime_result_drain_drops_late_results(self) -> None:
         from types import SimpleNamespace
 
