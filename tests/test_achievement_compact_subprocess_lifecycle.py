@@ -158,6 +158,76 @@ class AchievementCompactRowIdentityTests(unittest.TestCase):
                     None,
                 ])
 
+    def test_compact_search_uses_one_file_and_never_materializes_rich_rows(self):
+        from app.modules.encyclopedia.providers import memory_bound_achievement_provider as mod
+
+        with tempfile.TemporaryDirectory() as directory:
+            cache = Path(directory) / "success.jsonl"
+            rows = (
+                {"kind": "achievement", "value": {
+                    "id": 10, "name": "First", "search_text": "grand_monstre",
+                }},
+                {"kind": "achievement", "value": {
+                    "id": 11, "name": "Second", "search_text": "petit_monstre",
+                }},
+                {"kind": "achievement", "value": {
+                    "id": 12, "name": "Third", "search_text": "grand_monstre_rare",
+                }},
+            )
+            offsets = {}
+            content = b""
+            for row in rows:
+                payload = (json.dumps(row) + "\n").encode("utf-8")
+                offsets[row["value"]["id"]] = (len(content), len(payload))
+                content += payload
+            cache.write_bytes(content)
+            provider = MemoryBoundAchievementProvider()
+            provider._compact_retained_ids = (10, 11, 12)
+            provider._compact_retained_set = frozenset((10, 11, 12))
+            provider._compact_external_index = offsets
+            opened = []
+            original_open = Path.open
+
+            def count_open(path, *args, **kwargs):
+                if path == cache:
+                    opened.append(True)
+                return original_open(path, *args, **kwargs)
+
+            with (
+                patch.object(mod, "ACHIEVEMENT_COMPACT_CACHE", cache),
+                patch.object(provider, "_ensure_loaded"),
+                patch.object(provider, "_summary_by_id",
+                             side_effect=AssertionError("rich Success should stay cold")),
+                patch.object(Path, "open", count_open),
+            ):
+                self.assertEqual(provider.search_catalogue_ids("grand monstre"), (10, 12))
+                self.assertEqual(len(opened), 1)
+
+    def test_compact_search_falls_back_only_for_broken_row_and_preserves_order(self):
+        from types import SimpleNamespace
+        from app.modules.encyclopedia.providers import memory_bound_achievement_provider as mod
+
+        with tempfile.TemporaryDirectory() as directory:
+            cache = Path(directory) / "success.jsonl"
+            raw = (json.dumps({"kind": "achievement", "value": {
+                "id": 10, "search_text": "grand_monstre",
+            }}) + "\n").encode("utf-8")
+            cache.write_bytes(raw)
+            provider = MemoryBoundAchievementProvider()
+            provider._compact_retained_ids = (10, 11)
+            provider._compact_retained_set = frozenset((10, 11))
+            provider._compact_external_index = {10: (0, len(raw)), 11: (0, -1)}
+            with (
+                patch.object(mod, "ACHIEVEMENT_COMPACT_CACHE", cache),
+                patch.object(provider, "_ensure_loaded"),
+                patch.object(provider, "_summary_by_id",
+                             side_effect=lambda ident: SimpleNamespace(
+                                 search_text="grand_monstre",
+                             ) if ident == 11 else None) as fallback,
+            ):
+                self.assertEqual(provider.search_catalogue_ids("grand monstre"), (10, 11))
+                fallback.assert_called_once_with(11)
+
     def test_compact_progress_reads_reject_bad_spans_and_wrong_achievement(self) -> None:
         from app.modules.encyclopedia.providers import memory_bound_achievement_provider as mod
 
