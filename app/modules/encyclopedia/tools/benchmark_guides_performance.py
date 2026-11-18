@@ -275,8 +275,25 @@ def first_achievement_detail(
     call_block_ms = round((time.perf_counter() - call_started) * 1000.0, 2)
     if not selected:
         raise RuntimeError(f"Unable to select Success {achievement_id} from canonical view.")
-    pump_events(app, 0.01)
-    return milliseconds(started), achievement_id, call_block_ms
+
+    def detail_is_displayed() -> bool:
+        if getattr(view, "current_achievement_id", None) != achievement_id:
+            return False
+        if bool(getattr(view, "_detail_open", False)):
+            return True
+        if (
+            getattr(view, "_detail_requested", None) is None
+            and not bool(getattr(view, "_detail_worker_running", False))
+        ):
+            raise RuntimeError(f"Success {achievement_id} detail failed to render.")
+        return False
+
+    # The detail can finish long after select_achievement() returns. Measure
+    # the actual ready state, never just 10 ms of event processing.
+    wait_block_ms = wait_until_with_ui_block(
+        app, detail_is_displayed, 30.0, f"Success {achievement_id} detail"
+    )
+    return milliseconds(started), achievement_id, max(call_block_ms, wait_block_ms)
 
 
 
