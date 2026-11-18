@@ -42,10 +42,6 @@ class QuestSemanticEnrichmentTests(unittest.TestCase):
 
         with tempfile.TemporaryDirectory() as directory:
             output = Path(directory) / "local_coverage.json"
-            catalog = SimpleNamespace(quests=(
-                SimpleNamespace(id=10),
-                SimpleNamespace(id=20),
-            ))
             sources = Mock()
             sources.mapping.return_value = {
                 "10": {
@@ -58,9 +54,9 @@ class QuestSemanticEnrichmentTests(unittest.TestCase):
             }
             with (
                 patch.object(mod, "DEFAULT_LOCAL_COVERAGE", output),
-                patch.object(mod, "QuestProvider", return_value=SimpleNamespace(
-                    get_catalog=lambda: catalog,
-                )),
+                patch("app.quest_catalog_details.load_quest_ids", return_value=(10, 20)),
+                patch.object(mod, "QuestProvider",
+                             side_effect=AssertionError("must not hydrate Quest catalog")),
                 patch.object(mod, "GuideProvider",
                              side_effect=AssertionError("must stay local")),
                 patch.object(mod, "AchievementProvider",
@@ -103,11 +99,9 @@ class QuestSemanticEnrichmentTests(unittest.TestCase):
         sources = Mock()
         sources.mapping.return_value = {"10": {}}
         with (
-            patch.object(mod, "QuestProvider", return_value=SimpleNamespace(
-                get_catalog=lambda: SimpleNamespace(
-                    quests=(SimpleNamespace(id=10),),
-                ),
-            )),
+            patch("app.quest_catalog_details.load_quest_ids", return_value=(10,)),
+            patch.object(mod, "QuestProvider",
+                         side_effect=AssertionError("must not hydrate Quest catalog")),
             patch.object(mod, "QuestSources", return_value=sources),
             patch.object(
                 mod, "local_start_position_coverage",
@@ -132,11 +126,9 @@ class QuestSemanticEnrichmentTests(unittest.TestCase):
             output = root / "coverage.json"
             with (
                 patch.object(mod, "ENRICHED_PATH", missing),
-                patch.object(mod, "QuestProvider", return_value=SimpleNamespace(
-                    get_catalog=lambda: SimpleNamespace(
-                        quests=(SimpleNamespace(id=10),),
-                    ),
-                )),
+                patch("app.quest_catalog_details.load_quest_ids", return_value=(10,)),
+                patch.object(mod, "QuestProvider",
+                             side_effect=AssertionError("must not hydrate Quest catalog")),
                 redirect_stdout(StringIO()),
             ):
                 with self.assertRaises(QuestSourceError):
