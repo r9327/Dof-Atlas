@@ -326,6 +326,56 @@ class NetworkApplicationCoordinatorTests(unittest.TestCase):
 
         self.assertEqual(coordinator.drain_results(), [])
 
+    def test_stop_during_calibration_poll_drops_late_identity_results(self) -> None:
+        status = ProtocolCalibrationControllerStatus(
+            running=False, reason="mapping_installed_not_started",
+            build_sha256=BUILD,
+        )
+        coordinator = NetworkApplicationCoordinator(lambda: ())
+        coordinator._calibration_pending = True
+        before = coordinator._last_calibration
+
+        def late_poll():
+            coordinator._stop_event.set()
+            return status
+
+        with (
+            patch.object(coordinator.calibration, "poll", side_effect=late_poll),
+            patch.object(coordinator.calibration, "drain_identity_results") as drain,
+            patch.object(coordinator, "_apply_calibration_journal_evidence") as journal,
+            patch.object(coordinator, "_start_runtime") as start_runtime,
+        ):
+            coordinator._poll_calibration()
+            drain.assert_not_called()
+            journal.assert_not_called()
+            start_runtime.assert_not_called()
+        self.assertIs(coordinator._last_calibration, before)
+        self.assertEqual(coordinator.drain_results(), [])
+
+    def test_stop_during_runtime_result_drain_drops_late_results(self) -> None:
+        from types import SimpleNamespace
+
+        coordinator = NetworkApplicationCoordinator(lambda: ())
+        first = SimpleNamespace(
+            reason="quest_completed", changed=True,
+            accepted=True, character_key="slot:1",
+        )
+        late = SimpleNamespace(
+            reason="quest_completed", changed=True,
+            accepted=True, character_key="slot:1",
+        )
+
+        def arriving_results(_limit):
+            yield first
+            coordinator._stop_event.set()
+            yield late
+
+        with patch.object(coordinator.runtime, "drain_results",
+                          side_effect=arriving_results):
+            coordinator._drain_runtime_results()
+        self.assertEqual(coordinator.drain_results(), [first])
+        self.assertTrue(coordinator._stop_event.is_set())
+
     def test_terminal_calibration_is_polled_after_reader_already_stopped(self) -> None:
         terminal = ProtocolCalibrationControllerStatus(
             running=False,
