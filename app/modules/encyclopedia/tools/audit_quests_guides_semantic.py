@@ -395,6 +395,85 @@ def sample_coverage(
 _LOCAL_START_COORD_RE = re.compile(r"\[\s*(-?\d+)\s*,\s*(-?\d+)\s*\]\Z")
 
 
+def _local_rendered_instruction_presence(row: object) -> tuple[bool, bool]:
+    """Report written source blocks and the *actual* reader fallback separately.
+
+    The reader uses documentary blocks when any survives filtering. Only
+    when there are no displayable blocks does it render source solution_steps.
+    A heading or image alone is not a written instruction and suppresses the
+    fallback, so checking nonempty raw arrays is not sufficient.
+    """
+    if not isinstance(row, dict):
+        return False, False
+    from types import SimpleNamespace
+
+    from app.quest_catalog import QuestObjective, QuestSolutionBlock, QuestStep
+    from app.modules.encyclopedia.services.guide_quest_view_model import (
+        quest_solution_blocks, quest_solution_steps,
+    )
+
+    raw_blocks = row.get("solution_blocks")
+    raw_blocks = raw_blocks if isinstance(raw_blocks, list) else []
+    blocks = []
+    for index, raw in enumerate(raw_blocks, 1):
+        if not isinstance(raw, dict):
+            continue
+        kind = str(raw.get("type") or raw.get("block_type") or "").strip()
+        if not kind:
+            continue
+        blocks.append(QuestSolutionBlock(
+            order=index,
+            block_type=kind,
+            content=str(raw.get("content") or raw.get("text") or ""),
+            image_path=str(raw.get("image_path") or raw.get("path") or ""),
+        ))
+    source = SimpleNamespace(solution_blocks=blocks)
+    visible_blocks = quest_solution_blocks(source)
+    block_instruction = any(
+        block.content and block.block_type not in {
+            "image", "heading", "title", "subtitle", "section_heading",
+        }
+        for block in visible_blocks
+    )
+    if visible_blocks:
+        return bool(block_instruction), False
+
+    raw_steps = row.get("solution_steps")
+    raw_steps = raw_steps if isinstance(raw_steps, list) else []
+    steps = []
+    for index, raw in enumerate(raw_steps, 1):
+        if not isinstance(raw, dict):
+            continue
+        raw_objectives = raw.get("objectives")
+        raw_objectives = raw_objectives if isinstance(raw_objectives, list) else []
+        objectives = [
+            QuestObjective(
+                id=-(index * 1000 + objective_index),
+                text=str(objective.get("text") or ""),
+                type_id=6 if objective.get("combat") else 0,
+                map_label=str(objective.get("position") or ""),
+            )
+            for objective_index, objective in enumerate(raw_objectives, 1)
+            if isinstance(objective, dict)
+        ]
+        steps.append(QuestStep(
+            id=-index,
+            name=str(raw.get("title") or ""),
+            description=str(raw.get("description") or ""),
+            objectives=objectives,
+        ))
+    if not steps:
+        return False, False
+    fallback = quest_solution_steps(
+        SimpleNamespace(source_solution_steps=steps, steps=[])
+    )
+    has_fallback = any(
+        step.description or any(objective.text for objective in step.objectives)
+        for step in fallback
+    )
+    return False, bool(has_fallback)
+
+
 def local_start_position_coverage(
     enriched: Mapping[str, Any], quest_ids: Iterable[int],
 ) -> dict[str, Any]:
@@ -403,15 +482,10 @@ def local_start_position_coverage(
     This is only local source completeness, never independent source proof
     or permission to route a Zaap / send automatic travel commands.
     """
-    # Use the renderer's own cheap textual filter: the audit must not
-    # certify placeholder mini-maps or technical criteria as readable steps.
-    from app.modules.encyclopedia.services.guide_quest_view_model import (
-        documentary_instruction_text,
-    )
-
     counts: Counter[str] = Counter()
     needs_review: list[dict[str, object]] = []
     missing_instruction_quest_ids: list[int] = []
+    fallback_instruction_quest_ids: list[int] = []
     priority_missing_both: list[int] = []
     for quest_id in sorted(set(int(value) for value in quest_ids)):
         row = enriched.get(str(quest_id))
@@ -467,21 +541,22 @@ def local_start_position_coverage(
         else:
             # Empty skeleton blocks are not documentary coverage.
             counts["WITHOUT_DOCUMENTARY_BLOCKS"] += 1
-        # A blank block, a heading without content or an image-only entry
-        # cannot prove the local guide has written instructions.
-        has_instructions = any(
-            isinstance(block, dict)
-            and str(block.get("type") or block.get("block_type") or "").strip().lower()
-            not in {"", "image", "heading", "title", "subtitle", "section_heading"}
-            and documentary_instruction_text(
-                block.get("content") or block.get("text") or ""
-            )
-            for block in blocks
+        # Mirror production: a readable source_solution_steps fallback is
+        # shown only when all explicit blocks were filtered out. Keep the
+        # historical block-only counters for backward-compatible reporting.
+        has_block_instruction, has_fallback_instruction = (
+            _local_rendered_instruction_presence(row)
         )
-        if has_instructions:
+        if has_block_instruction:
             counts["WITH_TEXTUAL_SOLUTION_BLOCKS"] += 1
         else:
             counts["WITHOUT_TEXTUAL_SOLUTION_BLOCKS"] += 1
+        if has_block_instruction or has_fallback_instruction:
+            counts["WITH_RENDERABLE_INSTRUCTIONS"] += 1
+            if has_fallback_instruction:
+                fallback_instruction_quest_ids.append(quest_id)
+        else:
+            counts["WITHOUT_RENDERABLE_INSTRUCTIONS"] += 1
             missing_instruction_quest_ids.append(quest_id)
             if status != "LOCAL_START_DECLARED":
                 priority_missing_both.append(quest_id)
@@ -502,6 +577,7 @@ def local_start_position_coverage(
         # Actionable IDs, not just totals: importers can target the missing
         # source rows without scanning 72 MB of enrichment again.
         "missing_instruction_quest_ids": missing_instruction_quest_ids,
+        "fallback_instruction_quest_ids": fallback_instruction_quest_ids,
         "priority_missing_both_quest_ids": priority_missing_both,
     }
 
