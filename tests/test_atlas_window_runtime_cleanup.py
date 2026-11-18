@@ -23,25 +23,71 @@ class AtlasWindowRuntimeCleanupTests(unittest.TestCase):
             bridge.stop()
         network_bridge_module._BRIDGE = None
 
-    def test_network_character_activation_ignores_bad_legacy_handle(self):
+    def test_network_activation_uses_verified_key_not_favorite_or_window_name(self):
         from types import SimpleNamespace
 
         shell = Mock()
+        shell.current_character_key = "character:2"
         shell._last_active_dofus_hwnd = 234
-        shell.current_character_key = "character:7"
-        shell.character_combo.count.return_value = 1
-        shell.character_combo.itemText.return_value = "Witsis"
-        shell.character_combo.currentData.return_value = SimpleNamespace(
-            key="character:7",
+        shell.character_combo.count.return_value = 2
+        # Same displayed name can exist on two servers: only the verified
+        # network-resolved character ID may select the account.
+        shell.character_combo.itemText.side_effect = lambda _index: "Witsis"
+        shell.character_combo.itemData.side_effect = lambda index: SimpleNamespace(
+            key=("character:1", "character:2")[index],
         )
-        clients = [
-            {"handle": "invalid", "character_name": "Inconnu"},
-            {"handle": "234", "character_name": "Witsis"},
-        ]
-        with patch("main.read_json", return_value={"clients": clients}):
-            AtlasWindow.on_network_character_activated(shell, "character:7")
+        with patch("main.read_json",
+                   side_effect=AssertionError("do not guess from client index")):
+            AtlasWindow.on_network_character_activated(shell, "character:1")
 
         shell.refresh_global_characters.assert_called_once_with()
+        shell.character_combo.setCurrentIndex.assert_called_once_with(0)
+        shell.on_global_character_changed.assert_called_once_with()
+
+    def test_network_activation_keeps_selection_when_verified_key_is_missing(self):
+        from types import SimpleNamespace
+
+        shell = Mock()
+        shell.current_character_key = "character:2"
+        shell.character_combo.count.return_value = 2
+        shell.character_combo.itemData.side_effect = lambda index: SimpleNamespace(
+            key=("character:1", "character:2")[index],
+        )
+        with patch("main.read_json",
+                   side_effect=AssertionError("do not guess from client index")):
+            AtlasWindow.on_network_character_activated(shell, "character:999")
+
+        shell.refresh_global_characters.assert_called_once_with()
+        shell.character_combo.setCurrentIndex.assert_not_called()
+        shell.on_global_character_changed.assert_not_called()
+
+    def test_network_activation_does_not_pick_ambiguous_duplicate_key(self):
+        from types import SimpleNamespace
+
+        shell = Mock()
+        shell.current_character_key = "character:2"
+        shell.character_combo.count.return_value = 2
+        shell.character_combo.itemData.side_effect = lambda _index: SimpleNamespace(
+            key="character:1",
+        )
+
+        AtlasWindow.on_network_character_activated(shell, "character:1")
+
+        shell.character_combo.setCurrentIndex.assert_not_called()
+        shell.on_global_character_changed.assert_not_called()
+
+    def test_network_activation_does_not_repersist_already_selected_character(self):
+        from types import SimpleNamespace
+
+        shell = Mock()
+        shell.current_character_key = "character:7"
+        shell.character_combo.count.return_value = 1
+        shell.character_combo.itemData.return_value = SimpleNamespace(
+            key="character:7",
+        )
+
+        AtlasWindow.on_network_character_activated(shell, "character:7")
+
         shell.character_combo.setCurrentIndex.assert_called_once_with(0)
         shell.on_global_character_changed.assert_not_called()
 
