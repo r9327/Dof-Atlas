@@ -167,6 +167,20 @@ class AtlasDoctorRuntimeBenchmarkTests(unittest.TestCase):
         self.assertNotIn("achievements_open_ms", benchmark["distributions"])
         self.assertEqual(benchmark["after"], benchmark["medians"])
 
+    def test_reject_mixed_sha_or_qt_environment_before_benchmark_aggregation(self) -> None:
+        first = self.sample(head="a1", startup_ms=100, rss_mb=95)
+        different = self.sample(head="b2", startup_ms=120, rss_mb=96)
+        with self.assertRaisesRegex(ValueError, "git_head"):
+            aggregate_samples([first, different])
+
+        different["environment"]["git_head"] = "a1"
+        different["environment"]["pyside"] = "other-Qt"
+        with self.assertRaisesRegex(ValueError, "pyside"):
+            aggregate_samples([first, different])
+
+        different["environment"]["pyside"] = first["environment"]["pyside"]
+        self.assertEqual(aggregate_samples([first, different])["sample_count"], 2)
+
     def test_compare_to_legacy_baseline_reports_cost_deltas(self) -> None:
         current = aggregate_samples(
             [self.sample(head="new", startup_ms=120.0, rss_mb=100.0)]
