@@ -463,6 +463,61 @@ class AchievementCompactRowIdentityTests(unittest.TestCase):
                         self.assertIsNone(provider.progress_row_by_id(ident))
                 self.assertEqual(provider.progress_catalogue(), (expected,))
 
+    def test_malformed_progress_offsets_do_not_hide_valid_catalogue(self) -> None:
+        from app.modules.encyclopedia.providers import memory_bound_achievement_provider as mod
+
+        with tempfile.TemporaryDirectory() as directory:
+            cache = Path(directory) / "success.jsonl"
+            data = b""
+            offsets = {}
+            for ident in (10, 12):
+                row = (json.dumps({"kind": "achievement", "value": {
+                    "id": ident, "category_name": "Quêtes",
+                    "progress_objectives": [],
+                }}) + "\n").encode("utf-8")
+                offsets[ident] = (len(data), len(row))
+                data += row
+            cache.write_bytes(data)
+            provider = MemoryBoundAchievementProvider()
+            provider._compact_retained_ids = (10, 11, 12)
+            provider._compact_retained_set = frozenset({10, 11, 12})
+            good = ((10, "Quêtes", ()), (12, "Quêtes", ()))
+            broken_spans = ((), (0,), ("bad", 1), (True, 3),
+                            (0, False), (0, -1), (0, len(data) + 1))
+            with (
+                patch.object(mod, "ACHIEVEMENT_COMPACT_CACHE", cache),
+                patch.object(provider, "_ensure_loaded"),
+            ):
+                for broken in broken_spans:
+                    with self.subTest(span=broken):
+                        provider._compact_external_index = {
+                            **offsets, 11: broken,
+                        }
+                        self.assertIsNone(provider.progress_row_by_id(11))
+                        self.assertEqual(provider.progress_catalogue(), good)
+
+    def test_malformed_detail_offset_falls_back_to_matching_cached_row(self) -> None:
+        from app.modules.encyclopedia.providers import memory_bound_achievement_provider as mod
+
+        with tempfile.TemporaryDirectory() as directory:
+            cache = Path(directory) / "success.jsonl"
+            cache.write_text(
+                json.dumps({"kind": "achievement", "value": {
+                    "id": 10, "name": "Détail conservé",
+                }}) + "\n",
+                encoding="utf-8",
+            )
+            provider = MemoryBoundAchievementProvider()
+            provider._compact_retained_set = frozenset({10})
+            with patch.object(mod, "ACHIEVEMENT_COMPACT_CACHE", cache):
+                for broken in ((), (0,), ("bad", 8), (False, 8),
+                               (0, True), (0, -1)):
+                    with self.subTest(span=broken):
+                        provider._compact_external_index = {10: broken}
+                        row = provider._compact_value_by_id(10)
+                        self.assertIsNotNone(row)
+                        self.assertEqual(row["name"], "Détail conservé")
+
     def test_compact_progress_catalogue_keeps_valid_rows_around_corrupt_json(self) -> None:
         from app.modules.encyclopedia.providers import memory_bound_achievement_provider as mod
 
