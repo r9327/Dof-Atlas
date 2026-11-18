@@ -169,7 +169,7 @@ CATEGORY_LABELS = {
     "alignements": "ALIGNEMENTS",
     "dofus": "DOFUS",
 }
-TRAVEL_COORD_RE = re.compile(r"\[(-?\d+)\s*,\s*(-?\d+)\]")
+TRAVEL_COORD_RE = re.compile(r"\[\s*(-?\d+)\s*,\s*(-?\d+)\s*\]")
 DOFUS_CARD_MIN_WIDTH = GUIDE_CARD_GEOMETRY["dofus_card_min_width"]
 DOFUS_CARD_MAX_WIDTH = GUIDE_CARD_GEOMETRY["dofus_card_max_width"]
 DOFUS_CARD_HEIGHT = GUIDE_CARD_GEOMETRY["dofus_card_height"]
@@ -4107,19 +4107,25 @@ def linkify_travel_text(text: str) -> str:
     escaped = escape(str(text or ""))
 
     def replace(match: re.Match[str]) -> str:
-        x = int(match.group(1))
-        y = int(match.group(2))
+        command = _vm_call("travel_command", match.group(0))
+        if not command:
+            # A missing/out-of-range map is documentary text, not a button.
+            return match.group(0)
+        coordinates = command.removeprefix("/travel ")
         return entity_link_markup(
-            f"[{x},{y}]", "position", f"atlas-travel:{x},{y}", PALETTE,
+            f"[{coordinates}]", "position", f"atlas-travel:{coordinates}", PALETTE,
         )
 
     return TRAVEL_COORD_RE.sub(replace, escaped)
 
 
 def copy_travel_link(href: str) -> None:
-    match = re.search(r"(-?\d+)\s*,\s*(-?\d+)", str(href or ""))
-    if match:
-        QApplication.clipboard().setText(f"/travel {int(match.group(1))},{int(match.group(2))}")
+    match = re.fullmatch(r"atlas-travel:(-?\d+),(-?\d+)", str(href or ""))
+    if match is None:
+        return
+    command = _vm_call("travel_command", f"[{match.group(1)},{match.group(2)}]")
+    if command:
+        QApplication.clipboard().setText(command)
 
 
 def is_walkthrough_image_path(image_path: str) -> bool:
@@ -4293,9 +4299,9 @@ def travel_position_row(position: str) -> QWidget:
 
 
 def copy_travel_position(position: str) -> None:
-    match = TRAVEL_COORD_RE.search(str(position or ""))
-    if match:
-        QApplication.clipboard().setText(f"/travel {int(match.group(1))},{int(match.group(2))}")
+    command = _vm_call("travel_command", position)
+    if command:
+        QApplication.clipboard().setText(command)
 
 
 def icon_label(icon: QIcon, object_name: str = "GuideInfoIcon", size: int = 22, icon_size: int = 18) -> QLabel:
