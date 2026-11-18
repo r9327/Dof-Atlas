@@ -155,6 +155,10 @@ class NetworkUiBridge(QObject):
         if statuses:
             self._last_status = statuses[-1]
             self.statusChanged.emit(self._last_status)
+            # A direct Qt slot can stop the bridge during this emission.
+            # Never consume or publish an older worker event afterwards.
+            if self._stopped:
+                return
         changed_characters: set[str] = set()
         active_character = ""
         for result in self.coordinator.drain_results(100):
@@ -172,6 +176,8 @@ class NetworkUiBridge(QObject):
                               activated=bool(active_character))
         if active_character:
             self.characterActivated.emit(active_character)
+            if self._stopped:
+                return
         if changed_characters:
             self._pending_progress_characters.update(changed_characters)
             if not self._progress_timer.isActive():
@@ -184,6 +190,9 @@ class NetworkUiBridge(QObject):
         pending = tuple(sorted(self._pending_progress_characters))
         self._pending_progress_characters.clear()
         for character_key in pending:
+            # A recipient can stop the bridge synchronously on the first signal.
+            if self._stopped:
+                return
             self.progressChanged.emit(character_key)
 
     @staticmethod
