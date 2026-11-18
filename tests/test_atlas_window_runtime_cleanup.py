@@ -23,6 +23,47 @@ class AtlasWindowRuntimeCleanupTests(unittest.TestCase):
             bridge.stop()
         network_bridge_module._BRIDGE = None
 
+    def test_guide_travel_dispatch_returns_real_result_without_reloading_active_macro(self):
+        shell = Mock()
+        shell.quit_requested = False
+        shell._background_services_stopped = False
+        shell.runtime.macro_lock.active_label = "Travel"
+        shell.runtime.macro_lock.emergency_latched = False
+
+        self.assertFalse(AtlasWindow.launch_guide_travel(
+            shell, "/travel 4,-3", ["character:1"],
+        ))
+        shell.reload_runtime.assert_not_called()
+        shell._ensure_runtime.assert_not_called()
+
+        shell.runtime.macro_lock.active_label = ""
+        shell.runtime.macro_lock.emergency_latched = True
+        self.assertFalse(AtlasWindow.launch_guide_travel(
+            shell, "/travel 4,-3", ["character:1"],
+        ))
+        shell.reload_runtime.assert_not_called()
+
+        shell.runtime.macro_lock.emergency_latched = False
+        shell._ensure_runtime.return_value.launch_guide_travel.return_value = False
+        self.assertFalse(AtlasWindow.launch_guide_travel(
+            shell, "/travel 4,-3", ["character:1"],
+        ))
+        shell._ensure_runtime.return_value.launch_guide_travel.assert_called_once_with(
+            "/travel 4,-3", ("character:1",),
+        )
+
+        shell._ensure_runtime.return_value.launch_guide_travel.return_value = True
+        self.assertTrue(AtlasWindow.launch_guide_travel(
+            shell, "/travel 4,-3", ["character:1"],
+        ))
+
+        shell.quit_requested = True
+        shell.reload_runtime.reset_mock()
+        self.assertFalse(AtlasWindow.launch_guide_travel(
+            shell, "/travel 4,-3", ["character:1"],
+        ))
+        shell.reload_runtime.assert_not_called()
+
     def test_deferred_organizer_reload_after_close_cannot_restart_runtime(self) -> None:
         app = QApplication.instance() or QApplication([])
         with patch.object(AtlasWindow, "setup_tray", return_value=None):
