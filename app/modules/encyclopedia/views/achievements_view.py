@@ -439,6 +439,11 @@ class AchievementsView(QWidget):
 
     def select_achievement(self, achievement_id: int) -> bool:
         achievement_id = int(achievement_id)
+        # A stale/deleted deep link is never permission to read a compatibility
+        # Achievement JSONL on the Qt thread. Cheap membership comes first,
+        # including when a compact sidecar cannot resolve its category.
+        if not self.provider.is_retained(achievement_id):
+            return False
         # Deep links need only the category and retained-membership proof.
         # The compact provider already keeps both in its small sidecar;
         # hydrating an Achievement here can read JSONL on the Qt thread.
@@ -449,11 +454,9 @@ class AchievementsView(QWidget):
         )
         if target_category_id is None:
             achievement = self.provider.get_by_id(achievement_id)
-            if achievement is None or not self.provider.is_retained(achievement.id):
+            if achievement is None:
                 return False
             target_category_id = achievement.subcategory_id or achievement.category_id
-        elif not self.provider.is_retained(achievement_id):
-            return False
         tree_item = self._tree_items.get(target_category_id)
         if tree_item is not None:
             if tree_item.parent() is not None:
