@@ -27,6 +27,7 @@ class NetworkUiBridge(QObject):
     statusChanged = Signal(object)
     progressChanged = Signal(str)
     characterActivated = Signal(str)
+    charactersIdentified = Signal(object)
 
     def __init__(self, parent: QObject | None = None) -> None:
         super().__init__(parent)
@@ -160,7 +161,7 @@ class NetworkUiBridge(QObject):
             if self._stopped:
                 return
         changed_characters: set[str] = set()
-        active_character = ""
+        active_characters: set[str] = set()
         for result in self.coordinator.drain_results(100):
             reason = str(getattr(result, "reason", "") or "")
             if (
@@ -173,7 +174,7 @@ class NetworkUiBridge(QObject):
             ):
                 # Journal completions change quest progress, not the selected
                 # character. Avoid reloading all client profiles each poll.
-                active_character = str(result.character_key)
+                active_characters.add(str(result.character_key))
             if (
                 bool(getattr(result, "accepted", False))
                 and result.changed
@@ -183,13 +184,23 @@ class NetworkUiBridge(QObject):
                 # Identity routing/session closure is not a persisted quest
                 # mutation. Only progress changes need a costly tab refresh.
                 changed_characters.add(str(result.character_key))
-        if active_character or changed_characters:
+        if active_characters or changed_characters:
             record_validation("network_progress", changed=len(changed_characters),
-                              activated=bool(active_character))
-        if active_character:
-            self.characterActivated.emit(active_character)
+                              activated=bool(active_characters))
+        if active_characters:
+            # Coalesce multiple concurrent logins into one profile refresh.
+            # Never silently discard all but the last identity in a poll.
+            identities = tuple(sorted(active_characters))
+            self.charactersIdentified.emit(identities)
             if self._stopped:
                 return
+            if len(identities) == 1:
+                # Preserve the existing single-account signal for consumers
+                # outside the shell; a multi-login batch is not a focused
+                # character and must not activate an arbitrary account.
+                self.characterActivated.emit(identities[0])
+                if self._stopped:
+                    return
         if changed_characters:
             self._pending_progress_characters.update(changed_characters)
             if not self._progress_timer.isActive():
