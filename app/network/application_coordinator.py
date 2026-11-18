@@ -158,14 +158,18 @@ class NetworkApplicationCoordinator:
                 return True
             if self._thread is not None and self._thread.is_alive():
                 return False
-            # A prior stop/crash must not replay queued privileged capture
-            # commands in a fresh worker. New requests enqueue only after
-            # start_worker() has returned successfully.
-            while True:
-                try:
-                    self._commands.get_nowait()
-                except Empty:
-                    break
+            # A prior stop/crash must not replay privileged commands or
+            # publish old progress/status events in a fresh worker session.
+            # Valid progress is persisted by the bridge; the UI will refresh
+            # from that source when its Encyclopedia page becomes visible.
+            # The lock prevents a concurrent status publisher from being
+            # interleaved with this reset.
+            for queue in (self._commands, self._results, self._statuses):
+                while True:
+                    try:
+                        queue.get_nowait()
+                    except Empty:
+                        break
             self._stop_event.clear()
             thread = threading.Thread(
                 target=self._run,
