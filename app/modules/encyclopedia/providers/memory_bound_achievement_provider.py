@@ -1709,11 +1709,12 @@ class MemoryBoundAchievementProvider(BaseAchievementProvider):
                         or start > total or length > total - start
                     ):
                         continue
-                    stream.seek(start)
                     try:
+                        stream.seek(start)
                         payload = json.loads(stream.read(length))
-                    except (ValueError, TypeError, UnicodeError):
-                        # An invalid row must not hide other valid progress.
+                    except (OSError, ValueError, TypeError, UnicodeError):
+                        # One failed seek/read or an invalid JSON row must
+                        # not erase progress from the rest of this catalogue.
                         continue
                     value = payload.get("value") if isinstance(payload, dict) else None
                     if (
