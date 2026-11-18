@@ -1690,7 +1690,10 @@ class SharedGuideManualView(GuideUltimeManualView):
 
     def _render_preparation(self, selected_filter: str) -> None:
         self._clear_preparation_rows()
-        if not self.selected_participant_keys():
+        if not self._progress_participant_keys():
+            # A saved but deleted/unregistered character is not an active
+            # participant. Keep the read-only preview rather than incorrectly
+            # showing an empty verified team and hiding all requirements.
             label = QLabel("Aperçu des préparatifs · sélectionne un personnage pour activer Prêt.")
             label.setObjectName("GuidePreparationEmpty")
             label.setWordWrap(True)
@@ -2015,6 +2018,12 @@ class SharedGuideManualView(GuideUltimeManualView):
 
     def _follow_active_after_progress_change(self) -> None:
         previous = self.active_index
+        # Every progress edit can change the remaining inventory, including
+        # the *final* sheet completion where there is no next active index.
+        # Invalidate before the end-of-route branch so an open À préparer
+        # drawer never keeps requirements from a finished route.
+        self._preparation_loaded = False
+        self._preparation_needs = ()
         actual_index = self._actual_index_for_participants()
         if actual_index is None:
             # End-of-route and empty-selection transitions must replace the
@@ -2027,8 +2036,6 @@ class SharedGuideManualView(GuideUltimeManualView):
         moved = self.view_index == previous and actual_index != previous
         if moved:
             self.view_index = actual_index
-        self._preparation_loaded = False
-        self._preparation_needs = ()
         self._refresh_participants_panel()
         self._refresh_header()
         self._render_window(reset_scroll=moved)
