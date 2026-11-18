@@ -515,9 +515,10 @@ class AchievementsView(QWidget):
             # catalogue viewport has materialized the requested row.
             self.show_achievement(achievement_id)
             return True
-        if callable(category_lookup) and target_category_id is None:
+        if callable(category_lookup) and (target_category_id is None or tree_item is None):
             # The retained ID is authoritative even if its category sidecar
-            # is unavailable. Open the real detail on the existing worker
+            # is missing or points to a category not present in the UI tree.
+            # Open the real detail on the existing worker
             # without selecting an unrelated visible row or parsing JSONL
             # synchronously. A refreshed sidecar can restore navigation later.
             self._achievement_pending_selected_id = achievement_id
