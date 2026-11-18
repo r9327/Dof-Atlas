@@ -7,7 +7,9 @@ from dataclasses import dataclass
 from pathlib import Path
 
 from app.modules.encyclopedia.providers import AchievementProvider, GuideProvider, QuestProvider
-from app.modules.encyclopedia.tools.audit_quests_guides_semantic import base_result, compare_images, compare_quest_info
+from app.modules.encyclopedia.tools.audit_quests_guides_semantic import (
+    base_result, compare_images, compare_quest_info, local_start_position_coverage,
+)
 from app.modules.encyclopedia.tools.enrich_quests import (
     EXTRACTION_SCHEMA_VERSION,
     build_mapping,
@@ -31,6 +33,40 @@ class FakeQuest:
 
 
 class QuestSemanticEnrichmentTests(unittest.TestCase):
+    def test_local_start_coverage_distinguishes_source_gaps_from_real_positions(self):
+        rows = {
+            "10": {
+                "launch_position": {"position": "[3,4]"},
+                "source_meta": {"startCoords": "[03, 4]"},
+                "solution_blocks": [{"type": "text", "content": "Instruction"}],
+            },
+            "20": {
+                "launch_position": {"position": "[0,0]"},
+                "source_meta": {"startCoords": "[1,0]"},
+            },
+            "30": {"launch_position": {"position": "position inconnue"}},
+            "50": {"solution_blocks": []},
+            "60": {"source_meta": {"startCoords": "[5, -6]"}},
+        }
+        report = local_start_position_coverage(rows, [60, 50, 40, 30, 20, 10])
+        self.assertEqual(report["evidence"], "LOCAL_ENRICHMENT_ONLY_NOT_GAME_VERIFIED")
+        self.assertEqual(report["quests_considered"], 6)
+        self.assertEqual(report["counts"]["LOCAL_START_DECLARED"], 2)
+        self.assertEqual(report["counts"]["CONFLICTING_DECLARED_START"], 1)
+        self.assertEqual(report["counts"]["INVALID_START_COORDINATES"], 1)
+        self.assertEqual(report["counts"]["NO_DECLARED_START"], 1)
+        self.assertEqual(report["counts"]["NO_ENRICHMENT"], 1)
+        self.assertEqual(report["counts"]["WITH_DOCUMENTARY_BLOCKS"], 1)
+        self.assertEqual(
+            [(row["quest_id"], row["status"]) for row in report["needs_review"]],
+            [
+                (20, "CONFLICTING_DECLARED_START"),
+                (30, "INVALID_START_COORDINATES"),
+                (40, "NO_ENRICHMENT"),
+                (50, "NO_DECLARED_START"),
+            ],
+        )
+
     def test_mapping_is_deterministic_and_never_uses_list_position(self):
         quests = [FakeQuest(20, "Beta"), FakeQuest(10, "Alpha")]
         source_a = [{"id": 2, "name": "Beta"}, {"id": 1, "name": "Alpha"}]
