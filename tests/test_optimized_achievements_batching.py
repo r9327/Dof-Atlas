@@ -264,6 +264,13 @@ class OptimizedAchievementsBatchingTests(unittest.TestCase):
             self.assertFalse(view._achievement_batch_timer.isActive())
             self.assertEqual(view.list_widget.count(), 0)
             self.assertEqual(len(view._achievement_pending_rows), 24)
+            # Refreshing after a repaired cache re-arms the bounded loader
+            # rather than treating the pending rows as a finished snapshot.
+            view.refresh()
+            self.assertEqual(view._achievement_batch_retry_count, 0)
+            self.assertTrue(view._achievement_batch_timer.isActive())
+            self.assertEqual(len(view._achievement_pending_rows), 24)
+            view._achievement_batch_timer.stop()
         finally:
             view.close()
             view.deleteLater()
