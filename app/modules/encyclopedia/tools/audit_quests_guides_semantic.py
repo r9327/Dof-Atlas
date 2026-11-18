@@ -9,6 +9,7 @@ from collections import Counter, defaultdict
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from datetime import datetime, timezone
 from pathlib import Path
+from collections.abc import Mapping
 from typing import Any, Iterable
 
 from app.constants import DATA_DIR, ROOT_DIR
@@ -20,6 +21,7 @@ from app.modules.encyclopedia.tools.enrich_quests import (
     request_bytes,
 )
 from app.quest_catalog import SENTINEL_COORD, normalize_text, read_json_file, write_json_file
+from app.quest_source_index import QuestSources
 
 
 AUDIT_VERSION = 2
@@ -394,7 +396,7 @@ _LOCAL_START_COORD_RE = re.compile(r"\[\s*(-?\d+)\s*,\s*(-?\d+)\s*\]\Z")
 
 
 def local_start_position_coverage(
-    enriched: dict[str, Any], quest_ids: Iterable[int],
+    enriched: Mapping[str, Any], quest_ids: Iterable[int],
 ) -> dict[str, Any]:
     """Audit declared Quest starts without confusing them with objective maps.
 
@@ -1072,16 +1074,20 @@ def main(argv: list[str] | None = None) -> int:
         # Local gaps can be measured without creating the expensive Guide,
         # Achievement or quest-dependency graph used by the full audit.
         catalog = QuestProvider().get_catalog()
-        enrichment_payload = read_json_file(ENRICHED_PATH, {})
-        enriched = (
-            enrichment_payload.get("quests", {})
-            if isinstance(enrichment_payload, dict) else {}
-        )
-        if not isinstance(enriched, dict):
-            enriched = {}
-        coverage = local_start_position_coverage(
-            enriched, (int(quest.id) for quest in catalog.quests),
-        )
+        # quests_enriched.json is large. Use the existing SQLite offset index
+        # and bounded decoded-row cache rather than json.load() of the entire
+        # document, retaining a constant-size resident working set.
+        from app.quest_catalog_details import _CACHE_ROOT
+        sources = QuestSources(_CACHE_ROOT / "source_offsets", disk_backed=True)
+        try:
+            enriched = sources.mapping(
+                ENRICHED_PATH, "quests", required=False,
+            )
+            coverage = local_start_position_coverage(
+                enriched, (int(quest.id) for quest in catalog.quests),
+            )
+        finally:
+            sources.close()
         payload = {
             "scope": "LOCAL_QUEST_STARTS_AND_INSTRUCTIONS",
             **coverage,
