@@ -18,6 +18,7 @@ from app.quest_catalog_details import (
     _solution_combat_rows,
     ensure_detail_source_offsets,
     load_lazy_catalog,
+    load_quest_ids,
 )
 from app.quest_source_index import (
     JsonSourceMapping,
@@ -31,6 +32,33 @@ def record(quest_id):
 
 
 class QuestDetailsTests(unittest.TestCase):
+    def test_compact_quest_id_inventory_preserves_duplicate_titles(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            index_path = root / "quest_ids.sqlite3"
+            with sqlite3.connect(index_path) as connection:
+                connection.execute(
+                    "CREATE TABLE quests (id INTEGER PRIMARY KEY, name TEXT)"
+                )
+                connection.executemany(
+                    "INSERT INTO quests VALUES (?, ?)",
+                    [(20, "Même nom"), (10, "Même nom"), (30, "Autre quête")],
+                )
+            with (
+                patch("app.quest_catalog_details.ensure_lazy_catalog_cache") as ensure,
+                patch(
+                    "app.quest_catalog_details._cache_identity",
+                    return_value=((), index_path),
+                ),
+                patch("app.quest_catalog_details.load_lazy_catalog",
+                      side_effect=AssertionError("must not hydrate Quest objects")),
+            ):
+                self.assertEqual(
+                    load_quest_ids(root, cache_root=root / "cache"),
+                    (10, 20, 30),
+                )
+                ensure.assert_called_once_with(root, cache_root=root / "cache")
+
     def test_solution_combats_have_stable_compact_evidence_without_rich_detail(self):
         evidence = _solution_combat_rows({
             "solution_steps": [
