@@ -901,6 +901,7 @@ class AtlasWindow(QMainWindow):
         # Network changes to a hidden Encyclopedia are refreshed on return,
         # not by rebuilding an invisible Qt tab for every completed quest.
         self._pending_network_progress_character = ""
+        self._almanax_service = None  # Lazy, after Home is visible.
 
         central = UnityBackdrop() if unity_enabled() else QWidget()
         self.setCentralWidget(central)
@@ -1923,8 +1924,65 @@ class AtlasWindow(QMainWindow):
         layout.addStretch(1)
         return page
 
+    def _ensure_almanax_service(self):
+        if self._almanax_service is None:
+            from app.services.almanax_service import AlmanaxDataService
+
+            service = AlmanaxDataService(self)
+            service.dayAvailable.connect(self._on_almanax_day_available)
+            service.dayUnavailable.connect(self._on_almanax_day_unavailable)
+            self._almanax_service = service
+        return self._almanax_service
+
+    def _request_almanax_day(self, day_key: str, *, refresh: bool = False) -> None:
+        if not self.quit_requested:
+            self._ensure_almanax_service().request_day(day_key, refresh=refresh)
+
+    def _refresh_almanax_today(self) -> None:
+        self._request_almanax_day(QDate.currentDate().toString("yyyy-MM-dd"))
+
+    def _on_almanax_day_available(self, day_key: str, day: object, cached: bool) -> None:
+        if self.quit_requested:
+            return
+        if day_key == QDate.currentDate().toString("yyyy-MM-dd"):
+            self.home_page.set_almanax_day(day, cached=cached)
+        calendar = getattr(self, "almanax_calendar", None)
+        if calendar is None or calendar.selectedDate().toString("yyyy-MM-dd") != day_key:
+            return
+        offering = str(getattr(day, "offering", "") or "")
+        quantity = int(getattr(day, "quantity", 0) or 0)
+        bonus = str(getattr(day, "bonus", "") or "")
+        category = str(getattr(day, "bonus_type", "") or "")
+        rows = [
+            f"Offrande : {quantity} × {offering}" if offering
+            else "Offrande non renseignée par la source",
+            f"Bonus : {bonus}" if bonus else "Bonus non renseigné par la source",
+        ]
+        if category:
+            rows.append(f"Catégorie : {category}")
+        self.almanax_day_detail.setText("\n".join(rows))
+        self.almanax_status_badge.setText(
+            "Dofusdude · cache local" if cached else "Dofusdude · Dofus 3"
+        )
+        self.almanax_status_badge.set_state("info" if cached else "active")
+
+    def _on_almanax_day_unavailable(self, day_key: str, _reason: str) -> None:
+        if self.quit_requested:
+            return
+        if day_key == QDate.currentDate().toString("yyyy-MM-dd"):
+            self.home_page.set_almanax_unavailable()
+        calendar = getattr(self, "almanax_calendar", None)
+        if calendar is None or calendar.selectedDate().toString("yyyy-MM-dd") != day_key:
+            return
+        self.almanax_status_badge.setText("Données indisponibles")
+        self.almanax_status_badge.set_state("blocked")
+        self.almanax_day_detail.setText(
+            "Aucune offrande ni bonus sourcé pour cette date. "
+            "Vérifiez la connexion ou réessayez."
+        )
+
     def create_almanax_page(self) -> QWidget:
-        """Navigable offline calendar, with no invented game rewards."""
+        """Browse sourced Almanax offerings, including future calendar dates."""
         page = QWidget()
         page.setObjectName("AlmanaxPage")
         page.setProperty("atlasUnityPage", True)
@@ -1940,10 +1998,10 @@ class AtlasWindow(QMainWindow):
         apply_unity_panel_shadow(breadcrumb)
         layout.addWidget(breadcrumb)
         layout.addWidget(AtlasPageTitle("Almanax"))
-        layout.addWidget(
-            AtlasStatusBadge("Données indisponibles", state="blocked"),
-            0, Qt.AlignLeft,
+        self.almanax_status_badge = AtlasStatusBadge(
+            "Chargement des données…", state="neutral",
         )
+        layout.addWidget(self.almanax_status_badge, 0, Qt.AlignLeft)
         self.almanax_calendar = QCalendarWidget(page)
         calendar = self.almanax_calendar
         calendar.setObjectName("AlmanaxCalendar")
@@ -1955,22 +2013,42 @@ class AtlasWindow(QMainWindow):
         calendar.setMaximumWidth(680)
         apply_unity_panel_shadow(calendar)
         layout.addWidget(calendar, 0, Qt.AlignHCenter)
+
         self.almanax_selected_date_label = QLabel(page)
         self.almanax_selected_date_label.setObjectName("AlmanaxSelectedDate")
         self.almanax_selected_date_label.setAlignment(Qt.AlignCenter)
         layout.addWidget(self.almanax_selected_date_label)
-        missing = QLabel(
-            "Aucune offrande ni bonus affiché : aucune source locale Almanax "
-            "vérifiée n'est disponible. Le calendrier reste navigable."
+        self.almanax_day_detail = QLabel("Chargement de l'offrande et du bonus…", page)
+        self.almanax_day_detail.setObjectName("AlmanaxDayDetails")
+        self.almanax_day_detail.setWordWrap(True)
+        self.almanax_day_detail.setAlignment(Qt.AlignCenter)
+        layout.addWidget(self.almanax_day_detail)
+
+        source = QLabel("Source : Dofusdude · Dofus 3 · données communautaires", page)
+        source.setObjectName("MutedLabel")
+        source.setAlignment(Qt.AlignCenter)
+        layout.addWidget(source)
+
+        refresh_button = AtlasButton("Actualiser", variant="secondary")
+        refresh_button.setObjectName("AlmanaxRefreshButton")
+        refresh_button.clicked.connect(
+            lambda: self._request_almanax_day(
+                calendar.selectedDate().toString("yyyy-MM-dd"), refresh=True,
+            )
         )
-        missing.setObjectName("AlmanaxUnavailable")
-        missing.setWordWrap(True)
-        missing.setAlignment(Qt.AlignCenter)
-        layout.addWidget(missing)
+        layout.addWidget(refresh_button, 0, Qt.AlignHCenter)
 
         def update_date() -> None:
             self.almanax_selected_date_label.setText(
                 calendar.selectedDate().toString("dddd d MMMM yyyy")
+            )
+            self.almanax_status_badge.setText("Chargement des données…")
+            self.almanax_status_badge.set_state("neutral")
+            self.almanax_day_detail.setText(
+                "Recherche des données pour le jour sélectionné…"
+            )
+            self._request_almanax_day(
+                calendar.selectedDate().toString("yyyy-MM-dd")
             )
 
         calendar.selectionChanged.connect(update_date)
@@ -2035,6 +2113,8 @@ class AtlasWindow(QMainWindow):
     def show_page(self, name: str) -> None:
         if name == "Home":
             self.refresh_global_characters()
+            if self._post_preload_services_started:
+                self._refresh_almanax_today()
         if name in self.page_factories:
             self.pending_page_name = name
             self._schedule_owned_callback(0, lambda target=name: self.ensure_pending_page_loaded(target))
@@ -2480,6 +2560,8 @@ class AtlasWindow(QMainWindow):
         self._schedule_owned_callback(POST_RENDER_RUNTIME_DELAY_MS, self.start_runtime)
         if os.environ.get("QT_QPA_PLATFORM", "").strip().casefold() != "offscreen":
             self._schedule_owned_callback(POST_RENDER_NETWORK_DELAY_MS, self.prepare_network_capture)
+            # Real Almanax data is optional; never compete with initial preload.
+            self._schedule_owned_callback(1200, self._refresh_almanax_today)
         if EQUIPMENT_PRELOAD_DELAY_MS > 0:
             self._schedule_owned_callback(EQUIPMENT_PRELOAD_DELAY_MS, self.preload_equipment_page)
 

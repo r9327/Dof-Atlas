@@ -410,6 +410,7 @@ class HomePage(QWidget):
         almanax_layout.addWidget(self.almanax_icon, 0, Qt.AlignHCenter)
 
         badge = AtlasStatusBadge("Données indisponibles", state="blocked")
+        self.almanax_badge = badge
         almanax_layout.addWidget(badge, 0, Qt.AlignHCenter)
 
         almanax_text = QLabel(
@@ -417,6 +418,7 @@ class HomePage(QWidget):
             "de données locales vérifiées."
         )
         almanax_text.setObjectName("HomeAlmanaxText")
+        self.almanax_text = almanax_text
         almanax_text.setAlignment(Qt.AlignCenter)
         almanax_text.setWordWrap(True)
         almanax_layout.addWidget(almanax_text)
@@ -516,6 +518,33 @@ class HomePage(QWidget):
         row_layout.addWidget(value, 1)
         layout.addWidget(row)
         return value
+
+    def set_almanax_day(self, day: object, *, cached: bool = False) -> None:
+        """Display actual sourced offering/bonus for today on the Home card."""
+
+        offering = str(getattr(day, "offering", "") or "")
+        quantity = int(getattr(day, "quantity", 0) or 0)
+        bonus = str(getattr(day, "bonus", "") or "")
+        lines = [
+            f"Offrande : {quantity} × {offering}" if offering
+            else "Offrande non renseignée par la source",
+            f"Bonus : {bonus}" if bonus else "Bonus non renseigné par la source",
+        ]
+        self.almanax_text.setText("\n".join(lines))
+        self.almanax_badge.setText(
+            "Dofusdude · cache local" if cached else "Dofusdude · Dofus 3"
+        )
+        self.almanax_badge.set_state("info" if cached else "active")
+
+    def set_almanax_unavailable(self) -> None:
+        # A real cached offering remains useful when network access fails.
+        if self.almanax_badge.property("state") in ("active", "info"):
+            return
+        self.almanax_badge.setText("Données indisponibles")
+        self.almanax_badge.set_state("blocked")
+        self.almanax_text.setText(
+            "Offrande et bonus indisponibles : réessayez depuis le calendrier."
+        )
 
     def set_character(self, character_key: str, character_label: str, icon_path: str = "") -> None:
         next_key = str(character_key or "")
