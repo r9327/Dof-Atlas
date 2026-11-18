@@ -19,7 +19,7 @@ from app.modules.encyclopedia.tools.enrich_quests import (
     extract_dpln_page_v2,
     request_bytes,
 )
-from app.quest_catalog import normalize_text, read_json_file, write_json_file
+from app.quest_catalog import SENTINEL_COORD, normalize_text, read_json_file, write_json_file
 
 
 AUDIT_VERSION = 2
@@ -418,6 +418,13 @@ def local_start_position_coverage(
             if not declared:
                 status = "NO_DECLARED_START"
             elif any(match is None for match in parsed):
+                status = "INVALID_START_COORDINATES"
+            elif any(
+                SENTINEL_COORD in tuple(map(int, match.groups()))
+                for match in parsed
+            ):
+                # A numeric-looking Doduda sentinel is still an unknown map,
+                # not a local declaration of the quest's start position.
                 status = "INVALID_START_COORDINATES"
             elif len(parsed) == 2 and parsed[0].groups() != parsed[1].groups():
                 # Different textual zero-padding must not create a false mismatch.
