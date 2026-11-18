@@ -362,6 +362,34 @@ class OptimizedAchievementsBatchingTests(unittest.TestCase):
             view.deleteLater()
             self.app.processEvents()
 
+    def test_opened_success_stays_selected_during_later_lazy_batches(self) -> None:
+        view = self._view(90)
+        try:
+            view.refresh()
+            view.show()
+            self.app.processEvents()
+            view._achievement_batch_timer.stop()
+            view.provider.get_detail_by_id = lambda ident: SimpleNamespace(
+                id=ident, name=f"Succès {ident}"
+            )
+            view._display_achievement = lambda _achievement: None
+
+            view.show_achievement(24)
+            self.assertEqual(view._achievement_pending_selected_id, 24)
+            while view.list_widget.count() < 40 and view._achievement_pending_rows:
+                view._render_next_achievement_batch()
+                view._achievement_batch_timer.stop()
+            view._apply_pending_achievement_selection()
+            self.assertEqual(view.list_widget.currentItem().data(Qt.UserRole), 24)
+            if view._achievement_pending_rows:
+                view._render_next_achievement_batch()
+                view._achievement_batch_timer.stop()
+                self.assertEqual(view.list_widget.currentItem().data(Qt.UserRole), 24)
+        finally:
+            view.close()
+            view.deleteLater()
+            self.app.processEvents()
+
     def test_deep_link_does_not_materialize_offscreen_success_rows(self) -> None:
         from unittest.mock import Mock
 
