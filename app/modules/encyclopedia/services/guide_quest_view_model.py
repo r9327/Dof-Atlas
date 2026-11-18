@@ -1025,7 +1025,11 @@ def related_quests(
 def first_position_from_quest(
     quest: QuestRecord, *, start_info: QuestStartInfo | None = None,
 ) -> str:
-    info = start_info if start_info is not None else quest_start_info(quest)
+    # Guide routing needs coordinates, not start-map artwork: avoid probing
+    # image files for every candidate Quest when choosing its first waypoint.
+    info = start_info if start_info is not None else quest_start_info(
+        quest, include_map_images=False,
+    )
     position = _canonical_source_coordinate(info.position)
     if position:
         return position
@@ -1034,6 +1038,23 @@ def first_position_from_quest(
             position = _canonical_source_coordinate(objective.map_label)
             if position:
                 return position
+    # Some imported Quest records have documentary steps/blocks but no local
+    # launch or gameplay map yet. Their explicitly authored positions can
+    # still provide a real route waypoint; never derive one from narrative
+    # text, a zone name or an unverified map identifier.
+    for step in getattr(quest, "source_solution_steps", ()) or ():
+        for objective in getattr(step, "objectives", ()) or ():
+            position = _canonical_source_coordinate(
+                getattr(objective, "map_label", ""),
+            )
+            if position:
+                return position
+    for block in getattr(quest, "solution_blocks", ()) or ():
+        position = _canonical_source_coordinate(
+            getattr(block, "position", ""),
+        )
+        if position:
+            return position
     return ""
 
 
