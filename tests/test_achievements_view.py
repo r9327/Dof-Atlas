@@ -126,6 +126,51 @@ class AchievementsThirdColumnTests(unittest.TestCase):
         provider.get_by_id.assert_not_called()
         provider.get_detail_by_id.assert_not_called()
 
+    def test_every_cross_module_entity_link_rejects_invalid_numeric_ids(self):
+        view, provider = self.make_view()
+        view.navigate_callback = Mock(return_value=True)
+        view.quest_provider.get_quest.return_value = SimpleNamespace(id=42)
+        for invalid in (None, "", "abc", "42-other", -1, 0, True, 1.5, "9" * 5000):
+            with self.subTest(value=repr(invalid)[:50]):
+                self.assertFalse(view.show_quest(invalid))
+                self.assertFalse(view.open_quest_in_quests(invalid))
+                self.assertFalse(view.open_linked_entity("quest", invalid))
+                self.assertFalse(view.open_linked_entity("achievement", invalid))
+                self.assertFalse(view.open_linked_entity("monster", invalid))
+                self.assertFalse(view.open_prerequisite_in_quests(invalid))
+                self.assertFalse(view.open_shared_entity("quest", invalid))
+                self.assertFalse(view.open_shared_entity("achievement", invalid))
+                view.on_alignment_quest_activated("quest", invalid)
+        view.navigate_callback.assert_not_called()
+        view.quest_provider.get_quest.assert_not_called()
+        provider.is_retained.assert_not_called()
+
+    def test_cross_module_entity_links_preserve_valid_ids_and_context(self):
+        view, _provider = self.make_view()
+        view.navigate_callback = Mock(return_value=True)
+        view.quest_provider.get_quest.side_effect = (
+            lambda quest_id: SimpleNamespace(id=quest_id) if quest_id == 42 else None
+        )
+        view.current_achievement_id = 8
+        self.assertTrue(view.open_shared_entity("quest", " 42 "))
+        view.navigate_callback.assert_called_once_with(
+            "quest", 42, source="achievement_link", achievement_id=8,
+        )
+        view.navigate_callback.reset_mock()
+        self.assertTrue(view.open_linked_entity("monster", "42"))
+        view.navigate_callback.assert_called_once_with(
+            "monster", 42, source="achievement",
+        )
+        view.navigate_callback.reset_mock()
+        self.assertTrue(view.open_prerequisite_in_quests("42"))
+        view.navigate_callback.assert_called_once_with(
+            "quest", 42, source="achievement_prerequisite", achievement_id=8,
+        )
+        with patch.object(view, "select_achievement", return_value=True) as select:
+            self.assertTrue(view.open_shared_entity("achievement", "42"))
+            self.assertTrue(view.open_linked_entity("achievement", "42"))
+            self.assertEqual(select.call_count, 2)
+
     def test_invalid_success_direct_link_skips_compatibility_jsonl_read(self):
         view, provider = self.make_view()
         provider.is_retained.return_value = False
