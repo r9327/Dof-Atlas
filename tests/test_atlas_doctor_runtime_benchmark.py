@@ -16,39 +16,90 @@ class AtlasDoctorRuntimeBenchmarkTests(unittest.TestCase):
         from tools.atlas_doctor_lib import runtime_benchmark as doctor
         from app.modules.encyclopedia.tools import benchmark_guides_performance as phase
 
-        return ((doctor, doctor._first_achievement_detail, "_current_encyclopedia_page", "_pump_events"),
-                (phase, phase.first_achievement_detail, "current_encyclopedia_page", "pump_events"))
+        return (
+            (doctor, doctor._first_achievement_detail,
+             "_current_encyclopedia_page", "_wait_until_with_ui_block"),
+            (phase, phase.first_achievement_detail,
+             "current_encyclopedia_page", "wait_until_with_ui_block"),
+        )
 
-    def test_first_detail_selects_paginated_reference_without_eager_catalogue(self):
-        view = SimpleNamespace(_runtime_ready=True, achievements=[],
-                               filtered=[SimpleNamespace(id=42)],
-                               select_achievement=Mock(return_value=True))
+    def test_first_detail_waits_until_worker_renders_without_eager_catalogue(self):
+        view = SimpleNamespace(
+            _runtime_ready=True, achievements=[],
+            filtered=[SimpleNamespace(id=42)],
+            select_achievement=Mock(return_value=True),
+            current_achievement_id=42, _detail_open=False,
+            _detail_requested=(1, 42), _detail_worker_running=True,
+        )
         page = SimpleNamespace(get_achievements_view=lambda: view)
-        for module, measure, page_name, pump_name in self.detail_benchmarks():
+
+        def simulate_worker_completion(app, predicate, timeout, description):
+            self.assertEqual(timeout, 30.0)
+            self.assertIn("42", description)
+            self.assertFalse(predicate())  # Worker is still running.
+            view._detail_worker_running = False
+            view._detail_requested = None
+            view._detail_open = True
+            self.assertTrue(predicate())  # Actual detail now displayed.
+            return 7.5  # Qt UI-block measurement, not only click time.
+
+        for module, measure, page_name, wait_name in self.detail_benchmarks():
             with self.subTest(module=module.__name__), patch.object(
                 module, page_name, return_value=page
-            ), patch.object(module, pump_name):
+            ), patch.object(
+                module, wait_name, side_effect=simulate_worker_completion
+            ) as wait:
                 view.select_achievement.reset_mock()
+                view._detail_open = False
+                view._detail_requested = (1, 42)
+                view._detail_worker_running = True
                 elapsed, ident, block = measure(object(), object())
                 self.assertEqual(ident, 42)
                 self.assertGreaterEqual(elapsed, 0)
-                self.assertGreaterEqual(block, 0)
+                self.assertGreaterEqual(block, 7.5)
+                wait.assert_called_once()
                 view.select_achievement.assert_called_once_with(42)
                 self.assertEqual(view.achievements, [])
 
-    def test_first_detail_still_rejects_empty_invalid_or_unselectable_catalogue(self):
-        for module, measure, page_name, pump_name in self.detail_benchmarks():
-            for refs, selected, error in (([], True, "no selectable achievement"),
-                                          ([SimpleNamespace(id=0)], True, "invalid achievement id"),
-                                          ([SimpleNamespace(id=42)], False, "Unable to select Success")):
-                view = SimpleNamespace(_runtime_ready=True, achievements=[SimpleNamespace(id=99)],
-                                       filtered=refs, select_achievement=Mock(return_value=selected))
+    def test_first_detail_rejects_empty_invalid_or_unselectable_catalogue(self):
+        for module, measure, page_name, wait_name in self.detail_benchmarks():
+            for refs, selected, error in (
+                ([], True, "no selectable achievement"),
+                ([SimpleNamespace(id=0)], True, "invalid achievement id"),
+                ([SimpleNamespace(id=42)], False, "Unable to select Success"),
+            ):
+                view = SimpleNamespace(
+                    _runtime_ready=True, achievements=[SimpleNamespace(id=99)],
+                    filtered=refs, select_achievement=Mock(return_value=selected),
+                )
                 page = SimpleNamespace(get_achievements_view=lambda: view)
                 with self.subTest(module=module.__name__, error=error), patch.object(
                     module, page_name, return_value=page
-                ), patch.object(module, pump_name):
+                ), patch.object(module, wait_name) as wait:
                     with self.assertRaisesRegex(RuntimeError, error):
                         measure(object(), object())
+                    wait.assert_not_called()
+
+    def test_first_detail_does_not_report_a_failed_worker_as_loaded(self):
+        for module, measure, page_name, wait_name in self.detail_benchmarks():
+            view = SimpleNamespace(
+                _runtime_ready=True, achievements=[],
+                filtered=[SimpleNamespace(id=42)],
+                select_achievement=Mock(return_value=True),
+                current_achievement_id=42,
+                _detail_open=False, _detail_requested=None,
+                _detail_worker_running=False,
+            )
+            page = SimpleNamespace(get_achievements_view=lambda: view)
+            def assert_worker_completion(app, predicate, timeout, description):
+                return predicate()
+            with self.subTest(module=module.__name__), patch.object(
+                module, page_name, return_value=page
+            ), patch.object(
+                module, wait_name, side_effect=assert_worker_completion
+            ):
+                with self.assertRaisesRegex(RuntimeError, "detail failed to render"):
+                    measure(object(), object())
 
     @staticmethod
     def sample(*, head: str, startup_ms: float, rss_mb: float) -> dict[str, object]:
