@@ -425,12 +425,13 @@ def _local_rendered_instruction_presence(row: object) -> tuple[bool, bool]:
             order=index,
             block_type=kind,
             content=str(raw.get("content") or raw.get("text") or ""),
+            position=str(raw.get("position") or ""),
             image_path=str(raw.get("image_path") or raw.get("path") or ""),
         ))
     source = SimpleNamespace(solution_blocks=blocks)
     visible_blocks = quest_solution_blocks(source)
     block_instruction = any(
-        block.content and block.block_type not in {
+        (block.content or block.position) and block.block_type not in {
             "image", "heading", "title", "subtitle", "section_heading",
         }
         for block in visible_blocks
@@ -533,7 +534,7 @@ def local_start_position_coverage(
             isinstance(block, dict)
             and any(
                 str(block.get(key) or "").strip()
-                for key in ("content", "text", "source_url", "image_path", "url", "src", "local_path")
+                for key in ("content", "text", "position", "source_url", "image_path", "url", "src", "local_path")
             )
             for block in blocks
         ):
