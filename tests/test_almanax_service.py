@@ -101,8 +101,12 @@ class AlmanaxUiTests(unittest.TestCase):
             self.assertIn("Dofusdude", page.almanax_badge.text())
             page.set_almanax_day(day, cached=True)
             self.assertIn("cache", page.almanax_badge.text())
-            page.set_almanax_unavailable()
+            page.set_almanax_unavailable("2026-11-18")
             self.assertIn("5 × Objet de test", page.almanax_text.text())
+            page.set_almanax_loading("2026-11-19")
+            self.assertNotIn("Objet de test", page.almanax_text.text())
+            page.set_almanax_unavailable("2026-11-19")
+            self.assertIn("Données indisponibles", page.almanax_badge.text())
         finally:
             page.deleteLater()
             self.app.processEvents()

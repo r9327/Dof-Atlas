@@ -1939,7 +1939,9 @@ class AtlasWindow(QMainWindow):
             self._ensure_almanax_service().request_day(day_key, refresh=refresh)
 
     def _refresh_almanax_today(self) -> None:
-        self._request_almanax_day(QDate.currentDate().toString("yyyy-MM-dd"))
+        day_key = QDate.currentDate().toString("yyyy-MM-dd")
+        self.home_page.set_almanax_loading(day_key)
+        self._request_almanax_day(day_key)
 
     def _on_almanax_day_available(self, day_key: str, day: object, cached: bool) -> None:
         if self.quit_requested:
@@ -1970,7 +1972,7 @@ class AtlasWindow(QMainWindow):
         if self.quit_requested:
             return
         if day_key == QDate.currentDate().toString("yyyy-MM-dd"):
-            self.home_page.set_almanax_unavailable()
+            self.home_page.set_almanax_unavailable(day_key)
         calendar = getattr(self, "almanax_calendar", None)
         if calendar is None or calendar.selectedDate().toString("yyyy-MM-dd") != day_key:
             return

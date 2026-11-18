@@ -411,6 +411,7 @@ class HomePage(QWidget):
 
         badge = AtlasStatusBadge("Données indisponibles", state="blocked")
         self.almanax_badge = badge
+        self.almanax_day_key = ""
         almanax_layout.addWidget(badge, 0, Qt.AlignHCenter)
 
         almanax_text = QLabel(
@@ -530,16 +531,33 @@ class HomePage(QWidget):
             else "Offrande non renseignée par la source",
             f"Bonus : {bonus}" if bonus else "Bonus non renseigné par la source",
         ]
+        self.almanax_day_key = str(getattr(day, "date", "") or "")
         self.almanax_text.setText("\n".join(lines))
         self.almanax_badge.setText(
             "Dofusdude · cache local" if cached else "Dofusdude · Dofus 3"
         )
         self.almanax_badge.set_state("info" if cached else "active")
 
-    def set_almanax_unavailable(self) -> None:
-        # A real cached offering remains useful when network access fails.
-        if self.almanax_badge.property("state") in ("active", "info"):
+    def set_almanax_loading(self, day_key: str) -> None:
+        # Never display yesterday's offering under today's Home heading.
+        if (
+            self.almanax_day_key == day_key
+            and self.almanax_badge.property("state") in ("active", "info")
+        ):
             return
+        self.almanax_day_key = ""
+        self.almanax_badge.setText("Chargement de l'Almanax…")
+        self.almanax_badge.set_state("neutral")
+        self.almanax_text.setText("Recherche de l'offrande et du bonus du jour…")
+
+    def set_almanax_unavailable(self, day_key: str = "") -> None:
+        # A genuine cache for this exact day remains useful offline.
+        if (
+            day_key == self.almanax_day_key
+            and self.almanax_badge.property("state") in ("active", "info")
+        ):
+            return
+        self.almanax_day_key = ""
         self.almanax_badge.setText("Données indisponibles")
         self.almanax_badge.set_state("blocked")
         self.almanax_text.setText(
