@@ -103,6 +103,43 @@ class NetworkHomeStatusTests(unittest.TestCase):
             ("Attention requise", "error"),
         )
 
+    def test_network_failure_explanation_is_actionable_without_raw_codes(self) -> None:
+        from unittest.mock import Mock
+
+        expected = {
+            "capture_elevation_cancelled": "Autorisation Windows",
+            "build_changed": "version du client DOFUS",
+            "mapping_invalid": "profil réseau",
+            "quest_snapshot_missed": "Journal des quêtes",
+            "stop_failed": "Arrêt de la capture",
+            "no_window_handles": "fenêtre DOFUS",
+        }
+        for reason, fragment in expected.items():
+            with self.subTest(reason=reason):
+                status = self._status(running=True, reason=reason)
+                self.assertIn(fragment, HomePage._network_explanation(status))
+                page = Mock()
+                page._network_summary.return_value = ("Attention requise", "error")
+                page._network_explanation.return_value = HomePage._network_explanation(status)
+                HomePage._on_network_status(page, status)
+                page.network_status.setToolTip.assert_called_once_with(
+                    HomePage._network_explanation(status)
+                )
+
+    def test_network_tooltip_tracks_recovery_and_offline_state(self) -> None:
+        self.assertIn(
+            "hors ligne",
+            HomePage._network_explanation(self._status(reason="stopped")),
+        )
+        self.assertIn(
+            "active",
+            HomePage._network_explanation(self._status(running=True, reason="running")),
+        )
+        self.assertNotIn(
+            "capture",
+            HomePage._network_explanation(self._status(reason="context_ready")).lower(),
+        )
+
     def _new_network_bridge(self, coordinator):
         from unittest.mock import patch
         from app.ui.network_bridge import NetworkUiBridge
