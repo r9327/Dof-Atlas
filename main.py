@@ -2785,6 +2785,13 @@ class AtlasWindow(QMainWindow):
         self.showNormal()
         self.raise_()
         self.activateWindow()
+        # Restoring a hidden window does not switch the current Atlas page:
+        # replay its deferred network refresh once the Qt widget is visible.
+        pending = getattr(self, "_pending_network_progress_character", "")
+        if pending and pending == self.current_character_key:
+            self._schedule_owned_callback(
+                0, lambda key=pending: self.on_network_progress_changed(key),
+            )
 
     def quit_from_tray(self) -> None:
         self.quit_requested = True
