@@ -504,6 +504,40 @@ class QuestDetailViewColumnTests(unittest.TestCase):
             17,
         )
 
+    def test_documentary_fallback_discards_placeholder_descriptions_only(self) -> None:
+        from app.modules.encyclopedia.services.guide_quest_view_model import (
+            quest_solution_steps,
+        )
+
+        quest = QuestRecord(
+            id=920, name="Nettoyage de source", category="Quêtes",
+            level_min=1, level_max=200, start_criterion="",
+            source_solution_steps=[
+                QuestStep(
+                    id=-1, name="Titre", description="Qf>=20",
+                    objectives=[QuestObjective(
+                        id=-1001, text="Découvrir la carte : 9999",
+                        type_id=0, map_label="[-2147483648,1]",
+                    )],
+                ),
+                QuestStep(
+                    id=-2, name="Autre", description=(
+                        "Mini-carte L’aperçu de la carte sera affiché ici sur le site."
+                    ),
+                ),
+                QuestStep(
+                    id=-3, name="Conclusion", description="Parlez au gardien.",
+                ),
+            ],
+        )
+        steps = quest_solution_steps(quest)
+        self.assertEqual([step.description for step in steps],
+                         ["", "", "Parlez au gardien."])
+        self.assertEqual(steps[0].objectives[0].text,
+                         "Découvrir la carte : 9999")
+        self.assertEqual(steps[0].objectives[0].position, "")
+        self.assertEqual(steps[0].objectives[0].objective_id, None)
+
     def test_all_displayed_travel_coordinates_share_bold_link_markup(self) -> None:
         from PySide6.QtCore import Qt
         from app.modules.encyclopedia.services.guide_quest_view_model import (
