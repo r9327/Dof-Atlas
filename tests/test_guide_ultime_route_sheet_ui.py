@@ -1,7 +1,14 @@
 from __future__ import annotations
 
 import inspect
+import os
 import unittest
+from types import SimpleNamespace
+
+os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
+
+from PySide6.QtCore import QObject
+from PySide6.QtWidgets import QApplication, QLabel
 
 from app.modules.encyclopedia.services.guide_ultime_generated_service import GuideUltimeGeneratedService
 from app.modules.encyclopedia.views.guide_ultime_universal_view import (
@@ -12,6 +19,50 @@ from app.ui.styles.guide import guide_universal_stylesheet
 
 
 class GuideUltimeRouteSheetUITests(unittest.TestCase):
+    def test_spaced_coordinate_is_copyable_without_inventing_a_zaap(self):
+        app = QApplication.instance() or QApplication([])
+
+        class Filter(QObject):
+            travel_callback = None
+
+            @staticmethod
+            def _safe_int(value):
+                return int(value)
+
+        listener = Filter()
+        label = QLabel("Position [ 003, -06 ]")
+        try:
+            # Exercise the real QLabel decorator, without hydrating routes.
+            GuideUltimeUniversalView._make_positions_copyable(listener, label)
+            self.assertTrue(label.property("travelCopyEnabled"))
+            self.assertEqual(label.property("travelCommand"), "/travel 3,-6")
+            self.assertIn("copier", label.toolTip().lower())
+        finally:
+            label.deleteLater()
+            listener.deleteLater()
+            app.processEvents()
+
+    def test_missing_coordinate_never_dispatches_travel_to_game(self):
+        app = QApplication.instance() or QApplication([])
+        calls = []
+        view = SimpleNamespace(
+            participant_service=SimpleNamespace(
+                available_characters=lambda: (
+                    SimpleNamespace(key="character:1", connected=True),
+                ),
+            ),
+            selected_participant_keys=lambda: ("character:1",),
+            travel_callback=lambda command, keys: calls.append((command, keys)),
+        )
+        command = "/travel -2147483648,3"
+        self.assertFalse(GuideUltimeUniversalView._launch_travel_command(view, command))
+        self.assertEqual(calls, [])
+        self.assertEqual(app.clipboard().text(), command)
+        self.assertTrue(
+            GuideUltimeUniversalView._launch_travel_command(view, "/travel 3,-6")
+        )
+        self.assertEqual(calls, [("/travel 3,-6", ("character:1",))])
+
     def test_single_route_sheet_is_rendered(self):
         source = inspect.getsource(GuideUltimeUniversalView._render_window)
         self.assertIn("GuideUltimeRouteCard", source)
