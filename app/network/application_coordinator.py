@@ -107,6 +107,9 @@ class NetworkApplicationCoordinator:
         self._stop_event = threading.Event()
         self._thread: threading.Thread | None = None
         self._lock = threading.RLock()
+        # stop() is terminal for this coordinator. Only a crashed/interrupted
+        # worker may restart; a late UI callback must never reopen UAC/capture.
+        self._shutdown_requested = False
         self._operation_lock = threading.RLock()
         self._context_ready = False
         self._context: tuple[QuestCatalog, Any, Any] | None = None
@@ -154,6 +157,8 @@ class NetworkApplicationCoordinator:
 
     def start_worker(self) -> bool:
         with self._lock:
+            if self._shutdown_requested:
+                return False
             if self.is_worker_running:
                 return True
             if self._thread is not None and self._thread.is_alive():
@@ -186,32 +191,38 @@ class NetworkApplicationCoordinator:
                 return False
             return True
 
+    def _enqueue_command(self, command: str) -> bool:
+        """Atomically reject commands racing with explicit shutdown."""
+
+        with self._lock:
+            if self._shutdown_requested or not self.start_worker():
+                return False
+            # start_worker() may be wrapped by a test or integration adapter
+            # that synchronously triggers stop(). Never queue after that.
+            if self._shutdown_requested or self._stop_event.is_set():
+                return False
+            self._commands.put(command)
+            return True
+
     def request_start_calibration(self) -> bool:
         with self._lock:
+            if self._shutdown_requested:
+                return False
             if not self._context_ready:
                 self._publish_status(NetworkApplicationStatus(False, False, "waiting_context"))
                 return False
-        if not self.start_worker():
-            return False
-        self._commands.put("start_calibration")
-        return True
+        return self._enqueue_command("start_calibration")
 
     def request_prepare_capture(self) -> bool:
         """Trigger the Windows elevation prompt before catalogue preload."""
 
-        if not self.start_worker():
-            return False
-        self._commands.put("prepare_capture")
-        return True
+        return self._enqueue_command("prepare_capture")
 
     def request_start_verified_runtime(self) -> bool:
         with self._lock:
-            if not self._context_ready:
+            if self._shutdown_requested or not self._context_ready:
                 return False
-        if not self.start_worker():
-            return False
-        self._commands.put("start_runtime")
-        return True
+        return self._enqueue_command("start_runtime")
 
     def latest_status(self) -> NetworkApplicationStatus:
         with self._lock:
@@ -245,7 +256,9 @@ class NetworkApplicationCoordinator:
         return rows
 
     def stop(self, join_timeout: float = 3.0) -> bool:
-        self._stop_event.set()
+        with self._lock:
+            self._shutdown_requested = True
+            self._stop_event.set()
         with self._operation_lock:
             try:
                 calibration_stopped = bool(self.calibration.stop())
