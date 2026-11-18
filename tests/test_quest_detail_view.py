@@ -171,6 +171,52 @@ class QuestDetailViewColumnTests(unittest.TestCase):
             "Position de lancement (source locale)",
         )
 
+    def test_shared_quest_travel_contract_rejects_invalid_coordinates(self) -> None:
+        from app.modules.encyclopedia.services.guide_quest_view_model import (
+            _canonical_source_coordinate,
+            travel_command,
+            quest_start_info,
+        )
+
+        for raw in (
+            "[-2147483648,3]",
+            "[-2147483649,3]",
+            "[2147483648,3]",
+            "[" + "9" * 5000 + ",3]",
+            "[inconnue,3]",
+        ):
+            with self.subTest(raw_length=len(raw)):
+                self.assertEqual(_canonical_source_coordinate(raw), "")
+                self.assertEqual(travel_command(f"Position {raw}"), "")
+        self.assertEqual(_canonical_source_coordinate("[ 003, -06 ]"), "[3,-6]")
+        self.assertEqual(travel_command("Rejoindre [ 003, -06 ]"), "/travel 3,-6")
+
+        quest = QuestRecord(
+            id=45, name="Départ non validé", category="Quêtes",
+            level_min=1, level_max=1, start_criterion="",
+            zones=["Zone locale"],
+            steps=[QuestStep(
+                id=1, name="Objectif", description="",
+                objectives=[QuestObjective(
+                    id=101, text="Rejoindre la zone", type_id=0,
+                    map_label="[11,12]",
+                )],
+            )],
+        )
+        for invalid_start in ("[2147483648,3]", "[" + "9" * 5000 + ",3]"):
+            with self.subTest(source_length=len(invalid_start)):
+                quest.source_info = {
+                    "launch_position": {"position": invalid_start},
+                }
+                self.assertEqual(
+                    quest_start_info(quest, include_map_images=False).position,
+                    "[11,12]",
+                )
+                self.assertEqual(
+                    QuestDetailView._start_position_heading(quest, "[11,12]"),
+                    "Position d'objectif (départ non confirmé)",
+                )
+
     def test_all_displayed_travel_coordinates_share_bold_link_markup(self) -> None:
         from PySide6.QtCore import Qt
         from app.modules.encyclopedia.services.guide_quest_view_model import (
