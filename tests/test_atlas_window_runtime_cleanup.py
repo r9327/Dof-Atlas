@@ -290,6 +290,27 @@ class AtlasWindowRuntimeCleanupTests(unittest.TestCase):
         self.assertEqual(shell.current_character_key, "character:2")
         shell.character_combo.setCurrentIndex.assert_called_once_with(0)
 
+    def test_organizer_foreground_handle_never_implies_a_character_identity(self):
+        shell = Mock()
+        shell._last_active_dofus_hwnd = 0
+
+        AtlasWindow.on_organizer_active_window(shell, 1432)
+        self.assertEqual(shell._last_active_dofus_hwnd, 1432)
+        shell.refresh_global_characters.assert_called_once_with(
+            allow_default_selection=False,
+        )
+
+        shell.refresh_global_characters.reset_mock()
+        AtlasWindow.on_organizer_active_window(shell, "not-a-window")
+        shell.refresh_global_characters.assert_not_called()
+        self.assertEqual(shell._last_active_dofus_hwnd, 1432)
+
+        AtlasWindow.on_organizer_active_window(shell, 0)
+        self.assertEqual(shell._last_active_dofus_hwnd, 0)
+        shell.refresh_global_characters.assert_called_once_with(
+            allow_default_selection=False,
+        )
+
     def test_manual_refresh_persists_cleared_selection_even_when_key_precleared(self):
         from app.quest_catalog import QuestCharacter
 
