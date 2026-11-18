@@ -1155,6 +1155,7 @@ class AtlasWindow(QMainWindow):
 
     def refresh_global_characters(
         self, *, verified_initial_key: str = "", allow_default_selection: bool = True,
+        network_refresh: bool = False,
     ) -> None:
         previous_key = str(self.current_character_key or "")
         known_characters = self._known_characters()
@@ -1248,21 +1249,20 @@ class AtlasWindow(QMainWindow):
         finally:
             self.character_combo.blockSignals(previous_blocked)
 
-        # Network status/profile refreshes can happen many times without
-        # selecting a different character. Do not rewrite the profile file
-        # (or persist a transient empty choice) unless the key changed.
-        if self.current_character_key != previous_key:
+        # Only repeated network identity notifications may skip persistence.
+        # Manual actions (notably deletion, which clears the key *before*
+        # calling here) still save even if the final key is already empty.
+        if not network_refresh or self.current_character_key != previous_key:
             self.persist_selected_character()
         self.home_page.set_character(
             self.current_character_key,
             self.current_character_label,
             self.character_icon_path(self.current_character_label, class_key=getattr(known_by_key.get(self.current_character_key), "class_key", "")),
         )
-        # The same verified account projection is often re-announced by
-        # separate network sessions. Rebuilding live Encyclopedia/Personnage
-        # pages on an identical selection would multiply Qt work and I/O.
-        # A new/renamed/class-enriched row or changed selection still syncs.
-        if projection_changed or self.current_character_key != previous_key:
+        # Scope deduplication to network notifications. Home navigation,
+        # manual profile edits and Organizer reorders must still resync pages
+        # even if their connected-combo projection did not change.
+        if not network_refresh or projection_changed or self.current_character_key != previous_key:
             self.sync_selected_character_to_pages()
         self._refresh_runtime_hotkeys_for_client_mapping()
 
@@ -1373,7 +1373,9 @@ class AtlasWindow(QMainWindow):
         # Several sessions do not prove which window is foreground.
         # In particular, a fresh profile must not default to the first
         # connected account merely because its packet arrived first.
-        self.refresh_global_characters(allow_default_selection=False)
+        self.refresh_global_characters(
+            allow_default_selection=False, network_refresh=True,
+        )
 
     def on_network_character_activated(self, character_key: str) -> None:
         """Refresh verified identities without mistaking login for window focus."""
@@ -1388,6 +1390,7 @@ class AtlasWindow(QMainWindow):
         self.refresh_global_characters(
             verified_initial_key=target,
             allow_default_selection=False,
+            network_refresh=True,
         )
 
     def prepare_network_capture(self) -> None:
