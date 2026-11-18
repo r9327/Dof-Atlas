@@ -23,6 +23,28 @@ class AtlasWindowRuntimeCleanupTests(unittest.TestCase):
             bridge.stop()
         network_bridge_module._BRIDGE = None
 
+    def test_network_character_activation_ignores_bad_legacy_handle(self):
+        from types import SimpleNamespace
+
+        shell = Mock()
+        shell._last_active_dofus_hwnd = 234
+        shell.current_character_key = "character:7"
+        shell.character_combo.count.return_value = 1
+        shell.character_combo.itemText.return_value = "Witsis"
+        shell.character_combo.currentData.return_value = SimpleNamespace(
+            key="character:7",
+        )
+        clients = [
+            {"handle": "invalid", "character_name": "Inconnu"},
+            {"handle": "234", "character_name": "Witsis"},
+        ]
+        with patch("main.read_json", return_value={"clients": clients}):
+            AtlasWindow.on_network_character_activated(shell, "character:7")
+
+        shell.refresh_global_characters.assert_called_once_with()
+        shell.character_combo.setCurrentIndex.assert_called_once_with(0)
+        shell.on_global_character_changed.assert_not_called()
+
     def test_network_progress_hidden_encyclopedia_refreshes_only_on_return(self):
         shell = Mock()
         shell.current_character_key = "character:1"
