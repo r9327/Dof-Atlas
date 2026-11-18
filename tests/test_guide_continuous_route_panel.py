@@ -578,11 +578,21 @@ class ContinuousGuideRoutePanelTests(unittest.TestCase):
         self.assertEqual(events, [
             ("/zaap -32,-56 ; /travel 5,-18", ("character:1", "character:2")),
         ])
-        plan["destination"]["x"] = -(2**31)
-        panel.refresh()
-        self.assertFalse(panel.travel_button.isEnabled())
-        panel.request_current_travel()
-        self.assertEqual(len(events), 1)
+        for bad_coordinate in (-(2**31), -(2**31) - 1, 2**31):
+            with self.subTest(destination=bad_coordinate):
+                plan["destination"]["x"] = bad_coordinate
+                panel.refresh()
+                self.assertFalse(panel.travel_button.isEnabled())
+                panel.request_current_travel()
+                self.assertEqual(len(events), 1)
+        plan["destination"]["x"] = 5
+        for bad_coordinate in (-(2**31), -(2**31) - 1, 2**31):
+            with self.subTest(zaap=bad_coordinate):
+                plan["zaap"]["y"] = bad_coordinate
+                panel.refresh()
+                self.assertFalse(panel.travel_button.isEnabled())
+                panel.request_current_travel()
+                self.assertEqual(len(events), 1)
 
     def test_travel_refuses_unregistered_keys_even_with_matching_plan(self):
         from copy import deepcopy
