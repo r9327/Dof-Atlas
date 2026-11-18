@@ -327,6 +327,24 @@ class GuidePreparationQtFocusedTests(unittest.TestCase):
         self.assertEqual(next_counter.value(), 0)
         self.assertEqual(next_counter.suffix(), "/4")
 
+    def test_browsing_character_change_refreshes_open_preparation_once(self):
+        self.participants.save_selected_keys(("character:1",))
+        view = self._view()
+        counter = view.preparation_panel.findChild(QSpinBox, "GuidePreparationQuantity")
+        counter.setValue(1)
+        self.assertEqual(len(view._preparation_quantity_drafts), 1)
+
+        view.set_character_key("character:2")
+        QApplication.processEvents()
+        self.assertTrue(view._preparation_loaded)
+        self.assertEqual(view._preparation_quantity_drafts, {})
+        current = view.preparation_panel.findChild(
+            QSpinBox, "GuidePreparationQuantity",
+        )
+        self.assertIsNotNone(current)
+        self.assertEqual(current.value(), 0)
+        self.assertEqual(current.suffix(), "/2")
+
     def test_atomic_team_ready_and_undo_survive_real_reload(self):
         self.participants.save_selected_keys(("character:1", "character:2"))
         view = self._view()
