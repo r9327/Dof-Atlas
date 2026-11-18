@@ -57,6 +57,7 @@ class QuestSemanticEnrichmentTests(unittest.TestCase):
         self.assertEqual(report["counts"]["NO_DECLARED_START"], 1)
         self.assertEqual(report["counts"]["NO_ENRICHMENT"], 1)
         self.assertEqual(report["counts"]["WITH_DOCUMENTARY_BLOCKS"], 1)
+        self.assertEqual(report["counts"]["WITHOUT_DOCUMENTARY_BLOCKS"], 5)
         self.assertEqual(
             [(row["quest_id"], row["status"]) for row in report["needs_review"]],
             [
