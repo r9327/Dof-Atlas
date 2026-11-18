@@ -383,6 +383,26 @@ class AchievementCompactRowIdentityTests(unittest.TestCase):
                         self.assertEqual(provider._compact_retained_ids, (10,))
                         self.assertNotIn(10, provider._compact_external_index)
 
+                # Category membership is a primitive index, not permission
+                # to coerce booleans/floats/strings into another Success ID.
+                payload["offsets"]["10"] = offsets["10"]
+                payload["retained_ids"] = [10]
+                payload["by_category"] = {
+                    "1": [True, 10, "10", 10.0, 10, 9999, 10],
+                    "2": [9999],
+                    "03": [10],
+                    "not-an-id": [10],
+                }
+                sidecar.write_text(json.dumps(payload), encoding="utf-8")
+                provider._load_from_compact_cache()
+                self.assertEqual(provider._compact_category_ids, {
+                    1: (10,), 2: (),
+                })
+                with patch.object(provider, "_ensure_loaded"):
+                    self.assertEqual(provider.catalogue_ids(1), (10,))
+                    self.assertEqual(provider.count_by_category(1), 1)
+                    self.assertEqual(provider.catalogue_ids(3), ())
+
     def test_compact_search_falls_back_only_for_broken_row_and_preserves_order(self):
         from types import SimpleNamespace
         from app.modules.encyclopedia.providers import memory_bound_achievement_provider as mod
