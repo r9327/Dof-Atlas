@@ -488,8 +488,18 @@ def _achievement_distributions(samples: list[dict[str, Any]]) -> dict[str, dict[
 def aggregate_samples(samples: list[dict[str, Any]]) -> dict[str, Any]:
     if not samples:
         raise ValueError("At least one runtime sample is required.")
-    medians = _median_tree([sample.get("metrics") or {} for sample in samples])
     environment = dict(samples[0].get("environment") or {})
+    # A p95 across different code revisions or Qt environments is not
+    # evidence for any exact-SHA certification.
+    for index, sample in enumerate(samples[1:], 2):
+        observed = sample.get("environment") or {}
+        for key in (*ENVIRONMENT_KEYS, "git_head"):
+            if observed.get(key) != environment.get(key):
+                raise ValueError(
+                    f"Runtime sample {index} differs on {key}; "
+                    "refusing mixed-SHA/environment benchmark."
+                )
+    medians = _median_tree([sample.get("metrics") or {} for sample in samples])
     environment["sample_count"] = len(samples)
     return {
         "schema_version": SCHEMA_VERSION,
