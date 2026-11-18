@@ -884,6 +884,9 @@ class AchievementsView(QWidget):
         self._catalog_refresh_signature: tuple[object, ...] | None = None
         self._achievement_render_generation = 0
         self._achievement_pending_rows: list[int] = []
+        # Newly painted rows only: avoid re-scanning thousands of QListWidget
+        # items each time a viewport-sized batch is appended.
+        self._achievement_visible_row_by_id: dict[int, int] = {}
         self._achievement_pending_selected_id: int | None = None
         self._achievement_rows_dirty = False
         self._achievement_completed_ids: frozenset[int] = frozenset()
@@ -1002,6 +1005,7 @@ class AchievementsView(QWidget):
         selected_id = previous_id if any(row.id == previous_id for row in filtered) else (filtered[0].id if filtered else None)
 
         self._achievement_render_generation += 1
+        self._achievement_visible_row_by_id.clear()
         self._achievement_pending_selected_id = int(selected_id) if selected_id is not None else None
         self._achievement_completed_ids = frozenset(
             int(value) for value in self.progress_service.state_for(self.character_key).completed_achievements
@@ -1039,11 +1043,16 @@ class AchievementsView(QWidget):
         selected_id = self._achievement_pending_selected_id
         if selected_id is None:
             return
-        for row in range(self.list_widget.count()):
+        current = self.list_widget.currentItem()
+        if current is not None and current.data(Qt.UserRole) == selected_id:
+            # setCurrentRow() scrolls the viewport to the active row. Repeating
+            # it on every batch snaps users back to the first Success.
+            return
+        row = self._achievement_visible_row_by_id.get(selected_id)
+        if row is not None:
             item = self.list_widget.item(row)
-            if int(item.data(Qt.UserRole) or 0) == int(selected_id):
+            if item is not None and item.data(Qt.UserRole) == selected_id:
                 self.list_widget.setCurrentRow(row)
-                return
 
     def _render_next_achievement_batch(self) -> None:
         if (
@@ -1096,6 +1105,7 @@ class AchievementsView(QWidget):
                     item.setForeground(done_color if completed else todo_color)
                     item.setData(COMPLETED_ROLE, completed)
                     self.list_widget.addItem(item)
+                    self._achievement_visible_row_by_id[achievement_id] = self.list_widget.count() - 1
             finally:
                 self.list_widget.blockSignals(False)
 
