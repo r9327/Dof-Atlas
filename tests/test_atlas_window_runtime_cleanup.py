@@ -23,6 +23,33 @@ class AtlasWindowRuntimeCleanupTests(unittest.TestCase):
             bridge.stop()
         network_bridge_module._BRIDGE = None
 
+    def test_network_identity_batch_refreshes_multiple_accounts_once(self):
+        shell = Mock()
+        AtlasWindow.on_network_characters_identified(
+            shell, ("character:3", "character:2", "character:3")
+        )
+
+        shell.refresh_global_characters.assert_called_once_with()
+        shell.on_network_character_activated.assert_not_called()
+        shell.character_combo.setCurrentIndex.assert_not_called()
+
+    def test_network_identity_batch_preserves_single_identity_selection(self):
+        shell = Mock()
+        AtlasWindow.on_network_characters_identified(
+            shell, ("character:7", "character:7")
+        )
+
+        shell.on_network_character_activated.assert_called_once_with("character:7")
+        shell.refresh_global_characters.assert_not_called()
+
+    def test_network_identity_batch_rejects_empty_or_invalid_payloads(self):
+        shell = Mock()
+        for payload in (None, "", (), ("", None), {"character:1"}):
+            AtlasWindow.on_network_characters_identified(shell, payload)
+
+        shell.refresh_global_characters.assert_not_called()
+        shell.on_network_character_activated.assert_not_called()
+
     def test_network_initial_selection_uses_verified_key_not_window_name(self):
         from types import SimpleNamespace
 
