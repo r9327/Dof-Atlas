@@ -58,6 +58,23 @@ class _AchievementListRef:
     id: int
 
 
+def _positive_entity_id(value: object) -> int | None:
+    """Accept only real positive IDs from local or cross-module entity links."""
+
+    if type(value) is int:
+        return value if value > 0 else None
+    if not isinstance(value, str):
+        return None
+    cleaned = value.strip()
+    if not cleaned.isascii() or not cleaned.isdecimal():
+        return None
+    try:
+        identifier = int(cleaned)
+    except (TypeError, ValueError, OverflowError):
+        return None
+    return identifier if identifier > 0 else None
+
+
 def _alignment_order_achievement_ranks() -> dict[int, int]:
     from app.modules.encyclopedia.achievement_catalog_policy import (
         ALIGNMENT_ORDER_ACHIEVEMENT_RANKS,
@@ -438,16 +455,10 @@ class AchievementsView(QWidget):
         self.refresh()
 
     def select_achievement(self, achievement_id: int) -> bool:
-        # Direct navigation also receives external IDs from quest/guide
-        # entity links. Reject malformed values instead of letting int()
-        # propagate a ValueError into the Qt slot.
-        if type(achievement_id) is bool:
-            return False
-        try:
-            achievement_id = int(achievement_id)
-        except (TypeError, ValueError, OverflowError):
-            return False
-        if achievement_id <= 0:
+        # The same positive-ID contract protects every entry point to
+        # Quêtes/Succès, including external links and injected entity rows.
+        achievement_id = _positive_entity_id(achievement_id)
+        if achievement_id is None:
             return False
         # A stale/deleted deep link is never permission to read a compatibility
         # Achievement JSONL on the Qt thread. Cheap membership comes first,
@@ -862,7 +873,7 @@ class AchievementsView(QWidget):
         self.close_detail_panel()
 
     def show_quest(self, quest_id: int) -> bool:
-        return self.open_quest_in_quests(int(quest_id))
+        return self.open_quest_in_quests(quest_id)
 
 
     def show_current_achievement(self) -> None:
@@ -871,7 +882,7 @@ class AchievementsView(QWidget):
 
     def on_alignment_quest_activated(self, entity_type: str, entity_id: object) -> None:
         if str(entity_type) == "quest":
-            self.open_quest_in_quests(int(entity_id))
+            self.open_quest_in_quests(entity_id)
 
     def open_guide(self, guide_id: str) -> bool:
         if self.navigate_callback is None:
@@ -880,20 +891,22 @@ class AchievementsView(QWidget):
 
     def open_linked_entity(self, entity_type: str, entity_id: int) -> bool:
         if str(entity_type) == "quest":
-            return self.open_quest_in_quests(int(entity_id))
+            return self.open_quest_in_quests(entity_id)
         if str(entity_type) == "achievement":
-            return self.select_achievement(int(entity_id))
-        if self.navigate_callback is None:
+            return self.select_achievement(entity_id)
+        valid_id = _positive_entity_id(entity_id)
+        if self.navigate_callback is None or valid_id is None:
             return False
-        return bool(self.navigate_callback(str(entity_type), int(entity_id), source="achievement"))
+        return bool(self.navigate_callback(str(entity_type), valid_id, source="achievement"))
 
     def open_prerequisite_in_quests(self, quest_id: int) -> bool:
-        if self.navigate_callback is None:
+        valid_id = _positive_entity_id(quest_id)
+        if self.navigate_callback is None or valid_id is None:
             return False
         return bool(
             self.navigate_callback(
                 "quest",
-                int(quest_id),
+                valid_id,
                 source="achievement_prerequisite",
                 achievement_id=self.current_achievement_id,
             )
@@ -901,9 +914,9 @@ class AchievementsView(QWidget):
 
     def open_shared_entity(self, entity_type: str, entity_id: int | str, **_context: object) -> bool:
         if str(entity_type) == "achievement":
-            return self.select_achievement(int(entity_id))
+            return self.select_achievement(entity_id)
         if str(entity_type) == "quest":
-            return self.open_quest_in_quests(int(entity_id))
+            return self.open_quest_in_quests(entity_id)
         if self.navigate_callback is None:
             return False
         return bool(self.navigate_callback(str(entity_type), entity_id, source="achievement"))
@@ -1306,11 +1319,10 @@ class AchievementsView(QWidget):
     def open_quest_in_quests(self, quest_id: int) -> bool:
         """Leave Succès and open the shared Quêtes page for linked quests."""
 
-        try:
-            quest_id = int(quest_id)
-        except (TypeError, ValueError):
+        quest_id = _positive_entity_id(quest_id)
+        if quest_id is None or self.navigate_callback is None:
             return False
-        if self.quest_provider.get_quest(quest_id) is None or self.navigate_callback is None:
+        if self.quest_provider.get_quest(quest_id) is None:
             return False
         return bool(
             self.navigate_callback(
