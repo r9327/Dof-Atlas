@@ -485,8 +485,11 @@ class AchievementsView(QWidget):
         achievement_id = int(achievement_id)
         if self._detail_requested is not None and self._detail_requested[1] == achievement_id:
             return
-        summary = self.provider.get_by_id(achievement_id)
-        if summary is None or not self.provider.is_retained(achievement_id):
+        # In production the compact provider answers membership directly
+        # from its retained-ID set. get_by_id() materializes a compatibility
+        # Achievement and may seek/parse the cache on the Qt click path.
+        # The detail worker performs the actual rich read only when needed.
+        if not self.provider.is_retained(achievement_id):
             self.show_empty()
             return
         # Direct links and manual clicks both change the *current* list
