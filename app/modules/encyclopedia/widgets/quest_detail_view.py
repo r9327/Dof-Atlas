@@ -384,14 +384,21 @@ class QuestDetailView(QWidget):
             section.toggled.connect(lambda value, item_key=key: self.prerequisite_expanded.__setitem__(item_key, value))
             self.center_layout.addWidget(section)
 
-        if not getattr(quest, "solution_blocks", None) and getattr(quest, "source_solution_steps", None):
+        documentary_blocks = ui.quest_solution_blocks(quest)
+        if not documentary_blocks and getattr(quest, "source_solution_steps", None):
+            # A raw source array can contain only placeholders/technical data.
+            # Show the same fallback disclosure the actual reader uses, not
+            # a false "complete documentation" claim based on raw existence.
             self.center_layout.addWidget(
                 ui.text_label(
                     "Documentation locale complète indisponible — objectifs affichés à titre de repère.",
                     "MutedLabel",
                 )
             )
-        widgets = ui.quest_solution_document_widgets(quest, omit_first_image_path=start.map_image_path)
+        widgets = ui.quest_solution_document_widgets(
+            quest, omit_first_image_path=start.map_image_path,
+            source_blocks=documentary_blocks,
+        )
         if not widgets:
             self.center_layout.addWidget(
                 ui.text_label(
