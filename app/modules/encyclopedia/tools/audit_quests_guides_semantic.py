@@ -1090,8 +1090,11 @@ def main(argv: list[str] | None = None) -> int:
         from app.quest_catalog_details import _CACHE_ROOT
         sources = QuestSources(_CACHE_ROOT / "source_offsets", disk_backed=True)
         try:
+            # The audit's job is to find genuinely missing source rows.
+            # An absent/corrupt enrichment file is NOT evidence that every
+            # Quest lacks a start or instructions; fail without a false report.
             enriched = sources.mapping(
-                ENRICHED_PATH, "quests", required=False,
+                ENRICHED_PATH, "quests", required=True,
             )
             coverage = local_start_position_coverage(
                 enriched, (int(quest.id) for quest in catalog.quests),
