@@ -174,7 +174,13 @@ class NetworkUiBridge(QObject):
                 # Journal completions change quest progress, not the selected
                 # character. Avoid reloading all client profiles each poll.
                 active_character = str(result.character_key)
-            if result.changed and result.character_key:
+            if (
+                result.changed
+                and result.character_key
+                and reason not in {"character_identified", "session_closed"}
+            ):
+                # Identity routing/session closure is not a persisted quest
+                # mutation. Only progress changes need a costly tab refresh.
                 changed_characters.add(str(result.character_key))
         if active_character or changed_characters:
             record_validation("network_progress", changed=len(changed_characters),
