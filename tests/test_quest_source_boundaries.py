@@ -80,6 +80,60 @@ class QuestSourceBoundaryTests(unittest.TestCase):
             finally:
                 fresh.close()
 
+    def test_corrupt_nonfirst_disk_offset_fails_closed_without_full_read(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            source = root / "source.json"
+            source.write_text(
+                json.dumps({"entries": {"1": "Premier", "2": "Deuxième"}}),
+                encoding="utf-8",
+            )
+            sources = QuestSources(root / "cache", disk_backed=True)
+            try:
+                rows = sources.mapping(source, "entries")
+                self.assertEqual(rows["1"], "Premier")
+                db = rows._disk_index
+                self.assertIsNotNone(db)
+                # The initial representative row remains valid; only the
+                # second offset is damaged after index initialization.
+                for start, end in (
+                    (0, -1),
+                    (-1, 10),
+                    (0, source.stat().st_size * 100),
+                    ("invalid", 10),
+                ):
+                    with self.subTest(start=start, end=end):
+                        with closing(sqlite3.connect(db)) as conn, conn:
+                            conn.execute(
+                                "UPDATE offsets SET start=?, end=? WHERE key='2'",
+                                (start, end),
+                            )
+                        with self.assertRaises(QuestSourceError):
+                            _ = rows["2"]
+                        self.assertNotIn("2", rows._cache)
+                        self.assertEqual(rows["1"], "Premier")
+            finally:
+                sources.close()
+
+    def test_optional_corrupt_disk_offset_is_not_materialized(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            source = root / "source.json"
+            source.write_text(
+                json.dumps({"entries": {"1": "Valide", "2": "Invalide"}}),
+                encoding="utf-8",
+            )
+            sources = QuestSources(root / "cache", disk_backed=True)
+            try:
+                rows = sources.mapping(source, "entries", required=False)
+                self.assertEqual(rows["1"], "Valide")
+                with closing(sqlite3.connect(rows._disk_index)) as conn, conn:
+                    conn.execute("UPDATE offsets SET end=-1 WHERE key='2'")
+                self.assertIsNone(rows.get("2"))
+                self.assertEqual(rows["1"], "Valide")
+            finally:
+                sources.close()
+
     def test_missing_offsets_schema_rebuilds_readable_index(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)
