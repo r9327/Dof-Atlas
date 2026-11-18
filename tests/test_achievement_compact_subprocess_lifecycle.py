@@ -394,6 +394,44 @@ class AchievementCompactRowIdentityTests(unittest.TestCase):
                 self.assertEqual(provider.search_catalogue_ids("grand monstre"), (10, 11))
                 fallback.assert_called_once_with(11)
 
+    def test_compact_search_rejects_malformed_offsets_without_losing_valid_ids(self):
+        from app.modules.encyclopedia.providers import memory_bound_achievement_provider as mod
+
+        with tempfile.TemporaryDirectory() as directory:
+            cache = Path(directory) / "success.jsonl"
+            raw = (json.dumps({"kind": "achievement", "value": {
+                "id": 10, "search_text": "grand_monstre",
+            }}) + "\n").encode("utf-8")
+            cache.write_bytes(raw)
+            provider = MemoryBoundAchievementProvider()
+            provider._compact_retained_ids = (10, 11)
+            provider._compact_retained_set = frozenset({10, 11})
+            broken_spans = (
+                None, (), (0,), [], ("bad", 2), (True, 2),
+                (0, False), (0, -1), (0, len(raw) + 1),
+            )
+            with (
+                patch.object(mod, "ACHIEVEMENT_COMPACT_CACHE", cache),
+                patch.object(provider, "_ensure_loaded"),
+                patch.object(
+                    provider, "_summary_by_id",
+                    side_effect=OSError("missing compact row"),
+                ) as recover,
+                patch.object(mod.logging.getLogger(mod.__name__), "exception") as logged,
+            ):
+                for span in broken_spans:
+                    with self.subTest(span=span):
+                        provider._compact_external_index = {
+                            10: (0, len(raw)), 11: span,
+                        }
+                        provider._compact_search_text_index = None
+                        provider._compact_search_generation = None
+                        self.assertEqual(
+                            provider.search_catalogue_ids("grand monstre"), (10,),
+                        )
+                self.assertEqual(recover.call_count, len(broken_spans))
+                self.assertEqual(logged.call_count, len(broken_spans))
+
     def test_compact_progress_reads_reject_bad_spans_and_wrong_achievement(self) -> None:
         from app.modules.encyclopedia.providers import memory_bound_achievement_provider as mod
 
