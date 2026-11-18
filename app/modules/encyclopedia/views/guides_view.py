@@ -4222,6 +4222,22 @@ def solution_text_document(blocks: tuple[DisplaySolutionBlock, ...]) -> QLabel:
     parts: list[str] = []
     for block in blocks:
         content = clean_text(block.content)
+        if block.position and block.block_type not in {
+            "image", "heading", "title", "subtitle", "section_heading",
+        }:
+            command = _vm_call("travel_command", block.position)
+            if command and not any(
+                _vm_call("travel_command", match.group(0)) == command
+                for match in TRAVEL_COORD_RE.finditer(content)
+            ):
+                # Explicit source position is documentary metadata, not an
+                # inferred quest start. Reuse the global link style and only
+                # append it when the same map is not already present in text.
+                position = f"[{command.removeprefix('/travel ')}]"
+                content = (
+                    f"{content} — Position source : {position}"
+                    if content else f"Position source : {position}"
+                )
         if not content:
             continue
         linked = linkify_travel_text(content)
