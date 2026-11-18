@@ -19,6 +19,7 @@ from app.modules.encyclopedia.models import (
 from app.modules.encyclopedia.providers import AchievementProvider
 from app.modules.encyclopedia.services.quest_graph_service import QuestGraphService
 from app.quest_catalog import (
+    SENTINEL_COORD,
     QuestObjective,
     QuestRecord,
     QuestReward,
@@ -691,9 +692,13 @@ def _canonical_source_coordinate(value: object) -> str:
     if match is None:
         return ""
     try:
-        return f"[{int(match.group(1))},{int(match.group(2))}]"
+        x, y = int(match.group(1)), int(match.group(2))
     except ValueError:
         return ""
+    # Canonical Doduda missing-position sentinel is not a travel coordinate.
+    if SENTINEL_COORD in (x, y):
+        return ""
+    return f"[{x},{y}]"
 
 
 def quest_start_info(
