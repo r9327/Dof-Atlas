@@ -180,6 +180,83 @@ class NetworkHomeStatusTests(unittest.TestCase):
             bridge.deleteLater()
             self.app.processEvents()
 
+    def test_network_multiple_verified_logins_are_reported_in_one_batch(self) -> None:
+        from types import SimpleNamespace
+        from unittest.mock import Mock, patch
+
+        coordinator = Mock()
+        coordinator.has_pending_ui_events.return_value = True
+        coordinator.drain_statuses.return_value = []
+        coordinator.drain_results.return_value = [
+            SimpleNamespace(
+                accepted=True, changed=False, character_key="character:2",
+                reason="character_identified",
+            ),
+            SimpleNamespace(
+                accepted=True, changed=False, character_key="character:1",
+                reason="character_identified_with_quest_journal",
+            ),
+            SimpleNamespace(
+                accepted=True, changed=False, character_key="character:2",
+                reason="character_identified",
+            ),
+            SimpleNamespace(
+                accepted=True, changed=True, character_key="character:1",
+                reason="quest_journal_reconciled",
+            ),
+        ]
+        coordinator.stop.return_value = True
+        bridge = self._new_network_bridge(coordinator)
+        batches, activations, progress = [], [], []
+        bridge.charactersIdentified.connect(batches.append)
+        bridge.characterActivated.connect(activations.append)
+        bridge.progressChanged.connect(progress.append)
+        try:
+            with patch("app.ui.network_bridge.record_validation"):
+                bridge._poll()
+                bridge._progress_timer.stop()
+                bridge._emit_pending_progress()
+            self.assertEqual(batches, [("character:1", "character:2")])
+            self.assertEqual(activations, [])
+            self.assertEqual(progress, ["character:1"])
+        finally:
+            bridge.stop()
+            bridge.deleteLater()
+            self.app.processEvents()
+
+    def test_network_shutdown_during_identity_batch_drops_older_events(self) -> None:
+        from types import SimpleNamespace
+        from unittest.mock import Mock, patch
+
+        coordinator = Mock()
+        coordinator.has_pending_ui_events.return_value = True
+        coordinator.drain_statuses.return_value = []
+        coordinator.drain_results.return_value = [
+            SimpleNamespace(
+                accepted=True, changed=True, character_key="character:1",
+                reason="character_identified_with_quest_journal",
+            ),
+        ]
+        coordinator.stop.return_value = True
+        bridge = self._new_network_bridge(coordinator)
+        received, activations, progress = [], [], []
+        bridge.charactersIdentified.connect(
+            lambda keys: (received.append(keys), bridge.stop())
+        )
+        bridge.characterActivated.connect(activations.append)
+        bridge.progressChanged.connect(progress.append)
+        try:
+            with patch("app.ui.network_bridge.record_validation"):
+                bridge._poll()
+            self.assertEqual(received, [("character:1",)])
+            self.assertEqual(activations, [])
+            self.assertEqual(progress, [])
+            self.assertFalse(bridge._progress_timer.isActive())
+        finally:
+            bridge.stop()
+            bridge.deleteLater()
+            self.app.processEvents()
+
     def test_network_journal_progress_does_not_reload_character_profiles(self) -> None:
         from types import SimpleNamespace
         from unittest.mock import Mock, patch
