@@ -618,10 +618,16 @@ class NetworkApplicationCoordinator:
                     "character_identified_with_quest_journal",
                 }
             )
-            # An unchanged identity or a journal-only observation is not a
-            # new active-client selection. Forward changed journal progress
-            # via the regular progress signal, without extra profile reloads.
-            if result.changed or activates_character:
+            # Session routing is not quest progression. Avoid rebuilding
+            # views on character identification or disconnect when no quest
+            # or achievement actually changed. Journal reconciliation and
+            # other genuine progress mutations still reach the Qt bridge.
+            progress_changed = bool(
+                result.changed and reason not in {
+                    "character_identified", "session_closed",
+                }
+            )
+            if progress_changed or activates_character:
                 self._results.put(result)
         if self._stop_event.is_set():
             return
