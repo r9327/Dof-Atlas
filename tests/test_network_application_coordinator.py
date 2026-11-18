@@ -271,6 +271,61 @@ class NetworkApplicationCoordinatorTests(unittest.TestCase):
             coordinator._run()
             handle.assert_not_called()
 
+    def test_explicit_shutdown_prevents_privileged_restart_and_commands(self) -> None:
+        coordinator = NetworkApplicationCoordinator(lambda: ())
+        coordinator._context_ready = True
+        with (
+            patch.object(coordinator.calibration, "stop", return_value=True),
+            patch.object(coordinator.runtime, "stop", return_value=True),
+            patch.object(coordinator, "_close_capture_source", return_value=True),
+        ):
+            self.assertTrue(coordinator.stop(join_timeout=0))
+
+        with (
+            patch("app.network.application_coordinator.threading.Thread") as worker,
+            patch.object(coordinator._capture_source, "start") as capture,
+        ):
+            self.assertFalse(coordinator.start_worker())
+            self.assertFalse(coordinator.request_prepare_capture())
+            self.assertFalse(coordinator.request_start_calibration())
+            self.assertFalse(coordinator.request_start_verified_runtime())
+            worker.assert_not_called()
+            capture.assert_not_called()
+
+        self.assertTrue(coordinator._shutdown_requested)
+        self.assertTrue(coordinator._stop_event.is_set())
+        self.assertTrue(coordinator._commands.empty())
+
+    def test_shutdown_during_start_worker_does_not_queue_privileged_command(self) -> None:
+        coordinator = NetworkApplicationCoordinator(lambda: ())
+        with (
+            patch.object(coordinator.calibration, "stop", return_value=True),
+            patch.object(coordinator.runtime, "stop", return_value=True),
+            patch.object(coordinator, "_close_capture_source", return_value=True),
+        ):
+            def shutdown_during_start() -> bool:
+                coordinator.stop(join_timeout=0)
+                return True
+
+            with patch.object(
+                coordinator, "start_worker", side_effect=shutdown_during_start,
+            ):
+                self.assertFalse(coordinator.request_prepare_capture())
+
+        self.assertTrue(coordinator._commands.empty())
+        self.assertTrue(coordinator._shutdown_requested)
+
+    def test_worker_restarts_after_interrupted_worker_without_explicit_stop(self) -> None:
+        coordinator = NetworkApplicationCoordinator(lambda: ())
+        coordinator._stop_event.set()  # Worker died, not user-requested stop.
+        with patch(
+            "app.network.application_coordinator.threading.Thread",
+        ) as thread:
+            self.assertTrue(coordinator.start_worker())
+            thread.return_value.start.assert_called_once_with()
+        self.assertFalse(coordinator._stop_event.is_set())
+        self.assertFalse(coordinator._shutdown_requested)
+
     def test_restarted_worker_discards_old_privileged_commands(self) -> None:
         coordinator = NetworkApplicationCoordinator(lambda: ())
         coordinator._commands.put("prepare_capture")
