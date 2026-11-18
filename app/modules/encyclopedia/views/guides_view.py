@@ -1795,8 +1795,10 @@ class GuidesView(QWidget):
             available_characters_provider=self.guide_participant_service.available_characters,
         )
         panel.selectedCharactersChanged.connect(self._remember_continuous_characters)
-        if self.launch_travel_callback is not None:
-            panel.travelRequested.connect(self._dispatch_continuous_route_travel)
+        # Keep verified route actions usable as copy-only instructions when
+        # an Atlas runtime launcher is unavailable. The panel itself still
+        # requires an exact verified plan and live participant identities.
+        panel.travelRequested.connect(self._dispatch_continuous_route_travel)
         self.center_layout.addWidget(panel)
         self._continuous_route_panel = panel
         self.detail_header_progress.setVisible(False)
@@ -1809,6 +1811,10 @@ class GuidesView(QWidget):
         # the same refusal contract as the manual/universal Guide buttons.
         callback = self.launch_travel_callback
         if not callable(callback):
+            QApplication.clipboard().setText(command)
+            self.status_callback(
+                "Déplacement indisponible : commande copiée dans le presse-papiers.",
+            )
             return
         try:
             accepted = callback(command, character_keys)
