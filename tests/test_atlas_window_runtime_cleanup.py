@@ -61,6 +61,43 @@ class AtlasWindowRuntimeCleanupTests(unittest.TestCase):
         self.assertEqual(shell._pending_network_progress_character, "")
         page.tabs.currentWidget.return_value.refresh_external_progress.assert_not_called()
 
+    def test_tray_restore_replays_deferred_network_progress_without_tab_switch(self):
+        shell = Mock()
+        shell.current_character_key = "character:1"
+        shell._pending_network_progress_character = "character:1"
+        page = Mock()
+        page.objectName.return_value = "EncyclopediaPage"
+        page.isVisible.return_value = False
+        page.current_character_key = "character:1"
+        shell.page_widgets = {"Quetes": page}
+        shell.on_network_progress_changed = (
+            lambda key: AtlasWindow.on_network_progress_changed(shell, key)
+        )
+        callbacks = []
+        shell._schedule_owned_callback.side_effect = (
+            lambda delay, callback: callbacks.append((delay, callback))
+        )
+
+        AtlasWindow.restore_from_tray(shell)
+        shell.showNormal.assert_called_once_with()
+        self.assertEqual(len(callbacks), 1)
+        self.assertEqual(callbacks[0][0], 0)
+        page.tabs.currentWidget.return_value.refresh_external_progress.assert_not_called()
+
+        # The owned callback fires after Qt has shown the page again.
+        page.isVisible.return_value = True
+        callbacks[0][1]()
+        page.tabs.currentWidget.return_value.refresh_external_progress.assert_called_once_with()
+        self.assertEqual(shell._pending_network_progress_character, "")
+
+    def test_tray_restore_does_not_replay_stale_character(self):
+        shell = Mock()
+        shell.current_character_key = "character:2"
+        shell._pending_network_progress_character = "character:1"
+
+        AtlasWindow.restore_from_tray(shell)
+        shell._schedule_owned_callback.assert_not_called()
+
     def test_guide_travel_dispatch_returns_real_result_without_reloading_active_macro(self):
         shell = Mock()
         shell.quit_requested = False
