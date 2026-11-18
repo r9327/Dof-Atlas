@@ -144,12 +144,17 @@ class GuideUltimeRouteSheetUITests(unittest.TestCase):
             selected_participant_keys=lambda: ("character:1",),
             travel_callback=lambda command, keys: calls.append((command, keys)),
         )
-        command = "/travel " + "9" * 5000 + ",2"
-        self.assertFalse(
-            GuideUltimeUniversalView._launch_travel_command(view, command)
-        )
-        self.assertEqual(calls, [])
-        self.assertEqual(app.clipboard().text(), command)
+        for command in (
+            "/travel 2147483648,2",
+            "/travel -2147483649,2",
+            "/travel " + "9" * 5000 + ",2",
+        ):
+            with self.subTest(command_length=len(command)):
+                self.assertFalse(
+                    GuideUltimeUniversalView._launch_travel_command(view, command)
+                )
+                self.assertEqual(calls, [])
+                self.assertEqual(app.clipboard().text(), command)
 
     def test_single_route_sheet_is_rendered(self):
         source = inspect.getsource(GuideUltimeUniversalView._render_window)
