@@ -2104,10 +2104,15 @@ class SharedGuideManualView(GuideUltimeManualView):
         self.page_jump.blockSignals(False)
 
     def set_character_key(self, character_key: str) -> None:
+        # The base setter invokes refresh() synchronously. Invalidate the
+        # previous browsing context BEFORE it redraws the open preparation;
+        # otherwise it briefly restores stale quantities, then clears the
+        # model while leaving those stale widgets visible.
+        if (character_key or "") != self.character_key:
+            self._preparation_quantity_drafts.clear()
+            self._preparation_loaded = False
+            self._preparation_needs = ()
         super().set_character_key(character_key)
-        self._preparation_quantity_drafts.clear()
-        self._preparation_loaded = False
-        self._preparation_needs = ()
         self._refresh_participants_panel()
 
     def _validation_status(self, card: dict[str, Any], index: int):
