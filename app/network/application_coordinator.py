@@ -623,7 +623,9 @@ class NetworkApplicationCoordinator:
             # or achievement actually changed. Journal reconciliation and
             # other genuine progress mutations still reach the Qt bridge.
             progress_changed = bool(
-                result.changed and reason not in {
+                result.accepted
+                and result.changed
+                and reason not in {
                     "character_identified", "session_closed",
                 }
             )
