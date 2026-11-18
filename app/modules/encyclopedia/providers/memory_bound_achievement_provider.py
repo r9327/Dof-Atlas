@@ -1570,7 +1570,11 @@ class MemoryBoundAchievementProvider(BaseAchievementProvider):
                     if start < 0 or length <= 0 or start > total or length > total - start:
                         continue
                     stream.seek(start)
-                    payload = json.loads(stream.read(length))
+                    try:
+                        payload = json.loads(stream.read(length))
+                    except (ValueError, TypeError, UnicodeError):
+                        # An invalid row must not hide other valid progress.
+                        continue
                     value = payload.get("value") if isinstance(payload, dict) else None
                     if (
                         not isinstance(payload, dict)
