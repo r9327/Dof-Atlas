@@ -579,9 +579,19 @@ class JsonSourceMapping(Mapping):
                 ).fetchone()
                 if row is None:
                     raise KeyError(key)
-                start, end = int(row[0]), int(row[1])
+                try:
+                    start, end = int(row[0]), int(row[1])
+                except (TypeError, ValueError, OverflowError):
+                    start, end = -1, -1
             else:
                 start, end = self._offsets[key]
+            # A disk-backed index validates one representative span at open,
+            # but any other row can be corrupt or replaced afterwards. Guard
+            # each individual read before seeking or allocating its payload.
+            if not (0 <= start < end <= self._stamp[1]):
+                if self.required:
+                    raise QuestSourceError(f"Invalid source offset for {key}: {self.path}")
+                raise KeyError(key)
             if self._stream is None:
                 self._stream = self.path.open('rb')
                 self._close_stream = weakref.finalize(self, self._stream.close)
