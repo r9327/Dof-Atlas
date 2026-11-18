@@ -48,19 +48,21 @@ class QuestSemanticEnrichmentTests(unittest.TestCase):
             "50": {"solution_blocks": []},
             "60": {"source_meta": {"startCoords": "[5, -6]"}},
             "70": {"launch_position": {"position": "[-2147483648, 2]"}},
+            "80": {"launch_position": {"position": "[2147483648, 2]"}},
+            "90": {"launch_position": {"position": "[" + "9" * 5000 + ",2]"}},
         }
-        report = local_start_position_coverage(rows, [70, 60, 50, 40, 30, 20, 10])
+        report = local_start_position_coverage(rows, [90, 80, 70, 60, 50, 40, 30, 20, 10])
         self.assertEqual(report["evidence"], "LOCAL_ENRICHMENT_ONLY_NOT_GAME_VERIFIED")
-        self.assertEqual(report["quests_considered"], 7)
+        self.assertEqual(report["quests_considered"], 9)
         self.assertEqual(report["counts"]["LOCAL_START_DECLARED"], 2)
         self.assertEqual(report["counts"]["CONFLICTING_DECLARED_START"], 1)
-        self.assertEqual(report["counts"]["INVALID_START_COORDINATES"], 2)
+        self.assertEqual(report["counts"]["INVALID_START_COORDINATES"], 4)
         self.assertEqual(report["counts"]["NO_DECLARED_START"], 1)
         self.assertEqual(report["counts"]["NO_ENRICHMENT"], 1)
         self.assertEqual(report["counts"]["WITH_DOCUMENTARY_BLOCKS"], 1)
-        self.assertEqual(report["counts"]["WITHOUT_DOCUMENTARY_BLOCKS"], 6)
+        self.assertEqual(report["counts"]["WITHOUT_DOCUMENTARY_BLOCKS"], 8)
         self.assertEqual(report["counts"]["WITH_TEXTUAL_SOLUTION_BLOCKS"], 1)
-        self.assertEqual(report["counts"]["WITHOUT_TEXTUAL_SOLUTION_BLOCKS"], 6)
+        self.assertEqual(report["counts"]["WITHOUT_TEXTUAL_SOLUTION_BLOCKS"], 8)
         self.assertEqual(
             [(row["quest_id"], row["status"]) for row in report["needs_review"]],
             [
@@ -69,6 +71,8 @@ class QuestSemanticEnrichmentTests(unittest.TestCase):
                 (40, "NO_ENRICHMENT"),
                 (50, "NO_DECLARED_START"),
                 (70, "INVALID_START_COORDINATES"),
+                (80, "INVALID_START_COORDINATES"),
+                (90, "INVALID_START_COORDINATES"),
             ],
         )
 
