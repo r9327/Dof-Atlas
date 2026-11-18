@@ -380,35 +380,51 @@ class GuideUltimeUniversalView(GuideUltimeGeneratedView):
         # Only direct, structurally valid /travel commands reach the launcher.
         # Zaaps require independently verified routing; never infer one here.
         normalized = str(command or "").strip()
-        available = getattr(self.participant_service, "available_characters", None)
-        # No verified connection inventory means no eligible recipients.
-        # Fail closed without propagating an AttributeError from a Qt event.
-        characters = available() if callable(available) else ()
-        eligible = {
-            row.key
-            for row in (characters or ())
-            if bool(getattr(row, "connected", False))
-        }
-        recipients = tuple(
-            key for key in self.selected_participant_keys() if key in eligible
-        )
         callback = self.travel_callback
-        command_match = re.fullmatch(r"/travel (-?\d+),(-?\d+)", normalized)
-        known_destination = (
-            command_match is not None
-            and SENTINEL_COORD not in (
-                int(command_match.group(1)), int(command_match.group(2))
+        command_match = re.fullmatch(r"/travel (-?\\d+),(-?\\d+)", normalized)
+        try:
+            known_destination = (
+                command_match is not None
+                and SENTINEL_COORD not in (
+                    int(command_match.group(1)), int(command_match.group(2))
+                )
             )
-        )
-        if not callable(callback) or not known_destination or not recipients:
+        except ValueError:
+            # Extremely long/corrupt coordinates must not crash a Qt click.
+            known_destination = False
+        if not callable(callback) or not known_destination:
+            QApplication.clipboard().setText(normalized)
+            return False
+
+        try:
+            available = getattr(self.participant_service, "available_characters", None)
+            characters = available() if callable(available) else ()
+            eligible = {
+                row.key
+                for row in (characters or ())
+                if bool(getattr(row, "connected", False))
+            }
+            recipients = tuple(
+                key for key in self.selected_participant_keys() if key in eligible
+            )
+        except Exception:
+            _LOGGER.exception("Lecture des personnages connectés impossible")
+            QApplication.clipboard().setText(normalized)
+            return False
+        if not recipients:
             QApplication.clipboard().setText(normalized)
             return False
         try:
-            callback(normalized, recipients)
+            result = callback(normalized, recipients)
         except Exception:
             # Never lose a valid travel instruction if the capture/runtime
             # vanishes between the connection check and actual dispatch.
             _LOGGER.exception("Envoi de la commande de voyage impossible")
+            QApplication.clipboard().setText(normalized)
+            return False
+        if result is False:
+            # None is the legacy fire-and-forget callback contract; only an
+            # explicit False indicates the launcher refused the request.
             QApplication.clipboard().setText(normalized)
             return False
         return True
