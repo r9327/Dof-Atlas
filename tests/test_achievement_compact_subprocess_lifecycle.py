@@ -1142,6 +1142,32 @@ class AchievementCompactRowIdentityTests(unittest.TestCase):
                     provider._compact_value_by_id(999)["name"], "External",
                 )
 
+    def test_compact_compat_list_skips_corrupt_and_nonobject_rows(self):
+        from app.modules.encyclopedia.providers import memory_bound_achievement_provider as mod
+
+        with tempfile.TemporaryDirectory() as directory:
+            cache = Path(directory) / "success.jsonl"
+            cache.write_text(
+                "\n".join((
+                    json.dumps({"kind": "meta"}),
+                    "[]",
+                    '{"kind":"achievement","value":BAD}',
+                    json.dumps({"kind": "achievement", "value": {"id": 10, "name": "First"}}),
+                    json.dumps({"kind": "achievement", "value": {"name": "Missing ID"}}),
+                    json.dumps({"kind": "achievement", "value": {"id": 20, "name": "Second"}}),
+                )) + "\n", encoding="utf-8",
+            )
+            provider = MemoryBoundAchievementProvider()
+            with (
+                patch.object(mod, "ACHIEVEMENT_COMPACT_CACHE", cache),
+                patch.object(mod, "_achievement_compact_cache_valid", return_value=True),
+                patch.object(mod.sys, "frozen", False, create=True),
+                patch.object(provider, "_ensure_loaded"),
+                patch.object(provider, "_compat_achievement", side_effect=lambda value: value),
+            ):
+                rows = provider.load_all()
+            self.assertEqual([row.id for row in rows], [10, 20])
+
     def test_external_compat_lookup_rejects_boolean_achievement_id(self):
         from app.modules.encyclopedia.providers import memory_bound_achievement_provider as mod
 
