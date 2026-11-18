@@ -37,7 +37,7 @@ class QuestSemanticEnrichmentTests(unittest.TestCase):
         from contextlib import redirect_stdout
         from io import StringIO
         from types import SimpleNamespace
-        from unittest.mock import patch
+        from unittest.mock import Mock, patch
         from app.modules.encyclopedia.tools import audit_quests_guides_semantic as mod
 
         with tempfile.TemporaryDirectory() as directory:
@@ -46,6 +46,16 @@ class QuestSemanticEnrichmentTests(unittest.TestCase):
                 SimpleNamespace(id=10),
                 SimpleNamespace(id=20),
             ))
+            sources = Mock()
+            sources.mapping.return_value = {
+                "10": {
+                    "launch_position": {"position": "[3,4]"},
+                    "solution_blocks": [
+                        {"type": "text", "content": "Parler au PNJ."},
+                    ],
+                },
+                "20": {"solution_blocks": []},
+            }
             with (
                 patch.object(mod, "DEFAULT_LOCAL_COVERAGE", output),
                 patch.object(mod, "QuestProvider", return_value=SimpleNamespace(
@@ -57,17 +67,9 @@ class QuestSemanticEnrichmentTests(unittest.TestCase):
                              side_effect=AssertionError("must stay light")),
                 patch.object(mod, "build_audit",
                              side_effect=AssertionError("must skip full audit")),
-                patch.object(mod, "read_json_file", return_value={
-                    "quests": {
-                        "10": {
-                            "launch_position": {"position": "[3,4]"},
-                            "solution_blocks": [
-                                {"type": "text", "content": "Parler au PNJ."},
-                            ],
-                        },
-                        "20": {"solution_blocks": []},
-                    },
-                }),
+                patch.object(mod, "read_json_file",
+                             side_effect=AssertionError("must not eagerly load enriched JSON")),
+                patch.object(mod, "QuestSources", return_value=sources),
                 redirect_stdout(StringIO()),
             ):
                 self.assertEqual(mod.main([
@@ -75,6 +77,10 @@ class QuestSemanticEnrichmentTests(unittest.TestCase):
                     "--online", "full",
                 ]), 0)
             self.assertNotEqual(output, mod.DEFAULT_JSON)
+            sources.mapping.assert_called_once_with(
+                mod.ENRICHED_PATH, "quests", required=False,
+            )
+            sources.close.assert_called_once_with()
             payload = json.loads(output.read_text(encoding="utf-8"))
             self.assertEqual(payload["scope"], "LOCAL_QUEST_STARTS_AND_INSTRUCTIONS")
             self.assertEqual(payload["evidence"], "LOCAL_ENRICHMENT_ONLY_NOT_GAME_VERIFIED")
