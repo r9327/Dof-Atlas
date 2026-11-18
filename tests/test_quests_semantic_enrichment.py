@@ -309,15 +309,21 @@ class QuestSemanticEnrichmentTests(unittest.TestCase):
                 ],
                 "solution_steps": [{"description": "Parlez au capitaine."}],
             },
+            "8": {
+                "solution_blocks": [{"type": "text", "position": "[ 003, -06 ]"}],
+            },
+            "9": {
+                "solution_blocks": [{"type": "text", "position": "[2147483648,3]"}],
+            },
         }
-        report = local_start_position_coverage(rows, range(1, 8))
-        self.assertEqual(report["counts"]["WITH_TEXTUAL_SOLUTION_BLOCKS"], 0)
-        self.assertEqual(report["counts"]["WITHOUT_TEXTUAL_SOLUTION_BLOCKS"], 7)
-        self.assertEqual(report["counts"]["WITH_RENDERABLE_INSTRUCTIONS"], 4)
-        self.assertEqual(report["counts"]["WITHOUT_RENDERABLE_INSTRUCTIONS"], 3)
+        report = local_start_position_coverage(rows, range(1, 10))
+        self.assertEqual(report["counts"]["WITH_TEXTUAL_SOLUTION_BLOCKS"], 1)
+        self.assertEqual(report["counts"]["WITHOUT_TEXTUAL_SOLUTION_BLOCKS"], 8)
+        self.assertEqual(report["counts"]["WITH_RENDERABLE_INSTRUCTIONS"], 5)
+        self.assertEqual(report["counts"]["WITHOUT_RENDERABLE_INSTRUCTIONS"], 4)
         self.assertEqual(report["fallback_instruction_quest_ids"], [1, 2, 5, 7])
-        self.assertEqual(report["missing_instruction_quest_ids"], [3, 4, 6])
-        self.assertEqual(report["priority_missing_both_quest_ids"], [3, 4, 6])
+        self.assertEqual(report["missing_instruction_quest_ids"], [3, 4, 6, 9])
+        self.assertEqual(report["priority_missing_both_quest_ids"], [3, 4, 6, 9])
 
     def test_mapping_is_deterministic_and_never_uses_list_position(self):
         quests = [FakeQuest(20, "Beta"), FakeQuest(10, "Alpha")]
