@@ -436,14 +436,26 @@ def local_start_position_coverage(
                 )
             else:
                 status = "LOCAL_START_DECLARED"
-        if (
-            isinstance(row, dict)
-            and isinstance(row.get("solution_blocks"), list)
-            and any(isinstance(block, dict) for block in row["solution_blocks"])
-        ):
+        blocks = (
+            row.get("solution_blocks")
+            if isinstance(row, dict) and isinstance(row.get("solution_blocks"), list)
+            else []
+        )
+        if any(isinstance(block, dict) for block in blocks):
             counts["WITH_DOCUMENTARY_BLOCKS"] += 1
         else:
             counts["WITHOUT_DOCUMENTARY_BLOCKS"] += 1
+        # A blank block, a heading without content or an image-only entry
+        # cannot prove the local guide has written instructions.
+        if any(
+            isinstance(block, dict)
+            and str(block.get("type") or block.get("block_type") or "").lower() != "image"
+            and str(block.get("content") or block.get("text") or "").strip()
+            for block in blocks
+        ):
+            counts["WITH_TEXTUAL_SOLUTION_BLOCKS"] += 1
+        else:
+            counts["WITHOUT_TEXTUAL_SOLUTION_BLOCKS"] += 1
         counts[status] += 1
         if status != "LOCAL_START_DECLARED":
             needs_review.append({"quest_id": quest_id, "status": status})
