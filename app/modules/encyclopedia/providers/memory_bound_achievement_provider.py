@@ -1784,11 +1784,21 @@ class MemoryBoundAchievementProvider(BaseAchievementProvider):
                 line = raw_line.strip()
                 if not line:
                     continue
-                row = json.loads(line)
-                value = row.get("value") if isinstance(row, dict) else None
-                if row.get("kind") != "achievement" or not isinstance(value, dict):
+                try:
+                    row = json.loads(line)
+                except (ValueError, TypeError):
+                    # Compatibility callers should not lose every valid
+                    # Success because one compact row is corrupt.
                     continue
-                summary = _achievement_from_dict(value)
+                if not isinstance(row, dict) or row.get("kind") != "achievement":
+                    continue
+                value = row.get("value")
+                if not isinstance(value, dict):
+                    continue
+                try:
+                    summary = _achievement_from_dict(value)
+                except (ValueError, TypeError, KeyError):
+                    continue
                 raw_progress = value.get("progress_objectives")
                 if isinstance(raw_progress, list) and raw_progress:
                     encoded = json.dumps(
