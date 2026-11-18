@@ -56,6 +56,20 @@ class ContinuousGuideRoutePanelTests(unittest.TestCase):
         self.assertEqual(QApplication.clipboard().text(), command)
         self.assertIn("copiée", messages[-1])
 
+    def test_continuous_travel_without_launcher_copies_verified_command(self):
+        messages = []
+        view = SimpleNamespace(
+            launch_travel_callback=None,
+            status_callback=messages.append,
+        )
+        QApplication.clipboard().setText("ancien contenu")
+        GuidesView._dispatch_continuous_route_travel(
+            view, "/travel 5,-18", ("character:1",),
+        )
+        self.assertEqual(QApplication.clipboard().text(), "/travel 5,-18")
+        self.assertIn("indisponible", messages[-1])
+        self.assertIn("copiée", messages[-1])
+
     def test_continuous_travel_preserves_legacy_none_acceptance(self):
         from unittest.mock import Mock
 
