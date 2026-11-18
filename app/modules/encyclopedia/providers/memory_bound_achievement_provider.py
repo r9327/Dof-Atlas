@@ -1259,6 +1259,33 @@ class MemoryBoundAchievementProvider(BaseAchievementProvider):
             if self.is_retained(int(achievement.id))
         )
 
+    def catalogue_category_for_id(self, achievement_id: int) -> int | None:
+        """Find a retained Success's category from the resident sidecar.
+
+        A direct link must not decode a compatibility Achievement on the UI
+        thread just to open its category. Prefer a leaf over its parent, while
+        leaving older/noncompact providers on their existing detail path.
+        """
+
+        self._ensure_loaded()
+        achievement_id = int(achievement_id)
+        if (
+            achievement_id not in self._compact_retained_set
+            or not self._compact_category_ids
+        ):
+            return None
+        parent_match: int | None = None
+        for category_id, identifiers in self._compact_category_ids.items():
+            if achievement_id not in identifiers:
+                continue
+            category = self._categories.get(category_id)
+            if category is None:
+                continue
+            if int(category.parent_id or 0):
+                return category_id
+            parent_match = category_id
+        return parent_match
+
     @staticmethod
     def _compact_catalogue_row(
         stream: Any,
