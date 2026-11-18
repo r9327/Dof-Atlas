@@ -514,10 +514,11 @@ class AchievementsView(QWidget):
         return False
 
     def on_achievement_clicked(self, item: QListWidgetItem) -> None:
-        achievement_id = item.data(Qt.UserRole)
+        achievement_id = _positive_entity_id(item.data(Qt.UserRole))
         if achievement_id is None:
+            # A corrupt/deferred compact row may leave a malformed UserRole.
+            # Do not raise from a Qt itemClicked/itemActivated callback.
             return
-        achievement_id = int(achievement_id)
         # Re-activating the selected success must never silently empty column 3.
         # A pending request is already deduplicated in show_achievement().
         if self.current_achievement_id == achievement_id and self._detail_open:
@@ -525,7 +526,9 @@ class AchievementsView(QWidget):
         self.show_achievement(achievement_id)
 
     def show_achievement(self, achievement_id: int) -> None:
-        achievement_id = int(achievement_id)
+        achievement_id = _positive_entity_id(achievement_id)
+        if achievement_id is None:
+            return
         if self._detail_requested is not None and self._detail_requested[1] == achievement_id:
             return
         # In production the compact provider answers membership directly
