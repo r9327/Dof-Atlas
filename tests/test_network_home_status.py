@@ -293,6 +293,37 @@ class NetworkHomeStatusTests(unittest.TestCase):
             bridge.deleteLater()
             self.app.processEvents()
 
+    def test_deferred_journal_without_new_quests_activates_without_repaint(self) -> None:
+        from types import SimpleNamespace
+        from unittest.mock import Mock, patch
+
+        coordinator = Mock()
+        coordinator.has_pending_ui_events.return_value = True
+        coordinator.drain_statuses.return_value = []
+        coordinator.drain_results.return_value = [
+            SimpleNamespace(
+                accepted=True, changed=False, character_key="character:17",
+                reason="character_identified_with_quest_journal",
+            ),
+        ]
+        coordinator.stop.return_value = True
+        bridge = self._new_network_bridge(coordinator)
+        activated = []
+        refreshed = []
+        bridge.characterActivated.connect(activated.append)
+        bridge.progressChanged.connect(refreshed.append)
+        try:
+            with patch("app.ui.network_bridge.record_validation"):
+                bridge._poll()
+                bridge._emit_pending_progress()
+            self.assertEqual(activated, ["character:17"])
+            self.assertEqual(refreshed, [])
+            self.assertFalse(bridge._progress_timer.isActive())
+        finally:
+            bridge.stop()
+            bridge.deleteLater()
+            self.app.processEvents()
+
     def test_network_bridge_stop_from_progress_signal_drops_next_character(self) -> None:
         from unittest.mock import Mock
 
