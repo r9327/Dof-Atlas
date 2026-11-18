@@ -1102,17 +1102,40 @@ class AchievementsView(QWidget):
                 # Only real batch-capable providers use the optimized path.
                 # Existing test doubles keep the original single-row contract.
                 batch_loader = getattr(type(self.provider), "catalogue_rows_by_ids", None)
-                if callable(batch_loader):
-                    primitive_rows = batch_loader(self.provider, batch)
-                else:
-                    row_loader = getattr(self.provider, "catalogue_row_by_id", None)
-                    primitive_rows = [
-                        row_loader(ident) if callable(row_loader) else None
-                        for ident in batch
-                    ]
+                try:
+                    if callable(batch_loader):
+                        primitive_rows = batch_loader(self.provider, batch)
+                    else:
+                        row_loader = getattr(self.provider, "catalogue_row_by_id", None)
+                        primitive_rows = [
+                            row_loader(ident) if callable(row_loader) else None
+                            for ident in batch
+                        ]
+                    if len(primitive_rows) != len(batch):
+                        raise ValueError("Incomplete compact Success batch")
+                except Exception:
+                    # Restore the batch for an explicit retry. Never drop
+                    # Success IDs silently after a temporary cache read error.
+                    self._achievement_pending_rows[:0] = batch
+                    self._achievement_rows_dirty = True
+                    _LOGGER.exception("Chargement du catalogue Succès interrompu")
+                    self.status_callback("Liste des Succès momentanément indisponible")
+                    return
                 for achievement_id, payload in zip(batch, primitive_rows):
                     if generation != self._achievement_render_generation:
                         return
+                    if (
+                        payload is not None
+                        and (
+                            not isinstance(payload, (tuple, list))
+                            or len(payload) != 4
+                            or type(payload[0]) is not int
+                            or payload[0] != achievement_id
+                        )
+                    ):
+                        # A damaged source index must not display the wrong
+                        # Success under another ID or open the wrong detail.
+                        payload = None
                     if payload is None:
                         achievement = self.provider.get_by_id(int(achievement_id))
                         if achievement is None:
