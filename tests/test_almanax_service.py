@@ -11,6 +11,7 @@ from unittest.mock import Mock
 os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
 
 from PySide6.QtCore import QDate
+from PySide6.QtGui import QPixmap
 from PySide6.QtWidgets import QApplication
 
 from app.services.almanax_service import (
@@ -66,6 +67,40 @@ class AlmanaxSourceTests(unittest.TestCase):
         self.assertEqual(day.quantity, 0)
         self.assertEqual(day.bonus, "Bonus de test.")
 
+    def test_source_reward_and_image_are_source_bound(self):
+        supplied = _source_day()
+        supplied["reward_kamas"] = -500
+        supplied["tribute"]["item"]["image_urls"]["icon"] = (
+            "https://invalid.example/pretend-offering.png"
+        )
+        day = parse_almanax_day(supplied, "2026-11-18")
+        self.assertEqual(day.reward_kamas, 0)
+        self.assertEqual(day.item_icon_url, "")
+        self.assertEqual(day.offering, "Objet de test")
+        self.assertEqual(day.quantity, 5)
+
+    def test_cached_item_image_is_emitted_for_requested_date(self):
+        with tempfile.TemporaryDirectory() as folder:
+            service = AlmanaxDataService(
+                cache_path=Path(folder) / "almanax.json",
+            )
+            source = parse_almanax_day(_source_day(), "2026-11-18")
+            self.assertIsNotNone(source)
+            image = QPixmap(16, 16)
+            service._icon_cache[source.item_icon_url] = image
+            found = []
+            service.itemIconAvailable.connect(
+                lambda key, icon: found.append((key, icon))
+            )
+            try:
+                service._request_item_icon(source)
+                self.assertEqual(len(found), 1)
+                self.assertEqual(found[0][0], "2026-11-18")
+                self.assertEqual(found[0][1].size(), image.size())
+                self.assertFalse(service._icon_pending)
+            finally:
+                service.deleteLater()
+
     def test_offline_cache_survives_service_recreation_and_skips_http(self):
         with tempfile.TemporaryDirectory() as folder:
             cache_path = Path(folder) / "almanax.json"
@@ -111,6 +146,11 @@ class AlmanaxUiTests(unittest.TestCase):
             self.assertIn("5 × Objet de test", page.almanax_text.text())
             self.assertIn("Bonus de test.", page.almanax_text.text())
             self.assertIn("Dofusdude", page.almanax_badge.text())
+            image = QPixmap(24, 24)
+            page.set_almanax_item_icon("2026-11-19", image)
+            self.assertTrue(page.almanax_item_icon.pixmap().isNull())
+            page.set_almanax_item_icon("2026-11-18", image)
+            self.assertFalse(page.almanax_item_icon.pixmap().isNull())
             page.set_almanax_day(day, cached=True)
             self.assertIn("cache", page.almanax_badge.text())
             page.set_almanax_unavailable("2026-11-18")
@@ -137,16 +177,52 @@ class AlmanaxUiTests(unittest.TestCase):
             shell.almanax_calendar.setSelectedDate(QDate(2026, 12, 1))
             self.app.processEvents()
             shell._request_almanax_day.assert_called_with("2026-12-01")
-            shell._request_almanax_day.reset_mock()
-            # The button itself is the common AtlasButton, never local QSS.
             from app.ui.components import AtlasButton
 
+            previous = page.findChild(AtlasButton, "AlmanaxPreviousDayButton")
+            following = page.findChild(AtlasButton, "AlmanaxNextDayButton")
+            today = page.findChild(AtlasButton, "AlmanaxTodayButton")
+            self.assertIsNotNone(previous)
+            self.assertIsNotNone(following)
+            self.assertIsNotNone(today)
+            previous.click()
+            self.assertEqual(shell.almanax_calendar.selectedDate(), QDate(2026, 11, 30))
+            following.click()
+            self.assertEqual(shell.almanax_calendar.selectedDate(), QDate(2026, 12, 1))
+            today.click()
+            self.assertEqual(shell.almanax_calendar.selectedDate(), QDate.currentDate())
+            shell.almanax_calendar.setSelectedDate(QDate(2026, 12, 1))
+            shell._request_almanax_day.reset_mock()
             button = page.findChild(AtlasButton, "AlmanaxRefreshButton")
             self.assertIsNotNone(button)
             button.click()
             shell._request_almanax_day.assert_called_once_with(
                 "2026-12-01", refresh=True,
             )
+        finally:
+            page.deleteLater()
+            self.app.processEvents()
+
+    def test_calendar_displays_sourced_kamas_and_actual_item_artwork(self):
+        from main import AtlasWindow
+
+        shell = Mock()
+        shell.quit_requested = False
+        page = AtlasWindow.create_almanax_page(shell)
+        day = parse_almanax_day(_source_day(), "2026-11-18")
+        try:
+            shell.almanax_calendar.setSelectedDate(QDate(2026, 11, 18))
+            AtlasWindow._on_almanax_day_available(
+                shell, "2026-11-18", day, False,
+            )
+            self.assertIn("2 500 kamas", shell.almanax_day_detail.text())
+            image = QPixmap(32, 32)
+            AtlasWindow._on_almanax_item_icon_available(
+                shell, "2026-11-18", image,
+            )
+            self.assertFalse(shell.almanax_offering_icon.pixmap().isNull())
+            shell.almanax_calendar.setSelectedDate(QDate(2026, 11, 19))
+            self.assertTrue(shell.almanax_offering_icon.pixmap().isNull())
         finally:
             page.deleteLater()
             self.app.processEvents()
