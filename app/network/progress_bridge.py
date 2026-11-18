@@ -260,7 +260,10 @@ class NetworkProgressBridge:
             if journal_result.accepted:
                 return EventApplicationResult(
                     True,
-                    bool(route_changed or journal_result.changed),
+                    bool(journal_result.changed),
+                    # The reason already signals an identity transition.
+                    # "changed" must represent persistent progress only, so
+                    # an unchanged journal cannot repaint the entire catalogue.
                     "character_identified_with_quest_journal",
                     resolution.character_key,
                 )
