@@ -82,6 +82,7 @@ class _LightAchievementsView(AchievementsView):
         self._catalog_refresh_signature = None
         self._achievement_render_generation = 0
         self._achievement_pending_rows = []
+        self._achievement_visible_row_by_id = {}
         self._achievement_pending_selected_id = None
         self._achievement_rows_dirty = False
         self._achievement_completed_ids = frozenset()
@@ -287,6 +288,48 @@ class OptimizedAchievementsBatchingTests(unittest.TestCase):
                 if int(view.list_widget.item(row).data(Qt.UserRole)) == 61
             )
             self.assertTrue(bool(item_61.data(COMPLETED_ROLE)))
+        finally:
+            view.close()
+            view.deleteLater()
+            self.app.processEvents()
+
+    def test_visible_batch_selection_keeps_user_scroll_position(self) -> None:
+        view = self._view(120)
+        try:
+            view.list_widget.setFixedHeight(110)
+            view.refresh()
+            view.show()
+            self.app.processEvents()
+            view._achievement_batch_timer.stop()
+            while view.list_widget.count() < 48 and view._achievement_pending_rows:
+                view._render_next_achievement_batch()
+                view._achievement_batch_timer.stop()
+            bar = view.list_widget.verticalScrollBar()
+            self.app.processEvents()
+            self.assertGreater(bar.maximum(), 0)
+            self.assertEqual(view.list_widget.currentItem().data(Qt.UserRole), 1)
+            bar.setValue(bar.maximum())
+            before_scroll = bar.value()
+            view._apply_pending_achievement_selection()
+            self.assertEqual(bar.value(), before_scroll)
+            self.assertEqual(view._achievement_visible_row_by_id[1], 0)
+        finally:
+            view.close()
+            view.deleteLater()
+            self.app.processEvents()
+
+    def test_rebuilt_search_discards_old_achievement_row_index(self) -> None:
+        view = self._view(60)
+        try:
+            view.refresh()
+            view.show()
+            self.app.processEvents()
+            view._achievement_batch_timer.stop()
+            self.assertIn(1, view._achievement_visible_row_by_id)
+            view.search.setText("aucun succès correspondant")
+            view.refresh()
+            self.assertEqual(view._achievement_visible_row_by_id, {})
+            self.assertEqual(view.list_widget.count(), 0)
         finally:
             view.close()
             view.deleteLater()
