@@ -24,14 +24,14 @@ from app.modules.encyclopedia.services.guide_quest_view_model import (
     COMBAT_OBJECTIVE_TYPES,
     quest_items_from_objectives,
 )
-from app.modules.encyclopedia.views.guide_ultime_universal_view import GuideUltimeUniversalView
+from app.modules.encyclopedia.views.guide_ultime_universal_view import GuideUltimeUniversalView, SENTINEL_COORD
 from app.core.text import normalize_key as normalize_text
 from app.ui.theme import PALETTE
 from app.ui.entity_link_roles import entity_link_markup, entity_text_markup
 from app.ui.components import AtlasButton
 
 
-_COORD_RE = re.compile(r"\[(-?\d+)\s*,\s*(-?\d+)\]")
+_COORD_RE = re.compile(r"\[\s*(-?\d+)\s*,\s*(-?\d+)\s*\]")
 _COMBAT_QUANTITY_RE = re.compile(r"\bx\s*(\d+)\b", re.IGNORECASE)
 _NAME_WORD = r"[A-ZÀ-ÖØ-Þ][A-Za-zÀ-ÖØ-öø-ÿ'’.-]*"
 _NPC_NAME = rf"{_NAME_WORD}(?:\s+(?:(?:de|des|du|d['’]|of|le|la|l['’])\s+)?{_NAME_WORD}){{0,3}}"
@@ -520,7 +520,10 @@ class GuideUltimeManualCard(QFrame):
             match = re.fullmatch(r"(-?\d+),(-?\d+)", raw)
             if not match:
                 return None
-            return f"/travel {int(match.group(1))},{int(match.group(2))}"
+            x, y = int(match.group(1)), int(match.group(2))
+            if SENTINEL_COORD in (x, y):
+                return None
+            return f"/travel {x},{y}"
         return None
 
     def _copy_link_target(self, href: str) -> None:
@@ -641,7 +644,10 @@ class GuideUltimeManualCard(QFrame):
             spans.append((start, end, kind, payload))
 
         for match in _COORD_RE.finditer(plain):
-            add_span(match.start(), match.end(), "position", f"{int(match.group(1))},{int(match.group(2))}")
+            x, y = int(match.group(1)), int(match.group(2))
+            # Missing map locations are plain text, never actionable links.
+            if SENTINEL_COORD not in (x, y):
+                add_span(match.start(), match.end(), "position", f"{x},{y}")
         for name in sorted({value for value in npc_names if value}, key=len, reverse=True):
             pattern = re.compile(rf"(?<!\w){re.escape(name)}(?!\w)", re.IGNORECASE)
             for match in pattern.finditer(plain):
