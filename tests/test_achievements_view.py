@@ -336,9 +336,18 @@ class AchievementsThirdColumnTests(unittest.TestCase):
         view.show_achievement = Mock()
 
         self.assertTrue(view.select_achievement(42))
-        self.assertEqual(view.list_widget.currentRow(), 0)
+        # The detail can open before the target row is rendered, but the
+        # previously selected Success 10 must no longer appear selected.
+        self.assertEqual(view.list_widget.currentRow(), -1)
         self.assertEqual(view._achievement_pending_selected_id, 42)
         view.show_achievement.assert_called_once_with(42)
+
+        # Lazy render later materializes exactly the intended Success.
+        self.add_success(view, 42)
+        view._achievement_visible_row_by_id[42] = 2
+        view._apply_pending_achievement_selection()
+        self.assertEqual(view.list_widget.currentRow(), 2)
+        self.assertEqual(view.list_widget.currentItem().data(Qt.UserRole), 42)
 
     def test_category_change_cancels_debounced_search_and_refreshes_immediately(self):
         view, _provider = self.make_view()
