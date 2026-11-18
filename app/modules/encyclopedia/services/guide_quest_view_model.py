@@ -861,12 +861,13 @@ def solution_objective(objective: QuestObjective) -> SolutionObjective | None:
         return None
     if _looks_like_stat_table_row(text):
         return None
+    position = _canonical_source_coordinate(objective.map_label)
     if DISCOVER_MAP_RE.match(text):
-        text = f"Rendez-vous en {objective.map_label}." if objective.map_label else ""
+        text = f"Rendez-vous en {position}." if position else ""
     elif objective.type_id in COMBAT_OBJECTIVE_TYPES and objective.image_label:
         text = f"Lancez le combat contre {objective.image_label}"
-        if objective.map_label:
-            text = f"{text} en {objective.map_label}"
+        if position:
+            text = f"{text} en {position}"
         text += "."
     if not text or _looks_technical(text):
         return None
@@ -877,7 +878,7 @@ def solution_objective(objective: QuestObjective) -> SolutionObjective | None:
         item_id=objective.item_id,
         quantity=max(0, int(objective.item_quantity or 0)),
         combat=objective.is_combat,
-        position=objective.map_label,
+        position=position,
     )
 
 
