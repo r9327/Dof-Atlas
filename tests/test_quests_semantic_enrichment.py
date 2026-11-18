@@ -250,14 +250,26 @@ class QuestSemanticEnrichmentTests(unittest.TestCase):
             "7": {"solution_blocks": [
                 {"type": "image", "image_path": "illustration.webp"},
             ]},
+            "8": {"solution_blocks": [
+                {"type": "text", "content": "Qf>=20"},
+            ]},
+            "9": {"solution_blocks": [
+                {"type": "text", "content": "Mini-carte L’aperçu de la carte sera affiché ici sur le site."},
+            ]},
+            "10": {"solution_blocks": [
+                {"type": "text", "content": "Découvrir la carte : 9999"},
+            ]},
         }
-        report = local_start_position_coverage(rows, [1, 2, 3, 4, 5, 6, 7])
-        self.assertEqual(report["counts"]["WITH_DOCUMENTARY_BLOCKS"], 6)
+        report = local_start_position_coverage(rows, range(1, 11))
+        self.assertEqual(report["counts"]["WITH_DOCUMENTARY_BLOCKS"], 9)
         self.assertEqual(report["counts"]["WITHOUT_DOCUMENTARY_BLOCKS"], 1)
-        self.assertEqual(report["counts"]["WITH_TEXTUAL_SOLUTION_BLOCKS"], 2)
-        self.assertEqual(report["counts"]["WITHOUT_TEXTUAL_SOLUTION_BLOCKS"], 5)
-        self.assertIn(6, report["missing_instruction_quest_ids"])
-        self.assertIn(7, report["missing_instruction_quest_ids"])
+        self.assertEqual(report["counts"]["WITH_TEXTUAL_SOLUTION_BLOCKS"], 3)
+        self.assertEqual(report["counts"]["WITHOUT_TEXTUAL_SOLUTION_BLOCKS"], 7)
+        self.assertEqual(
+            report["missing_instruction_quest_ids"],
+            [1, 3, 4, 6, 7, 8, 9],
+        )
+        self.assertNotIn(10, report["missing_instruction_quest_ids"])
 
     def test_mapping_is_deterministic_and_never_uses_list_position(self):
         quests = [FakeQuest(20, "Beta"), FakeQuest(10, "Alpha")]
