@@ -95,6 +95,29 @@ class QuestSemanticEnrichmentTests(unittest.TestCase):
                 [{"quest_id": 20, "status": "NO_DECLARED_START"}],
             )
 
+    def test_local_coverage_closes_sqlite_readers_after_audit_error(self):
+        from types import SimpleNamespace
+        from unittest.mock import Mock, patch
+        from app.modules.encyclopedia.tools import audit_quests_guides_semantic as mod
+
+        sources = Mock()
+        sources.mapping.return_value = {"10": {}}
+        with (
+            patch.object(mod, "QuestProvider", return_value=SimpleNamespace(
+                get_catalog=lambda: SimpleNamespace(
+                    quests=(SimpleNamespace(id=10),),
+                ),
+            )),
+            patch.object(mod, "QuestSources", return_value=sources),
+            patch.object(
+                mod, "local_start_position_coverage",
+                side_effect=RuntimeError("source changed during audit"),
+            ),
+        ):
+            with self.assertRaisesRegex(RuntimeError, "source changed"):
+                mod.main(["--local-coverage-only"])
+        sources.close.assert_called_once_with()
+
     def test_local_coverage_reads_sparse_enrichment_with_existing_disk_index(self):
         from app.quest_source_index import QuestSources
 
