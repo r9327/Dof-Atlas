@@ -1091,7 +1091,13 @@ class MemoryBoundAchievementProvider(BaseAchievementProvider):
                     if (not external and not retained_target
                             and '"external_start"' not in line):
                         continue
-                    row = json.loads(line)
+                    try:
+                        row = json.loads(line)
+                    except (ValueError, TypeError):
+                        # This is an exceptional recovery lookup after a
+                        # missing/corrupt offset. One broken JSONL record must
+                        # not hide a valid later Success or force a full rebuild.
+                        continue
                     if not isinstance(row, dict):
                         continue
                     kind = str(row.get("kind") or "")
