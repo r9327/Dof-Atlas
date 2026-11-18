@@ -1342,11 +1342,16 @@ class AtlasWindow(QMainWindow):
         favorite_clients = [client for client in clients if bool(client.get("primary"))]
         selected_client = favorite_clients[0] if len(favorite_clients) == 1 else None
         if selected_client is None and self._last_active_dofus_hwnd > 0:
-            active_clients = [
-                client
-                for client in clients
-                if int(client.get("handle") or 0) == self._last_active_dofus_hwnd
-            ]
+            active_clients = []
+            for client in clients:
+                try:
+                    handle = int(client.get("handle") or 0)
+                except (TypeError, ValueError, OverflowError):
+                    # A malformed legacy client entry must not break all
+                    # profile selection following a verified network identity.
+                    continue
+                if handle == self._last_active_dofus_hwnd:
+                    active_clients.append(client)
             selected_client = active_clients[0] if len(active_clients) == 1 else None
         if selected_client is None and len(clients) == 1:
             selected_client = clients[0]
