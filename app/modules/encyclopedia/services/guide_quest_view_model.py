@@ -732,7 +732,9 @@ def quest_start_info(
     for step in quest.steps:
         for objective in step.objectives:
             if not position and objective.map_label:
-                position = objective.map_label
+                # Imported objective hints are not proven launch positions.
+                # Normalize them before rendering a copyable coordinate.
+                position = _canonical_source_coordinate(objective.map_label)
             if not zone and objective.zone:
                 zone = objective.zone
             if not npc and objective.type_id in NPC_OBJECTIVE_TYPES and objective.image_label:
@@ -940,12 +942,14 @@ def first_position_from_quest(
     quest: QuestRecord, *, start_info: QuestStartInfo | None = None,
 ) -> str:
     info = start_info if start_info is not None else quest_start_info(quest)
-    if info.position:
-        return info.position
+    position = _canonical_source_coordinate(info.position)
+    if position:
+        return position
     for step in quest.steps:
         for objective in step.objectives:
-            if objective.map_label:
-                return objective.map_label
+            position = _canonical_source_coordinate(objective.map_label)
+            if position:
+                return position
     return ""
 
 
