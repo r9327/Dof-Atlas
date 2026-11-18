@@ -34,6 +34,7 @@ from PySide6.QtWidgets import (
 )
 
 from app.background_work import background_io_priority
+from app.core.character_identity import is_character_key
 from app.constants import (
     APP_NAME,
     CLIENT_INDEX_JSON,
