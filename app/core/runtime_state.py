@@ -512,9 +512,19 @@ class AtlasRuntime:
         self.settings = load_settings()
         self.travel.run_async(text)
 
-    def launch_guide_travel(self, text: str, character_keys) -> None:
+    def launch_guide_travel(self, text: str, character_keys) -> bool:
+        # Guide buttons need the launch result to distinguish a rejected
+        # concurrent/latched macro from an accepted async request.
+        if getattr(self.macro_lock, "emergency_latched", False) is True:
+            self._emit_status("Déplacement bloqué : Stop urgence actif.")
+            return False
+        if self.macro_lock.active_label:
+            self._emit_status("Déplacement refusé : macro déjà en cours.")
+            return False
+        # Refresh only after the exclusion checks: a denied request must not
+        # replace the live macro's captured settings/character roster.
         self.settings = load_settings()
-        self.travel.run_async(text, tuple(character_keys or ()))
+        return bool(self.travel.run_async(text, tuple(character_keys or ())))
 
     def launch_zaap(self, text: str, click_position=None, click_ratios=None) -> bool:
         if getattr(self.macro_lock, "emergency_latched", False) is True:
