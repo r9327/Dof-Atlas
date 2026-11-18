@@ -449,9 +449,17 @@ def local_start_position_coverage(
             if isinstance(row, dict) and isinstance(row.get("solution_blocks"), list)
             else []
         )
-        if any(isinstance(block, dict) for block in blocks):
+        if any(
+            isinstance(block, dict)
+            and any(
+                str(block.get(key) or "").strip()
+                for key in ("content", "text", "source_url", "image_path", "url", "src", "local_path")
+            )
+            for block in blocks
+        ):
             counts["WITH_DOCUMENTARY_BLOCKS"] += 1
         else:
+            # Empty skeleton blocks are not documentary coverage.
             counts["WITHOUT_DOCUMENTARY_BLOCKS"] += 1
         # A blank block, a heading without content or an image-only entry
         # cannot prove the local guide has written instructions.
