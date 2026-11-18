@@ -881,6 +881,13 @@ def _verified_source_objective_ids(quest: QuestRecord) -> dict[int, int]:
         right_combat = right.is_combat or right.type_id in COMBAT_OBJECTIVE_TYPES
         if bool(left_combat) != bool(right_combat):
             return False
+        if (
+            left.item_id is not None and right.item_id is not None
+            and left.item_id != right.item_id
+        ):
+            # The same instruction can refer to different inventory items.
+            # Conflicting verified item IDs must never share completion state.
+            return False
         left_pos = _canonical_source_coordinate(left.map_label)
         right_pos = _canonical_source_coordinate(right.map_label)
         # A verified mismatch is evidence against identity, not permission
