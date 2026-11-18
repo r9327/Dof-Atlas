@@ -405,6 +405,8 @@ def local_start_position_coverage(
     """
     counts: Counter[str] = Counter()
     needs_review: list[dict[str, object]] = []
+    missing_instruction_quest_ids: list[int] = []
+    priority_missing_both: list[int] = []
     for quest_id in sorted(set(int(value) for value in quest_ids)):
         row = enriched.get(str(quest_id))
         if not isinstance(row, dict):
@@ -453,16 +455,20 @@ def local_start_position_coverage(
             counts["WITHOUT_DOCUMENTARY_BLOCKS"] += 1
         # A blank block, a heading without content or an image-only entry
         # cannot prove the local guide has written instructions.
-        if any(
+        has_instructions = any(
             isinstance(block, dict)
             and str(block.get("type") or block.get("block_type") or "").strip().lower()
             not in {"", "image", "heading", "title", "subtitle", "section_heading"}
             and str(block.get("content") or block.get("text") or "").strip()
             for block in blocks
-        ):
+        )
+        if has_instructions:
             counts["WITH_TEXTUAL_SOLUTION_BLOCKS"] += 1
         else:
             counts["WITHOUT_TEXTUAL_SOLUTION_BLOCKS"] += 1
+            missing_instruction_quest_ids.append(quest_id)
+            if status != "LOCAL_START_DECLARED":
+                priority_missing_both.append(quest_id)
         counts[status] += 1
         if status != "LOCAL_START_DECLARED":
             needs_review.append({"quest_id": quest_id, "status": status})
@@ -477,6 +483,10 @@ def local_start_position_coverage(
         ),
         "counts": dict(sorted(counts.items())),
         "needs_review": needs_review,
+        # Actionable IDs, not just totals: importers can target the missing
+        # source rows without scanning 72 MB of enrichment again.
+        "missing_instruction_quest_ids": missing_instruction_quest_ids,
+        "priority_missing_both_quest_ids": priority_missing_both,
     }
 
 
