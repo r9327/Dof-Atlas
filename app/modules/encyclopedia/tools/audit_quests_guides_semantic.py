@@ -453,7 +453,7 @@ def local_start_position_coverage(
         if any(
             isinstance(block, dict)
             and str(block.get("type") or block.get("block_type") or "").strip().lower()
-            not in {"", "image"}
+            not in {"", "image", "heading", "title", "subtitle", "section_heading"}
             and str(block.get("content") or block.get("text") or "").strip()
             for block in blocks
         ):
