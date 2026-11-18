@@ -1024,6 +1024,17 @@ class AchievementsView(QWidget):
             # Pending rows are the intentionally deferred part of the *same*
             # catalogue snapshot. A redundant refresh while scrolling must
             # not clear the visible list, restart batches and lose selection.
+            # An explicit refresh after both bounded I/O attempts, however,
+            # is the recovery path for a cache that has since been repaired.
+            if (
+                getattr(self, "_achievement_batch_retry_count", 0) >= 2
+                and self._achievement_pending_rows
+                and self.isVisible()
+            ):
+                timer = self._achievement_batch_timer
+                if timer is not None and not timer.isActive():
+                    self._achievement_batch_retry_count = 0
+                    timer.start(0)
             return
 
         self.close_detail_panel()
