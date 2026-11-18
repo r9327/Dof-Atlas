@@ -166,8 +166,13 @@ class NetworkUiBridge(QObject):
             if (
                 bool(getattr(result, "accepted", False))
                 and result.character_key
-                and (reason.startswith("character_") or reason.startswith("quest_journal_"))
+                and reason in {
+                    "character_identified",
+                    "character_identified_with_quest_journal",
+                }
             ):
+                # Journal completions change quest progress, not the selected
+                # character. Avoid reloading all client profiles each poll.
                 active_character = str(result.character_key)
             if result.changed and result.character_key:
                 changed_characters.add(str(result.character_key))
