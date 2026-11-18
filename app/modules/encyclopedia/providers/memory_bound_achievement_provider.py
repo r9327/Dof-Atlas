@@ -1526,7 +1526,7 @@ class MemoryBoundAchievementProvider(BaseAchievementProvider):
                 with ACHIEVEMENT_COMPACT_CACHE.open("rb") as stream:
                     for achievement_id in self._compact_retained_ids:
                         span = self._compact_external_index.get(achievement_id)
-                        if span is None:
+                        if not isinstance(span, (tuple, list)) or len(span) != 2:
                             damaged.append(achievement_id)
                             continue
                         start, length = span
@@ -1560,7 +1560,16 @@ class MemoryBoundAchievementProvider(BaseAchievementProvider):
 
             # Only broken offsets need the prior summary recovery path.
             for achievement_id in damaged:
-                summary = self._summary_by_id(achievement_id)
+                try:
+                    summary = self._summary_by_id(achievement_id)
+                except (OSError, UnicodeError, ValueError, TypeError, KeyError):
+                    # An isolated damaged record is not permission to lose
+                    # valid searchable Successes from this generation.
+                    _LOGGER.exception(
+                        "Recherche Succès : index illisible pour %s",
+                        achievement_id,
+                    )
+                    summary = None
                 index[achievement_id] = (
                     str(summary.search_text or "") if summary is not None else ""
                 )
