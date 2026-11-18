@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import logging
 import re
 from typing import Any
 
@@ -25,6 +26,7 @@ from app.modules.encyclopedia.views.guide_ultime_walkthrough_card import (
 from app.ui.components import AtlasBreadcrumb, AtlasButton, AtlasComboBox, AtlasPageNavigator
 
 
+_LOGGER = logging.getLogger(__name__)
 SENTINEL_COORD = -2147483648
 TRAVEL_COORD_RE = re.compile(r"\[\s*(-?\d+)\s*,\s*(-?\d+)\s*\]")
 
@@ -401,7 +403,14 @@ class GuideUltimeUniversalView(GuideUltimeGeneratedView):
         if not callable(callback) or not known_destination or not recipients:
             QApplication.clipboard().setText(normalized)
             return False
-        callback(normalized, recipients)
+        try:
+            callback(normalized, recipients)
+        except Exception:
+            # Never lose a valid travel instruction if the capture/runtime
+            # vanishes between the connection check and actual dispatch.
+            _LOGGER.exception("Envoi de la commande de voyage impossible")
+            QApplication.clipboard().setText(normalized)
+            return False
         return True
 
     def _build_ui(self) -> None:
