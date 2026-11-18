@@ -515,12 +515,11 @@ class AchievementsView(QWidget):
             # catalogue viewport has materialized the requested row.
             self.show_achievement(achievement_id)
             return True
-        if callable(category_lookup) and (target_category_id is None or tree_item is None):
-            # The retained ID is authoritative even if its category sidecar
-            # is missing or points to a category not present in the UI tree.
-            # Open the real detail on the existing worker
-            # without selecting an unrelated visible row or parsing JSONL
-            # synchronously. A refreshed sidecar can restore navigation later.
+        if callable(category_lookup):
+            # Retained membership was verified before any category lookup.
+            # A stale sidecar/category tree/filtered snapshot must not suppress
+            # a valid direct link. Leave the old row unselected rather than
+            # highlighting an unrelated Success or hydrating JSONL on Qt.
             self._achievement_pending_selected_id = achievement_id
             self.list_widget.setCurrentRow(-1)
             self.show_achievement(achievement_id)
