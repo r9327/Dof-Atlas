@@ -350,6 +350,8 @@ class NetworkApplicationCoordinator:
                 self.logger.exception("Early network capture preparation failed.")
                 self._publish_current(reason)
                 return
+        if self._stop_event.is_set():
+            return
         self._publish_current("capture_ready_waiting_context")
 
     def _start_calibration(self) -> None:
@@ -362,6 +364,10 @@ class NetworkApplicationCoordinator:
                 self._publish_current("runtime_stop_failed_before_calibration")
                 return
             self._last_calibration = self.calibration.start()
+        # stop() may have been requested while calibration.start() held the
+        # operation lock. Do not re-arm calibration after stop cleared it.
+        if self._stop_event.is_set():
+            return
         pending = self._last_calibration.reason in _CALIBRATION_PENDING_REASONS
         with self._lock:
             self._calibration_pending = pending
@@ -379,6 +385,8 @@ class NetworkApplicationCoordinator:
                 self._publish_current("calibration_running")
                 return
             self._last_runtime = self.runtime.start_if_ready()
+        if self._stop_event.is_set():
+            return
         self._publish_current(self._last_runtime.reason)
         if self._last_runtime.reason in _RUNTIME_REASONS_REQUIRING_CALIBRATION:
             self._start_calibration()
@@ -421,6 +429,10 @@ class NetworkApplicationCoordinator:
         if self._stop_event.is_set():
             return
         self._apply_calibration_journal_evidence()
+        # Journal evidence may finish after stop() began. Do not publish its
+        # old state or re-enable runtime as a final calibration side effect.
+        if self._stop_event.is_set():
+            return
         terminal = status.reason not in _CALIBRATION_PENDING_REASONS
         if terminal:
             with self._lock:
