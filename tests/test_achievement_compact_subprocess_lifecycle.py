@@ -208,7 +208,7 @@ class AchievementCompactRowIdentityTests(unittest.TestCase):
                 row = (
                     payload if isinstance(payload, bytes)
                     else json.dumps(payload).encode("utf-8")
-                ) + b"\\n"
+                ) + b"\n"
                 offsets[ident] = (len(data), len(row))
                 data += row
             path.write_bytes(data)
