@@ -86,6 +86,44 @@ class SharedUiComponentsTests(unittest.TestCase):
         finally:
             selector.deleteLater()
 
+    def test_shared_dropdown_popup_fits_available_screen(self) -> None:
+        from app.ui.components import AtlasComboBox
+
+        screen = self.app.primaryScreen()
+        self.assertIsNotNone(screen)
+        bounds = screen.availableGeometry()
+        root = QWidget()
+        root.setStyleSheet(atlas_stylesheet())
+        root.move(bounds.right() - 180, bounds.bottom() - 100)
+        root.resize(170, 90)
+        combo = AtlasComboBox(root)
+        combo.resize(110, 32)
+        combo.move(45, 35)
+        combo.addItems(
+            ["Une option extrêmement longue pour vérifier la largeur du menu"]
+            + [f"Choix {i}" for i in range(20)]
+        )
+        try:
+            root.show()
+            combo.show()
+            self.app.processEvents()
+            combo.showPopup()
+            self.app.processEvents()
+            popup = combo.view().window()
+            rect = popup.geometry()
+            available = combo.screen().availableGeometry()
+            self.assertGreater(rect.width(), 0)
+            self.assertGreater(rect.height(), 0)
+            self.assertGreaterEqual(rect.left(), available.left())
+            self.assertGreaterEqual(rect.top(), available.top())
+            self.assertLessEqual(rect.right(), available.right())
+            self.assertLessEqual(rect.bottom(), available.bottom())
+            self.assertLessEqual(combo.maxVisibleItems(), 8)
+        finally:
+            combo.hidePopup()
+            root.close()
+            root.deleteLater()
+
     def test_guide_page_number_reserves_left_text_inset_without_widening_quantities(self) -> None:
         from app.ui.unity_palette import (
             UNITY_CONTROL_SIZES_PX, UNITY_SPACING_PX,

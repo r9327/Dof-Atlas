@@ -205,7 +205,11 @@ class AtlasComboBox(QComboBox):
             return
         available = screen.availableGeometry()
         content_width = view.sizeHintForColumn(0)
-        if content_width <= 0 or available.width() <= 0:
+        if (
+            content_width <= 0
+            or available.width() <= 0
+            or available.height() <= 0
+        ):
             return
         scrollbar_width = (
             view.verticalScrollBar().sizeHint().width()
@@ -222,6 +226,15 @@ class AtlasComboBox(QComboBox):
         geometry.moveLeft(max(
             available.left(),
             min(geometry.left(), available.right() - width + 1),
+        ))
+        # Qt may open a tall list below a selector near the bottom of a
+        # monitor. Bound both axes to the same usable screen geometry:
+        # the popup stays scrollable rather than escaping off-screen.
+        height = min(geometry.height(), available.height())
+        geometry.setHeight(height)
+        geometry.moveTop(max(
+            available.top(),
+            min(geometry.top(), available.bottom() - height + 1),
         ))
         popup.setGeometry(geometry)
 
