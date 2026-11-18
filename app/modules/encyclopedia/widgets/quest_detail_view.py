@@ -23,6 +23,7 @@ from app.modules.encyclopedia.services import (
     QuestProgressService,
 )
 from app.modules.encyclopedia.services.guide_quest_view_model import (
+    COORD_RE,
     clean_requirement_line,
     clean_text,
     quest_activity_labels,
@@ -326,17 +327,27 @@ class QuestDetailView(QWidget):
         launch = info.get("launch_position")
         meta = info.get("source_meta")
         declared = (
-            str(launch.get("position") or "").strip() if isinstance(launch, dict) else ""
-        ) or (
-            str(meta.get("startCoords") or "").strip() if isinstance(meta, dict) else ""
+            str(launch.get("position") or "").strip() if isinstance(launch, dict) else "",
+            str(meta.get("startCoords") or "").strip() if isinstance(meta, dict) else "",
         )
-        # A populated source field only proves the coordinate it actually
-        # contains, not any different objective coordinate on the same quest.
-        is_source_start = bool(declared and declared.replace(" ", "") == position.strip().replace(" ", ""))
-        return (
-            "Position de lancement (source locale)"
-            if is_source_start else "Position d'objectif (départ non confirmé)"
-        )
+        shown = COORD_RE.fullmatch(position.strip())
+        source_matches = [COORD_RE.fullmatch(value) if value else None for value in declared]
+        declared_xy = [
+            (int(match.group(1)), int(match.group(2)))
+            for match in source_matches if match is not None
+        ]
+        if shown is None or (
+            int(shown.group(1)), int(shown.group(2))
+        ) not in declared_xy:
+            return "Position d'objectif (départ non confirmé)"
+        # Conflicting or malformed declarations are review evidence, not a
+        # certified quest start. Formatting differences are not conflicts.
+        if (
+            any(value and match is None for value, match in zip(declared, source_matches))
+            or len(set(declared_xy)) > 1
+        ):
+            return "Départ à vérifier (sources incohérentes)"
+        return "Position de lancement (source locale)"
 
     def _render_solution(self, quest: QuestRecord, step: Any) -> None:
         ui = _guide_ui()
