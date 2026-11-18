@@ -932,8 +932,9 @@ class MemoryBoundAchievementProvider(BaseAchievementProvider):
         self._compact_quest_link_cache.clear()
         self._compact_quest_link_stamp = None
         self._compact_summary_cache.clear()
-        self._compact_search_text_index = None
-        self._compact_search_generation = None
+        # Keep the sidecar search index installed above. Clearing it here
+        # forced a full JSONL scan on every first search despite the prebuilt
+        # search_texts already verified against this cache generation.
         self._detail_cache_id = None
         self._detail_cache = None
         self._recent_rich_details.clear()
