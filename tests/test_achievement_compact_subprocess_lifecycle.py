@@ -203,6 +203,80 @@ class AchievementCompactRowIdentityTests(unittest.TestCase):
                 self.assertEqual(provider.search_catalogue_ids("grand monstre"), (10, 12))
                 self.assertEqual(len(opened), 1)
 
+    def test_compact_search_reuses_lightweight_strings_across_queries(self):
+        from app.modules.encyclopedia.providers import memory_bound_achievement_provider as mod
+
+        with tempfile.TemporaryDirectory() as directory:
+            cache = Path(directory) / "success.jsonl"
+            rows = [
+                {"kind": "achievement", "value": {
+                    "id": 10, "search_text": "grand_monstre",
+                }},
+                {"kind": "achievement", "value": {
+                    "id": 11, "search_text": "petit_monstre",
+                }},
+            ]
+            data = b""
+            offsets = {}
+            for row in rows:
+                raw = (json.dumps(row) + "\n").encode("utf-8")
+                offsets[row["value"]["id"]] = (len(data), len(raw))
+                data += raw
+            cache.write_bytes(data)
+            provider = MemoryBoundAchievementProvider()
+            provider._compact_retained_ids = (10, 11)
+            provider._compact_retained_set = frozenset((10, 11))
+            provider._compact_external_index = offsets
+            real_open = Path.open
+            opened = []
+
+            def counted_open(path, *args, **kwargs):
+                if path == cache:
+                    opened.append(True)
+                return real_open(path, *args, **kwargs)
+
+            with (
+                patch.object(mod, "ACHIEVEMENT_COMPACT_CACHE", cache),
+                patch.object(provider, "_ensure_loaded"),
+                patch.object(provider, "_summary_by_id",
+                             side_effect=AssertionError("rich details stay cold")),
+                patch.object(Path, "open", counted_open),
+            ):
+                self.assertEqual(provider.search_catalogue_ids("grand"), (10,))
+                self.assertEqual(provider.search_catalogue_ids("monstre"), (10, 11))
+                self.assertEqual(provider.search_catalogue_ids("petit"), (11,))
+                self.assertEqual(len(opened), 1)
+
+    def test_compact_search_cache_invalidates_after_atomic_file_swap(self):
+        from app.modules.encyclopedia.providers import memory_bound_achievement_provider as mod
+
+        with tempfile.TemporaryDirectory() as directory:
+            cache = Path(directory) / "success.jsonl"
+            first = (json.dumps({"kind": "achievement", "value": {
+                "id": 10, "search_text": "grand",
+            }}) + "\n").encode("utf-8")
+            second = (json.dumps({"kind": "achievement", "value": {
+                "id": 10, "search_text": "petit",
+            }}) + "\n").encode("utf-8")
+            self.assertEqual(len(first), len(second))
+            cache.write_bytes(first)
+            provider = MemoryBoundAchievementProvider()
+            provider._compact_retained_ids = (10,)
+            provider._compact_retained_set = frozenset({10})
+            provider._compact_external_index = {10: (0, len(first))}
+            with (
+                patch.object(mod, "ACHIEVEMENT_COMPACT_CACHE", cache),
+                patch.object(provider, "_ensure_loaded"),
+            ):
+                self.assertEqual(provider.search_catalogue_ids("grand"), (10,))
+                replacement = cache.with_name("replacement.jsonl")
+                replacement.write_bytes(second)
+                stat = cache.stat()
+                os.utime(replacement, ns=(stat.st_atime_ns, stat.st_mtime_ns))
+                replacement.replace(cache)
+                self.assertEqual(provider.search_catalogue_ids("grand"), ())
+                self.assertEqual(provider.search_catalogue_ids("petit"), (10,))
+
     def test_compact_search_falls_back_only_for_broken_row_and_preserves_order(self):
         from types import SimpleNamespace
         from app.modules.encyclopedia.providers import memory_bound_achievement_provider as mod
