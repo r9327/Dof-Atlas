@@ -370,6 +370,10 @@ class NetworkApplicationCoordinator:
             return
         pending = self._last_calibration.reason in _CALIBRATION_PENDING_REASONS
         with self._lock:
+            # Also check inside the state lock: stop() may finish clearing
+            # this flag between the earlier stop guard and this assignment.
+            if self._stop_event.is_set():
+                return
             self._calibration_pending = pending
         self._publish_current(self._last_calibration.reason)
         if self._last_calibration.reason == "mapping_already_ready":
