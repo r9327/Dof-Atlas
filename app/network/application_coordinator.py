@@ -646,7 +646,13 @@ class NetworkApplicationCoordinator:
                     "character_identified", "session_closed",
                 }
             )
-            if progress_changed or activates_character:
+            # A confirmed session close needs one lightweight connected-
+            # accounts refresh, but must never invalidate progress widgets.
+            connection_changed = bool(
+                result.accepted and result.changed and result.character_key
+                and reason == "session_closed"
+            )
+            if progress_changed or activates_character or connection_changed:
                 self._results.put(result)
         if self._stop_event.is_set():
             return
