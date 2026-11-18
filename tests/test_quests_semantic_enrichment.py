@@ -88,11 +88,19 @@ class QuestSemanticEnrichmentTests(unittest.TestCase):
             "3": {"solution_blocks": [
                 {"content": "Texte sans type non affiché"},
             ]},
+            "4": {"solution_blocks": [
+                {"type": "heading", "content": "Étape 1"},
+                {"type": "subtitle", "content": "Préparation"},
+            ]},
+            "5": {"solution_blocks": [
+                {"type": "heading", "content": "Étape 2"},
+                {"type": "text", "content": "Parler au gardien."},
+            ]},
         }
-        report = local_start_position_coverage(rows, [1, 2, 3])
-        self.assertEqual(report["counts"]["WITH_DOCUMENTARY_BLOCKS"], 3)
-        self.assertEqual(report["counts"]["WITH_TEXTUAL_SOLUTION_BLOCKS"], 1)
-        self.assertEqual(report["counts"]["WITHOUT_TEXTUAL_SOLUTION_BLOCKS"], 2)
+        report = local_start_position_coverage(rows, [1, 2, 3, 4, 5])
+        self.assertEqual(report["counts"]["WITH_DOCUMENTARY_BLOCKS"], 5)
+        self.assertEqual(report["counts"]["WITH_TEXTUAL_SOLUTION_BLOCKS"], 2)
+        self.assertEqual(report["counts"]["WITHOUT_TEXTUAL_SOLUTION_BLOCKS"], 3)
 
     def test_mapping_is_deterministic_and_never_uses_list_position(self):
         quests = [FakeQuest(20, "Beta"), FakeQuest(10, "Alpha")]
