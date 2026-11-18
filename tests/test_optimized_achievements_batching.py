@@ -199,6 +199,64 @@ class OptimizedAchievementsBatchingTests(unittest.TestCase):
             view.deleteLater()
             self.app.processEvents()
 
+    def test_failed_compact_batch_can_retry_without_losing_ids(self) -> None:
+        class BrokenBatch(_BatchFakeProvider):
+            broken = True
+
+            def catalogue_rows_by_ids(self, ids):
+                if self.broken:
+                    raise OSError("temporary Success cache failure")
+                return super().catalogue_rows_by_ids(ids)
+
+        from unittest.mock import patch
+
+        view = self._view(40)
+        view.provider = BrokenBatch(view.achievements)
+        try:
+            view.refresh()
+            view.show()
+            view._achievement_batch_timer.stop()
+            with patch(
+                "app.modules.encyclopedia.views.achievements_view._LOGGER.exception"
+            ) as logged:
+                view._render_next_achievement_batch()
+                logged.assert_called_once()
+            self.assertEqual(view.list_widget.count(), 0)
+            self.assertEqual(len(view._achievement_pending_rows), 40)
+            self.assertTrue(view._achievement_rows_dirty)
+            view.provider.broken = False
+            view._render_next_achievement_batch()
+            view._achievement_batch_timer.stop()
+            self.assertEqual(view.list_widget.count(), _RESULT_BATCH_SIZE)
+            self.assertEqual(len(view._achievement_pending_rows), 32)
+        finally:
+            view.close()
+            view.deleteLater()
+            self.app.processEvents()
+
+    def test_compact_batch_never_labels_other_success_as_requested_id(self) -> None:
+        class WrongBatch(_BatchFakeProvider):
+            def catalogue_rows_by_ids(self, ids):
+                rows = super().catalogue_rows_by_ids(ids)
+                rows[0] = (999, "Wrong Success", 1, 1)
+                return rows
+
+        view = self._view(20)
+        view.provider = WrongBatch(view.achievements)
+        try:
+            view.refresh()
+            view.show()
+            view._achievement_batch_timer.stop()
+            view._render_next_achievement_batch()
+            view._achievement_batch_timer.stop()
+            self.assertEqual(view.list_widget.item(0).data(Qt.UserRole), 1)
+            self.assertEqual(view.list_widget.item(0).toolTip(), view.achievements[0].name)
+            self.assertNotIn("Wrong Success", view.list_widget.item(0).text())
+        finally:
+            view.close()
+            view.deleteLater()
+            self.app.processEvents()
+
     def test_repeated_refresh_preserves_deferred_success_batches(self) -> None:
         view = self._view(150)
         try:
