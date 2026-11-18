@@ -279,7 +279,15 @@ class QuestDetailViewColumnTests(unittest.TestCase):
         self.assertEqual(row.position, "[3,-6]")
 
         discover.map_label = "[2147483648,3]"
-        self.assertIsNone(solution_objective(discover))
+        # A missing map is not permission to erase the documentary objective.
+        # The ID remains trackable, but cannot become a travel action.
+        unresolved = solution_objective(discover)
+        self.assertIsNotNone(unresolved)
+        self.assertEqual(unresolved.objective_id, 108)
+        self.assertEqual(unresolved.text, "Découvrir la carte : 1234")
+        self.assertEqual(unresolved.position, "")
+        discover.map_label = ""
+        self.assertEqual(solution_objective(discover).text, unresolved.text)
 
         combat = QuestObjective(
             id=109, text="Combat contre le monstre", type_id=6,
@@ -293,6 +301,40 @@ class QuestDetailViewColumnTests(unittest.TestCase):
         combat_row = solution_objective(combat)
         self.assertEqual(combat_row.position, "[2,3]")
         self.assertIn("en [2,3]", combat_row.text)
+
+    def test_discover_map_without_location_stays_in_quest_steps(self) -> None:
+        from app.modules.encyclopedia.services.guide_quest_view_model import (
+            quest_solution_steps,
+        )
+        from app.modules.encyclopedia.views.guides_view import linkify_travel_text
+
+        quest = QuestRecord(
+            id=900, name="Quête avec carte inconnue", category="Quêtes",
+            level_min=1, level_max=200, start_criterion="",
+            steps=[
+                QuestStep(id=7, name="Visiter", description="", objectives=[
+                    QuestObjective(
+                        id=17, text="Découvrir la carte : 9999",
+                        type_id=0, map_label="[-2147483648,0]",
+                    ),
+                    QuestObjective(
+                        id=18, text="Parler au garde", type_id=1,
+                        map_label="[2,3]",
+                    ),
+                ]),
+            ],
+        )
+        steps = quest_solution_steps(quest)
+        self.assertEqual(len(steps), 1)
+        self.assertEqual([objective.objective_id for objective in steps[0].objectives],
+                         [17, 18])
+        self.assertEqual(steps[0].objectives[0].text, "Découvrir la carte : 9999")
+        self.assertEqual(steps[0].objectives[0].position, "")
+        self.assertNotIn(
+            "atlas-travel",
+            linkify_travel_text(steps[0].objectives[0].text),
+        )
+        self.assertEqual(steps[0].objectives[1].position, "[2,3]")
 
     def test_all_displayed_travel_coordinates_share_bold_link_markup(self) -> None:
         from PySide6.QtCore import Qt
