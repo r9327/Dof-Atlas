@@ -922,6 +922,9 @@ class AtlasWindow(QMainWindow):
         self.home_page.network_bridge.charactersIdentified.connect(
             self.on_network_characters_identified
         )
+        self.home_page.network_bridge.connectionsChanged.connect(
+            self.on_network_connections_changed
+        )
         self.home_page.network_bridge.progressChanged.connect(self.on_network_progress_changed)
         self.register_page("Home", self.home_page)
 
@@ -1373,6 +1376,23 @@ class AtlasWindow(QMainWindow):
         # Several sessions do not prove which window is foreground.
         # In particular, a fresh profile must not default to the first
         # connected account merely because its packet arrived first.
+        self.refresh_global_characters(
+            allow_default_selection=False, network_refresh=True,
+        )
+
+    def on_network_connections_changed(self, character_keys: object) -> None:
+        """Refresh live account membership without inventing a focus event."""
+
+        if not isinstance(character_keys, (tuple, list)):
+            return
+        if not any(
+            isinstance(key, str) and is_character_key(key)
+            for key in character_keys
+        ):
+            return
+        # An ended transport does not necessarily mean an account is offline
+        # (another session may exist). Recompute from the verified runtime
+        # snapshots and preserve manual selection without disk churn.
         self.refresh_global_characters(
             allow_default_selection=False, network_refresh=True,
         )
