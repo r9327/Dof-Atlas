@@ -1404,6 +1404,11 @@ class SharedGuideManualView(GuideUltimeManualView):
         )
         if opened:
             self._refresh_global_details()
+            # The drawer may have been hidden when progress changed. Materialize
+            # its latest needs only when the user reopens the parent.
+            if self.preparation_button.isChecked() and not self._preparation_loaded:
+                self._load_preparation_needs()
+                self._render_preparation(self.preparation_filter.currentText())
 
     def _refresh_global_details(self) -> None:
         while self.global_details_layout.count():
@@ -1951,6 +1956,10 @@ class SharedGuideManualView(GuideUltimeManualView):
         self._sync_compact_action_labels()
         self._preparation_loaded = False
         self._preparation_needs = ()
+        # Counts belong to the previous team composition, not the new one.
+        # Keep quantity drafts session-local but never apply the old team's
+        # stock to a different participant selection.
+        self._preparation_quantity_drafts.clear()
         if self.preparation_button.isChecked():
             self._load_preparation_needs()
             self._render_preparation(self.preparation_filter.currentText())
@@ -2064,7 +2073,18 @@ class SharedGuideManualView(GuideUltimeManualView):
             self.global_progress_label.setText("—")
             self.donut_count_label.setText("Fiches à valider")
 
-        self._update_preparation_progress()
+        # An already open preparation drawer must be refreshed alongside its
+        # progress bar after a quest, participant or external progress change.
+        # Otherwise the header displays 0 while stale prepared rows remain.
+        if (
+            self.global_details_button.isChecked()
+            and self.preparation_button.isChecked()
+            and not self._preparation_loaded
+        ):
+            self._load_preparation_needs()
+            self._render_preparation(self.preparation_filter.currentText())
+        else:
+            self._update_preparation_progress()
         if self.global_details_panel.isVisible():
             self._refresh_global_details()
 
@@ -2085,6 +2105,7 @@ class SharedGuideManualView(GuideUltimeManualView):
 
     def set_character_key(self, character_key: str) -> None:
         super().set_character_key(character_key)
+        self._preparation_quantity_drafts.clear()
         self._preparation_loaded = False
         self._preparation_needs = ()
         self._refresh_participants_panel()
