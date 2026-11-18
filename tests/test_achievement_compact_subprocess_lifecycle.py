@@ -371,6 +371,7 @@ class AchievementCompactRowIdentityTests(unittest.TestCase):
 
                 # The JSON sidecar must not silently coerce malformed
                 # offsets into apparently valid seek positions.
+                original_offset = list(offsets["10"])
                 for bad_offset in (
                     [True, 10], [0.5, 10], ["0", 10],
                     [0, False], [0, -1], [0],
@@ -385,8 +386,8 @@ class AchievementCompactRowIdentityTests(unittest.TestCase):
 
                 # Category membership is a primitive index, not permission
                 # to coerce booleans/floats/strings into another Success ID.
-                payload["offsets"]["10"] = offsets["10"]
-                payload["retained_ids"] = [10]
+                payload["offsets"]["10"] = original_offset
+                payload["retained_ids"] = [True, 10, 10, -7, 0, 10]
                 payload["by_category"] = {
                     "1": [True, 10, "10", 10.0, 10, 9999, 10],
                     "2": [9999],
@@ -395,6 +396,7 @@ class AchievementCompactRowIdentityTests(unittest.TestCase):
                 }
                 sidecar.write_text(json.dumps(payload), encoding="utf-8")
                 provider._load_from_compact_cache()
+                self.assertEqual(provider._compact_retained_ids, (10,))
                 self.assertEqual(provider._compact_category_ids, {
                     1: (10,), 2: (),
                 })
