@@ -336,6 +336,54 @@ class QuestDetailViewColumnTests(unittest.TestCase):
         )
         self.assertEqual(steps[0].objectives[1].position, "[2,3]")
 
+    def test_source_solution_steps_preserve_local_progress_objective_alignment(self) -> None:
+        from app.modules.encyclopedia.services.guide_quest_view_model import (
+            quest_solution_steps,
+        )
+
+        quest = QuestRecord(
+            id=901, name="Carte et progression", category="Quêtes",
+            level_min=1, level_max=200, start_criterion="",
+            steps=[QuestStep(
+                id=3, name="Étape locale", description="",
+                objectives=[
+                    QuestObjective(
+                        id=17, text="Découvrir la carte : 9999",
+                        type_id=0, map_label="",
+                    ),
+                    QuestObjective(
+                        id=18, text="Parler au garde", type_id=1, map_label="[2,3]",
+                    ),
+                ],
+            )],
+            source_solution_steps=[QuestStep(
+                id=4, name="Source importée", description="",
+                objectives=[
+                    QuestObjective(
+                        id=1001, text="Découvrir la carte : 9999",
+                        type_id=0, map_label="[-2147483648,0]",
+                    ),
+                    QuestObjective(
+                        id=1002, text="Parler au garde", type_id=1, map_label="[2,3]",
+                    ),
+                ],
+            )],
+        )
+        steps = quest_solution_steps(quest)
+        self.assertEqual(len(steps), 1)
+        self.assertEqual(
+            [objective.objective_id for objective in steps[0].objectives],
+            [17, 18],
+        )
+        self.assertEqual(
+            [objective.text for objective in steps[0].objectives],
+            ["Découvrir la carte : 9999", "Parler au garde"],
+        )
+        self.assertEqual(
+            [objective.position for objective in steps[0].objectives],
+            ["", "[2,3]"],
+        )
+
     def test_all_displayed_travel_coordinates_share_bold_link_markup(self) -> None:
         from PySide6.QtCore import Qt
         from app.modules.encyclopedia.services.guide_quest_view_model import (
