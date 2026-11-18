@@ -613,11 +613,14 @@ class NetworkApplicationCoordinator:
             activates_character = bool(
                 result.accepted
                 and result.character_key
-                and (
-                    reason.startswith("character_")
-                    or reason.startswith("quest_journal_")
-                )
+                and reason in {
+                    "character_identified",
+                    "character_identified_with_quest_journal",
+                }
             )
+            # An unchanged identity or a journal-only observation is not a
+            # new active-client selection. Forward changed journal progress
+            # via the regular progress signal, without extra profile reloads.
             if result.changed or activates_character:
                 self._results.put(result)
         if self._stop_event.is_set():
