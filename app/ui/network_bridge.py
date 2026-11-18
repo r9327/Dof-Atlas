@@ -239,6 +239,16 @@ def refresh_visible_encyclopedia_widgets(
             continue
         if object_name != "EncyclopediaPage":
             continue
+        # Only the displayed page needs an immediate refresh; the shell
+        # synchronizes a hidden Encyclopedia when it is opened again.
+        is_visible = getattr(widget, "isVisible", None)
+        if callable(is_visible):
+            try:
+                if not is_visible():
+                    continue
+            except RuntimeError:
+                # Qt can delete an old page while navigation is replacing it.
+                continue
         if str(getattr(widget, "current_character_key", "") or "") != target:
             continue
         tabs = getattr(widget, "tabs", None)
