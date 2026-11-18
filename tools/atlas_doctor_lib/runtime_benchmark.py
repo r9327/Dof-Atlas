@@ -441,6 +441,50 @@ def _median_tree(values: list[Any]) -> Any:
     return copy.deepcopy(first)
 
 
+_SUCCESS_DISTRIBUTION_METRICS = (
+    "achievements_open_ms",
+    "first_achievement_detail_ms",
+    "first_achievement_detail_max_ui_block_ms",
+    "rss_after_achievements_mb",
+    "rss_after_first_achievement_detail_mb",
+)
+
+
+def _achievement_distributions(samples: list[dict[str, Any]]) -> dict[str, dict[str, Any]]:
+    """Descriptive nearest-rank percentiles; never confuse 3 runs with a stable p99."""
+
+    output: dict[str, dict[str, Any]] = {}
+    for metric in _SUCCESS_DISTRIBUTION_METRICS:
+        values = sorted(
+            float(value)
+            for sample in samples
+            for value in [(sample.get("metrics") or {}).get(metric)]
+            if isinstance(value, (int, float))
+            and not isinstance(value, bool)
+            and 0 <= float(value) < float("inf")
+        )
+        if not values:
+            continue
+
+        def rank(pct: int) -> float:
+            # ceil(n * pct / 100) - 1, without Python's round-to-even.
+            index = max(0, min(len(values) - 1, (len(values) * pct + 99) // 100 - 1))
+            return round(values[index], 3)
+
+        output[metric] = {
+            "unit": "MB" if metric.endswith("_mb") else "ms",
+            "sample_count": len(values),
+            "planned_samples": len(samples),
+            "p50": rank(50),
+            "p95": rank(95),
+            "p99": rank(99),
+            # At <100 samples nearest-rank p99 is usually only the observed
+            # maximum, not a reliable 99th percentile population estimate.
+            "p99_quality": "DESCRIPTIVE_ONLY" if len(values) < 100 else "SAMPLED",
+        }
+    return output
+
+
 def aggregate_samples(samples: list[dict[str, Any]]) -> dict[str, Any]:
     if not samples:
         raise ValueError("At least one runtime sample is required.")
@@ -453,6 +497,7 @@ def aggregate_samples(samples: list[dict[str, Any]]) -> dict[str, Any]:
         "environment": environment,
         "sample_count": len(samples),
         "samples": samples,
+        "distributions": _achievement_distributions(samples),
         "medians": medians,
         # Doctor compare/report historically reads benchmark.after. Keep that
         # compatibility key while making medians the explicit canonical aggregate.
