@@ -400,8 +400,11 @@ class ContinuousGuideRoutePanel(QWidget):
         if not isinstance(value, Mapping):
             return None
         x, y = value.get("x"), value.get("y")
-        if (type(x) is not int or type(y) is not int
-                or -(2**31) in (x, y)):
+        if (
+            type(x) is not int or type(y) is not int
+            or not all(-(2**31) < coordinate < 2**31 for coordinate in (x, y))
+        ):
+            # Do not turn overflowed/missing map coordinates into game input.
             return None
         return x, y
 
