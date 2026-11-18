@@ -132,20 +132,31 @@ class AlmanaxDataService(QObject):
         records = data.get("days") if isinstance(data, dict) else None
         if not isinstance(records, dict):
             return
-        for key, record in list(records.items())[-MAX_CACHE_DAYS:]:
+        # Disk order is not freshness: older files may have more than the
+        # bounded 90 days in an arbitrary JSON key order. Validate first, then
+        # retain the newest successful fetches.
+        candidates: list[tuple[str, AlmanaxDay, float]] = []
+        latest_allowed = time() + 60
+        for key, record in records.items():
             if not isinstance(key, str) or not isinstance(record, dict):
                 continue
             day = parse_almanax_day(record.get("payload"), key)
             saved = record.get("fetched_at")
             if day is None or not isinstance(saved, (int, float)):
                 continue
-            if 0 < saved <= time() + 60:
-                self._cache[key] = (day, float(saved))
+            if 0 < saved <= latest_allowed:
+                candidates.append((key, day, float(saved)))
+        for key, day, saved in sorted(
+            candidates, key=lambda entry: entry[2], reverse=True
+        )[:MAX_CACHE_DAYS]:
+            self._cache[key] = (day, saved)
 
     def _persist_cache(self) -> None:
         recent = sorted(
             self._cache.items(), key=lambda row: row[1][1], reverse=True
         )[:MAX_CACHE_DAYS]
+        # The cap applies to RAM as well as the on-disk JSON cache.
+        self._cache = dict(recent)
         payload = {
             "version": 1,
             "days": {
@@ -236,10 +247,13 @@ class AlmanaxDataService(QObject):
         )
 
     def _finish_item_icon(self, url: str, reply: QNetworkReply) -> None:
-        pending = self._icon_pending.pop(url, None)
+        pending = self._icon_pending.get(url)
         try:
             if pending is None or pending[0] is not reply:
                 return
+            # An obsolete response must never drop a newer in-flight request
+            # for the same icon URL.
+            del self._icon_pending[url]
             if reply.error() != QNetworkReply.NetworkError.NoError:
                 return
             body = bytes(reply.readAll())

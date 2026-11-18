@@ -101,6 +101,70 @@ class AlmanaxSourceTests(unittest.TestCase):
             finally:
                 service.deleteLater()
 
+    def test_almanax_disk_and_memory_cache_keep_only_newest_days(self):
+        import json
+        from datetime import date, timedelta
+        from app.services.almanax_service import MAX_CACHE_DAYS
+
+        with tempfile.TemporaryDirectory() as folder:
+            cache_path = Path(folder) / "almanax.json"
+            days = {}
+            total = MAX_CACHE_DAYS + 6
+            now = time()
+            # Deliberately store newest days first: slicing the last keys
+            # would retain the six oldest records instead.
+            for index in reversed(range(total)):
+                key = (date(2026, 1, 1) + timedelta(days=index)).isoformat()
+                days[key] = {
+                    "payload": _source_day(key),
+                    "fetched_at": now - (total - index),
+                }
+            cache_path.write_text(
+                json.dumps({"days": days}), encoding="utf-8",
+            )
+            service = AlmanaxDataService(cache_path=cache_path)
+            try:
+                latest = (date(2026, 1, 1)
+                          + timedelta(days=total - 1)).isoformat()
+                oldest = date(2026, 1, 1).isoformat()
+                self.assertEqual(len(service._cache), MAX_CACHE_DAYS)
+                self.assertIn(latest, service._cache)
+                self.assertNotIn(oldest, service._cache)
+
+                extra_key = "2026-07-01"
+                extra_day = parse_almanax_day(
+                    _source_day(extra_key), extra_key,
+                )
+                service._cache[extra_key] = (extra_day, now)
+                service._persist_cache()
+                self.assertEqual(len(service._cache), MAX_CACHE_DAYS)
+                self.assertIn(extra_key, service._cache)
+                stored = json.loads(cache_path.read_text(encoding="utf-8"))
+                self.assertEqual(len(stored["days"]), MAX_CACHE_DAYS)
+            finally:
+                service.deleteLater()
+
+    def test_old_icon_reply_cannot_discard_new_pending_reply(self):
+        with tempfile.TemporaryDirectory() as folder:
+            service = AlmanaxDataService(
+                cache_path=Path(folder) / "almanax.json",
+            )
+            url = "https://api.dofusdu.de/dofus3/v1/img/item/test.png"
+            current_reply = Mock()
+            old_reply = Mock()
+            service._icon_pending[url] = (
+                current_reply, {"2026-11-18"},
+            )
+            try:
+                service._finish_item_icon(url, old_reply)
+                self.assertIn(url, service._icon_pending)
+                self.assertIs(service._icon_pending[url][0], current_reply)
+                old_reply.deleteLater.assert_called_once_with()
+                current_reply.deleteLater.assert_not_called()
+            finally:
+                service._icon_pending.clear()
+                service.deleteLater()
+
     def test_offline_cache_survives_service_recreation_and_skips_http(self):
         with tempfile.TemporaryDirectory() as folder:
             cache_path = Path(folder) / "almanax.json"
