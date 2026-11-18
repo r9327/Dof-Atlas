@@ -491,6 +491,54 @@ class ContinuousGuideRoutePanelTests(unittest.TestCase):
         panel.request_current_travel()
         self.assertEqual(len(events), 1)
 
+    def test_travel_rechecks_current_verified_connection_on_every_dispatch(self):
+        route = _source_route()
+        step_id = "ganymede_2205_step_0001"
+        state = {"connected": True}
+        checked = []
+
+        def current_characters():
+            checked.append(state["connected"])
+            return (SimpleNamespace(key="character:1", connected=state["connected"]),)
+
+        plan = {
+            "mode": "direct",
+            "participant_keys": ["character:1"],
+            "destination": {"x": 5, "y": -18},
+            "evidence": "atlas:verified-coordinate",
+            "atlas_guide_id": "dofus_cawotte",
+            "source_step_id": step_id,
+            "source_payload_sha256": certified_payload_sha256(route),
+        }
+        panel = ContinuousGuideRoutePanel(
+            route, self.store, ("character:1",),
+            available_characters=[SimpleNamespace(key="character:1", connected=True)],
+            available_characters_provider=current_characters,
+            verified_travel_plans={step_id: plan},
+        )
+        self.addCleanup(panel.deleteLater)
+        emitted = []
+        panel.travelRequested.connect(lambda command, keys: emitted.append((command, keys)))
+        self.assertTrue(panel.travel_button.isEnabled())
+        panel.request_current_travel()
+        self.assertEqual(emitted, [("/travel 5,-18", ("character:1",))])
+
+        # The original UI snapshot is still "connected", but the canonical
+        # identity provider now says otherwise. Neither the next click nor
+        # the refreshed button may use the old evidence.
+        state["connected"] = False
+        panel.request_current_travel()
+        self.assertEqual(len(emitted), 1)
+        panel.refresh()
+        self.assertFalse(panel.travel_button.isEnabled())
+        state["connected"] = True
+        panel.refresh()
+        self.assertTrue(panel.travel_button.isEnabled())
+        panel.request_current_travel()
+        self.assertEqual(len(emitted), 2)
+        self.assertIn(False, checked)
+        self.assertTrue(checked[-1])
+
     def test_zaap_plan_requires_complete_verified_coordinates_and_exact_members(self):
         from copy import deepcopy
 
