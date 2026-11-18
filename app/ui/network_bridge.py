@@ -175,7 +175,8 @@ class NetworkUiBridge(QObject):
                 # character. Avoid reloading all client profiles each poll.
                 active_character = str(result.character_key)
             if (
-                result.changed
+                bool(getattr(result, "accepted", False))
+                and result.changed
                 and result.character_key
                 and reason not in {"character_identified", "session_closed"}
             ):
