@@ -159,6 +159,25 @@ class NetworkApplicationCoordinatorTests(unittest.TestCase):
             self.assertTrue(coordinator._commands.empty())
             self.assertFalse(coordinator._stop_event.is_set())
 
+    def test_shutdown_prevents_all_privileged_start_paths(self) -> None:
+        coordinator = NetworkApplicationCoordinator(lambda: ())
+        coordinator._stop_event.set()
+        with (
+            patch.object(coordinator._capture_source, "start") as capture,
+            patch.object(coordinator.calibration, "start") as calibration,
+            patch.object(coordinator.runtime, "start_if_ready") as runtime,
+        ):
+            coordinator._handle_command("prepare_capture")
+            coordinator._handle_command("start_calibration")
+            coordinator._handle_command("start_runtime")
+            # The direct helpers also gate calls that raced after dispatch.
+            coordinator._prepare_capture()
+            coordinator._start_calibration()
+            coordinator._start_runtime()
+            capture.assert_not_called()
+            calibration.assert_not_called()
+            runtime.assert_not_called()
+
     def test_calibration_and_runtime_share_one_privileged_capture_helper(self) -> None:
         coordinator = NetworkApplicationCoordinator(lambda: ())
         self.assertIs(
