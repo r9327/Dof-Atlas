@@ -271,6 +271,54 @@ class QuestSemanticEnrichmentTests(unittest.TestCase):
         )
         self.assertNotIn(10, report["missing_instruction_quest_ids"])
 
+    def test_quest_coverage_counts_only_fallback_instructions_actually_rendered(self):
+        rows = {
+            "1": {"solution_steps": [
+                {"title": "Suite", "description": "Parler au garde."},
+            ]},
+            "2": {"solution_steps": [
+                {"objectives": [
+                    {"text": "Découvrir la carte : 9999",
+                     "position": "[-2147483648,0]"},
+                ]},
+            ]},
+            "3": {"solution_steps": [
+                {"description": "Qf>=20",
+                 "objectives": [{"text": "Mini-carte L’aperçu de la carte sera affiché ici sur le site."}]},
+            ]},
+            # A real image block already suppresses the source-steps fallback.
+            "4": {
+                "solution_blocks": [
+                    {"type": "image", "image_path": "illustration.webp"},
+                ],
+                "solution_steps": [{"description": "Étape non visible."}],
+            },
+            # The artificial heading is filtered, so the fallback is visible.
+            "5": {
+                "solution_blocks": [{"type": "heading", "content": "Étape 1"}],
+                "solution_steps": [{"description": "Avancer vers la sortie."}],
+            },
+            # A genuine standalone heading is visible and suppresses fallback.
+            "6": {
+                "solution_blocks": [{"type": "heading", "content": "Préparation"}],
+                "solution_steps": [{"description": "Texte de secours invisible."}],
+            },
+            "7": {
+                "solution_blocks": [
+                    {"type": "text", "content": "Mini-carte L’aperçu de la carte sera affiché ici sur le site."},
+                ],
+                "solution_steps": [{"description": "Parlez au capitaine."}],
+            },
+        }
+        report = local_start_position_coverage(rows, range(1, 8))
+        self.assertEqual(report["counts"]["WITH_TEXTUAL_SOLUTION_BLOCKS"], 0)
+        self.assertEqual(report["counts"]["WITHOUT_TEXTUAL_SOLUTION_BLOCKS"], 7)
+        self.assertEqual(report["counts"]["WITH_RENDERABLE_INSTRUCTIONS"], 4)
+        self.assertEqual(report["counts"]["WITHOUT_RENDERABLE_INSTRUCTIONS"], 3)
+        self.assertEqual(report["fallback_instruction_quest_ids"], [1, 2, 5, 7])
+        self.assertEqual(report["missing_instruction_quest_ids"], [3, 4, 6])
+        self.assertEqual(report["priority_missing_both_quest_ids"], [3, 4, 6])
+
     def test_mapping_is_deterministic_and_never_uses_list_position(self):
         quests = [FakeQuest(20, "Beta"), FakeQuest(10, "Alpha")]
         source_a = [{"id": 2, "name": "Beta"}, {"id": 1, "name": "Alpha"}]
