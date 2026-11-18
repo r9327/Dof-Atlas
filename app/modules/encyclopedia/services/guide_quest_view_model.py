@@ -689,14 +689,14 @@ def _canonical_source_coordinate(value: object) -> str:
     """Only exact numeric coordinates enter the shared copyable start field."""
 
     match = COORD_RE.fullmatch(clean_text(value))
-    if match is None:
+    if match is None or any(
+        len(part.lstrip("-")) > 10 for part in match.groups()
+    ):
         return ""
-    try:
-        x, y = int(match.group(1)), int(match.group(2))
-    except ValueError:
-        return ""
-    # Canonical Doduda missing-position sentinel is not a travel coordinate.
-    if SENTINEL_COORD in (x, y):
+    x, y = (int(part) for part in match.groups())
+    # Game input uses signed 32-bit positions. Reject the missing-position
+    # sentinel, overflow and malformed values consistently at the source.
+    if not all(SENTINEL_COORD < coord < 2**31 for coord in (x, y)):
         return ""
     return f"[{x},{y}]"
 
@@ -951,9 +951,12 @@ def first_position_from_quest(
 
 def travel_command(position: str) -> str:
     match = COORD_RE.search(str(position or ""))
-    if not match:
+    if match is None:
         return ""
-    return f"/travel {int(match.group(1))},{int(match.group(2))}"
+    # Reuse the same verified numeric contract as Quest start positions.
+    # Objective hints may be copied, but unknown maps must not be sent.
+    normalized = _canonical_source_coordinate(match.group(0))
+    return f"/travel {normalized[1:-1]}" if normalized else ""
 
 
 def clean_requirement_line(value: str) -> str:
