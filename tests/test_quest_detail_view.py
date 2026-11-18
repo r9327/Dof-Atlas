@@ -88,6 +88,63 @@ class QuestDetailViewColumnTests(unittest.TestCase):
             "Zone de quête",
         )
 
+    def test_invalid_or_conflicting_local_starts_are_not_verified(self) -> None:
+        from app.modules.encyclopedia.services.guide_quest_view_model import (
+            quest_start_info,
+        )
+
+        quest = QuestRecord(
+            id=43, name="Départ incertain", category="Quêtes",
+            level_min=1, level_max=1, start_criterion="",
+            zones=["Zone locale"],
+            steps=[QuestStep(
+                id=1, name="Objectif", description="",
+                objectives=[QuestObjective(
+                    id=101, text="Rejoindre la zone", type_id=0,
+                    map_label="[11,12]",
+                )],
+            )],
+        )
+        # An invalid source must not block the objective fallback.
+        quest.source_info = {"launch_position": {"position": "inconnue"}}
+        self.assertEqual(
+            quest_start_info(quest, include_map_images=False).position, "[11,12]"
+        )
+        self.assertEqual(
+            QuestDetailView._start_position_heading(quest, "[11,12]"),
+            "Position d'objectif (départ non confirmé)",
+        )
+        # The second source can provide a coordinate, but a malformed first
+        # source must be surfaced as inconsistent, not certified.
+        quest.source_info = {
+            "launch_position": {"position": "inconnue"},
+            "source_meta": {"startCoords": "[3, 4]"},
+        }
+        self.assertEqual(
+            quest_start_info(quest, include_map_images=False).position, "[3, 4]"
+        )
+        self.assertEqual(
+            QuestDetailView._start_position_heading(quest, "[3, 4]"),
+            "Départ à vérifier (sources incohérentes)",
+        )
+        quest.source_info = {
+            "launch_position": {"position": "[3,4]"},
+            "source_meta": {"startCoords": "[5,6]"},
+        }
+        self.assertEqual(
+            QuestDetailView._start_position_heading(quest, "[3,4]"),
+            "Départ à vérifier (sources incohérentes)",
+        )
+        # Equivalent numbers with formatting changes remain the same source.
+        quest.source_info = {
+            "launch_position": {"position": "[03,4]"},
+            "source_meta": {"startCoords": "[3, 4]"},
+        }
+        self.assertEqual(
+            QuestDetailView._start_position_heading(quest, "[3,4]"),
+            "Position de lancement (source locale)",
+        )
+
     def test_all_displayed_travel_coordinates_share_bold_link_markup(self) -> None:
         from PySide6.QtCore import Qt
         from app.modules.encyclopedia.services.guide_quest_view_model import (
