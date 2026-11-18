@@ -23,6 +23,44 @@ class AtlasWindowRuntimeCleanupTests(unittest.TestCase):
             bridge.stop()
         network_bridge_module._BRIDGE = None
 
+    def test_network_progress_hidden_encyclopedia_refreshes_only_on_return(self):
+        shell = Mock()
+        shell.current_character_key = "character:1"
+        shell._pending_network_progress_character = ""
+        shell.page_indexes = {"Quetes": 0}
+        shell.page_factories = {}
+        shell.page_nav_group = {"Quetes": "Encyclopédie"}
+        page = Mock()
+        page.objectName.return_value = "EncyclopediaPage"
+        page.isVisible.return_value = False
+        page.current_character_key = "character:1"
+        shell.page_widgets = {"Quetes": page}
+        current = page.tabs.currentWidget.return_value
+
+        AtlasWindow.on_network_progress_changed(shell, "character:1")
+        self.assertEqual(shell._pending_network_progress_character, "character:1")
+        current.refresh_external_progress.assert_not_called()
+
+        with patch("main._resolve_encyclopedia_page", return_value=type(page)):
+            AtlasWindow.switch_to_page(shell, "Quetes")
+        current.refresh_external_progress.assert_called_once_with()
+        self.assertEqual(shell._pending_network_progress_character, "")
+        page.set_character_key.assert_called_once_with("character:1")
+
+    def test_network_progress_hidden_encyclopedia_ignores_other_character(self):
+        shell = Mock()
+        shell.current_character_key = "character:1"
+        shell._pending_network_progress_character = ""
+        page = Mock()
+        page.objectName.return_value = "EncyclopediaPage"
+        page.isVisible.return_value = False
+        page.current_character_key = "character:1"
+        shell.page_widgets = {"Quetes": page}
+
+        AtlasWindow.on_network_progress_changed(shell, "character:2")
+        self.assertEqual(shell._pending_network_progress_character, "")
+        page.tabs.currentWidget.return_value.refresh_external_progress.assert_not_called()
+
     def test_guide_travel_dispatch_returns_real_result_without_reloading_active_macro(self):
         shell = Mock()
         shell.quit_requested = False
