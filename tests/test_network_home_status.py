@@ -50,6 +50,8 @@ class NetworkHomeStatusTests(unittest.TestCase):
             "capture_helper_start_failed",
             "build_changed",
             "capture_elevation_cancelled",
+            "quest_snapshot_missed",
+            "mapping_invalid",
         ):
             with self.subTest(reason=reason):
                 self.assertEqual(
