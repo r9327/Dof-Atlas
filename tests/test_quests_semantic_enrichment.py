@@ -33,6 +33,59 @@ class FakeQuest:
 
 
 class QuestSemanticEnrichmentTests(unittest.TestCase):
+    def test_local_only_audit_never_hydrates_guides_successes_or_web(self):
+        from contextlib import redirect_stdout
+        from io import StringIO
+        from types import SimpleNamespace
+        from unittest.mock import patch
+        from app.modules.encyclopedia.tools import audit_quests_guides_semantic as mod
+
+        with tempfile.TemporaryDirectory() as directory:
+            output = Path(directory) / "local_coverage.json"
+            catalog = SimpleNamespace(quests=(
+                SimpleNamespace(id=10),
+                SimpleNamespace(id=20),
+            ))
+            with (
+                patch.object(mod, "QuestProvider", return_value=SimpleNamespace(
+                    get_catalog=lambda: catalog,
+                )),
+                patch.object(mod, "GuideProvider",
+                             side_effect=AssertionError("must stay local")),
+                patch.object(mod, "AchievementProvider",
+                             side_effect=AssertionError("must stay light")),
+                patch.object(mod, "build_audit",
+                             side_effect=AssertionError("must skip full audit")),
+                patch.object(mod, "read_json_file", return_value={
+                    "quests": {
+                        "10": {
+                            "launch_position": {"position": "[3,4]"},
+                            "solution_blocks": [
+                                {"type": "text", "content": "Parler au PNJ."},
+                            ],
+                        },
+                        "20": {"solution_blocks": []},
+                    },
+                }),
+                redirect_stdout(StringIO()),
+            ):
+                self.assertEqual(mod.main([
+                    "--local-coverage-only",
+                    "--online", "full",
+                    "--json-output", str(output),
+                ]), 0)
+            payload = json.loads(output.read_text(encoding="utf-8"))
+            self.assertEqual(payload["scope"], "LOCAL_QUEST_STARTS_AND_INSTRUCTIONS")
+            self.assertEqual(payload["evidence"], "LOCAL_ENRICHMENT_ONLY_NOT_GAME_VERIFIED")
+            self.assertEqual(payload["quests_considered"], 2)
+            self.assertEqual(payload["counts"]["LOCAL_START_DECLARED"], 1)
+            self.assertEqual(payload["counts"]["NO_DECLARED_START"], 1)
+            self.assertEqual(payload["counts"]["WITHOUT_TEXTUAL_SOLUTION_BLOCKS"], 1)
+            self.assertEqual(
+                payload["needs_review"],
+                [{"quest_id": 20, "status": "NO_DECLARED_START"}],
+            )
+
     def test_local_start_coverage_distinguishes_source_gaps_from_real_positions(self):
         rows = {
             "10": {
