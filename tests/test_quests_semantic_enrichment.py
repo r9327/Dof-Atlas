@@ -59,6 +59,8 @@ class QuestSemanticEnrichmentTests(unittest.TestCase):
         self.assertEqual(report["counts"]["NO_ENRICHMENT"], 1)
         self.assertEqual(report["counts"]["WITH_DOCUMENTARY_BLOCKS"], 1)
         self.assertEqual(report["counts"]["WITHOUT_DOCUMENTARY_BLOCKS"], 6)
+        self.assertEqual(report["counts"]["WITH_TEXTUAL_SOLUTION_BLOCKS"], 1)
+        self.assertEqual(report["counts"]["WITHOUT_TEXTUAL_SOLUTION_BLOCKS"], 6)
         self.assertEqual(
             [(row["quest_id"], row["status"]) for row in report["needs_review"]],
             [
@@ -69,6 +71,24 @@ class QuestSemanticEnrichmentTests(unittest.TestCase):
                 (70, "INVALID_START_COORDINATES"),
             ],
         )
+
+    def test_local_documentation_coverage_does_not_count_empty_or_image_blocks(self):
+        rows = {
+            "1": {"solution_blocks": [
+                {"type": "text", "content": "  "},
+                {"type": "image", "content": "Une image", "image_path": "a.png"},
+            ]},
+            "2": {"solution_blocks": [
+                {"type": "text", "content": "Parler au PNJ."},
+            ]},
+            "3": {"solution_blocks": [
+                {"content": "Texte sans type non affiché"},
+            ]},
+        }
+        report = local_start_position_coverage(rows, [1, 2, 3])
+        self.assertEqual(report["counts"]["WITH_DOCUMENTARY_BLOCKS"], 3)
+        self.assertEqual(report["counts"]["WITH_TEXTUAL_SOLUTION_BLOCKS"], 1)
+        self.assertEqual(report["counts"]["WITHOUT_TEXTUAL_SOLUTION_BLOCKS"], 2)
 
     def test_mapping_is_deterministic_and_never_uses_list_position(self):
         quests = [FakeQuest(20, "Beta"), FakeQuest(10, "Alpha")]
