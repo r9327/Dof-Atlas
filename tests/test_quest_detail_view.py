@@ -148,6 +148,19 @@ class QuestDetailViewColumnTests(unittest.TestCase):
             QuestDetailView._start_position_heading(quest, "[3,-6]"),
             "Position de lancement (source locale)",
         )
+        # Doduda's numeric missing-location sentinel must not become a
+        # clickable "start" or suppress a valid objective fallback.
+        quest.source_info = {
+            "launch_position": {"position": "[-2147483648,3]"},
+        }
+        self.assertEqual(
+            quest_start_info(quest, include_map_images=False).position,
+            "[11,12]",
+        )
+        self.assertEqual(
+            QuestDetailView._start_position_heading(quest, "[11,12]"),
+            "Position d'objectif (départ non confirmé)",
+        )
         # Equivalent numbers with formatting changes remain the same source.
         quest.source_info = {
             "launch_position": {"position": "[03,4]"},
