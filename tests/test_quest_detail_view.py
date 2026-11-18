@@ -121,7 +121,7 @@ class QuestDetailViewColumnTests(unittest.TestCase):
             "source_meta": {"startCoords": "[3, 4]"},
         }
         self.assertEqual(
-            quest_start_info(quest, include_map_images=False).position, "[3, 4]"
+            quest_start_info(quest, include_map_images=False).position, "[3,4]"
         )
         self.assertEqual(
             QuestDetailView._start_position_heading(quest, "[3, 4]"),
@@ -134,6 +134,19 @@ class QuestDetailViewColumnTests(unittest.TestCase):
         self.assertEqual(
             QuestDetailView._start_position_heading(quest, "[3,4]"),
             "Départ à vérifier (sources incohérentes)",
+        )
+        # Padded/zero-prefixed source coordinates are normalized for the
+        # same [x,y] clickable travel contract used by the Guide.
+        quest.source_info = {
+            "launch_position": {"position": "[ 003, -06 ]"},
+        }
+        self.assertEqual(
+            quest_start_info(quest, include_map_images=False).position,
+            "[3,-6]",
+        )
+        self.assertEqual(
+            QuestDetailView._start_position_heading(quest, "[3,-6]"),
+            "Position de lancement (source locale)",
         )
         # Equivalent numbers with formatting changes remain the same source.
         quest.source_info = {
