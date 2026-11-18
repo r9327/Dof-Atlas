@@ -132,6 +132,61 @@ class _OtherWidget:
         return "OtherPage"
 
 
+class NetworkDeferredJournalIdentityTests(unittest.TestCase):
+    def test_deferred_journal_identity_reports_only_real_progress_mutations(self) -> None:
+        from types import SimpleNamespace
+        from unittest.mock import Mock
+
+        from app.network.events import CharacterIdentifiedEvent, QuestJournalSnapshotEvent
+        from app.network.progress_bridge import (
+            EventApplicationResult, NetworkProgressBridge,
+        )
+
+        for journal_changed in (False, True):
+            with self.subTest(journal_changed=journal_changed):
+                resolver = Mock()
+                resolver.resolve_for_session.return_value = SimpleNamespace(
+                    character_key="character:17", label="Witsis",
+                )
+                bridge = NetworkProgressBridge(
+                    quest_catalog=Mock(),
+                    quest_progress_service=Mock(),
+                    achievement_progress_service=Mock(),
+                    achievement_provider=Mock(),
+                    character_resolver=resolver,
+                )
+                pending = QuestJournalSnapshotEvent(
+                    session_id="session:17", event_id="idr:1",
+                    reliable=True, finished_quest_ids=(),
+                )
+                bridge._pending_quest_journals["session:17"] = pending
+                with patch.object(
+                    bridge, "_apply_quest_journal_snapshot",
+                    return_value=EventApplicationResult(
+                        True, journal_changed, "quest_journal_reconciled",
+                        "character:17",
+                    ),
+                ) as apply:
+                    result = bridge.handle(CharacterIdentifiedEvent(
+                        session_id="session:17", event_id="kvi-kva:1",
+                        reliable=True, character_name="Witsis",
+                        character_id=17,
+                    ))
+                    apply.assert_called_once_with("session:17", pending)
+
+                self.assertTrue(result.accepted)
+                self.assertEqual(result.reason, "character_identified_with_quest_journal")
+                self.assertEqual(result.character_key, "character:17")
+                self.assertEqual(result.changed, journal_changed)
+
+                # The coordinator must still forward the activation for an
+                # unchanged journal, but the Qt side will not repaint progress.
+                coordinator = NetworkApplicationCoordinator(lambda: ())
+                with patch.object(coordinator.runtime, "drain_results", return_value=[result]):
+                    coordinator._drain_runtime_results()
+                self.assertEqual(coordinator.drain_results(), [result])
+
+
 class NetworkApplicationCoordinatorTests(unittest.TestCase):
     def test_stop_during_queue_get_never_executes_pending_capture_command(self) -> None:
         coordinator = NetworkApplicationCoordinator(lambda: ())
