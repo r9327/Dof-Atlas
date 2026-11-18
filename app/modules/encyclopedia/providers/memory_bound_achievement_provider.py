@@ -866,11 +866,14 @@ class MemoryBoundAchievementProvider(BaseAchievementProvider):
                 output[int(raw_key)] = tuple(ids)
             return output
 
-        retained_ids = tuple(
-            int(value)
-            for value in (index_payload.get("retained_ids") or ())
-            if type(value) is int
-        )
+        # A damaged sidecar must not duplicate a Success in searches,
+        # per-category lists or progression. Preserve the source's first
+        # occurrence and ignore bogus IDs without coercing booleans.
+        raw_retained_ids = index_payload.get("retained_ids")
+        retained_ids = tuple(dict.fromkeys(
+            value for value in raw_retained_ids
+            if type(value) is int and value > 0
+        )) if isinstance(raw_retained_ids, list) else ()
         if not categories or not retained_ids:
             raise RuntimeError("Index compact Succès incomplet")
         index_marker = index_payload.get("cache_generation")
