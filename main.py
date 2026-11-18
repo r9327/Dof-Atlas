@@ -897,6 +897,9 @@ class AtlasWindow(QMainWindow):
         self.tray_icon: QSystemTrayIcon | None = None
         self._background_services_stopped = False
         self._last_active_dofus_hwnd = 0
+        # Network changes to a hidden Encyclopedia are refreshed on return,
+        # not by rebuilding an invisible Qt tab for every completed quest.
+        self._pending_network_progress_character = ""
 
         central = UnityBackdrop() if unity_enabled() else QWidget()
         self.setCentralWidget(central)
@@ -1312,9 +1315,18 @@ class AtlasWindow(QMainWindow):
     def on_network_progress_changed(self, character_key: str) -> None:
         from app.ui.network_bridge import refresh_visible_encyclopedia_widgets
 
+        target = str(character_key or "").strip()
+        if not target:
+            return
         page = self.page_widgets.get("Quetes")
-        if page is not None:
-            refresh_visible_encyclopedia_widgets((page,), character_key)
+        if page is not None and refresh_visible_encyclopedia_widgets((page,), target):
+            if getattr(self, "_pending_network_progress_character", "") == target:
+                self._pending_network_progress_character = ""
+            return
+        # A hidden page is never rebuilt in the background. Track only the
+        # currently selected character; selecting another already reloads it.
+        if target == self.current_character_key:
+            self._pending_network_progress_character = target
 
     def on_network_character_activated(self, character_key: str) -> None:
         """Refresh learned profiles and display the intended Dofus client."""
@@ -2032,6 +2044,14 @@ class AtlasWindow(QMainWindow):
                 page, _resolve_encyclopedia_page()
             ):
                 page.set_character_key(self.current_character_key)
+                if (self.current_character_key
+                        and getattr(self, "_pending_network_progress_character", "")
+                        == self.current_character_key):
+                    current = page.tabs.currentWidget()
+                    refresh = getattr(current, "refresh_external_progress", None)
+                    if callable(refresh):
+                        refresh()
+                        self._pending_network_progress_character = ""
             self._schedule_owned_callback(0, self.finish_pending_encyclopedia_tab)
             self._schedule_owned_callback(0, self.finish_pending_guide_target)
 
