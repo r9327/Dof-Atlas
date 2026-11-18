@@ -73,6 +73,34 @@ class AchievementsThirdColumnTests(unittest.TestCase):
         )
         provider.get_detail_by_id.assert_not_called()
 
+    def test_loading_and_error_drop_old_lazy_success_batches(self):
+        view, _provider = self.make_view()
+        for label, announce in (
+            ("chargement", lambda: view.show_runtime_loading()),
+            ("erreur", lambda: view.show_runtime_error("Données indisponibles")),
+        ):
+            with self.subTest(state=label):
+                view._achievement_pending_rows = [42, 43, 44]
+                view._achievement_visible_row_by_id = {42: 0}
+                view._achievement_pending_selected_id = 42
+                view._achievement_rows_dirty = True
+                view._catalog_refresh_signature = (7, "ancien")
+                view.filtered = [SimpleNamespace(id=42)]
+                view._achievement_batch_timer.start()
+                generation = view._achievement_render_generation
+                announce()
+
+                self.assertFalse(view._achievement_batch_timer.isActive())
+                self.assertEqual(view._achievement_render_generation, generation + 1)
+                self.assertEqual(view._achievement_pending_rows, [])
+                self.assertEqual(view._achievement_visible_row_by_id, {})
+                self.assertIsNone(view._achievement_pending_selected_id)
+                self.assertFalse(view._achievement_rows_dirty)
+                self.assertIsNone(view._catalog_refresh_signature)
+                self.assertEqual(view.filtered, [])
+                self.assertEqual(view.list_widget.count(), 1)
+                self.assertFalse(view.list_widget.item(0).flags() & Qt.ItemIsEnabled)
+
     def test_clicking_selected_success_twice_keeps_detail_open(self):
         view, provider = self.make_view()
         rendered = []
