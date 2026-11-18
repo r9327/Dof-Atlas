@@ -226,6 +226,33 @@ class OptimizedAchievementsBatchingTests(unittest.TestCase):
             view.deleteLater()
             self.app.processEvents()
 
+    def test_search_uses_compact_ids_without_rich_catalogue_filter(self) -> None:
+        view = self._view(100)
+        try:
+            view.provider = _BatchFakeProvider(view.achievements)
+            requested = []
+
+            def compact_search(query):
+                requested.append(query)
+                return (7, 40)
+
+            def no_rich_search(_query):
+                raise AssertionError("search must not hydrate rich Successes")
+
+            view.provider.search_catalogue_ids = compact_search
+            view.provider.search = no_rich_search
+            view.search.setText("grand monstre")
+            view.refresh()
+
+            self.assertEqual(requested, ["grand monstre"])
+            self.assertEqual([item.id for item in view.filtered], [7, 40])
+            self.assertEqual(view._achievement_pending_rows, [7, 40])
+            self.assertEqual(view.list_widget.count(), 0)
+        finally:
+            view.close()
+            view.deleteLater()
+            self.app.processEvents()
+
     def test_new_search_discards_old_pending_generation(self) -> None:
         achievements = [
             *[_achievement(index + 1, f"Alpha succes {index:02d}") for index in range(90)],
