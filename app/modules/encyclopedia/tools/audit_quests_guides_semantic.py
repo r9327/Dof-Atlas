@@ -27,6 +27,7 @@ QUESTS_DIR = DATA_DIR / "encyclopedia" / "quests"
 MAPPING_PATH = QUESTS_DIR / "source_mapping.json"
 ENRICHED_PATH = QUESTS_DIR / "quests_enriched.json"
 DEFAULT_JSON = ROOT_DIR / "artifacts" / "quests_guides_semantic_audit.json"
+DEFAULT_LOCAL_COVERAGE = ROOT_DIR / "artifacts" / "quests_local_coverage.json"
 DEFAULT_MARKDOWN = ROOT_DIR / "artifacts" / "quests_guides_semantic_audit_report.md"
 DEFAULT_CHANGES = ROOT_DIR / "artifacts" / "quests_guides_semantic_changes.md"
 DEFAULT_CACHE = ROOT_DIR / "artifacts" / "dpln_semantic_audit_cache.json"
@@ -1059,10 +1060,14 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--workers", type=int, default=3)
     parser.add_argument("--refresh", action="store_true")
     parser.add_argument("--cache", type=Path, default=DEFAULT_CACHE)
-    parser.add_argument("--json-output", type=Path, default=DEFAULT_JSON)
+    parser.add_argument("--json-output", type=Path, default=None)
     parser.add_argument("--markdown-output", type=Path, default=DEFAULT_MARKDOWN)
     parser.add_argument("--changes-output", type=Path, default=DEFAULT_CHANGES)
     args = parser.parse_args(argv)
+    if args.json_output is None:
+        args.json_output = (
+            DEFAULT_LOCAL_COVERAGE if args.local_coverage_only else DEFAULT_JSON
+        )
     if args.local_coverage_only:
         # Local gaps can be measured without creating the expensive Guide,
         # Achievement or quest-dependency graph used by the full audit.
