@@ -277,6 +277,62 @@ class AchievementCompactRowIdentityTests(unittest.TestCase):
                 self.assertEqual(provider.search_catalogue_ids("grand"), ())
                 self.assertEqual(provider.search_catalogue_ids("petit"), (10,))
 
+    def test_precomputed_sidecar_search_needs_no_jsonl_scan(self):
+        from app.modules.encyclopedia.providers import memory_bound_achievement_provider as mod
+
+        with tempfile.TemporaryDirectory() as directory:
+            cache = Path(directory) / "success.jsonl"
+            category = {"kind": "category", "value": {
+                "id": 1, "name": "Quêtes", "parent_id": 0,
+                "order": 0, "achievement_ids": [10],
+            }}
+            rows = [
+                {"kind": "meta", "cache_generation": "one-pair"},
+                category,
+                {"kind": "achievement", "value": {
+                    "id": 10, "search_text": "grand_monstre",
+                }},
+            ]
+            data = b""
+            offsets = {}
+            for row in rows:
+                raw = (json.dumps(row) + "\n").encode("utf-8")
+                if row["kind"] == "achievement":
+                    offsets["10"] = [len(data), len(raw)]
+                data += raw
+            cache.write_bytes(data)
+            sidecar = mod._achievement_compact_index_path(cache)
+            payload = {
+                "cache_generation": "one-pair",
+                "retained_ids": [10],
+                "offsets": offsets,
+                "by_category": {"1": [10]},
+                "search_texts": ["grand_monstre"],
+            }
+            sidecar.write_text(json.dumps(payload), encoding="utf-8")
+            provider = MemoryBoundAchievementProvider()
+            with (
+                patch.object(mod, "ACHIEVEMENT_COMPACT_CACHE", cache),
+                patch.object(mod, "_achievement_compact_cache_valid", return_value=True),
+            ):
+                provider._load_from_compact_cache()
+                self.assertEqual(provider._compact_search_text_index, {10: "grand_monstre"})
+                with (
+                    patch.object(provider, "_ensure_loaded"),
+                    patch.object(Path, "open",
+                                 side_effect=AssertionError("search must not scan JSONL")),
+                ):
+                    self.assertEqual(provider.search_catalogue_ids("grand"), (10,))
+                    self.assertEqual(provider.search_catalogue_ids("petit"), ())
+
+                # Old schema-5 sidecars need no migration or forced rebuild.
+                payload.pop("search_texts")
+                sidecar.write_text(json.dumps(payload), encoding="utf-8")
+                provider._load_from_compact_cache()
+                self.assertIsNone(provider._compact_search_text_index)
+                with patch.object(provider, "_ensure_loaded"):
+                    self.assertEqual(provider.search_catalogue_ids("grand"), (10,))
+
     def test_compact_search_falls_back_only_for_broken_row_and_preserves_order(self):
         from types import SimpleNamespace
         from app.modules.encyclopedia.providers import memory_bound_achievement_provider as mod
