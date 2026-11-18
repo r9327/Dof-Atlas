@@ -23,6 +23,34 @@ class AtlasWindowRuntimeCleanupTests(unittest.TestCase):
             bridge.stop()
         network_bridge_module._BRIDGE = None
 
+    def test_network_closed_session_updates_connected_list_without_selection(self):
+        shell = Mock()
+        AtlasWindow.on_network_connections_changed(
+            shell, ("character:2", "character:1")
+        )
+        shell.refresh_global_characters.assert_called_once_with(
+            allow_default_selection=False, network_refresh=True,
+        )
+        shell.on_network_character_activated.assert_not_called()
+        shell.character_combo.setCurrentIndex.assert_not_called()
+
+    def test_network_closed_session_rejects_unverified_or_empty_identity(self):
+        shell = Mock()
+        for payload in (
+            (), None, "", {"character:1"},
+            ("slot:1", "character:0", None),
+            ("character:01", "character:-1"),
+        ):
+            AtlasWindow.on_network_connections_changed(shell, payload)
+        shell.refresh_global_characters.assert_not_called()
+        shell.on_network_character_activated.assert_not_called()
+        AtlasWindow.on_network_connections_changed(
+            shell, ("slot:1", "character:9")
+        )
+        shell.refresh_global_characters.assert_called_once_with(
+            allow_default_selection=False, network_refresh=True,
+        )
+
     def test_network_identity_batch_refreshes_multiple_accounts_once(self):
         shell = Mock()
         AtlasWindow.on_network_characters_identified(
