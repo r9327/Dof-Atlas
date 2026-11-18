@@ -280,6 +280,66 @@ class AchievementsThirdColumnTests(unittest.TestCase):
         provider.get_by_id.assert_not_called()
         view.show_achievement.assert_called_once_with(42)
 
+    def test_direct_link_selects_actual_visible_id_after_a_skipped_cache_row(self):
+        view, provider = self.make_view()
+        provider.get_by_id.side_effect = lambda achievement_id: SimpleNamespace(
+            id=int(achievement_id), name="Cible",
+            subcategory_id=None, category_id=19,
+        )
+        category = QTreeWidgetItem(["Succès"])
+        category.setData(0, Qt.UserRole, 19)
+        view.category_tree.addTopLevelItem(category)
+        view._tree_items[19] = category
+        view.category_tree.setCurrentItem(category)
+        view.filtered = [
+            SimpleNamespace(id=10),
+            SimpleNamespace(id=20),
+            SimpleNamespace(id=42),
+        ]
+        view.list_widget.clear()
+        self.add_success(view, 10)
+        self.add_success(view, 42)
+        # The compact row for ID 20 was skipped; filtered index 2 is not a
+        # widget row. The actual Success 42 is widget row 1.
+        view._achievement_visible_row_by_id = {10: 0, 42: 1}
+        view.list_widget.setCurrentRow(0)
+        view.show_achievement = Mock()
+
+        self.assertTrue(view.select_achievement(42))
+        self.assertEqual(view.list_widget.currentRow(), 1)
+        self.assertEqual(
+            view.list_widget.currentItem().data(Qt.UserRole), 42
+        )
+        view.show_achievement.assert_called_once_with(42)
+
+    def test_direct_link_does_not_select_wrong_item_when_target_not_yet_visible(self):
+        view, provider = self.make_view()
+        provider.get_by_id.side_effect = lambda achievement_id: SimpleNamespace(
+            id=int(achievement_id), name="Cible",
+            subcategory_id=None, category_id=19,
+        )
+        category = QTreeWidgetItem(["Succès"])
+        category.setData(0, Qt.UserRole, 19)
+        view.category_tree.addTopLevelItem(category)
+        view._tree_items[19] = category
+        view.category_tree.setCurrentItem(category)
+        view.filtered = [
+            SimpleNamespace(id=10),
+            SimpleNamespace(id=42),
+            SimpleNamespace(id=99),
+        ]
+        view.list_widget.clear()
+        self.add_success(view, 10)
+        self.add_success(view, 99)
+        view._achievement_visible_row_by_id = {10: 0, 99: 1}
+        view.list_widget.setCurrentRow(0)
+        view.show_achievement = Mock()
+
+        self.assertTrue(view.select_achievement(42))
+        self.assertEqual(view.list_widget.currentRow(), 0)
+        self.assertEqual(view._achievement_pending_selected_id, 42)
+        view.show_achievement.assert_called_once_with(42)
+
     def test_category_change_cancels_debounced_search_and_refreshes_immediately(self):
         view, _provider = self.make_view()
         view.search.setText("ancienne recherche")
