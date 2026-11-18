@@ -1931,6 +1931,7 @@ class AtlasWindow(QMainWindow):
             service = AlmanaxDataService(self)
             service.dayAvailable.connect(self._on_almanax_day_available)
             service.dayUnavailable.connect(self._on_almanax_day_unavailable)
+            service.itemIconAvailable.connect(self._on_almanax_item_icon_available)
             self._almanax_service = service
         return self._almanax_service
 
@@ -1955,6 +1956,7 @@ class AtlasWindow(QMainWindow):
         quantity = int(getattr(day, "quantity", 0) or 0)
         bonus = str(getattr(day, "bonus", "") or "")
         category = str(getattr(day, "bonus_type", "") or "")
+        reward = int(getattr(day, "reward_kamas", 0) or 0)
         rows = [
             f"Offrande : {quantity} × {offering}" if offering
             else "Offrande non renseignée par la source",
@@ -1962,11 +1964,26 @@ class AtlasWindow(QMainWindow):
         ]
         if category:
             rows.append(f"Catégorie : {category}")
+        if reward > 0:
+            rows.append(f"Récompense : {reward:,} kamas".replace(",", " "))
         self.almanax_day_detail.setText("\n".join(rows))
         self.almanax_status_badge.setText(
             "Dofusdude · cache local" if cached else "Dofusdude · Dofus 3"
         )
         self.almanax_status_badge.set_state("info" if cached else "active")
+
+    def _on_almanax_item_icon_available(self, day_key: str, icon: QPixmap) -> None:
+        if self.quit_requested:
+            return
+        if day_key == QDate.currentDate().toString("yyyy-MM-dd"):
+            self.home_page.set_almanax_item_icon(day_key, icon)
+        calendar = getattr(self, "almanax_calendar", None)
+        if calendar is None or calendar.selectedDate().toString("yyyy-MM-dd") != day_key:
+            return
+        self.almanax_offering_icon.setPixmap(
+            icon.scaled(64, 64, Qt.KeepAspectRatio, Qt.SmoothTransformation)
+        )
+        self.almanax_offering_icon.show()
 
     def _on_almanax_day_unavailable(self, day_key: str, _reason: str) -> None:
         if self.quit_requested:
@@ -1982,6 +1999,8 @@ class AtlasWindow(QMainWindow):
             "Aucune offrande ni bonus sourcé pour cette date. "
             "Vérifiez la connexion ou réessayez."
         )
+        self.almanax_offering_icon.clear()
+        self.almanax_offering_icon.hide()
 
     def create_almanax_page(self) -> QWidget:
         """Browse sourced Almanax offerings, including future calendar dates."""
@@ -2016,14 +2035,45 @@ class AtlasWindow(QMainWindow):
         apply_unity_panel_shadow(calendar)
         layout.addWidget(calendar, 0, Qt.AlignHCenter)
 
+        day_nav = QHBoxLayout()
+        day_nav.setContentsMargins(0, 0, 0, 0)
+        day_nav.addStretch()
+        previous_day = AtlasButton("‹ Jour précédent", variant="secondary")
+        previous_day.setObjectName("AlmanaxPreviousDayButton")
+        previous_day.clicked.connect(
+            lambda: calendar.setSelectedDate(calendar.selectedDate().addDays(-1))
+        )
+        day_nav.addWidget(previous_day)
+        today_button = AtlasButton("Aujourd’hui", variant="secondary")
+        today_button.setObjectName("AlmanaxTodayButton")
+        today_button.clicked.connect(
+            lambda: calendar.setSelectedDate(QDate.currentDate())
+        )
+        day_nav.addWidget(today_button)
+        next_day = AtlasButton("Jour suivant ›", variant="secondary")
+        next_day.setObjectName("AlmanaxNextDayButton")
+        next_day.clicked.connect(
+            lambda: calendar.setSelectedDate(calendar.selectedDate().addDays(1))
+        )
+        day_nav.addWidget(next_day)
+        day_nav.addStretch()
+        layout.addLayout(day_nav)
+
         self.almanax_selected_date_label = QLabel(page)
         self.almanax_selected_date_label.setObjectName("AlmanaxSelectedDate")
         self.almanax_selected_date_label.setAlignment(Qt.AlignCenter)
         layout.addWidget(self.almanax_selected_date_label)
+        self.almanax_offering_icon = QLabel(page)
+        self.almanax_offering_icon.setObjectName("AlmanaxOfferingIcon")
+        self.almanax_offering_icon.setFixedSize(64, 64)
+        self.almanax_offering_icon.setAlignment(Qt.AlignCenter)
+        self.almanax_offering_icon.hide()
+        layout.addWidget(self.almanax_offering_icon, 0, Qt.AlignHCenter)
         self.almanax_day_detail = QLabel("Chargement de l'offrande et du bonus…", page)
         self.almanax_day_detail.setObjectName("AlmanaxDayDetails")
         self.almanax_day_detail.setWordWrap(True)
         self.almanax_day_detail.setAlignment(Qt.AlignCenter)
+        self.almanax_day_detail.setTextInteractionFlags(Qt.TextSelectableByMouse)
         layout.addWidget(self.almanax_day_detail)
 
         source = QLabel("Source : Dofusdude · Dofus 3 · données communautaires", page)
@@ -2049,6 +2099,8 @@ class AtlasWindow(QMainWindow):
             self.almanax_day_detail.setText(
                 "Recherche des données pour le jour sélectionné…"
             )
+            self.almanax_offering_icon.clear()
+            self.almanax_offering_icon.hide()
             self._request_almanax_day(
                 calendar.selectedDate().toString("yyyy-MM-dd")
             )

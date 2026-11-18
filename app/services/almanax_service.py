@@ -10,6 +10,7 @@ from time import time
 from typing import Any
 
 from PySide6.QtCore import QObject, QStandardPaths, QUrl, Signal
+from PySide6.QtGui import QPixmap
 from PySide6.QtNetwork import QNetworkAccessManager, QNetworkReply, QNetworkRequest
 
 from app.constants import CONFIG_DIR
@@ -28,6 +29,8 @@ class AlmanaxDay:
     quantity: int
     bonus: str
     bonus_type: str
+    reward_kamas: int = 0
+    item_icon_url: str = ""
 
 
 def parse_almanax_day(value: Any, expected_date: str) -> AlmanaxDay | None:
@@ -58,13 +61,37 @@ def parse_almanax_day(value: Any, expected_date: str) -> AlmanaxDay | None:
     kind = str(category.get("name") or "").strip()[:160]
     if not offering and not description:
         return None
-    return AlmanaxDay(expected_date, offering, quantity, description, kind)
+    try:
+        reward = int(value.get("reward_kamas") or 0)
+    except (TypeError, ValueError, OverflowError):
+        reward = 0
+    if not 0 <= reward <= 2_000_000_000:
+        reward = 0
+    image_urls = item.get("image_urls")
+    image_urls = image_urls if isinstance(image_urls, dict) else {}
+    icon_url = str(image_urls.get("icon") or "")
+    if not (
+        icon_url.startswith("https://api.dofusdu.de/dofus3/v1/img/item/")
+        and icon_url.endswith(".png")
+    ):
+        icon_url = ""
+    return AlmanaxDay(
+        expected_date, offering, quantity, description, kind,
+        reward_kamas=reward, item_icon_url=icon_url,
+    )
 
 
 def _cached_payload(day: AlmanaxDay) -> dict[str, Any]:
     return {
         "date": day.date,
-        "tribute": {"item": {"name": day.offering}, "quantity": day.quantity},
+        "tribute": {
+            "item": {
+                "name": day.offering,
+                "image_urls": {"icon": day.item_icon_url},
+            },
+            "quantity": day.quantity,
+        },
+        "reward_kamas": day.reward_kamas,
         "bonus": {
             "description": day.bonus,
             "type": {"name": day.bonus_type},
@@ -82,6 +109,7 @@ class AlmanaxDataService(QObject):
 
     dayAvailable = Signal(str, object, bool)
     dayUnavailable = Signal(str, str)
+    itemIconAvailable = Signal(str, object)
 
     def __init__(self, parent: QObject | None = None, *, cache_path: Path | None = None):
         super().__init__(parent)
@@ -95,6 +123,8 @@ class AlmanaxDataService(QObject):
         self._network = QNetworkAccessManager(self)
         self._cache: dict[str, tuple[AlmanaxDay, float]] = {}
         self._pending: dict[str, QNetworkReply] = {}
+        self._icon_cache: dict[str, QPixmap] = {}
+        self._icon_pending: dict[str, tuple[QNetworkReply, set[str]]] = {}
         self._load_cache()
 
     def _load_cache(self) -> None:
@@ -140,6 +170,7 @@ class AlmanaxDataService(QObject):
         cached = self._cache.get(day_key)
         if cached is not None:
             self.dayAvailable.emit(day_key, cached[0], True)
+            self._request_item_icon(cached[0])
             if not refresh and time() - cached[1] < CACHE_TTL_SECONDS:
                 return True
         if day_key in self._pending:
@@ -178,5 +209,51 @@ class AlmanaxDataService(QObject):
             self._cache[day_key] = (day, time())
             self._persist_cache()
             self.dayAvailable.emit(day_key, day, False)
+            self._request_item_icon(day)
+        finally:
+            reply.deleteLater()
+
+    def _request_item_icon(self, day: AlmanaxDay) -> None:
+        """Load the documented offering image without blocking Qt."""
+
+        url = day.item_icon_url
+        if not url:
+            return
+        icon = self._icon_cache.get(url)
+        if icon is not None:
+            self.itemIconAvailable.emit(day.date, icon)
+            return
+        pending = self._icon_pending.get(url)
+        if pending is not None:
+            pending[1].add(day.date)
+            return
+        request = QNetworkRequest(QUrl(url))
+        request.setTransferTimeout(8000)
+        reply = self._network.get(request)
+        self._icon_pending[url] = (reply, {day.date})
+        reply.finished.connect(
+            lambda target=url, result=reply: self._finish_item_icon(target, result)
+        )
+
+    def _finish_item_icon(self, url: str, reply: QNetworkReply) -> None:
+        pending = self._icon_pending.pop(url, None)
+        try:
+            if pending is None or pending[0] is not reply:
+                return
+            if reply.error() != QNetworkReply.NetworkError.NoError:
+                return
+            body = bytes(reply.readAll())
+            if not 0 < len(body) <= 256 * 1024:
+                return
+            icon = QPixmap()
+            if not icon.loadFromData(body, "PNG") or icon.isNull():
+                return
+            if icon.width() > 256 or icon.height() > 256:
+                return
+            if len(self._icon_cache) >= 48:
+                self._icon_cache.pop(next(iter(self._icon_cache)))
+            self._icon_cache[url] = icon
+            for key in sorted(pending[1]):
+                self.itemIconAvailable.emit(key, icon)
         finally:
             reply.deleteLater()

@@ -413,6 +413,14 @@ class HomePage(QWidget):
         self.almanax_badge = badge
         self.almanax_day_key = ""
         almanax_layout.addWidget(badge, 0, Qt.AlignHCenter)
+        self.almanax_item_icon = QLabel()
+        self.almanax_item_icon.setObjectName("AlmanaxOfferingIcon")
+        self.almanax_item_icon.setFixedSize(
+            UNITY_SIZES_PX["icon_xlarge"], UNITY_SIZES_PX["icon_xlarge"]
+        )
+        self.almanax_item_icon.setAlignment(Qt.AlignCenter)
+        self.almanax_item_icon.setVisible(False)
+        almanax_layout.addWidget(self.almanax_item_icon, 0, Qt.AlignHCenter)
 
         almanax_text = QLabel(
             "Calendrier consultable. Offrandes et bonus en attente "
@@ -422,6 +430,7 @@ class HomePage(QWidget):
         self.almanax_text = almanax_text
         almanax_text.setAlignment(Qt.AlignCenter)
         almanax_text.setWordWrap(True)
+        almanax_text.setTextInteractionFlags(Qt.TextSelectableByMouse)
         almanax_layout.addWidget(almanax_text)
         almanax_layout.addStretch(1)
 
@@ -526,17 +535,31 @@ class HomePage(QWidget):
         offering = str(getattr(day, "offering", "") or "")
         quantity = int(getattr(day, "quantity", 0) or 0)
         bonus = str(getattr(day, "bonus", "") or "")
+        reward = int(getattr(day, "reward_kamas", 0) or 0)
         lines = [
             f"Offrande : {quantity} × {offering}" if offering
             else "Offrande non renseignée par la source",
             f"Bonus : {bonus}" if bonus else "Bonus non renseigné par la source",
         ]
+        if reward > 0:
+            lines.append(f"Récompense : {reward:,} kamas".replace(",", " "))
+        self.almanax_item_icon.clear()
+        self.almanax_item_icon.hide()
         self.almanax_day_key = str(getattr(day, "date", "") or "")
         self.almanax_text.setText("\n".join(lines))
         self.almanax_badge.setText(
             "Dofusdude · cache local" if cached else "Dofusdude · Dofus 3"
         )
         self.almanax_badge.set_state("info" if cached else "active")
+
+    def set_almanax_item_icon(self, day_key: str, pixmap: QPixmap) -> None:
+        if self.almanax_day_key != day_key or pixmap.isNull():
+            return
+        pixels = UNITY_SIZES_PX["icon_xlarge"]
+        self.almanax_item_icon.setPixmap(
+            pixmap.scaled(pixels, pixels, Qt.KeepAspectRatio, Qt.SmoothTransformation)
+        )
+        self.almanax_item_icon.show()
 
     def set_almanax_loading(self, day_key: str) -> None:
         # Never display yesterday's offering under today's Home heading.
@@ -546,6 +569,8 @@ class HomePage(QWidget):
         ):
             return
         self.almanax_day_key = ""
+        self.almanax_item_icon.clear()
+        self.almanax_item_icon.hide()
         self.almanax_badge.setText("Chargement de l'Almanax…")
         self.almanax_badge.set_state("neutral")
         self.almanax_text.setText("Recherche de l'offrande et du bonus du jour…")
@@ -558,6 +583,8 @@ class HomePage(QWidget):
         ):
             return
         self.almanax_day_key = ""
+        self.almanax_item_icon.clear()
+        self.almanax_item_icon.hide()
         self.almanax_badge.setText("Données indisponibles")
         self.almanax_badge.set_state("blocked")
         self.almanax_text.setText(

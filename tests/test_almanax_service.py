@@ -23,7 +23,14 @@ def _source_day(key: str = "2026-11-18") -> dict:
     # No assertion below claims these are actual Dofus offerings/bonuses.
     return {
         "date": key,
-        "tribute": {"item": {"name": "Objet de test"}, "quantity": 5},
+        "tribute": {
+            "item": {
+                "name": "Objet de test",
+                "image_urls": {"icon": "https://api.dofusdu.de/dofus3/v1/img/item/test-64.png"},
+            },
+            "quantity": 5,
+        },
+        "reward_kamas": 2500,
         "bonus": {
             "description": "Bonus de test.",
             "type": {"name": "Catégorie de test"},
@@ -43,6 +50,7 @@ class AlmanaxSourceTests(unittest.TestCase):
             AlmanaxDay(
                 "2026-11-18", "Objet de test", 5,
                 "Bonus de test.", "Catégorie de test",
+                reward_kamas=2500, item_icon_url="https://api.dofusdu.de/dofus3/v1/img/item/test-64.png",
             ),
         )
 
@@ -71,7 +79,11 @@ class AlmanaxSourceTests(unittest.TestCase):
                 lambda key, value, cached: seen.append((key, value, cached))
             )
             try:
-                self.assertTrue(second.request_day("2026-11-18"))
+                from unittest.mock import patch
+
+                with patch.object(second, "_request_item_icon") as image_request:
+                    self.assertTrue(second.request_day("2026-11-18"))
+                    image_request.assert_called_once_with(day)
                 self.assertEqual(seen, [("2026-11-18", day, True)])
                 self.assertEqual(second._pending, {})
                 self.assertFalse(second.request_day("not-a-day"))
