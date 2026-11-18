@@ -381,17 +381,17 @@ class GuideUltimeUniversalView(GuideUltimeGeneratedView):
         # Zaaps require independently verified routing; never infer one here.
         normalized = str(command or "").strip()
         callback = self.travel_callback
-        command_match = re.fullmatch(r"/travel (-?\\d+),(-?\\d+)", normalized)
-        try:
-            known_destination = (
-                command_match is not None
-                and SENTINEL_COORD not in (
-                    int(command_match.group(1)), int(command_match.group(2))
-                )
+        command_match = re.fullmatch(r"/travel (-?\d+),(-?\d+)", normalized)
+        known_destination = False
+        if command_match is not None and all(
+            len(value.lstrip("-")) <= 10 for value in command_match.groups()
+        ):
+            # Dofus map positions are represented as signed 32-bit values;
+            # exclude the special no-position sentinel from game input.
+            x, y = (int(value) for value in command_match.groups())
+            known_destination = all(
+                SENTINEL_COORD < coordinate < 2**31 for coordinate in (x, y)
             )
-        except ValueError:
-            # Extremely long/corrupt coordinates must not crash a Qt click.
-            known_destination = False
         if not callable(callback) or not known_destination:
             QApplication.clipboard().setText(normalized)
             return False
