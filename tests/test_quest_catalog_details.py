@@ -32,6 +32,29 @@ def record(quest_id):
 
 
 class QuestDetailsTests(unittest.TestCase):
+    def test_source_map_coordinates_never_coerce_invalid_positions(self):
+        # A valid source map may recover coordinates that the objective lacks.
+        maps = {17: {"posX": "-03", "posY": "04"}}
+        self.assertEqual(qc.map_label(17, {"x": 1, "y": -2}, maps), "[1,-2]")
+        self.assertEqual(qc.map_label(17, {"x": None, "y": 2}, maps), "[-3,4]")
+        self.assertEqual(qc.map_label(17, {"x": 2**31, "y": 3}, maps), "[-3,4]")
+
+        # Do not silently convert booleans, fractional values or overflow
+        # into a navigable /travel link or an objective starting position.
+        invalid = (True, False, 1.5, -2.5, 2**31, -(2**31), -(2**31) - 1)
+        for value in invalid:
+            with self.subTest(value=value):
+                self.assertEqual(qc.map_label(None, {"x": value, "y": 3}, {}), "")
+                self.assertEqual(qc.map_label(None, {"x": 3, "y": value}, {}), "")
+                self.assertEqual(
+                    qc.map_label(5, {"x": None, "y": None},
+                                 {5: {"posX": value, "posY": 3}}),
+                    "",
+                )
+        self.assertEqual(qc.map_label(None, {"x": "3", "y": "-04"}, {}), "[3,-4]")
+        self.assertEqual(qc.map_label(None, {"x": -(2**31) + 1, "y": 0}, {}),
+                         "[-2147483647,0]")
+
     def test_compact_quest_id_inventory_preserves_duplicate_titles(self):
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
