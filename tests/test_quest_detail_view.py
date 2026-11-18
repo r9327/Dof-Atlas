@@ -538,6 +538,53 @@ class QuestDetailViewColumnTests(unittest.TestCase):
         self.assertEqual(steps[0].objectives[0].position, "")
         self.assertEqual(steps[0].objectives[0].objective_id, None)
 
+    def test_source_block_metadata_coordinates_render_only_verified_travel_links(self) -> None:
+        from app.quest_catalog import QuestSolutionBlock
+        from app.modules.encyclopedia.services.guide_quest_view_model import (
+            quest_solution_blocks,
+        )
+        from app.modules.encyclopedia.views.guides_view import (
+            solution_text_document,
+        )
+
+        quest = QuestRecord(
+            id=921, name="Positions des blocs", category="Quêtes",
+            level_min=1, level_max=200, start_criterion="",
+            solution_blocks=[
+                QuestSolutionBlock(
+                    1, "text", "Parler au garde.", position="[ 003, -06 ]",
+                ),
+                QuestSolutionBlock(
+                    2, "text", "Départ [3,-6]", position="[3,-6]",
+                ),
+                QuestSolutionBlock(
+                    3, "text", "Continuer la quête.",
+                    position="[2147483648,1]",
+                ),
+                QuestSolutionBlock(4, "text", "", position="[2,3]"),
+                QuestSolutionBlock(5, "image", "", position="[2,3]"),
+                QuestSolutionBlock(6, "heading", "", position="[2,3]"),
+            ],
+        )
+        blocks = quest_solution_blocks(quest)
+        self.assertEqual(len(blocks), 4)
+        self.assertEqual(
+            [block.position for block in blocks],
+            ["[3,-6]", "[3,-6]", "", "[2,3]"],
+        )
+        labels = [solution_text_document((block,)) for block in blocks]
+        try:
+            self.assertIn("Position source", labels[0].text())
+            self.assertIn("atlas-travel:3,-6", labels[0].text())
+            self.assertEqual(labels[1].text().count("atlas-travel:3,-6"), 1)
+            self.assertNotIn("Position source", labels[1].text())
+            self.assertNotIn("atlas-travel:", labels[2].text())
+            self.assertIn("Position source", labels[3].text())
+            self.assertIn("atlas-travel:2,3", labels[3].text())
+        finally:
+            for label in labels:
+                label.deleteLater()
+
     def test_all_displayed_travel_coordinates_share_bold_link_markup(self) -> None:
         from PySide6.QtCore import Qt
         from app.modules.encyclopedia.services.guide_quest_view_model import (
