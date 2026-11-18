@@ -257,6 +257,121 @@ class NetworkHomeStatusTests(unittest.TestCase):
             bridge.deleteLater()
             self.app.processEvents()
 
+    def test_network_verified_disconnects_refresh_accounts_once_without_progress(self) -> None:
+        from types import SimpleNamespace
+        from unittest.mock import Mock, patch
+
+        coordinator = Mock()
+        coordinator.has_pending_ui_events.return_value = True
+        coordinator.drain_statuses.return_value = []
+        coordinator.drain_results.return_value = [
+            SimpleNamespace(
+                accepted=True, changed=True, character_key="character:2",
+                reason="session_closed",
+            ),
+            SimpleNamespace(
+                accepted=True, changed=True, character_key="character:1",
+                reason="session_closed",
+            ),
+            SimpleNamespace(
+                accepted=True, changed=True, character_key="character:2",
+                reason="session_closed",
+            ),
+            SimpleNamespace(
+                accepted=True, changed=False, character_key="character:3",
+                reason="session_closed",
+            ),
+            SimpleNamespace(
+                accepted=False, changed=True, character_key="character:4",
+                reason="session_closed",
+            ),
+        ]
+        coordinator.stop.return_value = True
+        bridge = self._new_network_bridge(coordinator)
+        disconnects, activations, progress = [], [], []
+        bridge.connectionsChanged.connect(disconnects.append)
+        bridge.characterActivated.connect(activations.append)
+        bridge.progressChanged.connect(progress.append)
+        try:
+            with patch("app.ui.network_bridge.record_validation"):
+                bridge._poll()
+                bridge._emit_pending_progress()
+            self.assertEqual(disconnects, [("character:1", "character:2")])
+            self.assertEqual(activations, [])
+            self.assertEqual(progress, [])
+            self.assertFalse(bridge._progress_timer.isActive())
+        finally:
+            bridge.stop()
+            bridge.deleteLater()
+            self.app.processEvents()
+
+    def test_network_identify_and_close_same_poll_refresh_only_once(self) -> None:
+        from types import SimpleNamespace
+        from unittest.mock import Mock, patch
+
+        coordinator = Mock()
+        coordinator.has_pending_ui_events.return_value = True
+        coordinator.drain_statuses.return_value = []
+        coordinator.drain_results.return_value = [
+            SimpleNamespace(
+                accepted=True, changed=True, character_key="character:1",
+                reason="session_closed",
+            ),
+            SimpleNamespace(
+                accepted=True, changed=False, character_key="character:2",
+                reason="character_identified",
+            ),
+        ]
+        coordinator.stop.return_value = True
+        bridge = self._new_network_bridge(coordinator)
+        identities, disconnects = [], []
+        bridge.charactersIdentified.connect(identities.append)
+        bridge.connectionsChanged.connect(disconnects.append)
+        try:
+            with patch("app.ui.network_bridge.record_validation"):
+                bridge._poll()
+            self.assertEqual(identities, [("character:2",)])
+            self.assertEqual(disconnects, [])
+        finally:
+            bridge.stop()
+            bridge.deleteLater()
+            self.app.processEvents()
+
+    def test_network_disconnect_signal_obeys_stop_boundary(self) -> None:
+        from types import SimpleNamespace
+        from unittest.mock import Mock, patch
+
+        coordinator = Mock()
+        coordinator.has_pending_ui_events.return_value = True
+        coordinator.drain_statuses.return_value = []
+        coordinator.drain_results.return_value = [
+            SimpleNamespace(
+                accepted=True, changed=True, character_key="character:1",
+                reason="session_closed",
+            ),
+            SimpleNamespace(
+                accepted=True, changed=True, character_key="character:1",
+                reason="quest_completed",
+            ),
+        ]
+        coordinator.stop.return_value = True
+        bridge = self._new_network_bridge(coordinator)
+        disconnected, progress = [], []
+        bridge.connectionsChanged.connect(
+            lambda ids: (disconnected.append(ids), bridge.stop())
+        )
+        bridge.progressChanged.connect(progress.append)
+        try:
+            with patch("app.ui.network_bridge.record_validation"):
+                bridge._poll()
+            self.assertEqual(disconnected, [("character:1",)])
+            self.assertEqual(progress, [])
+            self.assertFalse(bridge._progress_timer.isActive())
+        finally:
+            bridge.stop()
+            bridge.deleteLater()
+            self.app.processEvents()
+
     def test_network_journal_progress_does_not_reload_character_profiles(self) -> None:
         from types import SimpleNamespace
         from unittest.mock import Mock, patch
