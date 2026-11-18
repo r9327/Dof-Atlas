@@ -139,13 +139,17 @@ class NetworkApplicationCoordinator:
             raise TypeError("quest_catalog must be a QuestCatalog")
         if achievement_provider is None:
             raise ValueError("achievement_provider is required")
-        self.calibration.configure_context(quest_catalog=quest_catalog)
-        self.runtime.configure_context(
-            quest_catalog=quest_catalog,
-            achievement_provider=achievement_provider,
-            guide_provider=guide_provider,
-        )
         with self._lock:
+            if self._shutdown_requested:
+                # A late Encyclopedia/Qt initialization may finish after
+                # close. Do not repopulate controllers that stop() disposed.
+                return
+            self.calibration.configure_context(quest_catalog=quest_catalog)
+            self.runtime.configure_context(
+                quest_catalog=quest_catalog,
+                achievement_provider=achievement_provider,
+                guide_provider=guide_provider,
+            )
             first_context = not self._context_ready
             self._context_ready = True
             self._context = (quest_catalog, achievement_provider, guide_provider)
