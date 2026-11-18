@@ -23,11 +23,11 @@ class AtlasWindowRuntimeCleanupTests(unittest.TestCase):
             bridge.stop()
         network_bridge_module._BRIDGE = None
 
-    def test_network_activation_uses_verified_key_not_favorite_or_window_name(self):
+    def test_network_initial_selection_uses_verified_key_not_window_name(self):
         from types import SimpleNamespace
 
         shell = Mock()
-        shell.current_character_key = "character:2"
+        shell.current_character_key = ""
         shell._last_active_dofus_hwnd = 234
         shell.character_combo.count.return_value = 2
         # Same displayed name can exist on two servers: only the verified
@@ -44,11 +44,11 @@ class AtlasWindowRuntimeCleanupTests(unittest.TestCase):
         shell.character_combo.setCurrentIndex.assert_called_once_with(0)
         shell.on_global_character_changed.assert_called_once_with()
 
-    def test_network_activation_keeps_selection_when_verified_key_is_missing(self):
+    def test_network_initial_selection_rejects_missing_verified_key(self):
         from types import SimpleNamespace
 
         shell = Mock()
-        shell.current_character_key = "character:2"
+        shell.current_character_key = ""
         shell.character_combo.count.return_value = 2
         shell.character_combo.itemData.side_effect = lambda index: SimpleNamespace(
             key=("character:1", "character:2")[index],
@@ -61,11 +61,11 @@ class AtlasWindowRuntimeCleanupTests(unittest.TestCase):
         shell.character_combo.setCurrentIndex.assert_not_called()
         shell.on_global_character_changed.assert_not_called()
 
-    def test_network_activation_does_not_pick_ambiguous_duplicate_key(self):
+    def test_network_initial_selection_does_not_pick_duplicate_key(self):
         from types import SimpleNamespace
 
         shell = Mock()
-        shell.current_character_key = "character:2"
+        shell.current_character_key = ""
         shell.character_combo.count.return_value = 2
         shell.character_combo.itemData.side_effect = lambda _index: SimpleNamespace(
             key="character:1",
@@ -88,7 +88,21 @@ class AtlasWindowRuntimeCleanupTests(unittest.TestCase):
 
         AtlasWindow.on_network_character_activated(shell, "character:7")
 
-        shell.character_combo.setCurrentIndex.assert_called_once_with(0)
+        shell.refresh_global_characters.assert_called_once_with()
+        shell.character_combo.setCurrentIndex.assert_not_called()
+        shell.on_global_character_changed.assert_not_called()
+
+    def test_network_background_login_never_overrides_manual_character(self):
+        shell = Mock()
+        shell.current_character_key = "character:2"
+
+        # These are real verified session identities, but neither proves
+        # that its corresponding DOFUS window currently has the focus.
+        AtlasWindow.on_network_character_activated(shell, "character:1")
+        AtlasWindow.on_network_character_activated(shell, "character:3")
+
+        self.assertEqual(shell.refresh_global_characters.call_count, 2)
+        shell.character_combo.setCurrentIndex.assert_not_called()
         shell.on_global_character_changed.assert_not_called()
 
     def test_network_progress_hidden_encyclopedia_refreshes_only_on_return(self):
