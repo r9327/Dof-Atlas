@@ -623,6 +623,8 @@ class NetworkApplicationCoordinator:
             self._publish_current(self._last_runtime.reason)
 
     def _publish_current(self, reason: str) -> None:
+        if self._stop_event.is_set():
+            return
         calibration = self._last_calibration
         runtime = self._last_runtime
         calibrating = bool(
@@ -656,7 +658,7 @@ class NetworkApplicationCoordinator:
 
     def _publish_status(self, status: NetworkApplicationStatus) -> None:
         with self._lock:
-            if status == self._last_status:
+            if self._stop_event.is_set() or status == self._last_status:
                 return
             self._last_status = status
         record_validation("network_status", running=status.running,
@@ -666,6 +668,9 @@ class NetworkApplicationCoordinator:
                           completed=status.distinct_completion_count,
                           journal_observed=status.quest_journal_observation_count,
                           journal_verified=status.quest_journal_verified_count)
+        if self._stop_event.is_set():
+            return
         self.logger.info("Network status: reason=%s running=%s calibrating=%s",
                          status.reason, status.running, status.calibrating)
-        self._statuses.put(status)
+        if not self._stop_event.is_set():
+            self._statuses.put(status)
