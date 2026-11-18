@@ -3,6 +3,7 @@ from __future__ import annotations
 import argparse
 import hashlib
 import json
+import re
 import time
 from collections import Counter, defaultdict
 from concurrent.futures import ThreadPoolExecutor, as_completed
@@ -387,6 +388,68 @@ def sample_coverage(
     }
 
 
+
+_LOCAL_START_COORD_RE = re.compile(r"\[\s*(-?\d+)\s*,\s*(-?\d+)\s*\]\Z")
+
+
+def local_start_position_coverage(
+    enriched: dict[str, Any], quest_ids: Iterable[int],
+) -> dict[str, Any]:
+    """Audit declared Quest starts without confusing them with objective maps.
+
+    This is only local source completeness, never independent source proof
+    or permission to route a Zaap / send automatic travel commands.
+    """
+    counts: Counter[str] = Counter()
+    needs_review: list[dict[str, object]] = []
+    for quest_id in sorted(set(int(value) for value in quest_ids)):
+        row = enriched.get(str(quest_id))
+        if not isinstance(row, dict):
+            status = "NO_ENRICHMENT"
+        else:
+            launch = row.get("launch_position")
+            metadata = row.get("source_meta")
+            launch = launch if isinstance(launch, dict) else {}
+            metadata = metadata if isinstance(metadata, dict) else {}
+            first = str(launch.get("position") or "").strip()
+            second = str(metadata.get("startCoords") or "").strip()
+            declared = [part for part in (first, second) if part]
+            parsed = [_LOCAL_START_COORD_RE.fullmatch(part) for part in declared]
+            if not declared:
+                status = "NO_DECLARED_START"
+            elif any(match is None for match in parsed):
+                status = "INVALID_START_COORDINATES"
+            elif len(parsed) == 2 and parsed[0].groups() != parsed[1].groups():
+                # Different textual zero-padding must not create a false mismatch.
+                first_xy = tuple(map(int, parsed[0].groups()))
+                second_xy = tuple(map(int, parsed[1].groups()))
+                status = (
+                    "LOCAL_START_DECLARED" if first_xy == second_xy
+                    else "CONFLICTING_DECLARED_START"
+                )
+            else:
+                status = "LOCAL_START_DECLARED"
+            if row.get("solution_blocks"):
+                counts["WITH_DOCUMENTARY_BLOCKS"] += 1
+            else:
+                counts["WITHOUT_DOCUMENTARY_BLOCKS"] += 1
+        counts[status] += 1
+        if status != "LOCAL_START_DECLARED":
+            needs_review.append({"quest_id": quest_id, "status": status})
+    return {
+        "evidence": "LOCAL_ENRICHMENT_ONLY_NOT_GAME_VERIFIED",
+        "quests_considered": sum(
+            counts[key] for key in (
+                "NO_ENRICHMENT", "NO_DECLARED_START",
+                "INVALID_START_COORDINATES",
+                "CONFLICTING_DECLARED_START", "LOCAL_START_DECLARED",
+            )
+        ),
+        "counts": dict(sorted(counts.items())),
+        "needs_review": needs_review,
+    }
+
+
 def base_result(quest: Any, mapping_row: dict[str, Any], local_row: dict[str, Any]) -> dict[str, Any]:
     candidates = mapping_row.get("dofus_pour_les_noobs", []) or []
     if mapping_row.get("status") == "ambiguous" or len(candidates) > 1:
@@ -616,6 +679,9 @@ def build_audit(online: str, sample_size: int, workers: int, refresh: bool, cach
             results[str(qid)]["guide_reference"] = "GUIDE_REFERENCE_UNKNOWN"
 
     quest_rows = sorted(results.values(), key=lambda row: int(row["quest_id"]))
+    start_coverage = local_start_position_coverage(
+        enriched, (int(quest.id) for quest in catalog.quests),
+    )
     mapping_counts = Counter(row["mapping"] for row in quest_rows)
     text_counts = Counter(row["text"] for row in quest_rows)
     image_counts = Counter(row["image"] for row in quest_rows)
@@ -730,6 +796,7 @@ def build_audit(online: str, sample_size: int, workers: int, refresh: bool, cach
         "summary": {
             "quests_analyzed": len(quest_rows),
             "guides_analyzed": len(guide_rows),
+            "local_start_positions": start_coverage["counts"],
             "mapping": dict(mapping_counts),
             "text": dict(text_counts),
             "images": dict(image_counts),
@@ -744,6 +811,7 @@ def build_audit(online: str, sample_size: int, workers: int, refresh: bool, cach
             "technical_migrations": len(technical_migrations),
         },
         "root_causes": root_causes,
+        "local_start_position_audit": start_coverage,
         "sample_quest_ids": sample_ids,
         "sample_coverage": sample_coverage(catalog, sample_ids, guide_ids_by_quest, enriched, guides),
         "sample": [results[str(qid)] for qid in sample_ids if str(qid) in results],
