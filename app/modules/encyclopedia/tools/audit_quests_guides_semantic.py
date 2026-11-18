@@ -1051,6 +1051,10 @@ def write_changes(path: Path, payload: dict[str, Any]) -> None:
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description="Audit semantique conservateur Quetes/Guides contre DPLN.")
     parser.add_argument("--online", choices=("none", "sample", "full"), default="none")
+    parser.add_argument(
+        "--local-coverage-only", action="store_true",
+        help="Rapport de couverture locale des départs et instructions, sans Guides/Succès ni requêtes web.",
+    )
     parser.add_argument("--sample-size", type=int, default=50)
     parser.add_argument("--workers", type=int, default=3)
     parser.add_argument("--refresh", action="store_true")
@@ -1059,6 +1063,30 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--markdown-output", type=Path, default=DEFAULT_MARKDOWN)
     parser.add_argument("--changes-output", type=Path, default=DEFAULT_CHANGES)
     args = parser.parse_args(argv)
+    if args.local_coverage_only:
+        # Local gaps can be measured without creating the expensive Guide,
+        # Achievement or quest-dependency graph used by the full audit.
+        catalog = QuestProvider().get_catalog()
+        enrichment_payload = read_json_file(ENRICHED_PATH, {})
+        enriched = (
+            enrichment_payload.get("quests", {})
+            if isinstance(enrichment_payload, dict) else {}
+        )
+        if not isinstance(enriched, dict):
+            enriched = {}
+        coverage = local_start_position_coverage(
+            enriched, (int(quest.id) for quest in catalog.quests),
+        )
+        payload = {
+            "scope": "LOCAL_QUEST_STARTS_AND_INSTRUCTIONS",
+            **coverage,
+        }
+        write_json_file(args.json_output, payload)
+        print(json.dumps({
+            "quests_considered": coverage["quests_considered"],
+            "counts": coverage["counts"],
+        }, ensure_ascii=False, indent=2))
+        return 0
     payload = build_audit(args.online, max(30, min(args.sample_size, 50)), args.workers, args.refresh, args.cache)
     write_json_file(args.json_output, payload)
     write_markdown(args.markdown_output, payload)
