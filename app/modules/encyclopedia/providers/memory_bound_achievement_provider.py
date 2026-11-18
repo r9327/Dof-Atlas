@@ -1565,7 +1565,7 @@ class MemoryBoundAchievementProvider(BaseAchievementProvider):
                 except (OSError, UnicodeError, ValueError, TypeError, KeyError):
                     # An isolated damaged record is not permission to lose
                     # valid searchable Successes from this generation.
-                    _LOGGER.exception(
+                    logging.getLogger(__name__).exception(
                         "Recherche Succès : index illisible pour %s",
                         achievement_id,
                     )
