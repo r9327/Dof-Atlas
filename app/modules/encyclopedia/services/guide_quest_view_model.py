@@ -815,13 +815,19 @@ def quest_solution_blocks(quest: QuestRecord) -> tuple[DisplaySolutionBlock, ...
         if block.block_type == "heading" and _is_artificial_step_title(content):
             continue
         image_path = str(block.image_path or "")
-        if not content and not image_path:
+        # A documentary block may carry a real map coordinate separately
+        # from its text. Normalize it before the UI ever offers /travel.
+        position = _canonical_source_coordinate(block.position)
+        textual = block.block_type not in {
+            "image", "heading", "title", "subtitle", "section_heading",
+        }
+        if not content and not image_path and not (position and textual):
             continue
         rows.append(
             DisplaySolutionBlock(
                 block_type=str(block.block_type or "text"),
                 content=content,
-                position=str(block.position or ""),
+                position=position,
                 image_path=image_path,
                 caption=clean_text(block.caption),
                 data=dict(block.data or {}),
