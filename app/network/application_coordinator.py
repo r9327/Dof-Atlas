@@ -243,8 +243,16 @@ class NetworkApplicationCoordinator:
     def stop(self, join_timeout: float = 3.0) -> bool:
         self._stop_event.set()
         with self._operation_lock:
-            calibration_stopped = bool(self.calibration.stop())
-            runtime_stopped = bool(self.runtime.stop())
+            try:
+                calibration_stopped = bool(self.calibration.stop())
+            except Exception:
+                self.logger.exception("Network calibration cleanup failed.")
+                calibration_stopped = False
+            try:
+                runtime_stopped = bool(self.runtime.stop())
+            except Exception:
+                self.logger.exception("Network runtime cleanup failed.")
+                runtime_stopped = False
             capture_stopped = self._close_capture_source()
         with self._lock:
             self._calibration_pending = False
@@ -283,9 +291,17 @@ class NetworkApplicationCoordinator:
             self.logger.exception("Network coordinator worker failed.")
             self._publish_current("coordinator_error")
         finally:
+            # Always attempt every cleanup step, even if a calibration
+            # controller raises while a background worker is exiting.
             with self._operation_lock:
-                self.calibration.stop()
-                self.runtime.stop()
+                try:
+                    self.calibration.stop()
+                except Exception:
+                    self.logger.exception("Network calibration final cleanup failed.")
+                try:
+                    self.runtime.stop()
+                except Exception:
+                    self.logger.exception("Network runtime final cleanup failed.")
                 self._close_capture_source()
             with self._lock:
                 self._calibration_pending = False
