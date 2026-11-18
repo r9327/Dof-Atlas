@@ -410,6 +410,72 @@ class QuestDetailViewColumnTests(unittest.TestCase):
         )
         self.assertEqual(blocks[1].image_path, "image_locale.webp")
 
+    def test_source_progress_matching_survives_insertion_and_reordering(self) -> None:
+        from app.modules.encyclopedia.services.guide_quest_view_model import (
+            quest_solution_steps,
+        )
+
+        quest = QuestRecord(
+            id=910, name="Étapes importées", category="Quêtes",
+            level_min=1, level_max=200, start_criterion="",
+            steps=[QuestStep(1, "Locale", "", [
+                QuestObjective(17, "Parler au garde", 1, map_label="[2,3]"),
+                QuestObjective(18, "Découvrir la carte : 991", 0, map_label="[4,5]"),
+            ])],
+            source_solution_steps=[QuestStep(2, "Documentation", "", [
+                QuestObjective(-1, "Lire la note du PNJ", 0),
+                QuestObjective(-2, "Découvrir la carte : 991", 0, map_label="[4,5]"),
+                QuestObjective(-3, "Parler au garde", 0, map_label="[2,3]"),
+            ])],
+        )
+        objectives = quest_solution_steps(quest)[0].objectives
+        self.assertEqual([row.objective_id for row in objectives], [None, 18, 17])
+        self.assertEqual(objectives[0].text, "Lire la note du PNJ")
+
+    def test_source_progress_matching_rejects_conflicting_coordinates(self) -> None:
+        from app.modules.encyclopedia.services.guide_quest_view_model import (
+            quest_solution_steps,
+        )
+
+        quest = QuestRecord(
+            id=911, name="Coordonnées opposées", category="Quêtes",
+            level_min=1, level_max=200, start_criterion="",
+            steps=[QuestStep(1, "Locale", "", [
+                QuestObjective(17, "Parler au garde", 1, map_label="[2,3]"),
+            ])],
+            source_solution_steps=[QuestStep(2, "Documentation", "", [
+                QuestObjective(-1, "Parler au garde", 0, map_label="[9,9]"),
+            ])],
+        )
+        objective = quest_solution_steps(quest)[0].objectives[0]
+        self.assertIsNone(objective.objective_id)
+        self.assertEqual(objective.position, "[9,9]")
+
+    def test_source_progress_matching_rejects_ambiguous_duplicate_objectives(self) -> None:
+        from app.modules.encyclopedia.services.guide_quest_view_model import (
+            quest_solution_steps,
+        )
+
+        quest = QuestRecord(
+            id=912, name="Doublons", category="Quêtes",
+            level_min=1, level_max=200, start_criterion="",
+            steps=[QuestStep(1, "Locale", "", [
+                QuestObjective(17, "Parler au garde", 1),
+            ])],
+            source_solution_steps=[QuestStep(2, "Documentation", "", [
+                QuestObjective(-1, "Parler au garde", 0),
+                QuestObjective(-2, "Parler au garde", 0),
+            ])],
+        )
+        rows = quest_solution_steps(quest)[0].objectives
+        self.assertEqual([row.objective_id for row in rows], [None, None])
+
+        # Even one source row cannot choose between two local objectives
+        # with the same text and no valid position differentiating them.
+        quest.source_solution_steps[0].objectives.pop()
+        quest.steps[0].objectives.append(QuestObjective(18, "Parler au garde", 1))
+        self.assertIsNone(quest_solution_steps(quest)[0].objectives[0].objective_id)
+
     def test_all_displayed_travel_coordinates_share_bold_link_markup(self) -> None:
         from PySide6.QtCore import Qt
         from app.modules.encyclopedia.services.guide_quest_view_model import (
