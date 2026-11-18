@@ -157,7 +157,7 @@ def item_row(*args, **kwargs):
 
 
 Navigator = Callable[..., bool]
-TravelLauncher = Callable[[str, tuple[str, ...]], None]
+TravelLauncher = Callable[[str, tuple[str, ...]], bool | None]
 LOGGER = logging.getLogger("dofus_atlas.encyclopedia.images")
 
 GUIDE_ULTIME_LEGACY_ID = "guide_complet"
