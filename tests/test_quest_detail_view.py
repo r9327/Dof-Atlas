@@ -217,6 +217,53 @@ class QuestDetailViewColumnTests(unittest.TestCase):
                     "Position d'objectif (départ non confirmé)",
                 )
 
+    def test_quest_objective_coordinates_are_normalized_not_fabricated(self) -> None:
+        from app.modules.encyclopedia.services.guide_quest_view_model import (
+            first_position_from_quest,
+            quest_start_info,
+        )
+
+        quest = QuestRecord(
+            id=46, name="Objectif sans départ confirmé", category="Quêtes",
+            level_min=1, level_max=1, start_criterion="",
+            zones=["Zone locale"],
+            steps=[QuestStep(
+                id=1, name="Visiter", description="",
+                objectives=[
+                    QuestObjective(id=1, text="Coordonnée hors carte", type_id=0,
+                                   map_label="[2147483648,3]"),
+                    QuestObjective(id=2, text="Coordonnée inconnue", type_id=0,
+                                   map_label="[-2147483648,3]"),
+                    QuestObjective(id=3, text="Coordonnée utile", type_id=0,
+                                   map_label="[ 003, -06 ]"),
+                ],
+            )],
+        )
+        info = quest_start_info(quest, include_map_images=False)
+        self.assertEqual(info.position, "[3,-6]")
+        self.assertEqual(first_position_from_quest(quest, start_info=info), "[3,-6]")
+        self.assertEqual(
+            QuestDetailView._start_position_heading(quest, info.position),
+            "Position d'objectif (départ non confirmé)",
+        )
+
+        # No valid objective coordinate means the UI must show the zone only.
+        quest.steps[0].objectives[2].map_label = "coordonnées indisponibles"
+        info = quest_start_info(quest, include_map_images=False)
+        self.assertEqual(info.position, "")
+        self.assertEqual(first_position_from_quest(quest, start_info=info), "")
+        self.assertEqual(QuestDetailView._start_position_heading(quest, ""), "Zone de quête")
+
+        # A stale caller-supplied start does not bypass objective validation.
+        from dataclasses import replace
+        quest.steps[0].objectives[2].map_label = "[1,2]"
+        self.assertEqual(
+            first_position_from_quest(
+                quest, start_info=replace(info, position="[2147483648,3]")
+            ),
+            "[1,2]",
+        )
+
     def test_all_displayed_travel_coordinates_share_bold_link_markup(self) -> None:
         from PySide6.QtCore import Qt
         from app.modules.encyclopedia.services.guide_quest_view_model import (
