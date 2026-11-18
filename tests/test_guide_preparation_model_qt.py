@@ -267,6 +267,66 @@ class GuidePreparationQtFocusedTests(unittest.TestCase):
         self.assertIn("Aperçu des préparatifs", label.text())
         self.assertFalse(self.path.exists())
 
+    def test_open_preparation_rebuilds_rows_when_guide_progress_refreshes(self):
+        self.participants.save_selected_keys(("character:1",))
+        view = self._view()
+        previous = view.preparation_panel.findChild(
+            QPushButton, "GuidePreparationItemCopy",
+        )
+        self.assertEqual(previous.text(), "Potion de rappel")
+
+        # A data/progress refresh while the drawer stays open must replace
+        # stale needs and preserve the active category filter.
+        self.service.cards[0]["a_preparer"] = [
+            {"item_id": 124, "name": "Clef du donjon", "quantity": 3},
+        ]
+        view.refresh()
+        QApplication.processEvents()
+
+        current = view.preparation_panel.findChild(
+            QPushButton, "GuidePreparationItemCopy",
+        )
+        self.assertIsNotNone(current)
+        self.assertEqual(current.text(), "Clef du donjon")
+        self.assertEqual(view._preparation_needs[0].required_total, 3)
+        self.assertEqual(view.preparation_bar.maximum(), 1)
+
+    def test_closed_preparation_defers_rebuild_until_reopened(self):
+        self.participants.save_selected_keys(("character:1",))
+        view = self._view()
+        view.preparation_button.setChecked(False)
+        self.service.cards[0]["a_preparer"] = [
+            {"item_id": 125, "name": "Potion nouvelle", "quantity": 5},
+        ]
+        view.refresh()
+        self.assertFalse(view._preparation_loaded)
+        view.preparation_button.setChecked(True)
+        QApplication.processEvents()
+        self.assertTrue(view._preparation_loaded)
+        self.assertEqual(view._preparation_needs[0].required_total, 5)
+        button = view.preparation_panel.findChild(
+            QPushButton, "GuidePreparationItemCopy",
+        )
+        self.assertEqual(button.text(), "Potion nouvelle")
+
+    def test_changing_team_discards_old_quantity_drafts(self):
+        self.participants.save_selected_keys(("character:1",))
+        view = self._view()
+        counter = view.preparation_panel.findChild(QSpinBox, "GuidePreparationQuantity")
+        self.assertIsNotNone(counter)
+        counter.setValue(1)
+        self.assertEqual(len(view._preparation_quantity_drafts), 1)
+
+        view._participant_toggled("character:2", True)
+        QApplication.processEvents()
+        self.assertEqual(view._preparation_quantity_drafts, {})
+        next_counter = view.preparation_panel.findChild(
+            QSpinBox, "GuidePreparationQuantity",
+        )
+        self.assertIsNotNone(next_counter)
+        self.assertEqual(next_counter.value(), 0)
+        self.assertEqual(next_counter.suffix(), "/4")
+
     def test_atomic_team_ready_and_undo_survive_real_reload(self):
         self.participants.save_selected_keys(("character:1", "character:2"))
         view = self._view()
