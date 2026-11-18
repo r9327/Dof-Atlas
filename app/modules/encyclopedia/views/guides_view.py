@@ -1796,11 +1796,32 @@ class GuidesView(QWidget):
         )
         panel.selectedCharactersChanged.connect(self._remember_continuous_characters)
         if self.launch_travel_callback is not None:
-            panel.travelRequested.connect(self.launch_travel_callback)
+            panel.travelRequested.connect(self._dispatch_continuous_route_travel)
         self.center_layout.addWidget(panel)
         self._continuous_route_panel = panel
         self.detail_header_progress.setVisible(False)
         self.detail_header_done_button.setVisible(False)
+
+    def _dispatch_continuous_route_travel(
+        self, command: str, character_keys: tuple[str, ...],
+    ) -> None:
+        # Qt signal slots discard return values. Route Guide travel through
+        # the same refusal contract as the manual/universal Guide buttons.
+        callback = self.launch_travel_callback
+        if not callable(callback):
+            return
+        try:
+            accepted = callback(command, character_keys)
+        except Exception:
+            logging.getLogger(__name__).exception(
+                "Envoi du voyage du Guide continu impossible",
+            )
+            accepted = False
+        if accepted is False:
+            QApplication.clipboard().setText(command)
+            self.status_callback(
+                "Déplacement refusé : commande copiée dans le presse-papiers.",
+            )
 
     def apply_continuous_travel_projection(
         self, projection: Mapping[str, object],
