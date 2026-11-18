@@ -1071,9 +1071,9 @@ class MemoryBoundAchievementProvider(BaseAchievementProvider):
                 self._compact_external_index = index
 
         span = self._compact_external_index.get(achievement_id)
-        if span is not None:
+        if isinstance(span, (tuple, list)) and len(span) == 2:
             start, length = span
-            if start >= 0 and length > 0:
+            if type(start) is int and type(length) is int and start >= 0 and length > 0:
                 try:
                     with ACHIEVEMENT_COMPACT_CACHE.open("rb") as stream:
                         # Corrupt offsets must never trigger a negative seek
@@ -1635,10 +1635,13 @@ class MemoryBoundAchievementProvider(BaseAchievementProvider):
             and self._compact_external_index is not None
         ):
             span = self._compact_external_index.get(achievement_id)
-            if span is None:
+            if not isinstance(span, (tuple, list)) or len(span) != 2:
                 return None
             start, length = span
-            if start < 0 or length <= 0:
+            if (
+                type(start) is not int or type(length) is not int
+                or start < 0 or length <= 0
+            ):
                 return None
             try:
                 with ACHIEVEMENT_COMPACT_CACHE.open("rb") as stream:
@@ -1695,12 +1698,16 @@ class MemoryBoundAchievementProvider(BaseAchievementProvider):
                 total = stream.tell()
                 for achievement_id in self._compact_retained_ids:
                     span = self._compact_external_index.get(int(achievement_id))
-                    if span is None:
+                    if not isinstance(span, (tuple, list)) or len(span) != 2:
                         continue
                     start, length = span
                     # A corrupt sidecar must never turn read(-1) into a
                     # full-cache allocation or mix another Success's progress.
-                    if start < 0 or length <= 0 or start > total or length > total - start:
+                    if (
+                        type(start) is not int or type(length) is not int
+                        or start < 0 or length <= 0
+                        or start > total or length > total - start
+                    ):
                         continue
                     stream.seek(start)
                     try:
