@@ -362,35 +362,41 @@ class AchievementsThirdColumnTests(unittest.TestCase):
         provider.get_by_id.assert_not_called()
         view.show_achievement.assert_called_once_with(42)
 
-    def test_compact_deep_link_with_missing_category_never_scans_on_qt_thread(self):
+    def test_compact_deep_link_without_visible_category_never_blocks_qt(self):
         view, provider = self.make_view()
 
-        class _CompactWithoutCategory:
-            def __init__(self, delegate):
+        class _CompactWithoutVisibleCategory:
+            def __init__(self, delegate, category_id):
                 self.delegate = delegate
+                self.category_id = category_id
 
             def __getattr__(self, name):
                 return getattr(self.delegate, name)
 
             def catalogue_category_for_id(self, achievement_id):
                 self.delegate.is_retained.assert_called_with(achievement_id)
-                return None
+                return self.category_id
 
-        view.provider = _CompactWithoutCategory(provider)
         provider.get_by_id.side_effect = AssertionError(
-            "An incomplete compact category index must not read JSONL on Qt"
+            "Missing compact category or tree row must not read JSONL on Qt"
         )
         view.filtered = [SimpleNamespace(id=17)]
         self.add_success(view, 17)
-        view.list_widget.setCurrentRow(0)
         view.show_achievement = Mock()
 
-        self.assertTrue(view.select_achievement(42))
-        provider.is_retained.assert_called_with(42)
-        provider.get_by_id.assert_not_called()
-        self.assertEqual(view.list_widget.currentRow(), -1)
-        self.assertEqual(view._achievement_pending_selected_id, 42)
-        view.show_achievement.assert_called_once_with(42)
+        for category_id in (None, 9999):
+            with self.subTest(category_id=category_id):
+                # None means an absent sidecar mapping; 9999 means a stale
+                # mapping whose category was never built into the tree.
+                view.provider = _CompactWithoutVisibleCategory(provider, category_id)
+                view.list_widget.setCurrentRow(0)
+                view.show_achievement.reset_mock()
+                self.assertTrue(view.select_achievement(42))
+                provider.is_retained.assert_called_with(42)
+                provider.get_by_id.assert_not_called()
+                self.assertEqual(view.list_widget.currentRow(), -1)
+                self.assertEqual(view._achievement_pending_selected_id, 42)
+                view.show_achievement.assert_called_once_with(42)
 
     def test_direct_link_selects_actual_visible_id_after_a_skipped_cache_row(self):
         view, provider = self.make_view()
