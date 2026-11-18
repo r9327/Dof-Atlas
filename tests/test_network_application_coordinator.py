@@ -155,13 +155,34 @@ class NetworkApplicationCoordinatorTests(unittest.TestCase):
         coordinator = NetworkApplicationCoordinator(lambda: ())
         coordinator._commands.put("prepare_capture")
         coordinator._commands.put("start_runtime")
+        coordinator._results.put(object())
+        coordinator._statuses.put(coordinator.latest_status())
+        self.assertTrue(coordinator.has_pending_ui_events())
         with patch(
             "app.network.application_coordinator.threading.Thread"
         ) as create_thread:
             self.assertTrue(coordinator.start_worker())
             create_thread.return_value.start.assert_called_once_with()
             self.assertTrue(coordinator._commands.empty())
+            self.assertEqual(coordinator.drain_results(), [])
+            self.assertEqual(coordinator.drain_statuses(), [])
+            self.assertFalse(coordinator.has_pending_ui_events())
             self.assertFalse(coordinator._stop_event.is_set())
+
+    def test_running_worker_preserves_undelivered_ui_events(self) -> None:
+        from unittest.mock import Mock
+
+        coordinator = NetworkApplicationCoordinator(lambda: ())
+        coordinator._thread = Mock()
+        coordinator._thread.is_alive.return_value = True
+        stale = object()
+        status = coordinator.latest_status()
+        coordinator._results.put(stale)
+        coordinator._statuses.put(status)
+
+        self.assertTrue(coordinator.start_worker())
+        self.assertEqual(coordinator.drain_results(), [stale])
+        self.assertEqual(coordinator.drain_statuses(), [status])
 
     def test_shutdown_prevents_all_privileged_start_paths(self) -> None:
         coordinator = NetworkApplicationCoordinator(lambda: ())
