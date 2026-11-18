@@ -888,9 +888,14 @@ def map_label(
     ident = safe_int(map_id)
     map_row = maps.get(ident or -1)
     if map_row:
-        pos_x = map_row.get("posX")
-        pos_y = map_row.get("posY")
-        if pos_x is not None and pos_y is not None:
+        pos_x = safe_int(map_row.get("posX"))
+        pos_y = safe_int(map_row.get("posY"))
+        # The fallback map record is not a known location when either
+        # coordinate is absent, malformed or Doduda's unset sentinel.
+        if (
+            pos_x is not None and pos_y is not None
+            and pos_x != SENTINEL_COORD and pos_y != SENTINEL_COORD
+        ):
             return f"[{pos_x},{pos_y}]"
     return ""
 
