@@ -128,6 +128,42 @@ class AchievementCompactRowIdentityTests(unittest.TestCase):
                 ])
                 self.assertEqual(len(opens), 1)
 
+    def test_compact_batch_ignores_malformed_span_types_while_retaining_valid_rows(self):
+        from app.modules.encyclopedia.providers import memory_bound_achievement_provider as mod
+
+        with tempfile.TemporaryDirectory() as directory:
+            cache = Path(directory) / "success.jsonl"
+            valid = (
+                json.dumps({"kind": "achievement", "value": {
+                    "id": 10, "name": "Valide", "level": 50, "points": 5,
+                }}) + "\n"
+            ).encode("utf-8")
+            cache.write_bytes(valid)
+            provider = MemoryBoundAchievementProvider()
+            provider._compact_retained_set = frozenset({10, 11})
+            provider._compact_retained_ids = (10, 11)
+            provider._compact_external_index = {10: (0, len(valid))}
+            with (
+                patch.object(mod, "ACHIEVEMENT_COMPACT_CACHE", cache),
+                patch.object(provider, "_ensure_loaded"),
+                patch.object(provider, "catalogue_row_by_id",
+                             side_effect=lambda ident: None),
+            ):
+                self.assertEqual(provider.catalogue_rows_by_ids([10]), [
+                    (10, "Valide", 50, 5),
+                ])
+                for broken in (
+                    ("bad", 4), (True, 4), (0, False),
+                    (0, -1), (0, len(valid) + 1),
+                    ("0", "4"), (0,), [],
+                ):
+                    with self.subTest(span=broken):
+                        provider._compact_external_index[11] = broken
+                        self.assertEqual(
+                            provider.catalogue_rows_by_ids([10, 11]),
+                            [(10, "Valide", 50, 5), None],
+                        )
+
     def test_compact_visible_batch_falls_back_for_invalid_offset(self) -> None:
         from types import SimpleNamespace
         from app.modules.encyclopedia.providers import memory_bound_achievement_provider as mod
