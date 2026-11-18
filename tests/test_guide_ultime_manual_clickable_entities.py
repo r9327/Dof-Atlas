@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import unittest
 from types import SimpleNamespace
+from unittest.mock import patch
 from urllib.parse import quote
 
 from app.modules.encyclopedia.views.guide_ultime_manual_view import GuideUltimeManualCard
@@ -60,6 +61,40 @@ class GuideUltimeManualClickableEntityTests(unittest.TestCase):
             GuideUltimeManualCard._copy_text_for_link(f"item-copy:{encoded}"),
             "Bière du Chabrulé",
         )
+
+    def test_refused_travel_copies_command_before_showing_copied_tooltip(self) -> None:
+        card = SimpleNamespace(
+            _copy_text_for_link=GuideUltimeManualCard._copy_text_for_link,
+            travel_command_callback=lambda value: False,
+        )
+        module = "app.modules.encyclopedia.views.guide_ultime_manual_view"
+        with (
+            patch(f"{module}.QApplication.clipboard") as clipboard,
+            patch(f"{module}.QToolTip.showText") as tooltip,
+            patch(f"{module}.QCursor.pos"),
+            patch(f"{module}.QTimer.singleShot"),
+        ):
+            GuideUltimeManualCard._copy_link_target(card, "travel-copy:5,-6")
+            clipboard.return_value.setText.assert_called_once_with("/travel 5,-6")
+            self.assertEqual(tooltip.call_args.args[1], "Commande copiée")
+
+    def test_successful_travel_dispatch_does_not_claim_a_clipboard_copy(self) -> None:
+        calls = []
+        card = SimpleNamespace(
+            _copy_text_for_link=GuideUltimeManualCard._copy_text_for_link,
+            travel_command_callback=lambda value: calls.append(value) or True,
+        )
+        module = "app.modules.encyclopedia.views.guide_ultime_manual_view"
+        with (
+            patch(f"{module}.QApplication.clipboard") as clipboard,
+            patch(f"{module}.QToolTip.showText") as tooltip,
+            patch(f"{module}.QCursor.pos"),
+            patch(f"{module}.QTimer.singleShot"),
+        ):
+            GuideUltimeManualCard._copy_link_target(card, "travel-copy:5,-6")
+            self.assertEqual(calls, ["/travel 5,-6"])
+            clipboard.assert_not_called()
+            self.assertEqual(tooltip.call_args.args[1], "Déplacement demandé")
 
     def test_coordinate_link_builds_travel_command(self) -> None:
         self.assertEqual(
