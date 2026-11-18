@@ -429,10 +429,14 @@ def local_start_position_coverage(
                 )
             else:
                 status = "LOCAL_START_DECLARED"
-            if row.get("solution_blocks"):
-                counts["WITH_DOCUMENTARY_BLOCKS"] += 1
-            else:
-                counts["WITHOUT_DOCUMENTARY_BLOCKS"] += 1
+        if (
+            isinstance(row, dict)
+            and isinstance(row.get("solution_blocks"), list)
+            and any(isinstance(block, dict) for block in row["solution_blocks"])
+        ):
+            counts["WITH_DOCUMENTARY_BLOCKS"] += 1
+        else:
+            counts["WITHOUT_DOCUMENTARY_BLOCKS"] += 1
         counts[status] += 1
         if status != "LOCAL_START_DECLARED":
             needs_review.append({"quest_id": quest_id, "status": status})
