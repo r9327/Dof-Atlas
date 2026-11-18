@@ -433,8 +433,13 @@ class ContinuousGuideRoutePanel(QWidget):
         """Only an explicitly supplied runtime planner overlay may dispatch."""
         step_id = self.navigation.viewed_step_id
         selected = self.navigation.selected_character_keys
-        registered = {row.key for row in self.available_characters}
-        if not step_id or not selected or any(key not in registered for key in selected):
+        # Offline identities remain selectable for manual progress, but a
+        # travel request must not target a character without a verified window.
+        connected = {
+            row.key for row in self.available_characters
+            if bool(getattr(row, "connected", False))
+        }
+        if not step_id or not selected or any(key not in connected for key in selected):
             return None
         if any(
             self.navigation.progress.is_manual_step_completed(
