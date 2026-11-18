@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import html
+import logging
 import re
 from typing import Any
 from urllib.parse import quote, unquote
@@ -31,6 +32,7 @@ from app.ui.entity_link_roles import entity_link_markup, entity_text_markup
 from app.ui.components import AtlasButton
 
 
+_LOGGER = logging.getLogger(__name__)
 _COORD_RE = re.compile(r"\[\s*(-?\d+)\s*,\s*(-?\d+)\s*\]")
 _COMBAT_QUANTITY_RE = re.compile(r"\bx\s*(\d+)\b", re.IGNORECASE)
 _NAME_WORD = r"[A-ZÀ-ÖØ-Þ][A-Za-zÀ-ÖØ-öø-ÿ'’.-]*"
@@ -532,7 +534,11 @@ class GuideUltimeManualCard(QFrame):
             return
         travel_callback = getattr(self, "travel_command_callback", None)
         if value.startswith("/travel ") and callable(travel_callback):
-            launched = bool(travel_callback(value))
+            try:
+                launched = bool(travel_callback(value))
+            except Exception:
+                _LOGGER.exception("Envoi de la commande de voyage impossible")
+                launched = False
             if not launched:
                 # The network may be offline or the selection unverified.
                 # "Commande copiée" must reflect an actual clipboard write.
