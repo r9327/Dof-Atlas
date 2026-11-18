@@ -449,7 +449,8 @@ def local_start_position_coverage(
         # cannot prove the local guide has written instructions.
         if any(
             isinstance(block, dict)
-            and str(block.get("type") or block.get("block_type") or "").lower() != "image"
+            and str(block.get("type") or block.get("block_type") or "").strip().lower()
+            not in {"", "image"}
             and str(block.get("content") or block.get("text") or "").strip()
             for block in blocks
         ):
