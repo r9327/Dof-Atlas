@@ -525,6 +525,11 @@ class MemoryBoundAchievementProvider(BaseAchievementProvider):
         self._compact_quest_map_stamp: tuple[int, int, int, int] | None = None
         self._compact_quest_sidecar_stamp: tuple[int, int, int, int] | None = None
         self._compact_summary_cache: OrderedDict[int, Achievement] = OrderedDict()
+        # Search needs only normalized strings, never rich Success objects.
+        # Reuse one compact scan across debounced keystrokes; validate its
+        # source generation and discard it when the provider is released.
+        self._compact_search_text_index: dict[int, str] | None = None
+        self._compact_search_generation: tuple[int, ...] | None = None
         # One active rich detail + two previous ones. Reopening a Success must
         # not spend another 5s rebuilding a disposable detail worker.
         self._recent_rich_details: OrderedDict[int, Achievement] = OrderedDict()
@@ -576,6 +581,8 @@ class MemoryBoundAchievementProvider(BaseAchievementProvider):
         self._compact_quest_map_stamp = None
         self._compact_quest_sidecar_stamp = None
         self._compact_summary_cache.clear()
+        self._compact_search_text_index = None
+        self._compact_search_generation = None
         self._reset_sources()
 
     def _image_for_icon(self, icon_id: int | None, folders: tuple[str, ...]) -> str:
@@ -910,6 +917,8 @@ class MemoryBoundAchievementProvider(BaseAchievementProvider):
         self._compact_quest_link_cache.clear()
         self._compact_quest_link_stamp = None
         self._compact_summary_cache.clear()
+        self._compact_search_text_index = None
+        self._compact_search_generation = None
         self._detail_cache_id = None
         self._detail_cache = None
         self._recent_rich_details.clear()
@@ -1465,10 +1474,10 @@ class MemoryBoundAchievementProvider(BaseAchievementProvider):
         return list(self._by_quest.get(int(quest_id), ()))
 
     def search_catalogue_ids(self, query: str) -> tuple[int, ...]:
-        """Search retained compact rows in one file pass, without rich objects.
+        """Search primitive text once per compact-file generation.
 
-        This mirrors search()'s normalized search_text semantics and order,
-        but the Success list only needs primitive IDs for lazy painting.
+        The first search reads one JSONL file without hydrating Achievement
+        objects. Subsequent keystrokes filter only short strings in memory.
         """
 
         self._ensure_loaded()
@@ -1481,52 +1490,76 @@ class MemoryBoundAchievementProvider(BaseAchievementProvider):
                 if self.is_retained(int(item.id))
             )
 
-        matching: set[int] = set()
-        damaged: list[int] = []
         try:
-            with ACHIEVEMENT_COMPACT_CACHE.open("rb") as stream:
-                stream.seek(0, 2)
-                total = stream.tell()
-                for achievement_id in self._compact_retained_ids:
-                    span = self._compact_external_index.get(achievement_id)
-                    if span is None:
-                        damaged.append(achievement_id)
-                        continue
-                    start, length = span
-                    if start < 0 or length <= 0 or start > total or length > total - start:
-                        damaged.append(achievement_id)
-                        continue
-                    try:
-                        stream.seek(start)
-                        row = json.loads(stream.read(length))
-                    except (OSError, UnicodeError, ValueError, TypeError):
-                        damaged.append(achievement_id)
-                        continue
-                    value = row.get("value") if isinstance(row, dict) else None
-                    if (
-                        not isinstance(row, dict)
-                        or row.get("kind") != "achievement"
-                        or not isinstance(value, dict)
-                        or type(value.get("id")) is not int
-                        or value["id"] != achievement_id
-                    ):
-                        damaged.append(achievement_id)
-                        continue
-                    if all(token in str(value.get("search_text") or "") for token in tokens):
-                        matching.add(achievement_id)
+            source = ACHIEVEMENT_COMPACT_CACHE.stat()
+            generation = (
+                source.st_size, source.st_mtime_ns, source.st_ctime_ns,
+                source.st_ino, id(self._compact_external_index),
+            )
         except OSError:
-            # The exceptional I/O recovery matches the prior rich search path.
             return tuple(int(item.id) for item in self.search(query))
+        index = self._compact_search_text_index
+        if index is None or generation != self._compact_search_generation:
+            index = {}
+            damaged: list[int] = []
+            try:
+                with ACHIEVEMENT_COMPACT_CACHE.open("rb") as stream:
+                    for achievement_id in self._compact_retained_ids:
+                        span = self._compact_external_index.get(achievement_id)
+                        if span is None:
+                            damaged.append(achievement_id)
+                            continue
+                        start, length = span
+                        if (
+                            type(start) is not int or type(length) is not int
+                            or start < 0 or length <= 0
+                            or start > source.st_size
+                            or length > source.st_size - start
+                        ):
+                            damaged.append(achievement_id)
+                            continue
+                        try:
+                            stream.seek(start)
+                            row = json.loads(stream.read(length))
+                        except (OSError, UnicodeError, ValueError, TypeError):
+                            damaged.append(achievement_id)
+                            continue
+                        value = row.get("value") if isinstance(row, dict) else None
+                        if (
+                            not isinstance(row, dict)
+                            or row.get("kind") != "achievement"
+                            or not isinstance(value, dict)
+                            or type(value.get("id")) is not int
+                            or value["id"] != achievement_id
+                        ):
+                            damaged.append(achievement_id)
+                            continue
+                        index[achievement_id] = str(value.get("search_text") or "")
+            except OSError:
+                return tuple(int(item.id) for item in self.search(query))
 
-        # Only damaged/missing offsets need the original lazy summary path.
-        for achievement_id in damaged:
-            summary = self._summary_by_id(achievement_id)
-            if summary is not None and all(
-                token in summary.search_text for token in tokens
-            ):
-                matching.add(achievement_id)
+            # Only broken offsets need the prior summary recovery path.
+            for achievement_id in damaged:
+                summary = self._summary_by_id(achievement_id)
+                index[achievement_id] = (
+                    str(summary.search_text or "") if summary is not None else ""
+                )
+            try:
+                current = ACHIEVEMENT_COMPACT_CACHE.stat()
+            except OSError:
+                return ()
+            if (
+                current.st_size, current.st_mtime_ns, current.st_ctime_ns,
+                current.st_ino,
+            ) != generation[:4]:
+                # Never reuse or expose a mixed-generation search snapshot.
+                return ()
+            self._compact_search_text_index = index
+            self._compact_search_generation = generation
         return tuple(
-            ident for ident in self._compact_retained_ids if ident in matching
+            achievement_id
+            for achievement_id in self._compact_retained_ids
+            if all(token in index.get(achievement_id, "") for token in tokens)
         )
 
     def search(self, query: str, limit: int | None = None) -> list[Achievement]:
