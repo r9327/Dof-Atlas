@@ -5,7 +5,7 @@ progression. Sommaire stays open until the user explicitly closes it.
 """
 from __future__ import annotations
 
-from collections.abc import Iterable, Mapping
+from collections.abc import Callable, Iterable, Mapping
 
 from PySide6.QtCore import Qt, Signal, QSize
 from PySide6.QtGui import QIcon, QPainter, QPen
@@ -88,6 +88,7 @@ class ContinuousGuideRoutePanel(QWidget):
         *,
         available_characters: Iterable[object] = (),
         verified_travel_plans: Mapping[str, Mapping[str, object]] | None = None,
+        available_characters_provider: Callable[[], Iterable[object]] | None = None,
     ) -> None:
         super().__init__(parent)
         self.setObjectName("GuideContinuousRoutePanel")
@@ -106,6 +107,7 @@ class ContinuousGuideRoutePanel(QWidget):
             row for row in available_characters
             if is_character_key(getattr(row, "key", ""))
         )
+        self._available_characters_provider = available_characters_provider
         self._character_actions = {}
         self.character_icon_buttons = {}
         self._preparation_open = False
@@ -433,13 +435,8 @@ class ContinuousGuideRoutePanel(QWidget):
         """Only an explicitly supplied runtime planner overlay may dispatch."""
         step_id = self.navigation.viewed_step_id
         selected = self.navigation.selected_character_keys
-        # Offline identities remain selectable for manual progress, but a
-        # travel request must not target a character without a verified window.
-        connected = {
-            row.key for row in self.available_characters
-            if bool(getattr(row, "connected", False))
-        }
-        if not step_id or not selected or any(key not in connected for key in selected):
+        registered = {row.key for row in self.available_characters}
+        if not step_id or not selected or any(key not in registered for key in selected):
             return None
         if any(
             self.navigation.progress.is_manual_step_completed(
@@ -463,6 +460,26 @@ class ContinuousGuideRoutePanel(QWidget):
             # A stale plan for a different selection must never be broadcast.
             return None
         if not isinstance(plan.get("evidence"), str) or not plan["evidence"].strip():
+            return None
+        # Preserve offline identities for manual progress, but do not send
+        # game input to an old connected snapshot. Re-read the verified
+        # participant inventory only when a signed travel plan is usable.
+        try:
+            rows = (
+                self._available_characters_provider()
+                if callable(self._available_characters_provider)
+                else self.available_characters
+            )
+            online = {
+                row.key for row in rows
+                if getattr(row, "key", None) in registered
+                and getattr(row, "connected", False) is True
+            }
+        except Exception:
+            from app.core.logger import get_runtime_logger
+            get_runtime_logger().exception("Guide participant connection lookup failed")
+            return None
+        if any(key not in online for key in selected):
             return None
         destination = self._exact_coordinates(plan.get("destination"))
         if destination is None:
