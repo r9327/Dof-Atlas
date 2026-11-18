@@ -1329,12 +1329,19 @@ class AtlasWindow(QMainWindow):
             self._pending_network_progress_character = target
 
     def on_network_character_activated(self, character_key: str) -> None:
-        """Select only the character actually identified on the network."""
+        """Refresh verified identities without mistaking login for window focus."""
 
         target = str(character_key or "").strip()
         if not target:
             return
+        selected_before = str(self.current_character_key or "").strip()
         self.refresh_global_characters()
+        if selected_before:
+            # An identified TCP session is not evidence that its DOFUS
+            # window is active. Preserve an existing/manual selection when
+            # a different account logs in or reconnects. Foreground switching
+            # belongs to Organizer and its verified active-window mapping.
+            return
 
         # NetworkProgressBridge already resolved a stable character:<id>.
         # Favorite clients, window captions and the last focused HWND are not
