@@ -40,6 +40,57 @@ class ContinuousGuideRoutePanelTests(unittest.TestCase):
         )
         self.addCleanup(self.panel.deleteLater)
 
+    def test_continuous_travel_falls_back_to_clipboard_on_explicit_refusal(self):
+        from unittest.mock import Mock
+
+        messages = []
+        launch = Mock(return_value=False)
+        view = SimpleNamespace(
+            launch_travel_callback=launch,
+            status_callback=messages.append,
+        )
+        keys = ("character:1",)
+        command = "/travel 5,-18"
+        GuidesView._dispatch_continuous_route_travel(view, command, keys)
+        launch.assert_called_once_with(command, keys)
+        self.assertEqual(QApplication.clipboard().text(), command)
+        self.assertIn("copiée", messages[-1])
+
+    def test_continuous_travel_preserves_legacy_none_acceptance(self):
+        from unittest.mock import Mock
+
+        QApplication.clipboard().setText("ancienne commande")
+        messages = []
+        view = SimpleNamespace(
+            launch_travel_callback=Mock(return_value=None),
+            status_callback=messages.append,
+        )
+        GuidesView._dispatch_continuous_route_travel(
+            view, "/travel 5,-18", ("character:1",),
+        )
+        self.assertEqual(QApplication.clipboard().text(), "ancienne commande")
+        self.assertEqual(messages, [])
+
+    def test_continuous_travel_exception_copies_instruction(self):
+        from unittest.mock import Mock, patch
+
+        def failed_launch(_command, _keys):
+            raise RuntimeError("macro rejected")
+
+        messages = []
+        view = SimpleNamespace(
+            launch_travel_callback=failed_launch,
+            status_callback=messages.append,
+        )
+        with patch("app.modules.encyclopedia.views.guides_view.logging.getLogger"):
+            GuidesView._dispatch_continuous_route_travel(
+                view, "/zaap 1,2 ; /travel 5,-18", ("character:1",),
+            )
+        self.assertEqual(
+            QApplication.clipboard().text(), "/zaap 1,2 ; /travel 5,-18",
+        )
+        self.assertIn("copiée", messages[-1])
+
     def test_route_header_geometry_uses_dev_ui_tokens_at_four_sizes(self):
         from app.ui.unity_palette import (
             UNITY_CONTROL_SIZES_PX, UNITY_MODULE_GEOMETRY_PX,
