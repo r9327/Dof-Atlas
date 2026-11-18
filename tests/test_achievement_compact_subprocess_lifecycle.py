@@ -705,6 +705,9 @@ class AchievementCompactRowIdentityTests(unittest.TestCase):
             self.assertEqual(sidecar["by_quest"], {"42": [10, 11], "99": [11]})
             self.assertEqual(sidecar["by_quest_ref_count"], 3)
             self.assertEqual(sidecar["retained_count"], 2)
+            # Lightweight builder/test rows are still valid without a search
+            # attribute; runtime Achievement rows publish their real strings.
+            self.assertEqual(sidecar["search_texts"], ["", ""])
             first = json.loads(path.read_text(encoding="utf-8").splitlines()[0])
             self.assertEqual(first["cache_generation"], sidecar["cache_generation"])
 
