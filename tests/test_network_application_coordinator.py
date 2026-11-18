@@ -525,6 +525,9 @@ class NetworkApplicationCoordinatorTests(unittest.TestCase):
             updated_objective,
             reconciled,
             event("character_identified", accepted=False),
+            # A rejected decoder/application outcome must never be forwarded
+            # as progress even when a buggy adapter sets changed=True.
+            event("quest_completed", changed=True, accepted=False),
         )
         with patch.object(coordinator.runtime, "drain_results", return_value=rows):
             coordinator._drain_runtime_results()
