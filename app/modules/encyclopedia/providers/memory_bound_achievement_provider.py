@@ -2256,7 +2256,7 @@ def _build_compact_cache_unlocked(path: Path) -> int:
                 # Optional startup search acceleration. This primitive list
                 # replaces the first full-file scan for newly built caches.
                 # It is aligned one-to-one with retained_ids above.
-                "search_texts": [str(achievement.search_text or "") for achievement in retained],
+                "search_texts": [str(getattr(achievement, "search_text", "") or "") for achievement in retained],
                 "by_category": {
                     str(category_id): list(dict.fromkeys(achievement_ids))
                     for category_id, achievement_ids in sorted(by_category_ids.items())
