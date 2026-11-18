@@ -4133,9 +4133,9 @@ def linkify_travel_text(text: str) -> str:
             # A missing/out-of-range map is documentary text, not a button.
             return match.group(0)
         coordinates = command.removeprefix("/travel ")
-        return entity_link_markup(
+        return "<b>" + entity_link_markup(
             f"[{coordinates}]", "position", f"atlas-travel:{coordinates}", PALETTE,
-        )
+        ) + "</b>"
 
     return TRAVEL_COORD_RE.sub(replace, escaped)
 
@@ -4343,6 +4343,11 @@ def icon_row(kind: str, text: str) -> QWidget:
 
 def travel_position_row(position: str) -> QWidget:
     button = AtlasButton(str(position or ""), variant="guide_quest_link")
+    # Standalone position buttons follow the same bold-coordinate contract as
+    # inline Quest/Guide text, without duplicating a UI style or widget class.
+    font = button.font()
+    font.setBold(True)
+    button.setFont(font)
     button.setToolTip("Copier la commande /travel")
     button.clicked.connect(lambda _checked=False, value=str(position or ""): copy_travel_position(value))
     return button
