@@ -78,6 +78,27 @@ class GuideUltimeManualClickableEntityTests(unittest.TestCase):
             clipboard.return_value.setText.assert_called_once_with("/travel 5,-6")
             self.assertEqual(tooltip.call_args.args[1], "Commande copiée")
 
+    def test_travel_callback_error_copies_command_instead_of_losing_it(self) -> None:
+        def failed_send(_command: str) -> bool:
+            raise RuntimeError("Verified capture unavailable")
+
+        card = SimpleNamespace(
+            _copy_text_for_link=GuideUltimeManualCard._copy_text_for_link,
+            travel_command_callback=failed_send,
+        )
+        module = "app.modules.encyclopedia.views.guide_ultime_manual_view"
+        with (
+            patch(f"{module}.QApplication.clipboard") as clipboard,
+            patch(f"{module}.QToolTip.showText") as tooltip,
+            patch(f"{module}.QCursor.pos"),
+            patch(f"{module}.QTimer.singleShot"),
+            patch(f"{module}._LOGGER.exception") as logger,
+        ):
+            GuideUltimeManualCard._copy_link_target(card, "travel-copy:5,-6")
+            clipboard.return_value.setText.assert_called_once_with("/travel 5,-6")
+            self.assertEqual(tooltip.call_args.args[1], "Commande copiée")
+            logger.assert_called_once()
+
     def test_successful_travel_dispatch_does_not_claim_a_clipboard_copy(self) -> None:
         calls = []
         card = SimpleNamespace(
