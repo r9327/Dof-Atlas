@@ -158,6 +158,14 @@ class NetworkApplicationCoordinator:
                 return True
             if self._thread is not None and self._thread.is_alive():
                 return False
+            # A prior stop/crash must not replay queued privileged capture
+            # commands in a fresh worker. New requests enqueue only after
+            # start_worker() has returned successfully.
+            while True:
+                try:
+                    self._commands.get_nowait()
+                except Empty:
+                    break
             self._stop_event.clear()
             thread = threading.Thread(
                 target=self._run,
@@ -260,6 +268,10 @@ class NetworkApplicationCoordinator:
                     command = self._commands.get(timeout=0.15)
                 except Empty:
                     command = None
+                # stop() can arrive while Queue.get() is waiting. Do not
+                # execute the just-received command after shutdown began.
+                if self._stop_event.is_set():
+                    break
                 if command is not None:
                     self._handle_command(command)
                 if self._stop_event.is_set():
