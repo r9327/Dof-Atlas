@@ -235,6 +235,38 @@ class AchievementsThirdColumnTests(unittest.TestCase):
         self.assertTrue(provider.detail_sources_ready)
         self.assertEqual(view._detail_worker_running, False)
 
+    def test_compact_direct_link_avoids_qt_summary_read(self):
+        view, provider = self.make_view()
+        calls = []
+
+        class _CompactCategoryProvider:
+            def __init__(self, delegate):
+                self.delegate = delegate
+
+            def __getattr__(self, name):
+                return getattr(self.delegate, name)
+
+            def catalogue_category_for_id(self, achievement_id):
+                calls.append(achievement_id)
+                return 19
+
+        view.provider = _CompactCategoryProvider(provider)
+        provider.get_by_id.side_effect = AssertionError(
+            "Direct links must use compact category membership"
+        )
+        category = QTreeWidgetItem(["Catégorie rapide"])
+        category.setData(0, Qt.UserRole, 19)
+        view.category_tree.addTopLevelItem(category)
+        view._tree_items[19] = category
+        view.filtered = [SimpleNamespace(id=42)]
+        view.show_achievement = Mock()
+
+        self.assertTrue(view.select_achievement(42))
+        self.assertEqual(calls, [42])
+        self.assertIs(view.category_tree.currentItem(), category)
+        provider.get_by_id.assert_not_called()
+        view.show_achievement.assert_called_once_with(42)
+
     def test_category_change_cancels_debounced_search_and_refreshes_immediately(self):
         view, _provider = self.make_view()
         view.search.setText("ancienne recherche")
