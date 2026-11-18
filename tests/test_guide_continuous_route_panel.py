@@ -479,6 +479,13 @@ class ContinuousGuideRoutePanelTests(unittest.TestCase):
         self.assertTrue(panel.travel_button.isEnabled())
         panel.travel_button.click()
         self.assertEqual(events, [("/travel 5,-18", ("character:2",))])
+        # A disconnected but still selected character retains progress,
+        # not permission to receive another verified travel command.
+        panel.available_characters[1].connected = False
+        panel.refresh()
+        self.assertFalse(panel.travel_button.isEnabled())
+        panel.request_current_travel()
+        self.assertEqual(len(events), 1)
         panel.set_characters(("character:1",))
         self.assertFalse(panel.travel_button.isEnabled())
         panel.request_current_travel()
@@ -499,17 +506,25 @@ class ContinuousGuideRoutePanelTests(unittest.TestCase):
             "source_step_id": "ganymede_2205_step_0001",
         }
         plan["source_payload_sha256"] = certified_payload_sha256(route)
+        participants = [
+            SimpleNamespace(key="character:1", connected=True),
+            SimpleNamespace(key="character:2", connected=False),
+        ]
         panel = ContinuousGuideRoutePanel(
             route, self.store, ("character:1", "character:2"),
-            available_characters=[
-                SimpleNamespace(key="character:1", connected=True),
-                SimpleNamespace(key="character:2", connected=False),
-            ],
+            available_characters=participants,
             verified_travel_plans={"ganymede_2205_step_0001": plan},
         )
         self.addCleanup(panel.deleteLater)
         events = []
         panel.travelRequested.connect(lambda command, keys: events.append((command, keys)))
+        self.assertFalse(panel.travel_button.isEnabled())
+        panel.request_current_travel()
+        self.assertEqual(events, [])
+        # The current participant inventory must attest both windows before
+        # a full-team /zaap command is offered.
+        participants[1].connected = True
+        panel.refresh()
         self.assertTrue(panel.travel_button.isEnabled())
         panel.travel_button.click()
         self.assertEqual(events, [
