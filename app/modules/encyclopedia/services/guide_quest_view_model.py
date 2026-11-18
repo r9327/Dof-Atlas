@@ -786,7 +786,10 @@ def quest_solution_steps(quest: QuestRecord) -> tuple[SolutionStep, ...]:
             if source_steps else projected
             for raw_objective, projected in projected_rows
         )
-        description = clean_text(step.description)
+        # Fallback steps follow the same documentary visibility contract as
+        # explicit blocks; raw protocol criteria and mini-map placeholders
+        # must not appear as false instructions in the reader or source audit.
+        description = documentary_instruction_text(step.description)
         if not description and not objectives and not step.name:
             continue
         title = clean_text(step.name)
