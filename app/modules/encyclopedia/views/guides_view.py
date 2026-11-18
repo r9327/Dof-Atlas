@@ -1792,6 +1792,7 @@ class GuidesView(QWidget):
             self.guide_progress_service,
             keys,
             available_characters=characters,
+            available_characters_provider=self.guide_participant_service.available_characters,
         )
         panel.selectedCharactersChanged.connect(self._remember_continuous_characters)
         if self.launch_travel_callback is not None:
