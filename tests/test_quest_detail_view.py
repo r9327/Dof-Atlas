@@ -217,6 +217,68 @@ class QuestDetailViewColumnTests(unittest.TestCase):
                     "Position d'objectif (départ non confirmé)",
                 )
 
+    def test_imported_walkthrough_objective_position_appears_in_quest_sheet(self) -> None:
+        from app.modules.encyclopedia.services.guide_quest_view_model import (
+            first_position_from_quest, quest_start_info,
+        )
+
+        quest = QuestRecord(
+            id=47, name="Walkthrough source", category="Quêtes",
+            level_min=1, level_max=200, start_criterion="",
+            source_solution_steps=[QuestStep(
+                id=2, name="Source", description="Rejoindre le PNJ",
+                objectives=[QuestObjective(
+                    id=201, text="Parler au PNJ", type_id=0,
+                    map_label="[ 003, -06 ]",
+                )],
+            )],
+        )
+        info = quest_start_info(quest, include_map_images=False)
+        self.assertEqual(info.position, "[3,-6]")
+        self.assertEqual(first_position_from_quest(quest), "[3,-6]")
+        # Source objective coordinates do not certify where the quest starts.
+        self.assertEqual(
+            QuestDetailView._start_position_heading(quest, info.position),
+            "Position d'objectif (départ non confirmé)",
+        )
+
+        # A separately sourced actual start keeps precedence.
+        quest.source_info = {"source_meta": {"startCoords": "[9,10]"}}
+        self.assertEqual(
+            quest_start_info(quest, include_map_images=False).position,
+            "[9,10]",
+        )
+
+    def test_imported_source_block_position_is_visible_without_local_objectives(self) -> None:
+        from app.quest_catalog import QuestSolutionBlock
+        from app.modules.encyclopedia.services.guide_quest_view_model import (
+            first_position_from_quest, quest_start_info,
+        )
+
+        quest = QuestRecord(
+            id=48, name="Étape documentaire", category="Quêtes",
+            level_min=1, level_max=200, start_criterion="",
+            solution_blocks=[
+                QuestSolutionBlock(
+                    order=1, block_type="text",
+                    content="Rejoignez le temple.",
+                    position="[12,-3]",
+                ),
+            ],
+        )
+        self.assertEqual(
+            quest_start_info(quest, include_map_images=False).position,
+            "[12,-3]",
+        )
+        self.assertEqual(first_position_from_quest(quest), "[12,-3]")
+
+        # Never turn documentary prose or a placeholder into a position.
+        quest.solution_blocks[0].position = "carte inconnue"
+        self.assertEqual(
+            quest_start_info(quest, include_map_images=False).position, "",
+        )
+        self.assertEqual(first_position_from_quest(quest), "")
+
     def test_quest_objective_coordinates_are_normalized_not_fabricated(self) -> None:
         from app.modules.encyclopedia.services.guide_quest_view_model import (
             first_position_from_quest,
