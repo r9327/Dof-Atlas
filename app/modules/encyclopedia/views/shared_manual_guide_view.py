@@ -1,8 +1,6 @@
 from __future__ import annotations
 
-import hashlib
 import re
-from dataclasses import dataclass
 from functools import lru_cache
 from pathlib import Path
 from typing import Any
@@ -30,8 +28,9 @@ from PySide6.QtWidgets import (
 from app.core.item_artwork import item_icon_path
 from app.modules.encyclopedia.services.guide_quest_view_model import quest_solution_steps
 from app.modules.encyclopedia.services.guide_preparation_model import (
-    PREPARATION_CATEGORIES, category_for, matches_preparation_category,
-    preparation_stock_presentation,
+    PREPARATION_CATEGORIES, TeamPreparationNeed, aggregate_remaining,
+    aggregate_team_remaining, category_for, matches_preparation_category,
+    preparation_progress_item_key, preparation_stock_presentation,
 )
 from app.modules.encyclopedia.services.guide_source_media import (
     has_source_images,
@@ -170,20 +169,7 @@ def _cached_guide_symbol_icon(symbol: str, size: int, color: str) -> QIcon:
     return QIcon(pixmap)
 
 
-@dataclass(frozen=True, slots=True)
-class _PreparationNeed:
-    item_key: str
-    item_id: int | None
-    name: str
-    category: str
-    required_by_character: tuple[tuple[str, int | None], ...]
-    confidence_by_character: tuple[tuple[str, str], ...] = ()
-    sources: tuple[str, ...] = ()
-
-    @property
-    def required_total(self) -> int | None:
-        values = [quantity for _key, quantity in self.required_by_character]
-        return sum(values) if all(value is not None for value in values) else None
+_PreparationNeed = TeamPreparationNeed
 
 
 class _GuideProgressDonut(QWidget):
@@ -1498,18 +1484,9 @@ class SharedGuideManualView(GuideUltimeManualView):
             or (callable(checked) and checked(character_key, card, index))
         )
 
-    @staticmethod
-    def _preparation_item_key(item_id: int | None, name: str) -> str:
-        if item_id is not None:
-            return f"item:{item_id}"
-        digest = hashlib.sha256(normalize_text(name).encode("utf-8")).hexdigest()[:16]
-        return f"name:{digest}"
+    _preparation_item_key = staticmethod(preparation_progress_item_key)
 
     def _load_preparation_needs(self) -> None:
-        from app.modules.encyclopedia.services.guide_preparation_model import (
-            aggregate_remaining,
-        )
-
         # A browsing character is never consent for Prêt. The no-selection
         # state remains readable without manufacturing an inventory/progress ID.
         participant_keys = self._progress_participant_keys()
@@ -1525,16 +1502,14 @@ class SharedGuideManualView(GuideUltimeManualView):
             return
 
         self._preparation_preview = ()
-        aggregated: dict[tuple[str, str], dict[str, Any]] = {}
         sections_getter = getattr(self.service, "manual_sections_for_card", None)
-        for character_key in participant_keys:
-            # No full Qt card materialization; one bounded data traversal for
-            # each explicitly selected verified identity.
+
+        def needs_for_character(character_key: str):
             rows = (
                 (card, self._card_complete(character_key, card, index))
                 for index, card in enumerate(self.service.cards)
             )
-            for need in aggregate_remaining(
+            return aggregate_remaining(
                 rows,
                 sections_for_card=(
                     lambda card, key=character_key: (
@@ -1545,34 +1520,10 @@ class SharedGuideManualView(GuideUltimeManualView):
                         else card.get("manual_sections", {})
                     )
                 ),
-            ):
-                item_key = self._preparation_item_key(need.item_id, need.name)
-                row = aggregated.setdefault(
-                    (item_key, need.category),
-                    {
-                        "item_id": need.item_id, "name": need.name,
-                        "category": need.category, "required": {},
-                        "confidence": {}, "sources": set(),
-                    },
-                )
-                row["required"][character_key] = need.quantity
-                row["confidence"][character_key] = need.confidence
-                row["sources"].update(need.sources)
+            )
 
-        self._preparation_needs = tuple(
-            _PreparationNeed(
-                item_key=item_key,
-                item_id=row["item_id"],
-                name=row["name"],
-                category=row["category"],
-                required_by_character=tuple(sorted(row["required"].items())),
-                confidence_by_character=tuple(sorted(row["confidence"].items())),
-                sources=tuple(sorted(row["sources"])),
-            )
-            for (item_key, _category), row in sorted(
-                aggregated.items(),
-                key=lambda item: (item[1]["category"], normalize_text(item[1]["name"])),
-            )
+        self._preparation_needs = aggregate_team_remaining(
+            (key, needs_for_character(key)) for key in participant_keys
         )
         self._preparation_loaded = True
         self._update_preparation_progress()
