@@ -1270,8 +1270,10 @@ def enrichment_solution_blocks(row: dict[str, Any]) -> list[QuestSolutionBlock]:
     return blocks
 
 
-def resolve_local_asset_path(value: Any) -> str:
-    """Resolve portable or legacy absolute project paths against this checkout."""
+def resolve_local_asset_path(
+    value: Any, *, roots: tuple[Path, ...] = (),
+) -> str:
+    """Resolve project images, including legacy Windows and custom data roots."""
 
     text = str(value or "").strip()
     if not text:
@@ -1280,7 +1282,10 @@ def resolve_local_asset_path(value: Any) -> str:
     # the checkout is validated on POSIX.  Normalize separators before asking
     # pathlib to identify the portable project-relative ``data`` suffix.
     path = Path(text.replace("\\", "/"))
-    candidates = [path] if path.is_absolute() else [ROOT_DIR / path, path]
+    candidates = (
+        [path] if path.is_absolute()
+        else [ROOT_DIR / path, *(root / path for root in roots), path]
+    )
 
     normalized_parts = [part.casefold() for part in path.parts]
     if "data" in normalized_parts:
