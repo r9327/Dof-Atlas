@@ -1915,6 +1915,27 @@ class SharedGuideManualView(GuideUltimeManualView):
         ):
             ready_button.setEnabled(False)
             ready_button.setToolTip("Sauvegarde atomique indisponible")
+        if counter is not None:
+            # The stock counter is a session draft, not a saved proof of
+            # preparation. Reflect its useful remaining count immediately,
+            # but never check the saved Prêt box automatically.
+            def update_stock_label(value: int) -> None:
+                remaining = max(0, int(quantity) - int(value))
+                if ready:
+                    status_label.setText("Prêt")
+                elif total == 1:
+                    status_label.setText(
+                        f"Manque {remaining}" if remaining else "À valider"
+                    )
+                else:
+                    status_label.setText(f"{confirmed}/{total} prêts")
+                status_label.setToolTip(
+                    f"Encore {remaining} à obtenir"
+                    if remaining else "Quantité atteinte · coche Prêt pour confirmer"
+                )
+
+            counter.valueChanged.connect(update_stock_label)
+            update_stock_label(counter.value())
         ready_button.toggled.connect(
             lambda checked, row=need: self._preparation_quantity_drafts.__setitem__(
                 row.item_key, int(row.required_total or 0) if checked else 0
