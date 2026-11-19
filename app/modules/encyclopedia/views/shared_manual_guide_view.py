@@ -520,8 +520,19 @@ class SharedGuideManualCard(GuideUltimeManualCard):
             if not isinstance(raw, str) or not raw.strip():
                 continue
             image = Path(raw)
-            if image.is_file() and str(image) not in images:
-                images.append(str(image))
+            # Imported source paths may be relative to the repository or to
+            # its data directory. Work from the packaged Atlas data root,
+            # not the process's current working directory.
+            candidates = (
+                (image,) if image.is_absolute()
+                else (DATA_DIR.parent / image, DATA_DIR / image)
+            )
+            for candidate in candidates:
+                if candidate.is_file():
+                    resolved = str(candidate)
+                    if resolved not in images:
+                        images.append(resolved)
+                    break
         return tuple(images)
 
     @staticmethod
