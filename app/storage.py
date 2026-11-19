@@ -1506,17 +1506,25 @@ class ZaapWidget(QWidget):
             self.search_input.setText(label)
             if self.config_update_callback is not None:
                 self.config_update_callback()
-            if self.start_callback is None:
-                self.status_callback("Auto zaap indisponible : runtime non connecté.")
-                return
             command = f"/zaap {coords[0]},{coords[1]}"
+            if self.start_callback is None:
+                # The local Zaap index supplied valid explicit coordinates.
+                # Offer the same manual clipboard fallback as Guide travel.
+                QApplication.clipboard().setText(command)
+                self.status_callback(
+                    f"Auto zaap indisponible : commande copiée ({label})."
+                )
+                return
             try:
                 accepted = invoke_compatible_callback(
                     self.start_callback, command, None, None,
                 )
             except Exception:
                 LOGGER.exception("Auto zaap: lancement du runtime impossible.")
-                self.status_callback(f"Auto zaap non lancé : {label}")
+                QApplication.clipboard().setText(command)
+                self.status_callback(
+                    f"Auto zaap non lancé : commande copiée ({label})."
+                )
                 return
             LOGGER.info(
                 "Auto zaap sélection: label=%s coords=%s accepté=%s",
@@ -1525,8 +1533,9 @@ class ZaapWidget(QWidget):
             if accepted is True:
                 self.status_callback(f"Auto zaap en cours : {label}")
             elif accepted is False:
+                QApplication.clipboard().setText(command)
                 self.status_callback(
-                    f"Auto zaap non lancé : macro occupée ou runtime indisponible ({label})."
+                    f"Auto zaap refusé : commande copiée ({label})."
                 )
             else:
                 # Legacy callbacks returning None do not prove acceptance.
