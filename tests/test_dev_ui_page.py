@@ -502,10 +502,7 @@ class DevUiPageTests(unittest.TestCase):
                 page.preview_header_materials_host.objectName(),
                 "GuidePreparationContent",
             )
-            self.assertEqual(
-                page.preview_header_prerequisites_host.objectName(),
-                "GuidePreparationContent",
-            )
+            self.assertFalse(hasattr(page, "preview_header_prerequisites_host"))
             from app.ui.theme import atlas_stylesheet
             compiled_qss = atlas_stylesheet()
             # The live Guide and this preview use these same role selectors:
@@ -554,7 +551,7 @@ class DevUiPageTests(unittest.TestCase):
                 self.assertEqual(button.arrowType(), Qt.NoArrow)
                 self.assertEqual(button.width(),
                                  UNITY_CONTROL_SIZES_PX["progress_toggle_width"])
-            self.assertFalse(page.preview_header_overlay.isEnabled())
+            self.assertFalse(hasattr(page, "preview_header_overlay"))
             self.assertFalse(page.preview_header_guide_icon.pixmap().isNull())
             participants_button = page.preview_header_controls["Personnages"]
             self.assertIs(
@@ -602,28 +599,22 @@ class DevUiPageTests(unittest.TestCase):
             self.assertTrue(page.preview_header_panels["Préparation"].isVisibleTo(
                 page.preview_compact_header
             ))
-            self.assertEqual(set(page.preview_header_preparation_tabs),
-                             {"Prérequis", "À préparer"})
-            self.assertTrue(
-                page.preview_header_preparation_tabs["À préparer"].isChecked()
-            )
-            page.preview_header_preparation_tabs["Prérequis"].click()
-            self.assertTrue(page.preview_header_prerequisites_host.isVisibleTo(
-                page.preview_compact_header
-            ))
-            self.assertFalse(page.preview_header_materials_host.isVisible())
-            page.preview_header_preparation_tabs["À préparer"].click()
-            self.assertTrue(page.preview_header_materials_host.isVisibleTo(
-                page.preview_compact_header
-            ))
-            self.assertEqual(page.preview_header_filter.count(), 6)
-            page.preview_header_filter.setCurrentText("Objets")
-            self.assertEqual(page.preview_header_filter.currentText(), "Objets")
+            # One shared category dropdown replaces the obsolete local
+            # tab pair. Every authored preparation family stays accessible.
+            self.assertFalse(hasattr(page, "preview_header_preparation_tabs"))
+            self.assertEqual(page.preview_header_filter.count(), 7)
+            self.assertEqual(page.preview_header_filter.itemText(0), "Tout")
+            self.assertEqual(len(page.preview_header_preparation_rows), 6)
+            page.preview_header_filter.setCurrentText("Prérequis")
+            self.assertFalse(page.preview_header_preparation_examples[0][0].isHidden())
+            self.assertTrue(page.preview_header_preparation_examples[4][0].isHidden())
+            page.preview_header_filter.setCurrentText("Clefs")
+            self.assertEqual(page.preview_header_filter.currentText(), "Clefs")
+            self.assertFalse(page.preview_header_preparation_examples[4][0].isHidden())
 
-            self.assertEqual(len(page.preview_header_preparation_rows), 3)
-            quantity, checkbox = page.preview_header_preparation_rows[1]
+            quantity, checkbox = page.preview_header_preparation_rows[4]
             self.assertIsInstance(checkbox, QCheckBox)
-            self.assertEqual(quantity.suffix(), " / 1")
+            self.assertEqual(quantity.suffix(), "/1")
             self.assertFalse(checkbox.isChecked())
             checkbox.click()
             self.assertEqual((quantity.value(), checkbox.isChecked()), (1, True))

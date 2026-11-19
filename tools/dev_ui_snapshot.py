@@ -180,19 +180,20 @@ def capture(output: Path, *, width: int = 1100, height: int = 800) -> dict[str, 
         backdrop.resize(width, height)
         app.processEvents()
         combinations = (
-            ("classique", False, False, False, "À préparer"),
-            ("progression-globale", True, False, False, "À préparer"),
-            ("personnages", False, False, True, "À préparer"),
-            ("preparation", True, True, False, "À préparer"),
+            ("classique", False, False, False, "Tout"),
+            ("progression-globale", True, False, False, "Tout"),
+            ("personnages", False, False, True, "Tout"),
+            ("preparation", True, True, False, "Tout"),
             ("prerequis", True, True, False, "Prérequis"),
-            ("preparation-personnages", True, True, True, "À préparer"),
+            ("preparation-personnages", True, True, True, "Tout"),
         )
-        for label, global_open, prep_open, people, selected_tab in combinations:
+        for label, global_open, prep_open, people, category in combinations:
             page.preview_header_controls["Progression globale"].setChecked(global_open)
             page.preview_header_controls["Préparation"].setChecked(prep_open)
             page.preview_header_controls["Personnages"].setChecked(people)
-            tab = page.preview_header_preparation_tabs[selected_tab]
-            tab.click()
+            # The live Guide uses one category dropdown, not the removed
+            # Prérequis/À préparer tab pair. Capture its real filtered state.
+            page.preview_header_filter.setCurrentText(category)
             app.processEvents()
             # Place the real Guide header near the top, preserving the
             # active nested menus in the capture.
