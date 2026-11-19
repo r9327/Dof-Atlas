@@ -493,6 +493,51 @@ class SharedGuideManualCard(GuideUltimeManualCard):
         self._last_route_position_key = key
         return value
 
+    @staticmethod
+    def _local_source_images(row: dict[str, Any]) -> tuple[str, ...]:
+        """Show only images explicitly associated with the authored sheet."""
+        candidates: list[object] = [
+            row.get("image_path"),
+            row.get("local_image_path"),
+        ]
+        many = row.get("image_paths") or row.get("images") or ()
+        if isinstance(many, (list, tuple)):
+            candidates.extend(many)
+        if str(row.get("kind") or "") == "image":
+            candidates.append(row.get("path"))
+        images: list[str] = []
+        for raw in candidates:
+            if isinstance(raw, dict):
+                raw = raw.get("image_path") or raw.get("local_image_path") or raw.get("path")
+            if not isinstance(raw, str) or not raw.strip():
+                continue
+            image = Path(raw)
+            if image.is_file() and str(image) not in images:
+                images.append(str(image))
+        return tuple(images)
+
+    @staticmethod
+    def _append_source_images(
+        layout: QVBoxLayout, image_paths: tuple[str, ...], caption: str,
+    ) -> None:
+        if not image_paths:
+            return
+        # Reuse the existing asynchronous, clickable zoom viewer from Quêtes;
+        # the shared Dev UI metrics own the small inline preview geometry.
+        from app.modules.encyclopedia.views.guides_view import SolutionImageLabel
+
+        size = (
+            UNITY_GUIDE_READING_METRICS_PX["source_image_max_width"],
+            UNITY_GUIDE_READING_METRICS_PX["source_image_max_height"],
+        )
+        for path in image_paths:
+            layout.addWidget(
+                SolutionImageLabel(
+                    path, caption=caption, max_preview_size=size,
+                ),
+                0, Qt.AlignLeft,
+            )
+
     def _add_line_section(
         self,
         root: QVBoxLayout,
@@ -504,7 +549,10 @@ class SharedGuideManualCard(GuideUltimeManualCard):
         visible = [
             row
             for row in rows or []
-            if isinstance(row, dict) and str(row.get("text") or "").strip()
+            if isinstance(row, dict) and (
+                str(row.get("text") or "").strip()
+                or self._local_source_images(row)
+            )
         ]
         if not visible:
             return
@@ -553,6 +601,12 @@ class SharedGuideManualCard(GuideUltimeManualCard):
                 "", original_text,
             ).strip() or original_text
             position = self._display_position(str(row.get("position") or ""))
+            images = self._local_source_images(row)
+            if not text and not position and images:
+                self._append_source_images(
+                    layout, images, str(row.get("caption") or ""),
+                )
+                continue
             kind = str(row.get("kind") or "")
             prefix = "⚠ " if kind == "warning" else ""
             combat_line = self._is_combat_row(kind, text)
@@ -629,6 +683,11 @@ class SharedGuideManualCard(GuideUltimeManualCard):
                 combat_heading_added = True
             for target in combat_targets:
                 self._add_combat_target(target_layout, target)
+            if images:
+                self._append_source_images(
+                    target_layout, images,
+                    str(row.get("caption") or text),
+                )
 
         root.addWidget(frame)
 
