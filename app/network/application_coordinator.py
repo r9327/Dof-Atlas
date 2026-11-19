@@ -228,6 +228,16 @@ class NetworkApplicationCoordinator:
                 return False
         return self._enqueue_command("start_runtime")
 
+    def request_start_compact_runtime(self) -> bool:
+        """Start from Home without synchronously loading Quests on the Qt thread."""
+        with self._lock:
+            if self._shutdown_requested:
+                return False
+            ready = self._context_ready
+        if ready:
+            return self.request_start_verified_runtime()
+        return self._enqueue_command("start_compact_runtime")
+
     def latest_status(self) -> NetworkApplicationStatus:
         with self._lock:
             return self._last_status
@@ -341,11 +351,55 @@ class NetworkApplicationCoordinator:
         if command == "prepare_capture":
             self._prepare_capture()
             return
+        if command == "start_compact_runtime":
+            self._start_compact_runtime()
+            return
         if command == "start_calibration":
             self._start_calibration()
             return
         if command == "start_runtime":
             self._start_runtime()
+
+    def _start_compact_runtime(self) -> None:
+        """Resolve a cold, minimal network context on the existing worker.
+
+        The Home retry control is an explicit opt-in. It must not block Qt
+        by compiling the network Quest catalogue on the caller thread.
+        """
+        with self._lock:
+            if self._shutdown_requested or self._stop_event.is_set():
+                return
+            already_ready = self._context_ready
+        if already_ready:
+            self._start_runtime()
+            return
+        self._publish_current("network_context_loading")
+        try:
+            from app.modules.encyclopedia.providers import (
+                AchievementProvider, GuideProvider,
+            )
+            from app.quest_catalog_details import load_network_catalog
+
+            catalog = load_network_catalog()
+            achievements = AchievementProvider()
+            guides = GuideProvider()
+        except Exception:
+            self.logger.exception("Cold network context loading failed.")
+            self._publish_current("network_context_load_failed")
+            return
+        with self._lock:
+            if self._shutdown_requested or self._stop_event.is_set():
+                return
+            if self._context_ready:
+                # An Encyclopedia context arrived while this worker was
+                # reading disk: preserve the newer live configuration.
+                self.request_start_verified_runtime()
+                return
+            self.configure_context(
+                quest_catalog=catalog,
+                achievement_provider=achievements,
+                guide_provider=guides,
+            )
 
     def _prepare_capture(self) -> None:
         """Launch and pause the reusable helper so UAC happens immediately."""
