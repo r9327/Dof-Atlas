@@ -13,6 +13,7 @@ import sys
 from pathlib import Path
 from typing import Any
 
+from app.core.file_hash import sha256_file as _sha256
 from app.constants import DATA_DIR, RAW_QUEST_DATA_DIR
 from app.quest_catalog import QUEST_CATALOG_SOURCE_FILES
 from app.modules.encyclopedia.providers.guide_provider import GUIDES_DIR
@@ -27,14 +28,6 @@ BUNDLE_DIR = DATA_DIR / "bootstrap" / "guide_routes"
 MANIFEST_NAME = "dofus_sylvestre.manifest.json"
 LEGACY_STORE_NAME = "dofus_sylvestre.route.json.gz"
 MAX_STORE_BYTES = 128 * 1024 * 1024
-
-
-def _sha256(path: Path) -> str:
-    digest = hashlib.sha256()
-    with path.open("rb") as source:
-        for chunk in iter(lambda: source.read(1024 * 1024), b""):
-            digest.update(chunk)
-    return digest.hexdigest()
 
 
 def _source_sizes(data_dir: Path) -> dict[str, int]:

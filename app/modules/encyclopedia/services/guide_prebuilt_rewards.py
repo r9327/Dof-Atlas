@@ -14,6 +14,7 @@ from dataclasses import asdict
 from pathlib import Path
 from typing import Any, Iterable
 
+from app.core.file_hash import sha256_file as _sha256
 from app.constants import DATA_DIR, ROOT_DIR, RAW_QUEST_DATA_DIR
 from app.modules.encyclopedia.providers.guide_provider import GUIDES_DIR
 from app.modules.encyclopedia.services.guide_quest_view_model import DisplayReward, guide_rewards
@@ -23,14 +24,6 @@ SCHEMA = 1
 BUNDLE_PATH = DATA_DIR / "bootstrap" / "guide_rewards_v1.json"
 MAX_BYTES = 8 * 1024 * 1024
 _IMAGE_PREFIX = "@atlas-root/"
-
-
-def _sha256(path: Path) -> str:
-    h = hashlib.sha256()
-    with path.open("rb") as src:
-        for chunk in iter(lambda: src.read(1024 * 1024), b""):
-            h.update(chunk)
-    return h.hexdigest()
 
 
 def _source_sizes() -> dict[str, int]:
