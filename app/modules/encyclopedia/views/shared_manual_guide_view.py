@@ -28,6 +28,9 @@ from PySide6.QtWidgets import (
 )
 
 from app.modules.encyclopedia.services.guide_quest_view_model import (local_item_image_path, quest_solution_steps)
+from app.modules.encyclopedia.services.guide_preparation_model import (
+    PREPARATION_CATEGORIES, category_for, matches_preparation_category,
+)
 from app.modules.encyclopedia.services.guide_source_media import (
     has_source_images,
     resolved_source_images,
@@ -65,12 +68,6 @@ _COMBAT_STOP_WORDS = {
     "une",
     "vaincre",
 }
-
-_PREPARATION_QUANTITY_RE = re.compile(
-    r"\bpr[ée]pare\s+(\d+)\s*[×x]\s*(.+?)(?:[.;]|$)",
-    re.IGNORECASE,
-)
-
 
 def _guide_symbol_icon(
     widget: QWidget, symbol: str, *, size: int = 18, color: str | None = None
@@ -1206,9 +1203,7 @@ class SharedGuideManualView(GuideUltimeManualView):
         # with the two-column progress header on compact windows.
         self.preparation_filter = AtlasComboBox()
         self.preparation_filter.setObjectName("GuidePreparationCategoryFilter")
-        self.preparation_filter.addItems((
-            "Tout", "Prérequis", "Métiers", "Potions", "Pierres d'âme", "Clefs", "Objets",
-        ))
+        self.preparation_filter.addItems(("Tout", *PREPARATION_CATEGORIES))
         self.preparation_filter.setFixedHeight(UNITY_SIZES_PX["control_compact"])
         self.preparation_filter.setToolTip("Filtrer les besoins de préparation")
         self.preparation_filter.setAccessibleName("Catégorie de préparation")
@@ -1502,86 +1497,11 @@ class SharedGuideManualView(GuideUltimeManualView):
         )
 
     @staticmethod
-    def _preparation_category(name: str) -> str:
-        normalized = normalize_text(name)
-        if "potion" in normalized:
-            return "Potions"
-        return "Objets"
-
-    @staticmethod
-    def _is_soul_stone(name: str) -> bool:
-        # normalize_key joins tokens with underscores, never spaces.
-        normalized = normalize_text(name)
-        return any(
-            token in normalized
-            for token in ("pierre_d_ame", "pierres_d_ame", "soul_stone")
-        )
-
-    @classmethod
-    def _preparation_matches_filter(
-        cls, category: str, name: str, selected_filter: str,
-    ) -> bool:
-        if selected_filter == "Tout":
-            return True
-        soul_stone = cls._is_soul_stone(name)
-        if selected_filter == "Pierres d'âme":
-            return category == selected_filter or (
-                category == "Objets" and soul_stone
-            )
-        if selected_filter == "Objets":
-            return category == "Objets" and not soul_stone
-        return category == selected_filter
-
-    @staticmethod
     def _preparation_item_key(item_id: int | None, name: str) -> str:
         if item_id is not None:
             return f"item:{item_id}"
         digest = hashlib.sha256(normalize_text(name).encode("utf-8")).hexdigest()[:16]
         return f"name:{digest}"
-
-    @classmethod
-    def _requirements_from_card(
-        cls,
-        service,
-        character_key: str,
-        card: dict[str, Any],
-    ) -> tuple[tuple[int | None, str, int, str], ...]:
-        rows: list[tuple[int | None, str, int, str]] = []
-        structured = [
-            raw for raw in card.get("a_preparer", ()) or ()
-            if isinstance(raw, dict)
-        ]
-        for raw in structured:
-            name = str(raw.get("name") or raw.get("label") or "").strip()
-            try:
-                quantity = max(1, int(raw.get("quantity") or 1))
-            except (TypeError, ValueError):
-                quantity = 1
-            try:
-                item_id = int(raw.get("item_id")) if raw.get("item_id") is not None else None
-            except (TypeError, ValueError):
-                item_id = None
-            if name:
-                rows.append((item_id, name, quantity, cls._preparation_category(name)))
-        if not rows:
-            sections_for_card = getattr(service, "manual_sections_for_card", None)
-            sections = sections_for_card(character_key, card) if callable(sections_for_card) else {}
-            for raw in sections.get("prepare", ()) if isinstance(sections, dict) else ():
-                text = str(raw.get("text") or "") if isinstance(raw, dict) else str(raw or "")
-                for match in _PREPARATION_QUANTITY_RE.finditer(text):
-                    name = " ".join(match.group(2).split()).strip()
-                    if name:
-                        rows.append(
-                            (None, name, max(1, int(match.group(1))), cls._preparation_category(name))
-                        )
-        for raw in card.get("profession_gates", ()) or ():
-            if isinstance(raw, dict):
-                name = str(raw.get("name") or raw.get("label") or raw.get("text") or "").strip()
-            else:
-                name = str(raw or "").strip()
-            if name:
-                rows.append((None, name, 1, "Métiers"))
-        return tuple(rows)
 
     def _load_preparation_needs(self) -> None:
         from app.modules.encyclopedia.services.guide_preparation_model import (
@@ -1769,7 +1689,7 @@ class SharedGuideManualView(GuideUltimeManualView):
             if selected_filter != "Tout":
                 preview = tuple(
                     row for row in preview
-                    if self._preparation_matches_filter(row[0], row[1], selected_filter)
+                    if matches_preparation_category(row[0], row[1], selected_filter)
                 )
             if not preview:
                 self.preparation_rows_layout.addWidget(QLabel("Aucun besoin structuré fiable."))
@@ -1785,11 +1705,7 @@ class SharedGuideManualView(GuideUltimeManualView):
                         UNITY_SPACING_PX["xs"], UNITY_SPACING_PX["xxs"],
                         UNITY_SPACING_PX["xs"], UNITY_SPACING_PX["xxs"],
                     )
-                    visible_category = (
-                        "Pierres d'âme"
-                        if category == "Objets" and self._is_soul_stone(name)
-                        else category
-                    )
+                    visible_category = category_for(name, category)
                     row_layout.addWidget(self._copyable_preparation_item(
                         name,
                         f"{quantity if quantity else '?'} × {name} ({visible_category})",
@@ -1804,10 +1720,7 @@ class SharedGuideManualView(GuideUltimeManualView):
             return
 
         if selected_filter == "Tout":
-            categories = (
-                "Prérequis", "Métiers", "Potions", "Pierres d'âme",
-                "Clefs", "Objets",
-            )
+            categories = PREPARATION_CATEGORIES
             if not self._preparation_needs:
                 empty = QLabel("Aucun besoin confirmé sur le parcours restant.")
                 empty.setObjectName("GuidePreparationEmpty")
@@ -1816,7 +1729,7 @@ class SharedGuideManualView(GuideUltimeManualView):
             for category in categories:
                 matching = [
                     need for need in self._preparation_needs
-                    if self._preparation_matches_filter(
+                    if matches_preparation_category(
                         need.category, need.name, category,
                     )
                 ]
@@ -1851,7 +1764,7 @@ class SharedGuideManualView(GuideUltimeManualView):
 
         matching = [
             need for need in self._preparation_needs
-            if self._preparation_matches_filter(
+            if matches_preparation_category(
                 need.category, need.name, selected_filter,
             )
         ]
