@@ -79,6 +79,9 @@ class NetworkUiBridge(QObject):
             guide_provider=guide_provider,
         )
         self._context_signature = signature
+        # The injected provider may be a rich Encyclopedia object. If later
+        # released on Home, a compact provider must replace it, not keep it.
+        self._compact_context_ready = False
         return True
 
     def configure_compact_context(self) -> bool:
@@ -87,6 +90,11 @@ class NetworkUiBridge(QObject):
         if self._stopped:
             return False
         if self._compact_context_ready:
+            return True
+        if getattr(self.coordinator, "worker_compact_context_ready", False) is True:
+            # Home already built exactly this compact network context in the
+            # existing coordinator worker: no second provider or disk scan.
+            self._compact_context_ready = True
             return True
         from app.modules.encyclopedia.providers import AchievementProvider, GuideProvider
         from app.quest_catalog_details import load_network_catalog
