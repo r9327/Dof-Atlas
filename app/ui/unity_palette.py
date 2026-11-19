@@ -499,6 +499,14 @@ UNITY_MODULE_GEOMETRY_PX = {
         "resource_dialog_size": (500, 540), "item_set_dialog_size": (390, 460),
         "leveling_dialog_size": (660, 560), "route_dialog_size": (560, 420),
         "resource_icon_box": 28, "leveling_icon_box": 30,
+        # Craft route captures keep their independent wheel/step interactions,
+        # while decoding uses the Encyclopedia's existing image service.
+        "route_image_min_height": 230,
+        "route_preview_min_width": 180,
+        "route_preview_min_height": 160,
+        "route_zoom_min_percent": 45,
+        "route_zoom_max_percent": 300,
+        "route_zoom_step_percent": 15,
     },
     "guide_catalog": {"category_tree_max_height": 250},
     "guide_cards": {
