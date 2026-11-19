@@ -24,6 +24,7 @@ from app.constants import (
 )
 from app.core.character_identity import character_id_from_key
 from app.core.json_store import read_json_resilient, write_json_atomic
+from app.core.numbers import optional_int as safe_int
 from app.core.text import normalize_key as normalize_text
 from app.quest_source_index import build_image_index
 
@@ -700,13 +701,6 @@ def write_quest_catalog_cache(catalog: QuestCatalog, data_dir: Path = RAW_QUEST_
             _LOGGER.debug("Suppression ancien cache quêtes impossible.", exc_info=True)
     except (OSError, TypeError, ValueError):
         return
-
-
-def safe_int(value: Any) -> int | None:
-    try:
-        return int(value)
-    except (TypeError, ValueError):
-        return None
 
 
 def safe_float(value: Any) -> float:

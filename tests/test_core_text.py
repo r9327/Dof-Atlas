@@ -4,7 +4,7 @@ import ast
 import unittest
 from pathlib import Path
 
-from app.core.text import clean_auto_group_name, normalize_key, strip_accents
+from app.core.text import clean_auto_group_name, normalize_key, normalize_words, strip_accents
 from app.services.character_order_logic import normalize_character_order
 
 
@@ -30,6 +30,12 @@ class CoreTextTests(unittest.TestCase):
 
     def test_strip_accents_preserves_text_shape(self):
         self.assertEqual(strip_accents("Été à Brâkmar"), "Ete a Brakmar")
+
+    def test_normalize_words_preserves_guide_route_matching(self):
+        self.assertEqual(normalize_words("  Épée : BAÏS -- 2  "), "epee bais 2")
+        self.assertEqual(normalize_words("Cité d'Astrub"), "cite d astrub")
+        self.assertEqual(normalize_words(None), "")
+        self.assertEqual(normalize_words(" _!_ "), "")
 
     def test_clean_auto_group_name_removes_window_suffix(self):
         self.assertEqual(clean_auto_group_name("  Alice  - Dofus  "), "Alice")
