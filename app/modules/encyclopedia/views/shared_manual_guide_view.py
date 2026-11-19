@@ -1804,11 +1804,14 @@ class SharedGuideManualView(GuideUltimeManualView):
 
     def _render_preparation(self, selected_filter: str) -> None:
         scrollbar = self.preparation_scroll.verticalScrollBar()
+        previous_filter = getattr(self, "_preparation_last_filter", None)
         self._preparation_restore_position = (
-            scrollbar.value()
-            if selected_filter == getattr(self, "_preparation_last_filter", None)
-            else 0
+            scrollbar.value() if selected_filter == previous_filter else 0
         )
+        if previous_filter is not None and previous_filter != selected_filter:
+            # Opening 200 rows in "Tout" must not make a newly selected
+            # category equally long. Start each new category at normal density.
+            self._preparation_visible_limit = 80
         self._preparation_last_filter = selected_filter
         self._clear_preparation_rows()
         if not self._progress_participant_keys():
@@ -2122,6 +2125,7 @@ class SharedGuideManualView(GuideUltimeManualView):
         # Keep quantity drafts session-local but never apply the old team's
         # stock to a different participant selection.
         self._preparation_quantity_drafts.clear()
+        self._preparation_visible_limit = 80
         if self.preparation_button.isChecked():
             self._load_preparation_needs()
             self._render_preparation(self.preparation_filter.currentText())
