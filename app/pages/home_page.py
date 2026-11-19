@@ -680,11 +680,19 @@ class HomePage(QWidget):
         text, state = self._network_summary(status)
         self.network_status.setText(text)
         self.network_status.setToolTip(self._network_explanation(status))
+        # A failed stop/cleanup can leave a privileged capture helper alive:
+        # never offer a second capture until the first one is truly stopped.
+        reason = str(status.reason or "")
+        safe_to_retry = not any(
+            marker in reason for marker in ("stop_failed", "cleanup_failed")
+        )
         self.network_retry.setVisible(
-            state == "error" and status.reason != "stop_failed"
-            or state == "idle" and status.reason in {
-                "no_window_handles", "build_fingerprint_unavailable",
-            }
+            safe_to_retry and (
+                state == "error"
+                or state == "idle" and reason in {
+                    "no_window_handles", "build_fingerprint_unavailable",
+                }
+            )
         )
         if self.network_indicator.property("state") != state:
             self.network_indicator.setProperty("state", state)
@@ -695,6 +703,13 @@ class HomePage(QWidget):
         """User-initiated retry; no expensive catalogue reload in the UI."""
         bridge = self.network_bridge
         reason = str(bridge.last_status.reason or "")
+        if any(marker in reason for marker in ("stop_failed", "cleanup_failed")):
+            self.network_status.setText("Arrêt à vérifier")
+            self.network_status.setToolTip(
+                "Capture précédente non arrêtée : vérifier le processus avant toute relance."
+            )
+            self.network_retry.setVisible(False)
+            return
         # Capture/UAC failures require a new explicit permission request.
         # Queue runtime startup afterwards; on a missing context, the existing
         # Encyclopedia initializer will start it when catalogue data arrives.
@@ -738,6 +753,11 @@ class HomePage(QWidget):
             "stop_failed": "Arrêt de la capture non confirmé : vérifier le processus avant de réessayer.",
             "no_window_handles": "Aucune fenêtre DOFUS suivie détectée.",
             "build_fingerprint_unavailable": "Identification de la version de DOFUS indisponible.",
+            "build_fingerprint_error": "Erreur pendant l'identification de la version DOFUS. Réessayer la connexion.",
+            "mapping_no_exact_match": "Version DOFUS non reconnue : calibration automatique demandée.",
+            "mapping_missing_required_events": "Profil réseau incomplet : calibration automatique demandée.",
+            "mapping_current_profile_noncanonical": "Profil réseau incompatible : nouvelle calibration nécessaire.",
+            "capture_ready_waiting_context": "Capture Windows préparée ; données Quêtes en attente de chargement.",
         }
         if reason in known:
             return known[reason]
@@ -786,8 +806,13 @@ class HomePage(QWidget):
             "mapping_installed_not_started",
             "mapping_already_installed",
             "mapping_already_ready",
+            "mapping_no_exact_match",
+            "mapping_missing_required_events",
+            "mapping_current_profile_noncanonical",
         }:
             return "Connexion…", "pending"
+        if reason == "capture_ready_waiting_context":
+            return "En attente de données", "pending"
         if reason in {"no_window_handles", "build_fingerprint_unavailable"}:
             # Both conditions mean the client cannot yet be identified.
             # The coordinator retries fingerprinting when it appears.
