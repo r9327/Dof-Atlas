@@ -54,12 +54,14 @@ def _preparation_icon_roots() -> tuple[Path, ...]:
 
 @lru_cache(maxsize=1024)
 def _preparation_icon_path(item_id: int) -> Path | None:
-    # The canonical images are grouped by type, not in one flat directory.
-    # No eager image decode or full filesystem index at app startup.
+    # Canonical images may be shipped either as PNG or optimized WebP.
+    # Resolve the same exact item ID in the existing bounded image folders.
+    # No fake inventory icon and no full library scan at startup.
     for folder in _preparation_icon_roots():
-        candidate = folder / f"{item_id}.png"
-        if candidate.is_file():
-            return candidate
+        for extension in (".png", ".webp"):
+            candidate = folder / f"{item_id}{extension}"
+            if candidate.is_file():
+                return candidate
     return None
 
 
