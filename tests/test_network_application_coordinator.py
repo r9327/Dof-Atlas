@@ -256,6 +256,48 @@ class NetworkDeferredJournalIdentityTests(unittest.TestCase):
 
 
 class NetworkApplicationCoordinatorTests(unittest.TestCase):
+    def test_cold_network_activation_only_queues_worker_command(self) -> None:
+        coordinator = NetworkApplicationCoordinator(lambda: ())
+        with patch.object(coordinator, "start_worker", return_value=True):
+            self.assertTrue(coordinator.request_start_compact_runtime())
+        self.assertEqual(coordinator._commands.get_nowait(), "start_compact_runtime")
+        self.assertFalse(coordinator._context_ready)
+
+    def test_cold_network_context_is_loaded_only_on_coordinator_worker(self) -> None:
+        from unittest.mock import Mock
+        from app.quest_catalog import QuestCatalog
+
+        coordinator = NetworkApplicationCoordinator(lambda: ())
+        catalog = QuestCatalog([])
+        with (
+            patch("app.quest_catalog_details.load_network_catalog", return_value=catalog) as loader,
+            patch("app.modules.encyclopedia.providers.AchievementProvider", return_value=Mock()) as achievements,
+            patch("app.modules.encyclopedia.providers.GuideProvider", return_value=Mock()) as guides,
+            patch.object(coordinator, "configure_context") as configure,
+        ):
+            coordinator._handle_command("start_compact_runtime")
+            loader.assert_called_once_with()
+            achievements.assert_called_once_with()
+            guides.assert_called_once_with()
+            configure.assert_called_once()
+            self.assertIs(configure.call_args.kwargs["quest_catalog"], catalog)
+
+    def test_compact_bootstrap_honors_shutdown_and_existing_context(self) -> None:
+        coordinator = NetworkApplicationCoordinator(lambda: ())
+        coordinator._stop_event.set()
+        with patch("app.quest_catalog_details.load_network_catalog") as loader:
+            coordinator._handle_command("start_compact_runtime")
+            loader.assert_not_called()
+        coordinator._stop_event.clear()
+        coordinator._context_ready = True
+        with (
+            patch.object(coordinator, "_start_runtime") as start,
+            patch("app.quest_catalog_details.load_network_catalog") as loader,
+        ):
+            coordinator._handle_command("start_compact_runtime")
+            start.assert_called_once_with()
+            loader.assert_not_called()
+
     def test_stop_during_queue_get_never_executes_pending_capture_command(self) -> None:
         coordinator = NetworkApplicationCoordinator(lambda: ())
 
