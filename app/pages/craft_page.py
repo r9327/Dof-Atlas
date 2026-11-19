@@ -357,7 +357,7 @@ class RouteImageLabel(QLabel):
         super().__init__(parent)
         self.zoom_callback = zoom_callback
         self.setAlignment(Qt.AlignCenter)
-        self.setMinimumHeight(230)
+        self.setMinimumHeight(CRAFT_GEOMETRY["route_image_min_height"])
 
     def wheelEvent(self, event) -> None:
         delta = 1 if event.angleDelta().y() > 0 else -1
@@ -405,7 +405,10 @@ class RouteDialog(AtlasDialog):
         self.refresh_image()
 
     def change_zoom(self, delta: int) -> None:
-        self.zoom = max(0.45, min(3.0, self.zoom + (0.15 * delta)))
+        minimum = CRAFT_GEOMETRY["route_zoom_min_percent"] / 100
+        maximum = CRAFT_GEOMETRY["route_zoom_max_percent"] / 100
+        increment = CRAFT_GEOMETRY["route_zoom_step_percent"] / 100
+        self.zoom = max(minimum, min(maximum, self.zoom + increment * delta))
         self.refresh_image()
 
     def refresh_image(self) -> None:
@@ -420,18 +423,21 @@ class RouteDialog(AtlasDialog):
                 f"Chemin local attendu :\n{expected}"
             )
             return
-        pixmap = QPixmap(str(path))
-        if pixmap.isNull():
+        box = self.image.size()
+        size = QSize(
+            max(CRAFT_GEOMETRY["route_preview_min_width"], int(box.width() * self.zoom)),
+            max(CRAFT_GEOMETRY["route_preview_min_height"], int(box.height() * self.zoom)),
+        )
+        # Route images share the same bounded Qt thumbnail decoder as Craft
+        # icons, Quests and Guide preparation; no full-size reload on each zoom.
+        from app.modules.encyclopedia.services.image_service import (
+            ENCYCLOPEDIA_IMAGE_SERVICE,
+        )
+        scaled = ENCYCLOPEDIA_IMAGE_SERVICE.load_scaled(path, size)
+        if scaled.isNull():
             self.image.setPixmap(QPixmap())
             self.image.setText("Capture illisible.")
             return
-        box = self.image.size()
-        scaled = pixmap.scaled(
-            max(180, int(box.width() * self.zoom)),
-            max(160, int(box.height() * self.zoom)),
-            Qt.KeepAspectRatio,
-            Qt.SmoothTransformation,
-        )
         self.image.setText("")
         self.image.setPixmap(scaled)
 
