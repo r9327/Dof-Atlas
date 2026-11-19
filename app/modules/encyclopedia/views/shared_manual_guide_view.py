@@ -621,7 +621,19 @@ class SharedGuideManualCard(GuideUltimeManualCard):
             ).strip() or original_text
             position = self._display_position(str(row.get("position") or ""))
             images = self._local_source_images(row)
-            if not text and not position and self._declares_source_image(row):
+            if not text and self._declares_source_image(row):
+                # Source images are valid standalone guide content. The
+                # waypoint remains clickable where one was explicitly given,
+                # without inventing a blank "action" or trailing dash.
+                if position:
+                    location = QLabel()
+                    location.setObjectName("GuideManualLine")
+                    location.setWordWrap(True)
+                    self._set_clickable_text(
+                        location,
+                        self._format_line_html("", "", position, [], []),
+                    )
+                    layout.addWidget(location)
                 if images:
                     self._append_source_images(
                         layout, images, str(row.get("caption") or ""),
