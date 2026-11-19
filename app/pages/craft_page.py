@@ -320,7 +320,7 @@ class LevelingDialog(AtlasDialog):
             layout.addWidget(icon)
             level = QLabel(str(entry.get("level_range", "")))
             level.setObjectName("LevelBadge")
-            level.setFixedWidth(88)
+            level.setFixedWidth(CRAFT_GEOMETRY["leveling_level_badge_width"])
             level.setAlignment(Qt.AlignCenter)
             layout.addWidget(level)
             recipe = QLabel(
@@ -331,7 +331,11 @@ class LevelingDialog(AtlasDialog):
             recipe.setWordWrap(False)
             layout.addWidget(recipe, 1)
             add = AtlasButton("Copier" if harvest else "+", variant="primary")
-            add.setFixedSize(64 if harvest else 38, 28)
+            add.setFixedSize(
+                CRAFT_GEOMETRY["leveling_copy_action_width"] if harvest
+                else CRAFT_GEOMETRY["leveling_add_action_width"],
+                CRAFT_GEOMETRY["leveling_action_height"],
+            )
             if harvest:
                 add.clicked.connect(
                     lambda _checked=False, name=craft.get("name", ""):

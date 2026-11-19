@@ -4,6 +4,7 @@ from PySide6.QtWidgets import QFrame, QHBoxLayout, QLabel, QVBoxLayout, QWidget
 
 from app.modules.encyclopedia.models import GuideSection
 from app.ui.components import AtlasButton
+from app.ui.unity_palette import UNITY_SIZES_PX, UNITY_SPACING_PX
 
 
 class GuideSectionWidget(QFrame):
@@ -13,15 +14,16 @@ class GuideSectionWidget(QFrame):
         self.section = section
         self.expanded = True
         root = QVBoxLayout(self)
-        root.setContentsMargins(8, 8, 8, 8)
-        root.setSpacing(6)
+        margin = UNITY_SPACING_PX["md"]
+        root.setContentsMargins(margin, margin, margin, margin)
+        root.setSpacing(UNITY_SPACING_PX["sm"])
 
         header = QHBoxLayout()
         header.setContentsMargins(0, 0, 0, 0)
-        header.setSpacing(8)
+        header.setSpacing(UNITY_SPACING_PX["md"])
         title_col = QVBoxLayout()
         title_col.setContentsMargins(0, 0, 0, 0)
-        title_col.setSpacing(2)
+        title_col.setSpacing(UNITY_SPACING_PX["xxs"])
         title = QLabel(section.title)
         title.setObjectName("GuideSectionTitle")
         title.setWordWrap(True)
@@ -38,7 +40,7 @@ class GuideSectionWidget(QFrame):
         header.addWidget(self.progress_label)
         self.toggle_button = AtlasButton("⌄")
         self.toggle_button.setObjectName("GuideChevronButton")
-        self.toggle_button.setFixedWidth(24)
+        self.toggle_button.setFixedWidth(UNITY_SIZES_PX["control_compact"])
         self.toggle_button.clicked.connect(lambda: self.set_expanded(not self.expanded))
         header.addWidget(self.toggle_button)
         root.addLayout(header)

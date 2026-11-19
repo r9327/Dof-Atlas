@@ -68,6 +68,21 @@ class UiUniversalContractTests(unittest.TestCase):
             UNITY_MODULE_GEOMETRY_PX["world_map"]["canvas_min_size"], (420, 320),
         )
 
+    def test_craft_leveling_and_guide_section_sizes_reuse_existing_ui_index(self):
+        from app.ui.unity_palette import UNITY_MODULE_GEOMETRY_PX, UNITY_SIZES_PX
+
+        craft = UNITY_MODULE_GEOMETRY_PX["craft"]
+        self.assertEqual(craft["leveling_level_badge_width"], 88)
+        self.assertEqual(craft["leveling_copy_action_width"], 64)
+        self.assertEqual(craft["leveling_add_action_width"], 38)
+        self.assertEqual(craft["leveling_action_height"], 28)
+        source = (REPO_ROOT / "app/pages/craft_page.py").read_text(encoding="utf-8")
+        self.assertIn('CRAFT_GEOMETRY["leveling_level_badge_width"]', source)
+        self.assertIn('CRAFT_GEOMETRY["leveling_action_height"]', source)
+        section = (REPO_ROOT / "app/modules/encyclopedia/widgets/guide_section_widget.py").read_text(encoding="utf-8")
+        self.assertEqual(UNITY_SIZES_PX["control_compact"], 24)
+        self.assertIn('setFixedWidth(UNITY_SIZES_PX["control_compact"])', section)
+
     def test_compat_character_dimensions_are_indexed_without_moving_panels(self):
         from app.ui.unity_palette import UNITY_MODULE_GEOMETRY_PX
 

@@ -499,6 +499,10 @@ UNITY_MODULE_GEOMETRY_PX = {
         "resource_dialog_size": (500, 540), "item_set_dialog_size": (390, 460),
         "leveling_dialog_size": (660, 560), "route_dialog_size": (560, 420),
         "resource_icon_box": 28, "leveling_icon_box": 30,
+        "leveling_level_badge_width": 88,
+        "leveling_copy_action_width": 64,
+        "leveling_add_action_width": 38,
+        "leveling_action_height": 28,
         # Craft route captures keep their independent wheel/step interactions,
         # while decoding uses the Encyclopedia's existing image service.
         "route_image_min_height": 230,
