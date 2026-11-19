@@ -11,7 +11,7 @@ from threading import local
 from typing import Any, Callable
 
 from PySide6.QtCore import QEvent, QPoint, QRectF, QSize, Qt, QTimer, QUrl
-from PySide6.QtGui import QCloseEvent, QColor, QIcon, QImageReader, QKeySequence, QPainter, QPen, QPixmap
+from PySide6.QtGui import QCloseEvent, QColor, QIcon, QKeySequence, QPainter, QPen, QPixmap
 from PySide6.QtWidgets import (
     QApplication,
     QAbstractItemView,
@@ -65,6 +65,7 @@ from app.constants import (
     ZAAP_SHORTCUTS_FILE,
 )
 from app.core.item_identity import item_id
+from app.core.item_artwork import item_artwork_path
 from app.core.profile_settings import default_profiles, profile_bool, parse_zaap_click_position
 from app.core.json_store import read_json_resilient, write_json_atomic
 from app.core.zaap_shortcuts import parse_unit_ratio, update_zaap_shortcuts_field, zaap_ratios_from_payload
@@ -842,13 +843,8 @@ def load_zaap_index(path: Path = ZAAPS_FILE) -> list[dict[str, Any]]:
 
 
 def local_image_path(item: dict[str, Any]) -> Path | None:
-    raw = item.get("image_path") or item.get("local_image_path") or ""
-    if not raw:
-        return None
-    path = Path(raw)
-    if not path.is_absolute():
-        path = ROOT_DIR / path
-    return path if path.exists() else None
+    """Shared Craft artwork lookup, also used by export and preview."""
+    return item_artwork_path(item)
 
 
 def display_path(path: Path | None) -> str:
@@ -884,37 +880,26 @@ class IconCache:
         self.order: list[str] = []
 
     def icon_for_item(self, item: dict[str, Any], fallback: QIcon | None = None) -> QIcon:
-        raw = item.get("image_path") or item.get("local_image_path") or ""
-        if not raw:
+        path = local_image_path(item)
+        if path is None:
             return fallback or QIcon()
-        path = Path(raw)
-        if not path.is_absolute():
-            path = ROOT_DIR / path
         key = str(path)
         if key in self.cache:
             return self.cache[key]
-        if not path.exists():
+
+        # One Qt-thread thumbnail decoder/cache serves Craft, Guides and the
+        # Encyclopedia. The small local QIcon cache keeps item list scrolling
+        # cheap without maintaining a second image decoding implementation.
+        from app.modules.encyclopedia.services.image_service import (
+            ENCYCLOPEDIA_IMAGE_SERVICE,
+        )
+
+        pixmap = ENCYCLOPEDIA_IMAGE_SERVICE.load_scaled(
+            path, QSize(self.size, self.size),
+        )
+        if pixmap.isNull():
             return fallback or QIcon()
-        reader = QImageReader(key)
-        source_size = reader.size()
-        if source_size.isValid():
-            reader.setScaledSize(
-                source_size.scaled(
-                    QSize(self.size, self.size),
-                    Qt.KeepAspectRatio,
-                )
-            )
-        image = reader.read()
-        if image.isNull():
-            return fallback or QIcon()
-        if image.width() > self.size or image.height() > self.size:
-            image = image.scaled(
-                self.size,
-                self.size,
-                Qt.KeepAspectRatio,
-                Qt.SmoothTransformation,
-            )
-        icon = QIcon(QPixmap.fromImage(image))
+        icon = QIcon(pixmap)
         self.cache[key] = icon
         self.order.append(key)
         while len(self.order) > self.max_items:
