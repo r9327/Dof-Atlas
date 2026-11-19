@@ -8,6 +8,7 @@ from pathlib import Path
 from typing import Any, Iterable, Mapping
 from app.core.numbers import optional_int as _safe_int
 from app.core.text import normalize_words as _norm
+from app.core.doduda_rows import array_rows as _array
 
 from app.modules.encyclopedia.services.adventure_route_engine import (
     ItemRequirement,
@@ -120,13 +121,6 @@ ORDER_QUESTS: dict[str, dict[str, tuple[str, ...]]] = {
 ORDER_LEVELS = (20, 40, 60, 80, 100)
 
 
-
-
-def _array(value: Any) -> list[Any]:
-    if isinstance(value, dict):
-        inner = value.get("Array", [])
-        return inner if isinstance(inner, list) else []
-    return value if isinstance(value, list) else []
 
 
 def _doduda_rows(path: Path) -> dict[int, dict[str, Any]]:

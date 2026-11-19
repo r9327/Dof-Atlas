@@ -24,6 +24,7 @@ from app.constants import (
 )
 from app.core.character_identity import character_id_from_key
 from app.core.json_store import read_json_resilient, write_json_atomic
+from app.core.doduda_rows import array_rows as array_value
 from app.core.numbers import optional_int as safe_int
 from app.core.text import normalize_key as normalize_text
 from app.quest_source_index import build_image_index
@@ -62,13 +63,6 @@ QUEST_CATALOG_SOURCE_FILES = (
 )
 
 
-
-
-def array_value(value: Any) -> list[Any]:
-    if isinstance(value, dict):
-        inner = value.get("Array", [])
-        return inner if isinstance(inner, list) else []
-    return value if isinstance(value, list) else []
 
 
 def read_json_file(path: Path, default: Any) -> Any:
