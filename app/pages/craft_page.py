@@ -1252,6 +1252,21 @@ class CraftPage(QWidget):
     def is_harvest_job(self, job_name: str) -> bool:
         return normalize_key(job_name) in HARVEST_JOBS
 
+    def has_leveling_content(self, job_name: str) -> bool:
+        guide = self.guide_for_job(job_name)
+        if isinstance(guide, dict) and guide.get("entries"):
+            return True
+        # Harvest professions have a lightweight, authored resource sequence
+        # even when the optional editorial JSON is not shipped. No SQLite
+        # scan or synthetic XP calculation is needed for the click.
+        if self.is_harvest_job(job_name):
+            selected = normalize_key(job_name)
+            return any(
+                normalize_key(name) == selected and bool(resources)
+                for name, resources in JOB_RESOURCE_GROUPS.items()
+            )
+        return False
+
     def job_icon_source(self, job: dict[str, Any]) -> dict[str, Any]:
         if job.get("image_path"):
             return job
@@ -1311,8 +1326,7 @@ class CraftPage(QWidget):
             self.job_actions_layout.addStretch(1)
             return
 
-        guide = self.guide_for_job(self.selected_job)
-        if isinstance(guide, dict) and guide.get("entries"):
+        if self.has_leveling_content(self.selected_job):
             leveling = AtlasButton("Leveling 0-200", variant="primary", size="normal")
             leveling.clicked.connect(lambda _checked=False, job=self.selected_job: self.open_leveling_dialog(job))
             self.job_actions_layout.addWidget(leveling)
@@ -1360,8 +1374,7 @@ class CraftPage(QWidget):
         # entries. Missing/editorial guides should never cause a blocking
         # warning popup on every selection. The explicit Leveling action can
         # still offer the existing catalogue-based fallback when requested.
-        guide = self.guide_for_job(job_name)
-        if not isinstance(guide, dict) or not guide.get("entries"):
+        if not self.has_leveling_content(job_name):
             return
         # Rebuilding the job grid destroys the sender. Defer the modal until
         # Qt has finished dispatching the click, and ignore stale selections.
