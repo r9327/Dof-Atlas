@@ -65,7 +65,11 @@ from app.core.text import normalize_key as normalize_text
 from app.ui.components import AtlasBreadcrumb, AtlasButton, AtlasPanelToggle
 from app.ui.entity_link_roles import entity_link_markup
 from app.ui.theme import PALETTE, render_theme_template
-from app.ui.unity_palette import UNITY_CONTROL_SIZES_PX, UNITY_MODULE_GEOMETRY_PX
+from app.ui.unity_palette import (
+    UNITY_CONTROL_SIZES_PX,
+    UNITY_GUIDE_READING_METRICS_PX,
+    UNITY_MODULE_GEOMETRY_PX,
+)
 
 GUIDE_CARD_GEOMETRY = UNITY_MODULE_GEOMETRY_PX["guide_cards"]
 
@@ -899,10 +903,16 @@ class SolutionImageLabel(QLabel):
 
     def __init__(
         self, image_path: str, caption: str = "", parent: QWidget | None = None,
-        *, max_preview_size: tuple[int, int] = (520, 320),
+        *, max_preview_size: tuple[int, int] | None = None,
     ) -> None:
         super().__init__(parent)
         _ensure_async_image_delivery()
+        metrics = UNITY_GUIDE_READING_METRICS_PX
+        if max_preview_size is None:
+            max_preview_size = (
+                metrics["quest_image_max_width"],
+                metrics["quest_image_max_height"],
+            )
         self._preview_max_width = max(1, int(max_preview_size[0]))
         self._preview_max_height = max(1, int(max_preview_size[1]))
         self.source = QPixmap()
@@ -915,9 +925,12 @@ class SolutionImageLabel(QLabel):
         self.setObjectName("QuestSolutionImage")
         self.setAlignment(Qt.AlignCenter)
         self.setMinimumWidth(1)
-        self.setMinimumHeight(120)
+        self.setMinimumHeight(UNITY_GUIDE_READING_METRICS_PX["image_preview_min_loading_height"])
         self.setSizePolicy(QSizePolicy.Preferred, QSizePolicy.Fixed)
-        self.setMaximumWidth(self._preview_max_width + 20)
+        self.setMaximumWidth(
+            self._preview_max_width
+            + UNITY_GUIDE_READING_METRICS_PX["image_preview_outer_width"]
+        )
         self.setCursor(Qt.PointingHandCursor)
         self.setToolTip(caption)
         self.setText("Chargement de l'image…")
@@ -943,7 +956,9 @@ class SolutionImageLabel(QLabel):
     def showEvent(self, event) -> None:
         super().showEvent(event)
         if not self._image_load_started and not self._image_load_timer.isActive():
-            self._image_load_timer.start(250)
+            self._image_load_timer.start(
+                UNITY_GUIDE_READING_METRICS_PX["image_load_delay_ms"]
+            )
 
     def start_image_load(self) -> None:
         if self._image_load_started:
@@ -989,7 +1004,11 @@ class SolutionImageLabel(QLabel):
         )
         available_width = min(
             self._preview_max_width,
-            max(1, parent_width - 24),
+            max(
+                1,
+                parent_width
+                - UNITY_GUIDE_READING_METRICS_PX["image_preview_parent_inset"],
+            ),
         )
         target = self.source.size()
         target.scale(available_width, self._preview_max_height, Qt.KeepAspectRatio)
@@ -998,8 +1017,14 @@ class SolutionImageLabel(QLabel):
             return
         pixmap = self.source.scaled(target, Qt.KeepAspectRatio, Qt.SmoothTransformation)
         self.setPixmap(pixmap)
-        self.setFixedWidth(pixmap.width() + 12)
-        self.setFixedHeight(pixmap.height() + 6)
+        self.setFixedWidth(
+            pixmap.width()
+            + UNITY_GUIDE_READING_METRICS_PX["image_preview_frame_width"]
+        )
+        self.setFixedHeight(
+            pixmap.height()
+            + UNITY_GUIDE_READING_METRICS_PX["image_preview_frame_height"]
+        )
         self._rendered_width = width
 
     def mouseReleaseEvent(self, event: QMouseEvent) -> None:
@@ -1014,20 +1039,41 @@ class SolutionImageLabel(QLabel):
             dialog.setObjectName("AtlasDialog")
             dialog.setWindowTitle(self.toolTip() or "Image de solution")
             root = QVBoxLayout(dialog)
-            root.setContentsMargins(8, 8, 8, 8)
+            margin = UNITY_GUIDE_READING_METRICS_PX["zoom_margin"]
+            root.setContentsMargins(margin, margin, margin, margin)
             root.setSpacing(0)
 
             image = QLabel()
             image.setAlignment(Qt.AlignCenter)
             screen = self.screen()
             available = screen.availableGeometry().size() if screen is not None else QSize(1280, 800)
-            max_width = max(320, min(1180, int(available.width() * 0.82)))
-            max_height = max(240, min(860, int(available.height() * 0.82)))
+            metrics = UNITY_GUIDE_READING_METRICS_PX
+            max_width = max(
+                metrics["zoom_min_width"],
+                min(
+                    metrics["zoom_dialog_width"],
+                    available.width() * metrics["zoom_screen_percent"] // 100,
+                ),
+            )
+            max_height = max(
+                metrics["zoom_min_height"],
+                min(
+                    metrics["zoom_dialog_height"],
+                    available.height() * metrics["zoom_screen_percent"] // 100,
+                ),
+            )
             target = self.source.size()
-            target.scale(max_width - 24, max_height - 24, Qt.KeepAspectRatio)
+            target.scale(
+                max_width - metrics["zoom_content_inset"],
+                max_height - metrics["zoom_content_inset"],
+                Qt.KeepAspectRatio,
+            )
             image.setPixmap(self.source.scaled(target, Qt.KeepAspectRatio, Qt.SmoothTransformation))
             root.addWidget(image)
-            dialog.resize(target.width() + 16, target.height() + 16)
+            dialog.resize(
+                target.width() + margin * 2,
+                target.height() + margin * 2,
+            )
 
             center = self.mapToGlobal(self.rect().center())
             dialog.move(center.x() - dialog.width() // 2, center.y() - dialog.height() // 2)
