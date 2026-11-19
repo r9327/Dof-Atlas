@@ -30,7 +30,8 @@ from app.modules.encyclopedia.services.guide_quest_view_model import quest_solut
 from app.modules.encyclopedia.services.guide_preparation_model import (
     PREPARATION_CATEGORIES, TeamPreparationNeed, aggregate_remaining,
     aggregate_team_remaining, category_for, matches_preparation_category,
-    preparation_progress_item_key, preparation_stock_presentation,
+    preparation_progress_item_key, preparation_ready_key,
+    preparation_stock_presentation,
 )
 from app.modules.encyclopedia.services.guide_source_media import (
     has_source_images,
@@ -1530,7 +1531,7 @@ class SharedGuideManualView(GuideUltimeManualView):
 
     def _ready_progress_key(self, need: _PreparationNeed) -> str:
         guide_id = str(getattr(self.service, "guide_id", "guide_complet") or "guide_complet")
-        return f"__ui:preparation_ready:{guide_id}:{need.item_key}"
+        return preparation_ready_key(guide_id, need.item_key)
 
     def _need_ready(self, need: _PreparationNeed) -> bool:
         getter = getattr(self.service, "manual_checked", None)
