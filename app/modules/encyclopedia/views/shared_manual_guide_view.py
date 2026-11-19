@@ -1733,8 +1733,14 @@ class SharedGuideManualView(GuideUltimeManualView):
                         UNITY_SPACING_PX["xs"], UNITY_SPACING_PX["xxs"],
                         UNITY_SPACING_PX["xs"], UNITY_SPACING_PX["xxs"],
                     )
+                    visible_category = (
+                        "Pierres d'âme"
+                        if category == "Objets" and self._is_soul_stone(name)
+                        else category
+                    )
                     row_layout.addWidget(self._copyable_preparation_item(
-                        name, f"{quantity if quantity else '?'} × {name} ({category})",
+                        name,
+                        f"{quantity if quantity else '?'} × {name} ({visible_category})",
                         item_id,
                     ))
                     self.preparation_rows_layout.addWidget(row)
