@@ -11,6 +11,9 @@ from uuid import uuid4
 from threading import RLock
 from typing import Any
 
+from app.modules.encyclopedia.services.guide_source_media import (
+    carry_source_images, has_source_images, source_image_key,
+)
 from app.modules.encyclopedia.services.guide_ultime_manual_conditions import GuideUltimeManualConditionsMixin
 from app.modules.encyclopedia.services.guide_ultime_manual_route import (
     _manual_tree_signature,
@@ -1721,6 +1724,10 @@ class GuideUltimeManualRuntimeService(GuideUltimeManualConditionsMixin, GuideUlt
                     self._forward_authored_line_images(result, before, value)
                     media_attached = True
 
+        if not media_attached and has_source_images(value):
+            # The authored value might contain an image but no text at all.
+            self._forward_authored_line_images(result, len(result), value)
+
         if not name and kamas in (None, ""):
             for key, child in value.items():
                 if key in {"requirement", "instruction", "action", "do", "note", "policy", "warning", "condition"}:
@@ -1770,25 +1777,12 @@ class GuideUltimeManualRuntimeService(GuideUltimeManualConditionsMixin, GuideUlt
         source: dict[str, Any],
         *, position: str = "",
     ) -> None:
-        """Forward screenshot metadata; keep source assets and text unchanged.
-
-        The shared Qt guide renderer owns image loading and zoom. This small
-        bridge merely prevents known image references on authored route rows
-        from being dropped when the row becomes one rendered instruction.
-        """
-        media_fields = ("image_path", "local_image_path", "image_paths", "images")
-        if not any(source.get(field) for field in media_fields):
+        if not has_source_images(source):
             return
         if len(result) <= first_new_line:
-            # Some authored waypoints contain a screenshot without a separate
-            # textual action. Keep that image on its own source row rather
-            # than silently dropping it or fabricating an instruction.
+            # A documented screenshot can stand alone without fake prose.
             result.append({"kind": "image", "position": position, "text": ""})
-        for field in media_fields:
-            if source.get(field):
-                result[first_new_line][field] = copy.deepcopy(source[field])
-        if source.get("caption"):
-            result[first_new_line]["caption"] = str(source["caption"])
+        carry_source_images(source, result[first_new_line])
 
     def _append_line(
         self,
@@ -1980,12 +1974,8 @@ class GuideUltimeManualRuntimeService(GuideUltimeManualConditionsMixin, GuideUlt
             key = normalize_text(f"{row.get('position', '')} {row.get('text', '')}")
             # Two distinct authored screenshots are not duplicate route
             # instructions even if their captions are both empty.
-            media_key = repr(tuple(
-                (field, row[field])
-                for field in ("image_path", "local_image_path", "image_paths", "images")
-                if row.get(field)
-            ))
-            if media_key != "()" and (key or media_key):
+            media_key = source_image_key(row)
+            if media_key:
                 key += "|source-image:" + media_key
             if key and key not in seen:
                 seen.add(key)
