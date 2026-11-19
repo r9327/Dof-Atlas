@@ -25,15 +25,21 @@ def normalize_guide_travel_command(value: str) -> str | None:
     text = str(value or "").replace("\r", " ").replace("\n", " ").strip()
     match = _TRAVEL_RE.fullmatch(text)
     if match is not None:
-        coords = tuple(int(value) for value in match.groups())
-        if _MISSING_GAME_COORDINATE in coords:
+        parts = match.groups()
+        if any(len(value.lstrip("-")) > 10 for value in parts):
+            return None
+        coords = tuple(int(value) for value in parts)
+        if any(not -(2**31) < coord < 2**31 for coord in coords):
             return None
         return f"/travel {coords[0]},{coords[1]}"
     match = _GUIDE_SEQUENCE_RE.fullmatch(text)
     if match is None:
         return None
-    coords = tuple(int(value) for value in match.groups())
-    if _MISSING_GAME_COORDINATE in coords:
+    parts = match.groups()
+    if any(len(value.lstrip("-")) > 10 for value in parts):
+        return None
+    coords = tuple(int(value) for value in parts)
+    if any(not -(2**31) < coord < 2**31 for coord in coords):
         return None
     return (
         f"/zaap {coords[0]},{coords[1]} ; "
@@ -59,9 +65,14 @@ class TravelMacro:
                 # Guide can fall back to copying /travel immediately.
                 return False
             clients, _offline = eligible
-            if not any(is_unity_window(client.handle) for client in clients):
-                # Cached Organizer slots may outlive the actual DOFUS window.
-                # A worker that sends nothing must not count as launched.
+            if not any(
+                is_unity_window(client.handle)
+                and is_dofus_unity_process(client.handle)
+                for client in clients
+            ):
+                # A Unity window may belong to another game. Give Guide an
+                # immediate refusal for a copyable /travel fallback instead
+                # of accepting a worker that will never send to DOFUS.
                 self.runtime._emit_status(
                     "Déplacement ignoré : aucune fenêtre DOFUS utilisable.",
                 )
