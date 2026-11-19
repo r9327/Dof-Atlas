@@ -2014,16 +2014,22 @@ class SharedGuideManualView(GuideUltimeManualView):
                 remaining = max(0, int(quantity) - int(value))
                 if ready:
                     status_label.setText("Prêt")
-                elif total == 1:
-                    status_label.setText(
-                        f"Manque {remaining}" if remaining else "À valider"
-                    )
-                else:
+                elif remaining:
+                    # Show useful inventory shortage even for a whole team.
+                    # Keep the saved per-character readiness detail in hover
+                    # instead of stretching every row's compact layout.
+                    status_label.setText(f"Manque {remaining}")
+                elif total > 1 and confirmed:
                     status_label.setText(f"{confirmed}/{total} prêts")
-                status_label.setToolTip(
+                else:
+                    status_label.setText("À valider")
+                hint = (
                     f"Encore {remaining} à obtenir"
                     if remaining else "Quantité atteinte · coche Prêt pour confirmer"
                 )
+                if total > 1:
+                    hint += f" · {confirmed}/{total} personnages prêts"
+                status_label.setToolTip(hint)
 
             counter.valueChanged.connect(update_stock_label)
             update_stock_label(counter.value())
