@@ -277,14 +277,22 @@ def apply_player_line_policy(lines: list[dict[str, Any]]) -> list[dict[str, Any]
         filtered.append(row)
 
     result: list[dict[str, Any]] = []
-    seen: set[tuple[str, str, str]] = set()
+    seen: set[tuple[str, str, str, str]] = set()
     for row in filtered:
+        media_key = repr(tuple(
+            (field, row[field])
+            for field in ("image_path", "local_image_path", "image_paths", "images")
+            if row.get(field)
+        ))
         key = (
             str(row.get("kind") or "").strip(),
             str(row.get("position") or "").strip(),
             normalize_text(row.get("text")),
+            media_key,
         )
-        if key[2] and key not in seen:
+        # A source screenshot without prose remains an image-only row.
+        # Distinct screenshots accompanying identical text remain distinct.
+        if (key[2] or media_key != "()") and key not in seen:
             seen.add(key)
             result.append(row)
     return result
