@@ -71,20 +71,39 @@ def _positive_int(value: Any) -> int | None:
     return parsed if parsed > 0 else None
 
 
+PREPARATION_CATEGORIES = (
+    "Prérequis", "Métiers", "Potions", "Pierres d'âme", "Clefs", "Objets",
+)
+
+
 def category_for(name: str, kind: str = "") -> str:
+    """One category source for authored data, summary, filter and Guide UI."""
     category = normalized_name(kind)
     label = normalized_name(name)
     if category in {"prerequis", "prerequisite", "gate", "condition"}:
         return "Prérequis"
-    if category in {"metier", "metiers", "profession"}:
+    if category in {"metier", "metiers", "profession", "professions"}:
         return "Métiers"
+    # The real item name wins over a generic "Objets" tag. An explicit
+    # semantic category wins when the name is descriptive rather than literal.
     if "pierre d ame" in label or "soul stone" in label:
         return "Pierres d'âme"
-    if "potion" in label:
+    if category in {"pierre d ame", "pierres d ame", "soul stone", "soul stones"}:
+        return "Pierres d'âme"
+    if category in {"potion", "potions"} or "potion" in label:
         return "Potions"
+    if category in {"clef", "clefs", "cle", "cles", "key", "keys"}:
+        return "Clefs"
     if label.startswith(("clef ", "cle ", "clefs ", "cles ")):
         return "Clefs"
     return "Objets"
+
+
+def matches_preparation_category(
+    category: str, name: str, selected: str,
+) -> bool:
+    """The summary, read-only preview and live selector filter identically."""
+    return selected == "Tout" or category_for(name, category) == selected
 
 
 def _structured_entries(raw: Any, *, origin: str = "") -> Iterable[dict[str, Any]]:
@@ -357,5 +376,6 @@ def aggregate_remaining(
 
 __all__ = [
     "PreparationClaim", "PreparationNeed", "card_claims", "aggregate_remaining",
-    "category_for", "item_identity", "normalized_name",
+    "PREPARATION_CATEGORIES", "category_for", "matches_preparation_category",
+    "item_identity", "normalized_name",
 ]
