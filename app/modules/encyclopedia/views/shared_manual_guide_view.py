@@ -27,7 +27,7 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 
-from app.modules.encyclopedia.services.guide_quest_view_model import quest_solution_steps
+from app.modules.encyclopedia.services.guide_quest_view_model import (local_item_image_path, quest_solution_steps)
 from app.modules.encyclopedia.views.guide_ultime_manual_view import (
     GuideUltimeManualCard,
     GuideUltimeManualView,
@@ -39,30 +39,6 @@ from app.ui.unity_skin import apply_unity_panel_shadow
 from app.constants import DATA_DIR
 from app.modules.encyclopedia.services.image_service import ENCYCLOPEDIA_IMAGE_SERVICE
 from app.ui.theme import PALETTE
-
-
-@lru_cache(maxsize=1)
-def _preparation_icon_roots() -> tuple[Path, ...]:
-    """Resolve shipped item images once, only on opening Preparation."""
-    roots = (DATA_DIR / "images" / "items", DATA_DIR / "images" / "resources")
-    # Both direct <id>.png and one-level category/<id>.png layouts exist.
-    # Preserve a bounded one-time scan: never walk the entire image library.
-    existing = tuple(root for root in roots if root.is_dir())
-    return existing + tuple(directory for root in existing
-                            for directory in root.iterdir() if directory.is_dir())
-
-
-@lru_cache(maxsize=1024)
-def _preparation_icon_path(item_id: int) -> Path | None:
-    # Canonical images may be shipped either as PNG or optimized WebP.
-    # Resolve the same exact item ID in the existing bounded image folders.
-    # No fake inventory icon and no full library scan at startup.
-    for folder in _preparation_icon_roots():
-        for extension in (".png", ".webp"):
-            candidate = folder / f"{item_id}{extension}"
-            if candidate.is_file():
-                return candidate
-    return None
 
 
 _COMBAT_STOP_WORDS = {
@@ -1941,9 +1917,14 @@ class SharedGuideManualView(GuideUltimeManualView):
         button.setAccessibleName(f"Copier {name}")
         button.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
         if item_id is not None:
-            path = _preparation_icon_path(item_id)
-            if path is not None:
-                pixmap = ENCYCLOPEDIA_IMAGE_SERVICE.load_scaled(path, QSize(UNITY_CONTROL_SIZES_PX["guide_preparation_icon"], UNITY_CONTROL_SIZES_PX["guide_preparation_icon"]))
+            # Quest and Preparation use the same item -> iconId catalogue.
+            # Sprite filenames are icon IDs, not necessarily database IDs.
+            image_path = local_item_image_path(item_id)
+            if image_path:
+                icon_size = UNITY_CONTROL_SIZES_PX["guide_preparation_icon"]
+                pixmap = ENCYCLOPEDIA_IMAGE_SERVICE.load_scaled(
+                    Path(image_path), QSize(icon_size, icon_size),
+                )
                 if not pixmap.isNull():
                     button.setIcon(QIcon(pixmap))
         # Missing IDs or missing shipped artwork are NOT the same inventory
