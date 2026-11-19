@@ -714,24 +714,11 @@ class HomePage(QWidget):
             )
             self.network_retry.setVisible(False)
             return
-        # Capture/UAC failures require a new explicit permission request.
-        # Queue runtime startup afterwards; on a missing context, the existing
-        # Encyclopedia initializer will start it when catalogue data arrives.
-        capture_failure = (
-            reason == "capture_elevation_cancelled"
-            or reason.startswith("capture_helper")
-            or "permission" in reason
-        )
-        if capture_failure:
-            accepted = bridge.prepare_capture()
-            if accepted:
-                bridge.request_verified_runtime()
-        else:
-            accepted = bridge.request_verified_runtime()
-        if not accepted:
-            # A client can be started before Encyclopedia has supplied its
-            # compact quest context. Preparing capture remains valid there.
-            accepted = bridge.prepare_capture()
+        # One worker command owns context loading, calibration and UAC.
+        # A separate prepare_capture + start_runtime sequence can prompt
+        # twice after a cancelled permission and start even if preparation
+        # failed. Never report a queue-only capture preparation as "connected".
+        accepted = bridge.request_verified_runtime()
         if accepted:
             self.network_retry.setVisible(False)
             self.network_status.setText("Relance demandée…")
