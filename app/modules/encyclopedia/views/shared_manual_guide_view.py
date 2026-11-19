@@ -27,7 +27,8 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 
-from app.modules.encyclopedia.services.guide_quest_view_model import (local_item_image_path, quest_solution_steps)
+from app.core.item_artwork import item_icon_path
+from app.modules.encyclopedia.services.guide_quest_view_model import quest_solution_steps
 from app.modules.encyclopedia.services.guide_preparation_model import (
     PREPARATION_CATEGORIES, category_for, matches_preparation_category,
     preparation_stock_presentation,
@@ -1795,7 +1796,7 @@ class SharedGuideManualView(GuideUltimeManualView):
         if item_id is not None:
             # Quest and Preparation use the same item -> iconId catalogue.
             # Sprite filenames are icon IDs, not necessarily database IDs.
-            image_path = local_item_image_path(item_id)
+            image_path = item_icon_path(item_id)
             if image_path:
                 icon_size = UNITY_CONTROL_SIZES_PX["guide_preparation_icon"]
                 pixmap = ENCYCLOPEDIA_IMAGE_SERVICE.load_scaled(
