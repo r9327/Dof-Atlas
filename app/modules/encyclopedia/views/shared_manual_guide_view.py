@@ -544,7 +544,14 @@ class SharedGuideManualCard(GuideUltimeManualCard):
         if quest_names is None:
             quest_names = dict(self._quest_rows)
         for row_index, row in enumerate(visible):
-            text = str(row.get("text") or "").strip()
+            # A Ganymède source line is already a row: its printed bullet
+            # must not become a second Atlas bullet beside the same action.
+            # Preserve hyphenated words and negative map coordinates.
+            original_text = str(row.get("text") or "").strip()
+            text = re.sub(
+                r"^(?:(?:[•●▪◦]\s*)|(?:[-–—*]\s+))+",
+                "", original_text,
+            ).strip() or original_text
             position = self._display_position(str(row.get("position") or ""))
             kind = str(row.get("kind") or "")
             prefix = "⚠ " if kind == "warning" else ""
