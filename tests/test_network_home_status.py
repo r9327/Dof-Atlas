@@ -183,6 +183,64 @@ class NetworkHomeStatusTests(unittest.TestCase):
         page.network_status.setText.assert_called_once_with("Suivi indisponible")
         page.network_retry.setVisible.assert_not_called()
 
+    def test_mapping_recovery_states_are_actionable_not_false_active(self) -> None:
+        for reason in (
+            "mapping_no_exact_match", "mapping_missing_required_events",
+            "mapping_current_profile_noncanonical",
+        ):
+            with self.subTest(reason=reason):
+                self.assertEqual(
+                    HomePage._network_summary(self._status(reason=reason)),
+                    ("Connexion…", "pending"),
+                )
+                self.assertIn(
+                    "calibration",
+                    HomePage._network_explanation(self._status(reason=reason)).lower(),
+                )
+        self.assertEqual(
+            HomePage._network_summary(
+                self._status(reason="capture_ready_waiting_context"),
+            ),
+            ("En attente de données", "pending"),
+        )
+
+    def test_stop_cleanup_failures_cannot_launch_duplicate_capture(self) -> None:
+        from types import SimpleNamespace
+        from unittest.mock import Mock
+
+        for reason in ("stop_failed", "runtime_start_cleanup_failed"):
+            with self.subTest(reason=reason):
+                bridge = Mock(last_status=self._status(reason=reason))
+                page = SimpleNamespace(
+                    network_bridge=bridge,
+                    network_retry=Mock(),
+                    network_status=Mock(),
+                )
+                HomePage._retry_network_tracking(page)
+                bridge.prepare_capture.assert_not_called()
+                bridge.request_verified_runtime.assert_not_called()
+                page.network_retry.setVisible.assert_called_once_with(False)
+
+    def test_retry_visibility_reflects_active_and_safe_error_states(self) -> None:
+        from unittest.mock import Mock
+
+        page = Mock()
+        page.network_indicator.property.return_value = "idle"
+        for reason, visible in (
+            ("capture_elevation_cancelled", True),
+            ("build_fingerprint_error", True),
+            ("runtime_stop_failed", False),
+            ("runtime_start_cleanup_failed", False),
+            ("running", False),
+        ):
+            with self.subTest(reason=reason):
+                page.reset_mock()
+                page.network_indicator.property.return_value = "idle"
+                HomePage._on_network_status(
+                    page, self._status(reason=reason),
+                )
+                page.network_retry.setVisible.assert_called_once_with(visible)
+
     def _new_network_bridge(self, coordinator):
         from unittest.mock import patch
         from app.ui.network_bridge import NetworkUiBridge
