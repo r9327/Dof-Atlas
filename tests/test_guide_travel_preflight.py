@@ -162,6 +162,35 @@ class GuideTravelPreflightTests(unittest.TestCase):
         activate.assert_called_once()
         restore.assert_not_called()
 
+    def test_mutated_organizer_roster_before_worker_prevents_misdirected_input(self):
+        for mutation in ("handle", "mode"):
+            with self.subTest(mutation=mutation):
+                client = SimpleNamespace(handle=123, character_key="character:1")
+                macro, runtime, restore = self._running_macro(client)
+                runtime._spawn_macro = Mock(return_value=True)
+                with (
+                    patch("app.macros.travel.is_unity_window", return_value=True),
+                    patch("app.macros.travel.is_dofus_unity_process", return_value=True),
+                ):
+                    self.assertTrue(macro.run_async("/travel 3,-6", ("character:1",)))
+                queued_worker = runtime._spawn_macro.call_args.args[1]
+                if mutation == "handle":
+                    client.handle = 456
+                else:
+                    runtime.settings.macro_mode = "macro"
+                with (
+                    patch("app.macros.travel.activate_window") as activate,
+                    patch("app.macros.travel.send_chat_command") as send,
+                ):
+                    queued_worker()
+                    activate.assert_not_called()
+                    send.assert_not_called()
+                restore.assert_not_called()
+                self.assertIn(
+                    "modifiés avant lancement",
+                    runtime._emit_status.call_args.args[0],
+                )
+
     def test_invalid_command_never_reports_accepted_request(self):
         client = SimpleNamespace(handle=123, character_key="character:1")
         macro, runtime = self._macro(client)
