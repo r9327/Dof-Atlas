@@ -1288,6 +1288,7 @@ class GuideUltimeManualRuntimeService(GuideUltimeManualConditionsMixin, GuideUlt
                 )
                 self._forward_authored_line_images(
                     result, before, action if isinstance(action, dict) else {},
+                    position=position,
                 )
 
         for route_row in stage.get("route", []) or []:
@@ -1309,7 +1310,9 @@ class GuideUltimeManualRuntimeService(GuideUltimeManualConditionsMixin, GuideUlt
             )
             before = len(result)
             self._append_line(result, "action", position, raw_action, quest_names)
-            self._forward_authored_line_images(result, before, route_row)
+            self._forward_authored_line_images(
+                result, before, route_row, position=position,
+            )
 
         for field in (
             "conditional_actions",
@@ -1765,6 +1768,7 @@ class GuideUltimeManualRuntimeService(GuideUltimeManualConditionsMixin, GuideUlt
         result: list[dict[str, Any]],
         first_new_line: int,
         source: dict[str, Any],
+        *, position: str = "",
     ) -> None:
         """Forward screenshot metadata; keep source assets and text unchanged.
 
@@ -1772,9 +1776,15 @@ class GuideUltimeManualRuntimeService(GuideUltimeManualConditionsMixin, GuideUlt
         bridge merely prevents known image references on authored route rows
         from being dropped when the row becomes one rendered instruction.
         """
-        if len(result) <= first_new_line:
+        media_fields = ("image_path", "local_image_path", "image_paths", "images")
+        if not any(source.get(field) for field in media_fields):
             return
-        for field in ("image_path", "local_image_path", "image_paths", "images"):
+        if len(result) <= first_new_line:
+            # Some authored waypoints contain a screenshot without a separate
+            # textual action. Keep that image on its own source row rather
+            # than silently dropping it or fabricating an instruction.
+            result.append({"kind": "image", "position": position, "text": ""})
+        for field in media_fields:
             if source.get(field):
                 result[first_new_line][field] = copy.deepcopy(source[field])
         if source.get("caption"):
@@ -1968,6 +1978,15 @@ class GuideUltimeManualRuntimeService(GuideUltimeManualConditionsMixin, GuideUlt
         seen: set[str] = set()
         for row in lines:
             key = normalize_text(f"{row.get('position', '')} {row.get('text', '')}")
+            # Two distinct authored screenshots are not duplicate route
+            # instructions even if their captions are both empty.
+            media_key = repr(tuple(
+                (field, row[field])
+                for field in ("image_path", "local_image_path", "image_paths", "images")
+                if row.get(field)
+            ))
+            if media_key != "()" and (key or media_key):
+                key += "|source-image:" + media_key
             if key and key not in seen:
                 seen.add(key)
                 result.append(row)
