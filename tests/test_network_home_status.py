@@ -140,6 +140,49 @@ class NetworkHomeStatusTests(unittest.TestCase):
             HomePage._network_explanation(self._status(reason="context_ready")).lower(),
         )
 
+    def test_relaunch_after_cancelled_uac_requests_permission_first(self) -> None:
+        from types import SimpleNamespace
+        from unittest.mock import Mock
+
+        bridge = Mock(last_status=self._status(reason="capture_elevation_cancelled"))
+        bridge.prepare_capture.return_value = True
+        page = SimpleNamespace(
+            network_bridge=bridge, network_retry=Mock(), network_status=Mock(),
+        )
+        HomePage._retry_network_tracking(page)
+        bridge.prepare_capture.assert_called_once_with()
+        bridge.request_verified_runtime.assert_called_once_with()
+        page.network_retry.setVisible.assert_called_once_with(False)
+        page.network_status.setText.assert_called_once_with("Relance demandée…")
+
+    def test_relaunch_runtime_retries_without_permission_prompt_when_available(self) -> None:
+        from types import SimpleNamespace
+        from unittest.mock import Mock
+
+        bridge = Mock(last_status=self._status(reason="mapping_invalid"))
+        bridge.request_verified_runtime.return_value = True
+        page = SimpleNamespace(
+            network_bridge=bridge, network_retry=Mock(), network_status=Mock(),
+        )
+        HomePage._retry_network_tracking(page)
+        bridge.request_verified_runtime.assert_called_once_with()
+        bridge.prepare_capture.assert_not_called()
+
+    def test_relaunch_without_context_can_prepare_capture_without_fake_success(self) -> None:
+        from types import SimpleNamespace
+        from unittest.mock import Mock
+
+        bridge = Mock(last_status=self._status(reason="no_window_handles"))
+        bridge.request_verified_runtime.return_value = False
+        bridge.prepare_capture.return_value = False
+        page = SimpleNamespace(
+            network_bridge=bridge, network_retry=Mock(), network_status=Mock(),
+        )
+        HomePage._retry_network_tracking(page)
+        bridge.prepare_capture.assert_called_once_with()
+        page.network_status.setText.assert_called_once_with("Suivi indisponible")
+        page.network_retry.setVisible.assert_not_called()
+
     def _new_network_bridge(self, coordinator):
         from unittest.mock import patch
         from app.ui.network_bridge import NetworkUiBridge
