@@ -3612,6 +3612,14 @@ QLabel#GuideManualCombatTargetsTitle {
     font-weight: 800;
 }
 
+/* Shared local-image viewer: Quest and Guide reuse the same Qt label.
+   No opaque card/background should appear behind PNG or WebP artwork. */
+QLabel#QuestSolutionImage {
+    color: @TEXT_SOFT;
+    background: transparent;
+    border: none;
+}
+
 #GuideManualLocation {
     color: @TEXT;
     font-size: 14px;
