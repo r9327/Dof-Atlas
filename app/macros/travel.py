@@ -3,6 +3,8 @@ from __future__ import annotations
 import re
 from typing import TYPE_CHECKING
 
+from app.core.character_identity import is_character_key
+from app.core.map_coordinates import normalize_coordinate_pair
 from app.macros.input_tools import send_chat_command
 from app.macros.mirror_plan import is_dofus_unity_process
 from app.windows.focus import activate_window
@@ -22,26 +24,18 @@ def normalize_guide_travel_command(value: str) -> str | None:
     text = str(value or "").replace("\r", " ").replace("\n", " ").strip()
     match = _TRAVEL_RE.fullmatch(text)
     if match is not None:
-        parts = match.groups()
-        if any(len(value.lstrip("-")) > 10 for value in parts):
-            return None
-        coords = tuple(int(value) for value in parts)
-        if any(not -(2**31) < coord < 2**31 for coord in coords):
-            return None
-        return f"/travel {coords[0]},{coords[1]}"
+        position = normalize_coordinate_pair(*match.groups())
+        return f"/travel {position}" if position is not None else None
+
     match = _GUIDE_SEQUENCE_RE.fullmatch(text)
     if match is None:
         return None
     parts = match.groups()
-    if any(len(value.lstrip("-")) > 10 for value in parts):
+    zaap = normalize_coordinate_pair(*parts[:2])
+    destination = normalize_coordinate_pair(*parts[2:])
+    if zaap is None or destination is None:
         return None
-    coords = tuple(int(value) for value in parts)
-    if any(not -(2**31) < coord < 2**31 for coord in coords):
-        return None
-    return (
-        f"/zaap {coords[0]},{coords[1]} ; "
-        f"/travel {coords[2]},{coords[3]}"
-    )
+    return f"/zaap {zaap} ; /travel {destination}"
 
 
 class TravelMacro:
@@ -102,7 +96,7 @@ class TravelMacro:
             self.runtime.logger.info("Travel guide ignore: aucun participant selectionne.")
             self.runtime._emit_status("Déplacement ignoré : aucun participant sélectionné.")
             return None
-        if any(not re.fullmatch(r"character:[1-9]\d*", key) for key in character_keys):
+        if any(not is_character_key(key) for key in character_keys):
             self.runtime.logger.warning("Travel guide ignore: identite participant invalide.")
             self.runtime._emit_status("Déplacement ignoré : identité de participant invalide.")
             return None

@@ -10,6 +10,7 @@ from typing import Iterable
 from app.core.item_artwork import (
     item_icon_index, item_icon_path,
 )
+from app.core.map_coordinates import normalize_coordinate_pair
 from app.modules.encyclopedia.models import (
     Achievement,
     EntityRef,
@@ -689,16 +690,11 @@ def _canonical_source_coordinate(value: object) -> str:
     """Only exact numeric coordinates enter the shared copyable start field."""
 
     match = COORD_RE.fullmatch(clean_text(value))
-    if match is None or any(
-        len(part.lstrip("-")) > 10 for part in match.groups()
-    ):
+    if match is None:
         return ""
-    x, y = (int(part) for part in match.groups())
-    # Game input uses signed 32-bit positions. Reject the missing-position
-    # sentinel, overflow and malformed values consistently at the source.
-    if not all(SENTINEL_COORD < coord < 2**31 for coord in (x, y)):
-        return ""
-    return f"[{x},{y}]"
+    # The Guide sheet and Macro share the same 32-bit coordinate validator.
+    position = normalize_coordinate_pair(*match.groups(), lower_exclusive=SENTINEL_COORD)
+    return f"[{position}]" if position is not None else ""
 
 
 def _documented_quest_position(quest: QuestRecord) -> str:
