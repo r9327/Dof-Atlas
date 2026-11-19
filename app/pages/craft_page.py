@@ -145,7 +145,7 @@ class CraftResourceDialog(AtlasDialog):
             icon.setFixedSize(box, box)
             icon.setAlignment(Qt.AlignCenter)
             item_info = info.get("item") if isinstance(info.get("item"), dict) else {"name": name, "image_path": info.get("image_path", "")}
-            resource_icon = self.icon_cache.icon_for_item(craft_image_item(item_info)).pixmap(24, 24)
+            resource_icon = self.icon_cache.icon_for_item(item_info).pixmap(24, 24)
             if not resource_icon.isNull():
                 icon.setPixmap(resource_icon)
             label = AtlasButton(name)
@@ -241,7 +241,7 @@ class ItemSetDialog(AtlasDialog):
             row.setObjectName("ListRow")
             layout = QHBoxLayout(row)
             icon = QLabel()
-            icon.setPixmap(self.icon_cache.icon_for_item(craft_image_item(item)).pixmap(28, 28))
+            icon.setPixmap(self.icon_cache.icon_for_item(item).pixmap(28, 28))
             layout.addWidget(icon)
             layout.addWidget(QLabel(f"{item.get('name', 'Objet')}  Lvl {item.get('level', '?')}"), 1)
             add = AtlasButton("+")
@@ -316,7 +316,7 @@ class LevelingDialog(AtlasDialog):
             icon.setFixedSize(box, box)
             icon.setAlignment(Qt.AlignCenter)
             if item:
-                icon.setPixmap(self.icon_cache.icon_for_item(craft_image_item(item)).pixmap(28, 28))
+                icon.setPixmap(self.icon_cache.icon_for_item(item).pixmap(28, 28))
             layout.addWidget(icon)
             level = QLabel(str(entry.get("level_range", "")))
             level.setObjectName("LevelBadge")
@@ -879,7 +879,7 @@ class CraftPage(QWidget):
             if generation != self._result_generation:
                 return
             entry = QListWidgetItem(
-                self.icon_cache.icon_for_item(craft_image_item(item)),
+                self.icon_cache.icon_for_item(item),
                 f"{item.get('name', 'Objet')} | Lvl {item.get('level', '?')} | {item.get('type', '')}",
             )
             entry.setData(Qt.UserRole, item)
@@ -987,7 +987,7 @@ class CraftPage(QWidget):
                 layout = QHBoxLayout(widget)
                 layout.setContentsMargins(4, 2, 4, 2)
                 icon = QLabel()
-                icon.setPixmap(self.icon_cache.icon_for_item(craft_image_item(item)).pixmap(24, 24))
+                icon.setPixmap(self.icon_cache.icon_for_item(item).pixmap(24, 24))
                 layout.addWidget(icon)
                 label = QLabel(str(item.get("name", "Objet")))
                 label.setWordWrap(False)
@@ -1315,7 +1315,7 @@ class CraftPage(QWidget):
                 button.setToolButtonStyle(Qt.ToolButtonTextUnderIcon)
                 button.setText(short_label(label, 10))
                 button.setToolTip(label)
-                button.setIcon(self.icon_cache.icon_for_item(craft_image_item(item)))
+                button.setIcon(self.icon_cache.icon_for_item(item))
                 button.setIconSize(QSize(16, 16))
                 button.setFixedSize(56, 42)
                 button.clicked.connect(lambda _checked=False, job=job_name, target=item: self.show_route(job, target))
