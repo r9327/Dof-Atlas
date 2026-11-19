@@ -74,6 +74,34 @@ def item_artwork_path(
     return _nested_artwork(str(directory), absolute.name, family)
 
 
+@lru_cache(maxsize=1)
+def item_icon_index() -> dict[int, str]:
+    """Lazy official item ID -> sprite ID -> local artwork mapping.
+
+    The Quest catalogue and item source files are only read on first actual
+    request for an item icon, never when the Craft/Organizer shell imports.
+    """
+    from app.constants import DATA_DIR, RAW_QUEST_DATA_DIR
+    from app.quest_catalog import doduda_rows, safe_int
+    from app.quest_source_index import build_image_index
+
+    sprites = build_image_index(DATA_DIR / "images")
+    result: dict[int, str] = {}
+    for item_id, row in doduda_rows(RAW_QUEST_DATA_DIR / "items.json").items():
+        icon_id = safe_int(row.get("iconId"))
+        if icon_id is None:
+            continue
+        path = sprites.get(str(icon_id))
+        if path:
+            result[int(item_id)] = path
+    return result
+
+
+def item_icon_path(item_id: int | None) -> str:
+    """The single official item-icon lookup for Quests and Guide Preparation."""
+    return item_icon_index().get(int(item_id), "") if item_id is not None else ""
+
+
 def item_with_artwork(
     item: dict[str, Any], *, root: Path = ROOT_DIR,
 ) -> dict[str, Any]:
