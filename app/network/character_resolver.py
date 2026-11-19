@@ -13,6 +13,7 @@ from app.constants import (
     PROFILE_FILE,
     QUEST_PROGRESS_FILE,
 )
+from app.core.numbers import coerce_positive_int
 from app.core.character_identity import character_key as canonical_character_key
 from app.core.json_store import (
     InvalidPersistentJsonError,
@@ -386,11 +387,7 @@ class CharacterSlotResolver:
 
     @staticmethod
     def _positive_int(value: object) -> int | None:
-        try:
-            parsed = int(value)
-        except (TypeError, ValueError, OverflowError):
-            return None
-        return parsed if parsed > 0 else None
+        return coerce_positive_int(value)
 
     def _legacy_slot_for_identity_unlocked(
         self,

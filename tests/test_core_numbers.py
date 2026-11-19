@@ -3,7 +3,7 @@ from __future__ import annotations
 
 import unittest
 
-from app.core.numbers import optional_int, positive_int
+from app.core.numbers import coerce_positive_int, optional_int, positive_int
 
 
 class PositiveIntTests(unittest.TestCase):
@@ -34,6 +34,22 @@ class OptionalIntTests(unittest.TestCase):
         for raw in (None, "bad", {}, float("nan")):
             with self.subTest(raw=repr(raw)):
                 self.assertIsNone(optional_int(raw))
+
+
+class CoercePositiveIntTests(unittest.TestCase):
+    def test_preserves_legacy_network_numeric_conversion(self):
+        for raw, expected in ((True, 1), (False, None), ("02", 2), (9.7, 9), (0, None), (-1, None)):
+            with self.subTest(raw=repr(raw)):
+                self.assertEqual(coerce_positive_int(raw), expected)
+
+    def test_invalid_and_overflow_return_none(self):
+        class Overflow:
+            def __int__(self):
+                raise OverflowError("out of range")
+
+        for raw in (None, "", {}, float("nan"), Overflow()):
+            with self.subTest(raw=repr(raw)):
+                self.assertIsNone(coerce_positive_int(raw))
 
 
 if __name__ == "__main__":
