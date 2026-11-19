@@ -45,10 +45,20 @@ class TravelMacro:
         self.runtime = runtime
 
     def run_async(self, text: str, character_keys=None) -> bool:
-        command = str(text or "").strip()
+        command = normalize_guide_travel_command(text)
+        if command is None:
+            self.runtime._emit_status("Déplacement ignoré : commande invalide.")
+            return False
         targets = None if character_keys is None else tuple(
             dict.fromkeys(str(key or "").strip() for key in character_keys if str(key or "").strip())
         )
+        if targets is not None and self._targeted_clients(targets) is None:
+            # The Guide caller needs an immediate refusal so it can copy the
+            # /travel instruction. Spawning a worker with zero eligible DOFUS
+            # windows incorrectly reported a successful launch.
+            return False
+        # _run() still rechecks live windows before every game input: the
+        # focused client may disconnect after this inexpensive preflight.
         return self.runtime._spawn_macro("Travel", lambda: self._run(command, targets))
 
     def _targeted_clients(
