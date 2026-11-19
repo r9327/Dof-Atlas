@@ -92,7 +92,8 @@ class UnityPaletteTests(unittest.TestCase):
         self.assertEqual(values["sheet_horizontal"], UNITY_SPACING_PX["lg"])
         self.assertEqual(values["source_image_max_width"], 240)
         self.assertEqual(values["normal_drawer_max_height"], 210)
-        self.assertEqual(values["zoom_dialog_height"], 540)
+        # The actual shared popup caps zoom at 860 px and 82% of the screen.
+        self.assertEqual(values["zoom_dialog_height"], 860)
         theme = (Path(__file__).resolve().parents[1] / "app/ui/theme.py")
         self.assertIn(
             "GUIDE_READING_METRICS = UNITY_GUIDE_READING_METRICS_PX",
