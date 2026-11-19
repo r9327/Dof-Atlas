@@ -897,9 +897,14 @@ class GuideCollapsedStepsRail(CollapsedColumnRail):
 class SolutionImageLabel(QLabel):
     imageLoaded = Signal(object)
 
-    def __init__(self, image_path: str, caption: str = "", parent: QWidget | None = None) -> None:
+    def __init__(
+        self, image_path: str, caption: str = "", parent: QWidget | None = None,
+        *, max_preview_size: tuple[int, int] = (520, 320),
+    ) -> None:
         super().__init__(parent)
         _ensure_async_image_delivery()
+        self._preview_max_width = max(1, int(max_preview_size[0]))
+        self._preview_max_height = max(1, int(max_preview_size[1]))
         self.source = QPixmap()
         self._image_path = str(image_path)
         self._rendered_width = 0
@@ -912,7 +917,7 @@ class SolutionImageLabel(QLabel):
         self.setMinimumWidth(1)
         self.setMinimumHeight(120)
         self.setSizePolicy(QSizePolicy.Preferred, QSizePolicy.Fixed)
-        self.setMaximumWidth(540)
+        self.setMaximumWidth(self._preview_max_width + 20)
         self.setCursor(Qt.PointingHandCursor)
         self.setToolTip(caption)
         self.setText("Chargement de l'image…")
@@ -978,10 +983,16 @@ class SolutionImageLabel(QLabel):
         self._update_scheduled = False
         if self.source.isNull():
             return
-        parent_width = self.parentWidget().width() if self.parentWidget() is not None else 520
-        available_width = min(520, max(120, parent_width - 24))
+        parent_width = (
+            self.parentWidget().width()
+            if self.parentWidget() is not None else self._preview_max_width
+        )
+        available_width = min(
+            self._preview_max_width,
+            max(1, parent_width - 24),
+        )
         target = self.source.size()
-        target.scale(available_width, 320, Qt.KeepAspectRatio)
+        target.scale(available_width, self._preview_max_height, Qt.KeepAspectRatio)
         width = max(1, target.width())
         if width == self._rendered_width and self.pixmap() is not None:
             return
