@@ -8,7 +8,7 @@ from types import SimpleNamespace
 
 os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
 
-from PySide6.QtWidgets import QApplication, QFrame
+from PySide6.QtWidgets import QApplication, QFrame, QLabel, QPushButton
 
 from app.modules.encyclopedia.services.guide_progress_service import GuideProgressService
 from app.modules.encyclopedia.views.shared_manual_guide_view import SharedGuideManualView
@@ -103,6 +103,62 @@ class GuideManualSelectedValidationTests(unittest.TestCase):
     def _show_sheet(self, index: int = 0) -> None:
         self.view._show_index(index)
         QApplication.processEvents()
+
+    def test_bonta_order_button_targets_selected_not_browsing_character(self) -> None:
+        from unittest.mock import Mock
+
+        self.participants.save_selected_keys(("character:2",))
+        self.service.manual_order_choice_required = (
+            lambda character_key, _card: character_key == "character:2"
+        )
+        self.service.manual_order_options_for_card = (
+            lambda _card: ("Œil Attentif",)
+        )
+        self.service.set_bonta_order = Mock()
+
+        self.view.refresh()
+        button = self.view.findChild(QPushButton, "GuideManualOrderButton")
+        self.assertIsNotNone(button)
+        self.assertEqual(button.text(), "Œil Attentif")
+        button.click()
+        self.service.set_bonta_order.assert_called_once_with(
+            "character:2", "Œil Attentif",
+        )
+
+    def test_multiple_selected_characters_show_order_prompt_not_write_button(self) -> None:
+        from unittest.mock import Mock
+
+        self.participants.save_selected_keys(("character:1", "character:2"))
+        self.service.manual_order_choice_required = (
+            lambda character_key, _card: character_key == "character:2"
+        )
+        self.service.manual_order_options_for_card = (
+            lambda _card: ("Œil Attentif",)
+        )
+        self.service.set_bonta_order = Mock()
+
+        self.view.refresh()
+        notice = self.view.findChild(QFrame, "GuideManualOrderChoice")
+        self.assertIsNotNone(notice)
+        self.assertTrue(any(
+            "un seul personnage" in label.text()
+            for label in notice.findChildren(QLabel)
+        ))
+        self.assertIsNone(self.view.findChild(QPushButton, "GuideManualOrderButton"))
+        self.service.set_bonta_order.assert_not_called()
+
+    def test_order_control_never_writes_browsing_profile_without_selection(self) -> None:
+        from unittest.mock import Mock
+
+        self.participants.save_selected_keys(())
+        self.service.manual_order_choice_required = lambda *_args: True
+        self.service.manual_order_options_for_card = (
+            lambda _card: ("Œil Attentif",)
+        )
+        self.service.set_bonta_order = Mock()
+        self.view.refresh()
+        self.assertIsNone(self.view.findChild(QPushButton, "GuideManualOrderButton"))
+        self.service.set_bonta_order.assert_not_called()
 
     def test_legend_exists_only_on_first_rendered_guide_sheet(self) -> None:
         self._show_sheet(0)
