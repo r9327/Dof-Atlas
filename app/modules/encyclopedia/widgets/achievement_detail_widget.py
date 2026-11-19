@@ -4,7 +4,7 @@ from collections.abc import Iterable, Mapping
 from typing import Callable
 
 from PySide6.QtCore import Qt
-from PySide6.QtWidgets import QCheckBox, QFrame, QLabel, QProgressBar, QPushButton, QSizePolicy, QVBoxLayout
+from PySide6.QtWidgets import QCheckBox, QFrame, QLabel, QProgressBar, QSizePolicy, QVBoxLayout
 
 from app.modules.encyclopedia.models.achievement import Achievement, AchievementObjective
 from app.modules.encyclopedia.models.entity_ref import EntityRef
@@ -12,6 +12,7 @@ from app.modules.encyclopedia.services.serialized_achievement_progress_service i
 from app.modules.encyclopedia.widgets.achievement_entity_section import AchievementEntitySection
 from app.modules.encyclopedia.widgets.achievement_objective_widget import AchievementObjectiveWidget
 from app.modules.encyclopedia.widgets.achievement_reward_widget import AchievementRewardWidget
+from app.ui.components import AtlasButton
 
 
 _HIDDEN_OBJECTIVE_TYPES = {"critère pl", "critère ea", "critère qq"}
@@ -110,7 +111,7 @@ class AchievementDetailWidget(QFrame):
         # Success preparation can traverse multiple Quest details. Never do
         # that during Success preload or when opening a detail: opt in on click.
         if preparation_callback is not None:
-            preparation_button = QPushButton("À préparer")
+            preparation_button = AtlasButton("À préparer")
             preparation_button.setObjectName("AchievementPreparationToggle")
             preparation_details = QLabel()
             preparation_details.setObjectName("AchievementPreparationDetails")
