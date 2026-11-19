@@ -1,8 +1,8 @@
-"""Pure, strict positive integer codec for local Atlas contracts.
+"""Pure, Qt-free integer codecs shared by Atlas services.
 
-Reject bool, invalid encodings and overflow without importing Qt, network,
-filesystem or game data. Callers with different integer semantics keep their
-own validators rather than silently changing behavior.
+Use the strict positive parser for identifiers, and the legacy-compatible
+optional parser when a Guide accepts any int-coercible value. The two
+contracts deliberately differ for booleans and non-positive integers.
 """
 from __future__ import annotations
 
@@ -15,3 +15,11 @@ def positive_int(value: object) -> int | None:
     except (TypeError, ValueError, OverflowError):
         return None
     return parsed if parsed > 0 else None
+
+
+def optional_int(value: object) -> int | None:
+    """Preserve Guide integer coercion: booleans and negatives are accepted."""
+    try:
+        return int(value)
+    except (TypeError, ValueError):
+        return None

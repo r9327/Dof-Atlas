@@ -6,6 +6,7 @@ from collections import defaultdict
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, Iterable, Mapping
+from app.core.numbers import optional_int as _safe_int
 
 from app.modules.encyclopedia.services.adventure_route_engine import (
     ItemRequirement,
@@ -125,11 +126,6 @@ def _norm(value: object) -> str:
     return re.sub(r"[^a-zA-Z0-9]+", " ", text.casefold()).strip()
 
 
-def _safe_int(value: Any) -> int | None:
-    try:
-        return int(value)
-    except (TypeError, ValueError):
-        return None
 
 
 def _array(value: Any) -> list[Any]:

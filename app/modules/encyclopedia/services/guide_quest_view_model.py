@@ -11,6 +11,7 @@ from app.core.item_artwork import (
     item_icon_index, item_icon_path,
 )
 from app.core.map_coordinates import normalize_coordinate_pair
+from app.core.numbers import optional_int as _safe_int
 from app.modules.encyclopedia.models import (
     Achievement,
     EntityRef,
@@ -1273,8 +1274,3 @@ def _looks_technical(text: str) -> bool:
     return bool(TECHNICAL_CRITERION_RE.search(str(text or "")))
 
 
-def _safe_int(value: object) -> int | None:
-    try:
-        return int(value)
-    except (TypeError, ValueError):
-        return None

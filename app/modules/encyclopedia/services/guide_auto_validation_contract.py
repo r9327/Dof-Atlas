@@ -6,6 +6,7 @@ import re
 from pathlib import Path
 from threading import RLock
 from typing import Any
+from app.core.numbers import optional_int as _safe_int
 
 from app.modules.encyclopedia.services.guide_ultime_manual_route import _manual_tree_signature
 from app.quest_catalog import doduda_rows, normalize_text, read_json_file, text_for
@@ -37,11 +38,6 @@ _ITEM_HINT_RE = re.compile(
 )
 
 
-def _safe_int(value: Any) -> int | None:
-    try:
-        return int(value)
-    except (TypeError, ValueError):
-        return None
 
 
 def _stable_card_key(card: dict[str, Any]) -> str:

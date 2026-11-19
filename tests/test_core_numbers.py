@@ -3,7 +3,7 @@ from __future__ import annotations
 
 import unittest
 
-from app.core.numbers import positive_int
+from app.core.numbers import optional_int, positive_int
 
 
 class PositiveIntTests(unittest.TestCase):
@@ -22,6 +22,18 @@ class PositiveIntTests(unittest.TestCase):
             def __int__(self):
                 raise OverflowError("out of range")
         self.assertIsNone(positive_int(OverflowInt()))
+
+
+class OptionalIntTests(unittest.TestCase):
+    def test_accepts_existing_guide_coercion_semantics(self):
+        for raw, expected in ((True, 1), (False, 0), ("-8", -8), (4.9, 4), (0, 0)):
+            with self.subTest(raw=repr(raw)):
+                self.assertEqual(optional_int(raw), expected)
+
+    def test_invalid_values_return_none(self):
+        for raw in (None, "bad", {}, float("nan")):
+            with self.subTest(raw=repr(raw)):
+                self.assertIsNone(optional_int(raw))
 
 
 if __name__ == "__main__":
