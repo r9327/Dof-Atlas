@@ -44,19 +44,16 @@ def source_image_values(row: Mapping[str, Any]) -> tuple[str, ...]:
 def resolved_source_images(
     row: Mapping[str, Any], *, roots: tuple[Path, ...],
 ) -> tuple[str, ...]:
-    """Resolve explicit files against packaged roots, never the current cwd."""
+    """Use the canonical Quest asset resolver, including legacy Windows paths."""
+    # Lazy import: pure route processing never has to load Quest data to
+    # classify a screenshot. Only a visible image resolves its disk path.
+    from app.quest_catalog import resolve_local_asset_path
+
     images: list[str] = []
     for raw in source_image_values(row):
-        path = Path(raw)
-        candidates = (path,) if path.is_absolute() else (
-            root / path for root in roots
-        )
-        for candidate in candidates:
-            if candidate.is_file():
-                resolved = str(candidate)
-                if resolved not in images:
-                    images.append(resolved)
-                break
+        resolved = resolve_local_asset_path(raw, roots=roots)
+        if resolved and Path(resolved).is_file() and resolved not in images:
+            images.append(resolved)
     return tuple(images)
 
 
