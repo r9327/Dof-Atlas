@@ -1702,8 +1702,21 @@ class SharedGuideManualView(GuideUltimeManualView):
             UNITY_GUIDE_READING_METRICS_PX["normal_drawer_max_height"],
             max(UNITY_CONTROL_SIZES_PX["guide_preparation_min_height"], natural),
         ))
+        self.preparation_content.adjustSize()
+        # Checking a distant material must not jump back to the first item.
+        # Changing the category deliberately resets the new list to its top.
+        self.preparation_scroll.verticalScrollBar().setValue(
+            getattr(self, "_preparation_restore_position", 0)
+        )
 
     def _render_preparation(self, selected_filter: str) -> None:
+        scrollbar = self.preparation_scroll.verticalScrollBar()
+        self._preparation_restore_position = (
+            scrollbar.value()
+            if selected_filter == getattr(self, "_preparation_last_filter", None)
+            else 0
+        )
+        self._preparation_last_filter = selected_filter
         self._clear_preparation_rows()
         if not self._progress_participant_keys():
             # A saved but deleted/unregistered character is not an active
