@@ -1474,12 +1474,27 @@ class SharedGuideManualView(GuideUltimeManualView):
 
     @staticmethod
     def _is_soul_stone(name: str) -> bool:
+        # normalize_key joins tokens with underscores, never spaces.
         normalized = normalize_text(name)
-        return (
-            "pierre d ame" in normalized
-            or "pierres d ame" in normalized
-            or "soul stone" in normalized
+        return any(
+            token in normalized
+            for token in ("pierre_d_ame", "pierres_d_ame", "soul_stone")
         )
+
+    @classmethod
+    def _preparation_matches_filter(
+        cls, category: str, name: str, selected_filter: str,
+    ) -> bool:
+        if selected_filter == "Tout":
+            return True
+        soul_stone = cls._is_soul_stone(name)
+        if selected_filter == "Pierres d'âme":
+            return category == selected_filter or (
+                category == "Objets" and soul_stone
+            )
+        if selected_filter == "Objets":
+            return category == "Objets" and not soul_stone
+        return category == selected_filter
 
     @staticmethod
     def _preparation_item_key(item_id: int | None, name: str) -> str:
@@ -1700,7 +1715,10 @@ class SharedGuideManualView(GuideUltimeManualView):
             self.preparation_rows_layout.addWidget(label)
             preview = self._preparation_preview
             if selected_filter != "Tout":
-                preview = tuple(row for row in preview if row[0] == selected_filter)
+                preview = tuple(
+                    row for row in preview
+                    if self._preparation_matches_filter(row[0], row[1], selected_filter)
+                )
             if not preview:
                 self.preparation_rows_layout.addWidget(QLabel("Aucun besoin structuré fiable."))
             else:
@@ -1728,23 +1746,22 @@ class SharedGuideManualView(GuideUltimeManualView):
             return
 
         if selected_filter == "Tout":
-            groups = (
-                ("Prérequis", lambda need: need.category == "Prérequis"),
-                ("Métiers", lambda need: need.category == "Métiers"),
-                ("Potions", lambda need: need.category == "Potions"),
-                ("Pierres d'âme", lambda need: need.category == "Pierres d'âme"
-                 or self._is_soul_stone(need.name)),
-                ("Clefs", lambda need: need.category == "Clefs"),
-                ("Objets", lambda need: need.category == "Objets"
-                 and not self._is_soul_stone(need.name)),
+            categories = (
+                "Prérequis", "Métiers", "Potions", "Pierres d'âme",
+                "Clefs", "Objets",
             )
             if not self._preparation_needs:
                 empty = QLabel("Aucun besoin confirmé sur le parcours restant.")
                 empty.setObjectName("GuidePreparationEmpty")
                 self.preparation_rows_layout.addWidget(empty)
             rendered_count = 0
-            for category, predicate in groups:
-                matching = [need for need in self._preparation_needs if predicate(need)]
+            for category in categories:
+                matching = [
+                    need for need in self._preparation_needs
+                    if self._preparation_matches_filter(
+                        need.category, need.name, category,
+                    )
+                ]
                 if not matching:
                     continue
                 summary = QFrame()
@@ -1775,7 +1792,10 @@ class SharedGuideManualView(GuideUltimeManualView):
             return
 
         matching = [
-            need for need in self._preparation_needs if need.category == selected_filter
+            need for need in self._preparation_needs
+            if self._preparation_matches_filter(
+                need.category, need.name, selected_filter,
+            )
         ]
         if not matching:
             label = QLabel(f"Aucun besoin détaillé dans {selected_filter}.")
