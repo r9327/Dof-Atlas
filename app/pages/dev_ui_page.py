@@ -585,15 +585,8 @@ class DevUiPage(QWidget):
         title.setMinimumWidth(0)
         title.setSizePolicy(QSizePolicy.Ignored, QSizePolicy.Preferred)
         heading.addWidget(title, 1)
-        self.preview_header_overlay = QToolButton()
-        self.preview_header_overlay.setObjectName("GuideCompactOverlayButton")
-        self.preview_header_overlay.setIcon(
-            _guide_symbol_icon(self.preview_header_overlay, "map")
-        )
-        self.preview_header_overlay.setToolTip("Overlay indisponible dans ce runtime")
-        self.preview_header_overlay.setAccessibleName("Overlay")
-        self.preview_header_overlay.setEnabled(False)
-        heading.addWidget(self.preview_header_overlay)
+        # Keep Dev UI consistent with the actual universal Guide header:
+        # no placeholder Overlay control when the runtime has no action.
 
         right.addLayout(heading)
         self.preview_header_title_row = heading
@@ -909,9 +902,9 @@ class DevUiPage(QWidget):
         sheet_row.addWidget(sheet_back)
         labels = QVBoxLayout()
         labels.setSpacing(1)
-        meta = QLabel("ÉTAPE · VILLAGE")
-        meta.setObjectName("GuideSheetMeta")
-        labels.addWidget(meta)
+        # Guide sheets show their authored titles only, no extra Atlas
+        # chapter/step label above the source sheet.
+
         sheet_title = QLabel("Exemple · parler au PNJ du village")
         sheet_title.setObjectName("GuideSheetTitle")
         sheet_title.setWordWrap(True)
