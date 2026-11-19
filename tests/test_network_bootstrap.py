@@ -134,6 +134,33 @@ class NetworkBootstrapTests(unittest.TestCase):
             logger=self.logger,
         )
 
+    def test_network_uses_compact_success_points_without_load_all(self) -> None:
+        class PointsOnlyAchievementProvider(EmptyAchievementProvider):
+            def __init__(self) -> None:
+                self.points_reads = 0
+
+            def achievement_points_index(self) -> dict[int, int]:
+                self.points_reads += 1
+                return {710: 25, 711: 0}
+
+            def load_all(self):
+                raise AssertionError("Network must not materialize rich Successes")
+
+        provider = PointsOnlyAchievementProvider()
+        self.write_mapping("a" * 64)
+        result = build_windows_network_runtime(
+            window_handles_provider=lambda: (123,),
+            quest_catalog=self.catalog,
+            achievement_provider=provider,
+            mapping_roots=(self.mapping_root,),
+            quest_progress_service=self.quest_progress,
+            achievement_progress_service=self.achievement_progress,
+            build_sha256_provider=lambda: "a" * 64,
+            logger=self.logger,
+        )
+        self.assertTrue(result.ready)
+        self.assertEqual(provider.points_reads, 1)
+
     def test_exact_noncurrent_mapping_composes_runtime_without_starting_capture(self) -> None:
         mapping_path = self.write_mapping("a" * 64)
         result = self.build("a" * 64)
