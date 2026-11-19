@@ -1274,7 +1274,21 @@ class GuideUltimeManualRuntimeService(GuideUltimeManualConditionsMixin, GuideUlt
                 if isinstance(value, str) and normalize_text(value)
             ]
             for action in waypoint.get("actions", []) or []:
-                self._append_line(result, "action", position, action, waypoint_quests or quest_names)
+                # A waypoint action may carry its own screenshot. Preserve
+                # only explicitly authored media on that exact action row.
+                value = (
+                    action.get("do") or action.get("action")
+                    or action.get("instruction") or action.get("text")
+                    if isinstance(action, dict) else action
+                )
+                before = len(result)
+                self._append_line(
+                    result, "action", position, value,
+                    waypoint_quests or quest_names,
+                )
+                self._forward_authored_line_images(
+                    result, before, action if isinstance(action, dict) else {},
+                )
 
         for route_row in stage.get("route", []) or []:
             if not isinstance(route_row, dict):
@@ -1293,7 +1307,9 @@ class GuideUltimeManualRuntimeService(GuideUltimeManualConditionsMixin, GuideUlt
                 or route_row.get("instruction")
                 or route_row.get("note")
             )
+            before = len(result)
             self._append_line(result, "action", position, raw_action, quest_names)
+            self._forward_authored_line_images(result, before, route_row)
 
         for field in (
             "conditional_actions",
@@ -1692,10 +1708,15 @@ class GuideUltimeManualRuntimeService(GuideUltimeManualConditionsMixin, GuideUlt
                 text += f" {suffix}"
             self._append_line(result, kind, "", text, quest_names)
 
+        media_attached = False
         for key in ("requirement", "instruction", "action", "do", "note", "policy", "warning", "condition"):
             child = value.get(key)
             if isinstance(child, str) and child.strip():
+                before = len(result)
                 self._append_line(result, kind, "", child, quest_names)
+                if not media_attached and len(result) > before:
+                    self._forward_authored_line_images(result, before, value)
+                    media_attached = True
 
         if not name and kamas in (None, ""):
             for key, child in value.items():
@@ -1738,6 +1759,26 @@ class GuideUltimeManualRuntimeService(GuideUltimeManualConditionsMixin, GuideUlt
             return f"Fais le donjon {name}{f' et bats {boss}' if boss and boss != name else ''}."
         quantity = value.get("quantity")
         return f"Tue {quantity} × {name}." if quantity not in (None, "") else f"Tue {name}."
+
+    @staticmethod
+    def _forward_authored_line_images(
+        result: list[dict[str, Any]],
+        first_new_line: int,
+        source: dict[str, Any],
+    ) -> None:
+        """Forward screenshot metadata; keep source assets and text unchanged.
+
+        The shared Qt guide renderer owns image loading and zoom. This small
+        bridge merely prevents known image references on authored route rows
+        from being dropped when the row becomes one rendered instruction.
+        """
+        if len(result) <= first_new_line:
+            return
+        for field in ("image_path", "local_image_path", "image_paths", "images"):
+            if source.get(field):
+                result[first_new_line][field] = copy.deepcopy(source[field])
+        if source.get("caption"):
+            result[first_new_line]["caption"] = str(source["caption"])
 
     def _append_line(
         self,
