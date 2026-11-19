@@ -106,6 +106,37 @@ def matches_preparation_category(
     return selected == "Tout" or category_for(name, category) == selected
 
 
+def preparation_stock_presentation(
+    required: int,
+    owned: int,
+    *,
+    ready: bool,
+    confirmed: int = 0,
+    participants: int = 1,
+) -> tuple[str, str]:
+    """One stock label and explanation for both Guide and Dev UI.
+
+    Owned quantities are unsaved session drafts. Reaching the target never
+    implies that the user confirmed the durable Prêt state.
+    """
+    remaining = max(0, int(required) - int(owned))
+    if ready:
+        label = "Prêt"
+    elif remaining:
+        label = f"Manque {remaining}"
+    elif participants > 1 and confirmed:
+        label = f"{confirmed}/{participants} prêts"
+    else:
+        label = "À valider"
+    hint = (
+        f"Encore {remaining} à obtenir" if remaining
+        else "Quantité atteinte · coche Prêt pour confirmer"
+    )
+    if participants > 1:
+        hint += f" · {confirmed}/{participants} personnages prêts"
+    return label, hint
+
+
 def _structured_entries(raw: Any, *, origin: str = "") -> Iterable[dict[str, Any]]:
     """Unwrap nested authored preparation containers without mining actions.
 
@@ -377,5 +408,5 @@ def aggregate_remaining(
 __all__ = [
     "PreparationClaim", "PreparationNeed", "card_claims", "aggregate_remaining",
     "PREPARATION_CATEGORIES", "category_for", "matches_preparation_category",
-    "item_identity", "normalized_name",
+    "preparation_stock_presentation", "item_identity", "normalized_name",
 ]
