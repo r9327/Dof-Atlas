@@ -28,6 +28,10 @@ from PySide6.QtWidgets import (
 )
 
 from app.modules.encyclopedia.services.guide_quest_view_model import (local_item_image_path, quest_solution_steps)
+from app.modules.encyclopedia.services.guide_source_media import (
+    has_source_images,
+    resolved_source_images,
+)
 from app.modules.encyclopedia.views.guide_ultime_manual_view import (
     GuideUltimeManualCard,
     GuideUltimeManualView,
@@ -470,48 +474,6 @@ class SharedGuideManualCard(GuideUltimeManualCard):
         return value
 
     @staticmethod
-    def _declares_source_image(row: dict[str, Any]) -> bool:
-        return bool(
-            row.get("image_path") or row.get("local_image_path")
-            or row.get("image_paths") or row.get("images")
-            or (str(row.get("kind") or "") == "image" and row.get("path"))
-        )
-
-    @staticmethod
-    def _local_source_images(row: dict[str, Any]) -> tuple[str, ...]:
-        """Show only images explicitly associated with the authored sheet."""
-        candidates: list[object] = [
-            row.get("image_path"),
-            row.get("local_image_path"),
-        ]
-        many = row.get("image_paths") or row.get("images") or ()
-        if isinstance(many, (list, tuple)):
-            candidates.extend(many)
-        if str(row.get("kind") or "") == "image":
-            candidates.append(row.get("path"))
-        images: list[str] = []
-        for raw in candidates:
-            if isinstance(raw, dict):
-                raw = raw.get("image_path") or raw.get("local_image_path") or raw.get("path")
-            if not isinstance(raw, str) or not raw.strip():
-                continue
-            image = Path(raw)
-            # Imported source paths may be relative to the repository or to
-            # its data directory. Work from the packaged Atlas data root,
-            # not the process's current working directory.
-            candidates = (
-                (image,) if image.is_absolute()
-                else (DATA_DIR.parent / image, DATA_DIR / image)
-            )
-            for candidate in candidates:
-                if candidate.is_file():
-                    resolved = str(candidate)
-                    if resolved not in images:
-                        images.append(resolved)
-                    break
-        return tuple(images)
-
-    @staticmethod
     def _append_source_images(
         layout: QVBoxLayout, image_paths: tuple[str, ...], caption: str,
     ) -> None:
@@ -546,7 +508,7 @@ class SharedGuideManualCard(GuideUltimeManualCard):
             for row in rows or []
             if isinstance(row, dict) and (
                 str(row.get("text") or "").strip()
-                or self._declares_source_image(row)
+                or has_source_images(row)
             )
         ]
         if not visible:
@@ -596,8 +558,8 @@ class SharedGuideManualCard(GuideUltimeManualCard):
                 "", original_text,
             ).strip() or original_text
             position = self._display_position(str(row.get("position") or ""))
-            images = self._local_source_images(row)
-            if not text and self._declares_source_image(row):
+            images = resolved_source_images(row, roots=(DATA_DIR.parent, DATA_DIR))
+            if not text and has_source_images(row):
                 # Source images are valid standalone guide content. The
                 # waypoint remains clickable where one was explicitly given,
                 # without inventing a blank "action" or trailing dash.
@@ -700,7 +662,7 @@ class SharedGuideManualCard(GuideUltimeManualCard):
                     target_layout, images,
                     str(row.get("caption") or text),
                 )
-            elif self._declares_source_image(row):
+            elif has_source_images(row):
                 missing = QLabel("Illustration absente des fichiers locaux")
                 missing.setObjectName("GuideManualWarning")
                 target_layout.addWidget(missing)
