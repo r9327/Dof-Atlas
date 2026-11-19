@@ -434,6 +434,11 @@ def preparation_progress_item_key(item_id: int | None, name: str) -> str:
     return f"name:{digest}"
 
 
+def preparation_ready_key(guide_id: str, item_key: str) -> str:
+    """Stable persisted Prêt marker shared by every Guide renderer."""
+    return f"__ui:preparation_ready:{guide_id or 'guide_complet'}:{item_key}"
+
+
 def aggregate_team_remaining(
     per_character: Iterable[tuple[str, Iterable[PreparationNeed]]],
 ) -> tuple[TeamPreparationNeed, ...]:
@@ -482,5 +487,6 @@ __all__ = [
     "PreparationClaim", "PreparationNeed", "card_claims", "aggregate_remaining",
     "PREPARATION_CATEGORIES", "category_for", "matches_preparation_category",
     "preparation_stock_presentation", "item_identity", "normalized_name",
-    "TeamPreparationNeed", "preparation_progress_item_key", "aggregate_team_remaining",
+    "TeamPreparationNeed", "preparation_progress_item_key", "preparation_ready_key",
+    "aggregate_team_remaining",
 ]
