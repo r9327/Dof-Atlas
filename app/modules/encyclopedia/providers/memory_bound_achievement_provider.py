@@ -927,8 +927,9 @@ class MemoryBoundAchievementProvider(BaseAchievementProvider):
             candidate: dict[int, int] = {}
             for raw_id, points in raw_points.items():
                 if (
-                    not isinstance(raw_id, str) or not raw_id.isascii()
-                    or not raw_id.isdecimal() or str(int(raw_id)) != raw_id
+                    not isinstance(raw_id, str) or not 0 < len(raw_id) <= 20
+                    or not raw_id.isascii() or not raw_id.isdecimal()
+                    or str(int(raw_id)) != raw_id
                     or int(raw_id) <= 0 or type(points) is not int or points < 0
                 ):
                     break
