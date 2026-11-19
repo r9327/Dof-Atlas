@@ -1312,7 +1312,7 @@ class CraftPage(QWidget):
             return
 
         guide = self.guide_for_job(self.selected_job)
-        if self.is_harvest_job(self.selected_job) and guide and guide.get("entries"):
+        if isinstance(guide, dict) and guide.get("entries"):
             leveling = AtlasButton("Leveling 0-200", variant="primary", size="normal")
             leveling.clicked.connect(lambda _checked=False, job=self.selected_job: self.open_leveling_dialog(job))
             self.job_actions_layout.addWidget(leveling)
@@ -1356,8 +1356,15 @@ class CraftPage(QWidget):
     def set_job(self, job_name: str) -> None:
         self.selected_job = job_name
         self.refresh_jobs()
-        # Defer until Qt finishes the button-click signal (refresh_jobs rebuilds
-        # its sender). Harvest and crafting jobs use the same single-click flow.
+        # A job click opens its authored local guide only when it actually has
+        # entries. Missing/editorial guides should never cause a blocking
+        # warning popup on every selection. The explicit Leveling action can
+        # still offer the existing catalogue-based fallback when requested.
+        guide = self.guide_for_job(job_name)
+        if not isinstance(guide, dict) or not guide.get("entries"):
+            return
+        # Rebuilding the job grid destroys the sender. Defer the modal until
+        # Qt has finished dispatching the click, and ignore stale selections.
         QTimer.singleShot(
             20,
             lambda selected=job_name: (
