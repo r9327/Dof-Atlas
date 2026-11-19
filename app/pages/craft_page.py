@@ -1327,7 +1327,14 @@ class CraftPage(QWidget):
             return
 
         if self.has_leveling_content(self.selected_job):
-            leveling = AtlasButton("Leveling 0-200", variant="primary", size="normal")
+            source_guide = self.guide_for_job(self.selected_job)
+            authored = isinstance(source_guide, dict) and bool(source_guide.get("entries"))
+            label = "Leveling 0-200" if authored else "Repères de récolte"
+            leveling = AtlasButton(label, variant="primary", size="normal")
+            leveling.setToolTip(
+                "Guide Leveling local" if authored
+                else "Ressources locales classées, sans gains d'XP garantis"
+            )
             leveling.clicked.connect(lambda _checked=False, job=self.selected_job: self.open_leveling_dialog(job))
             self.job_actions_layout.addWidget(leveling)
         self.job_actions_layout.addStretch(1)
