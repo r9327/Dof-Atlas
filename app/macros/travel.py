@@ -52,11 +52,19 @@ class TravelMacro:
         targets = None if character_keys is None else tuple(
             dict.fromkeys(str(key or "").strip() for key in character_keys if str(key or "").strip())
         )
-        if targets is not None and self._targeted_clients(targets) is None:
-            # The Guide caller needs an immediate refusal so it can copy the
-            # /travel instruction. Spawning a worker with zero eligible DOFUS
-            # windows incorrectly reported a successful launch.
-            return False
+        if targets is not None:
+            eligible = self._targeted_clients(targets)
+            if eligible is None:
+                # Guide can fall back to copying /travel immediately.
+                return False
+            clients, _offline = eligible
+            if not any(is_unity_window(client.handle) for client in clients):
+                # Cached Organizer slots may outlive the actual DOFUS window.
+                # A worker that sends nothing must not count as launched.
+                self.runtime._emit_status(
+                    "Déplacement ignoré : aucune fenêtre DOFUS utilisable.",
+                )
+                return False
         # _run() still rechecks live windows before every game input: the
         # focused client may disconnect after this inexpensive preflight.
         return self.runtime._spawn_macro("Travel", lambda: self._run(command, targets))
