@@ -14,7 +14,6 @@ from PySide6.QtGui import QBrush, QColor, QIcon, QLinearGradient, QPainter, QPix
 from PySide6.QtWidgets import (
     QAbstractItemView,
     QApplication,
-    QButtonGroup,
     QCheckBox,
     QCalendarWidget,
     QDateEdit,
@@ -50,6 +49,9 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 
+from app.modules.encyclopedia.services.guide_preparation_model import (
+    PREPARATION_CATEGORIES, matches_preparation_category,
+)
 from app.ui.components import (
     AtlasBreadcrumb,
     AtlasButton,
@@ -692,34 +694,6 @@ class DevUiPage(QWidget):
         prep_layout = QVBoxLayout(prep_panel)
         prep_layout.setContentsMargins(8, 5, 8, 5)
         prep_layout.setSpacing(UNITY_SPACING_PX["xs"])
-        tabs_layout = QHBoxLayout()
-        tabs_layout.setSpacing(UNITY_SPACING_PX["xs"])
-        self.preview_header_preparation_group = QButtonGroup(self)
-        self.preview_header_preparation_group.setExclusive(True)
-        self.preview_header_preparation_tabs = {}
-        for name in ("Prérequis", "À préparer"):
-            tab = AtlasButton(name, size="compact")
-            tab.setObjectName("GuidePreparationModeTab")
-            tab.setCheckable(True)
-            tab.setProperty("tabKey", name)
-            tab.setChecked(name == "À préparer")
-            self.preview_header_preparation_group.addButton(tab)
-            self.preview_header_preparation_tabs[name] = tab
-            tabs_layout.addWidget(tab)
-        tabs_layout.addStretch(1)
-        prep_layout.addLayout(tabs_layout)
-
-        prereq_host = QWidget()
-        prereq_host.setObjectName("GuidePreparationContent")
-        prereq_layout = QVBoxLayout(prereq_host)
-        prereq_layout.setContentsMargins(0, 0, 0, 0)
-        prereq_label = QLabel("Prérequis · aperçu fictif, aucune donnée importée")
-        prereq_label.setObjectName("GuidePreparationEmpty")
-        prereq_layout.addWidget(prereq_label)
-        prereq_host.setVisible(False)
-        prep_layout.addWidget(prereq_host)
-        self.preview_header_prerequisites_host = prereq_host
-
         materials = QWidget()
         materials.setObjectName("GuidePreparationContent")
         materials_layout = QVBoxLayout(materials)
@@ -728,20 +702,28 @@ class DevUiPage(QWidget):
         self.preview_header_filter = AtlasComboBox()
         self.preview_header_filter.setObjectName("GuidePreparationCategoryFilter")
         self.preview_header_filter.setFixedHeight(UNITY_SIZES_PX["control_compact"])
-        self.preview_header_filter.addItems(
-            ("Tout", "Métiers", "Potions", "Pierres d'âme", "Clefs", "Objets")
-        )
+        self.preview_header_filter.addItems(("Tout", *PREPARATION_CATEGORIES))
         self.preview_header_filter.setAccessibleName("Catégorie de préparation")
+        self.preview_header_preparation_examples = []
+        def filter_preparation_example(category: str) -> None:
+            for widget, item_category, item_name in self.preview_header_preparation_examples:
+                widget.setVisible(matches_preparation_category(
+                    item_category, item_name, category,
+                ))
+            self._report(f"Préparation · filtre {category} (aperçu)")
         self.preview_header_filter.currentTextChanged.connect(
-            lambda text: self._report(f"Préparation · filtre {text} (aperçu)")
+            filter_preparation_example
         )
         materials_layout.addWidget(self.preview_header_filter, 0, Qt.AlignLeft)
         self.preview_header_preparation_rows = []
         self.preview_header_preparation_names = []
-        for name, quantity, done in (
-            ("Potion de rappel", 2, True),
-            ("Clef du donjon", 1, False),
-            ("Ressources à récupérer", 8, False),
+        for category, name, quantity, done in (
+            ("Prérequis", "Accès au village", 1, True),
+            ("Métiers", "Métier Paysan requis", 1, False),
+            ("Potions", "Potion de rappel", 2, True),
+            ("Pierres d'âme", "Pierre d'âme", 1, False),
+            ("Clefs", "Clef du donjon", 1, False),
+            ("Objets", "Ressources à récupérer", 8, False),
         ):
             item = QFrame()
             item.setObjectName("GuidePreparationRow")
@@ -781,20 +763,12 @@ class DevUiPage(QWidget):
             row.addWidget(amount, 0, Qt.AlignVCenter)
             row.addWidget(copy_button, 1, Qt.AlignVCenter)
             materials_layout.addWidget(item)
+            self.preview_header_preparation_examples.append((item, category, name))
             self.preview_header_preparation_rows.append((amount, checkbox))
             self.preview_header_preparation_names.append(copy_button)
         prep_layout.addWidget(materials)
         self.preview_header_materials_host = materials
 
-        def select_prep_tab(name: str) -> None:
-            materials.setVisible(name == "À préparer")
-            prereq_host.setVisible(name == "Prérequis")
-            self._report(f"Guide · {name} : sélectionné (aperçu)")
-
-        for name, button in self.preview_header_preparation_tabs.items():
-            button.clicked.connect(
-                lambda _checked=False, tab=name: select_prep_tab(tab)
-            )
         prep_panel.setVisible(False)
         prep_toggle.toggled.connect(prep_panel.setVisible)
         prep_toggle.clicked.connect(
