@@ -241,6 +241,41 @@ class NetworkHomeStatusTests(unittest.TestCase):
                 )
                 page.network_retry.setVisible.assert_called_once_with(visible)
 
+    def test_explicit_home_network_activation_is_offloaded_from_qt(self) -> None:
+        from unittest.mock import Mock
+
+        coordinator = Mock()
+        coordinator.request_start_compact_runtime.return_value = True
+        bridge = self._new_network_bridge(coordinator)
+        try:
+            self.assertTrue(bridge.request_verified_runtime())
+            coordinator.request_start_compact_runtime.assert_called_once_with()
+            coordinator.request_start_verified_runtime.assert_not_called()
+        finally:
+            bridge.stop()
+            bridge.deleteLater()
+            self.app.processEvents()
+
+    def test_home_offers_activation_when_capture_is_waiting_for_catalogue(self) -> None:
+        from unittest.mock import Mock
+
+        page = Mock()
+        page.network_indicator.property.return_value = "pending"
+        status = self._status(reason="capture_ready_waiting_context")
+        HomePage._on_network_status(page, status)
+        page.network_retry.setText.assert_called_once_with("Activer")
+        page.network_retry.setVisible.assert_called_once_with(True)
+        self.assertIn("worker", HomePage._network_explanation(status))
+
+        self.assertEqual(
+            HomePage._network_summary(self._status(reason="network_context_loading")),
+            ("Chargement Réseau…", "pending"),
+        )
+        self.assertEqual(
+            HomePage._network_summary(self._status(reason="network_context_load_failed")),
+            ("Attention requise", "error"),
+        )
+
     def _new_network_bridge(self, coordinator):
         from unittest.mock import patch
         from app.ui.network_bridge import NetworkUiBridge
