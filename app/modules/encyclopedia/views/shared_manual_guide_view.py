@@ -30,6 +30,7 @@ from PySide6.QtWidgets import (
 from app.modules.encyclopedia.services.guide_quest_view_model import (local_item_image_path, quest_solution_steps)
 from app.modules.encyclopedia.services.guide_preparation_model import (
     PREPARATION_CATEGORIES, category_for, matches_preparation_category,
+    preparation_stock_presentation,
 )
 from app.modules.encyclopedia.services.guide_source_media import (
     has_source_images,
@@ -1875,24 +1876,11 @@ class SharedGuideManualView(GuideUltimeManualView):
             # preparation. Reflect its useful remaining count immediately,
             # but never check the saved Prêt box automatically.
             def update_stock_label(value: int) -> None:
-                remaining = max(0, int(quantity) - int(value))
-                if ready:
-                    status_label.setText("Prêt")
-                elif remaining:
-                    # Show useful inventory shortage even for a whole team.
-                    # Keep the saved per-character readiness detail in hover
-                    # instead of stretching every row's compact layout.
-                    status_label.setText(f"Manque {remaining}")
-                elif total > 1 and confirmed:
-                    status_label.setText(f"{confirmed}/{total} prêts")
-                else:
-                    status_label.setText("À valider")
-                hint = (
-                    f"Encore {remaining} à obtenir"
-                    if remaining else "Quantité atteinte · coche Prêt pour confirmer"
+                label, hint = preparation_stock_presentation(
+                    int(quantity), int(value), ready=ready,
+                    confirmed=confirmed, participants=total,
                 )
-                if total > 1:
-                    hint += f" · {confirmed}/{total} personnages prêts"
+                status_label.setText(label)
                 status_label.setToolTip(hint)
 
             counter.valueChanged.connect(update_stock_label)
