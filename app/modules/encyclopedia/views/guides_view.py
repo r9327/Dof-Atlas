@@ -69,6 +69,7 @@ from app.ui.unity_palette import (
     UNITY_CONTROL_SIZES_PX,
     UNITY_GUIDE_READING_METRICS_PX,
     UNITY_MODULE_GEOMETRY_PX,
+    UNITY_WINDOW_PRESETS_PX,
 )
 
 GUIDE_CARD_GEOMETRY = UNITY_MODULE_GEOMETRY_PX["guide_cards"]
@@ -1044,9 +1045,13 @@ class SolutionImageLabel(QLabel):
             root.setSpacing(0)
 
             image = QLabel()
+            image.setObjectName("QuestSolutionImage")
             image.setAlignment(Qt.AlignCenter)
             screen = self.screen()
-            available = screen.availableGeometry().size() if screen is not None else QSize(1280, 800)
+            available = (
+                screen.availableGeometry().size() if screen is not None
+                else QSize(*UNITY_WINDOW_PRESETS_PX["standard"])
+            )
             metrics = UNITY_GUIDE_READING_METRICS_PX
             max_width = max(
                 metrics["zoom_min_width"],
