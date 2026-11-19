@@ -248,9 +248,19 @@ def apply_player_line_policy(lines: list[dict[str, Any]]) -> list[dict[str, Any]
             row["text"] = text
             expanded.append(row)
             continue
-        for part in split_real_actions(text):
+        for part_index, part in enumerate(split_real_actions(text)):
             split_row = copy.deepcopy(row)
             split_row["text"] = ensure_drop_purchase_alternative(part)
+            if part_index:
+                # One source screenshot belongs to the authored action,
+                # not to each sentence created by the reading policy.
+                has_media = any(
+                    split_row.get(key)
+                    for key in ("image_path", "local_image_path", "image_paths", "images")
+                )
+                if has_media:
+                    for key in ("image_path", "local_image_path", "image_paths", "images", "caption"):
+                        split_row.pop(key, None)
             expanded.append(split_row)
 
     action_texts = [
