@@ -11,6 +11,7 @@ import json
 import re
 import unicodedata
 
+from app.core.numbers import positive_int as _positive_int
 from app.core.text import normalize_key
 import zlib
 from dataclasses import dataclass
@@ -64,14 +65,6 @@ def item_identity(item_id: int | None, name: str) -> str:
     return f"item:{item_id}" if item_id is not None else f"name:{normalized_name(name)}"
 
 
-def _positive_int(value: Any) -> int | None:
-    if isinstance(value, bool):
-        return None
-    try:
-        parsed = int(value)
-    except (TypeError, ValueError, OverflowError):
-        return None
-    return parsed if parsed > 0 else None
 
 
 PREPARATION_CATEGORIES = (

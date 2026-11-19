@@ -231,6 +231,9 @@ UI_CONSUMER_INDEX = {
         "paths": (
             "app/pages/organizer_page.py",
             "app/pages/organizer/organizer_ui.py",
+            "app/pages/organizer/character_sessions.py",
+            "app/pages/organizer/organizer_drag_drop.py",
+            "app/pages/organizer/organizer_hotkeys.py",
             "app/pages/organizer/glass_material.py",
             "app/pages/organizer/radial_overlay.py",
             "app/pages/organizer/radial_selection.py",
