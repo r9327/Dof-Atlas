@@ -51,6 +51,7 @@ from PySide6.QtWidgets import (
 
 from app.modules.encyclopedia.services.guide_preparation_model import (
     PREPARATION_CATEGORIES, matches_preparation_category,
+    preparation_stock_presentation,
 )
 from app.ui.components import (
     AtlasBreadcrumb,
@@ -745,7 +746,7 @@ class DevUiPage(QWidget):
             amount.setFixedHeight(UNITY_SIZES_PX["control_compact"])
             amount.setRange(0, quantity)
             amount.setValue(quantity if done else 0)
-            amount.setSuffix(f" / {quantity}")
+            amount.setSuffix(f"/{quantity}")
             fit_unity_number_spinbox(amount)
             amount.setToolTip("Quantité possédée · aperçu fictif")
             checkbox = QCheckBox()
@@ -762,6 +763,24 @@ class DevUiPage(QWidget):
             row.addWidget(checkbox, 0, Qt.AlignVCenter)
             row.addWidget(amount, 0, Qt.AlignVCenter)
             row.addWidget(copy_button, 1, Qt.AlignVCenter)
+            status_label = QLabel()
+            status_label.setObjectName("GuidePreparationRowStatus")
+            row.addWidget(status_label, 0, Qt.AlignVCenter)
+
+            def refresh_example_stock(
+                _changed=None, *,
+                spin=amount, box=checkbox, label=status_label,
+                required=quantity,
+            ) -> None:
+                text, tooltip = preparation_stock_presentation(
+                    required, spin.value(), ready=box.isChecked(),
+                )
+                label.setText(text)
+                label.setToolTip(tooltip)
+
+            amount.valueChanged.connect(refresh_example_stock)
+            checkbox.toggled.connect(refresh_example_stock)
+            refresh_example_stock()
             materials_layout.addWidget(item)
             self.preview_header_preparation_examples.append((item, category, name))
             self.preview_header_preparation_rows.append((amount, checkbox))
