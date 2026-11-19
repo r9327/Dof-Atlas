@@ -7,7 +7,9 @@ from dataclasses import dataclass, field, replace
 from pathlib import Path
 from typing import Iterable
 
-from app.constants import DATA_DIR, RAW_QUEST_DATA_DIR
+from app.core.item_artwork import (
+    item_icon_index, item_icon_path,
+)
 from app.modules.encyclopedia.models import (
     Achievement,
     EntityRef,
@@ -24,8 +26,6 @@ from app.quest_catalog import (
     QuestRecord,
     QuestReward,
     QuestSolutionBlock,
-    build_image_index,
-    doduda_rows,
     normalize_text,
     resolve_local_asset_path,
     safe_int,
@@ -1203,33 +1203,10 @@ def _merge_display_items(items: Iterable[DisplayItem]) -> tuple[DisplayItem, ...
     return tuple(sorted(merged.values(), key=lambda item: normalize_text(item.name)))
 
 
-def local_item_image_path(item_id: int | None) -> str:
-    """Canonical local item-artwork lookup for Quests and Guide Preparation.
-
-    The image filename is an Ankama icon ID, not the item's database ID.
-    Resolve that mapping only when artwork is requested; its index is cached.
-    """
-    if item_id is None:
-        return ""
-    return _local_item_image_index().get(int(item_id), "")
-
-
-# Older Quest and Guide imports still use this internal spelling.
-_local_item_image_path = local_item_image_path
-
-
-@lru_cache(maxsize=1)
-def _local_item_image_index() -> dict[int, str]:
-    image_index = build_image_index(DATA_DIR / "images")
-    rows: dict[int, str] = {}
-    for item_id, row in doduda_rows(RAW_QUEST_DATA_DIR / "items.json").items():
-        icon_id = safe_int(row.get("iconId"))
-        if icon_id is None:
-            continue
-        path = image_index.get(str(icon_id), "")
-        if path:
-            rows[int(item_id)] = path
-    return rows
+# Historical public/internal callers all share one owned index in app.core.
+local_item_image_path = item_icon_path
+_local_item_image_path = item_icon_path
+_local_item_image_index = item_icon_index
 
 
 def _dedupe_rewards(rewards: Iterable[DisplayReward]) -> tuple[DisplayReward, ...]:
