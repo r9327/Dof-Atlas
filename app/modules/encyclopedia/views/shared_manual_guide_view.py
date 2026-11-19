@@ -1155,14 +1155,8 @@ class SharedGuideManualView(GuideUltimeManualView):
         self.nav_page_label = QLabel(self)
         self.nav_page_label.setObjectName("GuideManualNavPage")
         self.nav_page_label.setVisible(False)
-        self.overlay_button = QToolButton()
-        self.overlay_button.setObjectName("GuideCompactOverlayButton")
-        self.overlay_button.setIcon(_guide_symbol_icon(self.overlay_button, "map"))
-        self.overlay_button.setIconSize(QSize(16, 16))
-        self.overlay_button.setToolTip("Overlay indisponible dans ce runtime")
-        self.overlay_button.setAccessibleName("Overlay")
-        self.overlay_button.setEnabled(False)
-        title_row.addWidget(self.overlay_button)
+        # No dead Overlay control in the compact title row: this runtime
+        # has no overlay handler to launch. Keep room for real actions only.
         right.addLayout(title_row)
         self._compact_title_row = title_row
 
@@ -1338,8 +1332,7 @@ class SharedGuideManualView(GuideUltimeManualView):
         self.participants_button.setCheckable(True)
         self.participants_button.setCursor(Qt.PointingHandCursor)
         # One row with Guide title / Overlay / Personnages / Paramètres.
-        self._compact_title_row.insertWidget(
-            self._compact_title_row.count() - 1,
+        self._compact_title_row.addWidget(
             self.participants_button, 0, Qt.AlignVCenter,
         )
         layout.addLayout(top)
