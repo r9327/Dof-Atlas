@@ -117,7 +117,10 @@ class NetworkUiBridge(QObject):
     def request_verified_runtime(self) -> bool:
         if self._stopped:
             return False
-        return self.coordinator.request_start_verified_runtime()
+        # Explicit retry from Home is allowed before visiting Encyclopedia.
+        # The coordinator resolves only its compact Quest context off-thread;
+        # keep all Qt widgets out of catalogue loading.
+        return self.coordinator.request_start_compact_runtime()
 
     def stop(self) -> bool:
         if self._stopped:
