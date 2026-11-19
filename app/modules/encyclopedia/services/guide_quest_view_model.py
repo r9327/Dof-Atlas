@@ -701,6 +701,28 @@ def _canonical_source_coordinate(value: object) -> str:
     return f"[{x},{y}]"
 
 
+def _documented_quest_position(quest: QuestRecord) -> str:
+    """First explicit imported walkthrough coordinate, never inferred prose.
+
+    This is an objective/solution waypoint, NOT a verified quest launch map.
+    The reader labels it accordingly when no independent launch source exists.
+    """
+    for step in getattr(quest, "source_solution_steps", ()) or ():
+        for objective in getattr(step, "objectives", ()) or ():
+            position = _canonical_source_coordinate(
+                getattr(objective, "map_label", ""),
+            )
+            if position:
+                return position
+    for block in getattr(quest, "solution_blocks", ()) or ():
+        position = _canonical_source_coordinate(
+            getattr(block, "position", ""),
+        )
+        if position:
+            return position
+    return ""
+
+
 def quest_start_info(
     quest: QuestRecord, *, include_map_images: bool = True,
 ) -> QuestStartInfo:
@@ -743,6 +765,11 @@ def quest_start_info(
                 break
         if position and zone and npc:
             break
+    if not position:
+        # The visible Quest sheet previously omitted perfectly valid GPS
+        # metadata from source walkthrough objectives/blocks. Display the
+        # first such waypoint as unconfirmed objective, not false start.
+        position = _documented_quest_position(quest)
     return QuestStartInfo(
         level=quest_level_text(quest),
         npc=npc,
@@ -1038,24 +1065,9 @@ def first_position_from_quest(
             position = _canonical_source_coordinate(objective.map_label)
             if position:
                 return position
-    # Some imported Quest records have documentary steps/blocks but no local
-    # launch or gameplay map yet. Their explicitly authored positions can
-    # still provide a real route waypoint; never derive one from narrative
-    # text, a zone name or an unverified map identifier.
-    for step in getattr(quest, "source_solution_steps", ()) or ():
-        for objective in getattr(step, "objectives", ()) or ():
-            position = _canonical_source_coordinate(
-                getattr(objective, "map_label", ""),
-            )
-            if position:
-                return position
-    for block in getattr(quest, "solution_blocks", ()) or ():
-        position = _canonical_source_coordinate(
-            getattr(block, "position", ""),
-        )
-        if position:
-            return position
-    return ""
+    # Keep the Guide route and the Quest sheet on the exact same explicit
+    # imported coordinate, even when callers supply an older start_info.
+    return _documented_quest_position(quest)
 
 
 def travel_command(position: str) -> str:
