@@ -494,6 +494,14 @@ class SharedGuideManualCard(GuideUltimeManualCard):
         return value
 
     @staticmethod
+    def _declares_source_image(row: dict[str, Any]) -> bool:
+        return bool(
+            row.get("image_path") or row.get("local_image_path")
+            or row.get("image_paths") or row.get("images")
+            or (str(row.get("kind") or "") == "image" and row.get("path"))
+        )
+
+    @staticmethod
     def _local_source_images(row: dict[str, Any]) -> tuple[str, ...]:
         """Show only images explicitly associated with the authored sheet."""
         candidates: list[object] = [
@@ -551,7 +559,7 @@ class SharedGuideManualCard(GuideUltimeManualCard):
             for row in rows or []
             if isinstance(row, dict) and (
                 str(row.get("text") or "").strip()
-                or self._local_source_images(row)
+                or self._declares_source_image(row)
             )
         ]
         if not visible:
@@ -602,10 +610,15 @@ class SharedGuideManualCard(GuideUltimeManualCard):
             ).strip() or original_text
             position = self._display_position(str(row.get("position") or ""))
             images = self._local_source_images(row)
-            if not text and not position and images:
-                self._append_source_images(
-                    layout, images, str(row.get("caption") or ""),
-                )
+            if not text and not position and self._declares_source_image(row):
+                if images:
+                    self._append_source_images(
+                        layout, images, str(row.get("caption") or ""),
+                    )
+                else:
+                    missing = QLabel("Illustration absente des fichiers locaux")
+                    missing.setObjectName("GuideManualWarning")
+                    layout.addWidget(missing)
                 continue
             kind = str(row.get("kind") or "")
             prefix = "⚠ " if kind == "warning" else ""
@@ -688,6 +701,10 @@ class SharedGuideManualCard(GuideUltimeManualCard):
                     target_layout, images,
                     str(row.get("caption") or text),
                 )
+            elif self._declares_source_image(row):
+                missing = QLabel("Illustration absente des fichiers locaux")
+                missing.setObjectName("GuideManualWarning")
+                target_layout.addWidget(missing)
 
         root.addWidget(frame)
 
