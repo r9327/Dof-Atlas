@@ -1222,6 +1222,44 @@ class ZaapWidget(QWidget):
         self.refresh_favorite_chips()
         self.status_callback(message)
 
+    def move_favorite(self, name: str, direction: int) -> None:
+        """Reorder the same stored favorites without adding UI controls."""
+        names = list(self.favorite_names)
+        key = normalize_key(name)
+        index = next(
+            (position for position, value in enumerate(names)
+             if normalize_key(value) == key),
+            -1,
+        )
+        target = index + direction
+        if index < 0 or not 0 <= target < len(names):
+            return
+        names[index], names[target] = names[target], names[index]
+        self.favorite_names = save_zaap_favorites(names, self.zaaps)
+        self.refresh_favorite_chips()
+        self.status_callback(f"Ordre des Zaaps mis à jour : {name}")
+
+    def show_favorite_order_menu(
+        self, name: str, button: QPushButton, point: QPoint,
+    ) -> None:
+        """Native context menu; 2-column Organizer grid stays unchanged."""
+        names = [normalize_key(value) for value in self.favorite_names]
+        key = normalize_key(name)
+        if key not in names:
+            return
+        index = names.index(key)
+        menu = QMenu(button)
+        menu.setObjectName("ZaapFavoriteOrderMenu")
+        up = menu.addAction("Monter le favori")
+        down = menu.addAction("Descendre le favori")
+        up.setEnabled(index > 0)
+        down.setEnabled(index < len(names) - 1)
+        chosen = menu.exec(button.mapToGlobal(point))
+        if chosen == up:
+            self.move_favorite(name, -1)
+        elif chosen == down:
+            self.move_favorite(name, 1)
+
     def refresh_favorite_chips(self) -> None:
         if not self.show_favorites:
             self.favorite_buttons = []
@@ -1290,7 +1328,14 @@ class ZaapWidget(QWidget):
                 min(152, max(1, chip_width - 38)) if self.compact_favorites else 152
             )
             button.setCursor(Qt.PointingHandCursor)
-            button.setToolTip(name)
+            button.setToolTip(
+                f"{name}\nClic : lancer · clic droit : changer l’ordre des favoris"
+            )
+            button.setContextMenuPolicy(Qt.CustomContextMenu)
+            button.customContextMenuRequested.connect(
+                lambda point, value=name, control=button:
+                self.show_favorite_order_menu(value, control, point)
+            )
             star_button.clicked.connect(lambda _checked=False, value=row: self.toggle_favorite(value))
             button.clicked.connect(lambda _checked=False, value=row: self.launch_zaap(value))
             chip_layout.addWidget(star_button)
