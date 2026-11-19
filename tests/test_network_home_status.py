@@ -276,6 +276,31 @@ class NetworkHomeStatusTests(unittest.TestCase):
             ("Attention requise", "error"),
         )
 
+    def test_network_bridge_reuses_compact_worker_context_then_releases_rich(self) -> None:
+        from unittest.mock import Mock
+        from app.quest_catalog import QuestCatalog
+
+        coordinator = Mock()
+        coordinator.worker_compact_context_ready = True
+        bridge = self._new_network_bridge(coordinator)
+        try:
+            self.assertTrue(bridge.configure_compact_context())
+            coordinator.configure_context.assert_not_called()
+            self.assertTrue(bridge._compact_context_ready)
+
+            # When a rich Encyclopedia graph replaces the compact context,
+            # Home must be allowed to recreate the compact one later.
+            self.assertTrue(bridge.configure_context(
+                quest_catalog=QuestCatalog([]),
+                achievement_provider=object(),
+            ))
+            coordinator.configure_context.assert_called_once()
+            self.assertFalse(bridge._compact_context_ready)
+        finally:
+            bridge.stop()
+            bridge.deleteLater()
+            self.app.processEvents()
+
     def _new_network_bridge(self, coordinator):
         from unittest.mock import patch
         from app.ui.network_bridge import NetworkUiBridge
