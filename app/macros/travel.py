@@ -18,9 +18,6 @@ _GUIDE_SEQUENCE_RE = re.compile(
     r"^/zaap\s+(-?\d+)\s*,\s*(-?\d+)\s*;\s*/travel\s+(-?\d+)\s*,\s*(-?\d+)$",
     re.IGNORECASE,
 )
-_MISSING_GAME_COORDINATE = -(2**31)
-
-
 def normalize_guide_travel_command(value: str) -> str | None:
     text = str(value or "").replace("\r", " ").replace("\n", " ").strip()
     match = _TRAVEL_RE.fullmatch(text)
@@ -77,13 +74,23 @@ class TravelMacro:
                     "Déplacement ignoré : aucune fenêtre DOFUS utilisable.",
                 )
                 return False
-        # _run() still rechecks live windows before every game input: the
-        # focused client may disconnect after this inexpensive preflight.
+        # Freeze the entire window/character roster at the user's click,
+        # before the async worker can be delayed by other macro operations.
         settings_at_dispatch = self.runtime.settings
+        dispatch_roster = tuple(
+            (client.character_key, client.handle)
+            for client in settings_at_dispatch.clients
+        )
+        dispatch_mode = getattr(settings_at_dispatch, "macro_mode", None)
+        dispatch_preferred = getattr(settings_at_dispatch, "primary_handle", None)
         return self.runtime._spawn_macro(
             "Travel",
             lambda: self._run(
-                command, targets, settings_at_dispatch=settings_at_dispatch,
+                command, targets,
+                settings_at_dispatch=settings_at_dispatch,
+                dispatch_roster=dispatch_roster,
+                dispatch_mode=dispatch_mode,
+                dispatch_preferred=dispatch_preferred,
             ),
         )
 
@@ -131,6 +138,9 @@ class TravelMacro:
     def _run(
         self, command: str, character_keys: tuple[str, ...] | None = None,
         *, settings_at_dispatch=None,
+        dispatch_roster: tuple[tuple[str, int], ...] | None = None,
+        dispatch_mode=None,
+        dispatch_preferred=None,
     ) -> None:
         command = normalize_guide_travel_command(command)
         if command is None:
@@ -150,6 +160,15 @@ class TravelMacro:
         )
         selected_mode = getattr(settings, "macro_mode", None)
         preferred_hwnd = getattr(settings, "primary_handle", None)
+        if settings_at_dispatch is not None and (
+            roster != dispatch_roster
+            or selected_mode != dispatch_mode
+            or preferred_hwnd != dispatch_preferred
+        ):
+            self.runtime._emit_status(
+                "Déplacement annulé : personnages ou mode modifiés avant lancement.",
+            )
+            return
 
         def context_changed() -> bool:
             return (
