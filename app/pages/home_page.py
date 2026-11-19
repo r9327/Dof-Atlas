@@ -472,6 +472,16 @@ class HomePage(QWidget):
         network_text.addWidget(self.network_status)
         network_layout.addLayout(network_text, 1)
 
+        # Explicit recovery after a refused UAC prompt or a failed runtime.
+        # Unlike a permanent network control, this uses the indexed Unity
+        # button and stays hidden while capture is working normally.
+        self.network_retry = AtlasButton("Relancer", size="compact")
+        self.network_retry.setObjectName("HomeNetworkRetry")
+        self.network_retry.setToolTip("Relancer la détection ou la capture réseau")
+        self.network_retry.clicked.connect(self._retry_network_tracking)
+        self.network_retry.setVisible(False)
+        network_layout.addWidget(self.network_retry, 0, Qt.AlignVCenter)
+
         right_layout.addWidget(self.network_card, 0)
         right_layout.addWidget(self.almanax_card, 1)
 
@@ -670,10 +680,50 @@ class HomePage(QWidget):
         text, state = self._network_summary(status)
         self.network_status.setText(text)
         self.network_status.setToolTip(self._network_explanation(status))
+        self.network_retry.setVisible(
+            state == "error" and status.reason != "stop_failed"
+            or state == "idle" and status.reason in {
+                "no_window_handles", "build_fingerprint_unavailable",
+            }
+        )
         if self.network_indicator.property("state") != state:
             self.network_indicator.setProperty("state", state)
             self.network_indicator.style().unpolish(self.network_indicator)
             self.network_indicator.style().polish(self.network_indicator)
+
+    def _retry_network_tracking(self) -> None:
+        """User-initiated retry; no expensive catalogue reload in the UI."""
+        bridge = self.network_bridge
+        reason = str(bridge.last_status.reason or "")
+        # Capture/UAC failures require a new explicit permission request.
+        # Queue runtime startup afterwards; on a missing context, the existing
+        # Encyclopedia initializer will start it when catalogue data arrives.
+        capture_failure = (
+            reason == "capture_elevation_cancelled"
+            or reason.startswith("capture_helper")
+            or "permission" in reason
+        )
+        if capture_failure:
+            accepted = bridge.prepare_capture()
+            if accepted:
+                bridge.request_verified_runtime()
+        else:
+            accepted = bridge.request_verified_runtime()
+        if not accepted:
+            # A client can be started before Encyclopedia has supplied its
+            # compact quest context. Preparing capture remains valid there.
+            accepted = bridge.prepare_capture()
+        if accepted:
+            self.network_retry.setVisible(False)
+            self.network_status.setText("Relance demandée…")
+            self.network_status.setToolTip(
+                "Tentative de connexion demandée ; l'état réseau se mettra à jour."
+            )
+        else:
+            self.network_status.setText("Suivi indisponible")
+            self.network_status.setToolTip(
+                "Le suivi réseau est arrêté ; les fonctions hors ligne restent accessibles."
+            )
 
     @staticmethod
     def _network_explanation(status: NetworkApplicationStatus) -> str:
