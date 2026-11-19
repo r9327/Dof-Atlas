@@ -5,6 +5,7 @@ from types import SimpleNamespace
 from unittest.mock import Mock, patch
 
 from app.macros.travel import TravelMacro, normalize_guide_travel_command
+from app.macros.zaap import parse_zaap_command
 
 
 class GuideTravelPreflightTests(unittest.TestCase):
@@ -67,6 +68,17 @@ class GuideTravelPreflightTests(unittest.TestCase):
             normalize_guide_travel_command("/zaap 01,02 ; /travel 003,-06"),
             "/zaap 1,2 ; /travel 3,-6",
         )
+
+    def test_zaap_parser_shares_guide_and_travel_coordinate_rules(self):
+        self.assertEqual(parse_zaap_command("/zaap 003,-06"), (3, -6))
+        for text in (
+            "/zaap -2147483648,0",
+            "/zaap 2147483648,0",
+            "/zaap " + "9" * 5000 + ",0",
+            "/zaap 1,garbage",
+        ):
+            with self.subTest(length=len(text)):
+                self.assertIsNone(parse_zaap_command(text))
 
     @staticmethod
     def _running_macro(*clients):

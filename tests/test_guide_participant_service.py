@@ -54,6 +54,22 @@ class GuideParticipantServiceTests(unittest.TestCase):
                 ["character:2", "character:1"],
             )
 
+    def test_selection_read_write_normalizes_whitespace_and_deduplicates(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            profile = root / "profile.json"
+            binding = root / "bindings.json"
+            profile.write_text("{}", encoding="utf-8")
+            binding.write_text(json.dumps({"characters": {
+                "3": {"source": "verified_network_identity"},
+            }}), encoding="utf-8")
+            service = GuideParticipantService(profile, root / "clients.json", binding)
+            result = service.save_selected_keys(
+                [" character:3 ", "character:3", "slot:3", "character:4"]
+            )
+            self.assertEqual(result, ("character:3",))
+            self.assertEqual(service.selected_keys(), result)
+
     def test_corrupt_selection_type_fails_closed(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:
             root = Path(temporary)

@@ -4,6 +4,7 @@ import re
 from time import perf_counter
 from typing import TYPE_CHECKING
 
+from app.core.map_coordinates import normalize_coordinate_pair
 from app.macros.input_tools import send_chat_command
 from app.macros.mirror_plan import is_dofus_unity_process, mirror_latency_percentiles_ms
 from app.windows.focus import activate_window
@@ -20,15 +21,12 @@ def parse_zaap_command(value: str) -> tuple[int, int] | None:
     match = _ZAAP_COMMAND_RE.fullmatch(str(value or "").strip())
     if match is None:
         return None
-    try:
-        coords = int(match.group(1)), int(match.group(2))
-    except ValueError:
-        # Python can refuse huge integer strings; clipboard commands are
-        # untrusted text and must never crash the UI event handler.
+    # Use the same bounded, signed coordinate contract as Guide and Travel.
+    canonical = normalize_coordinate_pair(*match.groups())
+    if canonical is None:
         return None
-    if any(not -(2**31) < value < 2**31 for value in coords):
-        return None
-    return coords
+    x, y = canonical.split(",")
+    return int(x), int(y)
 
 
 def zaap_command(x: int, y: int) -> str:
