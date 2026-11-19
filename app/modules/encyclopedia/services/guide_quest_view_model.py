@@ -1203,10 +1203,19 @@ def _merge_display_items(items: Iterable[DisplayItem]) -> tuple[DisplayItem, ...
     return tuple(sorted(merged.values(), key=lambda item: normalize_text(item.name)))
 
 
-def _local_item_image_path(item_id: int | None) -> str:
+def local_item_image_path(item_id: int | None) -> str:
+    """Canonical local item-artwork lookup for Quests and Guide Preparation.
+
+    The image filename is an Ankama icon ID, not the item's database ID.
+    Resolve that mapping only when artwork is requested; its index is cached.
+    """
     if item_id is None:
         return ""
     return _local_item_image_index().get(int(item_id), "")
+
+
+# Older Quest and Guide imports still use this internal spelling.
+_local_item_image_path = local_item_image_path
 
 
 @lru_cache(maxsize=1)
