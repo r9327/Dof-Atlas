@@ -686,9 +686,13 @@ class HomePage(QWidget):
         safe_to_retry = not any(
             marker in reason for marker in ("stop_failed", "cleanup_failed")
         )
+        self.network_retry.setText(
+            "Activer" if reason == "capture_ready_waiting_context" else "Relancer"
+        )
         self.network_retry.setVisible(
             safe_to_retry and (
                 state == "error"
+                or reason == "capture_ready_waiting_context"
                 or state == "idle" and reason in {
                     "no_window_handles", "build_fingerprint_unavailable",
                 }
@@ -757,7 +761,12 @@ class HomePage(QWidget):
             "mapping_no_exact_match": "Version DOFUS non reconnue : calibration automatique demandée.",
             "mapping_missing_required_events": "Profil réseau incomplet : calibration automatique demandée.",
             "mapping_current_profile_noncanonical": "Profil réseau incompatible : nouvelle calibration nécessaire.",
-            "capture_ready_waiting_context": "Capture Windows préparée ; données Quêtes en attente de chargement.",
+            "capture_ready_waiting_context": (
+                "Capture Windows préparée. Activer le suivi pour charger "
+                "le catalogue Quêtes dans le worker sans bloquer l'accueil."
+            ),
+            "network_context_loading": "Chargement des données Quêtes pour le Réseau en arrière-plan.",
+            "network_context_load_failed": "Catalogue réseau indisponible : réessayer ou utiliser Atlas hors ligne.",
         }
         if reason in known:
             return known[reason]
@@ -783,6 +792,7 @@ class HomePage(QWidget):
                 "build_changed",
                 "quest_snapshot_missed",
                 "mapping_invalid",
+                "network_context_load_failed",
             }
             or reason.startswith("capture_helper")
             or "admin" in reason
@@ -811,6 +821,8 @@ class HomePage(QWidget):
             "mapping_current_profile_noncanonical",
         }:
             return "Connexion…", "pending"
+        if reason == "network_context_loading":
+            return "Chargement Réseau…", "pending"
         if reason == "capture_ready_waiting_context":
             return "En attente de données", "pending"
         if reason in {"no_window_handles", "build_fingerprint_unavailable"}:
