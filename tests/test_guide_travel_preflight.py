@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import unittest
 from types import SimpleNamespace
-from unittest.mock import Mock
+from unittest.mock import Mock, patch
 
 from app.macros.travel import TravelMacro
 
@@ -28,8 +28,17 @@ class GuideTravelPreflightTests(unittest.TestCase):
     def test_selected_connected_character_can_launch(self):
         client = SimpleNamespace(handle=123, character_key="character:1")
         macro, runtime = self._macro(client)
-        self.assertTrue(macro.run_async("/travel 3,-6", ("character:1",)))
+        with patch("app.macros.travel.is_unity_window", return_value=True):
+            self.assertTrue(macro.run_async("/travel 3,-6", ("character:1",)))
         runtime._spawn_macro.assert_called_once()
+
+    def test_closed_dofus_window_is_refused_even_if_settings_still_list_it(self):
+        client = SimpleNamespace(handle=123, character_key="character:1")
+        macro, runtime = self._macro(client)
+        with patch("app.macros.travel.is_unity_window", return_value=False):
+            self.assertFalse(macro.run_async("/travel 3,-6", ("character:1",)))
+        runtime._spawn_macro.assert_not_called()
+        self.assertIn("aucune fenêtre", runtime._emit_status.call_args.args[0])
 
     def test_invalid_command_never_reports_accepted_request(self):
         client = SimpleNamespace(handle=123, character_key="character:1")
