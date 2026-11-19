@@ -517,6 +517,9 @@ class MemoryBoundAchievementProvider(BaseAchievementProvider):
         self._compact_retained_ids: tuple[int, ...] = ()
         self._compact_retained_set: frozenset[int] = frozenset()
         self._compact_category_ids: dict[int, tuple[int, ...]] = {}
+        # Optional compact scalars for the network score profile; do not
+        # construct every rich Achievement merely to sum its points.
+        self._compact_points_index: dict[int, int] | None = None
         self._compact_quest_link_cache: OrderedDict[int, tuple[int, ...]] = OrderedDict()
         self._compact_quest_link_stamp: tuple[int, int, int, int] | None = None
         # Optional precomputed relations in newer disposable sidecars.
@@ -575,6 +578,7 @@ class MemoryBoundAchievementProvider(BaseAchievementProvider):
         self._compact_retained_ids = ()
         self._compact_retained_set = frozenset()
         self._compact_category_ids = {}
+        self._compact_points_index = None
         self._compact_quest_link_cache.clear()
         self._compact_quest_link_stamp = None
         self._compact_quest_ids_by_quest = None
@@ -917,6 +921,21 @@ class MemoryBoundAchievementProvider(BaseAchievementProvider):
             self._compact_search_text_index = None
             self._compact_search_generation = None
         self._compact_category_ids = id_tuple_map(index_payload.get("by_category"))
+        raw_points = index_payload.get("points_by_id")
+        points_index: dict[int, int] | None = None
+        if isinstance(raw_points, dict) and len(raw_points) == index_payload.get("achievement_count"):
+            candidate: dict[int, int] = {}
+            for raw_id, points in raw_points.items():
+                if (
+                    not isinstance(raw_id, str) or not raw_id.isascii()
+                    or not raw_id.isdecimal() or str(int(raw_id)) != raw_id
+                    or int(raw_id) <= 0 or type(points) is not int or points < 0
+                ):
+                    break
+                candidate[int(raw_id)] = points
+            else:
+                points_index = candidate
+        self._compact_points_index = points_index
         relation_rows = index_payload.get("by_quest")
         relation_count = index_payload.get("by_quest_ref_count")
         relation_map: dict[int, tuple[int, ...]] | None = None
@@ -1830,6 +1849,43 @@ class MemoryBoundAchievementProvider(BaseAchievementProvider):
             rewards=(points_reward,),
         )
 
+    def achievement_points_index(self) -> dict[int, int]:
+        """Only ID and points for network score lookup, not rich Successes.
+
+        New compact caches expose these scalars in their generation-matched
+        sidecar. Historical caches are streamed once without constructing
+        Achievement objects or retaining complete objective/reward trees.
+        """
+        self._ensure_loaded()
+        if self._compact_external_index is None:
+            return {
+                int(row.id): max(0, int(row.points or 0))
+                for row in self._achievements if int(row.id) > 0
+            }
+        if self._compact_points_index is not None:
+            return dict(self._compact_points_index)
+        points: dict[int, int] = {}
+        with ACHIEVEMENT_COMPACT_CACHE.open("r", encoding="utf-8") as stream:
+            for raw_line in stream:
+                try:
+                    row = json.loads(raw_line)
+                except (TypeError, ValueError):
+                    continue
+                if not isinstance(row, dict) or row.get("kind") != "achievement":
+                    continue
+                value = row.get("value")
+                if not isinstance(value, dict):
+                    continue
+                achievement_id = value.get("id")
+                if type(achievement_id) is not int or achievement_id <= 0:
+                    continue
+                try:
+                    score = max(0, int(value.get("points") or 0))
+                except (TypeError, ValueError, OverflowError):
+                    continue
+                points[achievement_id] = score
+        return points
+
     def load_all(self) -> list[Achievement]:
         self._ensure_loaded()
         default_data_dir = Path(RAW_QUEST_DATA_DIR).resolve(strict=False)
@@ -2319,6 +2375,12 @@ def _build_compact_cache_unlocked(path: Path) -> int:
                 "retained_count": len(retained),
                 "cache_generation": generation,
                 "retained_ids": [int(achievement.id) for achievement in retained],
+                # A network score needs all static points (including non-
+                # retained Successes), never the heavy compatibility objects.
+                "points_by_id": {
+                    str(row.id): max(0, int(row.points or 0))
+                    for row in provider._achievements if int(row.id) > 0
+                },
                 # Optional startup search acceleration. This primitive list
                 # replaces the first full-file scan for newly built caches.
                 # It is aligned one-to-one with retained_ids above.
