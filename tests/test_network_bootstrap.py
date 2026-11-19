@@ -161,6 +161,44 @@ class NetworkBootstrapTests(unittest.TestCase):
         self.assertTrue(result.ready)
         self.assertEqual(provider.points_reads, 1)
 
+    def test_success_point_index_reads_old_compact_cache_without_rich_objects(self) -> None:
+        from unittest.mock import patch
+        from app.modules.encyclopedia.providers.memory_bound_achievement_provider import (
+            MemoryBoundAchievementProvider,
+        )
+
+        provider = MemoryBoundAchievementProvider()
+        provider._compact_external_index = {}
+        provider._compact_points_index = {710: 25}
+        with patch.object(provider, "_ensure_loaded"):
+            self.assertEqual(provider.achievement_points_index(), {710: 25})
+            # Historical paired caches do not have points_by_id in the sidecar.
+            # Stream only the required scalar fields, including external IDs.
+            provider._compact_points_index = None
+            legacy = self.root / "legacy-success.jsonl"
+            legacy.write_text(
+                '\n'.join([
+                    json.dumps({"kind": "meta", "schema_version": 5}),
+                    json.dumps({"kind": "achievement", "value": {
+                        "id": 710, "points": 25, "progress_objectives": [1, 2],
+                    }}),
+                    json.dumps({"kind": "external_start"}),
+                    json.dumps({"kind": "achievement", "value": {
+                        "id": 711, "points": 5, "rewards": [{"name": "legacy"}],
+                    }}),
+                    "",
+                ]),
+                encoding="utf-8",
+            )
+            with patch(
+                "app.modules.encyclopedia.providers.memory_bound_achievement_provider.ACHIEVEMENT_COMPACT_CACHE",
+                legacy,
+            ):
+                self.assertEqual(provider.achievement_points_index(), {
+                    710: 25, 711: 5,
+                })
+        self.assertEqual(provider._achievements, [])
+
     def test_exact_noncurrent_mapping_composes_runtime_without_starting_capture(self) -> None:
         mapping_path = self.write_mapping("a" * 64)
         result = self.build("a" * 64)
