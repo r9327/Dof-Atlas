@@ -160,7 +160,7 @@ class TravelMacro:
         )
         selected_mode = getattr(settings, "macro_mode", None)
         preferred_hwnd = getattr(settings, "primary_handle", None)
-        if settings_at_dispatch is not None and (
+        if settings_at_dispatch is not None and dispatch_roster is not None and (
             roster != dispatch_roster
             or selected_mode != dispatch_mode
             or preferred_hwnd != dispatch_preferred
