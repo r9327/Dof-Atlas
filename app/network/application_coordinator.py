@@ -113,12 +113,18 @@ class NetworkApplicationCoordinator:
         self._operation_lock = threading.RLock()
         self._context_ready = False
         self._context: tuple[QuestCatalog, Any, Any] | None = None
+        self._worker_compact_context_ready = False
         self._calibration_pending = False
         self._next_runtime_retry_at = 0.0
         self._applied_journal_evidence_keys: set[tuple[Any, ...]] = set()
         self._last_status = NetworkApplicationStatus(False, False, "waiting_context")
         self._last_calibration = self.calibration.status()
         self._last_runtime = NetworkControllerStatus(False, "waiting_context")
+
+    @property
+    def worker_compact_context_ready(self) -> bool:
+        with self._lock:
+            return self._worker_compact_context_ready and self._context_ready
 
     @property
     def is_worker_running(self) -> bool:
@@ -153,6 +159,9 @@ class NetworkApplicationCoordinator:
             first_context = not self._context_ready
             self._context_ready = True
             self._context = (quest_catalog, achievement_provider, guide_provider)
+            # An external Encyclopedia context may retain huge UI catalogues.
+            # Only the worker-created compact context has the small-memory flag.
+            self._worker_compact_context_ready = False
             if first_context:
                 self._applied_journal_evidence_keys.clear()
         self.start_worker()
@@ -400,6 +409,8 @@ class NetworkApplicationCoordinator:
                 achievement_provider=achievements,
                 guide_provider=guides,
             )
+            if not self._shutdown_requested and not self._stop_event.is_set():
+                self._worker_compact_context_ready = True
 
     def _prepare_capture(self) -> None:
         """Launch and pause the reusable helper so UAC happens immediately."""
