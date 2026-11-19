@@ -475,8 +475,8 @@ class HomePage(QWidget):
         # Explicit recovery after a refused UAC prompt or a failed runtime.
         # Unlike a permanent network control, this uses the indexed Unity
         # button and stays hidden while capture is working normally.
-        self.network_retry = AtlasButton("Relancer", size="compact")
-        self.network_retry.setObjectName("HomeNetworkRetry")
+        self.network_retry = AtlasButton("Relancer", variant="secondary", size="compact")
+        self.network_retry.setAccessibleName("Relancer le suivi réseau")
         self.network_retry.setToolTip("Relancer la détection ou la capture réseau")
         self.network_retry.clicked.connect(self._retry_network_tracking)
         self.network_retry.setVisible(False)
