@@ -30,6 +30,14 @@ class OptionalIntTests(unittest.TestCase):
             with self.subTest(raw=repr(raw)):
                 self.assertEqual(optional_int(raw), expected)
 
+    def test_custom_default_preserves_achievement_and_quest_graph_contract(self):
+        self.assertEqual(optional_int("25", 7), 25)
+        self.assertEqual(optional_int(True, 7), 1)
+        self.assertEqual(optional_int("-6", 7), -6)
+        for raw in (None, "bad", {}, float("nan")):
+            with self.subTest(raw=repr(raw)):
+                self.assertEqual(optional_int(raw, 7), 7)
+
     def test_invalid_values_return_none(self):
         for raw in (None, "bad", {}, float("nan")):
             with self.subTest(raw=repr(raw)):

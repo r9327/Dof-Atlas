@@ -6,6 +6,7 @@ from typing import Any, Iterable
 from app.constants import QUEST_PROGRESS_FILE
 from app.core.character_identity import require_character_key
 from app.core.json_store import read_json_validated
+from app.core.file_stamp import mtime_ctime_size_stamp
 from app.core.progress_coordinator import coordinator_for, empty_progress_payload as _empty_progress
 from app.quest_catalog import save_quest_progress
 
@@ -63,11 +64,7 @@ class QuestProgressService:
             self._disk_signature = self._current_disk_signature()
 
     def _current_disk_signature(self) -> tuple[int, int, int] | None:
-        try:
-            stat = self.path.stat()
-        except OSError:
-            return None
-        return int(stat.st_mtime_ns), int(stat.st_ctime_ns), int(stat.st_size)
+        return mtime_ctime_size_stamp(self.path)
 
     def _clear_read_caches(self) -> None:
         self._completed_quest_ids_cache.clear()

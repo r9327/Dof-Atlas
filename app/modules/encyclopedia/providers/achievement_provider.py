@@ -10,6 +10,7 @@ from time import perf_counter
 from typing import Any
 
 from app.constants import DATA_DIR, RAW_QUEST_DATA_DIR, ROOT_DIR
+from app.core.numbers import optional_int as safe_int
 from app.modules.encyclopedia.models.achievement import (
     Achievement,
     AchievementCategory,
@@ -41,13 +42,6 @@ _DETAIL_SOURCE_FILES = (
     "ornaments.json",
     "alterations.json",
 )
-
-
-def safe_int(value: Any, default: int | None = None) -> int | None:
-    try:
-        return int(value)
-    except (TypeError, ValueError):
-        return default
 
 
 class AchievementProvider:

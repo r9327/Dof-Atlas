@@ -6,6 +6,7 @@ from typing import Any
 from app.constants import DATA_DIR
 from app.core.character_identity import require_character_key
 from app.core.json_store import read_json_validated, write_json_atomic
+from app.core.file_stamp import mtime_ctime_size_stamp
 from app.core.progress_coordinator import coordinator_for, empty_progress_payload as _empty_progress
 
 
@@ -29,11 +30,7 @@ class GuideProgressService:
             self._disk_signature = self._current_disk_signature()
 
     def _current_disk_signature(self) -> tuple[int, int, int] | None:
-        try:
-            stat = self.path.stat()
-        except OSError:
-            return None
-        return int(stat.st_mtime_ns), int(stat.st_ctime_ns), int(stat.st_size)
+        return mtime_ctime_size_stamp(self.path)
 
     def _clear_manual_steps_cache(self) -> None:
         self._manual_steps_cache.clear()

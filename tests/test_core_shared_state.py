@@ -5,7 +5,9 @@ import tempfile
 import unittest
 from pathlib import Path
 
-from app.core.file_stamp import mtime_size_stamp, resolved_mtime_size_stamp
+from app.core.file_stamp import (
+    mtime_ctime_size_stamp, mtime_size_stamp, resolved_mtime_size_stamp,
+)
 from app.core.progress_coordinator import empty_progress_payload
 
 
@@ -31,8 +33,13 @@ class CoreSharedStateTests(unittest.TestCase):
             self.assertEqual(
                 resolved_mtime_size_stamp(path), (str(path.resolve()), *stamp)
             )
+            self.assertEqual(
+                mtime_ctime_size_stamp(path),
+                (int(stat.st_mtime_ns), int(stat.st_ctime_ns), int(stat.st_size)),
+            )
             path.unlink()
             self.assertEqual(mtime_size_stamp(path), (0, 0))
+            self.assertIsNone(mtime_ctime_size_stamp(path))
 
 
 if __name__ == "__main__":

@@ -19,3 +19,12 @@ def resolved_mtime_size_stamp(path: Path) -> tuple[str, int, int]:
     """Include the path identity for caches spanning several source files."""
     target = Path(path)
     return (str(target.resolve()), *mtime_size_stamp(target))
+
+
+def mtime_ctime_size_stamp(path: Path) -> tuple[int, int, int] | None:
+    """Preserve the stronger progress reload signature; absent file is None."""
+    try:
+        stat = Path(path).stat()
+    except OSError:
+        return None
+    return (int(stat.st_mtime_ns), int(stat.st_ctime_ns), int(stat.st_size))

@@ -29,9 +29,9 @@ def coerce_positive_int(value: object) -> int | None:
     return parsed if parsed > 0 else None
 
 
-def optional_int(value: object) -> int | None:
-    """Preserve Guide integer coercion: booleans and negatives are accepted."""
+def optional_int(value: object, default: int | None = None) -> int | None:
+    """Preserve legacy int coercion, returning the caller's optional fallback."""
     try:
         return int(value)
     except (TypeError, ValueError):
-        return None
+        return default

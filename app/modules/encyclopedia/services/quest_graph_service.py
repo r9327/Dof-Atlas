@@ -8,15 +8,9 @@ from dataclasses import dataclass, field
 from itertools import product
 from typing import Any, Iterable, Mapping
 
+from app.core.numbers import optional_int as safe_int
 from app.modules.encyclopedia.providers import AchievementProvider, GuideProvider, QuestProvider
 from app.quest_catalog import QuestRecord, normalize_text
-
-
-def safe_int(value: Any, default: int | None = None) -> int | None:
-    try:
-        return int(value)
-    except (TypeError, ValueError):
-        return default
 
 
 _REFERENCE_RE = re.compile(r"\b(Qf|Qa|Sc|OA)\s*(?:==|=)\s*(\d+)\b", re.IGNORECASE)

@@ -5,6 +5,7 @@ from typing import Any
 
 from app.core.json_store import read_json_validated, write_json_atomic
 from app.core.character_identity import require_character_key
+from app.core.file_stamp import mtime_ctime_size_stamp
 from app.core.progress_coordinator import coordinator_for, empty_progress_payload as _empty_progress
 from app.modules.encyclopedia.services.achievement_progress_logic import derive_completion_state
 from app.modules.encyclopedia.services.progress_service import (
@@ -51,11 +52,7 @@ class AchievementProgressService(LegacyAchievementProgressService):
         return result
 
     def _current_disk_signature(self) -> tuple[int, int, int] | None:
-        try:
-            stat = self.path.stat()
-        except OSError:
-            return None
-        return int(stat.st_mtime_ns), int(stat.st_ctime_ns), int(stat.st_size)
+        return mtime_ctime_size_stamp(self.path)
 
     def _load(self) -> dict[str, Any]:
         payload = read_json_resilient(self.path, _empty_progress())
