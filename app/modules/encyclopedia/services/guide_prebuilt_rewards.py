@@ -6,7 +6,6 @@ Only a small release-owned JSON projection is retained, without progress.
 """
 from __future__ import annotations
 
-import hashlib
 import json
 import os
 import sys
@@ -15,8 +14,10 @@ from pathlib import Path
 from typing import Any, Iterable
 
 from app.core.file_hash import sha256_file as _sha256
+from app.core.file_stamp import source_file_sizes
 from app.constants import DATA_DIR, ROOT_DIR, RAW_QUEST_DATA_DIR
 from app.modules.encyclopedia.providers.guide_provider import GUIDES_DIR
+from app.modules.encyclopedia.services.guide_release_signature import guide_steps_sha256 as _steps_sha
 from app.modules.encyclopedia.services.guide_quest_view_model import DisplayReward, guide_rewards
 from app.quest_catalog import QUEST_CATALOG_SOURCE_FILES
 
@@ -27,11 +28,9 @@ _IMAGE_PREFIX = "@atlas-root/"
 
 
 def _source_sizes() -> dict[str, int]:
-    values = {}
-    for _label, relative in QUEST_CATALOG_SOURCE_FILES:
-        path = RAW_QUEST_DATA_DIR / relative
-        values[str(relative).replace("\\", "/")] = path.stat().st_size
-    return values
+    return source_file_sizes(
+        RAW_QUEST_DATA_DIR, QUEST_CATALOG_SOURCE_FILES, allow_missing=False,
+    )
 
 
 def _encode_path(image_path: str) -> str:
@@ -59,21 +58,6 @@ def _decode_path(image_path: str) -> str:
     if Path(value).is_absolute() or ".." in Path(value).parts:
         raise ValueError("Invalid external Guide asset path")
     return value
-
-
-def _steps_sha(guide: Any) -> str:
-    steps = [
-        (
-            str(getattr(step, "id", "") or ""),
-            str(getattr(step, "step_type", "") or ""),
-            str(getattr(step, "entity_id", "") or ""),
-            int(getattr(step, "order", 0) or 0),
-        )
-        for step in getattr(guide, "required_steps", ()) or ()
-    ]
-    return hashlib.sha256(
-        json.dumps(steps, ensure_ascii=False, separators=(",", ":")).encode("utf-8")
-    ).hexdigest()
 
 
 def _guide_sha(guide_id: str) -> str:

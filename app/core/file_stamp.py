@@ -1,6 +1,7 @@
 """Tiny Qt-free cache file signatures used by UI and Guide services."""
 from __future__ import annotations
 
+from collections.abc import Iterable
 from pathlib import Path
 
 
@@ -28,3 +29,28 @@ def mtime_ctime_size_stamp(path: Path) -> tuple[int, int, int] | None:
     except OSError:
         return None
     return (int(stat.st_mtime_ns), int(stat.st_ctime_ns), int(stat.st_size))
+
+
+
+def source_file_sizes(
+    root: Path,
+    files: Iterable[tuple[str, str]],
+    *,
+    allow_missing: bool = True,
+) -> dict[str, int]:
+    """Stable source-size manifest for portable Quest and Guide bundles.
+
+    Strict reward builds preserve their original stat() exception; read-only
+    Quest/Guide bundles use -1 so a missing source invalidates the manifest.
+    """
+    sizes: dict[str, int] = {}
+    for _label, relative in files:
+        path = Path(root) / relative
+        try:
+            size = path.stat().st_size
+        except OSError:
+            if not allow_missing:
+                raise
+            size = -1
+        sizes[str(relative).replace("\\", "/")] = int(size)
+    return sizes
