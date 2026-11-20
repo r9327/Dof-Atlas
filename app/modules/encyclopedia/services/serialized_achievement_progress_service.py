@@ -5,16 +5,12 @@ from typing import Any
 
 from app.core.json_store import read_json_validated, write_json_atomic
 from app.core.character_identity import require_character_key
-from app.core.progress_coordinator import coordinator_for
+from app.core.progress_coordinator import coordinator_for, empty_progress_payload as _empty_progress
 from app.modules.encyclopedia.services.achievement_progress_logic import derive_completion_state
 from app.modules.encyclopedia.services.progress_service import (
     ACHIEVEMENT_PROGRESS_FILE,
     AchievementProgressService as LegacyAchievementProgressService,
 )
-
-
-def _empty_progress() -> dict[str, Any]:
-    return {"version": 1, "characters": {}}
 
 
 def read_json_resilient(path: Path, default: Any) -> Any:

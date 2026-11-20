@@ -6,12 +6,8 @@ from typing import Any, Iterable
 from app.constants import QUEST_PROGRESS_FILE
 from app.core.character_identity import require_character_key
 from app.core.json_store import read_json_validated
-from app.core.progress_coordinator import coordinator_for
+from app.core.progress_coordinator import coordinator_for, empty_progress_payload as _empty_progress
 from app.quest_catalog import save_quest_progress
-
-
-def _empty_progress() -> dict[str, Any]:
-    return {"version": 1, "characters": {}}
 
 
 def _quest_progress_schema_error(payload: Any) -> str | None:

@@ -6,7 +6,7 @@ from typing import Any
 from app.constants import DATA_DIR
 from app.core.character_identity import require_character_key
 from app.core.json_store import read_json_validated, write_json_atomic
-from app.core.progress_coordinator import coordinator_for
+from app.core.progress_coordinator import coordinator_for, empty_progress_payload as _empty_progress
 
 
 GUIDE_PROGRESS_FILE = DATA_DIR / "encyclopedia" / "progress" / "guide_progress.json"
@@ -16,10 +16,6 @@ def read_json_resilient(path: Path, default: Any) -> Any:
     """Compatibility seam backed by strict Guide progress validation."""
 
     return read_json_validated(path, default, _guide_progress_schema_error)
-
-
-def _empty_progress() -> dict[str, Any]:
-    return {"version": 1, "characters": {}}
 
 
 class GuideProgressService:

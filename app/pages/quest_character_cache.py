@@ -11,6 +11,7 @@ from app.constants import (
     NETWORK_CHARACTER_BINDINGS_FILE,
     PROFILE_FILE,
 )
+from app.core.file_stamp import mtime_size_stamp as _file_stamp
 from app.core.json_store import read_json_resilient
 from app.services.character_order_logic import (
     normalize_character_order,
@@ -23,16 +24,6 @@ _LOCK = RLock()
 _CACHE: dict[tuple[object, ...], tuple[_quest_catalog.QuestCharacter, ...]] = {}
 _CACHE_ORDER: list[tuple[object, ...]] = []
 _MAX_CACHE_ENTRIES = 16
-
-
-def _file_stamp(path: Path | None) -> tuple[int, int]:
-    if path is None:
-        return (0, 0)
-    try:
-        stat = Path(path).stat()
-    except OSError:
-        return (0, 0)
-    return (int(stat.st_mtime_ns), int(stat.st_size))
 
 
 def _semantic_session_order(profile_path: Path) -> tuple[str, ...]:

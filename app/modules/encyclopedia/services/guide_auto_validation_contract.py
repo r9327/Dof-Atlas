@@ -7,6 +7,7 @@ from pathlib import Path
 from threading import RLock
 from typing import Any
 from app.core.numbers import optional_int as _safe_int
+from app.core.file_stamp import mtime_size_stamp as _file_stamp
 
 from app.modules.encyclopedia.services.guide_ultime_manual_route import _manual_tree_signature
 from app.quest_catalog import doduda_rows, normalize_text, read_json_file, text_for
@@ -433,14 +434,6 @@ def _build_route_auto_validation_contract_uncached(
             "gap_counts": dict(sorted(gap_counts.items())),
         },
     }
-
-
-def _file_stamp(path: Path) -> tuple[int, int]:
-    try:
-        stat = Path(path).stat()
-    except OSError:
-        return (0, 0)
-    return (int(stat.st_mtime_ns), int(stat.st_size))
 
 
 def _achievement_provider_signature(provider: Any) -> tuple[object, ...]:

@@ -5,7 +5,7 @@ import os
 import threading
 from pathlib import Path
 from time import monotonic, sleep
-from typing import BinaryIO
+from typing import Any, BinaryIO
 
 
 DEFAULT_LOCK_TIMEOUT_SECONDS = 10.0
@@ -170,9 +170,15 @@ def coordinator_for(path: Path) -> ProgressFileCoordinator:
         return coordinator
 
 
+def empty_progress_payload() -> dict[str, Any]:
+    """Return a fresh, versioned Quests/Guides/Achievements progress root."""
+    return {"version": 1, "characters": {}}
+
+
 __all__ = [
     "InterProcessResourceLock",
     "ProgressFileCoordinator",
     "ProgressLockTimeoutError",
     "coordinator_for",
+    "empty_progress_payload",
 ]
