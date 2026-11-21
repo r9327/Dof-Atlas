@@ -8,7 +8,7 @@ os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
 
 from PySide6.QtCore import Qt
 from PySide6.QtTest import QTest
-from PySide6.QtWidgets import QApplication, QSpinBox, QWidget
+from PySide6.QtWidgets import QApplication, QComboBox, QSizePolicy, QSpinBox, QWidget
 
 from app.ui.components import (
     AtlasButton,
@@ -85,6 +85,17 @@ class SharedUiComponentsTests(unittest.TestCase):
             self.assertGreaterEqual(width_with_special, width)
         finally:
             selector.deleteLater()
+
+    def test_atlas_combo_owns_content_size_policy(self) -> None:
+        from app.ui.components import AtlasComboBox
+
+        combo = AtlasComboBox()
+        try:
+            self.assertEqual(combo.sizePolicy().horizontalPolicy(), QSizePolicy.Maximum)
+            self.assertEqual(combo.sizePolicy().verticalPolicy(), QSizePolicy.Fixed)
+            self.assertEqual(combo.sizeAdjustPolicy(), QComboBox.AdjustToContents)
+        finally:
+            combo.deleteLater()
 
     def test_shared_dropdown_popup_fits_available_screen(self) -> None:
         from app.ui.components import AtlasComboBox

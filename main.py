@@ -1035,7 +1035,6 @@ class AtlasWindow(QMainWindow):
         self.brand_button.setIcon(self.shell_icon)
         self.brand_button.setIconSize(QSize(0, 0))
         self.brand_button.setMinimumWidth(UNITY_MODULE_GEOMETRY_PX["shell"]["brand_min_width"])
-        self.brand_button.setCursor(Qt.PointingHandCursor)
         brand_layout = QHBoxLayout(self.brand_button)
         brand_inset = UNITY_MODULE_GEOMETRY_PX["shell"]["brand_padding_x"]
         brand_layout.setContentsMargins(brand_inset, 0, brand_inset, 0)

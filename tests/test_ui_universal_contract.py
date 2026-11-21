@@ -118,21 +118,22 @@ class UiUniversalContractTests(unittest.TestCase):
         self.assertIn("AtlasComboBox,", source)
 
     def test_content_sized_selectors_remain_shared_across_modules(self):
+        # The shared AtlasComboBox constructor owns the policy once: screens
+        # must not repeat an identical Maximum/Fixed override.
+        shared = (REPO_ROOT / "app/ui/components.py").read_text(encoding="utf-8")
+        self.assertIn(
+            "self.setSizePolicy(QSizePolicy.Maximum, QSizePolicy.Fixed)", shared
+        )
         for path in ("app/pages/character_page.py", "app/pages/_character_page_impl.py"):
             source = (REPO_ROOT / path).read_text(encoding="utf-8")
-            self.assertIn(
-                "self.character_selector.setSizePolicy(QSizePolicy.Maximum, QSizePolicy.Fixed)",
-                source,
-            )
-            self.assertNotIn(
-                'self.character_selector.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)',
-                source,
-            )
+            self.assertIn("self.character_selector = AtlasComboBox()", source)
+            self.assertNotIn("self.character_selector.setSizePolicy(", source)
         achievements = (
             REPO_ROOT / "app/modules/encyclopedia/views/achievements_view.py"
         ).read_text(encoding="utf-8")
         self.assertNotIn("AdjustToMinimumContentsLengthWithIcon", achievements)
-        self.assertIn("combo.setSizePolicy(QSizePolicy.Maximum, QSizePolicy.Fixed)", achievements)
+        self.assertIn("combo = AtlasComboBox()", achievements)
+        self.assertNotIn("combo.setSizePolicy(QSizePolicy.Maximum, QSizePolicy.Fixed)", achievements)
 
         quests = (
             REPO_ROOT / "app/pages/_quests_page_impl.py"

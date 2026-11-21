@@ -151,7 +151,6 @@ class CraftResourceDialog(AtlasDialog):
             label = AtlasButton(name)
             label.setObjectName("ResourceNameButton")
             label.setFlat(True)
-            label.setCursor(Qt.PointingHandCursor)
             label.clicked.connect(lambda _checked=False, text=name: QApplication.clipboard().setText(text))
             layout.addWidget(checkbox)
             layout.addWidget(quantity)

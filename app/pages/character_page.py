@@ -111,7 +111,6 @@ class CharacterPage(_CharacterPage):
         # Let the shared Unity combo fit the longest character label, while
         # retaining this panel's design cap on narrow equipment layouts.
         self.character_selector.setMaximumWidth(CHARACTER_GEOMETRY["selector_max_width"])
-        self.character_selector.setSizePolicy(QSizePolicy.Maximum, QSizePolicy.Fixed)
         self.character_selector.setToolTip("Sélectionner un personnage")
         self.character_selector.currentIndexChanged.connect(
             self._on_character_selector_changed
